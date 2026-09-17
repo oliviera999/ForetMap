@@ -34,9 +34,20 @@ describe('index.css — typographie du sélecteur de carte', () => {
     expect(body).toMatch(/font-size:\s*var\(--map-toolbar-font-size\)\s*!important/);
   });
 
+  // La compaction passe par le token `--fm-control-min-h` depuis que l'apparence des champs
+  // est posée une seule fois (couche de base de `src/index.css`) : une déclaration
+  // `min-height` en dur remarcherait, mais un `padding` en raccourci — que l'ancienne règle
+  // portait, `!important` compris — écraserait la gouttière du chevron et ramènerait la
+  // flèche sur le libellé de l'option.
   test('la barre compacte compacte aussi le sélecteur, pas seulement les boutons', () => {
     expect(css).toMatch(
-      /\.map-view-root--solo \.map-view-toolbar \.map-switch-select\s*\{[^}]*min-height:30px/,
+      /\.map-view-root--solo \.map-view-toolbar \.map-switch-select\s*\{[^}]*--fm-control-min-h:30px/,
     );
+  });
+
+  test('la compaction ne passe pas par un `padding` en raccourci', () => {
+    const body = ruleBody('.map-view-root--solo .map-view-toolbar .map-switch-select');
+    expect(body).not.toMatch(/(^|;|\s)padding:/);
+    expect(body).toMatch(/--fm-control-chevron-gutter:/);
   });
 });

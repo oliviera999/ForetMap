@@ -168,7 +168,7 @@ export function RecurringSeriesOverview({
           {onToggleRecurringFilter && (
             <button
               type="button"
-              className="btn-secondary recurring-series-overview-filter"
+              className="btn btn-secondary recurring-series-overview-filter"
               onClick={onToggleRecurringFilter}
               aria-pressed={isRecurringFilterActive}
             >

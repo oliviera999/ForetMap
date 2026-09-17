@@ -116,7 +116,7 @@
 .gl-content-admin-list button.is-active {
   border-color: var(--gl-select-ink);
   background: var(--gl-select-ink);
-  color: #fff;
+  color: var(--surface-plain);
 }
 
 .gl-gameplay-toggles {
@@ -133,7 +133,7 @@
   padding: 8px 10px;
   border: 1px solid #d1fae5;
   border-radius: var(--gl-radius-control);
-  background: #f0fdf4;
+  background: var(--tint-success);
 }
 
 .gl-gameplay-toggle label {
@@ -212,13 +212,13 @@
   padding: 6px 10px;
   border-radius: var(--gl-radius-pill);
   border: 2px solid var(--gl-color-text-muted);
-  background: #fff;
+  background: var(--surface-plain);
   cursor: pointer;
 }
 
 .gl-team-chip.is-selected {
   background: #facc15;
-  color: #1f2937;
+  color: var(--ink-strong);
   font-weight: var(--fw-bold);
 }
 
@@ -233,7 +233,7 @@
 
 .gl-team-chip-badge {
   font-size: var(--text-xs);
-  background: #16a34a;
+  background: var(--accent-success-solid);
   color: white;
   padding: 1px 6px;
   border-radius: var(--gl-radius-pill);
@@ -251,7 +251,7 @@
   padding: 8px 10px;
   border: 1px solid #fde68a;
   border-radius: var(--gl-radius-control);
-  background: #fffbeb;
+  background: var(--tint-warning);
 }
 
 .gl-pending-action-head {
@@ -265,7 +265,7 @@
   margin: 6px 0;
   padding: 6px 8px;
   border-left: 3px solid var(--gl-color-accent);
-  background: #fff;
+  background: var(--surface-plain);
   border-radius: 0 6px 6px 0;
   font-size: var(--text-base);
   line-height: var(--lh-normal);
@@ -295,7 +295,7 @@
   padding: 6px 10px;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-control);
-  background: #fff;
+  background: var(--surface-plain);
 }
 
 .gl-scoreboard-team {
@@ -339,7 +339,7 @@
   border: 1px solid var(--gl-border);
   border-left-width: 4px;
   border-radius: var(--gl-radius-sm);
-  background: color-mix(in srgb, #fff 88%, var(--gl-accent-info) 12%);
+  background: color-mix(in srgb, var(--surface-plain) 88%, var(--gl-accent-info) 12%);
 }
 
 .gl-active-game-banner.is-status-draft {
@@ -347,7 +347,7 @@
 }
 
 .gl-active-game-banner.is-status-live {
-  border-left-color: #16a34a;
+  border-left-color: var(--accent-success-solid);
 }
 
 .gl-active-game-banner.is-status-paused {
@@ -355,7 +355,7 @@
 }
 
 .gl-active-game-banner.is-status-ended {
-  border-left-color: #dc2626;
+  border-left-color: var(--accent-danger-solid);
 }
 
 .gl-active-game-banner-head {
@@ -409,7 +409,7 @@
 }
 
 .gl-admin-table tbody tr.is-active-row {
-  background: color-mix(in srgb, #fff 65%, #fde68a 35%);
+  background: color-mix(in srgb, var(--surface-plain) 65%, #fde68a 35%);
   box-shadow: inset 3px 0 0 #eab308;
 }
 
@@ -439,7 +439,7 @@
   border: 1px solid var(--gl-select-surface);
   border-radius: var(--gl-radius-md);
   padding: 10px;
-  background: #fff;
+  background: var(--surface-plain);
 }
 
 .gl-color-editor {
@@ -526,7 +526,7 @@
 
 .gl-theme-preview-chip--primary {
   background: var(--gl-color-primary);
-  color: #fff;
+  color: var(--surface-plain);
 }
 
 .gl-theme-preview-chip--secondary {
@@ -687,7 +687,7 @@
   padding: 12px 14px;
   border-radius: var(--gl-radius-md);
   border: 1px solid var(--gl-border);
-  background: #fff;
+  background: var(--surface-plain);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -726,7 +726,7 @@
   padding: 6px 10px;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-sm);
-  background: #fff;
+  background: var(--surface-plain);
   min-height: 44px;
 }
 .gl-feuillets-overview__coverage button.is-active {
@@ -797,9 +797,9 @@
   gap: 8px;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--line-muted);
   border-radius: var(--gl-radius-sm);
-  background: #fff;
+  background: var(--surface-plain);
   text-align: left;
   cursor: pointer;
 }
@@ -830,9 +830,9 @@
   right: 0;
   max-height: 240px;
   overflow: auto;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--line-muted);
   border-radius: var(--gl-radius-sm);
-  background: #fff;
+  background: var(--surface-plain);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
@@ -840,7 +840,7 @@
   display: flex;
   gap: 8px;
   padding: 6px 8px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-sunken);
   background: #f9fafb;
   position: sticky;
   top: 0;
@@ -872,7 +872,7 @@
 }
 
 .gl-multi-check-dropdown__option:hover {
-  background: #f3f4f6;
+  background: var(--surface-sunken);
 }
 
 .gl-multi-check-dropdown__option-label {
@@ -905,7 +905,7 @@
   overflow: auto;
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-sm);
-  background: #fff;
+  background: var(--surface-plain);
 }
 
 .gl-marker-question-list__row {
@@ -913,15 +913,15 @@
   gap: 8px;
   align-items: flex-start;
   padding: 8px 10px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-sunken);
 }
 
 .gl-marker-question-list__row.is-included {
-  background: #f0fdf4;
+  background: var(--tint-success);
 }
 
 .gl-marker-question-list__row.is-fixed-selected {
-  background: #dcfce7;
+  background: var(--tint-success-strong);
   border-left: 3px solid var(--gl-color-primary);
 }
 
@@ -995,7 +995,7 @@
   width: 100%;
   margin-top: 8px;
   border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 40%, var(--gl-border) 60%);
-  background: color-mix(in srgb, #fff 88%, var(--gl-color-secondary) 12%);
+  background: color-mix(in srgb, var(--surface-plain) 88%, var(--gl-color-secondary) 12%);
   color: var(--gl-color-primary);
   border-radius: var(--gl-radius-control);
   min-height: 44px;
@@ -1015,7 +1015,7 @@
 
 .gl-marker-question-list__header > button {
   border: 1px solid var(--gl-border);
-  background: #fff;
+  background: var(--surface-plain);
   color: var(--gl-color-primary);
   border-radius: var(--gl-radius-control);
   min-height: 38px;
@@ -1082,8 +1082,8 @@
 .gl-mascots-filters button {
   padding: 6px 12px;
   min-height: 36px;
-  border: 1px solid color-mix(in srgb, #fff 55%, var(--gl-color-primary) 45%);
-  background: color-mix(in srgb, #fff 76%, var(--gl-color-secondary) 24%);
+  border: 1px solid color-mix(in srgb, var(--surface-plain) 55%, var(--gl-color-primary) 45%);
+  background: color-mix(in srgb, var(--surface-plain) 76%, var(--gl-color-secondary) 24%);
   color: var(--gl-color-primary);
   border-radius: var(--gl-radius-pill);
   cursor: pointer;
@@ -1096,7 +1096,7 @@
 
 .gl-mascots-filters button.is-active {
   background: var(--gl-color-primary);
-  color: #fff;
+  color: var(--surface-plain);
   border-color: var(--gl-color-primary);
   box-shadow: var(--gl-shadow-sm);
 }
@@ -1125,8 +1125,8 @@
 }
 
 .gl-mascot-card.is-mine {
-  border-color: #16a34a;
-  background: #f0fdf4;
+  border-color: var(--accent-success-solid);
+  background: var(--tint-success);
 }
 
 .gl-mascot-card.is-taken {
@@ -1151,7 +1151,7 @@
   margin-top: 4px;
   align-self: flex-start;
   border: 1px solid var(--gl-border);
-  background: #fff;
+  background: var(--surface-plain);
   color: var(--gl-color-primary);
   border-radius: var(--gl-radius-control);
   min-height: 40px;
@@ -1198,26 +1198,14 @@
   margin-top: 10px;
 }
 
+/* Largeur, filets, en-têtes, zébrure et survol : `.fm-table` / `.fm-table--zebra`
+   (shared/styles/surfaces.css). Ce tableau avait un filet sur les QUATRE côtés — un
+   quadrillage — là où les deux autres tableaux de G&L n'en avaient qu'en bas ; c'est cet
+   écart-là que la variante commune efface. Ne reste ici que la respiration, plus large
+   qu'ailleurs parce que ces tableaux portent peu de colonnes. */
 .gl-admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-base);
-}
-
-.gl-admin-table th,
-.gl-admin-table td {
-  border: 1px solid var(--gl-border);
-  padding: 10px 8px;
-  text-align: left;
-  vertical-align: middle;
-}
-
-.gl-admin-table tbody tr:nth-child(even) {
-  background: color-mix(in srgb, #fff 80%, var(--gl-color-secondary) 20%);
-}
-
-.gl-admin-table tbody tr:hover {
-  background: color-mix(in srgb, #fff 72%, var(--gl-accent-info) 28%);
+  --fm-table-pad-y: 10px;
+  --fm-table-pad-x: 8px;
 }
 
 .gl-admin-actions-cell {
@@ -1245,7 +1233,7 @@
 .gl-data-card {
   border: 1px solid var(--gl-border);
   border-radius: var(--gl-radius-md);
-  background: #fff;
+  background: var(--surface-plain);
   padding: 10px;
   display: grid;
   gap: 6px;
@@ -1623,7 +1611,7 @@
   border: 1px dashed color-mix(in srgb, var(--gl-color-primary) 35%, var(--gl-border));
   border-radius: var(--gl-radius-md);
   padding: 0.85rem 1rem;
-  background: color-mix(in srgb, #fff 92%, var(--gl-color-primary) 8%);
+  background: color-mix(in srgb, var(--surface-plain) 92%, var(--gl-color-primary) 8%);
 }
 
 .gl-content-library__actions {
@@ -1643,19 +1631,10 @@
   overflow-x: auto;
 }
 
+/* Apparence : `.fm-table` + `.fm-table--wrap` (alignement haut et césure du texte long). */
 .gl-content-library__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-base);
-}
-
-.gl-content-library__table th,
-.gl-content-library__table td {
-  border-bottom: 1px solid var(--gl-border);
-  padding: 0.55rem 0.45rem;
-  vertical-align: top;
-  text-align: left;
-  overflow-wrap: anywhere;
+  --fm-table-pad-y: 0.55rem;
+  --fm-table-pad-x: 0.45rem;
 }
 
 .gl-content-library-kind {
@@ -1672,19 +1651,19 @@
 }
 
 .gl-content-library-kind--catalog {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--tint-success-strong);
+  color: var(--ink-success);
 }
 
 .gl-content-library-kind--unknown {
   background: #fee2e2;
-  color: #991b1b;
+  color: var(--ink-danger);
 }
 
 .gl-content-library__warnings {
   margin: 0.35rem 0 0;
   padding-left: 1rem;
-  color: #92400e;
+  color: var(--ink-warning);
 }
 
 .gl-content-library__limits-banner {
@@ -1729,7 +1708,7 @@
 .gl-content-library .media-library-menu__panel--gallery {
   border: 1px solid color-mix(in srgb, var(--gl-color-primary) 16%, var(--gl-border));
   border-radius: var(--gl-radius-md);
-  background: color-mix(in srgb, #fff 94%, var(--gl-color-primary) 6%);
+  background: color-mix(in srgb, var(--surface-plain) 94%, var(--gl-color-primary) 6%);
 }
 
 .gl-content-library .media-library-menu__filters {

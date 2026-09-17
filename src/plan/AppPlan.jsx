@@ -21,13 +21,16 @@ import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
 import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
 import { PLAN_GUIDE_BAR_FOCUS_INSET_PX, PlanGuideBar } from './components/PlanGuideBar.jsx';
+import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
 import { AccessCodeGate } from '../shared/components/AccessCodeGate.jsx';
 import { PlanMapStage } from './components/PlanMapStage.jsx';
 import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
 import { PlanResultsSheet } from './components/PlanResultsSheet.jsx';
 import { PlanTopBar } from './components/PlanTopBar.jsx';
 import { usePlanContent } from './hooks/usePlanContent.js';
-import { reportPlanUsage, submitPlanAccessCode } from './planApi.js';
+import { reportPlanUsage, submitPlanAccessCode, submitPlaceSuggestion } from './planApi.js';
+import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
+import { PlanAccountGate } from './components/PlanAccountGate.jsx';
 import {
   buildPlaceUrl,
   countPlacesByCategory,
@@ -43,14 +46,11 @@ import {
   resolveRouteSteps,
 } from './utils/planRoutes.js';
 
-/** Catégories retenues d'une visite à l'autre (le plan n'a pas de compte). */
-const CATEGORIES_STORAGE_KEY = 'plan:categories';
-/** Message d'accueil : montré une seule fois par appareil. */
-const WELCOME_STORAGE_KEY = 'plan:welcome-seen';
-/** Préférence appareil : carte orientée selon la boussole. */
-const HEADING_UP_STORAGE_KEY = 'plan:heading-up';
-/** Préférence appareil : échelle + rose des vents. */
-const SCALE_COMPASS_STORAGE_KEY = 'plan:scale-compass';
+/**
+ * Préférences d'appareil : catégories retenues d'une visite à l'autre, message d'accueil déjà
+ * vu, carte orientée à la boussole, échelle et rose des vents. Les clés sont préfixées par
+ * variante (`planStorageKeys`) — les deux plans peuvent vivre sur le même téléphone.
+ */
 /** Nombre de résultats affichés (au-delà, affiner la recherche est plus rapide que défiler). */
 const RESULTS_LIMIT = 40;
 
@@ -62,7 +62,14 @@ const RESULTS_LIMIT = 40;
  * validation de visite, aucune donnée personnelle — seul le compteur d'usage anonyme
  * (`POST /api/usage`) sait qu'un lieu a été ouvert.
  */
-export function AppPlan() {
+export function AppPlan({ variant = PLAN_VARIANT }) {
+  const storageKeys = useMemo(() => planStorageKeys(variant), [variant]);
+  const {
+    categories: CATEGORIES_STORAGE_KEY,
+    welcome: WELCOME_STORAGE_KEY,
+    headingUp: HEADING_UP_STORAGE_KEY,
+    scaleCompass: SCALE_COMPASS_STORAGE_KEY,
+  } = storageKeys;
   /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
   const [accessCode, setAccessCode] = useState(() =>
     typeof window === 'undefined'
@@ -79,8 +86,11 @@ export function AppPlan() {
     loading,
     error,
     accessRequired,
+    authRequired,
+    codeAvailable,
+    viewer,
     reload,
-  } = usePlanContent('', accessCode);
+  } = usePlanContent('', accessCode, variant);
   /** Parcours en cours (lot 8) : slug actif et position, mémorisés sur l'appareil seulement. */
   const [activeRouteSlug, setActiveRouteSlug] = useState('');
   const [routeIndex, setRouteIndex] = useState(0);
@@ -105,16 +115,46 @@ export function AppPlan() {
    * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5).
    */
   const [routePeekPlace, setRoutePeekPlace] = useState(null);
-  /** Lieu visé par « Y aller » (ligne droite depuis la position, lot 6). */
-  const [targetPlaceId, setTargetPlaceId] = useState('');
   const deepLinkAppliedRef = useRef(false);
   /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
   const activeRouteSlugRef = useRef('');
+  /** Étape courante et étape où l'on a quitté, en lecture impérative (reprise, §2.2). */
+  const routeIndexRef = useRef(0);
+  const resumableRouteIndexRef = useRef(0);
   const openedOnceRef = useRef(false);
 
   activeRouteSlugRef.current = activeRouteSlug;
+  routeIndexRef.current = routeIndex;
 
-  const title = settings?.title || 'Plan Lyautey';
+  const title = settings?.title || variant.defaultTitle;
+
+  /**
+   * Droits du lecteur, tels que le serveur les a calculés (`/api/staff-plan/content`). Le plan
+   * public ne renvoie pas de `viewer` : tout ce qui suit reste donc éteint chez lui, sans
+   * condition supplémentaire à écrire.
+   */
+  const consoleBaseUrl = String(viewer?.console_base_url || '').replace(/\/+$/, '');
+  const canEditLocations = !!viewer?.can_edit_locations && !!consoleBaseUrl;
+  const canSuggest = !!viewer?.can_report;
+
+  /** Envoi d'un signalement attaché au lieu ouvert (commentaires de contexte). */
+  const suggestForPlace = useCallback(
+    (place) => {
+      if (!canSuggest || !place) return null;
+      return async (body) => {
+        await submitPlaceSuggestion(
+          {
+            contextType: place.kind === 'zone' ? 'zone' : 'marker',
+            contextId: String(place.id),
+            body,
+          },
+          variant,
+        );
+        reportPlanUsage('place_suggest', String(place.id), variant);
+      };
+    },
+    [canSuggest, variant],
+  );
 
   /**
    * Identité visuelle de l'établissement (lot 7) : réglage `ui.plan.brand`, même mécanique
@@ -191,13 +231,13 @@ export function AppPlan() {
     const initial = Array.isArray(stored) ? stored : settings.default_category_ids || [];
     const known = initial.map(String).filter((id) => categoriesById.has(id));
     setSelectedCategoryIds(new Set(known));
-  }, [settings, categoriesById]);
+  }, [settings, categoriesById, CATEGORIES_STORAGE_KEY]);
 
   useEffect(() => {
     if (!settings?.welcome_hint) return;
     if (safeLocalStorageReadJson(WELCOME_STORAGE_KEY, false)) return;
     setWelcomeVisible(true);
-  }, [settings]);
+  }, [settings, WELCOME_STORAGE_KEY]);
 
   // Compteur d'usage : une ouverture par chargement de plan.
   useEffect(() => {
@@ -385,20 +425,23 @@ export function AppPlan() {
     [places],
   );
 
-  const toggleCategory = useCallback((id) => {
-    setSelectedCategoryIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, [...next]);
-      return next;
-    });
-  }, []);
+  const toggleCategory = useCallback(
+    (id) => {
+      setSelectedCategoryIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, [...next]);
+        return next;
+      });
+    },
+    [CATEGORIES_STORAGE_KEY],
+  );
 
   const resetCategories = useCallback(() => {
     setSelectedCategoryIds(new Set());
     safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, []);
-  }, []);
+  }, [CATEGORIES_STORAGE_KEY]);
 
   /** Parcours actif et ses étapes résolues en lieux réels. */
   const activeRoute = useMemo(
@@ -414,13 +457,34 @@ export function AppPlan() {
   /**
    * « Y aller » : la carte trace une **ligne droite** entre la position et le lieu, avec la
    * distance. Ce n'est pas un itinéraire — le plan ne connaît pas encore les chemins, et
-   * mieux vaut une direction honnête qu'un trajet inventé.
+   * mieux vaut une direction honnête qu'un trajet inventé. L'état vit dans le hook partagé
+   * `shared/map-guide/useMapGuidance` (la Visite ForetMap montre le même guidage).
+   *
+   * Viser un lieu **rend la carte** : la fiche se referme, la barre de guidage la remplace.
+   * C'est tout l'objet du geste — voir où l'on est par rapport au lieu, ce qu'une feuille
+   * couvrant 55 % de l'écran interdisait (B4).
    */
-  const targetPlace = useMemo(() => {
-    // En mode parcours, la cible est l'étape courante : « Y aller » suit le parcours.
-    if (currentRouteEntry) return currentRouteEntry.place;
-    return targetPlaceId ? places.find((p) => String(p.id) === targetPlaceId) || null : null;
-  }, [currentRouteEntry, targetPlaceId, places]);
+  const onGuidanceStart = useCallback(
+    (place) => {
+      reportPlanUsage('go', String(place.id));
+      if (!position.active) position.toggle();
+      if (!activeRouteSlugRef.current) closePlace();
+    },
+    [position, closePlace],
+  );
+  const onGuidanceStop = useCallback(() => {
+    reportPlanUsage('go_stop', '');
+  }, []);
+  const {
+    guidedPlace: guidanceTargetPlace,
+    goTo: goToPlace,
+    stop: stopGuidance,
+    isTarget: isGuidanceTarget,
+    reset: resetGuidance,
+  } = useMapGuidance({ places, onGoTo: onGuidanceStart, onStop: onGuidanceStop });
+
+  // En mode parcours, la cible est l'étape courante : « Y aller » suit le parcours.
+  const targetPlace = currentRouteEntry ? currentRouteEntry.place : guidanceTargetPlace;
   const targetPct = useMemo(
     () => (targetPlace ? planPlaceFocusPct(targetPlace, parsePctPolygonPoints) : null),
     [targetPlace],
@@ -506,34 +570,14 @@ export function AppPlan() {
     [position.positionPct, position.planSize],
   );
 
-  /**
-   * « Y aller » : on vise le lieu **et on rend la carte** — la fiche se referme, la barre de
-   * guidage la remplace. C'est tout l'objet du geste : voir où l'on est par rapport au lieu,
-   * ce qu'une feuille couvrant 55 % de l'écran interdisait (B4).
-   */
-  const goToPlace = useCallback(
-    (place) => {
-      if (!place) return;
-      setTargetPlaceId(String(place.id));
-      reportPlanUsage('go', String(place.id));
-      if (!position.active) position.toggle();
-      if (!activeRouteSlugRef.current) closePlace();
-    },
-    [position, closePlace],
-  );
-
-  /** Fin du guidage — le seul chemin qui l'arrête. */
-  const stopGuidance = useCallback(() => {
-    setTargetPlaceId('');
-    reportPlanUsage('go_stop', '');
-  }, []);
-
+  /** Départ d'un parcours : toujours à la première étape (c'est « Reprendre » qui restitue). */
   const startRoute = useCallback((route) => {
     setRoutePickerOpen(false);
     setResultsOpen(false);
     setGroupPlaces(null);
     setRoutePeekPlace(null);
     setResumableRouteSlug('');
+    resumableRouteIndexRef.current = 0;
     setRouteIndex(0);
     setActiveRouteSlug(route.slug);
     reportPlanUsage('route_start', route.slug);
@@ -541,21 +585,36 @@ export function AppPlan() {
 
   const exitRoute = useCallback(() => {
     const slug = activeRouteSlug;
+    resumableRouteIndexRef.current = slug ? routeIndexRef.current : 0;
     setActiveRouteSlug('');
     setRouteIndex(0);
     setSelectedPlace(null);
     setRoutePeekPlace(null);
-    setTargetPlaceId('');
+    resetGuidance();
     if (slug) {
       setResumableRouteSlug(slug);
       setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
     }
-  }, [activeRouteSlug, setRouteToast]);
+  }, [activeRouteSlug, resetGuidance, setRouteToast]);
 
+  /**
+   * Reprise : on retrouve l'étape quittée, et non la première — le bouton s'appelle « Reprendre
+   * le parcours » et l'aide le promet (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2). Le rebornage
+   * sur les étapes réellement résolues est fait par l'effet plus bas.
+   */
   const resumeRoute = useCallback(() => {
     const route = routes.find((r) => r.slug === resumableRouteSlug);
-    if (route) startRoute(route);
-  }, [routes, resumableRouteSlug, startRoute]);
+    if (!route) return;
+    const resumeIndex = resumableRouteIndexRef.current;
+    setRoutePickerOpen(false);
+    setResultsOpen(false);
+    setGroupPlaces(null);
+    setRoutePeekPlace(null);
+    setResumableRouteSlug('');
+    setActiveRouteSlug(route.slug);
+    setRouteIndex(resumeIndex);
+    reportPlanUsage('route_start', route.slug);
+  }, [routes, resumableRouteSlug]);
 
   const goToRouteIndex = useCallback(
     (next) => {
@@ -637,17 +696,35 @@ export function AppPlan() {
     };
   }, [map]);
 
-  const submitAccessCode = useCallback(async (code) => {
-    await submitPlanAccessCode(code);
-    // Le laissez-passer est posé : on relance la charge avec le code, pour ne pas dépendre
-    // de l'ordre d'écriture du cookie.
-    setAccessCode(code);
-  }, []);
+  const submitAccessCode = useCallback(
+    async (code) => {
+      await submitPlanAccessCode(code, variant);
+      // Le laissez-passer est posé : on relance la charge avec le code, pour ne pas dépendre
+      // de l'ordre d'écriture du cookie.
+      setAccessCode(code);
+    },
+    [variant],
+  );
 
   const dismissWelcome = useCallback(() => {
     setWelcomeVisible(false);
     safeLocalStorageWriteJson(WELCOME_STORAGE_KEY, true);
-  }, []);
+  }, [WELCOME_STORAGE_KEY]);
+
+  // Plan des personnels : le serveur n'a reconnu ni compte ni laissez-passer. On propose la
+  // connexion, et la saisie du code seulement si un administrateur l'a activée.
+  if (authRequired) {
+    return (
+      <div className="plan-shell plan-shell--state">
+        <PlanAccountGate
+          title={title}
+          intro={variant.accessIntro}
+          codeAvailable={codeAvailable}
+          onSubmitCode={submitAccessCode}
+        />
+      </div>
+    );
+  }
 
   if (accessRequired) {
     return (
@@ -655,7 +732,7 @@ export function AppPlan() {
         <AccessCodeGate
           className="plan-access-gate"
           title={title}
-          intro="Ce plan est réservé à l’établissement. Saisissez le code qui vous a été communiqué."
+          intro={variant.accessIntro}
           onSubmit={submitAccessCode}
         />
       </div>
@@ -889,12 +966,8 @@ export function AppPlan() {
         categories={categoriesOf(sheetPlace)}
         canLocate={position.available}
         onGoTo={goToPlace}
-        isTarget={Boolean(sheetPlace && String(sheetPlace.id) === targetPlaceId)}
-        distanceLabel={
-          sheetPlace && String(sheetPlace.id) === targetPlaceId
-            ? formatDistanceFr(targetDistanceM)
-            : ''
-        }
+        isTarget={isGuidanceTarget(sheetPlace)}
+        distanceLabel={isGuidanceTarget(sheetPlace) ? formatDistanceFr(targetDistanceM) : ''}
         secondaryAction={
           activeRoute && routePeekPlace
             ? { label: 'Revenir à l’étape', onClick: () => setRoutePeekPlace(null) }
@@ -904,6 +977,8 @@ export function AppPlan() {
            entièrement la barre d'étape (B3). La barre reste la commande principale ; la fiche
            se tire vers le haut pour lire. */
         initialSnap={activeRoute && routePeekPlace ? 'peek' : 'half'}
+        editUrl={canEditLocations ? consoleBaseUrl : ''}
+        onSuggest={suggestForPlace(sheetPlace)}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>

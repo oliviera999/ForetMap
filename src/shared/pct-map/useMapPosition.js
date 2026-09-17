@@ -13,9 +13,29 @@ import {
   clampPositionToMap,
   headingFromDeviceOrientation,
   northOffsetFromProjection,
+  pickTravelHeadingDeg,
   screenHeadingDeg,
 } from './positionGeometry.js';
-import { smoothHeadingDeg } from './pctMapOrientation.js';
+import {
+  HEADING_DEAD_BAND_DEG,
+  smoothHeadingOverTime,
+  unwrapHeadingDeg,
+} from './pctMapOrientation.js';
+import { nextFilteredGeoFix } from './geoPositionFilter.js';
+
+/**
+ * Cadence de publication du cap (ms). La boussole émet jusqu'à 60 fois par seconde : republier
+ * à ce rythme re-rendrait toute la carte à chaque image, pour des fractions de degré. On lisse
+ * dans une ref, on publie huit fois par seconde, et la transition CSS du calque d'orientation
+ * comble les intervalles (`mapOrientationStyle({ animated: true })`).
+ */
+const HEADING_PUBLISH_INTERVAL_MS = 120;
+
+/**
+ * Au-delà de ce silence (ms), la dernière mesure GPS ne dit plus rien du déplacement : on
+ * revient à la boussole plutôt que de figer une flèche sur une direction périmée.
+ */
+const GPS_HEADING_STALE_MS = 4000;
 
 /**
  * Position de la personne sur une carte « % image » — noyau carte partagé (lot 6 du plan de
@@ -46,7 +66,20 @@ export function useMapPosition({
   const geo = useGeolocation();
   const [mode, setMode] = useState('off');
   const [feedback, setFeedback] = useState(null);
-  const [deviceHeading, setDeviceHeading] = useState(null);
+  /** Dernière mesure filtrée (Kalman 1-D + rejet des sauts) — la seule qui soit affichée. */
+  const [fix, setFix] = useState(null);
+  const fixRef = useRef(null);
+  fixRef.current = fix;
+  /** Dernier échantillon boussole brut, hors React : il arrive trop vite pour un rendu. */
+  const compassRef = useRef(null);
+  /** Cap lissé courant (géographique), sa version écran continue, et la source retenue. */
+  const headingRef = useRef({ geoDeg: null, unwrapped: null, source: null, at: 0 });
+  const [heading, setHeading] = useState({
+    geoDeg: null,
+    screenDeg: null,
+    unwrapped: null,
+    source: null,
+  });
 
   /** Calage résolu une fois par jeu d'ancres (pas à chaque position du capteur). */
   const georefState = useMemo(() => {
@@ -77,7 +110,7 @@ export function useMapPosition({
     if (!headingEnabled || !active || typeof window === 'undefined') return undefined;
     const onOrientation = (event) => {
       const next = headingFromDeviceOrientation(event);
-      if (next != null) setDeviceHeading(next);
+      if (next != null) compassRef.current = next;
     };
     const eventName =
       'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
@@ -100,7 +133,10 @@ export function useMapPosition({
   const stop = useCallback(() => {
     setMode('off');
     setFeedback(null);
-    setDeviceHeading(null);
+    setFix(null);
+    compassRef.current = null;
+    headingRef.current = { geoDeg: null, unwrapped: null, source: null, at: 0 };
+    setHeading({ geoDeg: null, screenDeg: null, unwrapped: null, source: null });
     geo.stop();
   }, [geo]);
 
@@ -142,11 +178,25 @@ export function useMapPosition({
     if (!available && mode !== 'off') stop();
   }, [available, mode, stop]);
 
+  /**
+   * Filtrage des mesures avant tout affichage : rejet des sauts invraisemblables, puis lissage
+   * de Kalman pondéré par la précision annoncée (`geoPositionFilter.js`). C'est ici que se joue
+   * l'essentiel de la stabilité du point : sans ce filtre, le capteur fait trembler la position
+   * de plusieurs mètres à l'arrêt, et le mode suivi promène la carte avec lui.
+   */
+  useEffect(() => {
+    if (!active || !geo.position) return;
+    const next = nextFilteredGeoFix(fixRef.current, geo.position);
+    if (!next || next.rejected) return;
+    fixRef.current = next;
+    setFix(next);
+  }, [active, geo.position]);
+
   /** Position projetée sur le plan, avec son diagnostic. */
   const projected = useMemo(() => {
-    if (!active || !available || !geo.position) return null;
+    if (!active || !available || !fix) return null;
     if (!georefState.plausible) return { code: 'bad_georef' };
-    const { lat, lng, accuracy } = geo.position;
+    const { lat, lng, accuracy } = fix;
     const pct = applyGeoTransform(georefState.transform, lat, lng);
     if (!pct) return { code: 'bad_georef' };
     const placed = clampPositionToMap(pct);
@@ -158,7 +208,7 @@ export function useMapPosition({
       accuracy: Number.isFinite(accuracy) ? accuracy : null,
       haloPct: accuracyRadiusPct(accuracy, georefState.planSize),
     };
-  }, [active, available, geo.position, georefState, accuracyThresholdM]);
+  }, [active, available, fix, georefState, accuracyThresholdM]);
 
   // Diagnostic affiché : refus, calage incohérent, erreur d'acquisition, acquisition en
   // cours, hors plan, signal faible — les six états repris de la bannière ForetMap.
@@ -169,33 +219,64 @@ export function useMapPosition({
     if (geo.status === 'denied') code = 'denied';
     else if (projected?.code && projected.code !== 'ok') code = projected.code;
     else if (geo.error) code = 'error';
-    else if (!geo.position) code = 'acquiring';
+    else if (!fix) code = 'acquiring';
     else code = 'ok';
     if (code !== lastCodeRef.current) {
       lastCodeRef.current = code;
       setFeedback(code);
     }
-  }, [active, geo.status, geo.error, geo.position, projected]);
+  }, [active, geo.status, geo.error, fix, projected]);
 
   // Première position obtenue : on quitte l'état « acquisition ».
   useEffect(() => {
     if (mode === 'acquiring' && projected?.pct) setMode('on');
   }, [mode, projected]);
 
-  const screenHeading = useMemo(
-    () => screenHeadingDeg(deviceHeading, georefState?.northOffsetDeg || 0),
-    [deviceHeading, georefState],
-  );
-
-  const [smoothedScreenHeading, setSmoothedScreenHeading] = useState(null);
+  /**
+   * Cap affiché : **vers où l'on se dirige**, et non vers où l'appareil est tourné dès que la
+   * marche donne un sens à la question (`pickTravelHeadingDeg`). Le tout est lissé à constante
+   * de temps — indépendante de la cadence du capteur — puis publié huit fois par seconde au
+   * plus, et seulement si le cap a bougé d'au moins un degré : c'est ce qui sépare une carte
+   * qui tourne doucement d'une carte qui vibre.
+   */
+  const northOffsetDeg = georefState?.northOffsetDeg || 0;
   useEffect(() => {
-    if (!active) {
-      setSmoothedScreenHeading(null);
-      return undefined;
-    }
-    setSmoothedScreenHeading((prev) => smoothHeadingDeg(prev, screenHeading, 0.28));
-    return undefined;
-  }, [active, screenHeading]);
+    if (!active) return undefined;
+    const tick = () => {
+      const now = Date.now();
+      const state = headingRef.current;
+      const current = fixRef.current;
+      const gpsFresh = current && now - Number(current.timestamp || 0) < GPS_HEADING_STALE_MS;
+      const picked = pickTravelHeadingDeg({
+        gpsHeadingDeg: gpsFresh ? current.heading : null,
+        speedMs: gpsFresh ? current.speed : null,
+        compassHeadingDeg: headingEnabled ? compassRef.current : null,
+        previousSource: state.source,
+      });
+      const dtMs = state.at ? now - state.at : HEADING_PUBLISH_INTERVAL_MS;
+      const geoDeg =
+        picked.headingDeg == null
+          ? null
+          : smoothHeadingOverTime(state.geoDeg, picked.headingDeg, dtMs, { deadBandDeg: 0 });
+      const screenDeg = screenHeadingDeg(geoDeg, northOffsetDeg);
+      const unwrapped = unwrapHeadingDeg(state.unwrapped, screenDeg);
+      headingRef.current = { geoDeg, unwrapped, source: picked.source, at: now };
+      setHeading((prev) => {
+        const appeared = (prev.screenDeg == null) !== (screenDeg == null);
+        const turned =
+          prev.unwrapped != null &&
+          unwrapped != null &&
+          Math.abs(unwrapped - prev.unwrapped) >= HEADING_DEAD_BAND_DEG;
+        if (!appeared && !turned && prev.source === picked.source) return prev;
+        return { geoDeg, screenDeg, unwrapped, source: picked.source };
+      });
+    };
+    const timer = setInterval(tick, HEADING_PUBLISH_INTERVAL_MS);
+    tick();
+    return () => clearInterval(timer);
+  }, [active, headingEnabled, northOffsetDeg]);
+
+  const screenHeading = heading.screenDeg;
 
   return {
     supported: geo.supported,
@@ -214,12 +295,21 @@ export function useMapPosition({
     displayPct: projected?.display || null,
     accuracyM: projected?.accuracy ?? null,
     haloPct: projected?.haloPct || 0,
-    headingDeg: deviceHeading,
+    /** Cap géographique lissé (déplacement si le GPS le donne, boussole sinon). */
+    headingDeg: heading.geoDeg,
+    /** Cap écran lissé, normalisé [0, 360[. */
     screenHeadingDeg: screenHeading,
-    /** Cap écran lissé (heading-up) ; `null` sans boussole. */
-    smoothedScreenHeadingDeg: smoothedScreenHeading,
+    /** Même cap, conservé pour les appelants antérieurs au lissage temporel. */
+    smoothedScreenHeadingDeg: screenHeading,
+    /**
+     * Même cap, **continu** : ne repasse jamais par zéro, pour qu'une transition CSS prenne
+     * toujours le chemin le plus court (`unwrapHeadingDeg`).
+     */
+    screenHeadingUnwrappedDeg: heading.unwrapped,
+    /** `gps` (route suivie) | `compass` (orientation de l'appareil) | `null`. */
+    headingSource: heading.source,
     /** Cap exploitable pour l'orientation de la carte. */
-    headingAvailable: smoothedScreenHeading != null || screenHeading != null,
+    headingAvailable: screenHeading != null,
     planSize: georefState?.planSize || null,
     toggle,
     stop,

@@ -33,7 +33,7 @@
 }
 .discovery-tour__card {
   pointer-events: auto;
-  background: var(--fm-tour-card-bg, var(--cream, #fff));
+  background: var(--fm-tour-card-bg, var(--cream, var(--surface-plain)));
   border: 1.5px solid var(--fm-tour-accent, var(--mint, #7dd3a8));
   border-radius: 14px;
   box-shadow: var(--shadow, 0 10px 30px rgba(0, 0, 0, 0.25));

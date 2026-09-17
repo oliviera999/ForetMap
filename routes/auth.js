@@ -51,7 +51,18 @@ const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
-const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
+const {
+  resolveOAuthPublicOrigin,
+  resolveOAuthRedirectUri,
+  resolveProductReturnOrigin,
+  originOfUrl,
+} = require('../lib/oauthPublicUrl');
+const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
+
+/** Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`). */
+function listProductHostPrefixes() {
+  return PRODUCT_IDS.flatMap((id) => [...PRODUCTS[id].hostPrefixes]);
+}
 const {
   readProfileFieldFlags,
   resolveVisitMascotUpdate,
@@ -63,6 +74,14 @@ const {
 const router = express.Router();
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
+/**
+ * Origine réellement visitée au départ du flux OAuth. Google ne rappelle que sur les
+ * `redirect_uri` enregistrées, donc toujours sur le même hôte : sans cette mémoire, un
+ * personnel parti de `proflyautey.*` revenait sur l'origine de ForetMap, avec un jeton
+ * inutilisable là où il l'avait demandé. Validée au retour contre le registre des produits
+ * (`resolveProductReturnOrigin`) — jamais suivie telle quelle.
+ */
+const OAUTH_ORIGIN_COOKIE = 'foretmap_oauth_origin';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const googleOidcClient = new OAuth2Client();
 const googleOAuthHooks = {
@@ -759,6 +778,38 @@ router.get('/google/start', async (req, res) => {
   if (!googleOauthConfigured(cfg)) {
     return res.status(503).json({ error: 'OAuth Google non configuré' });
   }
+  /**
+   * Rebond par l'hôte du rappel, quand la connexion part d'un autre sous-domaine produit.
+   *
+   * Google ne rappelle que sur les `redirect_uri` enregistrées : en production il n'y en a
+   * qu'une, donc le rappel arrive toujours sur le même hôte. Or les trois cookies de la
+   * poignée de main ci-dessous sont posés **sans `Domain`** : ils sont liés à l'hôte qui les
+   * pose. Partir de `proflyautey.*` les rendait donc invisibles au rappel arrivant sur l'hôte
+   * de ForetMap — plus de `state` (« session expirée »), et plus d'origine de retour non plus,
+   * si bien que l'utilisateur atterrissait sur ForetMap avec une erreur.
+   *
+   * On renvoie donc d'abord le navigateur sur `/api/auth/google/start` de l'hôte du rappel, en
+   * lui passant l'origine de départ. Toute la poignée de main se joue alors sur un seul hôte,
+   * et `Domain=` reste inutile — un cookie de session élargi à tout le domaine parent serait
+   * lisible par chaque sous-produit, ce qu'on ne veut pas.
+   *
+   * Sans `GOOGLE_OAUTH_REDIRECT_URI`, l'URI est dérivée de la requête : les deux origines
+   * coïncident, aucun rebond, comportement inchangé. Le second passage coïncide lui aussi,
+   * donc pas de boucle.
+   */
+  const startOrigin = resolveOAuthPublicOrigin(req);
+  const callbackOrigin = originOfUrl(cfg.redirectUri);
+  // `return_origin` déjà présent = on **est** le second saut : ne jamais rebondir une seconde
+  // fois. Garde-fou dur, indépendant de la normalisation des deux origines : une boucle de
+  // redirection sur la page de connexion serait bien pire que l'absence de rebond.
+  const alreadyBounced = Boolean(String(req.query?.return_origin || '').trim());
+  if (!alreadyBounced && callbackOrigin && startOrigin && callbackOrigin !== startOrigin) {
+    const bounce = new URL('/api/auth/google/start', callbackOrigin);
+    bounce.searchParams.set('mode', mode);
+    bounce.searchParams.set('return_origin', startOrigin);
+    return res.redirect(bounce.toString());
+  }
+
   const state = makeGoogleOAuthState();
   const cookieSecure = process.env.NODE_ENV === 'production';
   res.cookie(OAUTH_STATE_COOKIE, state, {
@@ -775,6 +826,28 @@ router.get('/google/start', async (req, res) => {
     maxAge: OAUTH_STATE_TTL_MS,
     path: '/api/auth/google',
   });
+  /**
+   * Origine de retour : celle transmise par le rebond ci-dessus quand la connexion vient d'un
+   * autre produit, sinon l'origine vue ici même. `return_origin` arrive par l'URL, donc
+   * potentiellement d'un tiers : il n'est retenu que s'il désigne un produit du registre sur
+   * le même domaine parent que cet hôte (`resolveProductReturnOrigin`), sans quoi on retombe
+   * sur l'origine courante. Un flux qui transporte un jeton ne doit pas devenir une
+   * redirection ouverte.
+   */
+  const returnOrigin = resolveProductReturnOrigin(req.query?.return_origin, {
+    requestHost: req.get('host'),
+    fallbackOrigin: startOrigin,
+    productHostPrefixes: listProductHostPrefixes(),
+  });
+  if (returnOrigin) {
+    res.cookie(OAUTH_ORIGIN_COOKIE, returnOrigin, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: cookieSecure,
+      maxAge: OAUTH_STATE_TTL_MS,
+      path: '/api/auth/google',
+    });
+  }
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: cfg.redirectUri,
@@ -799,12 +872,23 @@ router.get('/google/callback', async (req, res) => {
       ),
     );
   }
-  const cfg = getGoogleOauthConfig(req);
+  const baseCfg = getGoogleOauthConfig(req);
   const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
   const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
   const mode = normalizeOAuthMode(modeCookie || req.query?.mode);
+  // Renvoi vers le produit d'où l'utilisateur est parti, si et seulement si cette origine est
+  // celle d'un produit du registre sur le même domaine parent que le rappel.
+  const cfg = {
+    ...baseCfg,
+    frontendOrigin: resolveProductReturnOrigin(readCookie(req, OAUTH_ORIGIN_COOKIE), {
+      requestHost: req.get('host'),
+      fallbackOrigin: baseCfg.frontendOrigin,
+      productHostPrefixes: listProductHostPrefixes(),
+    }),
+  };
   res.clearCookie(OAUTH_STATE_COOKIE, { path: '/api/auth/google' });
   res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
+  res.clearCookie(OAUTH_ORIGIN_COOKIE, { path: '/api/auth/google' });
 
   if (!googleOauthConfigured(cfg)) {
     return res.redirect(

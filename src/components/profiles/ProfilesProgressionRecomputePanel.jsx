@@ -166,7 +166,9 @@ export function ProfilesProgressionRecomputePanel({
         </button>
       </div>
       {error && (
-        <p style={{ margin: '10px 0 0', fontSize: 'var(--text-sm)', color: '#b91c1c' }}>{error}</p>
+        <p style={{ margin: '10px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-danger)' }}>
+          {error}
+        </p>
       )}
       {shown && (
         <div style={{ marginTop: 10 }} data-testid="progression-recompute-result">

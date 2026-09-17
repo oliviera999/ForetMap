@@ -40,18 +40,18 @@ export default function PackBehaviorDetailTable({ pack }) {
             .join(', ')}
         </p>
       ) : null}
-      <div style={{ overflowX: 'auto' }}>
-        <table
-          className="visit-mascot-pack-detail-table"
-          style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}
-        >
+      {/* Ce tableau réécrivait toute son apparence en styles inline — largeur, filets,
+          marges de cellule, taille de texte — donc hors de portée de la moindre feuille.
+          `.fm-table` la porte maintenant (shared/styles/surfaces.css). */}
+      <div className="fm-table-wrap">
+        <table className="fm-table fm-table--dense visit-mascot-pack-detail-table">
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.2)' }}>
-              <th style={{ padding: '6px 8px' }}>État</th>
-              <th style={{ padding: '6px 8px' }}>Images</th>
-              <th style={{ padding: '6px 8px' }}>fps</th>
-              <th style={{ padding: '6px 8px' }}>frameDwellMs</th>
-              <th style={{ padding: '6px 8px' }}>Durée estimée</th>
+            <tr>
+              <th>État</th>
+              <th>Images</th>
+              <th>fps</th>
+              <th>frameDwellMs</th>
+              <th>Durée estimée</th>
             </tr>
           </thead>
           <tbody>
@@ -65,8 +65,8 @@ export default function PackBehaviorDetailTable({ pack }) {
               const dwell = Array.isArray(spec?.frameDwellMs) ? spec.frameDwellMs.join(', ') : '—';
               const dur = estimateStateDurationMs(validated.pack, st);
               return (
-                <tr key={st} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
-                  <td style={{ padding: '6px 8px' }}>
+                <tr key={st}>
+                  <td>
                     {STATE_LABELS[st] ? (
                       <>
                         {STATE_LABELS[st]}{' '}
@@ -76,14 +76,12 @@ export default function PackBehaviorDetailTable({ pack }) {
                       <code>{st}</code>
                     )}
                   </td>
-                  <td style={{ padding: '6px 8px' }}>{n}</td>
-                  <td style={{ padding: '6px 8px' }}>
-                    {spec?.fps != null ? String(spec.fps) : '—'}
-                  </td>
-                  <td style={{ padding: '6px 8px', maxWidth: 220, wordBreak: 'break-all' }}>
-                    {dwell}
-                  </td>
-                  <td style={{ padding: '6px 8px' }}>{dur != null ? `${dur} ms` : '—'}</td>
+                  <td>{n}</td>
+                  <td>{spec?.fps != null ? String(spec.fps) : '—'}</td>
+                  {/* Une liste de durées peut être longue : elle se casse dans sa colonne
+                      plutôt que d'élargir le tableau. */}
+                  <td className="visit-mascot-pack-detail-table__dwell">{dwell}</td>
+                  <td>{dur != null ? `${dur} ms` : '—'}</td>
                 </tr>
               );
             })}

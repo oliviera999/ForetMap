@@ -18,6 +18,199 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   Le chargement et le renouvellement de session suivent désormais la session ouverte,
   pas ce droit d'encadrement. Tests de montage d'`App` mis à jour.
 
+### Ajouté — « Y aller » dans la Visite, et la distance sur la barre de parcours
+
+- **La fiche d'un lieu de la Visite porte un bouton « Y aller »**, comme celle du Plan Lyautey :
+  il referme la fiche (qui recouvrait la carte au moment précis où l'on cherche à s'orienter) et
+  ouvre en bas une **barre de guidage** — nom du lieu, distance à vol d'oiseau, trait droit entre
+  la position et le lieu sur la carte. Le guidage ne s'arrête que sur **« Arrêter »**, jamais en
+  refermant une fiche ni en déplaçant la carte, et « Revoir la direction » ramène le guidage sur
+  un lieu déjà visé. Ce n'est **pas un itinéraire** : la Visite ne connaît pas les allées, et le
+  bouton reste éteint (avec la raison en clair) tant que la carte n'est pas calée.
+- **Le lieu visé reste dessiné** même quand les filtres de catégories l'excluent : sans cela, on
+  était guidé vers un repère invisible.
+- **La barre d'étape d'un parcours affiche désormais la distance** à l'étape en cours dès que la
+  position est active — elle ne l'affichait que sur le Plan. Pendant un parcours, c'est elle qui
+  guide : jamais deux barres à la fois. Le bouton « Reprendre le parcours » remonte au-dessus de
+  la barre de guidage au lieu de passer dessous.
+- **Socle partagé `src/shared/map-guide/`** (barre, état du guidage, identité d'un lieu) : le Plan
+  s'appuie sur le même code, `PlanGuideBar` n'est plus qu'une enveloppe — même convention que
+  `MapRouteBar` / `PlanRouteBar`. L'identité d'un lieu visé inclut son type (`zone:3` ≠
+  `marker:3`) : le Plan comparait les seuls identifiants, qui sont pourtant indépendants d'une
+  table à l'autre.
+- Tests : `tests-ui/shared/useMapGuidance.test.jsx`, `tests-ui/shared/MapGuideBar.test.jsx`,
+  `tests-ui/shared/mapGuidePlace.test.js`, et deux scénarios de bout en bout dans
+  `tests-ui/components/visit/VisitViewMount.test.jsx` (carte calée / carte non calée).
+  Documentation : `docs/reference/foretmap/visite-et-mascottes.md`.
+
+### Corrigé — connexion Google impossible depuis proflyautey
+
+- « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque
+  tentative de connexion au plan des personnels, avec retour sur ForetMap au lieu de
+  proflyautey. Google ne rappelle que sur les `redirect_uri` enregistrées — une seule en
+  production — alors que les cookies de la poignée de main sont posés **sans `Domain`**, donc
+  liés à l'hôte qui les pose. Partis de `proflyautey.*`, ils étaient invisibles au rappel
+  arrivant sur l'hôte de ForetMap : plus de `state`, plus d'origine de retour.
+- `GET /api/auth/google/start` renvoie désormais d'abord le navigateur vers l'hôte porteur du
+  rappel, avec l'origine de départ en `return_origin` ; toute la poignée de main se joue alors
+  sur un seul hôte. `return_origin` n'est retenu que s'il désigne un produit du registre sur le
+  même domaine parent — un flux porteur de jeton ne doit pas devenir une redirection ouverte.
+  Deux garde-fous contre la boucle : normalisation commune des deux origines (`www.`, casse,
+  port) et refus de rebondir quand `return_origin` est déjà là. Sans
+  `GOOGLE_OAUTH_REDIRECT_URI`, aucun rebond : comportement inchangé.
+- Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
+  tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
+
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
+  parcours »** rejouait le parcours **depuis le début** : quitter à l'étape 7 sur 9 pour regarder
+  un autre lieu obligeait à toucher « Suivant » six fois. Le bouton promet pourtant la reprise, et
+  l'aide du Plan aussi (« Après "Quitter", reprenez via la puce ou "Reprendre" ») — constat §2.2 de
+  `docs/AUDIT_PARCOURS_2026-09-17.md`.
+- L'étape quittée est désormais retenue et restituée, dans le hook partagé
+  (`shared/map-routes/useMapRouteMode`) **et** dans la copie du Plan, pour que les deux ne
+  divergent pas. Relancer le parcours depuis la liste repart bien du début, et un parcours dont
+  des lieux ont disparu entre-temps reprend à sa dernière étape encore existante.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (8 cas — le noyau partagé n'avait aucun test
+  direct) et l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`.
+
+### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
+
+- **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le
+  projet doit écrire lui-même et ce qu'il peut déléguer au Moodle de l'établissement. Part
+  générique du code chiffrée (**52 433 lignes applicatives, 19,6 %**, 261 fichiers, + 29 903 lignes
+  de tests) brique par brique, avec un verdict par brique (garder / geler / déléguer) ; **charte du
+  non-développement** en huit règles ; **points de convergence classés** en nécessaires (N1–N4),
+  utiles (U1–U5) et à écarter.
+- **Vérification consignée (§6.0)** : l'absence de `sync:shared-cores:check` dans les étapes
+  nommées de `.github/workflows/ci.yml` ne signale **aucune** faille — la non-divergence des huit
+  miroirs `lib/shared/*Core.js` est vérifiée au caractère près par `tests/shared-cores-sync.test.js`
+  (job `test`, `npm run test:coverage`, sans `continue-on-error`), et celle de `lib/visit-pack/`,
+  `lib/gl-pack/` et `lib/term-autolink/` par le workflow `frontend-dist.yml` (rebuild puis
+  `git diff --quiet`). L'audit ne recommande donc **aucun geste de code**.
+- **Constat de convergence** : les lots 0 à 4 de `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` sont
+  **livrés** (noyau `src/shared/pct-map/` consommé par les quatre surfaces, étanchéité de
+  `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
+  du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
+- Index des audits (`docs/audits/README.md`) complété.
+### Ajouté — Base à volumétrie réelle disponible dans chaque session (fixture anonymisé versionné)
+
+- `sql/fixtures/foretmap-anonymise.sql.gz` (~1,4 Mo) : copie **anonymisée** de la base, seule
+  exception à l'interdiction de versionner du SQL de base. Produite par
+  `npm run db:fixture:export`, chargée par `npm run db:fixture:load`, et chargée
+  **automatiquement** dans `foretmap_local` par le script d'amorçage de session
+  (`FORETMAP_SESSION_SKIP_FIXTURE=1` pour s'en passer). Un dump **brut** reste interdit.
+- Trois contrôles superposés : l'export refuse d'écrire tant que le balayage de
+  l'anonymiseur signale un motif bloquant et vérifie que `users` ne porte ni adresse hors
+  `@exemple.invalid` ni plus d'un hachage distinct ; le flux de sortie neutralise les
+  adresses tolérées par ailleurs (crédit d'illustration, contact éditorial) ;
+  `tests/fixture-anonymise.test.js` relit l'archive **versionnée** à chaque CI.
+- Le fixture est autoportant : `SET FOREIGN_KEY_CHECKS=0` posé en SQL ordinaire (le
+  commentaire versionné `/*!40014 … */` de `mariadb-dump` n'est pas rejoué par l'importeur du
+  dépôt, et les tables sortant par ordre alphabétique, `audit_log` précède `users`), et la
+  ligne « sandbox mode » propre à MariaDB est retirée.
+- `db:fixture:load` refuse de viser `foretmap_test`, qui doit rester construite par `db:init`.
+
+### Modifié — la suite e2e tourne désormais dans la configuration de production
+
+- `e2e/global-setup.js` force **`ui.auth.allow_register = false`**, la valeur servie en
+  production. Le formulaire public n'est donc plus exercé incidemment par la centaine de
+  scénarios qui créent un élève.
+- Les fixtures créent les comptes par l'**import d'administration**
+  (`POST /api/students/import`, rattachement au groupe `e2e-n3beur` qui accorde l'accès
+  n3beur) — comme un enseignant important sa liste de classe. Le rattachement synchronisant le
+  rôle, le va-et-vient inscription → ajout au groupe → déconnexion → reconnexion disparaît.
+- Nouvelle spec **`e2e/auth-registration.spec.js`** : seule à couvrir le formulaire public, et
+  des deux côtés du réglage — fermé, le bouton « Créer un compte » est absent **et**
+  `POST /api/auth/register` répond **403** (masquer n'est pas interdire) ; ouvert, le parcours
+  crée un compte réutilisable après déconnexion. Elle remet le réglage à `false` derrière elle.
+- Fixtures exportées pour les scénarios qui en ont besoin : `loginAsTeacherAdminApi`,
+  `createStudentViaAdminImport`, `buildE2eStudentProfile`. `registerStudentWithProfile` devient
+  `createStudentWithProfileViaAdmin` : elle n'inscrit plus, le nom le dit.
+
+### Documentation — la suite e2e ne teste pas la configuration de production
+
+- Rejouée sur une base à la volumétrie réelle, `e2e/a11y.spec.js` donne 8 échecs pour 4
+  réussites, tous identiques : `locator.click: Test timeout` sur le bouton « Créer un compte »,
+  à la première ligne de `loginAsNewStudent` (`e2e/fixtures/auth.fixture.js:57`).
+- Cause : **`ui.auth.allow_register` vaut `false` en production**, et le réglage est absent de
+  la base semée (donc actif par défaut). Vérifié par bascule : le scénario qui expirait à 60 s
+  passe en 8,2 s une fois le réglage à `true`.
+- Portée : **toute spec qui passait par `loginAsNewStudent` supposait l'inscription libre
+  ouverte**. La suite ne vérifiait donc jamais l'application telle qu'elle tourne réellement.
+  **Corrigé** ci-dessous ; détail de l'arbitrage dans
+  `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7.
+
+### Documentation — charge des listes rejouée sur la volumétrie de production
+
+- `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` : premières mesures de charge sur une
+  base à la volumétrie réelle (480 comptes, 534 plantes, 650 questions), rendues possibles par
+  le fixture anonymisé.
+- **Infirme** l'alerte de la veille (« près d'un mégaoctet pour ouvrir l'onglet Biodiversité ») :
+  la mesure omettait `Accept-Encoding: gzip` alors que `compression` couvre tout `/api`. Un
+  navigateur reçoit **126 Ko**, pas 912. Le passage fautif de
+  `AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` porte désormais un encadré de correction.
+- **Confirme et quantifie** le correctif de septembre sur la rafale du catalogue :
+  `load/artillery-biodiv.yml` rejoué sur données réelles donne 12 122 requêtes, 0 échec,
+  p95 à 10,9 ms, et l'arithmétique des scénarios (186 × 61 + 194 × 4) mesure le facteur **15**
+  entre l'ancienne et la nouvelle ouverture de catalogue.
+- Également mesuré : aucun N+1 (11 requêtes SQL pour les trois listes), `GET /api/plants` servi
+  depuis un cache mémoire, `JSON.parse` du catalogue en 4,4 ms. **Aucun changement de code
+  recommandé** à cette volumétrie ; seuils de surveillance documentés.
+
+### Corrigé — `npm run db:seed:teacher` ne rend jamais la main
+
+- Le script affichait son message puis restait suspendu : le pool `mysql2` gardait la boucle
+  d'évènements ouverte. Il fallait l'interrompre à la main — et il bloquait tout script
+  d'amorçage qui l'enchaînait. Sortie explicite, comme le fait déjà `db:init`.
+### Ajouté — proflyautey : un plan des personnels, à côté du plan public
+
+- **Nouveau sous-produit `staff`** servi sur `proflyautey.*` : la **même** carte et le **même**
+  écran que le Plan Lyautey public (`AppPlan` est monté avec une variante, pas dupliqué), mais
+  pour un lecteur identifié. Il y voit en plus les lieux retirés du plan public et le
+  **complément réservé** des fiches (`restricted_note`) — un champ qui existait déjà et ne
+  sortait jusqu'ici que dans la console.
+- **Quatrième surface d'affichage `staff`** (migration `260`), à côté de `map`, `visit` et
+  `plan`. Ajoutée **en fin** du `SET` SQL : MySQL encode un `SET` par position de bit, une
+  insertion au milieu réécrirait toutes les lignes. À la migration, toutes les catégories et
+  les parcours déjà publiés sur `plan` reçoivent `staff` — un personnel voit au minimum ce que
+  voit le public ; seuls les lieux masqués partout le restent.
+- **Permission RBAC `staff_plan.access`**, accordée d'office à `admin`, `prof`, `prof_classe` et
+  `personnel`, attribuable à n'importe quel profil depuis « Profils RBAC ». Distincte de
+  `teacher.access` : un agent entre sur le plan sans qu'on lui ouvre la console n3boss.
+- **Entrée par code partagé**, livrée **désactivée** (`ui.staff_plan.access_mode = disabled`) et
+  activable par un admin. Laissez-passer de 7 jours (contre 30 sur le plan public), profil
+  endossé réglable (défaut « Personnel »), et chaque ouverture — accordée comme refusée —
+  inscrite au journal d'audit. Mode `code` sans code configuré : la porte reste **fermée**,
+  contrairement au plan public.
+- **Sur une fiche de lieu** : bouton « Signaler un problème ou proposer une correction »,
+  branché sur les commentaires de contexte du lieu (`context_comments`) plutôt que sur une
+  boîte de réception — le message arrive attaché au repère concerné. Et un lien retour vers la
+  console, affiché aux seuls comptes portant `zones.manage` / `map.manage_markers`.
+- **Revue des surfaces** dans « Zones & repères » : filtres **Surface** (avec le nombre de lieux
+  publiés par chacune) et **Sur cette surface** (Affichés / Retirés), indication par ligne des
+  surfaces où le lieu sort, et actions par lot « Afficher sur une surface » / « Retirer d'une
+  surface ». Restreindre le plan public se fait en trois gestes au lieu d'une fiche à la fois.
+
+### Corrigé — retour Google sur le bon sous-domaine
+
+- Google ne rappelle que sur les `redirect_uri` enregistrées, donc toujours sur le même hôte :
+  une connexion lancée depuis un sous-domaine produit renvoyait l'utilisateur sur l'origine de
+  ForetMap, avec un jeton inutilisable là où il l'avait demandé. Le flux mémorise désormais
+  l'origine de départ et y revient — **uniquement** si c'est celle d'un produit du registre sur
+  le même domaine parent que le rappel (`resolveProductReturnOrigin`), pour ne pas transformer
+  un flux porteur de jeton en redirection ouverte.
+
+### Sécurité
+
+- La charge de `/api/staff-plan/content` n'est **jamais** mise en cache : ni côté serveur
+  (contrairement au plan public, dont la charge est la même pour tout le monde), ni dans le
+  service worker du produit, et `Cache-Control: private, no-store` + `X-Robots-Tag: noindex`
+  sur toutes ses réponses. Elle dépend du rôle du lecteur : un cache mémoïsé par carte servirait
+  la charge d'un administrateur au porteur de code suivant.
+
 ### Corrigé — Plan Lyautey : la navigation ne se fait plus recouvrir
 
 - **Guidage « Y aller » sorti de la fiche.** Le bouton referme la fiche et pose une **barre de
@@ -1632,6 +1825,144 @@ séparés.
 - `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
   Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
   seul scénario exerçant la position n'était pas bloquant.
+
+### Modifié — Une seule apparence pour les champs, les listes déroulantes et les onglets
+
+- **Six apparences de liste déroulante ramenées à une.** Le même `<select>` se présentait
+  différemment selon l'écran : bordure menthe et coins à 10 px dans les formulaires, coins à
+  8 px dans la barre de filtres, bordure gris ardoise (hors palette) dans la bibliothèque de
+  médias, et **aucune bordure du tout** dans plusieurs écrans d'administration. Tous portent
+  désormais la même bordure, le même rayon, le même fond et le même **chevron dessiné par
+  l'application** — donc le même rendu sur iPhone, Android et ordinateur. Le menu qui s'ouvre
+  reste celui du système : son accessibilité et son ergonomie tactile sont conservées.
+- **84 champs qui sortaient au rendu natif sont habillés.** Les classes `form-input` et
+  `form-select`, posées sur 31 fichiers, n'existaient dans aucune feuille de style : les
+  champs concernés s'affichaient avec le widget du système d'exploitation, différent d'un
+  appareil à l'autre. Écrans touchés : réglages de validation des lectures, rattachement des
+  questions aux contenus, catalogue et éditeur de QCM, glossaire, réseau trophique, studio
+  mascotte et studio des dialogues.
+- **186 champs sans conteneur habillé rattrapés** (barres d'outils de profils, tableaux
+  Moodle, bibliothèque de médias, éditeurs de packs, panneaux d'usage et de suivi) par une
+  couche de base qui s'applique à tout champ de ForetMap, y compris ceux à venir.
+- **Cible tactile de 44 px garantie** sur tous les champs. Ceux laissés au rendu du système
+  tombaient à une vingtaine de pixels.
+- **Quatre barres d'onglets ramenées à une.** L'administration mélangeait le rail de la
+  navigation **principale** réemployé un niveau plus bas (Profils, Audit), des pilules venues
+  de Gnomes & Licornes (Paramètres), des boutons déguisés en onglets (studio mascotte,
+  rattachement des questions) et un segment dédié (connexion / inscription). Une seule barre
+  secondaire, dérivée de la barre principale, les remplace : la hiérarchie entre onglet
+  principal et sous-section redevient lisible.
+- **Textes d'aide et d'erreur des formulaires visibles.** `.hint`, `.muted`, `.form-error` et
+  `.text-danger` n'étaient définies nulle part ; l'erreur d'enregistrement automatique de la
+  fiche espèce et de l'éditeur de tutoriel s'affichait dans l'encre du corps de texte.
+
+### Corrigé — Boutons sans forme, onglets muets, focus perdu
+
+- **Huit boutons sans forme.** Une variante `btn-primary` / `btn-ghost` / `btn-secondary`
+  posée sans la classe de base `btn` ne donne qu'un aplat de couleur sur un bouton natif :
+  ni marge intérieure, ni coins arrondis, ni hauteur de 44 px. Six dans l'écran de
+  rattachement des questions, un dans les séries récurrentes, un dans l'éditeur de visite
+  guidée — ce dernier étant **entièrement nu** dans Gnomes & Licornes, qui ne charge pas la
+  feuille de ForetMap.
+- **Accessibilité des sous-onglets de l'Audit** : la barre n'annonçait ni `tablist`, ni
+  `tab`, ni l'onglet courant, et ses boutons n'avaient pas de `type`.
+- **Le focus au clavier reste visible** sur les cases à cocher, boutons radio, curseurs,
+  sélecteurs de couleur et de fichier.
+
+Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md).
+### Ajouté — Plan Lyautey : navigation lissée et repère directionnel
+
+- **Le repère de position indique la direction.** Un disque ne dit pas de quel côté on part :
+  dès qu'une direction est connue, le repère devient une **flèche orientée**. Elle suit la
+  **route GPS** quand on marche (`coords.heading`) et la **boussole** à l'arrêt, avec hystérésis
+  sur la vitesse pour ne pas basculer d'une source à l'autre à chaque pas. Sans aucune direction
+  exploitable, le disque reste : une flèche pointée au hasard mentirait. Carte orientée, la
+  flèche pointe vers le haut de l'écran — le calque tourne de `−cap`, la flèche de `+cap`.
+- **Suivi de carte continu** (`followPct`). Le suivi rejouait une animation de 200 ms à chaque
+  mesure puis s'arrêtait net : une saccade par seconde. La caméra rattrape désormais une cible
+  mobile en continu (ressort amorti, τ ≈ 380 ms), ne se relance pas quand la cible bouge, et
+  n'écrit dans React **qu'une fois arrivée** — marcher ne coûte plus un rendu par mesure.
+- **Mesures GPS filtrées avant affichage** (`geoPositionFilter.js`) : rejet des sauts
+  invraisemblables (le « téléport » sur reflet de signal, qui emportait la carte à l'autre bout
+  du plan), puis filtre de Kalman 1-D dont le gain suit la précision annoncée — et s'ouvre avec
+  la vitesse, pour coller à la marche sans retrouver le tremblement de l'arrêt. La précision
+  affichée par le halo reste celle du capteur.
+- **Lissage du cap à constante de temps** (`smoothHeadingOverTime`) : le lissage à alpha fixe
+  dépendait de la cadence du capteur — nerveux à 60 Hz, mou à 5 Hz. Le cap est désormais lissé
+  dans une ref et publié **huit fois par seconde au plus**, avec bande morte d'un degré ; la
+  **transition CSS** du calque d'orientation comble les intervalles sur le compositeur. La
+  boussole ne déclenche plus un rendu de toute la carte par événement.
+- **Angle d'orientation continu** (`unwrapHeadingDeg`) : sans lui, une transition CSS entre
+  359° et 1° ferait faire à la carte un tour complet, à l'envers.
+- **Acquisition plus fraîche** : `maximumAge` passe de 5 s à 1 s. Une mesure vieille de cinq
+  secondes place la personne cinq mètres en arrière, et le suivi part en saccades pour rattraper
+  un retard qui n'existe pas. `coords.speed` et `coords.heading` sont désormais exposés.
+- **Mouvement réduit respecté** : la carte se pose sur la position au lieu d'y glisser, et la
+  flèche ne s'anime pas.
+- Noyau carte **partagé** : ForetMap (visite, carte de travail) profite des mêmes changements.
+  Inspiration citée dans `geoPositionFilter.js` (filtre de Kalman 1-D pour traces GPS).
+
+### Modifié — Panneaux, tableaux et libellés : la suite de l'homogénéisation
+
+- **Les cartes blanches existent enfin.** Huit écrans posaient `className="card"`, une classe
+  qui n'existait dans aucune feuille de style : le catalogue de QCM, le réseau trophique, le
+  rattachement des questions, les réglages de validation des lectures, les stats et le carnet
+  croyaient poser une carte et rendaient un bloc **transparent**. Plus largement, ForetMap
+  n'avait aucune surface commune — chaque écran réinventait la sienne. Il y en a désormais
+  une (`.fm-panel`), dont `card` est l'alias.
+- **Un seul habillage de tableau.** Cinq coexistaient, dont deux inexistants : le tableau des
+  stats et la fiche de pack mascotte sortaient au rendu par défaut du navigateur, sans marges
+  ni filets. Tous portent la même apparence, avec une variante dense pour les écrans
+  d'administration. Un tableau large défile désormais dans sa propre boîte au lieu d'élargir
+  la page.
+- **Un seul libellé de champ.** Il y en avait sept. Les **capitales interlettrées
+  disparaissent** au profit des minuscules en demi-gras : elles se lisent plus facilement, en
+  particulier pour un élève dyslexique. Aucun libellé n'est réécrit — seule la mise en
+  capitales automatique est retirée.
+- **Les quatre applications partagent le même contrat.** ForetMap, Gnomes & Licornes, le Plan
+  Lyautey et le plan des personnels chargent les mêmes feuilles de champs et de surfaces. Le
+  plan des personnels, arrivé la veille, repartait d'une page blanche ; le Plan public aussi,
+  alors même que sa feuille déclarait vouloir réutiliser les contrôles partagés. Le Plan
+  teinte maintenant ces contrôles à sa charte marine au lieu de réécrire ses bordures.
+
+### Corrigé
+
+- **Fiche de pack mascotte** : son tableau réécrivait toute son apparence en styles inline
+  (largeur, filets, marges de cellule, taille de texte), donc hors de portée de toute feuille
+  de style. Il suit maintenant l'habillage commun.
+
+Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§5, lot B).
+
+### Modifié — Surfaces, tableaux et couleurs : la fin de l'homogénéisation de l'interface
+
+- **Les encadrés de toute l'application se ressemblent.** Les cinq surfaces héritées —
+  la fiche « À propos », la tuile de statistique, le panneau de notifications, le panneau du
+  forum et la carte de connexion — redéfinissaient chacune son fond, ses coins et son ombre.
+  Elles partagent désormais le même encadré, et ne gardent que leurs écarts voulus : le filet
+  menthe de la fiche, l'absence de filet sur une tuile au repos, l'ombre plus portée du
+  panneau qui flotte au-dessus de l'écran.
+- **Les tableaux de Gnomes & Licornes rejoignent les autres.** Le tableau d'administration
+  était quadrillé sur ses quatre côtés là où les deux autres n'avaient qu'un filet sous
+  chaque ligne. En échange, sa **zébrure** — une ligne sur deux teintée, la ligne survolée
+  mise en avant — devient disponible partout : sur un long tableau, c'est ce qui évite de
+  suivre une ligne à la règle.
+- **Les couleurs ont enfin des noms.** Il n'existait aucun nom pour « le gris d'un libellé
+  secondaire », d'où **206 gris différents** dans l'application. Une échelle commune (surfaces,
+  filets, encres de texte, teintes d'état) est posée et chargée par les quatre applications ;
+  **497 couleurs écrites en dur** la rejoignent, dont les 219 blancs. Le blanc, les filets et
+  les gris **n'ont pas changé d'un pixel** : ils ont seulement pris un nom.
+- **Une seule encre par état.** Quatre rouges, trois verts et trois ambres se disputaient le
+  rôle de « couleur du message d'erreur / de succès / d'avertissement ». Il n'en reste qu'un
+  de chaque pour le **texte**. Les aplats et les pastilles gardent leur couleur vive : un fond
+  et une encre lisible sur fond clair ne sont pas le même rôle.
+
+### Ajouté
+
+- **Un garde-fou empêche la couleur de se disperser à nouveau** : écrire une couleur en dur
+  alors qu'un nom existe pour elle fait échouer l'intégration continue.
+
+Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§6, lot C).
+
 ---
 
 ## [1.152.1] - 2026-09-11

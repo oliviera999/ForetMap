@@ -38,8 +38,8 @@ export function LearningGatingLocksPanel({
     section = 'card pedago-links fade-in',
     hint = 'section-sub',
     error: errorClass = 'pedago-qcm-admin__error',
-    tableWrap = 'pedago-links__table-wrap',
-    table = 'pedago-links__table',
+    tableWrap = 'fm-table-wrap pedago-links__table-wrap',
+    table = 'fm-table pedago-links__table',
     button = 'btn-ghost',
   } = classNames;
 

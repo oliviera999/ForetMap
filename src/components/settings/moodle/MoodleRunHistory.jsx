@@ -11,8 +11,8 @@ export function MoodleRunHistory({ runs, total, onOpen, selectedId }) {
     return <p style={{ color: 'var(--ink-soft)' }}>Aucune exécution enregistrée.</p>;
   }
   return (
-    <div className="moodle-table-wrap" data-testid="moodle-history">
-      <table className="moodle-table">
+    <div className="fm-table-wrap moodle-table-wrap" data-testid="moodle-history">
+      <table className="fm-table fm-table--dense moodle-table">
         <thead>
           <tr>
             <th scope="col">#</th>

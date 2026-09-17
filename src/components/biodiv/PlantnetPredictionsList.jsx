@@ -42,7 +42,7 @@ export function PlantnetPredictionsList({
               padding: '6px 8px',
               borderRadius: 8,
               border: '1px solid #e6e6e6',
-              background: '#fff',
+              background: 'var(--surface-plain)',
             }}
           >
             <div style={{ minWidth: 0 }}>

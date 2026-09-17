@@ -437,8 +437,8 @@ export function GLLearningLinksPanel() {
       {links.length === 0 ? (
         <p className="gl-hint">Aucun lien pour ces filtres.</p>
       ) : (
-        <div className="gl-admin-table-wrap">
-          <table className="gl-admin-table">
+        <div className="fm-table-wrap gl-admin-table-wrap">
+          <table className="fm-table fm-table--zebra gl-admin-table">
             <thead>
               <tr>
                 <th>Jeu</th>

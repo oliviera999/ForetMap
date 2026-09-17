@@ -235,7 +235,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   return (
     <div className="forum-view">
       {canUseForumActions ? (
-        <section className="forum-panel">
+        <section className="fm-panel forum-panel">
           <h3>Nouveau sujet</h3>
           <form className="forum-form" onSubmit={handleCreateThread}>
             <div className="field">
@@ -289,8 +289,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
         </section>
       ) : (
         <section
-          className="forum-panel"
-          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+          className="fm-panel forum-panel"
+          style={{ background: 'var(--surface-cool)', border: '1px solid #e2e8f0' }}
         >
           <p className="forum-muted" style={{ margin: 0, lineHeight: 'var(--lh-normal)' }}>
             Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux
@@ -301,7 +301,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
       )}
 
       <div className="forum-grid">
-        <section className="forum-panel">
+        <section className="fm-panel forum-panel">
           <div className="forum-head">
             <h3>Sujets ({threadsTotal})</h3>
             <div className="forum-pager">
@@ -361,7 +361,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
           </div>
         </section>
 
-        <section className="forum-panel">
+        <section className="fm-panel forum-panel">
           {!threadDetail ? (
             <div className="empty">
               <p>Choisis un sujet pour voir la discussion.</p>

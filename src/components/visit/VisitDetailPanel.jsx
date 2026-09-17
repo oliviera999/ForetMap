@@ -165,6 +165,14 @@ export function VisitDetailPanel({
   tasks = [],
   catalogTutorials = [],
   isTeacher = false,
+  /**
+   * Guidage « Y aller » (`shared/map-guide`) : direction et distance à vol d'oiseau depuis la
+   * position, jamais un itinéraire. Éteint si la carte n'est pas calée (`canGuide` faux).
+   */
+  canGuide = false,
+  onGoTo = null,
+  isGuideTarget = false,
+  guideDistanceLabel = '',
   /** Édition visite : prof hors « aperçu comme élève ». */
   canEditVisit = false,
   onSaved,
@@ -376,6 +384,31 @@ export function VisitDetailPanel({
               </div>
             </details>
           )}
+          {onGoTo ? (
+            <div className="visit-detail-panel__go">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm visit-detail-panel__go-btn"
+                data-testid="visit-detail-go"
+                disabled={!canGuide}
+                title={
+                  canGuide
+                    ? 'Afficher la direction et la distance depuis votre position'
+                    : 'Cette carte n’est pas calée pour la localisation'
+                }
+                onClick={() => onGoTo(selected)}
+              >
+                {isGuideTarget ? 'Revoir la direction' : 'Y aller'}
+              </button>
+              <p className="visit-detail-panel__go-hint section-sub">
+                {!canGuide
+                  ? 'Carte non calée : position indisponible.'
+                  : isGuideTarget && guideDistanceLabel
+                    ? `À ${guideDistanceLabel} à vol d’oiseau. La fiche se referme : le guidage reste en bas.`
+                    : 'Direction à vol d’oiseau, pas un itinéraire. La fiche se referme.'}
+              </p>
+            </div>
+          ) : null}
           {showSeenStatus ? (
             <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
               {seen.has(itemSeenKey(selectedType, selected.id)) ? (

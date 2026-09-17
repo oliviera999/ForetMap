@@ -525,7 +525,7 @@ export function MapViewToolbar({
               style={{
                 background: markerPositionUnlocked ? '#ecfdf3' : 'transparent',
                 border: '1.5px solid var(--mint)',
-                color: markerPositionUnlocked ? '#166534' : 'var(--forest)',
+                color: markerPositionUnlocked ? 'var(--ink-success)' : 'var(--forest)',
               }}
             >
               {markerPositionUnlocked ? <IconUnlock size={15} /> : <IconLock size={15} />} Repères

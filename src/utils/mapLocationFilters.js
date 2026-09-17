@@ -10,6 +10,7 @@ import {
   locationCategoryLabels,
   locationHasAnyCategory,
 } from './locationCategories.js';
+import { isLocationVisibleOnSurface } from './locationSurfaceVisibility.js';
 
 /** État par défaut des filtres carte. */
 export const MAP_LOCATION_FILTER_DEFAULTS = Object.freeze({
@@ -20,7 +21,23 @@ export const MAP_LOCATION_FILTER_DEFAULTS = Object.freeze({
   hasTasks: '',
   hasTutorials: '',
   infrastructureOnly: false,
+  /**
+   * Revue des surfaces : `surface` désigne la surface examinée (`plan`, `staff`…) et
+   * `surfaceState` ce qu'on y cherche — `visible` ou `hidden`. Les deux vides = pas de filtre.
+   * C'est le couple qui permet la passe de tri « qu'est-ce que le public voit encore ? ».
+   */
+  surface: '',
+  surfaceState: '',
 });
+
+/** Le lieu satisfait-il le filtre de surface ? (les deux champs vides = oui) */
+function surfaceMatches(item, filters) {
+  const surface = String(filters.surface || '');
+  const state = String(filters.surfaceState || '');
+  if (!surface || !state) return true;
+  const visible = isLocationVisibleOnSurface(item, surface);
+  return state === 'visible' ? visible : !visible;
+}
 
 /** Normalise une chaîne pour comparaison (minuscules, sans accents). */
 export function normalizeMapSearchText(raw) {
@@ -135,6 +152,7 @@ export function zoneMatchesMapFilters(zone, filters, context = {}) {
   if (!triStateMatches(hasTasks, f.hasTasks)) return false;
   const tutCount = context.zoneTutorialCountById?.get?.(String(zone.id)) || 0;
   if (!triStateMatches(tutCount > 0, f.hasTutorials)) return false;
+  if (!surfaceMatches(zone, f)) return false;
   const tokens = mapSearchTokens(f.text);
   if (tokens.length) {
     const blob = buildZoneSearchBlob(zone, context.emojiParsingList);
@@ -154,6 +172,7 @@ export function markerMatchesMapFilters(marker, filters, context = {}) {
   if (!triStateMatches(hasTasks, f.hasTasks)) return false;
   const tutCount = context.markerTutorialCountById?.get?.(String(marker.id)) || 0;
   if (!triStateMatches(tutCount > 0, f.hasTutorials)) return false;
+  if (!surfaceMatches(marker, f)) return false;
   const tokens = mapSearchTokens(f.text);
   if (tokens.length) {
     const blob = buildMarkerSearchBlob(marker);
@@ -172,6 +191,7 @@ export function isMapLocationFilterActive(filters) {
   if (f.hasTasks) return true;
   if (f.hasTutorials) return true;
   if (f.infrastructureOnly) return true;
+  if (f.surface && f.surfaceState) return true;
   return false;
 }
 
@@ -185,6 +205,7 @@ export function countActiveMapLocationFilters(filters) {
   if (f.hasTasks) n += 1;
   if (f.hasTutorials) n += 1;
   if (f.infrastructureOnly) n += 1;
+  if (f.surface && f.surfaceState) n += 1;
   return n;
 }
 

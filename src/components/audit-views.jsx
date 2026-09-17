@@ -157,7 +157,7 @@ function VisitStatsPanel({ roleTerms }) {
   return (
     <div className="fade-in">
       <div className="stats-grid audit-stats-grid">
-        <article className="stat-card highlight">
+        <article className="fm-panel stat-card highlight">
           <div className="stat-icon">
             <IconFootprints size={20} />
           </div>
@@ -166,7 +166,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Sessions de visite</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconCheck size={20} />
           </div>
@@ -175,7 +175,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Visites terminées</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconGoal size={20} />
           </div>
@@ -184,7 +184,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Actions marquées vu</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconTrend size={20} />
           </div>
@@ -258,15 +258,22 @@ function AuditLog() {
       <p className="section-sub">
         Historique des actions {roleTerms.teacherShort} et indicateurs de visite.
       </p>
-      <div className="top-tabs audit-subtabs">
+      {/* Barre secondaire commune. Elle empruntait `.top-tabs` (navigation principale) et
+          n'annonçait rien aux lecteurs d'écran : ni `tablist`, ni `tab`, ni `aria-selected`,
+          ni `type="button"`. */}
+      <div className="fm-subtabs audit-subtabs" role="tablist" aria-label="Sections audit">
         <button
-          className={`top-tab ${subTab === 'history' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'history'}
           onClick={() => setSubTab('history')}
         >
           <IconAudit size={14} /> Historique
         </button>
         <button
-          className={`top-tab ${subTab === 'visit-stats' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'visit-stats'}
           onClick={() => setSubTab('visit-stats')}
         >
           <IconStats size={14} /> Stats visite

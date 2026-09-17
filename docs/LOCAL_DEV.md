@@ -157,6 +157,35 @@ faire : les fichiers déposés (`uploads/`) ne sont pas dans le dump — ne les 
 
 Diagnostic seul, sur une base déjà importée : `npm run db:anonymize:scan`.
 
+#### Le fixture anonymisé versionné
+
+Une fois la base anonymisée, elle peut être **figée dans le dépôt** pour que n'importe quel
+poste — ou n'importe quelle session éphémère — retrouve la volumétrie réelle sans qu'un dump
+de production circule :
+
+```bash
+npm run db:fixture:export    # → sql/fixtures/foretmap-anonymise.sql.gz (~1,4 Mo)
+npm run db:fixture:load      # dans une autre session / sur un autre poste
+npm run db:seed:teacher      # compte prof
+```
+
+C'est la **seule** exception à l'interdiction de versionner du SQL de base, et elle tient à
+trois contrôles superposés :
+
+1. `db:fixture:export` refuse d'écrire tant que le balayage de l'anonymiseur signale un motif
+   bloquant, et vérifie en plus que `users` ne porte aucune adresse hors
+   `@exemple.invalid` ni plus d'un hachage distinct ;
+2. le flux de sortie **neutralise** les adresses que l'anonymiseur tolère par ailleurs (crédit
+   d'illustration Wikimedia, contact de la page « À propos ») : elles n'ont aucune utilité
+   dans un jeu de test ;
+3. `tests/fixture-anonymise.test.js` relit l'archive **versionnée** à chaque CI, sans faire
+   confiance au script qui l'a produite.
+
+Un dump **brut** reste interdit dans le dépôt, sans exception.
+
+`db:fixture:load` refuse de viser `foretmap_test` : cette base appartient aux suites
+automatisées et doit rester construite par `db:init`.
+
 > Note historique : l'ancien systeme d'elevation par PIN (`role_pin_secrets`,
 > `TEACHER_PIN`, `npm run db:reset:role-pins:local`) a ete supprime — les droits
 > viennent des roles RBAC attribues a la connexion.
@@ -364,6 +393,16 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 **CI** (`.github/workflows/ci.yml`) : `npm run lint` → `npm test` → **`npm run test:ui`** → `npm run test:coverage` → `npm run build` → serveur **`npm run start:e2e`** → **`npm run test:e2e`** (`E2E_BASE_URL`). Pas de **`webServer`** Playwright quand **`CI=true`**.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
+
+**Comptes élèves : la suite tourne dans la configuration de production.** `e2e/global-setup.js`
+force **`ui.auth.allow_register = false`**, la valeur servie en production, et les fixtures
+créent les comptes par l'**import d'administration** (`POST /api/students/import`, rattachement
+au groupe `e2e-n3beur` qui accorde l'accès n3beur) — comme un enseignant important sa liste de
+classe. Auparavant tout passait par le formulaire public : la suite ne vérifiait donc jamais
+l'application telle qu'elle tourne, et s'effondrait dès qu'on la lançait sur une base réelle
+(audit `AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7). Le formulaire public garde sa
+couverture dans **`e2e/auth-registration.spec.js`**, seule spec à rouvrir le réglage — et à le
+refermer derrière elle.
 
 **Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`, sélection mascotte OLU spritesheet et contrôle des comportements en preview prof/admin). Voir aussi skills **foretmap-e2e**, **foretmap-mascot-catalog** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
@@ -645,6 +684,10 @@ Le script est **idempotent** et non interactif (~2 min à froid, ~10 s à chaud)
    `mobile-webkit`, pourtant bloquant en CI, échoue avant le premier test ;
 5. écrit un `.env` de session (non versionné) et exporte les variables via
    `$CLAUDE_ENV_FILE`.
+
+Depuis le lot « base réelle », il charge aussi le **fixture anonymisé** dans
+`foretmap_local` et sème le compte prof : une session démarre donc sur la volumétrie de
+production, pas sur un seed. `FORETMAP_SESSION_SKIP_FIXTURE=1` saute cette étape.
 
 | Variable                           | Effet                                                                     |
 | ---------------------------------- | ------------------------------------------------------------------------- |

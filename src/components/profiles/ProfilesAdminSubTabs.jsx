@@ -1,5 +1,10 @@
 /**
- * Sous-onglets de l'admin « Profils & utilisateurs » (pattern Audit `top-tabs`).
+ * Sous-onglets de l'admin « Profils & utilisateurs » (barre secondaire `.fm-subtabs`).
+ *
+ * Ils empruntaient `.top-tabs` / `.top-tab`, c'est-à-dire la barre de navigation
+ * PRINCIPALE du professeur : deux niveaux de navigation avaient la même forme, empilés
+ * l'un sous l'autre. `.fm-subtabs` en est la déclinaison secondaire — mêmes couleurs,
+ * une hauteur en dessous.
  *
  * P15 de l'audit UX : les deux compteurs avaient la même forme et deux sens opposés —
  * « Comptes (128) » informait du nombre de résultats filtrés, « Groupes (3) » alertait sur
@@ -47,14 +52,14 @@ export function ProfilesAdminSubTabs({
   if (tabs.length === 0) return null;
 
   return (
-    <div className="top-tabs profiles-admin-subtabs" role="tablist" aria-label="Sections profils">
+    <div className="fm-subtabs profiles-admin-subtabs" role="tablist" aria-label="Sections profils">
       {tabs.map((t) => (
         <button
           key={t.id}
           type="button"
           role="tab"
           aria-selected={active === t.id}
-          className={`top-tab ${active === t.id ? 'active' : ''}`}
+          className={active === t.id ? 'is-active' : ''}
           onClick={() => onChange(t.id)}
         >
           {t.label}

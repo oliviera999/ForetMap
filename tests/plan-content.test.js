@@ -316,7 +316,9 @@ test('catégories : surfaces en écriture (défaut toutes), exposition et ?surfa
     .send({ label: 'Bâtiments', map_id: mapId })
     .expect(201);
   createdIds.categories.push(createdCat.body.id);
-  assert.deepEqual(createdCat.body.surfaces, ['map', 'visit', 'plan']);
+  // Défaut = toutes les surfaces, `staff` (plan des personnels) comprise : une catégorie
+  // nouvelle est visible partout tant qu'on ne l'a pas restreinte (migration `260`).
+  assert.deepEqual(createdCat.body.surfaces, ['map', 'visit', 'plan', 'staff']);
 
   const restricted = await auth(request(app).put(`/api/map-categories/${createdCat.body.id}`))
     .send({ surfaces: ['plan'] })
