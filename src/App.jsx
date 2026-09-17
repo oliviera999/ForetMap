@@ -418,7 +418,16 @@ function App() {
     [authClaims?.roleDisplayName],
   );
 
-  const hasAuthenticatedShell = !!(student || isTeacher);
+  /*
+   * Session établie au sens du chargement des données et du renouvellement de jeton.
+   * Doit suivre la même porte que le rendu (`isTeacherAccount`), pas `isTeacher`
+   * (`teacher.access`) : un compte enseignant sans cette permission — profil dérivé,
+   * ou « Prof de classe » dont on a décoché « Accès interface n3boss » avant le
+   * verrouillage — ouvrait l'app puis restait sur « Chargement de la forêt… » parce
+   * que `fetchAll` n'était jamais lancé (`loading` reste à true tant que le premier
+   * cycle n'a pas fini) et le jeton n'était plus prolongé.
+   */
+  const hasAuthenticatedShell = !!(student || isTeacherAccount);
 
   // Contexte lu par `fetchAll` (mémoïsé : il pilote aussi le debounce du rechargement auto).
   const dataSyncContext = useMemo(

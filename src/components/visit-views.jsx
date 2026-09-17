@@ -45,6 +45,7 @@ import { MAP_GUIDE_BAR_FOCUS_INSET_PX, MapGuideBar } from '../shared/map-guide/M
 import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
 import { mapPlaceKey } from '../shared/map-guide/mapGuidePlace.js';
 import {
+  mapRouteResumeStorageKey,
   placesFromZonesAndMarkers,
   routeEntryFocusPct,
 } from '../shared/map-routes/mapRouteSteps.js';
@@ -463,24 +464,36 @@ function VisitViewImpl({
     () => placesFromZonesAndMarkers(content.zones || [], content.markers || []),
     [content.zones, content.markers],
   );
+  /**
+   * Hauteur réellement occupée par la barre d'étape (elle se mesure elle-même) : la carte
+   * recadre **au-dessus** d'elle. Sans cet écart, le lieu de l'étape courante était centré
+   * dans la scène entière, donc sous la barre une fois sur deux
+   * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.7).
+   */
+  const [routeBarHeight, setRouteBarHeight] = useState(0);
+  const routeFocusInsets = useMemo(
+    () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
+    [routeBarHeight],
+  );
   const onRouteStepPlace = useCallback(
     (entry) => {
       if (!entry?.place) return;
       const place = entry.place;
+      const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
       if (place.kind === 'zone') {
         setSelected(place);
         setSelectedType('zone');
         const c = visitZoneCentroidPct(place);
-        if (c) focusOnPct({ xp: c.xp, yp: c.yp });
+        if (c) focusOnPct({ xp: c.xp, yp: c.yp }, focusOptions);
       } else {
         setSelected(place);
         setSelectedType('marker');
         if (Number.isFinite(Number(place.x_pct)) && Number.isFinite(Number(place.y_pct))) {
-          focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) });
+          focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) }, focusOptions);
         }
       }
     },
-    [setSelected, setSelectedType, focusOnPct],
+    [setSelected, setSelectedType, focusOnPct, routeFocusInsets],
   );
   const onRouteExitExtra = useCallback(() => {
     setSelected(null);
@@ -504,6 +517,9 @@ function VisitViewImpl({
     places: routePlaces,
     onStepPlace: onRouteStepPlace,
     onExitExtra: onRouteExitExtra,
+    // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
+    // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
+    storageKey: mapRouteResumeStorageKey('visit', mapId),
   });
   useEffect(() => {
     resetForMapChange();
@@ -1000,6 +1016,7 @@ function VisitViewImpl({
                 routesSlot={
                   <MapRoutePicker
                     routes={content.routes || []}
+                    places={routePlaces}
                     open={routePickerOpen}
                     onToggle={setRoutePickerOpen}
                     onStart={startRoute}
@@ -1137,6 +1154,7 @@ function VisitViewImpl({
                     index={routeIndex}
                     onGoToIndex={goToRouteIndex}
                     onExit={exitRoute}
+                    onHeight={setRouteBarHeight}
                     canLocate={!!visitPosition.available}
                     distanceLabel={visitTargetDistanceLabel}
                     hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me situer » puis avancez."

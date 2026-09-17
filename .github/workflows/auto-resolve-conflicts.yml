@@ -11,8 +11,15 @@ on:
   push:
     branches: [main]
   # Filet de sécurité périodique (les PR ouvertes en parallèle se télescopent).
+  # Toutes les 6 h et non toutes les heures : le cas réel — `main` avance et met une PR
+  # en conflit — est déjà couvert par le déclencheur `push` ci-dessus, la planification ne
+  # rattrape que les télescopages entre PR. Sur un dépôt PRIVÉ les minutes Actions sont
+  # décomptées du quota du plan (≈ 2 000 min/mois en Free) : un cron horaire, c'est
+  # 720 exécutions mensuelles pour ne rien faire la plupart du temps, soit une part
+  # majeure du quota — quota épuisé = plus de CI, mais aussi plus de `version-bump` ni de
+  # `frontend-dist`, donc plus de chaîne de release. Voir docs/EXPLOITATION.md § « Dépôt privé ».
   schedule:
-    - cron: '0 * * * *' # toutes les heures
+    - cron: '0 */6 * * *' # toutes les 6 heures (00:00, 06:00, 12:00, 18:00 UTC)
   # Déclenchement manuel (avec option simulation).
   workflow_dispatch:
     inputs:
