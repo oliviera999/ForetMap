@@ -463,7 +463,7 @@ describe('AppPlan — montage', () => {
     // première (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre le parcours' }));
     const resumed = await screen.findByTestId('plan-route-sheet');
-    expect(resumed.textContent).toContain('Étape 2 sur 2');
+    await waitFor(() => expect(resumed.textContent).toContain('Étape 2 sur 2'));
   });
 
   /**
