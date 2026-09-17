@@ -5315,13 +5315,20 @@
     .map-view-canvas-outer .map-route-bar{position:absolute;}
     .map-route-bar__head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
     .map-route-bar__titles{min-width:0;flex:1;}
-    .map-route-bar__route{margin:0 0 2px;color:var(--ink-soft);font-size:var(--text-sm);}
+    /* Rappel du parcours : **une ligne** (un titre long repoussait l'étape et les commandes
+       hors de l'écran — `docs/AUDIT_PARCOURS_2026-09-17.md` §2.7). */
+    .map-route-bar__route{
+      margin:0 0 2px;color:var(--ink-soft);font-size:var(--text-sm);
+      display:-webkit-box;-webkit-line-clamp:1;line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+    }
     .map-route-bar__step{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--text-md);line-height:1.3;}
     .map-route-bar__quit{
       flex-shrink:0;min-height:44px;padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;
       background:transparent;color:inherit;font:inherit;cursor:pointer;
     }
     .map-route-bar__text{margin:0;line-height:1.5;}
+    /* Texte déplié : il défile plutôt que de pousser la barre sur la moitié de l'écran. */
+    .map-route-bar__text.is-expanded{max-height:28vh;overflow-y:auto;}
     .map-route-bar__more{
       margin-left:8px;border:0;padding:0;background:none;color:var(--leaf);
       font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;
