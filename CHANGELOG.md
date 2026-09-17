@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
+
+- **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le
+  projet doit écrire lui-même et ce qu'il peut déléguer au Moodle de l'établissement. Part
+  générique du code chiffrée (**52 433 lignes applicatives, 19,6 %**, 261 fichiers, + 29 903 lignes
+  de tests) brique par brique, avec un verdict par brique (garder / geler / déléguer) ; **charte du
+  non-développement** en huit règles ; **points de convergence classés** en nécessaires (N1–N4),
+  utiles (U1–U5) et à écarter.
+- **Vérification consignée (§6.0)** : l'absence de `sync:shared-cores:check` dans les étapes
+  nommées de `.github/workflows/ci.yml` ne signale **aucune** faille — la non-divergence des huit
+  miroirs `lib/shared/*Core.js` est vérifiée au caractère près par `tests/shared-cores-sync.test.js`
+  (job `test`, `npm run test:coverage`, sans `continue-on-error`), et celle de `lib/visit-pack/`,
+  `lib/gl-pack/` et `lib/term-autolink/` par le workflow `frontend-dist.yml` (rebuild puis
+  `git diff --quiet`). L'audit ne recommande donc **aucun geste de code**.
+- **Constat de convergence** : les lots 0 à 4 de `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` sont
+  **livrés** (noyau `src/shared/pct-map/` consommé par les quatre surfaces, étanchéité de
+  `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
+  du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
+- Index des audits (`docs/audits/README.md`) complété.
 ### Ajouté — Base à volumétrie réelle disponible dans chaque session (fixture anonymisé versionné)
 
 - `sql/fixtures/foretmap-anonymise.sql.gz` (~1,4 Mo) : copie **anonymisée** de la base, seule
