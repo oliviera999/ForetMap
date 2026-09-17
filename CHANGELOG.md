@@ -204,6 +204,58 @@ Aucune migration, aucune route touchée : tout est calculé côté client.
 - Tests : montage d'`App` avec une session prof de classe **sans** `teacher.access`
   (`tests-ui/AppShellWiring.test.jsx`), garde pure `teacherAccessLockError` et gel de
   la liste des profils verrouillés contre `ROLE_PERMISSION_MATRIX`.
+### Corrigé — Suite e2e : trois défauts qui la faisaient échouer sans cause applicative
+
+- `e2e/fixtures/auth.fixture.js` : `waitForTeacherMapReady` était **défini mais pas exporté**
+  alors que `teacher-zone-contour-edit.spec.js` l'importe → `TypeError` avant la première
+  assertion.
+- Même fichier : `.teacher-main .top-tabs` attendu sans `.first()` dans `openTeacherTasksTab`
+  → `strict mode violation` (la navigation prof porte deux barres d'onglets depuis les trois
+  pôles). Les variantes tablette et bureau de `modals-responsive` repassent.
+- `e2e/tasks-flow.spec.js` : l'onglet actif était cherché avec `/Tâches/`, sensible à la
+  casse, alors que la vue empruntée s'appelle « Cartes & tâches » depuis la réorganisation
+  par pôles.
+- Ces trois défauts survivaient parce que la suite e2e complète est `continue-on-error` en
+  CI. Inventaire complet des deux exécutions de bout en bout (21 puis 24 échecs, dont 20
+  communs) et constats restants : `docs/AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` § 7.
+
+### Ajouté — Outillage : anonymisation d'une copie locale de la base de production
+
+- `scripts/anonymize-local-db.js` (+ `npm run db:anonymize:dry` / `db:anonymize` /
+  `db:anonymize:scan`) : permet de travailler sur la **volumétrie réelle** sans conserver de
+  donnée personnelle. Réécrit les identités (`users`, `gl_players`, `gl_admins`,
+  `external_identities`, noms dénormalisés des tâches), remplace les hachages par un mot de
+  passe unique, purge jetons / journal d'audit / charges utiles `security_events` / rapports
+  de synchronisation Moodle, et remplace les contenus libres par un texte **de même
+  longueur** (mesures de charge toujours représentatives ; `--keep-text` pour conserver).
+- Garde-fous : refus si `DB_HOST` n'est pas local ou si `NODE_ENV=production`, simulation par
+  défaut, et **balayage final de toutes les colonnes texte** — une colonne oubliée fait
+  échouer la commande en la nommant, plutôt que de laisser croire que la base est propre.
+  Les crédits d'illustration externes (`plants.photo_credit`) sont signalés comme tolérés.
+- `docs/LOCAL_DEV.md` § 3 (import d'un dump) et `tests/anonymize-local-db.test.js`.
+- **Complété après passage sur un vrai dump de production** : `sync_actions.before_json` /
+  `after_json` (état nominatif d'une synchronisation Moodle, action par action) et les
+  `restricted_note` de `zones` / `visit_zones` / `map_markers` / `visit_markers` (consigne
+  d'accès en texte libre) échappaient au plan initial — c'est le balayage final qui les a
+  signalées. Les exceptions ne portent plus sur une colonne entière mais sur une **condition
+  SQL** (`app_settings.value_json` n'est toléré que pour les clés `content.%`, c'est-à-dire
+  l'adresse de contact de la page « À propos »), et le balayage compte désormais deux fois
+  par colonne : ce qui correspond, puis ce qui reste après exception.
+
+### Ajouté — Outillage : amorçage d'une session de développement en conteneur éphémère
+
+- `scripts/bootstrap-web-session.sh` (idempotent, non interactif, ~2 min à froid) : installe
+  les dépendances, **installe et démarre MariaDB**, crée `foretmap_test` / `foretmap_local`
+  et le compte applicatif, joue `db:init`, installe les navigateurs Playwright **avec leurs
+  paquets système** (sans quoi le projet `mobile-webkit`, bloquant en CI, ne démarre pas),
+  écrit un `.env` de session. `FORETMAP_SESSION_DB=docker` pour la parité CI exacte
+  (`mariadb:11.4.10`).
+- `docs/LOCAL_DEV.md` § 10 : mode d'emploi + enregistrement en hook `SessionStart`.
+- `docs/AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` : mesures de ce qui est réellement
+  exécutable dans une session Claude Code sur le web (les quatre suites passent : 3581 tests
+  backend, 4336 tests UI, 64 tests de contenu, e2e chromium et webkit), limites qui
+  subsistent (secrets tiers, données réelles, médiathèque GL, appareil iOS, e2e non bloquante
+  en CI) et propositions classées.
 
 ### Corrigé — Google enseignant : plus de création silencieuse de visiteur + messages de causes
 
@@ -1591,6 +1643,39 @@ séparés.
 - `plan-mobile-position.spec.js` et `plan-mobile-orientation.spec.js` rejoignent le smoke
   Playwright bloquant. Le retournement des étiquettes avait traversé l'intégration parce que le
   seul scénario exerçant la position n'était pas bloquant.
+
+### Ajouté — Plan Lyautey : navigation lissée et repère directionnel
+
+- **Le repère de position indique la direction.** Un disque ne dit pas de quel côté on part :
+  dès qu'une direction est connue, le repère devient une **flèche orientée**. Elle suit la
+  **route GPS** quand on marche (`coords.heading`) et la **boussole** à l'arrêt, avec hystérésis
+  sur la vitesse pour ne pas basculer d'une source à l'autre à chaque pas. Sans aucune direction
+  exploitable, le disque reste : une flèche pointée au hasard mentirait. Carte orientée, la
+  flèche pointe vers le haut de l'écran — le calque tourne de `−cap`, la flèche de `+cap`.
+- **Suivi de carte continu** (`followPct`). Le suivi rejouait une animation de 200 ms à chaque
+  mesure puis s'arrêtait net : une saccade par seconde. La caméra rattrape désormais une cible
+  mobile en continu (ressort amorti, τ ≈ 380 ms), ne se relance pas quand la cible bouge, et
+  n'écrit dans React **qu'une fois arrivée** — marcher ne coûte plus un rendu par mesure.
+- **Mesures GPS filtrées avant affichage** (`geoPositionFilter.js`) : rejet des sauts
+  invraisemblables (le « téléport » sur reflet de signal, qui emportait la carte à l'autre bout
+  du plan), puis filtre de Kalman 1-D dont le gain suit la précision annoncée — et s'ouvre avec
+  la vitesse, pour coller à la marche sans retrouver le tremblement de l'arrêt. La précision
+  affichée par le halo reste celle du capteur.
+- **Lissage du cap à constante de temps** (`smoothHeadingOverTime`) : le lissage à alpha fixe
+  dépendait de la cadence du capteur — nerveux à 60 Hz, mou à 5 Hz. Le cap est désormais lissé
+  dans une ref et publié **huit fois par seconde au plus**, avec bande morte d'un degré ; la
+  **transition CSS** du calque d'orientation comble les intervalles sur le compositeur. La
+  boussole ne déclenche plus un rendu de toute la carte par événement.
+- **Angle d'orientation continu** (`unwrapHeadingDeg`) : sans lui, une transition CSS entre
+  359° et 1° ferait faire à la carte un tour complet, à l'envers.
+- **Acquisition plus fraîche** : `maximumAge` passe de 5 s à 1 s. Une mesure vieille de cinq
+  secondes place la personne cinq mètres en arrière, et le suivi part en saccades pour rattraper
+  un retard qui n'existe pas. `coords.speed` et `coords.heading` sont désormais exposés.
+- **Mouvement réduit respecté** : la carte se pose sur la position au lieu d'y glisser, et la
+  flèche ne s'anime pas.
+- Noyau carte **partagé** : ForetMap (visite, carte de travail) profite des mêmes changements.
+  Inspiration citée dans `geoPositionFilter.js` (filtre de Kalman 1-D pour traces GPS).
+
 ---
 
 ## [1.152.1] - 2026-09-11

@@ -187,10 +187,12 @@ export function SharedMapStage({
     fitMapAnimated,
     zoomBy,
     focusOnPct,
+    followPct,
     consumeSkipClick,
     toImagePct,
     touchAction,
     setMapOrientation,
+    mapOrientation,
     orientStyle,
   } = viewport;
 
@@ -203,7 +205,7 @@ export function SharedMapStage({
     const pct = positionRef.current?.displayPct;
     if (!pct || !headingUpEffectiveRef.current) return;
     const minS = (fitScaleRef.current || 1) * HEADING_UP_COVER_SCALE;
-    focusOnPct({ xp: pct.xp, yp: pct.yp }, { targetScale: Math.max(committedSRef.current, minS) });
+    followPct({ xp: pct.xp, yp: pct.yp }, { targetScale: Math.max(committedSRef.current, minS) });
   };
 
   const positionLabels = useMemo(
@@ -423,27 +425,34 @@ export function SharedMapStage({
 
   // Heading-up : rotation intérieure autour de la position (ou centre) ; pan/zoom inchangés.
   const orientPivot = position?.displayPct || null;
-  const mapOrientationDeg = headingUpEffective
-    ? headingUpOrientationDeg(
-        position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null,
-      )
-    : 0;
+  // Angle **continu** (`screenHeadingUnwrappedDeg`) : la transition CSS du calque doit prendre
+  // le chemin le plus court, et non faire un tour complet au passage de 359° à 1°.
+  const headingForMapDeg =
+    position?.screenHeadingUnwrappedDeg ??
+    position?.smoothedScreenHeadingDeg ??
+    position?.screenHeadingDeg ??
+    null;
+  const targetOrientationDeg = headingUpEffective ? headingUpOrientationDeg(headingForMapDeg) : 0;
+  /**
+   * Angle **réellement appliqué** au calque. Tout ce qui doit rester aligné dessus (la
+   * contre-rotation des habillages via `--pct-orient`, le placement des étiquettes, la rose des
+   * vents) le lit ici, et non sur l'angle calculé au rendu : ce dernier est poussé dans le
+   * moteur de vue par un effet, donc un rendu plus tôt. Tant que la rotation était instantanée,
+   * cette avance d'une image ne se voyait pas ; depuis qu'elle est animée, elle faisait pencher
+   * tout le texte pendant la rotation.
+   */
+  const mapOrientationDeg = mapOrientation?.deg || 0;
   useEffect(() => {
     if (!headingUpEffective) {
       setMapOrientation({ deg: 0, originPct: null });
       return;
     }
-    const heading = position?.smoothedScreenHeadingDeg ?? position?.screenHeadingDeg ?? null;
-    setMapOrientation({
-      deg: headingUpOrientationDeg(heading),
-      originPct: orientPivot,
-    });
+    setMapOrientation({ deg: targetOrientationDeg, originPct: orientPivot });
   }, [
     headingUpEffective,
     orientPivot?.xp,
     orientPivot?.yp,
-    position?.smoothedScreenHeadingDeg,
-    position?.screenHeadingDeg,
+    targetOrientationDeg,
     setMapOrientation,
   ]);
 
@@ -459,14 +468,14 @@ export function SharedMapStage({
     if (!stickPct) return;
     if (headingUpEffective) {
       const minS = (fitScale || 1) * HEADING_UP_COVER_SCALE;
-      focusOnPct(
+      followPct(
         { xp: stickPct.xp, yp: stickPct.yp },
         { targetScale: Math.max(committedSRef.current, minS) },
       );
       return;
     }
-    focusOnPct({ xp: stickPct.xp, yp: stickPct.yp });
-  }, [stickPct?.xp, stickPct?.yp, headingUpEffective, fitScale, focusOnPct]);
+    followPct({ xp: stickPct.xp, yp: stickPct.yp });
+  }, [stickPct?.xp, stickPct?.yp, headingUpEffective, fitScale, followPct]);
 
   // Centrage sur le lieu sélectionné : une fois par lieu, jamais pendant que l'on manipule
   // la carte (sinon la vue « saute » sous le doigt à chaque re-rendu de la fiche).
@@ -783,7 +792,8 @@ export function SharedMapStage({
             <PctPositionLayer
               position={position.displayPct}
               haloPx={accuracyHaloDiameterPx(position.haloPct, fitRect.width)}
-              headingDeg={headingUpEffective ? null : position.screenHeadingDeg}
+              headingDeg={position.screenHeadingUnwrappedDeg ?? position.screenHeadingDeg}
+              headingSource={position.headingSource}
               accuracyM={position.accuracyM}
             />
           ) : null}
