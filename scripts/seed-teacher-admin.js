@@ -23,7 +23,14 @@ async function main() {
   else console.log(`Compte prof déjà présent: ${email}`);
 }
 
-main().catch((err) => {
-  console.error(err.message || err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // Sans fermeture explicite, le pool mysql2 garde la boucle d'évènements ouverte : le
+    // script affichait son message puis restait suspendu, obligeant à l'interrompre à la
+    // main — y compris dans un script d'amorçage automatisé, où il bloquait tout.
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error(err.message || err);
+    process.exit(1);
+  });
