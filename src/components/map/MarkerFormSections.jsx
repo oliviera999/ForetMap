@@ -1,6 +1,7 @@
 import { MAP_MARKER_EMOJI_MAX_CHARS } from '../../constants/emojis';
 import { SurfaceVisibilityField } from '../../shared/ui/SurfaceVisibilityField.jsx';
 import { LocationAudienceFields } from '../../shared/ui/LocationAudienceFields.jsx';
+import { LocationLinksFields } from '../../shared/ui/LocationLinksFields.jsx';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
@@ -134,6 +135,7 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
       />
       <LocationAudienceFields
         idPrefix="marker"
+        NoteEditor={MarkdownTextarea}
         visibleRoleSlugs={form.visible_role_slugs || []}
         onVisibleRoleSlugsChange={(next) => setForm((f) => ({ ...f, visible_role_slugs: next }))}
         restrictedNote={form.restricted_note || ''}
@@ -142,6 +144,11 @@ export function MarkerCommonFormFields({ form, setForm, plants, set, categoryCat
         onRestrictedNoteRoleSlugsChange={(next) =>
           setForm((f) => ({ ...f, restricted_note_role_slugs: next }))
         }
+      />
+      <LocationLinksFields
+        idPrefix="marker"
+        links={form.links || []}
+        onChange={(next) => setForm((f) => ({ ...f, links: next }))}
       />
     </>
   );
