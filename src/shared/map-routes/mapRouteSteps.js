@@ -20,9 +20,19 @@ export function resolveRouteSteps(route, places) {
   return resolved;
 }
 
-/** Titre affiché d'une étape : son titre propre, sinon le nom du lieu. */
+/**
+ * Titre affiché d'une étape : son titre propre, sinon le nom du lieu, sinon son rang.
+ *
+ * Le dernier repli n'est pas théorique : un repère sans libellé — ils existent — laissait la
+ * barre d'étape sur son seul numéro, sans une ligne de texte.
+ */
 export function routeStepTitle(entry) {
-  return String(entry?.step?.step_title || '').trim() || String(entry?.place?.name || '').trim();
+  const own = String(entry?.step?.step_title || '').trim();
+  if (own) return own;
+  const name = String(entry?.place?.name || '').trim();
+  if (name) return name;
+  const number = Number(entry?.number);
+  return Number.isFinite(number) && number > 0 ? `Étape ${number}` : '';
 }
 
 /** Position suivante dans un parcours, bornée (pas de boucle : la fin est la fin). */
@@ -78,4 +88,17 @@ export function routeEntryFocusPct(entry) {
     sy += Number(p?.yp) || 0;
   }
   return { xp: sx / pts.length, yp: sy / pts.length };
+}
+
+/**
+ * Clé de reprise d'un parcours sur l'appareil, par surface **et par carte** : un slug n'est
+ * unique que sur sa carte, et les trois surfaces peuvent vivre dans le même navigateur.
+ *
+ * @param {string} surface `visit`, `map`… (le Plan passe par `planStorageKeys`).
+ * @param {string} mapId carte affichée ; vide = pas de reprise mémorisée.
+ */
+export function mapRouteResumeStorageKey(surface, mapId) {
+  const map = String(mapId || '').trim();
+  if (!map) return '';
+  return `foretmap:${String(surface || 'map')}:route-resume:${map}`;
 }
