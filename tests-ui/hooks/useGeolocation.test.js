@@ -51,7 +51,46 @@ describe('useGeolocation', () => {
       lng: 2.3,
       accuracy: 8,
       timestamp: 1000,
+      speed: null,
+      heading: null,
     });
+  });
+
+  /**
+   * Vitesse et route suivie sont la seule source qui dise vers où l'on se *dirige* : sans elles,
+   * le repère de navigation ne pourrait s'appuyer que sur la boussole, qui dit vers où l'appareil
+   * est *tourné*. Le capteur les laisse à `NaN` à l'arrêt — ce qui n'est pas une valeur à
+   * propager telle quelle dans un calcul d'angle.
+   */
+  it('expose la vitesse et la route suivie, et neutralise leurs NaN', () => {
+    const geo = makeGeolocationMock();
+    let successCb;
+    geo.watchPosition.mockImplementation((onSuccess) => {
+      successCb = onSuccess;
+      return 43;
+    });
+    vi.stubGlobal('navigator', { geolocation: geo });
+
+    const { result } = renderHook(() => useGeolocation());
+    act(() => result.current.start());
+
+    act(() => {
+      successCb({
+        coords: { latitude: 48.85, longitude: 2.3, accuracy: 8, speed: 1.4, heading: 128 },
+        timestamp: 1000,
+      });
+    });
+    expect(result.current.position.speed).toBe(1.4);
+    expect(result.current.position.heading).toBe(128);
+
+    act(() => {
+      successCb({
+        coords: { latitude: 48.85, longitude: 2.3, accuracy: 8, speed: NaN, heading: NaN },
+        timestamp: 2000,
+      });
+    });
+    expect(result.current.position.speed).toBe(null);
+    expect(result.current.position.heading).toBe(null);
   });
 
   it('passe en statut « denied » si la permission est refusée', () => {
