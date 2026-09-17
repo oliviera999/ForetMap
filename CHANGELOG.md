@@ -20,6 +20,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Pratique à connaître en attendant** : après un `npm run test:e2e` local, rejouer
   `npm run db:init` avant `npm test`.
 
+### Corrigé — runbook de bascule `dist/` : ne pas comparer les noms de fichiers
+
+- **Le build Vite/rolldown n'est pas reproductible** : deux exécutions du même commit, sur deux
+  runners CI identiques, produisent des hachages de contenu différents pour l'essentiel des
+  chunks (mesuré sur `a4c0849` : 356 fichiers de part et d'autre, ~80 chunks renommés).
+  `docs/DEPLOY_DIST_ARTIFACT.md` laissait entendre qu'un écart devait rester marginal — un
+  opérateur comparant les deux arborescences aurait vu des dizaines d'écarts et abandonné la
+  bascule à tort. Le contrôle porte sur la **cohérence interne** de l'artefact et sur le nombre
+  de fichiers, pas sur l'égalité avec un autre build.
+- Conséquence notée dans le même document : le garde-fou de `frontend-dist.yml` **échoue déjà**
+  sur `main`, puisqu'il exige précisément cette égalité inatteignable. Son retrait, prévu à
+  l'étape 3 de la bascule, supprime donc aussi un workflow durablement rouge.
+- **Le diagnostic était sous-estimé, et il est corrigé.** Il annonçait un conflit entre « deux
+  branches qui touchent le frontend ». En réalité, la non-reproductibilité fait constater une
+  dérive à **chaque** push de PR : l'auto-commit `dist/` tombe même sur une PR purement
+  documentaire — mesuré sur celle-ci, deux fichiers modifiés et **159 fichiers de `dist/`**
+  ajoutés par-dessus. Toute PR ouverte porte donc un commit `dist/`, et **n'importe quelle
+  paire** de PR entre en conflit, quoi qu'elles modifient.
 
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
