@@ -219,16 +219,19 @@ l'essentiel (comptes, hachages, jetons, journaux) et manquait quand même six co
 L'application démarrée sur cette base (481 comptes, 118 zones, 534 plantes, 94 tâches,
 650 questions de quiz) donne immédiatement ce qu'une base semée ne peut pas donner :
 
-| Route             | Éléments | Poids de la réponse | Élément le plus lourd |
-| ----------------- | -------- | ------------------- | --------------------- |
-| `GET /api/plants` | 534      | **912 Ko**          | 3,0 Ko                |
-| `GET /api/zones`  | 118      | **369 Ko**          | 15,4 Ko               |
-| `GET /api/tasks`  | 84       | 159 Ko              | 7,1 Ko                |
+| Route             | Éléments | Poids brut | Élément le plus lourd |
+| ----------------- | -------- | ---------- | --------------------- |
+| `GET /api/plants` | 534      | 912 Ko     | 3,0 Ko                |
+| `GET /api/zones`  | 118      | 369 Ko     | 15,4 Ko               |
+| `GET /api/tasks`  | 84       | 159 Ko     | 7,1 Ko                |
 
-Les temps de réponse sont bons en local (37 à 49 ms), mais ce n'est pas le sujet : ces routes
-renvoient **tout**, sans pagination. Nous sommes sur un usage lycée, en 4G, souvent sur des
-téléphones — près d'un mégaoctet pour ouvrir l'onglet Biodiversité. Cela recoupe directement
-`AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, qui restait jusqu'ici invérifiable faute de données.
+> **Correction du 17/09/2026.** Cette section concluait « près d'un mégaoctet pour ouvrir
+> l'onglet Biodiversité sur un téléphone en 4G ». **C'est faux** : la mesure omettait
+> `Accept-Encoding: gzip`, alors que le middleware `compression` couvre tout `/api`. Un
+> navigateur reçoit **126 Ko**, pas 912. La reprise complète — poids réels, temps à froid et à
+> chaud, absence de N+1, campagne de charge sur volumétrie réelle — est dans
+> [`AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md`](AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md).
+> Les chiffres bruts ci-dessus restent exacts ; c'est leur lecture qui ne l'était pas.
 
 ### 5.3 P1 — secrets de test cloisonnés
 

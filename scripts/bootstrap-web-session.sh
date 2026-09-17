@@ -172,7 +172,22 @@ if ! npm run db:init >/tmp/foretmap-db-init.log 2>&1; then
   exit 1
 fi
 
-# --- 5. Navigateurs Playwright ------------------------------------------------------
+# --- 5. Base à volumétrie réelle (fixture anonymisé versionné) -----------------------
+# Chargée dans `foretmap_local` uniquement : `foretmap_test` doit rester la base construite
+# par `db:init`, sinon les suites automatisées échouent pour une raison sans rapport avec le
+# code. Rechargement systématique (DROP/CREATE) : chaque session repart d'un état connu.
+FIXTURE='sql/fixtures/foretmap-anonymise.sql.gz'
+if [ "${FORETMAP_SESSION_SKIP_FIXTURE:-0}" != '1' ] && [ -f "$FIXTURE" ]; then
+  log 'chargement du fixture anonymisé dans foretmap_local'
+  if DB_NAME="$DB_NAME_APP" node scripts/load-anonymized-fixture.js >/tmp/foretmap-fixture.log 2>&1; then
+    DB_NAME="$DB_NAME_APP" node scripts/seed-teacher-admin.js >>/tmp/foretmap-fixture.log 2>&1 || true
+    log "foretmap_local : $(mariadb -u "$DB_USER_APP" -p"$DB_PASS_APP" -N -B "$DB_NAME_APP" -e 'SELECT COUNT(*) FROM users;' 2>/dev/null) comptes, compte prof semé"
+  else
+    log 'AVERTISSEMENT : chargement du fixture en échec (voir /tmp/foretmap-fixture.log)'
+  fi
+fi
+
+# --- 6. Navigateurs Playwright ------------------------------------------------------
 # L'image fournit souvent un chromium préinstallé, mais rarement la révision attendue par la
 # version épinglée de `@playwright/test` → installation explicite (~25 s, idempotente).
 # `--with-deps` (comme la CI) : sans les paquets système, WebKit refuse de démarrer

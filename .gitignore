@@ -27,6 +27,11 @@ medias/
 # Sauvegardes BDD (scripts/db-backup.sh) — ne jamais versionner (PII)
 backups/
 *.sql.gz
+# Seule exception : le fixture ANONYMISÉ, produit par `npm run db:fixture:export`. Ce script
+# refuse d'écrire tant que le balayage de `scripts/anonymize-local-db.js` trouve un e-mail ou
+# un hachage bcrypt résiduel, et `tests/fixture-anonymise.test.js` revérifie l'archive
+# versionnée à chaque CI. Un dump BRUT reste interdit, ici comme ailleurs.
+!sql/fixtures/foretmap-anonymise.sql.gz
 
 # Exports SQL complets — ne jamais versionner : ils portent des données personnelles
 # (users, gl_players, password_reset_tokens, audit_log, forum_*). Pour alimenter
