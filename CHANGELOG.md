@@ -27,6 +27,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ligne « sandbox mode » propre à MariaDB est retirée.
 - `db:fixture:load` refuse de viser `foretmap_test`, qui doit rester construite par `db:init`.
 
+### Documentation — la suite e2e ne teste pas la configuration de production
+
+- Rejouée sur une base à la volumétrie réelle, `e2e/a11y.spec.js` donne 8 échecs pour 4
+  réussites, tous identiques : `locator.click: Test timeout` sur le bouton « Créer un compte »,
+  à la première ligne de `loginAsNewStudent` (`e2e/fixtures/auth.fixture.js:57`).
+- Cause : **`ui.auth.allow_register` vaut `false` en production**, et le réglage est absent de
+  la base semée (donc actif par défaut). Vérifié par bascule : le scénario qui expirait à 60 s
+  passe en 8,2 s une fois le réglage à `true`.
+- Portée : **toute spec qui passe par `loginAsNewStudent` suppose l'inscription libre ouverte**.
+  La suite ne vérifie donc jamais l'application telle qu'elle tourne réellement. Deux sorties
+  proposées (forcer le réglage dans `global-setup`, ou créer les élèves par l'API
+  d'administration) — arbitrage laissé au mainteneur, détail dans
+  `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7.
+
 ### Documentation — charge des listes rejouée sur la volumétrie de production
 
 - `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` : premières mesures de charge sur une

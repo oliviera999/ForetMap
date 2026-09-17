@@ -17,6 +17,10 @@ l'onglet Biodiversité » — **ne survit pas à la mesure** : elle portait sur 
 alors que toute réponse part compressée. Le correctif de septembre sur la rafale du catalogue,
 lui, se confirme et se quantifie enfin : **61 requêtes par ouverture avant, 4 après**.
 
+Troisième résultat, inattendu : la suite e2e **ne teste pas la configuration de
+production**. Toute spec qui crée un élève suppose l'inscription libre ouverte, alors que
+`ui.auth.allow_register` vaut `false` en production (§ 7).
+
 ---
 
 ## 1. Méthode
@@ -119,7 +123,45 @@ n'appelle de correctif aujourd'hui :
    demande `DEPLOY_SECRET` (cf. `AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` § 6.4). Tant qu'une
    session n'y a pas accès, aucun de ces chiffres ne peut être confronté à la production.
 
-## 7. Recommandation
+## 7. La suite e2e ne teste pas la configuration de production
+
+Rejouer la suite e2e sur cette base devait dire si la pauvreté du jeu semé expliquait une
+partie des échecs. Elle a répondu autre chose, et de plus utile.
+
+Sur base réelle, `e2e/a11y.spec.js` donne **8 échecs pour 4 réussites** (16,8 min). Les seize
+erreurs sont identiques :
+
+```
+Error: locator.click: Test timeout of 60000ms exceeded.
+  - waiting for getByRole('button', { name: 'Créer un compte' })
+  at fixtures/auth.fixture.js:57
+```
+
+L'échec n'est ni dans l'écran testé, ni dans l'accessibilité : il est à la **première ligne**
+du parcours, `loginAsNewStudent`. Le bouton « Créer un compte » n'existe pas.
+
+**Cause** : `ui.auth.allow_register` vaut **`false`** en production. Le réglage est simplement
+absent de la base semée, donc actif par défaut. Vérifié par bascule : le même scénario, qui
+expirait à 60 s, passe en **8,2 s** une fois le réglage à `true`.
+
+Conséquence, qui dépasse ce fichier de test : **toute spec qui passe par `loginAsNewStudent`
+suppose l'inscription libre ouverte.** La suite e2e ne vérifie donc jamais l'application telle
+qu'elle tourne réellement — elle vérifie une configuration où n'importe qui crée son compte.
+C'est aussi l'explication des échecs en cascade observés lors de la première tentative de
+suite complète sur cette base.
+
+Deux sorties possibles, à arbitrer (aucune n'est engagée ici) :
+
+1. **Forcer le réglage dans `e2e/global-setup.js`.** Une ligne, la suite redevient jouable sur
+   n'importe quelle base. Mais elle continue de ne pas tester la configuration réelle.
+2. **Créer les élèves par l'API d'administration** plutôt que par le formulaire public. Plus de
+   travail sur les fixtures, et la suite se rapproche de la production — c'est ainsi que les
+   comptes naissent réellement.
+
+La deuxième est la bonne à terme ; la première débloque immédiatement. Le choix appartient au
+mainteneur, parce qu'il engage ce que la suite e2e est censée démontrer.
+
+## 8. Recommandation
 
 **Ne rien changer au code pour l'instant.** Les deux leviers évidents — pagination et réduction
 des colonnes — ont chacun une raison documentée de ne pas être actionnés, et la mesure ne montre
