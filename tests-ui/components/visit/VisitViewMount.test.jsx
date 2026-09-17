@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor, fireEvent, screen } from '@testing-library/react';
 
 /**
@@ -285,5 +285,71 @@ describe('VisitView — biodiversité et glossaire sans session', () => {
     expect(document.querySelector('#plant-catalog-preview-title').textContent).toContain(
       'Consoude',
     );
+  });
+});
+
+/**
+ * Guidage « Y aller » : depuis la fiche d'un lieu, la Visite montre la direction et la distance
+ * à vol d'oiseau, comme le Plan Lyautey (socle `shared/map-guide`). Ce n'est pas un itinéraire,
+ * et seul « Arrêter » l'interrompt — c'est ce câblage-là qu'on vérifie ici, de bout en bout.
+ */
+describe('VisitView — guidage « Y aller »', () => {
+  /** Calage cohérent, nord en haut (même jeu d'ancres que `tests-ui/shared/useMapPosition`). */
+  const GEO_ANCHORS = [
+    { xp: 10, yp: 10, lat: 48.86, lng: 2.3 },
+    { xp: 90, yp: 10, lat: 48.86, lng: 2.31 },
+    { xp: 10, yp: 90, lat: 48.85, lng: 2.3 },
+  ];
+  const ZONE = {
+    id: 1,
+    map_id: 'foret',
+    name: 'Verger',
+    points: JSON.stringify([
+      { xp: 10, yp: 10 },
+      { xp: 40, yp: 10 },
+      { xp: 40, yp: 40 },
+    ]),
+  };
+  const mapsWithoutGeoref = stubs.visit.maps;
+
+  beforeEach(() => {
+    stubs.visit.selected = ZONE;
+    stubs.visit.selectedType = 'zone';
+  });
+
+  afterEach(() => {
+    stubs.visit.maps = mapsWithoutGeoref;
+    delete navigator.geolocation;
+  });
+
+  function calibrateMap() {
+    stubs.visit.maps = [{ ...mapsWithoutGeoref[0], gps_enabled: 1, georef: GEO_ANCHORS }];
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { watchPosition: () => 1, clearWatch: () => {}, getCurrentPosition: () => {} },
+    });
+  }
+
+  test('carte calée : viser un lieu ouvre la barre de guidage, « Arrêter » la referme', async () => {
+    calibrateMap();
+    renderVisit();
+
+    const go = await screen.findByTestId('visit-detail-go');
+    expect(go).not.toBeDisabled();
+    fireEvent.click(go);
+
+    const bar = await screen.findByTestId('visit-guide-bar');
+    expect(bar).toHaveAttribute('aria-label', 'Guidage vers Verger');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Arrêter' }));
+    await waitFor(() => expect(screen.queryByTestId('visit-guide-bar')).toBe(null));
+  });
+
+  test('carte non calée : le bouton est éteint, la raison est écrite, aucune barre', async () => {
+    renderVisit();
+    const go = await screen.findByTestId('visit-detail-go');
+    expect(go).toBeDisabled();
+    expect(screen.getByText(/Carte non calée/)).toBeTruthy();
+    expect(screen.queryByTestId('visit-guide-bar')).toBe(null);
   });
 });
