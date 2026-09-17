@@ -15,11 +15,15 @@
  * ===================================================================== */
 
 :root {
-  /* Un SEUL ordre de pile emoji partout : 'ForetMapColorEmoji' (Noto auto-hébergé,
-     unicode-range emoji) AVANT les polices système → le même caractère sort de la même
-     fonte sur tous les appareils et dans tous les écrans. */
+  /* Un SEUL ordre de pile emoji partout — et 'Apple Color Emoji' EN TÊTE.
+     WebKit n'implémente ni COLRv1 ni COLRv0 : sur un appareil Apple, la police auto-hébergée
+     ne peut être dessinée que par sa table OT-SVG, voie documentée comme instable (glyphes qui
+     disparaissent au zoom — or l'écran principal est une carte que l'on zoome). Les machines
+     non-Apple n'ont pas 'Apple Color Emoji' et tombent naturellement sur 'ForetMapColorEmoji' :
+     leur rendu est inchangé, et la webfont n'est même pas DEMANDÉE sur Apple (mesuré Chromium
+     et WebKit). Détail et arbitrage : docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 7, option A. */
   --font-emoji-stack:
-    'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    'Apple Color Emoji', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   --font-sans-with-emoji: var(--font-sans);
   /* Échelle typographique fluide (UI + chrome carte) — 8 crans, à substituer
      progressivement aux tailles littérales (cf. docs/AUDIT_UI_HOMOGENEITE_2026-09.md, B1-B2). */

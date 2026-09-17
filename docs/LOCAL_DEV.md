@@ -64,7 +64,7 @@ Cela applique le schéma et le seed sur **`foretmap_local`**.
 
 ### Police emoji (Noto Color Emoji, auto-hébergée)
 
-L’application sert `public/fonts/noto-color-emoji.woff2` pour afficher les emojis (carte, visite, badges, etc.) même lorsque le système n’a pas de police colorée complète. Après `npm install` ou une mise à jour de `@fontsource/noto-color-emoji`, régénérer la copie versionnée :
+L’application sert `public/fonts/noto-color-emoji.woff2` pour afficher les emojis (carte, visite, badges, etc.) même lorsque le système n’a pas de police colorée complète — **sauf sur les appareils Apple**, qui passent avant elle sur leur `Apple Color Emoji` native et ne téléchargent donc jamais ce fichier. Raison : WebKit n’implémente ni COLRv1 ni COLRv0, et la voie OT-SVG qui lui resterait est instable (`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`). Il n’y a **pas** de `preload` de cette police : il annulerait l’`unicode-range` du `@font-face`. Après `npm install` ou une mise à jour de `@fontsource/noto-color-emoji`, régénérer la copie versionnée :
 
 ```bash
 npm run fonts:sync-noto-emoji

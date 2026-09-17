@@ -1,7 +1,14 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
+import { mapRouteResumeStorageKey } from '../../src/shared/map-routes/mapRouteSteps.js';
 import { useMapRouteMode } from '../../src/shared/map-routes/useMapRouteMode.js';
+
+/**
+ * Noyau du mode parcours, partagé par les trois surfaces (Visite, carte de travail, les deux
+ * plans) depuis que le Plan a cessé d'en porter une copie
+ * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.5).
+ */
 
 const places = [
   { kind: 'zone', id: 1, name: 'Verger' },
@@ -25,6 +32,10 @@ function setup(overrides = {}) {
 }
 
 describe('useMapRouteMode', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   test('démarrer un parcours ouvre sa première étape', () => {
     const { result } = setup();
     act(() => result.current.startRoute(route));
@@ -112,5 +123,85 @@ describe('useMapRouteMode', () => {
     act(() => result.current.startRoute(route));
     act(() => result.current.exitRoute());
     expect(onExitExtra).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Reprise **mémorisée sur l'appareil** : sans elle, l'avancement ne survivait pas à un
+   * rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
+   * téléphone entre deux étapes (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2). Rien ne part vers
+   * le serveur : c'est la promesse faite au visiteur.
+   */
+  test('avec une clé de stockage, la reprise survit à un rechargement', () => {
+    const storageKey = mapRouteResumeStorageKey('visit', 'carte-1');
+    const first = setup({ storageKey });
+    act(() => first.result.current.startRoute(route));
+    act(() => first.result.current.goToRouteIndex(1));
+    act(() => first.result.current.exitRoute());
+    first.unmount();
+
+    const second = setup({ storageKey });
+    expect(second.result.current.resumableRouteSlug).toBe('tour-du-jardin');
+    act(() => second.result.current.resumeRoute());
+    expect(second.result.current.routeIndex).toBe(1);
+  });
+
+  test('sans clé de stockage, la reprise ne vit qu’en mémoire', () => {
+    const first = setup();
+    act(() => first.result.current.startRoute(route));
+    act(() => first.result.current.exitRoute());
+    first.unmount();
+
+    const second = setup();
+    expect(second.result.current.resumableRouteSlug).toBe('');
+  });
+
+  test('une reprise qui ne désigne plus aucun parcours publié s’efface', () => {
+    const storageKey = mapRouteResumeStorageKey('visit', 'carte-1');
+    const first = setup({ storageKey });
+    act(() => first.result.current.startRoute(route));
+    act(() => first.result.current.exitRoute());
+    first.unmount();
+
+    // Le parcours a été dépublié entre-temps : pas de bouton « Reprendre » qui ne ferait rien.
+    const second = renderHook(() =>
+      useMapRouteMode({ routes: [{ ...route, slug: 'autre-chose' }], places, storageKey }),
+    );
+    expect(second.result.current.resumableRouteSlug).toBe('');
+    expect(localStorage.getItem(storageKey)).toBe(null);
+  });
+
+  test('la clé de reprise est propre à une surface et à une carte', () => {
+    expect(mapRouteResumeStorageKey('visit', 'c1')).toBe('foretmap:visit:route-resume:c1');
+    expect(mapRouteResumeStorageKey('map', 'c1')).not.toBe(mapRouteResumeStorageKey('visit', 'c1'));
+    // Pas de carte : pas de reprise mémorisée (une clé partagée mélangerait deux cartes).
+    expect(mapRouteResumeStorageKey('visit', '')).toBe('');
+  });
+
+  /**
+   * Aperçu d'un lieu **pendant** un parcours : l'étape courante garde la sélection, et changer
+   * d'étape rend la main au parcours. C'était l'un des trois apports propres au Plan avant
+   * l'unification (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5).
+   */
+  test('changer d’étape referme l’aperçu ouvert sur un autre lieu', () => {
+    const { result } = setup();
+    act(() => result.current.startRoute(route));
+    act(() => result.current.setPeekPlace(places[2]));
+    expect(result.current.peekPlace).toBe(places[2]);
+    act(() => result.current.goToRouteIndex(1));
+    expect(result.current.peekPlace).toBe(null);
+  });
+
+  test('les rappels du Plan sont appelés : démarrage, sortie, mesure d’usage', () => {
+    const onStartExtra = vi.fn();
+    const onExit = vi.fn();
+    const onUsage = vi.fn();
+    const { result } = setup({ onStartExtra, onExit, onUsage });
+    act(() => result.current.startRoute(route));
+    expect(onStartExtra).toHaveBeenCalledTimes(1);
+    expect(onUsage).toHaveBeenCalledWith('route_start', 'tour-du-jardin');
+    act(() => result.current.goToRouteIndex(1));
+    expect(onUsage).toHaveBeenLastCalledWith('route_step', 'tour-du-jardin#2');
+    act(() => result.current.exitRoute());
+    expect(onExit).toHaveBeenCalledWith('tour-du-jardin');
   });
 });
