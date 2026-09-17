@@ -4,7 +4,10 @@
  */
 import { MAP_MARKER_EMOJI_MAX_CHARS, clampEmojiInput } from '../constants/emojis';
 import { normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
-import { normalizeAudienceRoleList } from '../shared/ui/LocationAudienceFields.jsx';
+import {
+  normalizeAudienceGroupList,
+  normalizeAudienceRoleList,
+} from '../shared/ui/LocationAudienceFields.jsx';
 import {
   buildLocationLinksPayload,
   normalizeLocationLinksForForm,
@@ -42,8 +45,10 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     hidden_surfaces: normalizeSurfaceList(m.hidden_surfaces),
     search_aliases: m.search_aliases || '',
     visible_role_slugs: normalizeAudienceRoleList(m.visible_role_slugs),
+    visible_group_ids: normalizeAudienceGroupList(m.visible_group_ids),
     restricted_note: m.restricted_note || '',
     restricted_note_role_slugs: normalizeAudienceRoleList(m.restricted_note_role_slugs),
+    restricted_note_group_ids: normalizeAudienceGroupList(m.restricted_note_group_ids),
     links: normalizeLocationLinksForForm(m.links),
   };
 }
@@ -71,8 +76,10 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     hidden_surfaces: normalizeSurfaceList(form.hidden_surfaces),
     search_aliases: String(form.search_aliases || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visible_role_slugs),
+    visible_group_ids: normalizeAudienceGroupList(form.visible_group_ids),
     restricted_note: String(form.restricted_note || '').trim(),
     restricted_note_role_slugs: normalizeAudienceRoleList(form.restricted_note_role_slugs),
+    restricted_note_group_ids: normalizeAudienceGroupList(form.restricted_note_group_ids),
     links: buildLocationLinksPayload(form.links),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };

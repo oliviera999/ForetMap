@@ -23,8 +23,11 @@ describe('markerFormFromMarker', () => {
       search_aliases: '',
       // Cloisonnement d'audience : visibilité du repère et note réservée à certains rôles.
       visible_role_slugs: [],
+      // Audience par groupes (migration 262) : jumelle de chaque liste de rôles.
+      visible_group_ids: [],
       restricted_note: '',
       restricted_note_role_slugs: [],
+      restricted_note_group_ids: [],
       // Liens du lieu (migration 261) : chacun porte sa propre audience.
       links: [],
     });
@@ -39,8 +42,13 @@ describe('markerFormFromMarker', () => {
         ],
       }).links,
     ).toEqual([
-      { label: 'Fiche', url: 'https://exemple.org/a', audience_role_slugs: ['prof'] },
-      { label: 'Interne', url: '/x', audience_role_slugs: [] },
+      {
+        label: 'Fiche',
+        url: 'https://exemple.org/a',
+        audience_role_slugs: ['prof'],
+        audience_group_ids: [],
+      },
+      { label: 'Interne', url: '/x', audience_role_slugs: [], audience_group_ids: [] },
     ]);
   });
 

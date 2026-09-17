@@ -344,7 +344,17 @@ describe('AppPlan — montage', () => {
 
   test('filtre par catégorie : ne garde que les lieux de la catégorie cochée', async () => {
     render(<AppPlan />);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+    // `Plan Lyautey` est AUSSI le titre par défaut de la variante (`planVariants.js`) : il est
+    // affiché avant même que la charge n'arrive, donc l'attendre ne prouve rien. On attend ici
+    // la puce de catégorie, qui n'existe qu'une fois le contenu chargé.
+    //
+    // Sans cette attente, le clic ci-dessous court contre l'effet de restauration des
+    // catégories (`AppPlan.jsx` : lecture de `localStorage` puis `setSelectedCategoryIds` à
+    // **valeur directe**), qui écrase une sélection concurrente — la puce retombe à
+    // « Tout » et le filtrage ne s'applique jamais. Le créneau ne s'ouvre que lorsque
+    // l'ordonnancement des effets se décale, d'où des échecs seulement sous la charge de la
+    // suite complète (CI), jamais en isolation.
+    await waitFor(() => expect(screen.getByRole('button', { name: /Sport/ })).toBeTruthy());
 
     // Sur la carte : le repère est un bouton (`aria-label`), la zone un libellé HTML.
     expect(screen.getByText('CDI')).toBeTruthy();
@@ -431,7 +441,14 @@ describe('AppPlan — montage', () => {
     const sheet = await screen.findByTestId('plan-route-sheet');
     expect(sheet.textContent).toContain('Le CDI');
     expect(sheet.textContent).toContain('Étape 1 sur 2');
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('route_start', 'tour');
+    // Le mode parcours passe désormais par le noyau partagé, qui reçoit la mesure d'usage en
+    // rappel : le plan lui joint sa **variante** (public / personnels), comme les autres
+    // appels nominatifs. D'où le troisième argument.
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+      'route_start',
+      'tour',
+      expect.objectContaining({ id: 'plan' }),
+    );
     await waitFor(() => {
       const urls = replaceSpy.mock.calls.map((c) => String(c[2] || ''));
       expect(urls.some((u) => u.includes('parcours=tour'))).toBe(true);
@@ -451,11 +468,59 @@ describe('AppPlan — montage', () => {
     expect(await screen.findByRole('button', { name: 'Reprendre le parcours' })).toBeTruthy();
     expect(await screen.findByText(/Pour reprendre/)).toBeTruthy();
 
+    // « Reprendre » rend la main **à l'étape quittée**. Le scénario s'arrêtait auparavant à
+    // l'apparition de la feuille, sans regarder l'étape : la reprise repartait en fait de la
+    // première (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre le parcours' }));
     const resumed = await screen.findByTestId('plan-route-sheet');
-    // « Reprendre » reprend : on avait quitté à l'étape 2, on y revient — le bouton ne
-    // redémarre pas au début (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     await waitFor(() => expect(resumed.textContent).toContain('Étape 2 sur 2'));
+  });
+
+  /**
+   * Pendant un parcours, toucher un autre lieu ouvre sa fiche **en aperçu** : la barre d'étape
+   * reste au-dessus, et « Revenir à l'étape » rend la main au parcours
+   * (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N5). C'était l'un des trois apports propres
+   * au plan ; il est passé dans le noyau partagé sans filet — en voici un
+   * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.5).
+   */
+  test('parcours : consulter un autre lieu ouvre un aperçu, sans perdre l’étape', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      routes: [
+        {
+          id: 'r1',
+          slug: 'tour',
+          title: 'Tour du lycée',
+          audience: '',
+          description: '',
+          steps: [
+            { position: 0, target_type: 'marker', target_id: 'm-gym', step_title: 'Le gymnase' },
+          ],
+        },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
+    const sheet = await screen.findByTestId('plan-route-sheet');
+    expect(sheet.textContent).toContain('Le gymnase');
+
+    // Un autre lieu, cherché puis ouvert : la barre d'étape ne bouge pas.
+    fireEvent.change(screen.getByLabelText('Rechercher un lieu'), {
+      target: { value: 'bibliotheque' },
+    });
+    const results = await screen.findByTestId('plan-results-sheet');
+    fireEvent.click(within(results).getByRole('button', { name: /CDI/ }));
+
+    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    expect(placeSheet.textContent).toContain('Centre de documentation');
+    expect(screen.getByTestId('plan-route-sheet').textContent).toContain('Étape 1 sur 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revenir à l’étape' }));
+    await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBeNull());
+    expect(screen.getByTestId('plan-route-sheet').textContent).toContain('Le gymnase');
   });
 
   test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {

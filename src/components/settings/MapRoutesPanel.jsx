@@ -9,7 +9,12 @@ import { buildPlaceIndex, searchPlaces } from '../../shared/search/placeSearch.j
 import { IconDelete } from '../../shared/icons.jsx';
 import {
   EMPTY_ROUTE_DRAFT,
+  ROUTE_AUDIENCE_MAX,
+  ROUTE_DESCRIPTION_MAX,
   ROUTE_STEPS_MAX,
+  ROUTE_TITLE_MAX,
+  STEP_TEXT_MAX,
+  STEP_TITLE_MAX,
   addStep,
   moveStep,
   patchStepAt,
@@ -21,6 +26,7 @@ import {
   routeSummaryLine,
   stepDisplayLabel,
   stepKey,
+  stepPositionsOf,
   validateRouteDraft,
 } from '../../utils/mapRoutesEditor.js';
 
@@ -129,18 +135,35 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
     [places],
   );
 
-  const usedKeys = useMemo(
-    () => new Set((draft.steps || []).map((step) => stepKey(step))),
-    [draft.steps],
-  );
-
+  /**
+   * Suggestions de lieux. Un lieu **déjà utilisé** reste proposé — un parcours repasse par
+   * l'accueil ou par la cour — mais la suggestion dit à quelle(s) étape(s) il figure déjà,
+   * pour que le doublon soit un choix et non une méprise
+   * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 c).
+   */
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
-    return searchPlaces(searchIndex, query, { limit: SUGGESTION_LIMIT + usedKeys.size })
+    return searchPlaces(searchIndex, query, { limit: SUGGESTION_LIMIT })
       .map((hit) => hit.place)
-      .filter((place) => !usedKeys.has(place.key))
-      .slice(0, SUGGESTION_LIMIT);
-  }, [searchIndex, query, usedKeys]);
+      .slice(0, SUGGESTION_LIMIT)
+      .map((place) => ({ ...place, usedAt: stepPositionsOf(draft.steps, place.key) }));
+  }, [searchIndex, query, draft.steps]);
+
+  const stepsFull = (draft.steps || []).length >= ROUTE_STEPS_MAX;
+
+  /** Ajout d'une étape : silencieux quand la borne est atteinte, il le disait à personne (§2.6 d). */
+  const appendStep = useCallback(
+    (place) => {
+      const next = addStep(draft.steps, place);
+      if (next.length === (draft.steps || []).length) {
+        onError?.(`Ce parcours atteint la limite de ${ROUTE_STEPS_MAX} étapes.`);
+        return;
+      }
+      setDraft((prev) => ({ ...prev, steps: next }));
+      setQuery('');
+    },
+    [draft.steps, onError],
+  );
 
   /**
    * Le QR code d'une affiche porte le slug : le changer sur un parcours déjà publié invalide
@@ -261,6 +284,7 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         <input
           id="map-routes-title"
           value={draft.title}
+          maxLength={ROUTE_TITLE_MAX}
           onChange={(e) => setField({ title: e.target.value })}
           placeholder="Ex : Portes ouvertes, Le tour en 10 minutes"
         />
@@ -272,6 +296,7 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
           <input
             id="map-routes-audience"
             value={draft.audience}
+            maxLength={ROUTE_AUDIENCE_MAX}
             onChange={(e) => setField({ audience: e.target.value })}
             placeholder="Ex : Nouveaux élèves"
           />
@@ -298,6 +323,9 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
           <input
             id="map-routes-sort"
             type="number"
+            min={-2147483648}
+            max={2147483647}
+            step={1}
             value={draft.sort_order}
             onChange={(e) => setField({ sort_order: e.target.value })}
           />
@@ -310,9 +338,18 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
           id="map-routes-description"
           rows={2}
           value={draft.description}
+          maxLength={ROUTE_DESCRIPTION_MAX}
+          aria-describedby="map-routes-description-count"
           onChange={(e) => setField({ description: e.target.value })}
           placeholder="Une phrase affichée en tête du parcours"
         />
+        {/* Compteur affiché seulement près de la borne : un rappel utile ne doit pas devenir
+            un bruit permanent sous un champ qu'on remplit en une phrase. */}
+        {(draft.description || '').length > ROUTE_DESCRIPTION_MAX - 200 ? (
+          <p id="map-routes-description-count" style={HINT_STYLE} role="status">
+            {(draft.description || '').length} / {ROUTE_DESCRIPTION_MAX} caractères
+          </p>
+        ) : null}
       </div>
 
       <SurfaceVisibilityField
@@ -344,6 +381,7 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
       >
         <legend style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
           Étapes ({(draft.steps || []).length} / {ROUTE_STEPS_MAX})
+          {stepsFull ? ' — limite atteinte' : ''}
         </legend>
 
         <div className="field">
@@ -368,16 +406,14 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  disabled={busy}
-                  onClick={() => {
-                    setSteps(addStep(draft.steps, place));
-                    setQuery('');
-                  }}
+                  disabled={busy || stepsFull}
+                  onClick={() => appendStep(place)}
                 >
                   + {place.name || '(sans nom)'}
                   <span style={{ color: 'var(--ink-soft)' }}>
                     {' '}
                     — {place.target_type === 'zone' ? 'zone' : 'repère'}
+                    {place.usedAt.length > 0 ? ` · déjà à l’étape ${place.usedAt.join(', ')}` : ''}
                   </span>
                 </button>
               </li>
@@ -439,6 +475,7 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
                   <input
                     style={{ flex: 1, minWidth: 0 }}
                     value={step.step_title}
+                    maxLength={STEP_TITLE_MAX}
                     aria-label={`Titre de l’étape ${index + 1}`}
                     placeholder="Titre propre (sinon le nom du lieu)"
                     onChange={(e) =>
@@ -448,6 +485,7 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
                   <input
                     style={{ flex: 2, minWidth: 0 }}
                     value={step.step_text}
+                    maxLength={STEP_TEXT_MAX}
                     aria-label={`Texte de l’étape ${index + 1}`}
                     placeholder="Une phrase lue sur place"
                     onChange={(e) =>
