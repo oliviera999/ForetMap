@@ -16,13 +16,22 @@ déploiement par `git pull` suppose un build **déjà présent dans l'arbre**. D
 
 Cette contrainte coûte deux choses, toutes deux mesurées sur le dépôt :
 
-**Des conflits de merge systématiques.** Les noms de chunks portent un hash de contenu, donc
-chaque build renomme tous les fichiers. Deux branches qui touchent le frontend produisent un
-conflit **rename/delete** sur `dist/` — et git ne peut structurellement pas le résoudre : les
-pilotes de merge de `.gitattributes` ne traitent que les conflits de _contenu_, pas les
-conflits d'arborescence. `scripts/auto-resolve-conflicts.js` ne sait pas non plus les traiter
-(sa table est indexée par nom de fichier, et ses résolveurs cherchent des marqueurs dans le
-texte). Chaque fusion sur `main` remet donc toutes les PR ouvertes en conflit, indéfiniment.
+**Des conflits de merge systématiques, sur _toutes_ les PR.** Les noms de chunks portent un hash
+de contenu, et surtout **le build n'est pas reproductible** : deux exécutions de la même source,
+sur deux runners CI identiques, renomment l'essentiel des chunks. Le job `frontend-dist` constate
+donc une dérive à **chaque** push de PR et auto-commite un `dist/` régénéré — y compris sur une
+PR qui ne touche pas une seule ligne de frontend.
+
+> Mesuré sur la PR qui porte ce document : deux fichiers modifiés (`CHANGELOG.md`,
+> `docs/DEPLOY_DIST_ARTIFACT.md`), zéro fichier de `src/` — et un auto-commit de **159 fichiers
+> de `dist/`** par-dessus.
+
+Chaque PR ouverte porte donc un commit `dist/`, et **n'importe quelle paire** de PR entre en
+conflit **rename/delete** sur `dist/` — que git ne peut structurellement pas résoudre : les
+pilotes de merge de `.gitattributes` ne traitent que les conflits de _contenu_, pas les conflits
+d'arborescence. `scripts/auto-resolve-conflicts.js` ne sait pas non plus les traiter (sa table
+est indexée par nom de fichier, et ses résolveurs cherchent des marqueurs dans le texte). Chaque
+fusion sur `main` remet donc toutes les PR ouvertes en conflit, indéfiniment.
 
 **Le poids du dépôt.** ~30 Mo de blobs neufs à chaque build commité (355 fichiers, `dist/`
 pèse 32 Mo), sur un pack de 126 Mo. L'essentiel de l'historique du dépôt est du build jetable.
