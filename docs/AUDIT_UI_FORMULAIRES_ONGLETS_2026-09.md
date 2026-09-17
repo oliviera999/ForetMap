@@ -273,7 +273,7 @@ surtout répartis en deux groupes qui n'appellent pas la même décision.
 
 **Groupe traité — les gris francs, ΔE 8 à 12.** Dix-huit **encres de texte** et deux
 **filets**, tous dans `src/index.css`, là où l'échelle ardoise avait déjà un rôle et
-52 usages :
+**85 usages** dans cette seule feuille (103 après le lot) :
 
 | Gris      | occ. | Rôle retenu    | Valeur    |   ΔE | ΔL\* | Contraste sur blanc |
 | --------- | ---: | -------------- | --------- | ---: | ---: | ------------------- |
