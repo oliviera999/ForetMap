@@ -186,6 +186,17 @@ const TEXT_PLAN = [
   { table: 'visit_zones', columns: ['restricted_note'] },
   { table: 'map_markers', columns: ['restricted_note'] },
   { table: 'visit_markers', columns: ['restricted_note'] },
+  // Intitulés et consignes saisis par les profs. Le balayage e-mail/bcrypt ne les voyait pas,
+  // et la base réelle en contenait au moins un qui nomme une personne (« Pailler les tomates
+  // de monsieur blanc »). Un nom propre dans un texte libre ne se détecte pas de façon fiable :
+  // ces colonnes sont donc remplacées par principe, pas sur signalement.
+  { table: 'tasks', columns: ['title', 'description'] },
+  { table: 'projects', columns: ['name', 'description'] },
+  { table: 'zones', columns: ['name', 'description'] },
+  { table: 'visit_zones', columns: ['name', 'description'] },
+  { table: 'map_markers', columns: ['label', 'note'] },
+  { table: 'visit_markers', columns: ['label', 'note'] },
+  { table: 'groups', columns: ['description'] },
 ];
 
 function parseArgs(argv) {

@@ -28,6 +28,60 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `src/shared/` à zéro import remontant et gardée par ESLint, kit d'interface commun, échappement
   du glossaire lore) — l'audit le mesure pour éviter de les reprogrammer.
 - Index des audits (`docs/audits/README.md`) complété.
+### Ajouté — Base à volumétrie réelle disponible dans chaque session (fixture anonymisé versionné)
+
+- `sql/fixtures/foretmap-anonymise.sql.gz` (~1,4 Mo) : copie **anonymisée** de la base, seule
+  exception à l'interdiction de versionner du SQL de base. Produite par
+  `npm run db:fixture:export`, chargée par `npm run db:fixture:load`, et chargée
+  **automatiquement** dans `foretmap_local` par le script d'amorçage de session
+  (`FORETMAP_SESSION_SKIP_FIXTURE=1` pour s'en passer). Un dump **brut** reste interdit.
+- Trois contrôles superposés : l'export refuse d'écrire tant que le balayage de
+  l'anonymiseur signale un motif bloquant et vérifie que `users` ne porte ni adresse hors
+  `@exemple.invalid` ni plus d'un hachage distinct ; le flux de sortie neutralise les
+  adresses tolérées par ailleurs (crédit d'illustration, contact éditorial) ;
+  `tests/fixture-anonymise.test.js` relit l'archive **versionnée** à chaque CI.
+- Le fixture est autoportant : `SET FOREIGN_KEY_CHECKS=0` posé en SQL ordinaire (le
+  commentaire versionné `/*!40014 … */` de `mariadb-dump` n'est pas rejoué par l'importeur du
+  dépôt, et les tables sortant par ordre alphabétique, `audit_log` précède `users`), et la
+  ligne « sandbox mode » propre à MariaDB est retirée.
+- `db:fixture:load` refuse de viser `foretmap_test`, qui doit rester construite par `db:init`.
+
+### Documentation — la suite e2e ne teste pas la configuration de production
+
+- Rejouée sur une base à la volumétrie réelle, `e2e/a11y.spec.js` donne 8 échecs pour 4
+  réussites, tous identiques : `locator.click: Test timeout` sur le bouton « Créer un compte »,
+  à la première ligne de `loginAsNewStudent` (`e2e/fixtures/auth.fixture.js:57`).
+- Cause : **`ui.auth.allow_register` vaut `false` en production**, et le réglage est absent de
+  la base semée (donc actif par défaut). Vérifié par bascule : le scénario qui expirait à 60 s
+  passe en 8,2 s une fois le réglage à `true`.
+- Portée : **toute spec qui passe par `loginAsNewStudent` suppose l'inscription libre ouverte**.
+  La suite ne vérifie donc jamais l'application telle qu'elle tourne réellement. Deux sorties
+  proposées (forcer le réglage dans `global-setup`, ou créer les élèves par l'API
+  d'administration) — arbitrage laissé au mainteneur, détail dans
+  `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` § 7.
+
+### Documentation — charge des listes rejouée sur la volumétrie de production
+
+- `docs/AUDIT_CHARGE_VOLUMETRIE_REELLE_2026-09-17.md` : premières mesures de charge sur une
+  base à la volumétrie réelle (480 comptes, 534 plantes, 650 questions), rendues possibles par
+  le fixture anonymisé.
+- **Infirme** l'alerte de la veille (« près d'un mégaoctet pour ouvrir l'onglet Biodiversité ») :
+  la mesure omettait `Accept-Encoding: gzip` alors que `compression` couvre tout `/api`. Un
+  navigateur reçoit **126 Ko**, pas 912. Le passage fautif de
+  `AUDIT_ENVIRONNEMENT_TESTS_2026-09-16.md` porte désormais un encadré de correction.
+- **Confirme et quantifie** le correctif de septembre sur la rafale du catalogue :
+  `load/artillery-biodiv.yml` rejoué sur données réelles donne 12 122 requêtes, 0 échec,
+  p95 à 10,9 ms, et l'arithmétique des scénarios (186 × 61 + 194 × 4) mesure le facteur **15**
+  entre l'ancienne et la nouvelle ouverture de catalogue.
+- Également mesuré : aucun N+1 (11 requêtes SQL pour les trois listes), `GET /api/plants` servi
+  depuis un cache mémoire, `JSON.parse` du catalogue en 4,4 ms. **Aucun changement de code
+  recommandé** à cette volumétrie ; seuils de surveillance documentés.
+
+### Corrigé — `npm run db:seed:teacher` ne rend jamais la main
+
+- Le script affichait son message puis restait suspendu : le pool `mysql2` gardait la boucle
+  d'évènements ouverte. Il fallait l'interrompre à la main — et il bloquait tout script
+  d'amorçage qui l'enchaînait. Sortie explicite, comme le fait déjà `db:init`.
 ### Ajouté — proflyautey : un plan des personnels, à côté du plan public
 
 - **Nouveau sous-produit `staff`** servi sur `proflyautey.*` : la **même** carte et le **même**
