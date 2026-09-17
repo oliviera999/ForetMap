@@ -21,6 +21,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Conséquence notée dans le même document : le garde-fou de `frontend-dist.yml` **échoue déjà**
   sur `main`, puisqu'il exige précisément cette égalité inatteignable. Son retrait, prévu à
   l'étape 3 de la bascule, supprime donc aussi un workflow durablement rouge.
+- **Le diagnostic était sous-estimé, et il est corrigé.** Il annonçait un conflit entre « deux
+  branches qui touchent le frontend ». En réalité, la non-reproductibilité fait constater une
+  dérive à **chaque** push de PR : l'auto-commit `dist/` tombe même sur une PR purement
+  documentaire — mesuré sur celle-ci, deux fichiers modifiés et **159 fichiers de `dist/`**
+  ajoutés par-dessus. Toute PR ouverte porte donc un commit `dist/`, et **n'importe quelle
+  paire** de PR entre en conflit, quoi qu'elles modifient.
 
 ### Corrigé — la suite e2e était rouge depuis des semaines, sans que personne le voie
 
