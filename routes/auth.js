@@ -55,6 +55,7 @@ const {
   resolveOAuthPublicOrigin,
   resolveOAuthRedirectUri,
   resolveProductReturnOrigin,
+  originOfUrl,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
 
@@ -777,6 +778,38 @@ router.get('/google/start', async (req, res) => {
   if (!googleOauthConfigured(cfg)) {
     return res.status(503).json({ error: 'OAuth Google non configuré' });
   }
+  /**
+   * Rebond par l'hôte du rappel, quand la connexion part d'un autre sous-domaine produit.
+   *
+   * Google ne rappelle que sur les `redirect_uri` enregistrées : en production il n'y en a
+   * qu'une, donc le rappel arrive toujours sur le même hôte. Or les trois cookies de la
+   * poignée de main ci-dessous sont posés **sans `Domain`** : ils sont liés à l'hôte qui les
+   * pose. Partir de `proflyautey.*` les rendait donc invisibles au rappel arrivant sur l'hôte
+   * de ForetMap — plus de `state` (« session expirée »), et plus d'origine de retour non plus,
+   * si bien que l'utilisateur atterrissait sur ForetMap avec une erreur.
+   *
+   * On renvoie donc d'abord le navigateur sur `/api/auth/google/start` de l'hôte du rappel, en
+   * lui passant l'origine de départ. Toute la poignée de main se joue alors sur un seul hôte,
+   * et `Domain=` reste inutile — un cookie de session élargi à tout le domaine parent serait
+   * lisible par chaque sous-produit, ce qu'on ne veut pas.
+   *
+   * Sans `GOOGLE_OAUTH_REDIRECT_URI`, l'URI est dérivée de la requête : les deux origines
+   * coïncident, aucun rebond, comportement inchangé. Le second passage coïncide lui aussi,
+   * donc pas de boucle.
+   */
+  const startOrigin = resolveOAuthPublicOrigin(req);
+  const callbackOrigin = originOfUrl(cfg.redirectUri);
+  // `return_origin` déjà présent = on **est** le second saut : ne jamais rebondir une seconde
+  // fois. Garde-fou dur, indépendant de la normalisation des deux origines : une boucle de
+  // redirection sur la page de connexion serait bien pire que l'absence de rebond.
+  const alreadyBounced = Boolean(String(req.query?.return_origin || '').trim());
+  if (!alreadyBounced && callbackOrigin && startOrigin && callbackOrigin !== startOrigin) {
+    const bounce = new URL('/api/auth/google/start', callbackOrigin);
+    bounce.searchParams.set('mode', mode);
+    bounce.searchParams.set('return_origin', startOrigin);
+    return res.redirect(bounce.toString());
+  }
+
   const state = makeGoogleOAuthState();
   const cookieSecure = process.env.NODE_ENV === 'production';
   res.cookie(OAUTH_STATE_COOKIE, state, {
@@ -793,11 +826,21 @@ router.get('/google/start', async (req, res) => {
     maxAge: OAUTH_STATE_TTL_MS,
     path: '/api/auth/google',
   });
-  // Origine vue par le navigateur ici et maintenant (donc le bon produit), sans la variable
-  // d'environnement : c'est précisément ce que `FRONTEND_ORIGIN` ne sait pas exprimer.
-  const startOrigin = resolveOAuthPublicOrigin(req);
-  if (startOrigin) {
-    res.cookie(OAUTH_ORIGIN_COOKIE, startOrigin, {
+  /**
+   * Origine de retour : celle transmise par le rebond ci-dessus quand la connexion vient d'un
+   * autre produit, sinon l'origine vue ici même. `return_origin` arrive par l'URL, donc
+   * potentiellement d'un tiers : il n'est retenu que s'il désigne un produit du registre sur
+   * le même domaine parent que cet hôte (`resolveProductReturnOrigin`), sans quoi on retombe
+   * sur l'origine courante. Un flux qui transporte un jeton ne doit pas devenir une
+   * redirection ouverte.
+   */
+  const returnOrigin = resolveProductReturnOrigin(req.query?.return_origin, {
+    requestHost: req.get('host'),
+    fallbackOrigin: startOrigin,
+    productHostPrefixes: listProductHostPrefixes(),
+  });
+  if (returnOrigin) {
+    res.cookie(OAUTH_ORIGIN_COOKIE, returnOrigin, {
       httpOnly: true,
       sameSite: 'lax',
       secure: cookieSecure,

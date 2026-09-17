@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — connexion Google impossible depuis proflyautey
+
+- « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque
+  tentative de connexion au plan des personnels, avec retour sur ForetMap au lieu de
+  proflyautey. Google ne rappelle que sur les `redirect_uri` enregistrées — une seule en
+  production — alors que les cookies de la poignée de main sont posés **sans `Domain`**, donc
+  liés à l'hôte qui les pose. Partis de `proflyautey.*`, ils étaient invisibles au rappel
+  arrivant sur l'hôte de ForetMap : plus de `state`, plus d'origine de retour.
+- `GET /api/auth/google/start` renvoie désormais d'abord le navigateur vers l'hôte porteur du
+  rappel, avec l'origine de départ en `return_origin` ; toute la poignée de main se joue alors
+  sur un seul hôte. `return_origin` n'est retenu que s'il désigne un produit du registre sur le
+  même domaine parent — un flux porteur de jeton ne doit pas devenir une redirection ouverte.
+  Deux garde-fous contre la boucle : normalisation commune des deux origines (`www.`, casse,
+  port) et refus de rebondir quand `return_origin` est déjà là. Sans
+  `GOOGLE_OAUTH_REDIRECT_URI`, aucun rebond : comportement inchangé.
+- Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
+  tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
+
 ### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
 
 - **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le

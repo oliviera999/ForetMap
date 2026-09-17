@@ -39,6 +39,10 @@ permission dans **Réglages → Profils RBAC**. Aucune intervention technique.
 > Si la connexion Google aboutit mais que le plan reste fermé, ce n'est pas une panne : le
 > compte n'a pas encore cette permission. L'écran le dit en clair.
 
+Au passage, la page vous renvoie brièvement vers l'adresse de ForetMap avant d'ouvrir Google :
+c'est normal et sans conséquence. Google n'accepte de rappeler qu'une seule adresse, connue
+d'avance ; on y passe donc pour poser la session, puis vous êtes ramené sur proflyautey.
+
 Cette permission est volontairement **séparée** de « Accès interface n3boss » : un agent ou un
 membre de la vie scolaire peut entrer sur le plan sans qu'on lui ouvre la console de gestion.
 
