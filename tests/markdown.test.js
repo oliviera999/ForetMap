@@ -11,6 +11,7 @@ let applyMarkdownList;
 let applyMarkdownLink;
 let applyMarkdownImage;
 let applyMarkdownHtmlImage;
+let classifyLinkHref;
 
 before(async () => {
   const mod = await import(
@@ -22,6 +23,7 @@ before(async () => {
   applyMarkdownLink = mod.applyMarkdownLink;
   applyMarkdownImage = mod.applyMarkdownImage;
   applyMarkdownHtmlImage = mod.applyMarkdownHtmlImage;
+  classifyLinkHref = mod.classifyLinkHref;
 });
 
 describe('markdown utils', () => {
@@ -62,6 +64,64 @@ describe('markdown utils', () => {
     assert.match(html, /href="https:\/\/example\.com"/);
     assert.match(html, /rel="noopener noreferrer"/);
     assert.match(html, /target="_blank"/);
+  });
+
+  // --- Politique de lien (lots « liens dans les descriptions de repères / zones ») -------
+  //
+  // Le rendu ET l'enregistrement partagent ce même assainissement : `htmlToMarkdownWith`
+  // assainit avant Turndown, donc une famille refusée ici ne perd pas seulement son `href`
+  // à l'affichage — elle disparaît du Markdown stocké. D'où les cas des deux côtés.
+
+  it('classifyLinkHref range chaque cible dans sa famille', () => {
+    assert.equal(classifyLinkHref('https://exemple.org/a'), 'external');
+    assert.equal(classifyLinkHref('http://exemple.org'), 'external');
+    assert.equal(classifyLinkHref('/tutoriels/3?x=1#frag'), 'internal');
+    assert.equal(classifyLinkHref('mailto:a@b.c'), 'contact');
+    assert.equal(classifyLinkHref('tel:+212600000000'), 'contact');
+    // Origines externes déguisées en chemin.
+    assert.equal(classifyLinkHref('//exemple.org'), null);
+    assert.equal(classifyLinkHref('/\\exemple.org'), null);
+    // Schémas hors politique, et chemin relatif (ambigu selon la page courante).
+    assert.equal(classifyLinkHref('ftp://exemple.org'), null);
+    assert.equal(classifyLinkHref('tutoriels/3'), null);
+    assert.equal(classifyLinkHref(''), null);
+    assert.equal(classifyLinkHref(null), null);
+  });
+
+  it('renderMarkdownToSafeHtml annonce le nouvel onglet aux lecteurs d’écran', () => {
+    const html = renderMarkdownToSafeHtml('[Fiche PDF](https://exemple.org/a.pdf)');
+    assert.match(html, /aria-label="Fiche PDF \(ouvre un nouvel onglet\)"/);
+  });
+
+  it('renderMarkdownToSafeHtml garde les liens internes dans le même onglet', () => {
+    const html = renderMarkdownToSafeHtml('[Le tutoriel](/tutoriels/3)');
+    assert.match(html, /href="\/tutoriels\/3"/);
+    assert.doesNotMatch(html, /target=/);
+    assert.doesNotMatch(html, /aria-label=/);
+  });
+
+  it('renderMarkdownToSafeHtml garde mailto: et tel: sans nouvel onglet', () => {
+    const mail = renderMarkdownToSafeHtml('[Écrire](mailto:jardin@exemple.org)');
+    assert.match(mail, /href="mailto:jardin@exemple\.org"/);
+    assert.doesNotMatch(mail, /target=/);
+    const tel = renderMarkdownToSafeHtml('[Appeler](tel:+212600000000)');
+    assert.match(tel, /href="tel:\+212600000000"/);
+    assert.doesNotMatch(tel, /target=/);
+  });
+
+  it('renderMarkdownToSafeHtml neutralise les origines externes déguisées en chemin', () => {
+    for (const source of ['[a](//exemple.org/x)', '<a href="/\\exemple.org/x">a</a>']) {
+      const html = renderMarkdownToSafeHtml(source);
+      assert.doesNotMatch(html, /href=/, source);
+      assert.doesNotMatch(html, /exemple\.org/, source);
+    }
+  });
+
+  it('renderMarkdownToSafeHtml retire target et rel avec le href refusé', () => {
+    const html = renderMarkdownToSafeHtml(
+      '<a href="ftp://exemple.org" target="_blank" rel="noopener">a</a>',
+    );
+    assert.doesNotMatch(html, /href=|target=|rel=/);
   });
 
   it('applyMarkdownWrap entoure la sélection', () => {

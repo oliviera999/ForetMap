@@ -1,4 +1,5 @@
 import React from 'react';
+import { LINK_INPUT_HELP } from '../shared/platform/markdown.js';
 import { RichTextEditor } from './RichTextEditor.jsx';
 
 /**
@@ -12,7 +13,7 @@ const MarkdownTextarea = React.forwardRef(function MarkdownTextarea(
     rows = 3,
     className = '',
     toolbar = true,
-    hint = 'Mise en forme visuelle : titres, listes, citations et liens. Le contenu reste enregistré en Markdown.',
+    hint = `Mise en forme visuelle : titres, listes, citations et liens. ${LINK_INPUT_HELP} Le contenu reste enregistré en Markdown.`,
     rich = true,
     ...rest
   },

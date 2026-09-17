@@ -8,6 +8,7 @@ import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModalForm.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
+import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { ContextComments } from '../context-comments';
 import {
   MarkerCommonFormFields,
@@ -522,6 +523,7 @@ function MarkerModal({
               <MarkdownContent>{marker.restricted_note}</MarkdownContent>
             </div>
           )}
+          <LocationLinksBlock links={marker.links} />
           {showVisitAsideBlock && (
             <LocationVisitAside
               entity={marker}
@@ -543,6 +545,7 @@ function MarkerModal({
           ).length === 0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !marker.note &&
+            !marker.links?.length &&
             !showVisitAsideBlock && (
               <p
                 style={{
