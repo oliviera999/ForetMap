@@ -52,6 +52,7 @@ const taskProjectsRouter = require('./routes/task-projects');
 const tutorialsRouter = require('./routes/tutorials');
 const visitRouter = require('./routes/visit');
 const planRouter = require('./routes/plan');
+const staffPlanRouter = require('./routes/staff-plan');
 const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
@@ -535,6 +536,8 @@ app.use('/api/tutorials', tutorialsRouter);
 app.use('/api/visit', visitRouter);
 // Plan Lyautey (lot 4) : charge publique, sans session.
 app.use('/api/plan', planRouter);
+// Plan des personnels (proflyautey) : même noyau de charge, surface `staff`, lecteur identifié.
+app.use('/api/staff-plan', staffPlanRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);

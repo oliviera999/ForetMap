@@ -95,6 +95,24 @@ const PWA_PROFILES = Object.freeze({
     apiStaleWhileRevalidate: Object.freeze(['/api/plan/content', '/api/plan/settings']),
     apiNetworkFirst: Object.freeze([]),
   }),
+  staff: Object.freeze({
+    // Icônes partagées avec le plan public (`assetsDir: 'plan'`) plus le favicon propre.
+    staticPrecache: Object.freeze([
+      '/staff/favicon.svg',
+      '/plan/favicon.ico',
+      ...ICON_CANDIDATES.map((icon) => `/plan/${icon.file}`),
+    ]),
+    /**
+     * Aucune API mise en cache, contrairement au plan public — et c'est le point du produit.
+     * La charge de la surface personnels contient des lieux retirés du plan public et des
+     * consignes internes, filtrés selon le rôle du lecteur. Un service worker qui la garde
+     * hors ligne la laisserait sur l'appareil après un changement de rôle, une révocation ou
+     * un prêt de téléphone, et la rejouerait telle quelle. La coquille (HTML, JS, CSS) reste
+     * précachée : l'application s'ouvre hors réseau et dit qu'elle ne peut pas charger.
+     */
+    apiStaleWhileRevalidate: Object.freeze([]),
+    apiNetworkFirst: Object.freeze([]),
+  }),
 });
 
 /** Entrées HTML servies en network-first pour un produit (`/`, `/index.html` pour ForetMap, entrée Vite). */
