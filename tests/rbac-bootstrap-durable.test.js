@@ -83,7 +83,7 @@ describe('Semis RBAC durable', () => {
     assert.ok(!keys.includes('stats.read.all'));
   });
 
-  it('personnel existe, calqué sur visiteur (aucune permission)', async () => {
+  it('personnel : même rang que visiteur, avec le seul accès au plan des personnels', async () => {
     const role = await getRoleBySlug('personnel');
     assert.ok(role);
     assert.equal(role.display_name, 'Personnel');
@@ -91,9 +91,19 @@ describe('Semis RBAC durable', () => {
     const rows = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
       role.id,
     ]);
-    assert.equal(rows.length, 0);
+    // Aucune action métier : `staff_plan.access` n'ouvre qu'une lecture, celle de proflyautey.
+    assert.deepEqual(
+      rows.map((r) => r.permission_key),
+      ['staff_plan.access'],
+    );
     const visitor = await getRoleBySlug('visiteur');
     assert.ok(visitor);
     assert.equal(Number(visitor.rank), Number(role.rank));
+    // Le visiteur, lui, n'y entre pas : c'est là que passe la frontière public / personnels.
+    const visitorRows = await queryAll(
+      'SELECT permission_key FROM role_permissions WHERE role_id = ?',
+      [visitor.id],
+    );
+    assert.equal(visitorRows.length, 0);
   });
 });

@@ -297,28 +297,49 @@ router.post(
   }),
 );
 
-router.post(
-  '/admin/plan-access-code',
-  requirePermission('admin.settings.write'),
-  asyncHandler(async (req, res) => {
+/**
+ * Codes d'accès des deux plans : jamais stockés en clair, seulement leur empreinte bcrypt. Ils
+ * passent par une route dédiée plutôt que par `PUT /admin/:key`, qui écrirait la valeur telle
+ * quelle — la garde plus bas refuse d'ailleurs explicitement ces clés.
+ */
+const ACCESS_CODE_SETTINGS = Object.freeze({
+  plan: { key: 'security.plan_access_code_hash', label: 'du plan' },
+  'staff-plan': { key: 'security.staff_plan_access_code_hash', label: 'du plan des personnels' },
+});
+
+function accessCodeHandler(target) {
+  const { key, label } = ACCESS_CODE_SETTINGS[target];
+  return asyncHandler(async (req, res) => {
     const code = String(req.body?.code ?? '').trim();
     if (code.length > 64) {
       return res.status(400).json({ error: 'Code trop long (64 caractères maximum)' });
     }
     const hash = code ? await bcrypt.hash(code, 10) : '';
-    const updated = await setSetting('security.plan_access_code_hash', hash, {
+    const updated = await setSetting(key, hash, {
       userType: req.auth?.userType,
       userId: req.auth?.userId,
     });
     await logAudit(
       'settings_update',
       'setting',
-      'security.plan_access_code_hash',
-      code ? 'Code d’accès du plan défini' : 'Code d’accès du plan effacé',
-      { req, payload: { key: 'security.plan_access_code_hash', cleared: !code } },
+      key,
+      code ? `Code d’accès ${label} défini` : `Code d’accès ${label} effacé`,
+      { req, payload: { key, cleared: !code } },
     );
-    res.json({ ok: true, key: 'security.plan_access_code_hash', hasCode: Boolean(updated) });
-  }),
+    res.json({ ok: true, key, hasCode: Boolean(updated) });
+  });
+}
+
+router.post(
+  '/admin/plan-access-code',
+  requirePermission('admin.settings.write'),
+  accessCodeHandler('plan'),
+);
+
+router.post(
+  '/admin/staff-plan-access-code',
+  requirePermission('admin.settings.write'),
+  accessCodeHandler('staff-plan'),
 );
 
 router.put(
@@ -331,6 +352,12 @@ router.put(
       return res.status(400).json({
         error:
           'Utilisez POST /api/settings/admin/plan-access-code pour définir le code d’accès du plan',
+      });
+    }
+    if (key === 'security.staff_plan_access_code_hash') {
+      return res.status(400).json({
+        error:
+          'Utilisez POST /api/settings/admin/staff-plan-access-code pour définir le code d’accès du plan des personnels',
       });
     }
     const value = req.body?.value;

@@ -1,0 +1,140 @@
+/*
+ * Plan des personnels (proflyautey) — surcouche de `src/plan/styles/plan.css`.
+ *
+ * L'écran est le même que celui du plan public : cette feuille ne fait que le teinter et
+ * habiller ce qui n'existe que côté personnels (écran de connexion, complément réservé,
+ * formulaire de signalement). Tout ce qui est commun reste dans `plan.css` — une règle
+ * dupliquée ici finirait par diverger de celle du plan public.
+ */
+
+.staff-plan-body {
+  /*
+   * Teinte brun-laiton contre le bleu marine du plan public : sur un téléphone, la couleur de
+   * la barre haute est le repère le plus rapide pour savoir laquelle des deux cartes on lit —
+   * celle qu'on peut montrer à un parent, ou celle qui porte des consignes internes.
+   */
+  --plan-brand-accent: #5a3a12;
+  --plan-brand-accent-soft: #f6f2ea;
+}
+
+/* ---- Écran d'entrée (compte ou code) ---- */
+
+.plan-access-gate__title {
+  margin: 0 0 8px;
+  font-size: var(--text-xl);
+  line-height: 1.25;
+}
+
+.plan-access-gate__intro,
+.plan-access-gate__hint {
+  margin: 0 0 16px;
+  color: var(--ink-muted, #4b5563);
+  font-size: var(--text-base);
+  line-height: 1.45;
+}
+
+.plan-access-gate__hint {
+  margin: 12px 0 0;
+  font-size: var(--text-sm);
+}
+
+.plan-access-gate__error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdf0ef;
+  color: #8a2c21;
+  font-size: var(--text-base);
+  line-height: 1.4;
+}
+
+/* Voie secondaire : lisible, jamais aussi proéminente que la connexion par compte. */
+.plan-access-gate__switch {
+  margin-top: 16px;
+  padding: 12px 4px; /* cible tactile ≥ 44 px de haut, sans encadré de bouton */
+  border: 0;
+  background: none;
+  color: var(--plan-brand-accent, #5a3a12);
+  font: inherit;
+  font-size: var(--text-base);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- Complément réservé sur une fiche de lieu ---- */
+
+.plan-place__restricted {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--plan-brand-accent, #5a3a12);
+  border-radius: 0 8px 8px 0;
+  background: var(--plan-brand-accent-soft, #f6f2ea);
+}
+
+.plan-place__restricted-title {
+  margin: 0 0 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--plan-brand-accent, #5a3a12);
+}
+
+.plan-place__restricted-text {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+/* ---- Signaler / proposer ---- */
+
+.plan-place__suggest,
+.plan-place__edit,
+.plan-place__suggest-done {
+  margin: 16px 0 0;
+  font-size: var(--text-base);
+}
+
+.plan-place__suggest-open {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--plan-brand-accent, #5a3a12);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.plan-place__suggest-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.plan-place__suggest-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.plan-place__suggest-field {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line, #d1d5db);
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.plan-place__suggest-error {
+  margin: 0;
+  color: #8a2c21;
+  font-size: var(--text-sm);
+}
+
+.plan-place__suggest-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

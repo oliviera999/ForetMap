@@ -51,7 +51,17 @@ const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
-const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
+const {
+  resolveOAuthPublicOrigin,
+  resolveOAuthRedirectUri,
+  resolveProductReturnOrigin,
+} = require('../lib/oauthPublicUrl');
+const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
+
+/** Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`). */
+function listProductHostPrefixes() {
+  return PRODUCT_IDS.flatMap((id) => [...PRODUCTS[id].hostPrefixes]);
+}
 const {
   readProfileFieldFlags,
   resolveVisitMascotUpdate,
@@ -63,6 +73,14 @@ const {
 const router = express.Router();
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
+/**
+ * Origine réellement visitée au départ du flux OAuth. Google ne rappelle que sur les
+ * `redirect_uri` enregistrées, donc toujours sur le même hôte : sans cette mémoire, un
+ * personnel parti de `proflyautey.*` revenait sur l'origine de ForetMap, avec un jeton
+ * inutilisable là où il l'avait demandé. Validée au retour contre le registre des produits
+ * (`resolveProductReturnOrigin`) — jamais suivie telle quelle.
+ */
+const OAUTH_ORIGIN_COOKIE = 'foretmap_oauth_origin';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const googleOidcClient = new OAuth2Client();
 const googleOAuthHooks = {
@@ -775,6 +793,18 @@ router.get('/google/start', async (req, res) => {
     maxAge: OAUTH_STATE_TTL_MS,
     path: '/api/auth/google',
   });
+  // Origine vue par le navigateur ici et maintenant (donc le bon produit), sans la variable
+  // d'environnement : c'est précisément ce que `FRONTEND_ORIGIN` ne sait pas exprimer.
+  const startOrigin = resolveOAuthPublicOrigin(req);
+  if (startOrigin) {
+    res.cookie(OAUTH_ORIGIN_COOKIE, startOrigin, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: cookieSecure,
+      maxAge: OAUTH_STATE_TTL_MS,
+      path: '/api/auth/google',
+    });
+  }
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: cfg.redirectUri,
@@ -799,12 +829,23 @@ router.get('/google/callback', async (req, res) => {
       ),
     );
   }
-  const cfg = getGoogleOauthConfig(req);
+  const baseCfg = getGoogleOauthConfig(req);
   const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
   const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
   const mode = normalizeOAuthMode(modeCookie || req.query?.mode);
+  // Renvoi vers le produit d'où l'utilisateur est parti, si et seulement si cette origine est
+  // celle d'un produit du registre sur le même domaine parent que le rappel.
+  const cfg = {
+    ...baseCfg,
+    frontendOrigin: resolveProductReturnOrigin(readCookie(req, OAUTH_ORIGIN_COOKIE), {
+      requestHost: req.get('host'),
+      fallbackOrigin: baseCfg.frontendOrigin,
+      productHostPrefixes: listProductHostPrefixes(),
+    }),
+  };
   res.clearCookie(OAUTH_STATE_COOKIE, { path: '/api/auth/google' });
   res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
+  res.clearCookie(OAUTH_ORIGIN_COOKIE, { path: '/api/auth/google' });
 
   if (!googleOauthConfigured(cfg)) {
     return res.redirect(
