@@ -62,9 +62,10 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Plan Lyautey
 
-| Document                                     | Contenu                                                                              | Statut    |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
-| [plan/presentation.md](plan/presentation.md) | Le plan d'établissement sur téléphone : usage, surfaces d'affichage, alias, réglages | ✅ Rédigé |
+| Document                                                   | Contenu                                                                                                 | Statut    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------- |
+| [plan/presentation.md](plan/presentation.md)               | Le plan d'établissement sur téléphone : usage, surfaces d'affichage, alias, réglages                    | ✅ Rédigé |
+| [plan/plan-des-personnels.md](plan/plan-des-personnels.md) | Le plan réservé aux personnels (proflyautey) : accès, lieux et compléments réservés, revue des surfaces | ✅ Rédigé |
 
 ### Gnomes & Licornes (GL)
 

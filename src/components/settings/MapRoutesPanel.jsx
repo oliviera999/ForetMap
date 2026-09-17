@@ -323,8 +323,10 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         onChange={(next) => setField({ surfaces: next })}
       />
       <p style={HINT_STYLE}>
-        Cochez les surfaces où le parcours doit apparaître : <strong>Plan</strong>,{' '}
-        <strong>carte de travail</strong> et/ou <strong>Visite</strong>.
+        Cochez les surfaces où le parcours doit apparaître : <strong>Plan public</strong>,{' '}
+        <strong>Plan personnels</strong>, <strong>carte de travail</strong> et/ou{' '}
+        <strong>Visite</strong>. Un parcours coché sur le seul <strong>Plan personnels</strong>{' '}
+        reste invisible du public.
       </p>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>

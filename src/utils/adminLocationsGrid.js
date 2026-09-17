@@ -18,6 +18,7 @@ import {
 import { buildZoneName } from './zoneModalForm.js';
 import { zoneEmojiOf, zoneTitleOf } from './zoneDisplay.js';
 import { locationCategoryIds } from './locationCategories.js';
+import { ALL_SURFACES, normalizeSurfaceList } from '../shared/ui/SurfaceVisibilityField.jsx';
 import { orderedLivingBeingsForForm } from './livingBeings';
 
 /** Découpe le nom stocké d'une zone en { emoji, cleanName } (préfixe emoji + nom). */
@@ -103,6 +104,11 @@ export const BULK_ACTIONS = [
   { id: 'set_map', label: 'Déplacer vers une carte', forKinds: ['zone', 'marker'] },
   { id: 'set_emoji', label: 'Définir l’emoji', forKinds: ['zone', 'marker'] },
   { id: 'find_replace', label: 'Rechercher / remplacer', forKinds: ['zone', 'marker'] },
+  // Revue des surfaces : afficher / retirer un lot de lieux d'une surface d'un seul geste.
+  // Faire ce tri fiche par fiche sur des centaines de lieux n'est pas praticable, et un tri
+  // qu'on ne fait pas laisse des repères internes sur le plan public.
+  { id: 'show_on_surface', label: 'Afficher sur une surface', forKinds: ['zone', 'marker'] },
+  { id: 'hide_on_surface', label: 'Retirer d’une surface', forKinds: ['zone', 'marker'] },
   { id: 'delete', label: 'Supprimer les lieux', forKinds: ['zone', 'marker'] },
 ];
 
@@ -208,6 +214,26 @@ export function bulkPatchForItem(actionId, params = {}, { kind, item }) {
       }
       if (Object.keys(patch).length === 0) return skip('aucune occurrence');
       return { patch };
+    }
+    /**
+     * Les deux actions écrivent `hidden_surfaces`, la liste des surfaces où le lieu est
+     * **masqué** : « afficher » retire la surface de cette liste, « retirer » l'y ajoute.
+     * Attention au sens inverse — une confusion ici publierait sur le plan public les lieux
+     * qu'on voulait précisément en retirer.
+     */
+    case 'show_on_surface':
+    case 'hide_on_surface': {
+      const surface = String(params.surface || '').trim();
+      if (!ALL_SURFACES.includes(surface)) return skip('surface manquante');
+      const hidden = normalizeSurfaceList(item.hidden_surfaces);
+      const shouldHide = actionId === 'hide_on_surface';
+      if (hidden.includes(surface) === shouldHide) {
+        return skip(shouldHide ? 'déjà retiré de cette surface' : 'déjà affiché sur cette surface');
+      }
+      const next = shouldHide
+        ? ALL_SURFACES.filter((s) => hidden.includes(s) || s === surface)
+        : hidden.filter((s) => s !== surface);
+      return { patch: { hidden_surfaces: next } };
     }
     case 'delete':
       return { del: true };
