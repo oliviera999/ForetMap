@@ -255,21 +255,71 @@ D'où **deux régimes**, écrits dans l'en-tête de `color-tokens.css` :
 Résultat : **1 233 → 736 littéraux hexadécimaux** en CSS (−41 %), `#ffffff` passant de 219 à
 zéro hors déclarations de tokens.
 
-### C6 — 🟡 Ce que le lot n'a pas tranché
+### C6 — 🟡 Ce que le lot n'avait pas tranché
 
-Il reste **deux familles de gris** : une neutre (`#333`, `#444`, `#555`, `#666`, `#888`,
-`#aaa`, `#bbb`) et une ardoise (`--ink-*`, teintée bleu). Les rapprocher donnerait un reflet
-bleu à toute la première — ΔE de 8 à 12 selon la paire. Le choix (garder deux familles, ou
-teinter) est une décision de charte, pas un nettoyage : il reste ouvert, et le cliquet
-empêche seulement qu'elle grandisse.
+Il restait **deux familles de gris** : une neutre (`#222`…`#888`) et une ardoise (`--ink-*`,
+teintée bleu). Les rapprocher donne un reflet bleu à toute la première — ΔE de 8 à 12 selon
+la paire. Le choix (garder deux familles, ou teinter) était une décision de charte, pas un
+nettoyage. **Elle est prise dans le lot D ci-dessous : on teinte.**
 
 Idem pour les 147 styles inline qui portent encore une couleur : ce sont des teintes uniques,
 sans rôle réutilisable. Le cliquet les plafonne.
 
-## 7. Reste à faire
+## 7. Lot D — la famille de gris neutre rejoint l'échelle ardoise (livré le 17 septembre 2026)
+
+Mesure d'abord. Sur les feuilles CSS hors `dist/`, il restait **82 gris quasi neutres écrits
+en dur pour 46 valeurs distinctes** — bien moins que ne le laissait craindre le cliquet, et
+surtout répartis en deux groupes qui n'appellent pas la même décision.
+
+**Groupe traité — les gris francs, ΔE 8 à 12.** Dix-huit **encres de texte** et deux
+**filets**, tous dans `src/index.css`, là où l'échelle ardoise avait déjà un rôle et
+**85 usages** dans cette seule feuille (103 après le lot) :
+
+| Gris      | occ. | Rôle retenu    | Valeur    |   ΔE | ΔL\* | Contraste sur blanc |
+| --------- | ---: | -------------- | --------- | ---: | ---: | ------------------- |
+| `#222`    |    1 | `--ink-strong` | `#1f2937` | 10,8 | +3,0 | 15,91 → 14,68       |
+| `#333`    |    1 | `--ink-strong` | `#1f2937` | 11,5 | −5,0 | 12,63 → 14,68       |
+| `#444`    |    2 | `--ink-base`   | `#4b5563` | 11,7 | +6,9 | 9,74 → 7,56         |
+| `#555`    |    4 | `--ink-base`   | `#4b5563` |  9,4 | −0,4 | 7,46 → 7,56         |
+| `#666`    |    5 | `--ink-muted`  | `#6b7280` |  9,8 | +4,7 | 5,74 → 4,83         |
+| `#6f6f6f` |    1 | `--ink-muted`  | `#6b7280` |  8,7 | +1,1 | 5,02 → 4,83         |
+| `#888`    |    3 | `--ink-faint`  | `#8a94a0` |  8,7 | +4,2 | 3,54 → 3,08         |
+| `#8a8a8a` |    1 | `--ink-faint`  | `#8a94a0` |  8,3 | +3,4 | 3,45 → 3,08         |
+| `#ddd`    |    1 | `--line-soft`  | `#e5e7eb` |  4,1 | +3,5 | filet               |
+| `#ccc`    |    1 | `--line-muted` | `#d1d5db` |  4,6 | +3,1 | filet               |
+
+**Aucune paire ne bascule de part et d'autre du seuil AA (4,5:1).** Le repaint est visible
+sur `#444` (+6,9 de clarté) et `#333` (−5,0), négligeable ailleurs.
+
+### D0 — 🟠 `--ink-faint` ne passe pas AA, et ce n'est pas ce lot qui l'a cassé
+
+Le rôle « texte tertiaire » vaut **3,08:1 sur blanc**, sous le seuil AA de 4,5 pour du texte
+normal. Les quatre gris qui viennent de le rejoindre étaient déjà sous le seuil (3,45 et
+3,54) : le lot ne crée pas le défaut, il le **rassemble** — ce qui le rend pour la première
+fois corrigeable en un seul endroit. Le relever (vers `--ink-soft`, `#64748b`, 5,0:1)
+assombrirait tout le texte tertiaire de l'application : c'est une décision de charte, pas
+un nettoyage, et elle reste ouverte.
+
+### Ce que le lot n'a délibérément pas touché
+
+- **La traîne d'off-whites teintés vert** (`#f8fbf9`, `#eef4f0`, `#fafdfb`… ≈ 40 valeurs à
+  ΔE 0,6–5,5 de `--surface-cool` / `--surface-sunken`). L'écart est invisible, mais ces
+  blancs cassés penchent vers le **vert** quand l'échelle penche vers le **bleu** : les
+  fusionner changerait la direction de teinte du thème forêt. Autre décision, autre lot.
+- **Les traits du graphe trophique** (`#666666` dans `food-web-graph.css`) : de la
+  data-visualisation, pas du texte d'interface — même exception que les illustrations.
+- **Les noirs profonds de G&L** (`#000`, `#0b0805`) : palette de marque d'un sous-produit
+  isolé, hors échelle d'interface par construction.
+
+Cliquet abaissé en conséquence : `CEILING_CSS_HEX` passe de **745 à 669**, soit la valeur
+réelle — il n'a plus de mou, et le prochain littéral en dur le fait échouer.
+
+## 8. Reste à faire
 
 | #   | Sujet                                                                                                                                            | Traite |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| D1  | Trancher les deux familles de gris (C6), puis abaisser le plafond du cliquet                                                                     | H2     |
+| D1  | ~~Trancher les deux familles de gris (C6)~~ — **fait, lot D**                                                                                    | H2     |
 | D2  | Résorber la traîne des 147 couleurs inline, par écran, au fil des touches                                                                        | H3     |
 | D3  | Les 577 littéraux `rgb()/rgba()` — surtout des ombres et des voiles ; une échelle d'ombres et d'opacités serait le pendant de celle des couleurs | H2     |
+| D4  | Trancher `--ink-faint` sous AA (D0) : relever le rôle, ou l'assumer pour du texte non essentiel                                                  | H2     |
+| D5  | Les off-whites teintés vert : décider si le thème forêt garde sa direction de teinte sur les surfaces                                            | H2     |

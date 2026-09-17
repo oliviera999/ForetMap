@@ -12,14 +12,14 @@ vi.mock('../../src/services/api.js', () => ({ api: vi.fn() }));
 import { api } from '../../src/services/api.js';
 
 /** Le cadre interroge deux routes au dépliage : le statut du jour et la prévision des séries. */
-function repondre({ preview = null, previewFails = false } = {}) {
+function repondre({ preview = null, previewFails = false, truncated = false } = {}) {
   api.mockImplementation(async (url) => {
     if (url === '/api/school-calendar') {
       return { today: { today: '2026-09-16', isOpen: true } };
     }
     if (url === '/api/tasks/recurring-preview') {
       if (previewFails) throw new Error('indisponible');
-      return { today: '2026-09-16', series: preview ? [preview] : [] };
+      return { today: '2026-09-16', series: preview ? [preview] : [], truncated, limit: 200 };
     }
     throw new Error(`url inattendue : ${url}`);
   });
@@ -194,6 +194,47 @@ describe('RecurringSeriesOverview', () => {
     repondre();
     render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
     expect(api).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Le serveur borne sa liste. Sans ce repère, une série restée hors de la fenêtre de
+   * calcul se présentait exactement comme une série sans prochaine occurrence : le cadre
+   * affirmait une absence là où il n'avait simplement pas la réponse.
+   */
+  test('dit quand la prévision n’a pas été calculée, au lieu de la taire', async () => {
+    const user = userEvent.setup();
+    repondre({ truncated: true });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getAllByText(/Prévision non calculée/)).toHaveLength(TASKS.length);
+    });
+    expect(screen.queryByText(/Prochaine occurrence/)).not.toBeInTheDocument();
+  });
+
+  test('liste complète : une série sans prévision n’en a réellement pas', async () => {
+    const user = userEvent.setup();
+    repondre({ truncated: false });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Arroser la serre')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Prévision non calculée/)).not.toBeInTheDocument();
+  });
+
+  test('la prévision indisponible ne se déguise pas en liste tronquée', async () => {
+    const user = userEvent.setup();
+    repondre({ previewFails: true });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText('Arroser la serre')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Prévision non calculée/)).not.toBeInTheDocument();
   });
 
   test('ne demande rien et n’affiche rien hors profil prof', () => {
