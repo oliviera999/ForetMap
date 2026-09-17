@@ -16,13 +16,22 @@ déploiement par `git pull` suppose un build **déjà présent dans l'arbre**. D
 
 Cette contrainte coûte deux choses, toutes deux mesurées sur le dépôt :
 
-**Des conflits de merge systématiques.** Les noms de chunks portent un hash de contenu, donc
-chaque build renomme tous les fichiers. Deux branches qui touchent le frontend produisent un
-conflit **rename/delete** sur `dist/` — et git ne peut structurellement pas le résoudre : les
-pilotes de merge de `.gitattributes` ne traitent que les conflits de _contenu_, pas les
-conflits d'arborescence. `scripts/auto-resolve-conflicts.js` ne sait pas non plus les traiter
-(sa table est indexée par nom de fichier, et ses résolveurs cherchent des marqueurs dans le
-texte). Chaque fusion sur `main` remet donc toutes les PR ouvertes en conflit, indéfiniment.
+**Des conflits de merge systématiques, sur _toutes_ les PR.** Les noms de chunks portent un hash
+de contenu, et surtout **le build n'est pas reproductible** : deux exécutions de la même source,
+sur deux runners CI identiques, renomment l'essentiel des chunks. Le job `frontend-dist` constate
+donc une dérive à **chaque** push de PR et auto-commite un `dist/` régénéré — y compris sur une
+PR qui ne touche pas une seule ligne de frontend.
+
+> Mesuré sur la PR qui porte ce document : deux fichiers modifiés (`CHANGELOG.md`,
+> `docs/DEPLOY_DIST_ARTIFACT.md`), zéro fichier de `src/` — et un auto-commit de **159 fichiers
+> de `dist/`** par-dessus.
+
+Chaque PR ouverte porte donc un commit `dist/`, et **n'importe quelle paire** de PR entre en
+conflit **rename/delete** sur `dist/` — que git ne peut structurellement pas résoudre : les
+pilotes de merge de `.gitattributes` ne traitent que les conflits de _contenu_, pas les conflits
+d'arborescence. `scripts/auto-resolve-conflicts.js` ne sait pas non plus les traiter (sa table
+est indexée par nom de fichier, et ses résolveurs cherchent des marqueurs dans le texte). Chaque
+fusion sur `main` remet donc toutes les PR ouvertes en conflit, indéfiniment.
 
 **Le poids du dépôt.** ~30 Mo de blobs neufs à chaque build commité (355 fichiers, `dist/`
 pèse 32 Mo), sur un pack de 126 Mo. L'essentiel de l'historique du dépôt est du build jetable.
@@ -152,9 +161,19 @@ npm run deploy:dist:verify
 node scripts/fetch-dist-artifact.js --mode verify --expect-source "$(git rev-parse HEAD)"
 ```
 
-Attendu : `artefact complet (N fichiers)` et un nombre de fichiers comparable à `dist/`. Un écart
-de quelques fichiers est normal si `main` a avancé entre-temps ; un écart massif ou un
-`artefact incomplet` **arrête la bascule ici**.
+Attendu : `artefact complet (N fichiers)` et un **nombre** de fichiers égal à celui de `dist/`.
+Un `artefact incomplet`, ou un nombre de fichiers nettement différent, **arrête la bascule ici**.
+
+> ⚠️ **Ne pas comparer les noms de fichiers, ils diffèrent toujours.** Le build Vite/rolldown
+> n'est **pas reproductible** : deux exécutions du même commit, sur deux runners CI identiques,
+> produisent des hachages de contenu différents pour l'essentiel des chunks. Mesuré le
+> 17/09/2026 sur `a4c0849` — 356 fichiers de part et d'autre, ~80 chunks renommés, `.vite/manifest.json`,
+> les entrées HTML et les service workers référençant chacun son propre jeu.
+>
+> Ce qui compte n'est donc pas l'égalité avec un autre build, mais la **cohérence interne** de
+> l'artefact : c'est ce que vérifie `findDistGaps`, et c'est suffisant puisque le serveur
+> remplace `dist/` d'un bloc. Un `diff -rq` entre l'artefact et le `dist/` commité listera
+> toujours des dizaines d'écarts — ce n'est **pas** un signal d'alarme.
 
 Nettoyer ensuite : `rm -rf dist.candidate`.
 
@@ -188,7 +207,10 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
    - ajoute `dist/` à `.gitignore` ;
    - `git rm -r --cached dist` ;
    - supprime `.github/workflows/frontend-dist.yml` (l'auto-commit de `dist/` sur les branches de
-     PR — la source même des conflits) ;
+     PR — la source même des conflits). Accessoirement, son garde-fou **échoue déjà** sur `main`
+     (runs `1066`, `1072` du 17/09/2026) : il compare un rebuild au `dist/` commité, une égalité
+     que la non-reproductibilité du build rend inatteignable. Ce workflow ne peut pas passer au
+     vert, il ne fait que du bruit rouge ;
    - retire la garde `dist/` de `.githooks/pre-push` ;
    - retire du `README`/`docs` les consignes « lancer `npm run build` avant de pousser ».
 
