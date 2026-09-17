@@ -3,6 +3,7 @@
  * par catégorie, et lecture du lien profond `?lieu=`. Testée sans rendu (`tests-ui/plan/`).
  */
 import { detectLeadingEmojiPrefix, stripLeadingEmojiPrefix } from '../../shared/emojiPrefixCore.js';
+import { mapPlaceDisplayParts } from '../../shared/map-guide/mapGuidePlace.js';
 
 /**
  * Emoji et nom d'un libellé saisi : en production, les noms portent presque tous leur emoji
@@ -25,13 +26,7 @@ export function splitNameEmoji(rawName) {
  * @returns {{ emoji: string, name: string }}
  */
 export function placeDisplayParts(place) {
-  const raw = String(place?.name || '');
-  const split = splitNameEmoji(raw);
-  return {
-    emoji:
-      String(place?.emoji || '').trim() || split.emoji || (place?.kind === 'zone' ? '🗺️' : '📍'),
-    name: split.name || raw.trim(),
-  };
+  return mapPlaceDisplayParts(place);
 }
 
 /**

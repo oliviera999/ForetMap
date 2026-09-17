@@ -123,6 +123,10 @@
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
     rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
+  /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
+     transition, et le zoom reste instantané. */
+  transition: var(--pct-orient-transition, none);
 }
 
 /* Nom de zone sur deux lignes : un nom replié se lit, un nom tronqué ne sert à personne —
@@ -168,7 +172,7 @@
   padding: 0 6px;
   border-radius: 999px;
   background: var(--leaf, #4a7c59);
-  color: #fff;
+  color: var(--surface-plain);
   text-shadow: none;
 }
 
@@ -189,6 +193,10 @@
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
     rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
+  /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
+     transition, et le zoom reste instantané. */
+  transition: var(--pct-orient-transition, none);
 }
 
 .fm-pct-marker.is-seen {
@@ -263,34 +271,55 @@
   top: 50%;
   width: 16px;
   height: 16px;
-  border: 3px solid #fff;
+  border: 3px solid var(--surface-plain);
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--accent-info-solid);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
   transform-origin: 50% 50%;
 }
 
-.fm-pct-position__heading {
+.fm-pct-position__bearing {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 14px solid #2563eb;
-  transform-origin: 50% 100%;
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+  /* Le cap n'est publié que huit fois par seconde : la transition relie deux angles successifs
+     sans rendu supplémentaire. L'angle reçu est continu, jamais replié sur [0, 360[ — sans quoi
+     le passage de 359° à 1° ferait tourner la flèche d'un tour complet, à l'envers. */
+  transition: transform 180ms linear;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+}
+
+.fm-pct-position__bearing svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fm-pct-position__bearing path {
+  fill: var(--accent-info-solid);
+  stroke: var(--surface-plain);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-position__bearing {
+    transition: none;
+  }
 }
 
 .fm-pct-position__arrow {
   position: absolute;
   left: 50%;
   top: 50%;
-  color: #2563eb;
+  color: var(--accent-info-solid);
   font-size: var(--text-lg, 1.2rem);
   line-height: 1;
-  text-shadow: 0 0 3px #fff;
+  text-shadow: 0 0 3px var(--surface-plain);
 }
 
 /* Direction « Y aller » : trait droit, jamais un itinéraire. */
@@ -304,7 +333,7 @@
 }
 
 .fm-pct-direct-line__stroke {
-  stroke: #2563eb;
+  stroke: var(--accent-info-solid);
   stroke-width: calc(2px * var(--pct-inv, 1));
   stroke-dasharray: calc(6px * var(--pct-inv, 1)) calc(5px * var(--pct-inv, 1));
   stroke-linecap: round;
@@ -332,6 +361,10 @@
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1))
     rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
+  /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
+     transition, et le zoom reste instantané. */
+  transition: var(--pct-orient-transition, none);
 }
 
 .fm-pct-cluster:focus-visible {
@@ -380,6 +413,10 @@
   height: 0;
   transform: scale(var(--pct-inv, 1)) rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
+  /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
+     transition, et le zoom reste instantané. */
+  transition: var(--pct-orient-transition, none);
 }
 
 /* Dans un bouton repère, la contre-échelle est déjà portée par le bouton. */
@@ -397,7 +434,7 @@
   position: absolute;
   width: 11px;
   height: 11px;
-  border: 1.5px solid #fff;
+  border: 1.5px solid var(--surface-plain);
   border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
@@ -424,17 +461,17 @@
 
 /* Tons neutres : le produit décide de ce qu'ils signifient. */
 .fm-pct-status-dot--alert {
-  background: #dc2626;
+  background: var(--accent-danger-solid);
   animation: fmPctStatusPulse 2.2s ease-in-out infinite;
 }
 
 .fm-pct-status-dot--warn {
-  background: #f59e0b;
+  background: var(--accent-warning-solid);
   animation: fmPctStatusPulse 2.2s ease-in-out infinite;
 }
 
 .fm-pct-status-dot--ok {
-  background: #16a34a;
+  background: var(--accent-success-solid);
 }
 
 .fm-pct-status-dot--info {

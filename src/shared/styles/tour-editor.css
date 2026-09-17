@@ -27,7 +27,7 @@
 }
 
 .fm-tour-editor__step {
-  border: 1px solid var(--fm-tour-editor-border, #e5e7eb);
+  border: 1px solid var(--fm-tour-editor-border, var(--line-soft));
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 12px;

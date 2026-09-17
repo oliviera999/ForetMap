@@ -239,7 +239,7 @@
   padding: 0 8px;
   border-radius: 999px;
   background: var(--learning-gating-accent);
-  color: #fff;
+  color: var(--surface-plain);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 700;
   line-height: 1;
@@ -307,7 +307,7 @@
   min-height: 18px;
 }
 .tuto-read-ack-error {
-  color: #b91c1c;
+  color: var(--ink-danger);
   font-size: var(--text-base);
   margin: 0 0 10px;
 }
@@ -321,7 +321,7 @@
 
 .learning-gating-quiz__code {
   font-size: var(--text-sm);
-  color: var(--muted, #64748b);
+  color: var(--muted, var(--ink-soft));
   margin: 0 0 6px;
 }
 .learning-gating-quiz__question {
@@ -358,7 +358,7 @@
 }
 .learning-gating-quiz__photo-credit {
   font-size: var(--text-xs);
-  color: #8aa193;
+  color: var(--ink-lichen);
   margin-top: 4px;
 }
 .learning-gating-quiz__feedback {
@@ -369,11 +369,11 @@
 }
 .learning-gating-quiz__feedback--ok {
   background: rgba(34, 197, 94, 0.12);
-  color: #166534;
+  color: var(--ink-success);
 }
 .learning-gating-quiz__feedback--ko {
   background: rgba(239, 68, 68, 0.1);
-  color: #b91c1c;
+  color: var(--ink-danger);
 }
 .learning-gating-quiz__cooldown {
   margin: 0 0 12px;
@@ -381,12 +381,12 @@
   border-radius: 8px;
   font-size: var(--text-base);
   background: rgba(245, 158, 11, 0.12);
-  color: #92400e;
+  color: var(--ink-warning);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .learning-gating-quiz-intro__hint {
   font-size: var(--text-base);
-  color: var(--muted, #64748b);
+  color: var(--muted, var(--ink-soft));
   margin: 0 0 12px;
   font-weight: var(--fw-semibold);
 }
@@ -411,9 +411,9 @@
 }
 .learning-gating-quiz__progress--ok {
   background: rgba(34, 197, 94, 0.08);
-  color: #166534;
+  color: var(--ink-success);
 }
 .learning-gating-quiz__progress--warn {
   background: rgba(245, 158, 11, 0.1);
-  color: #92400e;
+  color: var(--ink-warning);
 }

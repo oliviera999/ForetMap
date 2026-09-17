@@ -255,7 +255,7 @@ export function HelpNarratorAdminPanel() {
         <div className="fm-narrator-block__head">
           <h3 className="fm-narrator-block__title">Aperçu en situation</h3>
           <div className="fm-narrator-preview__controls">
-            <div className="gl-subtabs fm-narrator-surfaces" role="group" aria-label="Surface">
+            <div className="fm-subtabs fm-narrator-surfaces" role="group" aria-label="Surface">
               <button
                 type="button"
                 className={previewSurface === 'tour' ? 'is-active' : ''}

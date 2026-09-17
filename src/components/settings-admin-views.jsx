@@ -12,6 +12,7 @@ import { AdminTextSettingField, AdminNumberSettingField } from './settings/Admin
 import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
 import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
+import { StaffPlanSettingsPanel } from './settings/StaffPlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { UserTrackingPanel } from './settings/UserTrackingPanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
@@ -78,7 +79,7 @@ const SEARCH_INDEX = [
   {
     id: 'plan',
     label: 'Plan Lyautey',
-    keywords: ['plan', 'lyautey', 'qr'],
+    keywords: ['plan', 'lyautey', 'qr', 'proflyautey', 'personnels', 'prof', 'code'],
   },
   {
     id: 'brand',
@@ -632,10 +633,9 @@ function SettingsAdminView({
     return (
       <>
         <div
-          className="gl-subtabs settings-admin-subtabs"
+          className="fm-subtabs settings-admin-subtabs"
           role="tablist"
           aria-label="Sous-sections cartographie"
-          style={{ marginBottom: 12, flexWrap: 'wrap' }}
         >
           {cartoTabs.map((t) => (
             <button
@@ -710,10 +710,9 @@ function SettingsAdminView({
     return (
       <>
         <div
-          className="gl-subtabs settings-admin-subtabs"
+          className="fm-subtabs settings-admin-subtabs"
           role="tablist"
           aria-label="Sous-sections aide"
-          style={{ marginBottom: 12, flexWrap: 'wrap' }}
         >
           {aideTabs.map((t) => (
             <button
@@ -774,10 +773,9 @@ function SettingsAdminView({
       )}
       {msg && <div className="auth-success">{msg}</div>}
       <div
-        className="gl-subtabs settings-admin-subtabs"
+        className="fm-subtabs settings-admin-subtabs"
         role="tablist"
         aria-label="Sections paramètres"
-        style={{ marginBottom: 12, flexWrap: 'wrap' }}
       >
         {topTabs.map((t) => (
           <button
@@ -809,19 +807,36 @@ function SettingsAdminView({
       {adminSection === 'carto' && canCarto ? renderCarto() : null}
 
       {adminSection === 'plan' && canReadSettings ? (
-        <PlanSettingsPanel
-          maps={maps}
-          get={get}
-          saveSetting={saveSetting}
-          savingKey={savingKey}
-          canWrite={canWriteSettings}
-          onMessage={(okMsg) => {
-            setMsg(okMsg);
-            setErr('');
-            load();
-          }}
-          onError={(errMsg) => setErr(errMsg)}
-        />
+        <>
+          <PlanSettingsPanel
+            maps={maps}
+            get={get}
+            saveSetting={saveSetting}
+            savingKey={savingKey}
+            canWrite={canWriteSettings}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+              load();
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+          {/* Les deux plans partagent leur carte et leurs lieux : les régler au même endroit
+              évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
+          <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
+          <StaffPlanSettingsPanel
+            get={get}
+            saveSetting={saveSetting}
+            savingKey={savingKey}
+            canWrite={canWriteSettings}
+            onMessage={(okMsg) => {
+              setMsg(okMsg);
+              setErr('');
+              load();
+            }}
+            onError={(errMsg) => setErr(errMsg)}
+          />
+        </>
       ) : null}
 
       {adminSection === 'brand' && canReadSettings ? (
@@ -1001,7 +1016,7 @@ function SettingsAdminView({
                     maxHeight: 280,
                     overflow: 'auto',
                     fontSize: 'var(--text-sm)',
-                    background: '#f0fdf4',
+                    background: 'var(--tint-success)',
                     borderRadius: 8,
                     padding: 8,
                     marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,

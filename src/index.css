@@ -1,6 +1,7 @@
     @import './shared/styles/typography-tokens.css';
     @import './shared/styles/spacing-tokens.css';
     @import './shared/styles/state-inks.css';
+    @import './shared/styles/color-tokens.css';
     @import './shared/styles/role-preview-banner.css';
     @import './shared/styles/z-layers.css';
     @import './shared/styles/motion.css';
@@ -15,6 +16,9 @@
     @import './shared/styles/guided-tour.css';
     @import './shared/styles/tour-editor.css';
     @import './shared/styles/shared-controls.css';
+    @import './shared/styles/form-controls.css';
+    @import './shared/styles/subtabs.css';
+    @import './shared/styles/surfaces.css';
     @import './shared/styles/map-action.css';
     @import './shared/styles/map-overlay-labels.css';
     @import './shared/styles/map-scale-compass.css';
@@ -141,6 +145,103 @@
       input, select, textarea { font-size:16px !important; }
     }
 
+    /* ── COUCHE DE BASE DES CHAMPS (ForetMap seul) ──────────────────────────────
+     * `shared/styles/form-controls.css` habille les champs QUI PORTENT une classe
+     * (`.fm-input`, `.form-select`…). Restaient 186 champs répartis sur 72 fichiers — barres
+     * d'outils, panneaux d'administration, éditeurs de packs — qui n'en portaient aucune et
+     * sortaient donc avec le widget natif du système. Cette couche-ci les rattrape par leur
+     * seul nom d'élément : plus aucun champ de ForetMap ne peut échapper à l'habillage,
+     * présent ou à venir.
+     *
+     * SPÉCIFICITÉ VOLONTAIREMENT MINIMALE : le sélecteur pèse (0,0,1), donc `.field select`
+     * (0,1,1) ou `.task-filters select` continuent de gagner. Les écarts de rendu restants
+     * ont été traités un par un, en redéfinissant les tokens `--fm-control-*` sur le
+     * CONTENEUR plutôt qu'en réécrivant le champ — voir `.task-filters`, `.moodle-table`…
+     * Ajouter une variante ne demande donc plus d'écrire une bordure.
+     *
+     * Les contrôles à rendu propre (cases, radios, curseurs, sélecteurs de couleur et de
+     * fichier) sont remis à plat PLUS BAS : `input[type='checkbox']` pèse (0,1,1) et bat
+     * cette couche-ci, quel que soit l'ordre d'écriture. Les habiller en boîte de saisie
+     * les casserait.
+     */
+    input, select, textarea {
+      box-sizing:border-box;
+      min-height:var(--fm-control-min-h);
+      padding:var(--fm-control-pad-y) var(--fm-control-pad-x);
+      border:var(--fm-control-border-width) solid var(--fm-control-border);
+      border-radius:var(--fm-control-radius);
+      /* `background-color`, jamais le raccourci `background` : celui-ci remettrait
+         `background-image` à `none` et effacerait le chevron de la liste déroulante. */
+      background-color:var(--fm-control-bg);
+      color:var(--fm-control-ink);
+      line-height:1.25;
+      outline:none;
+      transition:
+        border-color var(--motion-fast) var(--ease-out),
+        background var(--motion-fast) var(--ease-out),
+        box-shadow var(--motion-fast) var(--ease-out);
+    }
+    textarea { resize:vertical; }
+    select {
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      cursor:pointer;
+      padding-right:var(--fm-control-chevron-gutter);
+      background-image:var(--fm-control-chevron);
+      background-repeat:no-repeat;
+      background-position:right 12px center;
+      background-size:12px 8px;
+    }
+    select[multiple],
+    select[size]:not([size='1']) {
+      min-height:0;
+      padding-right:var(--fm-control-pad-x);
+      background-image:none;
+      cursor:auto;
+    }
+    select:disabled { background-image:var(--fm-control-chevron-disabled); }
+    input:focus, select:focus, textarea:focus {
+      border-color:var(--fm-control-border-focus);
+      background-color:var(--fm-control-bg-focus);
+      box-shadow:var(--fm-control-ring);
+    }
+    input:disabled, select:disabled, textarea:disabled {
+      background-color:var(--fm-control-bg-disabled);
+      color:var(--fm-control-ink-disabled);
+      cursor:not-allowed;
+    }
+    @media (hover:hover) {
+      input:hover:not(:disabled):not([readonly]),
+      select:hover:not(:disabled),
+      textarea:hover:not(:disabled):not([readonly]) {
+        border-color:var(--fm-control-border-hover);
+      }
+    }
+    /* Ces cinq-là gardent leur rendu propre : (0,1,1) contre (0,0,1), ils battent la couche
+       ci-dessus quel que soit l'ordre — y compris ses règles de focus et de survol, qui ne
+       filtrent pas par type. Les habiller en boîte de saisie les casserait. */
+    input[type='checkbox'], input[type='radio'], input[type='range'],
+    input[type='color'], input[type='file'] {
+      min-height:auto;
+      padding:0;
+      border:none;
+      border-radius:0;
+      background:none;
+      box-shadow:none;
+    }
+    input[type='color'] { min-height:var(--fm-control-min-h-sm); }
+    input[type='file'] { padding:6px 0; }
+    /* La couche de base pose `outline:none` (elle lui substitue un anneau `box-shadow`).
+       Ces contrôles-là n'ont pas d'anneau : sans cette règle, ils perdraient toute marque
+       de focus au clavier. */
+    input[type='checkbox']:focus-visible, input[type='radio']:focus-visible,
+    input[type='range']:focus-visible, input[type='color']:focus-visible,
+    input[type='file']:focus-visible {
+      outline:2px solid var(--leaf);
+      outline-offset:2px;
+    }
+
     /* ── LOADER ── */
     .loader { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; background:var(--cream); }
     .loader-leaf { font-size:3rem; animation:sway 1.5s ease-in-out infinite; }
@@ -149,17 +250,16 @@
 
     /* ── FORMS ── */
     .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-    .field label { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--leaf); letter-spacing:.07em; text-transform:uppercase; }
+    /* Apparence dans `shared/styles/form-controls.css` (`.fm-label`) : un seul dialecte de
+       libellé pour toute l'application. Les capitales interlettrées ont disparu — voir le
+       commentaire de ce fichier-là pour le pourquoi. */
+    .field label { font-size:var(--text-sm); font-weight:var(--fw-semibold); line-height:var(--lh-tight); color:var(--leaf); }
+    /* Bordure, rayon, fond, focus et chevron viennent désormais de la couche de base
+       (« COUCHE DE BASE DES CHAMPS », plus haut) : `.field` ne garde que ce qui lui est
+       propre, la largeur pleine. Une seule définition de l'apparence, donc un seul endroit
+       à modifier — c'est ce qui manquait quand six contextes la réécrivaient chacun. */
     .field input, .field select, .field textarea {
-      padding:13px 14px;
-      border:1.5px solid var(--mint); border-radius:10px;
-      color:var(--forest); background:var(--cream);
-      outline:none; width:100%;
-      transition:border-color .18s var(--ease-out), background .18s, box-shadow .18s;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color:var(--sage); background:white;
-      box-shadow:0 0 0 3px rgba(82,183,136,.15);
+      width:100%;
     }
 
     /* ── BUTTONS ── */
@@ -194,7 +294,7 @@
       border:1px solid rgba(82,183,136,.26);
     }
     .btn-secondary:active { background:var(--sage); color:white; }
-    .btn-danger { background:#fee2e2; color:#991b1b; }
+    .btn-danger { background:#fee2e2; color:var(--ink-danger); }
     .btn-danger:active { background:#fca5a5; }
     .btn-ghost { background:rgba(255,255,255,.66); color:var(--forest); border:1.5px solid var(--mint); }
     .btn-ghost:active { background:var(--mint); }
@@ -285,7 +385,7 @@
     .realtime-dot--polling { background:#60a5fa; opacity:.9; }
     .realtime-dot--connecting { background:#fbbf24; animation:rtBlink 1.1s ease-in-out infinite; }
     .realtime-dot--offline { background:#f97316; opacity:.9; }
-    .realtime-dot--no-client { background:#94a3b8; opacity:.85; }
+    .realtime-dot--no-client { background:var(--ink-dim); opacity:.85; }
     @keyframes rtPulse { 0%,100%{opacity:1;transform:scale3d(1,1,1)} 50%{opacity:.72;transform:scale3d(.92,.92,1)} }
     @keyframes rtBlink { 0%,100%{opacity:1} 50%{opacity:.35} }
     .user-badge {
@@ -325,7 +425,7 @@
       padding:0 4px;
       border-radius:999px;
       background:#ef4444;
-      color:#fff;
+      color:var(--surface-plain);
       font-size:var(--text-2xs);
       font-weight:var(--fw-bold);
       display:flex;
@@ -341,12 +441,14 @@
       width:min(92vw, 420px);
       max-height:min(78vh, 680px);
       overflow:auto;
-      background:#fff;
       color:var(--forest);
-      border:1px solid var(--mint);
-      border-radius:12px;
-      box-shadow:0 12px 28px rgba(0,0,0,.22);
-      padding:10px;
+      /* Le panneau flotte au-dessus de l'écran : il lui faut une ombre bien plus portée
+         que celle d'un panneau posé dans le flux. */
+      --fm-panel-bg:var(--surface-plain);
+      --fm-panel-border:var(--mint);
+      --fm-panel-radius:12px;
+      --fm-panel-shadow:0 12px 28px rgba(0,0,0,.22);
+      --fm-panel-pad:10px;
       z-index:var(--fm-z-popover);
     }
     .notif-panel-head {
@@ -357,7 +459,7 @@
       margin-bottom:8px;
       position:sticky;
       top:0;
-      background:#fff;
+      background:var(--surface-plain);
       padding-bottom:6px;
     }
     .notif-panel-head-top {
@@ -411,7 +513,7 @@
     .notif-item {
       border-radius:10px;
       border:1px solid #e5eee7;
-      background:#fff;
+      background:var(--surface-plain);
       padding:8px;
       display:grid;
       gap:6px;
@@ -425,8 +527,8 @@
       padding:2px 8px;
       font-weight:var(--fw-bold);
     }
-    .notif-level-critical { background:#fee2e2; color:#991b1b; }
-    .notif-level-important { background:#fef3c7; color:#92400e; }
+    .notif-level-critical { background:#fee2e2; color:var(--ink-danger); }
+    .notif-level-important { background:#fef3c7; color:var(--ink-warning); }
     .notif-level-info { background:#e0f2fe; color:#0c4a6e; }
     .notif-time { font-size:var(--text-xs); color:#7a8b81; }
     .notif-title { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--forest); }
@@ -455,7 +557,7 @@
       margin:8px 12px 0;
       padding:10px 14px;
       border-radius:12px;
-      background:#fff1f2;
+      background:var(--tint-danger);
       border:1px solid #fda4af;
       color:#881337;
       font-size:var(--text-base);
@@ -634,7 +736,7 @@
     /* ── FOOTER VERSION ── */
     .app-footer {
       flex-shrink:0;
-      text-align:center; font-size:var(--text-xs); color:#6b7280;
+      text-align:center; font-size:var(--text-xs); color:var(--ink-muted);
       padding:8px 16px; margin-top:auto;
       border-top:1px solid rgba(183,228,199,.4);
       background:rgba(254,250,224,.5);
@@ -749,7 +851,7 @@
     }
     .top-tab__badge {
       background:var(--alert);
-      color:#fff;
+      color:var(--surface-plain);
       border-radius:999px;
       font-size:var(--text-2xs);
       font-weight:var(--fw-bold);
@@ -864,7 +966,7 @@
 
     /* ── SECTION TITLES ── */
     .section-title { font-size:clamp(1.15rem, 1rem + .55vw, 1.3rem); color:var(--forest); margin-bottom:4px; }
-    .section-sub { font-size:var(--text-sm); color:#6b7280; margin-bottom:16px; line-height:var(--lh-normal); }
+    .section-sub { font-size:var(--text-sm); color:var(--ink-muted); margin-bottom:16px; line-height:var(--lh-normal); }
     .stats-title-row {
       display:flex; justify-content:space-between; align-items:center;
       margin-bottom:4px; gap:8px;
@@ -873,10 +975,14 @@
 
     /* ── ABOUT ── */
     .about-grid { display:grid; gap:12px; }
+    /* Surface : `.fm-panel` (shared/styles/surfaces.css). Ne restent ici que les écarts
+       assumés — un filet menthe plus marqué et un rayon plus serré, cohérents avec le ton
+       « fiche » de l'écran À propos. */
     .about-card {
-      background:white; border-radius:12px; padding:14px;
-      border:1.5px solid var(--mint);
-      box-shadow:0 1px 6px rgba(0,0,0,.04);
+      --fm-panel-radius:12px;
+      --fm-panel-border:var(--mint);
+      --fm-panel-shadow:0 1px 6px rgba(0,0,0,.04);
+      border-width:1.5px;
     }
     .about-card h3 {
       font-size:var(--text-base); color:var(--leaf); margin-bottom:8px;
@@ -1074,34 +1180,34 @@
     .map-task-status-dot {
       position:absolute; top:-1px; right:-1px;
       width:10px; height:10px; border-radius:50%;
-      border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.18);
+      border:1.5px solid var(--surface-plain); box-shadow:0 1px 4px rgba(0,0,0,.18);
     }
     .map-task-status-dot--todo {
-      background:#dc2626;
+      background:var(--accent-danger-solid);
       animation:mapStatusFadeRed 2.2s ease-in-out infinite;
     }
     .map-task-status-dot--progress {
-      background:#f59e0b;
+      background:var(--accent-warning-solid);
       animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .map-task-status-dot--done {
-      background:#16a34a;
+      background:var(--accent-success-solid);
       animation:none;
       opacity:1;
     }
-    .map-task-status { stroke:#fff; stroke-width:1.5px; }
+    .map-task-status { stroke:var(--surface-plain); stroke-width:1.5px; }
     .map-task-status--todo {
-      fill:#dc2626;
+      fill:var(--accent-danger-solid);
       filter:drop-shadow(0 0 6px rgba(220,38,38,.45));
       animation:mapStatusFadeRed 2.2s ease-in-out infinite;
     }
     .map-task-status--progress {
-      fill:#f59e0b;
+      fill:var(--accent-warning-solid);
       filter:drop-shadow(0 0 6px rgba(245,158,11,.48));
       animation:mapStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .map-task-status--done {
-      fill:#16a34a;
+      fill:var(--accent-success-solid);
       filter:drop-shadow(0 0 5px rgba(22,163,74,.34));
       animation:none;
       opacity:1;
@@ -1109,7 +1215,7 @@
     /* Pastille tutoriel(s) sur zone (carte) */
     .map-tutorial-zone-dot {
       fill:#6366f1;
-      stroke:#fff;
+      stroke:var(--surface-plain);
       stroke-width:1.5px;
       filter:drop-shadow(0 0 4px rgba(99,102,241,.4));
     }
@@ -1118,7 +1224,7 @@
       position:absolute;
       border-radius:50%;
       background:#6366f1;
-      border:1.5px solid #fff;
+      border:1.5px solid var(--surface-plain);
       box-shadow:0 1px 4px rgba(0,0,0,.18);
     }
     @keyframes mapStatusFadeRed {
@@ -1140,28 +1246,37 @@
     .zone-info { background:var(--parchment); border-radius:12px; padding:16px; border:1.5px solid var(--mint); }
     /* Catégories de lieux (zones et repères) — pastilles et sélecteur. */
     .location-category-badges { display:inline-flex; flex-wrap:wrap; gap:6px; }
-    .location-category-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:var(--text-xs); font-weight:var(--fw-bold); letter-spacing:.03em; background:#f1f5f9; color:#1f2937; }
-    .location-category-badge--empty { font-size:var(--text-xs); color:#94a3b8; }
+    .location-category-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:var(--text-xs); font-weight:var(--fw-bold); letter-spacing:.03em; background:#f1f5f9; color:var(--ink-strong); }
+    .location-category-badge--empty { font-size:var(--text-xs); color:var(--ink-dim); }
     .location-category-picker { display:flex; flex-direction:column; gap:6px; }
     .location-category-picker__option { display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer; }
     .location-category-picker__option input { width:18px; height:18px; flex-shrink:0; }
-    .location-category-picker__swatch { width:14px; height:14px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0; }
-    .location-category-picker__infra { color:#64748b; font-size:var(--text-sm); }
+    .location-category-picker__swatch { width:14px; height:14px; border-radius:4px; border:1px solid var(--line-cool); flex-shrink:0; }
+    .location-category-picker__infra { color:var(--ink-soft); font-size:var(--text-sm); }
 
     /* Grille admin « Zones & repères » : chips espèces et pastilles catégories. */
-    .admin-locations-chip { display:inline-flex; align-items:center; gap:4px; background:#f0fdf4; border:1px solid var(--sage); border-radius:999px; padding:2px 8px; font-size:var(--text-sm); }
-    .admin-locations-chip button { border:none; background:none; cursor:pointer; color:#6b7280; font-size:var(--text-xs); padding:2px 4px; min-height:0; }
-    .admin-locations-chip button:hover { color:#b91c1c; }
-    .admin-locations-cat { border:1px solid #cbd5e1; background:white; border-radius:999px; padding:2px 10px; font-size:var(--text-sm); cursor:pointer; color:#475569; }
+    .admin-locations-chip { display:inline-flex; align-items:center; gap:4px; background:var(--tint-success); border:1px solid var(--sage); border-radius:999px; padding:2px 8px; font-size:var(--text-sm); }
+    .admin-locations-chip button { border:none; background:none; cursor:pointer; color:var(--ink-muted); font-size:var(--text-xs); padding:2px 4px; min-height:0; }
+    .admin-locations-chip button:hover { color:var(--ink-danger); }
+    .admin-locations-cat { border:1px solid var(--line-cool); background:white; border-radius:999px; padding:2px 10px; font-size:var(--text-sm); cursor:pointer; color:#475569; }
     .admin-locations-cat.is-active { background:var(--forest); border-color:var(--forest); color:white; }
     .admin-locations-cat:disabled { opacity:.6; cursor:default; }
 
     /* Réglages admin : couleur d'une catégorie — sélecteur natif + saisie hexadécimale. */
     /* Champ couleur commun aux zones et aux catégories de zones/repères. */
     .color-palette-field { display:flex; align-items:center; gap:8px; }
-    .color-palette-field__picker { width:44px; height:44px; min-width:44px; padding:2px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; cursor:pointer; }
+    /* Sélecteur `input[type='color']` : la couche de base remet ce type de contrôle à plat
+       (`input[type='color']` pèse (0,1,1), donc plus qu'une simple classe). On préfixe par
+       `input` pour reprendre la main, et on en profite pour reprendre la bordure de la
+       famille — c'était l'un des deux derniers `#cbd5e1`, un gris ardoise hors palette. */
+    input.color-palette-field__picker {
+      width:44px; height:44px; min-width:44px; padding:2px;
+      border:var(--fm-control-border-width) solid var(--fm-control-border);
+      border-radius:var(--fm-control-radius-sm);
+      background:var(--surface-plain); cursor:pointer;
+    }
     .color-palette-field__hex { flex:1; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
-    .color-palette-field__hint { margin:6px 0 0; font-size:var(--text-xs); color:#64748b; line-height:var(--lh-normal); }
+    .color-palette-field__hint { margin:6px 0 0; font-size:var(--text-xs); color:var(--ink-soft); line-height:var(--lh-normal); }
     .color-palette-field__swatches { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
     .color-palette-field__swatch {
       width:44px; height:44px; min-width:44px; padding:0; border-radius:8px;
@@ -1172,9 +1287,9 @@
       .color-palette-field__swatch { transition:none; }
     }
     .history-list { margin-top:12px; }
-    .history-list h4 { font-size:var(--text-xs); font-weight:var(--fw-bold); color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+    .history-list h4 { font-size:var(--text-xs); font-weight:var(--fw-bold); color:var(--ink-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
     .history-item { display:flex; justify-content:space-between; font-size:var(--text-sm); padding:6px 0; border-bottom:1px solid var(--mint); color:#555; }
-    .edit-zone { background:#f0fdf4; border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
+    .edit-zone { background:var(--tint-success); border-radius:12px; padding:14px; border:1.5px dashed var(--sage); margin-top:12px; }
 
     /* Sommets zone : croix (viseur) masquée par défaut ; survol souris ou glissement (tactile). */
     .edit-pt-cross {
@@ -1215,7 +1330,7 @@
     .map-snap-setting {
       display:inline-flex; align-items:center; gap:6px;
       padding:3px 8px; border:1.5px solid var(--mint); border-radius:8px;
-      background:#f0fdf4; color:#166534; font-size:var(--text-xs); font-weight:var(--fw-bold);
+      background:var(--tint-success); color:var(--ink-success); font-size:var(--text-xs); font-weight:var(--fw-bold);
       white-space:nowrap; flex-shrink:0;
     }
     .map-snap-setting input[type="range"] {
@@ -1229,7 +1344,7 @@
     }
     .tasks-section-title {
       font-size:var(--text-xs); font-weight:var(--fw-bold); text-transform:uppercase;
-      letter-spacing:.08em; color:#6b7280; margin-bottom:10px;
+      letter-spacing:.08em; color:var(--ink-muted); margin-bottom:10px;
       display:flex; align-items:center; gap:8px;
     }
     .tasks-section-title::after { content:''; flex:1; height:1px; background:var(--mint); }
@@ -1355,15 +1470,15 @@
       box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 1px 3px rgba(0,0,0,.12);
     }
     .task-status-dot--todo {
-      background:#dc2626;
+      background:var(--accent-danger-solid);
       animation:taskStatusFadeRed 2.2s ease-in-out infinite;
     }
     .task-status-dot--progress {
-      background:#f59e0b;
+      background:var(--accent-warning-solid);
       animation:taskStatusFadeOrange 2.2s ease-in-out infinite;
     }
     .task-status-dot--done {
-      background:#16a34a;
+      background:var(--accent-success-solid);
       animation:none;
       opacity:1;
       box-shadow:0 0 0 2px rgba(255,255,255,.95), 0 0 0 3px rgba(22,163,74,.25);
@@ -1392,7 +1507,7 @@
       background:var(--parchment); border-radius:6px; padding:4px 9px; font-size:var(--text-xs); color:var(--soil);
       font-family:var(--font-sans-with-emoji);
     }
-    .task-chip.urgent { background:#fff1f2; color:#e11d48; }
+    .task-chip.urgent { background:var(--tint-danger); color:#e11d48; }
     /* Pastilles statut biogéographique + UICN (catalogue biodiversité) */
     .task-chip.plant-origin-status--indigene {
       --fm-origin-chip: 1;
@@ -1406,7 +1521,7 @@
       border:1px solid #ffe082;
     }
     .task-chip.plant-origin-status--envahissant {
-      background:#fff1f2;
+      background:var(--tint-danger);
       color:#9f1239;
       border:1px solid #fda4af;
       font-weight:var(--fw-semibold);
@@ -1434,13 +1549,13 @@
     }
     .task-chip.plant-iucn-status--en,
     .task-chip.plant-iucn-status--cr {
-      background:#fff1f2;
+      background:var(--tint-danger);
       color:#9f1239;
       border:1px solid #fda4af;
     }
     .task-chip.plant-iucn-status--ew,
     .task-chip.plant-iucn-status--ex {
-      background:#1f2937;
+      background:var(--ink-strong);
       color:#f9fafb;
       border:1px solid #111827;
     }
@@ -1459,7 +1574,7 @@
       font-size:var(--text-sm);
     }
     .task-assignees-title {
-      color:#4b5563;
+      color:var(--ink-base);
       font-weight:var(--fw-bold);
       letter-spacing:.01em;
       padding-top:2px;
@@ -1467,21 +1582,21 @@
     .task-assignees-list { display:flex; flex-wrap:wrap; gap:6px; }
     .task-assignee-inline {
       background:#eefbf2;
-      color:#166534;
+      color:var(--ink-success);
       border:1px solid #bbf7d0;
       border-radius:999px;
       padding:2px 8px;
       line-height:var(--lh-normal);
     }
     .task-assignee-inline.me {
-      background:#dcfce7;
+      background:var(--tint-success-strong);
       border-color:#86efac;
       font-weight:var(--fw-bold);
     }
     .task-assignee-inline.empty {
-      background:#f3f4f6;
-      border-color:#e5e7eb;
-      color:#6b7280;
+      background:var(--surface-sunken);
+      border-color:var(--line-soft);
+      color:var(--ink-muted);
       font-style:italic;
     }
     .task-desc { font-size:var(--text-sm); color:#666; margin-bottom:10px; line-height:var(--lh-relaxed); }
@@ -1505,14 +1620,14 @@
       opacity: 0.65;
       cursor: wait;
     }
-    .slots { font-size:var(--text-sm); color:#6b7280; margin-bottom:6px; }
+    .slots { font-size:var(--text-sm); color:var(--ink-muted); margin-bottom:6px; }
 
     /* ── STATUS BADGES ── */
     .status-badge { border-radius:20px; padding:4px 10px; font-size:var(--text-xs); font-weight:var(--fw-bold); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; flex-shrink:0; }
-    .status-available   { background:#dcfce7; color:#166534; }
+    .status-available   { background:var(--tint-success-strong); color:var(--ink-success); }
     .status-in_progress { background:#fef9c3; color:#854d0e; }
     .status-done        { background:#dbeafe; color:#1e40af; }
-    .status-validated   { background:#f1f5f9; color:#64748b; }
+    .status-validated   { background:#f1f5f9; color:var(--ink-soft); }
 
     /* ── MODALS — panneau : `.modal` et `.log-modal` sont des alias de `.fm-modal-panel`
        (src/shared/styles/modal-shell.css) ; seules les largeurs restent ici. ── */
@@ -1805,7 +1920,7 @@
       border-radius:8px;
       font-size:var(--text-sm);
       font-weight:var(--fw-semibold);
-      color:#9a3412;
+      color:var(--ink-warning);
       background:rgba(255,237,213,0.95);
       border:1px solid rgba(234,88,12,0.28);
     }
@@ -1941,9 +2056,6 @@
         flex:1 1 100% !important;
         min-width:0 !important;
       }
-      .visit-mascot-pack-manager__tabs .btn-sm {
-        min-height:44px;
-      }
       .mascot-pack-wysiwyg__frame-row {
         flex-direction:column;
         align-items:flex-start;
@@ -2025,7 +2137,7 @@
       animation:popIn .3s var(--spring) forwards;
     }
     .pin-card h3 { font-size:var(--text-lg); margin-bottom:8px; }
-    .pin-card p { font-size:var(--text-sm); color:#6b7280; margin-bottom:20px; }
+    .pin-card p { font-size:var(--text-sm); color:var(--ink-muted); margin-bottom:20px; }
     .pin-input {
       font-size:var(--text-2xl) !important; text-align:center; letter-spacing:.3em;
       padding:14px; border:2px solid var(--mint); border-radius:10px;
@@ -2124,7 +2236,7 @@
       font-size: var(--text-base);
       border-radius: 14px;
       background: linear-gradient(135deg, var(--forest), #1b4332);
-      color: #fff;
+      color: var(--surface-plain);
       border: none;
       box-shadow: 0 8px 20px rgba(27, 67, 50, 0.28);
     }
@@ -2170,17 +2282,16 @@
     @media(max-width:400px) { .auth-card { border-radius:16px; } }
     .auth-card h1 { font-size:clamp(1.45rem, 1.25rem + .8vw, 1.8rem); color:var(--forest); margin-bottom:4px; }
     .auth-card .sub { color:var(--leaf); font-size:var(--text-sm); margin-bottom:24px; }
-    .auth-tabs { display:flex; background:var(--parchment); border-radius:10px; padding:3px; margin-bottom:20px; }
-    .auth-tab {
-      flex:1; padding:10px; border:none; background:transparent; border-radius:8px;
-      cursor:pointer; font-family:var(--font-sans); font-size:var(--text-base); font-weight:var(--fw-medium);
-      color:var(--soil); transition:background .2s var(--ease-out), color .2s, transform .1s var(--spring);
-      -webkit-tap-highlight-color:transparent;
-    }
-    .auth-tab.active { background:var(--forest); color:white; font-weight:var(--fw-bold); }
-    .auth-tab:active { transform:scale(.95); }
+    /* Bascule connexion / inscription : c'était le quatrième style d'onglets du produit
+       (`.auth-tabs` / `.auth-tab`), très proche des trois autres sans leur être identique.
+       Elle passe sur `.fm-subtabs` comme le reste ; il ne reste ici que ses marges et le
+       corps de texte, plus généreux qu'ailleurs parce que la carte de connexion est le
+       tout premier écran. */
+    .auth-tabs { margin-bottom:20px; }
+    .auth-tabs > button { font-size:var(--text-base); }
+    .auth-tabs--forgot { margin-bottom:8px; }
     .auth-error {
-      background:#fff1f2; color:#e11d48; border-radius:8px;
+      background:var(--tint-danger); color:#e11d48; border-radius:8px;
       padding:10px 14px; font-size:var(--text-sm); margin-bottom:12px;
       animation:shake .3s ease;
       display:flex; flex-direction:column; gap:8px;
@@ -2198,7 +2309,7 @@
     }
     .auth-error-dismiss:hover { background:#ffe4e6; }
     .auth-success {
-      background:#ecfdf3; color:#166534; border-radius:8px;
+      background:#ecfdf3; color:var(--ink-success); border-radius:8px;
       padding:10px 14px; font-size:var(--text-sm); margin-bottom:12px;
     }
     .auth-home-credit {
@@ -2209,7 +2320,7 @@
       font-size:var(--text-xs);
       line-height:1.25;
     }
-    .auth-version { font-size:var(--text-xs); color:#6b7280; margin-top:8px; margin-bottom:0; text-align:center; }
+    .auth-version { font-size:var(--text-xs); color:var(--ink-muted); margin-top:8px; margin-bottom:0; text-align:center; }
 
     /* ── ROWS ── */
     .row { display:flex; gap:10px; }
@@ -2336,7 +2447,7 @@
     .map-gesture-toggle.is-on {
       background:#ecfdf3;
       border-color:var(--sage);
-      color:#166534;
+      color:var(--ink-success);
     }
 
     .map-view-toolbar {
@@ -2410,7 +2521,7 @@
       font-size:var(--text-sm);
       color:var(--leaf);
       font-weight:var(--fw-bold);
-      background:#f0fdf4;
+      background:var(--tint-success);
       padding:5px 10px;
       border-radius:8px;
       border:1px solid var(--mint);
@@ -2482,16 +2593,20 @@
     .map-switch-select {
       min-width:180px;
       max-width:min(100%, 300px);
-      min-height:34px;
-      border:1px solid var(--mint);
-      border-radius:10px;
-      background:var(--parchment);
-      color:var(--soil);
+      /* Contrôle de chrome cartographique : la hauteur est contrainte par la surface de la
+         carte, d'où la variante compacte. Bordure, rayon et chevron restent ceux de la
+         couche de base — seule la densité change. */
+      --fm-control-min-h:34px;
+      --fm-control-pad-y:4px;
+      --fm-control-pad-x:10px;
+      --fm-control-chevron-gutter:26px;
+      --fm-control-bg:var(--parchment);
+      --fm-control-ink:var(--soil);
+      background-position:right 8px center;
       font-family:var(--font-sans);
       font-size:var(--map-toolbar-font-size) !important;
       font-weight:var(--fw-bold);
       line-height:var(--lh-tight);
-      padding:4px 10px;
     }
     /* Liste déroulante ouverte : rendue par l'OS, la plupart des moteurs n'honorent que
        family/weight — on pose au moins la fonte produit. */
@@ -2529,8 +2644,13 @@
     .main.main--map-visible .map-view-toolbar .map-switch-select,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
     .map-view-root--solo .map-view-toolbar .map-switch-select {
-      padding:2px 8px !important;
-      min-height:30px;
+      /* Par les tokens : un `padding` en raccourci (a fortiori `!important`) écraserait la
+         gouttière du chevron et la flèche viendrait sur le libellé de l'option. */
+      --fm-control-pad-y:2px;
+      --fm-control-pad-x:8px;
+      --fm-control-chevron-gutter:24px;
+      --fm-control-min-h:30px;
+      background-position:right 7px center;
     }
     .main.main--map-visible .map-view-toolbar .map-gesture-toggle,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .map-gesture-toggle,
@@ -2607,9 +2727,9 @@
     }
 
     /* ── EMPTY STATE ── */
-    .empty { text-align:center; padding:clamp(24px, 8vw, 40px) 20px; color:#6b7280; }
+    .empty { text-align:center; padding:clamp(24px, 8vw, 40px) 20px; color:var(--ink-muted); }
     .empty-icon { font-size:2.5rem; margin-bottom:10px; opacity:.72; }
-    .empty p { font-size:var(--text-base); color:#6b7280; line-height:var(--lh-normal); }
+    .empty p { font-size:var(--text-base); color:var(--ink-muted); line-height:var(--lh-normal); }
 
     /* ── TOAST : shell partagé dans src/shared/styles/toast-shell.css ── */
 
@@ -2640,9 +2760,9 @@
       .nav-btn .nav-icon { font-size:var(--text-lg); }
       .nav-btn::after { bottom:4px; }
       .field label { font-size:var(--text-xs); }
-      .field input, .field select, .field textarea {
-        padding:10px 12px;
-      }
+      /* Densité resserrée sur très petit écran : on baisse les TOKENS, pas la règle du
+         champ — la gouttière du chevron suit toute seule. */
+      .field { --fm-control-pad-y:10px; --fm-control-pad-x:12px; }
       .btn {
         min-height:40px;
         padding:10px 16px;
@@ -2666,7 +2786,7 @@
       background:var(--cream);
       -webkit-tap-highlight-color:transparent;
     }
-    .img-upload-area:active { background:#f0fdf4; border-color:var(--sage); transform:scale(.98); }
+    .img-upload-area:active { background:var(--tint-success); border-color:var(--sage); transform:scale(.98); }
     .img-upload-area input { display:none; }
     /* Zone visuelle sans clic global : boutons galerie / appareil photo */
     .img-upload-area.img-upload-area--split { cursor: default; }
@@ -2691,7 +2811,7 @@
     .student-avatar { box-shadow:0 1px 4px rgba(0,0,0,.08); flex-shrink:0; }
 
     .log-entry { background:var(--parchment); border-radius:10px; padding:14px; margin-bottom:10px; }
-    .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:var(--text-sm); color:#6b7280; }
+    .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:var(--text-sm); color:var(--ink-muted); }
     .log-entry-author { font-weight:var(--fw-bold); color:var(--forest); }
     .log-comment { font-size:var(--text-base); color:#333; line-height:var(--lh-relaxed); margin-bottom:10px; }
     .log-image { width:100%; border-radius:8px; max-height:250px; object-fit:cover; cursor:pointer; transition:transform .15s; }
@@ -2748,25 +2868,25 @@
        métadonnée ordinaire. Palette alignée sur `.notif-level-important`. */
     .plant-determination__alert {
       display:flex; flex-direction:column; gap:4px;
-      border:1px solid #f59e0b; border-left-width:4px; border-radius:8px;
-      background:#fffbeb; padding:8px 10px;
+      border:1px solid var(--accent-warning-solid); border-left-width:4px; border-radius:8px;
+      background:var(--tint-warning); padding:8px 10px;
     }
     .plant-determination__alert-label {
       display:flex; align-items:center; gap:6px;
       font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em;
-      color:#92400e; font-weight:var(--fw-bold);
+      color:var(--ink-warning); font-weight:var(--fw-bold);
     }
     .plant-determination__alert-text {
       font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
     }
-    .plant-determination__alert-text a { color:#92400e; }
+    .plant-determination__alert-text a { color:var(--ink-warning); }
     /* Encadré « Danger » : hors `<details>`, en tête de fiche. Trois paliers de couleur
        pour que la gravité se lise avant le texte. `irritation` reprend l'ambre des
        confusions possibles ; `toxique` et `mortel` montent vers le rouge. */
     .plant-hazard {
       display:flex; flex-direction:column; gap:6px;
-      border:1px solid #f59e0b; border-left-width:5px; border-radius:8px;
-      background:#fffbeb; padding:9px 11px; margin:8px 0;
+      border:1px solid var(--accent-warning-solid); border-left-width:5px; border-radius:8px;
+      background:var(--tint-warning); padding:9px 11px; margin:8px 0;
     }
     .plant-hazard--toxique { border-color:#ea580c; background:#fff5ed; }
     .plant-hazard--mortel { border-color:#b91c1c; background:#fef2f2; }
@@ -2776,10 +2896,10 @@
     .plant-hazard__label {
       display:flex; align-items:center; gap:6px;
       font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em;
-      color:#92400e; font-weight:var(--fw-bold);
+      color:var(--ink-warning); font-weight:var(--fw-bold);
     }
-    .plant-hazard--toxique .plant-hazard__label { color:#9a3412; }
-    .plant-hazard--mortel .plant-hazard__label { color:#991b1b; }
+    .plant-hazard--toxique .plant-hazard__label { color:var(--ink-warning); }
+    .plant-hazard--mortel .plant-hazard__label { color:var(--ink-danger); }
     /* « à valider » : le pré-remplissage de la migration 246 est bibliographique. La
        mention accompagne l'avertissement, elle ne le remplace pas et ne le masque pas. */
     .plant-hazard__unreviewed {
@@ -2795,12 +2915,12 @@
       background:rgba(255,255,255,.8); border:1px solid rgba(146,64,14,.28);
       border-radius:999px; padding:2px 9px;
     }
-    .plant-hazard--mortel .plant-hazard__exposure { color:#991b1b; border-color:rgba(153,27,27,.28); }
+    .plant-hazard--mortel .plant-hazard__exposure { color:var(--ink-danger); border-color:rgba(153,27,27,.28); }
     .plant-hazard__notes {
       font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
     }
     .plant-hazard--mortel .plant-hazard__notes { color:#7f1d1d; }
-    .plant-hazard__notes a { color:#92400e; }
+    .plant-hazard__notes a { color:var(--ink-warning); }
     /* Formulaire : cases à cocher des voies d'exposition — cible tactile >= 44px. */
     .plant-hazard-exposure-choices { display:flex; flex-wrap:wrap; gap:4px 14px; }
     .plant-hazard-exposure-choice,
@@ -2814,13 +2934,13 @@
     /* Attribution sous la photo « héro ». Les licences CC en présence au catalogue
        (CC BY-SA 3.0/4.0, CC BY, GFDL) imposent toutes de nommer l'auteur. */
     .biodiv-card-hero-credit {
-      margin:3px 0 0; font-size:var(--text-xs); color:#8aa193; line-height:var(--lh-normal);
+      margin:3px 0 0; font-size:var(--text-xs); color:var(--ink-lichen); line-height:var(--lh-normal);
       word-break:break-word;
     }
     .biodiv-card-hero-credit__author { font-weight:var(--fw-bold); }
     .biodiv-card-hero-credit a { color:var(--leaf); text-decoration:underline; text-underline-offset:2px; }
     .plant-meta-item { display:flex; flex-direction:column; gap:3px; }
-    .plant-meta-label { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em; color:#8aa193; font-weight:var(--fw-bold); }
+    .plant-meta-label { font-size:var(--text-xs); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-lichen); font-weight:var(--fw-bold); }
     .plant-meta-value, .plant-links { font-size:var(--text-sm); color:#42544a; line-height:var(--lh-normal); word-break:break-word; }
     .plant-links { display:flex; flex-direction:column; gap:4px; }
     .plant-links a { color:var(--leaf); text-decoration:underline; text-underline-offset:2px; }
@@ -2860,7 +2980,7 @@
       border:1px solid rgba(183,228,199,.8);
       border-radius:10px;
       overflow:hidden;
-      background:#f0fdf4;
+      background:var(--tint-success);
       padding:0;
       position:relative;
       cursor:pointer;
@@ -2897,7 +3017,7 @@
       opacity:.95;
     }
     .plant-actions { display:flex; gap:6px; flex-shrink:0; }
-    .plant-edit-form { background:#f0fdf4; border-radius:12px; padding:16px; border:1.5px dashed var(--sage); margin-bottom:12px; animation:fadeIn .2s var(--ease-out); }
+    .plant-edit-form { background:var(--tint-success); border-radius:12px; padding:16px; border:1.5px dashed var(--sage); margin-bottom:12px; animation:fadeIn .2s var(--ease-out); }
     .plant-edit-form h4 { font-size:var(--text-base); font-weight:var(--fw-bold); color:var(--forest); margin-bottom:12px; }
     .plant-form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap:10px; }
     .emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
@@ -2923,10 +3043,10 @@
 
     /* Pré-saisie biodiversité : choix de photo par aperçu (formulaire plante) */
     .plant-prefill-photo-field {
-      border:1px solid #e5e7eb;
+      border:1px solid var(--line-soft);
       border-radius:10px;
       padding:10px 10px 8px;
-      background:#fff;
+      background:var(--surface-plain);
     }
     .plant-prefill-photo-field-title { font-size:var(--text-sm); font-weight:var(--fw-semibold); color:var(--forest); margin-bottom:8px; }
     .plant-prefill-photo-grid {
@@ -2945,7 +3065,7 @@
     .plant-prefill-photo-card:hover { border-color:var(--mint); background:#fafdfb; }
     .plant-prefill-photo-card--selected {
       border-color:var(--sage);
-      background:#f0fdf4;
+      background:var(--tint-success);
       box-shadow:0 0 0 1px rgba(74, 124, 89, .2);
     }
     .plant-prefill-photo-card-row {
@@ -2963,7 +3083,7 @@
     .plant-prefill-photo-assign {
       flex:1; min-width:min(100%, 160px); max-width:100%;
       font-size:var(--text-xs); padding:4px 8px; border-radius:8px; border:1px solid rgba(26,71,49,.2);
-      background:#fff; color:#222;
+      background:var(--surface-plain); color:#222;
     }
     .plant-prefill-photo-assign:disabled { opacity:.55; cursor:not-allowed; }
     .plant-prefill-photo-thumb-wrap {
@@ -2998,16 +3118,19 @@
     /* ── STATS ── */
     .stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap:10px; margin-bottom:20px; }
     .audit-subtabs { margin-bottom:14px; }
-    .audit-subtabs .top-tab { flex:0 0 auto; min-width:150px; }
+    .audit-subtabs > button { flex:0 0 auto; min-width:150px; }
     .audit-stats-grid { margin-bottom:14px; }
     .audit-stats-details .activity-title { white-space:normal; }
     @media (max-width:620px) {
       .audit-stats-grid { grid-template-columns:1fr; }
     }
+    /* Surface : `.fm-panel`. La tuile de statistique n'a pas de filet au repos — c'est
+       `.highlight` qui le révèle — d'où la bordure transparente conservée. */
     .stat-card {
-      background:white; border-radius:14px; padding:16px 12px;
-      box-shadow:0 1px 6px rgba(0,0,0,.05); text-align:center;
+      --fm-panel-pad:16px 12px;
+      --fm-panel-shadow:0 1px 6px rgba(0,0,0,.05);
       border:1.5px solid transparent;
+      text-align:center;
       animation:statPop .4s var(--spring) both;
     }
     .stat-card:nth-child(1) { animation-delay:.05s }
@@ -3016,7 +3139,7 @@
     .stat-card:nth-child(4) { animation-delay:.2s }
     .stat-card.highlight { border-color:var(--sage); background:#f7fef9; }
     .stat-number { font-family:'Playfair Display',serif; font-size:clamp(1.85rem, 1.45rem + 1vw, 2.2rem); font-weight:var(--fw-bold); color:var(--forest); line-height:1; }
-    .stat-label { font-size:var(--text-xs); color:#6b7280; margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
+    .stat-label { font-size:var(--text-xs); color:var(--ink-muted); margin-top:4px; text-transform:uppercase; letter-spacing:.07em; }
     .stat-icon { font-size:var(--text-lg); margin-bottom:6px; }
     .activity-list { background:white; border-radius:14px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,.05); }
     .activity-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(183,228,199,.4); }
@@ -3025,10 +3148,10 @@
     .activity-dot.validated { background:var(--sage); }
     .activity-dot.done { background:var(--sun); }
     .activity-dot.in_progress { background:#93c5fd; }
-    .activity-dot.available { background:#e5e7eb; border:1.5px solid #ccc; }
+    .activity-dot.available { background:var(--line-soft); border:1.5px solid #ccc; }
     .activity-info { flex:1; min-width:0; }
     .activity-title { font-size:var(--text-base); font-weight:var(--fw-medium); color:var(--forest); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .activity-meta { font-size:var(--text-xs); color:#6b7280; }
+    .activity-meta { font-size:var(--text-xs); color:var(--ink-muted); }
 
     /* ── LEADERBOARD ── */
     .leaderboard { background:white; border-radius:14px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.05); }
@@ -3041,15 +3164,15 @@
     .lb-row:last-child { border-bottom:none; }
     .lb-rank { font-family:'Playfair Display',serif; font-size:var(--text-md); font-weight:var(--fw-bold); color:var(--leaf); width:28px; text-align:center; flex-shrink:0; }
     .lb-rank.gold   { color:#b45309; }
-    .lb-rank.silver { color:#6b7280; }
-    .lb-rank.bronze { color:#92400e; }
+    .lb-rank.silver { color:var(--ink-muted); }
+    .lb-rank.bronze { color:var(--ink-warning); }
     .lb-name { flex:1; min-width:0; }
     .lb-name strong { font-size:var(--text-base); color:var(--forest); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .lb-name small { display:block; font-size:var(--text-xs); color:#6b7280; }
+    .lb-name small { display:block; font-size:var(--text-xs); color:var(--ink-muted); }
     .lb-stat { text-align:center; min-width:36px; }
     .lb-stat-num { font-weight:var(--fw-bold); font-size:var(--text-base); color:var(--forest); }
-    .lb-stat-label { font-size:var(--text-2xs); color:#6b7280; text-transform:uppercase; }
-    .lb-bar-bg { background:#e5e7eb; border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
+    .lb-stat-label { font-size:var(--text-2xs); color:var(--ink-muted); text-transform:uppercase; }
+    .lb-bar-bg { background:var(--line-soft); border-radius:4px; height:6px; overflow:hidden; margin-top:4px; }
     .lb-bar-fill { background:var(--sage); border-radius:4px; height:6px; transition:width .6s var(--ease-out); }
     @media(max-width:500px) { .lb-bar-bg { display:none; } .lb-row { gap:8px; padding:12px; } }
     @media(max-width:760px) {
@@ -3129,24 +3252,27 @@
       display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;
       animation:fadeIn .22s var(--ease-out);
     }
-    .task-filters input, .task-filters select {
-      padding:9px 12px; border:1.5px solid var(--mint); border-radius:8px;
-      background:white; color:var(--forest); font-family:var(--font-sans);
-      font-size:var(--text-sm); outline:none; min-height:38px;
-      transition:border-color .18s, box-shadow .18s;
+    /* Barre de filtres : la seule chose qui la distingue d'un champ de formulaire est la
+       densité. On la règle par les TOKENS, pas en réécrivant la bordure et le fond — sinon
+       le raccourci `padding` écraserait la gouttière du chevron et la flèche chevaucherait
+       le libellé de l'option. */
+    .task-filters {
+      --fm-control-pad-y:9px;
+      --fm-control-pad-x:12px;
+      --fm-control-chevron-gutter:30px;
+      --fm-control-radius:8px;
+      --fm-control-min-h:38px;
     }
+    .task-filters input, .task-filters select { font-size:var(--text-sm); }
     .task-filters input { flex:1; min-width:120px; }
     .task-filters select { min-width:100px; }
-    .task-filters input:focus, .task-filters select:focus {
-      border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.12);
-    }
     /* Cible tactile : même règle que `.btn-sm` plus haut (ligne ~204). Sans elle, une tablette
        large (pointeur grossier mais écran au-dessus du point de bascule mobile) gardait des
        filtres de 38 px, alors que les mêmes champs font 42 px sur mobile et 44 px dans la
        feuille de filtres — trois hauteurs pour un seul contrôle
        (`docs/AUDIT_UI_2026-09-16.md` H5). */
     @media (pointer:coarse) {
-      .task-filters input, .task-filters select { min-height:var(--tap-target, 44px); }
+      .task-filters { --fm-control-min-h:var(--tap-target, 44px); }
     }
 
     /* ── BARRE DE FILTRES COMPACTE (vue Tâches) ──
@@ -3191,7 +3317,7 @@
       padding:0 5px;
       border-radius:9px;
       background:var(--forest);
-      color:#fff;
+      color:var(--surface-plain);
       font-size:var(--text-xs);
       font-weight:var(--fw-bold);
       line-height:1;
@@ -3230,7 +3356,7 @@
     .task-filters-chip:hover,
     .task-filters-chip:focus-visible {
       border-color:var(--sage);
-      background:#fff;
+      background:var(--surface-plain);
     }
     .task-filters-chip--reset {
       background:transparent;
@@ -3491,7 +3617,7 @@
     }
     .map-location-filter-results__subtitle {
       font-size:var(--text-xs);
-      color:#6b7280;
+      color:var(--ink-muted);
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
@@ -3572,7 +3698,7 @@
 
     /* ── URGENCY SECTION ── */
     .urgency-banner {
-      background:linear-gradient(135deg,#fff7ed,#fff1f2); border:1.5px solid #fed7aa;
+      background:linear-gradient(135deg,#fff7ed,var(--tint-danger)); border:1.5px solid #fed7aa;
       border-radius:12px; padding:14px; margin-bottom:16px;
       animation:fadeIn .3s var(--ease-out);
     }
@@ -3590,14 +3716,14 @@
     /* ── RANK PROGRESS ── */
     .rank-progress { margin-bottom:20px; }
     .rank-bar-bg {
-      background:#e5e7eb; border-radius:8px; height:10px; overflow:hidden; margin-top:8px;
+      background:var(--line-soft); border-radius:8px; height:10px; overflow:hidden; margin-top:8px;
     }
     .rank-bar-fill {
       height:10px; border-radius:8px; transition:width .8s var(--ease-out);
       background:linear-gradient(90deg, var(--sage), var(--forest));
     }
     .rank-steps {
-      display:flex; justify-content:space-between; margin-top:6px; font-size:var(--text-xs); color:#6b7280;
+      display:flex; justify-content:space-between; margin-top:6px; font-size:var(--text-xs); color:var(--ink-muted);
     }
     .rank-steps span.current { color:var(--forest); font-weight:var(--fw-bold); }
 
@@ -3608,7 +3734,7 @@
     }
     .obs-header { display:flex; justify-content:space-between; margin-bottom:6px; }
     .obs-author { font-weight:var(--fw-semibold); font-size:var(--text-sm); color:var(--forest); }
-    .obs-date { font-size:var(--text-xs); color:#6b7280; }
+    .obs-date { font-size:var(--text-xs); color:var(--ink-muted); }
     .obs-content { font-size:var(--text-base); color:#444; line-height:var(--lh-relaxed); }
     .obs-zone { font-size:var(--text-xs); color:var(--soil); margin-top:4px; }
 
@@ -3687,7 +3813,7 @@
     }
     .tuto-card p {
       font-size:var(--text-sm);
-      color:#4c5b52;
+      color:var(--ink-moss);
       line-height:var(--lh-normal);
     }
     .task-chip.archived {
@@ -3782,7 +3908,7 @@
       border:1px solid rgba(0,0,0,.08);
       border-radius:10px;
       margin:0;
-      background:#fff;
+      background:var(--surface-plain);
     }
     @media (max-width:768px) {
       .modal-overlay.modal-overlay--tuto-preview {
@@ -3835,7 +3961,7 @@
     }
     .task-chip.task-tutorial-chip--unread,
     button.task-chip.task-tutorial-chip--unread {
-      outline:2px solid var(--amber,#f59e0b);
+      outline:2px solid var(--amber,var(--accent-warning-solid));
       outline-offset:1px;
       border-radius:999px;
     }
@@ -3862,7 +3988,7 @@
     .tuto-linked-tasks-subtitle {
       margin:6px 0 12px;
       font-size:var(--text-base);
-      color:#4c5b52;
+      color:var(--ink-moss);
       line-height:var(--lh-normal);
     }
     .tuto-linked-tasks-loading,
@@ -3872,7 +3998,7 @@
     }
     .tuto-linked-tasks-error {
       margin:12px 0;
-      color:#b91c1c;
+      color:var(--ink-danger);
     }
     .tuto-linked-tasks-list {
       list-style:none;
@@ -3917,7 +4043,7 @@
       margin:8px 0 12px;
       font-size:var(--text-base);
       line-height:var(--lh-normal);
-      color:#4c5b52;
+      color:var(--ink-moss);
     }
     .tuto-reorder-list {
       list-style:none;
@@ -3989,11 +4115,11 @@
       margin:6px 0 12px;
       font-size:var(--text-base);
       line-height:var(--lh-normal);
-      color:#4c5b52;
+      color:var(--ink-moss);
     }
     .tuto-import-loading {
       margin:12px 0;
-      color:#4c5b52;
+      color:var(--ink-moss);
     }
     .tuto-import-totals {
       display:flex;
@@ -4001,7 +4127,7 @@
       gap:6px 14px;
       margin-bottom:10px;
       font-size:var(--text-sm);
-      color:#4c5b52;
+      color:var(--ink-moss);
     }
     .tuto-import-total-error {
       color:#a3402f;
@@ -4051,7 +4177,7 @@
       align-items:flex-end;
       gap:2px;
       font-size:var(--text-sm);
-      color:#4c5b52;
+      color:var(--ink-moss);
       text-align:right;
     }
     .tuto-import-item.pending .tuto-import-item-status {
@@ -4069,7 +4195,7 @@
       margin:0 0 12px;
       font-size:var(--text-sm);
       line-height:var(--lh-normal);
-      color:#4c5b52;
+      color:var(--ink-moss);
     }
     .tuto-import-error {
       margin:0 0 12px;
@@ -4097,7 +4223,7 @@
     .tuto-read-badge {
       background:rgba(34,197,94,.12);
       border-color:rgba(34,197,94,.35);
-      color:#166534;
+      color:var(--ink-success);
     }
 
     /* Les règles .tuto-read-ack-* et .learning-gating-quiz__* vivent dans
@@ -4111,7 +4237,7 @@
     }
     .plant-discovery-observed-counts {
       font-size:var(--text-sm);
-      color:#64748b;
+      color:var(--ink-soft);
       line-height:1.35;
     }
     .plant-discovery-observed-counts__mine {
@@ -4175,7 +4301,7 @@
       height:56px;
       border-radius:12px;
       overflow:hidden;
-      background:#f0fdf4;
+      background:var(--tint-success);
       border:1px solid rgba(183,228,199,.85);
       display:flex;
       align-items:center;
@@ -4288,7 +4414,7 @@
       border-radius:12px;
       overflow:hidden;
       cursor:zoom-in;
-      background:#f0fdf4;
+      background:var(--tint-success);
       position:relative;
       line-height:0;
       text-align:left;
@@ -4316,7 +4442,7 @@
       padding:18px 8px 6px;
       font-size:var(--text-xs);
       font-weight:var(--fw-semibold);
-      color:#fff;
+      color:var(--surface-plain);
       text-align:right;
       background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.62) 100%);
       pointer-events:none;
@@ -4331,7 +4457,7 @@
     .biodiv-location-map-label {
       font-size:var(--text-xs);
       font-weight:var(--fw-bold);
-      color:#64748b;
+      color:var(--ink-soft);
       text-transform:uppercase;
       margin-bottom:4px;
       letter-spacing:.02em;
@@ -4370,7 +4496,7 @@
     }
     .biodiv-location-marker-dot {
       fill:#6366f1;
-      stroke:#fff;
+      stroke:var(--surface-plain);
       vector-effect:non-scaling-stroke;
       stroke-width:1px;
       filter:drop-shadow(0 0 3px rgba(99,102,241,.45));
@@ -4434,15 +4560,20 @@
     .visit-map-switch::-webkit-scrollbar {
       display:none;
     }
+    /* Chrome posé SUR la carte : fond blanc opaque volontaire — la cartographie derrière
+       rendrait un fond crème illisible. Même raison pour `.map-switch-select` (parchemin)
+       et `.visit-mascot-picker`. Partout ailleurs, le fond du champ est celui de la couche
+       de base. */
     .visit-map-switch-select {
       width:min(100%, 360px);
-      min-height:40px;
-      border:1px solid rgba(82,183,136,.45);
-      border-radius:10px;
-      background:#fff;
-      color:var(--soil);
+      --fm-control-min-h:40px;
+      --fm-control-pad-y:8px;
+      --fm-control-pad-x:10px;
+      --fm-control-chevron-gutter:28px;
+      --fm-control-bg:#fff;
+      --fm-control-ink:var(--soil);
+      background-position:right 9px center;
       font-weight:var(--fw-semibold);
-      padding:8px 10px;
     }
     .visit-progress {
       display:flex;
@@ -4599,7 +4730,7 @@
     .visit-network-status--offline {
       color:#78350f;
       background:#fef3c7;
-      border-color:#f59e0b;
+      border-color:var(--accent-warning-solid);
     }
     .visit-network-status--pending,
     .visit-network-status--syncing {
@@ -4626,9 +4757,9 @@
       font-size:var(--text-sm);
       font-weight:var(--fw-medium);
       line-height:1.25;
-      color:#4b5563;
-      background:#f3f4f6;
-      border:1px solid #d1d5db;
+      color:var(--ink-base);
+      background:var(--surface-sunken);
+      border:1px solid var(--line-muted);
     }
     .visit-map-empty-hint {
       margin:8px 0 0;
@@ -4926,7 +5057,7 @@
       padding:0;
       border:1px solid rgba(82,183,136,.55);
       border-radius:9px;
-      background:#fff;
+      background:var(--surface-plain);
       color:var(--forest);
       font-size:var(--text-lg);
       cursor:pointer;
@@ -4948,7 +5079,7 @@
       overflow:auto;
       border:1px solid rgba(82,183,136,.4);
       border-radius:10px;
-      background:#fff;
+      background:var(--surface-plain);
       box-shadow:0 8px 24px rgba(26,71,49,.18);
     }
     .visit-mascot-picker__option {
@@ -4975,14 +5106,17 @@
       color:#365314;
       font-weight:var(--fw-bold);
     }
+    .visit-mascot-picker {
+      --fm-control-min-h:32px;
+      --fm-control-pad-y:4px;
+      --fm-control-pad-x:8px;
+      --fm-control-chevron-gutter:24px;
+      --fm-control-radius:8px;
+      --fm-control-bg:#fff;
+    }
     .visit-mascot-picker select {
-      min-height:32px;
-      border:1px solid rgba(82,183,136,.55);
-      border-radius:8px;
-      background:#fff;
-      color:var(--forest);
+      background-position:right 7px center;
       font-weight:var(--fw-semibold);
-      padding:4px 8px;
     }
     .visit-map-card__chrome-discover {
       display:flex;
@@ -5018,7 +5152,7 @@
       min-height:var(--tap-target, 44px);
       padding:0 12px;
       border-radius:999px;
-      background:#fff;
+      background:var(--surface-plain);
       border:1px solid rgba(82,183,136,.45);
       color:var(--forest);
       width:100%;
@@ -5071,7 +5205,7 @@
       overflow:auto;
       border:1px solid rgba(82,183,136,.35);
       border-radius:12px;
-      background:#fff;
+      background:var(--surface-plain);
       box-shadow:0 8px 24px rgba(26,71,49,.16);
     }
     .visit-search__result {
@@ -5144,17 +5278,17 @@
     .map-chip{
       display:inline-flex;align-items:center;gap:4px;min-height:44px;
       padding:0 12px;border:1.5px solid var(--mint);border-radius:999px;
-      background:#fff;color:var(--forest);font:inherit;font-weight:var(--fw-bold);cursor:pointer;
+      background:var(--surface-plain);color:var(--forest);font:inherit;font-weight:var(--fw-bold);cursor:pointer;
     }
     .map-chip.is-active{background:#ecfdf3;border-color:var(--leaf);}
     .map-chip__count{opacity:.75;font-size:var(--text-xs);}
     .map-routes__list{
       position:absolute;top:calc(100% + 4px);left:0;z-index:5;
       min-width:min(22rem,calc(100vw - 24px));margin:0;padding:0;list-style:none;
-      border:1px solid #e5e7eb;border-radius:12px;background:#fff;
+      border:1px solid var(--line-soft);border-radius:12px;background:var(--surface-plain);
       box-shadow:0 8px 24px rgba(20,54,37,.14);overflow:hidden;
     }
-    .map-routes__list li + li{border-top:1px solid #e5e7eb;}
+    .map-routes__list li + li{border-top:1px solid var(--line-soft);}
     .map-routes__item{
       display:flex;flex-direction:column;gap:2px;width:100%;min-height:44px;
       padding:8px 12px;border:0;background:transparent;color:inherit;font:inherit;
@@ -5166,15 +5300,15 @@
     .map-route__counter{color:var(--ink-soft);font-size:var(--text-sm);text-align:center;}
     .map-route__step-number{
       display:inline-flex;align-items:center;justify-content:center;
-      width:26px;height:26px;border-radius:50%;background:var(--leaf);color:#fff;font-size:var(--text-sm);
+      width:26px;height:26px;border-radius:50%;background:var(--leaf);color:var(--surface-plain);font-size:var(--text-sm);
     }
     .map-route__empty{margin:0 0 8px;color:var(--ink-soft);}
     .map-route-bar{
       position:fixed;left:0;right:0;bottom:0;z-index:calc(var(--fm-z-modal) - 1);
       display:flex;flex-direction:column;gap:8px;
       padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));
-      background:color-mix(in srgb,#fff 94%,transparent);
-      border-top:1px solid #e5e7eb;box-shadow:0 -8px 24px rgba(20,54,37,.12);
+      background:color-mix(in srgb,var(--surface-plain) 94%,transparent);
+      border-top:1px solid var(--line-soft);box-shadow:0 -8px 24px rgba(20,54,37,.12);
       backdrop-filter:blur(8px);
     }
     .visit-view--map-forward .map-route-bar,
@@ -5184,7 +5318,7 @@
     .map-route-bar__route{margin:0 0 2px;color:var(--ink-soft);font-size:var(--text-sm);}
     .map-route-bar__step{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--text-md);line-height:1.3;}
     .map-route-bar__quit{
-      flex-shrink:0;min-height:44px;padding:0 12px;border:1px solid #e5e7eb;border-radius:999px;
+      flex-shrink:0;min-height:44px;padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;
       background:transparent;color:inherit;font:inherit;cursor:pointer;
     }
     .map-route-bar__text{margin:0;line-height:1.5;}
@@ -5193,10 +5327,52 @@
       font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;
     }
     .map-route-bar__hint{margin:0;color:var(--ink-soft);font-size:var(--text-sm);}
+    /* --- Barre de guidage « Y aller » (partagée Visite / Plan : `shared/map-guide`) -------
+       Le guidage ne vit pas dans la fiche du lieu : la fiche couvre la carte, donc elle cache
+       le point bleu au moment précis où l'on marche, et la refermer arrêtait la direction sans
+       le dire (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B4/B5). Une barre d'une ligne le
+       sort de là ; seul « Arrêter » l'interrompt. Mêmes règles que `.map-route-bar`. */
+    /* Bouton « Y aller » de la fiche de lieu (Visite) : même geste et mêmes mots que la
+       feuille du Plan — viser le lieu referme la fiche et laisse la barre de guidage. */
+    .visit-detail-panel__go{display:flex;flex-direction:column;gap:4px;}
+    .visit-detail-panel__go-btn{align-self:flex-start;min-height:44px;}
+    .visit-detail-panel__go-hint{margin:0;}
+    .map-guide-bar{
+      position:fixed;left:0;right:0;bottom:0;z-index:calc(var(--fm-z-modal) - 1);
+      display:flex;flex-direction:column;gap:4px;
+      padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));
+      background:color-mix(in srgb,var(--surface-plain) 94%,transparent);
+      border-top:1px solid var(--line-soft);box-shadow:0 -8px 24px rgba(20,54,37,.12);
+      backdrop-filter:blur(8px);
+    }
+    .visit-view--map-forward .map-guide-bar,
+    .map-view-canvas-outer .map-guide-bar{position:absolute;}
+    .map-guide-bar__row{display:flex;align-items:center;gap:8px;}
+    .map-guide-bar__target{
+      flex:1 1 auto;display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;
+      border:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;
+    }
+    .map-guide-bar__target[disabled]{cursor:default;}
+    .map-guide-bar__emoji{flex:0 0 auto;font-size:var(--text-xl);line-height:var(--lh-tight);}
+    .map-guide-bar__texts{display:flex;flex-direction:column;min-width:0;}
+    .map-guide-bar__name{overflow:hidden;font-weight:var(--fw-semibold);text-overflow:ellipsis;white-space:nowrap;}
+    .map-guide-bar__distance{color:var(--ink-soft);font-size:var(--text-sm);}
+    .map-guide-bar__stop{
+      flex:0 0 auto;min-height:44px;padding:0 12px;border:1px solid var(--line-soft);border-radius:999px;
+      background:transparent;color:inherit;font:inherit;cursor:pointer;
+    }
+    .map-guide-bar__hint{margin:0;color:var(--ink-soft);font-size:var(--text-sm);}
+    .map-guide-bar__locate{
+      border:0;padding:0;background:none;color:var(--leaf);
+      font:inherit;font-weight:var(--fw-semibold);cursor:pointer;text-decoration:underline;
+    }
     .map-route-resume{
       position:absolute;left:50%;bottom:16px;z-index:4;transform:translateX(-50%);
     }
     .map-route-resume__btn{min-height:44px;}
+    /* Guidage en cours : la reprise de parcours remonte au-dessus de la barre, plutôt que
+       de disparaître sous elle (les deux affordances restent atteignables). */
+    .map-route-resume--above-guide{bottom:calc(16px + 96px);}
     .visit-map-card__chrome-routes{flex:0 0 auto;}
     .map-view-toolbar-routes{display:inline-flex;align-items:center;}
     .visit-mascot-preview-body .visit-map-mascot-rive-shell,
@@ -5647,7 +5823,7 @@
       outline:2px solid var(--forest); outline-offset:-2px;
     }
     .visit-media-gallery img { width:100%; height:90px; object-fit:contain; display:block; }
-    .visit-media-gallery figcaption { font-size:var(--text-xs); padding:6px; color:#5b655f; background:#fff; }
+    .visit-media-gallery figcaption { font-size:var(--text-xs); padding:6px; color:#5b655f; background:var(--surface-plain); }
     .visit-media-gallery--lead {
       grid-template-columns:1fr;
       margin-bottom:10px;
@@ -5810,7 +5986,7 @@
       height:52px;
       border-radius:10px;
       overflow:hidden;
-      background:#f0fdf4;
+      background:var(--tint-success);
       border:1px solid rgba(183,228,199,.85);
       display:flex;
       align-items:center;
@@ -5871,7 +6047,7 @@
       color:var(--forest);
     }
     .visit-editor {
-      margin-top:12px; background:#f0fdf4; border:1px dashed var(--sage);
+      margin-top:12px; background:var(--tint-success); border:1px dashed var(--sage);
       border-radius:10px; padding:10px;
     }
     .visit-editor h4 { margin-bottom:8px; color:var(--forest); font-size:var(--text-base); }
@@ -5916,7 +6092,7 @@
       color:#3f554b;
       padding:6px 8px;
       border-radius:6px;
-      background:#fff;
+      background:var(--surface-plain);
       border:1px solid rgba(0,0,0,.06);
     }
     .visit-media-import-from-map__list--thumbs {
@@ -5985,7 +6161,7 @@
       bottom:0;
       padding:3px 5px;
       font-size:var(--text-2xs);
-      color:#fff;
+      color:var(--surface-plain);
       background:rgba(0,0,0,.55);
       overflow:hidden;
       text-overflow:ellipsis;
@@ -6000,13 +6176,13 @@
     .visit-editorial-media-picker__hint {
       margin:0 0 6px;
       font-size:var(--text-xs);
-      color:#64748b;
+      color:var(--ink-soft);
       line-height:var(--lh-normal);
     }
     .visit-editorial-media-picker__empty {
       margin:0;
       font-size:var(--text-sm);
-      color:#94a3b8;
+      color:var(--ink-dim);
       font-style:italic;
     }
     .editorial-photo-lightbox {
@@ -6048,7 +6224,7 @@
       background:rgba(255,255,255,.15);
       backdrop-filter:blur(4px);
       border:none;
-      color:#fff;
+      color:var(--surface-plain);
       border-radius:50%;
       width:40px;
       height:40px;
@@ -6083,7 +6259,7 @@
     .visit-editorial-builder__item {
       border:1px solid rgba(26,71,49,.18);
       border-radius:8px;
-      background:#fff;
+      background:var(--surface-plain);
       padding:8px;
       display:grid;
       gap:8px;
@@ -6166,7 +6342,7 @@
       min-height:150px;
       border-radius:12px;
       border:1px solid rgba(82, 183, 136, 0.45);
-      background:#fff;
+      background:var(--surface-plain);
       color:var(--forest);
       cursor:pointer;
       display:flex;
@@ -6183,9 +6359,9 @@
       border-color:var(--sage);
     }
     .visit-mascot-onboarding__option.is-active {
-      border-color:#16a34a;
+      border-color:var(--accent-success-solid);
       box-shadow:0 0 0 2px rgba(22, 163, 74, 0.22);
-      background:#f0fdf4;
+      background:var(--tint-success);
     }
     .visit-mascot-onboarding__preview {
       width:84px;
@@ -6289,17 +6465,21 @@
   .task-filters {
     gap:6px;
   }
+  /* Une seule hauteur pour ce contrôle : 44 px, comme la feuille de filtres et comme la
+     surcharge tactile de `.task-filters` (audit UI 2026-09-16, H5). Ce bloc est plus bas
+     dans la cascade que la surcharge `pointer:coarse`, donc c'est lui qui gagne sur
+     mobile : il ne peut pas rester à 42 px. */
+  .task-filters {
+    --fm-control-min-h:var(--tap-target, 44px);
+    --fm-control-radius:10px;
+    --fm-control-pad-y:10px;
+    --fm-control-pad-x:12px;
+    --fm-control-chevron-gutter:30px;
+  }
   .task-filters input,
   .task-filters select {
     flex:1 1 100%;
     min-width:0;
-    /* Une seule hauteur pour ce contrôle : 44 px, comme la feuille de filtres et comme la
-       surcharge tactile de `.task-filters` (audit UI 2026-09-16, H5). Cette règle est plus
-       bas dans la cascade que la surcharge `pointer:coarse`, donc c'est elle qui gagne sur
-       mobile : elle ne peut pas rester à 42 px. */
-    min-height:var(--tap-target, 44px);
-    border-radius:10px;
-    padding:10px 12px;
   }
   .tasks-view-switch {
     width:100%;
@@ -6341,12 +6521,16 @@
     display:none;
   }
   /* Feuille de filtres : champs pleine largeur, cibles tactiles ≥ 44 px. */
+  .task-filters-sheet .task-filters-fields {
+    --fm-control-min-h:44px;
+    --fm-control-radius:10px;
+    --fm-control-pad-y:10px;
+    --fm-control-pad-x:12px;
+    --fm-control-chevron-gutter:30px;
+  }
   .task-filters-sheet .task-filters-fields select {
     flex:1 1 100%;
     min-width:0;
-    min-height:44px;
-    border-radius:10px;
-    padding:10px 12px;
   }
   .tasks-header-sub__compact,
   .tasks-quota__compact {
@@ -6406,18 +6590,13 @@
   min-width:0;
   max-width:100%;
 }
+/* Surface : `.fm-panel` — dont la recette venait justement d'ici, c'était le seul panneau
+   du dépôt déjà écrit en tokens. Ne reste que la grille interne. */
 .forum-panel {
-  background:var(--surface-1);
-  border:1px solid var(--outline-soft);
-  border-radius:14px;
-  box-shadow:var(--shadow-soft);
-  padding:12px;
+  --fm-panel-pad:12px;
   display:grid;
   gap:10px;
-  min-width:0;
-  max-width:100%;
   overflow-x:hidden;
-  box-sizing:border-box;
 }
 .forum-form {
   display:grid;
@@ -6493,7 +6672,7 @@
 }
 .forum-thread-item.active {
   border-color:var(--sage);
-  background:#f0fdf4;
+  background:var(--tint-success);
 }
 .forum-meta-line {
   font-size:var(--text-xs);
@@ -6571,11 +6750,13 @@
   min-width:0;
   max-width:100%;
 }
+.forum-post-actions {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+  --fm-control-min-h:36px;
+}
 .forum-post-actions input {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
-  min-height:36px;
   min-width:0;
   width:100%;
   max-width:100%;
@@ -6692,11 +6873,21 @@
   min-width:0;
   max-width:100%;
 }
+.context-comments-form {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+}
+/* `.rich-text-editor` n'est pas un champ natif : il lui faut la bordure en propre, alors
+   que le `textarea` voisin la tient déjà de la couche de base. Les deux doivent rester
+   indiscernables à l'écran — ils occupent la même place dans le même formulaire. */
+.context-comments-form .rich-text-editor {
+  border:var(--fm-control-border-width) solid var(--fm-control-border);
+  border-radius:var(--fm-control-radius);
+  padding:var(--fm-control-pad-y) var(--fm-control-pad-x);
+}
 .context-comments-form textarea,
 .context-comments-form .rich-text-editor {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
   min-height:64px;
   resize:vertical;
   width:100%;
@@ -6723,7 +6914,7 @@
   border:1px solid rgba(0,0,0,.08);
   border-radius:8px;
   padding:8px;
-  background:#fff;
+  background:var(--surface-plain);
   display:grid;
   gap:6px;
   min-width:0;
@@ -6856,11 +7047,13 @@
   min-width:0;
   max-width:100%;
 }
+.context-comment-actions {
+  --fm-control-radius:8px;
+  --fm-control-pad-y:8px;
+  --fm-control-pad-x:10px;
+  --fm-control-min-h:36px;
+}
 .context-comment-actions input {
-  border:1.5px solid var(--mint);
-  border-radius:8px;
-  padding:8px 10px;
-  min-height:36px;
   min-width:0;
   width:100%;
   max-width:100%;
@@ -7013,8 +7206,8 @@
   gap: 14px;
 }
 .fm-narrator-block {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-plain);
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   padding: 14px;
 }
@@ -7041,7 +7234,7 @@
   color: #5b6b62;
 }
 .fm-narrator-muted {
-  color: #94a3b8;
+  color: var(--ink-dim);
 }
 .fm-narrator-danger {
   color: #b3261e;
@@ -7118,7 +7311,7 @@
   color: #5b6b62;
 }
 .fm-narrator-preview {
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--line-cool);
   border-radius: 12px;
   padding: 14px;
   background: var(--cream);
@@ -7138,7 +7331,7 @@
   min-width: 0;
 }
 .fm-narrator-preview__help {
-  background: #fff;
+  background: var(--surface-plain);
   border: 1px solid var(--mint);
   border-radius: 12px;
   padding: 12px 14px;
@@ -7172,7 +7365,7 @@
   margin-top: 12px;
 }
 .fm-narrator-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   padding: 12px;
   background: #fcfdfc;
@@ -7182,7 +7375,7 @@
 }
 .fm-narrator-card.is-filled {
   border-color: var(--mint);
-  background: #fff;
+  background: var(--surface-plain);
 }
 .fm-narrator-card__head {
   display: flex;
@@ -7204,7 +7397,7 @@
   width: 72px;
   height: 90px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   background: rgba(183, 228, 199, 0.18);
   overflow: hidden;
   display: flex;
@@ -7279,7 +7472,7 @@
 }
 .fm-narrator-framing__hint {
   font-size: var(--text-xs);
-  color: #94a3b8;
+  color: var(--ink-dim);
 }
 .fm-narrator-framing__value {
   margin: 4px 0 6px;
@@ -7360,7 +7553,7 @@
 /* Carte blanche de la console admin (remplace le style inline dupliqué — audit UI, D-3). */
 .settings-admin-card {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   padding: 12px;
 }
@@ -7388,7 +7581,7 @@
   border-radius: 999px;
   font-size: var(--text-xs);
   font-weight: 600;
-  background: #e5e7eb;
+  background: var(--line-soft);
   color: #374151;
 }
 .moodle-badge.is-ok {
@@ -7426,37 +7619,20 @@
 .moodle-actions .btn-sm {
   min-height: 36px;
 }
-.moodle-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
+/* Largeur, filets, en-têtes et lignes : `.fm-table` (shared/styles/surfaces.css). Le filet
+   était ici en `#e5e7eb`, un gris neutre étranger à la palette — comme les `#cbd5e1` des
+   champs corrigés au lot précédent. */
+/* Tableau dense : densité réglée par les tokens, apparence héritée de la couche de base.
+   Les champs y étaient laissés au rendu natif du système. */
 .moodle-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
+  --fm-control-min-h: 36px;
+  --fm-control-pad-y: 6px;
+  --fm-control-pad-x: 10px;
+  --fm-control-chevron-gutter: 26px;
+  --fm-control-radius: 8px;
 }
-.moodle-table th,
-.moodle-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-  vertical-align: middle;
-}
-.moodle-table th {
-  color: var(--ink-soft);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.moodle-table tr.is-muted td {
-  color: var(--ink-soft);
-}
-.moodle-table tr.is-selected td {
-  background: #f3f7f3;
-}
-.moodle-table input[type='text'],
-.moodle-table input[type='number'],
 .moodle-table select {
-  min-height: 36px;
+  background-position: right 8px center;
 }
 .moodle-totals {
   display: grid;
@@ -7465,7 +7641,7 @@
   margin: 10px 0;
 }
 .moodle-totals > div {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: 8px 10px;
   background: #fafafa;
@@ -7568,11 +7744,11 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   padding: 8px;
   min-width: 0;
-  background: #fff;
+  background: var(--surface-plain);
 }
 .visit-mascot-admin-card.is-default {
   border-color: var(--leaf);
@@ -7603,7 +7779,7 @@
 }
 .visit-mascot-admin-card__source {
   font-size: var(--text-xs);
-  color: #6b7280;
+  color: var(--ink-muted);
 }
 .visit-mascot-admin-card__check {
   display: inline-flex;
@@ -7657,10 +7833,10 @@
 }
 
 .media-library-menu__panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 10px;
   padding: 10px;
-  background: #fff;
+  background: var(--surface-plain);
 }
 
 .media-library-menu__actions {
@@ -7702,19 +7878,22 @@
 .media-library-menu__filter-label {
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--ink-soft);
 }
 
 .media-library-menu__search input,
+/* La bordure était en `#cbd5e1` — un gris ardoise étranger à la palette forêt, seul cas du
+   dépôt. Elle vient maintenant de la couche de base ; il ne reste ici que la densité. */
+.media-library-menu__filter {
+  --fm-control-min-h: 34px;
+  --fm-control-pad-y: 6px;
+  --fm-control-pad-x: 10px;
+  --fm-control-chevron-gutter: 26px;
+  --fm-control-radius: 8px;
+}
 .media-library-menu__filter select {
   width: 100%;
-  min-height: 34px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: #fff;
+  background-position: right 8px center;
 }
 
 .media-library-menu__count {
@@ -7730,9 +7909,9 @@
 }
 
 .media-library-menu__list > li {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface-plain);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7798,10 +7977,10 @@
   width: 100%;
   margin: 0;
   padding: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 8px;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--surface-cool);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -7876,7 +8055,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--text-2xs);
   line-height: 1.25;
-  color: #2563eb;
+  color: var(--accent-info-solid);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7886,7 +8065,7 @@
   display: block;
   padding: 1px 5px 4px;
   font-size: var(--text-2xs);
-  color: #64748b;
+  color: var(--ink-soft);
 }
 
 .media-library-menu__usage {
@@ -7897,12 +8076,12 @@
 }
 
 .media-library-menu__usage--pending {
-  color: #94a3b8;
+  color: var(--ink-dim);
   font-style: italic;
 }
 
 .media-library-menu__usage--unused {
-  color: #94a3b8;
+  color: var(--ink-dim);
 }
 
 .media-library-menu__usage--used {
@@ -7914,14 +8093,14 @@
   margin-bottom: 2px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #dcfce7;
-  color: #166534;
+  background: var(--tint-success-strong);
+  color: var(--ink-success);
   font-weight: var(--fw-semibold);
 }
 
 .media-library-menu__usage--unused .media-library-menu__usage-badge {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--ink-soft);
 }
 
 .media-library-menu__usage-list {
@@ -7937,7 +8116,7 @@
 }
 
 .media-library-menu__usage-more {
-  color: #94a3b8;
+  color: var(--ink-dim);
   font-style: italic;
 }
 
@@ -7954,7 +8133,7 @@
   border: 0;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
-  color: #fff;
+  color: var(--surface-plain);
   font-size: var(--text-base);
   line-height: 1;
   cursor: pointer;
@@ -7983,7 +8162,7 @@
 .profiles-admin-subtabs {
   margin-bottom: 14px;
 }
-.profiles-admin-subtabs .top-tab {
+.profiles-admin-subtabs > button {
   flex: 0 0 auto;
   min-width: 120px;
 }
@@ -8086,10 +8265,10 @@
   font-weight: var(--fw-semibold);
 }
 .profiles-admin-user-row__status--done {
-  color: #166534;
+  color: var(--ink-success);
 }
 .profiles-admin-user-row__status--error {
-  color: #b91c1c;
+  color: var(--ink-danger);
 }
 .profiles-admin-user-row__identity {
   display: flex;
@@ -8113,8 +8292,8 @@
   padding: 1px 8px;
   border-radius: 999px;
   border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #1f2937;
+  background: var(--surface-cool);
+  color: var(--ink-strong);
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
   line-height: 1.6;
@@ -8132,18 +8311,18 @@
   color: #3730a3;
 }
 .profiles-user-chip--role {
-  background: #f0fdf4;
+  background: var(--tint-success);
   border-color: var(--sage);
-  color: #166534;
+  color: var(--ink-success);
 }
 .profiles-user-chip--group {
-  background: #fffbeb;
+  background: var(--tint-warning);
   border-color: #fde68a;
   color: #854d0e;
 }
 .profiles-user-chip--manager {
   background: #fef3c7;
-  border-color: #f59e0b;
+  border-color: var(--accent-warning-solid);
 }
 .profiles-user-chip--inactive {
   opacity: 0.6;
@@ -8159,7 +8338,7 @@
 
 /* Carte d'identité en tête de la fiche utilisateur (modale « Modifier le compte »). */
 .profiles-user-summary {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line-soft);
   border-radius: 10px;
   background: #f9fafb;
   padding: 10px 12px;
@@ -8225,8 +8404,6 @@
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
   color: var(--ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .profiles-admin-filter > input,
 .profiles-admin-filter > select {
@@ -8244,7 +8421,7 @@
   margin-bottom: 10px;
   border: 1px solid var(--sage);
   border-radius: 10px;
-  background: #f0fdf4;
+  background: var(--tint-success);
 }
 .profiles-bulk-bar__count {
   margin: 0;
@@ -8307,7 +8484,7 @@
   letter-spacing: 0.06em;
 }
 .profiles-user-section--actions {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--line-soft);
   padding-top: 12px;
   margin-bottom: 0;
 }
@@ -8382,7 +8559,7 @@
 .profiles-groups-editor__error {
   margin: 6px 0 0;
   font-size: var(--text-sm);
-  color: #b91c1c;
+  color: var(--ink-danger);
 }
 
 /* Compteurs des sous-onglets (P15) : l'information et l'alerte ne se ressemblent plus. */
@@ -8390,6 +8567,11 @@
   font-weight: var(--fw-regular);
   color: var(--ink-soft);
   font-size: var(--text-xs);
+}
+/* Sur l'onglet courant, le libellé passe en blanc sur vert : le gris du compteur y serait
+   illisible. */
+.fm-subtabs > button.is-active .profiles-subtab-count {
+  color: rgba(255, 255, 255, 0.85);
 }
 .profiles-subtab-alert {
   display: inline-flex;
@@ -8464,7 +8646,7 @@
 .markdown-textarea-hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: #6b7280;
+  color: var(--ink-muted);
   line-height: 1.35;
 }
 .rich-text-editor {
@@ -8488,9 +8670,9 @@
   width: 100%;
   min-height: 6.45rem;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--line-muted);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-plain);
   overflow: auto;
 }
 .rich-text-editor-surface:focus {
@@ -8498,18 +8680,18 @@
   border-color: var(--leaf);
 }
 .rich-text-editor-surface[aria-disabled="true"] {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
   cursor: not-allowed;
 }
 .rich-text-editor-surface:empty::before {
   content: attr(data-placeholder);
-  color: #6b7280;
+  color: var(--ink-muted);
 }
 .rich-text-editor-hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: #6b7280;
+  color: var(--ink-muted);
   line-height: 1.35;
 }
 .markdown-content {
@@ -8550,12 +8732,12 @@
   margin: 0.65em 0;
   padding: 0.45em 0.75em;
   border-left: 3px solid var(--leaf);
-  background: color-mix(in srgb, var(--leaf) 10%, #fff);
+  background: color-mix(in srgb, var(--leaf) 10%, var(--surface-plain));
   border-radius: 0 8px 8px 0;
 }
 .markdown-content hr {
   border: 0;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid var(--line-muted);
   margin: 0.85em 0;
 }
 .markdown-content--plain {
@@ -8779,12 +8961,14 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: var(--text-sm);
+  /* Typographie : `.fm-label--filter` (form-controls.css). Ce bloc ne garde que la mise
+     en colonne, propre à ce conteneur. */
+  font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
-  color: #6b7f72;
+  color: var(--ink-soft);
 }
 .pedago-error {
-  color: #b91c1c;
+  color: var(--ink-danger);
   font-size: var(--text-sm);
   margin: 0 0 12px;
 }
@@ -8849,8 +9033,8 @@
 .pedago-term-btn {
   width: 100%;
   text-align: left;
-  border: 1px solid #e2ebe5;
-  background: #fff;
+  border: 1px solid var(--line-sage);
+  background: var(--surface-plain);
   border-radius: 10px;
   padding: 10px 12px;
   display: flex;
@@ -8897,7 +9081,7 @@
   border-radius: 10px;
   display: block;
 }
-.pedago-quiz__photo-credit { font-size: var(--text-xs); color: #8aa193; margin-top: 4px; }
+.pedago-quiz__photo-credit { font-size: var(--text-xs); color: var(--ink-lichen); margin-top: 4px; }
 .pedago-quiz__actions {
   display: flex;
   flex-wrap: wrap;
@@ -8930,9 +9114,9 @@
   width: 100%;
   text-align: left;
   padding: 12px;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-plain);
   cursor: pointer;
   min-height: 44px;
 }
@@ -8948,7 +9132,7 @@
 }
 .pedago-quiz-editor__form {
   min-width: 0;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
   border-radius: 12px;
   padding: 14px;
   background: #fafcfa;
@@ -8972,11 +9156,9 @@
 
 /* Écran de rattachement contenu ↔ questions (FMLearningLinksPanel). */
 .pedago-quiz-admin__links .pedago-links { padding: 14px; }
+/* Disposition seule : l'habillage vient de `.fm-subtabs`. */
 .pedago-links__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 10px 0;
+  margin: 10px 0 12px;
 }
 /* État du dispositif en une ligne : discret, mais toujours visible — c'est la
    première chose à savoir avant de rattacher quoi que ce soit. */
@@ -8990,7 +9172,7 @@
 .pedago-links__warning {
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #92400e;
+  color: var(--ink-warning);
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -9013,9 +9195,9 @@
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-plain);
   cursor: pointer;
   min-height: 44px;
 }
@@ -9064,7 +9246,7 @@
 .pedago-links__auto { margin: 12px 0; }
 .pedago-links__suggestions {
   margin-top: 10px;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
   border-radius: 10px;
   padding: 10px 12px;
   background: #fafcfa;
@@ -9079,13 +9261,17 @@
   overflow: auto;
 }
 .pedago-links__suggestion-list p { margin: 2px 0 0; }
-.pedago-links__table-wrap { overflow-x: auto; }
-.pedago-links__table { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
+/* Colonne des durées de la fiche de pack : une liste longue se casse dans sa colonne
+   plutôt que d'élargir le tableau. */
+.visit-mascot-pack-detail-table__dwell {
+  max-width: 220px;
+  word-break: break-all;
+}
+
+/* Seule différence assumée avec `.fm-table` : l'alignement haut, parce qu'une cellule y
+   porte plusieurs lignes (question + note + avertissement). */
 .pedago-links__table th,
 .pedago-links__table td {
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid #e2ebe5;
   vertical-align: top;
 }
 .pedago-links__table p { margin: 4px 0 0; }
@@ -9118,7 +9304,7 @@
   border-radius: 8px;
   padding: 10px;
 }
-.pedago-qcm-admin__divider { margin: 16px 0; border: none; border-top: 1px solid #e2ebe5; }
+.pedago-qcm-admin__divider { margin: 16px 0; border: none; border-top: 1px solid var(--line-sage); }
 .pedago-qcm-admin__list { display: grid; gap: 10px; margin-top: 12px; }
 .pedago-qcm-admin__row {
   display: flex;
@@ -9127,9 +9313,9 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 12px;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface-plain);
 }
 .qcm-preview__photo { margin: 0 0 12px; }
 .qcm-preview__photo-img {
@@ -9140,7 +9326,7 @@
 }
 .qcm-preview__photo-caption {
   font-size: var(--text-xs);
-  color: #8aa193;
+  color: var(--ink-lichen);
   margin-top: 4px;
   line-height: 1.35;
 }
@@ -9158,7 +9344,7 @@
   margin: 12px 0;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid #e2ebe5;
+  border: 1px solid var(--line-sage);
 }
 .pedago-qcm-feedback--ok {
   background: #f0faf3;
@@ -9176,12 +9362,12 @@
   word-break: break-word;
 }
 .pedago-qcm-feedback--ok .pedago-qcm-feedback__text { color: #15803d; }
-.pedago-qcm-feedback--ko .pedago-qcm-feedback__text { color: #b91c1c; }
+.pedago-qcm-feedback--ko .pedago-qcm-feedback__text { color: var(--ink-danger); }
 .pedago-range-gauge { margin: 8px 0; }
 .pedago-range-gauge__label {
   font-size: var(--text-xs);
   font-weight: var(--fw-bold);
-  color: #8aa193;
+  color: var(--ink-lichen);
   text-transform: uppercase;
   margin-bottom: 4px;
 }
@@ -9264,7 +9450,7 @@
 }
 .pedago-foodweb__node {
   border: 1px solid #c8ddd0;
-  background: #fff;
+  background: var(--surface-plain);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: var(--text-sm);
@@ -9272,7 +9458,7 @@
   cursor: pointer;
 }
 .pedago-foodweb__node--env {
-  background: #f3f4f6;
+  background: var(--surface-sunken);
   cursor: default;
   border-style: dashed;
 }
@@ -9286,8 +9472,8 @@
   align-items: center;
   gap: 2px;
   padding: 6px 10px;
-  border: 1px solid #d6e8dc;
-  border-left: 4px solid var(--fw-edge-color, #94a3b8);
+  border: 1px solid var(--line-leaf);
+  border-left: 4px solid var(--fw-edge-color, var(--ink-dim));
   border-radius: 8px;
   background: #f9fcfa;
   cursor: pointer;
@@ -9331,7 +9517,7 @@
   opacity: 0.12;
 }
 .pedago-foodweb-graph__arrowhead.active {
-  fill: #16a34a;
+  fill: var(--accent-success-solid);
 }
 /* Palette unique : INTERACTION_EDGE_STYLES (foodWebEdgeStyle.js) fait foi.
    Second canal (tirets / épaisseur) obligatoire — ne pas distinguer par teinte seule. */
@@ -9352,10 +9538,10 @@
 .pedago-foodweb-graph__line--competition,
 .pedago-foodweb-graph__arrowhead--competition { stroke: #666666; fill: #666666; stroke-dasharray: 4 4; }
 .pedago-foodweb-graph__line--default,
-.pedago-foodweb-graph__arrowhead--default { stroke: #94a3b8; fill: #94a3b8; }
+.pedago-foodweb-graph__arrowhead--default { stroke: var(--ink-dim); fill: var(--ink-dim); }
 .pedago-foodweb-graph__line-halo {
   fill: none;
-  stroke: #16a34a;
+  stroke: var(--accent-success-solid);
   stroke-linecap: round;
   opacity: 0.45;
   pointer-events: none;
@@ -9386,8 +9572,8 @@
   font-weight: var(--fw-semibold);
 }
 .pedago-foodweb-graph__node {
-  fill: #dcfce7;
-  stroke: #16a34a;
+  fill: var(--tint-success-strong);
+  stroke: var(--accent-success-solid);
   stroke-width: 1.5;
 }
 .pedago-foodweb-graph__node.highlight {
@@ -9396,7 +9582,7 @@
 }
 .pedago-foodweb-graph__label {
   font-size: 9px;
-  fill: #1f2937;
+  fill: var(--ink-strong);
 }
 .pedago-foodweb__graph-wrap {
   padding: 12px;
@@ -9505,8 +9691,8 @@
   transition: opacity 0.15s ease;
 }
 .pedago-foodweb-graph__node--env {
-  fill: #f3f4f6;
-  stroke: #94a3b8;
+  fill: var(--surface-sunken);
+  stroke: var(--ink-dim);
   stroke-dasharray: 3 3;
 }
 /* Espèce conservée pour ne pas amputer une relation, mais située hors de la
@@ -9555,10 +9741,10 @@
   color: var(--forest);
 }
 .pedago-foodweb-graph__tbtn:hover {
-  background: #fff;
+  background: var(--surface-plain);
 }
 .pedago-foodweb-graph__tbtn.active {
-  background: #fff;
+  background: var(--surface-plain);
   border-color: var(--sage);
   font-weight: var(--fw-semibold);
 }
@@ -9572,7 +9758,7 @@
 }
 .pedago-foodweb-graph__col-label {
   font: 600 11px var(--font-sans, sans-serif);
-  fill: #4b5563;
+  fill: var(--ink-base);
   pointer-events: none;
 }
 .pedago-foodweb-graph__more {
@@ -9589,7 +9775,7 @@
   padding: 4px;
   background: #eef4f0;
   border-radius: 8px;
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   min-width: 120px;
 }
 .pedago-foodweb-graph__export--mobile {
@@ -9602,7 +9788,7 @@
 }
 .pedago-foodweb__preset-btns .pedago-chip-btn.active {
   background: var(--sage);
-  color: #fff;
+  color: var(--surface-plain);
   border-color: var(--forest);
 }
 @media (max-width: 768px) {
@@ -9624,9 +9810,9 @@
   width: clamp(120px, 22vw, 200px);
   padding: 6px 10px;
   font-size: var(--text-sm);
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface-plain);
   color: inherit;
 }
 .pedago-foodweb-graph__search-input:focus-visible {
@@ -9640,7 +9826,7 @@
 .pedago-foodweb-legend {
   padding: 10px 12px;
   background: #f1f8f3;
-  border: 1px solid #d6e8dc;
+  border: 1px solid var(--line-leaf);
   border-radius: 8px;
   font-size: var(--text-sm);
 }
@@ -9699,7 +9885,7 @@
 }
 .pedago-foodweb-legend__item--toggle:hover {
   background: #e8f3ec;
-  border-color: #d6e8dc;
+  border-color: var(--line-leaf);
 }
 .pedago-foodweb-legend__item--toggle:focus-visible {
   outline: 2px solid var(--sage);
@@ -9716,7 +9902,7 @@
 }
 .pedago-foodweb-legend__label {
   line-height: var(--lh-tight);
-  color: #1f2937;
+  color: var(--ink-strong);
 }
 .pedago-foodweb-legend--compact .pedago-foodweb-legend__hint {
   display: none;
@@ -9888,7 +10074,7 @@ a.fm-glossary-inline-link:focus-visible,
   height: 14px;
   margin-top: 8px;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--parchment) 0%, #fff 50%, var(--parchment) 100%);
+  background: linear-gradient(90deg, var(--parchment) 0%, var(--surface-plain) 50%, var(--parchment) 100%);
   background-size: 200% 100%;
   animation: fmGlossaryShimmer 1.2s ease-in-out infinite;
 }
@@ -9986,7 +10172,7 @@ header .lock-btn::after,
   padding: 8px 10px;
   border: 1px solid var(--border, #e2e2e2);
   border-radius: 10px;
-  background: var(--surface, #fff);
+  background: var(--surface, var(--surface-plain));
 }
 .mascot-catalog-models__preview {
   width: 64px;
@@ -10105,33 +10291,54 @@ header .lock-btn::after,
   top: 50%;
   width: 16px;
   height: 16px;
-  border: 3px solid #fff;
+  border: 3px solid var(--surface-plain);
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--accent-info-solid);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%);
 }
 
-.fm-pct-position__heading {
+.fm-pct-position__bearing {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 14px solid #2563eb;
-  transform-origin: 50% 100%;
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+  /* Le cap n'est publié que huit fois par seconde : la transition relie deux angles successifs
+     sans rendu supplémentaire. L'angle reçu est continu, jamais replié sur [0, 360[ — sans quoi
+     le passage de 359° à 1° ferait tourner la flèche d'un tour complet, à l'envers. */
+  transition: transform 180ms linear;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+}
+
+.fm-pct-position__bearing svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fm-pct-position__bearing path {
+  fill: var(--accent-info-solid);
+  stroke: var(--surface-plain);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-position__bearing {
+    transition: none;
+  }
 }
 
 .fm-pct-position__arrow {
   position: absolute;
   left: 50%;
   top: 50%;
-  color: #2563eb;
+  color: var(--accent-info-solid);
   font-size: var(--text-lg);
   line-height: 1;
-  text-shadow: 0 0 3px #fff;
+  text-shadow: 0 0 3px var(--surface-plain);
 }
 
 .journal-embed.journal-embed--plate::before,
@@ -10168,6 +10375,6 @@ header .lock-btn::after,
 .journal-embed-plate__excerpt {
   margin: 0;
   font-size: var(--text-sm);
-  color: #4b5563;
+  color: var(--ink-base);
   line-height: var(--lh-normal);
 }

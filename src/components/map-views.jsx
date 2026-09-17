@@ -321,6 +321,7 @@ function MapViewImpl({
     endPan,
     panByScreenDelta,
     setMapOrientation,
+    mapOrientation,
     orientStyle,
   } = useMapGestures({
     mapImageSrc,
@@ -562,27 +563,31 @@ function MapViewImpl({
     storageKey: 'foretmap:scale-compass',
     allowed: scaleCompassAllowed,
   });
-  const mapOrientationDeg = headingUpEffective
-    ? headingUpOrientationDeg(
-        mapPosition.smoothedScreenHeadingDeg ?? mapPosition.screenHeadingDeg ?? null,
-      )
-    : 0;
+  // Angle **continu** : la transition CSS du calque d'orientation doit prendre le chemin le plus
+  // court (`unwrapHeadingDeg`), sinon la carte fait un tour complet au passage de 359° à 1°.
+  const headingForMapDeg =
+    mapPosition.screenHeadingUnwrappedDeg ??
+    mapPosition.smoothedScreenHeadingDeg ??
+    mapPosition.screenHeadingDeg ??
+    null;
+  const targetOrientationDeg = headingUpEffective ? headingUpOrientationDeg(headingForMapDeg) : 0;
+  // Angle **réellement appliqué** au calque : la rose des vents doit pointer le même cap que la
+  // carte pendant que celle-ci pivote, et non l'angle visé un rendu plus tôt.
+  const mapOrientationDeg = mapOrientation?.deg || 0;
   useEffect(() => {
     if (!headingUpEffective) {
       setMapOrientation({ deg: 0, originPct: null });
       return;
     }
-    const heading = mapPosition.smoothedScreenHeadingDeg ?? mapPosition.screenHeadingDeg ?? null;
     setMapOrientation({
-      deg: headingUpOrientationDeg(heading),
+      deg: targetOrientationDeg,
       originPct: mapPosition.displayPct || null,
     });
   }, [
     headingUpEffective,
     mapPosition.displayPct?.xp,
     mapPosition.displayPct?.yp,
-    mapPosition.smoothedScreenHeadingDeg,
-    mapPosition.screenHeadingDeg,
+    targetOrientationDeg,
     setMapOrientation,
   ]);
   // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
@@ -1629,7 +1634,10 @@ function MapViewImpl({
                       <PctPositionLayer
                         position={mapPosition.displayPct}
                         haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
-                        headingDeg={headingUpEffective ? null : mapPosition.screenHeadingDeg}
+                        headingDeg={
+                          mapPosition.screenHeadingUnwrappedDeg ?? mapPosition.screenHeadingDeg
+                        }
+                        headingSource={mapPosition.headingSource}
                         accuracyM={mapPosition.accuracyM}
                       />
                     ) : null}

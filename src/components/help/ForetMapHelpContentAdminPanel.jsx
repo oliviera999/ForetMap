@@ -155,7 +155,7 @@ export function ForetMapHelpContentAdminPanel() {
       ) : null}
       {info && <div className="auth-success">{info}</div>}
 
-      <nav className="gl-subtabs" style={{ marginBottom: 12 }}>
+      <nav className="fm-subtabs">
         {[
           ['tooltips', 'Tooltips'],
           ['panels', 'Panneaux ?'],

@@ -15,8 +15,8 @@ export function MoodleConflicts({ items, onResolve, busyId }) {
     return <p style={{ color: 'var(--ink-soft)' }}>Aucun conflit ouvert.</p>;
   }
   return (
-    <div className="moodle-table-wrap" data-testid="moodle-conflicts">
-      <table className="moodle-table">
+    <div className="fm-table-wrap moodle-table-wrap" data-testid="moodle-conflicts">
+      <table className="fm-table fm-table--dense moodle-table">
         <thead>
           <tr>
             <th scope="col">Groupe</th>

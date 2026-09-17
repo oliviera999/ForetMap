@@ -59,6 +59,8 @@ const planApiMock = vi.hoisted(() => ({
   fetchPlanContent: vi.fn(async () => content),
   reportPlanUsage: vi.fn(),
   submitPlanAccessCode: vi.fn(async () => ({ ok: true })),
+  submitPlaceSuggestion: vi.fn(async () => ({ ok: true })),
+  fetchPlanShellSettings: vi.fn(async () => ({})),
 }));
 vi.mock('../../src/plan/planApi.js', () => planApiMock);
 
@@ -243,14 +245,27 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: /Sport/ }));
+    /**
+     * Le filtre doit être **effectif** avant d'interroger la recherche, et pas seulement
+     * cliqué. `AppPlan` initialise les catégories depuis les réglages dans un effet
+     * (`CATEGORIES_STORAGE_KEY`) : sur une machine chargée, cet effet peut être exécuté
+     * **après** le clic et remettre la sélection à son défaut. La mention n'apparaît alors
+     * jamais — les résultats sont calculés de façon synchrone, aucune attente ne la fera
+     * venir. Attendre `aria-pressed`, en recliquant si la sélection a été écrasée, ferme cette
+     * course au lieu de la jouer (job `quality` : 17/09/2026, deuxième occurrence de la même
+     * assertion, après le passage à `findByText`).
+     */
+    await waitFor(() => {
+      const chip = screen.getByRole('button', { name: /Sport/ });
+      if (chip.getAttribute('aria-pressed') !== 'true') fireEvent.click(chip);
+      expect(chip.getAttribute('aria-pressed')).toBe('true');
+    });
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), { target: { value: 'CDI' } });
     const results = await screen.findByTestId('plan-results-sheet');
     expect(within(results).getByRole('button', { name: /CDI/ })).toBeTruthy();
     // `findByText` et non une lecture de `textContent` : `findByTestId` rend la main dès que la
     // feuille existe, alors que la mention dépend de `hiddenByFilter` (AppPlan.jsx), donc du
-    // rendu qui suit l'application du filtre « Sport ». Échantillonner une seule fois passait en
-    // local et tombait sur un runner chargé (job `quality`, 17/09/2026).
+    // rendu qui suit l'application du filtre « Sport ».
     expect(await within(results).findByText('masqué par vos filtres')).toBeTruthy();
   });
 
@@ -437,7 +452,10 @@ describe('AppPlan — montage', () => {
     expect(await screen.findByText(/Pour reprendre/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reprendre le parcours' }));
-    expect(await screen.findByTestId('plan-route-sheet')).toBeTruthy();
+    const resumed = await screen.findByTestId('plan-route-sheet');
+    // « Reprendre » reprend : on avait quitté à l'étape 2, on y revient — le bouton ne
+    // redémarre pas au début (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
+    await waitFor(() => expect(resumed.textContent).toContain('Étape 2 sur 2'));
   });
 
   test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {
@@ -506,7 +524,14 @@ describe('AppPlan — montage', () => {
     planApiMock.submitPlanAccessCode.mockResolvedValueOnce({ ok: true });
     fireEvent.change(screen.getByLabelText('Code d’accès'), { target: { value: 'OUVRE-TOI' } });
     fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
-    await waitFor(() => expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('OUVRE-TOI'));
+    // La variante est passée avec le code : c'est elle qui choisit l'API visée
+    // (`/api/plan` ici, `/api/staff-plan` pour le plan des personnels).
+    await waitFor(() =>
+      expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
+        'OUVRE-TOI',
+        expect.objectContaining({ id: 'plan', apiBase: '/api/plan' }),
+      ),
+    );
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
   });
 

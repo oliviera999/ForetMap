@@ -13,7 +13,7 @@
 .fm-data-card {
   border: 1px solid var(--gl-border, rgba(26, 71, 49, 0.18));
   border-radius: var(--gl-radius-md, 12px);
-  background: var(--gl-surface, #fff);
+  background: var(--gl-surface, var(--surface-plain));
   padding: 10px;
   display: grid;
   gap: 6px;

@@ -18,11 +18,11 @@
 }
 
 .shared-error {
-  color: var(--gl-ink-danger, #991b1b);
+  color: var(--gl-ink-danger, var(--ink-danger));
 }
 
 .shared-success {
-  color: var(--gl-ink-success, #14663f);
+  color: var(--gl-ink-success, var(--ink-success));
 }
 
 .shared-btn {
@@ -34,7 +34,7 @@
   padding: 8px 16px;
   border: 1px solid var(--gl-border, rgba(26, 71, 49, 0.18));
   border-radius: var(--gl-radius-control, 10px);
-  background: var(--gl-surface, #fff);
+  background: var(--gl-surface, var(--surface-plain));
   color: var(--gl-color-primary, #1a4731);
   font: inherit;
   font-weight: var(--fw-semibold);
@@ -77,7 +77,7 @@
 .shared-btn--primary {
   border-color: var(--gl-color-primary, #1a4731);
   background: var(--gl-color-primary, #1a4731);
-  color: #fff;
+  color: var(--surface-plain);
 }
 
 /* `secondary` = apparence de base (bordure, fond surface, encre primaire). */
@@ -88,9 +88,9 @@
 }
 
 .shared-btn--danger {
-  border-color: #dc2626;
+  border-color: var(--accent-danger-solid);
   background: var(--accent-danger, #fee2e2);
-  color: var(--ink-danger, #991b1b);
+  color: var(--ink-danger, var(--ink-danger));
 }
 
 .shared-btn--block {
@@ -188,10 +188,14 @@ details.admin-section > summary {
 .gl-subtabs button {
   padding: 6px 14px;
   border: 1px solid
-    color-mix(in srgb, #fff 55%, var(--gl-color-primary, var(--forest, #1a4731)) 45%);
+    color-mix(
+      in srgb,
+      var(--surface-plain) 55%,
+      var(--gl-color-primary, var(--forest, #1a4731)) 45%
+    );
   background: color-mix(
     in srgb,
-    #fff 76%,
+    var(--surface-plain) 76%,
     var(--gl-color-secondary, var(--parchment, #f2e8d5)) 24%
   );
   color: var(--gl-color-primary, var(--forest, #1a4731));
@@ -205,7 +209,7 @@ details.admin-section > summary {
 
 .gl-subtabs button.is-active {
   background: var(--gl-color-primary, var(--forest, #1a4731));
-  color: #fff;
+  color: var(--surface-plain);
   border-color: var(--gl-color-primary, var(--forest, #1a4731));
   box-shadow: var(--gl-shadow-sm, 0 5px 16px rgba(26, 71, 49, 0.12));
 }
@@ -262,12 +266,12 @@ details.admin-section > summary {
 }
 
 .fm-surface-field__hint {
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
   font-size: var(--text-xs);
 }
 
 .fm-surface-field__warning {
   margin: 6px 0 0;
-  color: var(--ink-warning, #8a5a10);
+  color: var(--ink-warning, var(--ink-warning));
   font-size: var(--text-sm);
 }

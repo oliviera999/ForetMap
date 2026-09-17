@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { fetchPlanContent } from '../planApi.js';
 import { planPlacesFromContent } from '../utils/planPlaces.js';
+import { PLAN_VARIANT } from '../utils/planVariants.js';
 
 /**
  * Charge publique du plan (lot 4) : un seul appel au montage, pas de polling — le contenu
@@ -9,26 +10,40 @@ import { planPlacesFromContent } from '../utils/planPlaces.js';
  * dans un couloir avec un réseau médiocre. `reload()` permet un rechargement explicite.
  *
  * @param {string} [mapId] carte demandée (`?map_id=`) ; vide = carte réglée côté serveur.
+ * @param {string} [accessCode] code porté par un lien profond.
+ * @param {object} [variant] variante de plan (`src/plan/utils/planVariants.js`).
  */
-export function usePlanContent(mapId = '', accessCode = '') {
+export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIANT) {
   const [content, setContent] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  /** Le serveur exige un code d'accès (lot 8) : le produit affiche l'écran de saisie. */
+  /**
+   * Le serveur refuse la charge tant que le lecteur n'a rien prouvé. Deux refus distincts :
+   * `access_required` (plan public fermé par un code de diffusion) et `auth_required` (plan
+   * des personnels : compte ForetMap, ou code si l'administrateur l'a activé). Le second
+   * porte `code_available`, pour n'afficher la saisie du code que si elle mène quelque part.
+   */
   const [accessRequired, setAccessRequired] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [codeAvailable, setCodeAvailable] = useState(false);
 
   const load = useCallback(
     async (signal) => {
       setLoading(true);
       try {
-        const data = await fetchPlanContent(mapId, accessCode);
+        const data = await fetchPlanContent(mapId, accessCode, variant);
         if (signal?.aborted) return;
         setContent(data);
         setError(null);
         setAccessRequired(false);
+        setAuthRequired(false);
       } catch (err) {
         if (signal?.aborted) return;
-        if (err?.status === 401 && err?.body?.access_required) {
+        if (err?.status === 401 && err?.body?.auth_required) {
+          setAuthRequired(true);
+          setCodeAvailable(!!err.body.code_available);
+          setError(null);
+        } else if (err?.status === 401 && err?.body?.access_required) {
           setAccessRequired(true);
           setError(null);
         } else {
@@ -38,7 +53,7 @@ export function usePlanContent(mapId = '', accessCode = '') {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [mapId, accessCode],
+    [mapId, accessCode, variant],
   );
 
   useEffect(() => {
@@ -55,6 +70,9 @@ export function usePlanContent(mapId = '', accessCode = '') {
     content,
     places,
     accessRequired,
+    authRequired,
+    codeAvailable,
+    viewer: content?.viewer || null,
     routes: content?.routes || [],
     categories: content?.categories || [],
     settings: content?.settings || null,

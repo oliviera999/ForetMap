@@ -503,7 +503,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
           </button>
         </div>
         {avatarProcessing && (
-          <div style={{ fontSize: 'var(--text-sm)', color: '#4b5563', marginTop: 6 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-base)', marginTop: 6 }}>
             Traitement de la photo en cours…
           </div>
         )}
@@ -800,8 +800,8 @@ function TeacherStats() {
         </h3>
         {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
         {quizStats?.byCategory?.length > 0 ? (
-          <div className="table-wrap">
-            <table className="data-table">
+          <div className="fm-table-wrap">
+            <table className="fm-table">
               <thead>
                 <tr>
                   <th>Catégorie</th>

@@ -218,6 +218,59 @@ actions sensibles.
 > ouvert/fermé est mémorisé sur l'appareil), et une recherche active déplie
 > automatiquement les sections contenant des résultats.
 
+### Les champs et les onglets se ressemblent partout
+
+Jusqu'ici, la même liste déroulante pouvait prendre **six apparences différentes** selon
+l'écran, et certains champs de l'administration — réglages de validation des lectures,
+rattachement des questions, catalogue de QCM, glossaire, réseau trophique, studio
+mascotte — sortaient carrément avec le menu déroulant **du système d'exploitation**. Le
+même écran ne se présentait donc pas pareil sur un iPhone, sur une tablette Android et
+sur un ordinateur de la salle informatique.
+
+Désormais :
+
+- **Une seule apparence de champ** — bordure vert menthe, coins arrondis, fond crème,
+  anneau vert au moment de la saisie. Les listes déroulantes portent toutes le même
+  **chevron dessiné par l'application** : le champ fermé est identique sur tous les
+  appareils. Le menu qui s'ouvre au clic, lui, reste celui du système — c'est voulu, il
+  est plus simple à manipuler au doigt et mieux servi par les lecteurs d'écran.
+- **Tous les champs font au moins 44 pixels de haut**, la taille d'une cible tactile
+  confortable. Les champs laissés au rendu du système tombaient à une vingtaine de pixels.
+- **Une seule barre de sous-onglets.** La barre du haut reste celle de la navigation
+  principale ; à l'intérieur d'un écran, les sous-sections (Paramètres, Profils &
+  utilisateurs, Audit, studio mascotte, rattachement des questions, connexion /
+  inscription) emploient toutes la même barre, un cran plus fine. On voit ainsi d'un coup
+  d'œil ce qui est un onglet principal et ce qui est une sous-section.
+- **Les messages d'erreur des formulaires sont en rouge** — notamment celui de
+  l'enregistrement automatique de la fiche espèce et de l'éditeur de tutoriel, qui
+  s'affichait dans la même encre que le reste du texte et passait inaperçu.
+- **Les libellés de champ ne sont plus en CAPITALES.** Ils s'écrivent en minuscules, en
+  demi-gras : c'est plus facile à lire, en particulier pour un élève dyslexique. Les textes
+  eux-mêmes n'ont pas changé.
+- **Les encadrés blancs existent.** Plusieurs écrans — catalogue de QCM, réseau trophique,
+  rattachement des questions, réglages de validation des lectures, stats, carnet — croyaient
+  poser un encadré et affichaient en réalité un bloc transparent. Ils ont maintenant tous la
+  même carte : fond blanc, coins arrondis, ombre légère.
+- **Les tableaux se ressemblent.** Celui des stats et la fiche d'un pack de mascotte
+  s'affichaient sans marges ni traits de séparation, au rendu brut du navigateur. Tous les
+  tableaux partagent désormais la même présentation, et un tableau trop large défile sur
+  lui-même au lieu d'élargir la page — utile sur téléphone.
+- **Les quatre applications partagent la même base.** ForetMap, Gnomes & Licornes, le Plan
+  Lyautey et le plan des personnels emploient les mêmes règles de champs et d'encadrés,
+  chacune avec ses couleurs (forêt, médiévale, marine). Un écran nouveau part donc de la
+  bonne apparence au lieu d'être à réhabiller après coup.
+- **Tous les encadrés se ressemblent**, y compris les plus anciens : la fiche « À propos »,
+  les tuiles de statistiques, le panneau de notifications et celui du forum. Chacun garde ce
+  qui lui est propre — le liseré vert de la fiche, l'ombre plus marquée du panneau qui flotte
+  au-dessus de l'écran — mais plus rien ne diffère par accident.
+- **Les longs tableaux sont plus faciles à suivre** : une ligne sur deux est légèrement
+  teintée, et la ligne survolée ressort. C'était le cas dans Gnomes & Licornes seulement ;
+  c'est désormais disponible partout.
+- **Une seule couleur par type de message.** Quatre rouges différents servaient à dire
+  « erreur » selon l'écran, trois verts à dire « enregistré ». Il n'en reste qu'un de chaque.
+  Les pastilles et les aplats colorés gardent leurs teintes vives, qui doivent rester
+  franches.
+
 ### La pastille d'état en bas d'écran
 
 Une petite **pastille discrète**, fixe en bas d'écran (dans ForetMap comme dans

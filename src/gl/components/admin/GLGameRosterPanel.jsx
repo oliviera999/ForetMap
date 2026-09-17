@@ -196,8 +196,8 @@ export function GLGameRosterPanel({
       </div>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
-      <div className="gl-admin-table-wrap">
-        <table className="gl-admin-table">
+      <div className="fm-table-wrap gl-admin-table-wrap">
+        <table className="fm-table fm-table--zebra gl-admin-table">
           <thead>
             <tr>
               <th>Joueur</th>

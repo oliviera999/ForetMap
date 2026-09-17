@@ -102,7 +102,7 @@ export function ZoneTasksStudentPanel({
         <p
           style={{
             fontSize: 'var(--text-sm)',
-            color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534',
+            color: student?.taskEnrollment?.atLimit ? 'var(--ink-warning)' : 'var(--ink-success)',
             marginBottom: 10,
             lineHeight: 'var(--lh-normal)',
           }}
@@ -128,7 +128,7 @@ export function ZoneTasksStudentPanel({
                 border: '1px solid rgba(0,0,0,.08)',
                 borderRadius: 10,
                 padding: '10px 12px',
-                background: checked ? '#f0fdf4' : 'var(--parchment)',
+                background: checked ? 'var(--tint-success)' : 'var(--parchment)',
                 cursor: canAssign ? 'pointer' : 'default',
                 opacity: canAssign || isMine ? 1 : 0.72,
               }}

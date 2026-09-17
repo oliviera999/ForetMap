@@ -349,14 +349,13 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
         lecture.
       </p>
 
-      <div className="pedago-links__tabs" role="tablist" aria-label="Type de contenu">
+      <div className="fm-subtabs pedago-links__tabs" role="tablist" aria-label="Type de contenu">
         {RESOURCE_TABS.map((t) => (
           <button
             key={t.type}
             type="button"
             role="tab"
             aria-selected={t.type === resourceType}
-            className={`btn btn-sm ${t.type === resourceType ? 'btn-primary' : 'btn-ghost'}`}
             onClick={() => setResourceType(t.type)}
           >
             {t.label}
@@ -512,7 +511,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                     </span>
                   ) : null}
                 </label>
-                <button type="submit" className="btn-primary" disabled={busy || !questionToAdd}>
+                <button type="submit" className="btn btn-primary" disabled={busy || !questionToAdd}>
                   Rattacher
                 </button>
               </form>
@@ -520,7 +519,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
               <div className="pedago-links__auto">
                 <button
                   type="button"
-                  className="btn-ghost"
+                  className="btn btn-ghost"
                   disabled={suggesting || busy}
                   onClick={() => requestSuggestions(false)}
                 >
@@ -551,7 +550,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                         </ul>
                         <button
                           type="button"
-                          className="btn-primary"
+                          className="btn btn-primary"
                           disabled={suggesting || busy}
                           onClick={() => requestSuggestions(true)}
                         >
@@ -568,7 +567,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                 {suggestedCount > 0 ? (
                   <button
                     type="button"
-                    className="btn-primary"
+                    className="btn btn-primary"
                     disabled={busy || suggesting}
                     onClick={approveAllSuggested}
                   >
@@ -578,7 +577,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                 {markable && approvedNonGatingCount > 0 ? (
                   <button
                     type="button"
-                    className="btn-ghost"
+                    className="btn btn-ghost"
                     disabled={busy || suggesting}
                     onClick={makeAllApprovedGating}
                     title="Une question approuvée ne conditionne rien tant qu'elle n'est pas bloquante."
@@ -592,8 +591,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
               {links.length === 0 ? (
                 <p className="section-sub">Aucune question rattachée à ce {tab.one}.</p>
               ) : (
-                <div className="pedago-links__table-wrap">
-                  <table className="pedago-links__table">
+                <div className="fm-table-wrap pedago-links__table-wrap">
+                  <table className="fm-table pedago-links__table">
                     <thead>
                       <tr>
                         <th>Question</th>
@@ -680,7 +679,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                             <td>
                               <button
                                 type="button"
-                                className="btn-ghost"
+                                className="btn btn-ghost"
                                 disabled={busy}
                                 onClick={() =>
                                   run(

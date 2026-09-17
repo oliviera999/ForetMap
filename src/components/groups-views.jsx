@@ -500,7 +500,9 @@ function GroupTreeNode({
                 {' '}
                 · {GROUP_KIND_LABELS[node.kind] || node.kind}
               </span>
-              {node.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
+              {node.parent_group_id && (
+                <span style={{ color: 'var(--ink-dim)' }}> · sous-groupe</span>
+              )}
               {Number(node.is_active) === 0 && (
                 <span style={{ color: '#b45309', fontSize: 'var(--text-xs)' }}> · inactif</span>
               )}

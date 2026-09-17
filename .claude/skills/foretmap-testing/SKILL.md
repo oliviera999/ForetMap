@@ -65,6 +65,10 @@ node --test tests/<fichier>.test.js   # cibler un fichier
   faire `npm run build` avant si `dist/` est obsolète.
 - Sélecteurs robustes (`getByRole`/`getByLabel`). Mascotte : conteneur `.visit-map-mascot` en 0×0
   (« hidden ») → cibler `.visit-map-mascot-inner`.
+- **Configuration de production** : `e2e/global-setup.js` force `ui.auth.allow_register=false`.
+  Les comptes élèves naissent de `POST /api/students/import` (fixture
+  `createStudentViaAdminImport`), pas du formulaire public — seul `e2e/auth-registration.spec.js`
+  rouvre le réglage, puis le referme.
 
 ## Gotchas
 
