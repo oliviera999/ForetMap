@@ -240,8 +240,12 @@ contenu ne sort avant la saisie du code.
 
 Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
 carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**, et on coche les
-surfaces (**Plan**, **Visite**, **Carte**) où ils doivent apparaître. Un parcours brouillon
-n'apparaît nulle part, pas même via son lien. Le bouton **« Affiche PDF »** produit la page
+surfaces (**Plan public**, **Plan personnels**, **Visite**, **carte de travail**) où ils doivent
+apparaître. Un parcours brouillon n'apparaît nulle part, pas même via son lien. Un parcours
+publié sur les seules surfaces internes — **Plan personnels** ou **carte de travail** — ne
+s'ouvre pas non plus par lien direct : il n'est lisible que depuis l'écran auquel il est
+destiné, et par qui y a accès. Le QR code d'une affiche n'a donc de sens que pour un parcours
+publié sur le Plan public ou la Visite. Le bouton **« Affiche PDF »** produit la page
 imprimable avec la liste des étapes et ce QR code (le QR mène au Plan).
 
 ### Le plan hors ligne

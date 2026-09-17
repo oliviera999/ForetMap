@@ -9,6 +9,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — les catalogues de parcours des surfaces internes se lisaient sans compte
+
+- `GET /api/map-routes?surface=staff` servait à un visiteur **non authentifié** le titre, la
+  description, le public visé et le **texte des étapes** des parcours réservés aux personnels,
+  quand `GET /api/staff-plan/content` répond 401 sur le même contenu. Idem `?surface=map`
+  (carte de travail) et `GET /api/map-routes/:idOrSlug`, qui ne regardait aucune surface. La
+  surface `staff`, ajoutée par la migration `260`, n'avait jamais été prise en compte par la
+  garde du routeur : seule celle du Plan Lyautey y existait.
+- Chaque surface porte désormais la garde de sa propre charge (`guardSurfaceRead`) : `plan` →
+  garde du plan (inchangé), `visit` → ouvert (inchangé), `map` → compte requis, `staff` →
+  `resolveStaffPlanViewer`, exactement ce qu'exige `/api/staff-plan/content`. Le détail
+  `/:idOrSlug`, porte du lien profond imprimé, ne sert plus que les parcours publiés sur une
+  surface publique : un parcours interne y répond **404**, comme une affiche périmée.
+- `sort_order` hors des bornes d'un `INT` répondait **500** (`ER_WARN_DATA_OUT_OF_RANGE`) : le
+  champ « Ordre » de l'éditeur est un `<input type="number">` sans butée. C'est un **400**
+  lisible, et un champ vide conserve le rang existant.
+- Tests : trois cas de non-régression dans `tests/map-routes.test.js` (catalogue `staff` / `map`
+  anonyme, détail d'un parcours interne, rang hors bornes). `docs/API.md` mis à jour — la
+  surface `staff` y manquait aussi.
+
+### Documentation — audit du système de parcours (deuxième passe)
+
+- `docs/AUDIT_PARCOURS_2026-09-17.md` : audit de bout en bout des parcours, de la table
+  `map_routes` aux trois fronts. Reprend l'état des neuf constats du premier audit (2026-09-04,
+  tous tenus) et en pose six nouveaux, dont deux corrigés dans le même lot (ci-dessus).
+- Restent ouverts et documentés : « Reprendre le parcours » redémarre à l'étape 1 sur les trois
+  surfaces (§2.2), effacer l'identifiant du lien refuse l'enregistrement contre ce qu'annonce le
+  champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
+  Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
+- Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — connexion Google impossible depuis proflyautey
 
 - « **Connexion Google invalide (session expirée). Réessayez depuis ForetMap.** » à chaque
