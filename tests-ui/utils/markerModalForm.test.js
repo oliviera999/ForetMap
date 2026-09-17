@@ -25,7 +25,23 @@ describe('markerFormFromMarker', () => {
       visible_role_slugs: [],
       restricted_note: '',
       restricted_note_role_slugs: [],
+      // Liens du lieu (migration 261) : chacun porte sa propre audience.
+      links: [],
     });
+  });
+
+  test('reprend les liens du lieu et écarte les rôles inconnus', () => {
+    expect(
+      markerFormFromMarker({
+        links: [
+          { id: 7, label: 'Fiche', url: 'https://exemple.org/a', audience_role_slugs: ['prof'] },
+          { id: 8, label: 'Interne', url: '/x', audience_role_slugs: ['gl_mj'] },
+        ],
+      }).links,
+    ).toEqual([
+      { label: 'Fiche', url: 'https://exemple.org/a', audience_role_slugs: ['prof'] },
+      { label: 'Interne', url: '/x', audience_role_slugs: [] },
+    ]);
   });
 
   test('reprend les surfaces masquées (chaîne SET ou tableau) et les alias de recherche', () => {
