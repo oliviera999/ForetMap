@@ -28,6 +28,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   création automatique élève est activée et qu'aucun compte enseignant ne correspond,
   un **compte visiteur** peut être créé à la place : un avertissement le signale alors
   clairement.
+- **Seules les adresses des domaines du lycée sont acceptées par Google.** Une adresse
+  Google **hors** de ces domaines — typiquement l'adresse personnelle d'un administrateur —
+  est refusée tant qu'elle n'a pas été **déclarée explicitement** dans la configuration du
+  serveur (variable `GOOGLE_OAUTH_ALLOWED_EMAILS`, plusieurs adresses séparées par des
+  virgules). Aucune adresse personnelle n'est inscrite d'avance : c'est volontaire, le code
+  du projet étant hébergé sur un dépôt. Si un administrateur se connectait jusqu'ici avec
+  une adresse personnelle, cette variable doit être renseignée sur le serveur, sinon sa
+  connexion Google échouera (la connexion par identifiant + mot de passe reste, elle,
+  disponible).
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail, description et affiliation optionnels). Un administrateur peut désactiver
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
@@ -155,12 +164,14 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    totalité des pouvoirs n3boss.
 6. **« Accès interface n3boss » reste coché** : malgré son libellé, cette permission
    (`teacher.access`) n'affiche **aucune** barre haute n3boss sur ce profil — le prof de
-   classe garde la navigation basse d'un visiteur connecté. C'est le droit d'entrée des
-   comptes **enseignants**, qui n'ont pas de fiche élève à laquelle se raccrocher : sans
-   lui, la connexion réussissait mais renvoyait immédiatement sur l'écran de connexion,
-   sans message. La console **refuse désormais** de le décocher sur « Admin », « n3boss »
-   et « Prof de classe ». Pour un profil d'encadrement plus étroit, **dupliquer** un
-   profil et retirer les autres droits.
+   classe garde la navigation basse d'un visiteur connecté. C'est surtout le droit qui
+   ouvre les **fonctions d'encadrement** (stats de classe, gestion des groupes…). La
+   console **refuse** de le décocher sur « Admin », « n3boss » et « Prof de classe » :
+   sans lui, la connexion réussissait mais l'application restait figée sur l'écran de
+   chargement (plus d'écran de connexion, mais rien ne s'affichait). Un compte
+   enseignant **connecté** voit désormais l'application même si ce droit manque ; les
+   menus d'encadrement restent fermés. Pour un profil d'encadrement plus étroit,
+   **dupliquer** un profil et retirer les autres droits, pas celui-ci.
 
 ### Portée de groupe
 

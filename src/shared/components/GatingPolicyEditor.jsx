@@ -13,6 +13,7 @@ import {
   retryHoursLabel,
 } from '../utils/learningGatingPolicyText.js';
 import { DEFAULT_RETRY_COOLDOWN_HOURS } from '../utils/cooldownDuration.js';
+import { getBuildBrand } from '../brand/brandNames.js';
 
 const MODE_OPTIONS = [
   { value: 'inherit', label: 'Hériter' },
@@ -452,7 +453,9 @@ export function GatingPolicyEditor({
       ) : null}
 
       {product === 'fm' && layer === 'resource' ? (
-        <p className="section-sub">ForetMap : chaque élève répond pour lui-même.</p>
+        <p className="section-sub">
+          {getBuildBrand().appName} : chaque élève répond pour lui-même.
+        </p>
       ) : null}
 
       {typeof onSave === 'function' ? (

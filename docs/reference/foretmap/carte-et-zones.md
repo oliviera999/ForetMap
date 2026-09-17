@@ -244,9 +244,10 @@ Composer un parcours :
   ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
   parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
 - **Quitter n'efface pas l'avancement** : le bouton « Reprendre le parcours » revient à l'étape
-  où l'on s'était arrêté, sur les trois surfaces. Relancer le parcours depuis la liste, lui,
-  repart de la première étape. L'avancement vit sur l'appareil et le temps de la page : il n'est
-  ni enregistré, ni transmis, et un rechargement le perd.
+  où l'on s'était arrêté, sur les trois surfaces, et **même après un rechargement de page**.
+  Relancer le parcours depuis la liste, lui, repart de la première étape. L'avancement vit sur
+  l'appareil, et sur lui seul : il n'est ni enregistré côté serveur, ni transmis à quiconque.
+  Un parcours dépublié entre-temps ne laisse pas de bouton qui ne mènerait nulle part.
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
@@ -334,11 +335,49 @@ complément réservé n'y apparaît pas pour un visiteur anonyme, et la copie d'
 depuis la carte vers la visite ne place jamais ce complément dans les textes publics
 de la fiche visite.
 
-> 🔧 **À implémenter (suite possible)** — Restreindre aussi par **groupes** (classe, club,
-> équipe), pas seulement par rôle ; plusieurs compléments de **texte** (un par public) ;
-> héritage d'audience au niveau d'une **catégorie** de lieux. La V1 couvre les rôles, un lieu
-> absent hors audience, et un seul complément réservé. Pour les **liens**, la restriction par
-> lien existe désormais (voir « Liens du lieu » ci-dessous).
+### Restreindre à une classe ou à un club (groupes)
+
+À côté des rôles, chaque réglage d'audience propose les **groupes** : classes, clubs,
+équipes. C'est ce qu'il faut pour « cette parcelle est celle de la 2nde B » — un rôle ne sait
+pas distinguer deux classes.
+
+Les deux listes se **combinent** : il suffit d'avoir le bon rôle **ou** d'être dans l'un des
+groupes cochés. Cocher un rôle sans cocher de groupe fonctionne donc comme avant.
+
+- Les groupes proposés sont **ceux que vous voyez déjà** : un prof de classe ne peut
+  restreindre qu'à ses propres groupes, un administrateur à tous.
+- Un **visiteur anonyme** n'appartient à aucun groupe : un lieu restreint à une classe
+  n'apparaît jamais sur la visite publique ni sur le Plan.
+- Si un groupe est supprimé, les lieux qui le citaient cessent simplement de correspondre à
+  ce critère — rien ne casse, mais pensez à revoir leur audience.
+
+La restriction par groupe vaut pour les **trois** réglages : qui voit le lieu, qui lit le
+complément réservé, et qui voit chaque lien du lieu.
+
+### Audience héritée d'une catégorie
+
+Une **catégorie** de lieux (Infrastructure, Locaux techniques, Parcelles de la 2nde A…) peut
+porter une audience, réglée dans la console des catégories. Les lieux de cette catégorie
+**qui n'ont pas d'audience propre** en héritent. C'est le moyen de restreindre d'un coup une
+famille entière de lieux, sans les reprendre un par un.
+
+Trois règles à retenir :
+
+1. **Le plus précis gagne.** Un lieu qui déclare sa propre audience ignore celle de sa
+   catégorie.
+2. **Une catégorie sans case cochée est neutre** : elle n'ouvre ni ne ferme rien. Ranger un
+   lieu réservé dans une catégorie ordinaire ne le rend donc **pas** public.
+3. **Plusieurs catégories s'additionnent** : un lieu rangé dans deux catégories réservées est
+   visible par l'audience de l'une **ou** de l'autre.
+
+> ⚠️ C'est le réglage le plus large de l'application : il peut faire disparaître d'un coup
+> tous les lieux d'une catégorie, carte, visite et plan compris. La console affiche un
+> avertissement dès qu'une case est cochée.
+
+> 🔧 **À implémenter (suite possible)** — Plusieurs compléments de **texte** (un par public) :
+> aujourd'hui un lieu n'en porte qu'un seul. Pour tout le reste, l'audience couvre désormais
+> les rôles **et** les groupes, sur le lieu, le complément réservé et chaque lien, avec
+> héritage possible depuis la catégorie.
 
 ### Liens dans les descriptions
 
@@ -374,7 +413,8 @@ tout le monde, la procédure d'ouverture des locaux pour les seuls enseignants �
 couper le texte en deux blocs.
 
 - **Aucune case cochée** = lien visible par tous ceux qui voient déjà le lieu.
-- **Des rôles cochés** = lien réservé, signalé par un 🔒 dans l'écran d'édition.
+- **Des rôles ou des groupes cochés** = lien réservé, signalé par un 🔒 dans l'écran
+  d'édition, avec un résumé de son audience en clair (« Qui voit ce lien : Classe A »).
 - Les liens se **réordonnent** (↑ / ↓) et se retirent (✕) ligne par ligne.
 - Mêmes adresses acceptées que ci-dessus ; les adresses externes s'ouvrent en nouvel onglet.
 
@@ -650,6 +690,14 @@ le texte jusqu'à l'illisible. Sur tablette et téléphone, les étiquettes sont
 **agrandies** automatiquement. Un **nom de zone** et un **nom de repère** s'écrivent de
 la même façon (même police, même graisse, même halo) : seule la place change — le nom
 d'une zone est dans la forme, celui d'un repère juste sous l'épingle.
+
+**Le dessin des emojis dépend de l'appareil, volontairement.** Sur iPhone, iPad et Mac,
+ce sont les emojis d'Apple qui s'affichent — les mêmes que dans les messages et les
+applications du téléphone. Partout ailleurs (Android, Windows, Chromebook), l'application
+fournit elle-même un jeu d'emojis unique, pour que deux élèves sur deux machines
+différentes voient le même dessin. Un emoji peut donc ne pas avoir exactement la même
+allure d'un appareil à l'autre : c'est normal, et c'est ce qui garantit qu'il s'affiche
+toujours, y compris pendant un zoom sur la carte.
 
 **Côté utilisateur** : le bouton **Aa** de la barre d'outils carte permet trois niveaux
 locaux (Normal / Grand / Très grand), mémorisés sur l'appareil. Le même bouton est

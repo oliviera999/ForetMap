@@ -211,6 +211,48 @@ test('GET /api/plan/content : liens du lieu servis, et lien réservé filtré c�
   assert.equal(row.links[0].audience_role_slugs, undefined);
 });
 
+test('GET /api/plan/content : audience héritée d’une catégorie et lieu restreint à un groupe', async () => {
+  // Le Plan est lu par un anonyme. Deux garanties à tenir côté serveur : un lieu restreint à
+  // un groupe n'y descend pas, et un lieu qui n'hérite sa restriction que de sa catégorie non
+  // plus — c'est le cas que le filtrage par lieu seul aurait laissé passer.
+  const { execute: dbExecute } = require('../database');
+  const groupId = require('node:crypto').randomUUID();
+  await dbExecute(
+    "INSERT INTO `groups` (id, slug, name, kind, is_active) VALUES (?, ?, ?, 'class', 1)",
+    [groupId, `plan-aud-${groupId.slice(0, 8)}`, 'Classe plan'],
+  );
+  const category = await auth(request(app).post('/api/map-categories'))
+    .send({ label: 'Réservée plan', map_id: mapId, visible_group_ids: [groupId] })
+    .expect(201);
+  createdIds.categories.push(category.body.id);
+
+  const inherited = await auth(request(app).post('/api/zones'))
+    .send({
+      name: 'Zone héritée plan',
+      points: POLYGON,
+      map_id: mapId,
+      category_ids: [category.body.id],
+    })
+    .expect(201);
+  createdIds.zones.push(inherited.body.id);
+
+  const direct = await auth(request(app).post('/api/zones'))
+    .send({
+      name: 'Zone restreinte plan',
+      points: POLYGON,
+      map_id: mapId,
+      visible_group_ids: [groupId],
+    })
+    .expect(201);
+  createdIds.zones.push(direct.body.id);
+  planContentCache.clear();
+
+  const res = await request(app).get('/api/plan/content').expect(200);
+  const ids = (res.body.zones || []).map((z) => z.id);
+  assert.ok(!ids.includes(direct.body.id), 'lieu restreint à un groupe absent du plan public');
+  assert.ok(!ids.includes(inherited.body.id), 'lieu restreint par héritage absent lui aussi');
+});
+
 test('GET /api/plan/content : ?map_id explicite, carte inconnue → 400, catégories masquées par réglage', async () => {
   await request(app).get('/api/plan/content?map_id=nope-plan').expect(400);
   const other = await fx.createMap({ label: 'Autre' });

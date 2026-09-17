@@ -4,6 +4,7 @@ import { renderMarkdownToSafeHtml } from '../platform/markdown.js';
 import { formatDateTime } from '../utils/formatDateTime.js';
 import { buildJournalTimeline } from './journalFeed.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
+import { getBrandOrgName } from '../brand/brandNames.js';
 
 function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
   const html = useMemo(
@@ -58,6 +59,7 @@ function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
  * @param {object} props.ui
  * @param {string} props.ownerLabel
  * @param {string} [props.productLabel='ForetMap']
+ * @param {string} [props.orgName] Établissement mentionné au colophon ; marque du build par défaut.
  * @param {boolean} [props.yearbook=false] options livre de l’année (période + épinglés)
  * @param {() => void} [props.onClose]
  * @param {(type: string) => { label: string, icon?: string }} props.importTypeMeta
@@ -70,6 +72,7 @@ export function JournalBookView({
   ui,
   ownerLabel,
   productLabel = 'ForetMap',
+  orgName = getBrandOrgName(),
   yearbook = false,
   onClose = null,
   importTypeMeta,
@@ -288,7 +291,7 @@ export function JournalBookView({
 
       <footer className={`${p}-book__colophon fm-journal-book__colophon`}>
         <p className={ui.hintClassName || ''}>
-          {productLabel} · Lycée Lyautey · Carnet personnel ·{' '}
+          {[productLabel, orgName, 'Carnet personnel'].filter(Boolean).join(' · ')} ·{' '}
           {formatDateTime(new Date().toISOString())}
         </p>
       </footer>

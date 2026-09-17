@@ -18,7 +18,7 @@ before(async () => {
   process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-google-client-secret';
   process.env.GOOGLE_OAUTH_REDIRECT_URI = 'http://localhost:3000/api/auth/google/callback';
   process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS = 'pedagolyautey.org,lyceelyautey.org';
-  process.env.GOOGLE_OAUTH_ALLOWED_EMAILS = 'oliv.arn.lau@gmail.com';
+  process.env.GOOGLE_OAUTH_ALLOWED_EMAILS = 'derogation.hors.domaine@example.com';
   process.env.FRONTEND_ORIGIN = 'http://localhost:3000';
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {

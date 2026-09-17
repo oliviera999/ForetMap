@@ -59,6 +59,14 @@ DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md
 DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
 DEPLOY_AUTO_ROLLBACK="${DEPLOY_AUTO_ROLLBACK:-1}"
 DEPLOY_DB_PRE_MIGRATE_BACKUP="${DEPLOY_DB_PRE_MIGRATE_BACKUP:-1}"
+# Provenance du build frontend :
+# - `repo`   : `dist/` est versionné et arrive avec le `git pull` (mode historique, défaut) ;
+# - `branch` : `dist/` n'est plus dans le dépôt, il est récupéré sur la branche d'artefacts
+#              publiée par la CI (scripts/fetch-dist-artifact.js).
+# La bascule est décrite pas à pas dans docs/DEPLOY_DIST_ARTIFACT.md — elle doit se faire
+# APRÈS que le serveur ait déjà pris cette version du script, jamais dans le même passage.
+DEPLOY_DIST_SOURCE="${DEPLOY_DIST_SOURCE:-repo}"
+DEPLOY_DIST_BRANCH="${DEPLOY_DIST_BRANCH:-dist-artifact/main}"
 
 # Alerte d'exploitation par email (best-effort, ne casse jamais le flux).
 alert() {
@@ -72,6 +80,17 @@ alert() {
 rollback_to() {
   log "ROLLBACK vers $PREV_SHA"
   git reset --hard "$PREV_SHA"
+
+  # En mode `branch`, `git reset` ne ramène pas le build : `dist/` n'est plus versionné. On
+  # remet le `dist.prev/` mis de côté par le fetch, qui est exactement celui de $PREV_SHA.
+  if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
+    if node scripts/fetch-dist-artifact.js --mode restore-previous; then
+      log "Build frontend restauré (dist.prev/)."
+    else
+      log "ATTENTION : restauration de dist.prev/ impossible — le front servi peut être désaccordé."
+      alert "Rollback dist incomplet" "Sources revenues sur $PREV_SHA mais dist.prev/ non restauré : vérifier $APP_DIR/dist."
+    fi
+  fi
 
   if [[ "$DEPLOY_SKIP_SYNC_VISIT_PACK_LIB" != "1" ]] && [[ -f "$APP_DIR/scripts/sync-visit-pack-server-lib.js" ]]; then
     node scripts/sync-visit-pack-server-lib.js || true
@@ -129,6 +148,22 @@ LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse "origin/$DEPLOY_BRANCH")"
 
 if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then
+  # En mode `branch`, `dist/` n'est plus versionné : un dossier effacé (nettoyage d'hébergeur,
+  # disque plein) ou un clone serveur tout neuf laisserait le site sans front, et ce chemin
+  # « aucun commit » ne le rattraperait jamais. `--mode repair` ne fait rien quand `dist/` est
+  # complet, donc ce contrôle est gratuit dans le cas courant. Aucun redémarrage nécessaire :
+  # les fichiers statiques et l'entrée SPA sont lus sur le disque à chaque requête.
+  if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
+    DIST_REPAIR_RC=0
+    DEPLOY_DIST_BRANCH="$DEPLOY_DIST_BRANCH" node scripts/fetch-dist-artifact.js \
+      --mode repair --expect-source "$LOCAL_SHA" || DIST_REPAIR_RC=$?
+    if [[ "$DIST_REPAIR_RC" -eq 75 ]]; then
+      log "Build frontend à réparer mais artefact pas encore publié : nouvelle tentative au prochain passage."
+    elif [[ "$DIST_REPAIR_RC" -ne 0 ]]; then
+      log "Réparation du build frontend en échec."
+      alert "Réparation dist ÉCHEC" "dist/ absent ou incomplet sur $APP_DIR et l'artefact n'a pas pu être posé (HEAD=$LOCAL_SHA)."
+    fi
+  fi
   log "Aucune mise à jour (HEAD=$LOCAL_SHA)."
   exit 0
 fi
@@ -172,12 +207,34 @@ if [[ "$DO_DEPLOY_RESTART" == "1" ]] && [[ -z "${DEPLOY_SECRET:-}" ]]; then
   exit 1
 fi
 
-# Garde-fou: en mode "build local", toute modif frontend doit inclure une mise à jour de dist/.
-FRONTEND_PATTERNS='^(src/|index\.vite\.html$|vite\.config\.js$|public/)'
-if grep -Eq "$FRONTEND_PATTERNS" <<<"$CHANGED_FILES"; then
-  if ! grep -Eq '^dist/' <<<"$CHANGED_FILES"; then
-    log "Déploiement bloqué: modifications frontend détectées sans mise à jour de dist/."
-    log "Action requise: exécuter npm run build en local puis pousser les fichiers dist/."
+# Garde-fou: en mode "build local" (`dist/` versionné), toute modif frontend doit inclure une
+# mise à jour de dist/. Sans objet en mode `branch` : le build ne vient plus du dépôt.
+if [[ "$DEPLOY_DIST_SOURCE" == "repo" ]]; then
+  FRONTEND_PATTERNS='^(src/|index\.vite\.html$|vite\.config\.js$|public/)'
+  if grep -Eq "$FRONTEND_PATTERNS" <<<"$CHANGED_FILES"; then
+    if ! grep -Eq '^dist/' <<<"$CHANGED_FILES"; then
+      log "Déploiement bloqué: modifications frontend détectées sans mise à jour de dist/."
+      log "Action requise: exécuter npm run build en local puis pousser les fichiers dist/."
+      exit 1
+    fi
+  fi
+fi
+
+# Mode `branch` : l'artefact doit être publié AVANT de toucher aux sources. Sans ce contrôle
+# préalable, un `git pull` réussi suivi d'un artefact indisponible laisserait le serveur avec
+# des sources neuves et un build périmé — exactement la désynchronisation qu'on veut exclure.
+if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
+  log "Contrôle de l'artefact frontend pour $REMOTE_SHA (branche $DEPLOY_DIST_BRANCH)"
+  DIST_CHECK_RC=0
+  DEPLOY_DIST_BRANCH="$DEPLOY_DIST_BRANCH" node scripts/fetch-dist-artifact.js \
+    --mode check --expect-source "$REMOTE_SHA" || DIST_CHECK_RC=$?
+  if [[ "$DIST_CHECK_RC" -eq 75 ]]; then
+    log "Artefact pas encore publié pour ce commit : déploiement reporté au prochain passage."
+    exit 0
+  fi
+  if [[ "$DIST_CHECK_RC" -ne 0 ]]; then
+    log "Artefact frontend inutilisable: déploiement annulé, sources inchangées."
+    alert "Artefact dist inutilisable" "Déploiement vers $REMOTE_SHA annulé avant pull : voir la sortie de fetch-dist-artifact.js."
     exit 1
   fi
 fi
@@ -201,6 +258,22 @@ fi
 
 log "git pull --ff-only origin $DEPLOY_BRANCH"
 git pull --ff-only origin "$DEPLOY_BRANCH"
+
+# Mode `branch` : poser le build juste après les sources, avant tout redémarrage. L'échec ici
+# est traité comme un échec de déploiement (rollback), pas ignoré : servir un `dist/` périmé
+# derrière des sources neuves, c'est des assets en 404 et une SPA qui ne démarre pas.
+if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
+  log "Pose du build frontend depuis $DEPLOY_DIST_BRANCH"
+  if ! DEPLOY_DIST_BRANCH="$DEPLOY_DIST_BRANCH" node scripts/fetch-dist-artifact.js \
+    --mode apply --expect-source "$REMOTE_SHA"; then
+    log "ÉCHEC de la pose du build frontend."
+    alert "Pose dist ÉCHEC" "Sources déployées sur $REMOTE_SHA mais le build frontend n'a pas pu être posé."
+    if [[ "$DEPLOY_AUTO_ROLLBACK" == "1" ]]; then
+      rollback_to
+    fi
+    exit 1
+  fi
+fi
 
 if [[ "$DEPLOY_SKIP_SYNC_VISIT_PACK_LIB" != "1" ]] && [[ -f "$APP_DIR/scripts/sync-visit-pack-server-lib.js" ]]; then
   log "Synchronisation lib/visit-pack/ (sources présentes ou contrôle d'intégrité)"

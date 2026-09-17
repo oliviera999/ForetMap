@@ -7,6 +7,14 @@ node_modules/
 # Build frontend Vite
 deploy/
 
+# Dossiers de travail du build frontend récupéré depuis la branche d'artefacts
+# (scripts/fetch-dist-artifact.js). Ils doivent rester hors du dépôt ET hors de
+# `git status --porcelain`, que le cron de déploiement exige vide avant de pull.
+dist.new/
+dist.prev/
+dist.candidate/
+dist.discarded/
+
 # Fichiers d'environnement (secrets)
 .env
 .env.local

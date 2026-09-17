@@ -74,6 +74,274 @@ une règle qui avaient changé — et que rien ne rattrapait, faute de lancer la
   les jeux laissés par `npm test`, qui partage `foretmap_test`, ne sont pas touchés — les
   supprimer ici masquerait des fuites appartenant à la suite backend.
 
+### Modifié — le build frontend quitte le dépôt : la CI le livre au serveur
+
+- **La cause des conflits de merge à répétition est supprimée.** `dist/` était versionné parce
+  que le serveur n'installe que les dépendances de production (`npm ci --omit=dev`) : Vite n'y
+  est pas disponible, le build devait donc arriver tout fait par `git pull`. Mais les noms de
+  chunks portent un hash de contenu : **chaque build renomme tous les fichiers**, et deux
+  branches touchant le frontend produisaient un conflit **rename/delete** sur `dist/` — que git
+  ne peut structurellement pas résoudre (les pilotes de merge de `.gitattributes` ne traitent
+  que les conflits de contenu). Chaque fusion sur `main` remettait donc toutes les PR ouvertes
+  en conflit. Accessoirement, c'étaient ~30 Mo de blobs neufs à chaque build commité, sur un
+  pack de 126 Mo.
+- **Nouveau circuit.** `.github/workflows/dist-publish.yml` construit `main` et publie le build
+  sur la branche d'artefacts `dist-artifact/main` (un seul commit, force-push, donc l'historique
+  ne grossit pas), avec un `BUILD_INFO.json` qui note le **commit source**.
+  `scripts/fetch-dist-artifact.js` le récupère côté serveur et ne le pose **que** s'il
+  correspond au commit déployé : l'invariant « le build servi correspond aux sources déployées »,
+  jusqu'ici gratuit puisque tout était dans le même commit, est désormais vérifié explicitement.
+- **Un artefact en retard reporte le déploiement, il ne le casse pas.** Le contrôle a lieu
+  **avant** le `git pull` : si la CI n'a pas fini de publier, le cron sort proprement et repasse
+  au tick suivant, sources intactes. Un artefact étranger à l'historique déployé, ou incomplet
+  (entrée produit manquante — le repli SPA servirait ForetMap en silence sur `gl.*` et
+  `planlyautey.*`), est refusé avec alerte. Le rollback restaure le build précédent depuis
+  `dist.prev/`, sans nouvel accès réseau.
+- **Auto-réparation.** Un `dist/` versionné se réparait tout seul au `git pull` suivant ; ce n'est
+  plus le cas. Le cron contrôle donc le build à **chaque** passage, même sans nouveau commit
+  (`--mode repair`, sans effet ni accès réseau quand `dist/` est complet) : un dossier effacé ou
+  un clone serveur tout neuf est rattrapé au lieu de laisser le site sans front.
+- **Quatre déclencheurs de publication, dont un indispensable** : `version-bump.yml` pousse
+  `chore(release)` sur `main` avec le `GITHUB_TOKEN`, et un push par `GITHUB_TOKEN` ne déclenche
+  aucun workflow. Sans le crochet `workflow_run`, l'artefact serait en permanence un commit en
+  retard et le serveur reporterait indéfiniment son déploiement.
+- **Rien ne change en production à la fusion** : `DEPLOY_DIST_SOURCE` vaut `repo` par défaut, le
+  cron se comporte comme avant. La bascule est une action opérateur en trois étapes, dont un
+  essai à blanc en production (l'artefact est validé mais non posé tant que `dist/` est suivi
+  par git) : runbook dans **`docs/DEPLOY_DIST_ARTIFACT.md`**. Les étapes ne peuvent pas être
+  fusionnées en une seule — le cron s'exécute depuis le script qu'elle modifie.
+- Tests : `tests/fetch-dist-artifact.test.js` (validation de `BUILD_INFO`, arbitrage
+  `apply`/`defer`/`stale`, intégrité du build, garde de recouvrement, rollback).
+### Ajouté — audience des lieux par groupes, et héritage depuis la catégorie
+
+Suite des deux réglages restés marqués « 🔧 À implémenter » dans
+`docs/reference/foretmap/carte-et-zones.md`. Migration `262`.
+
+**Restreindre à une classe, un club, une équipe.** À côté des rôles, chaque réglage
+d'audience propose désormais les **groupes** — ce qu'un rôle ne sait pas faire : distinguer
+deux classes. Colonnes jumelles sur les trois réglages : visibilité du lieu, complément
+réservé, et audience de chaque lien (`visible_group_ids`, `restricted_note_group_ids`,
+`location_links.audience_group_ids`).
+
+- **Union, jamais intersection** : le lecteur passe s'il a le bon rôle **ou** s'il est dans
+  l'un des groupes. Avec une intersection, cocher un rôle sans cocher de groupe — le cas
+  courant — aurait rendu le lieu invisible pour tout le monde.
+- Les groupes du lecteur viennent de `req.auth.groupIds`, déjà posé par l'hydratation de
+  session : **aucune requête supplémentaire** par lecture.
+- Les groupes proposés à l'édition sont bornés au périmètre de l'auteur
+  (`GET /api/groups/options`) : un prof de classe ne restreint qu'à ses propres groupes.
+- L'existence des identifiants est vérifiée **à l'écriture** (400 sur un groupe inconnu) :
+  une coquille aurait produit un lieu que plus personne ne voit, sans le moindre message.
+  À la lecture, un groupe supprimé cesse simplement de correspondre.
+
+**Héritage d'audience depuis la catégorie.** Une catégorie de lieux peut porter une audience ;
+les lieux de cette catégorie **sans audience propre** en héritent — de quoi restreindre une
+famille entière de lieux sans les reprendre un par un.
+
+- **Le plus précis gagne** : une audience posée sur le lieu ignore celle de sa catégorie.
+- **Une catégorie sans case cochée reste neutre.** Sans cette règle, ranger un lieu réservé
+  dans une catégorie ordinaire l'aurait rendu public — l'union avec « public » vaut
+  « public ». C'est le piège central de l'héritage, et il est couvert par un test dédié.
+- L'héritage est lu sur les catégories **attachées à l'entité**, que toute réponse zone /
+  repère porte déjà : il suit les entités plutôt qu'un index que chaque surface devrait penser
+  à transmettre — un oubli aurait été un trou de confidentialité silencieux.
+
+**Corrigé au passage — fuite de métadonnées d'audience.** Le catalogue de catégories
+(`GET /api/map-categories`) est servi jusqu'au visiteur anonyme de la Visite et du Plan : y
+laisser les colonnes d'audience aurait révélé à qui n'y a aucun droit quels rôles et quelles
+classes chaque catégorie vise. Elles ne sortent plus que par
+`GET /api/map-categories/manage` (permission `zones.manage`) et sur les catégories attachées
+à un lieu pour un gestionnaire.
+
+**Interface.** Cases « groupes » sous les rôles dans les deux fieldsets d'audience, avec le
+libellé « …ou membres de ces groupes » qui dit l'union ; bloc d'audience de chaque lien
+**replié** tant que le lien est public, avec un résumé en clair (« Qui voit ce lien :
+Classe A ») — douze liens × huit rôles × les groupes déroulés d'un coup rendaient le
+formulaire illisible ; avertissement explicite dans la console des catégories, ce réglage
+pouvant masquer d'un coup tous les lieux d'une famille.
+
+Documentation : `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md` (« Restreindre à
+une classe ou à un club », « Audience héritée d'une catégorie »). Il ne reste qu'un point
+ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par public.
+### Ajouté — licence propriétaire et découplage de la marque
+
+- **`LICENSE` à la racine** (absent jusqu'ici) : logiciel **propriétaire**, tous droits
+  réservés à Olivier ARNOULD-LAURENT, bilingue français / anglais. Sans ce fichier, un dépôt
+  public est lisible par tous mais juridiquement muet : rien n'énonçait qui détient les droits
+  ni ce qui est interdit. Le texte réserve expressément la reproduction, la modification, la
+  redistribution et l'exploitation en SaaS, réserve les composants et contenus tiers à leurs
+  licences propres, et réserve les noms et logos d'établissements à leurs propriétaires.
+  `package.json` déclare `"license": "UNLICENSED"` et `"private": true` (garde-fou contre une
+  publication npm accidentelle).
+- **`lib/brand.js` — source unique des noms affichés.** « ForêtMap » et « Lycée Lyautey »
+  étaient écrits en dur dans le registre produits, les défauts de réglages et les quatre
+  entrées HTML. Six variables d'environnement (`FORETMAP_BRAND_APP_NAME`,
+  `…_APP_SHORT_NAME`, `…_ORG_NAME`, `…_ORG_SHORT_NAME`, `…_GL_NAME`, `…_GL_SHORT_NAME`)
+  suffisent désormais à installer l'application pour un autre établissement, sous un autre
+  nom de logiciel, sans toucher au code.
+- **Non-régression vérifiée** : sans aucune variable, les titres, manifestes PWA,
+  descriptions et défauts de réglages restent identiques **au caractère près** —
+  `tests/brand.test.js` fige les libellés historiques des quatre produits.
+- **Deux lectures, les mêmes valeurs** : au build (plugin Vite `foretmap-brand-html` →
+  titres des entrées HTML, métadonnées de partage, global `window.__FORETMAP_BRAND__`) et à
+  l'exécution (`lib/products.js` pour les manifestes, `lib/settings.js` pour les défauts).
+  Changer la marque impose donc un **rebuild**, pas seulement un redémarrage.
+- **Un établissement vidé est un cas valide**, pas une dégradation : `brandText()` prend une
+  formulation de repli sans établissement plutôt que de recoudre une phrase à coups de regex,
+  et `joinBrandSegments()` ignore les segments vides. Aucun « Plan du  : … » ni tiret
+  orphelin — c'est vérifié par un test sur les quatre produits.
+- **Un nom court non déclaré suit son nom long** dès que celui-ci est redéfini : déclarer le
+  seul `FORETMAP_BRAND_ORG_NAME` laissait autrement « Lyautey » (défaut du nom court) dans le
+  titre du Plan, soit deux établissements dans la même installation.
+- **Réglages publics `content.brand.app_name` / `content.brand.org_name`** : un administrateur
+  peut surcharger la marque en base, sans reconstruire. Le colophon du carnet
+  (`JournalBookView`), le texte « À propos » et l'éditeur de politique de conditionnement
+  lisent la marque au lieu de l'écrire en dur.
+- **Périmètre volontairement borné aux noms affichés.** Les identifiants techniques homonymes
+  ne bougent pas — identifiants de produit, en-tête `X-Foretmap-Product`, claim JWT `product`,
+  préfixes `/api/gl`, variables `FORETMAP_*`, nom npm : jamais montrés à un utilisateur, et
+  les renommer casserait les sessions en cours pour un gain nul.
+- **Restent attachés au Lycée Lyautey**, et documentés comme tels : les préfixes de host
+  `planlyautey.` / `proflyautey.` (routage de déploiement — servir le Plan sur un autre
+  domaine demande un champ `hosts` exact, non fait ici) et `ui.plan.map_id` (identifiant de
+  ligne dans `maps`, donc une donnée).
+- Documentation : `docs/reference/exploitation/marque-et-domaines.md` (guide non technique
+  pour administrateurs, avec le tableau de ce qui reste à traiter), `.env.example` et
+  `docs/EXPLOITATION.md` § variables d'environnement.
+### Sécurité — préparation du passage du dépôt en privé
+
+- **`.cursorignore`** à la racine : `.gitignore` ne protège que git, un fichier ignoré reste
+  présent sur le disque et donc **indexable par l'éditeur**. Cursor embarquait ainsi `.env`
+  (`JWT_SECRET`, `DB_PASS`, `DEPLOY_SECRET`, SMTP), `backups/` et `sql/dumps/` (dumps bruts
+  avec données personnelles d'élèves), `uploads/` (photos déposées) et `logs/`. Ces chemins
+  sont désormais exclus de l'indexation ; le fixture anonymisé versionné reste accessible.
+- **Plus d'adresse personnelle dans le code.** `GOOGLE_ALLOWED_EMAILS_DEFAULT` ne porte plus
+  l'adresse Gmail de l'administrateur : elle la publiait dans un dépôt **et** désignait le
+  compte à privilèges. La liste par défaut est vide ; les dérogations hors des domaines de
+  l'établissement passent par `GOOGLE_OAUTH_ALLOWED_EMAILS` (CSV).
+  **⚠ Action requise avant déploiement** : renseigner cette variable côté serveur, sinon la
+  connexion *Google* d'un compte hors domaine cesse de fonctionner (l'identifiant + mot de
+  passe reste disponible). L'avertissement de `lib/env.js` au démarrage le rappelle.
+- **Gabarit d'import joueurs GL** : l'adresse d'exemple passe de `@pedagolyautey.org` à
+  `@example.org` (domaine réservé RFC 2606). Le nom était fictif, mais le domaine réel
+  publiait la convention `prénom.nom@` de l'établissement — de quoi énumérer des adresses
+  valides sans rien deviner.
+- **`auto-resolve-conflicts.yml`** : filet de sécurité planifié de **toutes les heures** à
+  **toutes les 6 heures**. Sur un dépôt privé les minutes Actions sont décomptées du quota du
+  plan, et 720 exécutions mensuelles pour ne rien faire la plupart du temps en consommaient
+  une part majeure — quota épuisé, c'est aussi `version-bump` et `frontend-dist` qui
+  s'arrêtent, donc la chaîne de release. Le cas réel (`main` avance et met une PR en conflit)
+  reste couvert par le déclencheur `push`.
+- **`docs/EXPLOITATION.md` § 11 « Dépôt privé »** : accès du serveur au dépôt par clé de
+  déploiement en lecture seule — `scripts/auto-deploy-cron.sh` tire aujourd'hui en HTTPS
+  **anonyme** et s'arrêterait en silence dès la bascule —, quota Actions, et rappel de ce que
+  la bascule ne répare pas (elle ferme l'accès futur, elle n'efface pas le passé).
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Plan Lyautey, plan des personnels, Visite, carte de travail), quitter
+  un parcours à l'étape 7 puis le reprendre rendait la main à l'étape **1** : « Reprendre »
+  appelait le démarrage, qui remet la position à zéro. Le bouton promet pourtant l'inverse, et
+  l'aide du plan aussi.
+- La sortie mémorise désormais le parcours **et l'étape**, et la reprise repart de là. Relancer
+  le parcours depuis la liste repart bien du début, et un parcours dont des lieux ont disparu
+  entre-temps reprend à sa dernière étape encore existante.
+- L'étape est en outre écrite sur l'appareil (une clé par surface et par carte) : elle survit à
+  un rechargement de page — la situation du visiteur qui a scanné un QR code et verrouille son
+  téléphone entre deux étapes. Rien ne part vers le serveur, conformément à la promesse faite
+  au visiteur. Une reprise qui ne désigne plus aucun parcours publié s'efface d'elle-même.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (14 cas — le noyau partagé n'avait aucun
+  test direct), l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`, et le scénario e2e du Plan, qui reprend puis recharge
+  la page.
+
+### Corrigé — barre d'étape : titre débordant, texte sans plafond, carte recadrée dessous
+
+- Le **titre du parcours**, rappelé au-dessus de l'étape, n'était pas borné : trois lignes pour
+  un titre de 75 caractères, six pour les 180 que le serveur accepte, autant de moins pour
+  l'étape et les commandes. Il tient sur une ligne, avec ellipse.
+- Le **texte d'une étape déplié** n'avait pas de plafond : quatre phrases donnaient à la barre
+  la moitié d'un écran de téléphone. Il défile au-delà de 28 % de la hauteur.
+- La carte **recadrait l'étape courante sous la barre** : le décalage annoncé était une
+  constante de 148 px, quand la barre en occupe 275 repliée et 383 dépliée (mesuré à
+  390 × 844). La barre mesure maintenant sa propre hauteur et la remonte ; la Visite et la carte
+  de travail, qui ne passaient aucun décalage, le passent aussi.
+- La puce « Parcours » compte désormais les étapes **affichables**, comme la barre, et non
+  celles servies par l'API.
+
+### Modifié — le mode parcours n'existe plus qu'en un exemplaire
+
+- `src/plan/AppPlan.jsx` portait sa propre copie de l'état du mode parcours, là où la Visite et
+  la carte de travail passaient déjà par `useMapRouteMode`. Les deux avaient divergé (toast de
+  sortie, mesure d'usage, aperçu d'un lieu pendant le parcours) et tout défaut commun était à
+  corriger deux fois.
+- Le plan passe au noyau partagé ; ses trois apports y montent en rappels optionnels
+  (`onExit`, `onUsage`, `onStartExtra`) et l'aperçu devient une fonction du hook. Les surfaces
+  qui ne fournissent pas ces rappels se comportent exactement comme avant.
+- Le noyau, qui n'avait aucun test direct, en a sept ; l'aperçu « Revenir à l'étape » a son test
+  de montage, et le scénario e2e du plan exerce la reprise, rechargement compris.
+
+### Corrigé — éditeur de parcours : identifiant effacé, doublons, bornes de saisie
+
+- Effacer le champ « Identifiant du lien » à la modification répondait **400** (« Slug
+  invalide »), alors que le champ annonce « laissé vide : dérivé du titre ». Le slug est
+  re-dérivé du titre, comme à la création ; le champ **absent**, lui, conserve toujours la
+  valeur existante.
+- Un lieu **déjà présent** dans le parcours était refusé en silence par l'éditeur, alors que le
+  serveur l'accepte — un parcours repasse légitimement par l'accueil. Il est ajouté, et la
+  suggestion indique « déjà à l'étape 2 ».
+- La limite de 60 étapes était muette : le clic ne faisait rien. Les suggestions se désactivent
+  et le compteur l'annonce.
+- `maxLength` sur les cinq champs bornés par le serveur (titre, public visé, description, titre
+  et texte d'étape), compteur près de la limite pour la description, bornes sur le champ
+  « Ordre » : on n'apprend plus une limite au refus, après un aller-retour.
+- `GET /api/map-routes/manage` applique le périmètre de cartes du compte, comme le catalogue
+  public — sans effet pratique, mais la dissymétrie se lisait comme une garde.
+
+### Corrigé — la suite e2e laissait l'inscription fermée derrière elle
+
+- `e2e/global-setup.js` force `ui.auth.allow_register` à `false` (la configuration de
+  production) sans jamais le restaurer : tout `npm test` lancé ensuite sur la même base
+  échouait en masse — 32 cas, tous en 403 sur la création de compte, sans que le code y soit
+  pour rien. Un `e2e/global-teardown.js` repose la valeur d'origine.
+
+### Sécurité — les catalogues de parcours des surfaces internes se lisaient sans compte
+
+- `GET /api/map-routes?surface=staff` servait à un visiteur **non authentifié** le titre, la
+  description, le public visé et le **texte des étapes** des parcours réservés aux personnels,
+  quand `GET /api/staff-plan/content` répond 401 sur le même contenu. Idem `?surface=map`
+  (carte de travail) et `GET /api/map-routes/:idOrSlug`, qui ne regardait aucune surface. La
+  surface `staff`, ajoutée par la migration `260`, n'avait jamais été prise en compte par la
+  garde du routeur : seule celle du Plan Lyautey y existait.
+- Chaque surface porte désormais la garde de sa propre charge (`guardSurfaceRead`) : `plan` →
+  garde du plan (inchangé), `visit` → ouvert (inchangé), `map` → compte requis, `staff` →
+  `resolveStaffPlanViewer`, exactement ce qu'exige `/api/staff-plan/content`. Le détail
+  `/:idOrSlug`, porte du lien profond imprimé, ne sert plus que les parcours publiés sur une
+  surface publique : un parcours interne y répond **404**, comme une affiche périmée.
+- `sort_order` hors des bornes d'un `INT` répondait **500** (`ER_WARN_DATA_OUT_OF_RANGE`) : le
+  champ « Ordre » de l'éditeur est un `<input type="number">` sans butée. C'est un **400**
+  lisible, et un champ vide conserve le rang existant.
+- Tests : trois cas de non-régression dans `tests/map-routes.test.js` (catalogue `staff` / `map`
+  anonyme, détail d'un parcours interne, rang hors bornes). `docs/API.md` mis à jour — la
+  surface `staff` y manquait aussi.
+
+### Documentation — audit du système de parcours (deuxième passe)
+
+- `docs/AUDIT_PARCOURS_2026-09-17.md` : audit de bout en bout des parcours, de la table
+  `map_routes` aux trois fronts. Reprend l'état des neuf constats du premier audit (2026-09-04,
+  tous tenus) et en pose six nouveaux, dont deux corrigés dans le même lot (ci-dessus).
+- Restent ouverts et documentés : « Reprendre le parcours » redémarre à l'étape 1 sur les trois
+  surfaces (§2.2), effacer l'identifiant du lien refuse l'enregistrement contre ce qu'annonce le
+  champ (§2.3), et le mode parcours existe en deux exemplaires — `useMapRouteMode` pour la
+  Visite et la carte, une copie propre dans `AppPlan.jsx` (§2.5).
+- Indexé dans `docs/audits/README.md`.
+### Corrigé — Prof de classe : l'application ne reste plus figée au chargement
+
+- Un compte enseignant **sans** la permission « Accès interface n3boss » (profil dérivé,
+  ou case décochée avant le verrouillage de la console) passait bien la connexion, puis
+  restait sur « Chargement de la forêt… » : les cartes et les tâches n'étaient jamais
+  demandées, et la session n'était plus prolongée (déconnexion au bout d'1 h 30).
+  Le chargement et le renouvellement de session suivent désormais la session ouverte,
+  pas ce droit d'encadrement. Tests de montage d'`App` mis à jour.
 
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 
@@ -165,6 +433,58 @@ lieu », avec l'avertissement qu'un lien n'est confidentiel que si sa cible l'es
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
 
+### Corrigé — emojis illisibles sur iPhone, iPad et Mac
+
+- **Les appareils Apple utilisent désormais leurs propres emojis.** La pile de polices plaçait
+  partout `ForetMapColorEmoji` (Noto auto-hébergé) **avant** `Apple Color Emoji`. Or WebKit
+  n'implémente ni COLRv1 ni COLRv0 : un iPhone ne pouvait dessiner cette police que par sa table
+  OT-SVG — 20,1 Mo des 25,1 Mo décompressés — voie documentée comme instable, les glyphes
+  disparaissant au zoom. Or l'écran principal est une carte que l'on zoome, couverte d'emojis.
+  `'Apple Color Emoji'` passe en tête des quatre piles (`typography-tokens.css`, `index.css`,
+  `gl-base.css`, `plan.css`) : aucune détection de plateforme, les machines non-Apple n'ont pas
+  cette police et tombent sur `ForetMapColorEmoji` comme avant — **leur rendu ne change pas**.
+- **5,7 Mo de moins à télécharger sur Apple**, et le `preload` de la police disparaît des deux
+  entrées HTML. Un `preload` de police est inconditionnel et part avant l'analyse du CSS : il
+  annulait l'`unicode-range` du `@font-face` et imposait le fichier à tous les appareils — soit
+  **11× le bundle principal** (498 Ko). Mesuré (Chromium et WebKit) : une police emoji résidente
+  placée devant fait tomber la webfont à **zéro requête**.
+- Trois piles affichaient des emojis sans repli emoji déclaré, dont `.lb-rank` (🥇🥈🥉 du
+  classement) : la médaille sortait de la police **système**, pas de celle du reste de l'écran.
+- Cliquet `tests-ui/utils/emojiFontStacks.test.js` : interdit de replacer la police
+  auto-hébergée devant celle d'Apple, ou de réintroduire un `preload`, sans que le test tombe.
+- L'arbitrage revient sur la décision A3 de `AUDIT_UI_HOMOGENEITE_2026-09.md` (« même dessin
+  d'emoji sur tous les appareils ») : il reste tenu **à l'intérieur d'un même écran** — le vrai
+  défaut d'origine, une épingle et un emoji de nom de zone dessinés différemment côte à côte —
+  mais plus **entre** un iPhone et un Android. Détail : `AUDIT_EMOJIS_APPLE_2026-09-17.md` § 7.
+
+### Documentation — audit de l'affichage des emojis sur appareils Apple
+
+- [`docs/AUDIT_EMOJIS_APPLE_2026-09-17.md`](docs/AUDIT_EMOJIS_APPLE_2026-09-17.md) : chaîne
+  complète d'affichage d'un emoji (fichier de police, `@font-face`, ordre des piles, livraison
+  HTTP, cache hors ligne), avec mesures — lecture table par table du WOFF2 livré et sondes de
+  rendu Chromium/WebKit pilotées par Playwright.
+- **Constat principal (EMO-APL-001)** : la pile impose `ForetMapColorEmoji` (Noto auto-hébergé)
+  avant `Apple Color Emoji` sur tous les appareils. WebKit n'implémentant ni COLRv1 ni COLRv0,
+  un iPhone ne peut dessiner cette police que par sa table OT-SVG — 20,1 Mo des 25,1 Mo
+  décompressés — voie documentée comme instable (glyphes qui disparaissent au zoom, or l'écran
+  principal est une carte que l'on zoome). Le rendu Chrome/Android, qui passe par COLRv1, n'est
+  pas concerné. Aucun bug dans le code ForetMap : c'est un choix de police, et l'arbitrage
+  (§ 7 de l'audit) revient à l'équipe.
+- **EMO-APL-003** : le `<link rel="preload">` des deux entrées HTML annule l'optimisation
+  `unicode-range` documentée juste à côté — 5,7 Mo téléchargés inconditionnellement à la
+  première visite, soit **11× le bundle principal** (498 Ko). Mesuré : une police système placée
+  devant fait tomber la webfont à **zéro requête** (Chromium et WebKit).
+- Écartés après vérification : réparation du mojibake, détection du préfixe emoji
+  (`Intl.Segmenter`), rendu des `<text>` SVG de la carte, CSP, divergence des trois
+  `unicode-range`.
+
+### Corrigé — polices servies sans en-tête de cache
+
+- `/fonts/*` sortait avec les défauts d'`express.static` (`max-age=0` + ETag) : une revalidation
+  réseau à chaque chargement de page pour 5,7 Mo, et un re-téléchargement complet dès purge du
+  cache HTTP. `lib/staticCacheHeaders.js` pose désormais 30 jours sur `dist/fonts/` — sans
+  `immutable`, le nom du fichier n'étant pas haché (il change à chaque
+  `npm run fonts:sync-noto-emoji`). Test : `tests/static-cache-headers.test.js`.
 ### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
 
 - Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
@@ -2066,6 +2386,42 @@ Audit et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDI
   alors qu'un nom existe pour elle fait échouer l'intégration continue.
 
 Audit, mesures d'écart perceptuel et décisions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§6, lot C).
+
+### Corrigé — le panneau « Séries récurrentes » perdait la prévision des séries bloquées
+
+- **Le tri du plafond était à l'envers.** Le calcul de la prochaine occurrence coûtant
+  plusieurs requêtes par série, la liste est bornée. Elle l'était par « échéance la plus
+  lointaine d'abord » : on gardait les séries qui roulent toutes seules et on jetait les
+  plus anciennes. Or **une série bloquée garde une vieille échéance parce qu'elle est
+  bloquée** — les séries en attente de validation étaient donc les premières à sortir de
+  la fenêtre, et le panneau perdait leur ligne de prévision précisément quand elle
+  réclamait une action. Le tri suit désormais ce qui appelle le professeur : non validées
+  d'abord, puis échéance la plus ancienne.
+- **La troncature ne se fait plus passer pour une absence.** Une série hors fenêtre
+  s'affichait exactement comme une série sans prochaine occurrence. La réponse expose
+  maintenant `truncated` et `limit` (200, contre 60), et le panneau dit
+  _« Prévision non calculée »_ au lieu de laisser conclure qu'il n'y en a pas.
+
+### Modifié — les deux familles de gris n'en font plus qu'une
+
+- **Le gris pur rejoint l'échelle ardoise.** ForetMap employait deux familles de gris sans
+  le savoir : une neutre (`#222` à `#888`, écrite à la main) et une ardoise (`--ink-*`,
+  légèrement bleutée, déjà employée 52 fois). Les **18 encres de texte** et les **2 filets**
+  de la première prennent le rôle correspondant dans la seconde. Le reflet bleu est réel et
+  assumé (ΔE de 8 à 12) ; **aucun texte ne bascule de part et d'autre du seuil de contraste
+  AA** qu'il tenait déjà.
+- **Le garde-fou n'a plus de mou** : le plafond de littéraux hexadécimaux passe de 745 à
+  **669**, la valeur exacte — le prochain écrit en dur le fait échouer.
+- **Trois familles restent volontairement à part** et le document le dit : les blancs cassés
+  teintés vert du thème forêt (les fusionner ferait pencher le thème vers le bleu), les
+  traits du graphe trophique (data-visualisation, pas texte d'interface) et les noirs de
+  G&L (palette de marque d'un sous-produit isolé).
+- **Un défaut d'accessibilité devient corrigeable** : le rôle « texte tertiaire »
+  (`--ink-faint`) vaut 3,08:1 sur blanc, sous le seuil AA. Les gris qui viennent de le
+  rejoindre étaient déjà en dessous — le lot ne crée pas le défaut, il le rassemble en un
+  seul endroit où il pourra être tranché.
+
+Mesures, écarts perceptuels et exceptions : [`docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md`](docs/AUDIT_UI_FORMULAIRES_ONGLETS_2026-09.md) (§7, lot D).
 
 ---
 
