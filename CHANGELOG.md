@@ -52,6 +52,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Le correctif précédent (mémoriser l'origine de départ) était incomplet : il ne servait à rien
   tant que son propre cookie restait sur un hôte que le rappel ne voit jamais.
 
+### Corrigé — « Reprendre le parcours » redémarrait à l'étape 1
+
+- Sur les trois surfaces (Visite, carte de travail, Plan Lyautey), le bouton **« Reprendre le
+  parcours »** rejouait le parcours **depuis le début** : quitter à l'étape 7 sur 9 pour regarder
+  un autre lieu obligeait à toucher « Suivant » six fois. Le bouton promet pourtant la reprise, et
+  l'aide du Plan aussi (« Après "Quitter", reprenez via la puce ou "Reprendre" ») — constat §2.2 de
+  `docs/AUDIT_PARCOURS_2026-09-17.md`.
+- L'étape quittée est désormais retenue et restituée, dans le hook partagé
+  (`shared/map-routes/useMapRouteMode`) **et** dans la copie du Plan, pour que les deux ne
+  divergent pas. Relancer le parcours depuis la liste repart bien du début, et un parcours dont
+  des lieux ont disparu entre-temps reprend à sa dernière étape encore existante.
+- Tests : `tests-ui/shared/useMapRouteMode.test.jsx` (8 cas — le noyau partagé n'avait aucun test
+  direct) et l'assertion manquante après le clic sur « Reprendre » dans
+  `tests-ui/plan/AppPlanMount.test.jsx`.
+
 ### Documentation — audit de stratégie de plateforme (construire / déléguer / remplacer)
 
 - **Nouvel audit `docs/AUDIT_STRATEGIE_PLATEFORME_2026-09.md`** : arbitrage mesuré entre ce que le
