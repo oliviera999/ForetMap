@@ -3473,6 +3473,12 @@
       font-size: var(--text-sm);
       color: var(--forest);
     }
+    /* Absence de réponse, pas réponse négative : le ton reste en retrait du vert
+       affirmatif que porte une prévision réellement calculée. */
+    .recurring-series-next--unknown {
+      color: var(--muted, #5a6b5d);
+      font-style: italic;
+    }
     .recurring-series-anchor {
       color: var(--muted, #5a6b5d);
     }
