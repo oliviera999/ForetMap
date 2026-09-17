@@ -624,11 +624,24 @@ body.plan-body {
   color: var(--plan-muted);
 }
 
+/* Le Plan reprend le contrat de champ commun (`shared/styles/form-controls.css`) et se
+   contente d'en teinter les tokens à sa charte marine : il ne réécrit ni bordure ni rayon.
+   `.plan-topbar__input` reste l'exception assumée — ce champ-là vit à l'intérieur d'une
+   pilule de recherche qui porte déjà la bordure, il doit donc rester nu. */
+.plan-access-gate {
+  --fm-control-border: rgba(24, 48, 88, 0.35);
+  --fm-control-border-hover: var(--plan-navy-mid);
+  --fm-control-border-focus: var(--plan-navy-mid);
+  --fm-control-ring: 0 0 0 3px rgba(64, 96, 136, 0.22);
+  --fm-control-ink: var(--plan-ink);
+  --fm-control-min-h: var(--tap-target);
+}
+
 .plan-access-gate__input {
   min-height: var(--tap-target);
   padding: 0 var(--space-3, 12px);
-  border: 1px solid rgba(24, 48, 88, 0.35);
-  border-radius: 10px;
+  border: 1px solid var(--fm-control-border);
+  border-radius: var(--fm-control-radius, 10px);
   font: inherit;
   font-size: var(--text-md, 1.05rem);
 }

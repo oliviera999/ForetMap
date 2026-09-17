@@ -175,11 +175,49 @@ raccourci sur un `<select>`).
 
 ---
 
-## 5. Reste à faire
+## 5. Lot B — surfaces, tableaux, libellés (livré le 17 septembre 2026)
 
-| #   | Sujet                                                                                                                                       | Traite |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| B1  | Primitive de surface `.fm-panel` et réparation des 8 `.card` fantômes (Quiz, réseau trophique, rattachement, réglages de validation, stats) | F2     |
-| B2  | Un seul habillage de tableau pour les cinq de ForetMap                                                                                      | F8     |
-| B3  | Un seul dialecte de libellé de champ (`.field label` contre `.pedago-filter-field`)                                                         | F7     |
-| B4  | Poursuivre la tokenisation de la couleur et la résorption des styles inline (lot C de `AUDIT_UI_2026-09-16.md`, toujours ouvert)            | —      |
+| #   | Action                                                                                                                                                                                                                                                                   | Traite |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| B1  | `src/shared/styles/surfaces.css` — `.fm-panel` (+ `--flush`, `--quiet`, `__head`, `__title`, `__body`) et ses tokens `--fm-panel-*`. `.card` en devient l'alias : les 8 écrans qui posaient une classe inexistante retrouvent une surface, sans que leur balisage change | F2     |
+| B2  | `.fm-table` / `.fm-table-wrap` (+ `--dense`, `__actions`) et ses tokens `--fm-table-*` : les 5 habillages convergent, les 2 tableaux sans classe et les 2 classes fantômes sont rattachés                                                                                | F8     |
+| B3  | Un seul dialecte de libellé (`.fm-label`) : les capitales interlettrées disparaissent, les 7 variantes s'alignent                                                                                                                                                        | F7     |
+| B4  | **Conformité inter-produits** : les 4 entrées (ForetMap, G&L, Plan, plan des personnels) chargent les feuilles du contrat, sous garde-fou                                                                                                                                | F9     |
+| B5  | La fiche de pack mascotte cesse de réécrire son tableau en styles inline                                                                                                                                                                                                 | F8     |
+
+### F9 — 🟠 Un produit neuf repartait d'une page blanche (constat du lot B)
+
+La relecture des PR fusionnées les 16 et 17 septembre (#493, #495, #497, #498) a fait
+apparaître un mécanisme que le lot A n'avait pas vu : **#497 a introduit un quatrième
+produit**, le plan des personnels (`src/staff/`), dont l'entrée ne chargeait ni
+`form-controls.css` ni la moindre feuille du contrat. Le Plan public était dans le même cas.
+
+Ce n'est pas une négligence : rien ne le signalait. `src/plan/styles/plan.css` va jusqu'à
+**réaliaser `--forest` et `--leaf` sur sa charte marine**, en toutes lettres « pour les
+contrôles partagés » — l'intention de réutiliser le contrat commun est écrite, mais la
+feuille n'était pas chargée. Dans les faits ces deux produits n'ont que deux champs (la
+recherche de la barre haute et le formulaire de suggestion), tous deux habillés à la main :
+le manque ne se voyait donc pas encore à l'écran.
+
+Le reste de ces PR est conforme, et c'est le point important : `SurfaceVisibilityField`
+(nouveau champ partagé) emploie `.fm-surface-field`, `StaffPlanSettingsPanel` (nouvel écran
+d'administration) emploie `.field` et `.muted`. Le contrat est suivi **quand il est
+disponible** ; ce qui manquait, c'est qu'une entrée nouvelle le charge d'office.
+
+**Traité :** les quatre entrées chargent `form-controls.css` et `surfaces.css`, et
+`tests/form-controls-guard.test.js` échoue si l'une cesse de le faire. Le Plan teinte les
+tokens à sa charte marine au lieu de réécrire ses bordures. `.plan-topbar__input` reste nu,
+et c'est documenté sur place : ce champ vit à l'intérieur d'une pilule de recherche qui
+porte déjà la bordure.
+
+> **Le chevron est le seul token qui ne se dérive pas.** Sa couleur est cuite dans le SVG :
+> un produit à une autre palette doit remplacer `--fm-control-chevron` en entier. Aucun ne le
+> fait aujourd'hui — ni le Plan ni le plan des personnels n'ont de liste déroulante.
+
+## 6. Reste à faire
+
+| #   | Sujet                                                                                                                                                                                                                                   | Traite |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| C1  | Migrer les surfaces historiques (`.about-card`, `.stat-card`, `.pin-card`, `.notif-panel`, `.forum-panel`) sur `.fm-panel`. Elles sont correctes et cohérentes entre elles, mais chacune redéfinit fond, rayon et ombre pour son compte | F2     |
+| C2  | Poursuivre la tokenisation de la couleur et la résorption des styles inline (lot C de `AUDIT_UI_2026-09-16.md`, toujours ouvert)                                                                                                        | —      |
+| C3  | Harmoniser les tableaux de G&L (`.gl-admin-table`, `.gl-content-library__table`, `.gl-admin-credentials__table`) — hors périmètre ForetMap                                                                                              | F8     |

@@ -17,6 +17,7 @@
     @import './shared/styles/shared-controls.css';
     @import './shared/styles/form-controls.css';
     @import './shared/styles/subtabs.css';
+    @import './shared/styles/surfaces.css';
     @import './shared/styles/map-action.css';
     @import './shared/styles/map-overlay-labels.css';
     @import './shared/styles/map-scale-compass.css';
@@ -248,7 +249,10 @@
 
     /* ── FORMS ── */
     .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-    .field label { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--leaf); letter-spacing:.07em; text-transform:uppercase; }
+    /* Apparence dans `shared/styles/form-controls.css` (`.fm-label`) : un seul dialecte de
+       libellé pour toute l'application. Les capitales interlettrées ont disparu — voir le
+       commentaire de ce fichier-là pour le pourquoi. */
+    .field label { font-size:var(--text-sm); font-weight:var(--fw-semibold); line-height:var(--lh-tight); color:var(--leaf); }
     /* Bordure, rayon, fond, focus et chevron viennent désormais de la couche de base
        (« COUCHE DE BASE DES CHAMPS », plus haut) : `.field` ne garde que ce qui lui est
        propre, la largeur pleine. Une seule définition de l'apparence, donc un seul endroit
@@ -7568,33 +7572,9 @@
 .moodle-actions .btn-sm {
   min-height: 36px;
 }
-.moodle-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
-.moodle-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-.moodle-table th,
-.moodle-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-  vertical-align: middle;
-}
-.moodle-table th {
-  color: var(--ink-soft);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.moodle-table tr.is-muted td {
-  color: var(--ink-soft);
-}
-.moodle-table tr.is-selected td {
-  background: #f3f7f3;
-}
+/* Largeur, filets, en-têtes et lignes : `.fm-table` (shared/styles/surfaces.css). Le filet
+   était ici en `#e5e7eb`, un gris neutre étranger à la palette — comme les `#cbd5e1` des
+   champs corrigés au lot précédent. */
 /* Tableau dense : densité réglée par les tokens, apparence héritée de la couche de base.
    Les champs y étaient laissés au rendu natif du système. */
 .moodle-table {
@@ -7851,9 +7831,7 @@
 .media-library-menu__filter-label {
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--ink-soft);
 }
 
 .media-library-menu__search input,
@@ -8379,8 +8357,6 @@
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
   color: var(--ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .profiles-admin-filter > input,
 .profiles-admin-filter > select {
@@ -8938,9 +8914,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: var(--text-sm);
+  /* Typographie : `.fm-label--filter` (form-controls.css). Ce bloc ne garde que la mise
+     en colonne, propre à ce conteneur. */
+  font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
-  color: #6b7f72;
+  color: var(--ink-soft);
 }
 .pedago-error {
   color: #b91c1c;
@@ -9236,13 +9214,17 @@
   overflow: auto;
 }
 .pedago-links__suggestion-list p { margin: 2px 0 0; }
-.pedago-links__table-wrap { overflow-x: auto; }
-.pedago-links__table { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
+/* Colonne des durées de la fiche de pack : une liste longue se casse dans sa colonne
+   plutôt que d'élargir le tableau. */
+.visit-mascot-pack-detail-table__dwell {
+  max-width: 220px;
+  word-break: break-all;
+}
+
+/* Seule différence assumée avec `.fm-table` : l'alignement haut, parce qu'une cellule y
+   porte plusieurs lignes (question + note + avertissement). */
 .pedago-links__table th,
 .pedago-links__table td {
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid #e2ebe5;
   vertical-align: top;
 }
 .pedago-links__table p { margin: 4px 0 0; }
