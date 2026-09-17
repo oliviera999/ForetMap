@@ -9,6 +9,7 @@ import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModa
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
+import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
 import { ContextComments } from '../context-comments';
 import {
   MarkerCommonFormFields,
@@ -120,6 +121,9 @@ function MarkerModal({
     showTasksTab,
     showTutorialsTab,
   } = useLocationModalData('marker', marker, { tasks, tutorials, student, isTeacher, isNew });
+  // Groupes proposables dans les réglages d'audience (migration 262) : seulement pour un
+  // compte qui édite — inutile de charger la liste pour un élève qui consulte une fiche.
+  const audienceGroupOptions = useAudienceGroupOptions(isTeacher);
 
   useEffect(() => {
     if (isNew) return;
@@ -263,6 +267,7 @@ function MarkerModal({
         {isTeacher ? (
           <>
             <MarkerCommonFormFields
+              groupOptions={audienceGroupOptions}
               form={form}
               setForm={setForm}
               plants={plants}
@@ -578,6 +583,7 @@ function MarkerModal({
       {tab === 'edit' && isTeacher && (
         <div className="fade-in">
           <MarkerCommonFormFields
+            groupOptions={audienceGroupOptions}
             form={form}
             setForm={setForm}
             plants={plants}

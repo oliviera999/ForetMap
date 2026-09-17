@@ -16,6 +16,103 @@ import {
   buildCategoryReorderPatches,
   sortLocationCategories,
 } from '../../utils/locationCategories.js';
+import {
+  FORETMAP_AUDIENCE_ROLE_OPTIONS,
+  normalizeAudienceGroupList,
+  normalizeAudienceRoleList,
+} from '../../shared/ui/LocationAudienceFields.jsx';
+import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
+
+/**
+ * Audience **héritée** d'une catégorie (migration 262).
+ *
+ * Elle ne s'applique qu'aux lieux de la catégorie qui ne déclarent aucune audience propre :
+ * le plus spécifique gagne. Une catégorie sans case cochée reste **neutre** — elle n'ouvre ni
+ * ne ferme rien —, sinon ranger un lieu réservé dans une catégorie ordinaire l'aurait rendu
+ * public, l'union avec « tout le monde » étant « tout le monde ».
+ *
+ * C'est le réglage le plus large de l'application : il peut masquer d'un coup tous les lieux
+ * d'une catégorie. D'où l'avertissement explicite, et l'absence de valeur par défaut.
+ */
+function CategoryAudienceFields({
+  roleSlugs,
+  groupIds,
+  groupOptions,
+  onRoleSlugsChange,
+  onGroupIdsChange,
+}) {
+  const roles = normalizeAudienceRoleList(roleSlugs);
+  const groups = normalizeAudienceGroupList(groupIds);
+  const options = Array.isArray(groupOptions) ? groupOptions : [];
+  const toggleRole = (slug, checked) => {
+    const next = new Set(roles);
+    if (checked) next.add(slug);
+    else next.delete(slug);
+    onRoleSlugsChange?.(
+      FORETMAP_AUDIENCE_ROLE_OPTIONS.map((r) => r.slug).filter((sl) => next.has(sl)),
+    );
+  };
+  const toggleGroup = (id, checked) => {
+    const next = checked ? [...groups, id] : groups.filter((g) => g !== id);
+    onGroupIdsChange?.(normalizeAudienceGroupList(next));
+  };
+
+  return (
+    <fieldset className="fm-surface-field">
+      <legend className="fm-surface-field__legend">Audience héritée par les lieux</legend>
+      <p className="hint" style={{ marginTop: 0 }}>
+        Aucune case = catégorie neutre (comportement habituel). Sinon, les lieux de cette catégorie{' '}
+        <strong>qui n’ont pas d’audience propre</strong> ne sont visibles que par ces rôles ou ces
+        groupes. Un réglage posé sur un lieu l’emporte toujours sur celui de sa catégorie.
+      </p>
+      <div className="fm-surface-field__options">
+        {FORETMAP_AUDIENCE_ROLE_OPTIONS.map((role) => {
+          const inputId = `category-audience-role-${role.slug}`;
+          return (
+            <label key={role.slug} htmlFor={inputId} className="fm-surface-field__option">
+              <input
+                id={inputId}
+                type="checkbox"
+                checked={roles.includes(role.slug)}
+                onChange={(e) => toggleRole(role.slug, e.target.checked)}
+              />
+              <span>{role.label}</span>
+            </label>
+          );
+        })}
+      </div>
+      {options.length > 0 ? (
+        <>
+          <p className="fm-audience-groups__legend">…ou membres de ces groupes</p>
+          <div className="fm-surface-field__options">
+            {options.map((group) => {
+              const id = String(group?.id ?? '');
+              if (!id) return null;
+              const inputId = `category-audience-group-${id}`;
+              return (
+                <label key={id} htmlFor={inputId} className="fm-surface-field__option">
+                  <input
+                    id={inputId}
+                    type="checkbox"
+                    checked={groups.includes(id)}
+                    onChange={(e) => toggleGroup(id, e.target.checked)}
+                  />
+                  <span>{String(group?.name || group?.slug || id)}</span>
+                </label>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+      {roles.length > 0 || groups.length > 0 ? (
+        <p className="fm-surface-field__warning">
+          ⚠️ Tous les lieux de cette catégorie sans audience propre deviennent invisibles hors de
+          cette liste — carte, visite et plan compris.
+        </p>
+      ) : null}
+    </fieldset>
+  );
+}
 
 const APPLIES_TO_LABELS = {
   both: 'Zones et repères',
@@ -43,6 +140,10 @@ const EMPTY_DRAFT = {
   zoom_only: false,
   sort_order: 100,
   is_active: true,
+  // Audience héritée (migration 262) : les lieux de la catégorie sans audience propre
+  // prennent celle-ci. Vide = catégorie neutre.
+  visible_role_slugs: [],
+  visible_group_ids: [],
 };
 
 function draftFromCategory(category) {
@@ -61,6 +162,8 @@ function draftFromCategory(category) {
     zoom_only: !!category.zoom_only,
     sort_order: Number(category.sort_order) || 0,
     is_active: category.is_active !== false,
+    visible_role_slugs: normalizeAudienceRoleList(category.visible_role_slugs),
+    visible_group_ids: normalizeAudienceGroupList(category.visible_group_ids),
   };
 }
 
@@ -78,6 +181,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
   const { data, loading, reload } = useApiResource(fetcher, []);
   const categories = sortLocationCategories(Array.isArray(data) ? data : []);
 
+  const groupOptions = useAudienceGroupOptions(true);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -102,6 +206,8 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     zoom_only: draft.zoom_only,
     sort_order: Number(draft.sort_order) || 0,
     is_active: draft.is_active,
+    visible_role_slugs: normalizeAudienceRoleList(draft.visible_role_slugs),
+    visible_group_ids: normalizeAudienceGroupList(draft.visible_group_ids),
   });
 
   const submit = async () => {
@@ -298,6 +404,14 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
         />
         Visible seulement au zoom (désencombre la carte vue en entier)
       </label>
+
+      <CategoryAudienceFields
+        roleSlugs={draft.visible_role_slugs}
+        groupIds={draft.visible_group_ids}
+        groupOptions={groupOptions}
+        onRoleSlugsChange={(next) => setField({ visible_role_slugs: next })}
+        onGroupIdsChange={(next) => setField({ visible_group_ids: next })}
+      />
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input

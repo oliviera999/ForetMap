@@ -36,10 +36,13 @@ const {
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
+  assertAudienceGroupsExist,
+  serializeGroupIdList,
   serializeRoleSlugList,
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
 const {
+  assertLocationLinksGroupsExist,
   normalizeLocationLinksInput,
   loadLocationLinksMap,
   attachLinksToEntity,
@@ -108,9 +111,10 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
   await execute(
     `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
+       restricted_note_group_ids,
        is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        x_pct = VALUES(x_pct),
@@ -123,8 +127,10 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
        visible_role_slugs = VALUES(visible_role_slugs),
+       visible_group_ids = VALUES(visible_group_ids),
        restricted_note = VALUES(restricted_note),
        restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
+       restricted_note_group_ids = VALUES(restricted_note_group_ids),
        updated_at = VALUES(updated_at)`,
     [
       markerRow.id,
@@ -139,8 +145,10 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       detailsText,
       bodyJson,
       audience.visible_role_slugs,
+      audience.visible_group_ids,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
+      audience.restricted_note_group_ids,
       now,
       now,
     ],
@@ -151,12 +159,15 @@ async function mirrorMarkerAudienceToVisit(markerRow) {
   const audience = mapMarkerToVisitWhitelistFields(markerRow);
   await execute(
     `UPDATE visit_markers
-     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     SET visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
+         restricted_note_role_slugs = ?, restricted_note_group_ids = ?, updated_at = ?
      WHERE id = ? AND map_id = ?`,
     [
       audience.visible_role_slugs,
+      audience.visible_group_ids,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
+      audience.restricted_note_group_ids,
       nowDbTimestamp(),
       markerRow.id,
       markerRow.map_id,
@@ -262,8 +273,10 @@ router.post(
       hidden_surfaces,
       search_aliases,
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
       links,
     } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
@@ -276,12 +289,20 @@ router.post(
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
+    if (!audienceGroupsCheck.ok) return res.status(400).json({ error: audienceGroupsCheck.error });
     const linksInput = normalizeLocationLinksInput(links);
     if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
+    if (linksInput.value !== null) {
+      const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
+      if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
     // Coordonnées en pourcentage : bornées 0-100 (sinon un repère hors carte, ou NaN, était
     // inséré tel quel — paramétré donc sans injection, mais qualité de données non garantie).
     const xPct = Number(x_pct);
@@ -296,7 +317,7 @@ router.post(
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = crypto.randomUUID();
     await execute(
-      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases, visible_role_slugs, restricted_note, restricted_note_role_slugs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs, restricted_note_group_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -310,8 +331,10 @@ router.post(
         serializeSurfaceSet(hiddenSurfacesInput.value || []),
         normalizeSearchAliases(search_aliases) || null,
         serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
+        serializeGroupIdList(audienceInput.visible_group_ids || []) || null,
         audienceInput.restricted_note || null,
         serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
+        serializeGroupIdList(audienceInput.restricted_note_group_ids || []) || null,
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
@@ -369,8 +392,10 @@ router.put(
       hidden_surfaces,
       search_aliases,
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
       links,
     } = req.body;
     if (label !== undefined && !String(label).trim()) {
@@ -383,13 +408,21 @@ router.put(
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
+    if (!audienceGroupsCheck.ok) return res.status(400).json({ error: audienceGroupsCheck.error });
     // Liens documentaires : omis = inchangés, `[]` = tous retirés.
     const linksInput = normalizeLocationLinksInput(links);
     if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
+    if (linksInput.value !== null) {
+      const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
+      if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(m.hidden_surfaces ?? '')
@@ -402,6 +435,10 @@ router.put(
       audienceInput.visible_role_slugs === null
         ? (m.visible_role_slugs ?? null)
         : serializeRoleSlugList(audienceInput.visible_role_slugs) || null;
+    const nextVisibleGroupIds =
+      audienceInput.visible_group_ids === null
+        ? (m.visible_group_ids ?? null)
+        : serializeGroupIdList(audienceInput.visible_group_ids) || null;
     const nextRestrictedNote =
       audienceInput.restricted_note === null
         ? (m.restricted_note ?? null)
@@ -410,6 +447,10 @@ router.put(
       audienceInput.restricted_note_role_slugs === null
         ? (m.restricted_note_role_slugs ?? null)
         : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
+    const nextRestrictedNoteGroupIds =
+      audienceInput.restricted_note_group_ids === null
+        ? (m.restricted_note_group_ids ?? null)
+        : serializeGroupIdList(audienceInput.restricted_note_group_ids) || null;
     if (map_id != null) {
       const mapId = String(map_id).trim();
       if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
@@ -435,7 +476,7 @@ router.put(
           : String(m.plant_name || '').trim();
     const nextMapIdForMarker = map_id != null ? String(map_id).trim() : m.map_id;
     await execute(
-      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, restricted_note=?, restricted_note_role_slugs=? WHERE id=?',
+      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=?, restricted_note=?, restricted_note_role_slugs=?, restricted_note_group_ids=? WHERE id=?',
       [
         nextMapIdForMarker,
         x_pct ?? m.x_pct,
@@ -449,8 +490,10 @@ router.put(
         nextHiddenSurfaces,
         nextSearchAliases,
         nextVisibleRoleSlugs,
+        nextVisibleGroupIds,
         nextRestrictedNote,
         nextRestrictedNoteRoleSlugs,
+        nextRestrictedNoteGroupIds,
         m.id,
       ],
     );
@@ -480,8 +523,10 @@ router.put(
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     } else if (
       audienceInput.visible_role_slugs !== null ||
+      audienceInput.visible_group_ids !== null ||
       audienceInput.restricted_note !== null ||
-      audienceInput.restricted_note_role_slugs !== null
+      audienceInput.restricted_note_role_slugs !== null ||
+      audienceInput.restricted_note_group_ids !== null
     ) {
       await mirrorMarkerAudienceToVisit(updated);
     }

@@ -9,6 +9,58 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — audience des lieux par groupes, et héritage depuis la catégorie
+
+Suite des deux réglages restés marqués « 🔧 À implémenter » dans
+`docs/reference/foretmap/carte-et-zones.md`. Migration `262`.
+
+**Restreindre à une classe, un club, une équipe.** À côté des rôles, chaque réglage
+d'audience propose désormais les **groupes** — ce qu'un rôle ne sait pas faire : distinguer
+deux classes. Colonnes jumelles sur les trois réglages : visibilité du lieu, complément
+réservé, et audience de chaque lien (`visible_group_ids`, `restricted_note_group_ids`,
+`location_links.audience_group_ids`).
+
+- **Union, jamais intersection** : le lecteur passe s'il a le bon rôle **ou** s'il est dans
+  l'un des groupes. Avec une intersection, cocher un rôle sans cocher de groupe — le cas
+  courant — aurait rendu le lieu invisible pour tout le monde.
+- Les groupes du lecteur viennent de `req.auth.groupIds`, déjà posé par l'hydratation de
+  session : **aucune requête supplémentaire** par lecture.
+- Les groupes proposés à l'édition sont bornés au périmètre de l'auteur
+  (`GET /api/groups/options`) : un prof de classe ne restreint qu'à ses propres groupes.
+- L'existence des identifiants est vérifiée **à l'écriture** (400 sur un groupe inconnu) :
+  une coquille aurait produit un lieu que plus personne ne voit, sans le moindre message.
+  À la lecture, un groupe supprimé cesse simplement de correspondre.
+
+**Héritage d'audience depuis la catégorie.** Une catégorie de lieux peut porter une audience ;
+les lieux de cette catégorie **sans audience propre** en héritent — de quoi restreindre une
+famille entière de lieux sans les reprendre un par un.
+
+- **Le plus précis gagne** : une audience posée sur le lieu ignore celle de sa catégorie.
+- **Une catégorie sans case cochée reste neutre.** Sans cette règle, ranger un lieu réservé
+  dans une catégorie ordinaire l'aurait rendu public — l'union avec « public » vaut
+  « public ». C'est le piège central de l'héritage, et il est couvert par un test dédié.
+- L'héritage est lu sur les catégories **attachées à l'entité**, que toute réponse zone /
+  repère porte déjà : il suit les entités plutôt qu'un index que chaque surface devrait penser
+  à transmettre — un oubli aurait été un trou de confidentialité silencieux.
+
+**Corrigé au passage — fuite de métadonnées d'audience.** Le catalogue de catégories
+(`GET /api/map-categories`) est servi jusqu'au visiteur anonyme de la Visite et du Plan : y
+laisser les colonnes d'audience aurait révélé à qui n'y a aucun droit quels rôles et quelles
+classes chaque catégorie vise. Elles ne sortent plus que par
+`GET /api/map-categories/manage` (permission `zones.manage`) et sur les catégories attachées
+à un lieu pour un gestionnaire.
+
+**Interface.** Cases « groupes » sous les rôles dans les deux fieldsets d'audience, avec le
+libellé « …ou membres de ces groupes » qui dit l'union ; bloc d'audience de chaque lien
+**replié** tant que le lien est public, avec un résumé en clair (« Qui voit ce lien :
+Classe A ») — douze liens × huit rôles × les groupes déroulés d'un coup rendaient le
+formulaire illisible ; avertissement explicite dans la console des catégories, ce réglage
+pouvant masquer d'un coup tous les lieux d'une famille.
+
+Documentation : `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md` (« Restreindre à
+une classe ou à un club », « Audience héritée d'une catégorie »). Il ne reste qu'un point
+ouvert sur l'audience : plusieurs compléments de **texte** par lieu, un par public.
+
 ### Ajouté — liens dans les descriptions de repères et de zones (3 lots)
 
 **Lot 1 — parité d'édition, d'affichage et de surface.**

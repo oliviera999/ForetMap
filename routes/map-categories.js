@@ -22,6 +22,33 @@ const {
   serializeSurfaceSet,
   readSurfaceQuery,
 } = require('../lib/locationSurfaces');
+const {
+  assertKnownGroupIds,
+  normalizeGroupIdInput,
+  normalizeRoleSlugInput,
+  serializeGroupIdList,
+  serializeRoleSlugList,
+} = require('../lib/locationAudience');
+
+/**
+ * Audience héritée d'une catégorie (migration 262) : les lieux de la catégorie qui ne
+ * déclarent aucune audience propre prennent celle-ci. Omis = inchangé, `[]` = catégorie
+ * rendue neutre. L'existence des groupes est vérifiée ici : une coquille produirait une
+ * catégorie qui masque silencieusement tous ses lieux.
+ */
+async function readCategoryAudienceInput(body) {
+  const roles = normalizeRoleSlugInput(body?.visible_role_slugs, { field: 'visible_role_slugs' });
+  if (!roles.ok) return roles;
+  const groups = normalizeGroupIdInput(body?.visible_group_ids, { field: 'visible_group_ids' });
+  if (!groups.ok) return groups;
+  if (groups.value != null) {
+    const known = await assertKnownGroupIds({ queryAll }, groups.value, {
+      field: 'visible_group_ids',
+    });
+    if (!known.ok) return known;
+  }
+  return { ok: true, roles: roles.value, groups: groups.value };
+}
 const { mapExists } = require('../lib/mapQueries');
 
 const db = { queryAll, queryOne, execute, withTransaction };
@@ -129,7 +156,8 @@ router.get(
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
-    res.json(await listCategories(db, { mapId, includeInactive: true }));
+    // Écran de gestion (`zones.manage`) : seul endroit qui expose l'audience héritée.
+    res.json(await listCategories(db, { mapId, includeInactive: true, includeAudience: true }));
   }),
 );
 
@@ -220,11 +248,13 @@ router.post(
     // Surfaces où la catégorie apparaît (lot 4) : omis = toutes.
     const surfacesInput = normalizeSurfaceInput(req.body?.surfaces);
     if (!surfacesInput.ok) return res.status(400).json({ error: surfacesInput.error });
+    const audienceInput = await readCategoryAudienceInput(req.body);
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO location_categories
-        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only, visible_role_slugs, visible_group_ids)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -241,6 +271,8 @@ router.post(
         normalizeBooleanFlag(req.body?.is_active, 1),
         serializeSurfaceSet(surfacesInput.value === null ? SURFACES : surfacesInput.value),
         normalizeBooleanFlag(req.body?.zoom_only, 0),
+        serializeRoleSlugList(audienceInput.roles || []),
+        serializeGroupIdList(audienceInput.groups || []),
       ],
     );
     const created = await getCategoryById(db, id);
@@ -292,11 +324,13 @@ router.put(
     const surfacesInput = normalizeSurfaceInput(req.body?.surfaces);
     if (!surfacesInput.ok) return res.status(400).json({ error: surfacesInput.error });
     const nextSurfaces = surfacesInput.value === null ? current.surfaces : surfacesInput.value;
+    const audienceInput = await readCategoryAudienceInput(req.body);
+    if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     await execute(
       `UPDATE location_categories
           SET map_id = ?, slug = ?, label = ?, emoji = ?, color = ?, description = ?,
               applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?, surfaces = ?,
-              zoom_only = ?
+              zoom_only = ?, visible_role_slugs = ?, visible_group_ids = ?
         WHERE id = ?`,
       [
         mapId,
@@ -315,6 +349,12 @@ router.put(
         normalizeBooleanFlag(req.body?.is_active, current.is_active ? 1 : 0),
         serializeSurfaceSet(nextSurfaces),
         normalizeBooleanFlag(req.body?.zoom_only, current.zoom_only ? 1 : 0),
+        serializeRoleSlugList(
+          audienceInput.roles === null ? current.visible_role_slugs : audienceInput.roles,
+        ),
+        serializeGroupIdList(
+          audienceInput.groups === null ? current.visible_group_ids : audienceInput.groups,
+        ),
         current.id,
       ],
     );
