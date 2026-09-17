@@ -43,12 +43,15 @@ const {
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
+  assertAudienceGroupsExist,
+  serializeGroupIdList,
   serializeRoleSlugList,
   filterLocationsForViewer,
   projectLocationAudienceForViewer,
   canViewLocation,
 } = require('../lib/locationAudience');
 const {
+  assertLocationLinksGroupsExist,
   normalizeLocationLinksInput,
   loadLocationLinksMap,
   attachLinksToEntity,
@@ -134,9 +137,10 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   await execute(
     `INSERT INTO visit_zones
       (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, restricted_note, restricted_note_role_slugs,
+       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
+       restricted_note_group_ids,
        is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        name = VALUES(name),
@@ -147,8 +151,10 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
        details_text = VALUES(details_text),
        body_json = VALUES(body_json),
        visible_role_slugs = VALUES(visible_role_slugs),
+       visible_group_ids = VALUES(visible_group_ids),
        restricted_note = VALUES(restricted_note),
        restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
+       restricted_note_group_ids = VALUES(restricted_note_group_ids),
        updated_at = VALUES(updated_at)`,
     [
       zoneRow.id,
@@ -161,8 +167,10 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       detailsText,
       bodyJson,
       audience.visible_role_slugs,
+      audience.visible_group_ids,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
+      audience.restricted_note_group_ids,
       now,
       now,
     ],
@@ -174,12 +182,15 @@ async function mirrorZoneAudienceToVisit(zoneRow) {
   const audience = mapZoneToVisitWhitelistFields(zoneRow);
   await execute(
     `UPDATE visit_zones
-     SET visible_role_slugs = ?, restricted_note = ?, restricted_note_role_slugs = ?, updated_at = ?
+     SET visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
+         restricted_note_role_slugs = ?, restricted_note_group_ids = ?, updated_at = ?
      WHERE id = ? AND map_id = ?`,
     [
       audience.visible_role_slugs,
+      audience.visible_group_ids,
       audience.restricted_note,
       audience.restricted_note_role_slugs,
+      audience.restricted_note_group_ids,
       nowDbTimestamp(),
       zoneRow.id,
       zoneRow.map_id,
@@ -390,8 +401,10 @@ router.put(
       hidden_surfaces,
       search_aliases,
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
       links,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
@@ -404,14 +417,24 @@ router.put(
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    // Existence des groupes cités : une coquille d'identifiant produirait un lieu que plus
+    // personne ne voit, sans le moindre message.
+    const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
+    if (!audienceGroupsCheck.ok) return res.status(400).json({ error: audienceGroupsCheck.error });
     // Liens documentaires : omis = inchangés, `[]` = tous retirés (c'est ce qu'envoie
     // l'interface quand on supprime la dernière ligne).
     const linksInput = normalizeLocationLinksInput(links);
     if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
+    if (linksInput.value !== null) {
+      const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
+      if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
         ? String(zone.hidden_surfaces ?? '')
@@ -424,6 +447,10 @@ router.put(
       audienceInput.visible_role_slugs === null
         ? (zone.visible_role_slugs ?? null)
         : serializeRoleSlugList(audienceInput.visible_role_slugs) || null;
+    const nextVisibleGroupIds =
+      audienceInput.visible_group_ids === null
+        ? (zone.visible_group_ids ?? null)
+        : serializeGroupIdList(audienceInput.visible_group_ids) || null;
     const nextRestrictedNote =
       audienceInput.restricted_note === null
         ? (zone.restricted_note ?? null)
@@ -432,6 +459,10 @@ router.put(
       audienceInput.restricted_note_role_slugs === null
         ? (zone.restricted_note_role_slugs ?? null)
         : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
+    const nextRestrictedNoteGroupIds =
+      audienceInput.restricted_note_group_ids === null
+        ? (zone.restricted_note_group_ids ?? null)
+        : serializeGroupIdList(audienceInput.restricted_note_group_ids) || null;
     // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
     // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
     const nextEmoji = resolveZoneEmojiForWrite(
@@ -503,7 +534,7 @@ router.put(
       categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
     });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, restricted_note=?, restricted_note_role_slugs=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=?, restricted_note=?, restricted_note_role_slugs=?, restricted_note_group_ids=? WHERE id=?',
       [
         nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
@@ -516,8 +547,10 @@ router.put(
         nextHiddenSurfaces,
         nextSearchAliases,
         nextVisibleRoleSlugs,
+        nextVisibleGroupIds,
         nextRestrictedNote,
         nextRestrictedNoteRoleSlugs,
+        nextRestrictedNoteGroupIds,
         zone.id,
       ],
     );
@@ -536,8 +569,10 @@ router.put(
       await upsertVisitZoneEditorial(req.body, updated);
     } else if (
       audienceInput.visible_role_slugs !== null ||
+      audienceInput.visible_group_ids !== null ||
       audienceInput.restricted_note !== null ||
-      audienceInput.restricted_note_role_slugs !== null
+      audienceInput.restricted_note_role_slugs !== null ||
+      audienceInput.restricted_note_group_ids !== null
     ) {
       await mirrorZoneAudienceToVisit(updated);
     }
@@ -606,8 +641,10 @@ router.post(
       hidden_surfaces,
       search_aliases,
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
       links,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
@@ -617,12 +654,22 @@ router.post(
     if (!hiddenSurfacesInput.ok) return res.status(400).json({ error: hiddenSurfacesInput.error });
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
+      visible_group_ids,
       restricted_note,
       restricted_note_role_slugs,
+      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
+    // Existence des groupes cités : une coquille d'identifiant produirait un lieu que plus
+    // personne ne voit, sans le moindre message.
+    const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
+    if (!audienceGroupsCheck.ok) return res.status(400).json({ error: audienceGroupsCheck.error });
     const linksInput = normalizeLocationLinksInput(links);
     if (!linksInput.ok) return res.status(400).json({ error: linksInput.error });
+    if (linksInput.value !== null) {
+      const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
+      if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
     // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
     if (
@@ -641,7 +688,7 @@ router.post(
     // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
     const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases, visible_role_slugs, restricted_note, restricted_note_role_slugs) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs, restricted_note_group_ids) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -654,8 +701,10 @@ router.post(
         serializeSurfaceSet(hiddenSurfacesInput.value || []),
         normalizeSearchAliases(search_aliases) || null,
         serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
+        serializeGroupIdList(audienceInput.visible_group_ids || []) || null,
         audienceInput.restricted_note || null,
         serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
+        serializeGroupIdList(audienceInput.restricted_note_group_ids || []) || null,
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);

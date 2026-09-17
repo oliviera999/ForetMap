@@ -13,6 +13,7 @@
  */
 import {
   FORETMAP_AUDIENCE_ROLE_OPTIONS,
+  normalizeAudienceGroupList,
   normalizeAudienceRoleList,
 } from './LocationAudienceFields.jsx';
 
@@ -32,7 +33,23 @@ export function classifyLocationLinkUrl(url) {
 
 /** Ligne vide d'ajout. */
 function emptyLink() {
-  return { label: '', url: '', audience_role_slugs: [] };
+  return { label: '', url: '', audience_role_slugs: [], audience_group_ids: [] };
+}
+
+/**
+ * Résumé lisible de l'audience d'un lien, affiché sur le repli. Sans lui, refermer le bloc
+ * ferait perdre de vue qu'un lien est réservé — exactement ce qu'on ne veut pas oublier.
+ */
+function audienceSummary(roles, groups, groupOptions) {
+  if (roles.length === 0 && groups.length === 0) return 'visible par tous ceux qui voient le lieu';
+  const roleLabels = FORETMAP_AUDIENCE_ROLE_OPTIONS.filter((r) => roles.includes(r.slug)).map(
+    (r) => r.label,
+  );
+  const byId = new Map(
+    (Array.isArray(groupOptions) ? groupOptions : []).map((g) => [String(g?.id ?? ''), g]),
+  );
+  const groupLabels = groups.map((id) => String(byId.get(id)?.name || byId.get(id)?.slug || id));
+  return [...roleLabels, ...groupLabels].join(', ');
 }
 
 /** Valeur d'API (liste de liens) → liste éditable, toujours un tableau. */
@@ -42,6 +59,7 @@ export function normalizeLocationLinksForForm(value) {
     label: String(link?.label ?? ''),
     url: String(link?.url ?? ''),
     audience_role_slugs: normalizeAudienceRoleList(link?.audience_role_slugs),
+    audience_group_ids: normalizeAudienceGroupList(link?.audience_group_ids),
   }));
 }
 
@@ -56,6 +74,7 @@ export function buildLocationLinksPayload(links) {
       label: String(link?.label ?? '').trim(),
       url: String(link?.url ?? '').trim(),
       audience_role_slugs: normalizeAudienceRoleList(link?.audience_role_slugs),
+      audience_group_ids: normalizeAudienceGroupList(link?.audience_group_ids),
     }))
     .filter((link) => link.label || link.url);
 }
@@ -79,7 +98,13 @@ export function locationLinkRowError(link) {
   return '';
 }
 
-export function LocationLinksFields({ links, onChange, idPrefix = 'links', disabled = false }) {
+export function LocationLinksFields({
+  links,
+  onChange,
+  idPrefix = 'links',
+  disabled = false,
+  groupOptions = [],
+}) {
   const list = Array.isArray(links) ? links : [];
   const atMax = list.length >= LOCATION_LINKS_MAX;
 
@@ -93,6 +118,11 @@ export function LocationLinksFields({ links, onChange, idPrefix = 'links', disab
     const next = list.slice();
     [next[index], next[target]] = [next[target], next[index]];
     onChange?.(next);
+  };
+  const toggleGroup = (index, groupId, checked) => {
+    const current = normalizeAudienceGroupList(list[index]?.audience_group_ids);
+    const next = checked ? [...current, groupId] : current.filter((g) => g !== groupId);
+    update(index, { audience_group_ids: normalizeAudienceGroupList(next) });
   };
   const toggleRole = (index, slug, checked) => {
     const current = normalizeAudienceRoleList(list[index]?.audience_role_slugs);
@@ -124,6 +154,8 @@ export function LocationLinksFields({ links, onChange, idPrefix = 'links', disab
       {list.map((link, index) => {
         const error = locationLinkRowError(link);
         const roles = normalizeAudienceRoleList(link?.audience_role_slugs);
+        const groups = normalizeAudienceGroupList(link?.audience_group_ids);
+        const restricted = roles.length > 0 || groups.length > 0;
         const labelId = `${idPrefix}-label-${index}`;
         const urlId = `${idPrefix}-url-${index}`;
         return (
@@ -162,7 +194,7 @@ export function LocationLinksFields({ links, onChange, idPrefix = 'links', disab
               >
                 ✕
               </button>
-              {roles.length > 0 ? (
+              {restricted ? (
                 <span className="fm-location-links__badge" title="Lien réservé">
                   🔒 réservé
                 </span>
@@ -195,22 +227,56 @@ export function LocationLinksFields({ links, onChange, idPrefix = 'links', disab
               </p>
             ) : null}
 
-            <div className="fm-surface-field__options">
-              {FORETMAP_AUDIENCE_ROLE_OPTIONS.map((role) => {
-                const inputId = `${idPrefix}-${index}-role-${role.slug}`;
-                return (
-                  <label key={role.slug} htmlFor={inputId} className="fm-surface-field__option">
-                    <input
-                      id={inputId}
-                      type="checkbox"
-                      checked={roles.includes(role.slug)}
-                      onChange={(e) => toggleRole(index, role.slug, e.target.checked)}
-                    />
-                    <span>{role.label}</span>
-                  </label>
-                );
-              })}
-            </div>
+            {/*
+              Replié par défaut quand le lien est public : douze liens × (huit rôles + les
+              groupes) déroulés d'un coup rendaient le formulaire du lieu illisible. Le résumé
+              garde l'essentiel sous les yeux — on ne doit jamais perdre de vue qu'un lien est
+              réservé, c'est tout l'objet du réglage.
+            */}
+            <details className="fm-location-links__audience" open={restricted}>
+              <summary>
+                Qui voit ce lien : <strong>{audienceSummary(roles, groups, groupOptions)}</strong>
+              </summary>
+              <div className="fm-surface-field__options">
+                {FORETMAP_AUDIENCE_ROLE_OPTIONS.map((role) => {
+                  const inputId = `${idPrefix}-${index}-role-${role.slug}`;
+                  return (
+                    <label key={role.slug} htmlFor={inputId} className="fm-surface-field__option">
+                      <input
+                        id={inputId}
+                        type="checkbox"
+                        checked={roles.includes(role.slug)}
+                        onChange={(e) => toggleRole(index, role.slug, e.target.checked)}
+                      />
+                      <span>{role.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {Array.isArray(groupOptions) && groupOptions.length > 0 ? (
+                <>
+                  <p className="fm-audience-groups__legend">…ou membres de ces groupes</p>
+                  <div className="fm-surface-field__options">
+                    {groupOptions.map((group) => {
+                      const groupId = String(group?.id ?? '');
+                      if (!groupId) return null;
+                      const inputId = `${idPrefix}-${index}-group-${groupId}`;
+                      return (
+                        <label key={groupId} htmlFor={inputId} className="fm-surface-field__option">
+                          <input
+                            id={inputId}
+                            type="checkbox"
+                            checked={groups.includes(groupId)}
+                            onChange={(e) => toggleGroup(index, groupId, e.target.checked)}
+                          />
+                          <span>{String(group?.name || group?.slug || groupId)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
+            </details>
           </div>
         );
       })}
