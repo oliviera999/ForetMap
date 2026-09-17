@@ -73,7 +73,7 @@ export function TeacherLeaderboard({
                 {s.pseudo && (
                   <div
                     className="lb-pseudo"
-                    style={{ fontSize: 'var(--text-xs)', color: '#4b5563', marginTop: 1 }}
+                    style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-base)', marginTop: 1 }}
                   >
                     @{s.pseudo}
                   </div>
@@ -157,7 +157,7 @@ export function TeacherLeaderboard({
                   </div>
                 </div>
                 <div className="lb-stat lb-stat-pending">
-                  <div className="lb-stat-num" style={{ color: '#f59e0b' }}>
+                  <div className="lb-stat-num" style={{ color: 'var(--accent-warning-solid)' }}>
                     {s.stats.pending}
                   </div>
                   <div className="lb-stat-label">

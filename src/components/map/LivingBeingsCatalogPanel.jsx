@@ -39,7 +39,7 @@ export function CatalogRemarksSection({ plant }) {
           key={`remark-${idx}`}
           style={{
             fontSize: 'var(--text-sm)',
-            color: text ? '#555' : '#94a3b8',
+            color: text ? '#555' : 'var(--ink-dim)',
             lineHeight: 'var(--lh-normal)',
             margin: idx === 0 ? '0 0 4px' : '4px 0 0',
             whiteSpace: 'pre-wrap',
@@ -149,7 +149,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
             <p
               style={{
                 fontSize: 'var(--text-sm)',
-                color: '#92400e',
+                color: 'var(--ink-warning)',
                 margin: 0,
                 lineHeight: 'var(--lh-normal)',
               }}
@@ -164,7 +164,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <p
                   style={{
                     fontSize: 'var(--text-sm)',
-                    color: desc ? '#555' : '#94a3b8',
+                    color: desc ? '#555' : 'var(--ink-dim)',
                     lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',
@@ -179,7 +179,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <p
                   style={{
                     fontSize: 'var(--text-sm)',
-                    color: role ? '#555' : '#94a3b8',
+                    color: role ? '#555' : 'var(--ink-dim)',
                     lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',
@@ -194,7 +194,7 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
                 <p
                   style={{
                     fontSize: 'var(--text-sm)',
-                    color: utility ? '#555' : '#94a3b8',
+                    color: utility ? '#555' : 'var(--ink-dim)',
                     lineHeight: 'var(--lh-normal)',
                     margin: 0,
                     whiteSpace: 'pre-wrap',

@@ -172,7 +172,7 @@
   padding: 0 6px;
   border-radius: 999px;
   background: var(--leaf, #4a7c59);
-  color: #fff;
+  color: var(--surface-plain);
   text-shadow: none;
 }
 
@@ -271,9 +271,9 @@
   top: 50%;
   width: 16px;
   height: 16px;
-  border: 3px solid #fff;
+  border: 3px solid var(--surface-plain);
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--accent-info-solid);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%) scale(var(--pct-inv, 1));
   transform-origin: 50% 50%;
@@ -300,8 +300,8 @@
 }
 
 .fm-pct-position__bearing path {
-  fill: #2563eb;
-  stroke: #fff;
+  fill: var(--accent-info-solid);
+  stroke: var(--surface-plain);
   stroke-width: 1.8;
   stroke-linejoin: round;
 }
@@ -316,10 +316,10 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  color: #2563eb;
+  color: var(--accent-info-solid);
   font-size: var(--text-lg, 1.2rem);
   line-height: 1;
-  text-shadow: 0 0 3px #fff;
+  text-shadow: 0 0 3px var(--surface-plain);
 }
 
 /* Direction « Y aller » : trait droit, jamais un itinéraire. */
@@ -333,7 +333,7 @@
 }
 
 .fm-pct-direct-line__stroke {
-  stroke: #2563eb;
+  stroke: var(--accent-info-solid);
   stroke-width: calc(2px * var(--pct-inv, 1));
   stroke-dasharray: calc(6px * var(--pct-inv, 1)) calc(5px * var(--pct-inv, 1));
   stroke-linecap: round;
@@ -434,7 +434,7 @@
   position: absolute;
   width: 11px;
   height: 11px;
-  border: 1.5px solid #fff;
+  border: 1.5px solid var(--surface-plain);
   border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
@@ -461,17 +461,17 @@
 
 /* Tons neutres : le produit décide de ce qu'ils signifient. */
 .fm-pct-status-dot--alert {
-  background: #dc2626;
+  background: var(--accent-danger-solid);
   animation: fmPctStatusPulse 2.2s ease-in-out infinite;
 }
 
 .fm-pct-status-dot--warn {
-  background: #f59e0b;
+  background: var(--accent-warning-solid);
   animation: fmPctStatusPulse 2.2s ease-in-out infinite;
 }
 
 .fm-pct-status-dot--ok {
-  background: #16a34a;
+  background: var(--accent-success-solid);
 }
 
 .fm-pct-status-dot--info {

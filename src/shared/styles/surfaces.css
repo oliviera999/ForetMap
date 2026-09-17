@@ -30,7 +30,7 @@
  */
 
 :root {
-  --fm-panel-bg: var(--surface-1, #fff);
+  --fm-panel-bg: var(--surface-1, var(--surface-plain));
   --fm-panel-border: var(--outline-soft, rgba(26, 71, 49, 0.15));
   --fm-panel-radius: 14px;
   --fm-panel-shadow: var(--shadow-soft, 0 10px 26px rgba(26, 71, 49, 0.08));
@@ -115,7 +115,7 @@
 }
 
 .fm-table th {
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
   font-weight: var(--fw-semibold);
   white-space: nowrap;
 }
@@ -126,7 +126,7 @@
 }
 
 .fm-table tr.is-muted td {
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
 }
 
 .fm-table tr.is-selected td {
@@ -143,4 +143,24 @@
 .fm-table--dense {
   --fm-table-pad-y: 6px;
   --fm-table-pad-x: 8px;
+}
+
+/* Variante zébrée : une ligne sur deux teintée, et la ligne survolée mise en avant. Sur un
+   long tableau d'administration, c'est ce qui évite de suivre une ligne à la règle. Venait
+   de G&L, où c'était la seule à en bénéficier. */
+.fm-table--zebra tbody tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--fm-table-rule) 22%, transparent);
+}
+
+@media (hover: hover) {
+  .fm-table--zebra tbody tr:hover {
+    background-color: color-mix(in srgb, var(--fm-table-rule) 38%, transparent);
+  }
+}
+
+/* Cellules à contenu long (identifiants, listes) : le texte se casse au lieu d'élargir. */
+.fm-table--wrap th,
+.fm-table--wrap td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
 }

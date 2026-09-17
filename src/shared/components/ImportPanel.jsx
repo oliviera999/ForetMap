@@ -26,7 +26,14 @@ export const SPREADSHEET_IMPORT_ACCEPT =
 export function ImportReportErrors({ errors, limit = 15, moreLabel }) {
   if (!Array.isArray(errors) || errors.length === 0) return null;
   return (
-    <div style={{ maxHeight: 120, overflow: 'auto', fontSize: 'var(--text-sm)', color: '#991b1b' }}>
+    <div
+      style={{
+        maxHeight: 120,
+        overflow: 'auto',
+        fontSize: 'var(--text-sm)',
+        color: 'var(--ink-danger)',
+      }}
+    >
       {errors.slice(0, limit).map((item, idx) => (
         <div key={`${item.row}-${item.field}-${idx}`}>
           Ligne {item.row} ({item.field}): {item.error}
@@ -176,7 +183,7 @@ export function ImportPanel({
       )}
       {report && (
         <div style={reportBoxStyle}>
-          <div style={{ fontSize: 'var(--text-sm)', color: '#1f2937', marginBottom: 4 }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-strong)', marginBottom: 4 }}>
             {totalsRenderer(report)}
           </div>
           <ImportReportInfos infos={report?.infos} limit={errorLimit} />

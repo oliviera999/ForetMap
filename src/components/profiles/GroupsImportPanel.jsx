@@ -62,7 +62,9 @@ function GroupsImportPanel({ canImport, setErr, setMsg, onImported }) {
             Une même classe répétée sur plusieurs lignes est fusionnée (dernière ligne pour le
             reste) ; un groupe déjà présent est mis à jour.
           </p>
-          <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: '#9a3412' }}>
+          <p
+            style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
+          >
             Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import réel.
           </p>
         </>

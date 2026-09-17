@@ -49,7 +49,7 @@ export function LocationTutorialPreviewList({
             <div style={{ fontWeight: 'var(--fw-bold)', color: 'var(--forest)' }}>
               {tu.title}
               {tu.is_active === false ? (
-                <span style={{ fontWeight: 'var(--fw-regular)', color: '#94a3b8' }}>
+                <span style={{ fontWeight: 'var(--fw-regular)', color: 'var(--ink-dim)' }}>
                   {' '}
                   (archivé)
                 </span>

@@ -31,11 +31,11 @@
  */
 
 :root {
-  --fm-control-bg: var(--cream, var(--gl-surface, #fff));
+  --fm-control-bg: var(--cream, var(--gl-surface, var(--surface-plain)));
   --fm-control-bg-focus: #fff;
   --fm-control-bg-disabled: var(--gl-surface-muted, rgba(0, 0, 0, 0.04));
   --fm-control-ink: var(--forest, var(--gl-color-text, #1a4731));
-  --fm-control-ink-disabled: var(--ink-soft, #64748b);
+  --fm-control-ink-disabled: var(--ink-soft, var(--ink-soft));
   --fm-control-border: var(--mint, var(--gl-border, rgba(26, 71, 49, 0.22)));
   --fm-control-border-hover: var(--sage, var(--gl-color-primary, #2d6a4f));
   --fm-control-border-focus: var(--sage, var(--gl-border-focus, #2d6a4f));
@@ -97,18 +97,18 @@
    contrôle dense, pas un champ de formulaire. */
 .fm-label--filter {
   font-size: var(--text-xs);
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
 }
 
 .fm-field__hint {
   font-size: var(--text-xs);
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
   line-height: var(--lh-normal, 1.45);
 }
 
 .fm-field__error {
   font-size: var(--text-sm);
-  color: var(--ink-danger, #991b1b);
+  color: var(--ink-danger, var(--ink-danger));
 }
 
 /* ── Le contrôle ─────────────────────────────────────────────────────────── */
@@ -172,7 +172,7 @@
 .fm-input::placeholder,
 .fm-textarea::placeholder,
 .form-input::placeholder {
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
   opacity: 0.8;
 }
 
@@ -254,13 +254,13 @@
 .hint,
 .muted {
   font-size: var(--text-sm);
-  color: var(--ink-soft, #64748b);
+  color: var(--ink-soft, var(--ink-soft));
   line-height: var(--lh-normal, 1.45);
 }
 
 .form-error,
 .text-danger {
-  color: var(--ink-danger, #991b1b);
+  color: var(--ink-danger, var(--ink-danger));
 }
 
 .form-error {

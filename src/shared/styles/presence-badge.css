@@ -7,7 +7,7 @@
   margin-top: 4px;
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--ink-soft, #4b5563);
+  color: var(--ink-soft, var(--ink-base));
   min-height: 22px;
 }
 
@@ -20,7 +20,7 @@
 }
 
 .fm-presence-badge--online .fm-presence-badge__dot {
-  background: #16a34a;
+  background: var(--accent-success-solid);
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
 }
 
