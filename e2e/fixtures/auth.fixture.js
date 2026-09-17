@@ -791,7 +791,12 @@ async function openVisitTab(page) {
 async function openTeacherTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
-  await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
+  // `.first()` : même raison qu'à `enableTeacherMode` — la navigation prof porte deux barres
+  // (`teacher-nav__poles` et `top-tabs--secondary`) et le mode strict refuse l'ambiguïté.
+  await page
+    .locator('.teacher-main .top-tabs')
+    .first()
+    .waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
     await openTeacherPole(page, 'Contenus');
@@ -1281,6 +1286,7 @@ module.exports = {
   enableTeacherMode,
   disableTeacherMode,
   syncStudentSessionToken,
+  waitForTeacherMapReady,
   openFirstZoneModalFromMap,
   openTeacherTasksTab,
   openStudentTasksTab,
