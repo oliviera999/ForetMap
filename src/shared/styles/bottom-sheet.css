@@ -12,7 +12,7 @@
 :root {
   --fm-bottom-sheet-z: var(--fm-z-modal);
   --fm-bottom-sheet-overlay-bg: var(--fm-modal-overlay-bg, rgba(12, 30, 20, 0.52));
-  --fm-bottom-sheet-bg: var(--gl-surface, var(--surface-1, #fff));
+  --fm-bottom-sheet-bg: var(--gl-surface, var(--surface-1, var(--surface-plain)));
   --fm-bottom-sheet-fg: var(--gl-color-text, var(--text, #1f2a24));
   --fm-bottom-sheet-border: var(--gl-border, var(--border, rgba(0, 0, 0, 0.12)));
   --fm-bottom-sheet-radius: var(--gl-radius-md, 20px);

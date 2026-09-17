@@ -214,10 +214,62 @@ porte déjà la bordure.
 > un produit à une autre palette doit remplacer `--fm-control-chevron` en entier. Aucun ne le
 > fait aujourd'hui — ni le Plan ni le plan des personnels n'ont de liste déroulante.
 
-## 6. Reste à faire
+## 6. Lot C — surfaces historiques, tableaux G&L, couleur (livré le 17 septembre 2026)
 
-| #   | Sujet                                                                                                                                                                                                                                   | Traite |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| C1  | Migrer les surfaces historiques (`.about-card`, `.stat-card`, `.pin-card`, `.notif-panel`, `.forum-panel`) sur `.fm-panel`. Elles sont correctes et cohérentes entre elles, mais chacune redéfinit fond, rayon et ombre pour son compte | F2     |
-| C2  | Poursuivre la tokenisation de la couleur et la résorption des styles inline (lot C de `AUDIT_UI_2026-09-16.md`, toujours ouvert)                                                                                                        | —      |
-| C3  | Harmoniser les tableaux de G&L (`.gl-admin-table`, `.gl-content-library__table`, `.gl-admin-credentials__table`) — hors périmètre ForetMap                                                                                              | F8     |
+| #   | Action                                                                                                                                                                                                        | Traite |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| C1  | Les cinq surfaces historiques (`.about-card`, `.stat-card`, `.pin-card`, `.notif-panel`, `.forum-panel`) passent sur `.fm-panel` et ne gardent que leurs écarts assumés, réglés par les tokens `--fm-panel-*` | F2     |
+| C2  | Les trois tableaux de G&L passent sur `.fm-table`, avec deux variantes communes nouvelles : `--zebra` (venue de G&L, désormais disponible partout) et `--wrap`                                                | F8     |
+| C3  | `src/shared/styles/color-tokens.css` — l'échelle neutre qui manquait (surfaces, filets, encres), chargée par les quatre produits                                                                              | H2     |
+| C4  | 505 littéraux de couleur migrés vers les tokens, dont 219 `#fff` ; les encres de texte d'état convergées                                                                                                      | H2     |
+| C5  | `tests/color-tokens-guard.test.js` — un contrat fort (aucun littéral ne redit la valeur d'un token) et trois cliquets                                                                                         | H2, H3 |
+
+### La méthode, et pourquoi elle n'est pas une simple substitution
+
+L'audit de septembre demandait une « migration mécanique des 363 valeurs distinctes ». La
+mesure montre que ce n'est **pas** réalisable d'un bloc : rapprocher les valeurs qui se
+disputent un même rôle repeint l'application. Écart perceptuel (ΔE CIE76) des rapprochements
+« évidents », mesuré avant d'agir :
+
+| Littéral  | Token candidat  | ΔE   | Décision                         |
+| --------- | --------------- | ---- | -------------------------------- |
+| `#166534` | `--ink-success` | 6,0  | convergé (à peine perceptible)   |
+| `#b91c1c` | `--ink-danger`  | 14,0 | convergé — voir ci-dessous       |
+| `#92400e` | `--ink-warning` | 19,0 | convergé — voir ci-dessous       |
+| `#6b7280` | `--ink-soft`    | 6,0  | **non** — tokenisé à sa valeur   |
+| `#666666` | `--ink-soft`    | 15,4 | **non** — trop loin              |
+| `#16a34a` | `--ink-success` | 36,0 | **non** — rôle différent (aplat) |
+
+D'où **deux régimes**, écrits dans l'en-tête de `color-tokens.css` :
+
+1. **La couche neutre est tokenisée à valeur identique.** Surfaces, filets et encres de texte
+   prennent un nom sans changer d'un pixel. C'est une opération vérifiable, pas un choix
+   esthétique — et elle règle le vrai manque : il n'existait aucun nom pour « le gris d'un
+   libellé secondaire », d'où 206 gris distincts.
+2. **Les encres de texte d'état sont convergées**, sur la valeur déjà déclarée dans
+   `state-inks.css` puisque G&L l'aliase. 42 occurrences, toutes sur la propriété `color`.
+   Les aplats et les filets gardent la leur : un fond vif et une encre lisible sur fond clair
+   ne sont pas le même rôle, les confondre donnerait soit un aplat terne, soit un texte
+   illisible. C'est une décision, elle est réversible en changeant un seul token.
+
+Résultat : **1 233 → 736 littéraux hexadécimaux** en CSS (−41 %), `#ffffff` passant de 219 à
+zéro hors déclarations de tokens.
+
+### C6 — 🟡 Ce que le lot n'a pas tranché
+
+Il reste **deux familles de gris** : une neutre (`#333`, `#444`, `#555`, `#666`, `#888`,
+`#aaa`, `#bbb`) et une ardoise (`--ink-*`, teintée bleu). Les rapprocher donnerait un reflet
+bleu à toute la première — ΔE de 8 à 12 selon la paire. Le choix (garder deux familles, ou
+teinter) est une décision de charte, pas un nettoyage : il reste ouvert, et le cliquet
+empêche seulement qu'elle grandisse.
+
+Idem pour les 147 styles inline qui portent encore une couleur : ce sont des teintes uniques,
+sans rôle réutilisable. Le cliquet les plafonne.
+
+## 7. Reste à faire
+
+| #   | Sujet                                                                                                                                            | Traite |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| D1  | Trancher les deux familles de gris (C6), puis abaisser le plafond du cliquet                                                                     | H2     |
+| D2  | Résorber la traîne des 147 couleurs inline, par écran, au fil des touches                                                                        | H3     |
+| D3  | Les 577 littéraux `rgb()/rgba()` — surtout des ombres et des voiles ; une échelle d'ombres et d'opacités serait le pendant de celle des couleurs | H2     |

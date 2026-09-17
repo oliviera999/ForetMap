@@ -114,7 +114,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
       <p className="section-sub">{aboutSubtitle}</p>
 
       <div className="about-grid">
-        <div className="about-card">
+        <div className="fm-panel about-card">
           <h3>{aboutPurposeTitle}</h3>
           <p>{aboutPurposeBody}</p>
           <div className="about-meta">
@@ -124,7 +124,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
           </div>
         </div>
 
-        <div className="about-card">
+        <div className="fm-panel about-card">
           <h3>{aboutDocsTitle}</h3>
           <div className="about-links">
             {docsLinks.map((link) => (
@@ -203,7 +203,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
           )}
         </div>
 
-        <div className="about-card">
+        <div className="fm-panel about-card">
           <h3>{aboutHelpTitle}</h3>
           <p>{aboutHelpBody}</p>
           <div className="about-meta">

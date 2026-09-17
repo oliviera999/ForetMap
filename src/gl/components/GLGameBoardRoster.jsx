@@ -81,7 +81,7 @@ export function GLGameBoardRoster({
               <header className="gl-map-roster-group__head">
                 <span
                   className="gl-map-roster-group__color"
-                  style={{ '--gl-team-color': group.teamColor || '#94a3b8' }}
+                  style={{ '--gl-team-color': group.teamColor || 'var(--ink-dim)' }}
                   aria-hidden
                 />
                 <h4 className="gl-map-roster-group__title">{group.teamName}</h4>

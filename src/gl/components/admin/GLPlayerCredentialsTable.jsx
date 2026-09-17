@@ -63,8 +63,8 @@ export function GLPlayerCredentialsTable({ credentials, filename = 'identifiants
           {distributable} mot{distributable > 1 ? 's' : ''} de passe à distribuer
         </span>
       </div>
-      <div className="gl-table-scroll">
-        <table className="gl-admin-credentials__table">
+      <div className="fm-table-wrap gl-table-scroll">
+        <table className="fm-table fm-table--dense fm-table--wrap gl-admin-credentials__table">
           <thead>
             <tr>
               <th>Élève</th>

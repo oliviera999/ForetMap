@@ -21,7 +21,7 @@ export function GLContentLibraryAnalysisTable({
   if (!entries || entries.length === 0) return null;
   return (
     <div className="gl-content-library__report">
-      <table className="gl-content-library__table">
+      <table className="fm-table fm-table--wrap gl-content-library__table">
         <thead>
           <tr>
             <th />

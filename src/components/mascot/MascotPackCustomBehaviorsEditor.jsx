@@ -148,7 +148,10 @@ export default function MascotPackCustomBehaviorsEditor({ pack, patchPack }) {
                 <span className="mascot-pack-wysiwyg__label">Clé</span>
                 <input
                   className="form-input"
-                  style={{ maxWidth: 180, borderColor: keyInvalid ? '#b91c1c' : undefined }}
+                  style={{
+                    maxWidth: 180,
+                    borderColor: keyInvalid ? 'var(--ink-danger)' : undefined,
+                  }}
                   value={st.key || ''}
                   onChange={(ev) => updateCustomState(idx, { key: slugifyKey(ev.target.value) })}
                   placeholder="ex: sort_magique"

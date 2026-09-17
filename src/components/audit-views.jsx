@@ -157,7 +157,7 @@ function VisitStatsPanel({ roleTerms }) {
   return (
     <div className="fade-in">
       <div className="stats-grid audit-stats-grid">
-        <article className="stat-card highlight">
+        <article className="fm-panel stat-card highlight">
           <div className="stat-icon">
             <IconFootprints size={20} />
           </div>
@@ -166,7 +166,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Sessions de visite</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconCheck size={20} />
           </div>
@@ -175,7 +175,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Visites terminées</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconGoal size={20} />
           </div>
@@ -184,7 +184,7 @@ function VisitStatsPanel({ roleTerms }) {
           </div>
           <div className="stat-label">Actions marquées vu</div>
         </article>
-        <article className="stat-card">
+        <article className="fm-panel stat-card">
           <div className="stat-icon">
             <IconTrend size={20} />
           </div>

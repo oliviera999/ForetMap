@@ -34,7 +34,7 @@
   padding: 0 var(--space-3, 12px);
   border: 1px solid rgba(24, 48, 88, 0.25);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface-plain);
   color: var(--plan-ink, var(--ink, #14233d));
   font: inherit;
   font-size: var(--text-sm, 0.9rem);
@@ -50,7 +50,7 @@
 .visit-chip.is-active {
   background: var(--leaf, #2d6a4f);
   border-color: var(--leaf, #2d6a4f);
-  color: #fff;
+  color: var(--surface-plain);
   font-weight: var(--fw-semibold, 600);
 }
 

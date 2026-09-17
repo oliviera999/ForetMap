@@ -100,7 +100,7 @@ function NotificationCenter({
   const panel = open ? (
     <div
       ref={panelRef}
-      className="notif-panel fade-in"
+      className="fm-panel notif-panel fade-in"
       role="dialog"
       aria-modal="true"
       aria-label="Centre de notifications"

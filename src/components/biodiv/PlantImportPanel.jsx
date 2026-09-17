@@ -238,7 +238,7 @@ export function PlantImportPanel({ setToast, onRefresh }) {
         {report && (
           <div
             style={{
-              background: '#f8fafc',
+              background: 'var(--surface-cool)',
               border: '1px solid #e5e7eb',
               borderRadius: 10,
               padding: 10,

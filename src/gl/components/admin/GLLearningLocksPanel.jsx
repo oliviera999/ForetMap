@@ -23,8 +23,8 @@ export function GLLearningLocksPanel() {
         section: 'gl-admin-section fade-in',
         hint: 'gl-hint',
         error: 'gl-error',
-        tableWrap: 'gl-admin-table-wrap',
-        table: 'gl-admin-table',
+        tableWrap: 'fm-table-wrap gl-admin-table-wrap',
+        table: 'fm-table fm-table--zebra gl-admin-table',
         button: 'gl-btn',
       }}
     />

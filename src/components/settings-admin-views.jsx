@@ -1016,7 +1016,7 @@ function SettingsAdminView({
                     maxHeight: 280,
                     overflow: 'auto',
                     fontSize: 'var(--text-sm)',
-                    background: '#f0fdf4',
+                    background: 'var(--tint-success)',
                     borderRadius: 8,
                     padding: 8,
                     marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,

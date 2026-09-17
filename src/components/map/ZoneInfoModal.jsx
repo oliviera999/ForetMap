@@ -427,7 +427,7 @@ function ZoneInfoModal({
           {zone.description && (
             <div
               style={{
-                background: '#f0fdf4',
+                background: 'var(--tint-success)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 marginBottom: 12,
