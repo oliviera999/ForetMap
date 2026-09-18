@@ -13,6 +13,10 @@ const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
 const { assignPrimaryRole } = require('../lib/rbacRoleAssignment');
+const {
+  isAllowedGroupDefaultRole,
+  GROUP_DEFAULT_SAFE_PERMISSION_KEYS,
+} = require('../lib/groupDefaultRole');
 
 async function emitStudentsWithPrimaryRole(roleId) {
   const rows = await queryAll(
@@ -283,9 +287,24 @@ router.get(
         key: row.permission_key,
       });
     }
+    // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe ?
+    // Calculé ici avec la règle serveur (`isAllowedGroupDefaultRole`) pour que le sélecteur
+    // « Profil par défaut du groupe » n'offre plus que des choix acceptés — il proposait
+    // « Prof de classe », que `PATCH /api/groups/:id` refusait ensuite en « default_role_id
+    // invalide ».
     const rolesPayload = rolesWithProgression
       .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
-      .map((r) => ({ ...r, catalog: perms }));
+      .map((r) => ({
+        ...r,
+        catalog: perms,
+        group_default_allowed: isAllowedGroupDefaultRole({
+          slug: r.slug,
+          rank: r.rank,
+          unsafe_permission_count: (map.get(r.id) || []).filter(
+            (p) => !GROUP_DEFAULT_SAFE_PERMISSION_KEYS.includes(p.key),
+          ).length,
+        }),
+      }));
     const progressionByValidatedTasksEnabled = await getSettingValue(
       'rbac.progression_by_validated_tasks',
       true,
