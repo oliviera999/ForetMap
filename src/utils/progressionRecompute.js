@@ -14,6 +14,7 @@ export const RECOMPUTE_SKIP_REASON_LABELS = {
   auto_progression_disabled: 'montée automatique désactivée',
   target_role_missing: 'profil cible introuvable',
   not_n3beur_member: 'compte non rattaché à un groupe n3beur',
+  group_forced_role: 'profil imposé par son groupe (non modifié)',
 };
 
 /** Corps de `POST /api/rbac/progression/recompute` pour un périmètre donné. */

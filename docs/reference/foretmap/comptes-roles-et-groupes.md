@@ -94,6 +94,8 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   avec 60 tâches validées retrouve son palier au lieu de repartir de novice. Cet
   alignement ne fait jamais **baisser** un palier. Il se désactive dans
   **Profils & utilisateurs → Permissions**, bloc « Progression par tâches validées ».
+  Un groupe peut aussi **imposer** son profil à ses membres, ce qui les sort entièrement de
+  cette mécanique (voir « Les groupes » plus bas).
 - **Rattrapage en masse ou compte par compte** : dans **Profils & utilisateurs →
   Comptes**, le bloc « Attribuer les profils d'après les tâches validées » attribue à
   chacun le palier mérité — pour tous les n3beurs, pour un groupe, ou pour un seul
@@ -150,7 +152,9 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    rôle **visiteur** — ils voient Visite et Biodiversité, **pas** les tâches ni la
    carte de travail. Le rattachement au groupe **ne les promeut pas** automatiquement
    en n3beur (contrairement à une classe n3beur classique) : laisser le rôle par
-   défaut du groupe sur « Visiteur » et ne pas cocher « accorde le statut n3beur ».
+   défaut du groupe sur « Visiteur » et ne pas cocher « accorde le statut n3beur ». Si des
+   élèves de la classe ont déjà un palier n3beur venu d'ailleurs, cocher en plus
+   **« Imposer ce profil »** : c'est ce qui les ramène — et les maintient — en visiteur.
 3. **Même parcours qu’un visiteur connecté** : Visite, Biodiversité, Quiz, Glossaire,
    Réseau, Tutoriels — pour valider soi-même les apprentissages (espèces, termes,
    tutos). En plus : onglets **Stats** (stats personnelles des élèves du périmètre)
@@ -194,6 +198,24 @@ Les groupes structurent la vie pédagogique :
   (par exemple « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en
   élève dès son rattachement. Un bouton « Appliquer à tous les membres » force le
   recalcul.
+- **Imposer ce profil** : par défaut, le rôle du groupe n'est qu'un **plancher** — les tâches
+  validées font ensuite monter chacun, et un palier déjà acquis n'est jamais repris. La case
+  **« Imposer ce profil »** (dans le panneau de réglages du groupe, juste sous le choix du
+  profil) renverse la règle : le profil du groupe devient **le** profil de ses membres. Il
+  s'applique aussi **en baisse**, il se réapplique tout seul à chaque passage, et la montée
+  automatique — comme le recalcul par tâches validées — laisse ces comptes tranquilles (ils
+  apparaissent en « profil imposé par son groupe » dans le rapport de recalcul). C'est le
+  réglage d'une classe de passage qu'on veut tenir en « Visiteur », ou d'un groupe qu'on
+  ouvre d'emblée en « n3beur avancé » sans attendre le compteur de tâches.
+  - La case n'est disponible **qu'avec un profil choisi** : il n'y a rien à imposer tant que
+    le groupe suit la règle automatique.
+  - **L'encadrement est épargné** : un n3boss, un administrateur, un prof de classe ou un
+    profil sur mesure membre du groupe garde son profil. Le forçage ne sert pas à
+    rétrograder un encadrant.
+  - **Effet immédiat** : cocher la case (ou changer le profil imposé) réaligne les membres
+    dès l'enregistrement, sans attendre qu'ils rouvrent l'application.
+  - Un élève membre de **deux** groupes imposants reçoit le profil le plus élevé des deux.
+  - La liste des groupes signale ces groupes d'une mention **« imposé »**.
 - **Périmètre** : un groupe peut être limité à certaines cartes et certains projets. Le
   périmètre **cartes** est une vraie restriction d'accès : les membres du groupe (et de ses
   sous-groupes) ne voient plus que ces cartes — ni dans le sélecteur de carte, ni par un lien
