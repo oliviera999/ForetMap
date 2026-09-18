@@ -167,7 +167,9 @@ export function VisitDetailPanel({
   isTeacher = false,
   /**
    * Guidage « Y aller » (`shared/map-guide`) : direction et distance à vol d'oiseau depuis la
-   * position, jamais un itinéraire. Éteint si la carte n'est pas calée (`canGuide` faux).
+   * position, jamais un itinéraire. `canGuide` faux (géolocalisation désactivée sur la carte,
+   * plan non calé, appareil sans position) → le bouton n'est pas affiché du tout : un bouton
+   * éteint promettait une action que la carte ne peut pas rendre.
    */
   canGuide = false,
   onGoTo = null,
@@ -384,28 +386,21 @@ export function VisitDetailPanel({
               </div>
             </details>
           )}
-          {onGoTo ? (
+          {onGoTo && canGuide ? (
             <div className="visit-detail-panel__go">
               <button
                 type="button"
                 className="btn btn-primary btn-sm visit-detail-panel__go-btn"
                 data-testid="visit-detail-go"
-                disabled={!canGuide}
-                title={
-                  canGuide
-                    ? 'Afficher la direction et la distance depuis votre position'
-                    : 'Cette carte n’est pas calée pour la localisation'
-                }
+                title="Afficher la direction et la distance depuis votre position"
                 onClick={() => onGoTo(selected)}
               >
                 {isGuideTarget ? 'Revoir la direction' : 'Y aller'}
               </button>
               <p className="visit-detail-panel__go-hint section-sub">
-                {!canGuide
-                  ? 'Carte non calée : position indisponible.'
-                  : isGuideTarget && guideDistanceLabel
-                    ? `À ${guideDistanceLabel} à vol d’oiseau. La fiche se referme : le guidage reste en bas.`
-                    : 'Direction à vol d’oiseau, pas un itinéraire. La fiche se referme.'}
+                {isGuideTarget && guideDistanceLabel
+                  ? `À ${guideDistanceLabel} à vol d’oiseau. La fiche se referme : le guidage reste en bas.`
+                  : 'Direction à vol d’oiseau, pas un itinéraire. La fiche se referme.'}
               </p>
             </div>
           ) : null}
