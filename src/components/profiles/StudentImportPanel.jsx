@@ -64,13 +64,16 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         <>
           <p style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
             Téléchargez le modèle (rôles + rattachements à une ou plusieurs classes / sous-groupes),
-            complétez-le puis importez. Colonne Groupes : plusieurs noms ou slugs séparés par{' '}
-            <code>|</code> ou <code>;</code>, chemins <code>Parent&gt;Enfant</code> (création
-            automatique si absents). Une même personne sur plusieurs lignes est fusionnée (groupes
-            cumulés ; dernière ligne pour le reste) — un message d&apos;info le signale. Un compte
-            déjà présent (même prénom, nom et type) est <strong>mis à jour</strong> par défaut ;
-            réglable dans Réglages → Imports de comptes (ignorer, ou autoriser des mots de passe
-            courts).
+            complétez-le puis importez. Colonne Rôle : le <strong>nom affiché</strong> du profil («{' '}
+            {roleTerms.studentSingular} novice », « Prof de classe »…) ou son identifiant technique
+            (<code>eleve_novice</code>, <code>prof_classe</code>) — accents, majuscules et espaces
+            sont sans effet ; une cellule vide retombe sur le palier d&apos;entrée. Colonne Groupes
+            : plusieurs noms ou slugs séparés par <code>|</code> ou <code>;</code>, chemins{' '}
+            <code>Parent&gt;Enfant</code> (création automatique si absents). Une même personne sur
+            plusieurs lignes est fusionnée (groupes cumulés ; dernière ligne pour le reste) — un
+            message d&apos;info le signale. Un compte déjà présent (même prénom, nom et type) est{' '}
+            <strong>mis à jour</strong> par défaut ; réglable dans Réglages → Imports de comptes
+            (ignorer, ou autoriser des mots de passe courts).
           </p>
           <p
             style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}

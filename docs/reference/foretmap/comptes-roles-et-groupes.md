@@ -314,7 +314,15 @@ sous-onglet consulté qui est rouvert.
   un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
   La **création unitaire** et le fichier d'import (CSV ou tableur) permettent de
   choisir **chaque profil** : visiteur, personnel, n3beur novice / avancé / chevronné, prof de
-  classe, n3boss, administrateur. Une colonne **Groupes** (à l'import) permet de
+  classe, n3boss, administrateur. Dans le fichier, la colonne **Rôle** accepte aussi bien
+  le **nom affiché** du profil — celui du tableau ci-dessus, y compris si un
+  administrateur l'a renommé — que son identifiant technique (`eleve_novice`,
+  `prof_classe`…) ou un mot courant (tuteur, enseignant, staff, novice…) ; majuscules,
+  accents, emoji et espaces n'ont aucune importance. Une cellule **Rôle vide** donne le
+  palier d'entrée n3beur, et le rapport d'import le signale avec les numéros de ligne.
+  Une valeur non reconnue n'est jamais devinée : la ligne est refusée avec un message
+  qui rappelle la valeur écrite et les valeurs attendues (les profils du jeu Gnomes &
+  Licornes, eux, se gèrent depuis l'administration du jeu). Une colonne **Groupes** (à l'import) permet de
   rattacher chaque
   personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
   `;`) ; un chemin du type « classe > sous-groupe » crée le sous-groupe sous son
@@ -334,8 +342,11 @@ sous-onglet consulté qui est rouvert.
   rétrogradé. Un administrateur peut choisir d'**ignorer** ces
   doublons à la place, et autoriser des **mots de passe plus courts** que le
   plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
-  téléchargeable contient **une ligne d'exemple par
-  profil**, avec des cas multi-groupes. Les adresses e-mail du fichier **ne sont
+  téléchargeable contient **un exemple par profil et par situation** (profil écrit en
+  slug ou en toutes lettres, une ou plusieurs classes, sous-groupe « classe >
+  atelier », sans groupe, affiliation laissée vide, ligne réduite au strict minimum,
+  même personne sur deux lignes) ; chaque ligne explique son cas dans la colonne
+  Description et reste importable telle quelle. Les adresses e-mail du fichier **ne sont
   pas** limitées aux domaines autorisés pour Google ou Moodle.
 - **Importer des groupes** : le sous-onglet Imports & exports permet
   d'importer une liste de groupes et sous-groupes via un fichier modèle (type
