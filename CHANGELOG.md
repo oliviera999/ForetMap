@@ -9,6 +9,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — un compte « Personnel » ne redevient plus « Visiteur »
+
+- **La règle automatique de profil écrasait un choix explicite.** `visiteur` et `personnel`
+  ont le **même rang**, et la résolution par groupes retombe sur `visiteur` dès qu'aucun
+  groupe n3beur n'est trouvé : un compte créé ou importé en « Personnel » redevenait donc
+  « Visiteur » à la première synchronisation, c'est-à-dire dès son rattachement à une classe.
+  La règle automatique ne remplace plus un profil « type visiteur » par un autre. Le geste
+  explicite (« Appliquer à tous les membres ») et un groupe qui **impose** son profil
+  restent prioritaires, et un « Personnel » qui rejoint un groupe n3beur monte toujours au
+  palier correspondant.
+- **Un groupe peut enfin conférer le profil « Personnel ».** Sa seule permission,
+  `staff_plan.access` — sa raison d'être — le faisait recaler par le garde-fou qui empêche un
+  groupe de distribuer un pouvoir d'encadrement. Cette permission rejoint la liste des
+  permissions sûres : un groupe « Personnel » peut donc conférer le profil du même nom. Les
+  profils d'encadrement (prof de classe, n3boss, administrateur) restent exclus.
+- **Rappel de vocabulaire** : le profil `prof` s'affiche **« n3boss »** — même profil, deux
+  noms. Le point est désormais écrit noir sur blanc dans `docs/IMPORT_COMPTES.md` et la
+  documentation de référence, parce qu'un compte enrôlé en « prof » qui apparaît en « n3boss »
+  ressemble à une dérive du mapping alors que c'en est le résultat correct.
+
+### Corrigé — le profil par défaut d'un groupe était impossible à choisir
+
+- **Le sélecteur « Profil par défaut du groupe » n'offrait que « Aucun (règle automatique) ».**
+  `GET /api/rbac/profiles` répond `{ roles: [...] }`, mais la vue Groupes lisait la réponse
+  comme un tableau nu (`Array.isArray(payload) ? payload : []`) : elle obtenait donc toujours
+  une liste vide. Aucun profil n'était attribuable à un groupe, sans le moindre message.
+- **Plus de choix proposé puis refusé** : le serveur publie maintenant `group_default_allowed`
+  par profil, calculé avec la règle exacte de `PATCH /api/groups/:id`. « Prof de classe »
+  figurait dans la liste et l'enregistrement répondait « default_role_id invalide ».
+- **Une liste vide s'explique** : si le chargement des profils échoue faute de droits, le
+  panneau le dit au lieu d'afficher un sélecteur muet.
+
+### Corrigé — « comptes en attente de rattachement » : le compte y était même rattaché
+
+- La pastille d'alerte comptait **tous** les comptes au profil `visiteur`, rattachés ou non.
+  Un visiteur membre d'un club, d'un groupe de visite ou d'une classe sans accès n3beur est
+  visiteur parce que c'est le profil voulu : il n'y a rien à rattacher, et il gonflait
+  pourtant le compteur. `GET /api/groups/pending-visitors` ne retient plus que les comptes
+  visiteurs **membres d'aucun groupe actif** — ceux qui se sont inscrits seuls.
+
 ### Corrigé — import de comptes : la colonne Rôle accepte enfin les noms des profils
 
 - **Le fichier d'import refusait les libellés que l'application affiche.** La colonne Rôle
