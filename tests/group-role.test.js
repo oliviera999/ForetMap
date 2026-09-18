@@ -8,7 +8,8 @@ const {
   resolveDefaultRoleForStudent,
   syncStudentRoleFromGroups,
 } = require('../lib/groupRole');
-const { getPrimaryRoleForUser } = require('../lib/rbac');
+const { getForcedRoleGroupForStudent } = require('../lib/groupDefaultRole');
+const { getPrimaryRoleForUser, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
 
 test.before(async () => {
@@ -35,7 +36,12 @@ async function createStudent(label) {
   return id;
 }
 
-async function createGroup({ slug, grantsN3beur = false, defaultRoleSlug = null }) {
+async function createGroup({
+  slug,
+  grantsN3beur = false,
+  defaultRoleSlug = null,
+  forceDefaultRole = false,
+}) {
   const id = crypto.randomUUID();
   let defaultRoleId = null;
   if (defaultRoleSlug) {
@@ -43,11 +49,32 @@ async function createGroup({ slug, grantsN3beur = false, defaultRoleSlug = null 
     defaultRoleId = role?.id ?? null;
   }
   await execute(
-    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, grants_n3beur_access, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, 'class', ?, ?, 1, NOW(), NOW())`,
-    [id, slug, slug, defaultRoleId, grantsN3beur ? 1 : 0],
+    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, grants_n3beur_access, force_default_role, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', ?, ?, ?, 1, NOW(), NOW())`,
+    [id, slug, slug, defaultRoleId, grantsN3beur ? 1 : 0, forceDefaultRole ? 1 : 0],
   );
   return id;
+}
+
+async function addMember(groupId, studentId) {
+  await execute(
+    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
+     VALUES (?, ?, 'student', 'member')`,
+    [groupId, studentId],
+  );
+}
+
+async function setPrimaryRoleSlug(studentId, slug) {
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
+  assert.ok(role?.id, `profil ${slug} absent`);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    studentId,
+  ]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', studentId, role.id],
+  );
 }
 
 test('isN3beurGroup via flag ou profil eleve_*', () => {
@@ -146,4 +173,136 @@ test('profil par défaut dangereux ignoré lors de la synchronisation de groupe'
   assert.strictEqual(sync.changed, true);
   const primary = await getPrimaryRoleForUser('student', studentId);
   assert.strictEqual(primary.slug, 'eleve_novice');
+});
+
+// --- Profil de groupe imposé (`force_default_role`, migration 265) -----------------------
+
+test('groupe imposant : le profil du groupe s’applique même en baisse', async () => {
+  const studentId = await createStudent('forced_down');
+  await setPrimaryRoleSlug(studentId, 'eleve_chevronne');
+  const groupId = await createGroup({
+    slug: `force-down-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'eleve_novice',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  const resolved = await resolveDefaultRoleForStudent(studentId);
+  assert.strictEqual(resolved.roleSlug, 'eleve_novice');
+  assert.strictEqual(resolved.source, 'group_forced');
+  assert.strictEqual(resolved.forced, true);
+
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.changed, true);
+  assert.strictEqual(sync.forced, true);
+  // Sans forçage, `progression_preserved` aurait conservé le palier chevronné.
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_novice');
+});
+
+test('groupe imposant « visiteur » : un palier n3beur acquis est bien retiré', async () => {
+  const studentId = await createStudent('forced_visitor');
+  await setPrimaryRoleSlug(studentId, 'eleve_avance');
+  const groupId = await createGroup({
+    slug: `force-visitor-${Date.now()}`,
+    defaultRoleSlug: 'visiteur',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.changed, true);
+  // Sans forçage : `eleve_preserved_over_visitor`.
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'visiteur');
+});
+
+test('groupe imposant : la montée automatique par tâches validées ne s’applique plus', async () => {
+  const studentId = await createStudent('forced_no_progression');
+  const groupId = await createGroup({
+    slug: `force-freeze-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'eleve_novice',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+  await syncStudentRoleFromGroups(studentId);
+
+  const progression = await syncStudentPrimaryRoleFromProgress(studentId, 999, null, {
+    manual: true,
+    allowDemotion: true,
+  });
+  assert.strictEqual(progression.changed, false);
+  assert.strictEqual(progression.reason, 'group_forced_role');
+  assert.strictEqual(progression.forcedByGroupId, groupId);
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_novice');
+});
+
+test('groupe imposant : un profil hors échelle n3beur reste intact', async () => {
+  const studentId = await createStudent('forced_keeps_staff');
+  await setPrimaryRoleSlug(studentId, 'prof_classe');
+  const groupId = await createGroup({
+    slug: `force-staff-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'eleve_novice',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.changed, false);
+  assert.strictEqual(sync.reason, 'custom_role_preserved');
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'prof_classe');
+});
+
+test('groupe imposant sans profil par défaut : aucun forçage', async () => {
+  const studentId = await createStudent('forced_without_role');
+  const groupId = await createGroup({
+    slug: `force-norole-${Date.now()}`,
+    grantsN3beur: true,
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  assert.strictEqual(await getForcedRoleGroupForStudent(studentId), null);
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.forced, false);
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_novice');
+});
+
+test('groupe imposant un profil dangereux : forçage ignoré', async () => {
+  const studentId = await createStudent('forced_unsafe');
+  const groupId = await createGroup({
+    slug: `force-unsafe-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'admin',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  assert.strictEqual(await getForcedRoleGroupForStudent(studentId), null);
+  const sync = await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual(sync.forced, false);
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_novice');
+});
+
+test('deux groupes imposants : le profil le plus élevé l’emporte', async () => {
+  const studentId = await createStudent('forced_two_groups');
+  const low = await createGroup({
+    slug: `force-low-${Date.now()}`,
+    defaultRoleSlug: 'visiteur',
+    forceDefaultRole: true,
+  });
+  const high = await createGroup({
+    slug: `force-high-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'eleve_avance',
+    forceDefaultRole: true,
+  });
+  await addMember(low, studentId);
+  await addMember(high, studentId);
+
+  const forced = await getForcedRoleGroupForStudent(studentId);
+  assert.strictEqual(forced.groupId, high);
+  await syncStudentRoleFromGroups(studentId);
+  assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_avance');
 });

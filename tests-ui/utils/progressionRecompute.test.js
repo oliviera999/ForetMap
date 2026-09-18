@@ -94,6 +94,10 @@ describe('describeSkipReason', () => {
     expect(describeSkipReason('not_n3beur_member')).toMatch(/groupe n3beur/);
   });
 
+  it('profil imposé par le groupe : motif explicite', () => {
+    expect(describeSkipReason('group_forced_role')).toMatch(/imposé par son groupe/);
+  });
+
   it('motif inconnu : libellé neutre', () => {
     expect(describeSkipReason('quelque_chose')).toBe('inchangé');
   });
