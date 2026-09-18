@@ -2,6 +2,7 @@ import { MAP_MARKER_EMOJI_MAX_CHARS } from '../../constants/emojis';
 import { SurfaceVisibilityField } from '../../shared/ui/SurfaceVisibilityField.jsx';
 import { LocationAudienceFields } from '../../shared/ui/LocationAudienceFields.jsx';
 import { LocationLinksFields } from '../../shared/ui/LocationLinksFields.jsx';
+import { LocationNotesFields } from '../../shared/ui/LocationNotesFields.jsx';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
@@ -142,22 +143,18 @@ export function MarkerCommonFormFields({
       />
       <LocationAudienceFields
         idPrefix="marker"
-        NoteEditor={MarkdownTextarea}
         groupOptions={groupOptions}
         visibleGroupIds={form.visible_group_ids || []}
         onVisibleGroupIdsChange={(next) => setForm((f) => ({ ...f, visible_group_ids: next }))}
-        restrictedNoteGroupIds={form.restricted_note_group_ids || []}
-        onRestrictedNoteGroupIdsChange={(next) =>
-          setForm((f) => ({ ...f, restricted_note_group_ids: next }))
-        }
         visibleRoleSlugs={form.visible_role_slugs || []}
         onVisibleRoleSlugsChange={(next) => setForm((f) => ({ ...f, visible_role_slugs: next }))}
-        restrictedNote={form.restricted_note || ''}
-        onRestrictedNoteChange={(next) => setForm((f) => ({ ...f, restricted_note: next }))}
-        restrictedNoteRoleSlugs={form.restricted_note_role_slugs || []}
-        onRestrictedNoteRoleSlugsChange={(next) =>
-          setForm((f) => ({ ...f, restricted_note_role_slugs: next }))
-        }
+      />
+      <LocationNotesFields
+        idPrefix="marker"
+        NoteEditor={MarkdownTextarea}
+        groupOptions={groupOptions}
+        notes={form.notes || []}
+        onChange={(next) => setForm((f) => ({ ...f, notes: next }))}
       />
       <LocationLinksFields
         idPrefix="marker"

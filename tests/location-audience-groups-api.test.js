@@ -253,8 +253,7 @@ test('groupe inconnu refusé à l’écriture, sur le lieu, le complément et le
       name: 'Zone coquille 2',
       points: POLYGON,
       map_id: mapId,
-      restricted_note: 'x',
-      restricted_note_group_ids: [bad],
+      notes: [{ body: 'x', audience_group_ids: [bad] }],
     })
     .expect(400);
   assert.match(noteRes.body.error, /groupe inconnu/i);
@@ -313,8 +312,7 @@ test('sync carte → visite : la restriction par groupe survit au report', async
       points: POLYGON,
       map_id: mapId,
       visible_group_ids: [groupA],
-      restricted_note: 'Consigne classe A',
-      restricted_note_group_ids: [groupA],
+      notes: [{ title: 'Classe A', body: 'Consigne classe A', audience_group_ids: [groupA] }],
     })
     .expect(201);
 
@@ -323,13 +321,20 @@ test('sync carte → visite : la restriction par groupe survit au report', async
     .expect(200);
 
   const { queryOne } = require('../database');
-  const mirrored = await queryOne(
-    'SELECT visible_group_ids, restricted_note_group_ids FROM visit_zones WHERE id = ?',
-    [zone.body.id],
-  );
+  const mirrored = await queryOne('SELECT visible_group_ids FROM visit_zones WHERE id = ?', [
+    zone.body.id,
+  ]);
   assert.ok(mirrored, 'la zone a bien été reportée sur la visite');
   assert.deepEqual(JSON.parse(mirrored.visible_group_ids), [groupA]);
-  assert.deepEqual(JSON.parse(mirrored.restricted_note_group_ids), [groupA]);
+  // Les compléments ne sont plus recopiés : ils vivent dans `location_notes`, clé sur
+  // l'identifiant que la visite partage avec la carte. Il n'y a donc plus de copie à
+  // synchroniser — ni à oublier de synchroniser, ce qui était le trou de la migration 262.
+  const noteRow = await queryOne(
+    'SELECT body, audience_group_ids FROM location_notes WHERE location_kind = ? AND location_id = ?',
+    ['zone', zone.body.id],
+  );
+  assert.equal(noteRow.body, 'Consigne classe A');
+  assert.deepEqual(JSON.parse(noteRow.audience_group_ids), [groupA]);
 
   // Et le filtrage tient sur la charge de visite servie à l'élève de l'autre classe.
   const { visitContentCache } = require('../routes/visit');

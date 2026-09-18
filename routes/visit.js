@@ -17,6 +17,7 @@ const {
   attachCategoriesToEntity,
   listCategories,
 } = require('../lib/locationCategories');
+const { loadLocationNotesMap, attachNotesToEntity } = require('../lib/locationNotes');
 const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
@@ -239,9 +240,6 @@ router.get(
        zm.current_plant AS current_plant,
        COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(z.visible_group_ids, zm.visible_group_ids) AS visible_group_ids,
-       COALESCE(z.restricted_note, zm.restricted_note) AS restricted_note,
-       COALESCE(z.restricted_note_role_slugs, zm.restricted_note_role_slugs) AS restricted_note_role_slugs,
-       COALESCE(z.restricted_note_group_ids, zm.restricted_note_group_ids) AS restricted_note_group_ids,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -263,9 +261,6 @@ router.get(
        mm.plant_name AS plant_name,
        COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(m.visible_group_ids, mm.visible_group_ids) AS visible_group_ids,
-       COALESCE(m.restricted_note, mm.restricted_note) AS restricted_note,
-       COALESCE(m.restricted_note_role_slugs, mm.restricted_note_role_slugs) AS restricted_note_role_slugs,
-       COALESCE(m.restricted_note_group_ids, mm.restricted_note_group_ids) AS restricted_note_group_ids,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,
@@ -395,6 +390,27 @@ router.get(
         return [];
       },
     );
+    /**
+     * Compléments réservés (migration 263) : chargés bruts ici, filtrés par lecteur dans
+     * `projectVisitContentForViewer` — comme `visible_role_slugs`, le cache ne doit pas
+     * mémoriser une projection. Ils sont clés sur l'identifiant que la visite partage avec
+     * la carte : aucune recopie de colonne n'est nécessaire.
+     */
+    const zoneNotesPromise = zonesPromise.then((rows) =>
+      loadLocationNotesMap(
+        { queryAll },
+        'zone',
+        (rows || []).map((r) => r.id),
+      ),
+    );
+    const markerNotesPromise = markersPromise.then((rows) =>
+      loadLocationNotesMap(
+        { queryAll },
+        'marker',
+        (rows || []).map((r) => r.id),
+      ),
+    );
+
     const zoneCategoriesPromise = zonesPromise.then((rows) =>
       loadCategoriesMap(
         { queryAll },
@@ -426,6 +442,8 @@ router.get(
       categoryCatalog,
       zoneCategoriesMap,
       markerCategoriesMap,
+      zoneNotesMap,
+      markerNotesMap,
     ] = await Promise.all([
       zonesPromise,
       markersPromise,
@@ -442,6 +460,8 @@ router.get(
       categoriesPromise,
       zoneCategoriesPromise,
       markerCategoriesPromise,
+      zoneNotesPromise,
+      markerNotesPromise,
     ]);
 
     const infrastructureZoneIds = new Set(
@@ -472,7 +492,10 @@ router.get(
       .filter((z) => visitContentRowIsPublicActive(z))
       .map((z) => {
         const visitMedia = mediaByTarget[`zone:${z.id}`] || [];
-        const withCats = attachCategoriesToEntity(z, zoneCategoriesMap.get(String(z.id)) || []);
+        const withCats = attachNotesToEntity(
+          attachCategoriesToEntity(z, zoneCategoriesMap.get(String(z.id)) || []),
+          zoneNotesMap.get(String(z.id)) || [],
+        );
         return {
           ...withVisitLocationSpecies(withCats, zoneSpeciesMap.get(String(z.id)), z.current_plant),
           // Source de vérité infra déjà lue plus haut ; on la conserve si la jonction
@@ -488,7 +511,10 @@ router.get(
       .filter((m) => visitContentRowIsPublicActive(m))
       .map((m) => {
         const visitMedia = mediaByTarget[`marker:${m.id}`] || [];
-        const withCats = attachCategoriesToEntity(m, markerCategoriesMap.get(String(m.id)) || []);
+        const withCats = attachNotesToEntity(
+          attachCategoriesToEntity(m, markerCategoriesMap.get(String(m.id)) || []),
+          markerNotesMap.get(String(m.id)) || [],
+        );
         return {
           ...withVisitLocationSpecies(withCats, markerSpeciesMap.get(String(m.id)), m.plant_name),
           map_lead_photo: serializeMapLeadPhoto(

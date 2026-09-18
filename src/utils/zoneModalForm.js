@@ -17,6 +17,7 @@ import {
   normalizeAudienceRoleList,
 } from '../shared/ui/LocationAudienceFields.jsx';
 import { buildLocationLinksPayload } from '../shared/ui/LocationLinksFields.jsx';
+import { buildLocationNotesPayload } from '../shared/ui/LocationNotesFields.jsx';
 import { normalizeVisitEditorialBlocksForSave } from './visitEditorialBlocks.js';
 
 export {
@@ -100,9 +101,7 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     search_aliases: String(form.searchAliases || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visibleRoleSlugs),
     visible_group_ids: normalizeAudienceGroupList(form.visibleGroupIds),
-    restricted_note: String(form.restrictedNote || '').trim(),
-    restricted_note_role_slugs: normalizeAudienceRoleList(form.restrictedNoteRoleSlugs),
-    restricted_note_group_ids: normalizeAudienceGroupList(form.restrictedNoteGroupIds),
+    notes: buildLocationNotesPayload(form.notes),
     links: buildLocationLinksPayload(form.links),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };

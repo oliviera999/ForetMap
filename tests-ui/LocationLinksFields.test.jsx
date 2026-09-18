@@ -12,6 +12,12 @@ import {
   LocationAudienceFields,
   normalizeAudienceGroupList,
 } from '../src/shared/ui/LocationAudienceFields.jsx';
+import {
+  LOCATION_NOTES_MAX,
+  LocationNotesFields,
+  buildLocationNotesPayload,
+  normalizeLocationNotesForForm,
+} from '../src/shared/ui/LocationNotesFields.jsx';
 import { MarkdownTextarea } from '../src/components/MarkdownTextarea.jsx';
 import { LocationLinksBlock } from '../src/components/map/LocationLinksBlock.jsx';
 
@@ -118,28 +124,19 @@ describe('Audience par groupes (migration 262)', () => {
     render(
       <LocationAudienceFields
         visibleRoleSlugs={[]}
-        restrictedNoteRoleSlugs={[]}
         groupOptions={GROUP_OPTIONS}
         visibleGroupIds={[]}
         onVisibleGroupIdsChange={onChange}
       />,
     );
-    // Le libellé apparaît dans les deux fieldsets (voir le lieu / lire le complément) :
-    // on vise le premier, celui de la visibilité du lieu.
-    fireEvent.click(screen.getAllByLabelText('Classe A')[0]);
+    fireEvent.click(screen.getByLabelText('Classe A'));
     expect(onChange).toHaveBeenCalledWith(['g1']);
   });
 
   it('n’affiche aucun bloc groupes quand la liste n’a pas chargé', () => {
     // Repli volontaire : un réglage de confidentialité ne doit pas devenir inaccessible
     // parce qu'une liste annexe a échoué — les rôles restent utilisables.
-    render(
-      <LocationAudienceFields
-        visibleRoleSlugs={[]}
-        restrictedNoteRoleSlugs={[]}
-        groupOptions={[]}
-      />,
-    );
+    render(<LocationAudienceFields visibleRoleSlugs={[]} groupOptions={[]} />);
     expect(screen.queryByText('…ou membres de ces groupes')).toBeNull();
     expect(screen.getAllByLabelText('Administrateur').length).toBeGreaterThan(0);
   });
@@ -186,33 +183,84 @@ describe('Audience par groupes (migration 262)', () => {
   });
 });
 
-describe('LocationAudienceFields — parité d’édition du complément réservé', () => {
+describe('LocationNotesFields — édition des compléments réservés (migration 263)', () => {
+  const NOTE = { title: '', body: 'note', audience_role_slugs: [], audience_group_ids: [] };
+
   it('sans éditeur injecté, garde le textarea historique', () => {
-    render(
-      <LocationAudienceFields
-        visibleRoleSlugs={[]}
-        restrictedNote="note"
-        restrictedNoteRoleSlugs={[]}
-        onRestrictedNoteChange={vi.fn()}
-      />,
-    );
+    render(<LocationNotesFields notes={[NOTE]} onChange={vi.fn()} />);
     expect(screen.getByDisplayValue('note').tagName).toBe('TEXTAREA');
   });
 
   it('avec MarkdownTextarea injecté, le confidentiel reçoit la barre d’outils (bouton Lien)', () => {
     // C’était l’asymétrie corrigée par le lot 1 : la description publique avait un éditeur
     // riche, le complément réservé un textarea nu — donc aucun moyen guidé d’y poser un lien.
-    render(
-      <LocationAudienceFields
-        visibleRoleSlugs={[]}
-        restrictedNote="note"
-        restrictedNoteRoleSlugs={[]}
-        onRestrictedNoteChange={vi.fn()}
-        NoteEditor={MarkdownTextarea}
-      />,
-    );
-    const editor = screen.getByRole('textbox', { name: 'Complément réservé' });
+    render(<LocationNotesFields notes={[NOTE]} onChange={vi.fn()} NoteEditor={MarkdownTextarea} />);
+    const editor = screen.getByRole('textbox', { name: 'Texte du complément 1' });
     expect(editor.getAttribute('contenteditable')).toBe('true');
     expect(screen.getByRole('button', { name: 'Insérer un lien' })).toBeTruthy();
+  });
+
+  it('sans case cochée, annonce l’encadrement — un complément ne s’ouvre pas tout seul', () => {
+    render(<LocationNotesFields notes={[NOTE]} onChange={vi.fn()} />);
+    expect(screen.getByText('Prof de classe, n3boss, Administrateur')).toBeTruthy();
+  });
+
+  it('résume l’audience d’un complément réservé à un groupe', () => {
+    render(
+      <LocationNotesFields
+        notes={[{ ...NOTE, audience_group_ids: ['g1'] }]}
+        onChange={vi.fn()}
+        groupOptions={GROUP_OPTIONS}
+      />,
+    );
+    expect(screen.getByText('Classe A', { selector: 'strong' })).toBeTruthy();
+  });
+
+  it('bloque l’ajout au plafond de six compléments par lieu', () => {
+    const onChange = vi.fn();
+    const full = Array.from({ length: LOCATION_NOTES_MAX }, (_, i) => ({ ...NOTE, body: `n${i}` }));
+    render(<LocationNotesFields notes={full} onChange={onChange} />);
+    const add = screen.getByRole('button', { name: '+ Ajouter un complément' });
+    expect(add.disabled).toBe(true);
+    fireEvent.click(add);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText(`${LOCATION_NOTES_MAX} compléments maximum par lieu.`)).toBeTruthy();
+  });
+
+  it('réordonne les compléments : l’ordre est la donnée, pas les identifiants', () => {
+    const onChange = vi.fn();
+    render(
+      <LocationNotesFields
+        notes={[
+          { ...NOTE, body: 'premier' },
+          { ...NOTE, body: 'second' },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Monter le complément 2' }));
+    expect(onChange.mock.calls[0][0].map((n) => n.body)).toEqual(['second', 'premier']);
+  });
+
+  it('un intitulé sans texte est signalé, et écarté de la charge d’enregistrement', () => {
+    render(
+      <LocationNotesFields notes={[{ ...NOTE, title: 'Consigne', body: '' }]} onChange={vi.fn()} />,
+    );
+    expect(screen.getByRole('alert').textContent).toMatch(/Texte requis/);
+    expect(buildLocationNotesPayload([{ title: 'Consigne', body: '   ' }])).toEqual([]);
+  });
+
+  it('normalise une liste venue de l’API et tronque au plafond', () => {
+    expect(
+      normalizeLocationNotesForForm([
+        { id: 9, title: 'A', body: 'texte', audience_role_slugs: ['prof', 'zzz'] },
+      ]),
+    ).toEqual([
+      { title: 'A', body: 'texte', audience_role_slugs: ['prof'], audience_group_ids: [] },
+    ]);
+    expect(normalizeLocationNotesForForm(undefined)).toEqual([]);
+    expect(
+      normalizeLocationNotesForForm(Array.from({ length: 9 }, () => ({ body: 'x' }))),
+    ).toHaveLength(LOCATION_NOTES_MAX);
   });
 });

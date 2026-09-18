@@ -9,6 +9,7 @@ import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModa
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
+import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
 import { ContextComments } from '../context-comments';
 import {
@@ -511,23 +512,7 @@ function MarkerModal({
               <MarkdownContent>{marker.note}</MarkdownContent>
             </div>
           )}
-          {marker.restricted_note && (
-            <div
-              style={{
-                background: '#fff7ed',
-                borderRadius: 10,
-                padding: '10px 14px',
-                marginBottom: 12,
-                border: '1px solid #fdba74',
-                fontSize: 'var(--text-sm)',
-                color: '#333',
-                lineHeight: 'var(--lh-relaxed)',
-              }}
-            >
-              <strong style={{ display: 'block', marginBottom: 6 }}>Complément réservé</strong>
-              <MarkdownContent>{marker.restricted_note}</MarkdownContent>
-            </div>
-          )}
+          <LocationNotesBlock notes={marker.notes} />
           <LocationLinksBlock links={marker.links} />
           {showVisitAsideBlock && (
             <LocationVisitAside
@@ -551,6 +536,7 @@ function MarkerModal({
             livingBeingsOnlyOnTasks.length === 0 &&
             !marker.note &&
             !marker.links?.length &&
+            !marker.notes?.length &&
             !showVisitAsideBlock && (
               <p
                 style={{

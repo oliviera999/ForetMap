@@ -180,8 +180,12 @@ const TEXT_PLAN = [
   { table: 'user_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'gl_player_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'observation_logs', columns: ['content'] },
-  // Consigne d'accès saisie par un prof sur une zone ou un repère : texte libre, donc
-  // susceptible de nommer un élève ou de porter un contact.
+  // Compléments réservés saisis par un prof sur une zone ou un repère : texte libre, donc
+  // susceptible de nommer un élève ou de porter un contact. Depuis la migration 263 ils
+  // vivent dans `location_notes` (les colonnes `restricted_note` sont retirées au démarrage
+  // par `lib/legacySchemaCleanup.js`) ; les quatre entrées historiques restent listées pour
+  // un dump antérieur à la migration, où les colonnes existent encore.
+  { table: 'location_notes', columns: ['title', 'body'] },
   { table: 'zones', columns: ['restricted_note'] },
   { table: 'visit_zones', columns: ['restricted_note'] },
   { table: 'map_markers', columns: ['restricted_note'] },

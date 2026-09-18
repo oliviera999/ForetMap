@@ -1,5 +1,5 @@
 /**
- * Audience d'un lieu (zone / repère) par rôles ForetMap — V1.
+ * Audience d'un lieu (zone / repère) : qui le voit.
  * Aligné sur `lib/locationAudience.js` (mêmes slugs).
  * Profil `personnel` inclus (calqué sur visiteur).
  * Build dist requis avant push (garde-fou pre-push).
@@ -16,10 +16,11 @@ export const FORETMAP_AUDIENCE_ROLE_OPTIONS = Object.freeze([
 ]);
 
 /**
- * Audience par défaut du complément réservé (aucune case cochée) — miroir de
- * `RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS` (`lib/locationAudience.js`), qui fait foi côté API.
+ * Audience par défaut d'un complément réservé (aucune case cochée) — miroir de
+ * `LOCATION_NOTE_DEFAULT_ROLE_SLUGS` (`lib/locationAudience.js`), qui fait foi côté API.
+ * Consommée par `LocationNotesFields`, qui en dérive le libellé affiché.
  */
-export const RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS = Object.freeze(['prof_classe', 'prof', 'admin']);
+export const LOCATION_NOTE_DEFAULT_ROLE_SLUGS = Object.freeze(['prof_classe', 'prof', 'admin']);
 
 const KNOWN = new Set(FORETMAP_AUDIENCE_ROLE_OPTIONS.map((r) => r.slug));
 
@@ -127,35 +128,23 @@ export function normalizeAudienceRoleList(value) {
 }
 
 /**
- * Cases « Qui peut voir ce lieu » + complément réservé.
- * Liste de rôles vide = public (tout le monde).
+ * Cases « Qui peut voir ce lieu » (rôles et groupes, en union).
+ * Listes vides = public (tout le monde).
+ *
+ * Les compléments réservés ont quitté ce composant avec la migration 263 : ils sont
+ * désormais multiples et vivent dans `LocationNotesFields`.
  */
 export function LocationAudienceFields({
   visibleRoleSlugs,
   onVisibleRoleSlugsChange,
-  restrictedNote,
-  onRestrictedNoteChange,
-  restrictedNoteRoleSlugs,
-  onRestrictedNoteRoleSlugsChange,
   idPrefix = 'audience',
   disabled = false,
-  NoteEditor = null,
   groupOptions = [],
   visibleGroupIds = [],
   onVisibleGroupIdsChange = null,
-  restrictedNoteGroupIds = [],
-  onRestrictedNoteGroupIdsChange = null,
 }) {
-  // Éditeur du complément réservé : injecté par le produit (ForetMap passe
-  // `MarkdownTextarea`, pour que le confidentiel ait la même barre d'outils — bouton
-  // « Lien » compris — que la description publique). `src/shared/**` ne peut pas importer
-  // de code produit (étanchéité ForetMap / GL), d'où l'injection plutôt qu'un import.
-  // Sans injection : textarea nu, comportement historique.
-  const NoteEditorComponent = NoteEditor || 'textarea';
   const visible = normalizeAudienceRoleList(visibleRoleSlugs);
-  const noteRoles = normalizeAudienceRoleList(restrictedNoteRoleSlugs);
   const visibleGroups = normalizeAudienceGroupList(visibleGroupIds);
-  const noteGroups = normalizeAudienceGroupList(restrictedNoteGroupIds);
   const toggleGroup = (list, id, checked, onChange) => {
     const next = checked ? [...list, id] : list.filter((g) => g !== id);
     onChange?.(normalizeAudienceGroupList(next));
@@ -202,55 +191,6 @@ export function LocationAudienceFields({
           legend="…ou membres de ces groupes"
           onToggle={(id, checked) =>
             toggleGroup(visibleGroups, id, checked, onVisibleGroupIdsChange)
-          }
-        />
-      </fieldset>
-
-      <div className="field">
-        <label htmlFor={`${idPrefix}-restricted-note`}>Complément réservé</label>
-        <NoteEditorComponent
-          id={`${idPrefix}-restricted-note`}
-          aria-label="Complément réservé"
-          value={restrictedNote || ''}
-          onChange={(e) => onRestrictedNoteChange?.(e.target.value)}
-          rows={3}
-          disabled={disabled}
-          placeholder="Texte lu seulement par certains rôles (consigne, note interne…)"
-        />
-      </div>
-
-      <fieldset className="fm-surface-field" disabled={disabled || !(restrictedNote || '').trim()}>
-        <legend className="fm-surface-field__legend">Qui peut lire le complément</legend>
-        <p className="hint" style={{ marginTop: 0 }}>
-          Aucune case = visible par les administrateurs, les n3boss et les profs de classe (plus les
-          gestionnaires du jardin). Cocher « Visiteur » pour l’afficher aussi en visite anonyme ou
-          sur le Plan.
-        </p>
-        <div className="fm-surface-field__options">
-          {FORETMAP_AUDIENCE_ROLE_OPTIONS.map((role) => {
-            const inputId = `${idPrefix}-note-${role.slug}`;
-            return (
-              <label key={role.slug} htmlFor={inputId} className="fm-surface-field__option">
-                <input
-                  id={inputId}
-                  type="checkbox"
-                  checked={noteRoles.includes(role.slug)}
-                  onChange={(e) =>
-                    toggle(noteRoles, role.slug, e.target.checked, onRestrictedNoteRoleSlugsChange)
-                  }
-                />
-                <span>{role.label}</span>
-              </label>
-            );
-          })}
-        </div>
-        <AudienceGroupOptions
-          groupOptions={groupOptions}
-          selected={noteGroups}
-          idPrefix={`${idPrefix}-note-group`}
-          legend="…ou membres de ces groupes"
-          onToggle={(id, checked) =>
-            toggleGroup(noteGroups, id, checked, onRestrictedNoteGroupIdsChange)
           }
         />
       </fieldset>

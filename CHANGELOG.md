@@ -9,6 +9,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — plusieurs compléments réservés par lieu, un par public
+
+- Une zone ou un repère porte désormais **jusqu'à six compléments réservés** au lieu d'un
+  seul, **chacun avec son intitulé et sa propre audience** (rôles et/ou groupes). La consigne
+  de la 2nde B, la note pour le personnel d'entretien et le code du cadenas pour l'encadrement
+  tiennent sur la même fiche : chaque lecteur ne reçoit que ce qui le concerne et ignore
+  l'existence du reste. Table `location_notes` (migration `263`), champ d'API `notes`.
+- **Sémantique préservée** : sans aucune case cochée, un complément reste réservé à
+  l'encadrement (profs de classe, n3boss, administrateurs) — un complément est confidentiel
+  par nature. C'est la différence assumée avec les liens du lieu, dont l'audience vide vaut
+  « suit le lieu ».
+- **La carte et la Visite partagent les mêmes compléments.** La table est clé sur
+  l'identifiant du lieu, que `visit_zones` / `visit_markers` partagent avec `zones` /
+  `map_markers` : la synchronisation carte → visite ne recopie donc plus **aucun** complément.
+  Elle supprime du même coup la duplication de colonnes traînée depuis la migration `240` —
+  celle qu'il fallait recopier à la main dans six écritures, et dont un oubli avait rendu
+  publique une note réservée (corrigé en `262`). La non-fuite devient structurelle.
+- **La fiche de Visite affiche enfin ces compléments** aux lecteurs qui y ont droit : elle les
+  recevait déjà, sans jamais les montrer.
+- **Suppression propre** des colonnes `restricted_note`, `restricted_note_role_slugs` et
+  `restricted_note_group_ids` sur les quatre tables de lieux — sans alias de compatibilité
+  côté API, remplacement net. Le retrait passe par `lib/legacySchemaCleanup.js` (au démarrage,
+  **après** les migrations) : `sql/schema_foretmap.sql` s'exécutant **avant** elles, un
+  `DROP COLUMN` dans la migration aurait été défait à chaque initialisation, et les migrations
+  `236` / `240` / `262` ont encore besoin de ces colonnes pour se rejouer sur une base neuve.
+- Tests : `tests/location-notes.test.js` (validation, plafonds, audience vide = encadrement,
+  projection), `tests/location-notes-api.test.js` (parcours HTTP : audiences distinctes sur un
+  même lieu, `[]` vs champ omis, plafond refusé côté serveur, édition depuis la Visite vue
+  depuis la carte, nettoyage à la suppression), `tests/visit-map-to-visit-fields.test.js`
+  réécrit pour figer qu'aucun champ de complément ne traverse plus la liste blanche, et
+  `tests-ui/LocationLinksFields.test.jsx` pour l'éditeur multi-compléments. Doc : `docs/API.md`,
+  `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Modifié — Visite : « Y aller » n'apparaît que si la géolocalisation est activée sur la carte
 
 - Dans la fiche d'un lieu de la **Visite**, le bouton **« Y aller »** n'est plus affiché éteint
