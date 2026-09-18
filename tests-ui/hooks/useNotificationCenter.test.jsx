@@ -195,3 +195,45 @@ describe('useNotificationCenter — échéances n3beur', () => {
     expect(overdueItems).toHaveLength(1);
   });
 });
+
+/**
+ * Messages reçus sur un lieu — dont les signalements déposés depuis le plan des personnels.
+ * Avant cette règle, rien n'avertissait : le message attendait qu'on rouvre le repère.
+ */
+describe('useNotificationCenter — messages reçus sur les lieux', () => {
+  const message = {
+    id: 'c-1',
+    place_label: 'Porte du gymnase',
+    body: 'La porte est condamnée depuis la rentrée.',
+  };
+
+  it('un message non lu produit une notification nommant le lieu', () => {
+    const { result } = mountCenter({ newPlaceMessages: [message] });
+    const item = findByKey(result, 'place-message-c-1');
+    expect(item?.title).toBe('Message sur « Porte du gymnase »');
+    expect(item?.message).toBe('La porte est condamnée depuis la rentrée.');
+    expect(item?.action).toEqual({ tab: 'settings' });
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it('le même message rechargé ne sonne pas deux fois', () => {
+    const { result, rerender } = mountCenter({ newPlaceMessages: [message] });
+    rerender({ isTeacher: true, isAdmin: false, newPlaceMessages: [{ ...message }] });
+    const items = result.current.items.filter((item) => item.key === 'place-message-c-1');
+    expect(items).toHaveLength(1);
+  });
+
+  it('un lieu supprimé reste annonçable', () => {
+    const { result } = mountCenter({
+      newPlaceMessages: [{ id: 'c-2', place_label: '', body: 'Signalement orphelin' }],
+    });
+    expect(findByKey(result, 'place-message-c-2')?.title).toBe('Message sur « Lieu supprimé »');
+  });
+
+  it('côté élève, aucune notification de ce type', () => {
+    const { result } = renderHook(() =>
+      useNotificationCenter({ isTeacher: false, isAdmin: false, newPlaceMessages: [message] }),
+    );
+    expect(findByKey(result, 'place-message-c-1')).toBeNull();
+  });
+});
