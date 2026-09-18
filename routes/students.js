@@ -39,6 +39,7 @@ const {
   canActorMutateImportedAdmin,
   isAdminRoleSlug,
   hasImportScalarValue,
+  buildRoleAliasesFromDbRows,
   IMPORT_ROLE_SLUGS,
 } = require('../lib/studentRouteHelpers');
 
@@ -173,6 +174,23 @@ router.post(
       if (e) emailOwner.set(e, u.id);
     }
 
+    // Profils importables : chargés avant la validation des lignes pour que la colonne
+    // Rôle accepte aussi le **nom affiché** du profil — renommable par un administrateur
+    // (« Profils & utilisateurs ») — et pas seulement son slug technique.
+    const importRoleSlugs = [...IMPORT_ROLE_SLUGS];
+    const roleRows = await queryAll(
+      `SELECT slug, id, display_name FROM roles WHERE slug IN (${importRoleSlugs.map(() => '?').join(', ')})`,
+      importRoleSlugs,
+    );
+    const roleIdBySlug = new Map();
+    const roleLabelBySlug = new Map();
+    for (const r of roleRows) {
+      roleIdBySlug.set(r.slug, r.id);
+      if (asTrimmedString(r.display_name))
+        roleLabelBySlug.set(r.slug, asTrimmedString(r.display_name));
+    }
+    const roleAliases = buildRoleAliasesFromDbRows(roleRows);
+
     const minPasswordStudent = await getPasswordMinLengthFor('student');
     const minPasswordTeacher = await getPasswordMinLengthFor('teacher');
     const passwordOpts = {
@@ -184,9 +202,11 @@ router.post(
     };
 
     const candidateRows = [];
+    /** Lignes acceptées dont la colonne Rôle était vide → profil par défaut. */
+    const defaultedRoleRows = [];
     rawRows.forEach((row, idx) => {
       const rowNumber = idx + 2;
-      const payload = buildImportStudentPayload(row);
+      const payload = buildImportStudentPayload(row, { roleAliases });
       const errors = validateImportStudentPayload(payload, rowNumber, passwordOpts);
 
       if (
@@ -210,8 +230,19 @@ router.post(
         return;
       }
 
+      if (!payload.roleInput) defaultedRoleRows.push(rowNumber);
       candidateRows.push({ payload, rowNumber });
     });
+
+    if (defaultedRoleRows.length > 0) {
+      const defaultLabel = roleLabelBySlug.get('eleve_novice') || 'eleve_novice';
+      const prefix = defaultedRoleRows.length > 1 ? 'Lignes' : 'Ligne';
+      report.infos.push({
+        code: 'role_defaulted',
+        rows: [...defaultedRoleRows],
+        message: `${prefix} ${defaultedRoleRows.join(', ')} : colonne Rôle vide → profil « ${defaultLabel} » (eleve_novice) par défaut.`,
+      });
+    }
 
     const { items: mergedRows, infos: mergeInfos } =
       mergeDuplicateStudentImportItems(candidateRows);
@@ -345,14 +376,6 @@ router.post(
       return res.json({ report });
     }
 
-    const roleIdBySlug = new Map();
-    const slugList = [...IMPORT_ROLE_SLUGS];
-    const placeholdersSlugs = slugList.map(() => '?').join(', ');
-    const roleRows = await queryAll(
-      `SELECT slug, id FROM roles WHERE slug IN (${placeholdersSlugs})`,
-      slugList,
-    );
-    for (const r of roleRows) roleIdBySlug.set(r.slug, r.id);
     const createdRoleAssignments = [];
     const usersForGroups = [];
 

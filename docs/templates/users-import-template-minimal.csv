@@ -1,0 +1,4 @@
+﻿Rôle;Prénom;Nom;Mot de passe;Groupes (noms/slugs | chemin Parent>Enfant)
+visiteur;Vera;Visite;azerty123;6ème A
+eleve_novice;Nina;Novice;azerty123;6ème A | 6ème B
+prof_classe;Théo;Tuteur;MotDePasse12!;6ème A | 6ème B

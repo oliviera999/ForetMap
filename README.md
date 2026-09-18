@@ -107,6 +107,8 @@ Documentation détaillée et templates:
 - [docs/IMPORT_BIODIVERSITE.md](docs/IMPORT_BIODIVERSITE.md)
 - [docs/templates/plants-import-template-minimal.csv](docs/templates/plants-import-template-minimal.csv)
 - [docs/templates/plants-import-template.csv](docs/templates/plants-import-template.csv)
+- [docs/templates/users-import-template.csv](docs/templates/users-import-template.csv) —
+  import de comptes (guide : [docs/IMPORT_COMPTES.md](docs/IMPORT_COMPTES.md))
 
 ### Variables d’environnement
 
