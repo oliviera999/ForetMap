@@ -21,15 +21,14 @@ describe('markerFormFromMarker', () => {
       visit_details_text: '',
       hidden_surfaces: [],
       search_aliases: '',
-      // Cloisonnement d'audience : visibilité du repère et note réservée à certains rôles.
+      // Cloisonnement d'audience : qui voit le repère.
       visible_role_slugs: [],
       // Audience par groupes (migration 262) : jumelle de chaque liste de rôles.
       visible_group_ids: [],
-      restricted_note: '',
-      restricted_note_role_slugs: [],
-      restricted_note_group_ids: [],
-      // Liens du lieu (migration 261) : chacun porte sa propre audience.
+      // Liens du lieu (migration 261) et compléments réservés (migration 263) : chacun
+      // porte sa propre audience.
       links: [],
+      notes: [],
     });
   });
 

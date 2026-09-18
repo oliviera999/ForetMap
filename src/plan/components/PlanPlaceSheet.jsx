@@ -57,12 +57,15 @@ export function PlanPlaceSheet({
   const description = String(place.description || place.note || '').trim();
   const photo = place.map_lead_photo;
   /**
-   * Complément réservé (`restricted_note`) : il n'arrive dans la charge que si le serveur a
-   * jugé que ce lecteur-ci y a droit (`lib/locationAudience.js`). Le front n'a donc aucun
-   * filtrage à refaire — seulement à le distinguer nettement du texte public, pour que
-   * personne ne lise une consigne interne en croyant lire la fiche du plan public.
+   * Compléments réservés (`location_notes`, migration 263) : ils n'arrivent dans la charge que
+   * si le serveur a jugé que ce lecteur-ci y a droit (`lib/locationAudience.js`), note par
+   * note. Le front n'a donc aucun filtrage à refaire — seulement à les distinguer nettement du
+   * texte public, pour que personne ne lise une consigne interne en croyant lire la fiche du
+   * plan public.
    */
-  const restrictedNote = String(place.restricted_note || '').trim();
+  const notes = Array.isArray(place.notes)
+    ? place.notes.filter((n) => n && String(n.body || '').trim())
+    : [];
   return (
     <BottomSheet
       open
@@ -182,14 +185,15 @@ export function PlanPlaceSheet({
       {place.search_aliases?.length ? (
         <p className="plan-place__aliases">Aussi appelé : {place.search_aliases.join(', ')}</p>
       ) : null}
-      {restrictedNote ? (
-        <section className="plan-place__restricted">
+      {notes.map((note) => (
+        <section className="plan-place__restricted" key={note.id ?? note.body}>
           <h3 className="plan-place__restricted-title">
-            <span aria-hidden>🔒</span> Réservé aux personnels
+            <span aria-hidden>🔒</span>{' '}
+            {String(note.title || '').trim() || 'Réservé aux personnels'}
           </h3>
-          <PlanLinkedText className="plan-place__restricted-text" text={restrictedNote} />
+          <PlanLinkedText className="plan-place__restricted-text" text={note.body} />
         </section>
-      ) : null}
+      ))}
       {shareUrl ? <p className="plan-place__share">Lien direct : {shareUrl}</p> : null}
       {onSuggest ? <PlaceSuggestionForm onSubmit={onSuggest} /> : null}
       {editUrl ? (

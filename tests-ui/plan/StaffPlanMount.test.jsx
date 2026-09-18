@@ -35,7 +35,7 @@ const staffContent = vi.hoisted(() => ({
       category_ids: ['c-bat'],
       search_aliases: [],
       visit_subtitle: '',
-      restricted_note: 'Clé au bureau des agents.',
+      notes: [{ id: 1, title: 'Accès', body: 'Clé au bureau des agents.' }],
     },
   ],
   viewer: {

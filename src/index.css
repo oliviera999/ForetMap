@@ -10482,3 +10482,38 @@ header .lock-btn::after,
   margin-left: 6px;
   font-size: var(--text-xs);
 }
+
+/*
+ * Compléments réservés d'un lieu (`location_notes`, migration 263), à l'affichage.
+ * Fond ambré distinct du texte public : on ne doit jamais lire une consigne interne en
+ * croyant lire la fiche publique. La liste arrive déjà filtrée par le serveur, note par
+ * note — le cadenas informe, il ne protège pas.
+ */
+.location-note-block,
+.visit-restricted-note {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent-warning-solid);
+  border-radius: 10px;
+  background: var(--tint-warning);
+  font-size: var(--text-sm);
+  color: var(--ink-strong);
+  line-height: var(--lh-relaxed);
+}
+
+.location-note-block__title,
+.visit-restricted-note__title {
+  display: block;
+  margin: 0 0 6px;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+}
+
+/* Une ligne = un complément, chacun avec son audience : on les sépare nettement. */
+.fm-location-notes__row {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-muted);
+  border-radius: var(--gl-radius-control, 10px);
+  background: var(--surface-sunken);
+}
