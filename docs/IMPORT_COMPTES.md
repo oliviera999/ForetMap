@@ -62,6 +62,12 @@ profil.
 | `prof`            | `teacher`      | n3boss, prof, professeur, enseignant, teacher, responsable pédagogique, animateur |
 | `admin`           | `teacher`      | Admin, administrateur, administratrice, administrator, super admin                |
 
+> **`prof` s'affiche « n3boss ».** C'est le même profil : `prof` est son identifiant
+> technique, « n3boss » son nom affiché. Un compte importé en « prof » apparaît donc en
+> « n3boss » dans l'application — ce n'est pas une dérive du mapping. Pour un tuteur de
+> classe, choisir `prof_classe` / « Prof de classe », qui est un profil distinct et plus
+> restreint.
+
 Deux compléments :
 
 - **Profils renommés** : le nom affiché réellement stocké en base (`roles.display_name`,

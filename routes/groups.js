@@ -245,8 +245,14 @@ router.get(
 );
 
 /**
- * F2-B — comptes « en attente de rattachement » : élèves actifs dont le rôle primaire
- * est encore `visiteur` (inscription en autonomie non rattachée à une classe).
+ * F2-B — comptes « en attente de rattachement » : élèves actifs dont le rôle primaire est
+ * encore `visiteur` **et qui n'appartiennent à aucun groupe actif**.
+ *
+ * Le rôle seul ne suffit pas à dire « en attente ». Un visiteur peut très bien être rattaché
+ * — à une classe sans accès n3beur, à un club, à un groupe de visite — et rester visiteur
+ * parce que c'est le profil voulu : il n'y a alors rien à rattacher, et il gonflait pourtant
+ * la pastille d'alerte. Ce qui reste à traiter, c'est le compte qui s'est inscrit seul et
+ * n'a encore **aucun** groupe.
  */
 router.get(
   '/pending-visitors',
@@ -258,6 +264,14 @@ router.get(
          JOIN user_roles ur ON ur.user_type = 'student' AND ur.user_id = u.id AND ur.is_primary = 1
          JOIN roles r ON r.id = ur.role_id AND r.slug = 'visiteur'
         WHERE u.user_type = 'student' AND u.is_active = 1
+          AND NOT EXISTS (
+            SELECT 1
+              FROM group_members gm
+              INNER JOIN \`groups\` g ON g.id = gm.group_id
+             WHERE gm.user_id = u.id
+               AND gm.user_type = 'student'
+               AND g.is_active = 1
+          )
         ORDER BY u.created_at DESC
         LIMIT 500`,
     );
