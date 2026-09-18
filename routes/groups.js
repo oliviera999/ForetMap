@@ -59,6 +59,16 @@ function parseBooleanFlag(value, fallback = false) {
   return fallback;
 }
 
+/**
+ * Imposer le profil d'un groupe (`force_default_role`) suppose d'avoir choisi ce profil :
+ * « imposer la règle automatique » n'aurait pas de sens. Refusé à l'écriture plutôt que
+ * silencieusement sans effet — un réglage coché qui ne fait rien est pire qu'un refus.
+ */
+function forceDefaultRoleError(forceDefaultRole, defaultRoleId) {
+  if (!forceDefaultRole || defaultRoleId) return null;
+  return 'force_default_role exige un profil par défaut (default_role_id)';
+}
+
 async function validateDefaultRoleId(roleId) {
   const normalized = roleId == null || roleId === '' ? null : Number(roleId);
   if (normalized == null) return null;
@@ -104,6 +114,7 @@ async function enrichGroupRows(rows) {
       default_role_slug: role?.slug ?? row.default_role_slug ?? null,
       default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
       grants_n3beur_access: Number(row.grants_n3beur_access) !== 0,
+      force_default_role: Number(row.force_default_role) !== 0,
       gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
       gl_class_name: glClass?.name ?? null,
     };
@@ -137,6 +148,7 @@ const createGroupBodySchema = z
         ? null
         : b.default_role_id,
     grants_n3beur_access: b.grants_n3beur_access,
+    force_default_role: b.force_default_role,
   }))
   .superRefine((d, ctx) => {
     if (!d.slug || !d.name)
@@ -226,6 +238,7 @@ router.get(
         parent_group_id: g.parent_group_id || null,
         default_role_id: g.default_role_id ?? null,
         grants_n3beur_access: Number(g.grants_n3beur_access) !== 0,
+        force_default_role: Number(g.force_default_role) !== 0,
       })),
     });
   }),
@@ -300,6 +313,9 @@ router.post(
       return res.status(400).json({ error: 'default_role_id invalide' });
     }
     const grantsN3beur = parseBooleanFlag(req.body?.grants_n3beur_access, false);
+    const forceDefaultRole = parseBooleanFlag(req.body?.force_default_role, false);
+    const forceError = forceDefaultRoleError(forceDefaultRole, defaultRoleId);
+    if (forceError) return res.status(400).json({ error: forceError });
     if (parentGroupId) {
       const parent = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [
         parentGroupId,
@@ -317,8 +333,8 @@ router.post(
     const id = crypto.randomUUID();
     try {
       await execute(
-        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, grants_n3beur_access, is_active, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, grants_n3beur_access, force_default_role, is_active, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         [
           id,
           slug,
@@ -328,6 +344,7 @@ router.post(
           parentGroupId,
           defaultRoleId,
           grantsN3beur ? 1 : 0,
+          forceDefaultRole ? 1 : 0,
           normalizeId(req.auth?.userId),
         ],
       );
@@ -447,6 +464,12 @@ router.patch(
       req.body?.grants_n3beur_access !== undefined
         ? parseBooleanFlag(req.body.grants_n3beur_access, false)
         : Number(group.grants_n3beur_access) !== 0;
+    const forceDefaultRole =
+      req.body?.force_default_role !== undefined
+        ? parseBooleanFlag(req.body.force_default_role, false)
+        : Number(group.force_default_role) !== 0;
+    const forceError = forceDefaultRoleError(forceDefaultRole, defaultRoleId);
+    if (forceError) return res.status(400).json({ error: forceError });
     if (!slug || !name) return res.status(400).json({ error: 'slug et name requis' });
     if (!kind) return res.status(400).json({ error: 'kind invalide (class|team|unit|club)' });
     if (parentGroupId && parentGroupId === id)
@@ -480,7 +503,8 @@ router.patch(
       await execute(
         `UPDATE \`groups\`
           SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
-              default_role_id = ?, grants_n3beur_access = ?, is_active = ?, updated_at = NOW()
+              default_role_id = ?, grants_n3beur_access = ?, force_default_role = ?,
+              is_active = ?, updated_at = NOW()
         WHERE id = ?`,
         [
           slug,
@@ -490,6 +514,7 @@ router.patch(
           parentGroupId,
           defaultRoleId,
           grantsN3beur ? 1 : 0,
+          forceDefaultRole ? 1 : 0,
           isActive,
           id,
         ],
@@ -497,10 +522,23 @@ router.patch(
     } catch (err) {
       rethrowSlugConflict(err);
     }
+
+    // Le profil imposé prend effet tout de suite. Sans ce rattrapage, cocher « imposer ce
+    // profil » ne changerait rien tant que chaque élève n'a pas rouvert l'application (c'est
+    // `GET /api/auth/me` qui resynchronise), et le n3boss verrait sa classe inchangée juste
+    // après avoir enregistré. Rejoué aussi quand le profil imposé change de valeur.
+    const forceBecameEffective =
+      forceDefaultRole &&
+      (Number(group.force_default_role) === 0 ||
+        String(group.default_role_id ?? '') !== String(defaultRoleId ?? ''));
+    const applied = forceBecameEffective
+      ? (await syncStudentRolesForGroupMembers(id)).filter((r) => r.changed).length
+      : 0;
+
     const updated = await enrichGroupRow(
       await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
     );
-    res.json(updated);
+    res.json(forceBecameEffective ? { ...updated, forced_role_applied: applied } : updated);
   }),
 );
 

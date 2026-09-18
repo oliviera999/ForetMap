@@ -55,19 +55,22 @@ test('corps valide : normalise les champs et appelle next', () => {
     parent_group_id: 'p-1',
     default_role_id: null,
     grants_n3beur_access: undefined,
+    force_default_role: undefined,
   });
 });
 
-test('corps valide : conserve default_role_id et grants_n3beur_access pour le handler', () => {
+test('corps valide : conserve default_role_id, grants_n3beur_access et force_default_role pour le handler', () => {
   const { nextCalled, body } = run({
     name: 'Classe n3',
     kind: 'class',
     default_role_id: 42,
     grants_n3beur_access: true,
+    force_default_role: true,
   });
   assert.strictEqual(nextCalled, true);
   assert.strictEqual(body.default_role_id, 42);
   assert.strictEqual(body.grants_n3beur_access, true);
+  assert.strictEqual(body.force_default_role, true);
 });
 
 test('slug dérivé du name quand slug absent ; defaults permissifs', () => {

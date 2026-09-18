@@ -49,6 +49,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `npm run templates:users` (vérification de synchronisation jouée par `npm test`).
 - Nouveau guide [docs/IMPORT_COMPTES.md](docs/IMPORT_COMPTES.md) : colonnes et en-têtes
   acceptés, valeurs acceptées pour chaque profil, garde-fous.
+### Ajouté — un groupe peut imposer son profil, la montée automatique ne le défait plus
+
+- Le profil par défaut d'un groupe n'était qu'un **plancher** : la montée par tâches validées
+  reprenait toujours la main, et deux gardes internes empêchaient toute baisse. Impossible de
+  tenir une classe sur un profil choisi — une classe de passage maintenue en « Visiteur », ou
+  une classe ouverte d'emblée en « n3beur avancé » repassait au palier calculé dès la
+  première tâche validée. La case **« Imposer ce profil »** du panneau de réglages du groupe
+  rend ce profil **autoritaire** : il s'applique aussi en baisse, se réapplique à chaque
+  synchronisation, et sort les membres de la montée automatique comme du recalcul par tâches
+  validées (colonne `groups.force_default_role`, migration `265`).
+- **Effet immédiat** : cocher la case — ou changer le profil imposé — réaligne les membres dès
+  l'enregistrement (`forced_role_applied` dans la réponse de `PATCH /api/groups/:id`), au lieu
+  d'attendre que chaque élève rouvre l'application.
+- **Trois garde-fous.** Le drapeau n'a d'effet qu'avec un profil par défaut choisi (l'API
+  refuse la combinaison en `400`, la case est désactivée sans profil) ; ce profil reste soumis
+  aux mêmes contrôles d'innocuité qu'un profil par défaut ordinaire (un groupe ne distribue
+  pas un pouvoir d'encadrement) ; et un profil **hors échelle n3beur** — n3boss,
+  administrateur, prof de classe, profil sur mesure — n'est jamais rétrogradé par ce chemin.
+  Entre deux groupes imposants, le profil le plus élevé l'emporte.
+- Le rapport de recalcul par tâches validées nomme désormais ces comptes : « profil imposé par
+  son groupe (non modifié) », au lieu d'un « inchangé » muet.
 
 ### Ajouté — plusieurs compléments réservés par lieu, un par public
 
