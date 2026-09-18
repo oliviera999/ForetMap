@@ -526,3 +526,162 @@ test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo
   assert.strictEqual(String(row.description), 'A conserver');
   assert.strictEqual(String(row.affiliation).toLowerCase(), 'foret');
 });
+
+test('POST /api/students/import : la colonne Rôle accepte les noms affichés des profils', async () => {
+  const unique = Date.now();
+  const csv = [
+    IMPORT_CSV_HEADER,
+    `n3beur novice;Libelle;Novice-${unique};pass123;n3;;lib_nov_${unique};lib_nov_${unique}@example.com;`,
+    `Élève avancé;Libelle;Avance-${unique};pass123;n3;;lib_av_${unique};lib_av_${unique}@example.com;`,
+    `n3beur chevronné 🏆;Libelle;Chevron-${unique};pass123;n3;;lib_chev_${unique};lib_chev_${unique}@example.com;`,
+    `Prof de classe;Libelle;Tuteur-${unique};MotDePasse12!;both;;lib_tut_${unique};lib_tut_${unique}@example.com;`,
+  ].join('\n');
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'libelles.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: true,
+    })
+    .expect(200);
+
+  assert.strictEqual(
+    res.body.report.totals.skipped_invalid,
+    0,
+    JSON.stringify(res.body.report.errors),
+  );
+  assert.strictEqual(res.body.report.totals.valid, 4);
+  assert.deepEqual(
+    res.body.report.preview.map((p) => p.role_slug),
+    ['eleve_novice', 'eleve_avance', 'eleve_chevronne', 'prof_classe'],
+  );
+});
+
+test('POST /api/students/import : un profil renommé en base reste reconnu', async () => {
+  const unique = Date.now();
+  const previous = await queryOne("SELECT display_name FROM roles WHERE slug = 'eleve_avance'");
+  await execute("UPDATE roles SET display_name = ? WHERE slug = 'eleve_avance'", [
+    'Jardinier confirmé',
+  ]);
+  try {
+    const csv = [
+      IMPORT_CSV_HEADER,
+      `Jardinier confirmé;Renomme;Profil-${unique};pass123;n3;;ren_${unique};ren_${unique}@example.com;`,
+    ].join('\n');
+    const res = await request(app)
+      .post('/api/students/import')
+      .set('Authorization', 'Bearer ' + teacherToken)
+      .send({
+        fileName: 'renomme.csv',
+        fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+        dryRun: true,
+      })
+      .expect(200);
+    assert.strictEqual(res.body.report.totals.valid, 1, JSON.stringify(res.body.report.errors));
+    assert.strictEqual(res.body.report.preview[0].role_slug, 'eleve_avance');
+  } finally {
+    await execute("UPDATE roles SET display_name = ? WHERE slug = 'eleve_avance'", [
+      previous?.display_name || 'n3beur avancé',
+    ]);
+  }
+});
+
+test('POST /api/students/import : rôle inconnu → message explicite, colonne vide → info', async () => {
+  const unique = Date.now();
+  const csv = [
+    IMPORT_CSV_HEADER,
+    `;Defaut;Role-${unique};pass123;n3;;def_${unique};def_${unique}@example.com;`,
+    `Terminale S;Inconnu;Role-${unique};pass123;n3;;inc_${unique};inc_${unique}@example.com;`,
+    `gl_mj;Gl;Role-${unique};MotDePasse12!;both;;gl_${unique};gl_${unique}@example.com;`,
+  ].join('\n');
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'roles.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: true,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.valid, 1);
+  assert.strictEqual(res.body.report.totals.skipped_invalid, 2);
+  const roleErrors = res.body.report.errors.filter((e) => e.field === 'role');
+  assert.ok(
+    roleErrors.some((e) => /« Terminale S » inconnu/.test(e.error)),
+    JSON.stringify(roleErrors),
+  );
+  assert.ok(
+    roleErrors.some((e) => /G&L/.test(e.error)),
+    JSON.stringify(roleErrors),
+  );
+  const info = (res.body.report.infos || []).find((i) => i.code === 'role_defaulted');
+  assert.ok(info, 'aucune info sur la colonne Rôle vide');
+  assert.deepEqual(info.rows, [2]);
+});
+
+test('POST /api/students/import : « Type » ne prime pas sur « Rôle », « E-mail » reconnu', async () => {
+  const unique = Date.now();
+  const header = ['Type', 'Rôle', 'Prénom', 'Nom', 'Mot de passe', 'Affiliation', 'E-mail'].join(
+    ';',
+  );
+  const csv = [
+    header,
+    `eleve;prof_classe;Entete;Priorite-${unique};MotDePasse12!;both;entete_${unique}@example.com`,
+  ].join('\n');
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'entetes.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: true,
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.valid, 1, JSON.stringify(res.body.report.errors));
+  assert.strictEqual(res.body.report.preview[0].role_slug, 'prof_classe');
+  assert.strictEqual(res.body.report.preview[0].user_type, 'teacher');
+});
+
+test('POST /api/students/import : le modèle téléchargé est importable tel quel', async () => {
+  const template = await request(app)
+    .get('/api/students/import/template?format=csv')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'modele.csv',
+      fileDataBase64: Buffer.from(template.text, 'utf8').toString('base64'),
+      dryRun: true,
+    })
+    .expect(200);
+
+  assert.strictEqual(
+    res.body.report.totals.skipped_invalid,
+    0,
+    JSON.stringify(res.body.report.errors),
+  );
+  assert.strictEqual(res.body.report.totals.merged_duplicates, 1);
+  assert.strictEqual(res.body.report.totals.valid, res.body.report.totals.received - 1);
+  const slugs = new Set(res.body.report.preview.map((p) => p.role_slug));
+  for (const slug of [
+    'visiteur',
+    'personnel',
+    'eleve_novice',
+    'eleve_avance',
+    'eleve_chevronne',
+    'prof_classe',
+    'prof',
+    'admin',
+  ]) {
+    assert.ok(slugs.has(slug), `modèle sans exemple ${slug}`);
+  }
+});

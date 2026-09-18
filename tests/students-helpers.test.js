@@ -22,6 +22,9 @@ const {
   affiliationFromImportCell,
   normalizeImportUserType,
   normalizeImportRoleSlug,
+  describeUnknownImportRole,
+  buildRoleAliasesFromDbRows,
+  canonicalizeImportRoleValue,
   userTypeForImportRoleSlug,
   canActorImportRoleSlug,
   canActorMutateImportedAdmin,
@@ -116,11 +119,56 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportRoleSlug('N3BOSS'), 'prof');
     assert.equal(normalizeImportRoleSlug('administrateur'), 'admin');
     assert.equal(normalizeImportRoleSlug('autre'), null);
+    // Régression : les **libellés affichés** par l'application (et annoncés par la
+    // documentation) tombaient en « rôle invalide » faute de dépliage des accents,
+    // des espaces et des emoji.
+    assert.equal(normalizeImportRoleSlug('n3beur novice'), 'eleve_novice');
+    assert.equal(normalizeImportRoleSlug('n3beur avancé'), 'eleve_avance');
+    assert.equal(normalizeImportRoleSlug('n3beur chevronné'), 'eleve_chevronne');
+    assert.equal(normalizeImportRoleSlug('Prof de classe'), 'prof_classe');
+    assert.equal(normalizeImportRoleSlug('Élève avancé'), 'eleve_avance');
+    assert.equal(normalizeImportRoleSlug('Élève chevronné 🏆'), 'eleve_chevronne');
+    assert.equal(normalizeImportRoleSlug('ELEVE-AVANCE'), 'eleve_avance');
+    assert.equal(normalizeImportRoleSlug('  Visiteur  '), 'visiteur');
+    assert.equal(normalizeImportRoleSlug('tuteur'), 'prof_classe');
+    assert.equal(normalizeImportRoleSlug('enseignant'), 'prof');
     assert.equal(normalizeImportUserType('prof'), 'teacher');
     assert.equal(normalizeImportUserType('eleve'), 'student');
     assert.equal(userTypeForImportRoleSlug('admin'), 'teacher');
     assert.equal(userTypeForImportRoleSlug('visiteur'), 'student');
     assert.equal(userTypeForImportRoleSlug('personnel'), 'student');
+  });
+
+  it('normalizeImportRoleSlug : libellés renommés en base (alias dynamiques)', () => {
+    const aliases = buildRoleAliasesFromDbRows([
+      { slug: 'eleve_avance', display_name: 'Jardinier confirmé' },
+      { slug: 'prof', display_name: 'Maître composteur' },
+      // Slug hors périmètre d'import : ignoré.
+      { slug: 'gl_mj', display_name: 'Jardinier confirmé' },
+      // Libellé qui écraserait un alias statique : les alias statiques gagnent.
+      { slug: 'admin', display_name: 'Visiteur' },
+    ]);
+    assert.equal(normalizeImportRoleSlug('Jardinier confirmé', aliases), 'eleve_avance');
+    assert.equal(normalizeImportRoleSlug('maitre composteur', aliases), 'prof');
+    assert.equal(normalizeImportRoleSlug('Visiteur', aliases), 'visiteur');
+    assert.equal(normalizeImportRoleSlug('Inconnu', aliases), null);
+    // Sans la table d'alias, le libellé personnalisé reste inconnu.
+    assert.equal(normalizeImportRoleSlug('Jardinier confirmé'), null);
+  });
+
+  it('buildRoleAliasesFromDbRows : libellé ambigu (deux profils) écarté', () => {
+    const aliases = buildRoleAliasesFromDbRows([
+      { slug: 'eleve_avance', display_name: 'Palier intermédiaire' },
+      { slug: 'eleve_chevronne', display_name: 'Palier intermédiaire' },
+    ]);
+    assert.equal(aliases.has(canonicalizeImportRoleValue('Palier intermédiaire')), false);
+  });
+
+  it('describeUnknownImportRole : message explicite, cas G&L distingué', () => {
+    assert.match(describeUnknownImportRole('Terminale'), /« Terminale » inconnu/);
+    assert.match(describeUnknownImportRole('Terminale'), /eleve_novice/);
+    assert.match(describeUnknownImportRole('gl_mj'), /G&L/);
+    assert.match(describeUnknownImportRole('Maître du jeu'), /G&L/);
   });
 
   it('canActorImportRoleSlug : anti-escalade', () => {
@@ -211,6 +259,41 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     });
   });
 
+  it('mapImportRowToStudentShape : en-tête explicite prioritaire sur l’en-tête de repli', () => {
+    // Un export porte souvent « Type » (élève/enseignant) *et* « Rôle » (le profil) :
+    // le dernier mappé gagnait, donc le profil dépendait de l'ordre des colonnes.
+    const avecTypeAvant = mapImportRowToStudentShape({
+      Type: 'eleve',
+      Rôle: 'prof_classe',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+    });
+    const avecTypeApres = mapImportRowToStudentShape({
+      Rôle: 'prof_classe',
+      Type: 'eleve',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+    });
+    assert.equal(avecTypeAvant.role, 'prof_classe');
+    assert.equal(avecTypeApres.role, 'prof_classe');
+    // Idem pour « Classe » qui ne doit pas primer sur « Groupes ».
+    const groupes = mapImportRowToStudentShape({
+      Classe: '6ème A',
+      Groupes: '6ème B > Atelier',
+    });
+    assert.equal(groupes.groups, '6ème B > Atelier');
+    // En l'absence de l'en-tête explicite, le repli sert toujours.
+    assert.equal(mapImportRowToStudentShape({ Type: 'prof' }).role, 'prof');
+    assert.equal(mapImportRowToStudentShape({ Classe: '6ème A' }).groups, '6ème A');
+  });
+
+  it('mapImportRowToStudentShape : « E-mail » et variantes reconnues', () => {
+    assert.equal(mapImportRowToStudentShape({ 'E-mail': 'a@b.fr' }).email, 'a@b.fr');
+    assert.equal(mapImportRowToStudentShape({ Courriel: 'a@b.fr' }).email, 'a@b.fr');
+    assert.equal(mapImportRowToStudentShape({ 'Adresse e-mail': 'a@b.fr' }).email, 'a@b.fr');
+    assert.equal(mapImportRowToStudentShape({ 'Nom de famille': 'Lovelace' }).lastName, 'Lovelace');
+  });
+
   it('buildImportStudentPayload : payload normalisé complet (prof)', () => {
     const payload = buildImportStudentPayload({
       Rôle: 'prof',
@@ -224,6 +307,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     });
     assert.deepEqual(payload, {
       roleSlug: 'prof',
+      roleInput: 'prof',
       userType: 'teacher',
       firstName: 'Ada',
       lastName: 'Lovelace',
@@ -410,13 +494,66 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.match(infos[0].message, /Lignes 2, 4/);
   });
 
-  it('buildTemplateWorkbookRows : une ligne d’exemple par profil ForetMap', () => {
+  it('buildTemplateWorkbookRows : tous les profils + toutes les situations couvertes', () => {
     const rows = buildTemplateWorkbookRows();
-    assert.equal(rows.length, IMPORT_ROLE_SLUGS.size);
-    const slugs = rows.map((r) => r[TEMPLATE_COLUMNS[0]]);
-    assert.deepEqual(slugs.sort(), [...IMPORT_ROLE_SLUGS].sort());
+    assert.ok(rows.length >= IMPORT_ROLE_SLUGS.size);
+    assert.ok(rows.every((r) => Object.keys(r).length === TEMPLATE_COLUMNS.length));
+
+    // Chaque profil importable a au moins une ligne d'exemple.
+    const resolved = rows.map((r) => normalizeImportRoleSlug(r[TEMPLATE_COLUMNS[0]]));
+    for (const slug of IMPORT_ROLE_SLUGS) {
+      assert.ok(resolved.includes(slug), `profil sans exemple : ${slug}`);
+    }
+
+    // Écritures de la colonne Rôle : slug, nom affiché, libellé accentué, alias.
+    const roleCells = rows.map((r) => String(r[TEMPLATE_COLUMNS[0]]));
+    assert.ok(roleCells.includes('eleve_novice'), 'aucun exemple en slug');
+    assert.ok(roleCells.includes('n3beur novice'), 'aucun exemple en nom affiché');
+    assert.ok(roleCells.includes('Élève avancé'), 'aucun exemple accentué');
+    assert.ok(roleCells.includes('tuteur'), 'aucun exemple par alias');
+
+    // Situations : e-mail hors établissement, multi-groupes, chemin Parent>Enfant,
+    // absence de groupe, affiliation vide, ligne minimale, doublon fusionnable.
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[7]] || '').includes('@gmail.com')));
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '').includes('|')));
-    assert.ok(rows.every((r) => Object.keys(r).length === TEMPLATE_COLUMNS.length));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '').includes('>')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '') === ''));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '') === ''));
+    assert.ok(
+      rows.some(
+        (r) => !r[TEMPLATE_COLUMNS[6]] && !r[TEMPLATE_COLUMNS[7]] && !r[TEMPLATE_COLUMNS[4]],
+      ),
+      'aucune ligne minimale',
+    );
+
+    // Toutes les lignes sont importables telles quelles (aucune ligne fautive),
+    // et le doublon volontaire fusionne en un seul compte.
+    const items = rows.map((r, i) => ({
+      payload: buildImportStudentPayload(r),
+      rowNumber: i + 2,
+    }));
+    for (const item of items) {
+      assert.deepEqual(
+        validateImportStudentPayload(item.payload, item.rowNumber, {
+          minPasswordStudent: 4,
+          minPasswordTeacher: 12,
+          passwordRequired: false,
+        }),
+        [],
+        `ligne d'exemple invalide : ${item.payload.firstName} ${item.payload.lastName}`,
+      );
+    }
+    const { items: merged, infos } = mergeDuplicateStudentImportItems(items);
+    assert.equal(merged.length, rows.length - 1);
+    assert.equal(infos.length, 1);
+    const dora = merged.find((m) => m.payload.lastName === 'Doublon');
+    assert.equal(dora.payload.groupRefs.length, 3, 'groupes non cumulés');
+    assert.equal(dora.payload.password, 'azerty123', 'mot de passe vide : ligne 1 conservée');
+    assert.equal(dora.payload.pseudo, 'dora_doublon', 'dernière ligne non prioritaire');
+    // Chaque compte créé par le modèle a un mot de passe et un profil résolu.
+    for (const m of merged) {
+      assert.ok(m.payload.password, `mot de passe manquant : ${m.payload.firstName}`);
+      assert.ok(IMPORT_ROLE_SLUGS.has(m.payload.roleSlug));
+    }
   });
 });
