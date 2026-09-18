@@ -1985,12 +1985,9 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
   autorisés à **voir le lieu**. Vide / omis = **public**. Hors audience, le lieu est
   **absent** des listes (pas grisé). Slugs acceptés : `visiteur`, `personnel`,
   `eleve_novice`, `eleve_avance`, `eleve_chevronne`, `prof_classe`, `prof`, `admin`.
-- **`restricted_note`** + **`restricted_note_role_slugs`** : complément de texte optionnel.
-  Slugs vides pour le complément = **audience par défaut** `prof_classe`, `prof`, `admin`
-  (`RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS`), en plus des gestionnaires (`zones.manage` /
-  `map.manage_markers`) qui voient toujours tout. Une liste explicite remplace ce défaut
-  (y compris pour en exclure l'encadrement). Les lecteurs non autorisés ne reçoivent
-  **pas** ces champs.
+- **Compléments réservés** : depuis la migration `263`, ils vivent dans le tableau `notes`
+  (voir « Compléments réservés d'un lieu » ci-dessous) et non plus dans des colonnes
+  `restricted_note*`, supprimées.
 - **Gestionnaires** : voient toujours tous les lieux et les métadonnées d'audience.
 - **Visite anonyme / Plan** : un anonyme compte comme `visiteur` ; un lieu restreint sans
   `visiteur` dans l'audience n'y apparaît pas.
@@ -1999,13 +1996,13 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
   Sur la visite, l’audience est lue sur `visit_zones` / `visit_markers` (repli éventuel
   sur la ligne carte homonyme si pas encore synchronisée).
 - **Écritures** : `POST` / `PUT` zones, repères carte **et** `POST` / `PUT`
-  `/api/visit/zones` / `/api/visit/markers` acceptent les trois champs ; rôle inconnu →
-  **400** ; omis sur `PUT` = inchangé.
+  `/api/visit/zones` / `/api/visit/markers` acceptent `visible_role_slugs` /
+  `visible_group_ids` ; rôle inconnu → **400** ; omis sur `PUT` = inchangé.
 - **Bascule carte → visite** (`POST /api/visit/sync` `map_to_visit`,
   `POST /api/visit/rebuild-from-map`) : copie liste blanche uniquement — `name`/`label`,
-  `emoji`, `description`→`short_description` / `note`→`short_description`, et les trois
-  colonnes d’audience. **`restricted_note` n’est jamais écrit** dans `subtitle`,
-  `short_description`, `details_text` ou `body_json`.
+  `emoji`, `description`→`short_description` / `note`→`short_description`, et les colonnes
+  d’audience du lieu. Depuis la migration `263` la bascule ne transporte **aucun** complément
+  réservé : ils ne sont plus dupliqués côté visite, donc il n'y a plus rien à faire fuir.
 
 ### Audience par groupes et héritage par catégorie
 
@@ -2013,10 +2010,11 @@ Migration `262_location_audience_groups_and_category_inheritance.sql`. Complète
 (migration `236`) ; règles dans `lib/locationAudience.js`.
 
 - **Colonnes jumelles** — chaque liste de rôles reçoit sa liste de groupes :
-  `visible_group_ids` ↔ `visible_role_slugs`, `restricted_note_group_ids` ↔
-  `restricted_note_role_slugs`, et `location_links.audience_group_ids` ↔
-  `audience_role_slugs`. Acceptées en `POST` / `PUT` zones, repères et visite ; tableau en
-  réponse ; omises = inchangées, `[]` = effacées.
+  `visible_group_ids` ↔ `visible_role_slugs`, `location_links.audience_group_ids` ↔
+  `audience_role_slugs`, et `location_notes.audience_group_ids` ↔ `audience_role_slugs`
+  (migration `263` ; en `262` c'était encore `restricted_note_group_ids`). Acceptées en
+  `POST` / `PUT` zones, repères et visite ; tableau en réponse ; omises = inchangées,
+  `[]` = effacées.
 - **Union, jamais intersection** — le lecteur passe s'il a l'un des rôles **ou** s'il est
   membre de l'un des groupes. Les deux listes vides = public (comportement inchangé). Avec
   une intersection, cocher un rôle sans cocher de groupe — le cas courant — aurait rendu le
@@ -2060,8 +2058,8 @@ Un lien porte **sa propre audience** : la confidentialité descend du bloc de te
   quiconque voit la fiche) ; renseigné, il est réservé à ces rôles. Le filtre est appliqué par
   `projectLocationAudienceForViewer`, donc sur **toutes** les surfaces (carte, visite, plan
   public, plan des personnels) : un lien hors audience ne quitte jamais le serveur.
-  Contrairement à `restricted_note`, **pas d'audience par défaut de repli** — un complément
-  réservé est confidentiel par nature, un lien ne l'est pas.
+  Contrairement aux compléments réservés (`notes`), **pas d'audience par défaut de repli** —
+  un complément est confidentiel par nature, un lien ne l'est pas.
 - **Écriture** — `POST` / `PUT` zones et repères acceptent `links`. `undefined` (champ omis)
   = **inchangé** ; `[]` ou `null` = **tous retirés**. Remplacement complet et réordonnancement
   par la position dans le tableau.
@@ -2072,6 +2070,46 @@ Un lien porte **sa propre audience** : la confidentialité descend du bloc de te
 - **Suppression** — la cible est polymorphe (`location_kind` = `zone` | `marker`), donc sans
   clé étrangère : `DELETE /api/zones/:id` et `DELETE /api/map/markers/:id` retirent les liens
   dans la même transaction.
+
+### Compléments réservés d'un lieu (`notes`)
+
+Migration `263_location_notes.sql`, table `location_notes`, règles dans `lib/locationNotes.js`
+(validation, SQL) et `lib/locationAudience.js` (filtrage par rôle et par groupe). Remplace les
+colonnes `restricted_note*` des quatre tables de lieux, supprimées : **plusieurs compléments
+par lieu**, chacun avec son intitulé et sa propre audience.
+
+- **Forme** — `notes: [{ id, title, body, sort_order }]`, trié par `sort_order`. `title` est
+  facultatif (`''` si absent) ; `body` est le texte, rendu en Markdown comme les descriptions.
+  `audience_role_slugs` / `audience_group_ids` ne sont ajoutés **que pour les gestionnaires**
+  (`zones.manage` / `map.manage_markers`) : servir l'audience à tout le monde reviendrait à
+  publier à qui s'adresse chaque consigne.
+- **Audience vide = encadrement** — sans rôle ni groupe coché, le complément est réservé à
+  `prof_classe`, `prof`, `admin` (`LOCATION_NOTE_DEFAULT_ROLE_SLUGS`), en plus des
+  gestionnaires qui voient toujours tout. Une liste explicite **remplace** ce défaut, y
+  compris pour en exclure l'encadrement. C'est la différence de sens avec `links`, dont
+  l'audience vide vaut « suit le lieu ».
+- **Lecture** — exposé par `GET /api/zones`, `GET /api/zones/:id`, `GET /api/map/markers`,
+  `GET /api/visit/content` et `GET /api/plan/content`. Le filtre passe par
+  `projectLocationAudienceForViewer`, donc sur **toutes** les surfaces : un complément hors
+  audience ne quitte jamais le serveur. Un lecteur sans aucun complément lisible reçoit
+  `notes: []` — jamais un champ absent, pour que les fiches puissent itérer sans garde.
+- **Une seule ligne pour la carte et la visite** — la table est clé sur
+  `(location_kind, location_id)`, et `visit_zones.id` vaut `zones.id` (la synchronisation
+  écrit le même identifiant). Éditer un complément depuis `/api/visit/zones/:id` édite donc
+  celui de la carte : un lieu n'a qu'un jeu de compléments. C'est ce qui supprime la
+  duplication de colonnes que la visite traînait depuis la migration `240` — duplication
+  qu'il fallait recopier à la main dans six écritures, et dont un oubli avait rendu publique
+  une note réservée (corrigé en `262`).
+- **Écriture** — `POST` / `PUT` zones, repères carte **et** `/api/visit/zones`,
+  `/api/visit/markers` acceptent `notes`. `undefined` (champ omis) = **inchangé** ; `[]` ou
+  `null` = **tous retirés**. Remplacement complet, l'ordre du tableau fait le `sort_order`.
+- **Validation** — `body` requis, 8000 caractères max ; `title` 160 max ; **6 compléments
+  max par lieu** (un lien tient sur une ligne, pas une note : le plafond est volontairement
+  plus bas que les 12 liens). Rôle hors catalogue ou groupe inexistant → **400**.
+- **Suppression** — cible polymorphe, donc sans clé étrangère : `DELETE /api/zones/:id` et
+  `DELETE /api/map/markers/:id` retirent les compléments dans la même transaction.
+  `DELETE /api/visit/zones/:id` ne les retire que si **aucun** lieu de carte ne partage
+  l'identifiant, sinon retirer la cible de visite viderait la fiche de carte restée en place.
 
 ### Politique de lien du contenu éditorial
 
@@ -2208,7 +2246,7 @@ registre (`lib/products.js`) : même entrée HTML, même `apiPrefix`, même PWA 
 plus, pas un produit de plus. La charge
 est construite par le noyau partagé `lib/planContent.js` avec `surface: 'staff'` et le lecteur
 réel, si bien que `lib/locationAudience.js` lui laisse les lieux réservés à son rôle **et** les
-compléments confidentiels (`restricted_note`) — exactement ce que le plan public retire à son
+compléments confidentiels (`notes`) — exactement ce que le plan public retire à son
 visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` et `map_markers`.
 
 | Méthode | URL                               | Auth                         | Description                                                                       |

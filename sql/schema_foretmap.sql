@@ -909,6 +909,24 @@ VALUES
    'Bâtiment ou aménagement (mare, ruches, compostage, cuve…) plutôt qu''une culture.',
    'both', 1, 10, 1);
 
+-- location_notes (compléments réservés MULTIPLES d'un lieu, migration 263)
+-- Remplace les colonnes `restricted_note*` des quatre tables de lieux : chaque note porte
+-- sa propre audience, et comme `visit_zones.id = zones.id`, ces lignes servent la carte ET
+-- la visite — plus de colonnes à recopier d'une surface à l'autre.
+-- Audience vide = encadrement (différence assumée avec location_links, où vide = suit le lieu).
+CREATE TABLE IF NOT EXISTS location_notes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  location_kind ENUM('zone','marker') NOT NULL,
+  location_id VARCHAR(64) NOT NULL,
+  title VARCHAR(160) NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  audience_role_slugs TEXT DEFAULT NULL,
+  audience_group_ids TEXT DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_location_notes_target (location_kind, location_id, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- location_links (liens documentaires d'un lieu, avec audience propre — migration 261)
 -- Chaque lien porte son audience : la confidentialité descend du bloc de texte au lien.
 -- Cible polymorphe (`zone` / `marker`), donc pas de clé étrangère : le nettoyage à la

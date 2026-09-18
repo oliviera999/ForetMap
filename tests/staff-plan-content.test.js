@@ -78,10 +78,13 @@ test.before(async () => {
     note: 'Chaufferie',
   });
   ids.staffOnlyPlace = staffOnly.id;
-  await execute('UPDATE map_markers SET restricted_note = ? WHERE id = ?', [
-    'Clé au bureau des agents.',
-    staffOnly.id,
-  ]);
+  // Complément réservé : table `location_notes` depuis la migration 263 (audience vide =
+  // encadrement, donc lisible par les personnels du plan staff).
+  await execute(
+    `INSERT INTO location_notes (location_kind, location_id, title, body, sort_order)
+     VALUES ('marker', ?, '', ?, 0)`,
+    [staffOnly.id, 'Clé au bureau des agents.'],
+  );
 
   // Un repère réservé à l'encadrement : même un personnel authentifié ne doit pas le voir.
   const adminOnly = await fx.createMarker({ mapId, label: 'Coffre' });
@@ -134,7 +137,7 @@ test('compte autorisé : voit les lieux retirés du plan public et leur complém
   assert.ok(labels.includes('Local technique'), 'le lieu masqué sur le plan public sort ici');
 
   const staffPlace = res.body.markers.find((m) => m.id === ids.staffOnlyPlace);
-  assert.equal(staffPlace.restricted_note, 'Clé au bureau des agents.');
+  assert.equal(staffPlace.notes[0].body, 'Clé au bureau des agents.');
 
   assert.equal(res.body.viewer.via, 'account');
   assert.equal(res.body.viewer.can_report, true);
@@ -149,7 +152,7 @@ test('le plan public ignore tout de la surface personnels', async () => {
   assert.ok(!labels.includes('Local technique'), 'lieu masqué sur `plan` : jamais servi ici');
   assert.ok(!labels.includes('Coffre'), 'lieu réservé à l’admin : jamais servi au public');
   // Aucun complément confidentiel ne doit fuir dans la charge publique, sur aucun lieu.
-  assert.ok(res.body.markers.every((m) => m.restricted_note === undefined));
+  assert.ok(res.body.markers.every((m) => (m.notes || []).length === 0));
   // Et rien de la charge publique ne porte la trace d'un lecteur.
   assert.equal(res.body.viewer, undefined);
 });
@@ -191,7 +194,7 @@ test('porteur de code : entre, mais ne voit pas ce qui est réservé à l’enca
   assert.equal(res.body.viewer.can_report, false);
   // Le complément par défaut vise l'encadrement : un `personnel` ne l'obtient pas.
   const staffPlace = res.body.markers.find((m) => m.id === ids.staffOnlyPlace);
-  assert.equal(staffPlace.restricted_note, undefined);
+  assert.deepEqual(staffPlace.notes, []);
 });
 
 test('laissez-passer forgé : signature invalide, porte fermée', async () => {

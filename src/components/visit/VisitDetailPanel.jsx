@@ -363,6 +363,29 @@ export function VisitDetailPanel({
               )}
             </>
           )}
+          {/*
+            Compléments réservés (`location_notes`, migration 263). Nouveauté : la Visite les
+            recevait déjà — filtrés note par note par le serveur — mais ne les affichait nulle
+            part. Un prof en visite avec sa classe ne voyait donc pas la consigne qui lui était
+            destinée. Rien à refiltrer ici : ce qui arrive est ce que ce lecteur a le droit de
+            lire.
+          */}
+          {(selected.notes || [])
+            .filter((note) => note && String(note.body || '').trim())
+            .map((note) => (
+              <section className="visit-restricted-note" key={note.id ?? note.body}>
+                <h4 className="visit-restricted-note__title">
+                  <span aria-hidden>🔒</span>{' '}
+                  {String(note.title || '').trim() || 'Complément réservé'}
+                </h4>
+                <GlossaryMarkdown
+                  glossaryItems={glossaryItems}
+                  onOpenGlossaryTerm={onOpenGlossaryTerm}
+                >
+                  {note.body}
+                </GlossaryMarkdown>
+              </section>
+            ))}
           {visitLocationAside.showBiodiversity && (
             <VisitBiodiversityPanel
               locationKind={visitLocationAside.locationKind}

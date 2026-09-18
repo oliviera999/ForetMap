@@ -16,7 +16,7 @@ const {
   viewerMatchesAudience,
   resolveEffectiveLocationAudience,
   canViewLocation,
-  canViewRestrictedNote,
+  canViewLocationNote,
   canViewLocationLink,
   projectLocationAudienceForViewer,
   GROUP_ID_MAX_LENGTH,
@@ -74,26 +74,23 @@ describe('locationAudience — union rôles / groupes', () => {
     assert.equal(canViewLocation(row, { permissions: ['zones.manage'] }), true);
   });
 
-  it('le complément réservé accepte aussi un groupe', () => {
-    const row = {
-      restricted_note: 'Clé dans le tiroir',
-      restricted_note_role_slugs: [],
-      restricted_note_group_ids: ['g1'],
+  it('un complément réservé accepte aussi un groupe', () => {
+    const note = {
+      id: 1,
+      body: 'Clé dans le tiroir',
+      audience_role_slugs: [],
+      audience_group_ids: ['g1'],
     };
-    assert.equal(canViewRestrictedNote(row, { roleSlug: 'eleve_novice', groupIds: ['g1'] }), true);
-    assert.equal(canViewRestrictedNote(row, { roleSlug: 'eleve_novice', groupIds: ['g9'] }), false);
+    assert.equal(canViewLocationNote(note, { roleSlug: 'eleve_novice', groupIds: ['g1'] }), true);
+    assert.equal(canViewLocationNote(note, { roleSlug: 'eleve_novice', groupIds: ['g9'] }), false);
     // Liste explicite : elle remplace l'encadrement par défaut, y compris pour l'en exclure.
-    assert.equal(canViewRestrictedNote(row, { roleSlug: 'prof' }), false);
+    assert.equal(canViewLocationNote(note, { roleSlug: 'prof' }), false);
   });
 
   it('les deux listes vides gardent l’encadrement par défaut du complément', () => {
-    const row = {
-      restricted_note: 'x',
-      restricted_note_role_slugs: [],
-      restricted_note_group_ids: [],
-    };
-    assert.equal(canViewRestrictedNote(row, { roleSlug: 'prof_classe' }), true);
-    assert.equal(canViewRestrictedNote(row, { roleSlug: 'eleve_novice' }), false);
+    const note = { id: 2, body: 'x', audience_role_slugs: [], audience_group_ids: [] };
+    assert.equal(canViewLocationNote(note, { roleSlug: 'prof_classe' }), true);
+    assert.equal(canViewLocationNote(note, { roleSlug: 'eleve_novice' }), false);
   });
 
   it('un lien peut être réservé à un groupe', () => {
@@ -188,13 +185,12 @@ describe('locationAudience — héritage par catégorie', () => {
       id: 'z2',
       visible_role_slugs: [],
       visible_group_ids: ['g1'],
-      restricted_note: 'secret',
-      restricted_note_group_ids: ['g1'],
+      notes: [{ id: 3, body: 'secret', audience_role_slugs: [], audience_group_ids: ['g1'] }],
     };
     const viewer = { roleSlug: 'eleve_novice', groupIds: ['g1'] };
     const projected = projectLocationAudienceForViewer(row, viewer);
     assert.equal(projected.visible_group_ids, undefined);
-    assert.equal(projected.restricted_note, 'secret');
-    assert.equal(projected.restricted_note_group_ids, undefined);
+    assert.equal(projected.notes[0].body, 'secret');
+    assert.equal(projected.notes[0].audience_group_ids, undefined);
   });
 });

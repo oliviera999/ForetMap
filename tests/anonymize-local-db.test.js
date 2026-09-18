@@ -91,6 +91,20 @@ test('anonymize-local-db : plan construit à partir du schéma réel', async (t)
     );
   });
 
+  await t.test('les compléments réservés sont réécrits là où ils vivent (migration 263)', () => {
+    // Un complément est du texte libre saisi par un prof : il peut nommer un élève. Depuis la
+    // 263 il a déménagé de `zones.restricted_note` vers `location_notes` — si le plan ne suit
+    // pas le déménagement, le fixture local reste porteur de PII sans que rien n'échoue.
+    const [statement] = buildStatements(
+      schemaOf({ location_notes: ['id', 'title', 'body', 'audience_role_slugs'] }),
+      { passwordHash: 'h' },
+    );
+    assert.strictEqual(statement.kind, 'text');
+    assert.match(statement.sql, /`title` =/);
+    assert.match(statement.sql, /`body` =/);
+    assert.doesNotMatch(statement.sql, /`audience_role_slugs`/);
+  });
+
   await t.test('préserve NULL sur les colonnes d’identité', () => {
     const [statement] = buildStatements(schemaOf({ users: ['id', 'email', 'pseudo'] }), {
       passwordHash: 'h',

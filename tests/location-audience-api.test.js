@@ -49,13 +49,12 @@ test('lieu restreint absent pour anonyme, visible pour gestionnaire', async () =
       points: POLYGON,
       map_id: mapId,
       visible_role_slugs: ['prof', 'admin'],
-      restricted_note: 'Clé dans le tiroir',
-      restricted_note_role_slugs: ['prof'],
+      notes: [{ body: 'Clé dans le tiroir', audience_role_slugs: ['prof'] }],
     })
     .expect(201);
   const zoneId = createRes.body.id;
   assert.deepEqual(createRes.body.visible_role_slugs, ['prof', 'admin']);
-  assert.equal(createRes.body.restricted_note, 'Clé dans le tiroir');
+  assert.equal(createRes.body.notes[0].body, 'Clé dans le tiroir');
 
   const anonList = await request(app).get(`/api/zones?map_id=${mapId}`).expect(200);
   assert.ok(!anonList.body.some((z) => z.id === zoneId));
@@ -63,7 +62,7 @@ test('lieu restreint absent pour anonyme, visible pour gestionnaire', async () =
   const teacherList = await auth(request(app).get(`/api/zones?map_id=${mapId}`)).expect(200);
   const row = teacherList.body.find((z) => z.id === zoneId);
   assert.ok(row);
-  assert.equal(row.restricted_note, 'Clé dans le tiroir');
+  assert.equal(row.notes[0].body, 'Clé dans le tiroir');
 });
 
 test('complément réservé omis pour lecteur hors audience du complément', async () => {
@@ -75,8 +74,7 @@ test('complément réservé omis pour lecteur hors audience du complément', asy
       map_id: mapId,
       note: 'Note publique',
       visible_role_slugs: [],
-      restricted_note: 'Mission 2nde',
-      restricted_note_role_slugs: ['prof'],
+      notes: [{ body: 'Mission 2nde', audience_role_slugs: ['prof'] }],
     })
     .expect(201);
 
@@ -84,7 +82,7 @@ test('complément réservé omis pour lecteur hors audience du complément', asy
   const publicRow = anon.body.find((m) => m.id === createRes.body.id);
   assert.ok(publicRow);
   assert.equal(publicRow.note, 'Note publique');
-  assert.equal(publicRow.restricted_note, undefined);
+  assert.deepEqual(publicRow.notes, []);
 });
 
 test('visite anonyme : lieu avec visiteur dans audience seulement', async () => {
@@ -126,7 +124,7 @@ test('écriture : rôle inconnu → 400', async () => {
     .expect(400);
 });
 
-test('visite : restricted_note absent pour anonyme, présent pour personnel audience', async () => {
+test('visite : complément réservé absent pour anonyme, présent pour personnel audience', async () => {
   const { signAuthToken } = require('../middleware/requireTeacher');
   const { queryOne, execute } = require('../database');
 
@@ -138,8 +136,7 @@ test('visite : restricted_note absent pour anonyme, présent pour personnel audi
       points: POLYGON,
       short_description: 'Accueil',
       visible_role_slugs: [],
-      restricted_note: secret,
-      restricted_note_role_slugs: ['personnel'],
+      notes: [{ body: secret, audience_role_slugs: ['personnel'] }],
     })
     .expect(201);
   const markerRes = await auth(request(app).post('/api/visit/markers'))
@@ -150,8 +147,7 @@ test('visite : restricted_note absent pour anonyme, présent pour personnel audi
       y_pct: 44,
       short_description: 'Point info',
       visible_role_slugs: [],
-      restricted_note: secret,
-      restricted_note_role_slugs: ['personnel'],
+      notes: [{ body: secret, audience_role_slugs: ['personnel'] }],
     })
     .expect(201);
 
@@ -160,8 +156,8 @@ test('visite : restricted_note absent pour anonyme, présent pour personnel audi
   const anonMarker = (anon.body.markers || []).find((m) => m.id === markerRes.body.id);
   assert.ok(anonZone, 'zone publique visible anonyme');
   assert.ok(anonMarker, 'repère public visible anonyme');
-  assert.equal(anonZone.restricted_note, undefined);
-  assert.equal(anonMarker.restricted_note, undefined);
+  assert.deepEqual(anonZone.notes, []);
+  assert.deepEqual(anonMarker.notes, []);
   assert.equal(anonZone.visible_role_slugs, undefined);
 
   const personnelRole = await queryOne("SELECT id FROM roles WHERE slug = 'personnel' LIMIT 1");
@@ -195,9 +191,9 @@ test('visite : restricted_note absent pour anonyme, présent pour personnel audi
     .expect(200);
   const staffZone = (staff.body.zones || []).find((z) => z.id === zoneRes.body.id);
   const staffMarker = (staff.body.markers || []).find((m) => m.id === markerRes.body.id);
-  assert.equal(staffZone.restricted_note, secret);
-  assert.equal(staffMarker.restricted_note, secret);
-  assert.equal(staffZone.restricted_note_role_slugs, undefined);
+  assert.equal(staffZone.notes[0].body, secret);
+  assert.equal(staffMarker.notes[0].body, secret);
+  assert.equal(staffZone.notes[0].audience_role_slugs, undefined);
 });
 
 test('visite : visible_role_slugs hors audience → absent pour anonyme', async () => {
@@ -219,9 +215,8 @@ test('visite : visible_role_slugs hors audience → absent pour anonyme', async 
   assert.ok(!(anon.body.zones || []).some((z) => z.id === zoneRes.body.id));
 });
 
-test('sync map→visite : restricted_note ne fuit pas dans les champs publics', async () => {
-  const { queryOne } = require('../database');
-  const { publicVisitFieldsLeakRestrictedNote } = require('../lib/visitMapToVisitFields');
+test('sync map→visite : aucun complément ne transite par les tables de visite', async () => {
+  const { queryOne, queryAll } = require('../database');
 
   const secret = `FUITE_INTERDITE_${Date.now()}`;
   const zoneRes = await auth(request(app).post('/api/zones'))
@@ -230,8 +225,7 @@ test('sync map→visite : restricted_note ne fuit pas dans les champs publics', 
       points: POLYGON,
       map_id: mapId,
       description: 'Texte public description',
-      restricted_note: secret,
-      restricted_note_role_slugs: ['personnel', 'admin'],
+      notes: [{ body: secret, audience_role_slugs: ['personnel', 'admin'] }],
     })
     .expect(201);
   const markerRes = await auth(request(app).post('/api/map/markers'))
@@ -242,8 +236,7 @@ test('sync map→visite : restricted_note ne fuit pas dans les champs publics', 
       map_id: mapId,
       note: 'Note publique repère',
       emoji: '📌',
-      restricted_note: secret,
-      restricted_note_role_slugs: ['personnel'],
+      notes: [{ body: secret, audience_role_slugs: ['personnel'] }],
     })
     .expect(201);
 
@@ -261,14 +254,25 @@ test('sync map→visite : restricted_note ne fuit pas dans les champs publics', 
   assert.ok(vz && vm);
   assert.equal(vz.short_description, 'Texte public description');
   assert.equal(vm.short_description, 'Note publique repère');
-  assert.match(String(vz.restricted_note || ''), new RegExp(secret));
-  assert.match(String(vm.restricted_note || ''), new RegExp(secret));
-  assert.equal(publicVisitFieldsLeakRestrictedNote(vz, secret), false);
-  assert.equal(publicVisitFieldsLeakRestrictedNote(vm, secret), false);
+  // Depuis la migration 263, la synchronisation ne recopie plus AUCUN complément : ils vivent
+  // dans `location_notes`, clé sur l'identifiant que la visite partage avec la carte. La
+  // garantie de non-fuite est donc structurelle, et c'est elle qu'on vérifie ici.
+  for (const row of [vz, vm]) {
+    for (const value of Object.values(row)) {
+      assert.doesNotMatch(String(value ?? ''), new RegExp(secret));
+    }
+  }
+  // …et que le complément est bien resté là où il vit désormais, sous l'identifiant partagé.
+  const notes = await queryAll('SELECT body FROM location_notes WHERE location_id IN (?, ?)', [
+    zoneRes.body.id,
+    markerRes.body.id,
+  ]);
+  assert.equal(notes.length, 2);
+  assert.ok(notes.every((n) => n.body === secret));
 
   const anon = await request(app).get(`/api/visit/content?map_id=${mapId}`).expect(200);
   const anonZone = (anon.body.zones || []).find((z) => z.id === zoneRes.body.id);
   assert.ok(anonZone);
-  assert.equal(anonZone.restricted_note, undefined);
+  assert.deepEqual(anonZone.notes, []);
   assert.equal(anonZone.visit_short_description, 'Texte public description');
 });

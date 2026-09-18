@@ -51,6 +51,14 @@ const {
   canViewLocation,
 } = require('../lib/locationAudience');
 const {
+  assertLocationNotesGroupsExist,
+  normalizeLocationNotesInput,
+  loadLocationNotesMap,
+  attachNotesToEntity,
+  replaceLocationNotes,
+  deleteLocationNotes,
+} = require('../lib/locationNotes');
+const {
   assertLocationLinksGroupsExist,
   normalizeLocationLinksInput,
   loadLocationLinksMap,
@@ -137,10 +145,9 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
   await execute(
     `INSERT INTO visit_zones
       (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-       restricted_note_group_ids,
+       visible_role_slugs, visible_group_ids,
        is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        name = VALUES(name),
@@ -152,9 +159,6 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
        body_json = VALUES(body_json),
        visible_role_slugs = VALUES(visible_role_slugs),
        visible_group_ids = VALUES(visible_group_ids),
-       restricted_note = VALUES(restricted_note),
-       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
-       restricted_note_group_ids = VALUES(restricted_note_group_ids),
        updated_at = VALUES(updated_at)`,
     [
       zoneRow.id,
@@ -168,9 +172,6 @@ async function upsertVisitZoneEditorial(reqBody, zoneRow) {
       bodyJson,
       audience.visible_role_slugs,
       audience.visible_group_ids,
-      audience.restricted_note,
-      audience.restricted_note_role_slugs,
-      audience.restricted_note_group_ids,
       now,
       now,
     ],
@@ -182,15 +183,11 @@ async function mirrorZoneAudienceToVisit(zoneRow) {
   const audience = mapZoneToVisitWhitelistFields(zoneRow);
   await execute(
     `UPDATE visit_zones
-     SET visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
-         restricted_note_role_slugs = ?, restricted_note_group_ids = ?, updated_at = ?
+     SET visible_role_slugs = ?, visible_group_ids = ?, updated_at = ?
      WHERE id = ? AND map_id = ?`,
     [
       audience.visible_role_slugs,
       audience.visible_group_ids,
-      audience.restricted_note,
-      audience.restricted_note_role_slugs,
-      audience.restricted_note_group_ids,
       nowDbTimestamp(),
       zoneRow.id,
       zoneRow.map_id,
@@ -302,26 +299,32 @@ router.get(
     // temps que le complément réservé (`filterLocationsForViewer` plus bas). Un lien hors
     // audience ne sort donc jamais du serveur.
     const linksMap = await loadLocationLinksMap(db, 'zone', zoneIds);
+    // Compléments réservés (migration 263) : mêmes lignes pour la carte et la visite, filtrés
+    // note par note avec le reste de l'audience.
+    const notesMap = await loadLocationNotesMap(db, 'zone', zoneIds);
     const result = zones.map((z) => {
       const key = String(z.id);
       const totalHist = historyTotalByZoneId.get(key) || 0;
       return serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(
-              {
-                ...z,
-                has_visit_body: !!Number(z.has_visit_body),
-                visit_body_json: undefined,
-                history: historyByZoneId.get(key) || [],
-                history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
-              },
-              speciesMap.get(key) || [],
-              { legacySingleName: z.current_plant },
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(
+                {
+                  ...z,
+                  has_visit_body: !!Number(z.has_visit_body),
+                  visit_body_json: undefined,
+                  history: historyByZoneId.get(key) || [],
+                  history_truncated: totalHist > ZONE_LIST_HISTORY_LIMIT,
+                },
+                speciesMap.get(key) || [],
+                { legacySingleName: z.current_plant },
+              ),
+              categoriesMap.get(key) || [],
             ),
-            categoriesMap.get(key) || [],
+            linksMap.get(key) || [],
           ),
-          linksMap.get(key) || [],
+          notesMap.get(key) || [],
         ),
       );
     });
@@ -356,23 +359,27 @@ router.get(
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
     const linksRows = await loadLocationLinksMap(db, 'zone', [zone.id]);
+    const notesRows = await loadLocationNotesMap(db, 'zone', [zone.id]);
     const payload = projectLocationAudienceForViewer(
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(
-              {
-                ...zone,
-                has_visit_body: !!Number(zone.has_visit_body),
-                history,
-                history_truncated: false,
-              },
-              speciesRows.get(String(zone.id)) || [],
-              { legacySingleName: zone.current_plant },
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(
+                {
+                  ...zone,
+                  has_visit_body: !!Number(zone.has_visit_body),
+                  history,
+                  history_truncated: false,
+                },
+                speciesRows.get(String(zone.id)) || [],
+                { legacySingleName: zone.current_plant },
+              ),
+              categoriesRows.get(String(zone.id)) || [],
             ),
-            categoriesRows.get(String(zone.id)) || [],
+            linksRows.get(String(zone.id)) || [],
           ),
-          linksRows.get(String(zone.id)) || [],
+          notesRows.get(String(zone.id)) || [],
         ),
       ),
       req.auth,
@@ -402,10 +409,8 @@ router.put(
       search_aliases,
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
       links,
+      notes,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
@@ -418,9 +423,6 @@ router.put(
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     // Existence des groupes cités : une coquille d'identifiant produirait un lieu que plus
@@ -434,6 +436,12 @@ router.put(
     if (linksInput.value !== null) {
       const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
       if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
+    const notesInput = normalizeLocationNotesInput(notes);
+    if (!notesInput.ok) return res.status(400).json({ error: notesInput.error });
+    if (notesInput.value !== null) {
+      const notesGroupsCheck = await assertLocationNotesGroupsExist(db, notesInput.value);
+      if (!notesGroupsCheck.ok) return res.status(400).json({ error: notesGroupsCheck.error });
     }
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
@@ -451,18 +459,6 @@ router.put(
       audienceInput.visible_group_ids === null
         ? (zone.visible_group_ids ?? null)
         : serializeGroupIdList(audienceInput.visible_group_ids) || null;
-    const nextRestrictedNote =
-      audienceInput.restricted_note === null
-        ? (zone.restricted_note ?? null)
-        : audienceInput.restricted_note || null;
-    const nextRestrictedNoteRoleSlugs =
-      audienceInput.restricted_note_role_slugs === null
-        ? (zone.restricted_note_role_slugs ?? null)
-        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
-    const nextRestrictedNoteGroupIds =
-      audienceInput.restricted_note_group_ids === null
-        ? (zone.restricted_note_group_ids ?? null)
-        : serializeGroupIdList(audienceInput.restricted_note_group_ids) || null;
     // Colonne `zones.emoji` (audit C4) : valeur explicite du corps ('' = effacer), sinon
     // dérivée du préfixe du nom soumis, sinon valeur existante conservée.
     const nextEmoji = resolveZoneEmojiForWrite(
@@ -534,7 +530,7 @@ router.put(
       categoryIds: await nextCategoryIdsForZone(zone.id, category_ids),
     });
     await execute(
-      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=?, restricted_note=?, restricted_note_role_slugs=?, restricted_note_group_ids=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, emoji=?, current_plant=?, special=?, description=?, points=?, color=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=? WHERE id=?',
       [
         nextMapIdForZone,
         name !== undefined ? String(name).trim() : zone.name,
@@ -548,9 +544,6 @@ router.put(
         nextSearchAliases,
         nextVisibleRoleSlugs,
         nextVisibleGroupIds,
-        nextRestrictedNote,
-        nextRestrictedNoteRoleSlugs,
-        nextRestrictedNoteGroupIds,
         zone.id,
       ],
     );
@@ -559,6 +552,9 @@ router.put(
     }
     if (linksInput.value !== null) {
       await replaceLocationLinks(db, 'zone', zone.id, linksInput.value);
+    }
+    if (notesInput.value !== null) {
+      await replaceLocationNotes(db, 'zone', zone.id, notesInput.value);
     }
     const updated = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
@@ -569,10 +565,7 @@ router.put(
       await upsertVisitZoneEditorial(req.body, updated);
     } else if (
       audienceInput.visible_role_slugs !== null ||
-      audienceInput.visible_group_ids !== null ||
-      audienceInput.restricted_note !== null ||
-      audienceInput.restricted_note_role_slugs !== null ||
-      audienceInput.restricted_note_group_ids !== null
+      audienceInput.visible_group_ids !== null
     ) {
       await mirrorZoneAudienceToVisit(updated);
     }
@@ -580,22 +573,26 @@ router.put(
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [zone.id]);
     const linksRows = await loadLocationLinksMap(db, 'zone', [zone.id]);
+    const notesRows = await loadLocationNotesMap(db, 'zone', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
     res.json(
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(
-              {
-                ...updatedWithVisit,
-                history,
-              },
-              speciesRows.get(String(zone.id)) || [],
-              { legacySingleName: updatedWithVisit.current_plant },
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(
+                {
+                  ...updatedWithVisit,
+                  history,
+                },
+                speciesRows.get(String(zone.id)) || [],
+                { legacySingleName: updatedWithVisit.current_plant },
+              ),
+              categoriesRows.get(String(zone.id)) || [],
             ),
-            categoriesRows.get(String(zone.id)) || [],
+            linksRows.get(String(zone.id)) || [],
           ),
-          linksRows.get(String(zone.id)) || [],
+          notesRows.get(String(zone.id)) || [],
         ),
       ),
     );
@@ -642,10 +639,8 @@ router.post(
       search_aliases,
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
       links,
+      notes,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     const hiddenSurfacesInput = normalizeSurfaceInput(hidden_surfaces, {
@@ -655,9 +650,6 @@ router.post(
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     // Existence des groupes cités : une coquille d'identifiant produirait un lieu que plus
@@ -669,6 +661,12 @@ router.post(
     if (linksInput.value !== null) {
       const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
       if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
+    const notesInput = normalizeLocationNotesInput(notes);
+    if (!notesInput.ok) return res.status(400).json({ error: notesInput.error });
+    if (notesInput.value !== null) {
+      const notesGroupsCheck = await assertLocationNotesGroupsExist(db, notesInput.value);
+      if (!notesGroupsCheck.ok) return res.status(400).json({ error: notesGroupsCheck.error });
     }
     // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
     // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
@@ -688,7 +686,7 @@ router.post(
     // Colonne `zones.emoji` (audit C4) : explicite, sinon dérivée du préfixe du nom.
     const zoneEmoji = resolveZoneEmojiForWrite(emoji, String(name), '');
     await execute(
-      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs, restricted_note_group_ids) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, emoji, x, y, width, height, current_plant, points, color, description, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -702,14 +700,14 @@ router.post(
         normalizeSearchAliases(search_aliases) || null,
         serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
         serializeGroupIdList(audienceInput.visible_group_ids || []) || null,
-        audienceInput.restricted_note || null,
-        serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
-        serializeGroupIdList(audienceInput.restricted_note_group_ids || []) || null,
       ],
     );
     await syncZoneSpecies(db, id, species_ids, nextLiving);
     if (linksInput.value !== null) {
       await replaceLocationLinks(db, 'zone', id, linksInput.value);
+    }
+    if (notesInput.value !== null) {
+      await replaceLocationNotes(db, 'zone', id, notesInput.value);
     }
     // `special` est dérivé des catégories (drapeau `is_infrastructure`), jamais du corps.
     const nextCategoryIds = await syncEntityCategories(db, {
@@ -725,17 +723,21 @@ router.post(
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
     const categoriesRows = await loadCategoriesMap(db, 'zone', [id]);
     const linksRows = await loadLocationLinksMap(db, 'zone', [id]);
+    const notesRows = await loadLocationNotesMap(db, 'zone', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
-              legacySingleName: zone.current_plant,
-            }),
-            categoriesRows.get(id) || [],
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
+                legacySingleName: zone.current_plant,
+              }),
+              categoriesRows.get(id) || [],
+            ),
+            linksRows.get(id) || [],
           ),
-          linksRows.get(id) || [],
+          notesRows.get(id) || [],
         ),
       ),
     );
@@ -757,6 +759,7 @@ router.delete(
       // Liens documentaires : cible polymorphe (`location_kind`), donc aucune clé étrangère
       // ne peut s'en charger — même situation que `map_route_steps`.
       await deleteLocationLinks(tx, 'zone', req.params.id);
+      await deleteLocationNotes(tx, 'zone', req.params.id);
       await tx.execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
       // La couche visite partage le même id : on retire la cible visite « fantôme »
       // (ligne, médias, progression) dans la même transaction que la suppression carte.
