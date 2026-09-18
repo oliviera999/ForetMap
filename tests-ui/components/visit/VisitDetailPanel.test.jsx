@@ -316,6 +316,12 @@ describe('VisitDetailPanel — « Y aller »', () => {
     expect(screen.queryByTestId('visit-detail-go')).toBe(null);
   });
 
+  test('géolocalisation non activée sur la carte : ni bouton, ni explication', () => {
+    setup({ onGoTo: vi.fn(), canGuide: false });
+    expect(screen.queryByTestId('visit-detail-go')).toBe(null);
+    expect(screen.queryByText(/Carte non calée/)).toBe(null);
+  });
+
   test('le bouton annonce une direction, pas un itinéraire, et vise le lieu ouvert', () => {
     const onGoTo = vi.fn();
     const { props } = setup({ onGoTo, canGuide: true });
@@ -326,12 +332,6 @@ describe('VisitDetailPanel — « Y aller »', () => {
 
     fireEvent.click(go);
     expect(onGoTo).toHaveBeenCalledWith(props.selected);
-  });
-
-  test('carte non calée : le bouton est éteint et la raison est écrite', () => {
-    setup({ onGoTo: vi.fn(), canGuide: false });
-    expect(screen.getByTestId('visit-detail-go')).toBeDisabled();
-    expect(screen.getByText(/Carte non calée/)).toBeTruthy();
   });
 
   test('lieu déjà visé : le bouton rouvre la direction et donne la distance', () => {
