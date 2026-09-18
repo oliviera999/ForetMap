@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — un signalement de lieu se clôt, et son auteur l'apprend
+
+- **Statut de traitement** sur un message reçu sur un lieu (migration `264`, trois colonnes sur
+  `context_comments` — pas de table nouvelle : c'est le même message). Il naît « Nouveau » et se
+  classe en **« Pris en compte »**, **« Traité »** ou **« Sans suite »** depuis
+  Réglages → Cartographie → Messages. Jusqu'ici la seule sortie d'un signalement était la
+  **suppression** : elle efface l'information au lieu de la clore, et n'apprend rien à personne.
+- **Retour à l'auteur** : sur la fiche d'un lieu du plan des personnels, un bloc « Mes
+  signalements sur ce lieu » rappelle ce que *ce lecteur* y a écrit, avec l'état en mots
+  d'auteur (« En attente de lecture », « Traité »…). Il voit **que** c'est traité, jamais **par
+  qui**, et ne voit que ses propres messages. La liste est servie avec la charge du plan
+  (`my_reports`), donc sans appel supplémentaire à l'ouverture de chaque fiche.
+- **Nouvelle permission RBAC `place_messages.manage`** (« Traitement des messages de lieux »),
+  accordée au **seul profil `admin`** à la livraison et attribuable à n'importe quel profil
+  depuis « Profils RBAC » le jour où l'établissement désignera des référents. Les autres
+  comptes de la console lisent le journal sans boutons : `GET /api/context-comments/recent`
+  renvoie `can_set_status`, le front ne devine rien.
+- Le journal gagne un compteur **« à traiter »** et une case **« À traiter seulement »** pour
+  vider la pile sans relire ce qui est classé. Reclasser remplace l'état ; l'historique vit
+  dans le journal d'audit (`context_comment_place_status`, avec le statut précédent).
+- Routes : `PATCH /api/context-comments/:id/place-status`, `my_reports` dans
+  `GET /api/staff-plan/content`, et `POST /api/staff-plan/report` renvoie désormais le
+  signalement créé pour que le plan l'affiche sans recharger.
+- Tests : `tests/staff-plan-report.test.js` (12 cas — admin qui clôt, prof qui ne peut pas,
+  statut hors catalogue, commentaire hors lieu, retour à l'auteur sans le nom du traitant),
+  `tests-ui/settings/PlaceMessagesPanel.test.jsx`, `tests-ui/plan/PlanPlaceSheetReports.test.jsx`.
+  Doc : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`,
+  `docs/reference/plan/plan-des-personnels.md`. Cadre : lot **C1** de
+  `docs/AUDIT_COMMUNICATION_2026-09-18.md`.
+
 ### Corrigé — « Signaler un problème » : le profil « Personnel » y avait droit, le serveur disait non
 
 - Sur le **plan des personnels** (proflyautey), le bouton « Signaler un problème ou proposer une

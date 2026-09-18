@@ -35,6 +35,7 @@ const {
   CONTEXT_COMMENT_LIMITS,
   insertContextComment,
 } = require('../lib/shared/contextCommentsCore');
+const { listMyPlaceReports } = require('../lib/placeMessages');
 const { resolveOAuthPublicOrigin } = require('../lib/oauthPublicUrl');
 const {
   staffPlanAccessGate,
@@ -183,6 +184,12 @@ router.get(
     // commentaires actif (c'est là que le message atterrit). Calculé ici plutôt que deviné
     // par le front : un bouton qui mène à un 403 est pire que pas de bouton.
     const canReport = viewer.via === 'account' && (await isPlaceReportModuleEnabled());
+    // Ce que ce lecteur a déjà signalé, avec l'état de traitement. Servi avec la charge plutôt
+    // que par un appel à l'ouverture de chaque fiche : c'est une liste courte (ce qu'une seule
+    // personne a écrit), et le plan doit rester utilisable hors ligne une fois chargé.
+    const myReports = canReport
+      ? (await listMyPlaceReports({ actor: getActor(viewer.auth), limit: 50 })).items
+      : [];
     res.json({
       ...payload,
       viewer: {
@@ -196,6 +203,7 @@ router.get(
         // Proposer / signaler passe par les commentaires de contexte, qui exigent un compte.
         can_report: canReport,
       },
+      my_reports: myReports,
     });
   }),
 );
@@ -301,7 +309,23 @@ router.post(
       contextId: place.id,
       commentId: created.id,
     });
-    return res.status(201).json({ ok: true, id: created.id, place_label: place.label });
+    return res.status(201).json({
+      ok: true,
+      id: created.id,
+      place_label: place.label,
+      // Forme d'un élément de `my_reports` : le front l'ajoute à sa liste sans recharger
+      // toute la charge du plan.
+      report: {
+        id: String(created.id),
+        context_type: place.kind,
+        context_id: place.id,
+        body,
+        created_at: created.created_at,
+        place_status: '',
+        place_status_at: null,
+        place_label: place.label,
+      },
+    });
   }),
 );
 

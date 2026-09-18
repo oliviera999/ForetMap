@@ -1,1 +1,0 @@
-var e=Object.freeze({colors:Object.freeze({primary:`#183058`,secondary:`#eef1f6`,tertiary:`#98a8c8`,text:`#14233d`,link:`#406088`,linkHover:`#183058`,topbar:`#183058`,background:`#eef1f6`}),fonts:Object.freeze({body:``,heading:``,googleFamilies:Object.freeze([])}),logoUrl:``,faviconUrl:``}),t=`/plan/logo-lyautey.png`;export{t as n,e as t};
