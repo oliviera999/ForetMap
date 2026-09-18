@@ -470,11 +470,18 @@ CREATE TABLE IF NOT EXISTS context_comments (
   author_user_type VARCHAR(16) NOT NULL,
   author_user_id VARCHAR(64) NOT NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+  -- Traitement d'un message reçu sur un lieu (migration 264) : vide = nouveau. Reste vide
+  -- pour les contextes G&L, qui partagent cette table sans partager ce cycle de vie.
+  place_status VARCHAR(16) NOT NULL DEFAULT '',
+  place_status_at DATETIME NULL DEFAULT NULL,
+  place_status_by_user_type VARCHAR(16) NULL DEFAULT NULL,
+  place_status_by_user_id VARCHAR(64) NULL DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_context_comments_context_created (context_type, context_id, created_at),
   INDEX idx_context_comments_author (author_user_type, author_user_id, created_at),
-  INDEX idx_context_comments_deleted (context_type, context_id, is_deleted, created_at)
+  INDEX idx_context_comments_deleted (context_type, context_id, is_deleted, created_at),
+  INDEX idx_context_comments_place_status (context_type, place_status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS context_comment_reports (

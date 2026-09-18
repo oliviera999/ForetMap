@@ -3,6 +3,7 @@ import { Button } from '../../shared/ui/Button.jsx';
 import { placeDisplayParts } from '../utils/planPlaces.js';
 import { PlanLinkedText } from '../utils/planLinkedText.jsx';
 import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
+import { placeStatusClass, placeStatusLabel } from '../../shared/place-messages/placeStatus.js';
 
 /**
  * Fiche d'un lieu du plan (lot 4), en feuille basse à crans : un aperçu (nom + accroche)
@@ -28,11 +29,28 @@ import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
  *   qui peuvent réellement éditer les lieux (plan des personnels).
  * @param {((body: string) => Promise<void>)|null} [props.onSuggest] envoi d'un message à
  *   l'équipe à propos de ce lieu (plan des personnels, comptes authentifiés).
+ * @param {Array<{ id: string, body: string, created_at: string, place_status: string }>}
+ *   [props.myReports] ce que **ce lecteur** a déjà signalé sur ce lieu, avec l'état de
+ *   traitement. Sans cette liste, signaler revenait à parler dans le vide : la fiche n'affiche
+ *   pas les commentaires, et la console refuse le profil `personnel` en lecture.
  * @param {'peek'|'half'|'full'} [props.initialSnap] cran d'ouverture. `peek` sert pendant un
  *   parcours : une fiche à mi-hauteur recouvrait entièrement la barre d'étape, « Quitter »,
  *   « Précédent » et « Suivant » compris
  *   (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` B3).
  */
+/** Défaut d'identité stable : un `[]` littéral en défaut de prop relancerait les memos. */
+const EMPTY_REPORTS = Object.freeze([]);
+
+/** Date d'envoi, en clair et sans heure : ce qui compte est « quand », pas « à quelle minute ». */
+function formatReportDate(value) {
+  const ts = Date.parse(String(value || ''));
+  if (!Number.isFinite(ts)) return 'date inconnue';
+  return new Date(ts).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+  });
+}
+
 export function PlanPlaceSheet({
   place,
   onClose,
@@ -45,6 +63,7 @@ export function PlanPlaceSheet({
   secondaryAction = null,
   editUrl = '',
   onSuggest = null,
+  myReports = EMPTY_REPORTS,
   initialSnap = 'half',
 }) {
   if (!place) return null;
@@ -195,6 +214,24 @@ export function PlanPlaceSheet({
         </section>
       ))}
       {shareUrl ? <p className="plan-place__share">Lien direct : {shareUrl}</p> : null}
+      {myReports.length ? (
+        <section className="plan-place__reports">
+          <h3 className="plan-place__reports-title">Mes signalements sur ce lieu</h3>
+          <ul className="plan-place__reports-list">
+            {myReports.map((report) => (
+              <li key={report.id} className="plan-place__report">
+                <p className="plan-place__report-body">{report.body}</p>
+                <p className="plan-place__report-meta">
+                  <span className={placeStatusClass(report.place_status)}>
+                    {placeStatusLabel(report.place_status, { forAuthor: true })}
+                  </span>{' '}
+                  · envoyé le {formatReportDate(report.created_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {onSuggest ? <PlaceSuggestionForm onSubmit={onSuggest} /> : null}
       {editUrl ? (
         <p className="plan-place__edit">
