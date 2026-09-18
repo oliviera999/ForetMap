@@ -16,6 +16,7 @@ import { StaffPlanSettingsPanel } from './settings/StaffPlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { UserTrackingPanel } from './settings/UserTrackingPanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
+import { PlaceMessagesPanel } from './settings/PlaceMessagesPanel.jsx';
 import { MapsAdminPanel } from './settings/MapsAdminPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
@@ -74,6 +75,9 @@ const SEARCH_INDEX = [
       'reperes',
       'parcours',
       'lieux',
+      'messages',
+      'signalements',
+      'commentaires',
     ],
   },
   {
@@ -626,6 +630,7 @@ function SettingsAdminView({
       { id: 'locations', label: 'Zones & repères' },
       { id: 'categories', label: 'Catégories' },
       { id: 'routes', label: 'Parcours' },
+      { id: 'messages', label: 'Messages' },
     ];
     const activeCarto = cartoTabs.some((t) => t.id === cartoSub)
       ? cartoSub
@@ -694,6 +699,12 @@ function SettingsAdminView({
             }}
             onError={(errMsg) => setErr(errMsg)}
           />
+        ) : null}
+        {/* Les messages déposés sur un lieu se lisent ici, à côté des lieux eux-mêmes : c'est
+            la seule vue qui répond à « qu'avons-nous reçu ? » sans rouvrir les fiches une par
+            une (cf. `docs/AUDIT_COMMUNICATION_2026-09-18.md`). */}
+        {activeCarto === 'messages' ? (
+          <PlaceMessagesPanel onError={(errMsg) => setErr(errMsg)} />
         ) : null}
       </>
     );

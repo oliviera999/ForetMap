@@ -1749,7 +1749,7 @@ Si le réglage public `ui.modules.context_comments_enabled` est à `false`, tout
 
 Si le réglage public `ui.modules.reports_enabled` est à `false`, les routes `POST /api/context-comments/:id/report` (et `POST /api/gl/context-comments/:id/report`) renvoient `403` avec `{ error: 'Les signalements sont désactivés.', code: 'REPORTS_DISABLED' }`. Les commentaires restent accessibles (lecture, publication, réactions).
 
-**Profil visiteur** : toutes les routes `/api/context-comments` renvoient **`403`** (pas d’accès, y compris en lecture), avec un message du type « Accès refusé aux commentaires de contexte pour le profil visiteur » — comportement aligné sur le forum pour ce profil.
+**Profils lecture seule (`visiteur`, `personnel`)** : toutes les routes `/api/context-comments` renvoient **`403`** (pas d’accès, y compris en lecture), avec « Accès refusé aux commentaires de contexte pour le profil visiteur ou personnel » — comportement aligné sur le forum pour ces profils. Un `personnel` peut néanmoins déposer un message **sur un lieu** depuis le plan des personnels, par `POST /api/staff-plan/report` (voir cette section).
 
 **Publication par profil n3beur** : la colonne `roles.context_comment_participate` (défaut `1`) sur le **profil principal** pilote si le n3beur peut créer des commentaires, réagir, signaler et supprimer les siens. Si `0`, le n3beur reste autorisé en **lecture** sur `GET /api/context-comments` ; `POST`, `DELETE` et réactions sont refusés avec **`403`** et `code: "CONTEXT_COMMENT_READ_ONLY"`. Les n3boss ne sont pas soumis à ce filtre.
 
@@ -1769,6 +1769,8 @@ Contexte supporté :
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |
 | POST | `/api/context-comments/:id/report` | Signaler un commentaire (`{ reason }`) |
+| GET | `/api/context-comments/recent?limit=30` | Journal transverse des messages reçus **sur des lieux** (`zone`, `marker`), permission `teacher.access` |
+| PATCH | `/api/context-comments/:id/place-status` | Statut de traitement d'un message de lieu (`{ status }`), permission `place_messages.manage` |
 
 Contraintes principales :
 
@@ -1781,6 +1783,24 @@ Contraintes principales :
 - `GET /api/context-comments` inclut `items[].reactions` (agrégat par emoji + `reacted_by_me`).
 - Suppression logique (`is_deleted`) ; le contenu est masqué côté lecture.
 - `409` sur signalement dupliqué (même utilisateur, même commentaire, signalement déjà ouvert).
+- `GET /api/context-comments/recent` renvoie
+  `{ items, total, open_total, can_set_status }` : chaque élément porte
+  `id, context_type, context_id, place_label, place_emoji, map_id, body, image_urls,
+author_display_name, author_user_type, created_at, place_status, place_status_at`, du plus
+  récent au plus ancien, `limit` borné à 100 (défaut 30). Les commentaires supprimés sont
+  exclus ; un message dont le lieu a été supprimé **reste** listé, `place_label` vide.
+  `open_total` compte ceux encore à traiter (`place_status` vide) et `can_set_status` dit si
+  **ce lecteur** peut les clore, pour que le front n'offre pas une action qui répondrait 403.
+  Répondre, modérer ou supprimer se fait sur le lieu, par les routes ci-dessus.
+- `PATCH /api/context-comments/:id/place-status` (migration `264`) prend
+  `{ status: 'pris_en_compte' | 'traite' | 'sans_suite' }` et répond
+  `{ ok: true, id, place_status }`. Permission **`place_messages.manage`**, accordée au seul
+  profil `admin` à la livraison et attribuable à n'importe quel profil depuis « Profils RBAC ».
+  **400** sur un statut hors catalogue (y compris `''` : le point de départ ne se repose pas)
+  ou sur un commentaire qui ne porte pas sur un lieu, **404** s'il est introuvable, **409**
+  s'il est supprimé. Le statut **remplace** le précédent : l'historique vit dans le journal
+  d'audit (`context_comment_place_status`, avec `previous_status`), pas dans la ligne. Le
+  couple `place_status_by_*` trace qui a traité et n'est **jamais** servi à l'auteur.
 
 ---
 
@@ -2234,6 +2254,7 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 | GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled }`         |
 | GET     | `/api/staff-plan/content?map_id=` | compte **ou** laissez-passer | Charge de la surface `staff`, filtrée pour le lecteur                             |
 | POST    | `/api/staff-plan/access`          | non                          | `{ code }` → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
+| POST    | `/api/staff-plan/report`          | compte uniquement            | `{ contextType: 'zone'\|'marker', contextId, body }` → « Signaler ou proposer »   |
 
 ### Porte d'entrée
 
@@ -2262,11 +2283,41 @@ Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available }`
 
 ### Réponse
 
-`{ map, settings, categories, zones, markers, routes, viewer }` — identique au plan public, plus
-`viewer` : `{ via: 'account'|'code', role_slug, can_edit_locations, console_base_url, can_report }`.
+`{ map, settings, categories, zones, markers, routes, viewer, my_reports }` — identique au plan
+public, plus `viewer` :
+`{ via: 'account'|'code', role_slug, can_edit_locations, console_base_url, can_report }`.
 `console_base_url` (origine de la console ForetMap, depuis `FRONTEND_ORIGIN`) n'est renseignée
 que pour un lecteur portant `zones.manage` ou `map.manage_markers` ; le front n'affiche le lien
-retour que dans ce cas.
+retour que dans ce cas. `can_report` vaut `true` pour un lecteur entré **par compte** quand le
+module `ui.modules.context_comments_enabled` est actif — c'est là que le message atterrit ; un
+porteur de code n'a pas d'identité à associer à un message.
+
+`my_reports` (migration `264`) liste ce que **ce lecteur** a déjà signalé — 50 plus récents,
+chacun avec `id, context_type, context_id, place_label, body, created_at, place_status,
+place_status_at`, et **sans l'identité du traitant**. C'est le retour à l'auteur : la fiche de
+lieu n'affiche pas les commentaires et le routeur de la console refuse le profil `personnel` en
+lecture, donc sans cette liste un signalement partait sans laisser de trace lisible par celui
+qui l'avait écrit. Vaut `[]` pour un porteur de code.
+
+### Signaler ou proposer (`POST /api/staff-plan/report`)
+
+Le message devient un **commentaire de contexte du lieu** (`context_comments`, `context_type`
+`zone` ou `marker`) : pas de boîte de réception séparée, le message arrive sous le repère
+concerné, avec la modération, les photos et le signalement déjà en place. Il ressort aussi dans
+`GET /api/context-comments/recent` (vue « Messages reçus sur les lieux » de la console).
+
+Gardes, dans l'ordre : compte portant `staff_plan.access` (**401** sinon, **403** pour un
+porteur de code), module `context_comments` actif (**503** sinon), `contextType` dans
+`zone|marker` et corps de 2 à 4000 caractères (**400** sinon), lieu **réellement visible par ce
+lecteur** sur la surface `staff` (**404** sinon — « introuvable » plutôt qu'« interdit » :
+distinguer les deux dirait qu'un lieu masqué existe), anti-rafale de 3 s (**429**). Réponse
+**201** `{ ok: true, id, place_label, report }`, où `report` a la forme d'une entrée de
+`my_reports` : le front l'ajoute à sa liste sans recharger toute la charge du plan.
+
+Pourquoi cette route plutôt que `POST /api/context-comments` : ce routeur-là refuse les profils
+en lecture seule — `visiteur` **et `personnel`** — alors que `personnel` est précisément le
+profil des agents visés par cette surface. L'écriture passe donc par la porte de cette surface,
+sans ouvrir les commentaires de la console à un profil qui n'y participe pas.
 
 ### Réglages
 

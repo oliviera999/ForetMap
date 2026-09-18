@@ -138,3 +138,42 @@
   gap: 8px;
   justify-content: flex-end;
 }
+
+/* ---- Mes signalements sur ce lieu (retour à l'auteur) ---- */
+
+.plan-place__reports {
+  margin: 16px 0 0;
+}
+
+.plan-place__reports-title {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.plan-place__reports-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.plan-place__report {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface-plain);
+}
+
+.plan-place__report-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.plan-place__report-meta {
+  margin: 6px 0 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}

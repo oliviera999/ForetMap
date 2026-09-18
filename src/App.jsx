@@ -10,6 +10,7 @@ import { useAuthSession } from './hooks/useAuthSession';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
+import { usePlaceMessagesInbox } from './hooks/usePlaceMessagesInbox';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
@@ -1023,6 +1024,15 @@ function App() {
     },
     [fetchAll],
   );
+  /**
+   * Messages déposés sur des lieux (zones, repères) — dont les signalements venus du plan des
+   * personnels. Chargés une fois puis rafraîchis par le temps réel : ils alimentent le centre
+   * de notifications, faute de quoi un message n'était découvert qu'en rouvrant son lieu.
+   */
+  const { unreadItems: newPlaceMessages } = usePlaceMessagesInbox({
+    enabled: effectiveIsTeacher && publicSettings?.modules?.context_comments_enabled !== false,
+  });
+
   const {
     roleKey: notificationRoleKey,
     items: notifications,
@@ -1045,6 +1055,7 @@ function App() {
     tasksForActiveMap,
     student: studentForUi,
     teacherPendingValidationCount,
+    newPlaceMessages,
     rtStatus: teacherSyncStatus,
     serverDown,
     sessionValidationError,

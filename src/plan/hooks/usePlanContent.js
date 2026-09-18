@@ -4,6 +4,9 @@ import { fetchPlanContent } from '../planApi.js';
 import { planPlacesFromContent } from '../utils/planPlaces.js';
 import { PLAN_VARIANT } from '../utils/planVariants.js';
 
+/** Identité stable pour « aucun signalement » (cf. `myReports`). */
+const EMPTY_REPORTS = Object.freeze([]);
+
 /**
  * Charge publique du plan (lot 4) : un seul appel au montage, pas de polling — le contenu
  * d'un plan d'établissement change quelques fois par an, et le produit doit rester utilisable
@@ -66,9 +69,31 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
 
   const places = useMemo(() => planPlacesFromContent(content), [content]);
 
+  /**
+   * Ce que ce lecteur a déjà signalé, servi avec la charge (`my_reports`). Identité stable :
+   * un `|| []` posé dans le `return` fabriquerait un tableau neuf à chaque rendu.
+   */
+  const myReports = useMemo(() => content?.my_reports || EMPTY_REPORTS, [content]);
+
+  /**
+   * Ajoute localement un signalement qui vient de partir, plutôt que de recharger toute la
+   * charge du plan pour une ligne : sur un téléphone dans un couloir, la seconde de
+   * rechargement se voit, et l'auteur veut surtout constater que son message est parti.
+   */
+  const addMyReport = useCallback((report) => {
+    if (!report?.id) return;
+    setContent((prev) => {
+      if (!prev) return prev;
+      const others = (prev.my_reports || []).filter((item) => item.id !== report.id);
+      return { ...prev, my_reports: [report, ...others] };
+    });
+  }, []);
+
   return {
     content,
     places,
+    myReports,
+    addMyReport,
     accessRequired,
     authRequired,
     codeAvailable,

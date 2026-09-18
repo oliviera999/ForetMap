@@ -53,6 +53,9 @@ const RESULTS_LIMIT = 40;
 /** « Aucun filtre », d'identité stable : un `new Set()` par rendu relancerait tous les memos. */
 const EMPTY_CATEGORY_IDS = new Set();
 
+/** Idem pour « aucun signalement sur ce lieu ». */
+const EMPTY_REPORTS = Object.freeze([]);
+
 /**
  * Plan Lyautey (lot 4 du plan de convergence, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`).
  *
@@ -79,6 +82,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const {
     content,
     places,
+    myReports,
+    addMyReport,
     routes,
     categories,
     settings,
@@ -136,7 +141,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     (place) => {
       if (!canSuggest || !place) return null;
       return async (body) => {
-        await submitPlaceSuggestion(
+        const sent = await submitPlaceSuggestion(
           {
             contextType: place.kind === 'zone' ? 'zone' : 'marker',
             contextId: String(place.id),
@@ -144,10 +149,26 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           },
           variant,
         );
+        // Le message rejoint aussitôt « Mes signalements » sur la fiche : sans ce retour,
+        // l'auteur n'avait aucune trace de ce qu'il venait d'envoyer.
+        if (sent?.report) addMyReport(sent.report);
         reportPlanUsage('place_suggest', String(place.id), variant);
       };
     },
-    [canSuggest, variant],
+    [addMyReport, canSuggest, variant],
+  );
+
+  /** Mes signalements déjà déposés sur le lieu ouvert, avec leur état de traitement. */
+  const reportsForPlace = useCallback(
+    (place) => {
+      if (!place) return EMPTY_REPORTS;
+      const kind = place.kind === 'zone' ? 'zone' : 'marker';
+      const id = String(place.id);
+      return myReports.filter(
+        (report) => report.context_type === kind && String(report.context_id) === id,
+      );
+    },
+    [myReports],
   );
 
   /**
@@ -965,6 +986,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         initialSnap={activeRoute && routePeekPlace ? 'peek' : 'half'}
         editUrl={canEditLocations ? consoleBaseUrl : ''}
         onSuggest={suggestForPlace(sheetPlace)}
+        myReports={reportsForPlace(sheetPlace)}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>
