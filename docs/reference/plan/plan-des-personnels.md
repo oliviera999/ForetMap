@@ -103,7 +103,18 @@ n'a pas de version publique acceptable.
 - **Signaler ou proposer** quelque chose sur un lieu, depuis sa fiche : « Signaler un problème
   ou proposer une correction ». Le message est attaché **au lieu concerné**, dans ses
   commentaires, là où un administrateur le retrouve avec son contexte. (Réservé aux comptes :
-  un porteur de code n'a pas d'identité à associer au message.)
+  un porteur de code n'a pas d'identité à associer au message.) Le profil « Personnel » en
+  fait partie : c'est le public de ce plan, il peut signaler même s'il ne participe ni au
+  forum ni aux commentaires de la console.
+
+  **Où va le message, et qui le voit ?** Il n'est envoyé à personne par courriel : il devient
+  un commentaire du lieu. Un administrateur le retrouve à deux endroits — sur la fiche du lieu
+  dans la console, et dans le journal **Réglages → Cartographie → Messages** (« Messages reçus
+  sur les lieux »), qui liste tout ce qui est arrivé, du plus récent au plus ancien, avec un
+  repère « nouveau ». Une notification apparaît en plus dans la cloche des personnes qui ont la
+  console ouverte. Si le module « Commentaires de contexte » est désactivé, le bouton
+  disparaît : mieux vaut pas de bouton qu'un message qui n'atterrit nulle part.
+
 - **Ouvrir la console ForetMap** pour corriger le lieu — lien affiché uniquement aux comptes
   qui peuvent réellement éditer zones et repères.
 

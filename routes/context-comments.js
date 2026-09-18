@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryOne, execute } = require('../database');
-const { requireAuth } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
@@ -15,18 +15,16 @@ const {
   createCooldownChecker,
   studentParticipationAllowed,
 } = require('../lib/shared/participationGuards');
-const {
-  persistUserContentImages,
-  attachPublicImageUrls,
-  validateImagesPayload,
-} = require('../lib/userContentImages');
+const { persistUserContentImages, validateImagesPayload } = require('../lib/userContentImages');
 const { normalizeOptionalString, parsePageQuery } = require('../lib/shared/httpHelpers');
+const { listRecentPlaceMessages } = require('../lib/placeMessages');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
   loadContextCommentReactions,
   listContextComments,
   softDeleteContextComment,
   CONTEXT_COMMENT_LIMITS,
+  insertContextComment,
   makeContextTypeNormalizer,
   resolveReactionToggle,
 } = require('../lib/shared/contextCommentsCore');
@@ -136,6 +134,24 @@ router.use((req, res, next) => {
   }
   return next();
 });
+
+/**
+ * Journal transverse des messages déposés sur des **lieux** (zones et repères), du plus
+ * récent au plus ancien — la vue « Messages reçus sur les lieux » de la console.
+ *
+ * Réservée aux comptes qui ouvrent la console (`teacher.access`) : c'est une lecture par-dessus
+ * tous les lieux à la fois, y compris ceux qu'un lecteur donné ne verrait pas sur la carte.
+ * Elle ne sert pas à participer mais à **prendre connaissance** — d'où l'absence de réactions,
+ * de pagination profonde et de suppression ici : tout cela se fait sur le lieu concerné.
+ */
+router.get(
+  '/recent',
+  requirePermission('teacher.access'),
+  asyncHandler(async (req, res) => {
+    const { items, total } = await listRecentPlaceMessages({ limit: req.query.limit });
+    return res.json({ items, total });
+  }),
+);
 
 router.get(
   '/',
@@ -247,6 +263,9 @@ router.post(
     if (!checkCooldown(actor, 'context_comment', COMMENT_COOLDOWN_MS)) {
       return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
     }
+    // L'identifiant est tiré ici, et non dans `insertContextComment` : les images sont
+    // rangées sous cet identifiant **avant** l'insertion, pour qu'une photo refusée ne laisse
+    // pas un commentaire vide derrière elle.
     const commentId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
@@ -256,28 +275,14 @@ router.post(
       }
       pathsJson = persisted.pathsJson;
     }
-    await execute(
-      `INSERT INTO context_comments
-      (id, context_type, context_id, body, image_paths_json, author_user_type, author_user_id, is_deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
-      [commentId, contextType, contextId, body, pathsJson, actor.userType, actor.userId],
-    );
-    const created = await queryOne(
-      `SELECT c.id, c.context_type, c.context_id, c.body, c.image_paths_json, c.author_user_type, c.author_user_id, c.is_deleted, c.created_at, c.updated_at,
-            COALESCE(
-              NULLIF(u.display_name, ''),
-              NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
-              NULLIF(u.pseudo, ''),
-              NULLIF(u.email, ''),
-              c.author_user_id
-            ) AS author_display_name
-       FROM context_comments c
-  LEFT JOIN users u ON u.id = c.author_user_id AND u.user_type = c.author_user_type
-      WHERE c.id = ?
-      LIMIT 1`,
-      [commentId],
-    );
-    attachPublicImageUrls(created, 'context-comments');
+    const created = await insertContextComment({
+      commentId,
+      contextType,
+      contextId,
+      body,
+      actor,
+      imagePathsJson: pathsJson,
+    });
     await logAudit(
       'context_comment_create',
       'context_comment',

@@ -9,6 +9,54 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — « Signaler un problème » : le profil « Personnel » y avait droit, le serveur disait non
+
+- Sur le **plan des personnels** (proflyautey), le bouton « Signaler un problème ou proposer une
+  correction » était affiché à tout compte connecté, mais l'envoi partait sur
+  `POST /api/context-comments`, dont le routeur **refuse les profils en lecture seule** —
+  `visiteur` **et `personnel`**. Or `personnel` est précisément le profil des agents à qui ce
+  plan s'adresse : ils voyaient le bouton et recevaient « Accès refusé aux commentaires de
+  contexte pour le profil visiteur ou personnel ».
+- L'envoi passe désormais par la porte de cette surface : **`POST /api/staff-plan/report`**
+  (`routes/staff-plan.js`). Le message reste un **commentaire du lieu** (`context_comments`,
+  `zone` ou `marker`) — même table, même modération, même contexte —, mais la garde est celle du
+  plan : un compte portant `staff_plan.access`, et un lieu **réellement visible par ce lecteur**
+  sur la surface `staff` (sinon 404 : « introuvable » plutôt qu'« interdit », pour ne pas
+  révéler l'existence d'un lieu masqué). Les commentaires de la console ne sont pas ouverts pour
+  autant à ce profil.
+- `viewer.can_report` tient compte en plus du **module « Commentaires de contexte »** : s'il est
+  éteint, le bouton disparaît — mieux vaut pas de bouton qu'un message qui n'atterrit nulle part.
+
+### Ajouté — « Messages reçus sur les lieux » : la console voit enfin ce qui arrive
+
+- Nouveau sous-onglet **Réglages → Cartographie → Messages** : le journal transverse des
+  commentaires déposés sur une **zone ou un repère**, tous lieux confondus, du plus récent au
+  plus ancien — avec le lieu, son emoji, l'auteur, la date, le texte et le nombre de photos.
+  Un lieu supprimé entre-temps garde son message, sous la mention « Lieu supprimé ».
+  (`src/components/settings/PlaceMessagesPanel.jsx`, `GET /api/context-comments/recent`,
+  permission `teacher.access`.)
+- Le **centre de notifications** annonce désormais un message reçu sur un lieu (rubrique
+  « Propositions »), en nommant le lieu et en citant le début du texte. Jusqu'ici, **rien**
+  n'avertissait : un signalement attendait qu'on rouvre le repère concerné par hasard.
+- Ce qui est arrivé depuis la dernière lecture est marqué « nouveau » et compté ; « Tout marquer
+  comme lu » remet le compteur à zéro. Ce repère est **local à l'appareil**
+  (`src/utils/placeMessagesInbox.js`), comme celui de la cloche — limite assumée et documentée.
+- Tests : `tests/staff-plan-report.test.js` (profil `personnel` accepté ici et toujours refusé
+  sur `/api/context-comments`, lieu hors audience, module éteint, porteur de code),
+  `tests-ui/settings/PlaceMessagesPanel.test.jsx`, `tests-ui/plan/planApiReport.test.js`,
+  `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc : `docs/API.md`,
+  `docs/reference/plan/plan-des-personnels.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
+### Documentation — état des lieux de la communication entre utilisateurs
+
+- Nouvel audit daté [`docs/AUDIT_COMMUNICATION_2026-09-18.md`](docs/AUDIT_COMMUNICATION_2026-09-18.md) :
+  carte des douze canaux existants (forum, commentaires, tâches, carnet, GL, courriel, audit),
+  **six angles morts** mesurés — dont « aucune notification produite par le serveur » et « aucun
+  message n'a de destinataire » —, huit options chiffrées (statut et retour à l'auteur, digest
+  courriel, notifications serveur, référents, annonces, push, messagerie, modération des
+  signalements), et la liste de ce qu'il ne faut **pas** construire, dans l'esprit de la charte
+  du non-développement. Indexé dans `docs/audits/README.md`.
+
 ### Modifié — Visite : « Y aller » n'apparaît que si la géolocalisation est activée sur la carte
 
 - Dans la fiche d'un lieu de la **Visite**, le bouton **« Y aller »** n'est plus affiché éteint

@@ -8,7 +8,7 @@ import { withAppBase } from '../shared/appBase.js';
 import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
-import { PLAN_VARIANT } from './utils/planVariants.js';
+import { PLAN_VARIANT, STAFF_PLAN_VARIANT } from './utils/planVariants.js';
 
 /**
  * @param {string} path chemin API (`/api/plan/...`, `/api/staff-plan/...`).
@@ -64,14 +64,14 @@ export async function submitPlanAccessCode(code, variant = PLAN_VARIANT) {
  * d'inventer une boîte de réception met le message **sous le lieu concerné**, là où un
  * administrateur le retrouve avec son contexte — et lui donne d'emblée la modération, les
  * photos et le signalement déjà en place.
+ *
+ * L'envoi passe par la porte de cette surface (`POST /api/staff-plan/report`) et non par
+ * `POST /api/context-comments` : ce dernier refuse les profils en lecture seule, dont
+ * `personnel` — le profil même des agents à qui ce plan s'adresse.
  */
 export async function submitPlaceSuggestion({ contextType, contextId, body }, variant) {
-  return planApi(
-    '/api/context-comments',
-    'POST',
-    { contextType, contextId, body },
-    variant?.getToken,
-  );
+  const base = variant?.apiBase || STAFF_PLAN_VARIANT.apiBase;
+  return planApi(`${base}/report`, 'POST', { contextType, contextId, body }, variant?.getToken);
 }
 
 /**
