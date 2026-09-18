@@ -7100,6 +7100,39 @@
     white-space:normal;
   }
 }
+/* Console : « Messages reçus sur les lieux » (Réglages → Cartographie → Messages).
+   Réutilise la carte de commentaire (`.context-comment-item`) : c'est le même objet, vu
+   depuis le journal plutôt que depuis son lieu. */
+.place-messages__bar {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:12px 0;
+}
+.place-messages__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.place-messages__list {
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+.place-messages__item.is-unread {
+  border-color:var(--leaf);
+  box-shadow:0 0 0 1px var(--leaf) inset;
+}
+.place-messages__body {
+  margin:0;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
 .message-reactions-row {
   display:flex;
   flex-wrap:wrap;

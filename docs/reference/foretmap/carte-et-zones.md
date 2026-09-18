@@ -641,6 +641,36 @@ L'accès au sous-onglet suit celui des Réglages administrateur (permission « L
 paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
 zone et « Gestion repères » pour un repère.
 
+## « Messages reçus sur les lieux »
+
+**Réglages administrateur → Cartographie → Messages.** Un journal de ce que les
+utilisateurs écrivent **sur un lieu**, tous lieux confondus, du plus récent au plus
+ancien :
+
+- les **commentaires** déposés sur une zone ou un repère depuis la carte ;
+- les **signalements** envoyés depuis le plan des personnels, par le bouton
+  « Signaler un problème ou proposer une correction » d'une fiche de lieu (voir
+  [Plan des personnels](../plan/plan-des-personnels.md)).
+
+Chaque ligne indique le lieu concerné (avec son emoji), le type — zone ou repère —,
+la date, l'auteur, le texte et le nombre de photos. Un lieu supprimé entre-temps
+laisse son message dans la liste, sous la mention « Lieu supprimé » : le message a
+été écrit, l'effacer d'office réécrirait l'histoire.
+
+Cet écran sert à **prendre connaissance**, pas à répondre : pour répondre, modérer ou
+supprimer un message, ouvrez le lieu concerné sur la carte — le message y vit, avec
+les réactions et le signalement habituels.
+
+Ce qui est arrivé depuis votre dernière visite est marqué « nouveau » et compté en
+tête de liste ; « Tout marquer comme lu » remet le compteur à zéro. **Ce repère de
+lecture est propre à l'appareil** (comme celui de la cloche de notifications) : il ne
+dit pas à vos collègues que vous avez lu, et il ne suit pas d'un ordinateur à l'autre.
+
+Enfin, tant que la console est ouverte, un message reçu sur un lieu apparaît aussi
+dans la **cloche de notifications** (rubrique « Propositions »), avec le nom du lieu
+et le début du texte. C'est ce qui manquait : un signalement n'attend plus qu'on
+rouvre le repère par hasard.
+
 ## La vue grand écran « Cartes & tâches »
 
 Sur un écran suffisamment large (ordinateur, tableau interactif), les onglets Carte et
