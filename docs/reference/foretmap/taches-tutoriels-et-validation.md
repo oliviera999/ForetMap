@@ -75,7 +75,14 @@ L'écran Tâches propose une **barre de recherche**, un **bouton « ⚙️ Filtr
 une seule ligne : les tâches restent visibles dès l'ouverture de l'écran, sans avoir à
 faire défiler la page.
 
-- **Les filtres** (carte, lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
+- **Le premier champ n'est pas un filtre, c'est la carte affichée.** Le choisir **bascule
+  l'application sur cette carte** (la carte de l'onglet Carte change aussi), puis la liste
+  montre les tâches qui s'y trouvent. C'est volontaire : les tâches, zones et repères sont
+  chargés **carte par carte**. Tant que ce champ était un filtre, choisir « N3 » alors que la
+  forêt comestible était affichée vidait la liste — les tâches de N3 n'étaient pas chargées,
+  donc aucune ne pouvait correspondre. Pour la même raison, l'ancienne entrée « Toutes
+  cartes » a disparu : elle ne montrait jamais que la carte du moment.
+- **Les filtres** (lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
   statut) s'ouvrent d'un appui sur « ⚙️ Filtres ». Sur ordinateur ils se déplient sous la
   barre ; sur téléphone et tablette ils s'affichent dans une **feuille basse** (la même
   que sur la carte et dans Gnomes & Licornes) : elle s'ouvre à mi-hauteur, une poignée
