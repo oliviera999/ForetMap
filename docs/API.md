@@ -2182,7 +2182,10 @@ dehors par un réglage à moitié rempli.
 ## Plan des personnels (`/api/staff-plan`)
 
 Produit **`staff`** : même carte et même écran que le Plan Lyautey public, servis par host
-(`proflyautey.*`, surcharge `X-Foretmap-Product: staff`) à un lecteur **identifié**. La charge
+(`proflyautey.*` et son alias `stafflyautey.*`, surcharge `X-Foretmap-Product: staff`) à un
+lecteur **identifié**. Les deux préfixes de host sont déclarés sur la **même** entrée du
+registre (`lib/products.js`) : même entrée HTML, même `apiPrefix`, même PWA — une adresse de
+plus, pas un produit de plus. La charge
 est construite par le noyau partagé `lib/planContent.js` avec `surface: 'staff'` et le lecteur
 réel, si bien que `lib/locationAudience.js` lui laisse les lieux réservés à son rôle **et** les
 compléments confidentiels (`restricted_note`) — exactement ce que le plan public retire à son

@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — le plan des personnels répond aussi sur `stafflyautey.*`
+
+- Le produit `staff` déclare désormais **deux préfixes de host** au registre
+  (`lib/products.js`) : `proflyautey.` (adresse historique, inchangée) et `stafflyautey.`
+  (nouvelle adresse). Une seule entrée de registre, donc la même entrée HTML (`staff.html`),
+  la même API (`/api/staff-plan`), la même PWA et les mêmes icônes — une adresse de plus,
+  pas un produit de plus.
+- Tout ce qui dépendait du host suit automatiquement, puisque tout lit le registre : fallback
+  SPA, favicon, en-têtes `no-store`, garde d'entrée croisée, limiteur strict sur
+  `/api/staff-plan/access`, et la validation de l'origine de retour OAuth
+  (`lib/oauthPublicUrl.js`, via les préfixes listés par `routes/auth.js`) — un personnel parti
+  de `stafflyautey.*` est donc bien ramené sur `stafflyautey.*`.
+- Côté exploitation, rien à configurer au-delà du DNS : pointer `stafflyautey.olution.info`
+  (et `www.`) vers la même application Node, certificat TLS, puis ajouter l'origine à
+  `FRONTEND_ORIGINS` (`docs/EXPLOITATION.md`).
+- Chaque adresse garde sa propre session navigateur (cookies posés sans `Domain`) : changer
+  d'adresse demande une reconnexion, ce que dit le doc de référence.
+- Tests : `tests/products-registry.test.js` verrouille l'alias (résolution avec et sans `www.`,
+  non-débordement sur `plan` et sur ForetMap). Doc : `docs/API.md`,
+  `docs/reference/plan/plan-des-personnels.md`,
+  `docs/reference/exploitation/marque-et-domaines.md`, `docs/EXPLOITATION.md`.
+
 ### Documentation — lancer l'e2e casse `npm test` sur la même base, et c'est mesuré
 
 - `npm test` lancé **juste après** la suite e2e donne **32 échecs** ; le même `npm test` sur une

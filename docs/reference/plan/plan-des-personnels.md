@@ -1,12 +1,13 @@
-# Plan des personnels (proflyautey) — présentation
+# Plan des personnels (proflyautey / stafflyautey) — présentation
 
 > **Public visé : administrateurs et professeurs.** Aucune connaissance technique requise.
 
 ## À quoi sert ce plan ?
 
-Le **plan des personnels** (`proflyautey.olution.info`) est le **même plan** que
-[le Plan Lyautey public](presentation.md) — la même carte, la même recherche, les mêmes
-fiches de lieu — mais réservé aux personnels du lycée, et **plus complet**.
+Le **plan des personnels** (`proflyautey.olution.info`, ou `stafflyautey.olution.info` — voir
+plus bas) est le **même plan** que [le Plan Lyautey public](presentation.md) — la même carte, la
+même recherche, les mêmes fiches de lieu — mais réservé aux personnels du lycée, et **plus
+complet**.
 
 Il existe parce que le plan public est vraiment public : parents, élèves, visiteurs, curieux.
 Certains repères n'y ont pas leur place (locaux techniques, réserves, circulations de service),
@@ -24,12 +25,35 @@ Concrètement, un personnel connecté y voit **deux choses de plus** que le publ
 Ce qu'il ne contient **pas**, comme le plan public : ni tâches, ni élèves, ni progression, ni
 données pédagogiques. C'est un plan, rien d'autre.
 
+## Deux adresses, un seul plan
+
+Le plan des personnels répond sur **deux adresses équivalentes** :
+
+| Adresse                     | Statut                                                                   |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `proflyautey.olution.info`  | Adresse historique, toujours valable — rien à changer si vous l'utilisez |
+| `stafflyautey.olution.info` | Nouvelle adresse, à préférer quand on la communique                      |
+
+Elles ouvrent **le même écran**, avec les mêmes lieux, les mêmes fiches et le même mode
+d'entrée. Ce n'est pas un second plan à entretenir : c'est la même application, jointe par
+deux noms. La seconde existe parce que « staff » dit mieux ce qu'est le public visé — la vie
+scolaire, l'intendance et les agents sont concernés autant que les professeurs.
+
+Une session ouverte sur une adresse ne suit pas sur l'autre (chaque adresse garde sa propre
+session dans le navigateur) : on se reconnecte une fois, et c'est réglé. De même, si vous avez
+installé le plan sur l'écran d'accueil de votre téléphone, l'icône installée continue d'ouvrir
+l'adresse depuis laquelle vous l'avez installée.
+
+> Côté technique, la nouvelle adresse doit être dirigée vers l'application comme l'ancienne
+> (nom de domaine et certificat) : c'est la seule intervention nécessaire.
+
 ## Comment on y entre
 
 ### La voie normale : son compte du lycée
 
-On ouvre `proflyautey.olution.info`, on touche **« Se connecter avec Google »**, on choisit son
-compte du lycée. C'est tout : pas de code à retenir, pas de mot de passe supplémentaire.
+On ouvre `proflyautey.olution.info` ou `stafflyautey.olution.info`, on touche **« Se connecter
+avec Google »**, on choisit son compte du lycée. C'est tout : pas de code à retenir, pas de mot
+de passe supplémentaire.
 
 Le compte doit porter la permission **« Accès plan des personnels »**. Elle est accordée
 d'office aux profils **Administrateur**, **n3boss**, **Prof de classe** et **Personnel**. Pour
@@ -41,7 +65,8 @@ permission dans **Réglages → Profils RBAC**. Aucune intervention technique.
 
 Au passage, la page vous renvoie brièvement vers l'adresse de ForetMap avant d'ouvrir Google :
 c'est normal et sans conséquence. Google n'accepte de rappeler qu'une seule adresse, connue
-d'avance ; on y passe donc pour poser la session, puis vous êtes ramené sur proflyautey.
+d'avance ; on y passe donc pour poser la session, puis vous êtes ramené sur l'adresse d'où
+vous êtes parti — `proflyautey` ou `stafflyautey`, selon le cas.
 
 Cette permission est volontairement **séparée** de « Accès interface n3boss » : un agent ou un
 membre de la vie scolaire peut entrer sur le plan sans qu'on lui ouvre la console de gestion.

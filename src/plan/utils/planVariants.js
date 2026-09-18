@@ -1,6 +1,6 @@
 /**
  * Variantes du produit « plan » : le Plan Lyautey public (`planlyautey`) et le plan des
- * personnels (`proflyautey`).
+ * personnels (`proflyautey`, alias `stafflyautey`).
  *
  * Les deux affichent **le même écran**, servi par le même composant `AppPlan` — une carte
  * plein écran, une recherche, des puces de catégorie, des fiches de lieu, des parcours. Ce
