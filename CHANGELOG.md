@@ -211,6 +211,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc : `docs/API.md`,
   `docs/reference/plan/plan-des-personnels.md`, `docs/reference/foretmap/carte-et-zones.md`.
 
+### Documentation — audit des comptes, droits et groupes
+
+- Nouvel audit daté
+  [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md) :
+  relecture de tout ce qui touche aux personnes (connexion et sessions, inscription, comptes,
+  profils RBAC, groupes, pont Gnomes & Licornes, synchronisation Moodle et entrée LTI,
+  onglet « Profils & utilisateurs »), confrontée au document de référence. Constats
+  identifiés `CDG-xx` avec gravité, fichiers et scénario : **cinq escalades bloquantes**
+  (alias administrateur codé en dur atteignable par un simple changement d'e-mail, import de
+  comptes sans périmètre ni garde de rôle, réinitialisation MJ sur un vrai compte élève,
+  entrée LTI sur la seule foi d'un e-mail), le prof de classe privé de l'onglet « Classe »
+  promis par la doc, deux mécaniques Moodle qui désactivent des classes entières, l'absence
+  de désactivation de compte et de suppression d'enseignant, puis les incohérences, manques
+  et duplications, avec cinq lots de correction proposés. Aucun changement de comportement.
+  Indexé dans `docs/audits/README.md`.
+
 ### Documentation — état des lieux de la communication entre utilisateurs
 
 - Nouvel audit daté [`docs/AUDIT_COMMUNICATION_2026-09-18.md`](docs/AUDIT_COMMUNICATION_2026-09-18.md) :
