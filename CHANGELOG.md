@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Visite : « Y aller » n'apparaît que si la géolocalisation est activée sur la carte
+
+- Dans la fiche d'un lieu de la **Visite**, le bouton **« Y aller »** n'est plus affiché éteint
+  avec la mention « Carte non calée » : il **disparaît** tant que la géolocalisation n'est pas
+  activée sur la carte (suivi GPS coché côté prof, plan calé, appareil capable de se localiser).
+  Même logique que le bouton « Me situer », qui n'apparaît déjà que dans ce cas : une fiche ne
+  propose plus une action que la carte ne peut pas rendre
+  (`src/components/visit/VisitDetailPanel.jsx`).
+- Le guidage lui-même est inchangé : direction à vol d'oiseau, barre de guidage en bas,
+  « Arrêter » comme seule sortie.
+- Tests : `tests-ui/components/visit/VisitDetailPanel.test.jsx` et
+  `tests-ui/components/visit/VisitViewMount.test.jsx` vérifient l'absence du bouton (et de son
+  explication) quand la géolocalisation n'est pas disponible. Doc :
+  `docs/reference/foretmap/visite-et-mascottes.md`.
+
 ### Ajouté — le plan des personnels répond aussi sur `stafflyautey.*`
 
 - Le produit `staff` déclare désormais **deux préfixes de host** au registre

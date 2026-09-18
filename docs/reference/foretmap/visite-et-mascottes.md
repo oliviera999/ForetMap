@@ -39,7 +39,9 @@ familles.
   puce repart du début. Quand le plan est
   calé et la position active, la barre d'étape indique aussi **la distance à l'étape en cours**,
   et un trait relie la position au lieu visé.
-- **« Y aller »** : la fiche d'un lieu porte un bouton **« Y aller »**. Il **referme la fiche**
+- **« Y aller »** : la fiche d'un lieu porte un bouton **« Y aller »** — **seulement si la
+  géolocalisation est activée sur la carte** (plan calé + suivi GPS coché côté prof, et appareil
+  capable de se localiser). Sinon le bouton n'apparaît pas du tout. Il **referme la fiche**
   (qui recouvrait la carte) et affiche en bas une **barre de guidage** : le nom du lieu, la
   **distance à vol d'oiseau**, et sur la carte un **trait droit** entre votre position et lui.
   Le guidage ne s'arrête que sur **« Arrêter »** — ni en refermant la fiche, ni en se déplaçant
@@ -52,7 +54,8 @@ familles.
   sinon la première image visite), contenu éditorial (paragraphes, intertitres, autres
   blocs d'images légendées), la
   **biodiversité du lieu**, un volet Tuto (les fiches pratiques associées), un mode
-  « lecture confortable », un bouton **« Y aller »** (voir ci-dessus) et un bouton
+  « lecture confortable », un bouton **« Y aller »** (voir ci-dessus, présent seulement si la
+  géolocalisation est activée sur la carte) et un bouton
   **« Marquer comme vu »** — qui fait fêter la mascotte et met à jour la progression.
 - **La biodiversité du lieu est visible d'emblée**, sous le texte : une vignette par espèce
   (photo de la fiche ou pictogramme, nom courant, nom scientifique, une ligne sur son rôle).
@@ -386,8 +389,9 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 
 > ⚠️ **Point d'attention** — **« Y aller » n'est pas un itinéraire.** C'est une direction à vol
 > d'oiseau et une distance : la Visite ne connaît pas les chemins du jardin, et une direction
-> honnête vaut mieux qu'un trajet inventé. Le bouton reste **éteint si la carte n'est pas calée**
-> (la raison est écrite sous lui) : sans calage, aucune position ne peut être placée sur le plan.
+> honnête vaut mieux qu'un trajet inventé. Le bouton **n'apparaît pas** tant que la
+> géolocalisation n'est pas activée sur la carte : sans calage ni suivi GPS, aucune position ne
+> peut être placée sur le plan, et un bouton éteint promettait une action impossible.
 > Un vrai calcul de trajet supposerait de tracer les allées : c'est une évolution à demander.
 
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**

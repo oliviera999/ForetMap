@@ -345,11 +345,11 @@ describe('VisitView — guidage « Y aller »', () => {
     await waitFor(() => expect(screen.queryByTestId('visit-guide-bar')).toBe(null));
   });
 
-  test('carte non calée : le bouton est éteint, la raison est écrite, aucune barre', async () => {
+  test('carte non calée : aucun bouton « Y aller », aucune barre', async () => {
     renderVisit();
-    const go = await screen.findByTestId('visit-detail-go');
-    expect(go).toBeDisabled();
-    expect(screen.getByText(/Carte non calée/)).toBeTruthy();
+    // La fiche du lieu est bien ouverte : c'est le bouton de guidage, et lui seul, qui manque.
+    await screen.findByTestId('visit-detail-panel');
+    await waitFor(() => expect(screen.queryByTestId('visit-detail-go')).toBe(null));
     expect(screen.queryByTestId('visit-guide-bar')).toBe(null);
   });
 });
