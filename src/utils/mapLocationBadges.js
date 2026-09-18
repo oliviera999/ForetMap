@@ -136,3 +136,26 @@ export function locationStatusDots({ taskVisual, tutorialCount = 0, kind = 'mark
   }
   return dots;
 }
+
+/**
+ * Pastilles d'un **groupe de repères** (désencombrement au dézoom) : l'état de tâche le plus
+ * actionnable parmi les membres (`mergeTaskVisualStatus`, priorité « à faire » > « en cours »)
+ * et le cumul des tutoriels liés.
+ *
+ * Sans cette agrégation, un repère porteur d'une tâche perdait sa pastille dès qu'il était
+ * regroupé avec un voisin — c'est-à-dire à l'arrivée sur la carte, avant tout zoom.
+ *
+ * @param {Array<object>} markers repères du groupe
+ * @param {{ taskVisualById: Map, tutorialCountById?: Map, withTutorials?: boolean }} context
+ * @returns {Array<{ variant: string, label: string, placement: string }>}
+ */
+export function clusterStatusDots(markers, { taskVisualById, tutorialCountById, withTutorials }) {
+  let taskVisual = null;
+  let tutorialCount = 0;
+  for (const marker of markers || []) {
+    if (!marker) continue;
+    taskVisual = mergeTaskVisualStatus(taskVisual, taskVisualById?.get?.(marker.id));
+    if (withTutorials) tutorialCount += tutorialCountById?.get?.(marker.id) || 0;
+  }
+  return locationStatusDots({ kind: 'marker', taskVisual, tutorialCount });
+}

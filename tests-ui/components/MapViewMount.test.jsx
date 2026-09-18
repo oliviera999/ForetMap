@@ -165,6 +165,53 @@ describe('MapView — montage sur le moteur de carte partagé', () => {
     expect(markerButton.getAttribute('aria-label')).toContain('Tâche en cours');
   });
 
+  test('repères regroupés : le groupe porte la pastille de la tâche', async () => {
+    // Régression : au dézoom, les repères proches sont fusionnés en un groupe
+    // (`clusterMarkers`) — le groupe n'affichait aucune pastille, donc l'état des tâches
+    // disparaissait à l'arrivée sur la carte, avant tout zoom.
+    const view = render(
+      <PublicSettingsProvider value={{ modules: {}, ui: { map: {} } }}>
+        <SessionProvider value={{ isN3Affiliated: false, canParticipateContextComments: true }}>
+          <DataProvider
+            value={{
+              zones: ZONES,
+              markers: [
+                {
+                  id: 11,
+                  map_id: 'foret',
+                  label: 'Compost',
+                  x_pct: 20,
+                  y_pct: 30,
+                  category_ids: [],
+                },
+                { id: 13, map_id: 'foret', label: 'Ruche', x_pct: 21, y_pct: 31, category_ids: [] },
+              ],
+              tasks: [{ id: 103, status: 'available', marker_ids: [13] }],
+              tutorials: [],
+              plants: [],
+              activeMapId: 'foret',
+            }}
+          >
+            <MapView
+              maps={MAPS}
+              onMapChange={() => {}}
+              isTeacher={false}
+              student={{ id: 'S1', first_name: 'Ada' }}
+              onZoneUpdate={() => {}}
+              onRefresh={async () => {}}
+              onForceLogout={() => {}}
+            />
+          </DataProvider>
+        </SessionProvider>
+      </PublicSettingsProvider>,
+    );
+    await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
+    const cluster = view.container.querySelector('.fm-pct-cluster');
+    expect(cluster).not.toBeNull();
+    expect(cluster.querySelector('.fm-pct-status-dot--alert')).not.toBeNull();
+    expect(cluster.getAttribute('aria-label')).toContain('Tâche à faire');
+  });
+
   test('sans tâche liée : aucune pastille d’état', async () => {
     const view = renderMapView();
     await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());

@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : les pastilles d'état survivent au regroupement des repères
+
+- **Un repère perdait sa pastille dès qu'il était regroupé avec un voisin.** Au dézoom — donc
+  à l'arrivée sur la carte, avant tout zoom — les repères proches sont fusionnés en une
+  pastille chiffrée ; ce groupe n'affichait aucun point d'état, et les tâches « à faire » ou
+  « en cours » portées par ses membres devenaient invisibles. Le groupe porte désormais l'état
+  le plus actionnable qu'il contient (à faire > en cours > terminée) et le cumul des tutoriels
+  liés, et son nom accessible reprend ce libellé.
+- Le noyau carte partagé reste neutre : il reçoit la règle d'agrégation du produit
+  (`mergeStatusDots`), ForetMap y branche `clusterStatusDots`.
+
+### Modifié — tâches : le premier champ des filtres change la carte, il ne filtre plus
+
+- **Le filtre « carte » ne pouvait rien trouver hors de la carte active.** Les tâches, zones et
+  repères sont chargés carte par carte (`GET /api/tasks?map_id=…`) : choisir « N3 » alors que
+  la forêt comestible était affichée vidait la liste, puisque les tâches de N3 n'étaient pas
+  chargées. Le champ est devenu un **sélecteur de carte** : le choisir bascule la carte active
+  de l'application (carte et tâches ensemble), et la liste montre les tâches de cette carte.
+- **L'entrée « Toutes cartes » est retirée** : elle promettait un périmètre que les données
+  chargées ne couvraient jamais — elle n'affichait que la carte du moment.
 ### Corrigé — un compte « Personnel » ne redevient plus « Visiteur »
 
 - **La règle automatique de profil écrasait un choix explicite.** `visiteur` et `personnel`

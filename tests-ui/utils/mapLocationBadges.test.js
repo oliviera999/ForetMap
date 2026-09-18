@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
+  clusterStatusDots,
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
   locationStatusDots,
@@ -212,5 +213,41 @@ describe('locationStatusDots', () => {
   test('tâche et tutoriels : la pastille de tâche vient en premier', () => {
     const dots = locationStatusDots({ taskVisual: 'progress', tutorialCount: 2 });
     expect(dots.map((d) => d.variant)).toEqual(['warn', 'info']);
+  });
+});
+
+describe('clusterStatusDots', () => {
+  const MARKERS = [{ id: 'm1' }, { id: 'm2' }, { id: 'm3' }];
+
+  test('groupe sans tâche → aucune pastille', () => {
+    expect(clusterStatusDots(MARKERS, { taskVisualById: new Map() })).toEqual([]);
+    expect(clusterStatusDots([], { taskVisualById: new Map([['m1', 'todo']]) })).toEqual([]);
+  });
+
+  test('groupe : l’état le plus actionnable de ses membres', () => {
+    // Régression : un repère porteur d’une tâche perdait sa pastille dès qu’il était
+    // regroupé avec un voisin — c’est-à-dire à l’arrivée sur la carte, avant tout zoom.
+    const taskVisualById = new Map([
+      ['m1', 'done'],
+      ['m2', 'progress'],
+      ['m3', 'todo'],
+    ]);
+    expect(clusterStatusDots(MARKERS, { taskVisualById })).toEqual([
+      { variant: 'alert', label: 'Tâche à faire', placement: 'top-right' },
+    ]);
+    // Sans « à faire », c’est « en cours » qui l’emporte sur « terminée ».
+    expect(clusterStatusDots(MARKERS.slice(0, 2), { taskVisualById })[0].variant).toBe('warn');
+  });
+
+  test('tutoriels liés : cumulés sur le groupe, seulement si l’admin les affiche', () => {
+    const taskVisualById = new Map();
+    const tutorialCountById = new Map([
+      ['m1', 2],
+      ['m2', 1],
+    ]);
+    expect(clusterStatusDots(MARKERS, { taskVisualById, tutorialCountById })).toEqual([]);
+    expect(
+      clusterStatusDots(MARKERS, { taskVisualById, tutorialCountById, withTutorials: true }),
+    ).toEqual([{ variant: 'info', label: '3 tutoriels liés', placement: 'bottom-left' }]);
   });
 });

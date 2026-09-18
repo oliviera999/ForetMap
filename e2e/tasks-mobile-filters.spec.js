@@ -52,7 +52,7 @@ test('mobile : les filtres sont repliés et une tâche est visible sans défiler
   await filtersToggle.click();
   const sheet = page.getByRole('dialog', { name: 'Filtres des tâches' });
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByLabel('Filtrer les tâches par carte')).toBeVisible();
+  await expect(sheet.getByLabel('Carte affichée')).toBeVisible();
   await expect(sheet.getByLabel('Filtrer les tâches par lieu')).toBeVisible();
   await expect(sheet.getByLabel('Filtrer les tâches par projet')).toBeVisible();
   await expect(sheet.getByLabel('Filtrer les tâches par groupe')).toBeVisible();
