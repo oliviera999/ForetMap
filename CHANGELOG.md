@@ -9,6 +9,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — import de comptes : la colonne Rôle accepte enfin les noms des profils
+
+- **Le fichier d'import refusait les libellés que l'application affiche.** La colonne Rôle
+  n'était comparée qu'en minuscules, sans dépliage des accents ni des espaces : « n3beur
+  novice », « n3beur avancé », « n3beur chevronné » et « Prof de classe » — soit exactement
+  les noms montrés à l'écran et annoncés par la documentation — tombaient tous en « rôle
+  invalide », de même que « Élève avancé » ou « ELEVE-AVANCE ». Seul le slug technique et une
+  poignée d'alias passaient. La valeur est désormais canonisée (casse, accents, emoji,
+  espaces, tirets) avant d'être résolue, et la liste d'alias couvre les libellés affichés
+  ainsi que les mots courants (tuteur, enseignant, staff, novice, expert, palier 2…).
+- **Un profil renommé est reconnu sous son nouveau nom.** Les noms affichés stockés en base
+  (`roles.display_name`, modifiables dans « Profils & utilisateurs ») sont chargés à chaque
+  import et ajoutés aux valeurs acceptées — un profil renommé « Jardinier confirmé » s'écrit
+  tel quel. Un libellé qui désignerait deux profils est ignoré plutôt que deviné.
+- **Erreurs de ligne explicites** : le message rappelle la valeur écrite et les valeurs
+  attendues, et distingue le cas d'un profil Gnomes & Licornes (non importable par ce
+  fichier) d'une valeur inconnue.
+- **Cellule Rôle vide** : elle retombe toujours sur le palier d'entrée, mais le rapport le
+  signale désormais (`infos[]`, code `role_defaulted`) avec les numéros de ligne — le cas
+  passait silencieusement, y compris quand une ligne d'enseignant devenait un compte élève.
+- **En-têtes concurrents** : un fichier portant à la fois « Rôle » et « Type » (ou
+  « Groupes » et « Classe ») mappait l'un ou l'autre selon l'ordre des colonnes. L'en-tête
+  explicite l'emporte désormais dans tous les cas. Au passage, « E-mail » (avec le tiret),
+  « Courriel », « Adresse e-mail », « Nom de famille », « Pseudonyme » et quelques autres
+  en-têtes courants sont reconnus — « E-mail » était jusqu'ici ignoré et l'adresse perdue.
+
+### Modifié — modèles d'import de comptes refaits et versionnés
+
+- Le modèle téléchargeable (CSV et XLSX) passe d'une ligne par profil à **un exemple par
+  profil et par situation** : profil écrit en slug, en nom affiché, en libellé accentué ou
+  par alias ; une, deux ou aucune classe ; sous-groupe par chemin « Parent > Enfant » ;
+  affiliation laissée vide ; ligne réduite au strict minimum ; même personne sur deux lignes
+  pour montrer la fusion (groupes cumulés, dernière ligne renseignée pour le reste). Chaque
+  ligne explique son cas dans la colonne Description, et **toutes restent importables telles
+  quelles** — un test le vérifie.
+- Les mêmes exemples sont versionnés dans `docs/templates/users-import-template.csv`,
+  `-minimal.csv` et `-vierge.csv`, générés depuis la source unique par
+  `npm run templates:users` (vérification de synchronisation jouée par `npm test`).
+- Nouveau guide [docs/IMPORT_COMPTES.md](docs/IMPORT_COMPTES.md) : colonnes et en-têtes
+  acceptés, valeurs acceptées pour chaque profil, garde-fous.
+
 ### Ajouté — plusieurs compléments réservés par lieu, un par public
 
 - Une zone ou un repère porte désormais **jusqu'à six compléments réservés** au lieu d'un
