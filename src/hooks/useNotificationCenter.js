@@ -13,6 +13,29 @@ const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const DEDUP_COOLDOWN_MS = 10 * 60 * 1000;
 /** Préfixe clé notif « proposition n3boss » — dédup forte (pas seulement le cooldown 10 min). */
 const TEACHER_PROPOSED_NOTIF_PREFIX = 'teacher-proposed-';
+/**
+ * Préfixe clé notif « message reçu sur un lieu ». Même dédup forte : un message déjà annoncé
+ * ne doit pas revenir sonner à chaque rechargement de la liste tant qu'il n'a pas été lu — la
+ * clé porte l'identifiant du commentaire, qui ne change jamais.
+ */
+const PLACE_MESSAGE_NOTIF_PREFIX = 'place-message-';
+
+/** Vrai pour les clés dont une seule notification doit sortir, cooldown ou pas. */
+function isOnceOnlyNotifKey(key) {
+  const value = String(key || '');
+  return (
+    value.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) || value.startsWith(PLACE_MESSAGE_NOTIF_PREFIX)
+  );
+}
+
+/** Extrait court d'un message, pour la ligne de notification. */
+function placeMessageExcerpt(body, maxLength = 90) {
+  const text = String(body || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return 'Nouveau message.';
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
 
 function proposalSuffixFromTeacherNotifKey(key) {
   const s = String(key || '');
@@ -27,6 +50,9 @@ function stableProposedTaskKey(task) {
     .trim()
     .toLowerCase()}`;
 }
+
+/** Défaut d'identité stable : un `[]` littéral en défaut de prop relancerait l'effet à chaque rendu. */
+const EMPTY_PLACE_MESSAGES = Object.freeze([]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -62,6 +88,7 @@ export function useNotificationCenter({
   tasksForActiveMap = [],
   student,
   teacherPendingValidationCount = 0,
+  newPlaceMessages = EMPTY_PLACE_MESSAGES,
   rtStatus = 'off',
   serverDown = false,
   sessionValidationError = false,
@@ -185,8 +212,9 @@ export function useNotificationCenter({
       const dedupKey = String(key || `${level}:${title}:${message}`);
       const nowTs = Date.now();
       const lastTs = lastSeenKeysRef.current[dedupKey] || 0;
-      // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore « proposée ».
-      if (!force && dedupKey.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) && lastTs > 0) return false;
+      // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore
+      // « proposée » ; un message reçu sur un lieu non plus tant qu'il est le même message.
+      if (!force && lastTs > 0 && isOnceOnlyNotifKey(dedupKey)) return false;
       if (!force && nowTs - lastTs < DEDUP_COOLDOWN_MS) return false;
       lastSeenKeysRef.current[dedupKey] = nowTs;
       const item = {
@@ -308,6 +336,27 @@ export function useNotificationCenter({
       if (added) lastTeacherProposedKeysRef.current.add(taskKey);
     }
   }, [addNotification, isTeacher, tasksForActiveMap]);
+
+  /**
+   * Messages reçus sur un lieu (zone ou repère) depuis la dernière lecture — dont les
+   * signalements déposés sur le plan des personnels. Sans cette règle, un message n'était
+   * découvert qu'en rouvrant le lieu concerné : l'application n'avertissait personne.
+   */
+  useEffect(() => {
+    if (!isTeacher) return;
+    for (const message of newPlaceMessages) {
+      if (!message?.id) continue;
+      const placeLabel = String(message.place_label || '').trim() || 'Lieu supprimé';
+      addNotification({
+        key: `${PLACE_MESSAGE_NOTIF_PREFIX}${message.id}`,
+        level: NOTIFICATION_LEVEL.INFO,
+        category: NOTIFICATION_CATEGORY.PROPOSALS,
+        title: `Message sur « ${placeLabel} »`,
+        message: placeMessageExcerpt(message.body),
+        action: { tab: 'settings' },
+      });
+    }
+  }, [addNotification, isTeacher, newPlaceMessages]);
 
   // Règles de génération: n3beur
   useEffect(() => {
