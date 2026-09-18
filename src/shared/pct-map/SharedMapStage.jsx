@@ -79,6 +79,10 @@ const POSITION_ICONS = Object.freeze({
  * @param {(zone: object) => Array<object>|null} [props.getZoneStatusDots] pastilles d'état d'une
  *   zone (voir `PctStatusDotsLayer`) — ForetMap y pose l'état des tâches du lieu.
  * @param {(marker: object) => Array<object>|null} [props.getMarkerStatusDots] idem, pour un repère.
+ * @param {(markers: Array<object>) => Array<object>|null} [props.mergeStatusDots] pastilles d'un
+ *   **groupe** de repères à partir de ses membres : c'est le produit qui sait agréger (pour
+ *   ForetMap, l'état de tâche le plus actionnable du groupe). Omise, un groupe reste sans
+ *   pastille.
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
  * @param {boolean} [props.showLabels=true] afficher les noms (emojis de zone restent visibles)
@@ -124,6 +128,7 @@ export function SharedMapStage({
   getDiscoverHalo = null,
   getZoneStatusDots = null,
   getMarkerStatusDots = null,
+  mergeStatusDots = null,
   clusteringEnabled = true,
   applyZoomOnlyCategories = true,
   /** Afficher les noms (zones via `PctLabelsLayer`, repères via pastilles). */
@@ -336,6 +341,16 @@ export function SharedMapStage({
   const markerStatusDotsOf = useCallback(
     (marker) => markerStatusDotsById.get(String(marker?.id)) || null,
     [markerStatusDotsById],
+  );
+
+  /**
+   * Pastilles d'un groupe : sans elles, l'état des repères regroupés disparaissait au dézoom,
+   * donc dès l'arrivée sur la carte. L'agrégation appartient au produit (`mergeStatusDots`).
+   */
+  const clusterStatusDotsOf = useCallback(
+    (cluster) =>
+      typeof mergeStatusDots === 'function' ? mergeStatusDots(cluster?.markers || []) : null,
+    [mergeStatusDots],
   );
 
   // Désencombrement : au dézoom, les repères dont les pastilles se recouvrent sont
@@ -776,6 +791,7 @@ export function SharedMapStage({
               onClusterClick={onClusterClick}
               renderMarker={renderMarker}
               colorOf={clusterColorOf}
+              statusDotsOf={mergeStatusDots ? clusterStatusDotsOf : null}
             />
           ) : (
             <PctMarkersLayer

@@ -442,6 +442,17 @@
   transform: translate(-50%, -50%);
 }
 
+/* Groupe de repères : la pilule est plus large qu'un repère — la boîte des pastilles épouse
+   ses bords pour que les coins tombent dessus, et non au milieu du compteur. */
+.fm-pct-cluster__dots {
+  inset: 0;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+  transform: none;
+}
+
 .fm-pct-status-dot {
   position: absolute;
   width: 11px;
