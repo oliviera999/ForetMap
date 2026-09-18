@@ -63,6 +63,22 @@ test('résolution par host : proflyautey est distinct de planlyautey', () => {
   assert.ok(products.listAuthRateLimitPaths().includes('/api/staff-plan/access'));
 });
 
+test('résolution par host : stafflyautey est un alias de proflyautey (même produit)', () => {
+  assert.strictEqual(products.resolveProductIdFromHost('stafflyautey.olution.info'), 'staff');
+  assert.strictEqual(
+    resolveProductFromRequest(fakeReq({ hostname: 'www.stafflyautey.olution.info:3000' })),
+    'staff',
+  );
+  // Les deux adresses mènent au même produit : mêmes entrée HTML, API, PWA et icônes.
+  assert.deepStrictEqual(
+    [...products.getProduct('staff').hostPrefixes],
+    ['proflyautey.', 'stafflyautey.'],
+  );
+  // L'alias ne doit pas déborder sur le plan public ni sur ForetMap.
+  assert.strictEqual(products.resolveProductIdFromHost('planlyautey.olution.info'), 'plan');
+  assert.strictEqual(products.resolveProductIdFromHost('staff.olution.info'), 'foret');
+});
+
 test('résolution par host : préfixes du registre, www. retiré, défaut foret', () => {
   assert.strictEqual(products.resolveProductIdFromHost('planlyautey.olution.info'), 'plan');
   assert.strictEqual(products.resolveProductIdFromHost('gl.olution.info'), 'gl');
