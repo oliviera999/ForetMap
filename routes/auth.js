@@ -59,7 +59,10 @@ const {
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
 
-/** Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`). */
+/**
+ * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
+ * `stafflyautey.`). Lu tel quel : un produit peut en déclarer plusieurs (adresses alias).
+ */
 function listProductHostPrefixes() {
   return PRODUCT_IDS.flatMap((id) => [...PRODUCTS[id].hostPrefixes]);
 }
