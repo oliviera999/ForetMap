@@ -92,7 +92,7 @@ qu'on veut). Sa fiche rassemble :
   l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
   lieux » plus bas ;
 - une **description** libre (avec mise en forme) ;
-- un réglage **« Qui peut voir ce lieu »** et un **complément réservé** (voir plus bas) ;
+- un réglage **« Qui peut voir ce lieu »** et des **compléments réservés** (voir plus bas) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
 - un **historique des cultures** : quand une espèce est retirée de la zone, elle est
   automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
@@ -108,7 +108,7 @@ qu'on veut). Sa fiche rassemble :
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
 **emoji**, un **nom**, une **note** libre, le même réglage **« Qui peut voir ce lieu »**
-et le même **complément réservé** que les zones, ses **photos** (mêmes possibilités que
+et les mêmes **compléments réservés** que les zones, ses **photos** (mêmes possibilités que
 les zones), ses **espèces associées**, ses **catégories** (mêmes catégories que les
 zones) et, comme les zones, ses textes pour le mode Visite, ses tâches et tutoriels liés.
 
@@ -322,18 +322,36 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
   **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
   concernés).
 
-Sur la même fiche, un champ **« Complément réservé »** permet d'ajouter un texte lu
-seulement par certains rôles (par exemple une consigne de classe ou une note pour les
-enseignants). Le lieu peut rester visible pour tout le monde ; seul ce complément est
-masqué. **Sans aucune case cochée**, le complément est lu par l'**encadrement** :
-administrateurs, **n3boss** et **profs de classe** (ainsi que tout compte qui gère les
-zones ou les repères). Cocher des rôles remplace ce réglage par défaut — c'est aussi
-ainsi qu'on ouvre le complément à des élèves, au personnel ou aux visiteurs.
+### Compléments réservés : un texte par public
+
+Sur la même fiche, le bloc **« Compléments réservés »** permet d'ajouter des textes lus
+seulement par certains publics — une consigne de classe, une note d'entretien. Le lieu peut
+rester visible pour tout le monde ; seuls ces compléments sont masqués.
+
+Un lieu en accepte **jusqu'à six**, et **chacun a sa propre audience**. C'est ce qui permet
+de mettre sur la même fiche la consigne de la 2nde B, la note pour le personnel d'entretien
+et le code du cadenas pour l'encadrement : chaque lecteur ne reçoit que ce qui le concerne,
+et ignore l'existence du reste.
+
+- Le bouton **« + Ajouter un complément »** en crée un ; les flèches ↑ ↓ les réordonnent,
+  la croix en retire un.
+- Un **intitulé** facultatif (« Arrosage », « Accès ») coiffe le texte sur la fiche — utile
+  dès qu'il y en a plusieurs.
+- Le repli **« Qui lit ce complément »** résume l'audience choisie ; on l'ouvre pour cocher
+  des rôles ou des groupes.
+- **Sans aucune case cochée**, le complément est lu par l'**encadrement** : administrateurs,
+  **n3boss** et **profs de classe** (ainsi que tout compte qui gère les zones ou les
+  repères). Cocher des rôles ou des groupes remplace ce réglage par défaut — c'est aussi
+  ainsi qu'on ouvre un complément à des élèves, au personnel ou aux visiteurs.
 
 Ce cloisonnement s'applique aussi à la **Visite** (lieux de la visite guidée) : un
-complément réservé n'y apparaît pas pour un visiteur anonyme, et la copie d'un lieu
-depuis la carte vers la visite ne place jamais ce complément dans les textes publics
-de la fiche visite.
+complément n'y apparaît pas pour un visiteur anonyme, et les compléments d'un lieu y sont
+désormais **affichés** aux lecteurs qui y ont droit — jusqu'ici la fiche de visite les
+recevait sans jamais les montrer.
+
+Un lieu n'a qu'**un seul jeu** de compléments : celui qu'on modifie depuis la fiche de
+visite est le même que celui de la fiche de carte. Copier un lieu de la carte vers la visite
+ne recopie donc plus rien, et ne peut plus placer un complément dans un texte public.
 
 ### Restreindre à une classe ou à un club (groupes)
 
@@ -351,8 +369,8 @@ groupes cochés. Cocher un rôle sans cocher de groupe fonctionne donc comme ava
 - Si un groupe est supprimé, les lieux qui le citaient cessent simplement de correspondre à
   ce critère — rien ne casse, mais pensez à revoir leur audience.
 
-La restriction par groupe vaut pour les **trois** réglages : qui voit le lieu, qui lit le
-complément réservé, et qui voit chaque lien du lieu.
+La restriction par groupe vaut pour les **trois** réglages : qui voit le lieu, qui lit
+**chaque** complément réservé, et qui voit chaque lien du lieu.
 
 ### Audience héritée d'une catégorie
 
@@ -374,14 +392,9 @@ Trois règles à retenir :
 > tous les lieux d'une catégorie, carte, visite et plan compris. La console affiche un
 > avertissement dès qu'une case est cochée.
 
-> 🔧 **À implémenter (suite possible)** — Plusieurs compléments de **texte** (un par public) :
-> aujourd'hui un lieu n'en porte qu'un seul. Pour tout le reste, l'audience couvre désormais
-> les rôles **et** les groupes, sur le lieu, le complément réservé et chaque lien, avec
-> héritage possible depuis la catégorie.
-
 ### Liens dans les descriptions
 
-Les descriptions de zones et de repères, les textes de visite **et le complément réservé**
+Les descriptions de zones et de repères, les textes de visite **et les compléments réservés**
 acceptent des **liens**. Trois formes sont reconnues :
 
 | Ce qu'on écrit                                               | Résultat                                 |
@@ -396,8 +409,8 @@ d'être enregistrée à moitié — avant, un lien interne disparaissait en sile
 l'enregistrement.
 
 Un lien écrit dans la **description** est lu par tous ceux qui voient le lieu ; un lien écrit
-dans le **complément réservé** ne l'est que par l'audience de ce complément. C'est la façon
-la plus simple de partager un document confidentiel, sans réglage supplémentaire.
+dans un **complément réservé** ne l'est que par l'audience de ce complément-là. C'est la
+façon la plus simple de partager un document confidentiel, sans réglage supplémentaire.
 
 > ⚠️ **Un lien n'est confidentiel que si sa cible l'est.** Mettre une adresse Google Drive
 > dans un complément réservé cache l'adresse aux autres comptes ForetMap, mais ne protège
@@ -420,7 +433,7 @@ couper le texte en deux blocs.
 
 Un lien réservé n'est **pas simplement caché à l'écran** : il n'est pas envoyé du tout à un
 lecteur qui n'y a pas droit, sur aucune surface — carte, Visite, Plan Lyautey, plan des
-personnels. La même règle que pour le complément réservé.
+personnels. La même règle que pour les compléments réservés.
 
 Les liens du lieu s'affichent sur la **carte de travail** et sur le **Plan**. Sur la Visite,
 les liens passent par les textes (description, détails), comme décrit plus haut.

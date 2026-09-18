@@ -22,6 +22,12 @@ const {
   resolveAudienceForInsert,
   resolveAudienceForUpdate,
 } = require('../../lib/visitAudienceWrite');
+const {
+  readVisitNotesInput,
+  applyVisitNotes,
+  withVisitNotes,
+  deleteVisitOnlyNotes,
+} = require('../../lib/visitNotesWrite');
 
 const router = express.Router();
 
@@ -38,14 +44,15 @@ router.post(
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
     const audience = resolveAudienceForInsert(req.body);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
+    const notesInput = await readVisitNotesInput(req, res);
+    if (!notesInput) return undefined;
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_zones
         (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-         visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-         restricted_note_group_ids,
+         visible_role_slugs, visible_group_ids,
          sort_order, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -60,17 +67,15 @@ router.post(
         ),
         audience.visible_role_slugs,
         audience.visible_group_ids,
-        audience.restricted_note,
-        audience.restricted_note_role_slugs,
-        audience.restricted_note_group_ids,
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
         nowIso(),
       ],
     );
+    await applyVisitNotes('zone', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
-    res.status(201).json(withLocationAudienceFields(row));
+    res.status(201).json(await withVisitNotes('zone', id, withLocationAudienceFields(row)));
   }),
 );
 
@@ -90,6 +95,8 @@ router.put(
     }
     const audience = resolveAudienceForUpdate(req.body, exists);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
+    const notesInput = await readVisitNotesInput(req, res);
+    if (!notesInput) return undefined;
     const subtitle =
       req.body.subtitle !== undefined
         ? String(req.body.subtitle || '').trim()
@@ -127,8 +134,7 @@ router.put(
     await execute(
       `UPDATE visit_zones
        SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
-           visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
-           restricted_note_role_slugs = ?, restricted_note_group_ids = ?,
+           visible_role_slugs = ?, visible_group_ids = ?,
            is_active = ?, sort_order = ?, updated_at = ?
        WHERE id = ?`,
       [
@@ -141,17 +147,15 @@ router.put(
         bodyJson,
         audience.visible_role_slugs,
         audience.visible_group_ids,
-        audience.restricted_note,
-        audience.restricted_note_role_slugs,
-        audience.restricted_note_group_ids,
         isActive,
         sortOrder,
         nowIso(),
         zoneId,
       ],
     );
+    await applyVisitNotes('zone', zoneId, notesInput);
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
-    res.json(withLocationAudienceFields(row));
+    res.json(await withVisitNotes('zone', zoneId, withLocationAudienceFields(row)));
   }),
 );
 
@@ -161,7 +165,10 @@ router.delete(
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-    await withTransaction((tx) => deleteVisitTargetCascade('zone', zoneId, tx));
+    await withTransaction(async (tx) => {
+      await deleteVisitTargetCascade('zone', zoneId, tx);
+      await deleteVisitOnlyNotes(tx, 'zone', zoneId);
+    });
     await logAudit('visit_zone_delete', 'visit_zone', zoneId, `Suppression zone visite ${zoneId}`, {
       req,
     });

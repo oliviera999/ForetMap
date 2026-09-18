@@ -42,6 +42,14 @@ const {
   filterLocationsForViewer,
 } = require('../lib/locationAudience');
 const {
+  assertLocationNotesGroupsExist,
+  normalizeLocationNotesInput,
+  loadLocationNotesMap,
+  attachNotesToEntity,
+  replaceLocationNotes,
+  deleteLocationNotes,
+} = require('../lib/locationNotes');
+const {
   assertLocationLinksGroupsExist,
   normalizeLocationLinksInput,
   loadLocationLinksMap,
@@ -111,10 +119,9 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
   await execute(
     `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-       restricted_note_group_ids,
+       visible_role_slugs, visible_group_ids,
        is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
      ON DUPLICATE KEY UPDATE
        map_id = VALUES(map_id),
        x_pct = VALUES(x_pct),
@@ -128,9 +135,6 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
        body_json = VALUES(body_json),
        visible_role_slugs = VALUES(visible_role_slugs),
        visible_group_ids = VALUES(visible_group_ids),
-       restricted_note = VALUES(restricted_note),
-       restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
-       restricted_note_group_ids = VALUES(restricted_note_group_ids),
        updated_at = VALUES(updated_at)`,
     [
       markerRow.id,
@@ -146,9 +150,6 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       bodyJson,
       audience.visible_role_slugs,
       audience.visible_group_ids,
-      audience.restricted_note,
-      audience.restricted_note_role_slugs,
-      audience.restricted_note_group_ids,
       now,
       now,
     ],
@@ -159,15 +160,11 @@ async function mirrorMarkerAudienceToVisit(markerRow) {
   const audience = mapMarkerToVisitWhitelistFields(markerRow);
   await execute(
     `UPDATE visit_markers
-     SET visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
-         restricted_note_role_slugs = ?, restricted_note_group_ids = ?, updated_at = ?
+     SET visible_role_slugs = ?, visible_group_ids = ?, updated_at = ?
      WHERE id = ? AND map_id = ?`,
     [
       audience.visible_role_slugs,
       audience.visible_group_ids,
-      audience.restricted_note,
-      audience.restricted_note_role_slugs,
-      audience.restricted_note_group_ids,
       nowDbTimestamp(),
       markerRow.id,
       markerRow.map_id,
@@ -235,16 +232,21 @@ router.get(
     // Liens documentaires (migration 261) : posés bruts, filtrés par rôle en même temps que
     // le complément réservé (`filterLocationsForViewer` plus bas).
     const linksMap = await loadLocationLinksMap(db, 'marker', markerIds);
+    // Compléments réservés (migration 263) : mêmes lignes pour la carte et la visite.
+    const notesMap = await loadLocationNotesMap(db, 'marker', markerIds);
     const result = rows.map((row) =>
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
-              legacySingleName: row.plant_name,
-            }),
-            categoriesMap.get(String(row.id)) || [],
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
+                legacySingleName: row.plant_name,
+              }),
+              categoriesMap.get(String(row.id)) || [],
+            ),
+            linksMap.get(String(row.id)) || [],
           ),
-          linksMap.get(String(row.id)) || [],
+          notesMap.get(String(row.id)) || [],
         ),
       ),
     );
@@ -274,10 +276,8 @@ router.post(
       search_aliases,
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
       links,
+      notes,
     } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -290,9 +290,6 @@ router.post(
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
@@ -302,6 +299,12 @@ router.post(
     if (linksInput.value !== null) {
       const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
       if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
+    const notesInput = normalizeLocationNotesInput(notes);
+    if (!notesInput.ok) return res.status(400).json({ error: notesInput.error });
+    if (notesInput.value !== null) {
+      const notesGroupsCheck = await assertLocationNotesGroupsExist(db, notesInput.value);
+      if (!notesGroupsCheck.ok) return res.status(400).json({ error: notesGroupsCheck.error });
     }
     // Coordonnées en pourcentage : bornées 0-100 (sinon un repère hors carte, ou NaN, était
     // inséré tel quel — paramétré donc sans injection, mais qualité de données non garantie).
@@ -317,7 +320,7 @@ router.post(
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = crypto.randomUUID();
     await execute(
-      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs, restricted_note_group_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at, hidden_surfaces, search_aliases, visible_role_slugs, visible_group_ids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -332,14 +335,14 @@ router.post(
         normalizeSearchAliases(search_aliases) || null,
         serializeRoleSlugList(audienceInput.visible_role_slugs || []) || null,
         serializeGroupIdList(audienceInput.visible_group_ids || []) || null,
-        audienceInput.restricted_note || null,
-        serializeRoleSlugList(audienceInput.restricted_note_role_slugs || []) || null,
-        serializeGroupIdList(audienceInput.restricted_note_group_ids || []) || null,
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
     if (linksInput.value !== null) {
       await replaceLocationLinks(db, 'marker', id, linksInput.value);
+    }
+    if (notesInput.value !== null) {
+      await replaceLocationNotes(db, 'marker', id, notesInput.value);
     }
     await syncEntityCategories(db, {
       kind: 'marker',
@@ -355,17 +358,21 @@ router.post(
     const speciesRows = await loadMarkerSpeciesMap(db, [id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [id]);
     const linksRows = await loadLocationLinksMap(db, 'marker', [id]);
+    const notesRows = await loadLocationNotesMap(db, 'marker', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     res.status(201).json(
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
-              legacySingleName: row.plant_name,
-            }),
-            categoriesRows.get(String(id)) || [],
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
+                legacySingleName: row.plant_name,
+              }),
+              categoriesRows.get(String(id)) || [],
+            ),
+            linksRows.get(String(id)) || [],
           ),
-          linksRows.get(String(id)) || [],
+          notesRows.get(String(id)) || [],
         ),
       ),
     );
@@ -393,10 +400,8 @@ router.put(
       search_aliases,
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
       links,
+      notes,
     } = req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
@@ -409,9 +414,6 @@ router.put(
     const audienceInput = readAudienceWriteFields({
       visible_role_slugs,
       visible_group_ids,
-      restricted_note,
-      restricted_note_role_slugs,
-      restricted_note_group_ids,
     });
     if (!audienceInput.ok) return res.status(400).json({ error: audienceInput.error });
     const audienceGroupsCheck = await assertAudienceGroupsExist(db, audienceInput);
@@ -422,6 +424,12 @@ router.put(
     if (linksInput.value !== null) {
       const linksGroupsCheck = await assertLocationLinksGroupsExist(db, linksInput.value);
       if (!linksGroupsCheck.ok) return res.status(400).json({ error: linksGroupsCheck.error });
+    }
+    const notesInput = normalizeLocationNotesInput(notes);
+    if (!notesInput.ok) return res.status(400).json({ error: notesInput.error });
+    if (notesInput.value !== null) {
+      const notesGroupsCheck = await assertLocationNotesGroupsExist(db, notesInput.value);
+      if (!notesGroupsCheck.ok) return res.status(400).json({ error: notesGroupsCheck.error });
     }
     const nextHiddenSurfaces =
       hiddenSurfacesInput.value === null
@@ -439,18 +447,6 @@ router.put(
       audienceInput.visible_group_ids === null
         ? (m.visible_group_ids ?? null)
         : serializeGroupIdList(audienceInput.visible_group_ids) || null;
-    const nextRestrictedNote =
-      audienceInput.restricted_note === null
-        ? (m.restricted_note ?? null)
-        : audienceInput.restricted_note || null;
-    const nextRestrictedNoteRoleSlugs =
-      audienceInput.restricted_note_role_slugs === null
-        ? (m.restricted_note_role_slugs ?? null)
-        : serializeRoleSlugList(audienceInput.restricted_note_role_slugs) || null;
-    const nextRestrictedNoteGroupIds =
-      audienceInput.restricted_note_group_ids === null
-        ? (m.restricted_note_group_ids ?? null)
-        : serializeGroupIdList(audienceInput.restricted_note_group_ids) || null;
     if (map_id != null) {
       const mapId = String(map_id).trim();
       if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
@@ -476,7 +472,7 @@ router.put(
           : String(m.plant_name || '').trim();
     const nextMapIdForMarker = map_id != null ? String(map_id).trim() : m.map_id;
     await execute(
-      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=?, restricted_note=?, restricted_note_role_slugs=?, restricted_note_group_ids=? WHERE id=?',
+      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=?, hidden_surfaces=?, search_aliases=?, visible_role_slugs=?, visible_group_ids=? WHERE id=?',
       [
         nextMapIdForMarker,
         x_pct ?? m.x_pct,
@@ -491,9 +487,6 @@ router.put(
         nextSearchAliases,
         nextVisibleRoleSlugs,
         nextVisibleGroupIds,
-        nextRestrictedNote,
-        nextRestrictedNoteRoleSlugs,
-        nextRestrictedNoteGroupIds,
         m.id,
       ],
     );
@@ -502,6 +495,9 @@ router.put(
     }
     if (linksInput.value !== null) {
       await replaceLocationLinks(db, 'marker', m.id, linksInput.value);
+    }
+    if (notesInput.value !== null) {
+      await replaceLocationNotes(db, 'marker', m.id, notesInput.value);
     }
     // `category_ids` absent ⇒ affectations conservées, mais réévaluées si la carte change
     // (une catégorie propre à l'ancienne carte n'est plus assignable).
@@ -523,27 +519,28 @@ router.put(
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     } else if (
       audienceInput.visible_role_slugs !== null ||
-      audienceInput.visible_group_ids !== null ||
-      audienceInput.restricted_note !== null ||
-      audienceInput.restricted_note_role_slugs !== null ||
-      audienceInput.restricted_note_group_ids !== null
+      audienceInput.visible_group_ids !== null
     ) {
       await mirrorMarkerAudienceToVisit(updated);
     }
     const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
     const categoriesRows = await loadCategoriesMap(db, 'marker', [m.id]);
     const linksRows = await loadLocationLinksMap(db, 'marker', [m.id]);
+    const notesRows = await loadLocationNotesMap(db, 'marker', [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
     res.json(
       serializeLocationRow(
-        attachLinksToEntity(
-          attachCategoriesToEntity(
-            attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
-              legacySingleName: updated.plant_name,
-            }),
-            categoriesRows.get(String(m.id)) || [],
+        attachNotesToEntity(
+          attachLinksToEntity(
+            attachCategoriesToEntity(
+              attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
+                legacySingleName: updated.plant_name,
+              }),
+              categoriesRows.get(String(m.id)) || [],
+            ),
+            linksRows.get(String(m.id)) || [],
           ),
-          linksRows.get(String(m.id)) || [],
+          notesRows.get(String(m.id)) || [],
         ),
       ),
     );
@@ -563,6 +560,7 @@ router.delete(
       await tx.execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
       // Cible polymorphe : aucune clé étrangère ne peut nettoyer ces lignes.
       await deleteLocationLinks(tx, 'marker', req.params.id);
+      await deleteLocationNotes(tx, 'marker', req.params.id);
       await tx.execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
       // La couche visite partage le même id : on retire la cible visite « fantôme »
       // (ligne, médias, progression) dans la même transaction que la suppression carte.

@@ -8,14 +8,12 @@ const {
   parseRoleSlugList,
   serializeRoleSlugList,
   normalizeRoleSlugInput,
-  normalizeRestrictedNoteInput,
   canViewLocation,
-  canViewRestrictedNote,
+  canViewLocationNote,
   projectLocationAudienceForViewer,
   filterLocationsForViewer,
   resolveViewerRoleSlug,
-  RESTRICTED_NOTE_MAX_LENGTH,
-  RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS,
+  LOCATION_NOTE_DEFAULT_ROLE_SLUGS,
 } = require('../lib/locationAudience');
 
 describe('locationAudience — parse / sérialisation', () => {
@@ -42,23 +40,14 @@ describe('locationAudience — parse / sérialisation', () => {
     assert.match(normalizeRoleSlugInput(['gl_mj']).error, /rôle inconnu/);
     assert.match(normalizeRoleSlugInput(3).error, /tableau/);
   });
-
-  it('normalizeRestrictedNoteInput : borne de longueur', () => {
-    assert.deepEqual(normalizeRestrictedNoteInput(undefined), { ok: true, value: null });
-    assert.deepEqual(normalizeRestrictedNoteInput('  hello  '), { ok: true, value: 'hello' });
-    assert.match(
-      normalizeRestrictedNoteInput('x'.repeat(RESTRICTED_NOTE_MAX_LENGTH + 1)).error,
-      /maximum/,
-    );
-  });
 });
 
 describe('locationAudience — droits de lecture', () => {
   const restricted = {
     visible_role_slugs: ['eleve_novice', 'prof'],
-    restricted_note: 'Consigne secrète',
-    restricted_note_role_slugs: ['prof'],
+    notes: [{ id: 1, title: '', body: 'Consigne secrète', audience_role_slugs: ['prof'] }],
   };
+  const secretNote = restricted.notes[0];
 
   it('lieu public visible pour tous ; restreint absent hors audience', () => {
     assert.equal(canViewLocation({ visible_role_slugs: [] }, null), true);
@@ -82,44 +71,47 @@ describe('locationAudience — droits de lecture', () => {
   it('gestionnaire voit tout ; complément réservé', () => {
     const manager = { permissions: ['zones.manage'] };
     assert.equal(canViewLocation(restricted, manager), true);
-    assert.equal(canViewRestrictedNote(restricted, manager), true);
-    assert.equal(canViewRestrictedNote(restricted, { roleSlug: 'prof' }), true);
-    assert.equal(canViewRestrictedNote(restricted, { roleSlug: 'eleve_novice' }), false);
+    assert.equal(canViewLocationNote(secretNote, manager), true);
+    assert.equal(canViewLocationNote(secretNote, { roleSlug: 'prof' }), true);
+    assert.equal(canViewLocationNote(secretNote, { roleSlug: 'eleve_novice' }), false);
   });
 
   it('complément sans rôle coché : encadrement par défaut (admin / n3boss / prof de classe)', () => {
-    const byDefault = { restricted_note: 'Consigne', restricted_note_role_slugs: [] };
-    assert.deepEqual([...RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS], ['prof_classe', 'prof', 'admin']);
-    for (const roleSlug of RESTRICTED_NOTE_DEFAULT_ROLE_SLUGS) {
-      assert.equal(canViewRestrictedNote(byDefault, { roleSlug }), true, roleSlug);
+    const byDefault = { id: 9, body: 'Consigne', audience_role_slugs: [] };
+    assert.deepEqual([...LOCATION_NOTE_DEFAULT_ROLE_SLUGS], ['prof_classe', 'prof', 'admin']);
+    for (const roleSlug of LOCATION_NOTE_DEFAULT_ROLE_SLUGS) {
+      assert.equal(canViewLocationNote(byDefault, { roleSlug }), true, roleSlug);
     }
     for (const roleSlug of ['eleve_chevronne', 'personnel', 'visiteur']) {
-      assert.equal(canViewRestrictedNote(byDefault, { roleSlug }), false, roleSlug);
+      assert.equal(canViewLocationNote(byDefault, { roleSlug }), false, roleSlug);
     }
     // Surface publique : l'anonyme compte comme visiteur, donc toujours pas d'accès.
-    assert.equal(canViewRestrictedNote(byDefault, null, { publicSurface: true }), false);
+    assert.equal(canViewLocationNote(byDefault, null, { publicSurface: true }), false);
     // Une liste explicite reste prioritaire sur le défaut.
     assert.equal(
-      canViewRestrictedNote(
-        { restricted_note: 'x', restricted_note_role_slugs: ['visiteur'] },
+      canViewLocationNote(
+        { id: 10, body: 'x', audience_role_slugs: ['visiteur'] },
         { roleSlug: 'prof_classe' },
       ),
       false,
     );
     // Prof de classe : le complément lui est transmis (pas de strip côté projection).
-    const projected = projectLocationAudienceForViewer(byDefault, { roleSlug: 'prof_classe' });
-    assert.equal(projected.restricted_note, 'Consigne');
-    assert.equal(projected.restricted_note_role_slugs, undefined);
+    const projected = projectLocationAudienceForViewer(
+      { visible_role_slugs: [], notes: [byDefault] },
+      { roleSlug: 'prof_classe' },
+    );
+    assert.equal(projected.notes[0].body, 'Consigne');
+    assert.equal(projected.notes[0].audience_role_slugs, undefined);
   });
 
   it('projectLocationAudienceForViewer : null / strip / filtre liste', () => {
     assert.equal(projectLocationAudienceForViewer(restricted, { roleSlug: 'eleve_avance' }), null);
     const eleve = projectLocationAudienceForViewer(restricted, { roleSlug: 'eleve_novice' });
-    assert.equal(eleve.restricted_note, undefined);
+    assert.deepEqual(eleve.notes, [], 'un élève hors audience ne reçoit aucun complément');
     assert.equal(eleve.visible_role_slugs, undefined);
     const prof = projectLocationAudienceForViewer(restricted, { roleSlug: 'prof' });
-    assert.equal(prof.restricted_note, 'Consigne secrète');
-    assert.equal(prof.restricted_note_role_slugs, undefined);
+    assert.equal(prof.notes[0].body, 'Consigne secrète');
+    assert.equal(prof.notes[0].audience_role_slugs, undefined);
     const manager = projectLocationAudienceForViewer(restricted, {
       permissions: ['map.manage_markers'],
     });

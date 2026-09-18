@@ -12,6 +12,10 @@ import {
   buildLocationLinksPayload,
   normalizeLocationLinksForForm,
 } from '../shared/ui/LocationLinksFields.jsx';
+import {
+  buildLocationNotesPayload,
+  normalizeLocationNotesForForm,
+} from '../shared/ui/LocationNotesFields.jsx';
 import { orderedLivingBeingsForForm } from './livingBeings';
 import { locationCategoryIds } from './locationCategories.js';
 import {
@@ -46,9 +50,7 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     search_aliases: m.search_aliases || '',
     visible_role_slugs: normalizeAudienceRoleList(m.visible_role_slugs),
     visible_group_ids: normalizeAudienceGroupList(m.visible_group_ids),
-    restricted_note: m.restricted_note || '',
-    restricted_note_role_slugs: normalizeAudienceRoleList(m.restricted_note_role_slugs),
-    restricted_note_group_ids: normalizeAudienceGroupList(m.restricted_note_group_ids),
+    notes: normalizeLocationNotesForForm(m.notes),
     links: normalizeLocationLinksForForm(m.links),
   };
 }
@@ -77,9 +79,7 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     search_aliases: String(form.search_aliases || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visible_role_slugs),
     visible_group_ids: normalizeAudienceGroupList(form.visible_group_ids),
-    restricted_note: String(form.restricted_note || '').trim(),
-    restricted_note_role_slugs: normalizeAudienceRoleList(form.restricted_note_role_slugs),
-    restricted_note_group_ids: normalizeAudienceGroupList(form.restricted_note_group_ids),
+    notes: buildLocationNotesPayload(form.notes),
     links: buildLocationLinksPayload(form.links),
     visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
   };

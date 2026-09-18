@@ -6,7 +6,7 @@
  * Même carte et même écran que le Plan Lyautey public, mais servis à un lecteur **identifié** :
  * la charge est construite par le noyau partagé `lib/planContent.js` avec `surface: 'staff'` et
  * le lecteur réel, si bien que `lib/locationAudience.js` lui laisse les lieux réservés à son
- * rôle et les compléments confidentiels (`restricted_note`) — exactement ce que le plan public
+ * rôle et les compléments confidentiels (`location_notes`) — exactement ce que le plan public
  * retire à son visiteur anonyme.
  *
  * Aucun cache côté serveur, contrairement au plan public, et c'est délibéré : là-bas la charge

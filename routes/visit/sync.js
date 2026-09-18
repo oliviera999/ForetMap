@@ -103,8 +103,7 @@ router.post(
       direction === 'map_to_visit'
         ? await queryAll(
             `SELECT id, map_id, name, points, description,
-                    visible_role_slugs, visible_group_ids, restricted_note,
-                    restricted_note_role_slugs, restricted_note_group_ids
+                    visible_role_slugs, visible_group_ids
              FROM zones WHERE map_id = ?`,
             [mapId],
           )
@@ -115,8 +114,7 @@ router.post(
       direction === 'map_to_visit'
         ? await queryAll(
             `SELECT id, map_id, x_pct, y_pct, label, emoji, note,
-                    visible_role_slugs, visible_group_ids, restricted_note,
-                    restricted_note_role_slugs, restricted_note_group_ids
+                    visible_role_slugs, visible_group_ids
              FROM map_markers WHERE map_id = ?`,
             [mapId],
           )
@@ -166,8 +164,7 @@ router.post(
         importedZones = await insertInBatches(tx, {
           head: `INSERT INTO visit_zones
           (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-           visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-           restricted_note_group_ids,
+           visible_role_slugs, visible_group_ids,
            is_active, sort_order, created_at, updated_at)`,
           tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
@@ -176,14 +173,11 @@ router.post(
            short_description = VALUES(short_description),
            visible_role_slugs = VALUES(visible_role_slugs),
            visible_group_ids = VALUES(visible_group_ids),
-           restricted_note = VALUES(restricted_note),
-           restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
-           restricted_note_group_ids = VALUES(restricted_note_group_ids),
            updated_at = VALUES(updated_at)`,
           rowParams: zoneIds.map((zoneId) => {
             const w = mapZoneToVisitWhitelistFields(zoneById.get(zoneId));
             // (id, map_id, name, points, subtitle '', short_description, details_title 'Détails',
-            //  details_text '', body_json NULL, audience ×5, is_active 1, sort_order 0, created, updated)
+            //  details_text '', body_json NULL, audience ×2, is_active 1, sort_order 0, created, updated)
             return [
               w.id,
               w.map_id,
@@ -196,9 +190,6 @@ router.post(
               null,
               w.visible_role_slugs,
               w.visible_group_ids,
-              w.restricted_note,
-              w.restricted_note_role_slugs,
-              w.restricted_note_group_ids,
               1,
               0,
               now,
@@ -209,8 +200,7 @@ router.post(
         importedMarkers = await insertInBatches(tx, {
           head: `INSERT INTO visit_markers
           (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-           visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-           restricted_note_group_ids,
+           visible_role_slugs, visible_group_ids,
            is_active, sort_order, created_at, updated_at)`,
           tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
@@ -221,9 +211,6 @@ router.post(
            short_description = VALUES(short_description),
            visible_role_slugs = VALUES(visible_role_slugs),
            visible_group_ids = VALUES(visible_group_ids),
-           restricted_note = VALUES(restricted_note),
-           restricted_note_role_slugs = VALUES(restricted_note_role_slugs),
-           restricted_note_group_ids = VALUES(restricted_note_group_ids),
            updated_at = VALUES(updated_at)`,
           rowParams: markerIds.map((markerId) => {
             const w = mapMarkerToVisitWhitelistFields(markerById.get(markerId));
@@ -241,9 +228,6 @@ router.post(
               null,
               w.visible_role_slugs,
               w.visible_group_ids,
-              w.restricted_note,
-              w.restricted_note_role_slugs,
-              w.restricted_note_group_ids,
               1,
               0,
               now,
@@ -327,8 +311,9 @@ router.post(
  * recrée les lignes `visit_zones` / `visit_markers` à partir de `zones` / `map_markers`,
  * en réinjectant pour chaque id conservé les champs éditoriaux et l’ordre issus de l’ancienne visite.
  * Les cibles visite disparues (ids hors carte) sont retirées avec nettoyage médias / progression.
- * Audience + short_description (liste blanche) viennent de la carte ; restricted_note
- * n’est jamais injecté dans les champs publics.
+ * Audience + short_description (liste blanche) viennent de la carte. Les compléments
+ * réservés ne transitent plus par ici depuis la migration 263 : ils vivent dans
+ * `location_notes`, clé sur l'identifiant du lieu — que la visite partage avec la carte.
  */
 router.post(
   '/rebuild-from-map',
@@ -340,15 +325,13 @@ router.post(
 
     const mapZones = await queryAll(
       `SELECT id, map_id, name, points, description,
-              visible_role_slugs, visible_group_ids, restricted_note,
-              restricted_note_role_slugs, restricted_note_group_ids
+              visible_role_slugs, visible_group_ids
        FROM zones WHERE map_id = ? ORDER BY name ASC, id ASC`,
       [mapId],
     );
     const mapMarkers = await queryAll(
       `SELECT id, map_id, x_pct, y_pct, label, emoji, note,
-              visible_role_slugs, visible_group_ids, restricted_note,
-              restricted_note_role_slugs, restricted_note_group_ids
+              visible_role_slugs, visible_group_ids
        FROM map_markers WHERE map_id = ? ORDER BY label ASC, id ASC`,
       [mapId],
     );
@@ -448,10 +431,9 @@ router.post(
         await tx.execute(
           `INSERT INTO visit_zones
           (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-           visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-           restricted_note_group_ids,
+           visible_role_slugs, visible_group_ids,
            is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             w.id,
             w.map_id,
@@ -464,9 +446,6 @@ router.post(
             bodyJson,
             w.visible_role_slugs,
             w.visible_group_ids,
-            w.restricted_note,
-            w.restricted_note_role_slugs,
-            w.restricted_note_group_ids,
             isActive,
             sortOrder,
             createdAt,
@@ -504,10 +483,9 @@ router.post(
         await tx.execute(
           `INSERT INTO visit_markers
           (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-           visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-           restricted_note_group_ids,
+           visible_role_slugs, visible_group_ids,
            is_active, sort_order, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             w.id,
             w.map_id,
@@ -522,9 +500,6 @@ router.post(
             bodyJson,
             w.visible_role_slugs,
             w.visible_group_ids,
-            w.restricted_note,
-            w.restricted_note_role_slugs,
-            w.restricted_note_group_ids,
             isActive,
             sortOrder,
             createdAt,

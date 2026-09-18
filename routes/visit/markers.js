@@ -23,6 +23,12 @@ const {
   resolveAudienceForInsert,
   resolveAudienceForUpdate,
 } = require('../../lib/visitAudienceWrite');
+const {
+  readVisitNotesInput,
+  applyVisitNotes,
+  withVisitNotes,
+  deleteVisitOnlyNotes,
+} = require('../../lib/visitNotesWrite');
 
 const router = express.Router();
 
@@ -40,14 +46,15 @@ router.post(
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
     const audience = resolveAudienceForInsert(req.body);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
+    const notesInput = await readVisitNotesInput(req, res);
+    if (!notesInput) return undefined;
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, visible_group_ids, restricted_note, restricted_note_role_slugs,
-       restricted_note_group_ids,
+       visible_role_slugs, visible_group_ids,
        sort_order, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -64,17 +71,15 @@ router.post(
         ),
         audience.visible_role_slugs,
         audience.visible_group_ids,
-        audience.restricted_note,
-        audience.restricted_note_role_slugs,
-        audience.restricted_note_group_ids,
         Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
         req.body.is_active === false ? 0 : 1,
         nowIso(),
         nowIso(),
       ],
     );
+    await applyVisitNotes('marker', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
-    res.status(201).json(withLocationAudienceFields(row));
+    res.status(201).json(await withVisitNotes('marker', id, withLocationAudienceFields(row)));
   }),
 );
 
@@ -93,6 +98,8 @@ router.put(
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
     const audience = resolveAudienceForUpdate(req.body, exists);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
+    const notesInput = await readVisitNotesInput(req, res);
+    if (!notesInput) return undefined;
     const emoji =
       req.body.emoji !== undefined
         ? normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' })
@@ -134,8 +141,7 @@ router.put(
     await execute(
       `UPDATE visit_markers
      SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
-         visible_role_slugs = ?, visible_group_ids = ?, restricted_note = ?,
-         restricted_note_role_slugs = ?, restricted_note_group_ids = ?,
+         visible_role_slugs = ?, visible_group_ids = ?,
          is_active = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`,
       [
@@ -150,17 +156,15 @@ router.put(
         bodyJson,
         audience.visible_role_slugs,
         audience.visible_group_ids,
-        audience.restricted_note,
-        audience.restricted_note_role_slugs,
-        audience.restricted_note_group_ids,
         isActive,
         sortOrder,
         nowIso(),
         markerId,
       ],
     );
+    await applyVisitNotes('marker', markerId, notesInput);
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
-    res.json(withLocationAudienceFields(row));
+    res.json(await withVisitNotes('marker', markerId, withLocationAudienceFields(row)));
   }),
 );
 
@@ -170,7 +174,10 @@ router.delete(
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
-    await withTransaction((tx) => deleteVisitTargetCascade('marker', markerId, tx));
+    await withTransaction(async (tx) => {
+      await deleteVisitTargetCascade('marker', markerId, tx);
+      await deleteVisitOnlyNotes(tx, 'marker', markerId);
+    });
     await logAudit(
       'visit_marker_delete',
       'visit_marker',
