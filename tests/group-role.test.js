@@ -8,7 +8,10 @@ const {
   resolveDefaultRoleForStudent,
   syncStudentRoleFromGroups,
 } = require('../lib/groupRole');
-const { getForcedRoleGroupForStudent } = require('../lib/groupDefaultRole');
+const {
+  getForcedRoleGroupForStudent,
+  getAllowedGroupDefaultRole,
+} = require('../lib/groupDefaultRole');
 const { getPrimaryRoleForUser, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { restoreDefaultProgressionThresholds } = require('./helpers/progressionThresholds');
 
@@ -305,4 +308,67 @@ test('deux groupes imposants : le profil le plus élevé l’emporte', async () 
   assert.strictEqual(forced.groupId, high);
   await syncStudentRoleFromGroups(studentId);
   assert.strictEqual((await getPrimaryRoleForUser('student', studentId)).slug, 'eleve_avance');
+});
+
+test('syncStudentRoleFromGroups : un compte « personnel » n’est pas rétrogradé en visiteur', async () => {
+  const studentId = await createStudent('PersonnelStay');
+  await setPrimaryRoleSlug(studentId, 'personnel');
+  const groupId = await createGroup({ slug: `personnel-stay-${Date.now()}` });
+  await addMember(groupId, studentId);
+
+  const result = await syncStudentRoleFromGroups(studentId);
+  assert.equal(result.changed, false);
+  assert.equal(result.reason, 'visitor_like_preserved');
+  const role = await getPrimaryRoleForUser('student', studentId);
+  assert.equal(role.slug, 'personnel');
+});
+
+test('syncStudentRoleFromGroups : « personnel » monte quand même dans un groupe n3beur', async () => {
+  const studentId = await createStudent('PersonnelPromo');
+  await setPrimaryRoleSlug(studentId, 'personnel');
+  const groupId = await createGroup({ slug: `personnel-promo-${Date.now()}`, grantsN3beur: true });
+  await addMember(groupId, studentId);
+
+  await syncStudentRoleFromGroups(studentId);
+  const role = await getPrimaryRoleForUser('student', studentId);
+  assert.ok(role.slug.startsWith('eleve_'), `attendu un palier n3beur, obtenu ${role.slug}`);
+});
+
+test('syncStudentRoleFromGroups : un groupe imposant « visiteur » l’emporte sur « personnel »', async () => {
+  const studentId = await createStudent('PersonnelForced');
+  await setPrimaryRoleSlug(studentId, 'personnel');
+  const groupId = await createGroup({
+    slug: `personnel-forced-${Date.now()}`,
+    defaultRoleSlug: 'visiteur',
+    forceDefaultRole: true,
+  });
+  await addMember(groupId, studentId);
+
+  const result = await syncStudentRoleFromGroups(studentId);
+  assert.equal(result.changed, true);
+  assert.equal((await getPrimaryRoleForUser('student', studentId)).slug, 'visiteur');
+});
+
+test('syncStudentRoleFromGroups : le geste explicite (force) applique quand même le profil', async () => {
+  const studentId = await createStudent('PersonnelForceBtn');
+  await setPrimaryRoleSlug(studentId, 'personnel');
+  const groupId = await createGroup({
+    slug: `personnel-forcebtn-${Date.now()}`,
+    defaultRoleSlug: 'visiteur',
+  });
+  await addMember(groupId, studentId);
+
+  await syncStudentRoleFromGroups(studentId, { force: true, groupId });
+  assert.equal((await getPrimaryRoleForUser('student', studentId)).slug, 'visiteur');
+});
+
+test('un groupe peut conférer le profil « personnel » (staff_plan.access reste sûr)', async () => {
+  const role = await queryOne("SELECT id FROM roles WHERE slug = 'personnel' LIMIT 1");
+  const allowed = await getAllowedGroupDefaultRole(role.id);
+  assert.ok(allowed, 'le profil Personnel doit être attribuable comme profil par défaut');
+  assert.equal(allowed.slug, 'personnel');
+
+  // Un profil d'encadrement reste exclu.
+  const profClasse = await queryOne("SELECT id FROM roles WHERE slug = 'prof_classe' LIMIT 1");
+  assert.equal(await getAllowedGroupDefaultRole(profClasse.id), null);
 });
