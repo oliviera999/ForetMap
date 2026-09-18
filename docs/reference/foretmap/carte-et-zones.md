@@ -569,6 +569,10 @@ Quand un lieu cumule plusieurs tâches, c'est la plus **actionnable** qui l'empo
 prendre. Les tâches **en attente** (« on hold ») et celles détachées de leur lieu n'affichent
 aucun point.
 
+Quand des repères proches sont regroupés au dézoom (la pastille chiffrée décrite plus haut),
+**le groupe porte le point du lieu le plus actionnable qu'il contient** : l'état des tâches
+reste lisible à l'arrivée sur la carte, sans avoir à zoomer pour le découvrir.
+
 Ces pastilles sont **toujours visibles**, sans réglage à activer : elles n'ont pas de rapport
 avec le point violet des tutoriels décrit ci-dessous.
 

@@ -8,6 +8,7 @@ import {
 } from '../../../src/shared/pct-map/PctStatusDotsLayer.jsx';
 import { PctMarkersLayer } from '../../../src/shared/pct-map/PctMarkersLayer.jsx';
 import { PctZonesLayer } from '../../../src/shared/pct-map/PctZonesLayer.jsx';
+import { PctClusterLayer } from '../../../src/shared/pct-map/PctClusterLayer.jsx';
 
 const TASK_DOT = { variant: 'alert', label: 'Tâche à faire', placement: 'top-right' };
 const TUTORIAL_DOT = { variant: 'info', label: '2 tutoriels liés', placement: 'bottom-left' };
@@ -101,5 +102,48 @@ describe('pastilles d’état sur les lieux', () => {
       'aria-label',
       'Verger — Tâche en cours',
     );
+  });
+});
+
+describe('PctClusterLayer — pastilles d’un groupe de repères', () => {
+  const CLUSTER = {
+    id: 'cluster:m1:2',
+    x_pct: 40,
+    y_pct: 50,
+    count: 2,
+    lead: { id: 'm1', label: 'Composteur', emoji: '🪵' },
+    markers: [{ id: 'm1' }, { id: 'm2' }],
+  };
+
+  function renderLayer(statusDotsOf) {
+    return render(
+      <PctClusterLayer
+        clusters={[CLUSTER]}
+        onClusterClick={() => {}}
+        renderMarker={() => null}
+        statusDotsOf={statusDotsOf}
+      />,
+    );
+  }
+
+  test('le groupe porte les pastilles de ses membres, libellé joint au nom accessible', () => {
+    // Régression : au dézoom (l'état d'arrivée sur la carte), les repères regroupés
+    // perdaient toute pastille d'état — les tâches à faire devenaient invisibles.
+    const { container } = renderLayer(() => [TASK_DOT]);
+    const button = container.querySelector('.fm-pct-cluster');
+    expect(button.querySelector('.fm-pct-status-dot--alert')).not.toBeNull();
+    expect(button.querySelector('.fm-pct-cluster__dots')).not.toBeNull();
+    expect(button).toHaveAttribute(
+      'aria-label',
+      '2 lieux regroupés, dont Composteur — Tâche à faire',
+    );
+  });
+
+  test('sans règle d’agrégation ou sans état : pas de pastille, nom accessible inchangé', () => {
+    const { container } = renderLayer(null);
+    const button = container.querySelector('.fm-pct-cluster');
+    expect(button.querySelector('.fm-pct-status-dot')).toBeNull();
+    expect(button).toHaveAttribute('aria-label', '2 lieux regroupés, dont Composteur');
+    expect(renderLayer(() => []).container.querySelectorAll('.fm-pct-status-dot')).toHaveLength(0);
   });
 });

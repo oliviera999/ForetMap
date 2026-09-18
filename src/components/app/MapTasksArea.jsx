@@ -77,6 +77,7 @@ export function MapTasksArea({
             <div className="desktop-split-scroll">
               <TasksView
                 maps={maps}
+                onMapChange={onMapChange}
                 isTeacher={isTeacher}
                 student={student}
                 canSelfAssignTasks={canSelfAssignTasks}
@@ -115,6 +116,7 @@ export function MapTasksArea({
       {!useSplitMapTasks && tab === 'tasks' && canAccessSoloMapTasks && (
         <TasksView
           maps={maps}
+          onMapChange={onMapChange}
           isTeacher={isTeacher}
           student={student}
           canSelfAssignTasks={canSelfAssignTasks}

@@ -8,6 +8,13 @@ import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelper
 /**
  * Champs de filtrage de la vue Tâches : carte, lieu (zones + repères utilisés),
  * projet, groupe (n3boss, avec aide contextuelle), catégorie urgent et statut.
+ *
+ * **Carte** : le sélecteur change la **carte active** de l'application, il ne filtre pas une
+ * liste déjà chargée. Les tâches, zones et repères sont chargés carte par carte
+ * (`GET /api/tasks?map_id=…`, `useAppDataSync`) : un filtre qui visait une autre carte que
+ * l'active ne pouvait rien trouver — choisir « N3 » depuis la forêt comestible vidait la
+ * liste au lieu d'afficher les tâches de N3. Un seul « où suis-je » pour la carte et les
+ * tâches supprime ce conflit.
  * Rendu à l'identique dans le panneau inline (écran large) et dans la feuille de
  * filtres (écran compact) — voir `TaskFiltersBar`. Composant contrôlé : l'état
  * reste dans TasksView. La recherche texte n'est pas ici : elle reste visible en
@@ -16,6 +23,7 @@ import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelper
 export function TaskFiltersFields({
   filterMap,
   setFilterMap,
+  onMapChange = null,
   maps = [],
   activeMapId,
   filterZone,
@@ -54,12 +62,19 @@ export function TaskFiltersFields({
   return (
     <div className="task-filters-fields">
       <select
-        value={filterMap}
-        onChange={(e) => setFilterMap(e.target.value)}
-        aria-label="Filtrer les tâches par carte"
+        value={activeMapId || ''}
+        onChange={(e) => {
+          const next = e.target.value;
+          if (!next || next === activeMapId) return;
+          // Le filtre suit la carte : `useTaskFilters` le ramène de toute façon sur 'active'
+          // au changement de carte, on le fait ici aussi pour que la liste ne clignote pas.
+          setFilterMap('active');
+          onMapChange?.(next);
+        }}
+        aria-label="Carte affichée"
+        disabled={!onMapChange || maps.length < 2}
       >
-        <option value="active">Carte active ({mapLabelFromMaps(activeMapId, maps)})</option>
-        <option value="all">Toutes cartes</option>
+        {maps.length === 0 ? <option value="">{mapLabelFromMaps(activeMapId, maps)}</option> : null}
         {maps.map((mp) => (
           <option key={mp.id} value={mp.id}>
             {mp.label}
