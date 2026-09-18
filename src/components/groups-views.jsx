@@ -7,6 +7,10 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { DialogShell } from './DialogShell';
 import { slugify } from '../utils/slugify';
 import { GROUP_KIND_LABELS } from '../utils/profilesRoleForm.js';
+import {
+  normalizeProfilesPayload,
+  filterGroupDefaultRoles,
+} from '../utils/groupDefaultRoleOptions.js';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
 import {
   buildGroupForest,
@@ -34,7 +38,7 @@ function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
-function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
+function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, onSaved }) {
   const { confirm } = useAppDialogs();
   const [defaultRoleId, setDefaultRoleId] = useState('');
   const [grantsN3beur, setGrantsN3beur] = useState(false);
@@ -69,19 +73,7 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
     setSaving(false);
   };
 
-  const studentRoles = useMemo(
-    () =>
-      (Array.isArray(roles) ? roles : []).filter((r) => {
-        const slug = String(r.slug || '').toLowerCase();
-        return (
-          slug === 'visiteur' ||
-          slug === 'personnel' ||
-          slug.startsWith('eleve_') ||
-          (Number(r.rank) > 0 && Number(r.rank) < 400 && !slug.startsWith('gl_'))
-        );
-      }),
-    [roles],
-  );
+  const studentRoles = useMemo(() => filterGroupDefaultRoles(roles), [roles]);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -167,6 +159,16 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
             </option>
           ))}
         </select>
+        {studentRoles.length === 0 && (
+          <p
+            data-testid="group-default-role-empty"
+            style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
+          >
+            {rolesUnavailable
+              ? 'Liste des profils indisponible : ton profil n’a pas le droit de lire les profils RBAC. Demande « Gestion des profils RBAC » à un administrateur.'
+              : 'Aucun profil attribuable par un groupe. Les profils d’encadrement (n3boss, administrateur) en sont exclus par construction.'}
+          </p>
+        )}
       </div>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--text-sm)' }}>
         <input
@@ -616,6 +618,8 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
   const [editingGroup, setEditingGroup] = useState(null);
   const [settingsGroup, setSettingsGroup] = useState(null);
   const [roles, setRoles] = useState([]);
+  /** Chargement des profils refusé (droits) : le sélecteur le dit plutôt que de rester vide. */
+  const [rolesUnavailable, setRolesUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -642,14 +646,17 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
         api('/api/rbac/users'),
         api('/api/maps'),
         api('/api/task-projects'),
-        api('/api/rbac/profiles').catch(() => []),
+        api('/api/rbac/profiles').catch(() => null),
         api('/api/groups/pending-visitors').catch(() => []),
       ]);
     setGroups(Array.isArray(groupPayload?.groups) ? groupPayload.groups : []);
     setUsers(Array.isArray(userRows) ? userRows : []);
     setMaps(Array.isArray(mapsRows) ? mapsRows : []);
     setProjects(Array.isArray(projectRows) ? projectRows : []);
-    setRoles(Array.isArray(roleRows) ? roleRows : []);
+    // `null` distingue l'échec de chargement (droits manquants) d'une réponse vide, pour
+    // pouvoir le dire à l'utilisateur au lieu de le taire.
+    setRoles(normalizeProfilesPayload(roleRows));
+    setRolesUnavailable(roleRows == null);
     const pending = Array.isArray(pendingRows) ? pendingRows : [];
     setPendingVisitors(pending);
     setSelectedPendingIds(new Set());
@@ -1038,6 +1045,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
           <GroupSettingsPanel
             group={settingsGroup}
             roles={roles}
+            rolesUnavailable={rolesUnavailable}
             onClose={() => setSettingsGroup(null)}
             onSaved={load}
           />

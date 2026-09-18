@@ -616,3 +616,92 @@ test('Groupes: profil imposé — refus sans profil par défaut, application imm
   const row = (list.body.groups || []).find((g) => g.id === groupId);
   assert.strictEqual(row?.force_default_role, true);
 });
+
+test('F2-B : un visiteur déjà membre d’un groupe n’est plus « en attente de rattachement »', async () => {
+  const token = await getAdminToken();
+  const visitor = await createVisitorStudent('AlreadyGrouped');
+
+  // Groupe sans accès n3beur : le compte reste visiteur — c'est le profil voulu, pas une
+  // attente. Il gonflait pourtant la pastille d'alerte.
+  const groupRes = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name: `Club visite ${Date.now()}`, kind: 'club', grants_n3beur_access: false })
+    .expect(201);
+  const groupId = groupRes.body?.id || groupRes.body?.group?.id;
+
+  await request(app)
+    .post(`/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(visitor.id)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(201);
+
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [visitor.id],
+  );
+  assert.strictEqual(role?.slug, 'visiteur', 'le compte est bien resté visiteur');
+
+  const pending = await request(app)
+    .get('/api/groups/pending-visitors')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(
+    !pending.body.some((row) => String(row.id) === String(visitor.id)),
+    'un visiteur rattaché à un groupe ne doit plus être compté en attente',
+  );
+
+  // Retiré du groupe, il revient dans la liste : c'est alors une vraie attente.
+  await request(app)
+    .delete(`/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(visitor.id)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const pendingAfter = await request(app)
+    .get('/api/groups/pending-visitors')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(pendingAfter.body.some((row) => String(row.id) === String(visitor.id)));
+});
+
+test('GET /api/rbac/profiles : `group_default_allowed` cadre le sélecteur de profil de groupe', async () => {
+  const token = await getAdminToken();
+  const res = await request(app)
+    .get('/api/rbac/profiles')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  // La réponse est un objet `{ roles }` — le sélecteur des groupes la lisait comme un tableau
+  // et n'affichait donc jamais aucun profil.
+  assert.ok(!Array.isArray(res.body));
+  assert.ok(Array.isArray(res.body.roles));
+
+  const bySlug = new Map(res.body.roles.map((r) => [r.slug, r]));
+  for (const slug of ['visiteur', 'personnel', 'eleve_novice', 'eleve_avance', 'eleve_chevronne']) {
+    assert.strictEqual(bySlug.get(slug)?.group_default_allowed, true, `${slug} doit être proposé`);
+  }
+  for (const slug of ['admin', 'prof', 'prof_classe', 'gl_mj']) {
+    assert.strictEqual(bySlug.get(slug)?.group_default_allowed, false, `${slug} doit être exclu`);
+  }
+});
+
+test('PATCH /api/groups/:id accepte « personnel » comme profil par défaut', async () => {
+  const token = await getAdminToken();
+  const groupRes = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name: `Personnel ${Date.now()}`, kind: 'unit' })
+    .expect(201);
+  const groupId = groupRes.body?.id || groupRes.body?.group?.id;
+  const personnel = await queryOne("SELECT id FROM roles WHERE slug = 'personnel' LIMIT 1");
+
+  await request(app)
+    .patch(`/api/groups/${encodeURIComponent(groupId)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ default_role_id: personnel.id })
+    .expect(200);
+
+  const row = await queryOne('SELECT default_role_id FROM `groups` WHERE id = ? LIMIT 1', [
+    groupId,
+  ]);
+  assert.strictEqual(Number(row?.default_role_id), Number(personnel.id));
+});
