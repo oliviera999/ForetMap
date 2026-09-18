@@ -115,6 +115,12 @@ n'a pas de version publique acceptable.
   console ouverte. Si le module « Commentaires de contexte » est désactivé, le bouton
   disparaît : mieux vaut pas de bouton qu'un message qui n'atterrit nulle part.
 
+- **Suivre ce qu'on a signalé.** Sous la fiche d'un lieu, un bloc « **Mes signalements sur ce
+  lieu** » rappelle ce que _vous_ y avez écrit, avec l'état de traitement : « En attente de
+  lecture », « Pris en compte », « Traité » ou « Sans suite donnée ». Vous voyez _que_ votre
+  message a été traité, jamais _par qui_ — et vous ne voyez que les vôtres, jamais ceux des
+  collègues. C'est ce qui manquait : jusqu'ici, signaler revenait à parler dans le vide.
+
 - **Ouvrir la console ForetMap** pour corriger le lieu — lien affiché uniquement aux comptes
   qui peuvent réellement éditer zones et repères.
 

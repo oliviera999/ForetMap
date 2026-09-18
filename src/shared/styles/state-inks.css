@@ -17,3 +17,31 @@
   --accent-warning: #fff4d6;
   --accent-danger: #ffe2e2;
 }
+
+/* Pastille d'état d'un message reçu sur un lieu (migration 264). Posée ici, dans la feuille
+   des encres d'état chargée par les deux entrées : la console la rend pour l'administrateur,
+   le plan des personnels la rend pour l'auteur du message — même vocabulaire, même apparence. */
+.place-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+}
+
+.place-status--pris_en_compte {
+  background: var(--accent-info);
+  color: var(--ink-info);
+}
+
+.place-status--traite {
+  background: var(--accent-success);
+  color: var(--ink-success);
+}
+
+.place-status--sans_suite {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}

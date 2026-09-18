@@ -7133,6 +7133,27 @@
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+.place-messages__filter {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:var(--text-sm);
+  color:var(--ink-base);
+}
+/* Statut à gauche, actions à droite : l'état se lit en balayant la colonne, sans que les
+   boutons ne décalent la lecture d'une ligne à l'autre. */
+.place-messages__status-row {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.place-messages__status-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+}
 .message-reactions-row {
   display:flex;
   flex-wrap:wrap;

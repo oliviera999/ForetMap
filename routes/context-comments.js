@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryOne, execute } = require('../database');
-const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission, hasPermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
@@ -17,7 +17,7 @@ const {
 } = require('../lib/shared/participationGuards');
 const { persistUserContentImages, validateImagesPayload } = require('../lib/userContentImages');
 const { normalizeOptionalString, parsePageQuery } = require('../lib/shared/httpHelpers');
-const { listRecentPlaceMessages } = require('../lib/placeMessages');
+const { listRecentPlaceMessages, setPlaceMessageStatus } = require('../lib/placeMessages');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
   loadContextCommentReactions,
@@ -34,6 +34,9 @@ const router = express.Router();
 const AUTO_BODY_WITH_PHOTOS = CORE_AUTO_BODY_WITH_PHOTOS;
 
 const ALLOWED_CONTEXT_TYPES = new Set(['task', 'project', 'zone', 'marker', 'plant', 'tutorial']);
+
+/** Droit de clore un message de lieu — `admin` seul à la livraison (`lib/rbac.js`). */
+const PLACE_STATUS_PERMISSION = 'place_messages.manage';
 
 // Bornes de saisie : communes aux deux produits, donc lues au noyau partagé plutôt que
 // redéclarées ici. Les alias locaux gardent les noms historiques, pour que le reste du fichier
@@ -148,8 +151,70 @@ router.get(
   '/recent',
   requirePermission('teacher.access'),
   asyncHandler(async (req, res) => {
-    const { items, total } = await listRecentPlaceMessages({ limit: req.query.limit });
-    return res.json({ items, total });
+    const {
+      items,
+      total,
+      open_total: openTotal,
+    } = await listRecentPlaceMessages({
+      limit: req.query.limit,
+    });
+    return res.json({
+      items,
+      total,
+      open_total: openTotal,
+      // Poser un statut est un droit distinct de celui de lire le journal : le front masque
+      // les boutons plutôt que d'offrir une action qui répondrait 403.
+      can_set_status: hasPermission(req.auth, PLACE_STATUS_PERMISSION),
+    });
+  }),
+);
+
+/**
+ * Statut de traitement d'un message reçu sur un lieu : « pris en compte », « traité »,
+ * « sans suite ». Réservé à `place_messages.manage` (le seul `admin` à la livraison).
+ *
+ * C'est la seule alternative à la suppression, qui efface l'information au lieu de la clore —
+ * et la seule façon pour l'auteur d'apprendre que son signalement a été vu
+ * (`docs/AUDIT_COMMUNICATION_2026-09-18.md` §6, C1).
+ */
+router.patch(
+  '/:id/place-status',
+  requirePermission(PLACE_STATUS_PERMISSION),
+  asyncHandler(async (req, res) => {
+    const actor = getActor(req.auth);
+    if (!actor) return res.status(401).json({ error: 'Session invalide' });
+    const outcome = await setPlaceMessageStatus({
+      commentId: req.params.id,
+      status: req.body?.status,
+      actor,
+    });
+    if (outcome.error) return res.status(outcome.status).json({ error: outcome.error });
+
+    const { comment, previousStatus } = outcome;
+    await logAudit(
+      'context_comment_place_status',
+      'context_comment',
+      comment.id,
+      `Statut ${comment.place_status} sur ${comment.context_type}:${comment.context_id}`,
+      {
+        req,
+        actorUserType: actor.userType,
+        actorUserId: actor.userId,
+        payload: {
+          context_type: comment.context_type,
+          context_id: comment.context_id,
+          previous_status: previousStatus,
+          status: comment.place_status,
+        },
+      },
+    );
+    emitContextCommentsChanged({
+      reason: 'comment_place_status_changed',
+      contextType: comment.context_type,
+      contextId: comment.context_id,
+      commentId: comment.id,
+    });
+    return res.json({ ok: true, id: comment.id, place_status: comment.place_status });
   }),
 );
 

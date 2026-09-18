@@ -657,9 +657,35 @@ la date, l'auteur, le texte et le nombre de photos. Un lieu supprimé entre-temp
 laisse son message dans la liste, sous la mention « Lieu supprimé » : le message a
 été écrit, l'effacer d'office réécrirait l'histoire.
 
-Cet écran sert à **prendre connaissance**, pas à répondre : pour répondre, modérer ou
-supprimer un message, ouvrez le lieu concerné sur la carte — le message y vit, avec
-les réactions et le signalement habituels.
+Cet écran sert à **prendre connaissance** et à **classer**, pas à répondre : pour
+répondre, modérer ou supprimer un message, ouvrez le lieu concerné sur la carte — le
+message y vit, avec les réactions et le signalement habituels.
+
+### Classer un message : « pris en compte », « traité », « sans suite »
+
+Chaque message porte un état, affiché en pastille. Il naît **Nouveau** et se classe en
+un clic :
+
+- **Pris en compte** — c'est lu, quelqu'un s'en occupe ;
+- **Traité** — c'est fait ;
+- **Sans suite** — non, et c'est assumé. Dire « non, et c'est vu » vaut mieux que
+  laisser un message ouvert pour l'éternité, et c'est la seule alternative à la
+  suppression, qui efface l'information au lieu de la clore.
+
+Le compteur « à traiter » en tête de liste et la case **« À traiter seulement »**
+permettent de vider la pile sans relire ce qui est déjà classé. Reclasser un message
+(de « traité » à « sans suite », par exemple) est une correction, pas un historique :
+seul le dernier état est conservé, et le journal d'audit garde la trace des passages.
+
+**Qui peut classer ?** Les comptes portant la permission **« Traitement des messages
+de lieux »**, accordée au seul profil **Administrateur** à la livraison. Elle
+s'attribue ensuite à n'importe quel profil depuis « Profils RBAC » — le jour où
+l'établissement désigne des référents. Les autres voient les états sans pouvoir les
+changer : aucun bouton ne leur est proposé.
+
+**Et l'auteur ?** Il lit l'état de ses propres messages sur la fiche du lieu, dans le
+plan des personnels (bloc « Mes signalements sur ce lieu »). Il voit _que_ c'est
+traité, jamais _par qui_.
 
 Ce qui est arrivé depuis votre dernière visite est marqué « nouveau » et compté en
 tête de liste ; « Tout marquer comme lu » remet le compteur à zéro. **Ce repère de

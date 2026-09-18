@@ -25,6 +25,8 @@ const REALTIME_DEBOUNCE_MS = 1500;
 export function usePlaceMessagesInbox({ enabled = false, limit = 30 } = {}) {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
+  const [openTotal, setOpenTotal] = useState(0);
+  const [canSetStatus, setCanSetStatus] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lastSeenAt, setLastSeenAt] = useState(() => readPlaceMessagesLastSeen());
@@ -47,6 +49,8 @@ export function usePlaceMessagesInbox({ enabled = false, limit = 30 } = {}) {
       if (!mountedRef.current) return;
       setItems(Array.isArray(data?.items) ? data.items : []);
       setTotal(Number(data?.total || 0));
+      setOpenTotal(Number(data?.open_total || 0));
+      setCanSetStatus(!!data?.can_set_status);
       setError('');
     } catch (err) {
       if (!mountedRef.current) return;
@@ -60,6 +64,8 @@ export function usePlaceMessagesInbox({ enabled = false, limit = 30 } = {}) {
     if (!enabled) {
       setItems([]);
       setTotal(0);
+      setOpenTotal(0);
+      setCanSetStatus(false);
       setError('');
       return undefined;
     }
@@ -111,9 +117,40 @@ export function usePlaceMessagesInbox({ enabled = false, limit = 30 } = {}) {
     setLastSeenAt(writePlaceMessagesLastSeen(newestPlaceMessageDate(items)));
   }, [enabled, items, lastSeenAt]);
 
+  /**
+   * Pose le statut de traitement d'un message et met la liste à jour sur place.
+   *
+   * Pas de rechargement complet : le journal est trié par date d'arrivée, un statut ne
+   * déplace rien, et recharger ferait sauter la lecture en cours de qui traite sa pile.
+   */
+  const setStatus = useCallback(
+    async (commentId, status) => {
+      const id = String(commentId || '');
+      if (!id) return;
+      // Relevé AVANT l'appel : le compteur « à traiter » ne baisse que si ce message y était
+      // encore. Re-classer « traité » en « sans suite » ne doit rien retirer deux fois.
+      const wasOpen = !items.find((item) => item.id === id)?.place_status;
+      await api(`/api/context-comments/${encodeURIComponent(id)}/place-status`, 'PATCH', {
+        status,
+      });
+      if (!mountedRef.current) return;
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, place_status: status, place_status_at: new Date().toISOString() }
+            : item,
+        ),
+      );
+      if (wasOpen) setOpenTotal((prev) => Math.max(0, prev - 1));
+    },
+    [items],
+  );
+
   return {
     items,
     total,
+    openTotal,
+    canSetStatus,
     loading,
     error,
     lastSeenAt,
@@ -121,5 +158,6 @@ export function usePlaceMessagesInbox({ enabled = false, limit = 30 } = {}) {
     unreadCount: unreadItems.length,
     reload,
     markAllRead,
+    setStatus,
   };
 }
