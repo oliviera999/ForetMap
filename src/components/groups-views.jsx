@@ -38,6 +38,7 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
   const { confirm } = useAppDialogs();
   const [defaultRoleId, setDefaultRoleId] = useState('');
   const [grantsN3beur, setGrantsN3beur] = useState(false);
+  const [forceDefaultRole, setForceDefaultRole] = useState(false);
   const [saving, setSaving] = useState(false);
   const [applying, setApplying] = useState(false);
   const [err, setErr] = useState('');
@@ -47,6 +48,7 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
   useEffect(() => {
     setDefaultRoleId(group?.default_role_id != null ? String(group.default_role_id) : '');
     setGrantsN3beur(!!group?.grants_n3beur_access);
+    setForceDefaultRole(!!group?.force_default_role);
     setClassCode(group?.class_code || null);
   }, [group]);
 
@@ -86,11 +88,19 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
     setErr('');
     setMsg('');
     try {
-      await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', {
+      const saved = await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', {
         default_role_id: defaultRoleId ? Number(defaultRoleId) : null,
         grants_n3beur_access: grantsN3beur,
+        // Une case cochée sans profil choisi serait refusée par l'API : le `select` la décoche
+        // déjà, on ne renvoie donc jamais la combinaison impossible.
+        force_default_role: defaultRoleId ? forceDefaultRole : false,
       });
-      setMsg('Paramètres enregistrés');
+      const applied = Number(saved?.forced_role_applied ?? 0);
+      setMsg(
+        applied > 0
+          ? `Paramètres enregistrés — profil imposé à ${applied} membre(s)`
+          : 'Paramètres enregistrés',
+      );
       await onSaved();
     } catch (e) {
       setErr(e.message || 'Erreur enregistrement');
@@ -143,7 +153,13 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
       {msg && <div className="auth-success">{msg}</div>}
       <div className="field">
         <label>Profil par défaut du groupe</label>
-        <select value={defaultRoleId} onChange={(e) => setDefaultRoleId(e.target.value)}>
+        <select
+          value={defaultRoleId}
+          onChange={(e) => {
+            setDefaultRoleId(e.target.value);
+            if (!e.target.value) setForceDefaultRole(false);
+          }}
+        >
           <option value="">— Aucun (règle automatique) —</option>
           {studentRoles.map((r) => (
             <option key={r.id} value={r.id}>
@@ -160,6 +176,23 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
         />
         Accorde le statut n3beur (accès carte/tâches ForetMap)
       </label>
+      <label
+        style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--text-sm)' }}
+        data-testid="group-force-default-role"
+      >
+        <input
+          type="checkbox"
+          checked={forceDefaultRole}
+          disabled={!defaultRoleId}
+          onChange={(e) => setForceDefaultRole(e.target.checked)}
+        />
+        Imposer ce profil (la montée automatique ne s’applique plus)
+      </label>
+      <p style={{ margin: '4px 0 0 24px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+        {defaultRoleId
+          ? 'Sans cette case, le profil du groupe est un plancher : les tâches validées peuvent faire monter un membre au-dessus. Cochée, le profil du groupe s’applique aussi en baisse, et le recalcul par tâches validées laisse ces comptes tranquilles. Les profils d’encadrement (n3boss, administrateur, prof de classe, profil sur mesure) restent intacts.'
+          : 'Choisissez d’abord un profil par défaut : il n’y a rien à imposer tant que le groupe suit la règle automatique.'}
+      </p>
       <div style={{ marginTop: 12, fontSize: 'var(--text-sm)' }} data-testid="group-class-code">
         <strong>Code de classe (inscription autonome)</strong>
         <p style={{ margin: '4px 0 6px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
@@ -513,6 +546,15 @@ function GroupTreeNode({
                 <span style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-xs)' }}>
                   {' '}
                   · Profil : {node.default_role_display_name}
+                </span>
+              )}
+              {node.force_default_role && (
+                <span
+                  style={{ color: '#b45309', fontSize: 'var(--text-xs)' }}
+                  title="Profil imposé : la montée automatique par tâches validées ne s’applique pas aux membres"
+                >
+                  {' '}
+                  · imposé
                 </span>
               )}
               {node.grants_n3beur_access && (

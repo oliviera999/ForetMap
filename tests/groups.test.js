@@ -546,3 +546,73 @@ test("F2-A : l'inscription sans code reste possible (compte visiteur)", async ()
   );
   assert.strictEqual(role?.slug, 'visiteur');
 });
+
+test('Groupes: profil imposé — refus sans profil par défaut, application immédiate sinon', async () => {
+  const token = await getAdminToken();
+  const student = await createStudentForGroups('Forced');
+  const stamp = Date.now();
+
+  const created = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Classe imposée ${stamp}`,
+      slug: `classe-imposee-${stamp}`,
+      kind: 'class',
+      grants_n3beur_access: true,
+    })
+    .expect(201);
+  const groupId = created.body.id;
+  assert.strictEqual(created.body.force_default_role, false);
+
+  // Imposer « la règle automatique » n'a pas de sens : refusé plutôt que sans effet.
+  const refused = await request(app)
+    .patch(`/api/groups/${groupId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name: created.body.name, slug: created.body.slug, force_default_role: true })
+    .expect(400);
+  assert.match(refused.body.error, /default_role_id/);
+
+  await request(app)
+    .put(`/api/groups/${groupId}/members`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ member_user_ids: [student.id], manager_user_ids: [] })
+    .expect(200);
+
+  // L'élève monte au palier avancé, puis le groupe impose « novice ».
+  const avance = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_avance' LIMIT 1");
+  const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  await execute('UPDATE user_roles SET role_id = ? WHERE user_type = ? AND user_id = ?', [
+    avance.id,
+    'student',
+    student.id,
+  ]);
+
+  const patched = await request(app)
+    .patch(`/api/groups/${groupId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: created.body.name,
+      slug: created.body.slug,
+      default_role_id: novice.id,
+      grants_n3beur_access: true,
+      force_default_role: true,
+    })
+    .expect(200);
+  assert.strictEqual(patched.body.force_default_role, true);
+  assert.strictEqual(patched.body.forced_role_applied, 1);
+
+  const primary = await queryOne(
+    `SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [student.id],
+  );
+  assert.strictEqual(primary.slug, 'eleve_novice');
+
+  const list = await request(app)
+    .get('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const row = (list.body.groups || []).find((g) => g.id === groupId);
+  assert.strictEqual(row?.force_default_role, true);
+});
