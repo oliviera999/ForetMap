@@ -78,13 +78,19 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 | Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                                     |
 | ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                                             |
-| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                        |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement, plus le Plan du staff                                 |
 | **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                                      |
 | **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                                  |
 | **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                                    |
 | **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin                      |
 | **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…), carnet personnel — **ce n'est pas** l'admin |
 | **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
+
+> **Deux noms pour un même profil.** Le profil enseignant « fort » s'écrit `prof` côté
+> technique (fichier d'import, API) et s'affiche **« n3boss »** dans l'application : un compte
+> enrôlé en « prof » apparaît donc en « n3boss », ce n'est pas une dérive. De même, « Prof de
+> classe » (`prof_classe`) est un **autre** profil, plus restreint — c'est lui qu'il faut
+> choisir pour un tuteur de classe.
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
   fenêtre de félicitations.
@@ -197,7 +203,12 @@ Les groupes structurent la vie pédagogique :
 - **Rôle par défaut** : un groupe peut conférer automatiquement un rôle à ses membres
   (par exemple « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en
   élève dès son rattachement. Un bouton « Appliquer à tous les membres » force le
-  recalcul.
+  recalcul. La liste propose les profils qu'un groupe a le droit de distribuer :
+  **Visiteur**, **Personnel** et les **paliers n3beur**. Les profils d'encadrement (prof de
+  classe, n3boss, administrateur) et ceux du jeu Gnomes & Licornes en sont exclus — un
+  groupe ne doit pas pouvoir donner un pouvoir d'encadrement à toute une classe. Si la
+  liste est vide, c'est que votre profil n'a pas le droit de lire les profils : le panneau
+  vous le dit.
 - **Imposer ce profil** : par défaut, le rôle du groupe n'est qu'un **plancher** — les tâches
   validées font ensuite monter chacun, et un palier déjà acquis n'est jamais repris. La case
   **« Imposer ce profil »** (dans le panneau de réglages du groupe, juste sous le choix du
@@ -308,6 +319,9 @@ sous-onglet consulté qui est rouvert.
   on peut les rattacher un par un ou **en lot** au groupe choisi. Quand il y en a, une
   **pastille d'alerte** orange sur l'onglet en donne le nombre — à ne pas confondre avec
   le compteur discret de l'onglet Comptes, qui indique simplement « résultats / total ».
+  Sont « en attente » les comptes visiteurs qui n'appartiennent **à aucun groupe** : un
+  visiteur déjà rattaché (club, groupe de visite, classe sans accès n3beur) reste visiteur
+  parce que c'est le profil voulu, il n'y a rien à faire pour lui et il n'est pas compté.
 - **Imports & exports** : importer des élèves ou des groupes, exporter les statistiques.
 
 - **Créer / importer** : un **n3boss** (selon ses droits) peut créer des comptes un par
