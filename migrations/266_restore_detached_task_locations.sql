@@ -22,11 +22,14 @@
 -- Idempotent : les tâches réparées cessent d'être éligibles (elles ont un lien), et
 -- INSERT IGNORE absorbe un doublon éventuel.
 
-CREATE TEMPORARY TABLE IF NOT EXISTS fm_tasks_sans_lieu (
-  id VARCHAR(64) NOT NULL PRIMARY KEY
-) ENGINE=InnoDB;
+-- Collation explicite : la base de CI (MariaDB 11) crée par défaut en utf8mb4_uca1400_ai_ci,
+-- et une jointure sur `tasks.id` (utf8mb4_unicode_ci) échouerait en « Illegal mix of
+-- collations ». Même précaution sur les valeurs sorties de JSON_UNQUOTE plus bas.
+DROP TEMPORARY TABLE IF EXISTS fm_tasks_sans_lieu;
 
-TRUNCATE TABLE fm_tasks_sans_lieu;
+CREATE TEMPORARY TABLE fm_tasks_sans_lieu (
+  id VARCHAR(64) NOT NULL PRIMARY KEY
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO fm_tasks_sans_lieu (id)
 SELECT t.id
@@ -40,9 +43,9 @@ SELECT t.id
    AND NOT EXISTS (SELECT 1 FROM task_zones tz WHERE tz.task_id = t.id)
    AND NOT EXISTS (SELECT 1 FROM task_markers tm WHERE tm.task_id = t.id);
 
-CREATE TEMPORARY TABLE IF NOT EXISTS fm_rangs_lieux (i INT NOT NULL PRIMARY KEY) ENGINE=InnoDB;
+DROP TEMPORARY TABLE IF EXISTS fm_rangs_lieux;
 
-TRUNCATE TABLE fm_rangs_lieux;
+CREATE TEMPORARY TABLE fm_rangs_lieux (i INT NOT NULL PRIMARY KEY) ENGINE=InnoDB;
 
 INSERT INTO fm_rangs_lieux (i)
 SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
@@ -54,9 +57,11 @@ SELECT t.id, z.id
  INNER JOIN fm_tasks_sans_lieu s ON s.id = t.id
  INNER JOIN fm_rangs_lieux n
  INNER JOIN zones z
-    ON z.id = JSON_UNQUOTE(
-                JSON_EXTRACT(t.recurrence_template_zone_ids, CONCAT('$[', n.i, ']'))
-              );
+    ON z.id = CONVERT(
+                JSON_UNQUOTE(
+                  JSON_EXTRACT(t.recurrence_template_zone_ids, CONCAT('$[', n.i, ']'))
+                ) USING utf8mb4
+              ) COLLATE utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO task_markers (task_id, marker_id)
 SELECT t.id, m.id
@@ -64,9 +69,11 @@ SELECT t.id, m.id
  INNER JOIN fm_tasks_sans_lieu s ON s.id = t.id
  INNER JOIN fm_rangs_lieux n
  INNER JOIN map_markers m
-    ON m.id = JSON_UNQUOTE(
-                JSON_EXTRACT(t.recurrence_template_marker_ids, CONCAT('$[', n.i, ']'))
-              );
+    ON m.id = CONVERT(
+                JSON_UNQUOTE(
+                  JSON_EXTRACT(t.recurrence_template_marker_ids, CONCAT('$[', n.i, ']'))
+                ) USING utf8mb4
+              ) COLLATE utf8mb4_unicode_ci;
 
 -- Colonnes historiques `tasks.zone_id` / `tasks.marker_id` : elles portent le premier lieu et
 -- servent encore de repli côté carte (`taskLocationIds`). Les laisser vides rendrait la
