@@ -75,7 +75,14 @@ L'écran Tâches propose une **barre de recherche**, un **bouton « ⚙️ Filtr
 une seule ligne : les tâches restent visibles dès l'ouverture de l'écran, sans avoir à
 faire défiler la page.
 
-- **Les filtres** (carte, lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
+- **Le premier champ n'est pas un filtre, c'est la carte affichée.** Le choisir **bascule
+  l'application sur cette carte** (la carte de l'onglet Carte change aussi), puis la liste
+  montre les tâches qui s'y trouvent. C'est volontaire : les tâches, zones et repères sont
+  chargés **carte par carte**. Tant que ce champ était un filtre, choisir « N3 » alors que la
+  forêt comestible était affichée vidait la liste — les tâches de N3 n'étaient pas chargées,
+  donc aucune ne pouvait correspondre. Pour la même raison, l'ancienne entrée « Toutes
+  cartes » a disparu : elle ne montrait jamais que la carte du moment.
+- **Les filtres** (lieu, projet, groupe pour le professeur, catégorie « Urgent ! »,
   statut) s'ouvrent d'un appui sur « ⚙️ Filtres ». Sur ordinateur ils se déplient sous la
   barre ; sur téléphone et tablette ils s'affichent dans une **feuille basse** (la même
   que sur la carte et dans Gnomes & Licornes) : elle s'ouvre à mi-hauteur, une poignée
@@ -121,11 +128,18 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   inscrits. Une inscription élève qui arrive **en même temps** qu'une validation ne
   peut plus « défaire » cette validation : l'inscription est refusée et le statut
   validé est conservé. Détail à connaître : une tâche validée est **détachée de ses zones et
-  repères** (elle n'encombre plus la carte) ; pour les tâches récurrentes, les lieux
-  sont mémorisés afin que la prochaine occurrence les retrouve.
+  repères** (elle n'encombre plus la carte). Les lieux sont mémorisés — pour toutes les
+  tâches, pas seulement les récurrentes — afin de pouvoir lui être rendus.
 - **Remettre au travail** : il n'y a pas de bouton « refuser » — le professeur repasse
-  simplement la tâche « À faire » ou « En cours ». Les comptes rendus (commentaires,
-  photos) restent consultables dans le journal de la tâche.
+  simplement la tâche « À faire » ou « En cours ». **Elle retrouve alors la zone ou le
+  repère** que la validation lui avait retirés, et donc sa pastille sur la carte. (Avant
+  septembre 2026, elle redevenait active sans lieu : elle réapparaissait dans la liste des
+  tâches mais plus jamais sur la carte, sans que rien ne le signale. Les tâches restées
+  dans cet état sont rattrapées automatiquement à la mise à jour, à l'exception de celles
+  détachées avant que les lieux ne soient mémorisés — pour celles-là, il faut ressaisir la
+  zone ou le repère dans la fiche de la tâche.) Si le professeur choisit lui-même une zone
+  au moment de la remise au travail, c'est son choix qui s'applique. Les comptes rendus
+  (commentaires, photos) restent consultables dans le journal de la tâche.
 - **Mettre en attente** : une tâche « En attente » gèle les inscriptions sans la supprimer.
 - **Archiver** : le bouton 📦 range une tâche « de côté ». Elle disparaît des listes
   actives (côté élève comme professeur) sans être supprimée : son statut, ses comptes

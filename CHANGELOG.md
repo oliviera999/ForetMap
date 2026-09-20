@@ -16,7 +16,7 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
 [`docs/reference/foretmap/comptes-roles-et-groupes.md`](docs/reference/foretmap/comptes-roles-et-groupes.md).
 
 - **Une seule règle de profil.** Chaque compte porte un **profil attribué**
-  (`users.assigned_role_id`, migration `266`) ; son **profil effectif** est le plus élevé
+  (`users.assigned_role_id`, migration `267`) ; son **profil effectif** est le plus élevé
   entre ce profil et le profil par défaut de chacun de ses groupes actifs — à rang égal,
   l'attribué. Un groupe qui **impose** son profil l'emporte pour ses élèves, jamais pour un
   enseignant. La montée automatique ne fait que relever le profil attribué ; « Imposer ce
@@ -66,6 +66,62 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
   d'import, de groupes, de progression et de périmètre adaptées ; montage de l'onglet
   « Classe » en prof de classe (`tests-ui`).
 
+### Corrigé — carte : une tâche remise au travail retrouve sa zone (et sa pastille)
+
+- **Des tâches à faire n'apparaissaient plus sur la carte.** Valider une tâche détache
+  volontairement ses zones et repères — une tâche validée n'occupe plus un lieu. Mais rien ne
+  les lui rendait quand un professeur la repassait à « À faire » ou « En cours » : elle
+  redevenait active **sans lieu**, donc sans pastille et introuvable sur la carte, alors que
+  sa fiche ne signalait rien. Elle retrouve désormais ses lieux, et le professeur qui en
+  choisit d'autres dans le même geste garde la main.
+- **La mémoire des lieux ne servait qu'aux tâches récurrentes** (elle alimentait l'occurrence
+  suivante). Elle est posée pour toutes les tâches : une tâche ponctuelle validée puis remise
+  au travail ne perd plus son lieu définitivement.
+- **Rattrapage des tâches déjà détachées** (migration `266`) : les tâches actives sans aucun
+  lieu dont la mémoire désigne une zone ou un repère toujours existants les récupèrent. Celles
+  détachées avant l'existence de cette mémoire ne sont pas rattrapables : leur lieu est à
+  ressaisir dans la fiche de la tâche.
+- Un lieu supprimé entre-temps, ou passé sur une autre carte, est simplement laissé de côté :
+  rendre un lieu est un confort de reprise, jamais une raison de refuser le changement de
+  statut demandé.
+### Corrigé — carte : le plan ouvert à l'arrivée suit enfin les réglages, puis le dernier plan consulté
+
+- **Le réglage « plan ouvert par défaut » ne s'appliquait plus jamais sur un appareil déjà
+  utilisé.** Le premier cycle de chargement résolvait la carte active sans attendre la réponse
+  de `/api/settings/public` : il la résolvait donc sur les valeurs codées en dur du front
+  (la forêt comestible). Ce plan était aussitôt mémorisé sur l'appareil, et la mémoire prime
+  sur le réglage — un administrateur pouvait basculer le plan par défaut sur « N3 », l'écran
+  rouvrait la forêt indéfiniment. Le chargement attend désormais les réglages publics (il
+  reste débloqué même si la requête échoue).
+- **Seul un plan choisi par l'utilisateur est mémorisé.** La mémoire était écrite à chaque
+  changement de carte active, y compris ceux posés par la résolution automatique (carte par
+  défaut, repli sur le premier plan visible, réconciliation d'affiliation) : un plan que
+  personne n'avait choisi se figeait sur l'appareil. Source unique : `src/utils/lastViewedMap.js`.
+- **La Visite mémorise elle aussi le plan choisi**, et la reconnexion rouvre le dernier plan
+  consulté quelle que soit la surface où il a été choisi — carte de travail ou Visite, visiteur
+  invité compris. À défaut de mémoire, le réglage « plan par défaut » du contexte s'applique
+  comme avant.
+
+### Corrigé — carte : les pastilles d'état survivent au regroupement des repères
+
+- **Un repère perdait sa pastille dès qu'il était regroupé avec un voisin.** Au dézoom — donc
+  à l'arrivée sur la carte, avant tout zoom — les repères proches sont fusionnés en une
+  pastille chiffrée ; ce groupe n'affichait aucun point d'état, et les tâches « à faire » ou
+  « en cours » portées par ses membres devenaient invisibles. Le groupe porte désormais l'état
+  le plus actionnable qu'il contient (à faire > en cours > terminée) et le cumul des tutoriels
+  liés, et son nom accessible reprend ce libellé.
+- Le noyau carte partagé reste neutre : il reçoit la règle d'agrégation du produit
+  (`mergeStatusDots`), ForetMap y branche `clusterStatusDots`.
+
+### Modifié — tâches : le premier champ des filtres change la carte, il ne filtre plus
+
+- **Le filtre « carte » ne pouvait rien trouver hors de la carte active.** Les tâches, zones et
+  repères sont chargés carte par carte (`GET /api/tasks?map_id=…`) : choisir « N3 » alors que
+  la forêt comestible était affichée vidait la liste, puisque les tâches de N3 n'étaient pas
+  chargées. Le champ est devenu un **sélecteur de carte** : le choisir bascule la carte active
+  de l'application (carte et tâches ensemble), et la liste montre les tâches de cette carte.
+- **L'entrée « Toutes cartes » est retirée** : elle promettait un périmètre que les données
+  chargées ne couvraient jamais — elle n'affichait que la carte du moment.
 ### Corrigé — un compte « Personnel » ne redevient plus « Visiteur »
 
 - **La règle automatique de profil écrasait un choix explicite.** `visiteur` et `personnel`

@@ -1,4 +1,4 @@
-import{r as e}from"./rolldown-runtime-hePW80VL.js";import{i as t}from"./VisitMascotFallbackSvg-BCY1h1N6.js";import{n,t as r}from"./react-vendor-DyU5Vns3.js";import{Gt as i}from"./icons-foIiYRd8.js";import"./visitMascotPackExtras-BiwVbCT2.js";import{l as a,o}from"./mascotPackEditorModel-CawvNtOv.js";import{a as s,t as c}from"./MascotPackWysiwygEditor-CYlsBss1.js";var l=e(n()),u=e(i()),d=r(),f=`/home/user/ForetMap/src/components/MascotPackToolView.jsx`,p=`{
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{i as t}from"./VisitMascotFallbackSvg-BCY1h1N6.js";import{n,t as r}from"./react-vendor-DyU5Vns3.js";import{Gt as i}from"./icons-foIiYRd8.js";import"./visitMascotPackExtras-uLThe7m7.js";import{l as a,o}from"./mascotPackEditorModel-CawvNtOv.js";import{a as s,t as c}from"./MascotPackWysiwygEditor-478yK8Uy.js";var l=e(n()),u=e(i()),d=r(),f=`/home/user/ForetMap/src/components/MascotPackToolView.jsx`,p=`{
   "mascotPackVersion": 1,
   "id": "exemple-pack",
   "label": "Exemple pack (documentation)",

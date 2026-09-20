@@ -89,7 +89,10 @@ familles.
   ouverte, le clavier reste à l'intérieur ; **Échap** ou un clic à côté la referme et
   ramène au lieu d'où l'on venait.
 - **La barre au-dessus du plan** réunit, à gauche, le titre, la pastille de progression,
-  « Présentation du lieu » et — s'il y a plusieurs cartes — le **choix de la carte** ; à
+  « Présentation du lieu » et — s'il y a plusieurs cartes — le **choix de la carte**
+  (la carte choisie ici est **retenue par l'appareil** et rouverte à la visite suivante,
+  y compris sur la carte de travail — voir « Quel plan s'ouvre à l'arrivée ? » dans
+  [La carte, les zones et les repères](carte-et-zones.md)) ; à
   droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
   compact). Sous cette barre : une **recherche de lieux** et, s'il y a des catégories,

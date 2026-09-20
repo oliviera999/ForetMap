@@ -35,12 +35,37 @@ Dans les réglages, un administrateur peut :
   remplacée) ;
 - **activer ou désactiver** un plan ;
 - choisir le **plan ouvert par défaut** — un réglage distinct existe pour les élèves,
-  pour les professeurs et pour le mode Visite ;
+  pour les professeurs et pour le mode Visite (voir « Quel plan s'ouvre à l'arrivée ? »
+  juste en dessous) ;
 - **caler le plan sur le GPS** (optionnel) : on indique trois points du plan et leurs
   coordonnées réelles. Une fois ce calage fait et la géolocalisation activée pour ce
   plan, un bouton « Me suivre » apparaît sur la carte : la mascotte suit alors la
   position réelle de l'utilisateur sur le plan (avec des messages clairs si la
   localisation est refusée, si le signal est faible ou si l'on est hors du plan).
+
+### Quel plan s'ouvre à l'arrivée ?
+
+Deux règles, dans cet ordre :
+
+1. **Le dernier plan que la personne a consulté sur cet appareil.** Dès qu'un utilisateur
+   choisit un plan — dans le sélecteur au-dessus de la carte, dans le premier champ des
+   filtres de tâches ou dans la Visite — ce choix est retenu par le navigateur et rouvert
+   à la connexion suivante. Le choix vaut pour **toutes les surfaces** : un plan choisi
+   dans la Visite est rouvert sur la carte de travail, et inversement. La mémoire est
+   propre à l'appareil et au navigateur (elle ne suit pas le compte), et elle disparaît
+   si l'utilisateur efface les données du site.
+2. **Sinon, le plan ouvert par défaut réglé par l'administrateur**, selon le contexte :
+   élève, professeur ou visite publique.
+
+Conséquence pratique : changer le réglage « plan ouvert par défaut » ne déplace pas les
+utilisateurs qui ont déjà choisi un plan sur leur appareil — leur dernier choix reste
+prioritaire. Le nouveau réglage s'applique aux arrivées suivantes (nouvel appareil,
+navigateur vidé, personne qui n'a jamais changé de plan). Pour déplacer tout le monde
+d'office, désactiver le plan que l'on veut quitter : les utilisateurs qui y étaient sont
+alors réorientés vers le plan par défaut.
+
+Un cas prime sur les deux règles : un élève **rattaché à un seul plan** (affiliation) ne
+voit que celui-là, quels que soient la mémoire de l'appareil et le réglage.
 
 ### Comment saisir les coordonnées du calage
 
@@ -568,6 +593,10 @@ Quand un lieu cumule plusieurs tâches, c'est la plus **actionnable** qui l'empo
 (à faire > en cours > terminée) : un élève voit d'un coup d'œil où il reste quelque chose à
 prendre. Les tâches **en attente** (« on hold ») et celles détachées de leur lieu n'affichent
 aucun point.
+
+Quand des repères proches sont regroupés au dézoom (la pastille chiffrée décrite plus haut),
+**le groupe porte le point du lieu le plus actionnable qu'il contient** : l'état des tâches
+reste lisible à l'arrivée sur la carte, sans avoir à zoomer pour le découvrir.
 
 Ces pastilles sont **toujours visibles**, sans réglage à activer : elles n'ont pas de rapport
 avec le point violet des tutoriels décrit ci-dessous.

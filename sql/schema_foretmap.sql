@@ -517,7 +517,7 @@ CREATE TABLE IF NOT EXISTS users (
   -- Profil ATTRIBUÉ (à la main, à l'import, ou relevé par la progression). Le profil
   -- EFFECTIF vit dans user_roles.is_primary et se recalcule (lib/effectiveRole.js) : le plus
   -- élevé entre ce profil et ceux conférés par les groupes. FK vers roles posée par la
-  -- migration 266 (roles est créée plus bas dans ce fichier).
+  -- migration 267 (roles est créée plus bas dans ce fichier).
   assigned_role_id INT UNSIGNED DEFAULT NULL,
   legacy_user_id VARCHAR(64) DEFAULT NULL,
   email VARCHAR(255) DEFAULT NULL,
@@ -527,7 +527,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(255) DEFAULT NULL,
   description TEXT DEFAULT NULL,
   avatar_path VARCHAR(512) DEFAULT NULL,
-  -- ÉCHAFAUDAGE — restriction de cartes individuelle retirée (migration 266) : seul le
+  -- ÉCHAFAUDAGE — restriction de cartes individuelle retirée (migration 267) : seul le
   -- périmètre cartes des groupes borne les cartes. Déclarée ici pour que les migrations 024
   -- et 076 se rejouent sur une base neuve ; supprimée à CHAQUE démarrage, après les
   -- migrations, par lib/legacySchemaCleanup.js. Ne plus lire/écrire cette colonne.
@@ -765,7 +765,7 @@ CREATE TABLE IF NOT EXISTS `groups` (
   kind VARCHAR(32) NOT NULL DEFAULT 'class',
   parent_group_id VARCHAR(64) DEFAULT NULL,
   default_role_id INT UNSIGNED DEFAULT NULL,
-  -- ÉCHAFAUDAGE — drapeau « accorde le statut n3beur » retiré (migration 266) : un groupe
+  -- ÉCHAFAUDAGE — drapeau « accorde le statut n3beur » retiré (migration 267) : un groupe
   -- n3beur est un groupe dont le profil par défaut est un palier n3beur. Déclaré ici pour les
   -- migrations 146, 167 et 265 ; supprimé après les migrations par lib/legacySchemaCleanup.js.
   grants_n3beur_access TINYINT(1) NOT NULL DEFAULT 0,
@@ -794,7 +794,7 @@ CREATE TABLE IF NOT EXISTS group_members (
   group_id VARCHAR(64) NOT NULL,
   user_id VARCHAR(64) NOT NULL,
   user_type VARCHAR(16) NOT NULL,
-  -- ÉCHAFAUDAGE — « responsable / membre » retiré (migration 266) : le périmètre d'un
+  -- ÉCHAFAUDAGE — « responsable / membre » retiré (migration 267) : le périmètre d'un
   -- enseignant est son appartenance, le rôle de membre n'avait aucun effet. Déclaré ici pour
   -- la migration 079 ; supprimé après les migrations par lib/legacySchemaCleanup.js.
   role_in_group VARCHAR(32) NOT NULL DEFAULT 'member',

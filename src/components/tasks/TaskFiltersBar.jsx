@@ -33,6 +33,7 @@ export function TaskFiltersBar({
   setViewMode,
   filterMap,
   setFilterMap,
+  onMapChange = null,
   maps = [],
   activeMapId,
   filterText,
@@ -129,6 +130,7 @@ export function TaskFiltersBar({
     <TaskFiltersFields
       filterMap={filterMap}
       setFilterMap={setFilterMap}
+      onMapChange={onMapChange}
       maps={maps}
       activeMapId={activeMapId}
       filterZone={filterZone}
