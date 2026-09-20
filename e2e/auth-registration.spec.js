@@ -77,7 +77,6 @@ test.describe('inscription publique', () => {
     await page.getByLabel('Nom', { exact: true }).fill('Eleve');
     await page.getByLabel('Mot de passe', { exact: true }).fill(password);
     await page.getByLabel('Email (optionnel)').fill(email);
-    await page.getByLabel('Mon espace', { exact: true }).selectOption('both');
     await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
 
     const registerDone = page.waitForResponse(
