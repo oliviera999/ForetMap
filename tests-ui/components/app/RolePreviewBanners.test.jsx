@@ -22,12 +22,19 @@ describe('RolePreviewBanners', () => {
     render(
       <RolePreviewBanners
         {...baseProps}
-        authClaims={{ impersonating: true, roleDisplayName: 'Alice', userType: 'student' }}
+        authClaims={{
+          impersonating: true,
+          displayName: 'Alice',
+          roleDisplayName: 'n3beur novice',
+          userType: 'student',
+        }}
         onStopImpersonation={onStop}
       />,
     );
     expect(screen.getByText('Prise de contrôle (admin)')).toBeInTheDocument();
+    // Le nom de la personne, jamais le nom du profil à sa place (CDG-30).
     expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText(/\(profil n3beur novice\)/)).toBeInTheDocument();
     expect(screen.getByText(/\(n3beur\)/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Revenir à mon compte admin'));
     expect(onStop).toHaveBeenCalledTimes(1);
@@ -37,9 +44,11 @@ describe('RolePreviewBanners', () => {
     render(
       <RolePreviewBanners
         {...baseProps}
-        authClaims={{ impersonating: true, roleDisplayName: 'Bob', userType: 'teacher' }}
+        authClaims={{ impersonating: true, roleDisplayName: 'n3boss', userType: 'teacher' }}
+        sessionUser={{ displayName: 'Bob' }}
       />,
     );
+    expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText(/\(n3boss\)/)).toBeInTheDocument();
   });
 

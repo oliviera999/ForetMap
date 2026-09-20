@@ -102,7 +102,7 @@ router.post(
     }
     clearOidcCookie(res);
     const payload = await verifyLaunchToken(idToken, { env, expectedNonce: cookie.nonce });
-    if (!rememberNonce(payload.nonce || cookie.nonce)) {
+    if (!(await rememberNonce(payload.nonce || cookie.nonce))) {
       return res.status(401).json({ error: 'Nonce LTI invalide ou rejoué', code: 'LTI_NONCE' });
     }
     const view = launchView(payload);

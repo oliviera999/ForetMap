@@ -152,3 +152,24 @@ test('matchMembers : homonymes côté Moodle → attente ; compte exempt → exe
   assert.strictEqual(decisions.get('4').rule, 'conflict');
   assert.strictEqual(decisions.get('4').reason, 'account_linked_to_other_member');
 });
+
+test('règle 3 : même nom mais e-mails différents des deux côtés → en attente (email_mismatch, CDG-47)', () => {
+  const lea = user('u-lea', { first: 'Léa', last: 'Martin', email: 'lea.m@ecole.test' });
+  const sansEmail = user('u-tom', { first: 'Tom', last: 'Durand', email: null });
+  const idx = indexes([lea, sansEmail]);
+  const decisions = matchMembers({
+    members: [
+      { id: 1, firstname: 'Lea', lastname: 'Martin', email: 'autre.lea@ecole.test' },
+      { id: 2, firstname: 'Tom', lastname: 'Durand', email: 'tom.durand@ecole.test' },
+    ],
+    ...idx,
+    canCreate: () => true,
+  });
+  const d1 = decisions.get('1');
+  assert.strictEqual(d1.rule, 'pending');
+  assert.strictEqual(d1.reason, 'email_mismatch');
+  assert.strictEqual(d1.candidates[0].userId, 'u-lea');
+  const d2 = decisions.get('2');
+  assert.strictEqual(d2.rule, 'name', 'sans e-mail local, le nom suffit');
+  assert.strictEqual(d2.userId, 'u-tom');
+});

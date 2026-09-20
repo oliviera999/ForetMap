@@ -1424,6 +1424,7 @@ function App() {
 
                 <RolePreviewBanners
                   authClaims={authClaims}
+                  sessionUser={sessionUser}
                   isTeacher={isTeacher}
                   roleViewMode={roleViewMode}
                   helpText={helpText}

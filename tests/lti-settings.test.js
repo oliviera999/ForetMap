@@ -26,10 +26,10 @@ test('les réglages integration.lti.* sont dans le registre, portée admin, sans
   );
 });
 
-test('unknown_user refuse ou queue, jamais create', () => {
+test('unknown_user : seul refuse est accepté (queue jamais câblé), jamais create', () => {
   const validate = LTI_SETTINGS_REGISTRY[LTI_SETTING_KEYS.unknownUser].validate;
   assert.strictEqual(validate('refuse'), null);
-  assert.strictEqual(validate('queue'), null);
+  assert.ok(validate('queue'));
   assert.ok(validate('create'));
   assert.ok(validate('yes'));
 });

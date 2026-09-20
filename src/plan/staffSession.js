@@ -86,6 +86,10 @@ export function staffOauthErrorMessage(code) {
       return 'Connexion réussie, mais ce compte n’a pas encore l’accès au plan des personnels.';
     case 'oauth_google_refused':
       return 'Connexion Google annulée.';
+    case 'oauth_teacher_google_disabled':
+      return 'La connexion Google des enseignants est désactivée par l’établissement.';
+    case 'oauth_account_mismatch':
+      return 'Cette adresse est déjà rattachée à une autre identité Google.';
     case 'oauth_not_configured':
       return 'La connexion Google n’est pas configurée sur ce serveur.';
     default:

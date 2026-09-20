@@ -70,7 +70,7 @@ export function useOauthRedirectSession({
           user: {
             id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
             userType: 'teacher',
-            displayName: payload?.auth?.roleDisplayName || 'Utilisateur',
+            displayName: payload?.auth?.displayName || 'Utilisateur',
             avatar_path: null,
           },
         });

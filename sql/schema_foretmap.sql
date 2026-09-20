@@ -550,6 +550,14 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- password_reset_tokens (usage unique, hash du token uniquement)
+-- Nonces OIDC LTI consommés (migration 268) : anti-rejeu partagé entre instances.
+CREATE TABLE IF NOT EXISTS lti_nonces (
+  nonce VARCHAR(255) NOT NULL PRIMARY KEY,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_lti_nonces_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id VARCHAR(64) PRIMARY KEY,
   user_type VARCHAR(16) NOT NULL,
