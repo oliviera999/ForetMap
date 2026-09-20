@@ -445,6 +445,98 @@ describe('Auth', () => {
     }
   });
 
+  it('GET /api/auth/google/callback : réglage « connexion Google enseignant » relu au callback, quel que soit le mode (CDG-14)', async () => {
+    const teacherEmail = `oauth.prof.off.${Date.now()}@pedagolyautey.org`;
+    await execute(
+      `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+       VALUES (?, 'teacher', ?, ?, 'Prof OAuth off', ?, 'local', 1, NOW(), NOW())`,
+      [
+        crypto.randomUUID(),
+        teacherEmail,
+        teacherEmail.split('@')[0],
+        await bcrypt.hash('dummy-password', 10),
+      ],
+    );
+    authRouter.__setGoogleOAuthHooks({
+      exchangeCode: async () => ({ id_token: 'token-prof-off' }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'https://accounts.google.com',
+        email: teacherEmail,
+        email_verified: true,
+        hd: 'pedagolyautey.org',
+      }),
+    });
+    await setSetting('ui.auth.allow_google_teacher', false, {});
+    try {
+      // Mode élève : le callback ne doit pas ouvrir une session enseignant pour autant.
+      const res = await request(app)
+        .get('/api/auth/google/callback?state=off&code=code-prof-off')
+        .set('Cookie', ['foretmap_oauth_state=off', 'foretmap_oauth_mode=student'])
+        .expect(302);
+      assert.ok(String(res.headers.location || '').includes('oauth_teacher_google_disabled'));
+    } finally {
+      await setSetting('ui.auth.allow_google_teacher', true, {});
+      authRouter.__setGoogleOAuthHooks();
+    }
+  });
+
+  it('GET /api/auth/google/callback : identité Google liée au premier passage, autre identité refusée (CDG-15)', async () => {
+    const stamp = Date.now();
+    const studentEmail = `oauth_link_${stamp}@lyceelyautey.org`;
+    const reg = await request(app)
+      .post('/api/auth/register')
+      .send({
+        firstName: `Link${stamp}`,
+        lastName: 'Google',
+        password: 'pass1234',
+        email: studentEmail,
+      })
+      .expect(201);
+    const hooksFor = (sub) => ({
+      exchangeCode: async () => ({ id_token: `token-${sub}` }),
+      verifyIdToken: async () => ({
+        aud: process.env.GOOGLE_OAUTH_CLIENT_ID,
+        iss: 'accounts.google.com',
+        sub,
+        email: studentEmail,
+        email_verified: true,
+        hd: 'lyceelyautey.org',
+      }),
+    });
+    try {
+      authRouter.__setGoogleOAuthHooks(hooksFor(`sub-a-${stamp}`));
+      const first = await request(app)
+        .get('/api/auth/google/callback?state=l1&code=c1')
+        .set('Cookie', ['foretmap_oauth_state=l1', 'foretmap_oauth_mode=student'])
+        .expect(302);
+      assert.strictEqual(decodeOAuthPayloadFromRedirect(first.headers.location)?.type, 'student');
+      const row = await queryOne('SELECT google_sub FROM users WHERE id = ?', [reg.body.id]);
+      assert.strictEqual(row.google_sub, `sub-a-${stamp}`);
+
+      // Une autre identité Google portant la même adresse n'ouvre pas ce compte.
+      authRouter.__setGoogleOAuthHooks(hooksFor(`sub-b-${stamp}`));
+      const other = await request(app)
+        .get('/api/auth/google/callback?state=l2&code=c2')
+        .set('Cookie', ['foretmap_oauth_state=l2', 'foretmap_oauth_mode=student'])
+        .expect(302);
+      assert.ok(String(other.headers.location || '').includes('oauth_account_mismatch'));
+    } finally {
+      authRouter.__setGoogleOAuthHooks();
+    }
+  });
+
+  it('POST /api/auth/register et /login : un mot de passe non-chaîne vaut « absent » (400/401, pas 500)', async () => {
+    await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Num', lastName: `Pwd${Date.now()}`, password: 123456 })
+      .expect(400);
+    await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: 'quelquun', password: 123456 })
+      .expect(400);
+  });
+
   it('GET /api/auth/google/callback crée un élève OAuth si absent et autorisé', async () => {
     await setSetting('ui.auth.allow_google_auto_register', true, {});
     const studentEmail = `oauth_student_${Date.now()}@lyceelyautey.org`;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiGL } from '../services/apiGL.js';
+import { apiGL, saveGlSession } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -23,7 +23,8 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
     setError('');
     setInfo('');
     try {
-      await apiGL('/api/gl/auth/link-foretmap', 'POST', { identifier, password });
+      const data = await apiGL('/api/gl/auth/link-foretmap', 'POST', { identifier, password });
+      if (data?.authToken) saveGlSession({ token: data.authToken, auth: data.auth });
       setIdentifier('');
       setPassword('');
       setInfo('Compte ForetMap rattaché : ton mot de passe est désormais celui de ce compte.');
@@ -41,7 +42,8 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
     setError('');
     setInfo('');
     try {
-      await apiGL('/api/gl/auth/link-foretmap', 'DELETE', { currentPassword });
+      const data = await apiGL('/api/gl/auth/link-foretmap', 'DELETE', { currentPassword });
+      if (data?.authToken) saveGlSession({ token: data.authToken, auth: data.auth });
       setCurrentPassword('');
       setInfo('Compte élève détaché : tu gardes ton mot de passe actuel pour le jeu.');
       onReload?.();

@@ -224,6 +224,15 @@ export function getStoredSession() {
 export function saveStoredSession(next) {
   const current = getStoredSession() || {};
   const merged = { ...current, ...(next || {}) };
+  // Une session enseignant remplace toute session élève encore stockée (et inversement) :
+  // sinon, au rechargement, `POST /api/students/register` partait avec un jeton prof → 403 et
+  // toast « Connexion instable » à chaque chargement (CDG-29).
+  if (
+    next?.user?.userType === 'teacher' &&
+    !Object.prototype.hasOwnProperty.call(next, 'student')
+  ) {
+    merged.student = null;
+  }
   const token = pickStoredToken(merged.token);
   if (Object.prototype.hasOwnProperty.call(merged, 'student')) {
     // Le jeton porté par la session élève suit toujours le jeton courant (CDG-28).

@@ -77,9 +77,36 @@
 >   `profilesUserGroups` et `appAccess` s'y branchent, plus de liste locale). Au passage,
 >   dans CDG-17 : la ligne `gl_admins` seule n'ouvre plus de session ; dans CDG-47 :
 >   « mot de passe oublié » refusé pour un élève inactif, comme pour un enseignant.
-> - **Restent ouverts** : CDG-14, CDG-15, CDG-17 (partiel), CDG-29, CDG-30, CDG-33, CDG-34
->   (partiel), CDG-45, CDG-47 (partiel), CDG-51 à CDG-53. Priorisation en fin de document
->   (section « Suite »).
+> - **Troisième lot (PR suivante, même journée)** — tout ce qui restait ouvert :
+>   CDG-14 (`ui.auth.allow_google_teacher` revérifié au retour de Google :
+>   `oauth_teacher_google_disabled`), CDG-15 (`users.google_sub` lié à la première
+>   connexion et retrouvé en priorité ; autre compte Google sur le même e-mail →
+>   `oauth_account_mismatch`), CDG-17 (nonces LTI en base `lti_nonces`, migration 268 ;
+>   suppression des miroirs orphelins réservée à `gl_admin`), CDG-29 (une session
+>   enseignant efface la session élève stockée), CDG-30 (`displayName` dans le jeton et
+>   `/me`, bandeau et modale affichent le nom, jamais le nom du profil), CDG-33
+>   (lier / délier un compte G&L renvoie une session renouvelée ; `impersonate/stop`
+>   joignable en `password_must_reset`), CDG-34 (undo Moodle : groupe / classe peuplés
+>   désactivés **avec** leur lien, réactivés à l'exécution suivante ; mot de passe non-chaîne
+>   → 400 ; `insertId` pour les classes G&L ; création de joueur avec nettoyage du miroir
+>   en cas d'échec ; `emailConflict` exposé par `PUT /players/:id` ; `parseGroupRefsCell`
+>   ne découpe plus sur `/` ; garde morte retirée), CDG-45 (rang d'un profil système
+>   figé, rang > au sien refusé hors admin), CDG-47 (rapprochement par nom refusé si les
+>   e-mails divergent → en attente `email_mismatch` ; `enabled` exigé pour undo,
+>   décisions, conflits, miroirs ; décisions `link` / `create` journalisées dans une
+>   exécution propre et annulables ; undo ignore un compte `sync_exempt` ; miroirs
+>   d'équipes journalisés dans l'exécution qui les pousse ; politique au profil inconnu
+>   signalée ; marque via `lib/brand.js` dans `lib/mailer.js` ; plancher joueur G&L lu dans
+>   `security.password_min_length` ; `gl_admins.is_active = 0` respecté ; élève rattaché
+>   sans `password_must_reset` forcé ; doc « compte visiteur à la place » corrigée),
+>   CDG-51 (import : profil recalculé ligne à ligne, dry-run qui simule les groupes à créer ;
+>   undo Moodle sous le même verrou que l'exécution), CDG-52 (jetons de réinitialisation
+>   invalidés par un changement de mot de passe ; « mot de passe oublié » limité par adresse
+>   cible ; `?resetToken=` retiré de l'URL), CDG-53 (`DELETE /api/rbac/profiles/:id` avec
+>   409 détaillé ; réglage LTI `unknown_user` réduit à `refuse`, seule valeur lue).
+> - **Restent ouverts** : CDG-53 (rattachement d'un enseignant à ses groupes depuis sa
+>   fiche — déjà possible depuis l'éditeur de membres du groupe, aucune UI côté fiche) et
+>   les points « à surveiller » de la section « Suite ».
 
 Gravité : **BLOQUANT** (escalade de droits ou perte de données réalisable par un utilisateur
 ordinaire) · **MAJEUR** (contournement d'une règle documentée, fonction promise absente,
@@ -835,26 +862,14 @@ comptes / groupes / impersonation ne tournent qu'en **admin**.
 
 ---
 
-## Suite — points restants, par priorité (2026-09-20)
+## Suite — état après le troisième lot (2026-09-20)
 
-Ordre proposé après les deux lots ; « P1 » = à faire avant la rentrée suivante, « P2 » =
-à planifier, « P3 » = dette sans urgence.
+Les seize lignes de la priorisation du 20 septembre (P1 à P3) sont **toutes traitées**
+par le troisième lot (voir le bloc de suivi en tête). Reste, sans urgence :
 
-| Prio | Constat                     | Pourquoi maintenant                                                                                               |
-| ---- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| P1   | CDG-14                      | Réglage « connexion Google enseignant » contournable : une porte d'entrée enseignant reste ouverte                |
-| P1   | CDG-45                      | Le rang des profils système reste modifiable : monter `prof_classe` à 400 lui donne la vue globale                |
-| P1   | CDG-51 (import CSV)         | Import non transactionnel : une panne en cours laisse des comptes sans profil ; dry-run sans groupes              |
-| P1   | CDG-52 (jetons de reset)    | Jetons de réinitialisation non invalidés par un changement de mot de passe ; `?resetToken=` laissé dans l'URL     |
-| P2   | CDG-15                      | E-mail non vérifié comme clé de liaison Google (un élève peut « réserver » l'adresse d'un futur prof)             |
-| P2   | CDG-29 / CDG-30             | Front : session mixte élève + prof ; nom affiché remplacé par le nom du profil                                    |
-| P2   | CDG-33                      | Lier / délier un compte G&L casse la session ; prise de contrôle impossible à quitter en `password_must_reset`    |
-| P2   | CDG-34 (undo Moodle)        | Undo qui supprime `external_groups` d'un groupe seulement désactivé → second groupe à la sync suivante            |
-| P2   | CDG-47 (Moodle)             | Rapprochement par nom sans classe, `enabled` vérifié seulement à l'apply, création de compte hors journal         |
-| P2   | CDG-53 (suppression profil) | Aucune route de suppression d'un profil sur mesure                                                                |
-| P3   | CDG-17 (reste)              | Identifiant saisi dans `security_events` (login : corrigé ; autres routes à vérifier), nonce LTI en mémoire       |
-| P3   | CDG-34 (reste)              | Mot de passe non-chaîne → 500, `insertId`, création joueur non atomique, `parseGroupRefsCell` et `/`, garde morte |
-| P3   | CDG-47 (reste)              | Doc ↔ code divers, marque en dur (`lib/mailer.js`), longueur minimale G&L codée à 4                               |
-| P3   | CDG-51 (reste)              | Undo Moodle sans verrou                                                                                           |
-| P3   | CDG-52 (reste)              | `/forgot-password` limité par IP seulement ; 401 `deleted:true` sur les appels directs                            |
-| P3   | CDG-53 (reste)              | Réglage LTI `unknown_user = queue` jamais lu                                                                      |
+| Prio | Constat                   | Ce qui reste                                                                                                                                                                                                                     |
+| ---- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3   | CDG-53 (fiche enseignant) | Rattacher un prof de classe à ses groupes depuis **sa fiche** : aujourd'hui par l'éditeur de membres du groupe (fonctionnel, mais le geste est inversé par rapport à la doc)                                                     |
+| P3   | CDG-47 (miroirs manuels)  | Les miroirs poussés **hors exécution** (`POST /mirrors`, `POST /api/gl/games/:id/teams/mirror`) restent immédiats et non journalisés ; ceux d'une exécution `teams: true` le sont                                                |
+| P3   | CDG-52 (401 `deleted`)    | Les appels directs (hors `fetchAll` / temps réel) qui reçoivent un 401 `deleted: true` passent par `api()` qui ferme la session : à confirmer à l'usage sur les rares appels qui n'utilisent pas `api()`                         |
+| —    | À surveiller              | Une décision `link` / `create` sur un rapprochement crée une exécution : elle bloque l'annulation d'une exécution plus ancienne tant qu'elle n'est pas annulée elle-même (règle « annuler d'abord la plus récente », documentée) |

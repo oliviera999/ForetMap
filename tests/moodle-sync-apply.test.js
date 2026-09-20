@@ -591,3 +591,104 @@ test('undo : refuse une simulation et une exécution plus ancienne qu’une exé
     (e) => e.status === 409 && /plus récente/.test(e.message),
   );
 });
+
+test('undo d’un groupe encore peuplé : désactivé, lien conservé, réactivé sans doublon à la sync suivante (CDG-34)', async () => {
+  fx.seedCohort(fake, {
+    id: 641,
+    idnumber: '26#641',
+    name: `6e 41 ${stamp}`,
+    members: [fx.member(8101, 'Reste', `Peuple${stamp}`)],
+  });
+  const first = await apply([641]);
+  assert.strictEqual(first.status, 'succeeded');
+  const eg = await queryOne("SELECT * FROM external_groups WHERE external_id = '641'");
+  assert.ok(eg.group_id && eg.gl_class_id);
+  // Un membre ajouté à la main : le groupe ne sera pas vide après annulation.
+  const manual = await fx.createStudent({
+    firstName: 'Manuel',
+    lastName: `Peuple${stamp}`,
+    email: `manuel.peuple${stamp}@lyautey.test`,
+  });
+  await fx.addGroupMember(eg.group_id, manual.id);
+
+  const undone = await undoRun(first.runId, { client });
+  assert.ok(undone.undone >= 1);
+  const group = await queryOne('SELECT is_active FROM `groups` WHERE id = ?', [eg.group_id]);
+  assert.strictEqual(Number(group.is_active), 0, 'groupe peuplé : désactivé, pas supprimé');
+  const egAfter = await queryOne('SELECT * FROM external_groups WHERE id = ?', [eg.id]);
+  assert.ok(egAfter, 'le lien à la cohorte est conservé');
+  assert.strictEqual(egAfter.group_id, eg.group_id);
+
+  const again = await apply([641]);
+  assert.strictEqual(again.status, 'succeeded');
+  const links = await queryAll(
+    "SELECT group_id, gl_class_id FROM external_groups WHERE external_id = '641'",
+  );
+  assert.strictEqual(links.length, 1, 'une seule ligne external_groups');
+  assert.strictEqual(links[0].group_id, eg.group_id, 'même groupe, pas de second groupe');
+  const groups = await queryAll('SELECT id, is_active FROM `groups` WHERE description = ?', [
+    'Groupe synchronisé depuis la cohorte Moodle 26#641',
+  ]);
+  assert.strictEqual(groups.length, 1, 'aucun groupe doublon');
+  assert.strictEqual(Number(groups[0].is_active), 1, 'groupe réactivé');
+  assert.ok(
+    again.report.actions.some((a) => a.kind === 'group.ensure' && a.payload?.existingGroupId),
+    'réactivation planifiée comme group.ensure',
+  );
+  // La classe G&L, vidée de son joueur par l'annulation, avait été supprimée : recréée une
+  // seule fois, rattachée au même groupe.
+  const classes = await queryAll(
+    'SELECT id, is_active FROM gl_classes WHERE foretmap_group_id = ?',
+    [eg.group_id],
+  );
+  assert.strictEqual(classes.length, 1, 'une seule classe pour le groupe');
+  assert.strictEqual(Number(classes[0].is_active), 1);
+  assert.strictEqual(Number(links[0].gl_class_id), Number(classes[0].id));
+
+  // La réactivation est elle-même annulable.
+  const undoneAgain = await undoRun(again.runId, { client });
+  assert.ok(undoneAgain.undone >= 1);
+  const groupBack = await queryOne('SELECT is_active FROM `groups` WHERE id = ?', [eg.group_id]);
+  assert.strictEqual(Number(groupBack.is_active), 0);
+});
+
+test('undo : un compte marqué hors synchronisation entre-temps n’est pas touché (CDG-47)', async () => {
+  fx.seedCohort(fake, {
+    id: 642,
+    idnumber: '26#642',
+    name: `6e 42 ${stamp}`,
+    members: [fx.member(8201, 'Exempt', `Apres${stamp}`)],
+  });
+  const result = await apply([642]);
+  assert.strictEqual(result.status, 'succeeded');
+  const created = await queryOne(
+    "SELECT user_id FROM external_identities WHERE external_id = '8201'",
+  );
+  await execute('UPDATE users SET sync_exempt = 1 WHERE id = ?', [created.user_id]);
+  const undone = await undoRun(result.runId, { client });
+  assert.deepStrictEqual(undone.skippedExempt, [created.user_id]);
+  assert.strictEqual(undone.deactivatedCreated, 0);
+  const user = await queryOne('SELECT is_active FROM users WHERE id = ?', [created.user_id]);
+  assert.strictEqual(Number(user.is_active), 1, 'compte exempté laissé actif');
+  assert.ok(
+    await queryOne('SELECT 1 AS x FROM group_members WHERE user_id = ?', [created.user_id]),
+    'appartenance conservée',
+  );
+  await execute('UPDATE users SET sync_exempt = 0 WHERE id = ?', [created.user_id]);
+});
+
+test('undo : refusé pendant une exécution (même verrou, CDG-51)', async () => {
+  const { acquireLock, releaseLock } = require('../lib/moodle/syncRun');
+  const run = await queryOne(
+    "SELECT id FROM sync_runs WHERE mode = 'apply' AND status = 'succeeded' ORDER BY id DESC LIMIT 1",
+  );
+  await acquireLock();
+  try {
+    await assert.rejects(
+      undoRun(run.id, { client }),
+      (e) => e.status === 409 && /en cours/.test(e.message),
+    );
+  } finally {
+    releaseLock();
+  }
+});

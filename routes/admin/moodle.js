@@ -17,7 +17,7 @@ const { z, validate } = require('../../lib/validate');
 const { logAudit } = require('../../lib/auditLog');
 const { PROVIDER, readMoodleEnv, notConfiguredError } = require('../../lib/moodle/config');
 const { createMoodleClientFromEnv } = require('../../lib/moodle/client');
-const { loadMoodleSettings } = require('../../lib/moodle/settings');
+const { loadMoodleSettings, assertMoodleEnabled } = require('../../lib/moodle/settings');
 const { runMoodleCheck } = require('../../lib/moodle/check');
 const { resolvePolicyForIdnumber, isCohortListedForSync } = require('../../lib/moodle/policies');
 const { runSync, getRun, listRuns } = require('../../lib/moodle/syncRun');
@@ -45,6 +45,11 @@ function requireClient() {
   const client = createMoodleClientFromEnv();
   if (!client) throw notConfiguredError();
   return client;
+}
+
+/** Écriture (annulation, décision, miroir) : le réglage `enabled` la conditionne (CDG-47). */
+async function requireEnabled() {
+  assertMoodleEnabled(await loadMoodleSettings());
 }
 
 async function loadGlChapters() {
@@ -269,6 +274,7 @@ router.post(
   requireMoodleAdmin,
   validate({ params: idParams }),
   asyncHandler(async (req, res) => {
+    await requireEnabled();
     const actor = actorOf(req);
     const result = await undoRun(req.validatedParams.id, {
       actorUserId: actor.canonicalUserId,
@@ -281,7 +287,11 @@ router.post(
       `undone:${result.undone}`,
       {
         req,
-        payload: { undone: result.undone, deactivatedCreated: result.deactivatedCreated },
+        payload: {
+          undone: result.undone,
+          deactivatedCreated: result.deactivatedCreated,
+          skippedExempt: result.skippedExempt.length,
+        },
       },
     );
     res.json(result);
@@ -309,6 +319,7 @@ router.post(
   requireMoodleAdmin,
   validate({ params: idParams, body: pendingDecisionSchema }),
   asyncHandler(async (req, res) => {
+    if (req.body.decision !== 'ignore') await requireEnabled();
     const actor = actorOf(req);
     const result = await pendingMatches.resolvePendingMatch(req.validatedParams.id, {
       resolution: req.body.decision,
@@ -322,7 +333,7 @@ router.post(
       req.body.decision,
       {
         req,
-        payload: { resolvedUserId: result.resolvedUserId },
+        payload: { resolvedUserId: result.resolvedUserId, runId: result.runId },
       },
     );
     res.json(result);
@@ -349,6 +360,7 @@ router.post(
   requireMoodleAdmin,
   validate({ params: idParams, body: conflictDecisionSchema }),
   asyncHandler(async (req, res) => {
+    if (req.body.resolution !== 'ignore') await requireEnabled();
     const actor = actorOf(req);
     const client = req.body.resolution === 'apply_other' ? createMoodleClientFromEnv() : null;
     const result = await conflicts.resolveConflict(req.validatedParams.id, {
@@ -465,10 +477,13 @@ router.post(
     requireClient();
     const { mirrorForetmapGroup } = require('../../lib/moodle/teamsMirror');
     const dryRun = req.body.dryRun !== false;
+    const settings = await loadMoodleSettings();
+    if (!dryRun) assertMoodleEnabled(settings);
     const report = await mirrorForetmapGroup({
       groupId: req.body.groupId,
       courseId: req.body.courseId,
       dryRun,
+      settings,
     });
     if (report.error) return res.status(409).json({ error: report.error, report });
     if (!dryRun) {
