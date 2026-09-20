@@ -15,65 +15,59 @@
 -- mémoire) et n'est pas touchée. Les tâches détachées avant l'existence de cette mémoire
 -- (colonnes vides) ne sont pas rattrapables ici : leur lieu est à ressaisir à la main.
 --
--- Dix lieux au plus par tâche : au-delà, la mémoire est rendue partiellement (aucune tâche
--- réelle n'approche ce nombre, et une jointure de rangs reste portable MySQL/MariaDB, là où
--- JSON_TABLE ne l'est pas).
+-- **Collations.** Le schéma pose toutes ses tables en `utf8mb4_unicode_ci`, mais une valeur
+-- calculée (`JSON_UNQUOTE(...)`) ou une colonne déclarée sans collation explicite (une table
+-- temporaire) prend celle du **serveur** : `utf8mb4_uca1400_ai_ci` sur MariaDB 11.4, celle de
+-- la CI. Les comparer à `zones.id` casse alors la migration — « Illegal mix of collations »,
+-- erreur 1267, et le démarrage échoue. D'où deux précautions ici : le rapprochement reste
+-- dans le domaine JSON (`JSON_CONTAINS`, qui ne borne pas non plus le nombre de lieux
+-- mémorisés), avec la collation des deux opérandes fixée explicitement ; et la table
+-- temporaire déclare la sienne au lieu de l'hériter.
 --
 -- Idempotent : les tâches réparées cessent d'être éligibles (elles ont un lien), et
 -- INSERT IGNORE absorbe un doublon éventuel.
 
--- Collation explicite : la base de CI (MariaDB 11) crée par défaut en utf8mb4_uca1400_ai_ci,
--- et une jointure sur `tasks.id` (utf8mb4_unicode_ci) échouerait en « Illegal mix of
--- collations ». Même précaution sur les valeurs sorties de JSON_UNQUOTE plus bas.
-DROP TEMPORARY TABLE IF EXISTS fm_tasks_sans_lieu;
+CREATE TEMPORARY TABLE IF NOT EXISTS fm_tasks_sans_lieu (
+  id VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL PRIMARY KEY
+) ENGINE=InnoDB;
 
-CREATE TEMPORARY TABLE fm_tasks_sans_lieu (
-  id VARCHAR(64) NOT NULL PRIMARY KEY
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+TRUNCATE TABLE fm_tasks_sans_lieu;
 
+-- Les tâches éligibles sont figées ici : sans cela, l'insertion des zones rendrait la tâche
+-- « déjà pourvue » et la passe suivante n'irait plus chercher ses repères.
 INSERT INTO fm_tasks_sans_lieu (id)
 SELECT t.id
   FROM tasks t
  WHERE t.archived_at IS NULL
    AND t.status NOT IN ('validated', 'done')
    AND (
-         (t.recurrence_template_zone_ids IS NOT NULL AND t.recurrence_template_zone_ids <> '[]')
-      OR (t.recurrence_template_marker_ids IS NOT NULL AND t.recurrence_template_marker_ids <> '[]')
+         (JSON_VALID(t.recurrence_template_zone_ids) AND JSON_LENGTH(t.recurrence_template_zone_ids) > 0)
+      OR (JSON_VALID(t.recurrence_template_marker_ids) AND JSON_LENGTH(t.recurrence_template_marker_ids) > 0)
        )
    AND NOT EXISTS (SELECT 1 FROM task_zones tz WHERE tz.task_id = t.id)
    AND NOT EXISTS (SELECT 1 FROM task_markers tm WHERE tm.task_id = t.id);
-
-DROP TEMPORARY TABLE IF EXISTS fm_rangs_lieux;
-
-CREATE TEMPORARY TABLE fm_rangs_lieux (i INT NOT NULL PRIMARY KEY) ENGINE=InnoDB;
-
-INSERT INTO fm_rangs_lieux (i)
-SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9;
 
 INSERT IGNORE INTO task_zones (task_id, zone_id)
 SELECT t.id, z.id
   FROM tasks t
  INNER JOIN fm_tasks_sans_lieu s ON s.id = t.id
- INNER JOIN fm_rangs_lieux n
  INNER JOIN zones z
-    ON z.id = CONVERT(
-                JSON_UNQUOTE(
-                  JSON_EXTRACT(t.recurrence_template_zone_ids, CONCAT('$[', n.i, ']'))
-                ) USING utf8mb4
-              ) COLLATE utf8mb4_unicode_ci;
+    ON JSON_VALID(t.recurrence_template_zone_ids)
+   AND JSON_CONTAINS(
+         t.recurrence_template_zone_ids COLLATE utf8mb4_bin,
+         JSON_QUOTE(z.id COLLATE utf8mb4_bin)
+       );
 
 INSERT IGNORE INTO task_markers (task_id, marker_id)
 SELECT t.id, m.id
   FROM tasks t
  INNER JOIN fm_tasks_sans_lieu s ON s.id = t.id
- INNER JOIN fm_rangs_lieux n
  INNER JOIN map_markers m
-    ON m.id = CONVERT(
-                JSON_UNQUOTE(
-                  JSON_EXTRACT(t.recurrence_template_marker_ids, CONCAT('$[', n.i, ']'))
-                ) USING utf8mb4
-              ) COLLATE utf8mb4_unicode_ci;
+    ON JSON_VALID(t.recurrence_template_marker_ids)
+   AND JSON_CONTAINS(
+         t.recurrence_template_marker_ids COLLATE utf8mb4_bin,
+         JSON_QUOTE(m.id COLLATE utf8mb4_bin)
+       );
 
 -- Colonnes historiques `tasks.zone_id` / `tasks.marker_id` : elles portent le premier lieu et
 -- servent encore de repli côté carte (`taskLocationIds`). Les laisser vides rendrait la
@@ -88,5 +82,3 @@ UPDATE tasks t
        );
 
 DROP TEMPORARY TABLE IF EXISTS fm_tasks_sans_lieu;
-
-DROP TEMPORARY TABLE IF EXISTS fm_rangs_lieux;
