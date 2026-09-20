@@ -59,7 +59,12 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         user: {
           id: data?.auth?.canonicalUserId || data?.auth?.userId || null,
           userType: 'teacher',
-          displayName: data?.auth?.roleDisplayName || email.trim(),
+          displayName:
+            data?.auth?.displayName ||
+            data?.display_name ||
+            `${data?.first_name || ''} ${data?.last_name || ''}`.trim() ||
+            data?.pseudo ||
+            email.trim(),
           email: data?.email || email.trim(),
           avatar_path: data?.avatar_path || null,
         },

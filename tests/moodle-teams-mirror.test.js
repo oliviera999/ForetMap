@@ -16,6 +16,7 @@ const {
   mirrorForetmapGroup,
 } = require('../lib/moodle/teamsMirror');
 const { runSync, resetProcessLockForTests } = require('../lib/moodle/syncRun');
+const { undoRun } = require('../lib/moodle/undo');
 const fx = require('./helpers/moodleFixtures');
 const {
   createGlAdmin,
@@ -334,6 +335,7 @@ test('POST /api/gl/games/:id/teams/mirror : 503 sans config, puis pousse avec en
     .expect(503);
 
   pointEnv();
+  await setSetting('integration.moodle.enabled', true);
   await setSetting('integration.moodle.chapter_courses', { [String(chapter.id)]: COURSE_ID });
   const ok = await request(app)
     .post(`/api/gl/games/${game.id}/teams/mirror`)
@@ -342,4 +344,88 @@ test('POST /api/gl/games/:id/teams/mirror : 503 sans config, puis pousse avec en
     .expect(200);
   assert.ok(!ok.body.error);
   assert.ok(fake.state.groups.some((g) => g.name === 'gnomes des forêts'));
+});
+
+test('miroir poussé par une exécution : journalisé dans sync_actions et annulé avec elle (CDG-47)', async () => {
+  const group = await fx.createGroup({ name: `Cohorte journal ${stamp}` });
+  const klass = await createGlClass({ name: `Classe journal ${stamp}`, adminId: admin.id });
+  const cohortId = 9000 + klass.id;
+  await linkClassToCohort(group, klass.id, `${COHORT}-698`);
+  await fx.addGroupMember(
+    group.id,
+    (
+      await fx.createStudent({
+        firstName: 'Membre',
+        lastName: `Journal${stamp}`,
+        email: `membre.journal${stamp}@lyautey.test`,
+      })
+    ).id,
+  );
+  fx.seedCohort(fake, {
+    id: cohortId,
+    idnumber: `${COHORT}-698`,
+    name: `Cohorte journal ${stamp}`,
+    members: [],
+  });
+  await createGlGameWithTeams({
+    classId: klass.id,
+    chapterId: chapter.id,
+    createdBy: admin.id,
+    status: 'draft',
+    name: `Partie journal ${stamp}`,
+    teams: [{ name: 'gnomes du journal', type: 'gnome' }],
+  });
+  const result = await runSync({
+    mode: 'apply',
+    cohortIds: [cohortId],
+    teams: true,
+    force: true,
+    forceReason: 'test',
+    deps: { client, settings },
+  });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(
+    fake.state.groups.some((g) => g.name === 'gnomes du journal'),
+    'groupe poussé',
+  );
+  const journaled = await queryOne(
+    "SELECT target_id FROM sync_actions WHERE run_id = ? AND kind = 'course_group.create'",
+    [result.runId],
+  );
+  assert.ok(journaled, 'création du groupe de cours journalisée');
+
+  const undone = await undoRun(result.runId, { client });
+  assert.equal(undone.outbound.reverted, 1);
+  assert.ok(!fake.state.groups.some((g) => g.name === 'gnomes du journal'), 'groupe retiré');
+});
+
+test('miroir poussé hors exécution : refusé quand la synchronisation est désactivée', async () => {
+  const group = await fx.createGroup({ name: `Cohorte off ${stamp}` });
+  const klass = await createGlClass({ name: `Classe off ${stamp}`, adminId: admin.id });
+  await linkClassToCohort(group, klass.id, `${COHORT}-off`);
+  const { game } = await createGlGameWithTeams({
+    classId: klass.id,
+    chapterId: chapter.id,
+    createdBy: admin.id,
+    status: 'draft',
+    name: `Partie off ${stamp}`,
+    teams: [{ name: 'gnomes off', type: 'gnome' }],
+  });
+  const off = fx.buildSettings({ chapterCourses: { [chapter.id]: COURSE_ID }, enabled: false });
+  const dry = await mirrorGameTeams({ gameId: game.id, dryRun: true, client, settings: off });
+  assert.equal(dry.error, null, 'la simulation reste possible');
+  await assert.rejects(
+    mirrorGameTeams({ gameId: game.id, dryRun: false, client, settings: off }),
+    (e) => e.status === 409,
+  );
+  await assert.rejects(
+    mirrorForetmapGroup({
+      groupId: group.id,
+      courseId: COURSE_ID,
+      dryRun: false,
+      client,
+      settings: off,
+    }),
+    (e) => e.status === 409,
+  );
 });

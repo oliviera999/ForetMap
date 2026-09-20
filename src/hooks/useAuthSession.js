@@ -150,7 +150,7 @@ export function useAuthSession({
           [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
           p.display_name ||
           p.email ||
-          auth?.roleDisplayName ||
+          auth?.displayName ||
           'Utilisateur';
         saveStoredSession({
           token,
@@ -204,7 +204,13 @@ export function useAuthSession({
         user: {
           id: data.auth?.canonicalUserId || data.auth?.userId,
           userType: 'teacher',
-          displayName: data.auth?.roleDisplayName || 'Utilisateur',
+          displayName:
+            data.auth?.displayName ||
+            data.display_name ||
+            `${data.first_name || ''} ${data.last_name || ''}`.trim() ||
+            data.pseudo ||
+            data.email ||
+            'Utilisateur',
           email: null,
           avatar_path: null,
         },
@@ -265,7 +271,9 @@ export function useAuthSession({
         setSessionUser((prev) => ({
           id: auth.canonicalUserId || prev?.id || null,
           userType: 'teacher',
-          displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
+          // Le nom du compte : celui porté par la session ré-émise, sinon celui déjà connu —
+          // jamais le nom du profil (« n3boss », « Admin »), CDG-30.
+          displayName: auth.displayName || prev?.displayName || 'Utilisateur',
           email: prev?.email || null,
           avatar_path: prev?.avatar_path || null,
         }));

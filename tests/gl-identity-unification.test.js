@@ -248,6 +248,12 @@ test('link-foretmap fusionne sur le compte élève (miroir supprimé) ; unlink r
     .send({ identifier: `unif_link_fm_${stamp}`, password: 'mdp-eleve' })
     .expect(200);
   assert.strictEqual(String(linked.body?.linkedForetmapStudent?.id), fm.id);
+  // Session ré-émise avec l'époque du nouveau compte : le jeton renvoyé vit (CDG-33).
+  assert.ok(linked.body?.authToken);
+  await request(app)
+    .get('/api/gl/auth/me')
+    .set('Authorization', `Bearer ${linked.body.authToken}`)
+    .expect(200);
   assert.ok(!(await queryOne('SELECT id FROM users WHERE id = ?', [mirrorId])));
   const row = await queryOne('SELECT linked_foretmap_user_id FROM gl_players WHERE id = ?', [
     player.id,
@@ -270,10 +276,15 @@ test('link-foretmap fusionne sur le compte élève (miroir supprimé) ; unlink r
   assert.strictEqual(me.body?.profile?.email, `unif.link.${stamp}@ecole.local`);
 
   // Déliaison : le joueur repart sur un compte miroir neuf, l'élève garde son compte.
-  await request(app)
+  const unlinked = await request(app)
     .delete('/api/gl/auth/link-foretmap')
     .set('Authorization', `Bearer ${relogin.body.authToken}`)
     .send({ currentPassword: 'mdp-eleve' })
+    .expect(200);
+  assert.ok(unlinked.body?.authToken);
+  await request(app)
+    .get('/api/gl/auth/me')
+    .set('Authorization', `Bearer ${unlinked.body.authToken}`)
     .expect(200);
   const after = await queryOne(
     `SELECT p.linked_foretmap_user_id, u.auth_provider FROM gl_players p
@@ -343,6 +354,20 @@ test('réconciliation : rapport et rattrapage (joueur sans compte, miroir orphel
   assert.ok(report.body.totals.legacy_password_pending >= 1);
   assert.ok(report.body.samples.unlinked_players.some((p) => p.id === orphanPlayer.id));
 
+  // Un MJ (rôle `mj`) ne supprime pas de lignes `users`, même des miroirs orphelins (CDG-17).
+  const mj = await createGlAdmin({ email: `unif.mj.only.${stamp}@ecole.local`, role: 'mj' });
+  const mjToken = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: String(mj.id),
+    roleSlug: 'gl_mj',
+    permissions: ['gl.read', 'gl.players.manage'],
+  });
+  await request(app)
+    .post('/api/gl/admin/players/reconcile')
+    .set('Authorization', `Bearer ${mjToken}`)
+    .send({ deleteOrphanBridgeAccounts: true })
+    .expect(403);
   const applied = await request(app)
     .post('/api/gl/admin/players/reconcile')
     .set('Authorization', `Bearer ${adminToken}`)

@@ -9,6 +9,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — comptes, droits et groupes : troisième lot de l'audit
+
+Solde des constats de [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md)
+(bloc « Troisième lot » en tête du document).
+
+- **Connexion Google.** Le réglage « connexion Google enseignant » est revérifié au retour de
+  Google (plus de contournement par l'URL de départ, `oauth_teacher_google_disabled`).
+  L'identifiant Google est **lié** au compte à la première connexion et retrouvé en priorité ;
+  un autre compte Google portant le même e-mail est refusé (`oauth_account_mismatch`).
+- **Mots de passe.** Un mot de passe qui n'est pas une chaîne → 400 (plus de 500). Changer
+  son mot de passe invalide les jetons de réinitialisation encore ouverts ; « mot de passe
+  oublié » est limité à 3 demandes par adresse et par quart d'heure (ForetMap et G&L) ; le
+  jeton disparaît de la barre d'adresse dès qu'il est lu.
+- **Profils.** `DELETE /api/rbac/profiles/:id` supprime un profil sur mesure (409 détaillé
+  s'il est encore attribué à un compte ou à un groupe). Le rang d'un profil système ne se
+  modifie plus ; hors administrateur, on ne crée ni ne pose un rang supérieur au sien.
+- **Import CSV.** Le profil est recalculé ligne à ligne (une panne en cours ne laisse plus de
+  compte sans profil) ; la simulation compte les groupes qui seraient créés
+  (`groups_to_create`) ; « 6A/6B » n'est plus lu comme un chemin parent/enfant.
+- **Front.** Une session enseignant efface toute session élève encore stockée (plus de 403
+  « connexion instable » au rechargement) ; le bandeau et la modale affichent le **nom** de
+  la personne (`displayName` dans le jeton), plus jamais le nom du profil.
+- **Gnomes & Licornes.** Lier ou délier son compte élève renouvelle la session sur place ;
+  la prise de contrôle se quitte même quand le joueur est en changement de mot de passe
+  forcé ; un staff désactivé ne se rouvre plus par une connexion administrateur ForetMap ;
+  suppression des miroirs orphelins réservée à l'Admin ; plancher de mot de passe joueur lu
+  dans le réglage commun ; création de joueur nettoyée en cas d'échec ; conflit d'e-mail
+  signalé (`emailConflict`) ; élève rattaché sans changement forcé.
+- **Moodle.** Annulation : un groupe ou une classe encore peuplés sont désactivés **en
+  gardant leur lien** et réactivés à l'exécution suivante (plus de second groupe) ; même
+  verrou qu'une exécution ; un compte marqué hors synchronisation entre-temps n'est pas
+  touché ; les groupes-miroir d'équipes poussés par une exécution sont journalisés et
+  retirés avec elle. Rapprochement par le nom refusé quand les e-mails divergent (en attente
+  `email_mismatch`). Le réglage « synchronisation activée » conditionne aussi l'annulation,
+  les décisions sur les rapprochements et les conflits, et les miroirs poussés. Les décisions
+  « rapprocher » / « créer » ouvrent une exécution propre, journalisée et annulable. Une
+  politique qui désigne un profil inconnu est signalée dans le rapport.
+- **LTI.** Les nonces sont persistés (`lti_nonces`, migration 268) : plus de rejeu possible
+  sur une autre instance ; le réglage `unknown_user` ne propose que `refuse`, seule valeur
+  lue. Les e-mails passent par `lib/brand.js` (plus de marque en dur).
+
 ### Corrigé — base : la migration 266 ne casse plus le démarrage sur MariaDB 11.4
 
 - **Mix de collations (erreur 1267).** Sur MariaDB 11.4 (CI et installations récentes),

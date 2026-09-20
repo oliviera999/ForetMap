@@ -113,6 +113,30 @@ test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => 
   assert.ok(res.body.report.errors.length >= 1);
 });
 
+test('POST /api/students/import dryRun : aperçu des groupes à créer, sans rien écrire (CDG-51)', async () => {
+  const unique = Date.now();
+  const csv = [
+    IMPORT_CSV_HEADER,
+    `eleve;Apercu;Groupe-${unique};pass123;Classe Apercu ${unique} > Atelier ${unique};;;`,
+  ].join('\n');
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'eleves.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      dryRun: true,
+    })
+    .expect(200);
+  assert.strictEqual(res.body.report.totals.created, 0);
+  assert.strictEqual(res.body.report.totals.groups_to_create, 2);
+  assert.ok(res.body.report.infos.some((i) => i.code === 'groups_to_create'));
+  const group = await queryOne('SELECT id FROM `groups` WHERE name = ?', [
+    `Classe Apercu ${unique}`,
+  ]);
+  assert.ok(!group, 'aucun groupe créé en aperçu');
+});
+
 test('POST /api/students/import crée les élèves valides', async () => {
   const unique = Date.now();
   const csv = [

@@ -13,7 +13,7 @@ const { logAudit } = require('../lib/auditLog');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser } = require('../lib/rbac');
-const { setAssignedRole, recomputeUsersRoles } = require('../lib/effectiveRole');
+const { setAssignedRole, recomputeUserRole, recomputeUsersRoles } = require('../lib/effectiveRole');
 const { checkRoleGrantAllowed, checkRoleAssignmentAllowed } = require('../lib/rbacRoleAssignment');
 const {
   canBypassGroupScope,
@@ -26,7 +26,7 @@ const { getPasswordMinLength, getPasswordMinLengthFor } = require('../lib/passwo
 const { getSettingValue } = require('../lib/settings');
 const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const logger = require('../lib/logger');
-const { loadGroupsIndex, attachUserToGroupRefs } = require('../lib/groupImport');
+const { loadGroupsIndex, attachUserToGroupRefs, previewGroupRefs } = require('../lib/groupImport');
 const {
   MAX_DESCRIPTION_LEN,
   MAX_IMPORT_ROWS,
@@ -377,11 +377,32 @@ router.post(
     report.totals.groups_created = 0;
     report.totals.groups_attached = 0;
 
+    if (dryRun && validRows.length > 0) {
+      // L'aperçu simule aussi les groupes : ceux qui seraient créés, et les références qui
+      // seraient refusées (hors périmètre, groupe inactif) — sans rien écrire (CDG-51).
+      const groupsIndex = await loadGroupsIndex();
+      const toCreate = new Set();
+      for (const rowItem of validRows) {
+        const refs = rowItem.payload.groupRefs || [];
+        if (refs.length === 0) continue;
+        const preview = await previewGroupRefs(req.auth, refs, groupsIndex);
+        for (const path of preview.toCreate) toCreate.add(path);
+        for (const errMsg of preview.errors) {
+          report.errors.push({ row: rowItem.rowNumber, field: 'groups', error: errMsg });
+        }
+      }
+      report.totals.groups_to_create = toCreate.size;
+      if (toCreate.size > 0) {
+        report.infos.push({
+          code: 'groups_to_create',
+          message: `Groupes qui seraient créés : ${[...toCreate].join(', ')}.`,
+        });
+      }
+    }
     if (dryRun || validRows.length === 0) {
       return res.json({ report });
     }
 
-    const createdUserIds = [];
     const usersForGroups = [];
 
     for (const rowItem of validRows) {
@@ -454,8 +475,10 @@ router.post(
             now,
           ],
         );
+        // Profil effectif posé aussitôt : une panne plus loin dans la boucle ne laisse pas de
+        // compte sans profil (CDG-51) ; le rattachement aux groupes, plus bas, recalcule.
+        await recomputeUserRole(id);
         report.totals.created += 1;
-        createdUserIds.push(id);
         if (Array.isArray(payload.groupRefs) && payload.groupRefs.length > 0) {
           usersForGroups.push({
             id,
@@ -477,10 +500,6 @@ router.post(
         throw err;
       }
     }
-
-    // Profil effectif posé pour chaque compte créé (le rattachement aux groupes, plus bas,
-    // le recalcule à nouveau si un groupe confère davantage).
-    await recomputeUsersRoles(createdUserIds);
 
     if (usersForGroups.length > 0) {
       const groupsIndex = await loadGroupsIndex();

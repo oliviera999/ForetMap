@@ -398,3 +398,42 @@ test('/pending-matches/:id et /conflicts/:id : 404 sur identifiant inconnu, vali
     .send({ resolution: 'nope' })
     .expect(400);
 });
+
+test('synchronisation désactivée : annulation, décisions et miroirs refusés (409), lectures et ignore possibles (CDG-47)', async () => {
+  await setSetting('integration.moodle.enabled', false);
+  try {
+    const undo = await request(app)
+      .post(`${BASE}/runs/1/undo`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(409);
+    assert.match(undo.body.error, /désactivée/);
+    await request(app)
+      .post(`${BASE}/pending-matches/1`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ decision: 'create' })
+      .expect(409);
+    await request(app)
+      .post(`${BASE}/pending-matches/999999`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ decision: 'ignore' })
+      .expect(404); // ignore reste possible (404 : identifiant inconnu, pas 409)
+    await request(app)
+      .post(`${BASE}/conflicts/1`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ resolution: 'keep_master' })
+      .expect(409);
+    pointEnvToFake();
+    await request(app)
+      .post(`${BASE}/mirrors`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ groupId: 'inconnu', courseId: 1, dryRun: false })
+      .expect(409);
+    await request(app)
+      .get(`${BASE}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+  } finally {
+    unsetEnv();
+    await setSetting('integration.moodle.enabled', true);
+  }
+});

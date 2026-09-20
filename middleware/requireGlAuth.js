@@ -33,6 +33,8 @@ function allowsPasswordResetRoute(req) {
   const path = String(req.originalUrl || req.url || '').split('?')[0];
   if (method === 'POST' && path.endsWith('/api/gl/auth/change-password')) return true;
   if (method === 'GET' && path.endsWith('/api/gl/auth/me')) return true;
+  // Quitter une prise de contrôle ne dépend pas du mot de passe du joueur contrôlé (CDG-33).
+  if (method === 'POST' && path.endsWith('/api/gl/auth/admin/impersonate/stop')) return true;
   return false;
 }
 

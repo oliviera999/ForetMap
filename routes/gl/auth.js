@@ -34,6 +34,7 @@ const {
   consumePasswordResetToken,
   getPasswordMinLength,
   makeResetUrl,
+  forgotPasswordAllowed,
 } = require('../../lib/passwordReset');
 const {
   parseCsvLowercaseSet,
@@ -508,6 +509,11 @@ router.post(
   asyncHandler(async (req, res) => {
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     if (!email || !EMAIL_RE.test(email)) {
+      return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });
+    }
+
+    // Plafond par adresse visée (CDG-52) : réponse neutre, sans envoi, au-delà de la fenêtre.
+    if (!forgotPasswordAllowed(email)) {
       return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });
     }
 
@@ -1397,8 +1403,13 @@ router.post(
       targetId: String(student.id),
       payload: { previous_user_id: previousUserId, previous_was_bridge: previousWasBridge },
     });
+    // Le joueur change de compte `users` (donc d'époque de jeton) : sans session ré-émise,
+    // la requête suivante tombait en 401 (CDG-33).
+    const relinked = await issueGlPlayerSession(await findGlPlayerById(player.id));
     return res.json({
       ok: true,
+      authToken: relinked.authToken,
+      auth: relinked.auth,
       linkedForetmapStudent: {
         id: String(student.id),
         pseudo: student.pseudo || null,
@@ -1466,7 +1477,8 @@ router.delete(
       targetType: 'student',
       targetId: previousUserId,
     });
-    return res.json({ ok: true });
+    const unlinked = await issueGlPlayerSession(await findGlPlayerById(player.id));
+    return res.json({ ok: true, authToken: unlinked.authToken, auth: unlinked.auth });
   }),
 );
 

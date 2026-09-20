@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiGL } from '../services/apiGL.js';
+import { apiGL, saveGlSession } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -21,7 +21,9 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
       const endpoint = isAdmin
         ? '/api/gl/auth/staff/change-password'
         : '/api/gl/auth/change-password';
-      await apiGL(endpoint, 'POST', { currentPassword, newPassword: nextPassword });
+      const data = await apiGL(endpoint, 'POST', { currentPassword, newPassword: nextPassword });
+      // Le serveur révoque l'ancien jeton et en renvoie un neuf : le garder (CDG-33).
+      if (data?.authToken) saveGlSession({ token: data.authToken, auth: data.auth });
       setCurrentPassword('');
       setNextPassword('');
       setInfo('Mot de passe mis a jour.');

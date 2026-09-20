@@ -5,6 +5,7 @@ import {
   getAuthToken,
   getStoredSession,
   pickNewestAuthToken,
+  saveStoredSession,
 } from '../src/services/api.js';
 
 /** Réponse 401 JSON telle que la renvoie `middleware/requireTeacher.js`. */
@@ -63,6 +64,29 @@ describe('api ForetMap — session révoquée (CDG-27)', () => {
     const events = listenSessionExpired();
     await expect(api('/api/stats/me/S1')).rejects.toMatchObject({ status: 401 });
     expect(events).toEqual([]);
+  });
+});
+
+describe('saveStoredSession — session mixte (CDG-29)', () => {
+  test('une session enseignant efface la session élève encore stockée', () => {
+    localStorage.setItem(
+      'foretmap_session',
+      JSON.stringify({ token: 'jwt-eleve', student: { id: 'S1', authToken: 'jwt-eleve' } }),
+    );
+    localStorage.setItem('foretmap_student', JSON.stringify({ id: 'S1', authToken: 'jwt-eleve' }));
+
+    saveStoredSession({ token: 'jwt-prof', user: { userType: 'teacher', displayName: 'Mme D.' } });
+
+    const stored = getStoredSession();
+    expect(stored.token).toBe('jwt-prof');
+    expect(stored.student).toBeNull();
+    expect(localStorage.getItem('foretmap_student')).toBeNull();
+  });
+
+  test('une mise à jour partielle sans utilisateur conserve la session élève', () => {
+    saveStoredSession({ token: 'jwt-eleve', student: { id: 'S1', authToken: 'jwt-eleve' } });
+    saveStoredSession({ token: 'jwt-eleve-2' });
+    expect(getStoredSession().student?.id).toBe('S1');
   });
 });
 

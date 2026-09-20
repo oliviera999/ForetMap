@@ -7,6 +7,7 @@ const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { runSync, resetProcessLockForTests } = require('../lib/moodle/syncRun');
 const { listConflicts, resolveConflict } = require('../lib/moodle/conflicts');
 const { listPendingMatches, resolvePendingMatch } = require('../lib/moodle/pendingMatches');
+const { undoRun } = require('../lib/moodle/undo');
 const { setExempt, listExempt } = require('../lib/moodle/exempt');
 const fx = require('./helpers/moodleFixtures');
 
@@ -322,6 +323,26 @@ test('rapprochements en attente : homonymes persistés à l’application, déci
   const p2 = pending.find((p) => p.externalId === '11004');
   const created = await resolvePendingMatch(p2.id, { resolution: 'create' });
   assert.ok(created.resolvedUserId);
+  assert.ok(created.runId, 'la création ouvre sa propre exécution (journalisée, CDG-47)');
+  const createRun = await queryOne('SELECT mode, status, scope_json FROM sync_runs WHERE id = ?', [
+    created.runId,
+  ]);
+  assert.strictEqual(createRun.status, 'succeeded');
+  assert.ok(createRun.scope_json.includes('"kind":"pending_match"'));
+  assert.ok(
+    await queryOne(
+      "SELECT 1 AS x FROM sync_actions WHERE run_id = ? AND kind = 'user.create' AND target_id = ?",
+      [created.runId, created.resolvedUserId],
+    ),
+    'user.create journalisé',
+  );
+  assert.ok(linked.runId, 'le rattachement aussi');
+  assert.ok(
+    await queryOne(
+      "SELECT 1 AS x FROM sync_actions WHERE run_id = ? AND kind = 'user.link' AND target_id = ?",
+      [linked.runId, h1.id],
+    ),
+  );
   const newUser = await queryOne('SELECT auth_provider, first_name FROM users WHERE id = ?', [
     created.resolvedUserId,
   ]);
@@ -380,4 +401,36 @@ test('exempt : marquer / démarquer un compte et un groupe, liste', async () => 
   const after = await listExempt();
   assert.ok(!after.users.some((x) => x.userId === student.id));
   assert.ok(!after.groups.some((x) => x.groupId === group.id));
+});
+
+test('rapprochement tranché par « créer » : annulable, la ligne redevient à trancher', async () => {
+  await fx.createStudent({
+    firstName: 'Annule',
+    lastName: `Creation${stamp}`,
+    email: null,
+    password: 'x1234567',
+  });
+  await fx.createStudent({
+    firstName: 'Annule',
+    lastName: `Creation${stamp}`,
+    email: null,
+    password: 'x1234567',
+  });
+  fx.seedCohort(fake, {
+    id: 684,
+    idnumber: '26#684',
+    name: `6e 684 ${stamp}`,
+    members: [fx.member(11010, 'Annule', `Creation${stamp}`)],
+  });
+  await apply([684]);
+  const pending = (await listPendingMatches()).find((p) => p.externalId === '11010');
+  assert.ok(pending);
+  const created = await resolvePendingMatch(pending.id, { resolution: 'create' });
+  const undone = await undoRun(created.runId, { client });
+  assert.strictEqual(undone.deactivatedCreated, 1);
+  const user = await queryOne('SELECT is_active FROM users WHERE id = ?', [created.resolvedUserId]);
+  assert.strictEqual(Number(user.is_active), 0, 'compte créé désactivé (I-1)');
+  const reopened = (await listPendingMatches()).find((p) => p.externalId === '11010');
+  assert.ok(reopened, 'rapprochement rouvert');
+  assert.strictEqual(reopened.resolution, null);
 });
