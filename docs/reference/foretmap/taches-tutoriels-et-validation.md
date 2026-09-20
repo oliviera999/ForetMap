@@ -128,11 +128,18 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   inscrits. Une inscription élève qui arrive **en même temps** qu'une validation ne
   peut plus « défaire » cette validation : l'inscription est refusée et le statut
   validé est conservé. Détail à connaître : une tâche validée est **détachée de ses zones et
-  repères** (elle n'encombre plus la carte) ; pour les tâches récurrentes, les lieux
-  sont mémorisés afin que la prochaine occurrence les retrouve.
+  repères** (elle n'encombre plus la carte). Les lieux sont mémorisés — pour toutes les
+  tâches, pas seulement les récurrentes — afin de pouvoir lui être rendus.
 - **Remettre au travail** : il n'y a pas de bouton « refuser » — le professeur repasse
-  simplement la tâche « À faire » ou « En cours ». Les comptes rendus (commentaires,
-  photos) restent consultables dans le journal de la tâche.
+  simplement la tâche « À faire » ou « En cours ». **Elle retrouve alors la zone ou le
+  repère** que la validation lui avait retirés, et donc sa pastille sur la carte. (Avant
+  septembre 2026, elle redevenait active sans lieu : elle réapparaissait dans la liste des
+  tâches mais plus jamais sur la carte, sans que rien ne le signale. Les tâches restées
+  dans cet état sont rattrapées automatiquement à la mise à jour, à l'exception de celles
+  détachées avant que les lieux ne soient mémorisés — pour celles-là, il faut ressaisir la
+  zone ou le repère dans la fiche de la tâche.) Si le professeur choisit lui-même une zone
+  au moment de la remise au travail, c'est son choix qui s'applique. Les comptes rendus
+  (commentaires, photos) restent consultables dans le journal de la tâche.
 - **Mettre en attente** : une tâche « En attente » gèle les inscriptions sans la supprimer.
 - **Archiver** : le bouton 📦 range une tâche « de côté ». Elle disparaît des listes
   actives (côté élève comme professeur) sans être supprimée : son statut, ses comptes
