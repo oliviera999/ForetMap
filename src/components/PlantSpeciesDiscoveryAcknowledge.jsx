@@ -10,6 +10,7 @@ import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.js
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 import { IconCheck } from '../shared/icons.jsx';
 import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
+import { chunkIds, normalizePlantIds } from '../utils/biodivCatalogLoad.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -268,27 +269,25 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
 
 /**
  * Compteurs d’observations par fiche pour l’utilisateur connecté et tout le site.
+ * Le serveur borne à 200 ids par requête : on découpe en lots et on fusionne
+ * (`src/utils/biodivCatalogLoad.js`, plan charge biodiv 1A).
  * @param {number[]} plantIds
  * @returns {Promise<Record<string, { my_observation_count: number, site_observation_count: number }>>}
  */
 export async function fetchPlantObservationCounts(plantIds) {
   if (!getAuthToken() || !Array.isArray(plantIds) || plantIds.length === 0) return {};
-  const unique = [];
-  const seen = new Set();
-  for (const raw of plantIds) {
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) continue;
-    if (seen.has(n)) continue;
-    seen.add(n);
-    unique.push(n);
-    if (unique.length >= 200) break;
-  }
+  const unique = normalizePlantIds(plantIds);
   if (unique.length === 0) return {};
+  const merged = {};
   try {
-    const q = encodeURIComponent(unique.join(','));
-    const res = await api(`/api/plants/me/observation-counts?plant_ids=${q}`);
-    return res && typeof res.counts === 'object' && res.counts != null ? res.counts : {};
+    for (const batch of chunkIds(unique)) {
+      const q = encodeURIComponent(batch.join(','));
+      const res = await api(`/api/plants/me/observation-counts?plant_ids=${q}`);
+      const counts = res && typeof res.counts === 'object' && res.counts != null ? res.counts : {};
+      Object.assign(merged, counts);
+    }
+    return merged;
   } catch {
-    return {};
+    return merged;
   }
 }

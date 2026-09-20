@@ -6,15 +6,18 @@ import {
 } from '../../utils/plantFilters';
 import { ORIGIN_STATUS_VALUES, ORIGIN_STATUS_LABELS } from '../../utils/plantOriginStatus.js';
 import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnStatus.js';
+import { BIODIV_SORT } from '../../utils/biodivCatalogLoad.js';
 
 /**
- * Panneau de filtres du catalogue biodiversité — extrait de `foretmap-views.jsx` (O6).
- * Recherche + filtres taxonomiques en cascade (groupes 1→3, dépendants), habitat, agrosystème
- * et présence en zone. État détenu par le parent (props `value`/`set*`), options dérivées des plantes.
+ * Panneau de filtres / tri / chips du catalogue biodiversité.
+ * Surface : carte, présence, recherche, règne, chips, tri.
+ * Avancés : taxonomie fine, habitat, rôles, statuts.
  */
-
 export function PlantCatalogFilterPanel({
   plants,
+  maps = [],
+  activeMapId = null,
+  onActiveMapChange = null,
   showZonePresence = false,
   searchPlaceholder = 'Rechercher dans la biodiversité…',
   search,
@@ -40,6 +43,16 @@ export function PlantCatalogFilterPanel({
   zonePresence,
   setZonePresence,
   defaultZonePresence = ZONE_PRESENCE_FILTER.ALL,
+  edibleOnly = false,
+  setEdibleOnly = null,
+  iucnThreatenedOnly = false,
+  setIucnThreatenedOnly = null,
+  observationChip = '',
+  setObservationChip = null,
+  sortKey = BIODIV_SORT.NAME_ASC,
+  setSortKey = null,
+  enableObservationChips = false,
+  countsReady = false,
 }) {
   const subsetAfterG1 = useMemo(() => filterPlantsByTaxonomy(plants, { group1 }), [plants, group1]);
   const subsetAfterG2 = useMemo(
@@ -71,7 +84,6 @@ export function PlantCatalogFilterPanel({
     () => distinctPlantFieldValues(subsetTaxonomy, 'habitat'),
     [subsetTaxonomy],
   );
-
   const trophicOptions = useMemo(
     () => distinctPlantFieldValues(subsetTaxonomy, 'trophic_role'),
     [subsetTaxonomy],
@@ -82,6 +94,8 @@ export function PlantCatalogFilterPanel({
   );
 
   const effectiveTrophic = trophicRole ?? agro ?? '';
+  const mapList = Array.isArray(maps) ? maps : [];
+  const showMapSelect = typeof onActiveMapChange === 'function' && mapList.length > 0;
 
   useEffect(() => {
     if (habitat && !habitatOptions.includes(habitat)) setHabitat('');
@@ -112,47 +126,162 @@ export function PlantCatalogFilterPanel({
     if (setIucnStatus) setIucnStatus('');
     setSearch('');
     if (showZonePresence && setZonePresence) setZonePresence(defaultZonePresence);
+    if (setEdibleOnly) setEdibleOnly(false);
+    if (setIucnThreatenedOnly) setIucnThreatenedOnly(false);
+    if (setObservationChip) setObservationChip('');
+    if (setSortKey) setSortKey(BIODIV_SORT.NAME_ASC);
   };
 
-  const selectStyle = { background: 'white' };
-  /** Le `<label>` « Règne » n'était lié à rien : le menu n'avait aucun nom accessible
-   *  (`axe` : `select-name`). `useId` évite toute collision si le panneau est monté deux fois. */
   const regneSelectId = useId();
+  const mapSelectId = useId();
+  const presenceSelectId = useId();
+  const searchId = useId();
+  const sortSelectId = useId();
   const originStatusSelectId = useId();
   const iucnStatusSelectId = useId();
 
+  const toggleObservation = (value) => {
+    if (!setObservationChip) return;
+    setObservationChip((prev) => (prev === value ? '' : value));
+  };
+
   return (
-    <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label htmlFor={regneSelectId}>Règne</label>
-        <select
-          id={regneSelectId}
-          value={group1}
-          onChange={(e) => {
-            setGroup1(e.target.value);
-            setGroup2('');
-            setGroup3('');
-          }}
-          style={selectStyle}
-        >
-          <option value="">Tous les groupes</option>
-          {group1Options.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field" style={{ marginBottom: 0 }}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={searchPlaceholder}
-          style={selectStyle}
-        />
+    <div className="biodiv-filters">
+      <div className="biodiv-filters__surface">
+        {showMapSelect ? (
+          <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
+            <label htmlFor={mapSelectId}>Carte</label>
+            <select
+              id={mapSelectId}
+              value={activeMapId || ''}
+              onChange={(e) => onActiveMapChange(e.target.value)}
+              aria-label="Sélection de carte active"
+              style={{ background: 'white' }}
+            >
+              {mapList.map((mp) => (
+                <option key={mp.id} value={mp.id}>
+                  {mp.name || mp.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {showZonePresence && setZonePresence ? (
+          <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
+            <label htmlFor={presenceSelectId}>Présence sur la carte</label>
+            <select
+              id={presenceSelectId}
+              value={zonePresence}
+              onChange={(e) => setZonePresence(e.target.value)}
+              style={{ background: 'white' }}
+            >
+              <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
+              <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présente sur cette carte</option>
+              <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Absente de cette carte</option>
+            </select>
+          </div>
+        ) : null}
+
+        <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
+          <label htmlFor={searchId}>Recherche</label>
+          <input
+            id={searchId}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={searchPlaceholder}
+            style={{ background: 'white' }}
+          />
+        </div>
+
+        <div className="field biodiv-filters__field" style={{ marginBottom: 0 }}>
+          <label htmlFor={regneSelectId}>Règne</label>
+          <select
+            id={regneSelectId}
+            value={group1}
+            onChange={(e) => {
+              setGroup1(e.target.value);
+              setGroup2('');
+              setGroup3('');
+            }}
+            style={{ background: 'white' }}
+          >
+            <option value="">Tous les groupes</option>
+            {group1Options.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <details className="plant-more">
+      <div className="biodiv-filters__chips" role="group" aria-label="Filtres rapides">
+        {setEdibleOnly ? (
+          <button
+            type="button"
+            className={`biodiv-chip${edibleOnly ? ' biodiv-chip--on' : ''}`}
+            aria-pressed={edibleOnly}
+            onClick={() => setEdibleOnly(!edibleOnly)}
+          >
+            Comestible
+          </button>
+        ) : null}
+        {setIucnThreatenedOnly ? (
+          <button
+            type="button"
+            className={`biodiv-chip${iucnThreatenedOnly ? ' biodiv-chip--on' : ''}`}
+            aria-pressed={iucnThreatenedOnly}
+            onClick={() => setIucnThreatenedOnly(!iucnThreatenedOnly)}
+          >
+            UICN menacé
+          </button>
+        ) : null}
+        {enableObservationChips && setObservationChip ? (
+          <>
+            <button
+              type="button"
+              className={`biodiv-chip${observationChip === 'unseen' ? ' biodiv-chip--on' : ''}`}
+              aria-pressed={observationChip === 'unseen'}
+              disabled={!countsReady}
+              onClick={() => toggleObservation('unseen')}
+            >
+              Pas encore observées
+            </button>
+            <button
+              type="button"
+              className={`biodiv-chip${observationChip === 'mine' ? ' biodiv-chip--on' : ''}`}
+              aria-pressed={observationChip === 'mine'}
+              disabled={!countsReady}
+              onClick={() => toggleObservation('mine')}
+            >
+              Déjà observées
+            </button>
+          </>
+        ) : null}
+      </div>
+
+      {setSortKey ? (
+        <div className="field biodiv-filters__sort" style={{ marginBottom: 0 }}>
+          <label htmlFor={sortSelectId}>Trier</label>
+          <select
+            id={sortSelectId}
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value)}
+            style={{ background: 'white' }}
+          >
+            <option value={BIODIV_SORT.NAME_ASC}>Nom A → Z</option>
+            <option value={BIODIV_SORT.NAME_DESC}>Nom Z → A</option>
+            {enableObservationChips ? (
+              <option value={BIODIV_SORT.RECENT_OBSERVED} disabled={!countsReady}>
+                Plus observées (moi)
+              </option>
+            ) : null}
+          </select>
+        </div>
+      ) : null}
+
+      <details className="plant-more biodiv-filters__advanced">
         <summary>Filtres avancés</summary>
         <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
           <div className="plant-form-grid">
@@ -164,7 +293,7 @@ export function PlantCatalogFilterPanel({
                   setGroup2(e.target.value);
                   setGroup3('');
                 }}
-                style={selectStyle}
+                style={{ background: 'white' }}
               >
                 <option value="">Tous</option>
                 {group2Options.map((g) => (
@@ -179,7 +308,7 @@ export function PlantCatalogFilterPanel({
               <select
                 value={group3}
                 onChange={(e) => setGroup3(e.target.value)}
-                style={selectStyle}
+                style={{ background: 'white' }}
               >
                 <option value="">Tous</option>
                 {group3Options.map((g) => (
@@ -194,7 +323,7 @@ export function PlantCatalogFilterPanel({
               <select
                 value={habitat}
                 onChange={(e) => setHabitat(e.target.value)}
-                style={selectStyle}
+                style={{ background: 'white' }}
               >
                 <option value="">Tous</option>
                 {habitatOptions.map((h) => (
@@ -213,7 +342,7 @@ export function PlantCatalogFilterPanel({
                   if (setTrophicRole) setTrophicRole(v);
                   else if (setAgro) setAgro(v);
                 }}
-                style={selectStyle}
+                style={{ background: 'white' }}
               >
                 <option value="">Tous</option>
                 {trophicOptions.map((a) => (
@@ -229,7 +358,7 @@ export function PlantCatalogFilterPanel({
                 <select
                   value={habitatType || ''}
                   onChange={(e) => setHabitatType(e.target.value)}
-                  style={selectStyle}
+                  style={{ background: 'white' }}
                 >
                   <option value="">Tous</option>
                   {habitatTypeOptions.map((h) => (
@@ -247,7 +376,7 @@ export function PlantCatalogFilterPanel({
                   id={originStatusSelectId}
                   value={originStatus || ''}
                   onChange={(e) => setOriginStatus(e.target.value)}
-                  style={selectStyle}
+                  style={{ background: 'white' }}
                 >
                   <option value="">Tous</option>
                   {ORIGIN_STATUS_VALUES.map((value) => (
@@ -265,7 +394,7 @@ export function PlantCatalogFilterPanel({
                   id={iucnStatusSelectId}
                   value={iucnStatus || ''}
                   onChange={(e) => setIucnStatus(e.target.value)}
-                  style={selectStyle}
+                  style={{ background: 'white' }}
                 >
                   <option value="">Tous</option>
                   {IUCN_STATUS_VALUES.map((value) => (
@@ -276,20 +405,6 @@ export function PlantCatalogFilterPanel({
                 </select>
               </div>
             ) : null}
-            {showZonePresence && setZonePresence && (
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label>Présence sur la carte</label>
-                <select
-                  value={zonePresence}
-                  onChange={(e) => setZonePresence(e.target.value)}
-                  style={selectStyle}
-                >
-                  <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
-                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présente sur cette carte</option>
-                  <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Absente de cette carte</option>
-                </select>
-              </div>
-            )}
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={resetAllFilters}>
             Réinitialiser les filtres

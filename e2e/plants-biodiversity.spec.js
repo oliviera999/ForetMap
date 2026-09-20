@@ -57,17 +57,17 @@ test('catalogue biodiversité : vignettes muettes, fiche complète au clic', asy
   expect(perPlant, `appels par fiche : ${perPlant.join(', ')}`).toEqual([]);
   expect(comments, `appels commentaires : ${comments.join(', ')}`).toEqual([]);
 
-  // Le coût PROPRE au catalogue : la liste, les compteurs d'observation, l'annonce du
-  // contrôle. Trois appels de page, quel que soit le nombre de vignettes. (Le compteur
-  // global inclut aussi le démarrage de l'application — cartes, tâches, visite… — qui n'a
-  // rien à voir avec cet écran.)
+  // Le coût PROPRE au catalogue : la liste (souvent déjà en cache mémoire après le
+  // démarrage), les compteurs d'observation, l'annonce du contrôle — bornés à la
+  // fenêtre « Voir plus » (≤ 36 ids → un lot HTTP chacun). Trois appels de page max
+  // tant qu'on n'a pas dépassé 200 vignettes affichées.
   const catalogCalls = apiCalls.filter(
     (u) => u.startsWith('/api/plants') || u.includes('/learning/gating/summary'),
   );
   expect(
     catalogCalls.length,
     `${catalogCalls.length} appels de catalogue pour ${tileCount} vignettes : ${catalogCalls.join(', ')}`,
-  ).toBeLessThanOrEqual(3);
+  ).toBeLessThanOrEqual(4);
 
   // Le clic ouvre la fiche complète — la modale d'aperçu, celle qu'ouvrent déjà la carte,
   // le glossaire, le quiz et le réseau trophique.

@@ -1,22 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 /**
- * Garde de charge du catalogue biodiversité.
- *
- * Le catalogue rendait toutes les fiches dépliées, et chaque fiche allait chercher ses
- * propres données au montage : bloc pédagogique (`/interactions`, `/glossary-terms`,
- * `/quiz-questions`) et commentaires de contexte (aperçu, total, `/api/settings/public`).
- * Six appels par carte, soit ~471 requêtes pour 78 espèces — de quoi épuiser le plafond
- * de 1200 req/min d'un établissement à trois ouvertures simultanées
- * (`docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md`, §1).
- *
- * Depuis le passage aux vignettes, la grille ne doit plus émettre **que** les appels de
- * page (compteurs d'observation, annonce du contrôle) ; la fiche complète est chargée à
- * l'ouverture de la modale. Ce test tient cette garantie : une régression qui remettrait
- * un `useEffect` de chargement dans la vignette le ferait échouer immédiatement, alors
- * qu'aucun test fonctionnel ne la verrait passer.
+ * Garde de charge du catalogue biodiversité + pagination « Voir plus ».
  */
 
 const apiCalls = vi.hoisted(() => []);
@@ -40,26 +27,32 @@ vi.mock('../../src/services/api', async (importOriginal) => {
   };
 });
 
-// Depuis `38e8555` (« rattacher des espèces à une carte sans lieu précis »), le catalogue
-// élève s'ouvre filtré sur la **carte active** : une espèce n'y figure que si elle est posée
-// sur une zone / un repère de cette carte, ou rattachée directement via `map_ids`. Les fiches
-// sont donc rattachées à la carte active — sans quoi la grille est vide et cette garde de
-// charge ne mesure plus rien.
-const ACTIVE_MAP_ID = 'foret';
-const PLANTS = Array.from({ length: 12 }, (_, i) => ({
-  id: i + 1,
-  name: `Espèce ${i + 1}`,
-  emoji: '🌿',
-  description: `Description de l'espèce ${i + 1}`,
-  scientific_name: `Genus species${i + 1}`,
-  trophic_role: 'producteur',
-  is_edible: 1,
-  map_ids: [ACTIVE_MAP_ID],
-  taxonomy: { kingdom: 'Végétal', group: 'Angiosperme', family: null, genus: null },
-}));
+const ACTIVE_MAP_ID = vi.hoisted(() => 'foret');
+
+function makePlants(n) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: i + 1,
+    name: `Espèce ${i + 1}`,
+    emoji: '🌿',
+    description: `Description de l'espèce ${i + 1}`,
+    scientific_name: `Genus species${i + 1}`,
+    trophic_role: 'producteur',
+    is_edible: 1,
+    map_ids: [ACTIVE_MAP_ID],
+    taxonomy: { kingdom: 'Végétal', group: 'Angiosperme', family: null, genus: null },
+  }));
+}
+
+const plantsRef = vi.hoisted(() => ({ list: null }));
+plantsRef.list = makePlants(12);
 
 vi.mock('../../src/contexts/DataContext.jsx', () => ({
-  useData: () => ({ plants: PLANTS, zones: [], markers: [], activeMapId: ACTIVE_MAP_ID }),
+  useData: () => ({
+    plants: plantsRef.list,
+    zones: [],
+    markers: [],
+    activeMapId: ACTIVE_MAP_ID,
+  }),
 }));
 vi.mock('../../src/contexts/PublicSettingsContext.jsx', () => ({
   usePublicSettings: () => ({ modules: {} }),
@@ -79,20 +72,24 @@ vi.mock('../../src/hooks/useHelp', () => ({
 
 const { PlantViewer } = await import('../../src/components/foretmap-views.jsx');
 
+async function flushDebounce() {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 320));
+  });
+}
+
 describe('catalogue biodiversité — vignettes', () => {
   beforeEach(() => {
     apiCalls.length = 0;
     apiMock.mockClear();
+    plantsRef.list = makePlants(12);
   });
 
   test('aucune requête par fiche au montage de la grille', async () => {
-    render(<PlantViewer onOpenPlant={vi.fn()} />);
+    render(<PlantViewer onOpenPlant={vi.fn()} maps={[{ id: ACTIVE_MAP_ID, name: 'Forêt' }]} />);
 
-    // Attendre les vignettes plutôt qu'un premier appel API : la grille peut n'en émettre
-    // aucun — c'est le but de cette garde, pas une raison d'échouer sur la synchronisation.
     await screen.findAllByRole('button', { name: /Ouvrir la fiche de/ });
-    // Laisse passer les effets différés d'éventuels enfants avant de conclure.
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await flushDebounce();
 
     const perPlant = apiCalls.filter((p) => /\/api\/plants\/\d+\//.test(p));
     const comments = apiCalls.filter((p) => p.includes('/api/context-comments'));
@@ -101,19 +98,27 @@ describe('catalogue biodiversité — vignettes', () => {
     expect(perPlant, `appels par fiche : ${perPlant.join(', ')}`).toEqual([]);
     expect(comments, `appels commentaires : ${comments.join(', ')}`).toEqual([]);
     expect(publicSettings, `appels réglages : ${publicSettings.join(', ')}`).toEqual([]);
-
-    // Le nombre d'appels ne doit pas dépendre du nombre de fiches affichées.
     expect(apiCalls.length, `appels : ${apiCalls.join(', ')}`).toBeLessThanOrEqual(3);
   });
 
   test('les douze fiches sont listées et le clic ouvre la fiche complète', async () => {
     const onOpenPlant = vi.fn();
-    render(<PlantViewer onOpenPlant={onOpenPlant} />);
+    render(<PlantViewer onOpenPlant={onOpenPlant} maps={[{ id: ACTIVE_MAP_ID, name: 'Forêt' }]} />);
 
     const openButtons = await screen.findAllByRole('button', { name: /Ouvrir la fiche de/ });
-    expect(openButtons).toHaveLength(PLANTS.length);
+    expect(openButtons).toHaveLength(12);
 
     await userEvent.click(screen.getByRole('button', { name: 'Ouvrir la fiche de Espèce 3' }));
     expect(onOpenPlant).toHaveBeenCalledWith(3);
+  });
+
+  test('Voir plus : 50 fiches → 36 puis 50', async () => {
+    plantsRef.list = makePlants(50);
+    render(<PlantViewer onOpenPlant={vi.fn()} maps={[{ id: ACTIVE_MAP_ID, name: 'Forêt' }]} />);
+
+    expect(await screen.findAllByRole('button', { name: /Ouvrir la fiche de/ })).toHaveLength(36);
+    const more = screen.getByRole('button', { name: /Voir \d+ de plus/ });
+    await userEvent.click(more);
+    expect(await screen.findAllByRole('button', { name: /Ouvrir la fiche de/ })).toHaveLength(50);
   });
 });

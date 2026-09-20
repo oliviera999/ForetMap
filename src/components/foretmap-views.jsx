@@ -4,8 +4,6 @@ import { compressImage } from '../shared/platform/image';
 import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
 import { HelpPanel } from './HelpPanel';
-import { usePlantObservationCounts } from '../hooks/usePlantObservationCounts';
-import { useGatingSummary } from '../hooks/useGatingSummary';
 import { resolveHelpPanelSection, resolveTooltipKey } from '../utils/helpResolve';
 import {
   plantLinkedToMapMarker,
@@ -13,7 +11,7 @@ import {
   plantPresentOnActiveMap,
   ZONE_PRESENCE_FILTER,
 } from '../utils/plantFilters';
-import { usePlantCatalogFilters } from '../hooks/usePlantCatalogFilters';
+import { useBiodivCatalogPage } from '../hooks/useBiodivCatalogPage';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
 import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
@@ -49,7 +47,13 @@ import {
 // s'ouvre dans la modale d'aperçu montée par `App` (`onOpenPlant`). L'édition, elle,
 // passe en modale plutôt qu'en place dans la grille — la fiche n'est plus rendue à deux
 // endroits (cf. docs/AUDIT_CHARGE_BIODIVERSITE_2026-09.md, lot 1).
-function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, maps = [] }) {
+function PlantManager({
+  onRefresh,
+  onForceLogout = null,
+  onOpenPlant = null,
+  maps = [],
+  onActiveMapChange = null,
+}) {
   const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
@@ -65,45 +69,41 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
   const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
-  const { filteredPlants, filterPanelProps } = usePlantCatalogFilters(plants, zones, markers, {
+  const {
+    filteredPlants,
+    displayedPlants,
+    filterPanelProps,
+    plantObservationCounts,
+    applyObservationAcknowledged,
+    plantGatingSummaries,
+    refreshPlantGating,
+    hasMore,
+    nextBatch,
+    showMore,
+  } = useBiodivCatalogPage({
+    plants,
+    zones,
+    markers,
     activeMapId,
+    defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
+    enableObservationChips: true,
   });
 
-  // Fiche en cours d'édition, relue depuis le catalogue : une fiche supprimée ou filtrée
-  // pendant l'édition referme la modale au lieu de la laisser sur des données fantômes.
   const editPlant = useMemo(
     () => (editId ? plants.find((p) => p.id === editId) || null : null),
     [editId, plants],
   );
 
-  const biodivObservationPlantIds = useMemo(() => {
-    const ids = filteredPlants.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
-    ids.sort((a, b) => a - b);
-    return ids;
-  }, [filteredPlants]);
-  // Fetch + abonnement `foretmap_session_changed` mutualisés (motif copié entre
-  // PlantManager et PlantViewer) ; clé stable = ids joints + plants.length (historique).
-  const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
-    usePlantObservationCounts(biodivObservationPlantIds, plants.length);
-  // Annonce du contrôle de compréhension AVANT le clic : le bouton « Espèce découverte »
-  // ne laissait rien deviner, contrairement à celui des tutoriels.
-  const { summaries: plantGatingSummaries, refresh: refreshPlantGating } = useGatingSummary(
-    'plant',
-    biodivObservationPlantIds,
-  );
-
-  // Liens carte pré-calculés une fois par changement de données (au lieu d'un
-  // balayage O(zones + repères) par carte à chaque rendu).
   const plantMapLinks = useMemo(() => {
     const links = new Map();
-    for (const p of filteredPlants) {
+    for (const p of displayedPlants) {
       links.set(p.id, {
         zones: zones.filter((z) => plantLinkedToMapZone(p, z)),
         markers: markers.filter((m) => plantLinkedToMapMarker(p, m)),
       });
     }
     return links;
-  }, [filteredPlants, zones, markers]);
+  }, [displayedPlants, zones, markers]);
 
   const startEdit = (p) => {
     setEditId(p.id);
@@ -133,15 +133,6 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
     setSaving(false);
   };
 
-  // Enregistrement automatique — **édition seule**.
-  //
-  // En création (`showAdd`, `editId === null`) l'autosave reste inactif : une fiche
-  // n'est créée que par une action explicite. En édition, la fiche existe déjà et
-  // l'enregistrement ne fait que la mettre à jour — on ne publie donc rien de neuf.
-  // Contrairement à `save()`, cette persistance **ne referme pas** l'éditeur.
-  //
-  // La baseline retournée est le formulaire *envoyé* : une frappe saisie pendant la
-  // requête en vol reste ainsi détectée comme non enregistrée et repart au tour suivant.
   const autoSavePersist = useCallback(async () => {
     const sent = form;
     await api(`/api/plants/${editId}`, 'PUT', sent);
@@ -208,11 +199,19 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
         </div>
       </div>
       <p className="section-sub">
-        {filteredPlants.length} / {plants.length} êtres vivants à l’écran — fouille la biodiversité
-        !
+        {displayedPlants.length} / {filteredPlants.length} affichés
+        {filteredPlants.length !== plants.length ? ` (${plants.length} dans le catalogue)` : ''} —
+        fouille la biodiversité !
       </p>
 
-      <PlantCatalogFilterPanel plants={plants} {...filterPanelProps} />
+      <PlantCatalogFilterPanel
+        plants={plants}
+        maps={maps}
+        activeMapId={activeMapId}
+        onActiveMapChange={onActiveMapChange}
+        showZonePresence
+        {...filterPanelProps}
+      />
 
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
 
@@ -251,7 +250,7 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
       )}
 
       <div className="biodiv-grid biodiv-grid--tiles">
-        {filteredPlants.map((p) => {
+        {displayedPlants.map((p) => {
           const { zones: pZones = [], markers: pMarkers = [] } = plantMapLinks.get(p.id) || {};
           return (
             <PlantCatalogTile
@@ -299,6 +298,18 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
         })}
       </div>
 
+      {hasMore ? (
+        <div className="biodiv-show-more">
+          <button
+            type="button"
+            className="btn btn-secondary biodiv-show-more__btn"
+            onClick={showMore}
+          >
+            Voir {nextBatch} de plus
+          </button>
+        </div>
+      ) : null}
+
       {editPlant && (
         <DialogShell
           open={!!editPlant}
@@ -341,7 +352,6 @@ function PlantManager({ onRefresh, onForceLogout = null, onOpenPlant = null, map
   );
 }
 
-// ── OBSERVATION NOTEBOOK (student) ────────────────────────────────────────────
 function ObservationNotebook({ student, onForceLogout = null }) {
   const { zones = [] } = useData();
   const [entries, setEntries] = useState([]);
@@ -561,7 +571,12 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 // La fiche complète n'est plus rendue ici : le clic sur une vignette ouvre la modale
 // d'aperçu montée par `App` (`onOpenPlant`), qui reçoit elle-même `maps`, le glossaire
 // et le réseau trophique. Ces trois props ne transitent donc plus par cette vue.
-function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
+function PlantViewer({
+  onForceLogout = null,
+  onOpenPlant = null,
+  maps = [],
+  onActiveMapChange = null,
+}) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [], activeMapId = null } = useData();
@@ -570,38 +585,33 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
     useHelp({ publicSettings, isTeacher: false });
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
-  const { filteredPlants: filtered, filterPanelProps } = usePlantCatalogFilters(
+  const {
+    filteredPlants: filtered,
+    displayedPlants,
+    filterPanelProps,
+    plantObservationCounts,
+    applyObservationAcknowledged,
+    plantGatingSummaries,
+    refreshPlantGating,
+    hasMore,
+    nextBatch,
+    showMore,
+  } = useBiodivCatalogPage({
     plants,
     zones,
     markers,
-    {
-      defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
-      activeMapId,
-    },
-  );
+    activeMapId,
+    defaultZonePresence: ZONE_PRESENCE_FILTER.IN_MAP,
+    enableObservationChips: true,
+  });
 
-  const biodivObservationPlantIdsStudent = useMemo(() => {
-    const ids = filtered.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
-    ids.sort((a, b) => a - b);
-    return ids;
-  }, [filtered]);
-  // Même hook mutualisé que côté PlantManager (fetch + abonnement + cleanup).
-  const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
-    usePlantObservationCounts(biodivObservationPlantIdsStudent, plants.length);
-  const { summaries: plantGatingSummaries, refresh: refreshPlantGating } = useGatingSummary(
-    'plant',
-    biodivObservationPlantIdsStudent,
-  );
-
-  // Rattachement carte pré-calculé une fois par changement de données, comme côté
-  // PlantManager : la vignette n'a besoin que du booléen.
   const plantMapLinkedIds = useMemo(() => {
     const ids = new Set();
-    for (const p of filtered) {
+    for (const p of displayedPlants) {
       if (plantPresentOnActiveMap(p, zones, markers, activeMapId)) ids.add(p.id);
     }
     return ids;
-  }, [filtered, zones, markers, activeMapId]);
+  }, [displayedPlants, zones, markers, activeMapId]);
 
   return (
     <div className="fade-in">
@@ -625,11 +635,16 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
         )}
       </div>
       <p className="section-sub">
-        {filtered.length} / {plants.length} êtres vivants à l&apos;écran — affine avec les filtres
+        {displayedPlants.length} / {filtered.length} affichés
+        {filtered.length !== plants.length ? ` (${plants.length} au catalogue)` : ''} — affine avec
+        les filtres
       </p>
 
       <PlantCatalogFilterPanel
         plants={plants}
+        maps={maps}
+        activeMapId={activeMapId}
+        onActiveMapChange={onActiveMapChange}
         showZonePresence
         searchPlaceholder="Chercher un être vivant…"
         {...filterPanelProps}
@@ -643,29 +658,42 @@ function PlantViewer({ onForceLogout = null, onOpenPlant = null }) {
           <p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p>
         </div>
       ) : (
-        <div className="biodiv-grid biodiv-grid--tiles">
-          {filtered.map((p) => (
-            <PlantCatalogTile
-              key={p.id}
-              plant={p}
-              onOpen={onOpenPlant}
-              hasMapLink={plantMapLinkedIds.has(p.id)}
-              myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
-              siteObservationCount={
-                plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
-              }
-              gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
-              onObservationAcknowledged={(id, next) => {
-                applyObservationAcknowledged(id, next);
-                refreshPlantGating();
-              }}
-              offerPlantCommentAfterObservation={
-                contextCommentsEnabled && canParticipateContextComments
-              }
-              onForceLogout={onForceLogout}
-            />
-          ))}
-        </div>
+        <>
+          <div className="biodiv-grid biodiv-grid--tiles">
+            {displayedPlants.map((p) => (
+              <PlantCatalogTile
+                key={p.id}
+                plant={p}
+                onOpen={onOpenPlant}
+                hasMapLink={plantMapLinkedIds.has(p.id)}
+                myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
+                siteObservationCount={
+                  plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
+                }
+                gatingSummary={plantGatingSummaries.get(String(p.id)) || null}
+                onObservationAcknowledged={(id, next) => {
+                  applyObservationAcknowledged(id, next);
+                  refreshPlantGating();
+                }}
+                offerPlantCommentAfterObservation={
+                  contextCommentsEnabled && canParticipateContextComments
+                }
+                onForceLogout={onForceLogout}
+              />
+            ))}
+          </div>
+          {hasMore ? (
+            <div className="biodiv-show-more">
+              <button
+                type="button"
+                className="btn btn-secondary biodiv-show-more__btn"
+                onClick={showMore}
+              >
+                Voir {nextBatch} de plus
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

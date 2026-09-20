@@ -1,22 +1,26 @@
 import { useMemo, useState } from 'react';
 import { ZONE_PRESENCE_FILTER, plantMatchesAllFilters } from '../utils/plantFilters';
+import {
+  BIODIV_SORT,
+  applyBiodivQuickChips,
+  sortBiodivPlants,
+} from '../utils/biodivCatalogLoad.js';
 
 /**
- * État partagé des filtres du catalogue biodiversité (PlantManager / PlantViewer).
- *
- * Regroupe les états de filtre (recherche + taxonomie + habitat/rôle/milieu/statuts
- * biogéographique et UICN + présence sur la carte), le memo `structured` et le calcul
- * mémoïsé de `filteredPlants`.
- * `defaultZonePresence` permet d’ouvrir le catalogue élève déjà filtré sur la carte active
- * sans exposer un second modèle de rattachement.
- *
- * Retourne aussi `filterPanelProps`, à étaler tel quel sur `<PlantCatalogFilterPanel />`.
+ * État partagé des filtres / tri / chips du catalogue biodiversité
+ * (PlantManager / PlantViewer).
  */
 export function usePlantCatalogFilters(
   plants,
   zones,
   markers,
-  { defaultZonePresence = ZONE_PRESENCE_FILTER.ALL, activeMapId = null } = {},
+  {
+    defaultZonePresence = ZONE_PRESENCE_FILTER.ALL,
+    activeMapId = null,
+    countsById = null,
+    /** Inclure les chips d’observation (élève) et le tri « récemment observées ». */
+    enableObservationChips = false,
+  } = {},
 ) {
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
@@ -28,6 +32,10 @@ export function usePlantCatalogFilters(
   const [originStatus, setOriginStatus] = useState('');
   const [iucnStatus, setIucnStatus] = useState('');
   const [zonePresence, setZonePresence] = useState(defaultZonePresence);
+  const [edibleOnly, setEdibleOnly] = useState(false);
+  const [iucnThreatenedOnly, setIucnThreatenedOnly] = useState(false);
+  const [observationChip, setObservationChip] = useState(''); // '' | 'mine' | 'unseen'
+  const [sortKey, setSortKey] = useState(BIODIV_SORT.NAME_ASC);
 
   const structured = useMemo(
     () => ({
@@ -45,9 +53,9 @@ export function usePlantCatalogFilters(
 
   const queryTrimmedLower = search.trim().toLowerCase();
 
-  const filteredPlants = useMemo(
+  const baseFiltered = useMemo(
     () =>
-      plants.filter((p) =>
+      (Array.isArray(plants) ? plants : []).filter((p) =>
         plantMatchesAllFilters(
           p,
           { structured, queryTrimmedLower, zonePresence },
@@ -59,8 +67,70 @@ export function usePlantCatalogFilters(
     [plants, structured, queryTrimmedLower, zonePresence, zones, markers, activeMapId],
   );
 
+  const chipFiltered = useMemo(() => {
+    const needsCounts =
+      enableObservationChips && (observationChip === 'mine' || observationChip === 'unseen');
+    return applyBiodivQuickChips(
+      baseFiltered,
+      {
+        edibleOnly,
+        iucnThreatenedOnly,
+        observation: needsCounts ? observationChip : '',
+      },
+      needsCounts ? countsById : null,
+    );
+  }, [
+    baseFiltered,
+    edibleOnly,
+    iucnThreatenedOnly,
+    observationChip,
+    enableObservationChips,
+    countsById,
+  ]);
+
+  /** Liste pour laquelle charger les compteurs quand un chip/tri d’observation est actif. */
+  const countScopePlants = useMemo(
+    () => applyBiodivQuickChips(baseFiltered, { edibleOnly, iucnThreatenedOnly }, null),
+    [baseFiltered, edibleOnly, iucnThreatenedOnly],
+  );
+
+  const filteredPlants = useMemo(
+    () => sortBiodivPlants(chipFiltered, sortKey, countsById),
+    [chipFiltered, sortKey, countsById],
+  );
+
+  /** True si les compteurs doivent couvrir toute la liste filtrée (pas seulement la page). */
+  const needsFullCounts =
+    enableObservationChips &&
+    (observationChip === 'mine' ||
+      observationChip === 'unseen' ||
+      sortKey === BIODIV_SORT.RECENT_OBSERVED);
+
+  /** Clé pour réinitialiser la pagination « Voir plus » quand les filtres changent. */
+  const filterResetKey = [
+    search,
+    group1,
+    group2,
+    group3,
+    habitat,
+    trophicRole,
+    habitatType,
+    originStatus,
+    iucnStatus,
+    zonePresence,
+    edibleOnly,
+    iucnThreatenedOnly,
+    observationChip,
+    sortKey,
+    activeMapId,
+  ].join('|');
+
   return {
     filteredPlants,
+    baseFiltered,
+    countScopePlants,
+    needsFullCounts,
+    filterResetKey,
     filterPanelProps: {
       search,
       setSearch,
@@ -83,6 +153,15 @@ export function usePlantCatalogFilters(
       zonePresence,
       setZonePresence,
       defaultZonePresence,
+      edibleOnly,
+      setEdibleOnly,
+      iucnThreatenedOnly,
+      setIucnThreatenedOnly,
+      observationChip,
+      setObservationChip,
+      sortKey,
+      setSortKey,
+      enableObservationChips,
     },
   };
 }

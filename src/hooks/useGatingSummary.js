@@ -6,7 +6,7 @@ import { useLearningGatingSummary } from '../shared/hooks/useLearningGatingSumma
  *
  * Adaptateur mince au-dessus du hook commun (`useLearningGatingSummary`) : il n'injecte
  * que le client HTTP, le chemin de la route et l'événement de session propres au produit.
- * Toute la logique — clé stable, silence en cas d'échec, plafond de références — est
+ * Toute la logique — clé stable, silence en cas d'échec, lots de 200 refs — est
  * partagée avec Gnomes & Licornes.
  *
  * @param {string} resourceType 'tutorial' | 'plant'
