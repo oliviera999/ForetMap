@@ -1,29 +1,23 @@
 /**
- * Portée des cartes selon le contexte de session (prof / élève affilié / visite publique),
- * extraite de `src/App.jsx` : la même dérivation était écrite deux fois (mémo `visibleMaps`
- * du rendu et résolution de carte à l'intérieur de `fetchAll`).
+ * Portée des cartes selon le contexte de session (prof / élève / visite publique), extraite
+ * de `src/App.jsx` : la même dérivation était écrite deux fois (mémo `visibleMaps` du rendu
+ * et résolution de carte à l'intérieur de `fetchAll`).
+ *
+ * Depuis la suppression de l'affiliation (politique de profils « le plus élevé l'emporte »),
+ * le périmètre cartes d'un compte connecté ne vient plus que de ses groupes, et c'est le
+ * **serveur** qui filtre `GET /api/maps` : le front n'applique plus aucune restriction
+ * d'identifiants, il se contente de préférer les cartes actives.
  */
-import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './mapAffiliation';
 
 /**
- * Ids de cartes autorisés pour le contexte courant : `null` = aucune restriction
- * (prof ou visite publique), sinon la restriction issue de l'affiliation élève.
- * @param {{ isTeacher?: boolean, isPublicVisit?: boolean, affiliation?: string|null }} scope
- * @returns {string[]|null}
- */
-export function allowedMapIdsForScope({ isTeacher, isPublicVisit, affiliation } = {}) {
-  if (isTeacher || isPublicVisit) return null;
-  return allowedMapIdsFromAffiliation(affiliation);
-}
-
-/**
- * Cartes visibles pour le contexte courant (actives d'abord, repliées sur la portée
- * d'affiliation quand elle existe).
+ * Cartes visibles pour le contexte courant : les cartes actives, ou toutes si aucune n'est
+ * active (liste telle que renvoyée par le serveur, déjà bornée au périmètre du compte).
  * @param {Array} maps
- * @param {{ isTeacher?: boolean, isPublicVisit?: boolean, affiliation?: string|null }} scope
  */
-export function visibleMapsForScope(maps, scope) {
-  return mapsForAffiliationScope(maps, allowedMapIdsForScope(scope));
+export function visibleMapsForScope(maps) {
+  const safeMaps = Array.isArray(maps) ? maps : [];
+  const activeMaps = safeMaps.filter((mp) => mp?.is_active !== false);
+  return activeMaps.length > 0 ? activeMaps : safeMaps;
 }
 
 /**
@@ -39,27 +33,13 @@ export function pickDefaultMapId({ isTeacher, isPublicVisit, defaults = {} } = {
 /**
  * Carte active effective : on garde la carte demandée si elle est visible, sinon on
  * retombe sur la carte par défaut, puis sur la première visible, puis sur la demande brute.
- * Une restriction d'affiliation qui exclut la carte courante réoriente d'abord la demande.
- * @param {{ visibleMaps?: Array, allowedMapIds?: string[]|null, currentMapId?: string,
- *           defaultMapId?: string }} params
+ * @param {{ visibleMaps?: Array, currentMapId?: string, defaultMapId?: string }} params
  * @returns {string}
  */
-export function resolveScopedMapId({
-  visibleMaps,
-  allowedMapIds,
-  currentMapId,
-  defaultMapId,
-} = {}) {
+export function resolveScopedMapId({ visibleMaps, currentMapId, defaultMapId } = {}) {
   const scopedMaps = Array.isArray(visibleMaps) ? visibleMaps : [];
-  const requestedMapId =
-    Array.isArray(allowedMapIds) && !allowedMapIds.includes(currentMapId)
-      ? allowedMapIds[0]
-      : currentMapId;
-  if (scopedMaps.some((mp) => mp?.id === requestedMapId)) return requestedMapId;
+  if (scopedMaps.some((mp) => mp?.id === currentMapId)) return currentMapId;
   return (
-    scopedMaps.find((mp) => mp?.id === defaultMapId)?.id ||
-    scopedMaps[0]?.id ||
-    requestedMapId ||
-    ''
+    scopedMaps.find((mp) => mp?.id === defaultMapId)?.id || scopedMaps[0]?.id || currentMapId || ''
   );
 }

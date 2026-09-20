@@ -54,15 +54,24 @@ export function deriveProfilesCapabilities(auth = {}) {
   const canDelete = has('students.delete');
   const canCreateUsers = has('users.create');
   const canReadAllStats = has('stats.read.all');
+  const canAssignRoles = has('admin.users.assign_roles');
   return {
-    canManageProfiles: has('admin.roles.manage') || has('admin.users.assign_roles'),
+    canManageProfiles: has('admin.roles.manage') || canAssignRoles,
     canEditRoleDefinition: has('admin.roles.manage'),
+    // Attribution d'un profil (unitaire, en lot, fiche) : `admin.users.assign_roles` seule.
+    canAssignRoles,
+    // Lecture de la liste des comptes : ouverte à l'attribution des profils **et** à la
+    // gestion des groupes (`GET /api/rbac/users`) — un prof de classe voit ainsi les comptes
+    // de ses groupes dans son onglet « Classe », sans pouvoir changer leur profil.
+    canListAccounts: canAssignRoles || canImportGroups,
     canExport,
     canImport,
     canImportGroups,
     // Même permission que l'import de groupes : `groups.manage` est ce qui autorise le
     // rattachement (en lot depuis la liste, unitaire depuis la fiche).
     canManageGroups: canImportGroups,
+    // Lecture seule des groupes (`GET /api/groups`) : suffit à ouvrir le sous-onglet Groupes.
+    canReadGroups: has('groups.read') || canImportGroups,
     canDelete,
     canCreateUsers,
     canReadAllStats,

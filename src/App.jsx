@@ -71,7 +71,7 @@ const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPa
 
 /** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
-import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
+import { getRoleTerms } from './utils/n3-terminology';
 import { visibleMapsForScope } from './utils/appMapScope';
 import {
   canManagePedagoContent,
@@ -435,7 +435,6 @@ function App() {
     () => ({
       effectiveIsTeacher,
       showPublicVisit,
-      studentAffiliation: student?.affiliation,
       canManageTutorials,
       defaultMapStudent: publicSettings?.map?.default_map_student,
       defaultMapTeacher: publicSettings?.map?.default_map_teacher,
@@ -444,7 +443,6 @@ function App() {
     [
       effectiveIsTeacher,
       showPublicVisit,
-      student?.affiliation,
       canManageTutorials,
       publicSettings?.map?.default_map_student,
       publicSettings?.map?.default_map_teacher,
@@ -532,15 +530,9 @@ function App() {
     () => tasksForActiveMap.filter((t) => t.status === 'done').length,
     [tasksForActiveMap],
   );
-  const visibleMaps = useMemo(
-    () =>
-      visibleMapsForScope(maps, {
-        isTeacher: effectiveIsTeacher,
-        isPublicVisit: showPublicVisit,
-        affiliation: student?.affiliation,
-      }),
-    [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation],
-  );
+  // `GET /api/maps` est déjà borné par le serveur au périmètre du compte (groupes) : il ne
+  // reste qu'à préférer les cartes actives.
+  const visibleMaps = useMemo(() => visibleMapsForScope(maps), [maps]);
   useActiveMapVisibilityReconciler({
     activeMapId,
     visibleMaps,
@@ -579,7 +571,6 @@ function App() {
       first_name: fallbackName,
       last_name: '',
       pseudo: null,
-      affiliation: 'both',
       preview_mode: true,
     };
   }, [
@@ -605,8 +596,11 @@ function App() {
         (t.status === 'available' || t.status === 'in_progress'),
     ).length;
   }, [studentForUi, tasksForActiveMap]);
-  const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
-  const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
+  // L'affiliation par compte n'existe plus (le périmètre cartes vient des groupes) : la
+  // terminologie n3beur / n3boss est unifiée, `getRoleTerms` ignore déjà son argument. La
+  // valeur reste exposée (props et `SessionContext`) pour ne pas retoucher chaque consommateur ;
+  // elle vaut désormais toujours `false`.
+  const isN3Affiliated = false;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt…');
   const appServerDownNotice = getContentText(
@@ -705,7 +699,6 @@ function App() {
       avatar_path: sessionUser?.avatar_path || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       description: '',
-      affiliation: 'both',
       auth: {
         roleSlug: authClaims?.roleSlug || null,
         userType: authClaims?.userType || 'teacher',
@@ -1339,7 +1332,6 @@ function App() {
                   >
                     <StudentProfileEditorLazy
                       student={profileTargetUser}
-                      maps={maps}
                       onUpdated={handleProfileUpdated}
                       onClose={handleCloseProfileDialog}
                     />
@@ -1485,7 +1477,6 @@ function App() {
                         {tab === 'profiles' && (
                           <TabSuspense>
                             <ProfilesAdminViewLazy
-                              maps={maps}
                               onImpersonationApplied={handleAdminImpersonationApplied}
                             />
                           </TabSuspense>
@@ -1658,7 +1649,6 @@ function App() {
                           {tab === 'profiles' && canAccessProfiles && (
                             <TabSuspense>
                               <ProfilesAdminViewLazy
-                                maps={maps}
                                 onImpersonationApplied={handleAdminImpersonationApplied}
                               />
                             </TabSuspense>

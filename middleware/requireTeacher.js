@@ -61,23 +61,29 @@ async function hydrateAuthFromTokenClaims(claims) {
     claims.actorUserId != null
   );
   if (impersonating) {
-    // L'acteur (compte réel) doit détenir admin.impersonate.
+    // L'acteur (compte réel) doit rester légitime à chaque requête : détenir
+    // `admin.impersonate`, être actif, et ne pas avoir changé de mot de passe entre-temps
+    // (CDG-08). Sinon un administrateur désactivé gardait ses sessions « voir comme ».
+    const actor = await queryOne('SELECT is_active FROM users WHERE id = ? LIMIT 1', [
+      String(claims.actorUserId),
+    ]);
+    if (!actor || !Number(actor.is_active)) throw new AuthRevokedError('actor_inactive');
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
   }
   // État de compte relu à chaque requête : un compte désactivé ou dont le mot de passe a
-  // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration.
+  // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration ;
+  // un compte **supprimé** répond 401 `deleted: true`, que le client sait traiter (CDG-26).
   const account = await queryOne('SELECT is_active, token_epoch FROM users WHERE id = ? LIMIT 1', [
     String(claims.userId),
   ]);
-  if (account) {
-    if (account.is_active != null && !Number(account.is_active)) {
-      throw new AuthRevokedError('account_inactive');
-    }
-    if (!tokenEpochMatches(claims, account.token_epoch)) {
-      throw new AuthRevokedError('token_epoch');
-    }
+  if (!account) throw new AuthRevokedError('account_deleted');
+  if (account.is_active != null && !Number(account.is_active)) {
+    throw new AuthRevokedError('account_inactive');
+  }
+  if (!tokenEpochMatches(claims, account.token_epoch)) {
+    throw new AuthRevokedError('token_epoch');
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId);
   if (!authz) return null;
@@ -90,9 +96,9 @@ async function hydrateAuthFromTokenClaims(claims) {
     userType: claims.userType,
     userId: claims.userId,
     product: claims.product || 'foret',
-    canonicalUserId: claims.canonicalUserId || null,
     roleId: authz.roleId,
     roleSlug: authz.roleSlug,
+    roleRank: Number(authz.roleRank) || 0,
     roleDisplayName: authz.roleDisplayName,
     permissions: authz.permissions,
     elevatedPermissions: authz.elevatedPermissions,
@@ -104,7 +110,6 @@ async function hydrateAuthFromTokenClaims(claims) {
           impersonatedBy: {
             userType: claims.actorUserType,
             userId: claims.actorUserId,
-            canonicalUserId: claims.actorCanonicalUserId || null,
           },
         }
       : {}),
@@ -158,9 +163,13 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     req.auth = await hydrateAuthFromTokenClaims(claims);
   } catch (err) {
     if (err instanceof AuthRevokedError) {
-      res
-        .status(401)
-        .json({ error: 'Session expirée', code: 'SESSION_REVOKED', reason: err.reason });
+      const deleted = err.reason === 'account_deleted';
+      res.status(401).json({
+        error: deleted ? 'Compte supprimé' : 'Session expirée',
+        code: 'SESSION_REVOKED',
+        reason: err.reason,
+        ...(deleted ? { deleted: true } : {}),
+      });
       return null;
     }
     logger.error({ err, msg: 'auth_hydration_failed' }, 'Échec hydratation auth (infra)');

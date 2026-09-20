@@ -52,6 +52,11 @@ function readInitialFilters() {
  *
  * La seconde liste « Suppression de … », qui doublait celle-ci avec sa propre recherche, a été
  * fusionnée ici (P1 de l'audit UX) : Supprimer et Dupliquer sont des actions de ligne.
+ *
+ * Deux droits distincts pilotent le panneau : **lister** les comptes (`canListAccounts`,
+ * ouvert aussi à `groups.manage` — l'onglet « Classe » du prof de classe) et **attribuer** un
+ * profil (`canAssignRoles`, `admin.users.assign_roles`). Sans le second, la liste est en
+ * lecture seule pour le profil : sélecteur inactif, pas d'action groupée sur les profils.
  */
 export function ProfilesAccountsPanel({
   roles = [],
@@ -61,12 +66,13 @@ export function ProfilesAccountsPanel({
   canCreateUsers = false,
   canCreateTeacherRoles = false,
   canManageProfiles = false,
+  canListAccounts = canManageProfiles,
+  canAssignRoles = canManageProfiles,
   canManageGroups = false,
   groupOptions = [],
   canDeleteUi = false,
   canDuplicateStudents = false,
   roleTerms,
-  affiliationOptions = [],
   setErr,
   setMsg,
   onCreated,
@@ -224,11 +230,14 @@ export function ProfilesAccountsPanel({
 
   /**
    * P3 — une attribution sensible (admin, prof), ou le retrait d'un tel profil, passe par une
-   * confirmation. Le reste s'applique directement, comme avant.
+   * confirmation. Le reste s'applique directement, comme avant. « Aucun profil » n'est pas une
+   * attribution : le serveur ne retire pas un profil, il en pose un autre — rien à faire.
    */
   const requestRoleChange = (user, rawRoleId) => {
-    const roleId = rawRoleId === '' ? '' : parseInt(rawRoleId, 10);
-    const nextRole = roleId === '' ? null : roleById(roleId);
+    const roleId = parseInt(rawRoleId, 10);
+    if (!Number.isFinite(roleId)) return;
+    const nextRole = roleById(roleId);
+    if (!nextRole) return;
     const grantsSensitive = isSensitiveRole(nextRole);
     const revokesSensitive = isSensitiveRole(user.role_slug) && !isSensitiveRole(nextRole);
     if (grantsSensitive || revokesSensitive) {
@@ -273,15 +282,18 @@ export function ProfilesAccountsPanel({
     const roleId = parseInt(rawRoleId, 10);
     const nextRole = roleById(roleId);
     if (!nextRole || selectedUsers.length === 0) return;
-    const touchesSensitive =
-      isSensitiveRole(nextRole) || selectedUsers.some((u) => isSensitiveRole(u.role_slug));
-    if (touchesSensitive) {
+    // Le motif suit le sens du changement : donner un profil sensible, ou en retirer un à
+    // des comptes qui l'ont (admin, n3boss) alors que le profil cible ne l'est pas.
+    const grantsSensitive = isSensitiveRole(nextRole);
+    const revokesSensitive =
+      !grantsSensitive && selectedUsers.some((u) => isSensitiveRole(u.role_slug));
+    if (grantsSensitive || revokesSensitive) {
       setPendingRoleChange({
         mode: 'bulk',
         users: selectedUsers,
         role: nextRole,
         roleId,
-        reason: 'grant',
+        reason: grantsSensitive ? 'grant' : 'revoke',
       });
       return;
     }
@@ -321,9 +333,11 @@ export function ProfilesAccountsPanel({
 
   const filtersActive = hasActiveAccountsFilters(filters);
 
+  const showList = canListAccounts || canManageProfiles;
+
   return (
     <>
-      {canManageProfiles && (
+      {showList && (
         <div style={cardStyle}>
           <h3 style={{ marginTop: 0 }}>Comptes</h3>
           <p
@@ -334,9 +348,9 @@ export function ProfilesAccountsPanel({
               lineHeight: 'var(--lh-normal)',
             }}
           >
-            Le profil principal définit notamment forum et commentaires contextuels. « Modifier »
-            ouvre la fiche du compte (identité, droits et groupes). Cochez plusieurs lignes pour
-            attribuer un profil ou rattacher à un groupe en une fois.
+            {canAssignRoles
+              ? 'Le sélecteur pose le profil attribué ; le profil effectif (le plus élevé entre ce profil et ceux des groupes) définit les droits, forum et commentaires. « Modifier » ouvre la fiche du compte (identité, droits et groupes). Cochez plusieurs lignes pour attribuer un profil ou rattacher à un groupe en une fois.'
+              : 'Les comptes de vos groupes. « Modifier » ouvre la fiche (identité, droits et groupes). Le profil des comptes se règle par le profil par défaut du groupe ou par un administrateur.'}
           </p>
 
           <AccountsFiltersToolbar
@@ -365,7 +379,7 @@ export function ProfilesAccountsPanel({
             roles={roles}
             groupOptions={groupOptions}
             busy={bulkBusy}
-            canAssignRoles={canManageProfiles}
+            canAssignRoles={canAssignRoles}
             canManageGroups={canManageGroups}
             onAssignRole={requestBulkRole}
             onAddToGroup={runBulkGroup}
@@ -397,6 +411,7 @@ export function ProfilesAccountsPanel({
               rowStatus={rowStatus}
               selectedKeys={selectedKeys}
               isAdmin={isAdmin}
+              canAssignRoles={canAssignRoles}
               recomputingUserId={recomputingUserId}
               canDelete={canDeleteUi}
               canDuplicate={canDuplicateStudents}
@@ -407,7 +422,7 @@ export function ProfilesAccountsPanel({
               onDuplicateUser={(user) =>
                 withRowBusy(profilesUserKey(user), () => onDuplicateUser(user), 'Compte dupliqué')
               }
-              onRecomputeProfile={recomputeOneProfile}
+              onRecomputeProfile={canAssignRoles ? recomputeOneProfile : undefined}
             />
           )}
 
@@ -444,7 +459,7 @@ export function ProfilesAccountsPanel({
         onCancel={() => setPendingRoleChange(null)}
       />
 
-      {canManageProfiles && (
+      {canAssignRoles && (
         <ProfilesProgressionRecomputePanel
           groupOptions={groupOptions}
           roleTerms={roleTerms}
@@ -454,8 +469,6 @@ export function ProfilesAccountsPanel({
       )}
 
       <CreateUserPanel
-        roleTerms={roleTerms}
-        affiliationOptions={affiliationOptions}
         roles={roles}
         groupOptions={groupOptions}
         isAdmin={isAdmin}

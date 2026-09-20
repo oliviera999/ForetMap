@@ -100,3 +100,33 @@ export function filterGroupMemberCandidates(users = [], opts = {}) {
     return true;
   });
 }
+
+/**
+ * Groupes proposables comme **parent** de `groupId` : tous les groupes actifs sauf lui-même et
+ * ses descendants (un groupe ne peut pas devenir son propre ancêtre — même règle que le
+ * serveur, `routes/groups.js`).
+ * @param {object[]} groups liste plate
+ * @param {string|null} groupId groupe édité (`null` à la création)
+ */
+export function parentGroupCandidates(groups = [], groupId = null) {
+  const list = Array.isArray(groups) ? groups : [];
+  const self = groupId != null ? String(groupId) : '';
+  const excluded = new Set(self ? [self] : []);
+  if (self) {
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const g of list) {
+        const id = String(g?.id ?? '');
+        const parent = g?.parent_group_id != null ? String(g.parent_group_id) : '';
+        if (id && parent && excluded.has(parent) && !excluded.has(id)) {
+          excluded.add(id);
+          grew = true;
+        }
+      }
+    }
+  }
+  return list
+    .filter((g) => Number(g?.is_active) !== 0 && !excluded.has(String(g?.id ?? '')))
+    .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'fr'));
+}

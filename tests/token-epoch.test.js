@@ -24,8 +24,8 @@ before(async () => {
   await initSchema();
   const hash = await bcrypt.hash('avant-reset', 10);
   await execute(
-    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, 'Ep', 'Och', 'Ep Och', 'both', ?, 'local', 1, NOW(), NOW())`,
+    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, 'Ep', 'Och', 'Ep Och', ?, 'local', 1, NOW(), NOW())`,
     [studentId, `epoch.${stamp}@ecole.local`, studentPseudo, hash],
   );
 });

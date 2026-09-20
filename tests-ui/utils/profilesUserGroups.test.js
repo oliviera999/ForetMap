@@ -1,27 +1,32 @@
 import { describe, test, expect } from 'vitest';
 import {
   accountMetaEntries,
+  effectiveRoleOriginLabel,
   formatAccountDate,
   isSensitiveRole,
   normalizeUserGroups,
   summarizeUserGroups,
+  userAssignedRoleLabel,
   userRoleLabel,
   userTypeLabel,
 } from '../../src/utils/profilesUserGroups.js';
 
 describe('normalizeUserGroups', () => {
-  test('normalise, déduplique et trie (responsables d’abord puis par nom)', () => {
+  test('normalise et déduplique, dans l’ordre reçu ; plus de rôle « responsable »', () => {
     const out = normalizeUserGroups([
-      { id: 'b', name: 'Zèbre', kind: 'team', role_in_group: 'member' },
-      { id: 'a', name: 'Alpha', kind: 'class', role_in_group: 'MANAGER' },
+      { id: 'b', name: 'Zèbre', kind: 'team' },
+      { id: 'a', name: 'Alpha', kind: 'class', force_default_role: true, default_role_slug: 'x' },
       { id: 'a', name: 'Doublon', kind: 'class' },
       null,
       { name: 'Sans id' },
     ]);
     expect(out.map((g) => g.id)).toEqual(['b', 'a']);
-    expect(out.find((g) => g.id === 'a').isManager).toBe(true);
     expect(out.find((g) => g.id === 'a').kindLabel).toBe('Classe');
-    expect(out.find((g) => g.id === 'b').roleLabel).toBe('Membre');
+    expect(out.find((g) => g.id === 'a').forcesDefaultRole).toBe(true);
+    expect(out.find((g) => g.id === 'a').defaultRoleLabel).toBe('x');
+    expect(out.find((g) => g.id === 'b').forcesDefaultRole).toBe(false);
+    expect('isManager' in out[0]).toBe(false);
+    expect('roleLabel' in out[0]).toBe(false);
   });
 
   test('replie un kind inconnu sur sa valeur brute et un groupe archivé', () => {
@@ -43,12 +48,12 @@ describe('normalizeUserGroups', () => {
 });
 
 describe('summarizeUserGroups', () => {
-  test('liste lisible avec mention du rôle responsable', () => {
+  test('liste lisible des noms, sans mention de rôle dans le groupe', () => {
     const groups = normalizeUserGroups([
       { id: '1', name: 'Alpha', role_in_group: 'manager' },
       { id: '2', name: 'Beta' },
     ]);
-    expect(summarizeUserGroups(groups)).toBe('Alpha (Responsable), Beta');
+    expect(summarizeUserGroups(groups)).toBe('Alpha, Beta');
   });
 
   test('aucune entrée → libellé explicite', () => {
@@ -64,11 +69,41 @@ describe('userRoleLabel / userTypeLabel', () => {
     expect(userRoleLabel({})).toBe('');
   });
 
+  test('profil attribué : libellé puis slug, vide sinon', () => {
+    expect(userAssignedRoleLabel({ assigned_role_display_name: 'Élève avancé' })).toBe(
+      'Élève avancé',
+    );
+    expect(userAssignedRoleLabel({ assigned_role_slug: 'eleve_avance' })).toBe('eleve_avance');
+    expect(userAssignedRoleLabel({})).toBe('');
+  });
+
   test('type de compte en français, valeur inconnue conservée', () => {
     expect(userTypeLabel('student')).toBe('Élève');
     expect(userTypeLabel('teacher')).toBe('Enseignant');
     expect(userTypeLabel('bot')).toBe('bot');
     expect(userTypeLabel(null)).toBe('');
+  });
+});
+
+describe('effectiveRoleOriginLabel', () => {
+  test('attribué / conféré par le groupe / imposé par le groupe', () => {
+    expect(effectiveRoleOriginLabel({ effective_role: { source: 'assigned' } })).toBe('attribué');
+    expect(effectiveRoleOriginLabel({ effective_role: { source: 'default' } })).toBe('attribué');
+    expect(
+      effectiveRoleOriginLabel({ effective_role: { source: 'group', groupName: '2nde B' } }),
+    ).toBe('conféré par le groupe 2nde B');
+    expect(
+      effectiveRoleOriginLabel({ effective_role: { source: 'forced', groupName: 'Sixième 3' } }),
+    ).toBe('imposé par le groupe Sixième 3');
+    expect(effectiveRoleOriginLabel({ effective_role: { source: 'forced' } })).toBe(
+      'imposé par un groupe',
+    );
+  });
+
+  test('sans fiche détaillée ou origine inconnue : chaîne vide', () => {
+    expect(effectiveRoleOriginLabel({})).toBe('');
+    expect(effectiveRoleOriginLabel(null)).toBe('');
+    expect(effectiveRoleOriginLabel({ effective_role: { source: 'autre' } })).toBe('');
   });
 });
 

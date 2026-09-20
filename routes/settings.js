@@ -54,7 +54,8 @@ const {
   parseAnchors,
   assessAnchorsGeoPlausibility,
 } = require('../lib/mapGeoref');
-const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
+/** Identifiant de carte : lettres minuscules, chiffres, `_` et `-` (VARCHAR(32) de `maps`). */
+const MAP_SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
 

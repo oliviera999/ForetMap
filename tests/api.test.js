@@ -248,12 +248,7 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
     .post('/api/auth/register')
     .send({ firstName: 'Profil', lastName: `Sync${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  const {
-    id: studentId,
-    first_name: firstName,
-    last_name: lastName,
-    authToken: studentAuthToken,
-  } = studentRes.body;
+  const { id: studentId, first_name: firstName, last_name: lastName } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   const zones = await request(app).get('/api/zones').expect(200);
@@ -615,7 +610,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
-test('Unassign élève : pas de bascule progression custom sans unassign_self avant le contrôle permission', async () => {
+test('Unassign élève : le profil conféré par le groupe (plus élevé) l’emporte sur un palier de progression sans unassign_self', async () => {
   await execute(
     "DELETE rp FROM role_permissions rp INNER JOIN roles r ON r.id = rp.role_id WHERE r.slug LIKE 'test_baby_%'",
   );
@@ -625,7 +620,8 @@ test('Unassign élève : pas de bascule progression custom sans unassign_self av
   let groupId = null;
   try {
     await execute(
-      'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, 0, 1, 120, 0)',
+      // Rang 90 < n3beur novice (100) : le profil conféré par la classe reste le plus élevé.
+      'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, 0, 1, 90, 0)',
       [slug, 'Test bébé e2e', '🐣'],
     );
     const customRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
@@ -643,6 +639,7 @@ test('Unassign élève : pas de bascule progression custom sans unassign_self av
     const { first_name, last_name, id: studentId, authToken: registerToken } = studentRes.body;
 
     const teacherToken = await getAdminAuthToken();
+    const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
     const createdGroup = await request(app)
       .post('/api/groups')
       .set('Authorization', `Bearer ${teacherToken}`)
@@ -650,7 +647,7 @@ test('Unassign élève : pas de bascule progression custom sans unassign_self av
         name: `Groupe unassign ${Date.now()}`,
         slug: `grp-unassign-${Date.now()}`,
         kind: 'class',
-        grants_n3beur_access: true,
+        default_role_id: noviceRole.id,
       })
       .expect(201);
     groupId = createdGroup.body.id;
@@ -665,16 +662,19 @@ test('Unassign élève : pas de bascule progression custom sans unassign_self av
       })
       .expect(200);
 
-    await setStudentPrimaryRole(studentId, 'eleve_novice');
-    const { syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
-    await syncStudentPrimaryRoleFromProgress(studentId);
-    const roleBefore = await queryOne(
-      `SELECT r.slug FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id
-        WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    // Profil attribué = palier perso (sans unassign_self), profil effectif = novice (groupe).
+    await setStudentPrimaryRole(studentId, slug);
+    const roles = await queryOne(
+      `SELECT ar.slug AS assigned_slug, r.slug AS effective_slug
+         FROM users u
+         LEFT JOIN roles ar ON ar.id = u.assigned_role_id
+         LEFT JOIN user_roles ur ON ur.user_type = 'student' AND ur.user_id = u.id AND ur.is_primary = 1
+         LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE u.id = ? LIMIT 1`,
       [studentId],
     );
-    assert.notStrictEqual(roleBefore?.slug, 'eleve_novice');
-    assert.notStrictEqual(roleBefore?.slug, 'visiteur');
+    assert.strictEqual(roles?.assigned_slug, slug);
+    assert.strictEqual(roles?.effective_slug, 'eleve_novice');
 
     const meRes = await request(app)
       .get('/api/auth/me')

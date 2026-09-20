@@ -13,8 +13,6 @@ function loginInput(overrides = {}) {
     pseudo: '',
     email: '',
     description: '',
-    affiliation: '',
-    affiliationOptions: [],
     ...overrides,
   };
 }
@@ -31,8 +29,6 @@ function registerInput(overrides = {}) {
     pseudo: '',
     email: '',
     description: '',
-    affiliation: 'map:1',
-    affiliationOptions: [{ value: 'map:1', label: 'Forêt' }],
     ...overrides,
   };
 }
@@ -49,8 +45,8 @@ describe('getAuthSubmitError — mode login', () => {
     expect(getAuthSubmitError(loginInput({ pass: '' }))).toBe('Identifiant et mot de passe requis');
   });
 
-  test('ignore les contraintes d’inscription (affiliation absente acceptée)', () => {
-    expect(getAuthSubmitError(loginInput({ affiliation: '', affiliationOptions: [] }))).toBe('');
+  test('ignore les contraintes d’inscription (prénom / nom vides acceptés)', () => {
+    expect(getAuthSubmitError(loginInput({ first: '', last: '' }))).toBe('');
   });
 });
 
@@ -109,12 +105,7 @@ describe('getAuthSubmitError — mode register', () => {
     );
   });
 
-  test('affiliation requise puis vérifiée contre les options proposées', () => {
-    expect(getAuthSubmitError(registerInput({ affiliation: '' }))).toBe(
-      'Choisis ton espace (cartes proposées dans la liste)',
-    );
-    expect(getAuthSubmitError(registerInput({ affiliation: 'map:404' }))).toBe(
-      'Choix d’espace invalide',
-    );
+  test('plus de choix d’espace à l’inscription : le périmètre cartes vient des groupes', () => {
+    expect(getAuthSubmitError(registerInput({ affiliation: '', affiliationOptions: [] }))).toBe('');
   });
 });

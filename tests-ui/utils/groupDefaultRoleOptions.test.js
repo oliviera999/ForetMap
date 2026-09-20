@@ -46,7 +46,7 @@ describe('filterGroupDefaultRoles', () => {
     ).toEqual(['jardinier']);
   });
 
-  test('repli sans le champ : profils lecture seule, paliers n3beur et rangs < 400', () => {
+  test('repli sans le champ : tous les profils ForetMap sauf G&L, du plus élevé au plus bas', () => {
     const legacy = [
       { slug: 'visiteur', rank: 50 },
       { slug: 'personnel', rank: 50 },
@@ -56,9 +56,11 @@ describe('filterGroupDefaultRoles', () => {
       { slug: 'gl_player', rank: 120 },
     ];
     expect(filterGroupDefaultRoles(legacy).map((r) => r.slug)).toEqual([
+      'admin',
+      'prof',
+      'eleve_avance',
       'visiteur',
       'personnel',
-      'eleve_avance',
     ]);
   });
 

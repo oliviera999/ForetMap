@@ -140,7 +140,6 @@ test('application : création, rapprochement, groupe, classe et joueur G&L ; pui
   assert.strictEqual(group.name, `6e 3 ${stamp}`);
   const visitor = await queryOne("SELECT id FROM roles WHERE slug = 'visiteur'");
   assert.strictEqual(Number(group.default_role_id), Number(visitor.id));
-  assert.strictEqual(Number(group.grants_n3beur_access), 0);
 
   // Classe G&L liée au groupe ; trois joueurs.
   const glClass = await queryOne('SELECT * FROM gl_classes WHERE id = ?', [eg.gl_class_id]);
@@ -339,7 +338,6 @@ test('push_membership (n3) : ajout manuel dans le groupe poussé vers la cohorte
   assert.strictEqual(first.status, 'succeeded');
   const eg = await queryOne("SELECT * FROM external_groups WHERE external_id = '630'");
   const group = await queryOne('SELECT * FROM `groups` WHERE id = ?', [eg.group_id]);
-  assert.strictEqual(Number(group.grants_n3beur_access), 1);
   const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice'");
   assert.strictEqual(Number(group.default_role_id), Number(novice.id));
   const role = await queryOne(

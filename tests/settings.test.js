@@ -1,6 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
+const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const { app } = require('../server');
@@ -59,6 +60,7 @@ async function getAdminToken() {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   return await signAuthToken(
     {
@@ -536,38 +538,40 @@ test('GET /api/settings/admin/system/diagnostics renvoie un snapshot runtime', a
   assert.ok(typeof res.body.runtimeProcess.realtime?.clients === 'number');
 });
 
-test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
+test('RBAC : un administrateur ne modifie pas son propre profil ; un pair peut rétrograder un second admin', async () => {
   const token = await getAdminToken();
-  const users = await request(app)
-    .get('/api/rbac/users')
+  const me = await request(app)
+    .get('/api/auth/me')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local')
-    .trim()
-    .toLowerCase();
-  const adminUser = (users.body || []).find(
-    (u) =>
-      u.role_slug === 'admin' &&
-      String(u.email || '')
-        .trim()
-        .toLowerCase() === loginEmail,
-  );
-  assert.ok(adminUser, 'Aucun utilisateur admin trouvé pour TEACHER_ADMIN_EMAIL');
   const prof = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
-  assert.ok(prof?.id, 'Rôle prof introuvable');
-  const adminCountRow = await queryOne(
-    `SELECT COUNT(*) AS c
-       FROM user_roles ur
-       INNER JOIN roles r ON r.id = ur.role_id
-      WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`,
-  );
-  const adminCount = Number(adminCountRow?.c || 0);
-  const expectedStatus = adminCount <= 1 ? 409 : 200;
+  const adminRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['admin']);
+  assert.ok(prof?.id && adminRole?.id, 'Rôles prof/admin introuvables');
+
+  // Soi-même : refusé quel que soit le profil visé (CDG-06).
   await request(app)
-    .put(`/api/rbac/users/${adminUser.user_type}/${adminUser.id}/role`)
+    .put(`/api/rbac/users/teacher/${me.body.auth.userId}/role`)
     .set('Authorization', `Bearer ${token}`)
     .send({ role_id: prof.id })
-    .expect(expectedStatus);
+    .expect(403);
+
+  // Un second administrateur peut être rétrogradé par le premier : il en reste un.
+  const stamp = Date.now();
+  const otherId = crypto.randomUUID();
+  await execute(
+    `INSERT INTO users (id, user_type, assigned_role_id, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, 'Second admin', NULL, 'local', 1, NOW(), NOW())`,
+    [otherId, adminRole.id, `second-admin-${stamp}@example.com`, `second_admin_${stamp}`],
+  );
+  const { recomputeUserRole } = require('../lib/effectiveRole');
+  await recomputeUserRole(otherId);
+  const res = await request(app)
+    .put(`/api/rbac/users/teacher/${otherId}/role`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ role_id: prof.id })
+    .expect(200);
+  assert.strictEqual(res.body.effective?.roleSlug, 'prof');
+  await execute('DELETE FROM users WHERE id = ?', [otherId]);
 });
 
 test('GET/PUT/reset /api/settings/admin/help-content gère le registre aide', async () => {

@@ -31,6 +31,7 @@ before(async () => {
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [teacherId, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacherId]);
 });
 
 test('POST /api/gl/auth/staff/login accepte un enseignant admin ForetMap', async () => {

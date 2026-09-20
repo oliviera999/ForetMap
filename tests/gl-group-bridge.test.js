@@ -20,9 +20,8 @@ async function createForetmapStudent({ pseudo, email, password }) {
   const hash = await bcrypt.hash(password, 10);
   await execute(
     `INSERT INTO users
-      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-       affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', NULL, ?, ?, 'Foret', 'Map', 'Foret Map', 'both', ?, 'local', 1, NOW(), NOW())`,
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, ?, ?, 'Foret', 'Map', 'Foret Map', ?, 'local', 1, NOW(), NOW())`,
     [id, email, pseudo, hash],
   );
   return { id, hash };

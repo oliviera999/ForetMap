@@ -1,10 +1,9 @@
 /**
  * Logique pure de l'éditeur « Mon profil » (StudentProfileEditor) :
  * libellé du type de profil, endpoint de mise à jour selon le compte,
- * options de sélection (espace, mascotte), validation des champs et
+ * options de sélection (mascotte), validation des champs et
  * estimation du poids d'un data URL d'avatar.
  */
-import { buildAffiliationSelectOptions } from './affiliationSelectOptions';
 import { buildVisitMascotSelectionOptions } from './visitMascotCatalog.js';
 import { PSEUDO_RE, PSEUDO_INVALID_MSG } from './pseudoValidation';
 
@@ -45,17 +44,6 @@ export function profileUpdateEndpoint(student) {
   return isTeacherLikeAccount(student)
     ? '/api/auth/me/profile'
     : `/api/students/${student.id}/profile`;
-}
-
-/**
- * Options du sélecteur « Mon espace » : options standards des cartes, plus
- * l'affiliation courante si elle n'y figure pas (valeur en base conservée).
- */
-export function buildProfileAffiliationOptions(maps, affiliation, studentAffiliation) {
-  const base = buildAffiliationSelectOptions(maps);
-  const a = String(affiliation || studentAffiliation || 'both').toLowerCase();
-  if (base.some((o) => o.value === a)) return base;
-  return [...base, { value: a, label: `${a} (valeur en base)` }];
 }
 
 /**

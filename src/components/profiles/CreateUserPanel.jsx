@@ -10,12 +10,10 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 /**
  * Panneau « Création unitaire d'utilisateur » (administration des profils).
  * Autonome (§6.1) : possède l'état du formulaire et l'appel `POST /api/rbac/users`.
- * Le parent ne fournit que le contexte (`roleTerms`, `affiliationOptions`, droits)
+ * Le parent ne fournit que le contexte (profils, groupes, droits)
  * et les retours (`setErr`/`setMsg` vers les bandeaux, `onCreated()` → rechargement).
  */
 function CreateUserPanel({
-  roleTerms,
-  affiliationOptions,
   roles = [],
   groupOptions = [],
   isAdmin,
@@ -41,7 +39,6 @@ function CreateUserPanel({
   const [createPseudo, setCreatePseudo] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createDescription, setCreateDescription] = useState('');
-  const [createAffiliation, setCreateAffiliation] = useState('both');
   const [createGroupId, setCreateGroupId] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -85,7 +82,6 @@ function CreateUserPanel({
         pseudo: createPseudo.trim() || null,
         email: createEmail.trim() || null,
         description: createDescription.trim() || null,
-        affiliation: isStudentRole ? createAffiliation : 'both',
       };
       if (isStudentRole && createGroupId) {
         body.group_id = createGroupId;
@@ -100,7 +96,6 @@ function CreateUserPanel({
       setCreatePseudo('');
       setCreateEmail('');
       setCreateDescription('');
-      setCreateAffiliation('both');
       setCreateGroupId('');
       if (!roleOptions.some((o) => o.value === createRole)) {
         setCreateRole(roleOptions[0]?.value || 'eleve_novice');
@@ -196,20 +191,6 @@ function CreateUserPanel({
             rows={2}
             maxLength={300}
           />
-        </div>
-        <div className="field" style={{ margin: 0 }}>
-          <label>Affiliation {roleTerms.studentSingular}</label>
-          <select
-            value={createAffiliation}
-            onChange={(e) => setCreateAffiliation(e.target.value)}
-            disabled={!canCreateUsers || createLoading || !isStudentRole}
-          >
-            {affiliationOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
         </div>
         {showGroupField && (
           <div className="field" style={{ margin: 0 }}>

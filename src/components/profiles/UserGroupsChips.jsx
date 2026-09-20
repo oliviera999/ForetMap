@@ -31,11 +31,10 @@ export function UserGroupsChips({ groups, max = 0, emptyLabel = 'Aucun groupe', 
       {shown.map((g) => (
         <span
           key={g.id}
-          className={`profiles-user-chip profiles-user-chip--group${g.isManager ? ' profiles-user-chip--manager' : ''}${g.isActive ? '' : ' profiles-user-chip--inactive'}`}
+          className={`profiles-user-chip profiles-user-chip--group${g.isActive ? '' : ' profiles-user-chip--inactive'}`}
         >
           {g.name}
           {g.kindLabel && <span className="profiles-user-chip__meta">{g.kindLabel}</span>}
-          {g.isManager && <span className="profiles-user-chip__meta">{g.roleLabel}</span>}
           {!g.isActive && <span className="profiles-user-chip__meta">archivé</span>}
         </span>
       ))}

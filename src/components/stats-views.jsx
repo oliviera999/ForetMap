@@ -11,7 +11,6 @@ import {
   estimateDataUrlBytes,
   deriveProfileTypeLabel,
   profileUpdateEndpoint,
-  buildProfileAffiliationOptions,
   buildVisitMascotOptions,
   validateProfileEditorFields,
 } from '../utils/studentProfileFields.js';
@@ -307,7 +306,7 @@ function StudentStats({ student }) {
   );
 }
 
-function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
+function StudentProfileEditor({ student, onUpdated, onClose }) {
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fallbackDisplayName = String(
@@ -320,13 +319,8 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const [pseudo, setPseudo] = useState(student?.pseudo || '');
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
-  const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
   const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(
     student?.visit_mascot_catalog_id || '',
-  );
-  const affiliationSelectOptions = useMemo(
-    () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
-    [maps, affiliation, student?.affiliation],
   );
   // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
   const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
@@ -391,7 +385,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
         pseudo: pseudo.trim() || null,
         email: email.trim() || null,
         description: description.trim() || null,
-        affiliation,
         visit_mascot_catalog_id: visitMascotCatalogId || null,
         currentPassword,
       };
@@ -403,7 +396,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       setPseudo(updated?.pseudo || '');
       setEmail(updated?.email || '');
       setDescription(updated?.description || '');
-      setAffiliation(updated?.affiliation || 'both');
       setVisitMascotCatalogId(updated?.visit_mascot_catalog_id || '');
       setCurrentPassword('');
       setAvatarData(null);
@@ -533,16 +525,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="moi@exemple.com"
         />
-      </div>
-      <div className="field">
-        <label>Mon espace</label>
-        <select value={affiliation} onChange={(e) => setAffiliation(e.target.value)}>
-          {affiliationSelectOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
       </div>
       <div className="field">
         <label>Mascotte préférée (visite)</label>

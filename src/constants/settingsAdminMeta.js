@@ -405,12 +405,6 @@ export const KEY_META = {
     section: 'progression',
     order: 5,
   },
-  'rbac.progression_align_on_group_join': {
-    label:
-      'Aligner le profil sur les tâches validées au rattachement à un groupe n3beur (sinon : profil par défaut du groupe seulement)',
-    section: 'progression',
-    order: 6,
-  },
   'security.password_min_length': {
     label: 'Longueur min mot de passe',
     section: 'security',

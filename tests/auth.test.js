@@ -110,43 +110,6 @@ describe('Auth', () => {
     assert.strictEqual(res.body.password_hash, undefined);
   });
 
-  it('PATCH /api/auth/me/profile préserve une affiliation stockée non résolue si elle n’est pas modifiée', async () => {
-    const stamp = Date.now();
-    const profilePassword = 'password123';
-    const reg = await request(app)
-      .post('/api/auth/register')
-      .send({
-        firstName: `Aff${stamp}`,
-        lastName: 'Profile',
-        password: profilePassword,
-        pseudo: `aff_profile_${stamp}`,
-        email: `aff_profile_${stamp}@example.com`,
-        affiliation: 'both',
-      })
-      .expect(201);
-    const storedAffiliation = `missing_${stamp % 100000}`;
-    await execute("UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'", [
-      storedAffiliation,
-      reg.body.id,
-    ]);
-
-    const res = await request(app)
-      .patch('/api/auth/me/profile')
-      .set('Authorization', `Bearer ${reg.body.authToken}`)
-      .send({
-        description: 'Mise à jour sans changer l’affiliation',
-        currentPassword: profilePassword,
-      })
-      .expect(200);
-
-    assert.strictEqual(res.body.affiliation, storedAffiliation);
-    const row = await queryOne(
-      "SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
-      [reg.body.id],
-    );
-    assert.strictEqual(row.affiliation, storedAffiliation);
-  });
-
   it('PATCH /api/auth/me/profile met à jour la mascotte préférée du compte connecté', async () => {
     // La mascotte est choisie **dans la base**, pas en dur : depuis que les mascottes livrées
     // sans fichier d'animation ne sont plus proposées, un identifiant écrit en dur dans le test
@@ -272,8 +235,8 @@ describe('Auth', () => {
     const now = new Date();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
       [crypto.randomUUID(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now],
     );
 
@@ -290,47 +253,6 @@ describe('Auth', () => {
     assert.strictEqual(evt.result, 'success');
   });
 
-  it("POST /api/auth/login accepte l'alias canonique admin sans pseudo correspondant", async () => {
-    const canonicalLogin = `canon_admin_${Date.now()}`;
-    const teacherEmail = `admin_alias_${Date.now()}@example.com`;
-    const teacherPseudo = `other_pseudo_${Date.now()}`;
-    const teacherPassword = 'aliasAdminPwd1';
-    const previousCanonical = process.env.ADMIN_CANONICAL_LOGIN;
-    const previousAdminEmail = process.env.TEACHER_ADMIN_EMAIL;
-    process.env.ADMIN_CANONICAL_LOGIN = canonicalLogin;
-    process.env.TEACHER_ADMIN_EMAIL = teacherEmail;
-
-    const hash = await bcrypt.hash(teacherPassword, 10);
-    const now = new Date();
-    const teacherId = crypto.randomUUID();
-    await execute(
-      `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, teacherEmail, teacherPseudo, 'Admin Alias', hash, now],
-    );
-    const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
-    assert.ok(adminRole?.id);
-    await execute(
-      'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-      ['teacher', teacherId, adminRole.id],
-    );
-
-    try {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ identifier: canonicalLogin, password: teacherPassword })
-        .expect(200);
-      assert.strictEqual(res.body.id, teacherId);
-      assert.ok(res.body.authToken);
-    } finally {
-      if (previousCanonical == null) delete process.env.ADMIN_CANONICAL_LOGIN;
-      else process.env.ADMIN_CANONICAL_LOGIN = previousCanonical;
-      if (previousAdminEmail == null) delete process.env.TEACHER_ADMIN_EMAIL;
-      else process.env.TEACHER_ADMIN_EMAIL = previousAdminEmail;
-    }
-  });
-
   it('POST /api/auth/login admin permet les routes élévation sans PIN', async () => {
     const stamp = Date.now();
     const teacherEmail = `admin-elev-${stamp}@example.com`;
@@ -340,8 +262,8 @@ describe('Auth', () => {
     const now = new Date();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
       [teacherId, teacherEmail, `admin_elev_${stamp}`, 'Admin Elev', hash, now],
     );
     const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
@@ -350,6 +272,7 @@ describe('Auth', () => {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
       ['teacher', teacherId, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacherId]);
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -398,8 +321,8 @@ describe('Auth', () => {
     const now = new Date();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
       [
         crypto.randomUUID(),
         teacherEmail,
@@ -497,8 +420,8 @@ describe('Auth', () => {
     const studentId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'student', NULL, ?, ?, 'Vis', 'Iteur', 'Vis Iteur', NULL, NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'student', NULL, ?, ?, 'Vis', 'Iteur', 'Vis Iteur', NULL, NULL, NULL, 'google', 1, ?, NOW(), NOW())`,
       [studentId, email, `vis_${Date.now()}`, now],
     );
     authRouter.__setGoogleOAuthHooks({
@@ -595,8 +518,8 @@ describe('Auth', () => {
     const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
       [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Reset', hash, now],
     );
 
@@ -626,8 +549,8 @@ describe('Auth', () => {
     const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
-        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
+        (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+       VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
       [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Court', hash, now],
     );
 

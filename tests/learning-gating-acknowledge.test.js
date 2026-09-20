@@ -56,8 +56,8 @@ before(async () => {
     [String(tutorialId), qcode],
   );
   await execute(
-    `INSERT IGNORE INTO users (id, user_type, pseudo, display_name, affiliation, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, 'RT', 'both', 1, NOW(), NOW())`,
+    `INSERT IGNORE INTO users (id, user_type, pseudo, display_name, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, 'RT', 1, NOW(), NOW())`,
     [userId, `rt${stamp}`.slice(0, 50)],
   );
   await execute(

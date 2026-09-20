@@ -2,13 +2,12 @@
 
 require('dotenv').config();
 const { ensureTeacherAdminFromEnv } = require('../lib/teacherAdminSeed');
-const { ensurePrimaryRole } = require('../lib/rbac');
 
 async function main() {
   const result = await ensureTeacherAdminFromEnv({
     minPasswordLength: 4,
     updatePasswordIfExists: true,
-    ensurePrimaryRole,
+    forceAdminRole: true,
   });
   if (result.skipped) {
     throw new Error(

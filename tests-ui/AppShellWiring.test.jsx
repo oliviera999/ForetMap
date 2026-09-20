@@ -105,7 +105,7 @@ vi.mock('../src/hooks/useAppBootstrap', () => ({
 const { App } = await import('../src/App.jsx');
 
 const STUDENT_SESSION = {
-  stored: { student: { id: 'S1', first_name: 'Ada', last_name: 'L', affiliation: 'both' } },
+  stored: { student: { id: 'S1', first_name: 'Ada', last_name: 'L' } },
   claims: { roleSlug: 'eleve', userId: 'S1', permissions: [] },
 };
 const TEACHER_SESSION = {

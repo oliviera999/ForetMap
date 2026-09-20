@@ -101,9 +101,8 @@ async function createStudent({
   const finalPseudo = pseudo || `${firstName}.${lastName}.${id.slice(0, 6)}`.toLowerCase();
   await execute(
     `INSERT INTO users
-       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, affiliation,
-        password_hash, auth_provider, is_active, sync_exempt, created_at, updated_at)
-     VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, 'both', ?, ?, ?, ?, NOW(), NOW())`,
+       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, sync_exempt, created_at, updated_at)
+     VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       id,
       email,
@@ -124,9 +123,8 @@ async function createTeacher({ firstName, lastName, email }) {
   const id = crypto.randomUUID();
   await execute(
     `INSERT INTO users
-       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, affiliation,
-        password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'teacher', NULL, ?, NULL, ?, ?, ?, 'both', NULL, 'local', 1, NOW(), NOW())`,
+       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', NULL, ?, NULL, ?, ?, ?, NULL, 'local', 1, NOW(), NOW())`,
     [id, email, firstName, lastName, `${firstName} ${lastName}`],
   );
   return queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
@@ -142,11 +140,11 @@ async function createGroup({ name, slug = null, kind = 'class' }) {
 }
 
 async function addGroupMember(groupId, userId, userType = 'student') {
-  await execute(
-    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group) VALUES (?, ?, ?, 'member')
-     ON DUPLICATE KEY UPDATE role_in_group = 'member'`,
-    [groupId, userId, userType],
-  );
+  await execute(`INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, ?)`, [
+    groupId,
+    userId,
+    userType,
+  ]);
 }
 
 /** Peuple le faux Moodle avec une cohorte `26#603` (classe G&L) de `n` élèves inventés. */

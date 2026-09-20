@@ -5,7 +5,7 @@ const { test, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne, execute } = require('../database');
+const { initSchema, queryOne } = require('../database');
 const {
   createGlAdmin,
   createGlClass,
@@ -347,7 +347,8 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
   // jeton signé sans cette claim est alors rejeté en 401 « Session expirée » — d'où l'échec
   // intermittent observé en CI sur ce test.
   const teacher = await queryOne(
-    "SELECT id, token_epoch FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
+    "SELECT id, token_epoch FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id && adminRole?.id);

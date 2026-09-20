@@ -82,7 +82,7 @@
       "title": "Aide groupes et sous-groupes",
       "items": [
         { "textTeacher": "Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent." },
-        { "textTeacher": "« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne très bien, jusqu’au jour où il faut quelqu’un." },
+        { "textTeacher": "« Membres » désigne qui appartient au groupe — élèves comme enseignants. Le profil par défaut du groupe s’applique à ses membres élèves quand il est plus élevé que le leur ; « imposé » le fait toujours prévaloir." },
         { "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix." },
         { "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi." },
         { "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus." }

@@ -42,6 +42,10 @@ before(async () => {
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [`teacher-gl-profile-${stamp}`, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [
+    adminRole.id,
+    `teacher-gl-profile-${stamp}`,
+  ]);
 
   const studentHash = await bcrypt.hash(foretmapStudentPassword, 10);
   await execute(

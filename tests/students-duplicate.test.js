@@ -5,6 +5,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { setAssignedRole } = require('../lib/effectiveRole');
 
 let teacherToken;
 
@@ -27,6 +28,7 @@ test.before(async () => {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   teacherToken = await signAuthToken(
     {
@@ -42,7 +44,7 @@ test.before(async () => {
   );
 });
 
-test('POST /api/students/:id/duplicate crée un compte avec le même rôle primaire et affiliation', async () => {
+test('POST /api/students/:id/duplicate crée un compte avec le même profil attribué', async () => {
   const unique = Date.now();
   const reg = await request(app)
     .post('/api/auth/register')
@@ -58,17 +60,8 @@ test('POST /api/students/:id/duplicate crée un compte avec le même rôle prima
 
   const adv = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_avance' LIMIT 1");
   assert.ok(adv?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-    'student',
-    sourceId,
-  ]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', sourceId, adv.id],
-  );
-  await execute("UPDATE users SET affiliation = 'n3' WHERE id = ? AND user_type = 'student'", [
-    sourceId,
-  ]);
+  // Profil **attribué** de la source (le profil effectif est recalculé par le serveur).
+  await setAssignedRole(sourceId, adv.id);
 
   const res = await request(app)
     .post(`/api/students/${sourceId}/duplicate`)
@@ -84,7 +77,7 @@ test('POST /api/students/:id/duplicate crée un compte avec le même rôle prima
   assert.strictEqual(res.body.source_student_id, sourceId);
   assert.strictEqual(String(res.body.first_name), 'Cible');
   assert.strictEqual(String(res.body.last_name), `DupFille${unique}`);
-  assert.strictEqual(String(res.body.affiliation || '').toLowerCase(), 'n3');
+  assert.strictEqual(res.body.affiliation, undefined);
   assert.strictEqual(String(res.body.description || ''), 'Desc source');
   assert.strictEqual(res.body.password_hash, undefined);
   assert.strictEqual(String(res.body.role_slug || '').toLowerCase(), 'eleve_avance');
@@ -95,6 +88,11 @@ test('POST /api/students/:id/duplicate crée un compte avec le même rôle prima
     [res.body.id],
   );
   assert.strictEqual(String(ur?.slug || '').toLowerCase(), 'eleve_avance');
+  const assigned = await queryOne(
+    'SELECT r.slug FROM users u JOIN roles r ON r.id = u.assigned_role_id WHERE u.id = ? LIMIT 1',
+    [res.body.id],
+  );
+  assert.strictEqual(String(assigned?.slug || '').toLowerCase(), 'eleve_avance');
 });
 
 test('POST /api/students/:id/duplicate sans token renvoie 401', async () => {

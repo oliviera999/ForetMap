@@ -55,7 +55,6 @@ test.describe('inscription publique', () => {
         firstName: `E2ERefus${nonce}`,
         lastName: 'Eleve',
         password: '1234',
-        affiliation: 'both',
       },
     });
     expect(resp.status(), "l'API doit refuser l'inscription, pas seulement la masquer").toBe(403);

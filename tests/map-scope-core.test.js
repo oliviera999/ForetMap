@@ -3,19 +3,15 @@
 /**
  * Cœur du périmètre cartes (`lib/shared/mapScopeCore.js`) — décisions pures, sans base.
  *
- * Le dernier bloc vérifie l'**équivalence du miroir** : la règle d'affiliation est écrite
- * deux fois (CJS pour le serveur, ESM pour le bundle Vite) et les deux doivent trancher à
- * l'identique, sinon une carte masquée dans l'UI resterait lisible par l'API.
+ * La restriction individuelle (`users.affiliation`) a été retirée par la migration 266 :
+ * seul le périmètre de groupe borne les cartes.
  */
 
 require('./helpers/setup');
-const { before, describe, it } = require('node:test');
+const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { pathToFileURL } = require('url');
-const { join } = require('path');
 
 const {
-  allowedMapIdsFromAffiliation,
   intersectMapScopes,
   canBypassMapScope,
   resolveGroupMapScope,
@@ -115,45 +111,5 @@ describe('mapScopeCore — combinaison et dérogations', () => {
       canBypassMapScope({ userId: 'u1', roleSlug: 'eleve_novice', permissions: ['tasks.read'] }),
       false,
     );
-  });
-});
-
-describe('mapScopeCore — affiliation (miroir du module front)', () => {
-  let frontImpl;
-
-  before(async () => {
-    const mod = await import(pathToFileURL(join(__dirname, '../src/utils/mapAffiliation.js')).href);
-    frontImpl = mod.allowedMapIdsFromAffiliation;
-  });
-
-  const CASES = [
-    undefined,
-    null,
-    '',
-    'both',
-    'BOTH',
-    'n3',
-    'foret',
-    'potager',
-    'Potager',
-    'plan-2',
-    'espace inconnu',
-    'a'.repeat(40),
-  ];
-
-  it('rend les mêmes décisions que src/utils/mapAffiliation.js', () => {
-    for (const value of CASES) {
-      assert.deepStrictEqual(
-        allowedMapIdsFromAffiliation(value),
-        frontImpl(value),
-        `affiliation « ${String(value)} »`,
-      );
-    }
-  });
-
-  it('ne borne pas « both » et borne un slug de carte', () => {
-    assert.strictEqual(allowedMapIdsFromAffiliation('both'), null);
-    assert.deepStrictEqual(allowedMapIdsFromAffiliation('n3'), ['n3']);
-    assert.deepStrictEqual(allowedMapIdsFromAffiliation('potager'), ['potager']);
   });
 });
