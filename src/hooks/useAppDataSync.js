@@ -14,7 +14,7 @@ import { allowedMapIdsForScope, pickDefaultMapId, resolveScopedMapId } from '../
 import { mapsForAffiliationScope } from '../utils/mapAffiliation';
 import { keepPrevIfEqual } from '../utils/stableCollection';
 import { partitionByArchived } from '../utils/taskArchive';
-import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
+import { readLastViewedMapId } from '../utils/lastViewedMap.js';
 
 /** Référence stable partagée par tous les états « pas de carte » (évite un re-render inutile). */
 const DEFAULT_MAPS = [];
@@ -38,11 +38,6 @@ function isApplicableDomainResult(value) {
 }
 /** Intervalle de repli quand le serveur est jugé indisponible (3 échecs consécutifs). */
 const SERVER_DOWN_REFRESH_MS = 120000;
-
-/** Carte active mémorisée en localStorage au dernier changement de plan. */
-function readStoredActiveMapId() {
-  return String(safeLocalStorageGetItem('foretmap_active_map', '') || '').trim();
-}
 
 /**
  * Données partagées de l'app ForetMap et leur cycle de rechargement (`fetchAll`),
@@ -69,7 +64,7 @@ export function useAppDataSync({
   mergeAuthMeResponse,
 }) {
   const [maps, setMaps] = useState(DEFAULT_MAPS);
-  const [activeMapId, setActiveMapId] = useState(readStoredActiveMapId);
+  const [activeMapId, setActiveMapId] = useState(readLastViewedMapId);
   const [zones, setZones] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskProjects, setTaskProjects] = useState([]);
@@ -419,16 +414,24 @@ export function useAppDataSync({
     }
   }, [retryingServer, fetchAll]);
 
-  // Premier chargement dès qu'une session existe (aucun debounce : l'écran est vide).
+  /*
+   * Premier chargement dès qu'une session existe (aucun debounce : l'écran est vide),
+   * mais **jamais avant les réglages publics** (`contextReady`) : `fetchAll` résout la
+   * carte active, et il la résolvait sur les cartes par défaut codées en dur côté front
+   * quand `/api/settings/public` n'avait pas encore répondu. La carte ainsi posée était
+   * ensuite mémorisée sur l'appareil, et le réglage « plan ouvert par défaut » ne
+   * s'appliquait plus jamais. `publicSettingsReady` passe à vrai même quand la requête
+   * échoue : aucun risque de blocage du chargement.
+   */
   useEffect(() => {
-    if (!hasAuthenticatedShell) return undefined;
+    if (!hasAuthenticatedShell || !contextReady) return undefined;
     if (initialFetchDoneRef.current) return undefined;
     void fetchAll();
     return undefined;
-  }, [hasAuthenticatedShell, fetchAll]);
+  }, [hasAuthenticatedShell, contextReady, fetchAll]);
 
   useEffect(() => {
-    if (!hasAuthenticatedShell) return undefined;
+    if (!hasAuthenticatedShell || !contextReady) return undefined;
     let cancelled = false;
     const id = window.setTimeout(() => {
       if (!cancelled) void fetchAll();
