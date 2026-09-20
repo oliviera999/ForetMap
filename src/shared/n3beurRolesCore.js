@@ -1,10 +1,9 @@
 /**
  * Statut « n3beur » d'un profil RBAC — noyau partagé front (`src/`) / back (`lib/shared/`).
  *
- * Un compte est n3beur quand son **profil principal** est un palier n3beur, que celui-ci ait
- * été attribué à la main (admin des profils) ou dérivé du rattachement à un groupe n3beur
- * (`grants_n3beur_access` / profil par défaut `eleve_*` — cf. `lib/groupRole.js`, qui
- * synchronise le profil principal à chaque rattachement).
+ * Un compte est n3beur quand son **profil effectif** est un palier n3beur, que celui-ci ait
+ * été attribué à la main (admin des profils) ou conféré par un groupe dont le profil par
+ * défaut est un palier `eleve_*` (cf. `lib/effectiveRole.js`, « le plus élevé l'emporte »).
  *
  * Ne sont donc **pas** n3beurs : l'encadrement (`admin`, `prof`, `prof_classe`), les profils
  * en lecture seule (`visiteur`, `personnel`) et les profils du sous-produit GL (`gl_*`),
@@ -21,10 +20,9 @@ export const NON_N3BEUR_SYSTEM_ROLE_SLUGS = Object.freeze([
 ]);
 
 /**
- * Profils qu'un rattachement à un groupe n3beur promeut en palier n3beur, et profil absent :
- * ce sont les seuls que `syncStudentRoleFromGroups` (cf. `lib/groupRole.js`) accepte de
- * remplacer. Un profil d'encadrement ou personnalisé est au contraire préservé — le
- * rattachement à une classe ne fait donc pas d'un prof de classe un n3beur.
+ * Profils « type visiteur » : ceux qu'un rattachement à un groupe n3beur promeut (le profil
+ * du groupe est plus élevé). Conservés pour les affichages qui distinguent un compte en
+ * attente d'un compte déjà n3beur.
  */
 export const GROUP_PROMOTABLE_ROLE_SLUGS = Object.freeze(['visiteur', 'personnel']);
 
@@ -43,6 +41,44 @@ export function normalizeRoleSlug(slug) {
 /** Palier n3beur système : `eleve_novice`, `eleve_avance`, `eleve_chevronne`. */
 export function isEleveRoleSlug(slug) {
   return normalizeRoleSlug(slug).startsWith('eleve_');
+}
+
+/** Profil du sous-produit Gnomes & Licornes (`gl_*`) : jamais attribuable depuis ForetMap. */
+export function isGlRoleSlug(slug) {
+  return normalizeRoleSlug(slug).startsWith(GL_ROLE_SLUG_PREFIX);
+}
+
+/** Profil système d'encadrement ou de lecture seule (jamais un palier n3beur). */
+export function isSystemStaffRoleSlug(slug) {
+  return NON_N3BEUR_SYSTEM_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/**
+ * Profil par défaut d'un compte qui n'en a aucun : le moins puissant de son type. Un
+ * enseignant créé sans profil (ou dont le profil a été retiré) est **prof de classe**, jamais
+ * n3boss ; un élève est visiteur (docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md, CDG-40/46).
+ */
+export const DEFAULT_ROLE_SLUG_BY_USER_TYPE = Object.freeze({
+  teacher: 'prof_classe',
+  student: 'visiteur',
+});
+
+export function defaultRoleSlugForUserType(userType) {
+  const key = String(userType || '')
+    .trim()
+    .toLowerCase();
+  return DEFAULT_ROLE_SLUG_BY_USER_TYPE[key] || DEFAULT_ROLE_SLUG_BY_USER_TYPE.student;
+}
+
+/**
+ * « Vue globale » sur les comptes et les groupes : l'administrateur et tout profil de rang
+ * n3boss ou plus (`rank >= 400`). Le prof de classe (350) reste borné à ses groupes. La
+ * règle vit ici, et non dans une permission de statistiques (CDG-10).
+ */
+export function hasGlobalScopeByRole({ slug, rank } = {}) {
+  if (normalizeRoleSlug(slug) === 'admin') return true;
+  const r = Number(rank);
+  return Number.isFinite(r) && r >= N3BEUR_RANK_EXCLUSIVE_MAX;
 }
 
 /**

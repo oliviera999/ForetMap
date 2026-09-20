@@ -4,7 +4,6 @@ import {
   deriveProfileTypeLabel,
   isTeacherLikeAccount,
   profileUpdateEndpoint,
-  buildProfileAffiliationOptions,
   buildVisitMascotOptions,
   validateProfileEditorFields,
 } from '../../src/utils/studentProfileFields.js';
@@ -58,35 +57,6 @@ describe('deriveProfileTypeLabel / isTeacherLikeAccount / profileUpdateEndpoint'
   test('défaut élève si rien d’exploitable', () => {
     expect(deriveProfileTypeLabel({}, ROLE_TERMS)).toBe('n3beur');
     expect(profileUpdateEndpoint({ id: 3 })).toBe('/api/students/3/profile');
-  });
-});
-
-describe('buildProfileAffiliationOptions', () => {
-  test('options standards si l’affiliation courante y figure déjà', () => {
-    const opts = buildProfileAffiliationOptions([], 'both', null);
-    expect(opts.map((o) => o.value)).toEqual(['both', 'n3', 'foret']);
-  });
-
-  test('affiliation hors options → entrée « valeur en base » ajoutée', () => {
-    const opts = buildProfileAffiliationOptions([], 'ancienne_carte', null);
-    expect(opts[opts.length - 1]).toEqual({
-      value: 'ancienne_carte',
-      label: 'ancienne_carte (valeur en base)',
-    });
-  });
-
-  test('repli sur l’affiliation du compte puis sur both', () => {
-    const withFallback = buildProfileAffiliationOptions([], '', 'n3');
-    expect(withFallback.map((o) => o.value)).toEqual(['both', 'n3', 'foret']);
-    const withDefault = buildProfileAffiliationOptions([], '', '');
-    expect(withDefault.map((o) => o.value)).toEqual(['both', 'n3', 'foret']);
-  });
-
-  test('cartes supplémentaires couvertes sans doublon « valeur en base »', () => {
-    const maps = [{ id: 'verger', label: 'Verger' }];
-    const opts = buildProfileAffiliationOptions(maps, 'verger', null);
-    expect(opts.filter((o) => o.value === 'verger')).toHaveLength(1);
-    expect(opts.find((o) => o.value === 'verger').label).toBe('Verger uniquement');
   });
 });
 

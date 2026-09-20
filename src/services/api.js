@@ -23,7 +23,6 @@ const STUDENT_SESSION_FIELDS = [
   'avatar_path',
   'avatarPath',
   'authToken',
-  'affiliation',
   'taskEnrollment',
   'forumParticipate',
   'forum_participate',

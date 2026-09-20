@@ -10,8 +10,7 @@ import {
   isValidSyncState,
   resolveChangedSyncDomains,
 } from '../utils/fetchAllSyncGate.js';
-import { allowedMapIdsForScope, pickDefaultMapId, resolveScopedMapId } from '../utils/appMapScope';
-import { mapsForAffiliationScope } from '../utils/mapAffiliation';
+import { pickDefaultMapId, resolveScopedMapId, visibleMapsForScope } from '../utils/appMapScope';
 import { keepPrevIfEqual } from '../utils/stableCollection';
 import { partitionByArchived } from '../utils/taskArchive';
 import { safeLocalStorageGetItem } from '../shared/platform/browserStorage.js';
@@ -52,7 +51,7 @@ function readStoredActiveMapId() {
  *
  * @param {object} params
  * @param {object} params.context Instantané de contexte lu par `fetchAll` : rôle effectif,
- *   visite publique, affiliation élève, droit tutoriels et cartes par défaut. **Doit être
+ *   visite publique, droit tutoriels et cartes par défaut. **Doit être
  *   mémoïsé** — il pilote le debounce du rechargement automatique.
  * @param {boolean} params.contextReady Réglages publics chargés (déclenche un cycle).
  * @param {boolean} params.hasAuthenticatedShell Session établie (élève ou prof).
@@ -136,7 +135,6 @@ export function useAppDataSync({
             activeMapId: mapIdState,
             effectiveIsTeacher: isTeacherSnap,
             showPublicVisit: visitSnap,
-            studentAffiliation,
             canManageTutorials: canTutorialsSnap,
             defaultMapStudent,
             defaultMapTeacher,
@@ -206,13 +204,6 @@ export function useAppDataSync({
               }
             };
 
-            const mapScope = {
-              isTeacher: isTeacherSnap,
-              isPublicVisit: visitSnap,
-              affiliation: studentAffiliation,
-            };
-            const restrictedMapIds = allowedMapIdsForScope(mapScope);
-
             const mapsRes = await safeApi(() => api('/api/maps'));
             // `/api/maps` en échec : on repart des cartes déjà connues. Sans elles,
             // `resolvedMapId` deviendrait nul, `mapQuery` vide, et TOUS les autres domaines
@@ -226,10 +217,11 @@ export function useAppDataSync({
             if (!mapsFailed) setMaps(safeMaps);
             lastMapsRef.current = safeMaps;
 
-            const visibleAllowedMaps = mapsForAffiliationScope(safeMaps, restrictedMapIds);
+            // `/api/maps` est déjà borné au périmètre du compte par le serveur (groupes) :
+            // on ne garde ici que la préférence pour les cartes actives.
+            const visibleAllowedMaps = visibleMapsForScope(safeMaps);
             const resolvedMapId = resolveScopedMapId({
               visibleMaps: visibleAllowedMaps,
-              allowedMapIds: restrictedMapIds,
               currentMapId: mapIdState,
               defaultMapId: pickDefaultMapId({
                 isTeacher: isTeacherSnap,

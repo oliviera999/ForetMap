@@ -3,17 +3,14 @@
 
 import { GROUP_KIND_LABELS } from './profilesRoleForm.js';
 
-/** Libellés des rôles dans un groupe (`group_members.role_in_group`). */
-export const GROUP_MEMBER_ROLE_LABELS = Object.freeze({
-  manager: 'Responsable',
-  member: 'Membre',
-});
-
 /**
  * Normalise la liste `groups[]` renvoyée par `/api/rbac/users*` en entrées prêtes à afficher.
- * Tolère l'absence du champ (API plus ancienne) et les clés partielles.
+ * Tolère l'absence du champ (API plus ancienne) et les clés partielles. Un groupe n'a plus de
+ * « responsable » : l'appartenance est la seule relation, le profil vient du groupe lui-même
+ * (`default_role_*`, `force_default_role`).
  * @param {unknown} rawGroups
- * @returns {Array<{ id: string, name: string, kind: string, kindLabel: string, roleInGroup: string, roleLabel: string, isActive: boolean, isManager: boolean }>}
+ * @returns {Array<{ id: string, name: string, kind: string, kindLabel: string, isActive: boolean,
+ *   defaultRoleLabel: string, forcesDefaultRole: boolean }>}
  */
 export function normalizeUserGroups(rawGroups) {
   if (!Array.isArray(rawGroups)) return [];
@@ -27,33 +24,64 @@ export function normalizeUserGroups(rawGroups) {
     const kind = String(g.kind ?? '')
       .trim()
       .toLowerCase();
-    const roleInGroup = String(g.role_in_group ?? g.roleInGroup ?? 'member')
-      .trim()
-      .toLowerCase();
-    const isManager = roleInGroup === 'manager';
     out.push({
       id,
       name: String(g.name ?? '').trim() || String(g.slug ?? '').trim() || id,
       kind,
       kindLabel: GROUP_KIND_LABELS[kind] || kind,
-      roleInGroup: isManager ? 'manager' : 'member',
-      roleLabel: GROUP_MEMBER_ROLE_LABELS[isManager ? 'manager' : 'member'],
       isActive: g.is_active == null ? true : Boolean(g.is_active),
-      isManager,
+      defaultRoleLabel: String(g.default_role_display_name ?? g.default_role_slug ?? '').trim(),
+      forcesDefaultRole: Boolean(g.force_default_role),
     });
   }
   return out;
 }
 
 /**
- * Libellé court du profil (rôle principal) d'un compte, avec repli sur le slug.
+ * Libellé court du profil **effectif** (rôle principal) d'un compte, avec repli sur le slug.
  * @param {object} user ligne `/api/rbac/users` ou fiche détaillée
- * @returns {string} libellé, ou '' si aucun profil attribué
+ * @returns {string} libellé, ou '' si aucun profil
  */
 export function userRoleLabel(user) {
   const display = String(user?.role_display_name ?? user?.roleDisplayName ?? '').trim();
   if (display) return display;
   return String(user?.role_slug ?? user?.roleSlug ?? '').trim();
+}
+
+/**
+ * Libellé du profil **attribué** (celui posé sur le compte par un administrateur, un import ou
+ * la progression), avec repli sur le slug.
+ * @param {object} user ligne `/api/rbac/users` ou fiche détaillée
+ * @returns {string} libellé, ou '' si aucun profil attribué
+ */
+export function userAssignedRoleLabel(user) {
+  const display = String(
+    user?.assigned_role_display_name ?? user?.assignedRoleDisplayName ?? '',
+  ).trim();
+  if (display) return display;
+  return String(user?.assigned_role_slug ?? user?.assignedRoleSlug ?? '').trim();
+}
+
+/**
+ * Origine du profil effectif, telle que la fiche détaillée la décrit (`effective_role.source`) :
+ * « attribué » (le profil du compte l'emporte), « conféré par le groupe X » (le profil par
+ * défaut d'un groupe est plus élevé) ou « imposé par le groupe X » (groupe qui impose son
+ * profil). Chaîne vide si la fiche ne porte pas l'information.
+ * @param {object} user fiche détaillée (`GET /api/rbac/users/:type/:id`)
+ * @returns {string}
+ */
+export function effectiveRoleOriginLabel(user) {
+  const effective = user?.effective_role ?? user?.effectiveRole;
+  if (!effective || typeof effective !== 'object') return '';
+  const source = String(effective.source || '')
+    .trim()
+    .toLowerCase();
+  const groupName = String(effective.groupName ?? effective.group_name ?? '').trim();
+  const groupSuffix = groupName ? ` par le groupe ${groupName}` : ' par un groupe';
+  if (source === 'forced') return `imposé${groupSuffix}`;
+  if (source === 'group') return `conféré${groupSuffix}`;
+  if (source === 'assigned' || source === 'default') return 'attribué';
+  return '';
 }
 
 /** Libellé lisible du type de compte. */
@@ -72,7 +100,7 @@ export function userTypeLabel(userType) {
  */
 export function summarizeUserGroups(groups) {
   if (!Array.isArray(groups) || groups.length === 0) return 'Aucun groupe';
-  return groups.map((g) => (g.isManager ? `${g.name} (${g.roleLabel})` : g.name)).join(', ');
+  return groups.map((g) => g.name).join(', ');
 }
 
 /**

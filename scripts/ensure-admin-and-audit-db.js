@@ -1,16 +1,15 @@
 #!/usr/bin/env node
-// Login admin canonique : variable d'env ADMIN_CANONICAL_LOGIN (défaut : 'oliviera9'),
-// surchargée par --login <valeur> / --login=<valeur> (audit §7.9 — plus de login en dur
-// dans les scripts npm db:admin:audit*).
+// Compte administrateur : TEACHER_ADMIN_EMAIL (pseudo ou e-mail), surchargé par
+// --login <valeur> / --login=<valeur>. Plus aucun alias codé en dur (CDG-01).
 require('dotenv').config();
 
 const { queryAll, queryOne, execute, ping, pool } = require('../database');
-const { ensureRbacBootstrap, setPrimaryRole } = require('../lib/rbac');
-const { resolveLoginAccountByIdentifier, adminCanonicalLogin } = require('../lib/identity');
+const { ensureRbacBootstrap } = require('../lib/rbac');
+const { assignRole } = require('../lib/rbacRoleAssignment');
 
 function parseArgs(argv) {
   const out = {
-    login: process.env.ADMIN_CANONICAL_LOGIN || 'oliviera9',
+    login: String(process.env.TEACHER_ADMIN_EMAIL || '').trim(),
     dryRun: false,
     fixOrphans: false,
   };
@@ -42,7 +41,7 @@ async function ensureAdminForLogin(login, dryRun) {
   const normalizedLogin = String(login || '')
     .trim()
     .toLowerCase();
-  if (!normalizedLogin) throw new Error('Login admin vide');
+  if (!normalizedLogin) throw new Error('Login admin vide (TEACHER_ADMIN_EMAIL ou --login)');
 
   await ensureRbacBootstrap();
 
@@ -53,22 +52,12 @@ async function ensureAdminForLogin(login, dryRun) {
       LIMIT 1`,
     [normalizedLogin, normalizedLogin],
   );
-  if (!user && normalizedLogin === adminCanonicalLogin()) {
-    const resolved = await resolveLoginAccountByIdentifier(normalizedLogin);
-    if (resolved?.id) {
-      user = await queryOne(
-        `SELECT id, user_type, pseudo, email, is_active FROM users WHERE id = ? LIMIT 1`,
-        [resolved.id],
-      );
-    }
-  }
-
   if (!user) {
     return { ok: false, message: `Utilisateur introuvable pour "${login}"` };
   }
 
   const adminRole = await queryOne(
-    'SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1',
+    'SELECT id, slug, display_name, `rank` FROM roles WHERE slug = ? LIMIT 1',
     ['admin'],
   );
   if (!adminRole) {
@@ -104,23 +93,7 @@ async function ensureAdminForLogin(login, dryRun) {
 
   if (currentPrimary?.slug !== 'admin') {
     if (!dryRun) {
-      await setPrimaryRole('teacher', user.id, adminRole.id);
-    }
-    applied = true;
-  }
-
-  const canonicalLogin = adminCanonicalLogin();
-  if (
-    normalizedLogin === canonicalLogin &&
-    String(user.pseudo || '')
-      .trim()
-      .toLowerCase() !== canonicalLogin
-  ) {
-    if (!dryRun) {
-      await execute('UPDATE users SET pseudo = ?, updated_at = NOW() WHERE id = ?', [
-        canonicalLogin,
-        user.id,
-      ]);
+      await assignRole({ actor: null, userType: 'teacher', userId: user.id, nextRole: adminRole });
     }
     applied = true;
   }

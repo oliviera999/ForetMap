@@ -12,8 +12,6 @@ export function ProfilesRoleProgressionConfig({
   canEditRoleDefinition = false,
   progressionEnabled = false,
   onToggleProgression,
-  alignOnGroupJoinEnabled = true,
-  onToggleAlignOnGroupJoin,
   minDoneTasks = '',
   onMinDoneTasksChange,
   onSaveMinDoneThreshold,
@@ -81,44 +79,6 @@ export function ProfilesRoleProgressionConfig({
           Si cette option est désactivée, aucun changement automatique de profil ne s’applique :
           utilisez la section « Attribution des profils » pour les niveaux.
         </p>
-        {typeof onToggleAlignOnGroupJoin === 'function' && (
-          <>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 10,
-                fontSize: 'var(--text-sm)',
-                cursor: loading || !progressionEnabled ? 'default' : 'pointer',
-                marginBottom: 8,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={alignOnGroupJoinEnabled}
-                onChange={(e) => onToggleAlignOnGroupJoin(e.target.checked)}
-                disabled={loading || !progressionEnabled}
-                style={{ marginTop: 3 }}
-              />
-              <span>
-                Au <strong>rattachement à un groupe {roleTerms.studentSingular || 'n3beur'}</strong>
-                , attribuer aussitôt le palier correspondant aux tâches déjà validées (sinon le
-                compte reçoit seulement le profil par défaut du groupe).
-              </span>
-            </label>
-            <p
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--ink-soft)',
-                margin: '0 0 10px',
-                lineHeight: 'var(--lh-normal)',
-              }}
-            >
-              Pour rattraper les comptes existants d’un coup, utilisez « Attribuer les profils
-              d’après les tâches validées » dans le sous-onglet <strong>Comptes</strong>.
-            </p>
-          </>
-        )}
         {isTier && (
           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
             <div

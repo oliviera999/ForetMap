@@ -20,26 +20,22 @@ const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
+const { setAssignedRole } = require('../lib/effectiveRole');
 
 async function setStudentPrimaryRole(userId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
-  await execute(
-    "UPDATE user_roles SET is_primary = 0 WHERE user_type = 'student' AND user_id = ?",
-    [userId],
-  );
-  await execute(
-    "INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1",
-    [userId, role.id],
-  );
+  // Profil attribué puis recalcul : le profil par défaut du groupe s'applique s'il est plus
+  // élevé (« le plus élevé l'emporte »).
+  await setAssignedRole(userId, role.id);
 }
 
 async function createN3beurGroup(slug) {
   const role = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   const id = crypto.randomUUID();
   await execute(
-    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, grants_n3beur_access, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, 'class', ?, 1, 1, NOW(), NOW())`,
+    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', ?, 1, NOW(), NOW())`,
     [id, slug, slug, role?.id ?? null],
   );
   return id;
@@ -107,8 +103,8 @@ describe('Listes d’utilisateurs de la gestion des tâches : n3beurs seulement'
 
     for (const user of [n3beur, visiteurDeGroupe, profClasse]) await addToGroup(groupId, user.id);
 
-    // Profils posés APRÈS le rattachement : ils simulent l'attribution manuelle d'un admin,
-    // que `syncStudentRoleFromGroups` n'a pas (encore) rejouée.
+    // Profils attribués après le rattachement : le groupe confère eleve_novice, un profil
+    // attribué plus élevé (prof de classe) l'emporte.
     await setStudentPrimaryRole(n3beur.id, 'eleve_novice');
     await setStudentPrimaryRole(visiteurDeGroupe.id, 'visiteur');
     await setStudentPrimaryRole(visiteurHorsGroupe.id, 'visiteur');

@@ -128,12 +128,7 @@ if (typeof rbac.resetRbacBootstrapForTests === 'function') {
     // Compte admin TEACHER_ADMIN_* : absent d’un `db:init` vierge ; sans lui, les tests API
     // qui cherchent l’enseignant plantent (CI MariaDB neuve, foretmap_test locale).
     const { ensureTeacherAdminFromEnv } = require('../../lib/teacherAdminSeed');
-    await ensureTeacherAdminFromEnv({
-      ensurePrimaryRole:
-        typeof rbac.ensurePrimaryRole === 'function'
-          ? rbac.ensurePrimaryRole.bind(rbac)
-          : undefined,
-    });
+    await ensureTeacherAdminFromEnv({ forceAdminRole: true });
     if (typeof rbac.repairSystemN3beurParticipationDefaults === 'function') {
       await rbac.repairSystemN3beurParticipationDefaults();
     }

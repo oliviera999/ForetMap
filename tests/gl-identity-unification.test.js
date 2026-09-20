@@ -39,9 +39,8 @@ async function createForetmapStudent({
   const hash = await bcrypt.hash(password, 10);
   await execute(
     `INSERT INTO users
-      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-       affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, 'both', ?, 'local', 1, NOW(), NOW())`,
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, 'local', 1, NOW(), NOW())`,
     [id, email, pseudo, firstName, lastName, `${firstName} ${lastName}`, hash],
   );
   return { id, hash };
@@ -330,8 +329,8 @@ test('réconciliation : rapport et rattrapage (joueur sans compte, miroir orphel
   });
   const orphanUserId = crypto.randomUUID();
   await execute(
-    `INSERT INTO users (id, user_type, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, 'Orphelin', 'Miroir', 'Orphelin Miroir', 'both', NULL, 'gl_bridge', 1, NOW(), NOW())`,
+    `INSERT INTO users (id, user_type, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, 'Orphelin', 'Miroir', 'Orphelin Miroir', NULL, 'gl_bridge', 1, NOW(), NOW())`,
     [orphanUserId, `unif_orphan_${stamp}`],
   );
 

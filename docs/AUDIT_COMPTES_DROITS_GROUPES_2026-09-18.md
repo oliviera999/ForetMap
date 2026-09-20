@@ -26,6 +26,40 @@
 > [`AUDIT_UX_GESTION_UTILISATEURS_2026-09.md`](AUDIT_UX_GESTION_UTILISATEURS_2026-09.md)
 > (UX de l'onglet) restent valables ; celui-ci ne reprend pas leurs constats déjà traités.
 
+> **Suivi — lot du 2026-09-20 (« le plus élevé l'emporte »).** Ce lot traite les constats
+> suivants ; les autres restent ouverts.
+>
+> - **Traités** : CDG-01 (alias admin canonique supprimé ; seul `TEACHER_ADMIN_EMAIL`
+>   compte), CDG-02 et CDG-03 (import : garde `checkRoleGrantAllowed` par ligne, périmètre
+>   des élèves existants, enseignant existant réservé à l'administrateur, propre compte
+>   refusé, plancher 12 caractères), CDG-04 (reset MJ refusé sur un vrai compte,
+>   `GL_PLAYER_REAL_ACCOUNT`), CDG-05 (LTI : compte enseignant refusé sans rôle
+>   Instructor), CDG-06 et CDG-43 (une seule garde et une seule écriture :
+>   `lib/rbacRoleAssignment.js` + `lib/effectiveRole.js`, plus de modification de son propre
+>   profil), CDG-07 (mot de passe et désactivation : jamais sur soi ni sur un rang ≥ hors
+>   admin), CDG-08 (impersonation : cible de rang inférieur et active, acteur revérifié à
+>   chaque requête, audit au nom de l'acteur avec `on_behalf_of`, claims conservés au
+>   renouvellement), CDG-09 (`prof_classe` dans la liste des profils d'encadrement),
+>   CDG-10 (vue globale = `admin` ou rang ≥ 400, plus `stats.read.all`), CDG-11
+>   (suppression et duplication bornées au périmètre), CDG-16 (colonne `users.affiliation`
+>   supprimée, migration 266), CDG-20 (onglet « Classe » du prof de classe), CDG-23
+>   (cellule vide = valeur conservée), CDG-24 (sous-groupe cherché sous son parent),
+>   CDG-25 (mise à jour non destructive, cycles refusés, détachement explicite), CDG-26
+>   (401 `deleted: true`, `SESSION_REVOKED`, y compris sur Socket.IO), CDG-31 (motif
+>   « retrait » en lot, plus d'option « Aucun profil »), CDG-32 (chargement par liste,
+>   `GET /api/rbac/users` ouvert à `groups.manage`), CDG-40 (désactivation / réactivation
+>   de tout compte, suppression d'un enseignant par l'administrateur avec contenu conservé),
+>   CDG-41 (seed, import et création : plancher 12 caractères tenu), CDG-46 (défaut posé
+>   une fois comme profil attribué ; enseignant sans profil → prof de classe), CDG-50
+>   (tests `effective-role`, `rbac-account-lifecycle`, gardes d'import et de groupes).
+> - **Simplifications (CDG-60, CDG-61, en partie)** : suppression de `grants_n3beur_access`,
+>   `group_members.role_in_group` (plus de « responsable »), `users.affiliation`, du réglage
+>   `rbac.progression_align_on_group_join`, de la route `apply-default-role`, de
+>   `lib/groupRole.js`, `lib/groupDefaultRole.js`, `lib/studentAffiliation.js`,
+>   `ensurePrimaryRole` et de la résolution d'identité canonique.
+> - **Restent ouverts** : CDG-12 à CDG-15, CDG-17, CDG-21, CDG-22, CDG-27 à CDG-30, CDG-33,
+>   CDG-34, CDG-42, CDG-44 (partiel), CDG-45, CDG-47, CDG-51 à CDG-53.
+
 Gravité : **BLOQUANT** (escalade de droits ou perte de données réalisable par un utilisateur
 ordinaire) · **MAJEUR** (contournement d'une règle documentée, fonction promise absente,
 bug reproductible en usage courant) · **MINEUR** (gêne, incohérence sans conséquence

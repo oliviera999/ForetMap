@@ -8,11 +8,11 @@ const ROLE_UI_TERMS = {
   teacherShortPlural: 'n3boss',
 };
 
-export function isN3OnlyAffiliation(affiliation) {
-  return String(affiliation || '').toLowerCase() === 'n3';
-}
-
-/** @param {boolean} [_isN3Affiliated] conservé pour compatibilité des appels ; ignoré. */
+/**
+ * @param {boolean} [_isN3Affiliated] conservé pour compatibilité des appels ; ignoré. La
+ * terminologie est unifiée depuis la suppression de l'affiliation par compte : les
+ * consommateurs peuvent appeler `getRoleTerms()` sans argument.
+ */
 export function getRoleTerms(_isN3Affiliated) {
   return ROLE_UI_TERMS;
 }

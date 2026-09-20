@@ -16,8 +16,10 @@ import {
   buildGroupForest,
   filterGroupMemberCandidates,
   filterGroupsList,
+  parentGroupCandidates,
   GROUP_KINDS,
 } from '../utils/groupsAdminListFilters.js';
+import { userTypeLabel } from '../utils/profilesUserGroups.js';
 import {
   normalizePageSize,
   paginateList,
@@ -38,23 +40,31 @@ function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
-function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, onSaved }) {
-  const { confirm } = useAppDialogs();
+function GroupSettingsPanel({
+  group,
+  groups = [],
+  roles,
+  rolesUnavailable = false,
+  canManageDefaultRole = true,
+  onClose,
+  onSaved,
+}) {
   const [defaultRoleId, setDefaultRoleId] = useState('');
-  const [grantsN3beur, setGrantsN3beur] = useState(false);
   const [forceDefaultRole, setForceDefaultRole] = useState(false);
+  const [parentGroupId, setParentGroupId] = useState('');
   const [saving, setSaving] = useState(false);
-  const [applying, setApplying] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [classCode, setClassCode] = useState(group?.class_code || null);
 
   useEffect(() => {
     setDefaultRoleId(group?.default_role_id != null ? String(group.default_role_id) : '');
-    setGrantsN3beur(!!group?.grants_n3beur_access);
     setForceDefaultRole(!!group?.force_default_role);
+    setParentGroupId(group?.parent_group_id != null ? String(group.parent_group_id) : '');
     setClassCode(group?.class_code || null);
   }, [group]);
+
+  const parentOptions = useMemo(() => parentGroupCandidates(groups, group?.id), [groups, group]);
 
   const updateClassCode = async (action) => {
     setSaving(true);
@@ -73,24 +83,27 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
     setSaving(false);
   };
 
-  const studentRoles = useMemo(() => filterGroupDefaultRoles(roles), [roles]);
+  const groupRoles = useMemo(() => filterGroupDefaultRoles(roles), [roles]);
 
   const saveSettings = async () => {
     setSaving(true);
     setErr('');
     setMsg('');
     try {
-      const saved = await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', {
-        default_role_id: defaultRoleId ? Number(defaultRoleId) : null,
-        grants_n3beur_access: grantsN3beur,
+      const body = {
+        parent_group_id: parentGroupId || null,
+      };
+      if (canManageDefaultRole) {
+        body.default_role_id = defaultRoleId ? Number(defaultRoleId) : null;
         // Une case cochée sans profil choisi serait refusée par l'API : le `select` la décoche
         // déjà, on ne renvoie donc jamais la combinaison impossible.
-        force_default_role: defaultRoleId ? forceDefaultRole : false,
-      });
-      const applied = Number(saved?.forced_role_applied ?? 0);
+        body.force_default_role = defaultRoleId ? forceDefaultRole : false;
+      }
+      const saved = await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', body);
+      const applied = Number(saved?.roles_recomputed ?? 0);
       setMsg(
         applied > 0
-          ? `Paramètres enregistrés — profil imposé à ${applied} membre(s)`
+          ? `Paramètres enregistrés — profil recalculé pour ${applied} membre(s)`
           : 'Paramètres enregistrés',
       );
       await onSaved();
@@ -100,36 +113,12 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
     setSaving(false);
   };
 
-  const applyDefaultRole = async () => {
-    if (
-      !(await confirm({
-        message: `Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`,
-      }))
-    ) {
-      return;
-    }
-    setApplying(true);
-    setErr('');
-    setMsg('');
-    try {
-      const result = await api(
-        `/api/groups/${encodeURIComponent(group.id)}/apply-default-role`,
-        'POST',
-      );
-      setMsg(`Profil appliqué à ${result?.applied ?? 0} membre(s)`);
-      await onSaved();
-    } catch (e) {
-      setErr(e.message || 'Erreur application profil');
-    }
-    setApplying(false);
-  };
-
   return (
     <div className="log-modal fade-in" style={{ marginBottom: 12 }}>
-      <h3 style={{ marginTop: 0 }}>Profil par défaut — {group.name}</h3>
+      <h3 style={{ marginTop: 0 }}>Réglages — {group.name}</h3>
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: 0 }}>
-        Les membres sans groupe n3beur restent visiteurs. Un profil <code>eleve_*</code> ou le flag
-        n3beur transforme le groupe en groupe n3beur.
+        Le profil du groupe s’ajoute au profil de chaque membre : c’est le plus élevé des deux qui
+        s’applique. Sans profil, le groupe ne change rien aux droits de ses membres.
       </p>
       {group?.gl_class_id && (
         <p style={{ fontSize: 'var(--text-sm)', color: '#0f766e' }}>
@@ -143,41 +132,54 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
         </div>
       )}
       {msg && <div className="auth-success">{msg}</div>}
+      <div className="field" data-testid="group-parent-select">
+        <label>Groupe parent</label>
+        <select value={parentGroupId} onChange={(e) => setParentGroupId(e.target.value)}>
+          <option value="">— Aucun (groupe de premier niveau) —</option>
+          {parentOptions.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          Un sous-groupe hérite du périmètre cartes de sa classe et reste visible par ses
+          responsables. Choisir « Aucun » le détache.
+        </small>
+      </div>
       <div className="field">
-        <label>Profil par défaut du groupe</label>
+        <label>Profil conféré par le groupe</label>
         <select
           value={defaultRoleId}
+          disabled={!canManageDefaultRole}
           onChange={(e) => {
             setDefaultRoleId(e.target.value);
             if (!e.target.value) setForceDefaultRole(false);
           }}
         >
-          <option value="">— Aucun (règle automatique) —</option>
-          {studentRoles.map((r) => (
+          <option value="">— Aucun (visiteur, sans effet) —</option>
+          {groupRoles.map((r) => (
             <option key={r.id} value={r.id}>
               {r.display_name || r.slug}
             </option>
           ))}
         </select>
-        {studentRoles.length === 0 && (
+        {!canManageDefaultRole && (
+          <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+            Seuls un administrateur ou un n3boss règlent le profil conféré par un groupe.
+          </small>
+        )}
+        {groupRoles.length === 0 && (
           <p
             data-testid="group-default-role-empty"
             style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
           >
             {rolesUnavailable
               ? 'Liste des profils indisponible : ton profil n’a pas le droit de lire les profils RBAC. Demande « Gestion des profils RBAC » à un administrateur.'
-              : 'Aucun profil attribuable par un groupe. Les profils d’encadrement (n3boss, administrateur) en sont exclus par construction.'}
+              : 'Aucun profil disponible.'}
           </p>
         )}
       </div>
-      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--text-sm)' }}>
-        <input
-          type="checkbox"
-          checked={grantsN3beur}
-          onChange={(e) => setGrantsN3beur(e.target.checked)}
-        />
-        Accorde le statut n3beur (accès carte/tâches ForetMap)
-      </label>
       <label
         style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 'var(--text-sm)' }}
         data-testid="group-force-default-role"
@@ -185,15 +187,15 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
         <input
           type="checkbox"
           checked={forceDefaultRole}
-          disabled={!defaultRoleId}
+          disabled={!defaultRoleId || !canManageDefaultRole}
           onChange={(e) => setForceDefaultRole(e.target.checked)}
         />
-        Imposer ce profil (la montée automatique ne s’applique plus)
+        Imposer ce profil aux élèves du groupe
       </label>
       <p style={{ margin: '4px 0 0 24px', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
         {defaultRoleId
-          ? 'Sans cette case, le profil du groupe est un plancher : les tâches validées peuvent faire monter un membre au-dessus. Cochée, le profil du groupe s’applique aussi en baisse, et le recalcul par tâches validées laisse ces comptes tranquilles. Les profils d’encadrement (n3boss, administrateur, prof de classe, profil sur mesure) restent intacts.'
-          : 'Choisissez d’abord un profil par défaut : il n’y a rien à imposer tant que le groupe suit la règle automatique.'}
+          ? 'Sans cette case, « le plus élevé l’emporte » : un élève garde un profil attribué plus haut, et les tâches validées peuvent le faire monter. Cochée, le profil du groupe s’applique aux comptes élèves même en baisse (classe de passage tenue en « Visiteur »). Les comptes enseignants ne sont jamais rétrogradés.'
+          : 'Choisissez d’abord un profil : il n’y a rien à imposer tant que le groupe n’en confère aucun.'}
       </p>
       <div style={{ marginTop: 12, fontSize: 'var(--text-sm)' }} data-testid="group-class-code">
         <strong>Code de classe (inscription autonome)</strong>
@@ -231,10 +233,7 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
         <button className="btn btn-primary btn-sm" disabled={saving} onClick={saveSettings}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-        <button className="btn btn-secondary btn-sm" disabled={applying} onClick={applyDefaultRole}>
-          {applying ? 'Application…' : 'Appliquer à tous les membres'}
-        </button>
-        <button className="btn btn-ghost btn-sm" onClick={onClose} disabled={saving || applying}>
+        <button className="btn btn-ghost btn-sm" onClick={onClose} disabled={saving}>
           Fermer
         </button>
       </div>
@@ -244,7 +243,6 @@ function GroupSettingsPanel({ group, roles, rolesUnavailable = false, onClose, o
 
 function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) {
   const [memberIds, setMemberIds] = useState([]);
-  const [managerIds, setManagerIds] = useState([]);
   const [scopeMapIds, setScopeMapIds] = useState([]);
   const [scopeProjectIds, setScopeProjectIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -258,21 +256,13 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
 
   useEffect(() => {
     const members = Array.isArray(group?.members) ? group.members : [];
-    setMemberIds(
-      normalizeIds(members.filter((m) => m.role_in_group !== 'manager').map((m) => m.user_id)),
-    );
-    setManagerIds(
-      normalizeIds(members.filter((m) => m.role_in_group === 'manager').map((m) => m.user_id)),
-    );
+    setMemberIds(normalizeIds(members.map((m) => m.user_id)));
     const scopes = Array.isArray(group?.scopes) ? group.scopes : [];
     setScopeMapIds(normalizeIds(scopes.map((s) => s.map_id).filter(Boolean)));
     setScopeProjectIds(normalizeIds(scopes.map((s) => s.project_id).filter(Boolean)));
   }, [group]);
 
-  const memberOrManagerIds = useMemo(
-    () => new Set([...memberIds, ...managerIds].map(String)),
-    [memberIds, managerIds],
-  );
+  const memberOrManagerIds = useMemo(() => new Set(memberIds.map(String)), [memberIds]);
 
   const filteredUsers = useMemo(
     () =>
@@ -303,8 +293,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
     setErr('');
     try {
       await api(`/api/groups/${encodeURIComponent(group.id)}/members`, 'PUT', {
-        member_user_ids: normalizeIds(memberIds.filter((id) => !managerIds.includes(id))),
-        manager_user_ids: normalizeIds(managerIds),
+        member_user_ids: normalizeIds(memberIds),
         scope_map_ids: normalizeIds(scopeMapIds),
         scope_project_ids: normalizeIds(scopeProjectIds),
       });
@@ -375,21 +364,21 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
       >
         {pageData.items.map((u) => {
           const uid = String(u.id);
-          const memberChecked = memberIds.includes(uid) || managerIds.includes(uid);
-          const managerChecked = managerIds.includes(uid);
+          const memberChecked = memberIds.includes(uid);
           return (
             <div
               key={uid}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr auto auto',
+                gridTemplateColumns: '1fr auto',
                 gap: 8,
                 alignItems: 'center',
                 marginBottom: 6,
               }}
             >
               <div style={{ fontSize: 'var(--text-sm)' }}>
-                {u.display_name} <span style={{ color: 'var(--ink-soft)' }}>({u.user_type})</span>
+                {u.display_name}{' '}
+                <span style={{ color: 'var(--ink-soft)' }}>({userTypeLabel(u.user_type)})</span>
               </div>
               <label style={{ fontSize: 'var(--text-sm)' }}>
                 <input
@@ -398,14 +387,6 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
                   onChange={(e) => toggleId(setMemberIds, memberIds, uid, e.target.checked)}
                 />{' '}
                 membre
-              </label>
-              <label style={{ fontSize: 'var(--text-sm)' }}>
-                <input
-                  type="checkbox"
-                  checked={managerChecked}
-                  onChange={(e) => toggleId(setManagerIds, managerIds, uid, e.target.checked)}
-                />{' '}
-                manager
               </label>
             </div>
           );
@@ -553,20 +534,17 @@ function GroupTreeNode({
               {node.force_default_role && (
                 <span
                   style={{ color: '#b45309', fontSize: 'var(--text-xs)' }}
-                  title="Profil imposé : la montée automatique par tâches validées ne s’applique pas aux membres"
+                  title="Profil imposé aux élèves du groupe, même en baisse"
                 >
                   {' '}
                   · imposé
                 </span>
               )}
-              {node.grants_n3beur_access && (
-                <span style={{ color: '#0369a1', fontSize: 'var(--text-xs)' }}> · n3beur</span>
-              )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-ghost btn-sm" onClick={() => onSettings(node)}>
-              Profil
+              Réglages
             </button>
             <button className="btn btn-ghost btn-sm" onClick={() => onMembers(node)}>
               Membres
@@ -620,6 +598,8 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
   const [roles, setRoles] = useState([]);
   /** Chargement des profils refusé (droits) : le sélecteur le dit plutôt que de rester vide. */
   const [rolesUnavailable, setRolesUnavailable] = useState(false);
+  /** Profil conféré / imposé : réservés à l'administrateur et au n3boss (règle serveur). */
+  const [canManageDefaultRole, setCanManageDefaultRole] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -643,13 +623,14 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     const [groupPayload, userRows, mapsRows, projectRows, roleRows, pendingRows] =
       await Promise.all([
         api('/api/groups'),
-        api('/api/rbac/users'),
+        api('/api/rbac/users').catch(() => []),
         api('/api/maps'),
-        api('/api/task-projects'),
+        api('/api/task-projects').catch(() => []),
         api('/api/rbac/profiles').catch(() => null),
         api('/api/groups/pending-visitors').catch(() => []),
       ]);
     setGroups(Array.isArray(groupPayload?.groups) ? groupPayload.groups : []);
+    setCanManageDefaultRole(!!groupPayload?.can_manage_default_role);
     setUsers(Array.isArray(userRows) ? userRows : []);
     setMaps(Array.isArray(mapsRows) ? mapsRows : []);
     setProjects(Array.isArray(projectRows) ? projectRows : []);
@@ -699,18 +680,24 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setErr('');
     let ok = 0;
     const errors = [];
-    for (const student of selected) {
-      try {
-        await api(
-          `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/${encodeURIComponent(student.id)}`,
-          'POST',
-        );
-        ok += 1;
-      } catch (e) {
+    try {
+      // Même appel que la barre d'actions groupées de l'onglet Comptes : un seul aller-retour.
+      const result = await api(
+        `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/bulk`,
+        'POST',
+        { user_ids: selected.map((v) => String(v.id)) },
+      );
+      ok = Number(result?.added || 0);
+      const byId = new Map(selected.map((v) => [String(v.id), v]));
+      for (const row of Array.isArray(result?.results) ? result.results : []) {
+        if (row.ok) continue;
+        const student = byId.get(String(row.user_id)) || {};
         errors.push(
-          `${student.first_name || ''} ${student.last_name || ''}: ${e.message || 'échec'}`.trim(),
+          `${student.first_name || ''} ${student.last_name || ''}: ${row.error || 'échec'}`.trim(),
         );
       }
+    } catch (e) {
+      errors.push(e.message || 'échec du rattachement');
     }
     if (ok > 0) {
       setMsg(`${ok} compte${ok > 1 ? 's' : ''} rattaché${ok > 1 ? 's' : ''} au groupe.`);
@@ -1044,8 +1031,10 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
         <div style={{ marginTop: 12 }}>
           <GroupSettingsPanel
             group={settingsGroup}
+            groups={groups}
             roles={roles}
             rolesUnavailable={rolesUnavailable}
+            canManageDefaultRole={canManageDefaultRole}
             onClose={() => setSettingsGroup(null)}
             onSaved={load}
           />

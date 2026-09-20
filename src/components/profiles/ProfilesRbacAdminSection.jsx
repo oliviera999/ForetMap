@@ -25,7 +25,6 @@ export function ProfilesRbacAdminSection({
   canEditRoleDefinition,
   isN3beurTier,
   progressionByTasksEnabled,
-  alignOnGroupJoinEnabled,
   tasksProposeEntry,
   onCreateRole,
   onSelectRole,
@@ -34,7 +33,6 @@ export function ProfilesRbacAdminSection({
   onDuplicateRole,
   onSaveEmoji,
   onToggleProgression,
-  onToggleAlignOnGroupJoin,
   onSaveMinDoneThreshold,
   onTogglePermission,
   onSetForumParticipate,
@@ -92,8 +90,6 @@ export function ProfilesRbacAdminSection({
               canEditRoleDefinition={canEditRoleDefinition}
               progressionEnabled={progressionByTasksEnabled}
               onToggleProgression={onToggleProgression}
-              alignOnGroupJoinEnabled={alignOnGroupJoinEnabled}
-              onToggleAlignOnGroupJoin={onToggleAlignOnGroupJoin}
               minDoneTasks={roleMinDoneTasks}
               onMinDoneTasksChange={setRoleMinDoneTasks}
               onSaveMinDoneThreshold={() => onSaveMinDoneThreshold(roleMinDoneTasks)}

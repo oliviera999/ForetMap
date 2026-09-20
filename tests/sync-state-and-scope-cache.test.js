@@ -68,8 +68,8 @@ async function createStudent(label) {
   const unique = uniqueSlug(label);
   await execute(
     `INSERT INTO users
-      (id, user_type, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, ?, ?, ?, 'both', NULL, 'local', 1, NOW(), NOW())`,
+      (id, user_type, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, ?, ?, ?, NULL, 'local', 1, NOW(), NOW())`,
     [id, `${unique}@example.com`, `sync_${unique}`, 'Test', label, `Test ${label}`],
   );
   return id;

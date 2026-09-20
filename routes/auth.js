@@ -26,7 +26,7 @@ const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
 const {
   EMAIL_RE,
-  PASSWORD_RESET_MIN_LEN,
+  PRIVILEGED_PASSWORD_MIN_LEN,
   createPasswordResetToken,
   consumePasswordResetToken,
   getPasswordMinLength,
@@ -36,21 +36,20 @@ const {
 const {
   buildAuthzPayload,
   consumePendingAutoProfilePromotion,
-  ensurePrimaryRole,
+  getPrimaryRoleForUser,
 } = require('../lib/rbac');
+const { recomputeUserRole } = require('../lib/effectiveRole');
 const { getSettingValue, getAuthJwtTtls } = require('../lib/settings');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
-const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
+const { resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const { shouldRenewAuthToken, carrySessionStart } = require('../lib/auth/slidingSession');
 const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
-const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
-const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const {
   resolveOAuthPublicOrigin,
   resolveOAuthRedirectUri,
@@ -179,14 +178,11 @@ let seedTeacherChecked = false;
 async function ensureTeacherSeedFromEnv() {
   if (seedTeacherChecked) return;
   seedTeacherChecked = true;
-  await ensureTeacherAdminFromEnv({
-    minPasswordLength: PASSWORD_RESET_MIN_LEN,
-    ensurePrimaryRole,
-  });
+  // Plancher enseignant (12) : le compte administrateur initial ne fait pas exception (CDG-41).
+  await ensureTeacherAdminFromEnv({ minPasswordLength: PRIVILEGED_PASSWORD_MIN_LEN });
 }
 
 async function buildSessionPayload(userType, userId) {
-  const canonicalUserId = await ensureCanonicalUserByAuth({ userType, userId });
   const authz = await buildAuthzPayload(userType, userId);
   if (!authz) return null;
   // Époque de jeton : un changement de mot de passe l'incrémente et invalide les sessions.
@@ -195,7 +191,6 @@ async function buildSessionPayload(userType, userId) {
     tokenPayload: {
       userType,
       userId,
-      canonicalUserId: canonicalUserId || null,
       tokenEpoch,
       roleId: authz.roleId,
       roleSlug: authz.roleSlug,
@@ -257,7 +252,6 @@ router.get('/me', requireAuth, async (req, res) => {
             tp.impersonating = true;
             tp.actorUserType = claims.actorUserType;
             tp.actorUserId = claims.actorUserId;
-            tp.actorCanonicalUserId = claims.actorCanonicalUserId || null;
           }
           body.refreshedToken = await signAuthToken(tp);
           body.auth = exposeAuth({
@@ -271,18 +265,35 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (_) {
     /* Jeton déjà validé par requireAuth ; ignorer les écarts de décodage marginaux */
   }
-  if (req.auth?.userType === 'student' && req.auth?.userId) {
-    const groupSync = await syncStudentRoleFromGroups(req.auth.userId);
-    if (groupSync.changed) {
+  if (req.auth?.userId) {
+    // Filet de sécurité : le profil effectif est recalculé (profil attribué ⊕ groupes) à
+    // chaque `/me`, pour un compte modifié hors connexion (membre ajouté, groupe réglé).
+    const roleSync = await recomputeUserRole(req.auth.userId);
+    if (roleSync.changed) {
       const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
       if (session) {
-        // `carrySessionStart` seulement : ce chemin n'a jamais reconduit l'impersonation,
-        // le changer relèverait d'un autre lot.
         const tp = carrySessionStart(session.tokenPayload, tokenClaims);
+        // La prise de contrôle est reconduite ici aussi : sinon l'administrateur se
+        // retrouvait avec un jeton ordinaire du compte contrôlé, sans issue (CDG-08).
+        if (
+          tokenClaims?.impersonating &&
+          tokenClaims.actorUserType &&
+          tokenClaims.actorUserId != null
+        ) {
+          tp.impersonating = true;
+          tp.actorUserType = tokenClaims.actorUserType;
+          tp.actorUserId = tokenClaims.actorUserId;
+        }
         body.refreshedToken = await signAuthToken(tp);
-        body.auth = exposeAuth(tp);
+        body.auth = exposeAuth({
+          ...tp,
+          impersonating: req.auth.impersonating,
+          impersonatedBy: req.auth.impersonatedBy,
+        });
       }
     }
+  }
+  if (req.auth?.userType === 'student' && req.auth?.userId) {
     const promo = consumePendingAutoProfilePromotion(req.auth.userId);
     if (promo) body.autoProfilePromotion = promo;
     const u = await queryOne(
@@ -366,7 +377,7 @@ router.patch(
     // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler ;
     // password_hash requis ici pour vérifier le mot de passe actuel (bcrypt), jamais renvoyé au client.
     const account = await queryOne(
-      `SELECT id, user_type, email, pseudo, description, affiliation,
+      `SELECT id, user_type, email, pseudo, description,
               visit_mascot_catalog_id, avatar_path, password_hash
          FROM users WHERE id = ? LIMIT 1`,
       [auth.userId],
@@ -387,7 +398,6 @@ router.patch(
       hasPseudo,
       hasEmail,
       hasDescription,
-      hasAffiliation,
       hasVisitMascotCatalogId,
       hasAvatarData,
       removeAvatar,
@@ -401,14 +411,6 @@ router.patch(
     const description = hasDescription
       ? normalizeOptionalString(body.description)
       : account.description;
-    let affiliation;
-    if (hasAffiliation) {
-      const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
-      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-      affiliation = affRes.affiliation;
-    } else {
-      affiliation = account.affiliation || 'both';
-    }
     const mascotRes = await resolveVisitMascotUpdate(
       hasVisitMascotCatalogId,
       body.visit_mascot_catalog_id,
@@ -436,9 +438,9 @@ router.patch(
     try {
       await execute(
         `UPDATE users
-            SET pseudo = ?, email = ?, description = ?, affiliation = ?, visit_mascot_catalog_id = ?, avatar_path = ?, updated_at = NOW()
+            SET pseudo = ?, email = ?, description = ?, visit_mascot_catalog_id = ?, avatar_path = ?, updated_at = NOW()
           WHERE id = ?`,
-        [pseudo, email, description, affiliation, visitMascotCatalogId, avatarPath, account.id],
+        [pseudo, email, description, visitMascotCatalogId, avatarPath, account.id],
       );
     } catch (err) {
       if (isDuplicateEntryError(err)) {
@@ -450,7 +452,7 @@ router.patch(
     // Toutes les colonnes SAUF password_hash : l'objet est renvoyé tel quel au front (profil complet).
     const updated = await queryOne(
       `SELECT id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-              description, avatar_path, affiliation, visit_mascot_catalog_id, auth_provider,
+              description, avatar_path, visit_mascot_catalog_id, auth_provider,
               is_active, last_seen, created_at, updated_at
          FROM users WHERE id = ? LIMIT 1`,
       [account.id],
@@ -470,7 +472,6 @@ router.patch(
           pseudo: !!hasPseudo,
           email: !!hasEmail,
           description: !!hasDescription,
-          affiliation: !!hasAffiliation,
           visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
           avatar: !!(hasAvatarData || removeAvatar),
         },
@@ -492,9 +493,6 @@ router.post(
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     const description = normalizeOptionalString(req.body?.description);
-    const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
-    if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-    const affiliation = affRes.affiliation;
     if (!firstName?.trim() || !lastName?.trim())
       return res.status(400).json({ error: 'Prénom et nom requis' });
     // F2-A — code de classe optionnel : validé AVANT la création du compte pour
@@ -542,8 +540,8 @@ router.post(
     try {
       await execute(
         `INSERT INTO users
-          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-         VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
         [
           id,
           email,
@@ -552,7 +550,6 @@ router.post(
           lastName.trim(),
           `${firstName.trim()} ${lastName.trim()}`.trim(),
           description,
-          affiliation,
           hash,
           now,
         ],
@@ -563,12 +560,9 @@ router.post(
       }
       throw err;
     }
-    await ensurePrimaryRole('student', id, 'visiteur');
-    if (classCodeGroup) {
-      // Rejoint le groupe du code : promotion visiteur → n3beur si le groupe la confère.
-      await addStudentToGroup(id, classCodeGroup.id);
-    }
-    await syncStudentRoleFromGroups(id);
+    // Profil attribué par défaut (visiteur) puis, si code de classe, profil conféré par le groupe.
+    await recomputeUserRole(id);
+    if (classCodeGroup) await addStudentToGroup(id, classCodeGroup.id);
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       id,
     ]);
@@ -718,11 +712,9 @@ router.post(
 
     loginThrottle.clear('login', identifier);
     const userType = await resolveLoginUserType(account);
-    const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
-    await ensurePrimaryRole(userType, account.id, preferredRole);
-    if (userType === 'student') {
-      await syncStudentRoleFromGroups(account.id);
-    }
+    // Profil effectif recalculé à la connexion ; un compte sans profil reçoit le défaut de
+    // son type (prof de classe / visiteur), jamais n3boss (CDG-46).
+    await recomputeUserRole(account.id);
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
       nowDbTimestamp(),
       account.id,
@@ -966,7 +958,7 @@ router.get('/google/callback', async (req, res) => {
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode),
         );
       }
-      await ensurePrimaryRole('teacher', teacher.id, 'prof');
+      await recomputeUserRole(teacher.id);
       const now = nowDbTimestamp();
       await execute(
         "UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
@@ -1046,16 +1038,22 @@ router.get('/google/callback', async (req, res) => {
       const lastName = normalizeOptionalString(payload.family_name) || splitName.lastName;
       await execute(
         `INSERT INTO users
-          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-         VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
+          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+         VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, NULL, 'google', 1, ?, NOW(), NOW())`,
         [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now],
       );
-      await ensurePrimaryRole('student', id, 'visiteur');
+      await recomputeUserRole(id);
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
-      await syncStudentRoleFromGroups(id);
       accountJustCreated = true;
     } else {
+      // Même règle que la connexion par mot de passe : un compte désactivé n'obtient pas de
+      // jeton (il tombait sinon en 401 à la première requête, CDG-47).
+      if (!Number(student.is_active)) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_inactive', mode),
+        );
+      }
       await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
         nowDbTimestamp(),
         student.id,
@@ -1063,7 +1061,7 @@ router.get('/google/callback', async (req, res) => {
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
         student.id,
       ]);
-      await syncStudentRoleFromGroups(student.id);
+      await recomputeUserRole(student.id);
     }
 
     const session = await buildSessionPayload('student', student.id);
@@ -1289,6 +1287,18 @@ router.post(
       targetUserType,
     ]);
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (!Number(account.is_active)) {
+      return res.status(409).json({ error: 'Ce compte est désactivé : réactivez-le avant' });
+    }
+    // On ne prend la main que sur un compte de rang strictement inférieur au sien : la
+    // permission `admin.impersonate` ne vaut pas les pouvoirs d'un administrateur (CDG-08).
+    const targetRole = await getPrimaryRoleForUser(targetUserType, targetUserId);
+    if (Number(targetRole?.rank || 0) >= Number(req.auth.roleRank || 0)) {
+      return res.status(403).json({
+        error:
+          'Prise de contrôle refusée : ce compte a un profil de rang égal ou supérieur au vôtre',
+      });
+    }
 
     const tokenIn = parseBearerToken(req);
     if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
@@ -1304,16 +1314,11 @@ router.post(
     const session = await buildSessionPayload(targetUserType, targetUserId);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué pour ce compte' });
 
-    const actorCanonical = await ensureCanonicalUserByAuth({
-      userType: req.auth.userType,
-      userId: req.auth.userId,
-    });
     const tokenPayload = {
       ...session.tokenPayload,
       impersonating: true,
       actorUserType: req.auth.userType,
       actorUserId: req.auth.userId,
-      actorCanonicalUserId: actorCanonical || null,
     };
     const token = await signAuthToken(tokenPayload);
     let hydrated;
@@ -1327,8 +1332,8 @@ router.post(
 
     await logAudit(
       'auth_impersonate_start',
-      'auth',
-      req.auth.userId,
+      targetUserType,
+      targetUserId,
       `Prise de contrôle ${targetUserType}#${targetUserId}`,
       {
         req,

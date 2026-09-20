@@ -33,6 +33,7 @@ async function createTeacherToken(label = 'media') {
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [teacherId, profRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [profRole.id, teacherId]);
   return signAuthToken(
     {
       userType: 'teacher',

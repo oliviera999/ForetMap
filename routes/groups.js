@@ -14,12 +14,12 @@ const {
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
 const { z, validate } = require('../lib/validate');
+const { recomputeGroupMembersRoles, recomputeUsersRoles } = require('../lib/effectiveRole');
+const { addUserToGroup, removeUserFromGroup } = require('../lib/groupMembers');
 const {
-  getAllowedGroupDefaultRole,
-  syncStudentRoleFromGroups,
-  syncStudentRolesForGroupMembers,
-} = require('../lib/groupRole');
-const { addStudentToGroup } = require('../lib/groupMembers');
+  canManageGroupDefaultRole,
+  validateGroupDefaultRole,
+} = require('../lib/groupDefaultRolePolicy');
 const { logAudit } = require('../lib/auditLog');
 const { slugify } = require('../lib/shared/slug');
 
@@ -69,14 +69,6 @@ function forceDefaultRoleError(forceDefaultRole, defaultRoleId) {
   return 'force_default_role exige un profil par défaut (default_role_id)';
 }
 
-async function validateDefaultRoleId(roleId) {
-  const normalized = roleId == null || roleId === '' ? null : Number(roleId);
-  if (normalized == null) return null;
-  if (!Number.isFinite(normalized) || normalized <= 0) return false;
-  const row = await getAllowedGroupDefaultRole(normalized);
-  return row ? normalized : false;
-}
-
 /**
  * Enrichit un lot de groupes en 2 requêtes batch (rôle par défaut, classe GL) —
  * remplace le « 2 queryOne par groupe » de la liste (N+1).
@@ -89,7 +81,7 @@ async function enrichGroupRows(rows) {
   const [roleRows, glClassRows] = await Promise.all([
     roleIds.length
       ? queryAll(
-          `SELECT id, slug, display_name FROM roles WHERE id IN (${roleIds.map(() => '?').join(',')})`,
+          `SELECT id, slug, display_name, \`rank\` FROM roles WHERE id IN (${roleIds.map(() => '?').join(',')})`,
           roleIds,
         )
       : [],
@@ -113,7 +105,7 @@ async function enrichGroupRows(rows) {
       ...row,
       default_role_slug: role?.slug ?? row.default_role_slug ?? null,
       default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
-      grants_n3beur_access: Number(row.grants_n3beur_access) !== 0,
+      default_role_rank: role?.rank != null ? Number(role.rank) : null,
       force_default_role: Number(row.force_default_role) !== 0,
       gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
       gl_class_name: glClass?.name ?? null,
@@ -147,7 +139,6 @@ const createGroupBodySchema = z
       b.default_role_id === undefined || b.default_role_id === null || b.default_role_id === ''
         ? null
         : b.default_role_id,
-    grants_n3beur_access: b.grants_n3beur_access,
     force_default_role: b.force_default_role,
   }))
   .superRefine((d, ctx) => {
@@ -160,12 +151,15 @@ const createGroupBodySchema = z
 async function fetchGroupMembers(groupIds) {
   if (!groupIds.length) return new Map();
   const rows = await queryAll(
-    `SELECT gm.group_id, gm.user_id, gm.user_type, gm.role_in_group,
+    `SELECT gm.group_id, gm.user_id, gm.user_type, u.is_active,
+            r.slug AS role_slug, r.display_name AS role_display_name,
             COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.pseudo, u.email, u.id) AS user_label
        FROM group_members gm
        INNER JOIN users u ON u.id = gm.user_id
+       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
+       LEFT JOIN roles r ON r.id = ur.role_id
       WHERE gm.group_id IN (${groupIds.map(() => '?').join(',')})
-      ORDER BY gm.group_id ASC, gm.role_in_group DESC, user_label ASC`,
+      ORDER BY gm.group_id ASC, gm.user_type DESC, user_label ASC`,
     groupIds,
   );
   const byGroup = new Map();
@@ -174,8 +168,10 @@ async function fetchGroupMembers(groupIds) {
     byGroup.get(row.group_id).push({
       user_id: row.user_id,
       user_type: row.user_type,
-      role_in_group: row.role_in_group,
       user_label: row.user_label,
+      is_active: Number(row.is_active) !== 0,
+      role_slug: row.role_slug ?? null,
+      role_display_name: row.role_display_name ?? null,
     });
   }
   return byGroup;
@@ -237,7 +233,6 @@ router.get(
         kind: g.kind,
         parent_group_id: g.parent_group_id || null,
         default_role_id: g.default_role_id ?? null,
-        grants_n3beur_access: Number(g.grants_n3beur_access) !== 0,
         force_default_role: Number(g.force_default_role) !== 0,
       })),
     });
@@ -310,6 +305,8 @@ router.get(
     }));
     res.json({
       can_manage: canManage,
+      // Seuls l'administrateur et le n3boss règlent le profil par défaut / l'imposition.
+      can_manage_default_role: canManage && canManageGroupDefaultRole(req.auth),
       groups: list,
       tree: buildTree(list),
     });
@@ -322,12 +319,15 @@ router.post(
   validate({ body: createGroupBodySchema }),
   asyncHandler(async (req, res) => {
     const { slug, name, description, kind, parent_group_id: parentGroupId } = req.body;
-    const defaultRoleId = await validateDefaultRoleId(req.body?.default_role_id);
-    if (defaultRoleId === false) {
-      return res.status(400).json({ error: 'default_role_id invalide' });
-    }
-    const grantsN3beur = parseBooleanFlag(req.body?.grants_n3beur_access, false);
+    const roleCheck = await validateGroupDefaultRole(req.auth, req.body?.default_role_id);
+    if (!roleCheck.ok) return res.status(roleCheck.status).json({ error: roleCheck.error });
+    const defaultRoleId = roleCheck.roleId;
     const forceDefaultRole = parseBooleanFlag(req.body?.force_default_role, false);
+    if (forceDefaultRole && !canManageGroupDefaultRole(req.auth)) {
+      return res
+        .status(403)
+        .json({ error: 'Seuls un administrateur ou un n3boss imposent un profil' });
+    }
     const forceError = forceDefaultRoleError(forceDefaultRole, defaultRoleId);
     if (forceError) return res.status(400).json({ error: forceError });
     if (parentGroupId) {
@@ -347,8 +347,8 @@ router.post(
     const id = crypto.randomUUID();
     try {
       await execute(
-        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, grants_n3beur_access, force_default_role, is_active, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, force_default_role, is_active, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         [
           id,
           slug,
@@ -357,7 +357,6 @@ router.post(
           kind,
           parentGroupId,
           defaultRoleId,
-          grantsN3beur ? 1 : 0,
           forceDefaultRole ? 1 : 0,
           normalizeId(req.auth?.userId),
         ],
@@ -467,21 +466,32 @@ router.patch(
         : Number(group.is_active) !== 0
           ? 1
           : 0;
-    const defaultRoleId =
-      req.body?.default_role_id !== undefined
-        ? await validateDefaultRoleId(req.body.default_role_id)
-        : group.default_role_id;
-    if (defaultRoleId === false) {
-      return res.status(400).json({ error: 'default_role_id invalide' });
+    let defaultRoleId = group.default_role_id ?? null;
+    const roleRequested =
+      req.body?.default_role_id !== undefined &&
+      String(req.body.default_role_id ?? '') !== String(group.default_role_id ?? '');
+    if (roleRequested) {
+      const roleCheck = await validateGroupDefaultRole(req.auth, req.body.default_role_id);
+      if (!roleCheck.ok) return res.status(roleCheck.status).json({ error: roleCheck.error });
+      defaultRoleId = roleCheck.roleId;
+      if (defaultRoleId == null && !canManageGroupDefaultRole(req.auth)) {
+        return res.status(403).json({
+          error: 'Seuls un administrateur ou un n3boss règlent le profil par défaut d’un groupe',
+        });
+      }
     }
-    const grantsN3beur =
-      req.body?.grants_n3beur_access !== undefined
-        ? parseBooleanFlag(req.body.grants_n3beur_access, false)
-        : Number(group.grants_n3beur_access) !== 0;
     const forceDefaultRole =
       req.body?.force_default_role !== undefined
         ? parseBooleanFlag(req.body.force_default_role, false)
         : Number(group.force_default_role) !== 0;
+    if (
+      forceDefaultRole !== (Number(group.force_default_role) !== 0) &&
+      !canManageGroupDefaultRole(req.auth)
+    ) {
+      return res
+        .status(403)
+        .json({ error: 'Seuls un administrateur ou un n3boss imposent un profil' });
+    }
     const forceError = forceDefaultRoleError(forceDefaultRole, defaultRoleId);
     if (forceError) return res.status(400).json({ error: forceError });
     if (!slug || !name) return res.status(400).json({ error: 'slug et name requis' });
@@ -493,6 +503,13 @@ router.patch(
         parentGroupId,
       ]);
       if (!parent) return res.status(400).json({ error: 'parent_group_id introuvable' });
+      // Comme à la création : on ne rattache un groupe qu'à un parent de son périmètre.
+      if (
+        String(parentGroupId) !== String(group.parent_group_id || '') &&
+        !(await isGroupInManageScope(req.auth, parentGroupId))
+      ) {
+        return res.status(403).json({ error: 'Groupe parent hors périmètre' });
+      }
       // Refuser les cycles : si `id` figure dans la chaîne d'ancêtres du nouveau parent,
       // le groupe deviendrait son propre ancêtre (les deux sortiraient de l'arbre
       // et chacun élargirait le périmètre de l'autre).
@@ -517,7 +534,7 @@ router.patch(
       await execute(
         `UPDATE \`groups\`
           SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
-              default_role_id = ?, grants_n3beur_access = ?, force_default_role = ?,
+              default_role_id = ?, force_default_role = ?,
               is_active = ?, updated_at = NOW()
         WHERE id = ?`,
         [
@@ -527,7 +544,6 @@ router.patch(
           kind,
           parentGroupId,
           defaultRoleId,
-          grantsN3beur ? 1 : 0,
           forceDefaultRole ? 1 : 0,
           isActive,
           id,
@@ -537,22 +553,21 @@ router.patch(
       rethrowSlugConflict(err);
     }
 
-    // Le profil imposé prend effet tout de suite. Sans ce rattrapage, cocher « imposer ce
-    // profil » ne changerait rien tant que chaque élève n'a pas rouvert l'application (c'est
-    // `GET /api/auth/me` qui resynchronise), et le n3boss verrait sa classe inchangée juste
-    // après avoir enregistré. Rejoué aussi quand le profil imposé change de valeur.
-    const forceBecameEffective =
-      forceDefaultRole &&
-      (Number(group.force_default_role) === 0 ||
-        String(group.default_role_id ?? '') !== String(defaultRoleId ?? ''));
-    const applied = forceBecameEffective
-      ? (await syncStudentRolesForGroupMembers(id)).filter((r) => r.changed).length
+    // Profil par défaut, imposition ou activité modifiés : le profil effectif des membres est
+    // recalculé tout de suite (« le plus élevé l'emporte »), sans attendre leur prochain
+    // `GET /api/auth/me`. Plus de bouton « Appliquer à tous les membres » : le réglage suffit.
+    const membersAffected =
+      String(group.default_role_id ?? '') !== String(defaultRoleId ?? '') ||
+      (Number(group.force_default_role) !== 0) !== forceDefaultRole ||
+      (Number(group.is_active) !== 0 ? 1 : 0) !== isActive;
+    const applied = membersAffected
+      ? (await recomputeGroupMembersRoles(id)).filter((r) => r.changed).length
       : 0;
 
     const updated = await enrichGroupRow(
       await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
     );
-    res.json(forceBecameEffective ? { ...updated, forced_role_applied: applied } : updated);
+    res.json(membersAffected ? { ...updated, roles_recomputed: applied } : updated);
   }),
 );
 
@@ -568,14 +583,11 @@ router.delete(
     if (!(await isGroupInManageScope(req.auth, id))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    // Membres élèves relevés AVANT la suppression (cascade group_members) pour resynchroniser
-    // leurs rôles ensuite — comme PUT /:id/members ; sinon un élève garde un rôle issu du
-    // groupe supprimé jusqu'à sa prochaine requête /api/auth/me.
+    // Membres relevés AVANT la suppression (cascade group_members) pour recalculer leur
+    // profil effectif ensuite ; sinon un membre garde un profil issu du groupe supprimé
+    // jusqu'à sa prochaine requête /api/auth/me.
     const studentMembers = await queryAll(
-      `SELECT DISTINCT gm.user_id
-         FROM group_members gm
-        INNER JOIN users u ON u.id = gm.user_id
-        WHERE gm.group_id = ? AND u.user_type = 'student' AND u.is_active = 1`,
+      `SELECT DISTINCT gm.user_id FROM group_members gm WHERE gm.group_id = ?`,
       [id],
     );
     // Suppression atomique + détachement des références sans FK. `tasks.group_id`,
@@ -592,9 +604,7 @@ router.delete(
       ]);
       await tx.execute('DELETE FROM `groups` WHERE id = ?', [id]);
     });
-    for (const row of studentMembers) {
-      await syncStudentRoleFromGroups(row.user_id);
-    }
+    await recomputeUsersRoles(studentMembers.map((row) => row.user_id));
     await logAudit('delete_group', 'group', id, `Suppression groupe ${group.name || id}`, {
       req,
       payload: { name: group.name || null, student_members: studentMembers.length },
@@ -607,22 +617,11 @@ router.get(
   '/:id/members',
   asyncHandler(async (req, res) => {
     const groupId = normalizeId(req.params.id);
-    if (!(await isGroupInManageScope(req.auth, groupId)) && !canReadGroups(req.auth)) {
-      return res.status(403).json({ error: 'Permission insuffisante' });
-    }
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const rows = await queryAll(
-      `SELECT gm.group_id, gm.user_id, gm.user_type, gm.role_in_group,
-            COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.pseudo, u.email, u.id) AS user_label
-       FROM group_members gm
-       INNER JOIN users u ON u.id = gm.user_id
-      WHERE gm.group_id = ?
-      ORDER BY gm.role_in_group DESC, user_label ASC`,
-      [groupId],
-    );
-    res.json({ members: rows });
+    const membersByGroup = await fetchGroupMembers([groupId]);
+    res.json({ members: membersByGroup.get(groupId) || [] });
   }),
 );
 
@@ -639,11 +638,18 @@ router.put(
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
 
-    const memberUserIds = uniqueStrings(req.body?.member_user_ids || []);
-    const managerUserIds = uniqueStrings(req.body?.manager_user_ids || []);
+    // `manager_user_ids` (ancien « responsable ») est encore accepté et fusionné : le rôle de
+    // membre n'a plus d'existence, le périmètre d'un enseignant est son appartenance.
+    const memberUserIds = uniqueStrings([
+      ...(req.body?.member_user_ids || []),
+      ...(req.body?.manager_user_ids || []),
+    ]);
     const scopeMapIds = uniqueStrings(req.body?.scope_map_ids || []);
     const scopeProjectIds = uniqueStrings(req.body?.scope_project_ids || []);
-    const allUserIds = uniqueStrings([...memberUserIds, ...managerUserIds]);
+    const allUserIds = memberUserIds;
+    const previousMembers = await queryAll('SELECT user_id FROM group_members WHERE group_id = ?', [
+      groupId,
+    ]);
 
     if (allUserIds.length > 0) {
       const rows = await queryAll(
@@ -689,37 +695,23 @@ router.put(
       // Resout les `user_type` des membres ET managers en UNE requete (au lieu d'un SELECT par
       // utilisateur), puis insere chaque groupe de roles en UNE requete multi-valeurs (au lieu
       // d'une boucle N+1). Les utilisateurs introuvables sont ignores, comme la version par boucle.
-      const allMemberIds = [...new Set([...memberUserIds, ...managerUserIds])];
       const userTypeById = new Map();
-      if (allMemberIds.length > 0) {
+      if (memberUserIds.length > 0) {
         const userRows = await tx.queryAll(
-          `SELECT id, user_type FROM users WHERE id IN (${allMemberIds.map(() => '?').join(',')})`,
-          allMemberIds,
+          `SELECT id, user_type FROM users WHERE id IN (${memberUserIds.map(() => '?').join(',')})`,
+          memberUserIds,
         );
         for (const row of userRows) userTypeById.set(String(row.id), row.user_type);
       }
 
       const memberRows = memberUserIds.filter((userId) => userTypeById.has(String(userId)));
       if (memberRows.length > 0) {
-        const placeholders = memberRows.map(() => "(?, ?, ?, 'member')").join(', ');
+        const placeholders = memberRows.map(() => '(?, ?, ?)').join(', ');
         const params = [];
         for (const userId of memberRows)
           params.push(groupId, userId, userTypeById.get(String(userId)));
         await tx.execute(
-          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group) VALUES ${placeholders}`,
-          params,
-        );
-      }
-
-      const managerRows = managerUserIds.filter((userId) => userTypeById.has(String(userId)));
-      if (managerRows.length > 0) {
-        const placeholders = managerRows.map(() => "(?, ?, ?, 'manager')").join(', ');
-        const params = [];
-        for (const userId of managerRows)
-          params.push(groupId, userId, userTypeById.get(String(userId)));
-        await tx.execute(
-          `INSERT INTO group_members (group_id, user_id, user_type, role_in_group) VALUES ${placeholders}
-         ON DUPLICATE KEY UPDATE role_in_group = 'manager'`,
+          `INSERT INTO group_members (group_id, user_id, user_type) VALUES ${placeholders}`,
           params,
         );
       }
@@ -745,17 +737,8 @@ router.put(
       }
     });
 
-    const affectedStudentIds = uniqueStrings([...memberUserIds, ...managerUserIds]);
-    if (affectedStudentIds.length > 0) {
-      const studentRows = await queryAll(
-        `SELECT id FROM users WHERE id IN (${affectedStudentIds.map(() => '?').join(',')})
-           AND user_type = 'student' AND is_active = 1`,
-        affectedStudentIds,
-      );
-      for (const row of studentRows) {
-        await syncStudentRoleFromGroups(row.id);
-      }
-    }
+    // Membres ajoutés **et** retirés : les deux voient leur profil effectif recalculé.
+    await recomputeUsersRoles([...memberUserIds, ...previousMembers.map((row) => row.user_id)]);
 
     const [membersByGroup, scopesByGroup] = await Promise.all([
       fetchGroupMembers([groupId]),
@@ -849,7 +832,7 @@ router.post(
         results.push({ user_id: String(raw ?? ''), ok: false, error: 'Identifiant invalide' });
         continue;
       }
-      const result = await addStudentToGroup(userId, groupId);
+      const result = await addUserToGroup(userId, groupId);
       results.push(
         result.ok
           ? { user_id: userId, ok: true }
@@ -877,20 +860,8 @@ router.delete(
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const member = await queryOne(
-      'SELECT user_type FROM group_members WHERE group_id = ? AND user_id = ? LIMIT 1',
-      [groupId, userId],
-    );
-    if (!member) return res.status(404).json({ error: 'Rattachement introuvable' });
-    await execute('DELETE FROM group_members WHERE group_id = ? AND user_id = ?', [
-      groupId,
-      userId,
-    ]);
-    // Le rôle d'un élève peut dépendre de ses groupes (`grants_n3beur_access`) : le retrait
-    // doit le recalculer, comme le fait `PUT /:id/members`.
-    if (member.user_type === 'student') {
-      await syncStudentRoleFromGroups(userId);
-    }
+    const removed = await removeUserFromGroup(userId, groupId);
+    if (!removed.ok) return res.status(removed.status).json({ error: removed.error });
     logAudit('groups_remove_member', 'group', groupId, userId, { req });
     res.json({ ok: true, group_id: groupId, user_id: userId });
   }),
@@ -907,34 +878,9 @@ router.post(
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const result = await addStudentToGroup(userId, groupId);
+    const result = await addUserToGroup(userId, groupId);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
-    res.status(201).json({ ok: true, group_id: groupId, user_id: userId });
-  }),
-);
-
-router.post(
-  '/:id/apply-default-role',
-  asyncHandler(async (req, res) => {
-    if (!canManageGroups(req.auth)) {
-      return res.status(403).json({ error: 'Permission insuffisante' });
-    }
-    const id = normalizeId(req.params.id);
-    if (!(await isGroupInManageScope(req.auth, id))) {
-      return res.status(403).json({ error: 'Groupe hors périmètre' });
-    }
-    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
-    if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
-
-    const results = await syncStudentRolesForGroupMembers(id, {
-      force: true,
-      groupId: id,
-    });
-    res.json({
-      group_id: id,
-      applied: results.filter((r) => r.changed).length,
-      results,
-    });
+    res.status(201).json({ ok: true, group_id: groupId, user_id: userId, role: result.role });
   }),
 );
 

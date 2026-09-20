@@ -35,6 +35,7 @@ before(async () => {
        ON DUPLICATE KEY UPDATE is_primary = 1`,
       [studentId, role.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, studentId]);
   }
 
   // Observations héritées posées AVANT toute lecture du carnet : la reprise

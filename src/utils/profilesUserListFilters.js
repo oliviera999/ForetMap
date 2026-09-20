@@ -265,31 +265,51 @@ export const PROFILES_SUB_TABS = ['profils', 'comptes', 'groupes', 'imports'];
 export const DEFAULT_PROFILES_SUB_TAB = 'comptes';
 
 /**
+ * Sous-onglet d'arrivée (ou demandé), borné aux capacités de l'acteur.
+ *
+ * - **Profils** (définition des rôles) : `admin.roles.manage` seule (`canEditRoleDefinition`) ;
+ * - **Comptes** : lister les comptes (`canListAccounts` = attribution des profils ou gestion
+ *   des groupes) ou gérer les élèves ;
+ * - **Groupes** : gérer ou simplement lire les groupes — c'est l'onglet « Classe » du prof
+ *   de classe ;
+ * - **Imports & exports** : gestion des élèves, import de groupes ou gestion des profils.
+ *
+ * `canManageProfiles` reste accepté pour compatibilité : il vaut « Profils » quand
+ * `canEditRoleDefinition` n'est pas fourni, et ouvre Comptes / Groupes comme avant.
+ *
  * @param {unknown} raw
- * @param {{ canManageProfiles?: boolean, canManageStudents?: boolean, canImportGroups?: boolean }} caps
+ * @param {{ canManageProfiles?: boolean, canEditRoleDefinition?: boolean,
+ *   canListAccounts?: boolean, canManageStudents?: boolean, canManageGroups?: boolean,
+ *   canReadGroups?: boolean, canImportGroups?: boolean }} caps
  */
 export function resolveProfilesSubTab(raw, caps = {}) {
   const value = String(raw || '')
     .trim()
     .toLowerCase();
-  const { canManageProfiles = false, canManageStudents = false, canImportGroups = false } = caps;
-  const anyCap = canManageProfiles || canManageStudents || canImportGroups;
+  const {
+    canManageProfiles = false,
+    canEditRoleDefinition = canManageProfiles,
+    canListAccounts = canManageProfiles,
+    canManageStudents = false,
+    canManageGroups = canManageProfiles,
+    canReadGroups = false,
+    canImportGroups = false,
+  } = caps;
+  const showProfiles = canEditRoleDefinition;
+  const showAccounts = canListAccounts || canManageProfiles || canManageStudents;
+  const showGroups = canManageGroups || canReadGroups || canManageProfiles;
+  const showImports = canManageStudents || canImportGroups || canManageProfiles;
+  const anyCap = showProfiles || showAccounts || showGroups || showImports;
   // Avant le chargement des droits, conserver la préférence mémorisée.
   if (!anyCap) {
     if (value && PROFILES_SUB_TABS.includes(value)) return value;
     return DEFAULT_PROFILES_SUB_TAB;
   }
   const allowed = new Set();
-  if (canManageProfiles) {
-    allowed.add('profils');
-    allowed.add('groupes');
-  }
-  if (canManageProfiles || canManageStudents) {
-    allowed.add('comptes');
-  }
-  if (canManageStudents || canImportGroups || canManageProfiles) {
-    allowed.add('imports');
-  }
+  if (showProfiles) allowed.add('profils');
+  if (showAccounts) allowed.add('comptes');
+  if (showGroups) allowed.add('groupes');
+  if (showImports) allowed.add('imports');
   if (value && allowed.has(value) && PROFILES_SUB_TABS.includes(value)) return value;
   if (allowed.has('comptes')) return 'comptes';
   if (allowed.has('profils')) return 'profils';

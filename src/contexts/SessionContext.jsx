@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 
 /**
  * Contexte de session — 2ᵉ étage d'O5 (après `PublicSettingsContext`) pour casser le prop-drilling
- * des valeurs de session **globales** dérivées dans `App.jsx` : affiliation, droits et participation.
+ * des valeurs de session **globales** dérivées dans `App.jsx` : terminologie, droits et participation.
  *
  * Ne contient que des valeurs **réellement globales** — passées à l'identique dans les deux chemins
  * de rendu (prof/élève) : `isN3Affiliated` et `canParticipateContextComments`.

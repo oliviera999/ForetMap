@@ -41,7 +41,7 @@ describe('groupImport (parsing pur)', () => {
       Nom: '6ème A',
       'Type (class|team|unit|club)': 'class',
       'Parent (slug ou nom)': '',
-      'Accorde n3beur (oui/non)': 'non',
+      'Profil par défaut (slug ou nom, optionnel)': '',
     });
     assert.equal(payload.name, '6ème A');
     assert.equal(payload.kind, 'class');
@@ -59,7 +59,7 @@ describe('groupImport (parsing pur)', () => {
           kind: 'class',
           parent: null,
           description: 'v1',
-          grantsN3beur: false,
+          defaultRole: null,
         },
       },
       {
@@ -70,13 +70,13 @@ describe('groupImport (parsing pur)', () => {
           kind: 'class',
           parent: null,
           description: 'v2',
-          grantsN3beur: true,
+          defaultRole: 'eleve_novice',
         },
       },
     ]);
     assert.equal(items.length, 1);
     assert.equal(items[0].payload.description, 'v2');
-    assert.equal(items[0].payload.grantsN3beur, true);
+    assert.equal(items[0].payload.defaultRole, 'eleve_novice');
     assert.equal(infos.length, 1);
     assert.match(infos[0].message, /Lignes 2, 5/);
   });

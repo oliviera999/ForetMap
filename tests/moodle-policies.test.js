@@ -74,7 +74,6 @@ test('normalizePolicies : validation typée', () => {
   assert.ok(normalizePolicies('x').error);
   assert.ok(normalizePolicies([{ key: 'bad key', pattern: '^x$' }]).error);
   assert.ok(normalizePolicies([{ key: 'k', pattern: '^x$', group_kind: 'wat' }]).error);
-  assert.ok(normalizePolicies([{ key: 'k', pattern: '^x$', role: 'admin' }]).error);
   assert.ok(normalizePolicies([{ key: 'k', pattern: '^x$', role: 'gl_mj' }]).error);
   assert.ok(normalizePolicies([{ key: 'k', pattern: '^x$', n3beur: 'peut-être' }]).error);
   assert.ok(

@@ -173,7 +173,7 @@ async function fetchUserEngagementStats(userId) {
 async function userStats(userId, options = {}) {
   // Projection explicite (audit §2.4/§3.7) : champs consommés par la réponse et la requête assignments — jamais password_hash.
   const s = await queryOne(
-    `SELECT id, user_type, first_name, last_name, display_name, email, affiliation,
+    `SELECT id, user_type, first_name, last_name, display_name, email,
             pseudo, description, avatar_path, last_seen
        FROM users WHERE id = ? LIMIT 1`,
     [userId],
@@ -224,7 +224,6 @@ async function userStats(userId, options = {}) {
     last_name: s.last_name,
     display_name: s.display_name,
     email: s.email,
-    affiliation: s.affiliation,
     pseudo: s.pseudo,
     description: s.description,
     avatar_path: s.avatar_path,

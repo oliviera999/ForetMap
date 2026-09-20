@@ -58,8 +58,8 @@ before(async () => {
   await initSchema();
   const hash = await bcrypt.hash(password, 10);
   await execute(
-    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', NULL, ?, 'Thr', 'Ottle', 'Thr Ottle', 'both', ?, 'local', 1, NOW(), NOW())`,
+    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, ?, 'Thr', 'Ottle', 'Thr Ottle', ?, 'local', 1, NOW(), NOW())`,
     [`student-throttle-${stamp}`, pseudo, hash],
   );
   loginThrottle.reset();

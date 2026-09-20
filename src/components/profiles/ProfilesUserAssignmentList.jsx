@@ -21,6 +21,12 @@ const MAX_ROW_GROUP_CHIPS = 3;
  * Un bouton « Niveau auto. » (élèves uniquement, `onRecomputeProfile(user)`) aligne le profil
  * sur le nombre de tâches validées du compte.
  *
+ * Le sélecteur porte le profil **attribué** (ce qu'un administrateur pose sur le compte) ; le
+ * profil effectif, quand un groupe l'élève au-dessus, est rappelé à côté. Sans
+ * `canAssignRoles` (prof de classe qui ne fait que lister ses élèves), le sélecteur est en
+ * lecture seule. « Aucun profil » n'est plus proposé : le serveur ne retire pas un profil, il
+ * en attribue un autre.
+ *
  * Présentation pure : sélection, statuts et appels API restent au parent.
  */
 export function ProfilesUserAssignmentList({
@@ -31,6 +37,7 @@ export function ProfilesUserAssignmentList({
   rowStatus = null,
   selectedKeys = null,
   isAdmin = false,
+  canAssignRoles = true,
   recomputingUserId = null,
   canDelete = false,
   canDuplicate = false,
@@ -56,6 +63,15 @@ export function ProfilesUserAssignmentList({
         const status = rowStatus ? rowStatus.get(key) : null;
         const editable = canEditUserRow(u);
         const isStudent = String(u.user_type || '').toLowerCase() === 'student';
+        const assignedRoleId = u.assigned_role_id ?? u.role_id ?? '';
+        const effectiveLabel = String(u.role_display_name || u.role_slug || '').trim();
+        const assignedLabel = String(
+          u.assigned_role_display_name || u.assigned_role_slug || '',
+        ).trim();
+        const effectiveDiffers =
+          u.assigned_role_id != null &&
+          u.role_id != null &&
+          String(u.assigned_role_id) !== String(u.role_id);
         return (
           <div className="profiles-admin-user-row" key={key}>
             {selectable && (
@@ -74,8 +90,25 @@ export function ProfilesUserAssignmentList({
                 <span className="profiles-user-chip profiles-user-chip--type">
                   {userTypeLabel(u.user_type)}
                 </span>
+                {u.is_active === false && (
+                  <span
+                    className="profiles-user-chip profiles-user-chip--inactive-account"
+                    data-testid={`user-inactive-${u.id}`}
+                  >
+                    désactivé
+                  </span>
+                )}
               </div>
               <UserGroupsChips groups={u.groups} max={MAX_ROW_GROUP_CHIPS} />
+              {effectiveDiffers && effectiveLabel && (
+                <p
+                  className="profiles-admin-user-row__stats"
+                  data-testid={`user-effective-${u.id}`}
+                >
+                  Profil effectif : {effectiveLabel}
+                  {assignedLabel ? ` (attribué : ${assignedLabel})` : ''}
+                </p>
+              )}
               {u.stats && (
                 <p className="profiles-admin-user-row__stats">
                   {u.stats.done || 0} validée(s) · {u.stats.pending || 0} en cours
@@ -91,12 +124,16 @@ export function ProfilesUserAssignmentList({
               )}
             </div>
             <select
-              value={u.role_id || ''}
+              value={assignedRoleId || ''}
               onChange={(e) => onAssignRole(u, e.target.value)}
-              disabled={loading || busy || !editable}
+              disabled={loading || busy || !editable || !canAssignRoles}
               aria-label={`Profil de ${u.display_name}`}
             >
-              <option value="">Aucun profil</option>
+              {!assignedRoleId && (
+                <option value="" disabled>
+                  Aucun profil
+                </option>
+              )}
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.display_name}

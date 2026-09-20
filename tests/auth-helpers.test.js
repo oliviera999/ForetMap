@@ -169,7 +169,6 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
     const base = exposeAuth({
       userType: 'teacher',
       userId: 'u1',
-      canonicalUserId: 'c1',
       roleId: 7,
       roleSlug: 'prof',
       roleDisplayName: 'Prof',
@@ -180,7 +179,6 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
     assert.deepEqual(base, {
       userType: 'teacher',
       userId: 'u1',
-      canonicalUserId: 'c1',
       roleId: 7,
       roleSlug: 'prof',
       roleDisplayName: 'Prof',
@@ -204,13 +202,12 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       userType: 'student',
       userId: 's1',
       impersonating: true,
-      impersonatedBy: { userType: 'teacher', userId: 'u1', canonicalUserId: 'c1' },
+      impersonatedBy: { userType: 'teacher', userId: 'u1' },
     });
     assert.equal(imp.impersonating, true);
     assert.deepEqual(imp.impersonatedBy, {
       userType: 'teacher',
       userId: 'u1',
-      canonicalUserId: 'c1',
     });
 
     // impersonating sans impersonatedBy : pas de bloc impersonation

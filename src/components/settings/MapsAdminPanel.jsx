@@ -164,8 +164,8 @@ export function MapsAdminPanel({
         }}
       >
         Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé affiché dans
-        l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient toutes les cartes
-        actives ; une affiliation peut cibler un seul plan (y compris ceux ajoutés ici).
+        l’app, puis image (URL ou upload). Chaque compte voit les cartes actives de son périmètre :
+        celui de ses groupes, ou toutes les cartes sans périmètre de groupe.
       </p>
 
       <CategoryIdsMultiSelect

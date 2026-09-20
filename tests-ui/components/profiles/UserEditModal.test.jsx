@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, cleanup } from '@testing-library/react';
 import { UserEditModal } from '../../../src/components/profiles/UserEditModal.jsx';
 
 function renderModal(overrides = {}) {
@@ -21,10 +21,6 @@ function renderModal(overrides = {}) {
     },
     loadState: 'ready',
     err: '',
-    affiliationOptions: [
-      { value: 'both', label: 'Tous les espaces' },
-      { value: 'n3', label: 'N3 uniquement' },
-    ],
     authPerms: [],
     saving: false,
     impersonateLoading: false,
@@ -62,8 +58,8 @@ describe('UserEditModal', () => {
         last_name: 'Martin',
         role_display_name: 'Élève novice',
         groups: [
-          { id: 'g1', name: '2nde B', kind: 'class', role_in_group: 'member' },
-          { id: 'g2', name: 'Club jardin', kind: 'club', role_in_group: 'manager' },
+          { id: 'g1', name: '2nde B', kind: 'class' },
+          { id: 'g2', name: 'Club jardin', kind: 'club' },
         ],
       },
     });
@@ -79,28 +75,41 @@ describe('UserEditModal', () => {
     expect(screen.getByTestId('user-groups-empty')).toHaveTextContent('Aucun groupe');
   });
 
-  test('affiliation affichée pour un compte student', () => {
+  test('plus de champ d’affiliation : le périmètre cartes vient des groupes', () => {
     renderModal();
-    expect(screen.getByLabelText('Affiliation')).toBeTruthy();
-  });
-
-  test('affiliation masquée pour un compte teacher', () => {
-    renderModal({ user: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' } });
     expect(screen.queryByLabelText('Affiliation')).toBeNull();
+    expect(screen.queryByText('Mon espace')).toBeNull();
   });
 
-  test('affiliation inconnue en base : option « (valeur en base) » ajoutée', () => {
+  test('profil attribué et profil effectif avec son origine (conféré par un groupe)', () => {
     renderModal({
       user: {
         id: '7',
         user_type: 'student',
         display_name: 'Léa Martin',
-        first_name: 'Léa',
-        last_name: 'Martin',
-        affiliation: 'ancienne',
+        assigned_role_id: 2,
+        assigned_role_display_name: 'Élève novice',
+        role_id: 3,
+        role_display_name: 'Élève avancé',
+        effective_role: { id: 3, slug: 'eleve_avance', source: 'group', groupName: '2nde B' },
+        conferring_groups: [
+          {
+            groupId: 'g1',
+            groupName: '2nde B',
+            role: { displayName: 'Élève avancé' },
+            forced: false,
+          },
+        ],
       },
     });
-    expect(screen.getByRole('option', { name: 'ancienne (valeur en base)' })).toBeTruthy();
+    expect(screen.getByTestId('user-summary-assigned-role')).toHaveTextContent('Élève novice');
+    expect(screen.getByTestId('user-summary-role')).toHaveTextContent('Élève avancé');
+    expect(screen.getByTestId('user-summary-role-origin')).toHaveTextContent(
+      'conféré par le groupe 2nde B',
+    );
+    expect(screen.getByTestId('user-summary-conferring')).toHaveTextContent(
+      '2nde B : Élève avancé',
+    );
   });
 
   test('soumettre le formulaire appelle onSave avec les seuls champs d’identité', () => {
@@ -116,7 +125,6 @@ describe('UserEditModal', () => {
       pseudo: 'lea.m',
       email: '',
       description: '',
-      affiliation: 'both',
     });
   });
 
@@ -221,5 +229,80 @@ describe('UserEditModal', () => {
   test('erreur affichée dans la modale en état ready', () => {
     renderModal({ err: 'Email invalide' });
     expect(screen.getByRole('alert').textContent).toContain('Email invalide');
+  });
+
+  test('désactiver le compte : confirmation en place, puis onToggleActive(false)', async () => {
+    const onToggleActive = vi.fn().mockResolvedValue(undefined);
+    renderModal({ onToggleActive, user: { id: '7', user_type: 'student', display_name: 'Léa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Désactiver le compte' }));
+    expect(onToggleActive).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Désactiver le compte de Léa ?');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer la désactivation' }));
+    await waitFor(() => expect(onToggleActive).toHaveBeenCalledWith(false));
+  });
+
+  test('compte désactivé : le bouton propose la réactivation et la tête de fiche le signale', async () => {
+    const onToggleActive = vi.fn().mockResolvedValue(undefined);
+    renderModal({
+      onToggleActive,
+      user: { id: '7', user_type: 'student', display_name: 'Léa', is_active: false },
+    });
+    expect(screen.getByTestId('user-summary-inactive')).toHaveTextContent('désactivé');
+    fireEvent.click(screen.getByRole('button', { name: 'Réactiver le compte' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmer la réactivation' }));
+    await waitFor(() => expect(onToggleActive).toHaveBeenCalledWith(true));
+  });
+
+  test('annuler la confirmation ne désactive rien', () => {
+    const onToggleActive = vi.fn();
+    renderModal({ onToggleActive });
+    fireEvent.click(screen.getByRole('button', { name: 'Désactiver le compte' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Annuler' }),
+    );
+    expect(onToggleActive).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  test('jamais sur son propre compte : ni désactivation ni suppression', () => {
+    renderModal({
+      isSelf: true,
+      isAdmin: true,
+      onToggleActive: vi.fn(),
+      onDeleteTeacher: vi.fn(),
+      user: { id: '9', user_type: 'teacher', display_name: 'Moi' },
+    });
+    expect(screen.queryByRole('button', { name: 'Désactiver le compte' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Supprimer le compte enseignant' })).toBeNull();
+  });
+
+  test('suppression d’un enseignant : admin seulement, confirmation danger', async () => {
+    const onDeleteTeacher = vi.fn().mockResolvedValue(undefined);
+    renderModal({
+      isAdmin: true,
+      onDeleteTeacher,
+      user: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer le compte enseignant' }));
+    const confirmBtn = screen.getByRole('button', { name: 'Confirmer la suppression' });
+    expect(confirmBtn).toHaveClass('btn-danger');
+    fireEvent.click(confirmBtn);
+    await waitFor(() => expect(onDeleteTeacher).toHaveBeenCalledTimes(1));
+  });
+
+  test('suppression absente pour un élève et pour un non-admin', () => {
+    renderModal({
+      isAdmin: true,
+      onDeleteTeacher: vi.fn(),
+      user: { id: '7', user_type: 'student', display_name: 'Léa' },
+    });
+    expect(screen.queryByRole('button', { name: 'Supprimer le compte enseignant' })).toBeNull();
+    cleanup();
+    renderModal({
+      isAdmin: false,
+      onDeleteTeacher: vi.fn(),
+      user: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' },
+    });
+    expect(screen.queryByRole('button', { name: 'Supprimer le compte enseignant' })).toBeNull();
   });
 });
