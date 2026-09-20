@@ -10,13 +10,41 @@
  * même lorsqu'ils sont portés par un compte `user_type = 'student'` ou membre d'une classe.
  */
 
+/**
+ * Taxonomie des profils — **source unique** (audit CDG-44). Toute règle qui classe un profil
+ * par son slug ou son rang s'écrit ici, jamais dans une liste locale côté route ou composant.
+ *
+ * - encadrement (`ENCADREMENT_ROLE_SLUGS`) : enseignants système, `teacher.access` verrouillé ;
+ * - privilégiés (`PRIVILEGED_SYSTEM_ROLE_SLUGS`) : dont l'attribution se confirme ;
+ * - hors échelle (`NON_N3BEUR_SYSTEM_ROLE_SLUGS`) : encadrement + lecture seule ;
+ * - paliers d'origine (`N3BEUR_TIER_SLUGS`) et profils du jeu (`GL_ROLE_SLUGS`) ;
+ * - réservés (`RESERVED_ROLE_SLUGS`) : slugs système qu'un profil sur mesure ne peut prendre.
+ */
+
+/** Enseignants système : ne peuvent pas perdre `teacher.access` depuis la console. */
+export const ENCADREMENT_ROLE_SLUGS = Object.freeze(['admin', 'prof', 'prof_classe']);
+
+/** Profils d'administration / pilotage : attribution et retrait confirmés explicitement. */
+export const PRIVILEGED_SYSTEM_ROLE_SLUGS = Object.freeze(['admin', 'prof']);
+
 /** Profils système qui ne sont jamais des paliers n3beur (encadrement + lecture seule). */
 export const NON_N3BEUR_SYSTEM_ROLE_SLUGS = Object.freeze([
-  'admin',
-  'prof',
-  'prof_classe',
+  ...ENCADREMENT_ROLE_SLUGS,
   'visiteur',
   'personnel',
+]);
+
+/** Paliers n3beur d'origine (semés, seuils par défaut). */
+export const N3BEUR_TIER_SLUGS = Object.freeze(['eleve_novice', 'eleve_avance', 'eleve_chevronne']);
+
+/** Profils système du sous-produit Gnomes & Licornes. */
+export const GL_ROLE_SLUGS = Object.freeze(['gl_admin', 'gl_mj', 'gl_player', 'gl_observateur']);
+
+/** Slugs réservés au système : interdits pour un profil sur mesure (création, duplication). */
+export const RESERVED_ROLE_SLUGS = Object.freeze([
+  ...NON_N3BEUR_SYSTEM_ROLE_SLUGS,
+  ...N3BEUR_TIER_SLUGS,
+  ...GL_ROLE_SLUGS,
 ]);
 
 /**
@@ -51,6 +79,35 @@ export function isGlRoleSlug(slug) {
 /** Profil système d'encadrement ou de lecture seule (jamais un palier n3beur). */
 export function isSystemStaffRoleSlug(slug) {
   return NON_N3BEUR_SYSTEM_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/** Enseignant système (`admin`, `prof`, `prof_classe`). */
+export function isEncadrementRoleSlug(slug) {
+  return ENCADREMENT_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/** Profil dont l'attribution demande une confirmation (`admin`, `prof`). */
+export function isPrivilegedSystemRoleSlug(slug) {
+  return PRIVILEGED_SYSTEM_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/** Slug réservé au système (profil sur mesure refusé). */
+export function isReservedRoleSlug(slug) {
+  return RESERVED_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/**
+ * Palier n3beur **configurable** (seuil de tâches, forum, commentaires, plafond de tâches) :
+ * ni profil système hors échelle, ni profil du jeu ; un slug `eleve_*` l'est toujours, un
+ * profil sur mesure l'est si son rang est fini et strictement inférieur à l'encadrement.
+ * Même règle côté serveur (`lib/rbac.js`, `routes/rbac.js`) et console des profils.
+ */
+export function isN3beurTierSlug(slug, rank) {
+  const s = normalizeRoleSlug(slug);
+  if (!s || isSystemStaffRoleSlug(s) || isGlRoleSlug(s)) return false;
+  if (isEleveRoleSlug(s)) return true;
+  const r = Number(rank);
+  return Number.isFinite(r) && r < N3BEUR_RANK_EXCLUSIVE_MAX;
 }
 
 /**

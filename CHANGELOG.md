@@ -62,6 +62,28 @@ Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUD
   `POST /api/groups/:id/apply-default-role`, résolution d'identité canonique
   (`ADMIN_CANONICAL_LOGIN`). Les colonnes obsolètes sont retirées au démarrage
   (`lib/legacySchemaCleanup.js`).
+- **Second lot (constats majeurs restants + taxonomie).**
+  - **Connexion** : un seul message d'échec (« Identifiant ou mot de passe incorrect »),
+    chaque cas compte un échec, verrou par **compte** quel que soit l'identifiant saisi ;
+    « Compte inactif » n'est dit qu'avec le bon mot de passe ; l'identifiant saisi n'est
+    plus journalisé.
+  - **Mot de passe** : `POST /api/auth/me/password` (élève et enseignant, depuis « Mon
+    profil ») ; les autres appareils sont déconnectés ; un compte Google sans mot de passe
+    édite son profil sans mot de passe actuel et peut s'en donner un (ou passer par « mot de
+    passe oublié ») ; mot de passe provisoire signalé à la connexion (`passwordMustReset`).
+  - **Staff Gnomes & Licornes** : la connexion Google exige un compte enseignant ForetMap
+    (comme le mot de passe) ; désactiver l'enseignant ou lui retirer l'accès enseignant
+    coupe sa session de jeu et ses prises de contrôle.
+  - **Moodle** : une cohorte « hors synchronisation » ne fait plus désactiver ses comptes ;
+    un compte désactivé par la sync qui réapparaît dans une cohorte est **réactivé**
+    (action `user.reactivate`, journalisée et annulable, listée dans le rapport).
+  - **Front** : une session élève révoquée (compte supprimé, désactivé, mot de passe changé)
+    ferme l'application avec le bon message ; le jeton renouvelé n'est plus écrasé par le
+    jeton d'origine (source unique).
+  - **Taxonomie des profils** : source unique `src/shared/n3beurRolesCore.js` (encadrement,
+    profils privilégiés, hors échelle, paliers d'origine, profils G&L, slugs réservés — ceux
+    du jeu sont désormais réservés aussi) ; les listes locales de `lib/rbac.js`,
+    `lib/rbacRouteHelpers.js` et des utilitaires front sont supprimées.
 - **Tests** : `tests/effective-role.test.js`, `tests/rbac-account-lifecycle.test.js`, suites
   d'import, de groupes, de progression et de périmètre adaptées ; montage de l'onglet
   « Classe » en prof de classe (`tests-ui`).

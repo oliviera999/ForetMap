@@ -247,11 +247,44 @@ test('comparaison à trois : retrait côté Moodle retire l’appartenance posé
   );
   assert.ok(manuMember, 'appartenance manuelle intacte (I-4)');
 
-  // Neo revient : réactivation non automatique (le compte reste désactivé, listé), appartenance remise.
+  // Neo revient : compte créé par la sync → réactivé (CDG-22), journalisé, appartenance remise.
   fake.enrolInCohort(603, 1003);
   const back = await apply([603]);
   assert.strictEqual(back.status, 'succeeded');
-  assert.ok(back.report.lists.inactiveInCohort.some((i) => i.user.userId === neo.user_id));
+  assert.ok(
+    back.report.actions.some((a) => a.kind === 'user.reactivate' && a.userId === neo.user_id),
+  );
+  assert.ok(back.report.lists.reactivations.some((r) => r.user.userId === neo.user_id));
+  assert.strictEqual(back.report.totals.reactivations, 1);
+  assert.strictEqual(back.report.applied.reactivated, 1);
+  assert.ok(!back.report.lists.inactiveInCohort.some((i) => i.user.userId === neo.user_id));
+  const neoBack = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+  assert.strictEqual(Number(neoBack.is_active), 1, 'compte réactivé');
+  assert.ok(
+    await queryOne('SELECT 1 AS x FROM group_members WHERE group_id = ? AND user_id = ?', [
+      eg.group_id,
+      neo.user_id,
+    ]),
+    'appartenance remise',
+  );
+  assert.ok(
+    await queryOne(
+      "SELECT 1 AS x FROM sync_actions WHERE run_id = ? AND kind = 'user.reactivate' AND target_id = ?",
+      [back.runId, neo.user_id],
+    ),
+    'réactivation journalisée',
+  );
+
+  // Annulation : la réactivation est rejouée à l'envers comme les autres écritures.
+  const undone = await undoRun(back.runId, { client });
+  assert.ok(undone.undone >= 2);
+  const neoUndone = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+  assert.strictEqual(Number(neoUndone.is_active), 0, 'réactivation annulée');
+  const again = await apply([603]);
+  assert.strictEqual(again.status, 'succeeded');
+  assert.strictEqual(again.report.totals.reactivations, 1);
+  const neoAgain = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+  assert.strictEqual(Number(neoAgain.is_active), 1);
 });
 
 test('sync_exempt : un compte marqué hors synchronisation n’est ni écrit ni désactivé', async () => {
@@ -280,6 +313,29 @@ test('sync_exempt : un compte marqué hors synchronisation n’est ni écrit ni 
   fake.removeFromCohort(603, 1010);
 });
 
+test('groupe marqué hors synchronisation : les comptes actifs créés par la sync ne sont pas désactivés (CDG-21)', async () => {
+  const eg = await queryOne("SELECT * FROM external_groups WHERE external_id = '603'");
+  // Neo (1003) : compte créé par la sync, actif, dont 26#603 est la seule cohorte.
+  const neo = await queryOne("SELECT user_id FROM external_identities WHERE external_id = '1003'");
+  const before = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+  assert.strictEqual(Number(before.is_active), 1, 'prérequis : Neo actif');
+  await execute('UPDATE `groups` SET sync_exempt = 1 WHERE id = ?', [eg.group_id]);
+  try {
+    const sim = await dryRun([603]);
+    assert.strictEqual(sim.status, 'succeeded');
+    assert.ok(sim.report.lists.alerts.some((a) => a.code === 'group_exempt'));
+    assert.strictEqual(sim.report.totals.deactivations, 0);
+    assert.ok(!sim.report.actions.some((a) => a.kind === 'user.deactivate'));
+    const result = await apply([603]);
+    assert.strictEqual(result.status, 'succeeded');
+    assert.strictEqual(result.report.totals.actions, 0);
+    const after = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+    assert.strictEqual(Number(after.is_active), 1, 'Neo toujours actif');
+  } finally {
+    await execute('UPDATE `groups` SET sync_exempt = 0 WHERE id = ?', [eg.group_id]);
+  }
+});
+
 test('groupe marqué hors synchronisation : cohorte ignorée avec alerte', async () => {
   const eg = await queryOne("SELECT * FROM external_groups WHERE external_id = '603'");
   await execute('UPDATE `groups` SET sync_exempt = 1 WHERE id = ?', [eg.group_id]);
@@ -291,6 +347,65 @@ test('groupe marqué hors synchronisation : cohorte ignorée avec alerte', async
   assert.strictEqual(result.report.totals.actions, 0);
   await execute('UPDATE `groups` SET sync_exempt = 0 WHERE id = ?', [eg.group_id]);
   fake.removeFromCohort(603, 1011);
+});
+
+test('changement de cohorte vers une cohorte jamais synchronisée : désactivé puis réactivé à la sync suivante (CDG-22)', async () => {
+  fx.seedCohort(fake, {
+    id: 650,
+    idnumber: '26#650',
+    name: `6e 50 ${stamp}`,
+    members: [fx.member(9001, 'Passe', `Ailleurs${stamp}`)],
+  });
+  const first = await apply([650]);
+  assert.strictEqual(first.status, 'succeeded');
+  const moved = await queryOne(
+    "SELECT user_id FROM external_identities WHERE external_id = '9001'",
+  );
+  assert.ok(moved);
+
+  // L'élève passe de 650 à 651 (jamais synchronisée) ; on ne synchronise que 650.
+  fake.removeFromCohort(650, 9001);
+  fake.addCohort({ id: 651, idnumber: '26#651', name: `6e 51 ${stamp}` });
+  fake.enrolInCohort(651, 9001);
+  const second = await apply([650]);
+  assert.strictEqual(second.status, 'succeeded');
+  assert.ok(
+    second.report.lists.deactivations.some(
+      (d) => d.user.userId === moved.user_id && d.reason === 'gone_from_cohorts',
+    ),
+    'limite documentée : la cohorte 651 n’est pas encore connue',
+  );
+  const afterMove = await queryOne('SELECT is_active FROM users WHERE id = ?', [moved.user_id]);
+  assert.strictEqual(Number(afterMove.is_active), 0);
+
+  // Synchronisation de 651 : le compte est réactivé et rattaché au nouveau groupe.
+  const third = await apply([651]);
+  assert.strictEqual(
+    third.status,
+    'succeeded',
+    JSON.stringify(third.report.applied?.failedCohorts),
+  );
+  assert.ok(
+    third.report.actions.some((a) => a.kind === 'user.reactivate' && a.userId === moved.user_id),
+  );
+  assert.strictEqual(third.report.totals.reactivations, 1);
+  assert.strictEqual(third.report.totals.deactivations, 0);
+  const afterBack = await queryOne('SELECT is_active FROM users WHERE id = ?', [moved.user_id]);
+  assert.strictEqual(Number(afterBack.is_active), 1, 'compte réactivé');
+  const eg651 = await queryOne("SELECT * FROM external_groups WHERE external_id = '651'");
+  assert.ok(
+    await queryOne('SELECT 1 AS x FROM group_members WHERE group_id = ? AND user_id = ?', [
+      eg651.group_id,
+      moved.user_id,
+    ]),
+    'membre du nouveau groupe',
+  );
+
+  // Idempotence : une nouvelle exécution sur 651 ne réactive ni ne désactive rien.
+  const fourth = await apply([651]);
+  assert.strictEqual(fourth.status, 'succeeded');
+  assert.strictEqual(fourth.report.totals.reactivations, 0);
+  assert.strictEqual(fourth.report.totals.actions, 0);
 });
 
 test('seuil dépassé sans force → aborted, rien d’écrit ; avec force → appliqué et journalisé', async () => {

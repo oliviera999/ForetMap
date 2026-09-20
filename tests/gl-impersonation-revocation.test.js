@@ -29,9 +29,18 @@ const PLAYER_CLAIMS = {
 
 /** `queryOne` factice : répond à la lecture de l'acteur puis à celle du joueur. */
 function depsWithActor(actorRow) {
+  // Le staff GL est un enseignant ForetMap actif porteur de `teacher.access` (CDG-12) ; la
+  // ligne factice porte ce lien par défaut, les cas de révocation le retirent.
+  const linked = {
+    foretmap_user_id: 't9',
+    user_is_active: 1,
+    token_epoch: 0,
+    teacher_access: 1,
+    ...actorRow,
+  };
   return {
     queryOne: async (sql) => {
-      if (/FROM gl_admins/i.test(String(sql))) return actorRow;
+      if (/FROM gl_admins/i.test(String(sql))) return linked;
       if (/FROM gl_players/i.test(String(sql))) {
         return { id: 42, class_id: 1, team_id: null, is_active: 1, password_must_reset: 0 };
       }
@@ -127,5 +136,24 @@ describe('hydrateGlAuthFromClaims — prise de contrôle', () => {
     );
     assert.ok(auth, 'auth attendue');
     assert.equal(auth.impersonating, undefined);
+  });
+});
+
+describe('actorStillMayImpersonate — compte enseignant lié (CDG-12)', () => {
+  it('refuse un acteur dont l’enseignant est désactivé ou privé de teacher.access', async () => {
+    assert.equal(
+      await actorStillMayImpersonate(
+        PLAYER_CLAIMS,
+        depsWithActor({ id: 9, role: 'mj', is_active: 1, user_is_active: 0 }),
+      ),
+      false,
+    );
+    assert.equal(
+      await actorStillMayImpersonate(
+        PLAYER_CLAIMS,
+        depsWithActor({ id: 9, role: 'mj', is_active: 1, teacher_access: null }),
+      ),
+      false,
+    );
   });
 });

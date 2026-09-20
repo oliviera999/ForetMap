@@ -1,6 +1,7 @@
 import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
+  safeLocalStorageSetItem,
 } from '../shared/platform/browserStorage.js';
 import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
@@ -145,6 +146,36 @@ function getLegacyStudentToken(student = readLegacyStudentSnapshot()) {
   return pickStoredToken(student.authToken);
 }
 
+/**
+ * Choisit le jeton le plus récent entre un jeton proposé (réponse de connexion, prise de
+ * contrôle…) et le jeton courant de la session, en comparant leur `iat` (CDG-28) : un
+ * renouvellement glissant (`refreshedToken`) ne doit jamais être écrasé par le jeton
+ * d'origine encore porté par `student.authToken`. Sans `iat` lisible des deux côtés, le
+ * jeton proposé l'emporte (il vient d'être émis par le serveur).
+ */
+export function pickNewestAuthToken(candidate, current) {
+  const next = pickStoredToken(candidate);
+  const cur = pickStoredToken(current);
+  if (!next) return cur;
+  if (!cur || next === cur) return next;
+  const nextIat = Number(decodeJwtPayload(next)?.iat);
+  const curIat = Number(decodeJwtPayload(cur)?.iat);
+  if (Number.isFinite(nextIat) && Number.isFinite(curIat) && curIat > nextIat) return cur;
+  return next;
+}
+
+/**
+ * `foretmap_session.token` est la source de vérité ; les anciennes clés ne sont conservées
+ * qu'en lecture de repli (`getAuthToken`). On les réaligne à chaque écriture pour qu'aucun
+ * exemplaire périmé ne survive à un renouvellement.
+ */
+function mirrorAuthTokenToLegacyKeys(token) {
+  safeLocalStorageSetItem('foretmap_auth_token', token);
+  if (safeLocalStorageGetItem('foretmap_teacher_token', null)) {
+    safeLocalStorageSetItem('foretmap_teacher_token', token);
+  }
+}
+
 export function getAuthToken() {
   try {
     const raw = safeLocalStorageGetItem(SESSION_KEY, null);
@@ -193,8 +224,12 @@ export function getStoredSession() {
 export function saveStoredSession(next) {
   const current = getStoredSession() || {};
   const merged = { ...current, ...(next || {}) };
+  const token = pickStoredToken(merged.token);
   if (Object.prototype.hasOwnProperty.call(merged, 'student')) {
-    merged.student = compactStudentForStorage(merged.student);
+    // Le jeton porté par la session élève suit toujours le jeton courant (CDG-28).
+    const student =
+      token && merged.student ? { ...merged.student, authToken: token } : merged.student;
+    merged.student = compactStudentForStorage(student);
   }
   let persisted = merged;
   let writeOk = safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(persisted));
@@ -208,6 +243,7 @@ export function saveStoredSession(next) {
   if (!writeOk) return;
   if (persisted.student) saveLegacyStudentSnapshot(persisted.student);
   else safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+  if (token) mirrorAuthTokenToLegacyKeys(token);
   dispatchSessionChanged();
 }
 
@@ -278,10 +314,12 @@ export async function api(path, method = 'GET', body) {
       onNetworkError: (err) =>
         isLikelyNetworkTransportFailure(err) ? new Error(networkFailureUserMessage()) : null,
       onUnauthorized: ({ errBody, token }) => {
-        if (errBody.deleted) throw new AccountDeletedError();
-        if (!token) return;
+        const deleted = !!errBody.deleted;
         const errText = String(errBody.error || '').toLowerCase();
-        const sessionExpired =
+        const sessionRevoked =
+          deleted ||
+          // Compte supprimé, désactivé ou mot de passe changé (`middleware/requireTeacher.js`).
+          errBody.code === 'SESSION_REVOKED' ||
           errText.includes('token invalide') ||
           errText.includes('expiré') ||
           errText.includes('expired') ||
@@ -289,10 +327,17 @@ export async function api(path, method = 'GET', body) {
           // structuré `jwt_expired`, contrairement à apiGL() qui ne se fie
           // qu'au texte du message. Ne pas aligner sans lot dédié.
           errBody.code === 'jwt_expired';
-        if (sessionExpired) {
+        if (token && sessionRevoked) {
+          // Fermeture de la session côté client (élève comme prof) : `useSessionWindowSync`
+          // écoute cet événement et passe par `forceLogout` (CDG-27).
           clearStoredSession();
-          window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
+          window.dispatchEvent(
+            new CustomEvent('foretmap_teacher_expired', {
+              detail: { deleted, reason: errBody.reason || null },
+            }),
+          );
         }
+        if (deleted) throw new AccountDeletedError();
       },
       buildHttpError: ({ res, errBody, token, sawGatewayResponse }) => {
         const { errMsg, reqId } = buildApiHttpErrorMessage({

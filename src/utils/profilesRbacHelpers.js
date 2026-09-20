@@ -6,20 +6,15 @@
  * hors du méga-composant, et la rendent testable. Toutes les fonctions sont pures.
  */
 
+import { isN3beurTierSlug } from '../shared/n3beurRolesCore.js';
+
 /**
- * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur/personnel,
- * et soit slug `eleve_*`, soit rang fini < 400. Reproduit la règle serveur.
+ * Un profil « palier n3beur » configurable (seuils/forum/contexte) : règle unique
+ * `isN3beurTierSlug` (`src/shared/n3beurRolesCore.js`), la même que le serveur.
  */
 export function isN3beurTierConfigurableProfile(role) {
   if (!role) return false;
-  const slug = String(role.slug || '')
-    .trim()
-    .toLowerCase();
-  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur' || slug === 'personnel')
-    return false;
-  if (/^eleve_/i.test(String(role.slug || ''))) return true;
-  const r = Number(role.rank);
-  return Number.isFinite(r) && r < 400;
+  return isN3beurTierSlug(role.slug, role.rank);
 }
 
 /**

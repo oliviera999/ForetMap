@@ -53,6 +53,7 @@ const {
   applyAvatarUpdate,
   findProfileUniquenessConflict,
   isDuplicateEntryError,
+  verifyCurrentPassword,
 } = require('../lib/profileUpdate');
 
 const router = express.Router();
@@ -712,19 +713,12 @@ router.patch(
       return res.status(403).json({ error: 'Modification de profil non autorisée' });
     }
     const body = req.body || {};
-    if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
-
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       askedStudentId,
     ]);
     if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
-    if (!student.password_hash)
-      return res
-        .status(401)
-        .json({ error: "Ce compte n'a pas de mot de passe. Contactez le prof." });
-
-    const passwordOk = await bcrypt.compare(String(body.currentPassword), student.password_hash);
-    if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const reauth = await verifyCurrentPassword(student, body);
+    if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
 
     // Blocs communs avec PATCH /api/auth/me/profile extraits dans lib/profileUpdate.js
     // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.

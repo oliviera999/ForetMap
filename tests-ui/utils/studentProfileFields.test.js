@@ -6,6 +6,7 @@ import {
   profileUpdateEndpoint,
   buildVisitMascotOptions,
   validateProfileEditorFields,
+  validatePasswordChangeFields,
 } from '../../src/utils/studentProfileFields.js';
 import { getVisitMascotCatalog } from '../../src/utils/visitMascotCatalog.js';
 
@@ -113,10 +114,8 @@ describe('validateProfileEditorFields', () => {
     expect(validateProfileEditorFields(valid)).toBe('');
   });
 
-  test('mot de passe actuel requis (vérifié en premier)', () => {
-    expect(validateProfileEditorFields({ ...valid, currentPassword: '' })).toBe(
-      'Mot de passe actuel requis',
-    );
+  test('mot de passe actuel facultatif côté client (compte Google sans mot de passe)', () => {
+    expect(validateProfileEditorFields({ ...valid, currentPassword: '' })).toBe('');
   });
 
   test('pseudo invalide (trop court ou caractères interdits) ; pseudo vide toléré', () => {
@@ -139,5 +138,17 @@ describe('validateProfileEditorFields', () => {
       'Description trop longue (max 300 caractères)',
     );
     expect(validateProfileEditorFields({ ...valid, description: 'x'.repeat(300) })).toBe('');
+  });
+});
+
+describe('validatePasswordChangeFields', () => {
+  test('exige un nouveau mot de passe et sa confirmation identique', () => {
+    expect(validatePasswordChangeFields({ newPassword: '', confirmPassword: '' })).toBe(
+      'Nouveau mot de passe requis',
+    );
+    expect(validatePasswordChangeFields({ newPassword: 'abcd', confirmPassword: 'abce' })).toBe(
+      'Les deux mots de passe ne correspondent pas',
+    );
+    expect(validatePasswordChangeFields({ newPassword: 'abcd', confirmPassword: 'abcd' })).toBe('');
   });
 });

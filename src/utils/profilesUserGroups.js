@@ -1,6 +1,10 @@
 // Helpers purs d'affichage des rattachements « groupes » et du profil RBAC d'un compte
 // (administration Profils & utilisateurs — liste des comptes et fiche utilisateur).
 
+import {
+  PRIVILEGED_SYSTEM_ROLE_SLUGS,
+  isPrivilegedSystemRoleSlug,
+} from '../shared/n3beurRolesCore.js';
 import { GROUP_KIND_LABELS } from './profilesRoleForm.js';
 
 /**
@@ -108,17 +112,16 @@ export function summarizeUserGroups(groups) {
  * Le sélecteur de la liste enregistre au changement : sans garde, un clic de travers accorde
  * des droits d'administration en silence, et il n'y a pas d'annulation.
  */
-export const SENSITIVE_ROLE_SLUGS = Object.freeze(['admin', 'prof']);
+export const SENSITIVE_ROLE_SLUGS = PRIVILEGED_SYSTEM_ROLE_SLUGS;
 
 /**
  * Vrai si passer un compte à ce profil — ou l'en retirer — doit être confirmé.
  * @param {{ slug?: string, role_slug?: string }|string|null} role profil visé ou son slug
  */
 export function isSensitiveRole(role) {
-  const slug = String(typeof role === 'string' ? role : (role?.slug ?? role?.role_slug ?? ''))
-    .trim()
-    .toLowerCase();
-  return SENSITIVE_ROLE_SLUGS.includes(slug);
+  return isPrivilegedSystemRoleSlug(
+    typeof role === 'string' ? role : (role?.slug ?? role?.role_slug ?? ''),
+  );
 }
 
 /** Libellés des origines de compte (`users.auth_provider`). */

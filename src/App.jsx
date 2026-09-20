@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import {
   api,
   getAuthClaims,
+  getAuthToken,
   getStoredSession,
+  pickNewestAuthToken,
   saveStoredSession,
   clearStoredSession,
 } from './services/api';
@@ -383,20 +385,25 @@ function App() {
     [mergeAuthMeResponseBase],
   );
 
-  const forceLogout = useCallback(() => {
-    setDiscoveryTourSeen(null);
-    setDiscoveryTourSeenReady(false);
-    forceLogoutBase();
-  }, [forceLogoutBase]);
+  const forceLogout = useCallback(
+    (options) => {
+      setDiscoveryTourSeen(null);
+      setDiscoveryTourSeenReady(false);
+      forceLogoutBase(options);
+    },
+    [forceLogoutBase],
+  );
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
-     devient un no-op, isTeacher étant dérivé d'authClaims. */
+     devient un no-op, isTeacher étant dérivé d'authClaims. Une session expirée ou révoquée
+     (401 `SESSION_REVOKED`) passe par `forceLogout` pour fermer aussi la session élève. */
   const setIsTeacherNoop = useCallback(() => {}, []);
   useSessionWindowSync({
     setAuthClaims,
     setIsTeacher: setIsTeacherNoop,
     setSessionUser,
     setToast,
+    forceLogout,
   });
 
   useRoleViewModeReset({
@@ -785,6 +792,11 @@ function App() {
   /** Session prof en mémoire après édition du profil (nom affiché, avatar, mascotte). */
   const updateTeacherSession = useCallback(
     (updatedUser) => {
+      // Jeton ré-émis par l'appelant (changement de mot de passe : l'ancien est révoqué par
+      // l'époque) → jeton courant, même règle que `updateStudentSession` (CDG-28).
+      const nextToken = updatedUser?.authToken
+        ? pickNewestAuthToken(updatedUser.authToken, getAuthToken())
+        : null;
       setSessionUser((prev) => {
         const nextDisplayName =
           updatedUser?.pseudo ||
@@ -802,7 +814,7 @@ function App() {
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
         };
-        saveStoredSession({ user: next });
+        saveStoredSession({ user: next, ...(nextToken ? { token: nextToken } : {}) });
         return next;
       });
     },

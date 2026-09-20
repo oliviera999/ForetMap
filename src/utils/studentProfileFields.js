@@ -59,8 +59,9 @@ export function buildVisitMascotOptions(allowedRaw, extraEntries = []) {
  * Validation des champs avant enregistrement du profil.
  * Retourne le message d'erreur à afficher, ou '' si tout est valide.
  */
-export function validateProfileEditorFields({ pseudo, email, description, currentPassword }) {
-  if (!currentPassword) return 'Mot de passe actuel requis';
+export function validateProfileEditorFields({ pseudo, email, description }) {
+  // Le mot de passe actuel n'est plus exigé côté client : un compte Google n'en a pas, et
+  // c'est le serveur qui sait s'il faut le redemander (`verifyCurrentPassword`, CDG-42).
   if (String(pseudo || '').trim() && !PSEUDO_RE.test(String(pseudo).trim())) {
     return PSEUDO_INVALID_MSG;
   }
@@ -69,6 +70,18 @@ export function validateProfileEditorFields({ pseudo, email, description, curren
   }
   if (String(description || '').trim().length > 300) {
     return 'Description trop longue (max 300 caractères)';
+  }
+  return '';
+}
+
+/**
+ * Validation du formulaire « Changer mon mot de passe » (le plancher de longueur est
+ * vérifié par le serveur selon le type de compte).
+ */
+export function validatePasswordChangeFields({ newPassword, confirmPassword }) {
+  if (!String(newPassword || '')) return 'Nouveau mot de passe requis';
+  if (String(newPassword) !== String(confirmPassword || '')) {
+    return 'Les deux mots de passe ne correspondent pas';
   }
   return '';
 }
