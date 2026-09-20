@@ -1,15 +1,29 @@
 import React, { useCallback } from 'react';
 
+import { PctStatusDots, statusDotsLabel } from './PctStatusDotsLayer.jsx';
+
 /**
  * Pastille d'un groupe de repères : compteur, emoji du repère représentatif, couleur de la
  * catégorie majoritaire. Mémoïsée, handler stable par groupe.
+ *
+ * Le groupe porte aussi les **pastilles d'état** agrégées de ses membres (`statusDots`) :
+ * sans elles, l'état des lieux regroupés disparaissait au dézoom — c'est-à-dire à l'arrivée
+ * sur la carte, avant tout zoom — alors que c'est justement là qu'on cherche du regard ce
+ * qui reste à faire. La boîte des pastilles épouse la pilule (`fm-pct-cluster__dots`) pour
+ * que les coins tombent sur ses bords, pas en son centre.
  */
-const PctClusterButton = React.memo(function PctClusterButton({ cluster, onClusterClick, color }) {
+const PctClusterButton = React.memo(function PctClusterButton({
+  cluster,
+  onClusterClick,
+  color,
+  statusDots = null,
+}) {
   const handleClick = useCallback(
     (event) => onClusterClick?.(cluster, event),
     [cluster, onClusterClick],
   );
   const emoji = String(cluster.lead?.emoji || '').trim() || '📍';
+  const dotsSuffix = statusDotsLabel(statusDots);
   return (
     <button
       type="button"
@@ -19,13 +33,14 @@ const PctClusterButton = React.memo(function PctClusterButton({ cluster, onClust
         top: `${cluster.y_pct}%`,
         ...(color ? { borderColor: color } : null),
       }}
-      aria-label={`${cluster.count} lieux regroupés, dont ${cluster.lead?.label || cluster.lead?.name || 'un lieu'}`}
+      aria-label={`${cluster.count} lieux regroupés, dont ${cluster.lead?.label || cluster.lead?.name || 'un lieu'}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
       onClick={handleClick}
     >
       <span className="fm-pct-cluster__emoji map-overlay-emoji-label" aria-hidden>
         {emoji}
       </span>
       <span className="fm-pct-cluster__count">{cluster.count}</span>
+      <PctStatusDots dots={statusDots} className="fm-pct-status-dots fm-pct-cluster__dots" />
     </button>
   );
 });
@@ -42,8 +57,16 @@ const PctClusterButton = React.memo(function PctClusterButton({ cluster, onClust
  * @param {(cluster: object, event: object) => void} props.onClusterClick
  * @param {(marker: object) => import('react').ReactNode} props.renderMarker rendu d'un repère seul.
  * @param {(cluster: object) => string} [props.colorOf] couleur de la catégorie majoritaire.
+ * @param {(cluster: object) => Array<object>|null} [props.statusDotsOf] pastilles d'état agrégées
+ *   du groupe (`PctStatusDotsLayer`) — le produit décide de la règle d'agrégation.
  */
-function PctClusterLayerImpl({ clusters, onClusterClick, renderMarker, colorOf = null }) {
+function PctClusterLayerImpl({
+  clusters,
+  onClusterClick,
+  renderMarker,
+  colorOf = null,
+  statusDotsOf = null,
+}) {
   return (clusters || []).map((cluster) =>
     cluster.count > 1 ? (
       <PctClusterButton
@@ -51,6 +74,7 @@ function PctClusterLayerImpl({ clusters, onClusterClick, renderMarker, colorOf =
         cluster={cluster}
         onClusterClick={onClusterClick}
         color={colorOf ? colorOf(cluster) : ''}
+        statusDots={statusDotsOf ? statusDotsOf(cluster) : null}
       />
     ) : (
       renderMarker(cluster.lead)

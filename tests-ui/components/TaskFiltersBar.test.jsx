@@ -98,10 +98,28 @@ describe('TaskFiltersBar', () => {
     expect(setFilterText).toHaveBeenCalledWith('paillage');
   });
 
-  test('filtre carte : option carte active avec libellé résolu + cartes listées', () => {
-    renderBar();
-    expect(screen.getByRole('option', { name: 'Carte active (Forêt)' })).toBeTruthy();
+  test('sélecteur de carte : les cartes visibles, la carte active sélectionnée', () => {
+    renderBar({ onMapChange: vi.fn() });
+    const select = screen.getByLabelText('Carte affichée');
+    expect(select.value).toBe('foret');
+    expect(screen.getByRole('option', { name: 'Forêt' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Jardin' })).toBeTruthy();
+    // Plus d'option « Toutes cartes » : les tâches sont chargées carte par carte, elle ne
+    // montrait de toute façon que la carte active.
+    expect(screen.queryByRole('option', { name: 'Toutes cartes' })).toBeNull();
+  });
+
+  test('sélecteur de carte : choisir une carte bascule la carte active (pas un filtre)', () => {
+    const onMapChange = vi.fn();
+    const { setFilterMap } = renderBar({ onMapChange });
+    fireEvent.change(screen.getByLabelText('Carte affichée'), { target: { value: 'jardin' } });
+    expect(onMapChange).toHaveBeenCalledWith('jardin');
+    expect(setFilterMap).toHaveBeenCalledWith('active');
+  });
+
+  test('sélecteur de carte : inactif sans moyen de changer de carte', () => {
+    renderBar();
+    expect(screen.getByLabelText('Carte affichée').disabled).toBe(true);
   });
 
   test('filtre lieu : zones et repères utilisés (emoji du repère), choix zone → focus carte', () => {
@@ -161,7 +179,7 @@ describe('TaskFiltersBar', () => {
   describe('barre compacte', () => {
     test('écran large : les champs sont dépliés d’emblée, le bouton Filtres est ouvert', () => {
       renderBar();
-      expect(screen.getByLabelText('Filtrer les tâches par carte')).toBeTruthy();
+      expect(screen.getByLabelText('Carte affichée')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
         'true',
       );
@@ -170,7 +188,7 @@ describe('TaskFiltersBar', () => {
     test('écran large : replier masque les champs, la recherche et l’affichage restent', () => {
       renderBar();
       fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
-      expect(screen.queryByLabelText('Filtrer les tâches par carte')).toBeNull();
+      expect(screen.queryByLabelText('Carte affichée')).toBeNull();
       expect(screen.getByLabelText('Rechercher une tâche')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Affichage en tuiles' })).toBeTruthy();
     });
@@ -178,7 +196,7 @@ describe('TaskFiltersBar', () => {
     test('écran compact : les champs sont repliés à l’arrivée (tâches visibles sans défiler)', () => {
       mockMatchMedia(true);
       renderBar();
-      expect(screen.queryByLabelText('Filtrer les tâches par carte')).toBeNull();
+      expect(screen.queryByLabelText('Carte affichée')).toBeNull();
       expect(screen.getByLabelText('Rechercher une tâche')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
         'false',
@@ -190,7 +208,7 @@ describe('TaskFiltersBar', () => {
       renderBar({ isTeacher: true, resultCount: 4 });
       fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
       const sheet = screen.getByRole('dialog', { name: 'Filtres des tâches' });
-      expect(within(sheet).getByLabelText('Filtrer les tâches par carte')).toBeTruthy();
+      expect(within(sheet).getByLabelText('Carte affichée')).toBeTruthy();
       expect(within(sheet).getByLabelText('Filtrer les tâches par lieu')).toBeTruthy();
       expect(within(sheet).getByLabelText('Filtrer les tâches par projet')).toBeTruthy();
       expect(within(sheet).getByLabelText('Filtrer les tâches par groupe')).toBeTruthy();

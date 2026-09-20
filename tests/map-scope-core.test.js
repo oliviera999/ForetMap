@@ -3,7 +3,7 @@
 /**
  * Cœur du périmètre cartes (`lib/shared/mapScopeCore.js`) — décisions pures, sans base.
  *
- * La restriction individuelle (`users.affiliation`) a été retirée par la migration 266 :
+ * La restriction individuelle (`users.affiliation`) a été retirée par la migration 267 :
  * seul le périmètre de groupe borne les cartes.
  */
 

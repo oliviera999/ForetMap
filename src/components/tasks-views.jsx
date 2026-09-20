@@ -82,6 +82,7 @@ const EMPTY_PROJECT_LIST = Object.freeze([]);
 
 function TasksViewImpl({
   maps = [],
+  onMapChange = null,
   isTeacher,
   student,
   canSelfAssignTasks = true,
@@ -957,6 +958,7 @@ function TasksViewImpl({
         setViewMode={setViewMode}
         filterMap={filterMap}
         setFilterMap={setFilterMap}
+        onMapChange={onMapChange}
         maps={maps}
         activeMapId={activeMapId}
         filterText={filterText}

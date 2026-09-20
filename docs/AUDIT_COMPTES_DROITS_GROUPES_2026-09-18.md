@@ -42,7 +42,7 @@
 >   renouvellement), CDG-09 (`prof_classe` dans la liste des profils d'encadrement),
 >   CDG-10 (vue globale = `admin` ou rang ≥ 400, plus `stats.read.all`), CDG-11
 >   (suppression et duplication bornées au périmètre), CDG-16 (colonne `users.affiliation`
->   supprimée, migration 266), CDG-20 (onglet « Classe » du prof de classe), CDG-23
+>   supprimée, migration 267), CDG-20 (onglet « Classe » du prof de classe), CDG-23
 >   (cellule vide = valeur conservée), CDG-24 (sous-groupe cherché sous son parent),
 >   CDG-25 (mise à jour non destructive, cycles refusés, détachement explicite), CDG-26
 >   (401 `deleted: true`, `SESSION_REVOKED`, y compris sur Socket.IO), CDG-31 (motif

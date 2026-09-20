@@ -1,5 +1,5 @@
 -- Politique de profil unique : « le plus élevé l'emporte » (docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md,
--- CDG-43 ; docs/reference/foretmap/comptes-roles-et-groupes.md, « Comment le profil est décidé »).
+-- CDG-43 ; docs/reference/foretmap/comptes-roles-et-groupes.md, « Quel profil fait foi ? »).
 --
 -- Avant : le profil principal (`user_roles.is_primary`) mélangeait le profil attribué à la main,
 -- le « plancher » conféré par les groupes, la montée automatique par tâches validées et le profil

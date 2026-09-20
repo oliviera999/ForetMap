@@ -21,6 +21,7 @@ import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizeP
 
 import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
 import {
+  clusterStatusDots,
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
   locationStatusDots,
@@ -1125,6 +1126,20 @@ function MapViewImpl({
     [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
   );
 
+  /**
+   * Pastilles d'un **groupe** de repères : l'état le plus actionnable du groupe. Sans elles,
+   * les repères regroupés au dézoom (l'état d'arrivée sur la carte) n'affichaient plus rien.
+   */
+  const getStageClusterStatusDots = useCallback(
+    (markersOfCluster) =>
+      clusterStatusDots(markersOfCluster, {
+        taskVisualById: markerTaskVisualById,
+        tutorialCountById: markerTutorialCountById,
+        withTutorials: showTutorialDots,
+      }),
+    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
+  );
+
   const onWorkBackgroundClick = useCallback(
     (event) => {
       if (!showMapMascot) return;
@@ -1490,6 +1505,7 @@ function MapViewImpl({
                 getIsSeen={getFilterDimSeen}
                 getZoneStatusDots={getStageZoneStatusDots}
                 getMarkerStatusDots={getStageMarkerStatusDots}
+                mergeStatusDots={getStageClusterStatusDots}
                 gesturesEnabled={mapInteractionEnabled || !isCoarsePointer}
                 headingUpAllowed={headingUpAllowed}
                 headingUpEffective={headingUpEffective}

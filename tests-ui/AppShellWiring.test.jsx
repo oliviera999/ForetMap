@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 
 /**
  * Gardes de rendu et de câblage du shell `App` — les deux branches (authentifiée et
@@ -135,6 +135,7 @@ async function renderAppWith({ stored, claims }) {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   probes.mapTasks.length = 0;
   probes.pedago.length = 0;
   probes.unauthenticated.length = 0;
@@ -196,5 +197,58 @@ describe('App — câblage de la persistance mascotte visite', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+});
+
+/**
+ * Mémoire du dernier plan consulté (`foretmap_active_map`).
+ *
+ * Elle n'est plus écrite par un effet sur `activeMapId` — cet effet mémorisait aussi les
+ * plans posés par la résolution automatique, ce qui figeait sur l'appareil un plan que
+ * personne n'avait choisi et neutralisait le réglage « plan ouvert par défaut ». Le
+ * sélecteur de plan doit donc porter lui-même la mémorisation, et la Visite invitée doit
+ * rouvrir ce plan : sans cela, le visiteur qui revient retombe sur le plan des réglages.
+ */
+describe('App — mémoire du dernier plan consulté', () => {
+  const MAP_KEY = 'foretmap_active_map';
+
+  test('le sélecteur de plan mémorise le choix de l’utilisateur', async () => {
+    const { mapTasks } = await renderAppWith(STUDENT_SESSION);
+    expect(window.localStorage.getItem(MAP_KEY)).toBeNull();
+    mapTasks.onMapChange('n3');
+    expect(window.localStorage.getItem(MAP_KEY)).toBe('n3');
+  });
+
+  test('un choix vide n’efface pas la mémoire', async () => {
+    window.localStorage.setItem(MAP_KEY, 'n3');
+    const { mapTasks } = await renderAppWith(STUDENT_SESSION);
+    mapTasks.onMapChange('');
+    expect(window.localStorage.getItem(MAP_KEY)).toBe('n3');
+  });
+
+  /** Ouvre l'écran invité puis lance la visite publique, comme le bouton « Visiter ». */
+  async function startGuestVisit() {
+    session.stored = null;
+    session.claims = null;
+    render(<App />);
+    await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
+    await act(async () => {
+      probes.unauthenticated.at(-1).onVisitGuest();
+    });
+    await waitFor(() => expect(probes.unauthenticated.at(-1).showPublicVisit).toBe(true));
+    return probes.unauthenticated.at(-1);
+  }
+
+  test('la Visite invitée rouvre le dernier plan consulté', async () => {
+    window.localStorage.setItem(MAP_KEY, 'n3');
+    const shell = await startGuestVisit();
+    expect(shell.visitInitialMapId).toBe('n3');
+  });
+
+  test('sans mémoire, la Visite invitée retombe sur le plan du contexte', async () => {
+    const shell = await startGuestVisit();
+    // Ni mémoire ni réglage « plan par défaut (visite publique) » dans ce montage :
+    // la carte active du shell fait office de repli.
+    expect(shell.visitInitialMapId).toBe('m1');
   });
 });

@@ -30,6 +30,7 @@ import {
 } from './TutorialPreviewModal';
 import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
+import { rememberLastViewedMapId } from '../utils/lastViewedMap.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
@@ -318,6 +319,19 @@ function VisitViewImpl({
     if (!next) return;
     setMapId((prev) => (prev === next ? prev : next));
   }, [initialMapId]);
+
+  /**
+   * Plan choisi **par l'utilisateur** dans le sélecteur de la visite : mémorisé sur
+   * l'appareil comme un choix fait depuis la carte, pour être rouvert à la
+   * reconnexion (`src/utils/lastViewedMap.js`). Le repli automatique de
+   * `useVisitContent` (plan demandé absent) passe par `setMapId` et n'écrit rien.
+   */
+  const handleSelectMapId = useCallback((nextMapId) => {
+    const next = String(nextMapId || '').trim();
+    if (!next) return;
+    rememberLastViewedMapId(next);
+    setMapId((prev) => (prev === next ? prev : next));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1008,7 +1022,7 @@ function VisitViewImpl({
                 onBackToAuth={!student && onBackToAuth ? onBackToAuth : null}
                 maps={maps}
                 mapId={mapId}
-                onSelectMapId={setMapId}
+                onSelectMapId={handleSelectMapId}
                 quickTipPrefix={helpHintPrefix}
                 quickTipText={
                   isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null

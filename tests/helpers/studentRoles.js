@@ -7,7 +7,7 @@ const { setAssignedRole } = require('../../lib/effectiveRole');
 /**
  * Helpers de rôle élève pour les tests.
  *
- * Depuis la politique « le plus élevé l'emporte » (migration 266), un profil **attribué**
+ * Depuis la politique « le plus élevé l'emporte » (migration 267), un profil **attribué**
  * (`users.assigned_role_id`) survit à la connexion : le recalcul du profil effectif ne peut
  * que le relever (groupe conférant davantage), jamais l'abaisser. Les helpers passent donc
  * par `setAssignedRole`, comme la console. Le groupe n3beur de test reste disponible pour
