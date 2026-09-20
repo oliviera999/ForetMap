@@ -41,6 +41,7 @@ before(async () => {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   teacherToken = await signAuthToken(
     {

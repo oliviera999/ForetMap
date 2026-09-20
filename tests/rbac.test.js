@@ -47,6 +47,7 @@ async function getAdminToken() {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   const login = await request(app)
     .post('/api/auth/login')
@@ -90,8 +91,8 @@ test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
   // « Nom invalide » — échec intermittent vu en CI.
   const patchStudentId = `rbac-patch-${Date.now()}`.slice(0, 64);
   await execute(
-    `INSERT INTO users (id, user_type, first_name, last_name, pseudo, display_name, affiliation, is_active, created_at, updated_at)
-     VALUES (?, 'student', 'Patch', ?, ?, 'Patch', 'both', 1, NOW(), NOW())`,
+    `INSERT INTO users (id, user_type, first_name, last_name, pseudo, display_name, is_active, created_at, updated_at)
+     VALUES (?, 'student', 'Patch', ?, ?, 'Patch', 1, NOW(), NOW())`,
     [patchStudentId, `Rbac${Date.now()}`.slice(0, 40), `rbacp${Date.now()}`.slice(0, 40)],
   );
   const student = await queryOne(
@@ -305,6 +306,7 @@ test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (n
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
     ['teacher', teacher.id, dup.body.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [dup.body.id, teacher.id]);
   try {
     const payload = await buildAuthzPayload('teacher', teacher.id);
     assert.strictEqual(String(payload.roleSlug), dupSlug);
@@ -324,6 +326,10 @@ test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (n
         'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
         ['teacher', teacher.id, adminRole.id],
       );
+      await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [
+        adminRole.id,
+        teacher.id,
+      ]);
     }
     await execute('DELETE FROM roles WHERE id = ?', [dup.body.id]);
   }

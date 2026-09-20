@@ -34,7 +34,6 @@ const MARKERS = [{ id: 'k1' }];
 const CONTEXT = Object.freeze({
   effectiveIsTeacher: true,
   showPublicVisit: false,
-  studentAffiliation: null,
   canManageTutorials: false,
   defaultMapStudent: '',
   defaultMapTeacher: 'm1',

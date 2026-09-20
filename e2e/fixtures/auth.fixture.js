@@ -24,7 +24,6 @@ const IMPORT_COLUMNS = [
   'Prénom',
   'Nom',
   'Mot de passe',
-  'Affiliation (n3|foret|both|id_carte)',
   'Groupes (noms/slugs | chemin Parent>Enfant)',
   'Pseudo (optionnel)',
   'Email (optionnel)',
@@ -54,18 +53,48 @@ async function loginAsTeacherAdminApi(page) {
   return token;
 }
 
+/** Identifiant du profil « n3beur novice », que le groupe e2e confère à ses membres. */
+async function fetchNoviceRoleId(page, headers) {
+  const resp = await page.request.get('/api/rbac/profiles', { headers });
+  if (!resp.ok()) {
+    const snippet = await resp.text().catch(() => '');
+    throw new Error(
+      `Lecture des profils e2e impossible (HTTP ${resp.status()}). ${snippet.slice(0, 200)}`,
+    );
+  }
+  const body = await resp.json().catch(() => ({}));
+  const novice = (body?.roles || []).find((r) => String(r.slug || '') === 'eleve_novice');
+  if (!novice?.id) throw new Error('Profil eleve_novice introuvable pour le groupe e2e.');
+  return novice.id;
+}
+
 /**
  * Groupe n3beur partagé : réutilisé s'il existe déjà (la suite tourne sur une base persistante).
+ * Il confère « n3beur novice » à ses membres (politique « le plus élevé l'emporte ») ; un groupe
+ * déjà présent sans ce profil par défaut (base antérieure) est réaligné.
  */
 async function ensureE2eN3beurGroup(page, token) {
   const headers = { Authorization: `Bearer ${token}` };
+  const noviceRoleId = await fetchNoviceRoleId(page, headers);
   const listResp = await page.request.get('/api/groups/options', { headers });
   if (listResp.ok()) {
     const body = await listResp.json().catch(() => ({}));
     const found = (body?.groups || []).find(
       (g) => String(g.slug || '').toLowerCase() === E2E_N3BEUR_GROUP_SLUG,
     );
-    if (found) return found;
+    if (found) {
+      const patchResp = await page.request.patch(`/api/groups/${encodeURIComponent(found.id)}`, {
+        headers,
+        data: { default_role_id: noviceRoleId },
+      });
+      if (!patchResp.ok()) {
+        const snippet = await patchResp.text().catch(() => '');
+        throw new Error(
+          `Profil par défaut du groupe e2e impossible (HTTP ${patchResp.status()}). ${snippet.slice(0, 200)}`,
+        );
+      }
+      return found;
+    }
   }
   const groupResp = await page.request.post('/api/groups', {
     headers,
@@ -73,7 +102,7 @@ async function ensureE2eN3beurGroup(page, token) {
       name: E2E_N3BEUR_GROUP_NAME,
       slug: E2E_N3BEUR_GROUP_SLUG,
       kind: 'class',
-      grants_n3beur_access: true,
+      default_role_id: noviceRoleId,
     },
   });
   if (!groupResp.ok()) {
@@ -87,7 +116,8 @@ async function ensureE2eN3beurGroup(page, token) {
 
 /**
  * Crée un compte élève par l'import d'administration et le rattache au groupe n3beur.
- * Le rattachement synchronise le rôle (`lib/groupImport.js`), donc pas de reconnexion à vide.
+ * Le rattachement recalcule le profil effectif (`lib/effectiveRole.js`) : le visiteur importé
+ * reçoit le profil conféré par le groupe, donc pas de reconnexion à vide.
  */
 async function createStudentViaAdminImport(page, profile) {
   const token = await loginAsTeacherAdminApi(page);
@@ -98,7 +128,6 @@ async function createStudentViaAdminImport(page, profile) {
     profile.firstName,
     profile.lastName,
     profile.password,
-    'both',
     E2E_N3BEUR_GROUP_SLUG,
     profile.pseudo || '',
     profile.email || '',

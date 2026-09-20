@@ -25,7 +25,7 @@ const DEFAULT_PROGRESSION_THRESHOLDS = [
 ];
 
 /**
- * Restaure les seuils par défaut et, par défaut, réactive les deux réglages de progression.
+ * Restaure les seuils par défaut et, par défaut, réactive le réglage de progression.
  * @param {{ settings?: boolean }} [options]
  */
 async function restoreDefaultProgressionThresholds(options = {}) {
@@ -35,7 +35,6 @@ async function restoreDefaultProgressionThresholds(options = {}) {
   }
   if (settings) {
     await setSetting('rbac.progression_by_validated_tasks', true, {});
-    await setSetting('rbac.progression_align_on_group_join', true, {});
   }
 }
 

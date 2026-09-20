@@ -18,6 +18,7 @@ const apiMocks = {
   getAuthClaims: vi.fn(() => null),
   getAuthToken: vi.fn(() => null),
   getStoredSession: vi.fn(() => null),
+  pickNewestAuthToken: vi.fn((candidate, current) => candidate || current || null),
   saveLegacyStudentSnapshot: vi.fn(),
   saveStoredSession: vi.fn(),
   clearStoredSession: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock('../../src/services/api', () => ({
   getAuthClaims: () => apiMocks.getAuthClaims(),
   getAuthToken: () => apiMocks.getAuthToken(),
   getStoredSession: () => apiMocks.getStoredSession(),
+  pickNewestAuthToken: (...a) => apiMocks.pickNewestAuthToken(...a),
   saveLegacyStudentSnapshot: (...a) => apiMocks.saveLegacyStudentSnapshot(...a),
   saveStoredSession: (...a) => apiMocks.saveStoredSession(...a),
   clearStoredSession: (...a) => apiMocks.clearStoredSession(...a),
@@ -100,6 +102,16 @@ describe('useAuthSession', () => {
     expect(params.setToast).toHaveBeenCalledWith('Votre compte a été supprimé par un responsable.');
   });
 
+  it('forceLogout : un message dédié remplace le toast « compte supprimé » (session expirée)', () => {
+    const { params, result } = renderAuthSession();
+    act(() =>
+      result.current.forceLogout({ message: 'Session expirée : veuillez vous reconnecter.' }),
+    );
+    expect(apiMocks.clearStoredSession).toHaveBeenCalledTimes(1);
+    expect(params.setStudent).toHaveBeenCalledWith(null);
+    expect(params.setToast).toHaveBeenCalledWith('Session expirée : veuillez vous reconnecter.');
+  });
+
   it('updateStudentSession : fusionne avec la session précédente et persiste', () => {
     const { params, result } = renderAuthSession();
     params.studentRef.current = { id: 'S1', avatar_path: '/a.png', auth: { roleSlug: 'eleve' } };
@@ -151,7 +163,8 @@ describe('useAuthSession', () => {
         refreshedToken: ' jwt-neuf ',
       }),
     );
-    expect(localStorage.getItem('foretmap_auth_token')).toBe('jwt-neuf');
+    // Les anciennes clés (`foretmap_auth_token`…) sont réalignées par `saveStoredSession`
+    // elle-même (source de vérité unique, CDG-28) : c'est son appel qui est vérifié ici.
     expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
       expect.objectContaining({ token: 'jwt-neuf' }),
     );

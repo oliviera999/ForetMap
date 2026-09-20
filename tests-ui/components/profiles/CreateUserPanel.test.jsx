@@ -9,8 +9,6 @@ vi.mock('../../../src/services/api.js', () => ({
   getAuthToken: () => null,
 }));
 
-const ROLE_TERMS = { studentSingular: 'n3beur', teacherShort: 'n3boss' };
-
 const SAMPLE_ROLES = [
   { slug: 'visiteur', display_name: 'Visiteur' },
   { slug: 'personnel', display_name: 'Personnel' },
@@ -35,11 +33,6 @@ function renderPanel(overrides = {}) {
     onCreated: vi.fn(async () => {}),
   };
   const props = {
-    roleTerms: ROLE_TERMS,
-    affiliationOptions: [
-      { value: 'both', label: 'Tous les espaces' },
-      { value: 'n3', label: 'N3 uniquement' },
-    ],
     roles: SAMPLE_ROLES,
     isAdmin: false,
     canCreateTeacherRoles: true,
@@ -135,7 +128,6 @@ describe('CreateUserPanel', () => {
       pseudo: null,
       email: null,
       description: null,
-      affiliation: 'both',
     });
     await waitFor(() =>
       expect(setMsg).toHaveBeenCalledWith('Utilisateur créé : Léa Martin (Novice)'),
@@ -188,15 +180,8 @@ describe('CreateUserPanel', () => {
     expect(btn.disabled).toBe(true);
   });
 
-  test("l'affiliation est désactivée si le profil sélectionné n'est pas un profil élève", () => {
+  test('plus de champ d’affiliation : le périmètre cartes vient du groupe', () => {
     renderPanel();
-    fireEvent.change(fieldControl('Profil', 'select'), { target: { value: 'prof' } });
-    expect(fieldControl('Affiliation n3beur', 'select').disabled).toBe(true);
-  });
-
-  test("l'affiliation reste active pour visiteur et paliers n3beur", () => {
-    renderPanel();
-    fireEvent.change(fieldControl('Profil', 'select'), { target: { value: 'eleve_avance' } });
-    expect(fieldControl('Affiliation n3beur', 'select').disabled).toBe(false);
+    expect(screen.queryByText(/Affiliation/)).toBeNull();
   });
 });

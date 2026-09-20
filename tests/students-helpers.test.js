@@ -19,15 +19,13 @@ const {
   normalizeVisitMascotPreference,
   asTrimmedString,
   hasOwn,
-  affiliationFromImportCell,
   normalizeImportUserType,
   normalizeImportRoleSlug,
   describeUnknownImportRole,
   buildRoleAliasesFromDbRows,
   canonicalizeImportRoleValue,
   userTypeForImportRoleSlug,
-  canActorImportRoleSlug,
-  canActorMutateImportedAdmin,
+  userTypeForRole,
   isAdminRoleSlug,
   hasImportScalarValue,
   detectAvatarExtension,
@@ -42,6 +40,8 @@ const {
   csvEscape,
   buildTemplateWorkbookRows,
 } = require('../lib/studentRouteHelpers');
+const { checkRoleGrantAllowed } = require('../lib/rbacRoleAssignment');
+const { N3BEUR_RANK_EXCLUSIVE_MAX } = require('../lib/shared/n3beurRolesCore');
 
 describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', () => {
   it('constantes : limites, rôles importables, skip domaines e-mail', () => {
@@ -49,9 +49,10 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(MAX_AVATAR_BYTES, 2 * 1024 * 1024);
     assert.equal(MAX_IMPORT_FILE_BYTES, 8 * 1024 * 1024);
     assert.equal(MAX_IMPORT_ROWS, 1000);
-    assert.equal(TEMPLATE_COLUMNS.length, 9);
+    assert.equal(TEMPLATE_COLUMNS.length, 8);
     assert.equal(TEMPLATE_COLUMNS[0], 'Rôle');
-    assert.match(TEMPLATE_COLUMNS[5], /Groupes/);
+    assert.match(TEMPLATE_COLUMNS[4], /Groupes/);
+    assert.ok(!TEMPLATE_COLUMNS.some((c) => /affiliation/i.test(c)));
     assert.deepEqual([...ALLOWED_IMPORT_USER_TYPES].sort(), ['student', 'teacher']);
     assert.equal(IMPORT_SKIPS_EMAIL_DOMAIN_RESTRICTIONS, true);
     assert.deepEqual(
@@ -95,15 +96,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(hasOwn({ a: undefined }, 'a'), true);
     assert.equal(hasOwn({}, 'toString'), false);
     assert.equal(hasOwn(null, 'a'), false);
-  });
-
-  it('affiliationFromImportCell : base n3/foret/both, vide → both, invalide → null', () => {
-    assert.equal(affiliationFromImportCell('n3'), 'n3');
-    assert.equal(affiliationFromImportCell(' FORET '), 'foret');
-    assert.equal(affiliationFromImportCell(''), 'both');
-    assert.equal(affiliationFromImportCell(null), 'both');
-    assert.equal(affiliationFromImportCell('carte_1'), 'carte_1');
-    assert.equal(affiliationFromImportCell('Slug Invalide !'), null);
   });
 
   it('normalizeImportRoleSlug : tous les profils + alias', () => {
@@ -171,20 +163,42 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.match(describeUnknownImportRole('Maître du jeu'), /G&L/);
   });
 
-  it('canActorImportRoleSlug : anti-escalade', () => {
-    assert.equal(canActorImportRoleSlug({ roleSlug: 'admin' }, 'admin'), true);
-    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof' }, 'admin'), false);
-    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof' }, 'prof_classe'), true);
-    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'prof'), false);
-    assert.equal(canActorImportRoleSlug({ roleSlug: 'prof_classe' }, 'visiteur'), true);
+  it('checkRoleGrantAllowed (rbacRoleAssignment) : anti-escalade à la création / import', () => {
+    const admin = { roleSlug: 'admin', roleRank: 500 };
+    const n3boss = { roleSlug: 'prof', roleRank: 400 };
+    const tuteur = { roleSlug: 'prof_classe', roleRank: 350 };
+    const role = (slug, rank) => ({ id: 1, slug, rank });
+    assert.equal(checkRoleGrantAllowed(admin, role('admin', 500)).ok, true);
+    const refusAdmin = checkRoleGrantAllowed(n3boss, role('admin', 500));
+    assert.equal(refusAdmin.ok, false);
+    assert.equal(refusAdmin.status, 403);
+    assert.equal(checkRoleGrantAllowed(n3boss, role('prof_classe', 350)).ok, true);
+    const refusRang = checkRoleGrantAllowed(tuteur, role('prof', 400));
+    assert.equal(refusRang.ok, false);
+    assert.equal(refusRang.status, 403);
+    assert.equal(checkRoleGrantAllowed(tuteur, role('visiteur', 50)).ok, true);
+    // Un profil G&L ne s'attribue jamais depuis ForetMap, même par un administrateur.
+    assert.equal(checkRoleGrantAllowed(admin, role('gl_mj', 360)).status, 400);
+    // Profil introuvable.
+    assert.equal(checkRoleGrantAllowed(admin, null).status, 404);
+    // Système (`actor = null`) : aucune garde d'acteur.
+    assert.equal(checkRoleGrantAllowed(null, role('admin', 500)).ok, true);
   });
 
-  it('canActorMutateImportedAdmin : un n3boss ne touche pas un admin existant', () => {
+  it('isAdminRoleSlug / userTypeForRole / hasImportScalarValue', () => {
     assert.equal(isAdminRoleSlug('admin'), true);
     assert.equal(isAdminRoleSlug('prof'), false);
-    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'admin' }, 'admin'), true);
-    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'prof' }, 'admin'), false);
-    assert.equal(canActorMutateImportedAdmin({ roleSlug: 'prof' }, 'prof'), true);
+    assert.equal(userTypeForRole({ slug: 'admin' }), 'teacher');
+    assert.equal(userTypeForRole({ slug: 'visiteur' }), 'student');
+    // Profil sur mesure : le rang décide du type de compte.
+    assert.equal(
+      userTypeForRole({ slug: 'jardinier', rank: N3BEUR_RANK_EXCLUSIVE_MAX }),
+      'teacher',
+    );
+    assert.equal(
+      userTypeForRole({ slug: 'jardinier', rank: N3BEUR_RANK_EXCLUSIVE_MAX - 1 }),
+      'student',
+    );
     assert.equal(hasImportScalarValue(null), false);
     assert.equal(hasImportScalarValue(''), false);
     assert.equal(hasImportScalarValue('  '), false);
@@ -205,8 +219,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportHeader('Rôle'), 'role');
     assert.equal(normalizeImportHeader('Mot de passe'), 'mot_de_passe');
     assert.equal(
-      normalizeImportHeader('Affiliation (n3|foret|both|id_carte)'),
-      'affiliation_n3_foret_both_id_carte',
+      normalizeImportHeader('Groupes (noms/slugs | chemin Parent>Enfant)'),
+      'groupes_noms_slugs_chemin_parent_enfant',
     );
     assert.equal(normalizeImportHeader('__x__'), 'x');
   });
@@ -300,7 +314,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: ' Ada ',
       Nom: ' Lovelace ',
       'Mot de passe': ' MotDePasse12! ',
-      Affiliation: 'N3',
       Pseudo: '  ',
       Email: ' ada@gmail.com ',
       Description: '',
@@ -312,7 +325,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       firstName: 'Ada',
       lastName: 'Lovelace',
       password: 'MotDePasse12!',
-      affiliation: 'n3',
       groupRefs: [],
       pseudo: null,
       email: 'ada@gmail.com',
@@ -326,10 +338,30 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'azerty123',
-      Affiliation: 'both',
-      [TEMPLATE_COLUMNS[5]]: '6ème A | 6ème B > Atelier',
+      [TEMPLATE_COLUMNS[4]]: '6ème A | 6ème B > Atelier',
     });
     assert.deepEqual(payload.groupRefs, [{ path: ['6ème A'] }, { path: ['6ème B', 'Atelier'] }]);
+  });
+
+  it('buildImportStudentPayload : profil sur mesure (alias BDD, type de compte par le rang)', () => {
+    const roleAliases = buildRoleAliasesFromDbRows([
+      { slug: 'jardinier', display_name: 'Jardinier' },
+    ]);
+    const rolesBySlug = new Map([
+      ['jardinier', { id: 42, slug: 'jardinier', rank: N3BEUR_RANK_EXCLUSIVE_MAX }],
+    ]);
+    const payload = buildImportStudentPayload(
+      { Rôle: 'Jardinier', Prénom: 'Ada', Nom: 'Lovelace', 'Mot de passe': 'MotDePasse12!' },
+      { roleAliases, rolesBySlug },
+    );
+    assert.equal(payload.roleSlug, 'jardinier');
+    assert.equal(payload.userType, 'teacher');
+    // Sans la liste des profils connus en base, un slug sur mesure est refusé ; avec, il passe.
+    assert.ok(validateImportStudentPayload(payload, 2).some((e) => e.field === 'role'));
+    assert.deepEqual(
+      validateImportStudentPayload(payload, 2, { knownRoleSlugs: new Set(['jardinier']) }),
+      [],
+    );
   });
 
   it('validateImportStudentPayload : payload élève valide → aucune erreur', () => {
@@ -338,7 +370,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'azerty123',
-      Affiliation: 'both',
     });
     assert.deepEqual(validateImportStudentPayload(payload, 2), []);
   });
@@ -349,7 +380,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'azerty123',
-      Affiliation: 'both',
       Email: 'ada.externe@gmail.com',
     });
     assert.deepEqual(validateImportStudentPayload(payload, 2), []);
@@ -361,7 +391,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'court',
-      Affiliation: 'both',
     });
     const errors = validateImportStudentPayload(payload, 3, {
       minPasswordStudent: 4,
@@ -370,22 +399,31 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.ok(errors.some((e) => e.field === 'password' && /12/.test(e.error)));
   });
 
-  it('validateImportStudentPayload : allowWeakPasswords assouplit le plancher', () => {
-    const payload = buildImportStudentPayload({
+  it('validateImportStudentPayload : allowWeakPasswords assouplit le plancher élève seulement', () => {
+    const eleve = buildImportStudentPayload({
+      Rôle: 'eleve',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'ab',
+    });
+    const opts = { minPasswordStudent: 4, minPasswordTeacher: 12, allowWeakPasswords: true };
+    assert.deepEqual(validateImportStudentPayload(eleve, 3, opts), []);
+    // Le plancher enseignant ne descend jamais sous 12 caractères, même avec le réglage (CDG-41).
+    const prof = buildImportStudentPayload({
       Rôle: 'prof',
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'ab',
-      Affiliation: 'both',
     });
-    assert.deepEqual(
-      validateImportStudentPayload(payload, 3, {
-        minPasswordStudent: 4,
-        minPasswordTeacher: 12,
-        allowWeakPasswords: true,
-      }),
-      [],
-    );
+    const errors = validateImportStudentPayload(prof, 3, opts);
+    assert.ok(errors.some((e) => e.field === 'password' && /12/.test(e.error)));
+    // Idem si le réglage enseignant est plus bas que le plancher local.
+    const errorsBas = validateImportStudentPayload(prof, 3, {
+      minPasswordStudent: 4,
+      minPasswordTeacher: 6,
+      allowWeakPasswords: true,
+    });
+    assert.ok(errorsBas.some((e) => e.field === 'password' && /12/.test(e.error)));
   });
 
   it('validateImportStudentPayload : passwordRequired false tolère un MDP vide', () => {
@@ -393,7 +431,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Rôle: 'eleve',
       Prénom: 'Ada',
       Nom: 'Lovelace',
-      Affiliation: 'n3',
     });
     assert.ok(!payload.password);
     assert.deepEqual(validateImportStudentPayload(payload, 2, { passwordRequired: false }), []);
@@ -407,7 +444,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
         firstName: '',
         lastName: '',
         password: 'abc',
-        affiliation: null,
         pseudo: 'a!',
         email: 'pas-un-email',
         description: 'x'.repeat(MAX_DESCRIPTION_LEN + 1),
@@ -416,7 +452,6 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     );
     const fields = errors.map((e) => e.field).sort();
     assert.deepEqual(fields, [
-      'affiliation',
       'description',
       'email',
       'firstName',
@@ -513,16 +548,13 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.ok(roleCells.includes('tuteur'), 'aucun exemple par alias');
 
     // Situations : e-mail hors établissement, multi-groupes, chemin Parent>Enfant,
-    // absence de groupe, affiliation vide, ligne minimale, doublon fusionnable.
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[7]] || '').includes('@gmail.com')));
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '').includes('|')));
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '').includes('>')));
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[5]] || '') === ''));
+    // absence de groupe, ligne minimale, doublon fusionnable.
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[6]] || '').includes('@gmail.com')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '').includes('|')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '').includes('>')));
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '') === ''));
     assert.ok(
-      rows.some(
-        (r) => !r[TEMPLATE_COLUMNS[6]] && !r[TEMPLATE_COLUMNS[7]] && !r[TEMPLATE_COLUMNS[4]],
-      ),
+      rows.some((r) => !r[TEMPLATE_COLUMNS[5]] && !r[TEMPLATE_COLUMNS[6]]),
       'aucune ligne minimale',
     );
 

@@ -54,6 +54,7 @@ async function teacherToken() {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   const login = await request(app)
     .post('/api/auth/login')
@@ -333,6 +334,7 @@ test('Forum: n3beur sans participation — lecture OK, création sujet 403', asy
      ON DUPLICATE KEY UPDATE is_primary = 1`,
     [student.id, forumRoRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [forumRoRole.id, student.id]);
   // Pas de re-login ici : le rôle effectif est résolu en direct (live lookup).
   // Un nouveau login relancerait syncStudentRoleFromGroups qui, via le groupe n3beur
   // de test, restaurerait `eleve_novice` et masquerait le profil lecture seule.

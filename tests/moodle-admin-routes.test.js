@@ -32,6 +32,7 @@ async function tokenFor(userId, roleSlug) {
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
     ['teacher', userId, role.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, userId]);
   return signAuthToken(
     {
       userType: 'teacher',

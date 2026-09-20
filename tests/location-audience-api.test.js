@@ -173,6 +173,10 @@ test('visite : complément réservé absent pour anonyme, présent pour personne
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
     ['student', personnelUserId, personnelRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [
+    personnelRole.id,
+    personnelUserId,
+  ]);
   // `signAuthToken` est asynchrone depuis `fix(auth): durées JWT pilotées par les réglages
   // admin` : sans `await`, l'en-tête valait « Bearer [object Promise] », le jeton était rejeté
   // et le lecteur retombait sur « visiteur » — la note réservée n'était donc servie à personne.

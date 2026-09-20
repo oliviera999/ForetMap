@@ -97,8 +97,8 @@ test('importPlayersFromRows rapproche un élève ForetMap existant au lieu de le
   const email = `lib.existing.${stamp}@ecole.local`;
   const fmHash = await bcrypt.hash('mot-de-passe-foretmap', 10);
   await execute(
-    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, 'Existante', ?, 'Existante Eleve', 'both', ?, 'local', 1, NOW(), NOW())`,
+    `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, 'Existante', ?, 'Existante Eleve', ?, 'local', 1, NOW(), NOW())`,
     [existingId, email, `fm_existing_${stamp}`, `Eleve-${stamp}`, fmHash],
   );
   const report = await importPlayersFromRows(

@@ -89,6 +89,40 @@ describe('deriveProfilesCapabilities', () => {
     ).toBe(true);
     expect(deriveProfilesCapabilities({ authPerms: [] }).canManageProfiles).toBe(false);
   });
+
+  test('prof de classe : lit ses comptes et ses groupes, sans attribuer de profil', () => {
+    const caps = deriveProfilesCapabilities({
+      authPerms: [
+        'teacher.access',
+        'groups.read',
+        'groups.manage',
+        'stats.read.group',
+        'observations.read.group',
+        'staff_plan.access',
+      ],
+      authRoleSlug: 'prof_classe',
+    });
+    expect(caps.canListAccounts).toBe(true);
+    expect(caps.canReadGroups).toBe(true);
+    expect(caps.canManageGroups).toBe(true);
+    expect(caps.canAssignRoles).toBe(false);
+    expect(caps.canManageProfiles).toBe(false);
+    expect(caps.canEditRoleDefinition).toBe(false);
+  });
+
+  test('lecture seule des groupes : canReadGroups sans canManageGroups ni canListAccounts', () => {
+    const caps = deriveProfilesCapabilities({ authPerms: ['groups.read'] });
+    expect(caps.canReadGroups).toBe(true);
+    expect(caps.canManageGroups).toBe(false);
+    expect(caps.canListAccounts).toBe(false);
+  });
+
+  test('assign_roles seule ouvre la liste et l’attribution', () => {
+    const caps = deriveProfilesCapabilities({ authPerms: ['admin.users.assign_roles'] });
+    expect(caps.canListAccounts).toBe(true);
+    expect(caps.canAssignRoles).toBe(true);
+    expect(caps.canReadGroups).toBe(false);
+  });
 });
 
 describe('normalizeRoleEditFields', () => {

@@ -72,7 +72,7 @@ async function registerStudentInGroup(prefix, groupId) {
     .expect(201);
   await setStudentPrimaryRole(res.body.id, 'eleve_novice');
   await execute(
-    "INSERT IGNORE INTO group_members (group_id, user_id, user_type, role_in_group) VALUES (?, ?, 'student', 'member')",
+    "INSERT IGNORE INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
     [groupId, res.body.id],
   );
   const login = await request(app)

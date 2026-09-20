@@ -1,10 +1,9 @@
 /**
  * Logique pure de l'éditeur « Mon profil » (StudentProfileEditor) :
  * libellé du type de profil, endpoint de mise à jour selon le compte,
- * options de sélection (espace, mascotte), validation des champs et
+ * options de sélection (mascotte), validation des champs et
  * estimation du poids d'un data URL d'avatar.
  */
-import { buildAffiliationSelectOptions } from './affiliationSelectOptions';
 import { buildVisitMascotSelectionOptions } from './visitMascotCatalog.js';
 import { PSEUDO_RE, PSEUDO_INVALID_MSG } from './pseudoValidation';
 
@@ -48,17 +47,6 @@ export function profileUpdateEndpoint(student) {
 }
 
 /**
- * Options du sélecteur « Mon espace » : options standards des cartes, plus
- * l'affiliation courante si elle n'y figure pas (valeur en base conservée).
- */
-export function buildProfileAffiliationOptions(maps, affiliation, studentAffiliation) {
-  const base = buildAffiliationSelectOptions(maps);
-  const a = String(affiliation || studentAffiliation || 'both').toLowerCase();
-  if (base.some((o) => o.value === a)) return base;
-  return [...base, { value: a, label: `${a} (valeur en base)` }];
-}
-
-/**
  * Mascottes proposables dans « Mon profil » : **même liste que sur le plan** —
  * mascottes livrées et packs publiés (`extraEntries`), filtrées par la liste d'ids
  * autorisés du réglage public (liste vide = aucune restriction).
@@ -71,8 +59,9 @@ export function buildVisitMascotOptions(allowedRaw, extraEntries = []) {
  * Validation des champs avant enregistrement du profil.
  * Retourne le message d'erreur à afficher, ou '' si tout est valide.
  */
-export function validateProfileEditorFields({ pseudo, email, description, currentPassword }) {
-  if (!currentPassword) return 'Mot de passe actuel requis';
+export function validateProfileEditorFields({ pseudo, email, description }) {
+  // Le mot de passe actuel n'est plus exigé côté client : un compte Google n'en a pas, et
+  // c'est le serveur qui sait s'il faut le redemander (`verifyCurrentPassword`, CDG-42).
   if (String(pseudo || '').trim() && !PSEUDO_RE.test(String(pseudo).trim())) {
     return PSEUDO_INVALID_MSG;
   }
@@ -81,6 +70,18 @@ export function validateProfileEditorFields({ pseudo, email, description, curren
   }
   if (String(description || '').trim().length > 300) {
     return 'Description trop longue (max 300 caractères)';
+  }
+  return '';
+}
+
+/**
+ * Validation du formulaire « Changer mon mot de passe » (le plancher de longueur est
+ * vérifié par le serveur selon le type de compte).
+ */
+export function validatePasswordChangeFields({ newPassword, confirmPassword }) {
+  if (!String(newPassword || '')) return 'Nouveau mot de passe requis';
+  if (String(newPassword) !== String(confirmPassword || '')) {
+    return 'Les deux mots de passe ne correspondent pas';
   }
   return '';
 }

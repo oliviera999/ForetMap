@@ -80,4 +80,35 @@ describe('ProfilesAdminSubTabs', () => {
     expect(screen.getByRole('tab', { name: 'Comptes' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^Groupes/ })).not.toBeInTheDocument();
   });
+
+  test('prof de classe : Comptes + Groupes, sans Profils ni Imports', () => {
+    render(
+      <ProfilesAdminSubTabs
+        active="groupes"
+        onChange={() => {}}
+        canShowProfiles={false}
+        canShowAccounts
+        canShowGroups
+        canShowImports={false}
+      />,
+    );
+    expect(screen.queryByRole('tab', { name: 'Profils' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Comptes' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Groupes/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: 'Imports & exports' })).not.toBeInTheDocument();
+  });
+
+  test('Profils demande la définition des rôles, pas seulement l’attribution', () => {
+    render(
+      <ProfilesAdminSubTabs
+        active="comptes"
+        onChange={() => {}}
+        canShowProfiles={false}
+        canShowAccounts
+        canShowGroups
+      />,
+    );
+    expect(screen.queryByRole('tab', { name: 'Profils' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Groupes/ })).toBeInTheDocument();
+  });
 });

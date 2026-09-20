@@ -9,7 +9,7 @@ import { createContext, useContext } from 'react';
  * `loadArchivedTasks` (chargement à la demande de la vue Archivés).
  * (`archivedTasks`/`archivedTaskProjects` : archives isolées, alimentées côté prof uniquement,
  * consommées par le seul écran Tâches — jamais par la carte/les modales.) **Exclus volontairement** :
- *  - `maps` — deux variantes selon le consommateur (`visibleMaps` filtré par affiliation vs `maps`
+ *  - `maps` — deux variantes selon le consommateur (`visibleMaps` limité aux cartes actives vs `maps`
  *    complet pour les éditeurs de profil) → reste en props ;
  *  - `VisitView` — relie ces valeurs à d'autres noms de props (`mapZones`/`catalogTutorials`…) et
  *    son `initialMapId` n'est pas `activeMapId` en mode invité → reste en props.

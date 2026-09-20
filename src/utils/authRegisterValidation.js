@@ -16,8 +16,6 @@ export function getAuthSubmitError({
   pseudo,
   email,
   description,
-  affiliation,
-  affiliationOptions,
 }) {
   if (mode === 'login' && (!identifier.trim() || !pass))
     return 'Identifiant et mot de passe requis';
@@ -34,12 +32,6 @@ export function getAuthSubmitError({
   }
   if (mode === 'register' && description.trim().length > 300) {
     return 'Description trop longue (max 300 caractères)';
-  }
-  if (mode === 'register' && !affiliation) {
-    return 'Choisis ton espace (cartes proposées dans la liste)';
-  }
-  if (mode === 'register' && !affiliationOptions.some((o) => o.value === affiliation)) {
-    return 'Choix d’espace invalide';
   }
   return '';
 }

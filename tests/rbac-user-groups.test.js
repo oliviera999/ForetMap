@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
-const { normalizeRoleInGroup, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
+const { fetchGroupsByUserId } = require('../lib/rbacUserGroups');
 
 test.before(async () => {
   await initSchema();
@@ -18,8 +18,8 @@ async function createStudent(label) {
   const lastName = `Eleve${Date.now()}`.slice(0, 40);
   await execute(
     `INSERT INTO users
-      (id, user_type, first_name, last_name, display_name, affiliation, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, ?, 'both', 'local', 1, NOW(), NOW())`,
+      (id, user_type, first_name, last_name, display_name, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, ?, 'local', 1, NOW(), NOW())`,
     [id, firstName, lastName, `${firstName} ${lastName}`],
   );
   return { id, displayName: `${firstName} ${lastName}` };
@@ -34,14 +34,6 @@ async function createGroup(token, { name, kind = 'class' }) {
   return res.body.id;
 }
 
-test('normalizeRoleInGroup : replie toute valeur inconnue sur « member »', () => {
-  assert.strictEqual(normalizeRoleInGroup('manager'), 'manager');
-  assert.strictEqual(normalizeRoleInGroup('MANAGER'), 'manager');
-  assert.strictEqual(normalizeRoleInGroup('member'), 'member');
-  assert.strictEqual(normalizeRoleInGroup('pilote'), 'member');
-  assert.strictEqual(normalizeRoleInGroup(null), 'member');
-});
-
 test('fetchGroupsByUserId : périmètre vide sans bypass → aucun groupe', async () => {
   const map = await fetchGroupsByUserId(['x'], { bypass: false, scopeGroupIds: new Set() });
   assert.strictEqual(map.size, 0);
@@ -55,13 +47,11 @@ test('RBAC admin : la fiche et la liste portent les groupes de l’utilisateur',
   const groupB = await createGroup(token, { name: `Agroupe rbac ${stamp}`, kind: 'club' });
 
   await execute(
-    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
-     VALUES (?, ?, 'student', 'member')`,
+    `INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')`,
     [groupA, student.id],
   );
   await execute(
-    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
-     VALUES (?, ?, 'student', 'manager')`,
+    `INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')`,
     [groupB, student.id],
   );
 
@@ -71,13 +61,13 @@ test('RBAC admin : la fiche et la liste portent les groupes de l’utilisateur',
     .expect(200);
   assert.ok(Array.isArray(detail.body.groups));
   assert.strictEqual(detail.body.groups.length, 2);
-  // Responsables d'abord, puis tri alphabétique.
+  // Tri alphabétique ; chaque groupe porte son profil par défaut (ici aucun).
   assert.strictEqual(detail.body.groups[0].id, groupB);
-  assert.strictEqual(detail.body.groups[0].role_in_group, 'manager');
   assert.strictEqual(detail.body.groups[0].kind, 'club');
   assert.strictEqual(detail.body.groups[0].is_active, true);
+  assert.strictEqual(detail.body.groups[0].default_role_id, null);
+  assert.strictEqual(detail.body.groups[0].force_default_role, false);
   assert.strictEqual(detail.body.groups[1].id, groupA);
-  assert.strictEqual(detail.body.groups[1].role_in_group, 'member');
 
   const list = await request(app)
     .get('/api/rbac/users')

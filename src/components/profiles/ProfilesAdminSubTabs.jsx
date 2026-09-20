@@ -10,22 +10,30 @@
  * « Comptes (128) » informait du nombre de résultats filtrés, « Groupes (3) » alertait sur
  * des visiteurs à rattacher. Le premier devient « 128 / 350 » (résultats sur total), le second
  * une pastille d'alerte distincte, annoncée comme telle aux lecteurs d'écran.
+ *
+ * Chaque onglet a sa propre porte : `canShowProfiles` (définition des rôles,
+ * `admin.roles.manage`), `canShowAccounts` (lister les comptes ou gérer les élèves),
+ * `canShowGroups` (gérer ou lire les groupes — l'onglet « Classe » du prof de classe),
+ * `canShowImports`. `canManageProfiles` / `canManageStudents` restent acceptés en repli.
  */
 export function ProfilesAdminSubTabs({
   active,
   onChange,
   canManageProfiles = false,
   canManageStudents = false,
+  canShowProfiles = canManageProfiles,
+  canShowAccounts = canManageProfiles || canManageStudents,
+  canShowGroups = canManageProfiles,
   canShowImports = false,
   pendingVisitorsCount = 0,
   accountsFilteredCount = null,
   accountsTotalCount = null,
 }) {
   const tabs = [];
-  if (canManageProfiles) {
+  if (canShowProfiles) {
     tabs.push({ id: 'profils', label: 'Profils' });
   }
-  if (canManageProfiles || canManageStudents) {
+  if (canShowAccounts) {
     let count = null;
     if (accountsFilteredCount != null) {
       count =
@@ -35,7 +43,7 @@ export function ProfilesAdminSubTabs({
     }
     tabs.push({ id: 'comptes', label: 'Comptes', count });
   }
-  if (canManageProfiles) {
+  if (canShowGroups) {
     tabs.push({
       id: 'groupes',
       label: 'Groupes',

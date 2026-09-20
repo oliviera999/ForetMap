@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * Périmètre cartes de bout en bout : ce qu'un élève borné par son groupe (ou par son
- * affiliation) voit et ne voit plus, et ce qui reste délibérément non borné — lecture sans
- * session (visite publique) et comptes profs.
+ * Périmètre cartes de bout en bout : ce qu'un élève borné par le périmètre de son groupe
+ * (`group_scopes`) voit et ne voit plus, et ce qui reste délibérément non borné — lecture
+ * sans session (visite publique) et comptes profs.
  */
 
 require('./helpers/setup');
@@ -25,15 +25,15 @@ const ZONE_IN = `zone-in-${stamp}`;
 const ZONE_OUT = `zone-out-${stamp}`;
 const MARKER_OUT = `marker-out-${stamp}`;
 
-/** Élève novice (aucune permission prof) rattaché à `groupId`, avec l'affiliation demandée. */
-async function createStudent({ affiliation = 'both', groupId = null } = {}) {
+/** Élève novice (aucune permission prof), rattaché à `groupId` s'il est fourni. */
+async function createStudent({ groupId = null } = {}) {
   const id = crypto.randomUUID();
   await execute(
     `INSERT INTO users
       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-       affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', NULL, NULL, NULL, 'Scope', ?, ?, ?, NULL, 'local', 1, NOW(), NOW())`,
-    [id, `Eleve${stamp}`, `Scope Eleve${stamp}`, affiliation],
+       password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, NULL, NULL, 'Scope', ?, ?, NULL, 'local', 1, NOW(), NOW())`,
+    [id, `Eleve${stamp}`, `Scope Eleve${stamp}`],
   );
   const role = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(role?.id);
@@ -43,11 +43,10 @@ async function createStudent({ affiliation = 'both', groupId = null } = {}) {
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [id, role.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, id]);
   if (groupId) {
     await execute(
-      `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
-       VALUES (?, ?, 'student', 'member')
-       ON DUPLICATE KEY UPDATE role_in_group = 'member'`,
+      `INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')`,
       [groupId, id],
     );
   }
@@ -139,7 +138,7 @@ test('Périmètre cartes: prof et lecture anonyme ne sont pas bornés', async ()
   assert.ok(anonymousIds.includes(MAP_IN) && anonymousIds.includes(MAP_OUT));
 });
 
-test("Périmètre cartes: un élève sans groupe ni affiliation n'est pas borné", async () => {
+test("Périmètre cartes: un élève sans groupe n'est pas borné", async () => {
   const student = await createStudent({});
   const res = await request(app)
     .get('/api/maps')
@@ -147,16 +146,6 @@ test("Périmètre cartes: un élève sans groupe ni affiliation n'est pas borné
     .expect(200);
   const ids = res.body.map((m) => m.id);
   assert.ok(ids.includes(MAP_IN) && ids.includes(MAP_OUT));
-});
-
-test("Périmètre cartes: l'affiliation borne aussi côté serveur", async () => {
-  const student = await createStudent({ affiliation: MAP_IN });
-  const res = await request(app)
-    .get('/api/maps')
-    .set('Authorization', `Bearer ${student.token}`)
-    .expect(200);
-  const ids = res.body.map((m) => m.id);
-  assert.deepStrictEqual(ids, [MAP_IN]);
 });
 
 test('Périmètre cartes: les zones hors périmètre sont refusées et masquées', async () => {

@@ -39,6 +39,7 @@ before(async () => {
      ON DUPLICATE KEY UPDATE is_primary = 1`,
     [teacherId, profRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [profRole.id, teacherId]);
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, foretmap_user_id, is_active, created_at, updated_at)
      VALUES (?, 'MJ forgot', 'mj', ?, 1, NOW(), NOW())

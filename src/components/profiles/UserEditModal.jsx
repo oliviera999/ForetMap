@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
@@ -14,7 +14,6 @@ const EMPTY_FIELDS = {
   pseudo: '',
   email: '',
   description: '',
-  affiliation: 'both',
 };
 
 /**
@@ -26,9 +25,14 @@ const EMPTY_FIELDS = {
  * (lecture, et rattachement si l'acteur en a le droit), **Identité** (le formulaire), et
  * **Actions**.
  *
- * P12 : le mot de passe n'est plus un champ aligné entre « Description » et « Affiliation »,
- * et l'impersonation n'est plus collée au bouton « Enregistrer ». Les deux sont des actions
+ * P12 : le mot de passe n'est plus un champ aligné entre « Description » et « Email », et
+ * l'impersonation n'est plus collée au bouton « Enregistrer ». Les deux sont des actions
  * explicites, isolées en pied de fiche, avec leur propre validation.
+ *
+ * Les actions sensibles — **désactiver / réactiver** le compte (`PATCH is_active`) et, pour un
+ * enseignant, **supprimer** le compte (administrateur seulement) — demandent une confirmation
+ * en place, dans la fiche : pas de seconde modale par-dessus la première. Elles ne sont jamais
+ * proposées sur son propre compte (`isSelf`), comme le serveur le refuse.
  *
  * Autonome (§6.1) : pilotée par `user` (fiche fusionnée, `null` pendant le chargement) et
  * `loadState`. Les champs du formulaire sont un état interne initialisé paresseusement au
@@ -38,11 +42,14 @@ function UserEditModal({
   user,
   loadState,
   err,
-  affiliationOptions,
   authPerms,
   saving,
   impersonateLoading,
   passwordSaving = false,
+  activeSaving = false,
+  deleteSaving = false,
+  isAdmin = false,
+  isSelf = false,
   groupOptions = [],
   canManageGroups = false,
   onClose,
@@ -51,6 +58,8 @@ function UserEditModal({
   onImpersonate,
   onAttachGroup,
   onDetachGroup,
+  onToggleActive,
+  onDeleteTeacher,
 }) {
   const publicSettings = usePublicSettings();
   const [initialFields] = useState(() => (user ? buildUserEditInitialFields(user) : EMPTY_FIELDS));
@@ -59,17 +68,16 @@ function UserEditModal({
   const [editPseudo, setEditPseudo] = useState(initialFields.pseudo);
   const [editEmail, setEditEmail] = useState(initialFields.email);
   const [editDescription, setEditDescription] = useState(initialFields.description);
-  const [editAffiliation, setEditAffiliation] = useState(initialFields.affiliation);
   const [editPassword, setEditPassword] = useState('');
   const [passwordOpen, setPasswordOpen] = useState(false);
+  /** Action sensible en attente de confirmation : 'deactivate' | 'reactivate' | 'delete'. */
+  const [pendingAction, setPendingAction] = useState(null);
 
-  const affiliationOptionsForEdit = useMemo(() => {
-    const base = affiliationOptions;
-    if (!editAffiliation || base.some((o) => o.value === editAffiliation)) return base;
-    return [...base, { value: editAffiliation, label: `${editAffiliation} (valeur en base)` }];
-  }, [affiliationOptions, editAffiliation]);
-
-  const busy = saving || passwordSaving;
+  const busy = saving || passwordSaving || activeSaving || deleteSaving;
+  const isActive = user ? user.is_active !== false : true;
+  const isTeacher = String(user?.user_type || '').toLowerCase() === 'teacher';
+  const canToggleActive = typeof onToggleActive === 'function' && !isSelf;
+  const canDeleteTeacher = typeof onDeleteTeacher === 'function' && isAdmin && isTeacher && !isSelf;
 
   const submit = () => {
     onSave({
@@ -78,7 +86,6 @@ function UserEditModal({
       pseudo: editPseudo,
       email: editEmail,
       description: editDescription,
-      affiliation: editAffiliation,
     });
   };
 
@@ -87,6 +94,44 @@ function UserEditModal({
     setEditPassword('');
     setPasswordOpen(false);
   };
+
+  const confirmPendingAction = async () => {
+    const action = pendingAction;
+    if (!action) return;
+    try {
+      if (action === 'delete') {
+        await onDeleteTeacher();
+      } else {
+        await onToggleActive(action === 'reactivate');
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const pendingCopy = (() => {
+    if (!pendingAction || !user) return null;
+    const name = user.display_name;
+    if (pendingAction === 'delete') {
+      return {
+        text: `Supprimer définitivement le compte enseignant de ${name} ? Ses contenus (tâches, zones, journal…) sont conservés, mais la personne ne pourra plus se connecter et le compte ne pourra pas être restauré.`,
+        confirmLabel: deleteSaving ? 'Suppression…' : 'Confirmer la suppression',
+        danger: true,
+      };
+    }
+    if (pendingAction === 'deactivate') {
+      return {
+        text: `Désactiver le compte de ${name} ? La personne ne pourra plus se connecter et ses sessions ouvertes seront closes. Le compte, ses groupes et ses données restent en place ; il peut être réactivé à tout moment.`,
+        confirmLabel: activeSaving ? 'Désactivation…' : 'Confirmer la désactivation',
+        danger: true,
+      };
+    }
+    return {
+      text: `Réactiver le compte de ${name} ? La personne pourra de nouveau se connecter avec ses identifiants.`,
+      confirmLabel: activeSaving ? 'Réactivation…' : 'Confirmer la réactivation',
+      danger: false,
+    };
+  })();
 
   return (
     <DialogShell
@@ -195,23 +240,6 @@ function UserEditModal({
                   placeholder={editDescription ? undefined : 'Aucune description en base'}
                 />
               </div>
-              {user.user_type === 'student' && (
-                <div className="field" style={{ margin: 0 }}>
-                  <label htmlFor="edit-user-aff">Affiliation</label>
-                  <select
-                    id="edit-user-aff"
-                    value={editAffiliation}
-                    onChange={(e) => setEditAffiliation(e.target.value)}
-                    disabled={busy}
-                  >
-                    {affiliationOptionsForEdit.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 6, gridColumn: '1 / -1' }}>
                 <button
                   type="submit"
@@ -307,6 +335,57 @@ function UserEditModal({
                   L’interface reflète le compte choisi (support ou diagnostic). Utilise le bandeau
                   orange en haut pour retrouver ta session administrateur.
                 </p>
+              </div>
+            )}
+
+            {(canToggleActive || canDeleteTeacher) && (
+              <div className="profiles-user-danger" data-testid="user-danger-actions">
+                {pendingAction && pendingCopy ? (
+                  <div className="profiles-user-danger__confirm" role="alertdialog">
+                    <p>{pendingCopy.text}</p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${pendingCopy.danger ? 'btn-danger' : 'btn-primary'}`}
+                        onClick={confirmPendingAction}
+                        disabled={busy}
+                      >
+                        {pendingCopy.confirmLabel}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setPendingAction(null)}
+                        disabled={busy}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {canToggleActive && (
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${isActive ? 'btn-danger' : 'btn-secondary'}`}
+                        onClick={() => setPendingAction(isActive ? 'deactivate' : 'reactivate')}
+                        disabled={busy}
+                      >
+                        {isActive ? 'Désactiver le compte' : 'Réactiver le compte'}
+                      </button>
+                    )}
+                    {canDeleteTeacher && (
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setPendingAction('delete')}
+                        disabled={busy}
+                      >
+                        Supprimer le compte enseignant
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </section>

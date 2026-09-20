@@ -71,8 +71,8 @@ before(async () => {
   assert.ok(noviceRole?.id, 'le palier eleve_novice doit exister');
   for (const id of students) {
     await execute(
-      `INSERT IGNORE INTO users (id, user_type, first_name, last_name, pseudo, display_name, affiliation, is_active, created_at, updated_at)
-       VALUES (?, 'student', 'Pg', ?, ?, 'PG', 'both', 1, NOW(), NOW())`,
+      `INSERT IGNORE INTO users (id, user_type, first_name, last_name, pseudo, display_name, is_active, created_at, updated_at)
+       VALUES (?, 'student', 'Pg', ?, ?, 'PG', 1, NOW(), NOW())`,
       [id, id.slice(0, 40), id.slice(0, 50)],
     );
     await execute(
@@ -81,6 +81,7 @@ before(async () => {
        ON DUPLICATE KEY UPDATE is_primary = 1`,
       [id, noviceRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [noviceRole.id, id]);
   }
   await execute(
     `INSERT INTO user_quiz_attempts (user_id, question_code, categorie_slug, is_correct)

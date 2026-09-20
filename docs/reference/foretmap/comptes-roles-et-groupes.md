@@ -38,10 +38,21 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   connexion Google échouera (la connexion par identifiant + mot de passe reste, elle,
   disponible).
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
-  e-mail, description et affiliation optionnels). Un administrateur peut désactiver
+  e-mail et description optionnels). Un administrateur peut désactiver
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
   accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
+- **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
+  le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
+  sont déconnectés. Un compte **Google** sans mot de passe peut modifier son profil et se
+  donner un mot de passe sans rien redonner, ou passer par « mot de passe oublié ». Un mot de
+  passe **provisoire** (posé par un responsable ou par le jeu) est signalé à la connexion :
+  l'application invite à en choisir un nouveau.
+- **Connexion refusée** : un seul message (« Identifiant ou mot de passe incorrect »), que le
+  compte existe ou non ; après cinq échecs sur un même compte, quel que soit l'identifiant
+  utilisé (pseudo, e-mail, pseudo de jeu), la connexion est bloquée quelques dizaines de
+  secondes, puis de plus en plus longtemps. « Compte inactif » n'apparaît qu'avec le bon mot
+  de passe.
 - **Le code de classe** : à l'inscription, l'élève peut saisir le code fourni par son
   professeur. Bon code → son compte rejoint directement le groupe et reçoit le rôle
   d'élève. Code erroné → l'inscription est refusée avec un message clair (aucun compte
@@ -93,15 +104,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 > choisir pour un tuteur de classe.
 
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
-  fenêtre de félicitations.
-- **Au rattachement à un groupe n3beur**, le profil est aussitôt mis au palier qui
-  correspond aux tâches déjà validées : un compte visiteur qui rejoint une classe passe
-  donc en n3beur (palier d'entrée s'il n'a encore rien validé), et un élève qui revient
-  avec 60 tâches validées retrouve son palier au lieu de repartir de novice. Cet
-  alignement ne fait jamais **baisser** un palier. Il se désactive dans
-  **Profils & utilisateurs → Permissions**, bloc « Progression par tâches validées ».
-  Un groupe peut aussi **imposer** son profil à ses membres, ce qui les sort entièrement de
-  cette mécanique (voir « Les groupes » plus bas).
+  fenêtre de félicitations. Elle **relève le profil attribué** du compte ; elle ne fait
+  jamais baisser un palier posé à la main (voir « Quel profil fait foi ? » ci-dessous).
+- **Au rattachement à un groupe**, le compte reçoit aussitôt le profil que le groupe
+  confère, s'il est plus élevé que le sien : un visiteur qui rejoint une classe « n3beur
+  novice » passe novice. Un élève qui revient avec 60 tâches validées retrouve son palier
+  au prochain recalcul (validation d'une tâche ou bouton « Niveau auto. »). Un groupe peut
+  aussi **imposer** son profil à ses membres, ce qui les sort entièrement de cette
+  mécanique (voir « Les groupes » plus bas).
 - **Rattrapage en masse ou compte par compte** : dans **Profils & utilisateurs →
   Comptes**, le bloc « Attribuer les profils d'après les tâches validées » attribue à
   chacun le palier mérité — pour tous les n3beurs, pour un groupe, ou pour un seul
@@ -123,6 +133,28 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   des réglages — administrateurs en pratique — et s'ouvrent directement dans la page.
   Ils recensent des faiblesses techniques connues : ce n'est pas une lecture destinée
   aux élèves.
+
+### Quel profil fait foi ? — « le plus élevé l'emporte »
+
+Un compte porte un **profil attribué** (posé par un administrateur, un import, la
+création du compte ou la montée automatique) et peut recevoir un profil de **chacun de
+ses groupes** (le « profil par défaut » du groupe). Le **profil effectif** — celui qui
+ouvre réellement les droits — est **le plus élevé** de tous : entre le profil attribué et
+les profils conférés par les groupes actifs, c'est le rang le plus haut qui compte ; à
+rang égal, le profil attribué. Concrètement :
+
+- un élève « n3beur avancé » qui rejoint une classe « n3beur novice » **reste avancé** ;
+- un visiteur qui rejoint cette classe **devient novice** tant qu'il en est membre, et
+  redevient visiteur s'il la quitte (le profil attribué n'a pas bougé) ;
+- un groupe **sans** profil par défaut (« Visiteur ») ne change rien pour personne ;
+- seule la case **« Imposer ce profil »** d'un groupe permet de **forcer plus bas** : le
+  profil du groupe devient alors le profil effectif de ses élèves, même s'ils ont mieux.
+  Les enseignants membres d'un groupe ne sont jamais concernés par l'imposition.
+- un enseignant **sans profil** reçoit **« Prof de classe »** (jamais n3boss) ; un élève
+  sans profil est **visiteur**.
+
+La fiche d'un compte affiche les deux : le profil attribué, et le profil effectif avec
+son origine (« conféré par le groupe Sixième 3 », « imposé par… »).
 
 ### n3boss n'est pas administrateur
 
@@ -156,16 +188,18 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    classes / groupes ; il ne voit et n'agit que sur les élèves de ce périmètre.
 2. **Élèves en visiteurs** : les membres de ces classes restent (ou sont placés) en
    rôle **visiteur** — ils voient Visite et Biodiversité, **pas** les tâches ni la
-   carte de travail. Le rattachement au groupe **ne les promeut pas** automatiquement
-   en n3beur (contrairement à une classe n3beur classique) : laisser le rôle par
-   défaut du groupe sur « Visiteur » et ne pas cocher « accorde le statut n3beur ». Si des
-   élèves de la classe ont déjà un palier n3beur venu d'ailleurs, cocher en plus
-   **« Imposer ce profil »** : c'est ce qui les ramène — et les maintient — en visiteur.
+   carte de travail. Le rattachement au groupe **ne les promeut pas** en n3beur : laisser
+   le profil par défaut du groupe sur « Visiteur » (aucun effet). Si des élèves de la
+   classe ont déjà un palier n3beur venu d'ailleurs, cocher en plus **« Imposer ce
+   profil »** : c'est ce qui les ramène — et les maintient — en visiteur.
 3. **Même parcours qu’un visiteur connecté** : Visite, Biodiversité, Quiz, Glossaire,
    Réseau, Tutoriels — pour valider soi-même les apprentissages (espèces, termes,
    tutos). En plus : onglets **Stats** (stats personnelles des élèves du périmètre)
-   et **Classe** (liste, rattachements, code de classe), sans édition des zones /
-   plantes / contenus de visite.
+   et **Classe** (liste des comptes de ses groupes, rattachements, code de classe),
+   sans édition des zones / plantes / contenus de visite. L'onglet Classe fonctionne
+   sans le droit de gérer les profils : le prof de classe y voit ses groupes et leurs
+   membres, pas le sélecteur de profil par défaut (réservé à l'administrateur et au
+   n3boss).
 4. **Création de comptes paramétrable** : les droits de **créer** et d'**importer**
    des comptes élèves ne font **pas** partie du socle. Un administrateur peut les
    cocher sur ce profil (ou un profil dérivé). Hors vue globale, la création unitaire
@@ -191,24 +225,32 @@ vue globale.
 
 **Règle d'établissement** : le **n3boss** (et l'administrateur) a la vue globale —
 tous les élèves. Le **prof de classe** n'a **pas** cette vue : hors de ses groupes,
-aucune gestion d'élèves ni de classes.
+aucune gestion d'élèves ni de classes. La vue globale tient au **profil** (n3boss,
+administrateur, ou un profil sur mesure de rang au moins égal au n3boss), pas à une
+permission de statistiques : donner « lire toutes les statistiques » à un prof de
+classe ne lui ouvre pas les autres classes.
 
 ## Les groupes
 
 Les groupes structurent la vie pédagogique :
 
 - **Types** : classe, équipe, unité, club — avec sous-groupes possibles.
-- **Membres et responsables** : le professeur compose les groupes et peut désigner des
-  responsables.
-- **Rôle par défaut** : un groupe peut conférer automatiquement un rôle à ses membres
-  (par exemple « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en
-  élève dès son rattachement. Un bouton « Appliquer à tous les membres » force le
-  recalcul. La liste propose les profils qu'un groupe a le droit de distribuer :
-  **Visiteur**, **Personnel** et les **paliers n3beur**. Les profils d'encadrement (prof de
-  classe, n3boss, administrateur) et ceux du jeu Gnomes & Licornes en sont exclus — un
-  groupe ne doit pas pouvoir donner un pouvoir d'encadrement à toute une classe. Si la
-  liste est vide, c'est que votre profil n'a pas le droit de lire les profils : le panneau
-  vous le dit.
+- **Membres** : le professeur compose les groupes (élèves et enseignants). Un
+  enseignant membre d'un groupe l'**encadre** : c'est ce rattachement qui délimite le
+  périmètre d'un prof de classe. Il n'y a plus de « responsable » distinct du membre.
+- **Parent** : dans le panneau de réglages, un groupe peut être **rattaché à un groupe
+  parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
+  pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de
+  son périmètre.
+- **Profil par défaut** : un groupe peut conférer un profil à ses membres (par exemple
+  « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en élève dès son
+  rattachement, selon la règle « le plus élevé l'emporte ». Changer ce profil réaligne
+  aussitôt tous les membres. Ce réglage est réservé à l'**administrateur et au n3boss** ;
+  la liste propose **tous les profils** de ForetMap (visiteur, personnel, paliers n3beur,
+  prof de classe, n3boss, administrateur, profils sur mesure), sauf ceux du jeu Gnomes &
+  Licornes. Hors administrateur, on ne pose pas sur un groupe un profil de rang supérieur
+  au sien — un n3boss ne peut donc pas conférer « Administrateur ». Un groupe laissé sur
+  « Visiteur » n'a **aucun effet** sur ses membres.
 - **Imposer ce profil** : par défaut, le rôle du groupe n'est qu'un **plancher** — les tâches
   validées font ensuite monter chacun, et un palier déjà acquis n'est jamais repris. La case
   **« Imposer ce profil »** (dans le panneau de réglages du groupe, juste sous le choix du
@@ -220,9 +262,8 @@ Les groupes structurent la vie pédagogique :
   ouvre d'emblée en « n3beur avancé » sans attendre le compteur de tâches.
   - La case n'est disponible **qu'avec un profil choisi** : il n'y a rien à imposer tant que
     le groupe suit la règle automatique.
-  - **L'encadrement est épargné** : un n3boss, un administrateur, un prof de classe ou un
-    profil sur mesure membre du groupe garde son profil. Le forçage ne sert pas à
-    rétrograder un encadrant.
+  - **Les enseignants sont épargnés** : un compte enseignant membre du groupe garde son
+    profil. Le forçage ne sert pas à rétrograder un encadrant.
   - **Effet immédiat** : cocher la case (ou changer le profil imposé) réaligne les membres
     dès l'enregistrement, sans attendre qu'ils rouvrent l'application.
   - Un élève membre de **deux** groupes imposants reçoit le profil le plus élevé des deux.
@@ -240,9 +281,8 @@ Les groupes structurent la vie pédagogique :
   - **Sans effet sur les professeurs**, ni sur la visite publique (qui se consulte sans
     compte). Le périmètre cloisonne des classes entre elles, il ne ferme pas le site.
 
-  Un élève peut aussi être limité individuellement par son **espace** (champ _Affiliation_ de
-  sa fiche) : les deux restrictions se cumulent, l'élève ne voit que les cartes autorisées
-  par les deux.
+  Il n'y a plus de restriction individuelle par compte (l'ancien champ « Affiliation »
+  de la fiche) : le périmètre cartes se règle **par groupe**, uniquement.
 
 - **Code de classe** : chaque groupe peut générer son code d'inscription dans son
   panneau de réglages — affichable/imprimable pour la classe, **régénérable** (l'ancien
@@ -307,7 +347,11 @@ sous-onglet consulté qui est rouvert.
     Le rattachement ne concerne que les comptes élèves.
   - **Les profils sensibles sont confirmés** : attribuer `administrateur` ou `n3boss`,
     ou retirer un tel profil, demande une confirmation explicite — seul ou en lot. Les
-    profils élèves s'appliquent directement, comme avant.
+    profils élèves s'appliquent directement, comme avant. Les mêmes gardes s'appliquent
+    partout (ligne, lot, création, import) : personne ne modifie **son propre** profil,
+    seul un administrateur attribue ou retire `administrateur`, un n3boss n'attribue pas
+    un profil de rang supérieur au sien, et le **dernier administrateur actif** ne peut
+    être ni rétrogradé, ni désactivé, ni supprimé.
   - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
     motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
     fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
@@ -341,14 +385,16 @@ sous-onglet consulté qui est rouvert.
   personne à **une ou plusieurs** classes (noms ou identifiants séparés par `|` ou
   `;`) ; un chemin du type « classe > sous-groupe » crée le sous-groupe sous son
   parent. Si un groupe nommé dans le fichier **n'existe pas encore**, il est **créé
-  automatiquement** (et le professeur qui importe en devient responsable s'il n'a
+  automatiquement** (et le professeur qui importe en devient membre encadrant s'il n'a
   pas la vue globale). Si la **même personne** apparaît sur plusieurs lignes, elles
   sont **fusionnées** : les groupes s'ajoutent, et pour le reste (pseudo, e-mail…)
   c'est la **dernière ligne** qui compte — un message d'information le signale dans
   le rapport. Si un compte **existe déjà** sur le site (même prénom, nom et type
   élève/enseignant), l'import **met à jour** ses infos par défaut (pseudo, e-mail,
-  description, affiliation, profil, groupes ajoutés ; mot de passe seulement s'il
-  est renseigné dans le fichier). Une cellule **vide** laisse la valeur actuelle
+  description, profil, groupes ajoutés ; mot de passe seulement s'il est renseigné
+  dans le fichier). Un compte **enseignant** existant n'est modifié que par un
+  administrateur ; un élève existant doit être dans le périmètre de la personne qui
+  importe ; on n'importe pas son propre compte. Une cellule **vide** laisse la valeur actuelle
   (comme pour le mot de passe) : un fichier de rentrée incomplet n'efface pas
   l'adresse ou le pseudo déjà en place. Un n3boss **ne peut pas** modifier un
   compte administrateur par ce fichier (mot de passe, profil, coordonnées) — seul
@@ -358,17 +404,18 @@ sous-onglet consulté qui est rouvert.
   plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
   téléchargeable contient **un exemple par profil et par situation** (profil écrit en
   slug ou en toutes lettres, une ou plusieurs classes, sous-groupe « classe >
-  atelier », sans groupe, affiliation laissée vide, ligne réduite au strict minimum,
-  même personne sur deux lignes) ; chaque ligne explique son cas dans la colonne
+  atelier », sans groupe, ligne réduite au strict minimum, même personne sur deux
+  lignes) ; chaque ligne explique son cas dans la colonne
   Description et reste importable telle quelle. Les adresses e-mail du fichier **ne sont
   pas** limitées aux domaines autorisés pour Google ou Moodle.
 - **Importer des groupes** : le sous-onglet Imports & exports permet
   d'importer une liste de groupes et sous-groupes via un fichier modèle (type
-  classe / équipe / unité / club, parent optionnel, option « accorde le statut
-  n3beur »). Les groupes déjà présents (même nom ou même identifiant) sont
-  **mis à jour** avec les infos du fichier ; une ligne répétée dans le fichier est
-  fusionnée (dernière ligne pour le reste, message d'info). Les nouveaux sont
-  créés. Pour un **prof de classe**, la
+  classe / équipe / unité / club, parent optionnel, colonne **Profil par défaut** en
+  slug ou en nom affiché, avec les mêmes limites que le formulaire). Les groupes déjà
+  présents (même nom ou même identifiant) sont **mis à jour** avec les infos du fichier
+  — une cellule vide laisse la valeur en place, « aucun » ou « - » dans la colonne Parent
+  détache le groupe — ; une ligne répétée dans le fichier est fusionnée (dernière ligne
+  pour le reste, message d'info). Les nouveaux sont créés. Pour un **prof de classe**, la
   création / l'import de comptes ne sont disponibles **que si** un administrateur
   a ouvert ces droits sur son profil. Seul un administrateur peut importer un
   compte administrateur ; seuls n3boss et administrateur peuvent importer un
@@ -376,12 +423,22 @@ sous-onglet consulté qui est rouvert.
 - **Supprimer** : la suppression d'un élève (sous-onglet Comptes) retire aussi ses
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
-  prof de classe.
+  prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
+  **administrateur seulement** (jamais sur son propre compte, jamais le dernier
+  administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est
+  **conservé**, l'auteur apparaissant comme « compte supprimé ».
+- **Désactiver / réactiver** : depuis la fiche, un compte peut être **désactivé** sans
+  être supprimé — l'élève ou l'enseignant ne peut plus se connecter, sa session en cours
+  est coupée, et tout son historique reste en place ; **réactiver** rouvre l'accès.
+  On ne désactive pas son propre compte, ni un compte de rang égal ou supérieur au sien
+  (hors administrateur), ni le dernier administrateur actif. Un compte désactivé est
+  signalé dans la liste et sur sa fiche.
 - **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne
   (« Fiche de … »), organisée en trois parties.
-  - **Droits & groupes** : son **profil** (rôle principal) et **le ou les groupes**
-    auxquels elle est rattachée — mention « Responsable » quand elle encadre le
-    groupe, « archivé » si le groupe ne l'est plus. Plus besoin d'ouvrir le
+  - **Droits & groupes** : son **profil attribué**, son **profil effectif** avec son
+    origine (« conféré par le groupe… », « imposé par… ») et **le ou les groupes**
+    auxquels elle est rattachée — avec le profil que chaque groupe confère, « archivé »
+    si le groupe ne l'est plus. Plus besoin d'ouvrir le
     sous-onglet Groupes pour vérifier un rattachement avant de changer un profil. Un
     profil ou un groupe manquant est écrit explicitement (« Aucun profil », « Aucun
     groupe ») plutôt que laissé vide. Quelques **repères de support** complètent la
@@ -392,15 +449,26 @@ sous-onglet consulté qui est rouvert.
     administrateur les voit tous. Si elle a le droit de gérer les groupes, elle peut
     **rattacher ou retirer** un élève directement depuis la fiche ; sinon l'affichage
     reste en lecture seule et la modification se fait dans le sous-onglet **Groupes**.
-  - **Identité** : prénom, nom, pseudo, e-mail, description, affiliation.
+  - **Identité** : prénom, nom, pseudo, e-mail, description.
   - **Actions** : « Réinitialiser le mot de passe » est désormais une action à part,
     repliée par défaut et avec sa propre validation — elle ne part plus par
     inadvertance avec un simple « Enregistrer ». « Voir comme cet utilisateur » y est
-    également isolé, loin du bouton d'enregistrement.
+    également isolé, loin du bouton d'enregistrement, tout comme **Désactiver /
+    Réactiver** et, pour un enseignant, **Supprimer le compte** (administrateur), chacun
+    avec sa confirmation en place.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
-  que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
+  que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit, au
+  nom de l'administrateur (« pour le compte de… »). Impossible sur un compte désactivé
+  ou de rang égal ou supérieur au sien ; si l'administrateur est lui-même désactivé
+  entre-temps, la prise de main tombe aussitôt.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
   l'application le déconnecte proprement avec un message.
+- **Session expirée ou révoquée** (mot de passe changé, compte désactivé, jeton arrivé à
+  échéance) : élève comme professeur, l'application revient à l'écran de connexion avec le
+  message « Session expirée : veuillez vous reconnecter. » (ou « Votre compte a été supprimé
+  par un responsable. »). Le jeton prolongé automatiquement pendant l'usage est bien celui
+  conservé : recharger la page ou enregistrer « Mon profil » ne fait plus retomber sur le
+  jeton d'origine.
 
 ## Fiabilité des droits (n3boss et profils)
 
@@ -425,12 +493,12 @@ sous-onglet consulté qui est rouvert.
 > distribué, les élèves atterrissent tous dans la liste d'attente — ce qui fonctionne,
 > mais fait perdre le bénéfice de l'autonomie.
 
-> ⚠️ **Point d'attention** — Un groupe « neutre » (sans rôle par défaut ni statut
-> n3beur) ne promeut pas ses membres : un visiteur rattaché à un tel groupe reste
-> visiteur. Vérifier le réglage « accorde le statut n3beur » du groupe si un élève
-> rattaché ne voit toujours pas la carte. Pour une **classe de visiteurs** gérée par
-> un prof de classe, ce comportement « rester visiteur » est **voulu** — ne pas
-> activer par erreur la promotion n3beur sur ce groupe.
+> ⚠️ **Point d'attention** — Un groupe laissé sur « Visiteur » (sans profil par défaut)
+> ne promeut pas ses membres : un visiteur rattaché à un tel groupe reste visiteur.
+> Vérifier le **profil par défaut** du groupe si un élève rattaché ne voit toujours pas
+> la carte. Pour une **classe de visiteurs** gérée par un prof de classe, ce comportement
+> « rester visiteur » est **voulu** — ne pas poser par erreur un palier n3beur sur ce
+> groupe.
 
 ## Pour aller plus loin
 

@@ -26,6 +26,7 @@ async function setStudentPrimaryRole(userId, roleSlug) {
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
     ['student', userId, role.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, userId]);
 }
 
 /**
@@ -38,8 +39,8 @@ async function createN3beurGroup(slug) {
   const role = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   const id = crypto.randomUUID();
   await execute(
-    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, grants_n3beur_access, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, 'class', ?, 1, 1, NOW(), NOW())`,
+    `INSERT INTO \`groups\` (id, slug, name, kind, default_role_id, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, 'class', ?, 1, NOW(), NOW())`,
     [id, slug, slug, role?.id ?? null],
   );
   return id;
@@ -76,6 +77,7 @@ describe('Anti-usurpation assign/done/unassign (B1)', () => {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
     teacherToken = await signAuthToken(
       {
         userType: 'teacher',

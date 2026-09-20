@@ -6,7 +6,7 @@ import { pickVisibleMapId } from '../utils/appShellHelpers';
  * Réconciliation de la carte active avec les cartes visibles (extrait de App.jsx, O5).
  *
  * Encapsule l'unique effet inline d'App.jsx qui garde `activeMapId` cohérent avec
- * la liste `visibleMaps` (filtrée par affiliation / vue prof / visite invité) :
+ * la liste `visibleMaps` (cartes actives du périmètre servi par l'API) :
  * - aucune carte visible → vide `activeMapId` s'il était posé ;
  * - carte active déjà visible → ne touche à rien ;
  * - sinon → choisit la carte par défaut adaptée au contexte (visite / prof /

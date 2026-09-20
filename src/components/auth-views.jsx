@@ -7,7 +7,6 @@ import {
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
-import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 import { PinModal } from './auth/PinModal.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
@@ -33,7 +32,6 @@ function AuthScreen({
     classCode: `${fieldIdPrefix}-class-code`,
     email: `${fieldIdPrefix}-email`,
     description: `${fieldIdPrefix}-description`,
-    affiliation: `${fieldIdPrefix}-affiliation`,
     pass2: `${fieldIdPrefix}-pass2`,
     forgotEmail: `${fieldIdPrefix}-forgot-email`,
     resetToken: `${fieldIdPrefix}-reset-token`,
@@ -47,7 +45,6 @@ function AuthScreen({
   const [classCode, setClassCode] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
-  const [affiliation, setAffiliation] = useState('');
   const [pass, setPass] = useState('');
   const [pass2, setPass2] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -104,21 +101,6 @@ function AuthScreen({
     setMode(def);
   }, [uiSettings?.auth?.default_mode, allowRegister]);
 
-  const [affiliationMaps, setAffiliationMaps] = useState([]);
-  useEffect(() => {
-    if (!allowRegister) return;
-    api('/api/maps')
-      .then((d) => {
-        if (Array.isArray(d)) setAffiliationMaps(d);
-      })
-      .catch(() => setAffiliationMaps([]));
-  }, [allowRegister]);
-
-  const affiliationOptions = useMemo(
-    () => buildAffiliationSelectOptions(affiliationMaps),
-    [affiliationMaps],
-  );
-
   const submit = async () => {
     setInfo('');
     setErr('');
@@ -133,8 +115,6 @@ function AuthScreen({
       pseudo,
       email,
       description,
-      affiliation,
-      affiliationOptions,
     });
     if (validationError) return setErr(validationError);
     setLoading(true);
@@ -148,7 +128,6 @@ function AuthScreen({
         payload.pseudo = pseudo.trim() || null;
         payload.email = email.trim() || null;
         payload.description = description.trim() || null;
-        payload.affiliation = affiliation;
         payload.classCode = classCode.trim().toUpperCase() || null;
       }
       const student = await api(endpoint, 'POST', payload);
@@ -396,23 +375,6 @@ function AuthScreen({
                 placeholder="Je participe souvent à l'arrosage."
                 onKeyDown={onKey}
               />
-            </div>
-            <div className="field">
-              <label htmlFor={fieldIds.affiliation}>Mon espace</label>
-              <select
-                id={fieldIds.affiliation}
-                value={affiliation}
-                onChange={(e) => setAffiliation(e.target.value)}
-              >
-                <option value="" disabled>
-                  -- Choisir --
-                </option>
-                {affiliationOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
             </div>
             <div className="field">
               <label htmlFor={fieldIds.pass2}>Confirmer le mot de passe</label>
