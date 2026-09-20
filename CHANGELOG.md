@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — base : la migration 266 ne casse plus le démarrage sur MariaDB 11.4
+
+- **Mix de collations (erreur 1267).** Sur MariaDB 11.4 (CI et installations récentes),
+  `JSON_UNQUOTE` / une table temporaire sans collation héritaient de
+  `utf8mb4_uca1400_ai_ci` alors que le schéma est en `utf8mb4_unicode_ci` : le
+  `db:init` s'arrêtait et l'application ne démarrait plus. Le rapprochement des lieux
+  mémorisés reste dans le domaine JSON (`JSON_CONTAINS` + collation explicite), et la
+  table temporaire déclare sa collation. Limite arbitraire de dix lieux par tâche
+  retirée avec la table de rangs.
 ### Modifié — comptes, profils et groupes : « le plus élevé l'emporte »
 
 Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md)
