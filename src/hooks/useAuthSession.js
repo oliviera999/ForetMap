@@ -4,7 +4,9 @@ import {
   api,
   AccountDeletedError,
   getAuthClaims,
+  getAuthToken,
   getStoredSession,
+  pickNewestAuthToken,
   saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
@@ -14,6 +16,11 @@ import {
   safeLocalStorageRemoveItem,
   safeLocalStorageSetItem,
 } from '../shared/platform/browserStorage.js';
+
+/** Toast de la déconnexion forcée par défaut (401 `deleted: true`). */
+export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
+/** Toast d'une session expirée ou révoquée (mot de passe changé, compte désactivé…). */
+export const SESSION_EXPIRED_MESSAGE = 'Session expirée : veuillez vous reconnecter.';
 
 /**
  * Cycle de vie de la session utilisateur (extrait de App.jsx, D3) : restauration
@@ -34,7 +41,7 @@ import {
  * @param {Function} params.setShowStats
  * @param {Function} params.setShowProfile
  * @returns {{
- *   forceLogout: () => void,
+ *   forceLogout: (options?: { message?: string }) => void,
  *   updateStudentSession: (nextStudent: object|null) => void,
  *   handleAdminImpersonationApplied: (data: object) => void,
  *   stopAdminImpersonation: () => Promise<void>,
@@ -55,23 +62,28 @@ export function useAuthSession({
   setShowStats,
   setShowProfile,
 }) {
-  // Called from anywhere when a 401-deleted is detected
-  const forceLogout = useCallback(() => {
-    clearStoredSession();
-    setStudent(null);
-    setSessionUser(null);
-    setAuthClaims(null);
-    setSessionValidationError(false);
-    setProfilePromotion(null);
-    setToast('Votre compte a été supprimé par un responsable.');
-  }, [
-    setAuthClaims,
-    setProfilePromotion,
-    setSessionUser,
-    setSessionValidationError,
-    setStudent,
-    setToast,
-  ]);
+  // Appelé depuis n'importe où sur un 401 `deleted: true` — ou, via
+  // `useSessionWindowSync`, sur une session expirée / révoquée (CDG-27) : même chemin,
+  // seul le message change.
+  const forceLogout = useCallback(
+    (options = {}) => {
+      clearStoredSession();
+      setStudent(null);
+      setSessionUser(null);
+      setAuthClaims(null);
+      setSessionValidationError(false);
+      setProfilePromotion(null);
+      setToast(options?.message || ACCOUNT_DELETED_MESSAGE);
+    },
+    [
+      setAuthClaims,
+      setProfilePromotion,
+      setSessionUser,
+      setSessionValidationError,
+      setStudent,
+      setToast,
+    ],
+  );
 
   const updateStudentSession = useCallback(
     (nextStudent) => {
@@ -85,20 +97,20 @@ export function useAuthSession({
       const base = prev && typeof prev === 'object' ? prev : {};
       const avatarPath =
         nextStudent.avatar_path ?? nextStudent.avatarPath ?? base.avatar_path ?? null;
+      // Jeton courant = le plus récent entre celui proposé par l'appelant (connexion, prise
+      // de contrôle) et celui de la session : le jeton d'origine gardé par `base.authToken`
+      // ne doit jamais écraser un jeton renouvelé (CDG-28).
+      const nextToken = pickNewestAuthToken(nextStudent.authToken, getAuthToken());
       const merged = {
         ...base,
         ...nextStudent,
         avatar_path: avatarPath,
         auth: nextStudent.auth ?? base.auth,
+        ...(nextToken ? { authToken: nextToken } : {}),
       };
       studentRef.current = merged;
       setStudent(merged);
       saveLegacyStudentSnapshot(merged);
-      const sessionToken = getStoredSession()?.token || null;
-      const nextToken =
-        typeof merged.authToken === 'string' && merged.authToken.trim() !== ''
-          ? merged.authToken.trim()
-          : sessionToken;
       saveStoredSession({
         token: nextToken,
         user: {
@@ -219,9 +231,15 @@ export function useAuthSession({
       const { auth } = d;
       if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
         const trimmed = d.refreshedToken.trim();
-        safeLocalStorageSetItem('foretmap_auth_token', trimmed);
+        // `saveStoredSession` réaligne aussi `student.authToken` et les anciennes clés.
         const sess = getStoredSession() || {};
         saveStoredSession({ ...sess, token: trimmed });
+        if (studentRef.current && typeof studentRef.current === 'object') {
+          studentRef.current = { ...studentRef.current, authToken: trimmed };
+          setStudent((prev) =>
+            prev && typeof prev === 'object' ? { ...prev, authToken: trimmed } : prev,
+          );
+        }
       }
       // Toujours fusionner d.auth (permissions fraîches BDD) — le JWT seul peut être périmé
       // après un changement de matrice sans changement de profil.
@@ -278,7 +296,7 @@ export function useAuthSession({
         });
       }
     },
-    [setAuthClaims, setProfilePromotion, setSessionUser, setStudent],
+    [setAuthClaims, setProfilePromotion, setSessionUser, setStudent, studentRef],
   );
 
   const validateStudentSession = useCallback(

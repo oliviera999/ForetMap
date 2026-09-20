@@ -76,6 +76,10 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
    - _Doublons probables_ — deux comptes qui semblent être la même personne (voir « Fusionner
      deux comptes ») ;
    - _Désactivations_ — les comptes qui ne sont plus dans aucune cohorte ;
+   - _Réactivations_ — les comptes créés par la synchronisation, désactivés après un départ,
+     qui réapparaissent dans une cohorte synchronisée : ils sont rouverts (un compte à garder
+     fermé se marque hors synchronisation). Un élève passé dans une cohorte **pas encore
+     synchronisée** est donc désactivé le temps que sa nouvelle cohorte soit synchronisée ;
    - _Rapprochements en attente_, _Conflits d'e-mail_, _Conflits de comparaison_, _Alertes_,
      _Cohortes sans politique_ ;
    - _Comptes laissés de côté_ — sans e-mail, e-mail hors domaine autorisé, ou e-mail en

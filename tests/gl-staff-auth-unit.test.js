@@ -55,6 +55,20 @@ test('resolveGlStaffLogin rejette un email vide', async () => {
   assert.strictEqual(result.status, 403);
 });
 
+test('resolveGlStaffLogin (voie Google) refuse une ligne gl_admins sans compte enseignant ForetMap (CDG-12)', async () => {
+  const email = `mj.sans.compte.${stamp}@ecole.local`;
+  await ensureGlAdminRecord({ email, displayName: 'MJ sans compte', role: 'mj' });
+  const result = await resolveGlStaffLogin({
+    email,
+    displayName: 'MJ sans compte',
+    googleSub: `sub-${stamp}`,
+    teacherId: null,
+  });
+  assert.strictEqual(result.ok, false);
+  assert.strictEqual(result.status, 403);
+  assert.match(String(result.error), /enseignant/i);
+});
+
 test('resolveGlStaffLogin accepte un enseignant admin ForetMap', async () => {
   const result = await resolveGlStaffLogin({
     email: teacherEmail,

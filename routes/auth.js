@@ -71,6 +71,7 @@ const {
   applyAvatarUpdate,
   findProfileUniquenessConflict,
   isDuplicateEntryError,
+  verifyCurrentPassword,
 } = require('../lib/profileUpdate');
 
 const router = express.Router();
@@ -371,8 +372,6 @@ router.patch(
   requireAuth,
   asyncHandler(async (req, res) => {
     const body = req.body || {};
-    if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
-
     const auth = req.auth || {};
     // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler ;
     // password_hash requis ici pour vérifier le mot de passe actuel (bcrypt), jamais renvoyé au client.
@@ -383,13 +382,8 @@ router.patch(
       [auth.userId],
     );
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    if (!account.password_hash)
-      return res
-        .status(401)
-        .json({ error: "Ce compte n'a pas de mot de passe. Contactez un responsable." });
-
-    const passwordOk = await bcrypt.compare(String(body.currentPassword), account.password_hash);
-    if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const reauth = await verifyCurrentPassword(account, body);
+    if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
 
     // Blocs communs avec PATCH /api/students/:id/profile extraits dans lib/profileUpdate.js
     // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.
@@ -598,57 +592,56 @@ router.post(
     await ensureTeacherSeedFromEnv();
 
     // Anti-force-brute PAR COMPTE (en plus du limiteur d'IP) : verrou progressif dès le 5ᵉ échec.
-    const throttled = loginThrottle.check('login', identifier);
+    // La clé est le **compte résolu** quand il existe (un même compte répond au pseudo, à
+    // l'e-mail et au pseudo G&L : un seul budget d'échecs), l'identifiant saisi sinon (CDG-13).
+    const account = await resolveLoginAccountByIdentifier(identifier);
+    const throttleKey = account ? `user:${account.id}` : identifier;
+    const throttled = loginThrottle.check('login', throttleKey);
     if (throttled.blocked) {
       await logSecurityEvent('auth.login', {
         req,
+        actorUserType: account?.user_type,
+        actorUserId: account?.id,
         result: 'failure',
         reason: 'throttled',
-        payload: { identifier, retry_after_seconds: throttled.retryAfterSeconds },
+        payload: { retry_after_seconds: throttled.retryAfterSeconds },
       });
       return sendLoginThrottled(res, throttled);
     }
 
-    const account = await resolveLoginAccountByIdentifier(identifier);
-
-    if (!account) {
-      loginThrottle.recordFailure('login', identifier);
+    // Un seul message d'échec avant la vérification du mot de passe : compte introuvable,
+    // sans mot de passe ou mot de passe faux se répondent à l'identique, et chaque cas compte
+    // comme un échec — sinon l'existence et l'état d'un compte se devinent sans jamais
+    // déclencher le verrou (CDG-13). L'identifiant saisi n'est pas journalisé : un mot de
+    // passe tapé dans ce champ serait lisible par `audit.read`.
+    const failLogin = async (reason) => {
+      loginThrottle.recordFailure('login', throttleKey);
       await logSecurityEvent('auth.login', {
         req,
+        actorUserType: account?.user_type,
+        actorUserId: account?.id,
+        targetType: account?.user_type,
+        targetId: account?.id,
         result: 'failure',
-        reason: 'account_not_found',
-        payload: { identifier },
-      });
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
-        'Échec connexion (compte introuvable)',
-      );
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-    }
-    if (!account.password_hash) {
-      await logSecurityEvent('auth.login', {
-        req,
-        actorUserType: account.user_type,
-        actorUserId: account.id,
-        targetType: account.user_type,
-        targetId: account.id,
-        result: 'failure',
-        reason: 'password_not_set',
+        reason,
       });
       logger.warn(
         {
           requestId: req.requestId,
           event: 'auth_login_failure',
-          reason: 'password_not_set',
-          userType: account.user_type,
+          reason,
+          userType: account?.user_type,
         },
-        'Échec connexion (mot de passe non défini)',
+        'Échec connexion',
       );
-      return res
-        .status(401)
-        .json({ error: "Ce compte n'a pas de mot de passe. Contactez le prof." });
-    }
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+    };
+    if (!account) return failLogin('account_not_found');
+    if (!account.password_hash) return failLogin('password_not_set');
+    const ok = await bcrypt.compare(password, account.password_hash);
+    if (!ok) return failLogin('password_invalid');
 
+    // Compte désactivé : dit seulement une fois le mot de passe vérifié (pas d'énumération).
     if (account.is_active != null && !Number(account.is_active)) {
       await logSecurityEvent('auth.login', {
         req,
@@ -660,39 +653,10 @@ router.post(
         reason: 'account_inactive',
       });
       logger.warn(
-        {
-          requestId: req.requestId,
-          event: 'auth_login_failure',
-          reason: 'account_inactive',
-          userType: account.user_type,
-        },
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_inactive' },
         'Échec connexion (compte inactif)',
       );
       return res.status(401).json({ error: 'Compte inactif' });
-    }
-
-    const ok = await bcrypt.compare(password, account.password_hash);
-    if (!ok) {
-      loginThrottle.recordFailure('login', identifier);
-      await logSecurityEvent('auth.login', {
-        req,
-        actorUserType: account.user_type,
-        actorUserId: account.id,
-        targetType: account.user_type,
-        targetId: account.id,
-        result: 'failure',
-        reason: 'password_invalid',
-      });
-      logger.warn(
-        {
-          requestId: req.requestId,
-          event: 'auth_login_failure',
-          reason: 'password_invalid',
-          userType: account.user_type,
-        },
-        'Échec connexion (mot de passe incorrect)',
-      );
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
 
     if (String(account.password_hash || '').startsWith('$2a$')) {
@@ -710,7 +674,7 @@ router.post(
       }
     }
 
-    loginThrottle.clear('login', identifier);
+    loginThrottle.clear('login', throttleKey);
     const userType = await resolveLoginUserType(account);
     // Profil effectif recalculé à la connexion ; un compte sans profil reçoit le défaut de
     // son type (prof de classe / visiteur), jamais n3boss (CDG-46).
@@ -755,6 +719,9 @@ router.post(
     res.json({
       ...toPublicUserRow(account),
       discoveryTourSeen: parseDiscoveryTourSeen(account.discovery_tour_seen_json),
+      // Mot de passe provisoire (posé par un responsable ou le jeu G&L) : le client invite
+      // à en choisir un nouveau (`POST /api/auth/me/password`).
+      passwordMustReset: !!Number(account.password_must_reset || 0),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
@@ -1105,6 +1072,60 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
+/**
+ * Changement de mot de passe authentifié (CDG-42) : tout compte connecté, élève ou
+ * enseignant, hors prise de contrôle. Un compte sans mot de passe (Google) s'en dote sans
+ * `currentPassword`. Les autres sessions sont révoquées (`token_epoch`) ; la réponse porte
+ * un jeton neuf pour que la session courante survive.
+ */
+router.post(
+  '/me/password',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (req.auth?.impersonating) {
+      return res
+        .status(403)
+        .json({ error: 'Pas de changement de mot de passe en prise de contrôle' });
+    }
+    const nextPassword = String(req.body?.newPassword ?? '');
+    if (!nextPassword.trim()) return res.status(400).json({ error: 'Nouveau mot de passe requis' });
+    const account = await queryOne(
+      'SELECT id, user_type, password_hash, is_active FROM users WHERE id = ? LIMIT 1',
+      [String(req.auth.userId)],
+    );
+    if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const reauth = await verifyCurrentPassword(account, req.body);
+    if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
+    const minPasswordLen = await getPasswordMinLengthFor(account.user_type);
+    if (nextPassword.length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+    const hash = await bcrypt.hash(nextPassword, 10);
+    await execute(
+      'UPDATE users SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ?',
+      [hash, account.id],
+    );
+    await bumpUserTokenEpoch(account.id);
+    await logSecurityEvent('auth.password_change', {
+      req,
+      actorUserType: account.user_type,
+      actorUserId: account.id,
+      targetType: account.user_type,
+      targetId: account.id,
+      payload: { had_password: !!account.password_hash },
+    });
+    const session = await buildSessionPayload(req.auth.userType, account.id);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    res.json({
+      ok: true,
+      authToken: await signAuthToken(session.tokenPayload),
+      auth: exposeAuth(session.tokenPayload),
+    });
+  }),
+);
+
 router.post(
   '/forgot-password',
   asyncHandler(async (req, res) => {
@@ -1115,11 +1136,13 @@ router.post(
         message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
       });
     }
+    // Un compte sans mot de passe (Google) peut s'en donner un par ce chemin (CDG-42) ; un
+    // compte désactivé ne reçoit rien, comme côté enseignant.
     const student = await queryOne(
-      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
+      "SELECT id, first_name, last_name, email, is_active FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
       [email],
     );
-    if (student && student.password_hash) {
+    if (student && Number(student.is_active) !== 0) {
       const token = await createPasswordResetToken('student', student.id);
       await sendPasswordResetEmail({
         to: student.email,

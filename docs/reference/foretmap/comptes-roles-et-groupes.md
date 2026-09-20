@@ -42,6 +42,17 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
   accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
+- **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
+  le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
+  sont déconnectés. Un compte **Google** sans mot de passe peut modifier son profil et se
+  donner un mot de passe sans rien redonner, ou passer par « mot de passe oublié ». Un mot de
+  passe **provisoire** (posé par un responsable ou par le jeu) est signalé à la connexion :
+  l'application invite à en choisir un nouveau.
+- **Connexion refusée** : un seul message (« Identifiant ou mot de passe incorrect »), que le
+  compte existe ou non ; après cinq échecs sur un même compte, quel que soit l'identifiant
+  utilisé (pseudo, e-mail, pseudo de jeu), la connexion est bloquée quelques dizaines de
+  secondes, puis de plus en plus longtemps. « Compte inactif » n'apparaît qu'avec le bon mot
+  de passe.
 - **Le code de classe** : à l'inscription, l'élève peut saisir le code fourni par son
   professeur. Bon code → son compte rejoint directement le groupe et reçoit le rôle
   d'élève. Code erroné → l'inscription est refusée avec un message clair (aucun compte
@@ -452,6 +463,12 @@ sous-onglet consulté qui est rouvert.
   entre-temps, la prise de main tombe aussitôt.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,
   l'application le déconnecte proprement avec un message.
+- **Session expirée ou révoquée** (mot de passe changé, compte désactivé, jeton arrivé à
+  échéance) : élève comme professeur, l'application revient à l'écran de connexion avec le
+  message « Session expirée : veuillez vous reconnecter. » (ou « Votre compte a été supprimé
+  par un responsable. »). Le jeton prolongé automatiquement pendant l'usage est bien celui
+  conservé : recharger la page ou enregistrer « Mon profil » ne fait plus retomber sur le
+  jeton d'origine.
 
 ## Fiabilité des droits (n3boss et profils)
 

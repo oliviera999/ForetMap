@@ -57,8 +57,29 @@
 >   `rbac.progression_align_on_group_join`, de la route `apply-default-role`, de
 >   `lib/groupRole.js`, `lib/groupDefaultRole.js`, `lib/studentAffiliation.js`,
 >   `ensurePrimaryRole` et de la résolution d'identité canonique.
-> - **Restent ouverts** : CDG-12 à CDG-15, CDG-17, CDG-21, CDG-22, CDG-27 à CDG-30, CDG-33,
->   CDG-34, CDG-42, CDG-44 (partiel), CDG-45, CDG-47, CDG-51 à CDG-53.
+> - **Second lot (même PR)** : CDG-12 (staff G&L via Google : compte enseignant ForetMap
+>   exigé, ligne `gl_admins` rattachée ; à l'hydratation, un compte lié doit rester un
+>   enseignant actif porteur de `teacher.access`, prise de contrôle comprise), CDG-13
+>   (connexion : un seul message d'échec, chaque branche compte un échec, clé de throttle =
+>   compte résolu, identifiant saisi non journalisé, « Compte inactif » seulement après le
+>   mot de passe), CDG-21 (cohorte exemptée hors du périmètre de désactivation), CDG-22
+>   (action `user.reactivate` journalisée et annulable quand un compte désactivé par la sync
+>   réapparaît dans une cohorte ; limite documentée : une cohorte jamais synchronisée reste
+>   invisible), CDG-27 et CDG-28 (front : session élève révoquée fermée avec le bon message,
+>   jeton courant unique, jamais écrasé par un jeton plus ancien), CDG-42
+>   (`POST /api/auth/me/password` pour élève et enseignant, compte Google sans mot de passe
+>   libre d'éditer son profil et de s'en donner un, « mot de passe oublié » ouvert à ces
+>   comptes, `passwordMustReset` signalé à la connexion et levé par le changement), CDG-44
+>   (taxonomie unique dans `src/shared/n3beurRolesCore.js` : `ENCADREMENT_ROLE_SLUGS`,
+>   `PRIVILEGED_SYSTEM_ROLE_SLUGS`, `NON_N3BEUR_SYSTEM_ROLE_SLUGS`, `N3BEUR_TIER_SLUGS`,
+>   `GL_ROLE_SLUGS`, `RESERVED_ROLE_SLUGS` — qui inclut désormais les profils `gl_*` — et
+>   `isN3beurTierSlug` ; `lib/rbac.js`, `lib/rbacRouteHelpers.js`, `profilesRbacHelpers`,
+>   `profilesUserGroups` et `appAccess` s'y branchent, plus de liste locale). Au passage,
+>   dans CDG-17 : la ligne `gl_admins` seule n'ouvre plus de session ; dans CDG-47 :
+>   « mot de passe oublié » refusé pour un élève inactif, comme pour un enseignant.
+> - **Restent ouverts** : CDG-14, CDG-15, CDG-17 (partiel), CDG-29, CDG-30, CDG-33, CDG-34
+>   (partiel), CDG-45, CDG-47 (partiel), CDG-51 à CDG-53. Priorisation en fin de document
+>   (section « Suite »).
 
 Gravité : **BLOQUANT** (escalade de droits ou perte de données réalisable par un utilisateur
 ordinaire) · **MAJEUR** (contournement d'une règle documentée, fonction promise absente,
@@ -811,3 +832,29 @@ comptes / groupes / impersonation ne tournent qu'en **admin**.
 [`AUDIT_COMPTES_2026-09.md`](AUDIT_COMPTES_2026-09.md) ·
 [`AUDIT_MOODLE_IDENTITES_2026-09.md`](AUDIT_MOODLE_IDENTITES_2026-09.md) ·
 [index des audits](audits/README.md)
+
+---
+
+## Suite — points restants, par priorité (2026-09-20)
+
+Ordre proposé après les deux lots ; « P1 » = à faire avant la rentrée suivante, « P2 » =
+à planifier, « P3 » = dette sans urgence.
+
+| Prio | Constat                     | Pourquoi maintenant                                                                                               |
+| ---- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| P1   | CDG-14                      | Réglage « connexion Google enseignant » contournable : une porte d'entrée enseignant reste ouverte                |
+| P1   | CDG-45                      | Le rang des profils système reste modifiable : monter `prof_classe` à 400 lui donne la vue globale                |
+| P1   | CDG-51 (import CSV)         | Import non transactionnel : une panne en cours laisse des comptes sans profil ; dry-run sans groupes              |
+| P1   | CDG-52 (jetons de reset)    | Jetons de réinitialisation non invalidés par un changement de mot de passe ; `?resetToken=` laissé dans l'URL     |
+| P2   | CDG-15                      | E-mail non vérifié comme clé de liaison Google (un élève peut « réserver » l'adresse d'un futur prof)             |
+| P2   | CDG-29 / CDG-30             | Front : session mixte élève + prof ; nom affiché remplacé par le nom du profil                                    |
+| P2   | CDG-33                      | Lier / délier un compte G&L casse la session ; prise de contrôle impossible à quitter en `password_must_reset`    |
+| P2   | CDG-34 (undo Moodle)        | Undo qui supprime `external_groups` d'un groupe seulement désactivé → second groupe à la sync suivante            |
+| P2   | CDG-47 (Moodle)             | Rapprochement par nom sans classe, `enabled` vérifié seulement à l'apply, création de compte hors journal         |
+| P2   | CDG-53 (suppression profil) | Aucune route de suppression d'un profil sur mesure                                                                |
+| P3   | CDG-17 (reste)              | Identifiant saisi dans `security_events` (login : corrigé ; autres routes à vérifier), nonce LTI en mémoire       |
+| P3   | CDG-34 (reste)              | Mot de passe non-chaîne → 500, `insertId`, création joueur non atomique, `parseGroupRefsCell` et `/`, garde morte |
+| P3   | CDG-47 (reste)              | Doc ↔ code divers, marque en dur (`lib/mailer.js`), longueur minimale G&L codée à 4                               |
+| P3   | CDG-51 (reste)              | Undo Moodle sans verrou                                                                                           |
+| P3   | CDG-52 (reste)              | `/forgot-password` limité par IP seulement ; 401 `deleted:true` sur les appels directs                            |
+| P3   | CDG-53 (reste)              | Réglage LTI `unknown_user = queue` jamais lu                                                                      |

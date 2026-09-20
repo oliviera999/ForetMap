@@ -56,7 +56,16 @@ describe('loadGlIdentity — passwordMustReset depuis la base', () => {
       {
         queryOne: async (sql) => {
           if (/password_must_reset/i.test(String(sql))) sawPasswordColumn = true;
-          return { id: 3, role: 'admin', display_name: 'MJ', is_active: 1 };
+          return {
+            id: 3,
+            role: 'admin',
+            display_name: 'MJ',
+            is_active: 1,
+            foretmap_user_id: 't3',
+            user_is_active: 1,
+            token_epoch: 0,
+            teacher_access: 1,
+          };
         },
       },
     );
@@ -82,5 +91,46 @@ describe('loadGlIdentity — passwordMustReset depuis la base', () => {
       { queryOne: async () => ({ ...base, user_is_active: 1, token_epoch: 2 }) },
     );
     assert.ok(fresh);
+  });
+});
+
+describe('loadGlIdentity — staff GL = enseignant ForetMap (CDG-12)', () => {
+  const staff = {
+    id: 3,
+    role: 'mj',
+    display_name: 'MJ',
+    is_active: 1,
+    foretmap_user_id: 't3',
+    user_is_active: 1,
+    token_epoch: 0,
+    teacher_access: 1,
+  };
+  const claims = { userType: 'gl_admin', userId: '3' };
+
+  it('accepte encore une ligne gl_admins sans compte lié (données antérieures) ; la connexion la rattache', async () => {
+    const identity = await loadGlIdentity(claims, {
+      queryOne: async () => ({ ...staff, foretmap_user_id: null, user_is_active: null }),
+    });
+    assert.equal(identity?.roleSlug, 'gl_mj');
+  });
+
+  it('refuse un compte lié qui n’est pas (ou plus) un enseignant', async () => {
+    const identity = await loadGlIdentity(claims, {
+      queryOne: async () => ({ ...staff, user_is_active: null, teacher_access: null }),
+    });
+    assert.equal(identity, null);
+  });
+
+  it('refuse un enseignant désactivé ou privé de teacher.access', async () => {
+    assert.equal(
+      await loadGlIdentity(claims, { queryOne: async () => ({ ...staff, user_is_active: 0 }) }),
+      null,
+    );
+    assert.equal(
+      await loadGlIdentity(claims, { queryOne: async () => ({ ...staff, teacher_access: null }) }),
+      null,
+    );
+    const ok = await loadGlIdentity(claims, { queryOne: async () => staff });
+    assert.equal(ok?.roleSlug, 'gl_mj');
   });
 });

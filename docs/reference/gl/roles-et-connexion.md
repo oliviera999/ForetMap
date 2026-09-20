@@ -60,7 +60,10 @@ Trois façons d'entrer :
 
 - **Pseudo + mot de passe** : la voie classique pour les joueurs comme pour le staff.
 - **« Continuer avec Google »** : réservé aux adresses du lycée (domaines autorisés,
-  configurables). Le jeu retrouve le compte joueur ou staff correspondant à l'adresse.
+  configurables). Le jeu retrouve le compte joueur ou staff correspondant à l'adresse. Pour
+  le **staff** (MJ, admin du jeu), l'adresse doit être celle d'un **compte enseignant
+  ForetMap** : sans ce compte, la connexion est refusée, comme par mot de passe. Désactiver
+  l'enseignant ou lui retirer l'accès enseignant coupe aussitôt sa session de jeu.
 - **Un seul compte, un seul mot de passe** : depuis septembre 2026, chaque joueur a un
   compte ForetMap (créé automatiquement par le jeu, ou son vrai compte élève s'il en a
   un). C'est **ce compte qui porte le mot de passe** : le changer dans le jeu le change

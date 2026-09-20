@@ -13,6 +13,7 @@ import {
   profileUpdateEndpoint,
   buildVisitMascotOptions,
   validateProfileEditorFields,
+  validatePasswordChangeFields,
 } from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
@@ -336,6 +337,11 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordErr, setPasswordErr] = useState('');
+  const [passwordOk, setPasswordOk] = useState('');
   const [loading, setLoading] = useState(false);
   const [avatarProcessing, setAvatarProcessing] = useState(false);
   const [err, setErr] = useState('');
@@ -408,11 +414,40 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
     setLoading(false);
   };
 
+  /**
+   * Changement de mot de passe authentifié (`POST /api/auth/me/password`) : la réponse porte
+   * un jeton neuf (les autres sessions sont révoquées), remis à la session via `onUpdated`.
+   */
+  const changePassword = async () => {
+    setPasswordErr('');
+    setPasswordOk('');
+    const validationError = validatePasswordChangeFields({ newPassword, confirmPassword });
+    if (validationError) return setPasswordErr(validationError);
+    setPasswordLoading(true);
+    try {
+      const res = await api('/api/auth/me/password', 'POST', { currentPassword, newPassword });
+      onUpdated({ authToken: res?.authToken, auth: res?.auth, passwordMustReset: false });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordOk('Mot de passe changé');
+    } catch (e) {
+      setPasswordErr(e.message || 'Impossible de changer le mot de passe');
+    }
+    setPasswordLoading(false);
+  };
+
   return (
     <div className="fade-in">
       <h2 className="section-title">
         <IconUser size={20} /> Mon profil
       </h2>
+      {student?.passwordMustReset && (
+        <div className="auth-error">
+          <IconWarning size={14} /> Ton mot de passe est provisoire : choisis-en un nouveau
+          ci-dessous.
+        </div>
+      )}
       <p className="section-sub">
         Modifie ton pseudo, ton mail et ta description. Ton mail reste privé.
       </p>
@@ -557,7 +592,11 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder="••••"
+          autoComplete="current-password"
         />
+        <small className="section-sub">
+          Demandé pour enregistrer, sauf si ton compte n’a pas de mot de passe (connexion Google).
+        </small>
       </div>
       {err && (
         <div className="auth-error">
@@ -578,6 +617,45 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           Fermer
         </button>
       </div>
+
+      <h3 className="section-title" style={{ marginTop: 18 }}>
+        Changer mon mot de passe
+      </h3>
+      <p className="section-sub">
+        Renseigne ton mot de passe actuel ci-dessus (sauf compte Google), puis le nouveau deux fois.
+        Tes autres appareils seront déconnectés.
+      </p>
+      <div className="field">
+        <label>Nouveau mot de passe</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          autoComplete="new-password"
+        />
+      </div>
+      <div className="field">
+        <label>Confirmer le nouveau mot de passe</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
+        />
+      </div>
+      {passwordErr && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {passwordErr}
+        </div>
+      )}
+      {passwordOk && <div className="fm-toast fm-toast--inline">{passwordOk}</div>}
+      <button
+        className="btn btn-secondary"
+        onClick={changePassword}
+        disabled={passwordLoading || !newPassword}
+      >
+        {passwordLoading ? 'Changement…' : 'Changer le mot de passe'}
+      </button>
     </div>
   );
 }
