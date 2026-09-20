@@ -1,3 +1,4 @@
+const { getPasswordMinLength } = require('../../lib/passwordReset');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const {
@@ -219,11 +220,13 @@ router.post(
     const name = normalizeOptionalString(req.body?.name);
     const school = normalizeOptionalString(req.body?.school);
     if (!name) return res.status(400).json({ error: 'Nom de classe requis' });
-    await execute(
+    const inserted = await execute(
       'INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
       [name, school, req.glAuth.userId],
     );
-    const created = await queryOne('SELECT * FROM gl_classes ORDER BY id DESC LIMIT 1');
+    const created = await queryOne('SELECT * FROM gl_classes WHERE id = ? LIMIT 1', [
+      inserted.insertId,
+    ]);
     // Profil ForetMap conféré par le groupe miroir : même garde que la console des groupes
     // (profil existant, hors jeu G&L ; MJ / admin G&L ne posent qu'un profil élève).
     let defaultRoleId;
@@ -477,8 +480,11 @@ router.post(
     if (!PSEUDO_RE.test(pseudo)) {
       return res.status(400).json({ error: PSEUDO_INVALID_MSG });
     }
-    if (password && password.length < 4) {
-      return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (password && password.length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     }
     const cls = await ensureClassExists(classId);
     if (!cls) {
@@ -510,23 +516,38 @@ router.post(
     if (!foretmapLink.ok) {
       return res.status(500).json({ error: foretmapLink.error || 'Liaison ForetMap impossible' });
     }
-    await execute(
-      `INSERT INTO gl_players
-      (class_id, first_name, last_name, pseudo,
-       linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
-      [
-        classId,
-        firstName,
-        lastName,
-        pseudo,
-        foretmapLink.user.id,
-        gameplayDefaults.health,
-        gameplayDefaults.power,
-      ],
-    );
-    if (!foretmapLink.created && passwordMustReset) {
-      // Compte existant rapproché : le drapeau demandé s'applique quand même.
+    try {
+      await execute(
+        `INSERT INTO gl_players
+        (class_id, first_name, last_name, pseudo,
+         linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
+        [
+          classId,
+          firstName,
+          lastName,
+          pseudo,
+          foretmapLink.user.id,
+          gameplayDefaults.health,
+          gameplayDefaults.power,
+        ],
+      );
+    } catch (err) {
+      // Pas de miroir `users` orphelin si le profil de jeu n'a pas pu être créé (CDG-34).
+      if (foretmapLink.created) {
+        await execute("DELETE FROM users WHERE id = ? AND auth_provider = 'gl_bridge'", [
+          foretmapLink.user.id,
+        ]);
+      }
+      throw err;
+    }
+    // Compte existant rapproché : il garde son mot de passe, donc pas de reset forcé sauf
+    // demande explicite du MJ (CDG-47).
+    if (
+      !foretmapLink.created &&
+      passwordMustResetInput != null &&
+      parseOptionalBoolean(passwordMustResetInput) === true
+    ) {
       await execute('UPDATE users SET password_must_reset = 1, updated_at = NOW() WHERE id = ?', [
         foretmapLink.user.id,
       ]);
@@ -623,6 +644,10 @@ router.put(
       ]);
     }
     const updated = await queryOne(`${PLAYER_ADMIN_SELECT} WHERE p.id = ? LIMIT 1`, [id]);
+    // Un e-mail déjà pris ailleurs n'est pas écrit : le dire, comme `POST /players` (CDG-34).
+    if (syncResult.emailConflict) {
+      return res.json({ ...toAdminPlayerRow(updated), emailConflict: true });
+    }
     return res.json(toAdminPlayerRow(updated));
   }),
 );
@@ -719,8 +744,11 @@ router.post(
     const id = Number(req.params.id);
     const password = normalizePassword(req.body?.password) || normalizePassword(req.body?.pin);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-    if (!password || password.length < 4) {
-      return res.status(400).json({ error: 'Mot de passe requis (min 4 caractères)' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (!password || password.length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe requis (min ${minPasswordLen} caractères)` });
     }
     const existing = await queryOne(
       `SELECT p.id, u.auth_provider FROM gl_players p
@@ -950,6 +978,12 @@ router.post(
   asyncHandler(async (req, res) => {
     const deleteOrphanBridgeAccounts =
       parseOptionalBoolean(req.body?.deleteOrphanBridgeAccounts) === true;
+    // Supprimer des lignes `users` (même des miroirs orphelins) est réservé à l'admin du jeu (CDG-17).
+    if (deleteOrphanBridgeAccounts && String(req.glAuth?.roleSlug || '') !== 'gl_admin') {
+      return res.status(403).json({
+        error: 'La suppression des comptes miroirs orphelins est réservée à un admin du jeu',
+      });
+    }
     const result = await applyGlIdentityReconciliation({ deleteOrphanBridgeAccounts });
     await logAudit('gl_players_reconcile', 'gl_player', null, 'Réconciliation identités GL', {
       req,

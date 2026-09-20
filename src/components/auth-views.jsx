@@ -88,6 +88,15 @@ function AuthScreen({
       setShowForgot(true);
       setResetToken(resetTokenFromUrl.token);
       if (resetTokenFromUrl.type === 'teacher') setForgotRole('teacher');
+      // Le jeton ne reste ni dans la barre d'adresse ni dans l'historique (CDG-52).
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('resetToken');
+        url.searchParams.delete('resetType');
+        window.history.replaceState(window.history.state, '', url.toString());
+      } catch (_) {
+        /* URL non manipulable : sans conséquence fonctionnelle */
+      }
     }
   }, [resetTokenFromUrl]);
 

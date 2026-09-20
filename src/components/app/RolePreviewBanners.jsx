@@ -15,6 +15,7 @@ import { IconStudentView, IconTeacherView, IconUser } from '../../shared/icons.j
  */
 export function RolePreviewBanners({
   authClaims,
+  sessionUser = null,
   isTeacher,
   roleViewMode,
   helpText,
@@ -34,7 +35,12 @@ export function RolePreviewBanners({
             <strong>Prise de contrôle (admin)</strong>
             <span>
               Tu navigues avec l’identité de{' '}
-              <strong>{String(authClaims?.roleDisplayName || 'utilisateur').trim()}</strong>
+              <strong>
+                {String(
+                  authClaims?.displayName || sessionUser?.displayName || 'utilisateur',
+                ).trim()}
+              </strong>
+              {authClaims?.roleDisplayName ? ` (profil ${authClaims.roleDisplayName})` : ''}
               {authClaims?.userType === 'student'
                 ? ' (n3beur)'
                 : authClaims?.userType === 'teacher'

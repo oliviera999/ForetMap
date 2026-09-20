@@ -29,4 +29,19 @@ describe('AuthScreen', () => {
     expect(screen.getByLabelText('Prénom', { exact: true })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Créer le compte' })).toBeInTheDocument();
   });
+
+  test('un resetToken dans l’URL ouvre le formulaire et disparaît de la barre d’adresse (CDG-52)', async () => {
+    window.history.replaceState(null, '', '/?resetToken=abc123&resetType=teacher');
+    const replaceSpy = vi.spyOn(window.history, 'replaceState');
+    try {
+      render(<AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: true } }} />);
+      expect(await screen.findByPlaceholderText('Nouveau mot de passe')).toBeInTheDocument();
+      expect(replaceSpy).toHaveBeenCalled();
+      expect(window.location.search).not.toContain('resetToken');
+      expect(window.location.search).not.toContain('resetType');
+    } finally {
+      replaceSpy.mockRestore();
+      window.history.replaceState(null, '', '/');
+    }
+  });
 });

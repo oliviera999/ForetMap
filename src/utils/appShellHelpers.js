@@ -32,6 +32,10 @@ export const OAUTH_ERROR_MESSAGES = {
     'Connexion enseignant Google refusée : cette adresse est déjà liée à un compte élève ou visiteur, pas à un compte enseignant. Causes possibles : une précédente connexion Google a créé un compte visiteur, ou le profil « Prof de classe » a été attribué à un compte élève. Un administrateur doit créer un vrai compte enseignant avec cette adresse (et éventuellement retirer le doublon visiteur), puis réessayez.',
   oauth_teacher_inactive:
     'Compte enseignant inactif. Un administrateur doit réactiver le compte dans Profils → Comptes.',
+  oauth_teacher_google_disabled:
+    'La connexion Google des enseignants est désactivée par l’établissement. Utilisez votre identifiant et votre mot de passe.',
+  oauth_account_mismatch:
+    'Cette adresse est déjà rattachée à une autre identité Google. Connectez-vous avec le compte Google utilisé la première fois, ou demandez à un responsable de corriger la fiche.',
   oauth_teacher_no_role:
     'Compte enseignant sans profil de droits. Un administrateur doit attribuer un profil (ex. Prof de classe, n3boss) sur la fiche.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google. Réessayez plus tard.',

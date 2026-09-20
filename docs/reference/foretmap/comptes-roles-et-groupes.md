@@ -24,10 +24,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   enseignant. Le compte doit être créé avant (Profils → Comptes ou import), avec
   **exactement** l'adresse Google du lycée. Si la connexion Google enseignant échoue,
   un message explique les causes possibles (compte absent, e-mail différent, adresse
-  déjà liée à un compte élève/visiteur, domaine non autorisé, compte inactif…). Si la
-  création automatique élève est activée et qu'aucun compte enseignant ne correspond,
-  un **compte visiteur** peut être créé à la place : un avertissement le signale alors
-  clairement.
+  déjà liée à un compte élève/visiteur, domaine non autorisé, compte inactif, connexion
+  Google enseignant désactivée dans les réglages…). En mode enseignant, aucun compte
+  visiteur n'est créé à la place, même si la création automatique élève est activée.
+- **Un compte Google par compte ForetMap.** À la première connexion Google, l'identifiant
+  Google est **lié** au compte ; ensuite, c'est cet identifiant qui est reconnu, avant
+  l'adresse e-mail. Un autre compte Google qui porterait la même adresse est refusé
+  (« déjà lié à un autre compte Google ») : une adresse ne peut pas être « réservée » par
+  un tiers.
 - **Seules les adresses des domaines du lycée sont acceptées par Google.** Une adresse
   Google **hors** de ces domaines — typiquement l'adresse personnelle d'un administrateur —
   est refusée tant qu'elle n'a pas été **déclarée explicitement** dans la configuration du
@@ -327,7 +331,12 @@ sous-onglet consulté qui est rouvert.
 > administrateur…). Le mot « rôle » ne subsiste que côté technique (API, base de
 > données) ; il désigne exactement la même chose.
 
-- **Profils** : créer et régler les profils de droits (permissions, paliers, emoji…).
+- **Profils** : créer et régler les profils de droits (permissions, paliers, emoji…), et
+  **supprimer** un profil sur mesure devenu inutile — refusé tant qu'il est encore attribué
+  à un compte ou posé comme profil par défaut d'un groupe (la liste des deux est affichée).
+  Les profils système (admin, n3boss, prof de classe, visiteur, paliers n3beur, profils du
+  jeu) ne se suppriment pas, et leur **rang** ne se modifie pas ; hors administrateur, on ne
+  crée pas non plus un profil de rang supérieur au sien.
 - **Comptes** : **une seule liste** pour tout ce qui concerne un compte — attribuer un
   profil, ouvrir la fiche, dupliquer, supprimer. (Auparavant, supprimer ou dupliquer
   supposait une seconde liste plus bas dans la page, avec sa propre recherche : on

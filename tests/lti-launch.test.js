@@ -65,7 +65,7 @@ test.before(async () => {
   platform = await startFakeLtiPlatform();
   restoreEnv = applyLtiEnv(platform.env);
   resetJwksCacheForTests();
-  resetNonceCacheForTests();
+  await resetNonceCacheForTests();
   await setSetting(LTI_SETTING_KEYS.enabled, true);
   await setSetting(LTI_SETTING_KEYS.publicOrigin, 'https://foret.test');
   student = await fx.createStudent({

@@ -45,8 +45,9 @@ l'**état du lien** :
 
 - **Configuré** / **Non configuré** : le lien technique avec Moodle est-il en place ? (C'est un
   réglage de serveur, pas un bouton ; voir l'encadré « Pour les curieux ».)
-- **Synchronisation activée** : case à cocher. Décochée, les simulations restent possibles mais
-  aucune exécution réelle n'est acceptée.
+- **Synchronisation activée** : case à cocher. Décochée, les simulations et les lectures restent
+  possibles mais **rien ne s'écrit** : ni exécution réelle, ni annulation, ni décision sur un
+  rapprochement ou un conflit (sauf « Ignorer »), ni miroir poussé vers Moodle.
 - **Contrôler la connexion** : vérifie en quelques secondes que Moodle répond, que les
   autorisations nécessaires sont là, et liste les cohortes de l'année avec la politique qui
   s'applique à chacune.
@@ -71,8 +72,9 @@ sécurité**, **Entrée depuis le cours**, **Outils**.
    créer, rapprochés par e-mail, par le nom, en attente, désactivations, ajouts et retraits de
    groupe, conflits, alertes), puis les **listes qui comptent** :
    - _Comptes à créer_ — les nouveaux élèves ;
-   - _Rapprochés par le nom (à relire)_ — reconnus sans e-mail commun, par prénom + nom dans la
-     même classe : à parcourir des yeux ;
+   - _Rapprochés par le nom (à relire)_ — reconnus sans e-mail commun, par prénom + nom unique
+     des deux côtés : à parcourir des yeux. Si le compte ForetMap et le membre Moodle portent
+     chacun un e-mail **différent**, rien n'est décidé : le cas part en attente ;
    - _Doublons probables_ — deux comptes qui semblent être la même personne (voir « Fusionner
      deux comptes ») ;
    - _Désactivations_ — les comptes qui ne sont plus dans aucune cohorte ;
@@ -103,11 +105,13 @@ est conservé, passe outre.
 ## Les rapprochements en attente
 
 Quand un membre Moodle a plusieurs **homonymes** côté ForetMap (deux « Léa Martin »), ou qu'un
-prénom + nom correspond mais dans une autre classe, l'application ne choisit pas : elle met le
-cas **en attente**. Dans la section dédiée, pour chaque cas : le membre Moodle, sa cohorte, la
-liste des comptes candidats (avec e-mail, état actif/inactif, mode de connexion). Trois
-décisions : **Rapprocher** au compte choisi, **Créer un compte** neuf, **Ignorer**. La décision
-est appliquée à la synchronisation suivante.
+prénom + nom correspond mais avec un e-mail différent de chaque côté, l'application ne choisit
+pas : elle met le cas **en attente**. Dans la section dédiée, pour chaque cas : le membre
+Moodle, sa cohorte, la liste des comptes candidats (avec e-mail, état actif/inactif, mode de
+connexion). Trois décisions : **Rapprocher** au compte choisi, **Créer un compte** neuf,
+**Ignorer**. Rapprocher et créer agissent **tout de suite** (le compte est reconnu ou créé) et
+sont consignés dans l'historique comme une petite exécution à part, **annulable** comme les
+autres ; l'appartenance au groupe, elle, est posée à la synchronisation suivante.
 
 ## Les conflits à trancher
 
@@ -136,10 +140,15 @@ de doublon.
 
 Depuis le rapport d'une exécution réelle : **Annuler cette exécution**. Les comptes qu'elle a
 créés sont désactivés (pas supprimés), les appartenances qu'elle a posées retirées, les
-groupes / classes de jeu / joueurs qu'elle a créés retirés, les reconnaissances défaites. On ne
-peut pas annuler une simulation, ni une exécution déjà annulée, ni une exécution recouverte par
-une exécution réelle plus récente (annuler d'abord la plus récente). Une **fusion de comptes**
-ne s'annule pas.
+groupes / classes de jeu / joueurs qu'elle a créés retirés, les reconnaissances défaites, les
+groupes-miroir d'équipes qu'elle a poussés dans Moodle retirés. Un groupe ou une classe de jeu
+qui a encore des membres ajoutés à la main n'est pas supprimé mais **désactivé**, et reste
+reconnu comme le groupe de sa cohorte : la synchronisation suivante le **réactive** au lieu d'en
+créer un second. Un compte marqué **hors synchronisation** entre-temps n'est pas touché (le
+rapport d'annulation le dit). On ne peut pas annuler une simulation, ni une exécution déjà
+annulée, ni une exécution recouverte par une exécution réelle plus récente (annuler d'abord la
+plus récente), ni annuler pendant qu'une synchronisation tourne. Une **fusion de comptes** ne
+s'annule pas.
 
 ## Les réglages
 

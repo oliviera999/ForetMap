@@ -181,8 +181,15 @@ describe('useAuthSession', () => {
       canonicalUserId: 'T1',
       roleDisplayName: 'Prof',
     });
+    // Le nom affiché n'est jamais le nom du profil (CDG-30) : sans nom de compte dans la
+    // réponse, on garde celui déjà connu, sinon un libellé neutre.
     const updater = params.setSessionUser.mock.calls.at(-1)[0];
-    expect(updater(null)).toMatchObject({ id: 'T1', userType: 'teacher', displayName: 'Prof' });
+    expect(updater(null)).toMatchObject({
+      id: 'T1',
+      userType: 'teacher',
+      displayName: 'Utilisateur',
+    });
+    expect(updater({ displayName: 'Mme Dupont' })).toMatchObject({ displayName: 'Mme Dupont' });
   });
 
   it('mergeAuthMeResponse : promotion et drapeaux participation fusionnés côté n3beur', () => {

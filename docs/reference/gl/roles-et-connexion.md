@@ -23,7 +23,9 @@ pour les visiteurs, la gestion des mots de passe, la prise de main sur un compte
 Comment on obtient le rôle MJ ou Admin :
 
 - Un **administrateur ForetMap** qui se connecte à GL devient automatiquement
-  **Admin GL** : son compte GL est créé et relié tout seul à la première connexion.
+  **Admin GL** : son compte GL est créé et relié tout seul à la première connexion. Si ce
+  compte staff a ensuite été **désactivé** dans GL, la connexion ne le rouvre pas : l'accès
+  maître du jeu reste fermé tant qu'un Admin ne le réactive pas.
 - Un **enseignant non administrateur** ne peut entrer comme **MJ** que si un compte
   MJ a déjà été préparé pour lui dans GL ; sinon la connexion staff lui est refusée
   avec un message explicite.
@@ -90,9 +92,10 @@ demande un compte, le jeu la refuse poliment.
 
 ### Les mots de passe
 
-- **Longueur minimale** : **4 caractères pour les joueurs** (relevable par un
-  réglage), **8 caractères minimum pour le staff** (MJ et Admin) — et davantage si
-  le réglage global est plus strict.
+- **Longueur minimale** : **4 caractères pour les joueurs** (relevable par le réglage
+  « longueur minimale des mots de passe », le même que pour ForetMap, appliqué à la
+  création, à l'import et à la réinitialisation par le MJ), **8 caractères minimum pour
+  le staff** (MJ et Admin) — et davantage si le réglage global est plus strict.
 - **Mot de passe oublié** : depuis l'écran de connexion, on saisit son adresse
   e-mail et on reçoit un lien de réinitialisation valable une heure. La procédure
   fonctionne pour les joueurs (si leur compte a une adresse e-mail) comme pour le
@@ -123,7 +126,11 @@ de la connexion. Désactiver un compte staff suffit donc à reprendre la main.
 
 > Par ailleurs, quand le MJ réinitialise un mot de passe, le joueur n'est **pas**
 > obligé de le changer ensuite : si l'on veut un mot de passe « provisoire », il faut
-> le savoir (le changement forcé n'est pas réarmé par la réinitialisation).
+> le savoir (le changement forcé n'est pas réarmé par la réinitialisation). De même,
+> rattacher un élève ForetMap existant à un nouveau joueur lui laisse son mot de passe
+> sans changement forcé, sauf si le staff le demande explicitement. Le staff qui a pris
+> la main sur un joueur en « changement forcé » peut toujours **quitter** cette prise de
+> contrôle.
 
 ### Prendre la main sur un compte joueur (« Voir comme »)
 
@@ -160,10 +167,12 @@ plateforme, désactivé par défaut), le joueur saisit l'identifiant et le mot d
 son compte élève dans son profil : le jeu vérifie, **bascule le joueur sur ce compte**
 (c'est désormais son mot de passe qui vaut, pour le jeu comme pour ForetMap) et supprime le
 compte créé par le jeu, devenu inutile. Un compte ForetMap ne peut être rattaché qu'à un
-seul joueur.
+seul joueur. La session du joueur est **renouvelée sur place** : pas de déconnexion ni de
+nouvelle saisie du mot de passe.
 
 Pour **détacher** son compte élève, le joueur redonne son mot de passe : le jeu lui recrée
-un compte à lui, avec ce même mot de passe, et le compte élève reprend son indépendance.
+un compte à lui, avec ce même mot de passe, et le compte élève reprend son indépendance —
+là aussi sans être déconnecté.
 
 > ℹ️ Le staff voit sur la fiche de chaque joueur s'il joue avec un **compte élève** (rattaché)
 > ou avec le compte **miroir** créé par le jeu.
@@ -206,7 +215,7 @@ lancé automatiquement au démarrage) recense les situations anormales : joueur 
 ForetMap, compte miroir dont le joueur a été supprimé, élève en doublon probable, reliquats
 d'anciens mots de passe. Il peut aussi **réparer** ce qui ne demande pas de décision
 humaine (recréer les liens et les appartenances aux groupes de classe), et, sur demande
-explicite, supprimer les comptes miroirs orphelins.
+explicite d'un **Admin** (pas d'un MJ), supprimer les comptes miroirs orphelins.
 
 ### Supprimer un joueur ou un élève
 

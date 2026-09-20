@@ -12,7 +12,11 @@ const {
   isGroupInManageScope,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
-const { isGlRoleSlug, normalizeRoleSlug } = require('../lib/shared/n3beurRolesCore');
+const {
+  isGlRoleSlug,
+  isReservedRoleSlug,
+  normalizeRoleSlug,
+} = require('../lib/shared/n3beurRolesCore');
 const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
@@ -45,6 +49,7 @@ const {
   EMAIL_RE,
   STUDENT_ROLE_SLUG_RE,
   reservedRoleSlugError,
+  rankChangeError,
   teacherAccessLockError,
   PROFILE_PATCH_KEYS,
   canConfigureStudentTierForumContext,
@@ -437,6 +442,8 @@ router.post(
       return res.status(400).json({ error: 'slug et display_name requis' });
     const reservedCreate = reservedRoleSlugError(slug);
     if (reservedCreate) return res.status(400).json({ error: reservedCreate });
+    const rankErr = rankChangeError({ actor: req.auth, isSystemProfile: false, nextRank: rank });
+    if (rankErr) return res.status(rankErr.status).json({ error: rankErr.error });
     if (Number.isNaN(minDoneTasks))
       return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
     if (Number.isNaN(displayOrder))
@@ -506,6 +513,8 @@ router.post(
       return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
     const reservedDup = reservedRoleSlugError(slug);
     if (reservedDup) return res.status(400).json({ error: reservedDup });
+    const rankErrDup = rankChangeError({ actor: req.auth, isSystemProfile: false, nextRank: rank });
+    if (rankErrDup) return res.status(rankErrDup.status).json({ error: rankErrDup.error });
     if (Number.isNaN(minDoneTasks))
       return res.status(400).json({ error: 'min_done_tasks source invalide' });
     if (Number.isNaN(displayOrder))
@@ -588,7 +597,7 @@ router.patch(
     const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
     const existing = await queryOne(
-      'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
+      'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
       [role.id],
     );
     if (
@@ -684,6 +693,15 @@ router.patch(
     }
     if (!displayName) return res.status(400).json({ error: 'display_name requis' });
     if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
+    if (hasRank) {
+      const rankErr = rankChangeError({
+        actor: req.auth,
+        isSystemProfile: Number(existing.is_system) === 1 || isReservedRoleSlug(existing.slug),
+        currentRank: existing.rank,
+        nextRank: rank,
+      });
+      if (rankErr) return res.status(rankErr.status).json({ error: rankErr.error });
+    }
     if (Number.isNaN(minDoneTasks))
       return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
     if (Number.isNaN(displayOrder))
@@ -716,6 +734,50 @@ router.patch(
       await emitStudentsWithPrimaryRole(role.id);
     }
     res.json(updated);
+  }),
+);
+
+/**
+ * Suppression d'un profil **sur mesure** (CDG-53). Un profil système ou réservé ne se supprime
+ * pas ; un profil encore attribué (profil attribué ou effectif d'un compte) ou posé comme
+ * profil par défaut d'un groupe est refusé en 409 : on ne fait pas disparaître des droits en
+ * silence. Hors administrateur, rang ≤ au sien.
+ */
+router.delete(
+  '/profiles/:id',
+  requirePermission('admin.roles.manage'),
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id, slug, `rank`, is_system FROM roles WHERE id = ?', [
+      req.params.id,
+    ]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    if (Number(role.is_system) === 1 || isReservedRoleSlug(role.slug)) {
+      return res.status(400).json({ error: 'Un profil système ne se supprime pas' });
+    }
+    const rankErr = rankChangeError({
+      actor: req.auth,
+      isSystemProfile: false,
+      nextRank: role.rank,
+    });
+    if (rankErr) return res.status(rankErr.status).json({ error: rankErr.error });
+    const usage = await queryOne(
+      `SELECT
+         (SELECT COUNT(*) FROM users WHERE assigned_role_id = ?) +
+         (SELECT COUNT(*) FROM user_roles WHERE role_id = ? AND is_primary = 1) AS accounts,
+         (SELECT COUNT(*) FROM \`groups\` WHERE default_role_id = ?) AS groups_count`,
+      [role.id, role.id, role.id],
+    );
+    if (Number(usage?.accounts || 0) > 0 || Number(usage?.groups_count || 0) > 0) {
+      return res.status(409).json({
+        error:
+          'Ce profil est encore utilisé : réattribuez les comptes et retirez-le des groupes avant de le supprimer',
+        accounts: Number(usage?.accounts || 0),
+        groups: Number(usage?.groups_count || 0),
+      });
+    }
+    await execute('DELETE FROM roles WHERE id = ?', [role.id]);
+    logAudit('rbac_delete_profile', 'role', role.id, role.slug, { req });
+    res.json({ ok: true, deleted: role.id });
   }),
 );
 

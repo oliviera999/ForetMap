@@ -32,6 +32,7 @@ const {
   getPasswordMinLength,
   getPasswordMinLengthFor,
   makeResetUrl,
+  forgotPasswordAllowed,
 } = require('../lib/passwordReset');
 const {
   buildAuthzPayload,
@@ -47,7 +48,11 @@ const {
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
-const { shouldRenewAuthToken, carrySessionStart } = require('../lib/auth/slidingSession');
+const {
+  shouldRenewAuthToken,
+  carrySessionStart,
+  resolveSessionStartedAt,
+} = require('../lib/auth/slidingSession');
 const { loginThrottle, sendLoginThrottled } = require('../lib/loginThrottle');
 const { addStudentToGroup } = require('../lib/groupMembers');
 const {
@@ -188,11 +193,23 @@ async function buildSessionPayload(userType, userId) {
   if (!authz) return null;
   // Époque de jeton : un changement de mot de passe l'incrémente et invalide les sessions.
   const tokenEpoch = await getUserTokenEpoch(userId);
+  // Nom du compte (jamais le nom du profil) pour l'en-tête et les bandeaux (CDG-30).
+  const named = await queryOne(
+    'SELECT display_name, first_name, last_name, pseudo, email FROM users WHERE id = ? LIMIT 1',
+    [String(userId)],
+  );
+  const displayName =
+    normalizeOptionalString(named?.display_name) ||
+    `${named?.first_name || ''} ${named?.last_name || ''}`.trim() ||
+    normalizeOptionalString(named?.pseudo) ||
+    normalizeOptionalString(named?.email) ||
+    null;
   return {
     tokenPayload: {
       userType,
       userId,
       tokenEpoch,
+      displayName,
       roleId: authz.roleId,
       roleSlug: authz.roleSlug,
       roleDisplayName: authz.roleDisplayName,
@@ -245,7 +262,15 @@ router.get('/me', requireAuth, async (req, res) => {
       // mourait à `security.jwt_ttl_base_seconds` (1 h 30 par défaut), en plein travail.
       const { slidingMaxSeconds } = await getAuthJwtTtls();
       const slidingRenewal = shouldRenewAuthToken(claims, { slidingMaxSeconds });
-      if (roleChanged || permissionsChanged || slidingRenewal) {
+      // Un changement de rôle ou de permissions ré-émet le jeton, mais jamais au-delà du
+      // plafond absolu de session : sinon la durée effective valait plafond + TTL (CDG-47).
+      const sessionStartedAt = resolveSessionStartedAt(claims);
+      const nowSec = Math.floor(Date.now() / 1000);
+      const overSessionCap =
+        slidingMaxSeconds > 0 &&
+        sessionStartedAt > 0 &&
+        nowSec - sessionStartedAt >= slidingMaxSeconds;
+      if ((roleChanged || permissionsChanged || slidingRenewal) && !overSessionCap) {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
           const tp = carrySessionStart(session.tokenPayload, claims);
@@ -507,7 +532,7 @@ router.post(
       }
     }
     const minPasswordLen = await getPasswordMinLength();
-    if (!password || password.length < minPasswordLen)
+    if (typeof password !== 'string' || password.length < minPasswordLen)
       return res
         .status(400)
         .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
@@ -583,7 +608,9 @@ router.post(
 router.post(
   '/login',
   asyncHandler(async (req, res) => {
-    const { password } = req.body;
+    // Un mot de passe qui n'est pas une chaîne (`{"password":123}`) faisait planter bcrypt en
+    // 500 : il vaut « absent » (CDG-34).
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
     const identifier = normalizeOptionalString(req.body?.identifier);
     if (!password || !identifier)
       return res
@@ -915,11 +942,40 @@ router.get('/google/callback', async (req, res) => {
       );
     }
 
-    const teacher = await queryOne(
-      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-      [email],
-    );
+    const googleSub = normalizeOptionalString(payload.sub);
+    // Le compte déjà lié à cette identité Google (`users.google_sub`) fait foi avant l'e-mail :
+    // un changement d'adresse côté Google ne détourne pas la liaison (CDG-15).
+    const bySub = googleSub
+      ? await queryOne(
+          "SELECT id, user_type, email, is_active, google_sub FROM users WHERE google_sub = ? AND user_type IN ('teacher', 'student') LIMIT 1",
+          [googleSub],
+        )
+      : null;
+    const teacher =
+      bySub && bySub.user_type === 'teacher'
+        ? bySub
+        : await queryOne(
+            "SELECT id, email, is_active, google_sub FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+            [email],
+          );
     if (teacher) {
+      // Le réglage « connexion Google enseignant » se relit ici, quel que soit le `mode` :
+      // `/google/start?mode=student` ne le contournait pas moins (CDG-14).
+      const allowTeacher = await getSettingValue('ui.auth.allow_google_teacher', true);
+      if (!allowTeacher) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(
+            cfg.frontendOrigin,
+            'oauth_teacher_google_disabled',
+            mode,
+          ),
+        );
+      }
+      if (googleSub && teacher.google_sub && teacher.google_sub !== googleSub) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
+        );
+      }
       if (!teacher.is_active) {
         return res.redirect(
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode),
@@ -928,8 +984,8 @@ router.get('/google/callback', async (req, res) => {
       await recomputeUserRole(teacher.id);
       const now = nowDbTimestamp();
       await execute(
-        "UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
-        [now, teacher.id],
+        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?), updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
+        [now, googleSub, teacher.id],
       );
       const session = await buildSessionPayload('teacher', teacher.id);
       if (!session) {
@@ -983,10 +1039,20 @@ router.get('/google/callback', async (req, res) => {
       return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, errorCode, mode));
     }
 
-    let student = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
-      [email],
-    );
+    let student =
+      bySub && bySub.user_type === 'student'
+        ? await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [bySub.id])
+        : await queryOne(
+            "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
+            [email],
+          );
+    // Liaison par e-mail (compte non encore lié) : une adresse saisie par l'élève lui-même
+    // n'ouvre pas un compte déjà rattaché à une **autre** identité Google (CDG-15).
+    if (student && googleSub && student.google_sub && student.google_sub !== googleSub) {
+      return res.redirect(
+        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
+      );
+    }
     let accountJustCreated = false;
     if (!student) {
       const allowGoogleAutoRegister = await getSettingValue(
@@ -1009,6 +1075,12 @@ router.get('/google/callback', async (req, res) => {
          VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, NULL, 'google', 1, ?, NOW(), NOW())`,
         [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now],
       );
+      if (googleSub) {
+        await execute("UPDATE users SET google_sub = ? WHERE id = ? AND user_type = 'student'", [
+          googleSub,
+          id,
+        ]);
+      }
       await recomputeUserRole(id);
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
@@ -1021,10 +1093,10 @@ router.get('/google/callback', async (req, res) => {
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_inactive', mode),
         );
       }
-      await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
-        nowDbTimestamp(),
-        student.id,
-      ]);
+      await execute(
+        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?) WHERE id = ? AND user_type = 'student'",
+        [nowDbTimestamp(), googleSub, student.id],
+      );
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
         student.id,
       ]);
@@ -1142,7 +1214,7 @@ router.post(
       "SELECT id, first_name, last_name, email, is_active FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
       [email],
     );
-    if (student && Number(student.is_active) !== 0) {
+    if (student && Number(student.is_active) !== 0 && forgotPasswordAllowed(email)) {
       const token = await createPasswordResetToken('student', student.id);
       await sendPasswordResetEmail({
         to: student.email,
@@ -1215,7 +1287,7 @@ router.post(
       "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
       [email],
     );
-    if (teacher && teacher.is_active) {
+    if (teacher && teacher.is_active && forgotPasswordAllowed(email)) {
       const token = await createPasswordResetToken('teacher', teacher.id);
       await sendPasswordResetEmail({
         to: teacher.email,

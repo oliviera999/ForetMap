@@ -182,3 +182,42 @@ test('mot de passe oublié : un compte élève sans mot de passe reçoit un jeto
   );
   assert.ok(!none, 'aucun jeton pour un compte désactivé');
 });
+
+test('CDG-52 : un jeton de réinitialisation ouvert est consommé par un changement de mot de passe', async () => {
+  const student = await createAccount({ userType: 'student', password: 'ancien1234' });
+  await request(app).post('/api/auth/forgot-password').send({ email: student.email }).expect(200);
+  const open = await queryOne(
+    "SELECT id FROM password_reset_tokens WHERE user_type = 'student' AND user_id = ? AND used_at IS NULL",
+    [student.id],
+  );
+  assert.ok(open, 'jeton ouvert');
+  const token = await tokenFor('student', student.id);
+  await request(app)
+    .post('/api/auth/me/password')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ currentPassword: 'ancien1234', newPassword: 'nouveau1234' })
+    .expect(200);
+  const still = await queryOne(
+    "SELECT id FROM password_reset_tokens WHERE user_type = 'student' AND user_id = ? AND used_at IS NULL",
+    [student.id],
+  );
+  assert.ok(!still, 'le jeton ouvert est consommé');
+});
+
+test('CDG-52 : « mot de passe oublié » plafonné par adresse visée, réponse neutre', async () => {
+  const {
+    FORGOT_PASSWORD_MAX_PER_WINDOW,
+    resetForgotPasswordLimiterForTests,
+  } = require('../lib/passwordReset');
+  resetForgotPasswordLimiterForTests();
+  const student = await createAccount({ userType: 'student', password: 'x1234' });
+  for (let i = 0; i < FORGOT_PASSWORD_MAX_PER_WINDOW + 2; i += 1) {
+    await request(app).post('/api/auth/forgot-password').send({ email: student.email }).expect(200);
+  }
+  const count = await queryOne(
+    "SELECT COUNT(*) AS c FROM password_reset_tokens WHERE user_type = 'student' AND user_id = ?",
+    [student.id],
+  );
+  assert.strictEqual(Number(count.c), FORGOT_PASSWORD_MAX_PER_WINDOW);
+  resetForgotPasswordLimiterForTests();
+});

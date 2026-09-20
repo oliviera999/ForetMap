@@ -22,10 +22,12 @@ describe('groupImport (parsing pur)', () => {
     assert.deepEqual(parseGroupRefsCell('6ème A > Atelier sciences'), [
       { path: ['6ème A', 'Atelier sciences'] },
     ]);
-    assert.deepEqual(parseGroupRefsCell('6A;6B/Sous'), [
+    assert.deepEqual(parseGroupRefsCell('6A;6B > Sous'), [
       { path: ['6A'] },
       { path: ['6B', 'Sous'] },
     ]);
+    // « / » fait partie du nom, ce n'est pas un séparateur de chemin (CDG-34).
+    assert.deepEqual(parseGroupRefsCell('6A/6B'), [{ path: ['6A/6B'] }]);
   });
 
   it('normalizeGroupSlug / kind', () => {
