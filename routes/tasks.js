@@ -54,7 +54,6 @@ const {
   normalizeIdArray,
   normalizeTutorialIdArray,
   normalizeOptionalId,
-  sameIdSet,
   enrichTaskRow,
   referentPublicLabel,
   normalizeArchivedFilter,
@@ -74,6 +73,7 @@ const {
   resolveRecurrenceAnchor,
   computeNextOccurrenceWindow,
   createOpenDayResolver,
+  parseTemplateIdArray,
 } = require('../lib/recurringTasks');
 
 const router = express.Router();
@@ -109,7 +109,7 @@ async function getTaskMarkerIds(taskId) {
   return rows.map((r) => r.marker_id);
 }
 
-/** Récurrences pour lesquelles on conserve un snapshot zones/repères à la validation (job récurrence). */
+/** Récurrences acceptées par l'API (et seules à engendrer une occurrence suivante). */
 const RECURRENCE_WITH_TEMPLATE_LOCS = new Set(['weekly', 'biweekly', 'monthly']);
 
 /**
@@ -149,15 +149,50 @@ async function hasRecurrenceTemplateColumns() {
   return recurrenceTemplateColumnsReady;
 }
 
-async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds, markerIds, dbx) {
-  const r = String(recurrenceRaw || '')
-    .trim()
-    .toLowerCase();
-  if (!r || !RECURRENCE_WITH_TEMPLATE_LOCS.has(r)) return;
+/**
+ * Lieux à rendre à une tâche qui quitte l'état « validée », lus dans la mémoire posée au
+ * moment du détachement.
+ *
+ * Prudence volontaire : un lieu supprimé depuis la validation, ou qui a changé de carte,
+ * est simplement laissé de côté, et une mémoire inexploitable ne rend rien. Rendre un lieu
+ * est un **confort de reprise**, jamais une raison de refuser le changement de statut que le
+ * professeur a demandé.
+ *
+ * @returns {Promise<{ zoneIds: string[], markerIds: string[] }>} vide si rien à rendre.
+ */
+async function restoreDetachedLocations(task, explicitMapId) {
+  const vide = { zoneIds: [], markerIds: [] };
+  if (!(await hasRecurrenceTemplateColumns())) return vide;
+  const zoneIds = parseTemplateIdArray(task.recurrence_template_zone_ids);
+  const markerIds = parseTemplateIdArray(task.recurrence_template_marker_ids);
+  if (!zoneIds.length && !markerIds.length) return vide;
+  const check = await validateTaskLocations(zoneIds, markerIds, explicitMapId);
+  if (check.error) {
+    logger.warn(
+      { taskId: task.id, reason: check.error },
+      'Lieux mémorisés inexploitables — tâche remise à un statut actif sans lieu',
+    );
+    return vide;
+  }
+  return { zoneIds, markerIds };
+}
+
+/**
+ * Mémorise les zones/repères d'une tâche **avant** qu'une validation ne l'en détache.
+ *
+ * Deux usages, un seul enregistrement (colonnes `recurrence_template_*`, migration 051) :
+ * - le job de récurrence y reprend les lieux de l'occurrence suivante ;
+ * - une tâche remise à un statut actif y retrouve les siens (`restoreDetachedLocations`).
+ *
+ * Ce second usage vaut pour **toute** tâche, récurrente ou non : sans lui, repasser une tâche
+ * validée en « à faire » la laissait sans lieu — donc sans pastille et introuvable sur la
+ * carte, alors que rien à l'écran ne le signalait.
+ */
+async function persistDetachedLocationsSnapshot(taskId, zoneIds, markerIds, dbx) {
   if (!(await hasRecurrenceTemplateColumns())) {
     logger.warn(
-      { taskId, recurrence: r },
-      'Colonnes recurrence_template_* absentes — snapshot récurrence ignoré (migration 051 ?)',
+      { taskId },
+      'Colonnes recurrence_template_* absentes — mémoire des lieux ignorée (migration 051 ?)',
     );
     return;
   }
@@ -1113,24 +1148,39 @@ router.put('/:id', async (req, res) => {
 
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
+    const leftValidated = currentStatus === 'validated' && nextStatus !== 'validated';
     const currentZoneIds = await getTaskZoneIds(task.id);
     const currentMarkerIds = await getTaskMarkerIds(task.id);
-    const locationChanged =
-      !sameIdSet(nextZoneIds, currentZoneIds) || !sameIdSet(nextMarkerIds, currentMarkerIds);
 
     const zonesForSnapshot = nextZoneIds.length ? nextZoneIds : currentZoneIds;
     const markersForSnapshot = nextMarkerIds.length ? nextMarkerIds : currentMarkerIds;
 
     // Règle métier: une tâche validée ne doit pas être liée à des zones/repères.
-    // Le snapshot récurrence est posé DANS la transaction ci-dessous (récurrence effective).
+    // Le snapshot des lieux est posé DANS la transaction ci-dessous.
     if (nextStatus === 'validated') {
       nextZoneIds = [];
       nextMarkerIds = [];
-    } else if (currentStatus === 'validated' && locationChanged) {
-      return res
-        .status(400)
-        .json({ error: 'Impossible de lier une tâche validée à des zones ou repères' });
+    } else if (leftValidated) {
+      // Retour à un statut actif : la tâche retrouve les lieux que la validation lui avait
+      // retirés. Sans cette reprise, elle redevenait « à faire » **sans lieu** — donc sans
+      // pastille et invisible sur la carte, alors que rien à l'écran ne le laissait voir.
+      // Des lieux explicitement soumis dans le même PUT restent prioritaires : c'est une
+      // décision du professeur, pas un état hérité.
+      const submitsLocations =
+        Object.prototype.hasOwnProperty.call(req.body, 'zone_ids') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'zone_id') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'marker_ids') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'marker_id');
+      if (!submitsLocations && !nextZoneIds.length && !nextMarkerIds.length) {
+        const restored = await restoreDetachedLocations(task, explicitMap);
+        nextZoneIds = restored.zoneIds;
+        nextMarkerIds = restored.markerIds;
+      }
     }
+    // Il n'y a pas de quatrième cas : une tâche qui **reste** validée repasse par la branche
+    // ci-dessus (ses lieux sont remis à vide), et celle qui cesse de l'être est traitée par la
+    // reprise. Le refus « Impossible de lier une tâche validée à des zones ou repères » n'avait
+    // plus de chemin pour se produire et a été retiré plutôt que laissé en garde morte.
 
     // Décodage de l'image AVANT toute écriture : un payload invalide doit répondre 400
     // sans avoir modifié la tâche.
@@ -1161,13 +1211,7 @@ router.put('/:id', async (req, res) => {
     let obsoleteImagePath = null;
     await withTransaction(async (tx) => {
       if (becameValidated) {
-        await persistRecurringTemplateLocations(
-          task.id,
-          nextRecurrence,
-          zonesForSnapshot,
-          markersForSnapshot,
-          tx,
-        );
+        await persistDetachedLocationsSnapshot(task.id, zonesForSnapshot, markersForSnapshot, tx);
       }
       // Reprise en main du rythme : déplacer la date de départ d'une tâche récurrente
       // redéfinit l'ancre de sa série (migration 258). C'est la seule façon de déplacer le
@@ -1404,9 +1448,8 @@ router.post(
     // dans UNE transaction — un échec au milieu ne doit pas laisser une tâche
     // « validée » encore liée, ni détachée sans être validée.
     await withTransaction(async (tx) => {
-      await persistRecurringTemplateLocations(
+      await persistDetachedLocationsSnapshot(
         task.id,
-        task.recurrence,
         zonesBeforeValidate,
         markersBeforeValidate,
         tx,

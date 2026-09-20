@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : une tâche remise au travail retrouve sa zone (et sa pastille)
+
+- **Des tâches à faire n'apparaissaient plus sur la carte.** Valider une tâche détache
+  volontairement ses zones et repères — une tâche validée n'occupe plus un lieu. Mais rien ne
+  les lui rendait quand un professeur la repassait à « À faire » ou « En cours » : elle
+  redevenait active **sans lieu**, donc sans pastille et introuvable sur la carte, alors que
+  sa fiche ne signalait rien. Elle retrouve désormais ses lieux, et le professeur qui en
+  choisit d'autres dans le même geste garde la main.
+- **La mémoire des lieux ne servait qu'aux tâches récurrentes** (elle alimentait l'occurrence
+  suivante). Elle est posée pour toutes les tâches : une tâche ponctuelle validée puis remise
+  au travail ne perd plus son lieu définitivement.
+- **Rattrapage des tâches déjà détachées** (migration `266`) : les tâches actives sans aucun
+  lieu dont la mémoire désigne une zone ou un repère toujours existants les récupèrent. Celles
+  détachées avant l'existence de cette mémoire ne sont pas rattrapables : leur lieu est à
+  ressaisir dans la fiche de la tâche.
+- Un lieu supprimé entre-temps, ou passé sur une autre carte, est simplement laissé de côté :
+  rendre un lieu est un confort de reprise, jamais une raison de refuser le changement de
+  statut demandé.
 ### Corrigé — carte : le plan ouvert à l'arrivée suit enfin les réglages, puis le dernier plan consulté
 
 - **Le réglage « plan ouvert par défaut » ne s'appliquait plus jamais sur un appareil déjà
