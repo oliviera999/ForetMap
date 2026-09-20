@@ -231,3 +231,77 @@ describe('useAppDataSync — coupure serveur', () => {
     expect(result.current.serverDown).toBe(false);
   });
 });
+
+/**
+ * Porte des réglages publics (`contextReady`) avant tout chargement.
+ *
+ * `fetchAll` résout la carte active à partir des cartes par défaut du contexte. Tant que
+ * le premier chargement n'était pas gardé, il tournait avant la réponse de
+ * `/api/settings/public`, donc sur les valeurs codées en dur côté front (`'foret'`) :
+ * la carte ainsi posée était mémorisée sur l'appareil et le réglage « plan ouvert par
+ * défaut » de l'administrateur ne s'appliquait plus jamais.
+ */
+describe('useAppDataSync — porte des réglages publics', () => {
+  /** Contexte « avant réponse » : les défauts codés en dur du front. */
+  const CONTEXT_FRONT_DEFAULTS = Object.freeze({
+    ...CONTEXT,
+    defaultMapTeacher: 'm1',
+  });
+  /** Contexte « après réponse » : le plan par défaut réglé par l'administrateur. */
+  const CONTEXT_FROM_SETTINGS = Object.freeze({
+    ...CONTEXT,
+    defaultMapTeacher: 'm2',
+  });
+  const TWO_MAPS = [
+    { id: 'm1', name: 'Forêt' },
+    { id: 'm2', name: 'N3' },
+  ];
+
+  function mountGated(initialProps) {
+    const studentRef = { current: null };
+    return renderHook(
+      ({ context, contextReady }) =>
+        useAppDataSync({
+          context,
+          contextReady,
+          hasAuthenticatedShell: true,
+          studentRef,
+          forceLogout: () => {},
+          mergeAuthMeResponse: () => {},
+        }),
+      { initialProps },
+    );
+  }
+
+  beforeEach(() => {
+    // Aucun plan mémorisé : c'est le cas où le réglage doit décider.
+    window.localStorage.clear();
+    api.mockImplementation(async (path) =>
+      path.startsWith('/api/maps') ? TWO_MAPS : nominalResponse(path),
+    );
+  });
+
+  it('ne charge rien tant que les réglages publics n’ont pas répondu', async () => {
+    mountGated({ context: CONTEXT_FRONT_DEFAULTS, contextReady: false });
+    // Au-delà du debounce du cycle automatique (250 ms) : toujours aucune requête.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    expect(api).not.toHaveBeenCalled();
+  });
+
+  it('résout la carte sur le réglage administrateur, pas sur le défaut du front', async () => {
+    const { result, rerender } = mountGated({
+      context: CONTEXT_FRONT_DEFAULTS,
+      contextReady: false,
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    // Réponse de /api/settings/public : le contexte devient celui des réglages.
+    rerender({ context: CONTEXT_FROM_SETTINGS, contextReady: true });
+    await waitFor(() => expect(result.current.activeMapId).toBe('m2'));
+    // Et rien n'a été mémorisé sur l'appareil : le réglage reste maître au prochain boot.
+    expect(window.localStorage.getItem('foretmap_active_map')).toBeNull();
+  });
+});
