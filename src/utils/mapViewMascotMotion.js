@@ -59,6 +59,24 @@ export function pickMapMascotMoveInteraction(distPct) {
 }
 
 /**
+ * Contre-échelle de la mascotte dans un calque monde zoomé (`committed.s`).
+ *
+ * **Ne jamais descendre sous 1** : sur SharedMapStage (`contentMode: 'stage'`), un focus sur
+ * un lieu (tâche, recherche, parcours) pousse `s` au-dessus de 1. Une contre-échelle naïve
+ * `1/s` rétrécissait alors la mascotte jusqu'à la rendre invisible — précisément sur la carte
+ * de travail associée aux tâches. L'ancien calque utilisait déjà `Math.max(1, 1/s)` ; la
+ * Visite, elle, ne contre-échelle pas du tout (la mascotte grossit au zoom).
+ *
+ * @param {number} worldScale échelle monde (`committed.s`)
+ * @returns {number} facteur à appliquer sur `.visit-map-mascot-inner`
+ */
+export function resolveMapViewMascotFitScale(worldScale) {
+  const s = Number(worldScale);
+  if (!(s > 0) || !Number.isFinite(s)) return 1;
+  return Math.max(1, 1 / s);
+}
+
+/**
  * Évite que la mascotte soit coupée en bas du viewport (repère %, pieds en bas du sprite).
  * @param {number} xp
  * @param {number} yp

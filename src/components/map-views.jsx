@@ -42,6 +42,7 @@ import {
   clusterZoomTargetScale,
 } from '../shared/pct-map/clusterMarkers.js';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
+import { resolveMapViewMascotFitScale } from '../utils/mapViewMascotMotion.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
 import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useZoneAlignMode from '../hooks/useZoneAlignMode.js';
@@ -347,7 +348,11 @@ function MapViewImpl({
     toImagePct: () => null,
     stageSize: { w: 0, h: 0 },
   });
-  /** Contre-échelle mascotte dans SharedMapStage (calque monde zoomé). */
+  /**
+   * Contre-échelle mascotte dans SharedMapStage (calque monde zoomé).
+   * `Math.max(1, 1/s)` : un focus sur un lieu de tâche (s > 1) ne doit pas rétrécir
+   * la mascotte jusqu'à l'invisible — voir `resolveMapViewMascotFitScale`.
+   */
   const [workMascotFitScale, setWorkMascotFitScale] = useState(1);
   /** Consultation élève/prof sans édition géométrie ni glisser de repères. */
   const useSharedViewStage = mode === 'view' && !markerPositionUnlocked;
@@ -357,7 +362,7 @@ function MapViewImpl({
     const w = Number(api?.stageSize?.w) || 0;
     if (root && w > 0) root.style.setProperty('--fm-map-canvas-w', `${w}px`);
     const s = Number(api?.committed?.s) || 0;
-    if (s > 0) setWorkMascotFitScale(1 / s);
+    if (s > 0) setWorkMascotFitScale(resolveMapViewMascotFitScale(s));
   }, []);
   const focusMapPct = useCallback(
     (pct, opts) => {
@@ -768,7 +773,7 @@ function MapViewImpl({
     });
   };
 
-  const mapMascotFitScale = Math.max(1, inv);
+  const mapMascotFitScale = resolveMapViewMascotFitScale(cs);
   // Hauteur affichée du plan AU REPOS (ajusté), indépendante du zoom : dimensionne les étiquettes
   // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
   const safeFitScale = fitScale > 0 ? fitScale : 1;

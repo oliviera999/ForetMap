@@ -49,6 +49,12 @@ Solde des constats de [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/A
 - **LTI.** Les nonces sont persistés (`lti_nonces`, migration 268) : plus de rejeu possible
   sur une autre instance ; le réglage `unknown_user` ne propose que `refuse`, seule valeur
   lue. Les e-mails passent par `lib/brand.js` (plus de marque en dur).
+### Corrigé — carte de travail : la mascotte ne disparaît plus au zoom sur un lieu de tâche
+
+- Sur la carte associée aux tâches (vue scindée carte/tâches ou onglet Carte), un focus sur
+  une zone ou un repère zoome le plan. La contre-échelle de la mascotte utilisait `1/s` sans
+  plancher : au zoom (`s > 1`) elle rétrécissait jusqu’à devenir invisible. On rétablit le
+  plancher historique `Math.max(1, 1/s)` (`resolveMapViewMascotFitScale`).
 
 ### Corrigé — base : la migration 266 ne casse plus le démarrage sur MariaDB 11.4
 
