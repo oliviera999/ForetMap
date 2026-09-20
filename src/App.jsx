@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } fro
 import {
   api,
   getAuthClaims,
+  getAuthToken,
   getStoredSession,
+  pickNewestAuthToken,
   saveStoredSession,
   clearStoredSession,
 } from './services/api';
@@ -72,7 +74,7 @@ const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPa
 
 /** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
-import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
+import { getRoleTerms } from './utils/n3-terminology';
 import { visibleMapsForScope } from './utils/appMapScope';
 import {
   canManagePedagoContent,
@@ -383,20 +385,25 @@ function App() {
     [mergeAuthMeResponseBase],
   );
 
-  const forceLogout = useCallback(() => {
-    setDiscoveryTourSeen(null);
-    setDiscoveryTourSeenReady(false);
-    forceLogoutBase();
-  }, [forceLogoutBase]);
+  const forceLogout = useCallback(
+    (options) => {
+      setDiscoveryTourSeen(null);
+      setDiscoveryTourSeenReady(false);
+      forceLogoutBase(options);
+    },
+    [forceLogoutBase],
+  );
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
-     devient un no-op, isTeacher étant dérivé d'authClaims. */
+     devient un no-op, isTeacher étant dérivé d'authClaims. Une session expirée ou révoquée
+     (401 `SESSION_REVOKED`) passe par `forceLogout` pour fermer aussi la session élève. */
   const setIsTeacherNoop = useCallback(() => {}, []);
   useSessionWindowSync({
     setAuthClaims,
     setIsTeacher: setIsTeacherNoop,
     setSessionUser,
     setToast,
+    forceLogout,
   });
 
   useRoleViewModeReset({
@@ -436,7 +443,6 @@ function App() {
     () => ({
       effectiveIsTeacher,
       showPublicVisit,
-      studentAffiliation: student?.affiliation,
       canManageTutorials,
       defaultMapStudent: publicSettings?.map?.default_map_student,
       defaultMapTeacher: publicSettings?.map?.default_map_teacher,
@@ -445,7 +451,6 @@ function App() {
     [
       effectiveIsTeacher,
       showPublicVisit,
-      student?.affiliation,
       canManageTutorials,
       publicSettings?.map?.default_map_student,
       publicSettings?.map?.default_map_teacher,
@@ -565,15 +570,9 @@ function App() {
     () => tasksForActiveMap.filter((t) => t.status === 'done').length,
     [tasksForActiveMap],
   );
-  const visibleMaps = useMemo(
-    () =>
-      visibleMapsForScope(maps, {
-        isTeacher: effectiveIsTeacher,
-        isPublicVisit: showPublicVisit,
-        affiliation: student?.affiliation,
-      }),
-    [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation],
-  );
+  // `GET /api/maps` est déjà borné par le serveur au périmètre du compte (groupes) : il ne
+  // reste qu'à préférer les cartes actives.
+  const visibleMaps = useMemo(() => visibleMapsForScope(maps), [maps]);
   useActiveMapVisibilityReconciler({
     activeMapId,
     visibleMaps,
@@ -612,7 +611,6 @@ function App() {
       first_name: fallbackName,
       last_name: '',
       pseudo: null,
-      affiliation: 'both',
       preview_mode: true,
     };
   }, [
@@ -638,8 +636,11 @@ function App() {
         (t.status === 'available' || t.status === 'in_progress'),
     ).length;
   }, [studentForUi, tasksForActiveMap]);
-  const studentAffiliation = (studentForUi?.affiliation || 'both').toLowerCase();
-  const isN3Affiliated = isN3OnlyAffiliation(studentAffiliation);
+  // L'affiliation par compte n'existe plus (le périmètre cartes vient des groupes) : la
+  // terminologie n3beur / n3boss est unifiée, `getRoleTerms` ignore déjà son argument. La
+  // valeur reste exposée (props et `SessionContext`) pour ne pas retoucher chaque consommateur ;
+  // elle vaut désormais toujours `false`.
+  const isN3Affiliated = false;
   const roleTerms = getRoleTerms(isN3Affiliated);
   const appLoaderText = getContentText(publicSettings, 'app.loader', 'Chargement de la forêt…');
   const appServerDownNotice = getContentText(
@@ -738,7 +739,6 @@ function App() {
       avatar_path: sessionUser?.avatar_path || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       description: '',
-      affiliation: 'both',
       auth: {
         roleSlug: authClaims?.roleSlug || null,
         userType: authClaims?.userType || 'teacher',
@@ -792,6 +792,11 @@ function App() {
   /** Session prof en mémoire après édition du profil (nom affiché, avatar, mascotte). */
   const updateTeacherSession = useCallback(
     (updatedUser) => {
+      // Jeton ré-émis par l'appelant (changement de mot de passe : l'ancien est révoqué par
+      // l'époque) → jeton courant, même règle que `updateStudentSession` (CDG-28).
+      const nextToken = updatedUser?.authToken
+        ? pickNewestAuthToken(updatedUser.authToken, getAuthToken())
+        : null;
       setSessionUser((prev) => {
         const nextDisplayName =
           updatedUser?.pseudo ||
@@ -809,7 +814,7 @@ function App() {
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
         };
-        saveStoredSession({ user: next });
+        saveStoredSession({ user: next, ...(nextToken ? { token: nextToken } : {}) });
         return next;
       });
     },
@@ -1372,7 +1377,6 @@ function App() {
                   >
                     <StudentProfileEditorLazy
                       student={profileTargetUser}
-                      maps={maps}
                       onUpdated={handleProfileUpdated}
                       onClose={handleCloseProfileDialog}
                     />
@@ -1518,7 +1522,6 @@ function App() {
                         {tab === 'profiles' && (
                           <TabSuspense>
                             <ProfilesAdminViewLazy
-                              maps={maps}
                               onImpersonationApplied={handleAdminImpersonationApplied}
                             />
                           </TabSuspense>
@@ -1691,7 +1694,6 @@ function App() {
                           {tab === 'profiles' && canAccessProfiles && (
                             <TabSuspense>
                               <ProfilesAdminViewLazy
-                                maps={maps}
                                 onImpersonationApplied={handleAdminImpersonationApplied}
                               />
                             </TabSuspense>

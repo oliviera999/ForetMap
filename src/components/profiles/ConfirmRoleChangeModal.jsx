@@ -1,5 +1,6 @@
 import { DialogShell } from '../DialogShell';
 import { IconWarning } from '../../shared/icons.jsx';
+import { isSensitiveRole } from '../../utils/profilesUserGroups.js';
 
 /**
  * Confirmation d'une attribution de profil **sensible** (P3 de l'audit UX).
@@ -9,14 +10,17 @@ import { IconWarning } from '../../shared/icons.jsx';
  * Cette modale n'intercepte que ces cas — les profils élèves restent en application directe.
  *
  * `pending` : { users: [{ id, user_type, display_name, role_slug }], role: { id, display_name,
- * slug } | null, reason: 'grant' | 'revoke' }. `role` vaut `null` pour un retrait de profil.
+ * slug }, reason: 'grant' | 'revoke' }. En lot, `reason` vaut `'revoke'` quand la sélection
+ * contient des comptes à profil sensible et que le profil cible ne l'est pas : le titre et le
+ * texte disent alors ce qui est perdu, pas seulement ce qui est donné.
  */
 export function ConfirmRoleChangeModal({ pending, saving = false, onConfirm, onCancel }) {
   if (!pending) return null;
   const users = Array.isArray(pending.users) ? pending.users : [];
   const count = users.length;
-  const roleLabel = pending.role?.display_name || pending.role?.slug || 'Aucun profil';
+  const roleLabel = pending.role?.display_name || pending.role?.slug || '—';
   const isRevoke = pending.reason === 'revoke';
+  const sensitiveCount = users.filter((u) => isSensitiveRole(u.role_slug)).length;
 
   return (
     <DialogShell
@@ -46,7 +50,10 @@ export function ConfirmRoleChangeModal({ pending, saving = false, onConfirm, onC
           </>
         ) : (
           <>
-            <strong>{count} comptes</strong> passeront au profil <strong>{roleLabel}</strong>.
+            <strong>{count} comptes</strong> passeront au profil <strong>{roleLabel}</strong>
+            {isRevoke && sensitiveCount > 0
+              ? ` — dont ${sensitiveCount} ${sensitiveCount > 1 ? 'perdront' : 'perdra'} un profil d’administration ou d’encadrement.`
+              : '.'}
           </>
         )}
       </p>

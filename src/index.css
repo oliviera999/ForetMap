@@ -8392,13 +8392,15 @@
   border-color: #fde68a;
   color: #854d0e;
 }
-.profiles-user-chip--manager {
-  background: #fef3c7;
-  border-color: var(--accent-warning-solid);
-}
 .profiles-user-chip--inactive {
   opacity: 0.6;
   text-decoration: line-through;
+}
+/* Compte désactivé (liste des comptes et tête de fiche) : pastille d'alerte, pas de rature. */
+.profiles-user-chip--inactive-account {
+  background: var(--tint-danger);
+  border-color: var(--accent-danger-solid);
+  color: var(--ink-danger);
 }
 .profiles-user-chip--empty,
 .profiles-user-chip--more {
@@ -8590,6 +8592,37 @@
 }
 .profiles-user-summary__meta--warn {
   color: #b45309;
+}
+/* Origine du profil effectif (« conféré par le groupe X ») et profils conférés par groupe. */
+.profiles-user-summary__origin {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.profiles-user-summary__conferring {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+/* Actions sensibles de la fiche (désactivation, suppression d'un enseignant). */
+.profiles-user-danger {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.profiles-user-danger__confirm {
+  border: 1px solid var(--accent-danger-solid);
+  background: var(--tint-danger);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+.profiles-user-danger__confirm p {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
 }
 
 /* Rattachement des groupes depuis la fiche (P14). */

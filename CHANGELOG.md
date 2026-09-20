@@ -9,6 +9,85 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — comptes, profils et groupes : « le plus élevé l'emporte »
+
+Lot issu de l'audit [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md)
+(constats traités listés en tête du document). Référence fonctionnelle :
+[`docs/reference/foretmap/comptes-roles-et-groupes.md`](docs/reference/foretmap/comptes-roles-et-groupes.md).
+
+- **Une seule règle de profil.** Chaque compte porte un **profil attribué**
+  (`users.assigned_role_id`, migration `267`) ; son **profil effectif** est le plus élevé
+  entre ce profil et le profil par défaut de chacun de ses groupes actifs — à rang égal,
+  l'attribué. Un groupe qui **impose** son profil l'emporte pour ses élèves, jamais pour un
+  enseignant. La montée automatique ne fait que relever le profil attribué ; « Imposer ce
+  profil » reste le seul moyen de forcer plus bas. Le recalcul (`lib/effectiveRole.js`) est
+  rejoué à la connexion, à chaque `GET /api/auth/me`, au rattachement ou au retrait d'un
+  groupe, et quand le profil par défaut, l'imposition ou l'activation d'un groupe change.
+  La fiche d'un compte affiche les deux profils et l'origine du profil effectif.
+- **Enseignant sans profil → « Prof de classe »**, plus n3boss ; élève sans profil →
+  visiteur. Le défaut est posé une fois comme profil attribué, jamais recréé à chaque
+  connexion.
+- **Une seule garde d'attribution** (`lib/rbacRoleAssignment.js`) pour la ligne, le lot, la
+  création, l'import et Moodle : personne ne modifie son propre profil ; `admin` réservé à
+  un administrateur ; hors administrateur, pas de profil de rang supérieur au sien ; profils
+  Gnomes & Licornes refusés depuis ForetMap ; le dernier administrateur **actif** ne peut
+  être ni rétrogradé, ni désactivé, ni supprimé.
+- **Désactiver / réactiver un compte** depuis sa fiche (`PATCH is_active`) : connexion et
+  session en cours coupées, historique conservé, audit. **Supprimer un enseignant**
+  (administrateur seulement) : ce qu'il a créé est conservé, l'auteur devient « compte
+  supprimé », sa session répond `401 { deleted: true }`.
+- **Groupes.** Le profil par défaut propose **tous les profils** sauf ceux du jeu G&L ; il
+  est réglé par l'administrateur et le n3boss seulement (rang ≤ au sien hors admin). Un
+  groupe peut être **rattaché à un parent ou détaché** depuis son panneau (formulaire et
+  import). Un groupe sans profil par défaut n'a aucun effet sur ses membres. Un enseignant
+  membre d'un groupe l'encadre : plus de « responsable » distinct.
+- **Vue globale par profil** : contourner le périmètre de groupe tient au rang (n3boss,
+  administrateur), plus à la permission `stats.read.all`.
+- **Import de comptes** : gardes de profil par ligne, périmètre des élèves existants,
+  enseignant existant réservé à l'administrateur, propre compte refusé, cellule vide =
+  valeur conservée, plancher 12 caractères pour un enseignant. Modèle à 8 colonnes.
+- **Import de groupes** : colonne « Profil par défaut » (slug ou nom) à la place de
+  « accorde n3beur » ; mise à jour non destructive (cellule vide = inchangé, « aucun » =
+  détacher), cycles refusés, sous-groupe cherché sous son parent.
+- **Prof de classe** : onglet « Classe » utilisable (groupes et comptes de ses groupes, sans
+  le sélecteur de profil de groupe) ; `GET /api/rbac/users` ouvert à `groups.manage`.
+- **Sécurité** : alias administrateur codé en dur supprimé (seul `TEACHER_ADMIN_EMAIL`
+  compte) ; reset de mot de passe MJ refusé sur un vrai compte ForetMap ; entrée LTI
+  enseignant refusée sans rôle Instructor ; impersonation bornée (cible active et de rang
+  inférieur, acteur revérifié à chaque requête, audit au nom de l'acteur) ; compte supprimé
+  → `401 { code: 'SESSION_REVOKED', deleted: true }` sur HTTP et Socket.IO.
+- **Retiré** : `users.affiliation` (restriction individuelle de cartes — le périmètre est
+  par groupe), `groups.grants_n3beur_access`, `group_members.role_in_group`, réglage
+  `rbac.progression_align_on_group_join` et `PATCH /api/rbac/progression-align-on-group-join`,
+  `POST /api/groups/:id/apply-default-role`, résolution d'identité canonique
+  (`ADMIN_CANONICAL_LOGIN`). Les colonnes obsolètes sont retirées au démarrage
+  (`lib/legacySchemaCleanup.js`).
+- **Second lot (constats majeurs restants + taxonomie).**
+  - **Connexion** : un seul message d'échec (« Identifiant ou mot de passe incorrect »),
+    chaque cas compte un échec, verrou par **compte** quel que soit l'identifiant saisi ;
+    « Compte inactif » n'est dit qu'avec le bon mot de passe ; l'identifiant saisi n'est
+    plus journalisé.
+  - **Mot de passe** : `POST /api/auth/me/password` (élève et enseignant, depuis « Mon
+    profil ») ; les autres appareils sont déconnectés ; un compte Google sans mot de passe
+    édite son profil sans mot de passe actuel et peut s'en donner un (ou passer par « mot de
+    passe oublié ») ; mot de passe provisoire signalé à la connexion (`passwordMustReset`).
+  - **Staff Gnomes & Licornes** : la connexion Google exige un compte enseignant ForetMap
+    (comme le mot de passe) ; désactiver l'enseignant ou lui retirer l'accès enseignant
+    coupe sa session de jeu et ses prises de contrôle.
+  - **Moodle** : une cohorte « hors synchronisation » ne fait plus désactiver ses comptes ;
+    un compte désactivé par la sync qui réapparaît dans une cohorte est **réactivé**
+    (action `user.reactivate`, journalisée et annulable, listée dans le rapport).
+  - **Front** : une session élève révoquée (compte supprimé, désactivé, mot de passe changé)
+    ferme l'application avec le bon message ; le jeton renouvelé n'est plus écrasé par le
+    jeton d'origine (source unique).
+  - **Taxonomie des profils** : source unique `src/shared/n3beurRolesCore.js` (encadrement,
+    profils privilégiés, hors échelle, paliers d'origine, profils G&L, slugs réservés — ceux
+    du jeu sont désormais réservés aussi) ; les listes locales de `lib/rbac.js`,
+    `lib/rbacRouteHelpers.js` et des utilitaires front sont supprimées.
+- **Tests** : `tests/effective-role.test.js`, `tests/rbac-account-lifecycle.test.js`, suites
+  d'import, de groupes, de progression et de périmètre adaptées ; montage de l'onglet
+  « Classe » en prof de classe (`tests-ui`).
+
 ### Corrigé — carte : une tâche remise au travail retrouve sa zone (et sa pastille)
 
 - **Des tâches à faire n'apparaissaient plus sur la carte.** Valider une tâche détache
@@ -266,6 +345,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `tests-ui/settings/PlaceMessagesPanel.test.jsx`, `tests-ui/plan/planApiReport.test.js`,
   `tests-ui/hooks/useNotificationCenter.test.jsx`. Doc : `docs/API.md`,
   `docs/reference/plan/plan-des-personnels.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
+### Documentation — audit des comptes, droits et groupes
+
+- Nouvel audit daté
+  [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md) :
+  relecture de tout ce qui touche aux personnes (connexion et sessions, inscription, comptes,
+  profils RBAC, groupes, pont Gnomes & Licornes, synchronisation Moodle et entrée LTI,
+  onglet « Profils & utilisateurs »), confrontée au document de référence. Constats
+  identifiés `CDG-xx` avec gravité, fichiers et scénario : **cinq escalades bloquantes**
+  (alias administrateur codé en dur atteignable par un simple changement d'e-mail, import de
+  comptes sans périmètre ni garde de rôle, réinitialisation MJ sur un vrai compte élève,
+  entrée LTI sur la seule foi d'un e-mail), le prof de classe privé de l'onglet « Classe »
+  promis par la doc, deux mécaniques Moodle qui désactivent des classes entières, l'absence
+  de désactivation de compte et de suppression d'enseignant, puis les incohérences, manques
+  et duplications, avec cinq lots de correction proposés. Aucun changement de comportement.
+  Indexé dans `docs/audits/README.md`.
 
 ### Documentation — état des lieux de la communication entre utilisateurs
 

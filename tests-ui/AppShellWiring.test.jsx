@@ -105,7 +105,7 @@ vi.mock('../src/hooks/useAppBootstrap', () => ({
 const { App } = await import('../src/App.jsx');
 
 const STUDENT_SESSION = {
-  stored: { student: { id: 'S1', first_name: 'Ada', last_name: 'L', affiliation: 'both' } },
+  stored: { student: { id: 'S1', first_name: 'Ada', last_name: 'L' } },
   claims: { roleSlug: 'eleve', userId: 'S1', permissions: [] },
 };
 const TEACHER_SESSION = {
@@ -196,6 +196,53 @@ describe('App — câblage de la persistance mascotte visite', () => {
       '/api/visit/mascot-preference',
       expect.anything(),
       expect.anything(),
+    );
+  });
+});
+
+/**
+ * CDG-27 — session élève expirée ou révoquée. Sur 401 `SESSION_REVOKED`, `api()` vide le
+ * stockage et émet `foretmap_teacher_expired` ; l'écouteur ne vidait que `authClaims` /
+ * `sessionUser`, or la porte d'entrée est `student || isTeacherAccount` : un élève restait
+ * dans l'application (toast « Session n3boss expirée. », polling en échec silencieux).
+ */
+describe('App — session élève expirée ou révoquée (CDG-27)', () => {
+  async function expectShellClosed() {
+    await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
+    expect(dataSyncCalls.at(-1)?.hasAuthenticatedShell).toBe(false);
+    expect(tokenRenewalCalls.at(-1)?.enabled).toBe(false);
+  }
+
+  test('401 SESSION_REVOKED (mot de passe changé) : retour à l’écran de connexion', async () => {
+    await renderAppWith(STUDENT_SESSION);
+    expect(probes.unauthenticated).toHaveLength(0);
+    const { clearStoredSession } = await import('../src/services/api');
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('foretmap_teacher_expired', {
+          detail: { deleted: false, reason: 'password_changed' },
+        }),
+      );
+    });
+    await expectShellClosed();
+    expect(clearStoredSession).toHaveBeenCalled();
+    // Le toast est porté par le shell invité (sonde) : message générique, sans « n3boss ».
+    const toast = probes.unauthenticated.at(-1).toast;
+    expect(toast).toBe('Session expirée : veuillez vous reconnecter.');
+  });
+
+  test('401 deleted:true (compte supprimé) : fermeture avec le message « compte supprimé »', async () => {
+    await renderAppWith(STUDENT_SESSION);
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('foretmap_teacher_expired', {
+          detail: { deleted: true, reason: 'account_deleted' },
+        }),
+      );
+    });
+    await expectShellClosed();
+    expect(probes.unauthenticated.at(-1).toast).toBe(
+      'Votre compte a été supprimé par un responsable.',
     );
   });
 });

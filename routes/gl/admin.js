@@ -224,13 +224,22 @@ router.post(
       [name, school, req.glAuth.userId],
     );
     const created = await queryOne('SELECT * FROM gl_classes ORDER BY id DESC LIMIT 1');
-    const defaultRoleId =
-      req.body?.defaultRoleId != null ? Number(req.body.defaultRoleId) : undefined;
-    const grantsN3beur = !!req.body?.grantsN3beurAccess;
-    await ensureForetmapGroupForGlClass(created, {
-      defaultRoleId: Number.isFinite(defaultRoleId) ? defaultRoleId : undefined,
-      grantsN3beurAccess: grantsN3beur,
-    });
+    // Profil ForetMap conféré par le groupe miroir : même garde que la console des groupes
+    // (profil existant, hors jeu G&L ; MJ / admin G&L ne posent qu'un profil élève).
+    let defaultRoleId;
+    if (req.body?.defaultRoleId != null || req.body?.grantsN3beurAccess) {
+      const { validateGroupDefaultRole } = require('../../lib/groupDefaultRolePolicy');
+      const roleRef = req.body?.defaultRoleId != null ? req.body.defaultRoleId : 'eleve_novice';
+      const roleCheck = await validateGroupDefaultRole(null, roleRef);
+      if (!roleCheck.ok) return res.status(roleCheck.status).json({ error: roleCheck.error });
+      if (Number(roleCheck.role?.rank || 0) >= 400) {
+        return res
+          .status(403)
+          .json({ error: 'Un groupe de classe G&L ne confère pas un profil d’encadrement' });
+      }
+      defaultRoleId = roleCheck.roleId;
+    }
+    await ensureForetmapGroupForGlClass(created, { defaultRoleId });
     const enriched = await queryOne(
       `SELECT c.*, g.slug AS foretmap_group_slug, g.name AS foretmap_group_name
          FROM gl_classes c
@@ -713,8 +722,23 @@ router.post(
     if (!password || password.length < 4) {
       return res.status(400).json({ error: 'Mot de passe requis (min 4 caractères)' });
     }
-    const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
+    const existing = await queryOne(
+      `SELECT p.id, u.auth_provider FROM gl_players p
+         LEFT JOIN users u ON u.id = p.linked_foretmap_user_id
+        WHERE p.id = ? LIMIT 1`,
+      [id],
+    );
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
+    // Un joueur rattaché à un **vrai** compte ForetMap n'a pas de mot de passe « de jeu » :
+    // le MJ ne réécrit que les comptes miroirs (`gl_bridge`). Sinon `gl.players.manage`
+    // donnait le mot de passe ForetMap de n'importe quel élève rapproché (CDG-04).
+    if (existing.auth_provider && existing.auth_provider !== 'gl_bridge') {
+      return res.status(403).json({
+        error:
+          'Ce joueur utilise son compte ForetMap : réinitialisation depuis ForetMap (fiche du compte) ou « mot de passe oublié »',
+        code: 'GL_PLAYER_REAL_ACCOUNT',
+      });
+    }
     const mustReset = parseOptionalBoolean(req.body?.passwordMustReset) === true;
     // Source unique `users` ; révoque les sessions en cours du joueur.
     await setGlPlayerPassword(id, { password, mustReset });

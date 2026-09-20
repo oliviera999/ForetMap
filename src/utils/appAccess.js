@@ -5,8 +5,7 @@
  * dupliquées mot pour mot dans `App.jsx` (tutoriels/quiz, forum/commentaires).
  */
 
-/** Rôles autorisés à administrer les contenus pédagogiques (hors permission fine). */
-const PRIVILEGED_ROLE_SLUGS = new Set(['prof', 'admin']);
+import { isPrivilegedSystemRoleSlug } from '../shared/n3beurRolesCore.js';
 
 /** Profil tuteur de classe (enseignants hors n3boss). */
 export function isClassTeacherRole(roleSlug) {
@@ -46,7 +45,7 @@ export function shouldUseTeacherChrome({
  */
 export function isPrivilegedRole(roleSlug, nativePrivileged = false) {
   if (nativePrivileged) return true;
-  return PRIVILEGED_ROLE_SLUGS.has(String(roleSlug || '').toLowerCase());
+  return isPrivilegedSystemRoleSlug(roleSlug);
 }
 
 /**

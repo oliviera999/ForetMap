@@ -43,6 +43,10 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
       'eleve_avance',
       'eleve_chevronne',
       'eleve_novice',
+      'gl_admin',
+      'gl_mj',
+      'gl_observateur',
+      'gl_player',
       'personnel',
       'prof',
       'prof_classe',
@@ -126,6 +130,8 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
     assert.equal(canConfigureStudentTierForumContext('prof', 0), false);
     assert.equal(canConfigureStudentTierForumContext('visiteur', 1), false);
     assert.equal(canConfigureStudentTierForumContext('personnel', 1), false);
+    assert.equal(canConfigureStudentTierForumContext('prof_classe', 1), false);
+    assert.equal(canConfigureStudentTierForumContext('gl_player', 1), false);
   });
 
   it('canConfigureStudentTierForumContext : slug eleve_* accepté quel que soit le rang', () => {

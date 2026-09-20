@@ -159,7 +159,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          '« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne très bien, jusqu’au jour où il faut quelqu’un.',
+          '« Membres » désigne qui appartient au groupe — élèves comme enseignants. Le profil par défaut du groupe s’applique à ses membres élèves quand il est plus élevé que le leur ; « imposé » le fait toujours prévaloir.',
       },
       {
         textTeacher:

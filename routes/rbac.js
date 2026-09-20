@@ -4,19 +4,25 @@ const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
-const { requirePermission } = require('../middleware/requireTeacher');
-const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
+const { requirePermission, requireAuth, hasPermission } = require('../middleware/requireTeacher');
+const { getPrimaryRoleForUser } = require('../lib/rbac');
+const { setAssignedRole, describeUserRoles } = require('../lib/effectiveRole');
+const {
+  canBypassGroupScope,
+  isGroupInManageScope,
+  getUserAccessibleGroupIds,
+} = require('../lib/groupScope');
+const { isGlRoleSlug, normalizeRoleSlug } = require('../lib/shared/n3beurRolesCore');
 const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
-const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
-const { assignPrimaryRole } = require('../lib/rbacRoleAssignment');
 const {
-  isAllowedGroupDefaultRole,
-  GROUP_DEFAULT_SAFE_PERMISSION_KEYS,
-} = require('../lib/groupDefaultRole');
+  assignRole,
+  checkRoleGrantAllowed,
+  countPrimaryAdmins,
+} = require('../lib/rbacRoleAssignment');
 
 async function emitStudentsWithPrimaryRole(roleId) {
   const rows = await queryAll(
@@ -95,36 +101,62 @@ async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   return { ok: true, user, resolvedUserType, resolvedUserId };
 }
 
-const {
-  IMPORT_ROLE_SLUGS,
-  userTypeForImportRoleSlug,
-  canActorImportRoleSlug,
-} = require('../lib/studentRouteHelpers');
+const { userTypeForRole } = require('../lib/studentRouteHelpers');
+
+/**
+ * Lecture des comptes : ouverte à l'attribution des profils **et** à la gestion des groupes.
+ * Un prof de classe (`groups.manage`, sans vue globale) ne voit que les comptes de ses
+ * groupes — c'est ce qui rend son onglet « Classe » utilisable (CDG-20).
+ */
+async function requireUsersRead(req, res, next) {
+  await requireAuth(req, res, async () => {
+    if (
+      hasPermission(req.auth, 'admin.users.assign_roles') ||
+      hasPermission(req.auth, 'groups.manage')
+    ) {
+      return next();
+    }
+    return res.status(403).json({ error: 'Permission insuffisante' });
+  });
+}
+
+/** Comptes visibles : tous avec la vue globale, sinon les membres des groupes du périmètre. */
+async function visibleUserIdsForActor(auth) {
+  if (canBypassGroupScope(auth)) return null;
+  const groupIds = await getUserAccessibleGroupIds(auth, { includeDescendants: true });
+  if (groupIds.length === 0) return new Set();
+  const rows = await queryAll(
+    `SELECT DISTINCT user_id FROM group_members WHERE group_id IN (${groupIds.map(() => '?').join(',')})`,
+    groupIds,
+  );
+  return new Set(rows.map((row) => String(row.user_id)));
+}
+
+/** Rôle attribué + rôle effectif d'un compte, pour la liste et la fiche. */
+function roleFieldsFor(u) {
+  return {
+    role_id: u.role_id ?? null,
+    role_slug: u.role_slug ?? null,
+    role_display_name: u.role_display_name ?? null,
+    assigned_role_id: u.assigned_role_id ?? null,
+    assigned_role_slug: u.assigned_role_slug ?? null,
+    assigned_role_display_name: u.assigned_role_display_name ?? null,
+  };
+}
 
 router.post(
   '/users',
   requirePermission('users.create'),
   asyncHandler(async (req, res) => {
-    const roleSlug = String(req.body?.role_slug || '')
-      .trim()
-      .toLowerCase();
-    if (!IMPORT_ROLE_SLUGS.has(roleSlug)) {
-      return res.status(400).json({
-        error:
-          'role_slug invalide (visiteur, personnel, eleve_novice, eleve_avance, eleve_chevronne, prof_classe, prof, admin)',
-      });
-    }
-    if (!canActorImportRoleSlug(req.auth, roleSlug)) {
-      if (roleSlug === 'admin') {
-        return res.status(403).json({ error: 'Seul un administrateur peut créer un admin' });
-      }
-      if (roleSlug === 'prof' || roleSlug === 'prof_classe') {
-        return res.status(403).json({
-          error: 'Seuls n3boss et administrateur peuvent créer un compte enseignant',
-        });
-      }
-      return res.status(403).json({ error: 'Permission insuffisante pour ce profil' });
-    }
+    const roleSlug = normalizeRoleSlug(req.body?.role_slug);
+    const role = roleSlug
+      ? await queryOne('SELECT id, slug, display_name, `rank` FROM roles WHERE slug = ? LIMIT 1', [
+          roleSlug,
+        ])
+      : null;
+    if (!role) return res.status(400).json({ error: 'role_slug invalide ou profil introuvable' });
+    const grant = checkRoleGrantAllowed(req.auth, role);
+    if (!grant.ok) return res.status(grant.status).json({ error: grant.error });
 
     const firstName = normalizeOptionalString(req.body?.first_name);
     const lastName = normalizeOptionalString(req.body?.last_name);
@@ -132,11 +164,15 @@ router.post(
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email);
     const description = normalizeOptionalString(req.body?.description);
-    // Le type de compte se déduit du rôle demandé, et il décide du plancher de mot de passe :
-    // 4 caractères conviennent à un élève de sixième, pas à un compte qui porte
-    // `admin.impersonate`. Le calcul est remonté ici — il vivait plus bas — pour être
-    // disponible au moment de la validation.
-    const userType = userTypeForImportRoleSlug(roleSlug) || 'student';
+    // Le type de compte se déduit du profil demandé (surchargeable pour un profil sur mesure),
+    // et il décide du plancher de mot de passe : 4 caractères conviennent à un élève de
+    // sixième, pas à un compte qui porte des droits d'encadrement.
+    const requestedType = String(req.body?.user_type || '')
+      .trim()
+      .toLowerCase();
+    const userType = ['student', 'teacher'].includes(requestedType)
+      ? requestedType
+      : userTypeForRole(role);
     const minPasswordLen = await getPasswordMinLengthFor(userType);
     if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
     if (!password || password.length < minPasswordLen) {
@@ -154,13 +190,6 @@ router.post(
       return res
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
-    }
-
-    let affiliation = 'both';
-    if (userType === 'student') {
-      const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
-      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-      affiliation = affRes.affiliation;
     }
 
     if (userType === 'student') {
@@ -186,29 +215,24 @@ router.post(
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    const role = await queryOne('SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1', [
-      roleSlug,
-    ]);
-    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-
     const hash = await bcrypt.hash(password, 10);
     const id = crypto.randomUUID();
     const now = nowDbTimestamp();
     try {
       await execute(
         `INSERT INTO users
-            (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-           VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
+            (id, user_type, assigned_role_id, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
+           VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, 'local', 1, ?, NOW(), NOW())`,
         [
           id,
           userType,
+          role.id,
           email,
           pseudo,
           firstName,
           lastName,
           `${firstName} ${lastName}`.trim(),
           description,
-          affiliation,
           hash,
           now,
         ],
@@ -219,11 +243,10 @@ router.post(
       }
       throw err;
     }
-    await setPrimaryRole(userType, id, role.id);
+    let effective = await setAssignedRole(id, role.id);
 
-    if (userType === 'student') {
-      const { canBypassGroupScope, isGroupInManageScope } = require('../lib/groupScope');
-      const { addStudentToGroup } = require('../lib/groupMembers');
+    {
+      const { addUserToGroup } = require('../lib/groupMembers');
       const groupId = String(req.body?.group_id || '').trim() || null;
       if (!canBypassGroupScope(req.auth)) {
         if (!groupId) {
@@ -236,19 +259,18 @@ router.post(
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res.status(403).json({ error: 'Groupe hors périmètre' });
         }
-        const attach = await addStudentToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId);
         if (!attach.ok) {
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res
             .status(attach.status || 400)
             .json({ error: attach.error || 'Rattachement impossible' });
         }
+        effective = attach.role;
       } else if (groupId) {
-        await addStudentToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId);
+        if (attach.ok) effective = attach.role;
       }
-      // Le rattachement peut recalculer le profil (ex. promotion visiteur→novice) :
-      // on réapplique le profil explicitement demandé à la création.
-      await setPrimaryRole(userType, id, role.id);
     }
 
     const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
@@ -261,8 +283,10 @@ router.post(
     }
     res.status(201).json({
       ...toPublicUserRow(created),
-      role_slug: role.slug,
-      role_display_name: role.display_name,
+      assigned_role_slug: role.slug,
+      // Profil effectif (le groupe peut conférer un profil plus élevé que celui demandé).
+      role_slug: effective?.roleSlug || role.slug,
+      role_display_name: effective?.roleDisplayName || role.display_name,
     });
   }),
 );
@@ -287,36 +311,26 @@ router.get(
         key: row.permission_key,
       });
     }
-    // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe ?
-    // Calculé ici avec la règle serveur (`isAllowedGroupDefaultRole`) pour que le sélecteur
-    // « Profil par défaut du groupe » n'offre plus que des choix acceptés — il proposait
-    // « Prof de classe », que `PATCH /api/groups/:id` refusait ensuite en « default_role_id
-    // invalide ».
+    // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe,
+    // **pour l'acteur courant** ? Tous les profils sauf ceux du jeu G&L ; hors administrateur,
+    // pas de profil de rang supérieur au sien (même règle que `lib/groupDefaultRolePolicy.js`).
+    const actorIsAdmin = normalizeRoleSlug(req.auth?.roleSlug) === 'admin';
+    const actorRank = Number(req.auth?.roleRank || 0);
     const rolesPayload = rolesWithProgression
       .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
       .map((r) => ({
         ...r,
         catalog: perms,
-        group_default_allowed: isAllowedGroupDefaultRole({
-          slug: r.slug,
-          rank: r.rank,
-          unsafe_permission_count: (map.get(r.id) || []).filter(
-            (p) => !GROUP_DEFAULT_SAFE_PERMISSION_KEYS.includes(p.key),
-          ).length,
-        }),
+        group_default_allowed:
+          !isGlRoleSlug(r.slug) && (actorIsAdmin || Number(r.rank) <= actorRank),
       }));
     const progressionByValidatedTasksEnabled = await getSettingValue(
       'rbac.progression_by_validated_tasks',
       true,
     );
-    const progressionAlignOnGroupJoinEnabled = await getSettingValue(
-      'rbac.progression_align_on_group_join',
-      true,
-    );
     res.json({
       roles: rolesPayload,
       progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
-      progressionAlignOnGroupJoinEnabled: !!progressionAlignOnGroupJoinEnabled,
     });
   }),
 );
@@ -340,29 +354,6 @@ router.patch(
       payload: { enabled: updated },
     });
     res.json({ ok: true, progressionByValidatedTasksEnabled: updated });
-  }),
-);
-
-router.patch(
-  '/progression-align-on-group-join',
-  requirePermission('admin.roles.manage'),
-  asyncHandler(async (req, res) => {
-    const raw = req.body?.enabled;
-    if (typeof raw !== 'boolean') {
-      return res.status(400).json({ error: 'Champ « enabled » booléen requis' });
-    }
-    const updated = await setSetting('rbac.progression_align_on_group_join', raw, {
-      userType: req.auth?.userType,
-      userId: req.auth?.userId,
-    });
-    logAudit(
-      'rbac_progression_align_on_group_join',
-      'setting',
-      null,
-      'rbac.progression_align_on_group_join',
-      { req, payload: { enabled: updated } },
-    );
-    res.json({ ok: true, progressionAlignOnGroupJoinEnabled: updated });
   }),
 );
 
@@ -600,6 +591,14 @@ router.patch(
       'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
       [role.id],
     );
+    if (
+      normalizeRoleSlug(existing.slug) === 'admin' &&
+      normalizeRoleSlug(req.auth?.roleSlug) !== 'admin'
+    ) {
+      return res
+        .status(403)
+        .json({ error: 'Seul un administrateur peut modifier le profil admin' });
+    }
     const b =
       req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
     const hasAnyPatchField = Object.keys(b).some((k) => PROFILE_PATCH_KEYS.has(k));
@@ -631,6 +630,18 @@ router.patch(
       return res.status(400).json({
         error:
           'Le plafond d’inscriptions aux tâches ne s’applique qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
+      });
+    }
+    // Un seuil de tâches validées ferait entrer le profil dans l'échelle de progression : il
+    // est réservé aux paliers n3beur, jamais à un profil d'encadrement (CDG-09).
+    if (
+      hasMinDoneTasks &&
+      b.min_done_tasks != null &&
+      b.min_done_tasks !== '' &&
+      !canForumContext
+    ) {
+      return res.status(400).json({
+        error: 'Le seuil de tâches validées ne s’applique qu’aux profils n3beur',
       });
     }
     const displayName = hasDisplayName
@@ -766,20 +777,24 @@ router.put(
 
 router.get(
   '/users',
-  requirePermission('admin.users.assign_roles'),
+  requireUsersRead,
   asyncHandler(async (req, res) => {
-    const users = await queryAll(
-      `SELECT u.id, u.user_type,
-              u.first_name, u.last_name, u.pseudo, u.description, u.affiliation,
+    const allUsers = await queryAll(
+      `SELECT u.id, u.user_type, u.is_active, u.auth_provider,
+              u.first_name, u.last_name, u.pseudo, u.description,
               COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
               u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+              u.assigned_role_id, ar.slug AS assigned_role_slug, ar.display_name AS assigned_role_display_name,
               COALESCE(r.forum_participate, 1) AS forum_participate,
               COALESCE(r.context_comment_participate, 1) AS context_comment_participate
          FROM users u
     LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
     LEFT JOIN roles r ON r.id = ur.role_id
+    LEFT JOIN roles ar ON ar.id = u.assigned_role_id
      ORDER BY u.user_type ASC, display_name ASC`,
     );
+    const visibleIds = await visibleUserIdsForActor(req.auth);
+    const users = visibleIds ? allUsers.filter((u) => visibleIds.has(String(u.id))) : allUsers;
     const visibility = await resolveGroupVisibility(req.auth);
     const groupsByUserId = await fetchGroupsByUserId(
       users.map((u) => u.id),
@@ -789,16 +804,15 @@ router.get(
       users.map((u) => ({
         id: u.id,
         user_type: u.user_type,
+        is_active: Number(u.is_active) !== 0,
+        auth_provider: jsonTextField(u.auth_provider) || 'local',
         display_name: u.display_name,
         first_name: jsonTextField(u.first_name),
         last_name: jsonTextField(u.last_name),
         pseudo: jsonTextField(u.pseudo),
         email: jsonTextField(u.email),
         description: jsonTextField(u.description),
-        affiliation: u.user_type === 'student' ? jsonTextField(u.affiliation) || 'both' : null,
-        role_id: u.role_id,
-        role_slug: u.role_slug,
-        role_display_name: u.role_display_name,
+        ...roleFieldsFor(u),
         forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
         context_comment_participate:
           u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
@@ -810,11 +824,16 @@ router.get(
 
 router.get(
   '/users/:userType/:userId',
-  requirePermission('admin.users.assign_roles'),
+  requireUsersRead,
   asyncHandler(async (req, res) => {
     const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
     if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
     const { user: u, resolvedUserType, resolvedUserId } = resolved;
+    const visibleIds = await visibleUserIdsForActor(req.auth);
+    if (visibleIds && !visibleIds.has(String(resolvedUserId))) {
+      return res.status(403).json({ error: 'Compte hors de votre périmètre' });
+    }
+    const roles = await describeUserRoles(resolvedUserId);
     const rj = await queryOne(
       `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
               COALESCE(r.forum_participate, 1) AS forum_participate,
@@ -841,10 +860,15 @@ router.get(
       pseudo: jsonTextField(u.pseudo),
       email: jsonTextField(u.email),
       description: jsonTextField(u.description),
-      affiliation: resolvedUserType === 'student' ? jsonTextField(u.affiliation) || 'both' : null,
       role_id: rj?.role_id ?? null,
       role_slug: rj?.role_slug ?? null,
       role_display_name: rj?.role_display_name ?? null,
+      // Profil attribué, profil effectif (avec son origine) et groupes qui confèrent un profil.
+      assigned_role_id: roles?.assigned?.id ?? null,
+      assigned_role_slug: roles?.assigned?.slug ?? null,
+      assigned_role_display_name: roles?.assigned?.displayName ?? null,
+      effective_role: roles?.effective ?? null,
+      conferring_groups: roles?.conferring ?? [],
       forum_participate:
         resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
       context_comment_participate:
@@ -898,7 +922,9 @@ router.post(
   validate({ body: bulkRoleBodySchema }),
   asyncHandler(async (req, res) => {
     const roleId = parseInt(req.body.role_id, 10);
-    const role = await queryOne('SELECT id, slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
+    const role = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ? LIMIT 1', [
+      roleId,
+    ]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
 
     const results = [];
@@ -915,8 +941,8 @@ router.post(
         });
         continue;
       }
-      const applied = await assignPrimaryRole({
-        auth: req.auth,
+      const applied = await assignRole({
+        actor: req.auth,
         userType: resolved.resolvedUserType,
         userId: resolved.resolvedUserId,
         roleId,
@@ -963,21 +989,53 @@ router.patch(
     const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
     const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
     const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
-    const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
     const hasPassword = Object.prototype.hasOwnProperty.call(body, 'password');
+    const hasIsActive = Object.prototype.hasOwnProperty.call(body, 'is_active');
     const passwordRaw = hasPassword ? String(body.password ?? '') : '';
 
     const passwordWillChange = hasPassword && passwordRaw.trim() !== '';
+    const nextIsActive = hasIsActive
+      ? body.is_active
+        ? 1
+        : 0
+      : Number(user.is_active) !== 0
+        ? 1
+        : 0;
+    const activeWillChange = hasIsActive && nextIsActive !== (Number(user.is_active) !== 0 ? 1 : 0);
     if (
       !hasFirst &&
       !hasLast &&
       !hasPseudo &&
       !hasEmail &&
       !hasDescription &&
-      !(hasAffiliation && resolvedUserType === 'student') &&
-      !passwordWillChange
+      !passwordWillChange &&
+      !activeWillChange
     ) {
       return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
+    }
+
+    // Mot de passe et désactivation : jamais sur soi-même, ni sur un profil de rang égal ou
+    // supérieur au sien (hors administrateur). `admin.users.assign_roles` ne vaut pas prise
+    // de contrôle d'un pair (CDG-07, CDG-40).
+    if (passwordWillChange || activeWillChange) {
+      if (String(req.auth?.userId) === String(resolvedUserId)) {
+        return res
+          .status(403)
+          .json({ error: 'Utilisez votre profil pour modifier votre propre compte' });
+      }
+      if (
+        actorRoleSlug !== 'admin' &&
+        Number(targetPrimary?.rank || 0) >= Number(req.auth?.roleRank || 0)
+      ) {
+        return res.status(403).json({
+          error: 'Réservé à un profil de rang supérieur à celui du compte visé',
+        });
+      }
+    }
+    if (activeWillChange && nextIsActive === 0 && targetPrimary?.slug === 'admin') {
+      if ((await countPrimaryAdmins()) <= 1) {
+        return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
+      }
     }
 
     let firstName = user.first_name;
@@ -1015,16 +1073,6 @@ router.patch(
           .status(400)
           .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
       }
-    }
-
-    let affiliation = user.affiliation;
-    if (hasAffiliation) {
-      if (resolvedUserType !== 'student') {
-        return res.status(400).json({ error: 'L’affiliation ne s’applique qu’aux comptes n3beur' });
-      }
-      const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
-      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-      affiliation = affRes.affiliation;
     }
 
     if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
@@ -1067,7 +1115,7 @@ router.patch(
       await execute(
         `UPDATE users
              SET first_name = ?, last_name = ?, display_name = ?, pseudo = ?, email = ?, description = ?,
-                 affiliation = ?, password_hash = ?, updated_at = NOW()
+                 password_hash = ?, is_active = ?, updated_at = NOW()
            WHERE id = ? AND user_type = ?`,
         [
           firstName,
@@ -1076,8 +1124,8 @@ router.patch(
           pseudo,
           email,
           description,
-          affiliation,
           passwordHash,
+          nextIsActive,
           resolvedUserId,
           resolvedUserType,
         ],
@@ -1088,9 +1136,22 @@ router.patch(
       }
       throw err;
     }
-    if (passwordWillChange) {
-      // Révoque les sessions en cours du compte (ForetMap et GL) : nouveau mot de passe.
+    if (passwordWillChange || (activeWillChange && nextIsActive === 0)) {
+      // Révoque les sessions en cours du compte (ForetMap et GL) : nouveau mot de passe ou
+      // désactivation — la coupure est immédiate, pas à l'expiration du jeton.
       await bumpUserTokenEpoch(resolvedUserId);
+    }
+    if (activeWillChange) {
+      logAudit(
+        nextIsActive ? 'user_reactivate' : 'user_deactivate',
+        'user',
+        resolvedUserId,
+        displayName,
+        {
+          req,
+          payload: { user_type: resolvedUserType },
+        },
+      );
     }
 
     if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
@@ -1119,8 +1180,8 @@ router.patch(
             pseudo: hasPseudo,
             email: hasEmail,
             description: hasDescription,
-            affiliation: hasAffiliation && resolvedUserType === 'student',
             password: passwordWillChange,
+            is_active: activeWillChange,
           },
         },
       },
@@ -1159,7 +1220,7 @@ router.patch(
       pseudo: updated.pseudo ?? null,
       email: updated.email,
       description: updated.description ?? null,
-      affiliation: resolvedUserType === 'student' ? (updated.affiliation ?? 'both') : null,
+      is_active: Number(updated.is_active) !== 0,
       role_id: roleJoin?.role_id ?? null,
       role_slug: roleJoin?.role_slug ?? null,
       role_display_name: roleJoin?.role_display_name ?? null,
@@ -1185,13 +1246,16 @@ router.put(
 
     // Garde anti-escalade partagée avec l'attribution en lot (lib/rbacRoleAssignment.js) :
     // une action groupée ne peut pas contourner ce qu'une action unitaire refuse.
-    const applied = await assignPrimaryRole({
-      auth: req.auth,
+    const applied = await assignRole({
+      actor: req.auth,
       userType: resolvedUserType,
       userId: resolvedLegacyUserId,
       roleId,
     });
     if (!applied.ok) return res.status(applied.status).json({ error: applied.error });
+    if (resolvedUserType === 'student') {
+      emitStudentsChanged({ reason: 'rbac_assign_role', studentId: resolvedLegacyUserId });
+    }
     logAudit(
       'rbac_assign_role',
       'role',
@@ -1202,7 +1266,49 @@ router.put(
         payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
       },
     );
-    res.json({ ok: true });
+    res.json({ ok: true, effective: applied.effective });
+  }),
+);
+
+/**
+ * Suppression d'un compte **enseignant** — administrateur seulement (CDG-40). Les contenus
+ * créés restent (les clés étrangères passent à NULL, les journaux gardent l'identifiant) ;
+ * jamais soi-même, jamais le dernier administrateur actif. Les comptes élèves passent par
+ * `DELETE /api/students/:id`, qui purge aussi leurs affectations.
+ */
+router.delete(
+  '/users/teacher/:userId',
+  requirePermission('admin.users.assign_roles'),
+  asyncHandler(async (req, res) => {
+    if (normalizeRoleSlug(req.auth?.roleSlug) !== 'admin') {
+      return res
+        .status(403)
+        .json({ error: 'Seul un administrateur peut supprimer un compte enseignant' });
+    }
+    const userId = String(req.params.userId || '').trim();
+    if (String(req.auth.userId) === userId) {
+      return res.status(403).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+    }
+    const teacher = await queryOne(
+      "SELECT id, first_name, last_name, display_name, email FROM users WHERE id = ? AND user_type = 'teacher' LIMIT 1",
+      [userId],
+    );
+    if (!teacher) return res.status(404).json({ error: 'Enseignant introuvable' });
+    const role = await getPrimaryRoleForUser('teacher', userId);
+    if (role?.slug === 'admin' && (await countPrimaryAdmins()) <= 1) {
+      return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
+    }
+    const label =
+      teacher.display_name ||
+      `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() ||
+      teacher.email ||
+      userId;
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
+      await tx.execute("DELETE FROM users WHERE id = ? AND user_type = 'teacher'", [userId]);
+    });
+    logAudit('delete_teacher', 'user', userId, label, { req, payload: { email: teacher.email } });
+    res.json({ ok: true, deleted: userId });
   }),
 );
 

@@ -55,7 +55,6 @@ test.describe('inscription publique', () => {
         firstName: `E2ERefus${nonce}`,
         lastName: 'Eleve',
         password: '1234',
-        affiliation: 'both',
       },
     });
     expect(resp.status(), "l'API doit refuser l'inscription, pas seulement la masquer").toBe(403);
@@ -78,7 +77,6 @@ test.describe('inscription publique', () => {
     await page.getByLabel('Nom', { exact: true }).fill('Eleve');
     await page.getByLabel('Mot de passe', { exact: true }).fill(password);
     await page.getByLabel('Email (optionnel)').fill(email);
-    await page.getByLabel('Mon espace', { exact: true }).selectOption('both');
     await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
 
     const registerDone = page.waitForResponse(

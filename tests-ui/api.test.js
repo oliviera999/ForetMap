@@ -1,5 +1,92 @@
 import { describe, expect, test, vi } from 'vitest';
-import { api, getAuthToken, getStoredSession } from '../src/services/api.js';
+import {
+  AccountDeletedError,
+  api,
+  getAuthToken,
+  getStoredSession,
+  pickNewestAuthToken,
+} from '../src/services/api.js';
+
+/** Réponse 401 JSON telle que la renvoie `middleware/requireTeacher.js`. */
+function mock401(body) {
+  return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: false,
+    status: 401,
+    headers: {
+      get: (name) => (String(name).toLowerCase() === 'content-type' ? 'application/json' : null),
+    },
+    json: async () => body,
+  });
+}
+
+function listenSessionExpired() {
+  const events = [];
+  window.addEventListener('foretmap_teacher_expired', (e) => events.push(e.detail), {
+    once: true,
+  });
+  return events;
+}
+
+describe('api ForetMap — session révoquée (CDG-27)', () => {
+  test('401 SESSION_REVOKED : stockage vidé et événement de fermeture émis (sans deleted)', async () => {
+    localStorage.setItem('foretmap_session', JSON.stringify({ token: 'jwt-eleve' }));
+    localStorage.setItem('foretmap_student', JSON.stringify({ id: 'S1', authToken: 'jwt-eleve' }));
+    mock401({ error: 'Session expirée', code: 'SESSION_REVOKED', reason: 'password_changed' });
+    const events = listenSessionExpired();
+
+    await expect(api('/api/stats/me/S1')).rejects.toMatchObject({ status: 401 });
+
+    expect(events).toEqual([{ deleted: false, reason: 'password_changed' }]);
+    expect(localStorage.getItem('foretmap_session')).toBeNull();
+    expect(localStorage.getItem('foretmap_student')).toBeNull();
+    expect(getAuthToken()).toBeNull();
+  });
+
+  test('401 deleted:true : AccountDeletedError, stockage vidé, événement avec deleted', async () => {
+    localStorage.setItem('foretmap_session', JSON.stringify({ token: 'jwt-eleve' }));
+    mock401({
+      error: 'Compte supprimé',
+      code: 'SESSION_REVOKED',
+      reason: 'account_deleted',
+      deleted: true,
+    });
+    const events = listenSessionExpired();
+
+    await expect(api('/api/stats/me/S1')).rejects.toBeInstanceOf(AccountDeletedError);
+
+    expect(events).toEqual([{ deleted: true, reason: 'account_deleted' }]);
+    expect(localStorage.getItem('foretmap_session')).toBeNull();
+  });
+
+  test('401 sans jeton local : aucun événement (rien à fermer)', async () => {
+    mock401({ error: 'Session expirée', code: 'SESSION_REVOKED', reason: 'account_disabled' });
+    const events = listenSessionExpired();
+    await expect(api('/api/stats/me/S1')).rejects.toMatchObject({ status: 401 });
+    expect(events).toEqual([]);
+  });
+});
+
+describe('pickNewestAuthToken (CDG-28)', () => {
+  const b64 = (obj) =>
+    btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const jwt = (iat) => `${b64({ alg: 'HS256' })}.${b64({ iat, exp: iat + 5400 })}.sig`;
+
+  test('garde le jeton courant quand le jeton proposé est plus ancien', () => {
+    expect(pickNewestAuthToken(jwt(1000), jwt(5000))).toBe(jwt(5000));
+  });
+
+  test('prend le jeton proposé quand il est plus récent, égal, ou sans iat lisible', () => {
+    expect(pickNewestAuthToken(jwt(9000), jwt(5000))).toBe(jwt(9000));
+    expect(pickNewestAuthToken(jwt(5000), jwt(5000))).toBe(jwt(5000));
+    expect(pickNewestAuthToken('opaque-neuf', jwt(5000))).toBe('opaque-neuf');
+    expect(pickNewestAuthToken(' opaque-neuf ', null)).toBe('opaque-neuf');
+  });
+
+  test('sans jeton proposé, conserve le courant', () => {
+    expect(pickNewestAuthToken(undefined, jwt(5000))).toBe(jwt(5000));
+    expect(pickNewestAuthToken('', '')).toBeNull();
+  });
+});
 
 describe('api ForetMap', () => {
   test('récupère le JWT depuis une session n3beur legacy', async () => {

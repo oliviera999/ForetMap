@@ -18,8 +18,8 @@ async function createStudent(label) {
   const lastName = `Eleve${Date.now()}`.slice(0, 40);
   await execute(
     `INSERT INTO users
-      (id, user_type, first_name, last_name, display_name, affiliation, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, ?, 'both', 'local', 1, NOW(), NOW())`,
+      (id, user_type, first_name, last_name, display_name, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, ?, 'local', 1, NOW(), NOW())`,
     [id, firstName, lastName, `${firstName} ${lastName}`],
   );
   return id;
@@ -117,7 +117,7 @@ test('La garde d’attribution refuse de retirer le dernier administrateur', asy
   assert.ok(admin?.user_id, 'Un administrateur enseignant existe');
 
   const check = await checkRoleAssignmentAllowed({
-    auth: { roleSlug: 'admin' },
+    actor: { roleSlug: 'admin', roleRank: 500 },
     userType: 'teacher',
     userId: admin.user_id,
     roleId: noviceRole.id,
@@ -132,7 +132,7 @@ test('La garde d’attribution refuse de retirer le dernier administrateur', asy
 
   // Un acteur non-admin ne peut pas toucher un compte admin, quel que soit le profil visé.
   const asProf = await checkRoleAssignmentAllowed({
-    auth: { roleSlug: 'prof' },
+    actor: { roleSlug: 'prof', roleRank: 400 },
     userType: 'teacher',
     userId: admin.user_id,
     roleId: noviceRole.id,
@@ -143,7 +143,7 @@ test('La garde d’attribution refuse de retirer le dernier administrateur', asy
 
   // …ni accorder le rôle admin à qui que ce soit.
   const grant = await checkRoleAssignmentAllowed({
-    auth: { roleSlug: 'prof' },
+    actor: { roleSlug: 'prof', roleRank: 400 },
     userType: 'student',
     userId: 'peu-importe',
     roleId: adminRole.id,

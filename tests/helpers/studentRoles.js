@@ -2,22 +2,21 @@
 
 const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
+const { setAssignedRole } = require('../../lib/effectiveRole');
 
 /**
  * Helpers de rôle élève pour les tests.
  *
- * Contexte : depuis le modèle d'accès n3beur par groupes, `syncStudentRoleFromGroups`
- * (exécuté à l'inscription ET au login) démote tout élève qui n'appartient à aucun
- * **groupe n3beur** vers le profil `visiteur`. Affecter le rôle uniquement via
- * `user_roles` ne « tient » donc pas après un login : il faut aussi rattacher l'élève
- * à un groupe n3beur (`grants_n3beur_access = 1`, `default_role_id` = rôle visé).
- *
- * Ces helpers garantissent un élève dont le rôle `eleve_*` survit au login.
+ * Depuis la politique « le plus élevé l'emporte » (migration 267), un profil **attribué**
+ * (`users.assigned_role_id`) survit à la connexion : le recalcul du profil effectif ne peut
+ * que le relever (groupe conférant davantage), jamais l'abaisser. Les helpers passent donc
+ * par `setAssignedRole`, comme la console. Le groupe n3beur de test reste disponible pour
+ * les scénarios qui veulent explicitement un profil **conféré par un groupe**.
  */
 
 const groupIdByRoleSlug = new Map();
 
-/** Crée (ou réutilise) un groupe n3beur de test dont le rôle par défaut est `roleSlug`. */
+/** Crée (ou réutilise) un groupe de test dont le profil par défaut est `roleSlug`. */
 async function ensureN3beurTestGroup(roleSlug = 'eleve_novice') {
   if (groupIdByRoleSlug.has(roleSlug)) return groupIdByRoleSlug.get(roleSlug);
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
@@ -26,7 +25,7 @@ async function ensureN3beurTestGroup(roleSlug = 'eleve_novice') {
   if (!group?.id) {
     const groupId = crypto.randomUUID();
     await execute(
-      "INSERT INTO `groups` (id, slug, name, kind, default_role_id, grants_n3beur_access, is_active) VALUES (?, ?, ?, 'class', ?, 1, 1)",
+      "INSERT INTO `groups` (id, slug, name, kind, default_role_id, is_active) VALUES (?, ?, ?, 'class', ?, 1)",
       [groupId, slug, `Groupe test n3beur ${roleSlug}`, role?.id ?? null],
     );
     group = { id: groupId };
@@ -35,23 +34,20 @@ async function ensureN3beurTestGroup(roleSlug = 'eleve_novice') {
   return group.id;
 }
 
-/** Rattache un élève à un groupe n3beur de test (idempotent). */
+/** Rattache un élève à un groupe n3beur de test (idempotent) et recalcule son profil. */
 async function addStudentToN3beurTestGroup(studentId, roleSlug = 'eleve_novice') {
   const groupId = await ensureN3beurTestGroup(roleSlug);
   await execute(
-    "INSERT IGNORE INTO group_members (group_id, user_id, user_type, role_in_group) VALUES (?, ?, 'student', 'member')",
+    "INSERT IGNORE INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
     [groupId, studentId],
   );
+  const { recomputeUserRole } = require('../../lib/effectiveRole');
+  await recomputeUserRole(studentId);
   return groupId;
 }
 
 /**
- * Affecte le profil primaire d'un élève **et** garantit que ce rôle survit au login.
- * Pour un rôle `eleve_*`, l'élève est rattaché à un groupe n3beur de test (sinon le
- * `syncStudentRoleFromGroups` du login le redémoterait en `visiteur`).
- *
- * À appeler **avant** un éventuel re-login pour que le token porte le bon rôle.
- *
+ * Pose le profil **attribué** d'un élève et recalcule son profil effectif.
  * @param {string} studentId
  * @param {string} roleSlug
  * @returns {Promise<number>} l'id du rôle affecté
@@ -59,17 +55,12 @@ async function addStudentToN3beurTestGroup(studentId, roleSlug = 'eleve_novice')
 async function setStudentPrimaryRole(studentId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   if (!role?.id) throw new Error(`Rôle introuvable: ${roleSlug}`);
+  // Un palier n3beur va avec un groupe de classe (forum, périmètre, code de classe) : on
+  // rattache l'élève au groupe de test correspondant, comme le ferait un professeur.
   if (String(roleSlug).toLowerCase().startsWith('eleve_')) {
     await addStudentToN3beurTestGroup(studentId, roleSlug);
   }
-  await execute(
-    "UPDATE user_roles SET is_primary = 0 WHERE user_type = 'student' AND user_id = ?",
-    [studentId],
-  );
-  await execute(
-    "INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1",
-    [studentId, role.id],
-  );
+  await setAssignedRole(studentId, role.id);
   return role.id;
 }
 

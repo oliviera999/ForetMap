@@ -123,6 +123,37 @@ describe('mergeRbacUserRowsForEdit', () => {
     const merged = mergeRbacUserRowsForEdit({ id: 1 }, { id: 9, first_name: 'X' });
     expect(merged.id).toBe('9');
   });
+
+  test('profil attribué, profil effectif et groupes conférant un profil : la fiche fait foi', () => {
+    const merged = mergeRbacUserRowsForEdit(
+      { id: 1, assigned_role_id: 2, assigned_role_slug: 'eleve_novice', is_active: true },
+      {
+        id: 1,
+        assigned_role_id: 3,
+        assigned_role_slug: 'eleve_avance',
+        assigned_role_display_name: 'Élève avancé',
+        effective_role: { id: 5, slug: 'eleve_expert', source: 'group', groupName: '2nde B' },
+        conferring_groups: [{ groupId: 'g1', groupName: '2nde B', role: { slug: 'eleve_expert' } }],
+        is_active: false,
+        auth_provider: 'google',
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    );
+    expect(merged.assigned_role_id).toBe(3);
+    expect(merged.assigned_role_display_name).toBe('Élève avancé');
+    expect(merged.effective_role.source).toBe('group');
+    expect(merged.conferring_groups).toHaveLength(1);
+    expect(merged.is_active).toBe(false);
+    expect(merged.auth_provider).toBe('google');
+    expect(merged.created_at).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  test('sans fiche : le profil attribué de la ligne est conservé, le reste vaut null / []', () => {
+    const merged = mergeRbacUserRowsForEdit({ id: 1, assigned_role_id: 2 }, null);
+    expect(merged.assigned_role_id).toBe(2);
+    expect(merged.effective_role).toBeNull();
+    expect(merged.conferring_groups).toEqual([]);
+  });
 });
 
 describe('buildUserEditInitialFields', () => {
@@ -137,20 +168,12 @@ describe('buildUserEditInitialFields', () => {
     expect(out.email).toBe('lea@ex.fr');
   });
 
-  test('affiliation par défaut « both » quand absente', () => {
-    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B' }).affiliation).toBe(
-      'both',
+  test('aucun champ d’affiliation : le périmètre cartes vient des groupes', () => {
+    const out = buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: 'n3' });
+    expect('affiliation' in out).toBe(false);
+    expect(Object.keys(out).sort()).toEqual(
+      ['description', 'email', 'firstName', 'lastName', 'pseudo'].sort(),
     );
-    expect(
-      buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: '' }).affiliation,
-    ).toBe('both');
-  });
-
-  test('affiliation normalisée en minuscules', () => {
-    expect(
-      buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: 'N3' })
-        .affiliation,
-    ).toBe('n3');
   });
 
   test('description null → chaîne vide, sinon préservée (sans trim)', () => {
@@ -282,15 +305,7 @@ describe('buildUserEditPatchPayload', () => {
     });
   });
 
-  test('affiliation seulement pour un n3beur (student)', () => {
-    expect(
-      buildUserEditPatchPayload({
-        firstName: 'A',
-        lastName: 'B',
-        affiliation: 'lyon',
-        isStudent: true,
-      }).affiliation,
-    ).toBe('lyon');
+  test('aucune affiliation dans le PATCH, quel que soit le type de compte', () => {
     expect(
       'affiliation' in
         buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', affiliation: 'lyon' }),

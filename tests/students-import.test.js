@@ -8,7 +8,8 @@ const bcrypt = require('bcryptjs');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { TEMPLATE_COLUMNS, csvEscape } = require('../lib/studentRouteHelpers');
-const { setPrimaryRole } = require('../lib/rbac');
+const { setAssignedRole } = require('../lib/effectiveRole');
+const { checkRoleAssignmentAllowed } = require('../lib/rbacRoleAssignment');
 
 /** En-tête CSV aligné sur le modèle officiel (`csvEscape` pour les cellules à « ; »). */
 const IMPORT_CSV_HEADER = TEMPLATE_COLUMNS.map(csvEscape).join(';');
@@ -43,6 +44,7 @@ test.before(async () => {
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
       ['teacher', teacher.id, adminRole.id],
     );
+    await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
   }
   teacherToken = await signAuthToken(
     {
@@ -86,8 +88,8 @@ test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Import;Eleve-${unique};pass123;n3;Classe Import ${unique};import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
-    `prof;Import;SansMdp-${unique};;wrong;;;;`,
+    `eleve;Import;Eleve-${unique};pass123;Classe Import ${unique};import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
+    `prof;Import;SansMdp-${unique};;;;;`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -115,7 +117,7 @@ test('POST /api/students/import crée les élèves valides', async () => {
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Mass;Create-${unique};pass123;foret;Classe Mass ${unique};mass_${unique};mass_${unique}@example.com;Import réel`,
+    `eleve;Mass;Create-${unique};pass123;Classe Mass ${unique};mass_${unique};mass_${unique}@example.com;Import réel`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -136,7 +138,6 @@ test('POST /api/students/import crée les élèves valides', async () => {
     ['Mass', `Create-${unique}`],
   );
   assert.ok(inserted);
-  assert.strictEqual(String(inserted.affiliation || '').toLowerCase(), 'foret');
   const role = await queryOne(
     `SELECT r.slug FROM user_roles ur
      INNER JOIN roles r ON r.id = ur.role_id
@@ -155,7 +156,7 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof;Prof;Import-${unique};MotDePasse12!;both;;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
+    `prof;Prof;Import-${unique};MotDePasse12!;;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -190,7 +191,7 @@ test('POST /api/students/import crée un prof_classe avec le bon profil', async 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;both;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
+    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -230,7 +231,7 @@ test('POST /api/students/import met à jour un compte déjà présent (défaut)'
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Maj;User-${unique};pass123;n3;;maj_${unique};maj_${unique}@example.com;Avant`,
+    `eleve;Maj;User-${unique};pass123;;maj_${unique};maj_${unique}@example.com;Avant`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -244,7 +245,7 @@ test('POST /api/students/import met à jour un compte déjà présent (défaut)'
 
   const updateCsv = [
     header,
-    `eleve_avance;Maj;User-${unique};;foret;Classe Maj ${unique};maj_${unique}_v2;maj_v2_${unique}@example.com;Après`,
+    `eleve_avance;Maj;User-${unique};;Classe Maj ${unique};maj_${unique}_v2;maj_v2_${unique}@example.com;Après`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -267,7 +268,6 @@ test('POST /api/students/import met à jour un compte déjà présent (défaut)'
   assert.strictEqual(String(row.pseudo), `maj_${unique}_v2`);
   assert.strictEqual(String(row.email).toLowerCase(), `maj_v2_${unique}@example.com`);
   assert.strictEqual(String(row.description), 'Après');
-  assert.strictEqual(String(row.affiliation).toLowerCase(), 'foret');
   const role = await queryOne(
     `SELECT r.slug FROM user_roles ur
      INNER JOIN roles r ON r.id = ur.role_id
@@ -287,7 +287,7 @@ test('POST /api/students/import ignore les existants si strategy=skip', async ()
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Skip;User-${unique};pass123;n3;;skip_${unique};skip_${unique}@example.com;Origine`,
+    `eleve;Skip;User-${unique};pass123;;skip_${unique};skip_${unique}@example.com;Origine`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -301,7 +301,7 @@ test('POST /api/students/import ignore les existants si strategy=skip', async ()
 
   const againCsv = [
     header,
-    `eleve;Skip;User-${unique};pass123;foret;;skip_${unique}_x;skip_x_${unique}@example.com;Changé`,
+    `eleve;Skip;User-${unique};pass123;;skip_${unique}_x;skip_x_${unique}@example.com;Changé`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -317,7 +317,7 @@ test('POST /api/students/import ignore les existants si strategy=skip', async ()
   assert.strictEqual(res.body.report.totals.skipped_existing, 1);
   assert.strictEqual(res.body.report.totals.updated, 0);
   const row = await queryOne(
-    "SELECT description, affiliation FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
+    "SELECT description FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
     [`User-${unique}`],
   );
   assert.strictEqual(String(row.description), 'Origine');
@@ -337,7 +337,7 @@ test('POST /api/students/import accepte un MDP court si allow_weak_passwords', a
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Weak;Pwd-${unique};ab;n3;;weak_${unique};weak_${unique}@example.com;Court`,
+    `eleve;Weak;Pwd-${unique};ab;;weak_${unique};weak_${unique}@example.com;Court`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -363,14 +363,13 @@ async function createTeacherWithRole({ firstName, lastName, roleSlug, email, pas
   const pseudo = `imp_${id.slice(0, 8)}`;
   await execute(
     `INSERT INTO users
-      (id, user_type, first_name, last_name, display_name, email, pseudo, affiliation,
-       password_hash, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'teacher', ?, ?, ?, ?, ?, 'both', ?, 'local', 1, NOW(), NOW())`,
+      (id, user_type, first_name, last_name, display_name, email, pseudo, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'teacher', ?, ?, ?, ?, ?, ?, 'local', 1, NOW(), NOW())`,
     [id, firstName, lastName, `${firstName} ${lastName}`, email, pseudo, hash],
   );
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   assert.ok(role?.id, `rôle ${roleSlug} introuvable`);
-  await setPrimaryRole('teacher', id, role.id);
+  await setAssignedRole(id, role.id);
   return { id, roleId: role.id, email, firstName, lastName, passwordHash: hash };
 }
 
@@ -402,7 +401,7 @@ test('POST /api/students/import : un n3boss ne peut pas modifier un administrate
   );
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof;Cible;Admin-${unique};NouveauMdp12!;;;hacked_${unique};hacked_${unique}@example.com;Prise de controle`,
+    `prof;Cible;Admin-${unique};NouveauMdp12!;;hacked_${unique};hacked_${unique}@example.com;Prise de controle`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -429,7 +428,7 @@ test('POST /api/students/import : un n3boss ne peut pas modifier un administrate
   assert.strictEqual(role?.slug, 'admin');
 });
 
-test('POST /api/students/import refuse de rétrograder le dernier administrateur', async () => {
+test('POST /api/students/import : propre compte refusé, dernier admin protégé par la garde', async () => {
   const seed = await queryOne(
     "SELECT id, first_name, last_name FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
     [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()],
@@ -453,10 +452,10 @@ test('POST /api/students/import refuse de rétrograder le dernier administrateur
   const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   for (const row of otherAdmins) {
-    await setPrimaryRole('teacher', row.user_id, profRole.id);
+    await setAssignedRole(row.user_id, profRole.id);
   }
   try {
-    const csv = [IMPORT_CSV_HEADER, `prof;${firstName};${lastName};AutreMdp123!;;;;;;`].join('\n');
+    const csv = [IMPORT_CSV_HEADER, `prof;${firstName};${lastName};AutreMdp123!;;;;`].join('\n');
     const res = await request(app)
       .post('/api/students/import')
       .set('Authorization', 'Bearer ' + teacherToken)
@@ -468,7 +467,19 @@ test('POST /api/students/import refuse de rétrograder le dernier administrateur
       .expect(200);
 
     assert.strictEqual(res.body.report.totals.updated, 0);
-    assert.ok(res.body.report.errors.some((e) => /dernier administrateur/i.test(e.error)));
+    // Un acteur ne modifie jamais son propre compte par import (la ligne est signalée).
+    assert.ok(res.body.report.errors.some((e) => /propre compte/i.test(e.error)));
+    // La garde partagée refuse quant à elle de rétrograder le dernier administrateur actif,
+    // même pour le système (`actor = null`).
+    const guard = await checkRoleAssignmentAllowed({
+      actor: null,
+      userType: 'teacher',
+      userId: seed.id,
+      roleId: profRole.id,
+    });
+    assert.strictEqual(guard.ok, false);
+    assert.strictEqual(guard.status, 409);
+    assert.match(String(guard.error), /dernier administrateur/i);
     const role = await queryOne(
       `SELECT r.slug FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id
@@ -478,7 +489,7 @@ test('POST /api/students/import refuse de rétrograder le dernier administrateur
     assert.strictEqual(role?.slug, 'admin');
   } finally {
     for (const row of otherAdmins) {
-      await setPrimaryRole('teacher', row.user_id, adminRole.id);
+      await setAssignedRole(row.user_id, adminRole.id);
     }
     await execute('UPDATE users SET first_name = ?, last_name = ? WHERE id = ?', [
       seed.first_name,
@@ -493,7 +504,7 @@ test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Garde;Champs-${unique};pass123;n3;;garde_${unique};garde_${unique}@example.com;A conserver`,
+    `eleve;Garde;Champs-${unique};pass123;;garde_${unique};garde_${unique}@example.com;A conserver`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -505,7 +516,7 @@ test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo
     })
     .expect(200);
 
-  const updateCsv = [header, `eleve;Garde;Champs-${unique};;foret;;;;;`].join('\n');
+  const updateCsv = [header, `eleve;Garde;Champs-${unique};;;;;`].join('\n');
   const res = await request(app)
     .post('/api/students/import')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -518,23 +529,22 @@ test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo
 
   assert.strictEqual(res.body.report.totals.updated, 1);
   const row = await queryOne(
-    "SELECT email, pseudo, description, affiliation FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
+    "SELECT email, pseudo, description FROM users WHERE user_type = 'student' AND LOWER(last_name)=LOWER(?)",
     [`Champs-${unique}`],
   );
   assert.strictEqual(String(row.email).toLowerCase(), `garde_${unique}@example.com`);
   assert.strictEqual(String(row.pseudo), `garde_${unique}`);
   assert.strictEqual(String(row.description), 'A conserver');
-  assert.strictEqual(String(row.affiliation).toLowerCase(), 'foret');
 });
 
 test('POST /api/students/import : la colonne Rôle accepte les noms affichés des profils', async () => {
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `n3beur novice;Libelle;Novice-${unique};pass123;n3;;lib_nov_${unique};lib_nov_${unique}@example.com;`,
-    `Élève avancé;Libelle;Avance-${unique};pass123;n3;;lib_av_${unique};lib_av_${unique}@example.com;`,
-    `n3beur chevronné 🏆;Libelle;Chevron-${unique};pass123;n3;;lib_chev_${unique};lib_chev_${unique}@example.com;`,
-    `Prof de classe;Libelle;Tuteur-${unique};MotDePasse12!;both;;lib_tut_${unique};lib_tut_${unique}@example.com;`,
+    `n3beur novice;Libelle;Novice-${unique};pass123;;lib_nov_${unique};lib_nov_${unique}@example.com;`,
+    `Élève avancé;Libelle;Avance-${unique};pass123;;lib_av_${unique};lib_av_${unique}@example.com;`,
+    `n3beur chevronné 🏆;Libelle;Chevron-${unique};pass123;;lib_chev_${unique};lib_chev_${unique}@example.com;`,
+    `Prof de classe;Libelle;Tuteur-${unique};MotDePasse12!;;lib_tut_${unique};lib_tut_${unique}@example.com;`,
   ].join('\n');
 
   const res = await request(app)
@@ -568,7 +578,7 @@ test('POST /api/students/import : un profil renommé en base reste reconnu', asy
   try {
     const csv = [
       IMPORT_CSV_HEADER,
-      `Jardinier confirmé;Renomme;Profil-${unique};pass123;n3;;ren_${unique};ren_${unique}@example.com;`,
+      `Jardinier confirmé;Renomme;Profil-${unique};pass123;;ren_${unique};ren_${unique}@example.com;`,
     ].join('\n');
     const res = await request(app)
       .post('/api/students/import')
@@ -592,9 +602,9 @@ test('POST /api/students/import : rôle inconnu → message explicite, colonne v
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `;Defaut;Role-${unique};pass123;n3;;def_${unique};def_${unique}@example.com;`,
-    `Terminale S;Inconnu;Role-${unique};pass123;n3;;inc_${unique};inc_${unique}@example.com;`,
-    `gl_mj;Gl;Role-${unique};MotDePasse12!;both;;gl_${unique};gl_${unique}@example.com;`,
+    `;Defaut;Role-${unique};pass123;;def_${unique};def_${unique}@example.com;`,
+    `Terminale S;Inconnu;Role-${unique};pass123;;inc_${unique};inc_${unique}@example.com;`,
+    `gl_mj;Gl;Role-${unique};MotDePasse12!;;gl_${unique};gl_${unique}@example.com;`,
   ].join('\n');
 
   const res = await request(app)
@@ -625,12 +635,10 @@ test('POST /api/students/import : rôle inconnu → message explicite, colonne v
 
 test('POST /api/students/import : « Type » ne prime pas sur « Rôle », « E-mail » reconnu', async () => {
   const unique = Date.now();
-  const header = ['Type', 'Rôle', 'Prénom', 'Nom', 'Mot de passe', 'Affiliation', 'E-mail'].join(
-    ';',
-  );
+  const header = ['Type', 'Rôle', 'Prénom', 'Nom', 'Mot de passe', 'E-mail'].join(';');
   const csv = [
     header,
-    `eleve;prof_classe;Entete;Priorite-${unique};MotDePasse12!;both;entete_${unique}@example.com`,
+    `eleve;prof_classe;Entete;Priorite-${unique};MotDePasse12!;entete_${unique}@example.com`,
   ].join('\n');
 
   const res = await request(app)

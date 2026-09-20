@@ -120,6 +120,26 @@ router.post(
     if (!destination.ok) {
       return res.status(403).json({ error: destination.error });
     }
+    // Un compte enseignant ne s'ouvre depuis le cours que si la plateforme y présente la
+    // personne comme enseignante (rôle LTI Instructor / Administrator). L'e-mail déclaré par
+    // la plateforme ne suffit pas à ouvrir une session n3boss ou admin (CDG-05).
+    if (String(user.user_type) === 'teacher' && !destination.instructor) {
+      await logAudit(
+        'lti_launch_refused',
+        'user',
+        String(user.id),
+        'teacher_without_instructor_role',
+        {
+          req,
+          payload: { courseId: destination.courseId, via },
+          result: 'failure',
+        },
+      );
+      return res.status(403).json({
+        error: 'Ce compte enseignant n’est pas enseignant dans ce cours Moodle : entrée refusée',
+        code: 'LTI_TEACHER_ROLE_REQUIRED',
+      });
+    }
     const report = {
       source: destination.source,
       courseId: destination.courseId,

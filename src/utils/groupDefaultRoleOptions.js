@@ -21,25 +21,21 @@ export function normalizeProfilesPayload(payload) {
 }
 
 /**
- * Filtre aligné sur la règle serveur (`isAllowedGroupDefaultRole`).
- *
- * Le serveur publie `group_default_allowed` par profil : on le suit dès qu'il est présent,
- * pour ne plus proposer un choix que `PATCH /api/groups/:id` refusera (« Prof de classe »
- * était offert puis rejeté en « default_role_id invalide »). Le filtre local ne sert plus
- * que de repli face à une API plus ancienne.
+ * Profils proposables comme profil par défaut d'un groupe : **tous** les profils ForetMap,
+ * sauf ceux du jeu Gnomes & Licornes. Le serveur publie `group_default_allowed` par profil
+ * pour l'acteur courant (hors administrateur, pas de profil de rang supérieur au sien) : on le
+ * suit dès qu'il est présent (`lib/groupDefaultRolePolicy.js`).
  *
  * @param {Array<object>} roles
  * @returns {Array<object>}
  */
 export function filterGroupDefaultRoles(roles) {
-  return (Array.isArray(roles) ? roles : []).filter((r) => {
-    if (typeof r?.group_default_allowed === 'boolean') return r.group_default_allowed;
-    const slug = String(r?.slug || '').toLowerCase();
-    return (
-      slug === 'visiteur' ||
-      slug === 'personnel' ||
-      slug.startsWith('eleve_') ||
-      (Number(r?.rank) > 0 && Number(r?.rank) < 400 && !slug.startsWith('gl_'))
-    );
-  });
+  return (Array.isArray(roles) ? roles : [])
+    .filter((r) => {
+      if (typeof r?.group_default_allowed === 'boolean') return r.group_default_allowed;
+      return !String(r?.slug || '')
+        .toLowerCase()
+        .startsWith('gl_');
+    })
+    .sort((a, b) => Number(b?.rank || 0) - Number(a?.rank || 0));
 }

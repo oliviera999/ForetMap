@@ -39,8 +39,8 @@ export function validateUserIdentityFields({
 
 /**
  * Construit le corps du `PATCH /api/rbac/users/:type/:id` du formulaire d'édition :
- * champs trimés (vides → null), affiliation seulement pour un n3beur (student),
- * mot de passe seulement s'il est saisi (non trimé dans le payload, comme avant).
+ * champs trimés (vides → null), mot de passe seulement s'il est saisi (non trimé dans le
+ * payload, comme avant). Le périmètre cartes ne se règle plus ici : il découle des groupes.
  */
 export function buildUserEditPatchPayload({
   firstName = '',
@@ -48,9 +48,7 @@ export function buildUserEditPatchPayload({
   pseudo = '',
   email = '',
   description = '',
-  affiliation = 'both',
   password = '',
-  isStudent = false,
 } = {}) {
   const payload = {
     first_name: firstName.trim(),
@@ -59,7 +57,6 @@ export function buildUserEditPatchPayload({
     email: email.trim() || null,
     description: description.trim() || null,
   };
-  if (isStudent) payload.affiliation = affiliation;
   if (password.trim()) payload.password = password;
   return payload;
 }
@@ -122,13 +119,39 @@ export function mergeRbacUserRowsForEdit(listRow, detailRow) {
     pseudo: pick(b, 'pseudo') ?? pick(a, 'pseudo'),
     email: pick(b, 'email') ?? pick(a, 'email'),
     description: pickLoose(b, 'description') ?? pickLoose(a, 'description'),
-    affiliation: pick(b, 'affiliation') ?? pick(a, 'affiliation'),
     role_id: pickUserField(b, 'role_id', 'roleId') ?? pickUserField(a, 'role_id', 'roleId'),
     role_slug:
       pickUserField(b, 'role_slug', 'roleSlug') ?? pickUserField(a, 'role_slug', 'roleSlug'),
     role_display_name:
       pickUserField(b, 'role_display_name', 'roleDisplayName') ??
       pickUserField(a, 'role_display_name', 'roleDisplayName'),
+    // Profil attribué, profil effectif (avec son origine) et groupes qui confèrent un profil :
+    // la fiche détaillée seule les connaît ; la ligne de liste porte au moins le profil attribué.
+    assigned_role_id:
+      pickUserField(b, 'assigned_role_id', 'assignedRoleId') ??
+      pickUserField(a, 'assigned_role_id', 'assignedRoleId') ??
+      null,
+    assigned_role_slug:
+      pickUserField(b, 'assigned_role_slug', 'assignedRoleSlug') ??
+      pickUserField(a, 'assigned_role_slug', 'assignedRoleSlug') ??
+      null,
+    assigned_role_display_name:
+      pickUserField(b, 'assigned_role_display_name', 'assignedRoleDisplayName') ??
+      pickUserField(a, 'assigned_role_display_name', 'assignedRoleDisplayName') ??
+      null,
+    effective_role: pickUserField(b, 'effective_role', 'effectiveRole') ?? null,
+    conferring_groups: (() => {
+      const fromDetail = pickUserField(b, 'conferring_groups', 'conferringGroups');
+      return Array.isArray(fromDetail) ? fromDetail : [];
+    })(),
+    // Métadonnées de support (état, origine, création, dernière visite) : fiche puis liste.
+    is_active:
+      pickUserField(b, 'is_active', 'isActive') ?? pickUserField(a, 'is_active', 'isActive'),
+    auth_provider:
+      pickUserField(b, 'auth_provider', 'authProvider') ??
+      pickUserField(a, 'auth_provider', 'authProvider'),
+    created_at: pickUserField(b, 'created_at', 'createdAt'),
+    last_seen: pickUserField(b, 'last_seen', 'lastSeen'),
     forum_participate:
       pickUserField(b, 'forum_participate', 'forumParticipate') ??
       pickUserField(a, 'forum_participate', 'forumParticipate'),
@@ -158,8 +181,6 @@ export function buildUserEditInitialFields(u) {
   const email = toUiString(pickUserField(u, 'email')).trim();
   const descRaw = pickUserField(u, 'description');
   const description = descRaw != null ? toUiString(descRaw) : '';
-  let affiliation = toUiString(pickUserField(u, 'affiliation') ?? 'both').toLowerCase();
-  if (!affiliation) affiliation = 'both';
 
   if (!firstName && !lastName) {
     const dn = toUiString(pickUserField(u, 'display_name', 'displayName')).trim();
@@ -182,5 +203,5 @@ export function buildUserEditInitialFields(u) {
     }
   }
 
-  return { firstName, lastName, pseudo, email, description, affiliation };
+  return { firstName, lastName, pseudo, email, description };
 }

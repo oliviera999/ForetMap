@@ -44,6 +44,7 @@ export const REPORT_TOTAL_ROWS = Object.freeze([
   ['pendingMatches', 'En attente (homonymes)'],
   ['emailConflicts', 'Conflits d’e-mail'],
   ['deactivations', 'Désactivations'],
+  ['reactivations', 'Réactivations'],
   ['groupAdds', 'Ajouts dans un groupe'],
   ['groupRemoves', 'Retraits d’un groupe'],
   ['outbound', 'Écritures vers Moodle'],

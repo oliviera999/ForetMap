@@ -15,9 +15,9 @@ const DEFAULT_TABLES = Object.freeze({
   users:
     'SELECT id, user_type, email, pseudo, first_name, last_name, auth_provider, is_active, sync_exempt FROM users ORDER BY id',
   groups:
-    'SELECT id, slug, name, kind, default_role_id, grants_n3beur_access, is_active, sync_exempt FROM `groups` ORDER BY id',
+    'SELECT id, slug, name, kind, default_role_id, force_default_role, is_active, sync_exempt FROM `groups` ORDER BY id',
   group_members:
-    'SELECT group_id, user_id, role_in_group FROM group_members ORDER BY group_id, user_id',
+    'SELECT group_id, user_id, user_type FROM group_members ORDER BY group_id, user_id',
   gl_classes: 'SELECT id, name, foretmap_group_id, is_active FROM gl_classes ORDER BY id',
   gl_players:
     'SELECT id, class_id, team_id, linked_foretmap_user_id, is_active FROM gl_players ORDER BY id',
@@ -58,7 +58,7 @@ function userScopedTables(userId) {
       params: [userId],
     },
     memberships: {
-      sql: 'SELECT group_id, role_in_group FROM group_members WHERE user_id = ? ORDER BY group_id',
+      sql: 'SELECT group_id, user_type FROM group_members WHERE user_id = ? ORDER BY group_id',
       params: [userId],
     },
     player: {
@@ -75,11 +75,11 @@ function userScopedTables(userId) {
 function groupScopedTables(groupId) {
   return {
     group: {
-      sql: 'SELECT id, slug, name, kind, default_role_id, grants_n3beur_access, is_active, sync_exempt FROM `groups` WHERE id = ?',
+      sql: 'SELECT id, slug, name, kind, default_role_id, force_default_role, is_active, sync_exempt FROM `groups` WHERE id = ?',
       params: [groupId],
     },
     members: {
-      sql: 'SELECT user_id, role_in_group FROM group_members WHERE group_id = ? ORDER BY user_id',
+      sql: 'SELECT user_id, user_type FROM group_members WHERE group_id = ? ORDER BY user_id',
       params: [groupId],
     },
   };

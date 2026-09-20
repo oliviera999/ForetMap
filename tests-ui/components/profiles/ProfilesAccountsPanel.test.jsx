@@ -19,7 +19,7 @@ const USERS = [
     display_name: 'Ana Blin',
     role_id: 2,
     role_slug: 'eleve_novice',
-    groups: [{ id: 'g1', name: '2nde B', kind: 'class', role_in_group: 'member' }],
+    groups: [{ id: 'g1', name: '2nde B', kind: 'class' }],
   },
   {
     id: 's2',
@@ -187,6 +187,25 @@ describe('ProfilesAccountsPanel — actions en lot (P2)', () => {
     expect(screen.getByText('Attribuer un profil sensible ?')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
     await waitFor(() => expect(onBulkAssignRole).toHaveBeenCalledTimes(1));
+  });
+
+  test('un lot qui retire un profil sensible à un admin est annoncé comme un retrait', () => {
+    setup();
+    fireEvent.click(screen.getByLabelText('Sélectionner Ana Blin'));
+    fireEvent.click(screen.getByLabelText('Sélectionner Zoe Dupin'));
+    fireEvent.change(screen.getByLabelText('Attribuer le profil'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
+    expect(screen.getByText('Retirer un profil sensible ?')).toBeInTheDocument();
+    expect(screen.getByText(/dont 1 perdra un profil/)).toBeInTheDocument();
+  });
+
+  test('sans droit d’attribution : liste visible, sélecteurs et action groupée « profil » inactifs', () => {
+    setup({ canManageProfiles: false, canListAccounts: true, canAssignRoles: false });
+    expect(screen.getByText('Ana Blin')).toBeInTheDocument();
+    expect(screen.getByLabelText('Profil de Ana Blin')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Sélectionner Ana Blin'));
+    expect(screen.queryByLabelText('Attribuer le profil')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Rattacher au groupe')).toBeInTheDocument();
   });
 
   test('rattachement groupé : seuls les élèves sont envoyés', async () => {

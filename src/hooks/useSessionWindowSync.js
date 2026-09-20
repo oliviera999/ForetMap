@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { getAuthClaims, getStoredSession } from '../services/api';
+import { ACCOUNT_DELETED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './useAuthSession';
 
 /**
  * Synchronisation des états de session React depuis les évènements `window`
@@ -11,8 +12,11 @@ import { getAuthClaims, getStoredSession } from '../services/api';
  * source externe modifie la session, exactement comme les anciens `useEffect`
  * inline d'App.jsx :
  *
- * - `foretmap_teacher_expired` : la session n3boss a expiré → on coupe
- *   `isTeacher`, on vide `authClaims` / `sessionUser` et on affiche un toast ;
+ * - `foretmap_teacher_expired` : la session (élève ou prof) a expiré ou été révoquée →
+ *   on coupe `isTeacher` puis on ferme la session par `forceLogout` (état `student` à
+ *   `null`, stockage vidé, toast « Session expirée » ou « Compte supprimé » selon
+ *   `event.detail.deleted`) — CDG-27 : sans `forceLogout`, seuls `authClaims` /
+ *   `sessionUser` sont vidés et un élève restait dans l'application ;
  * - `foretmap_session_changed` (PIN, OAuth…) : émis avant le callback React du
  *   modal → on relit `getStoredSession()` / `getAuthClaims()` après un tick
  *   (coalescence + stabilisation du `localStorage`) et on réaligne les états.
@@ -27,18 +31,31 @@ import { getAuthClaims, getStoredSession } from '../services/api';
  * @param {(value: boolean) => void} params.setIsTeacher
  * @param {(user: object|null) => void} params.setSessionUser
  * @param {(message: string|null) => void} params.setToast
+ * @param {(options?: { message?: string }) => void} [params.forceLogout]
+ *   Déconnexion forcée d'`useAuthSession` (ferme aussi la session élève).
  */
-export function useSessionWindowSync({ setAuthClaims, setIsTeacher, setSessionUser, setToast }) {
+export function useSessionWindowSync({
+  setAuthClaims,
+  setIsTeacher,
+  setSessionUser,
+  setToast,
+  forceLogout,
+}) {
   useEffect(() => {
-    const onExpired = () => {
+    const onExpired = (event) => {
+      const message = event?.detail?.deleted ? ACCOUNT_DELETED_MESSAGE : SESSION_EXPIRED_MESSAGE;
       setIsTeacher(false);
+      if (typeof forceLogout === 'function') {
+        forceLogout({ message });
+        return;
+      }
       setAuthClaims(null);
       setSessionUser(null);
-      setToast('Session n3boss expirée.');
+      setToast(message);
     };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
-  }, [setAuthClaims, setIsTeacher, setSessionUser, setToast]);
+  }, [forceLogout, setAuthClaims, setIsTeacher, setSessionUser, setToast]);
 
   /* `saveStoredSession` (PIN, OAuth…) émet avant le callback React du modal : réaligner claims / isTeacher sur le JWT. */
   useEffect(() => {

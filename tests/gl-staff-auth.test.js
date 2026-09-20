@@ -37,6 +37,10 @@ before(async () => {
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [adminTeacherId, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [
+    adminRole.id,
+    adminTeacherId,
+  ]);
 
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
@@ -69,6 +73,7 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap via pseudo sans e
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [pseudoOnlyId, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, pseudoOnlyId]);
 
   const res = await request(app)
     .post('/api/gl/auth/staff/login')
@@ -118,6 +123,10 @@ test('POST /api/gl/auth/staff/login accepte un MJ GL dont gl_admins.email = iden
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [legacyTeacherId, profRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [
+    profRole.id,
+    legacyTeacherId,
+  ]);
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ legacy GL', 'mj', 1, NOW(), NOW())
@@ -174,6 +183,7 @@ test('POST /api/gl/auth/login connecte un MJ via email ForetMap quand gl_admins.
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [mjTeacherId, profRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [profRole.id, mjTeacherId]);
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ pseudo GL', 'mj', 1, NOW(), NOW())
@@ -206,6 +216,7 @@ test('POST /api/gl/auth/login tente le staff si un joueur partage le même pseud
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [sharedId, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, sharedId]);
   const admin = await createGlAdmin({ email: `mj.${sharedId}@ecole.local` });
   const cls = await createGlClass({ adminId: admin.id, name: `Classe ${sharedId}` });
   await createGlPlayer({
@@ -237,6 +248,7 @@ test('POST /api/gl/auth/staff/login signale un compte enseignant Google-only', a
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
     [googleOnlyId, adminRole.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, googleOnlyId]);
 
   const res = await request(app)
     .post('/api/gl/auth/staff/login')

@@ -31,6 +31,7 @@ test.before(async () => {
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
     ['student', reg.body.id, role.id],
   );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, reg.body.id]);
   studentToken = reg.body.authToken;
 });
 

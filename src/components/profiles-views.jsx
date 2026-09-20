@@ -4,7 +4,6 @@ import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
-import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -40,11 +39,10 @@ import {
 
 const PROFILES_SUB_TAB_KEY = 'foretmap.profiles.subTab';
 
-function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
+function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({
       publicSettings,
@@ -62,14 +60,17 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [confirmStudent, setConfirmStudent] = useState(null);
   const [authPerms, setAuthPerms] = useState([]);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
+  /** Identifiant du compte connecté : la fiche n'offre jamais de se désactiver soi-même. */
+  const [authUserId, setAuthUserId] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
-  const [alignOnGroupJoinEnabled, setAlignOnGroupJoinEnabled] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
   const [impersonateLoading, setImpersonateLoading] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [activeSaving, setActiveSaving] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const [subTab, setSubTab] = useState(() =>
     resolveProfilesSubTab(safeLocalStorageGetItem(PROFILES_SUB_TAB_KEY, '')),
   );
@@ -80,6 +81,12 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   /** Modale créer / éditer / dupliquer un profil RBAC. */
   const [roleForm, setRoleForm] = useState(null);
 
+  /**
+   * Chargement par droit, **chaque appel avec son propre `catch`** : un prof de classe
+   * (`groups.manage` sans `admin.roles.manage`) doit voir ses comptes même si la liste des
+   * profils lui est refusée. Un droit partiel ne casse plus tout le chargement — les erreurs
+   * sont cumulées dans le bandeau, le reste s'affiche.
+   */
   const load = async () => {
     setErr('');
     const auth = await api('/api/auth/me').catch(() => null);
@@ -87,51 +94,77 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     const roleSlug = String(auth?.auth?.roleSlug || '').toLowerCase();
     setAuthPerms(perms);
     setAuthRoleSlug(roleSlug);
+    setAuthUserId(String(auth?.auth?.canonicalUserId ?? auth?.auth?.userId ?? auth?.id ?? ''));
 
-    const canManageProfiles =
-      perms.includes('admin.roles.manage') || perms.includes('admin.users.assign_roles');
+    const canLoadProfiles = perms.includes('admin.roles.manage');
+    const canLoadUsers =
+      perms.includes('admin.users.assign_roles') || perms.includes('groups.manage');
     const canLoadStudents = perms.includes('stats.read.all');
+    const failures = [];
 
-    if (canManageProfiles) {
-      const [profilePayload, userRows] = await Promise.all([
-        api('/api/rbac/profiles'),
-        api('/api/rbac/users'),
-      ]);
-      const normalized = Array.isArray(profilePayload)
-        ? profilePayload
-        : Array.isArray(profilePayload?.roles)
-          ? profilePayload.roles
-          : [];
-      if (profilePayload && typeof profilePayload === 'object' && !Array.isArray(profilePayload)) {
-        setProgressionByTasksEnabled(profilePayload.progressionByValidatedTasksEnabled !== false);
-        setAlignOnGroupJoinEnabled(profilePayload.progressionAlignOnGroupJoinEnabled !== false);
-      } else {
-        setProgressionByTasksEnabled(true);
-        setAlignOnGroupJoinEnabled(true);
+    if (canLoadProfiles) {
+      try {
+        const profilePayload = await api('/api/rbac/profiles');
+        const normalized = Array.isArray(profilePayload)
+          ? profilePayload
+          : Array.isArray(profilePayload?.roles)
+            ? profilePayload.roles
+            : [];
+        if (
+          profilePayload &&
+          typeof profilePayload === 'object' &&
+          !Array.isArray(profilePayload)
+        ) {
+          setProgressionByTasksEnabled(profilePayload.progressionByValidatedTasksEnabled !== false);
+        } else {
+          setProgressionByTasksEnabled(true);
+        }
+        setRoles(
+          normalized.map((r) => ({
+            ...r,
+            permissions: Array.isArray(r.permissions) ? r.permissions : [],
+          })),
+        );
+        setCatalog(normalized[0]?.catalog || []);
+        setSelectedRoleId((prev) => prev ?? normalized[0]?.id ?? null);
+      } catch (e) {
+        failures.push(e?.message || 'Profils non chargés');
+        setRoles([]);
+        setCatalog([]);
+        setSelectedRoleId(null);
       }
-      setRoles(
-        normalized.map((r) => ({
-          ...r,
-          permissions: Array.isArray(r.permissions) ? r.permissions : [],
-        })),
-      );
-      setCatalog(normalized[0]?.catalog || []);
-      setUsers(Array.isArray(userRows) ? userRows : []);
-      setSelectedRoleId((prev) => prev ?? normalized[0]?.id ?? null);
     } else {
       setRoles([]);
       setCatalog([]);
-      setUsers([]);
       setSelectedRoleId(null);
     }
 
+    if (canLoadUsers) {
+      try {
+        const userRows = await api('/api/rbac/users');
+        setUsers(Array.isArray(userRows) ? userRows : []);
+      } catch (e) {
+        failures.push(e?.message || 'Comptes non chargés');
+        setUsers([]);
+      }
+    } else {
+      setUsers([]);
+    }
+
     if (canLoadStudents) {
-      const payload = await api('/api/stats/all');
-      const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
-      setStudents(Array.isArray(rows) ? rows : []);
+      try {
+        const payload = await api('/api/stats/all');
+        const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
+        setStudents(Array.isArray(rows) ? rows : []);
+      } catch (e) {
+        failures.push(e?.message || 'Statistiques non chargées');
+        setStudents([]);
+      }
     } else {
       setStudents([]);
     }
+
+    if (failures.length > 0) setErr(failures.join(' · '));
   };
 
   useEffect(() => {
@@ -168,10 +201,13 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const {
     canManageProfiles,
     canEditRoleDefinition,
+    canAssignRoles,
+    canListAccounts,
     canExport,
     canImport,
     canImportGroups,
     canManageGroups,
+    canReadGroups,
     canCreateUsers,
     canDuplicateStudents,
     isAdmin,
@@ -179,28 +215,44 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     canDeleteUi,
   } = deriveProfilesCapabilities({ authPerms, authRoleSlug });
 
+  // Portes des sous-onglets — une par onglet, dérivées des permissions (cf. resolveProfilesSubTab).
+  const canShowProfiles = canEditRoleDefinition;
+  const canShowAccounts = canListAccounts || canManageStudents;
+  const canShowGroups = canManageGroups || canReadGroups;
   const canShowImports = canManageStudents || canImportGroups || canManageProfiles;
+  const canShowAnything = canShowProfiles || canShowAccounts || canShowGroups || canShowImports;
+
+  const subTabCaps = useMemo(
+    () => ({
+      canEditRoleDefinition,
+      canListAccounts,
+      canManageStudents,
+      canManageGroups,
+      canReadGroups,
+      canImportGroups,
+    }),
+    [
+      canEditRoleDefinition,
+      canListAccounts,
+      canManageStudents,
+      canManageGroups,
+      canReadGroups,
+      canImportGroups,
+    ],
+  );
 
   useEffect(() => {
-    const resolved = resolveProfilesSubTab(subTab, {
-      canManageProfiles,
-      canManageStudents,
-      canImportGroups,
-    });
+    const resolved = resolveProfilesSubTab(subTab, subTabCaps);
     if (resolved !== subTab) setSubTab(resolved);
-  }, [subTab, canManageProfiles, canManageStudents, canImportGroups]);
+  }, [subTab, subTabCaps]);
 
   const changeSubTab = useCallback(
     (next) => {
-      const resolved = resolveProfilesSubTab(next, {
-        canManageProfiles,
-        canManageStudents,
-        canImportGroups,
-      });
+      const resolved = resolveProfilesSubTab(next, subTabCaps);
       setSubTab(resolved);
       safeLocalStorageSetItem(PROFILES_SUB_TAB_KEY, resolved);
     },
-    [canManageProfiles, canManageStudents, canImportGroups],
+    [subTabCaps],
   );
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
@@ -252,23 +304,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         enabled
           ? 'Montée de niveau automatique selon les tâches validées : activée.'
           : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.',
-      );
-    } catch (e) {
-      setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
-    }
-    setLoading(false);
-  };
-
-  const toggleAlignOnGroupJoin = async (enabled) => {
-    setLoading(true);
-    setErr('');
-    try {
-      await api('/api/rbac/progression-align-on-group-join', 'PATCH', { enabled: !!enabled });
-      setAlignOnGroupJoinEnabled(!!enabled);
-      setMsg(
-        enabled
-          ? 'Rattachement à un groupe n3beur : le profil est désormais aligné aussitôt sur le nombre de tâches validées.'
-          : 'Rattachement à un groupe n3beur : seul le profil par défaut du groupe est appliqué.',
       );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
@@ -484,12 +519,12 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
 
   /**
    * `fields` : champs d'identité saisis dans la fiche — { firstName, lastName, pseudo, email,
-   * description, affiliation }. Le mot de passe a sa propre action (`resetUserPassword`, P12
-   * de l'audit UX) : ce n'est plus un champ noyé dans le formulaire d'identité.
+   * description }. Le mot de passe a sa propre action (`resetUserPassword`, P12 de l'audit
+   * UX) : ce n'est plus un champ noyé dans le formulaire d'identité.
    */
   const saveEditUser = async (fields) => {
     if (!editingUser) return;
-    const { firstName, lastName, pseudo, email, description, affiliation } = fields;
+    const { firstName, lastName, pseudo, email, description } = fields;
     const fieldError = validateUserIdentityFields({
       firstName,
       lastName,
@@ -510,8 +545,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         pseudo,
         email,
         description,
-        affiliation,
-        isStudent: editingUser.user_type === 'student',
       });
       await api(
         `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
@@ -560,16 +593,67 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     }
   };
 
-  /** Recharge la fiche ouverte après une écriture sur ses groupes (P14). */
+  /**
+   * Recharge la fiche ouverte après une écriture (rattachement P14, désactivation) : les
+   * groupes, mais aussi le profil effectif et son origine, qui dépendent des groupes.
+   */
   const refreshEditingUserGroups = async () => {
     if (!editingUser) return;
     const ut = String(editingUser.user_type || '').toLowerCase();
     const uid = encodeURIComponent(String(editingUser.id));
     const detail = await api(`/api/rbac/users/${ut}/${uid}`).catch(() => null);
     if (isLikelyApiUserPayload(detail)) {
-      setEditingUser((prev) => (prev ? { ...prev, groups: detail.groups || [] } : prev));
+      setEditingUser((prev) => (prev ? mergeRbacUserRowsForEdit(prev, detail) : prev));
     }
     await load().catch(() => {});
+  };
+
+  /**
+   * Désactivation / réactivation du compte ouvert (`PATCH is_active`). Le serveur applique ses
+   * gardes (jamais soi-même, rang suffisant, dernier administrateur actif) : on relaie son
+   * message tel quel.
+   */
+  const setEditingUserActive = async (nextActive) => {
+    if (!editingUser) return;
+    setActiveSaving(true);
+    setErr('');
+    try {
+      await api(
+        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
+        'PATCH',
+        { is_active: !!nextActive },
+      );
+      setMsg(
+        nextActive
+          ? `Compte réactivé : ${editingUser.display_name}`
+          : `Compte désactivé : ${editingUser.display_name}`,
+      );
+      setEditingUser((prev) => (prev ? { ...prev, is_active: !!nextActive } : prev));
+      await refreshEditingUserGroups();
+    } catch (e) {
+      setErr(e.message || 'Impossible de changer l’état du compte');
+    } finally {
+      setActiveSaving(false);
+    }
+  };
+
+  /** Suppression d'un compte enseignant (administrateur seulement ; les contenus restent). */
+  const deleteEditingTeacher = async () => {
+    if (!editingUser || String(editingUser.user_type || '').toLowerCase() !== 'teacher') return;
+    setDeleteSaving(true);
+    setErr('');
+    try {
+      await api(`/api/rbac/users/teacher/${encodeURIComponent(String(editingUser.id))}`, 'DELETE');
+      setMsg(`Compte enseignant supprimé : ${editingUser.display_name}`);
+      closeEditUser();
+      await load().catch((loadErr) =>
+        setErr(loadErr?.message || 'Liste non rafraîchie — rechargez la page si besoin.'),
+      );
+    } catch (e) {
+      setErr(e.message || 'Suppression impossible');
+    } finally {
+      setDeleteSaving(false);
+    }
   };
 
   const attachEditingUserToGroup = async (groupId) => {
@@ -778,11 +862,14 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           user={editingUser}
           loadState={editUserLoadState}
           err={err}
-          affiliationOptions={affiliationOptions}
           authPerms={authPerms}
           saving={editLoading}
           impersonateLoading={impersonateLoading}
           passwordSaving={passwordSaving}
+          activeSaving={activeSaving}
+          deleteSaving={deleteSaving}
+          isAdmin={isAdmin}
+          isSelf={Boolean(editingUser && authUserId && String(editingUser.id) === authUserId)}
           groupOptions={groupOptions}
           canManageGroups={canManageGroups}
           onClose={closeEditUser}
@@ -791,6 +878,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onImpersonate={startImpersonation}
           onAttachGroup={attachEditingUserToGroup}
           onDetachGroup={detachEditingUserFromGroup}
+          onToggleActive={canAssignRoles ? setEditingUserActive : undefined}
+          onDeleteTeacher={isAdmin ? deleteEditingTeacher : undefined}
         />
       )}
 
@@ -810,12 +899,13 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         onSubmit={submitRoleForm}
       />
 
-      {(canManageProfiles || canManageStudents || canImportGroups) && (
+      {canShowAnything && (
         <ProfilesAdminSubTabs
           active={subTab}
           onChange={changeSubTab}
-          canManageProfiles={canManageProfiles}
-          canManageStudents={canManageStudents}
+          canShowProfiles={canShowProfiles}
+          canShowAccounts={canShowAccounts}
+          canShowGroups={canShowGroups}
           canShowImports={canShowImports}
           pendingVisitorsCount={pendingVisitorsCount}
           accountsFilteredCount={
@@ -825,7 +915,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         />
       )}
 
-      {canManageProfiles && subTab === 'profils' && (
+      {canShowProfiles && subTab === 'profils' && (
         <ProfilesRbacAdminSection
           roles={sortedRoles}
           catalog={catalog}
@@ -843,9 +933,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onEditRoleDetails={saveRoleDetails}
           onDuplicateRole={duplicateRoleProfile}
           onSaveEmoji={saveProfileEmoji}
-          alignOnGroupJoinEnabled={alignOnGroupJoinEnabled}
           onToggleProgression={toggleProgressionByValidatedTasks}
-          onToggleAlignOnGroupJoin={toggleAlignOnGroupJoin}
           onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
           onTogglePermission={togglePermission}
           onSetForumParticipate={setRoleForumParticipate}
@@ -854,7 +942,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         />
       )}
 
-      {(canManageProfiles || canManageStudents) && subTab === 'comptes' && (
+      {canShowAccounts && subTab === 'comptes' && (
         <ProfilesAccountsPanel
           roles={sortedRoles}
           users={usersWithStats}
@@ -863,12 +951,13 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           canCreateUsers={canCreateUsers}
           canCreateTeacherRoles={isAdmin || authRoleSlug === 'prof'}
           canManageProfiles={canManageProfiles}
+          canListAccounts={canListAccounts}
+          canAssignRoles={canAssignRoles}
           canManageGroups={canManageGroups}
           groupOptions={groupOptions}
           canDeleteUi={canDeleteUi}
           canDuplicateStudents={canDuplicateStudents}
           roleTerms={roleTerms}
-          affiliationOptions={affiliationOptions}
           setErr={setErr}
           setMsg={setMsg}
           onCreated={load}
@@ -884,7 +973,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         />
       )}
 
-      {canManageProfiles && subTab === 'groupes' && (
+      {canShowGroups && subTab === 'groupes' && (
         <GroupsAdminView onPendingCountChange={setPendingVisitorsCount} />
       )}
 
@@ -903,7 +992,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         />
       )}
 
-      {!canManageProfiles && !canManageStudents && !canImportGroups && (
+      {!canShowAnything && (
         <div className="empty" style={{ marginTop: 12 }}>
           <p>
             Aucune permission disponible pour gérer les profils ou les {roleTerms.studentPlural}.

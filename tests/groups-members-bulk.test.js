@@ -17,8 +17,8 @@ async function createStudent(label) {
   const lastName = `Eleve${Date.now()}`.slice(0, 40);
   await execute(
     `INSERT INTO users
-      (id, user_type, first_name, last_name, display_name, affiliation, auth_provider, is_active, created_at, updated_at)
-     VALUES (?, 'student', ?, ?, ?, 'both', 'local', 1, NOW(), NOW())`,
+      (id, user_type, first_name, last_name, display_name, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', ?, ?, ?, 'local', 1, NOW(), NOW())`,
     [id, firstName, lastName, `${firstName} ${lastName}`],
   );
   return id;

@@ -121,6 +121,11 @@ export function MoodleRunReport({ run, onUndo, undoing }) {
         render={(x) => `${userDisplay(x.user)} — ${x.reason}`}
       />
       <ListBlock
+        title="Réactivations (de retour dans une cohorte)"
+        items={lists.reactivations}
+        render={(x) => `${x.cohort} — ${memberDisplay(x.member)} → ${userDisplay(x.user)}`}
+      />
+      <ListBlock
         title="Rapprochements en attente"
         items={lists.pendingMatches}
         render={(x) =>

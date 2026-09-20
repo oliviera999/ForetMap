@@ -6,20 +6,15 @@
  * hors du méga-composant, et la rendent testable. Toutes les fonctions sont pures.
  */
 
+import { isN3beurTierSlug } from '../shared/n3beurRolesCore.js';
+
 /**
- * Un profil « palier n3beur » configurable (seuils/forum/contexte) : ni admin/prof/visiteur/personnel,
- * et soit slug `eleve_*`, soit rang fini < 400. Reproduit la règle serveur.
+ * Un profil « palier n3beur » configurable (seuils/forum/contexte) : règle unique
+ * `isN3beurTierSlug` (`src/shared/n3beurRolesCore.js`), la même que le serveur.
  */
 export function isN3beurTierConfigurableProfile(role) {
   if (!role) return false;
-  const slug = String(role.slug || '')
-    .trim()
-    .toLowerCase();
-  if (slug === 'admin' || slug === 'prof' || slug === 'visiteur' || slug === 'personnel')
-    return false;
-  if (/^eleve_/i.test(String(role.slug || ''))) return true;
-  const r = Number(role.rank);
-  return Number.isFinite(r) && r < 400;
+  return isN3beurTierSlug(role.slug, role.rank);
 }
 
 /**
@@ -54,15 +49,24 @@ export function deriveProfilesCapabilities(auth = {}) {
   const canDelete = has('students.delete');
   const canCreateUsers = has('users.create');
   const canReadAllStats = has('stats.read.all');
+  const canAssignRoles = has('admin.users.assign_roles');
   return {
-    canManageProfiles: has('admin.roles.manage') || has('admin.users.assign_roles'),
+    canManageProfiles: has('admin.roles.manage') || canAssignRoles,
     canEditRoleDefinition: has('admin.roles.manage'),
+    // Attribution d'un profil (unitaire, en lot, fiche) : `admin.users.assign_roles` seule.
+    canAssignRoles,
+    // Lecture de la liste des comptes : ouverte à l'attribution des profils **et** à la
+    // gestion des groupes (`GET /api/rbac/users`) — un prof de classe voit ainsi les comptes
+    // de ses groupes dans son onglet « Classe », sans pouvoir changer leur profil.
+    canListAccounts: canAssignRoles || canImportGroups,
     canExport,
     canImport,
     canImportGroups,
     // Même permission que l'import de groupes : `groups.manage` est ce qui autorise le
     // rattachement (en lot depuis la liste, unitaire depuis la fiche).
     canManageGroups: canImportGroups,
+    // Lecture seule des groupes (`GET /api/groups`) : suffit à ouvrir le sous-onglet Groupes.
+    canReadGroups: has('groups.read') || canImportGroups,
     canDelete,
     canCreateUsers,
     canReadAllStats,
