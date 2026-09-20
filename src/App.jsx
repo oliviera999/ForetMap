@@ -23,6 +23,7 @@ import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
 import { oauthFeedbackDurationMs } from './utils/appShellHelpers';
+import { readLastViewedMapId, rememberLastViewedMapId } from './utils/lastViewedMap.js';
 import { PinModal } from './components/auth-views';
 const StudentStatsLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
@@ -487,7 +488,39 @@ function App() {
     mergeAuthMeResponse,
   });
 
-  useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
+  useAppStoragePersistence({ tab, onToast: setToast });
+
+  /**
+   * Changement de plan **demandé par l'utilisateur** (sélecteur de la carte) : seul cas
+   * où le plan est mémorisé sur l'appareil, pour être rouvert à la reconnexion. Les
+   * plans posés par la résolution automatique passent directement par `setActiveMapId`
+   * et ne laissent aucune trace (cf. `src/utils/lastViewedMap.js`).
+   */
+  const chooseMap = useCallback(
+    (nextMapId) => {
+      const next = String(nextMapId || '').trim();
+      if (!next) return;
+      rememberLastViewedMapId(next);
+      setActiveMapId((prev) => (prev === next ? prev : next));
+    },
+    [setActiveMapId],
+  );
+
+  /**
+   * Plan ouvert par la Visite invitée : le dernier plan consulté sur cet appareil
+   * d'abord (visite ou carte), puis le réglage « plan par défaut (visite publique) ».
+   *
+   * La mémoire est relue à chaque entrée dans la visite (`showPublicVisit`) : sinon un
+   * visiteur qui repasse par l'écran de connexion se verrait rouvrir le plan d'avant son
+   * propre choix. Hors visite, la valeur n'est pas consommée.
+   */
+  const visitInitialMapId = useMemo(
+    () =>
+      (showPublicVisit ? readLastViewedMapId() : '') ||
+      publicSettings?.map?.default_map_visit ||
+      activeMapId,
+    [publicSettings?.map?.default_map_visit, activeMapId, showPublicVisit],
+  );
 
   // Prolonge la session avant expiration : sans cela, 1 h 30 après la connexion,
   // l'utilisateur était déconnecté en plein travail (cf. `useAuthTokenRenewal`).
@@ -1154,7 +1187,7 @@ function App() {
         oauthFeedback={oauthFeedback}
         onOauthFeedbackDismiss={() => setOauthFeedback(null)}
         showPublicVisit={showPublicVisit}
-        visitInitialMapId={publicSettings?.map?.default_map_visit || activeMapId}
+        visitInitialMapId={visitInitialMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}
         onGuestBackToAuth={onGuestBackToAuth}
         onGuestMascotChoiceDone={onGuestMascotChoiceDone}
@@ -1424,7 +1457,7 @@ function App() {
                           isTeacher
                           student={currentUser}
                           maps={visibleMaps}
-                          onMapChange={setActiveMapId}
+                          onMapChange={chooseMap}
                           useSplitMapTasks={useSplitMapTasks}
                           tab={tab}
                           tutorialsModuleEnabled={tutorialsModuleEnabled}
@@ -1611,7 +1644,7 @@ function App() {
                             isTeacher={false}
                             student={studentForUi}
                             maps={visibleMaps}
-                            onMapChange={setActiveMapId}
+                            onMapChange={chooseMap}
                             useSplitMapTasks={useSplitMapTasks}
                             tab={tab}
                             tutorialsModuleEnabled={tutorialsModuleEnabled}

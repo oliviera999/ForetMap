@@ -353,3 +353,36 @@ describe('VisitView — guidage « Y aller »', () => {
     expect(screen.queryByTestId('visit-guide-bar')).toBe(null);
   });
 });
+
+/**
+ * Mémoire du dernier plan consulté, **depuis la visite aussi**.
+ *
+ * Le plan choisi dans le sélecteur de la visite restait purement local à la vue : au
+ * retour, le visiteur retombait sur le plan des réglages. La reconnexion doit rouvrir le
+ * dernier plan consulté, qu'il ait été choisi sur la carte de travail ou ici. Le repli
+ * automatique de `useVisitContent` (plan demandé absent) ne doit lui rien mémoriser.
+ */
+describe('VisitView — mémoire du dernier plan consulté', () => {
+  const MAP_KEY = 'foretmap_active_map';
+  const SINGLE_MAP = stubs.visit.maps;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    stubs.visit.maps = [
+      { id: 'foret', label: 'Forêt', map_image_url: '/maps/map-foret.svg' },
+      { id: 'n3', label: 'N3', map_image_url: '/maps/plan-n3.jpg' },
+    ];
+  });
+
+  afterEach(() => {
+    stubs.visit.maps = SINGLE_MAP;
+    window.localStorage.clear();
+  });
+
+  test('choisir un plan dans la visite le mémorise sur l’appareil', async () => {
+    renderVisit();
+    const n3Button = await screen.findByRole('button', { name: 'N3' });
+    fireEvent.click(n3Button);
+    expect(window.localStorage.getItem(MAP_KEY)).toBe('n3');
+  });
+});

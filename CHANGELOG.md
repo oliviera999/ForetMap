@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : le plan ouvert à l'arrivée suit enfin les réglages, puis le dernier plan consulté
+
+- **Le réglage « plan ouvert par défaut » ne s'appliquait plus jamais sur un appareil déjà
+  utilisé.** Le premier cycle de chargement résolvait la carte active sans attendre la réponse
+  de `/api/settings/public` : il la résolvait donc sur les valeurs codées en dur du front
+  (la forêt comestible). Ce plan était aussitôt mémorisé sur l'appareil, et la mémoire prime
+  sur le réglage — un administrateur pouvait basculer le plan par défaut sur « N3 », l'écran
+  rouvrait la forêt indéfiniment. Le chargement attend désormais les réglages publics (il
+  reste débloqué même si la requête échoue).
+- **Seul un plan choisi par l'utilisateur est mémorisé.** La mémoire était écrite à chaque
+  changement de carte active, y compris ceux posés par la résolution automatique (carte par
+  défaut, repli sur le premier plan visible, réconciliation d'affiliation) : un plan que
+  personne n'avait choisi se figeait sur l'appareil. Source unique : `src/utils/lastViewedMap.js`.
+- **La Visite mémorise elle aussi le plan choisi**, et la reconnexion rouvre le dernier plan
+  consulté quelle que soit la surface où il a été choisi — carte de travail ou Visite, visiteur
+  invité compris. À défaut de mémoire, le réglage « plan par défaut » du contexte s'applique
+  comme avant.
+
 ### Corrigé — carte : les pastilles d'état survivent au regroupement des repères
 
 - **Un repère perdait sa pastille dès qu'il était regroupé avec un voisin.** Au dézoom — donc
