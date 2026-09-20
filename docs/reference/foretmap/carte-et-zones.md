@@ -299,7 +299,8 @@ Quand le plan affiché est **calé** (points de repère GPS posés par un profes
 halo d'autant plus large que le signal est imprécis, et une flèche de cap si l'appareil a une
 boussole. Le point s'affiche désormais **même si la mascotte est masquée** : la position et la
 mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
-la position comme avant.
+la position comme avant. Zoomer sur un lieu (une tâche, une recherche, une étape de parcours)
+**ne fait plus disparaître** la mascotte : elle garde au moins sa taille habituelle à l'écran.
 
 Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette carte dans le
 calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
@@ -422,11 +423,11 @@ Trois règles à retenir :
 Les descriptions de zones et de repères, les textes de visite **et les compléments réservés**
 acceptent des **liens**. Trois formes sont reconnues :
 
-| Ce qu'on écrit                                               | Résultat                                 |
-| ------------------------------------------------------------ | ---------------------------------------- |
+| Ce qu'on écrit                                               | Résultat                                  |
+| ------------------------------------------------------------ | ----------------------------------------- |
 | `https://…` (ou une adresse collée telle quelle)             | **nouvel onglet**, marqué d'une flèche ↗ |
-| `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal        |
-| `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel           |
+| `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal         |
+| `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel            |
 
 Le bouton **« Lien »** de la barre d'outils fait le travail : on sélectionne le texte, on
 clique, on colle l'adresse. Une adresse non reconnue est **refusée avec un message** au lieu

@@ -49,10 +49,11 @@ describe('MapViewMascotOverlay', () => {
     expect(bubble).toHaveAttribute('role', 'status');
   });
 
-  test('dialogVisible mais dialog vide → pas de bulle', () => {
-    const { container } = render(
-      <MapViewMascotOverlay {...makeProps({ dialogVisible: true, dialog: null })} />,
-    );
-    expect(container.querySelector('.visit-map-mascot-dialog')).toBeNull();
+  test('fitScale < 1 (zoom fort) est toujours appliqué si fourni — le parent doit déjà plafonner', () => {
+    const { container } = render(<MapViewMascotOverlay {...makeProps({ fitScale: 0.25 })} />);
+    const inner = container.querySelector('.visit-map-mascot-inner');
+    expect(inner).toHaveStyle({
+      transform: 'translate(-50%, -100%) scale(0.25) scaleX(1)',
+    });
   });
 });
