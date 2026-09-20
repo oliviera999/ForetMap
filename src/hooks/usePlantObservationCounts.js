@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchPlantObservationCounts } from '../components/PlantSpeciesDiscoveryAcknowledge';
+import { BIODIV_IDS_DEBOUNCE_MS } from '../utils/biodivCatalogLoad.js';
 
 /**
  * Compteurs d'observations par fiche biodiversité (moi + tout le site), pour une
@@ -7,9 +8,7 @@ import { fetchPlantObservationCounts } from '../components/PlantSpeciesDiscovery
  *
  * Mutualise le motif copié entre `PlantManager` et `PlantViewer` : fetch initial,
  * refetch sur `foretmap_session_changed`, cleanup (flag `cancelled` + désabonnement).
- * Le refetch dépend d'une clé stable dérivée des ids (joints) — pas de la référence
- * du tableau — plus une clé de rafraîchissement optionnelle (`plants.length` chez
- * les appelants, comportement historique conservé).
+ * Debounce 280 ms sur la clé d'ids pour éviter une rafale à chaque frappe de filtre.
  *
  * @param {number[]} plantIds ids (normalisés/triés par l'appelant)
  * @param {number|string} [refreshKey] clé additionnelle déclenchant un refetch
@@ -24,9 +23,8 @@ export function usePlantObservationCounts(plantIds, refreshKey = 0) {
 
   useEffect(() => {
     let cancelled = false;
-    // Compteur de requête : plusieurs `foretmap_session_changed` rapprochés peuvent lancer
-    // des `load()` concurrents ; seul le plus récent applique son résultat (anti-résultat périmé).
     let seq = 0;
+    let timer = null;
     const load = async () => {
       const mySeq = ++seq;
       if (!idsKey) {
@@ -36,20 +34,25 @@ export function usePlantObservationCounts(plantIds, refreshKey = 0) {
       const next = await fetchPlantObservationCounts(idsKey.split(',').map(Number));
       if (!cancelled && mySeq === seq) setCounts(next);
     };
-    load();
+    timer = setTimeout(load, idsKey ? BIODIV_IDS_DEBOUNCE_MS : 0);
     if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
+      const onSession = () => {
+        if (timer) clearTimeout(timer);
+        load();
+      };
+      window.addEventListener('foretmap_session_changed', onSession);
       return () => {
         cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
+        if (timer) clearTimeout(timer);
+        window.removeEventListener('foretmap_session_changed', onSession);
       };
     }
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [idsKey, refreshKey]);
 
-  /** Reporte localement les compteurs renvoyés après un acquittement d'observation. */
   const applyAcknowledged = useCallback((id, next) => {
     setCounts((prev) => ({
       ...prev,

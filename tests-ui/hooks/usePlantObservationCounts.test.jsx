@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 vi.mock('../../src/components/PlantSpeciesDiscoveryAcknowledge', () => ({
@@ -14,18 +14,31 @@ const COUNTS = {
 
 describe('usePlantObservationCounts', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchPlantObservationCounts.mockReset();
     fetchPlantObservationCounts.mockResolvedValue(COUNTS);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function flush() {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+  }
+
   it('charge les compteurs pour les ids fournis', async () => {
     const { result } = renderHook(() => usePlantObservationCounts([1, 2]));
+    await flush();
     await waitFor(() => expect(result.current.counts['1']?.my_observation_count).toBe(2));
     expect(fetchPlantObservationCounts).toHaveBeenCalledWith([1, 2]);
   });
 
   it('liste vide → compteurs remis à {} sans appel réseau', async () => {
     const { result } = renderHook(() => usePlantObservationCounts([]));
+    await flush();
     await waitFor(() => expect(result.current.counts).toEqual({}));
     expect(fetchPlantObservationCounts).not.toHaveBeenCalled();
   });
@@ -34,8 +47,10 @@ describe('usePlantObservationCounts', () => {
     const { rerender } = renderHook(({ ids }) => usePlantObservationCounts(ids, 3), {
       initialProps: { ids: [1, 2] },
     });
+    await flush();
     await waitFor(() => expect(fetchPlantObservationCounts).toHaveBeenCalledTimes(1));
     rerender({ ids: [1, 2] });
+    await flush();
     expect(fetchPlantObservationCounts).toHaveBeenCalledTimes(1);
   });
 
@@ -43,13 +58,16 @@ describe('usePlantObservationCounts', () => {
     const { rerender } = renderHook(({ ids, key }) => usePlantObservationCounts(ids, key), {
       initialProps: { ids: [1, 2], key: 3 },
     });
+    await flush();
     await waitFor(() => expect(fetchPlantObservationCounts).toHaveBeenCalledTimes(1));
     rerender({ ids: [1, 2], key: 4 });
+    await flush();
     await waitFor(() => expect(fetchPlantObservationCounts).toHaveBeenCalledTimes(2));
   });
 
   it('applyAcknowledged reporte localement les compteurs d’une fiche', async () => {
     const { result } = renderHook(() => usePlantObservationCounts([1]));
+    await flush();
     await waitFor(() => expect(result.current.counts['1']).toBeTruthy());
     act(() =>
       result.current.applyAcknowledged(1, {
@@ -66,6 +84,7 @@ describe('usePlantObservationCounts', () => {
 
   it('refetch sur foretmap_session_changed et se désabonne au démontage', async () => {
     const { unmount } = renderHook(() => usePlantObservationCounts([1]));
+    await flush();
     await waitFor(() => expect(fetchPlantObservationCounts).toHaveBeenCalledTimes(1));
     await act(async () => {
       window.dispatchEvent(new Event('foretmap_session_changed'));

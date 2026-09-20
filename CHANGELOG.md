@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — catalogue biodiversité : charge optimale et filtres
+
+- Compteurs d’observation et résumé de conditionnement : **lots de 200** ids (plus de
+  troncature silencieuse au-delà), debounce 280 ms, pagination **Voir plus** (36 vignettes).
+- Filtres en surface : **carte** (synchronisée avec la carte active de l’app), **présence**,
+  recherche, règne ; chips comestible / UICN menacé / observées ; tri par nom ou observations.
+- Doc de référence et API mises à jour.
+
 ### Modifié — comptes, droits et groupes : troisième lot de l'audit
 
 Solde des constats de [`docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md`](docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md)

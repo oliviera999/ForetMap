@@ -202,14 +202,16 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
 
 1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
    photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
-   milieu, statut biogéographique, statut UICN) et le bouton d'observation. S'y
-   ajoutent une **recherche** par nom et un filtre par **règne**, puis des **filtres
-   avancés** par grand groupe, famille, habitat, rôle trophique, milieu, statut
-   biogéographique, statut UICN, et par **présence sur la carte**. Par défaut, seules
-   les espèces **présentes sur la carte active** sont montrées : celles liées à une zone
-   ou un repère de cette carte, **ou** rattachées à la carte elle-même (sans lieu précis —
-   par exemple les oiseaux du site). L'élève peut élargir à « Toutes les fiches » ou
-   n'afficher que les absentes de la carte.
+   milieu, statut biogéographique, statut UICN) et le bouton d'observation. En tête
+   de page, il choisit la **carte** (celle de l'application entière — le même choix
+   que sur le plan), la **présence** sur cette carte (par défaut : espèces présentes
+   sur la carte active — zones, repères, ou rattachement direct à la carte), une
+   **recherche** et un filtre par **règne**. Des pastilles rapides permettent de
+   ne garder que les espèces **comestibles**, **UICN menacées**, déjà **observées**
+   ou **pas encore**. Un tri par nom (A→Z / Z→A) ou par observations personnelles
+   complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
+   milieu, statut biogéographique, UICN précis) restent repliés. La grille montre
+   d'abord une **page de vignettes** ; le bouton **Voir plus** charge la suite.
 2. Il clique une vignette : la **fiche complète** s'ouvre en fenêtre — photos,
    informations, mini-cartes d'emplacement, interactions, termes de glossaire,
    questions de quiz et commentaires. C'est la même fenêtre que celle ouverte depuis la

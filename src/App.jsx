@@ -1493,6 +1493,7 @@ function App() {
                               onForceLogout={forceLogout}
                               onOpenPlant={openPlantCatalogPreviewById}
                               maps={visibleMaps}
+                              onActiveMapChange={setActiveMapId}
                             />
                           </TabSuspense>
                         )}
@@ -1673,6 +1674,8 @@ function App() {
                               <PlantViewerLazy
                                 onForceLogout={forceLogout}
                                 onOpenPlant={openPlantCatalogPreviewById}
+                                maps={visibleMaps}
+                                onActiveMapChange={setActiveMapId}
                               />
                             </TabSuspense>
                           )}
