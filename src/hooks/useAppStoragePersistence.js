@@ -10,24 +10,22 @@ import {
  * Persistance des préférences d'interface dans le stockage navigateur (O5).
  *
  * Regroupe les effets de bord « état UI -> stockage » jusque-là dispersés dans App.jsx :
- *  - mémorise la carte active (`foretmap_active_map`) ;
  *  - mémorise l'onglet courant (`TAB_STORAGE_KEY`) ;
  *  - consomme une seule fois le drapeau de mise à jour du service worker
  *    (`foretmap_sw_updated`) pour afficher un toast « Nouvelle version installée. ».
  *
- * Comportement strictement identique à l'origine : mêmes clés, mêmes helpers
- * `safe*Storage` (tolérants au stockage indisponible), même message de toast.
+ * La **carte active n'est plus mémorisée ici** : cet effet écrivait aussi les cartes
+ * posées par la résolution automatique (carte par défaut des réglages, repli sur le
+ * premier plan visible), ce qui figeait sur l'appareil un plan que personne n'avait
+ * choisi et neutralisait définitivement le réglage « plan ouvert par défaut ». Seul un
+ * choix explicite est désormais mémorisé, par `rememberLastViewedMapId`
+ * (`src/utils/lastViewedMap.js`), depuis la carte comme depuis la Visite.
  *
  * @param {object} params
- * @param {string} params.activeMapId  Identifiant de la carte active à mémoriser.
  * @param {string} params.tab          Onglet courant à mémoriser.
  * @param {(msg: string) => void} params.onToast  Affiche un toast (typiquement setToast).
  */
-export function useAppStoragePersistence({ activeMapId, tab, onToast }) {
-  useEffect(() => {
-    safeLocalStorageSetItem('foretmap_active_map', activeMapId);
-  }, [activeMapId]);
-
+export function useAppStoragePersistence({ tab, onToast }) {
   useEffect(() => {
     safeLocalStorageSetItem(TAB_STORAGE_KEY, tab);
   }, [tab]);
