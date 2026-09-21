@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
+import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
 import { FORETMAP_AUDIENCE_ROLE_OPTIONS } from '../../shared/ui/LocationAudienceFields.jsx';
 
 const STAFF_KEYS = Object.freeze({
@@ -11,6 +12,7 @@ const STAFF_KEYS = Object.freeze({
   attribution: 'ui.staff_plan.attribution',
   defaultCategoryIds: 'ui.staff_plan.default_category_ids',
   hiddenCategoryIds: 'ui.staff_plan.hidden_category_ids',
+  allowedRoleSlugs: 'ui.staff_plan.allowed_role_slugs',
   accessMode: 'ui.staff_plan.access_mode',
   codeRoleSlug: 'ui.staff_plan.code_role_slug',
 });
@@ -21,11 +23,11 @@ const STAFF_KEYS = Object.freeze({
  * Il n'y a **pas** de réglage de carte ici : le plan des personnels montre la carte du plan
  * public (`ui.plan.map_id`), et deux réglages à tenir synchronisés à la main seraient une
  * source d'erreur pour aucun gain. Ne se règlent ici que la ligne éditoriale propre à cette
- * surface et sa porte d'entrée secondaire.
+ * surface, les profils autorisés à entrer avec un compte, et sa porte d'entrée secondaire.
  *
  * @param {object} props
  * @param {Array<{ slug: string, label?: string, display_name?: string }>} [props.roles] profils
- *   proposés pour le code (défaut : ceux de « Qui peut voir »).
+ *   proposés (défaut : ceux de « Qui peut voir »).
  * @param {(key: string, fallback?: unknown) => unknown} props.get
  * @param {(key: string, value: unknown, okMsg?: string) => Promise<void>} props.saveSetting
  * @param {string} [props.savingKey]
@@ -88,10 +90,22 @@ export function StaffPlanSettingsPanel({
       <p className="muted" style={{ marginTop: 0 }}>
         Le plan des personnels (proflyautey) affiche la <strong>même carte</strong> que le plan
         public, sur la surface « Plan personnels » : il montre en plus les lieux qui en sont retirés
-        et les compléments réservés des fiches. L’accès normal se fait avec un compte portant la
-        permission « Accès plan des personnels » — elle s’attribue profil par profil dans{' '}
-        <strong>Profils RBAC</strong>, et ne se règle pas ici.
+        et les compléments réservés des fiches. Cochez ci-dessous les profils qui peuvent y entrer
+        avec leur compte ; un profil maison hors liste s’ouvre encore via la permission « Accès plan
+        des personnels » dans <strong>Profils RBAC</strong>.
       </p>
+
+      <RoleSlugsMultiSelect
+        label="Profils autorisés (compte)"
+        value={get(STAFF_KEYS.allowedRoleSlugs, 'admin;prof;prof_classe;personnel')}
+        disabled={readOnly || savingKey === STAFF_KEYS.allowedRoleSlugs}
+        hint="Sélection multiple — enregistrée immédiatement. Décocher un profil le refuse même s’il a encore la permission RBAC."
+        testId="staff-plan-allowed-role-slugs"
+        roles={roles}
+        onSave={(next) =>
+          saveSetting(STAFF_KEYS.allowedRoleSlugs, next, 'Profils autorisés enregistrés')
+        }
+      />
 
       <label className="field">
         <span>Titre</span>

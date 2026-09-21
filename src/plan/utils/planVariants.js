@@ -29,9 +29,10 @@ export const PLAN_VARIANT = Object.freeze({
 });
 
 /**
- * Plan des personnels : entrée par compte ForetMap portant `staff_plan.access` (Google ou mot
- * de passe), ou par code partagé si un administrateur l'a activé. Montre les lieux retirés du
- * plan public et les compléments confidentiels des fiches.
+ * Plan des personnels : entrée par compte ForetMap (profil dans
+ * `ui.staff_plan.allowed_role_slugs`, Google ou mot de passe), ou par code partagé si un
+ * administrateur l'a activé. Montre les lieux retirés du plan public et les compléments
+ * confidentiels des fiches.
  *
  * `getToken` n'est défini que sur cette variante : le plan public ne signe aucune requête, et
  * n'a donc rien à importer de la session.

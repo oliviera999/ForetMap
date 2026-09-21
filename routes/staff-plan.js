@@ -221,7 +221,7 @@ router.get(
  * `personnel` est précisément le public de cette surface. Un agent voyait donc le bouton et
  * recevait un 403 en l'utilisant. Plutôt que d'ouvrir les commentaires de la console à un
  * profil qui n'y a rien à faire, l'écriture passe par la porte de cette surface, avec sa
- * propre garde : un compte, la permission `staff_plan.access`, et un lieu réellement visible
+ * propre garde : un compte autorisé sur le plan des personnels, et un lieu réellement visible
  * par ce lecteur sur le plan des personnels.
  */
 router.post(

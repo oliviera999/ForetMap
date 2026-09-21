@@ -55,20 +55,25 @@ On ouvre `proflyautey.olution.info` ou `stafflyautey.olution.info`, on touche **
 avec Google »**, on choisit son compte du lycée. C'est tout : pas de code à retenir, pas de mot
 de passe supplémentaire.
 
-Le compte doit porter la permission **« Accès plan des personnels »**. Elle est accordée
-d'office aux profils **Administrateur**, **n3boss**, **Prof de classe** et **Personnel**. Pour
-un autre profil — y compris un profil maison que vous auriez créé — il suffit de cocher cette
-permission dans **Réglages → Profils RBAC**. Aucune intervention technique.
+Le compte doit appartenir à un **profil autorisé**. À la livraison : **Administrateur**,
+**n3boss**, **Prof de classe** et **Personnel**. Pour ajouter ou retirer un profil — y compris
+un profil élève si vous le souhaitez —, allez dans
+**Réglages → Plan Lyautey → Plan des personnels (proflyautey)** et cochez ou décochez les
+cases « Profils autorisés (compte) ». L'enregistrement est immédiat.
 
 > Si la connexion Google aboutit mais que le plan reste fermé, ce n'est pas une panne : le
-> compte n'a pas encore cette permission. L'écran le dit en clair.
+> profil du compte n'est pas (ou plus) dans cette liste. L'écran le dit en clair.
+
+Pour un **profil maison** que vous auriez créé (hors de la liste proposée), cochez plutôt la
+permission **« Accès plan des personnels »** dans **Réglages → Profils RBAC** : c'est
+l'échappatoire pour les profils qui n'apparaissent pas dans les cases.
 
 Au passage, la page vous renvoie brièvement vers l'adresse de ForetMap avant d'ouvrir Google :
 c'est normal et sans conséquence. Google n'accepte de rappeler qu'une seule adresse, connue
 d'avance ; on y passe donc pour poser la session, puis vous êtes ramené sur l'adresse d'où
 vous êtes parti — `proflyautey` ou `stafflyautey`, selon le cas.
 
-Cette permission est volontairement **séparée** de « Accès interface n3boss » : un agent ou un
+Cette entrée est volontairement **séparée** de « Accès interface n3boss » : un agent ou un
 membre de la vie scolaire peut entrer sur le plan sans qu'on lui ouvre la console de gestion.
 
 ### La voie secondaire : un code partagé (désactivée par défaut)
@@ -160,6 +165,7 @@ Ces lieux restent visibles sur le plan des personnels : vous ne perdez rien, vou
 | La carte affichée, son calage GPS     | **Oui** — c'est la même carte de l'établissement     |
 | L'identité visuelle (couleurs, logo)  | **Oui**, hors la teinte brune qui distingue les deux |
 | Titre, message d'accueil, mention     | Non — propres au plan des personnels                 |
+| Profils autorisés (compte)            | Non — propres au plan des personnels                 |
 | Catégories cochées d'office, masquées | Non — propres au plan des personnels                 |
 | Mode d'entrée, code, profil du code   | Non — propres au plan des personnels                 |
 
