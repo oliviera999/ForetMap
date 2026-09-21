@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — proflyautey : la connexion échouait pour « Prof de classe » et « Personnel »
+
+- La porte du plan des personnels lançait la connexion Google **réservée aux enseignants**
+  (`mode=teacher`), qui ne connecte qu'un compte `users.user_type = 'teacher'`. Or le profil
+  **Personnel** est porté par un compte de type élève (`userTypeForRole`), et un compte promu
+  **Prof de classe** depuis un compte élève garde son type d'origine — l'attribution d'un
+  profil ne touche pas `user_type`. Ces comptes repartaient avec
+  `oauth_teacher_account_not_found`, affiché « La connexion n'a pas abouti. Réessayez. » :
+  seuls **Administrateur** et **n3boss** entraient réellement, alors que la garde du produit
+  (`lib/staffPlanAccess.js`) les autorise tous les quatre par défaut.
+- Nouveau mode **`GET /api/auth/google/start?mode=staff`**, utilisé par proflyautey /
+  stafflyautey : il connecte tout compte **existant** — enseignant ou non — portant la
+  permission `staff_plan.access` ou un profil coché dans `ui.staff_plan.allowed_role_slugs`,
+  et renvoie `{ type: 'staff', token, auth }`. Toujours **aucune création de compte**, compte
+  désactivé refusé, identité Google liée comme ailleurs, accès refusé dit explicitement
+  (`oauth_staff_no_access`, `oauth_staff_account_not_found`). Le mode `teacher` de la console
+  est inchangé.
+- Messages de refus complétés sur l'écran d'entrée : aucun compte pour cette adresse, compte
+  désactivé, profil sans accès, session expirée… Un code non traduit retombait sur
+  « La connexion n'a pas abouti », qui ne disait ni ce qui avait échoué ni quoi faire.
+- Tests : `tests/staff-plan-oauth.test.js` (parcours complet des quatre profils, refus et
+  absence de création de compte) et `tests-ui/plan/staffSession.test.js` (retour `staff`,
+  traduction de tous les codes de refus).
+
+
 ### Ajouté — proflyautey : profils autorisés dans les réglages admin
 
 - Réglage **`ui.staff_plan.allowed_role_slugs`** (cases à cocher dans

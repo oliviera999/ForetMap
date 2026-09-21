@@ -64,6 +64,17 @@ profil supplémentaire (par ex. un profil élève) sans modifier les permissions
 > Si la connexion Google aboutit mais que le plan reste fermé, ce n'est pas une panne : le
 > compte n'a ni la permission ni un profil coché. L'écran le dit en clair.
 
+Le **type de compte ne joue aucun rôle** ici : un « Personnel » (vie scolaire, agent,
+intendance) a un compte de même nature qu'un élève, et cela ne l'empêche pas d'entrer. C'est
+la permission ou le profil coché qui décide, rien d'autre.
+
+> **Corrigé (septembre 2026).** Jusqu'ici, seuls les comptes **Administrateur** et **n3boss**
+> entraient réellement : la page lançait la connexion réservée aux enseignants, et tout autre
+> compte — « Personnel », mais aussi un « Prof de classe » créé au départ comme compte élève —
+> repartait avec le message « La connexion n'a pas abouti. Réessayez. », sans rien dire de
+> plus. Les messages de refus ont été repris dans la foulée : on lit désormais s'il n'existe
+> aucun compte pour cette adresse, si le compte est désactivé, ou s'il lui manque l'accès.
+
 Pour un **profil maison**, cochez la permission dans **Réglages → Profils RBAC**, ou
 ajoutez-le aux cases s'il figure dans la liste proposée.
 

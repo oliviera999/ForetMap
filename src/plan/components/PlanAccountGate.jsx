@@ -70,7 +70,7 @@ export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSu
           {oauthError}
         </p>
       ) : null}
-      <Button variant="primary" block onClick={() => startGoogleAuth('teacher')}>
+      <Button variant="primary" block onClick={() => startGoogleAuth('staff')}>
         Se connecter avec Google
       </Button>
       <p className="plan-access-gate__hint">
