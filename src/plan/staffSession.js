@@ -63,35 +63,57 @@ export function consumeStaffOauthHash() {
   if (errorCode) return { status: 'error', code: String(errorCode) };
   try {
     const payload = decodeOAuthPayload(payloadRaw);
-    // Seul un retour « prof » porte un jeton de personnel. Un retour élève arrive ici quand
-    // quelqu'un s'est connecté avec un compte n3beur : il n'y a rien à mémoriser, et le
-    // serveur refusera la charge si ce profil n'est pas dans allowed_role_slugs.
-    if (payload?.type === 'teacher' && payload?.token) {
+    // `staff` est le retour du mode dédié à ce produit (`/api/auth/google/start?mode=staff`) :
+    // il porte un jeton, que le compte soit enseignant ou non — un « Personnel » est un compte
+    // de type élève. `teacher` reste accepté pour un retour émis par une version antérieure
+    // (onglet resté ouvert pendant un déploiement).
+    if ((payload?.type === 'staff' || payload?.type === 'teacher') && payload?.token) {
       safeLocalStorageSetItem(TOKEN_STORAGE_KEY, String(payload.token));
       return { status: 'ok' };
     }
-    return { status: 'error', code: 'oauth_teacher_no_role' };
+    // Retour d'un autre mode (élève) : rien à mémoriser ici.
+    return { status: 'error', code: 'oauth_staff_no_access' };
   } catch (_) {
     return { status: 'error', code: 'oauth_server_error' };
   }
 }
 
-/** Messages des codes d'erreur OAuth rencontrés depuis ce produit. */
+/**
+ * Messages des codes d'erreur OAuth rencontrés depuis ce produit.
+ *
+ * Tous les codes que le serveur sait émettre sont traités : un code non listé retombait sur
+ * « La connexion n'a pas abouti », qui ne dit ni ce qui a échoué ni quoi faire — c'est
+ * exactement ce que voyaient les personnels refusés à tort par le mode enseignant.
+ */
 export function staffOauthErrorMessage(code) {
   switch (String(code || '')) {
     case 'oauth_email_not_allowed':
       return 'Ce compte Google n’appartient pas au domaine autorisé par l’établissement.';
+    case 'oauth_staff_no_access':
     case 'oauth_teacher_no_role':
-    case 'oauth_teacher_inactive':
       return 'Connexion réussie, mais ce compte n’a pas encore l’accès au plan des personnels.';
+    case 'oauth_staff_account_not_found':
+    case 'oauth_teacher_account_not_found':
+    case 'oauth_account_not_found':
+      return 'Aucun compte de l’établissement n’est rattaché à cette adresse. Demandez la création d’un compte à un administrateur, ou entrez par le code partagé s’il est activé.';
+    case 'oauth_teacher_email_is_student':
+      return 'Cette adresse est rattachée à un compte n3beur : elle n’ouvre pas le plan des personnels.';
+    case 'oauth_teacher_inactive':
+    case 'oauth_account_inactive':
+      return 'Ce compte est désactivé. Contactez un administrateur.';
     case 'oauth_google_refused':
       return 'Connexion Google annulée.';
     case 'oauth_teacher_google_disabled':
       return 'La connexion Google des enseignants est désactivée par l’établissement.';
+    case 'oauth_student_google_disabled':
+      return 'La connexion Google est désactivée pour ce type de compte par l’établissement.';
     case 'oauth_account_mismatch':
       return 'Cette adresse est déjà rattachée à une autre identité Google.';
     case 'oauth_not_configured':
       return 'La connexion Google n’est pas configurée sur ce serveur.';
+    case 'oauth_invalid_state':
+    case 'oauth_missing_code':
+      return 'La session de connexion a expiré avant le retour de Google. Réessayez.';
     default:
       return 'La connexion n’a pas abouti. Réessayez.';
   }
