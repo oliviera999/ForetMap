@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-165e811c";
+const CACHE_NAME = "foretmap-gl-31b2f6a6";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,29 +9,29 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-CF_1lQex.js",
+  "/assets/gl-C1uqYGRj.js",
   "/assets/gl-Dp9yWN-3.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-3N28tCyC.js",
-  "/assets/react-vendor-NSwws4_t.js",
-  "/assets/icons-DN-Q6DZk.js",
-  "/assets/ErrorBoundary-CYvFC4Yj.js",
+  "/assets/VisitMascotFallbackSvg-DYoZ0Y6s.js",
+  "/assets/react-vendor-DyU5Vns3.js",
+  "/assets/icons-foIiYRd8.js",
+  "/assets/ErrorBoundary-D7LCa4Wp.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-BsYDVARA.js",
+  "/assets/ImageLightboxProvider-Bal1wG3H.js",
   "/assets/ImageLightboxProvider-BQXMtgsx.css",
-  "/assets/markdown-B5dU4qij.js",
-  "/assets/spriteCutCatalogEntry-BiB-mPnD.js",
-  "/assets/socket-io-D_2T_oRH.js",
-  "/assets/GuidedTourOverlay-2Y1OOdML.js",
-  "/assets/HelpDock-ROY9osU2.js",
+  "/assets/markdown-DaBuaikX.js",
+  "/assets/spriteCutCatalogEntry-DizaPHuq.js",
+  "/assets/socket-io-CQ0Cr98w.js",
+  "/assets/GuidedTourOverlay-HDTcBW0h.js",
+  "/assets/HelpDock-BrVbO6s2.js",
   "/assets/HelpDock-D1tmIwbp.css",
-  "/assets/apiGL-FzQeZWfr.js",
-  "/assets/presenceListPatch-DorFGVmx.js",
-  "/assets/JournalBookView-Bq4l6j8I.js",
+  "/assets/apiGL-CZj9q-Dw.js",
+  "/assets/presenceListPatch-yeuW7aKc.js",
+  "/assets/JournalBookView-SFRNbjiH.js",
   "/assets/brandNames-DXNkSTQD.js",
-  "/assets/FoodWebGraph-m3zrAQgD.js",
-  "/assets/mascotBehaviorEngine-sDTDR21Q.js",
-  "/assets/MediaLibraryMenu-GSqn48bj.js",
+  "/assets/FoodWebGraph-Zg8Y7Cl_.js",
+  "/assets/mascotBehaviorEngine-BGbBh9EA.js",
+  "/assets/MediaLibraryMenu-Dzmz3xh4.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

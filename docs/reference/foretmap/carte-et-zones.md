@@ -423,11 +423,11 @@ Trois règles à retenir :
 Les descriptions de zones et de repères, les textes de visite **et les compléments réservés**
 acceptent des **liens**. Trois formes sont reconnues :
 
-| Ce qu'on écrit                                               | Résultat                                  |
-| ------------------------------------------------------------ | ----------------------------------------- |
+| Ce qu'on écrit                                               | Résultat                                 |
+| ------------------------------------------------------------ | ---------------------------------------- |
 | `https://…` (ou une adresse collée telle quelle)             | **nouvel onglet**, marqué d'une flèche ↗ |
-| `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal         |
-| `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel            |
+| `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal        |
+| `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel           |
 
 Le bouton **« Lien »** de la barre d'outils fait le travail : on sélectionne le texte, on
 clique, on colle l'adresse. Une adresse non reconnue est **refusée avec un message** au lieu

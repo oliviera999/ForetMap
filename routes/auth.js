@@ -62,6 +62,7 @@ const {
   originOfUrl,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
+const { accountMayAccessStaffPlan, resolveAllowedRoleSlugs } = require('../lib/staffPlanAccess');
 
 /**
  * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
@@ -218,6 +219,19 @@ async function buildSessionPayload(userType, userId) {
     },
     authz,
   };
+}
+
+/**
+ * Ce compte peut-il ouvrir le plan des personnels ? Même règle que la garde de
+ * `/api/staff-plan/*` (`lib/staffPlanAccess.js`) : permission RBAC `staff_plan.access`, ou
+ * profil coché dans **Réglages → Plan Lyautey → Plan des personnels**. Vérifiée ici pour que
+ * l'échec soit dit à la connexion, plutôt qu'au premier appel refusé derrière un jeton valide.
+ *
+ * @param {{ roleSlug?: string, permissions?: string[] }} tokenPayload
+ * @returns {Promise<boolean>}
+ */
+async function mayOpenStaffPlan(tokenPayload) {
+  return accountMayAccessStaffPlan(tokenPayload, await resolveAllowedRoleSlugs());
 }
 
 async function resolveLoginUserType(user) {
@@ -760,7 +774,16 @@ router.get('/google/start', async (req, res) => {
   const googleEnabled = await getSettingValue('integration.google.enabled', true);
   const allowStudent = await getSettingValue('ui.auth.allow_google_student', true);
   const allowTeacher = await getSettingValue('ui.auth.allow_google_teacher', true);
-  if (!googleEnabled || (mode === 'teacher' ? !allowTeacher : !allowStudent)) {
+  // Le plan des personnels accueille les deux types de compte (un « Personnel » est un compte
+  // de type `student`) : il suffit que l'une des deux portes Google soit ouverte ici, le type
+  // réel du compte étant revérifié au retour de Google.
+  const modeAllowed =
+    mode === 'teacher'
+      ? allowTeacher
+      : mode === 'staff'
+        ? allowTeacher || allowStudent
+        : allowStudent;
+  if (!googleEnabled || !modeAllowed) {
     return res.status(403).json({ error: 'Connexion Google désactivée par l’administrateur' });
   }
   const cfg = getGoogleOauthConfig(req);
@@ -993,6 +1016,11 @@ router.get('/google/callback', async (req, res) => {
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode),
         );
       }
+      if (mode === 'staff' && !(await mayOpenStaffPlan(session.tokenPayload))) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_staff_no_access', mode),
+        );
+      }
       const token = await signAuthToken(session.tokenPayload);
       await logSecurityEvent('auth.login.teacher.oauth_google', {
         req,
@@ -1014,7 +1042,114 @@ router.get('/google/callback', async (req, res) => {
       }
       return res.redirect(
         buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-          type: 'teacher',
+          // En mode `staff`, le produit de retour est le plan des personnels : il attend un
+          // jeton, pas une session de console. Le type le dit, et le front n'a pas à deviner
+          // le type de compte qui se cache derrière un personnel autorisé.
+          type: mode === 'staff' ? 'staff' : 'teacher',
+          token,
+          auth: exposeAuth(session.tokenPayload),
+        }),
+      );
+    }
+
+    /**
+     * Plan des personnels : un compte **non enseignant** autorisé (profil « Personnel »,
+     * ou tout profil coché dans `ui.staff_plan.allowed_role_slugs`) entre ici.
+     *
+     * Régression corrigée : la porte de proflyautey lançait `mode=teacher`, et tout compte de
+     * type `student` — ce qu'est un « Personnel » par construction, ainsi que tout compte
+     * promu « Prof de classe » depuis un compte élève (l'attribution d'un profil ne change
+     * pas `users.user_type`) — repartait avec `oauth_teacher_account_not_found`, affiché
+     * « La connexion n'a pas abouti ». Seuls les comptes enseignants (admin, n3boss) entraient.
+     *
+     * Aucune création de compte ici, comme en mode enseignant : un plan de personnels ne
+     * s'ouvre pas à qui n'a pas déjà de compte — c'est le rôle du code partagé.
+     */
+    if (mode === 'staff') {
+      const staffUser =
+        bySub && bySub.user_type === 'student'
+          ? bySub
+          : await queryOne(
+              "SELECT id, email, is_active, google_sub FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
+              [email],
+            );
+      if (!staffUser) {
+        await logSecurityEvent('auth.login.staff_plan.oauth_google', {
+          req,
+          result: 'failure',
+          reason: 'oauth_staff_account_not_found',
+          payload: { email },
+        });
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(
+            cfg.frontendOrigin,
+            'oauth_staff_account_not_found',
+            mode,
+          ),
+        );
+      }
+      // Le jeton délivré est un jeton ForetMap ordinaire : le réglage qui ferme la connexion
+      // Google des élèves vaut donc ici aussi (même raison que CDG-14 côté enseignant).
+      const allowStudentGoogle = await getSettingValue('ui.auth.allow_google_student', true);
+      if (!allowStudentGoogle) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(
+            cfg.frontendOrigin,
+            'oauth_student_google_disabled',
+            mode,
+          ),
+        );
+      }
+      if (googleSub && staffUser.google_sub && staffUser.google_sub !== googleSub) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
+        );
+      }
+      if (!Number(staffUser.is_active)) {
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_inactive', mode),
+        );
+      }
+      await execute(
+        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?), updated_at = NOW() WHERE id = ? AND user_type = 'student'",
+        [nowDbTimestamp(), googleSub, staffUser.id],
+      );
+      await recomputeUserRole(staffUser.id);
+      const session = await buildSessionPayload('student', staffUser.id);
+      if (!session || !(await mayOpenStaffPlan(session.tokenPayload))) {
+        await logSecurityEvent('auth.login.staff_plan.oauth_google', {
+          req,
+          result: 'failure',
+          reason: 'oauth_staff_no_access',
+          actorUserType: 'student',
+          actorUserId: staffUser.id,
+        });
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_staff_no_access', mode),
+        );
+      }
+      const token = await signAuthToken(session.tokenPayload);
+      await logSecurityEvent('auth.login.staff_plan.oauth_google', {
+        req,
+        actorUserType: 'student',
+        actorUserId: staffUser.id,
+        targetType: 'student',
+        targetId: staffUser.id,
+      });
+      try {
+        const { recordAuthenticatedTouch } = require('../lib/userTracking');
+        void recordAuthenticatedTouch({
+          product: 'foret',
+          userType: 'student',
+          userId: staffUser.id,
+          action: 'login',
+        });
+      } catch (_) {
+        /* ignore */
+      }
+      return res.redirect(
+        buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+          type: 'staff',
           token,
           auth: exposeAuth(session.tokenPayload),
         }),

@@ -4307,7 +4307,9 @@
       background:white;
       color:var(--soil);
       font:inherit;
-      font-size:.9rem;
+      /* Token plutôt que littéral (garde-fou tests/typography-tokens-guard.test.js) :
+         --text-base couvre 0.88–1rem, soit la taille visée ici. */
+      font-size:var(--text-base);
       cursor:pointer;
       white-space:nowrap;
     }

@@ -1,1 +1,0 @@
-import{r as e}from"./rolldown-runtime-hePW80VL.js";import{Gt as t}from"./icons-DN-Q6DZk.js";var n=e(t());function r(){let e=(0,n.useRef)(0);return(0,n.useEffect)(()=>()=>{e.current+=1},[]),(0,n.useCallback)(()=>{e.current+=1;let t=e.current;return()=>t===e.current},[])}export{r as t};
