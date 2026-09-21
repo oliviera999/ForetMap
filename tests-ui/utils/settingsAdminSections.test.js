@@ -150,6 +150,8 @@ describe('KEYS_HANDLED_BY_PANEL (panneaux dédiés)', () => {
     expect(KEYS_HANDLED_BY_PANEL.has('ui.plan.map_id')).toBe(true);
     expect(KEYS_HANDLED_BY_PANEL.has('security.plan_access_code_hash')).toBe(true);
     expect(KEYS_HANDLED_BY_PANEL.has('ui.foret.brand')).toBe(true);
+    expect(KEYS_HANDLED_BY_PANEL.has('ui.staff_plan.allowed_role_slugs')).toBe(true);
+    expect(KEYS_HANDLED_BY_PANEL.has('security.staff_plan_access_code_hash')).toBe(true);
     const sections = buildSettingSections([
       { key: 'ui.plan.map_id', type: 'string' },
       { key: 'security.plan_access_code_hash', type: 'string' },

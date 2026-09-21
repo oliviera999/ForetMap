@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Porte d'entrée du plan des personnels : liste de profils autorisés et échappatoire RBAC.
+ * Porte d'entrée du plan des personnels : liste de profils autorisés et permission RBAC.
  */
 
 require('./helpers/setup');
@@ -35,19 +35,19 @@ describe('parseAllowedRoleSlugs / formatAllowedRoleSlugs', () => {
 });
 
 describe('accountMayAccessStaffPlan', () => {
-  it('autorise un profil listé même sans permission RBAC', () => {
+  it('autorise via la liste même sans permission RBAC', () => {
     assert.equal(
-      accountMayAccessStaffPlan({ roleSlug: 'personnel', permissions: [] }, ['personnel']),
+      accountMayAccessStaffPlan({ roleSlug: 'eleve_novice', permissions: [] }, ['eleve_novice']),
       true,
     );
   });
 
-  it('refuse un profil du catalogue hors liste même avec la permission', () => {
+  it('autorise via staff_plan.access même hors liste', () => {
     assert.equal(
       accountMayAccessStaffPlan({ roleSlug: 'admin', permissions: [STAFF_PLAN_PERMISSION] }, [
         'personnel',
       ]),
-      false,
+      true,
     );
   });
 
@@ -61,9 +61,9 @@ describe('accountMayAccessStaffPlan', () => {
     );
   });
 
-  it('refuse un profil maison sans permission', () => {
+  it('refuse sans permission et hors liste', () => {
     assert.equal(
-      accountMayAccessStaffPlan({ roleSlug: 'vie_scolaire', permissions: [] }, ['admin']),
+      accountMayAccessStaffPlan({ roleSlug: 'eleve_novice', permissions: [] }, ['admin']),
       false,
     );
   });

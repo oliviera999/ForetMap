@@ -91,15 +91,16 @@ export function StaffPlanSettingsPanel({
         Le plan des personnels (proflyautey) affiche la <strong>même carte</strong> que le plan
         public, sur la surface « Plan personnels » : il montre en plus les lieux qui en sont retirés
         et les compléments réservés des fiches. Cochez ci-dessous les profils qui peuvent y entrer
-        avec leur compte ; un profil maison hors liste s’ouvre encore via la permission « Accès plan
-        des personnels » dans <strong>Profils RBAC</strong>.
+        avec leur compte <strong>même sans</strong> la permission RBAC. Les profils qui ont déjà «
+        Accès plan des personnels » (Profils RBAC) entrent aussi — les cases servent surtout à
+        ouvrir un profil supplémentaire sans toucher aux permissions.
       </p>
 
       <RoleSlugsMultiSelect
         label="Profils autorisés (compte)"
         value={get(STAFF_KEYS.allowedRoleSlugs, 'admin;prof;prof_classe;personnel')}
         disabled={readOnly || savingKey === STAFF_KEYS.allowedRoleSlugs}
-        hint="Sélection multiple — enregistrée immédiatement. Décocher un profil le refuse même s’il a encore la permission RBAC."
+        hint="Sélection multiple — enregistrée immédiatement. Complète la permission RBAC « Accès plan des personnels » (union des deux)."
         testId="staff-plan-allowed-role-slugs"
         roles={roles}
         onSave={(next) =>

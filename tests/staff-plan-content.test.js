@@ -146,21 +146,20 @@ test('compte autorisé : voit les lieux retirés du plan public et leur complém
   assert.match(res.headers['cache-control'], /no-store/);
 });
 
-test('réglage allowed_role_slugs : un admin décoché est refusé malgré staff_plan.access', async () => {
-  await setSetting('ui.staff_plan.allowed_role_slugs', 'personnel', {
+test('réglage allowed_role_slugs vide : ne ferme pas la porte (repli sur le défaut)', async () => {
+  await setSetting('ui.staff_plan.allowed_role_slugs', '', {
     userType: 'teacher',
     userId: 'test',
   });
   invalidateSettingsCache();
-  const res = await auth(request(app).get('/api/staff-plan/content')).expect(401);
-  assert.equal(res.body.auth_required, true);
+  // Admin a toujours staff_plan.access — et la liste vide redevient le défaut.
+  await auth(request(app).get('/api/staff-plan/content')).expect(200);
 
   await setSetting('ui.staff_plan.allowed_role_slugs', 'admin;prof;prof_classe;personnel', {
     userType: 'teacher',
     userId: 'test',
   });
   invalidateSettingsCache();
-  await auth(request(app).get('/api/staff-plan/content')).expect(200);
 });
 
 test('le plan public ignore tout de la surface personnels', async () => {
