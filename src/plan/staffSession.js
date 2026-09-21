@@ -43,7 +43,7 @@ export function clearStaffToken() {
  * Le fragment est retiré de l'URL (`history.replaceState`) avant tout : un jeton dans la barre
  * d'adresse se retrouve dans un signet, une capture d'écran ou un partage de lien.
  *
- * @returns {{ status: 'none' } | { status: 'ok' } | { status: 'error', code: string }}
+ * @returns {{ status: 'none' } | { status: 'ok' } | { status: 'error', code: string, role?: string }}
  */
 export function consumeStaffOauthHash() {
   if (typeof window === 'undefined') return { status: 'none' };
@@ -60,7 +60,11 @@ export function consumeStaffOauthHash() {
     `${window.location.pathname}${window.location.search}`,
   );
 
-  if (errorCode) return { status: 'error', code: String(errorCode) };
+  if (errorCode) {
+    // `role` : le profil que le serveur a vu sur le compte. Sans lui, « ce compte n'a pas
+    // l'accès » n'apprend rien — ni à la personne, ni à l'administrateur qu'elle va voir.
+    return { status: 'error', code: String(errorCode), role: String(params.get('role') || '') };
+  }
   try {
     const payload = decodeOAuthPayload(payloadRaw);
     // `staff` est le retour du mode dédié à ce produit (`/api/auth/google/start?mode=staff`) :
@@ -85,13 +89,18 @@ export function consumeStaffOauthHash() {
  * « La connexion n'a pas abouti », qui ne dit ni ce qui a échoué ni quoi faire — c'est
  * exactement ce que voyaient les personnels refusés à tort par le mode enseignant.
  */
-export function staffOauthErrorMessage(code) {
+export function staffOauthErrorMessage(code, roleLabel = '') {
+  const role = String(roleLabel || '').trim();
+  const withRole = (message) =>
+    role ? `${message} Profil vu par le serveur : « ${role} ».` : message;
   switch (String(code || '')) {
     case 'oauth_email_not_allowed':
       return 'Ce compte Google n’appartient pas au domaine autorisé par l’établissement.';
     case 'oauth_staff_no_access':
     case 'oauth_teacher_no_role':
-      return 'Connexion réussie, mais ce compte n’a pas encore l’accès au plan des personnels.';
+      return withRole(
+        'Connexion réussie, mais ce compte n’a pas encore l’accès au plan des personnels.',
+      );
     case 'oauth_staff_account_not_found':
     case 'oauth_teacher_account_not_found':
     case 'oauth_account_not_found':
