@@ -68,6 +68,22 @@ Le **type de compte ne joue aucun rôle** ici : un « Personnel » (vie scolaire
 intendance) a un compte de même nature qu'un élève, et cela ne l'empêche pas d'entrer. C'est
 la permission ou le profil coché qui décide, rien d'autre.
 
+**Le rattachement à un groupe non plus.** Un groupe confère son profil à ses membres dès qu'il
+est plus élevé que le leur, et « Personnel » est le profil le plus bas de tous : une personne
+de la vie scolaire inscrite à une classe se retrouvait donc avec un profil d'élève, et la porte
+se refermait sur elle. Le plan des personnels regarde désormais **le profil que vous avez
+attribué** sur la fiche du compte, pas seulement celui qu'un groupe lui confère. Entrer par ce
+biais ne donne aucun droit supplémentaire : la personne voit ce qu'un personnel doit voir, et
+rien de plus.
+
+Si l'accès est malgré tout refusé, le message nomme désormais **le profil que le serveur voit**
+sur le compte. C'est l'information à comparer avec :
+
+1. la fiche du compte (**Réglages → Comptes**) : profil attribué et profil effectif ;
+2. les cases **Profils autorisés** (**Réglages → Plan Lyautey → Plan des personnels**) ;
+3. la permission **« Accès plan des personnels »** du profil (**Réglages → Profils RBAC**) —
+   une permission retirée à la main y reste retirée.
+
 > **Corrigé (septembre 2026).** Jusqu'ici, seuls les comptes **Administrateur** et **n3boss**
 > entraient réellement : la page lançait la connexion réservée aux enseignants, et tout autre
 > compte — « Personnel », mais aussi un « Prof de classe » créé au départ comme compte élève —

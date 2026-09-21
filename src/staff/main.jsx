@@ -33,7 +33,10 @@ import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx'
 const oauth = consumeStaffOauthHash();
 if (oauth.status === 'error') {
   // Pas de toast disponible avant le montage : le message est déposé pour l'écran d'entrée.
-  window.sessionStorage?.setItem?.('staffplan:oauth-error', staffOauthErrorMessage(oauth.code));
+  window.sessionStorage?.setItem?.(
+    'staffplan:oauth-error',
+    staffOauthErrorMessage(oauth.code, oauth.role),
+  );
 }
 
 document.body.classList.add(...STAFF_PLAN_VARIANT.bodyClass.split(' ').filter(Boolean));
