@@ -2279,6 +2279,15 @@ Deux voies, dans cet ordre.
    profil « Personnel » est porté par un compte de type élève, et un compte promu
    « Prof de classe » depuis un compte élève garde son type d'origine. `mode=teacher`
    renvoyait ces comptes avec `oauth_teacher_account_not_found`.
+   Le test porte sur le profil **effectif** (`user_roles.is_primary`) **puis**, s'il ne suffit
+   pas, sur le profil **attribué** (`users.assigned_role_id`) — `resolveAccountStaffPlanAccess`.
+   Un groupe actif confère son profil dès qu'il est de rang supérieur, et `personnel` est le
+   plus bas du catalogue (50, sous `eleve_novice`) : sans ce second passage, un personnel
+   rattaché à une classe était refusé alors que sa fiche affiche « Personnel ». Entrer par le
+   profil attribué **n'ajoute aucune permission** : seul le profil d'audience
+   (`lib/locationAudience.js`) suit le profil attribué.
+   Le refus de connexion nomme le profil vu par le serveur :
+   `#oauth_error=oauth_staff_no_access&mode=staff&role=<nom affiché du profil>`.
 2. **Code partagé**, seulement si `ui.staff_plan.access_mode` vaut `code` (défaut :
    **`disabled`**) **et** qu'un code est configuré (`security.staff_plan_access_code_hash`,
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les

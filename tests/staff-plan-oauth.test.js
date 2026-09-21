@@ -22,6 +22,8 @@ const bcrypt = require('bcryptjs');
 
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
+const { recomputeUserRole } = require('../lib/effectiveRole');
+const { addUserToGroup } = require('../lib/groupMembers');
 const authRouter = require('../routes/auth');
 
 const CALLBACK_ORIGIN = 'https://foretmap.olution.info';
@@ -117,6 +119,7 @@ async function googleCallback(email, mode) {
     return {
       location,
       error,
+      role: hash.get('role'),
       payload: raw ? JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) : null,
     };
   } finally {
@@ -162,11 +165,35 @@ describe('Connexion Google du plan des personnels (mode=staff)', () => {
     await staffPlanContent(out.payload.token).expect(200);
   });
 
-  it('un compte sans accès (visiteur) est refusé, et le dit', async () => {
+  it('un « Personnel » rattaché à un groupe de classe entre quand même', async () => {
+    // Le groupe confère son profil dès qu'il est de rang supérieur, et « Personnel » est le
+    // plus bas du catalogue : sans le repli sur le profil attribué, ce compte était refusé à
+    // sa propre porte alors que sa fiche affiche « Personnel ».
+    const { id, email } = await createAccount({ roleSlug: 'personnel', userType: 'student' });
+    const groupId = crypto.randomUUID();
+    const groupRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+    await execute(
+      'INSERT INTO `groups` (id, name, slug, default_role_id, force_default_role, is_active, created_at) VALUES (?, ?, ?, ?, 0, 1, NOW())',
+      [groupId, `Classe ${groupId.slice(0, 8)}`, `cls-${groupId.slice(0, 8)}`, groupRole.id],
+    );
+    const attach = await addUserToGroup(id, groupId);
+    assert.ok(attach.ok, `rattachement refusé : ${attach.error || ''}`);
+    await recomputeUserRole(id);
+
+    const out = await googleCallback(email, 'staff');
+    assert.strictEqual(out.error, null, `refus inattendu : ${out.error}`);
+    assert.strictEqual(out.payload?.type, 'staff');
+    await staffPlanContent(out.payload.token).expect(200);
+  });
+
+  it('un compte sans accès (visiteur) est refusé, et le refus nomme son profil', async () => {
     const { email } = await createAccount({ roleSlug: 'visiteur', userType: 'student' });
     const out = await googleCallback(email, 'staff');
     assert.strictEqual(out.payload, null);
     assert.strictEqual(out.error, 'oauth_staff_no_access');
+    // Le profil refusé voyage avec le code : « ce compte n'a pas l'accès » sans dire lequel
+    // n'apprend rien à la personne ni à l'administrateur qu'elle va voir.
+    assert.ok(out.role, 'le profil refusé n’est pas nommé dans le retour');
   });
 
   it('aucune création de compte : une adresse inconnue est refusée', async () => {

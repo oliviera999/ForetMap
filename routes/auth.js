@@ -62,7 +62,7 @@ const {
   originOfUrl,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
-const { accountMayAccessStaffPlan, resolveAllowedRoleSlugs } = require('../lib/staffPlanAccess');
+const { resolveAccountStaffPlanAccess } = require('../lib/staffPlanAccess');
 
 /**
  * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
@@ -227,11 +227,16 @@ async function buildSessionPayload(userType, userId) {
  * profil coché dans **Réglages → Plan Lyautey → Plan des personnels**. Vérifiée ici pour que
  * l'échec soit dit à la connexion, plutôt qu'au premier appel refusé derrière un jeton valide.
  *
- * @param {{ roleSlug?: string, permissions?: string[] }} tokenPayload
- * @returns {Promise<boolean>}
+ * Le profil **attribué** compte autant que le profil effectif : un groupe confère le sien dès
+ * qu'il est de rang supérieur, et « Personnel » est le plus bas du catalogue — sans cela, un
+ * personnel rattaché à une classe était refusé à sa propre porte
+ * (`resolveAccountStaffPlanAccess`).
+ *
+ * @param {{ roleSlug?: string, permissions?: string[], userId?: string, userType?: string }} tokenPayload
+ * @returns {Promise<{ ok: boolean, roleSlug: string, via?: string }>}
  */
 async function mayOpenStaffPlan(tokenPayload) {
-  return accountMayAccessStaffPlan(tokenPayload, await resolveAllowedRoleSlugs());
+  return resolveAccountStaffPlanAccess(tokenPayload);
 }
 
 async function resolveLoginUserType(user) {
@@ -1016,10 +1021,26 @@ router.get('/google/callback', async (req, res) => {
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode),
         );
       }
-      if (mode === 'staff' && !(await mayOpenStaffPlan(session.tokenPayload))) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_staff_no_access', mode),
-        );
+      if (mode === 'staff') {
+        const staffAccess = await mayOpenStaffPlan(session.tokenPayload);
+        if (!staffAccess.ok) {
+          await logSecurityEvent('auth.login.staff_plan.oauth_google', {
+            req,
+            result: 'failure',
+            reason: 'oauth_staff_no_access',
+            actorUserType: 'teacher',
+            actorUserId: teacher.id,
+            payload: { role_slug: staffAccess.roleSlug || null },
+          });
+          return res.redirect(
+            buildOAuthFrontendErrorRedirect(
+              cfg.frontendOrigin,
+              'oauth_staff_no_access',
+              mode,
+              session.tokenPayload.roleDisplayName || staffAccess.roleSlug,
+            ),
+          );
+        }
       }
       const token = await signAuthToken(session.tokenPayload);
       await logSecurityEvent('auth.login.teacher.oauth_google', {
@@ -1116,16 +1137,25 @@ router.get('/google/callback', async (req, res) => {
       );
       await recomputeUserRole(staffUser.id);
       const session = await buildSessionPayload('student', staffUser.id);
-      if (!session || !(await mayOpenStaffPlan(session.tokenPayload))) {
+      const staffAccess = session
+        ? await mayOpenStaffPlan(session.tokenPayload)
+        : { ok: false, roleSlug: '' };
+      if (!staffAccess.ok) {
         await logSecurityEvent('auth.login.staff_plan.oauth_google', {
           req,
           result: 'failure',
           reason: 'oauth_staff_no_access',
           actorUserType: 'student',
           actorUserId: staffUser.id,
+          payload: { role_slug: staffAccess.roleSlug || null },
         });
         return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_staff_no_access', mode),
+          buildOAuthFrontendErrorRedirect(
+            cfg.frontendOrigin,
+            'oauth_staff_no_access',
+            mode,
+            session?.tokenPayload?.roleDisplayName || staffAccess.roleSlug,
+          ),
         );
       }
       const token = await signAuthToken(session.tokenPayload);
