@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — proflyautey : un personnel rattaché à un groupe était refusé à sa porte
+
+- La garde du plan des personnels ne regardait que le profil **effectif**
+  (`user_roles.is_primary`). Or un groupe actif confère le sien dès qu'il est de rang
+  supérieur, et **Personnel** est le profil le plus bas du catalogue (rang 50, sous
+  `n3beur novice` à 100) : un personnel rattaché à une classe — vie scolaire, agent inscrit à
+  un projet — se retrouvait avec un profil effectif d'élève, donc sans `staff_plan.access` ni
+  case cochée, et lisait « Connexion réussie, mais ce compte n'a pas encore l'accès au plan
+  des personnels » alors que sa fiche affichait bien « Personnel ».
+- La porte teste maintenant le profil effectif **puis**, s'il ne suffit pas, le profil
+  **attribué** (`users.assigned_role_id`) — ce que l'administrateur a réellement posé sur le
+  compte (`resolveAccountStaffPlanAccess`). Entrer par le profil attribué **n'ajoute aucune
+  permission** : seul le profil d'audience suit, jamais les capacités.
+- Le refus **nomme le profil vu par le serveur** (`&role=` dans le retour OAuth, affiché sur
+  l'écran d'entrée) et l'inscrit au journal d'audit : « ce compte n'a pas l'accès » sans dire
+  lequel n'apprenait rien, ni à la personne, ni à l'administrateur qu'elle va voir.
+- Tests : `tests/staff-plan-assigned-role.test.js`, cas du groupe ajouté à
+  `tests/staff-plan-oauth.test.js` et à `tests-ui/plan/staffSession.test.js`.
+
+
 ### Corrigé — proflyautey : la connexion échouait pour « Prof de classe » et « Personnel »
 
 - La porte du plan des personnels lançait la connexion Google **réservée aux enseignants**

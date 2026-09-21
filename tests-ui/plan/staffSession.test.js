@@ -50,6 +50,15 @@ describe('staffSession — retour Google', () => {
     expect(getStaffToken()).toBe('jeton-prof');
   });
 
+  it('transmet le profil refusé porté par le fragment', () => {
+    landOn('#oauth_error=oauth_staff_no_access&mode=staff&role=n3beur%20novice');
+    expect(consumeStaffOauthHash()).toEqual({
+      status: 'error',
+      code: 'oauth_staff_no_access',
+      role: 'n3beur novice',
+    });
+  });
+
   it('un retour d’un autre mode ne laisse pas de jeton', () => {
     landOn(oauthHash({ type: 'student', student: { id: 'e-1' } }));
     expect(consumeStaffOauthHash()).toEqual({ status: 'error', code: 'oauth_staff_no_access' });
@@ -86,6 +95,12 @@ describe('staffSession — messages d’erreur', () => {
     for (const code of codes) {
       expect(staffOauthErrorMessage(code), `code non traduit : ${code}`).not.toBe(GENERIC);
     }
+  });
+
+  it('nomme le profil vu par le serveur quand il est transmis', () => {
+    const message = staffOauthErrorMessage('oauth_staff_no_access', 'n3beur novice');
+    expect(message).toContain('n’a pas encore l’accès');
+    expect(message).toContain('n3beur novice');
   });
 
   it('garde un message de repli pour un code inconnu', () => {
