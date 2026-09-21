@@ -13,9 +13,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - Réglage **`ui.staff_plan.allowed_role_slugs`** (cases à cocher dans
   Réglages → Plan Lyautey → Plan des personnels) : quels profils ouvrent le plan avec un
-  compte. Défaut inchangé (`admin`, `n3boss`, `prof de classe`, `personnel`). Un profil
-  décoché est refusé même s’il a encore la permission RBAC ; un profil maison hors liste
-  continue de s’appuyer sur `staff_plan.access`.
+  compte, **en plus** de la permission RBAC `staff_plan.access` (union). Défaut
+  `admin` / `n3boss` / `prof de classe` / `personnel`. Une liste vide est traitée comme le
+  défaut (évite de fermer le plan par accident). Les clés `ui.staff_plan.*` sont retirées de
+  la grille générique des réglages.
 
 ### Ajouté — catalogue biodiversité : charge optimale et filtres
 

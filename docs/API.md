@@ -2269,14 +2269,11 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 
 Deux voies, dans cet ordre.
 
-1. **Compte ForetMap** (Google ou mot de passe) dont le **profil** figure dans
-   **`ui.staff_plan.allowed_role_slugs`** (portée `admin`, défaut
-   `admin;prof;prof_classe;personnel`). C'est l'entrée normale, et la seule qui donne un
-   **rôle réel** — donc le seul filtrage fin des lieux et des compléments. Un profil du
-   catalogue **décoché** dans ce réglage est refusé même s'il a encore la permission RBAC
-   `staff_plan.access`. Un **profil maison** hors catalogue d'audience peut encore entrer via
-   `staff_plan.access` (échappatoire RBAC). Distinct de `teacher.access` : un agent entre sur
-   le plan sans ouvrir la console n3boss.
+1. **Compte ForetMap** (Google ou mot de passe) si **l'un** des deux est vrai : permission
+   **`staff_plan.access`**, **ou** profil listé dans **`ui.staff_plan.allowed_role_slugs`**
+   (portée `admin`, défaut `admin;prof;prof_classe;personnel` ; liste vide = défaut). Les
+   cases des réglages servent à ouvrir un profil **sans** toucher au RBAC. Distinct de
+   `teacher.access` : un agent entre sur le plan sans ouvrir la console n3boss.
 2. **Code partagé**, seulement si `ui.staff_plan.access_mode` vaut `code` (défaut :
    **`disabled`**) **et** qu'un code est configuré (`security.staff_plan_access_code_hash`,
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les

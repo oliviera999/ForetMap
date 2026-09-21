@@ -42,6 +42,17 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.plan.access_mode',
   'ui.plan.heading_up_enabled',
   'security.plan_access_code_hash',
+  // Plan des personnels (StaffPlanSettingsPanel) — sans ça, la grille générique montrait un
+  // champ texte pour `allowed_role_slugs` : le vider au blur fermait proflyautey à tout le monde.
+  'ui.staff_plan.title',
+  'ui.staff_plan.welcome_hint',
+  'ui.staff_plan.attribution',
+  'ui.staff_plan.default_category_ids',
+  'ui.staff_plan.hidden_category_ids',
+  'ui.staff_plan.allowed_role_slugs',
+  'ui.staff_plan.access_mode',
+  'ui.staff_plan.code_role_slug',
+  'security.staff_plan_access_code_hash',
   'content.visit.mascot_dialog.defaults',
   'content.visit.mascot_dialog.catalog_overrides',
   'ops.visit_mascot_unrenderable_aligned_at',
