@@ -9,9 +9,9 @@ import { startGoogleAuth } from '../../components/auth/startGoogleAuth.js';
  *
  * L'entrée normale est le **compte ForetMap** : le bouton Google lance le flux déjà en place
  * (`/api/auth/google/start?mode=teacher`), qui revient sur cette origine-ci depuis que le
- * rappel OAuth mémorise le produit de départ (`lib/oauthPublicUrl.js`). Le compte doit porter
- * la permission `staff_plan.access` — sans quoi le serveur refuse la charge, quel que soit le
- * succès de la connexion Google.
+ * rappel OAuth mémorise le produit de départ (`lib/oauthPublicUrl.js`). Le profil du compte
+ * doit être dans `ui.staff_plan.allowed_role_slugs` — sans quoi le serveur refuse la charge,
+ * quel que soit le succès de la connexion Google.
  *
  * La saisie du **code partagé** n'apparaît que si un administrateur l'a activée
  * (`ui.staff_plan.access_mode`), et reste repliée derrière un lien : c'est la voie

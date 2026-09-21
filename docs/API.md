@@ -2179,8 +2179,8 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   - `?surface=map` → **compte requis** (la carte de travail est un écran interne) : **401**
     `{ auth_required: true }` sans jeton, aucune permission particulière au-delà.
   - `?surface=staff` → même garde que `GET /api/staff-plan/content`
-    (`resolveStaffPlanViewer` : permission `staff_plan.access` ou laissez-passer de code) :
-    **401** `{ auth_required: true, code_available }` sinon.
+    (`resolveStaffPlanViewer` : profil dans `ui.staff_plan.allowed_role_slugs` ou
+    laissez-passer de code) : **401** `{ auth_required: true, code_available }` sinon.
 
   Les deux dernières règles ont été posées après coup : seule la garde du plan existait, et
   `?surface=staff` livrait à un anonyme le titre, la description, le public visé et le texte
@@ -2269,12 +2269,14 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 
 Deux voies, dans cet ordre.
 
-1. **Compte ForetMap** (Google ou mot de passe) portant la permission **`staff_plan.access`**.
-   Entrée normale, toujours ouverte, et la seule qui donne un **rôle réel** — donc le seul
-   filtrage fin des lieux et des compléments. Accordée par défaut à `admin`, `prof`,
-   `prof_classe` et `personnel` ; s'attribue ensuite à n'importe quel profil, y compris maison,
-   depuis « Profils RBAC ». Elle est distincte de `teacher.access` : un agent entre sur le plan
-   sans ouvrir la console n3boss.
+1. **Compte ForetMap** (Google ou mot de passe) dont le **profil** figure dans
+   **`ui.staff_plan.allowed_role_slugs`** (portée `admin`, défaut
+   `admin;prof;prof_classe;personnel`). C'est l'entrée normale, et la seule qui donne un
+   **rôle réel** — donc le seul filtrage fin des lieux et des compléments. Un profil du
+   catalogue **décoché** dans ce réglage est refusé même s'il a encore la permission RBAC
+   `staff_plan.access`. Un **profil maison** hors catalogue d'audience peut encore entrer via
+   `staff_plan.access` (échappatoire RBAC). Distinct de `teacher.access` : un agent entre sur
+   le plan sans ouvrir la console n3boss.
 2. **Code partagé**, seulement si `ui.staff_plan.access_mode` vaut `code` (défaut :
    **`disabled`**) **et** qu'un code est configuré (`security.staff_plan_access_code_hash`,
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les
@@ -2315,7 +2317,7 @@ Le message devient un **commentaire de contexte du lieu** (`context_comments`, `
 concerné, avec la modération, les photos et le signalement déjà en place. Il ressort aussi dans
 `GET /api/context-comments/recent` (vue « Messages reçus sur les lieux » de la console).
 
-Gardes, dans l'ordre : compte portant `staff_plan.access` (**401** sinon, **403** pour un
+Gardes, dans l'ordre : compte autorisé sur le plan des personnels (**401** sinon, **403** pour un
 porteur de code), module `context_comments` actif (**503** sinon), `contextType` dans
 `zone|marker` et corps de 2 à 4000 caractères (**400** sinon), lieu **réellement visible par ce
 lecteur** sur la surface `staff` (**404** sinon — « introuvable » plutôt qu'« interdit » :
@@ -2331,10 +2333,11 @@ sans ouvrir les commentaires de la console à un profil qui n'y participe pas.
 ### Réglages
 
 `ui.staff_plan.title`, `welcome_hint`, `attribution`, `default_category_ids`,
-`hidden_category_ids`, `access_mode`, `code_role_slug` (portée `admin`). La **carte** n'a pas de
-réglage propre : le plan des personnels affiche celle du plan public (`ui.plan.map_id`,
-`ui.plan.brand`, `ui.plan.heading_up_enabled`) — deux réglages à tenir synchronisés à la main
-seraient une source d'erreur pour aucun gain.
+`hidden_category_ids`, `allowed_role_slugs` (portée `admin`), `access_mode`,
+`code_role_slug` (portée `admin`). La **carte** n'a pas de réglage propre : le plan des
+personnels affiche celle du plan public (`ui.plan.map_id`, `ui.plan.brand`,
+`ui.plan.heading_up_enabled`) — deux réglages à tenir synchronisés à la main seraient une
+source d'erreur pour aucun gain.
 
 ### Cache et indexation
 

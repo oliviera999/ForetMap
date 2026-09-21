@@ -65,7 +65,7 @@ export function consumeStaffOauthHash() {
     const payload = decodeOAuthPayload(payloadRaw);
     // Seul un retour « prof » porte un jeton de personnel. Un retour élève arrive ici quand
     // quelqu'un s'est connecté avec un compte n3beur : il n'y a rien à mémoriser, et le
-    // serveur refusera la charge faute de `staff_plan.access` — le message doit le dire.
+    // serveur refusera la charge si ce profil n'est pas dans allowed_role_slugs.
     if (payload?.type === 'teacher' && payload?.token) {
       safeLocalStorageSetItem(TOKEN_STORAGE_KEY, String(payload.token));
       return { status: 'ok' };

@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — proflyautey : profils autorisés dans les réglages admin
+
+- Réglage **`ui.staff_plan.allowed_role_slugs`** (cases à cocher dans
+  Réglages → Plan Lyautey → Plan des personnels) : quels profils ouvrent le plan avec un
+  compte. Défaut inchangé (`admin`, `n3boss`, `prof de classe`, `personnel`). Un profil
+  décoché est refusé même s’il a encore la permission RBAC ; un profil maison hors liste
+  continue de s’appuyer sur `staff_plan.access`.
+
 ### Ajouté — catalogue biodiversité : charge optimale et filtres
 
 - Compteurs d’observation et résumé de conditionnement : **lots de 200** ids (plus de
