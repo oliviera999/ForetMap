@@ -67,9 +67,12 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
     assert.deepEqual([...nullDefaults], ['z.net']);
   });
 
-  it('normalizeOAuthMode : teacher exact (insensible à la casse) sinon student', () => {
+  it('normalizeOAuthMode : teacher / staff exacts (insensibles à la casse) sinon student', () => {
     assert.equal(normalizeOAuthMode('teacher'), 'teacher');
     assert.equal(normalizeOAuthMode('TEACHER'), 'teacher');
+    // Mode du plan des personnels : il accepte un compte non enseignant autorisé.
+    assert.equal(normalizeOAuthMode('staff'), 'staff');
+    assert.equal(normalizeOAuthMode('Staff'), 'staff');
     assert.equal(normalizeOAuthMode('student'), 'student');
     assert.equal(normalizeOAuthMode('autre'), 'student');
     assert.equal(normalizeOAuthMode(''), 'student');
