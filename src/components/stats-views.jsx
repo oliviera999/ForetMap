@@ -79,6 +79,10 @@ function StudentStats({ student }) {
   }
 
   const { stats, assignments } = data;
+  // Un compte hors groupe n3 (visiteur, personnel, encadrant) n'a ni palier n3beur ni tâches :
+  // le serveur ne renvoie alors ni `progression` ni `assignments`, et sa fiche se limite au
+  // volet biodiversité & tutoriels (docs/reference/foretmap/stats-forum-et-suivi.md).
+  const isN3beur = data?.is_n3beur !== false;
   const {
     ranks: RANKS,
     autoProgressionEnabled,
@@ -102,19 +106,21 @@ function StudentStats({ student }) {
             <IconStats size={20} /> Mes statistiques
           </h2>
         </div>
-        <span
-          style={{
-            background: 'var(--parchment)',
-            borderRadius: 20,
-            padding: '4px 12px',
-            fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--fw-semibold)',
-            color: 'var(--soil)',
-          }}
-          title="Palier n3beur actuel"
-        >
-          Profil actuel : {actualTier.icon} {actualTier.label}
-        </span>
+        {isN3beur && (
+          <span
+            style={{
+              background: 'var(--parchment)',
+              borderRadius: 20,
+              padding: '4px 12px',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-semibold)',
+              color: 'var(--soil)',
+            }}
+            title="Palier n3beur actuel"
+          >
+            Profil actuel : {actualTier.icon} {actualTier.label}
+          </span>
+        )}
       </div>
       <p className="section-sub">
         Salut {data.first_name} ! Voici ton bilan terrain — merci pour ce que tu fais pousser.
@@ -129,7 +135,7 @@ function StudentStats({ student }) {
           {data.description}
         </p>
       )}
-      {!autoProgressionEnabled && (
+      {isN3beur && !autoProgressionEnabled && (
         <p
           className="section-sub"
           style={{
@@ -147,7 +153,7 @@ function StudentStats({ student }) {
         </p>
       )}
 
-      {profileAheadOfTasks && (
+      {isN3beur && profileAheadOfTasks && (
         <p
           className="section-sub"
           style={{ marginTop: 8, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
@@ -156,7 +162,7 @@ function StudentStats({ student }) {
           avancé).
         </p>
       )}
-      {profileBehindOfTasks && (
+      {isN3beur && profileBehindOfTasks && (
         <p
           className="section-sub"
           style={{ marginTop: 8, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
@@ -165,67 +171,73 @@ function StudentStats({ student }) {
           automatiquement.
         </p>
       )}
-      <div className="rank-progress">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span
-            style={{
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--fw-semibold)',
-              color: 'var(--forest)',
-            }}
-          >
-            {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon}{' '}
-            {taskTier.label}
-          </span>
-          {nextRank && (
-            <span style={{ fontSize: 'var(--text-xs)', color: '#aaa' }}>
-              Prochain palier : {nextRank.icon} {nextRank.label} ({tasksRemaining} tâche
-              {tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
-            </span>
-          )}
-          {!nextRank && (
-            <span
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: taskTier.color,
-                fontWeight: 'var(--fw-semibold)',
-              }}
+      {isN3beur && (
+        <>
+          <div className="rank-progress">
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
             >
-              Palier maximum atteint (tâches validées) !
-            </span>
-          )}
-        </div>
-        <div className="rank-bar-bg">
-          <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />
-        </div>
-        <div className="rank-steps">
-          {RANKS.map((r, i) => (
-            <span
-              key={`${r.roleSlug || r.label}-${r.min}`}
-              className={taskTierIndex >= 0 && i <= taskTierIndex ? 'current' : ''}
-              title={r.label}
-            >
-              {r.icon}
-            </span>
-          ))}
-        </div>
-      </div>
+              <span
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--fw-semibold)',
+                  color: 'var(--forest)',
+                }}
+              >
+                {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon}{' '}
+                {taskTier.label}
+              </span>
+              {nextRank && (
+                <span style={{ fontSize: 'var(--text-xs)', color: '#aaa' }}>
+                  Prochain palier : {nextRank.icon} {nextRank.label} ({tasksRemaining} tâche
+                  {tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
+                </span>
+              )}
+              {!nextRank && (
+                <span
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: taskTier.color,
+                    fontWeight: 'var(--fw-semibold)',
+                  }}
+                >
+                  Palier maximum atteint (tâches validées) !
+                </span>
+              )}
+            </div>
+            <div className="rank-bar-bg">
+              <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+            <div className="rank-steps">
+              {RANKS.map((r, i) => (
+                <span
+                  key={`${r.roleSlug || r.label}-${r.min}`}
+                  className={taskTierIndex >= 0 && i <= taskTierIndex ? 'current' : ''}
+                  title={r.label}
+                >
+                  {r.icon}
+                </span>
+              ))}
+            </div>
+          </div>
 
-      <StatsSummaryGrid>
-        <StatCard
-          icon={<IconCheck size={20} />}
-          value={stats.done}
-          label="Tâches validées"
-          highlight
-        />
-        <StatCard icon={<IconHourglass size={20} />} value={stats.pending} label="En cours" />
-        <StatCard
-          icon={<IconReports size={20} />}
-          value={stats.submitted}
-          label={`En attente ${roleTerms.teacherShort}`}
-        />
-        <StatCard icon={<IconBiodiv size={20} />} value={stats.total} label="Total prises" />
-      </StatsSummaryGrid>
+          <StatsSummaryGrid>
+            <StatCard
+              icon={<IconCheck size={20} />}
+              value={stats.done}
+              label="Tâches validées"
+              highlight
+            />
+            <StatCard icon={<IconHourglass size={20} />} value={stats.pending} label="En cours" />
+            <StatCard
+              icon={<IconReports size={20} />}
+              value={stats.submitted}
+              label={`En attente ${roleTerms.teacherShort}`}
+            />
+            <StatCard icon={<IconBiodiv size={20} />} value={stats.total} label="Total prises" />
+          </StatsSummaryGrid>
+        </>
+      )}
 
       <h3
         style={{
@@ -255,54 +267,58 @@ function StudentStats({ student }) {
         />
       </StatsSummaryGrid>
 
-      <h3
-        style={{
-          fontFamily: 'Playfair Display,serif',
-          fontSize: 'var(--text-md)',
-          marginBottom: 12,
-          color: 'var(--forest)',
-        }}
-      >
-        Activité récente
-      </h3>
-      <div className="activity-list">
-        {assignments.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon">
-              <IconLeaf size={28} />
-            </div>
-            <p>Aucune tâche prise pour l'instant</p>
-          </div>
-        ) : (
-          assignments.slice(0, 10).map((a, i) => (
-            <div
-              key={
-                a?.id != null
-                  ? String(a.id)
-                  : `activity-${a?.task_id ?? 'x'}-${a?.assigned_at ?? i}-${i}`
-              }
-              className="activity-item"
-            >
-              <div className={`activity-dot ${a.status}`} />
-              <div className="activity-info">
-                <div className="activity-title">{a.title}</div>
-                <div className="activity-meta">
-                  {a.zone_name && (
-                    <>
-                      <IconMarker size={12} /> {a.zone_name} ·{' '}
-                    </>
-                  )}
-                  {new Date(a.assigned_at).toLocaleDateString('fr-FR', {
-                    day: '2-digit',
-                    month: 'short',
-                  })}
+      {isN3beur && (
+        <>
+          <h3
+            style={{
+              fontFamily: 'Playfair Display,serif',
+              fontSize: 'var(--text-md)',
+              marginBottom: 12,
+              color: 'var(--forest)',
+            }}
+          >
+            Activité récente
+          </h3>
+          <div className="activity-list">
+            {assignments.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">
+                  <IconLeaf size={28} />
                 </div>
+                <p>Aucune tâche prise pour l'instant</p>
               </div>
-              {statusBadge(a.status)}
-            </div>
-          ))
-        )}
-      </div>
+            ) : (
+              assignments.slice(0, 10).map((a, i) => (
+                <div
+                  key={
+                    a?.id != null
+                      ? String(a.id)
+                      : `activity-${a?.task_id ?? 'x'}-${a?.assigned_at ?? i}-${i}`
+                  }
+                  className="activity-item"
+                >
+                  <div className={`activity-dot ${a.status}`} />
+                  <div className="activity-info">
+                    <div className="activity-title">{a.title}</div>
+                    <div className="activity-meta">
+                      {a.zone_name && (
+                        <>
+                          <IconMarker size={12} /> {a.zone_name} ·{' '}
+                        </>
+                      )}
+                      {new Date(a.assigned_at).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </div>
+                  </div>
+                  {statusBadge(a.status)}
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
