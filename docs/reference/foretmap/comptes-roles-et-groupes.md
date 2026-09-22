@@ -70,7 +70,9 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Mot de passe oublié** : procédure par e-mail, pour les élèves comme pour les
   professeurs. Un mot de passe changé (par e-mail, par l'utilisateur ou par un
   administrateur) **déconnecte toutes les sessions ouvertes** de ce compte, sur ForetMap
-  comme dans Gnomes & Licornes.
+  comme dans Gnomes & Licornes. Une **prise de contrôle** ouverte par ce compte est
+  coupée au même moment : on ne peut plus agir à sa place, ni « revenir à mon compte »
+  pour récupérer une session encore valide.
 - **Combien de temps reste-t-on connecté ?** Une session dure 1 h 30 (réglage « Sécurité »),
   mais elle **se prolonge toute seule tant qu'on se sert de l'application** : plus de
   déconnexion en plein travail. En revanche, une session est close au bout de **12 heures**

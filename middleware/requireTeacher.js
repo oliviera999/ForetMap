@@ -62,12 +62,17 @@ async function hydrateAuthFromTokenClaims(claims) {
   );
   if (impersonating) {
     // L'acteur (compte réel) doit rester légitime à chaque requête : détenir
-    // `admin.impersonate`, être actif, et ne pas avoir changé de mot de passe entre-temps
-    // (CDG-08). Sinon un administrateur désactivé gardait ses sessions « voir comme ».
-    const actor = await queryOne('SELECT is_active FROM users WHERE id = ? LIMIT 1', [
+    // `admin.impersonate`, être actif, et correspondre à l'époque de jeton snapshotée
+    // à l'ouverture (`actorTokenEpoch`, CDG-08). Sans ce dernier contrôle, un
+    // changement de mot de passe révoquait la session admin mais pas la prise de
+    // contrôle — et `POST /admin/impersonate/stop` réémettait un jeton admin frais.
+    const actor = await queryOne('SELECT is_active, token_epoch FROM users WHERE id = ? LIMIT 1', [
       String(claims.actorUserId),
     ]);
     if (!actor || !Number(actor.is_active)) throw new AuthRevokedError('actor_inactive');
+    if (!tokenEpochMatches({ tokenEpoch: claims.actorTokenEpoch }, actor.token_epoch)) {
+      throw new AuthRevokedError('actor_token_epoch');
+    }
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;

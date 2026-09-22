@@ -120,9 +120,11 @@ demande un compte, le jeu la refuse poliment.
 > ou par l'élève dans son profil).
 
 Une **prise de contrôle** d'un compte joueur (« se connecter en tant que ») s'arrête
-d'elle-même si le membre du staff qui l'a ouverte est désactivé, supprimé ou perd son
-rôle : la session contrôlée est coupée dès l'action suivante, sans attendre l'expiration
-de la connexion. Désactiver un compte staff suffit donc à reprendre la main.
+d'elle-même si le membre du staff qui l'a ouverte est désactivé, supprimé, perd son
+rôle, **ou change son mot de passe** : la session contrôlée est coupée dès l'action
+suivante, sans attendre l'expiration de la connexion. Désactiver un compte staff
+suffit donc à reprendre la main ; changer le mot de passe aussi (y compris depuis
+un autre appareil).
 
 > Par ailleurs, quand le MJ réinitialise un mot de passe, le joueur n'est **pas**
 > obligé de le changer ensuite : si l'on veut un mot de passe « provisoire », il faut

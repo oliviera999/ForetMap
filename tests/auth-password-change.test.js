@@ -15,7 +15,8 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const { recomputeUserRole } = require('../lib/effectiveRole');
+const { recomputeUserRole, setAssignedRole } = require('../lib/effectiveRole');
+const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 
 test.before(async () => {
   await initSchema();
@@ -220,4 +221,42 @@ test('CDG-52 : « mot de passe oublié » plafonné par adresse visée, réponse
   );
   assert.strictEqual(Number(count.c), FORGOT_PASSWORD_MAX_PER_WINDOW);
   resetForgotPasswordLimiterForTests();
+});
+
+test('CDG-08 : changer le mot de passe de l’acteur coupe la prise de contrôle (stop ne restaure pas la session)', async () => {
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(adminRole?.id);
+  const actor = await createAccount({ userType: 'teacher', password: 'ActeurImpersonate12' });
+  await setAssignedRole(actor.id, adminRole.id);
+  const actorToken = await tokenFor('teacher', actor.id);
+  const cible = await createAccount({ userType: 'student', password: 'cible1234' });
+
+  const imp = await request(app)
+    .post('/api/auth/admin/impersonate')
+    .set('Authorization', `Bearer ${actorToken}`)
+    .send({ userType: 'student', userId: cible.id })
+    .expect(200);
+  assert.ok(imp.body.authToken);
+  assert.strictEqual(imp.body.auth?.impersonating, true);
+
+  await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(200);
+
+  await bumpUserTokenEpoch(actor.id);
+
+  const revoked = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(401);
+  assert.strictEqual(revoked.body?.code, 'SESSION_REVOKED');
+  assert.strictEqual(revoked.body?.reason, 'actor_token_epoch');
+
+  const stop = await request(app)
+    .post('/api/auth/admin/impersonate/stop')
+    .set('Authorization', `Bearer ${imp.body.authToken}`)
+    .expect(401);
+  assert.strictEqual(stop.body?.code, 'SESSION_REVOKED');
+  assert.ok(!stop.body?.authToken, 'stop ne doit pas réémettre un jeton admin');
 });
