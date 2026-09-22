@@ -213,13 +213,13 @@ test('RBAC: PATCH forum/commentaires pour palier perso. (rank < 400) ; refus sur
 });
 
 /**
- * Régression « prof de classe bloqué à la connexion » : décocher « Accès interface
- * n3boss » (`teacher.access`) sur ce profil le privait de sa seule porte d'entrée API,
- * et la révocation est durable depuis la migration 241.
+ * `teacher.access` ouvre l'interface n3boss et une partie des routes de la console : la
+ * retirer à `admin` ou `prof` revient à se couper la main. Le verrou ne couvre plus
+ * « Prof de classe » (cf. le test suivant).
  */
-test('RBAC: teacher.access ne peut pas être retiré aux profils enseignants', async () => {
+test('RBAC: teacher.access ne peut pas être retiré à admin ni à n3boss', async () => {
   const token = await getAdminToken();
-  for (const slug of ['prof_classe', 'prof', 'admin']) {
+  for (const slug of ['prof', 'admin']) {
     const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
     assert.ok(role?.id, slug);
     const before = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
@@ -243,6 +243,46 @@ test('RBAC: teacher.access ne peut pas être retiré aux profils enseignants', a
       after.map((row) => row.permission_key).sort(),
       before.map((row) => row.permission_key).sort(),
     );
+  }
+});
+
+/**
+ * Régression du réalignement du 22/09/2026. « Prof de classe » a perdu `teacher.access` en
+ * base (interface de type apprenant), mais restait dans la liste verrouillée : la console
+ * répondait alors 400 à **tout** enregistrement de ses permissions, y compris une modification
+ * sans rapport, parce que la liste envoyée ne contenait pas la permission retirée. Le profil
+ * devenait inéditable, et la seule façon de le sauvegarder était de re-cocher le droit qu'on
+ * venait de lui retirer.
+ */
+test('RBAC: prof de classe s’enregistre sans teacher.access', async () => {
+  const token = await getAdminToken();
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof_classe']);
+  assert.ok(role?.id);
+  const before = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+    role.id,
+  ]);
+  const withoutDoor = before
+    .map((row) => row.permission_key)
+    .filter((key) => key !== 'teacher.access');
+
+  await request(app)
+    .put(`/api/rbac/profiles/${role.id}/permissions`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ permissions: withoutDoor.map((key) => ({ key })) })
+    .expect(200);
+
+  const after = await queryAll('SELECT permission_key FROM role_permissions WHERE role_id = ?', [
+    role.id,
+  ]);
+  assert.deepStrictEqual(after.map((row) => row.permission_key).sort(), [...withoutDoor].sort());
+
+  // Remise en état pour les tests suivants (la matrice livrée ne porte plus la permission).
+  await execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
+  for (const key of before.map((row) => row.permission_key)) {
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      role.id,
+      key,
+    ]);
   }
 });
 

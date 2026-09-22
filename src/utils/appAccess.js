@@ -13,12 +13,35 @@ export function isClassTeacherRole(roleSlug) {
 }
 
 /**
- * Parcours « Visite / Biodiversité » sans carte ni tâches : visiteurs, personnel
+ * Parcours « Visite / Biodiversité » sans carte de travail ni tâches : visiteurs, personnel
  * et profs de classe (même chrome apprenant).
+ *
+ * Ne décide **que** du parcours. La parole (forum, commentaires) se décide séparément, cf.
+ * `isForumExcludedRole` : un personnel et un prof de classe n'ont pas de tâches mais
+ * participent au forum.
  */
 export function isVisitorLikeRole(roleSlug) {
   const slug = String(roleSlug || '').toLowerCase();
   return slug === 'visiteur' || slug === 'personnel' || slug === 'prof_classe';
+}
+
+/**
+ * Profils privés de forum — le seul « visiteur », miroir exact de
+ * `PARTICIPATION_EXCLUDED_ROLE_SLUGS` (`lib/shared/visitorRoles.js`) côté serveur.
+ *
+ * Auparavant l'onglet Forum était dérivé de `isVisitorLikeRole`, ce qui le retirait aussi au
+ * personnel et aux profs de classe : deux publics que le serveur laisse désormais écrire. Un
+ * onglet absent d'un côté et une route ouverte de l'autre, c'est une fonction livrée que
+ * personne ne trouve.
+ */
+export function isForumExcludedRole(roleSlug) {
+  // `trim()` comme `normalizeRoleSlug` côté serveur : les deux listes doivent répondre
+  // pareil au même slug, sans quoi l'onglet et la route se contrediraient sur un cas limite.
+  return (
+    String(roleSlug || '')
+      .trim()
+      .toLowerCase() === 'visiteur'
+  );
 }
 
 /**

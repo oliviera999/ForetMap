@@ -71,12 +71,11 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
   });
 
   /**
-   * Régression « prof de classe bloqué à la connexion » : décocher « Accès interface
-   * n3boss » sur ce profil le privait de sa seule porte d'entrée API, et la révocation
-   * était durable (migration 241). La console doit refuser le retrait.
+   * `teacher.access` ouvre l'interface n3boss et une partie des routes de la console : la
+   * retirer à `admin` ou `prof` depuis la console reviendrait à se couper la main.
    */
-  it('teacherAccessLockError : refuse de retirer teacher.access aux profils enseignants', () => {
-    for (const slug of ['admin', 'PROF', '  prof_classe ']) {
+  it('teacherAccessLockError : refuse de retirer teacher.access à admin et n3boss', () => {
+    for (const slug of ['admin', 'PROF', '  prof ']) {
       const msg = teacherAccessLockError(slug, ['groups.read', 'stats.read.group']);
       assert.equal(typeof msg, 'string');
       assert.match(msg, /teacher\.access/);
@@ -84,11 +83,20 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
   });
 
   it('teacherAccessLockError : null si la permission est conservée', () => {
-    assert.equal(teacherAccessLockError('prof_classe', ['groups.read', 'TEACHER.ACCESS']), null);
+    assert.equal(teacherAccessLockError('admin', ['groups.read', 'TEACHER.ACCESS']), null);
     assert.equal(teacherAccessLockError('prof', ['teacher.access']), null);
   });
 
-  it('teacherAccessLockError : null hors profils verrouillés (profils dérivés libres)', () => {
+  /**
+   * « Prof de classe » est sorti du verrou (réalignement du 22/09/2026). Il a une interface de
+   * type apprenant, pas la barre haute n3boss, et la porte d'entrée du front est désormais la
+   * session — plus cette permission. Tant qu'il y figurait alors que la permission était
+   * retirée en base, la console répondait 400 à **tout** enregistrement de ses permissions,
+   * y compris une modification sans rapport : le profil était inéditable.
+   */
+  it('teacherAccessLockError : null hors profils verrouillés (prof de classe, profils dérivés)', () => {
+    assert.equal(teacherAccessLockError('prof_classe', ['groups.read', 'stats.read.group']), null);
+    assert.equal(teacherAccessLockError('  PROF_CLASSE ', []), null);
     assert.equal(teacherAccessLockError('prof_delegue', []), null);
     assert.equal(teacherAccessLockError('visiteur', []), null);
     assert.equal(teacherAccessLockError('', []), null);

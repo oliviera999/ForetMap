@@ -92,16 +92,22 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 
 ## Les rôles et les paliers
 
-| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                                     |
-| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                                             |
-| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement, plus le Plan du staff                                 |
-| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                                      |
-| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                                  |
-| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                                    |
-| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** (voir ci-dessous) — **pas** la gestion des tâches ni du jardin                      |
-| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…), carnet personnel — **ce n'est pas** l'admin |
-| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique          |
+| Rôle                    | Qui                                             | Ce qu'il peut faire                                                                                                                               |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Visite et Biodiversité seulement — **pas** de carte de travail ni de tâches                                                                       |
+| **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Visite, Biodiversité et le Plan des personnels ; **participe au forum** et aux commentaires — pas de carte de travail ni de tâches                |
+| **n3beur novice** 🪨    | Élève rattaché, 0 tâche validée                 | Carte, tâches, quiz, carnet, forum                                                                                                                |
+| **n3beur avancé** 🌿    | 5 tâches validées                               | Idem — le palier marque la progression                                                                                                            |
+| **n3beur chevronné** 🏆 | 10 tâches validées                              | Idem                                                                                                                                              |
+| **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Suivre les élèves **de ses groupes** (voir ci-dessous) et participer au forum — **pas** l'interface n3boss, ni la gestion des tâches ou du jardin |
+| **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large (zones, plantes, tâches, visite, élèves, stats…), carnet personnel — **ce n'est pas** l'admin                           |
+| **Administrateur**      | Compte aux pleins pouvoirs établissement        | Tout le n3boss (y compris carnet personnel), plus réglages, rôles, secrets, prise de contrôle, audit technique                                    |
+
+> **« Personnel » crée un compte enseignant.** C'est un détail technique qui se voit à deux
+> endroits : à l'import et à la création unitaire, un « Personnel » suit le plancher de mot de
+> passe des comptes enseignants (plus long que celui des élèves), et il n'apparaît pas dans les
+> listes d'élèves. Cela ne lui donne **aucun** droit d'encadrement : ses droits restent ceux du
+> tableau ci-dessus. Un n3boss peut tenir le fichier des personnels sans être administrateur.
 
 > **Deux noms pour un même profil.** Le profil enseignant « fort » s'écrit `prof` côté
 > technique (fichier d'import, API) et s'affiche **« n3boss »** dans l'application : un compte
@@ -152,6 +158,9 @@ rang égal, le profil attribué. Concrètement :
 - un élève « n3beur avancé » qui rejoint une classe « n3beur novice » **reste avancé** ;
 - un visiteur qui rejoint cette classe **devient novice** tant qu'il en est membre, et
   redevient visiteur s'il la quitte (le profil attribué n'a pas bougé) ;
+- un **personnel** rattaché à une classe **reste personnel** : son profil est au-dessus de
+  tous les paliers n3beur. C'est voulu — « Personnel » dit _qui est cette personne_, pas où
+  elle en est d'une progression, et le lui retirer lui fermait le Plan des personnels ;
 - un groupe **sans** profil par défaut (« Visiteur ») ne change rien pour personne ;
 - seule la case **« Imposer ce profil »** d'un groupe permet de **forcer plus bas** : le
   profil du groupe devient alors le profil effectif de ses élèves, même s'ils ont mieux.

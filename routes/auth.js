@@ -771,9 +771,10 @@ router.get('/google/start', async (req, res) => {
   const googleEnabled = await getSettingValue('integration.google.enabled', true);
   const allowStudent = await getSettingValue('ui.auth.allow_google_student', true);
   const allowTeacher = await getSettingValue('ui.auth.allow_google_teacher', true);
-  // Le plan des personnels accueille les deux types de compte (un « Personnel » est un compte
-  // de type `student`) : il suffit que l'une des deux portes Google soit ouverte ici, le type
-  // réel du compte étant revérifié au retour de Google.
+  // Le plan des personnels accueille les deux types de compte — « Personnel » est un profil,
+  // porté aussi bien par un compte `student` que par un compte `teacher` : il suffit que l'une
+  // des deux portes Google soit ouverte ici, le type réel du compte étant revérifié au retour
+  // de Google.
   const modeAllowed =
     mode === 'teacher'
       ? allowTeacher
