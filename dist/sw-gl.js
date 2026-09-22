@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-aed688ed";
+const CACHE_NAME = "foretmap-gl-deed2d38";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,29 +9,29 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-C384RGGe.js",
+  "/assets/gl-D0GOxWxp.js",
   "/assets/gl-Dp9yWN-3.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-CTpHEmDl.js",
-  "/assets/react-vendor-ClBrELym.js",
-  "/assets/icons-BBfebeWE.js",
-  "/assets/ErrorBoundary-BraGpkE2.js",
+  "/assets/VisitMascotFallbackSvg-BjKb3xjJ.js",
+  "/assets/react-vendor-Dcb_X5td.js",
+  "/assets/icons-BNguv2wG.js",
+  "/assets/ErrorBoundary-CP7t-rDn.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-C1DjT9y5.js",
+  "/assets/ImageLightboxProvider-YCmI5vPD.js",
   "/assets/ImageLightboxProvider-BQXMtgsx.css",
-  "/assets/markdown-DaBuaikX.js",
-  "/assets/spriteCutCatalogEntry-BMrpM6BS.js",
+  "/assets/markdown-BT1_tLPZ.js",
+  "/assets/spriteCutCatalogEntry-CQ88898d.js",
   "/assets/socket-io-SGWxBABF.js",
-  "/assets/GuidedTourOverlay-DTwCtEbT.js",
-  "/assets/HelpDock-D_1BC7LT.js",
+  "/assets/GuidedTourOverlay-D2wBObVe.js",
+  "/assets/HelpDock-C-XIejqf.js",
   "/assets/HelpDock-D1tmIwbp.css",
-  "/assets/apiGL-hErHkVdo.js",
-  "/assets/presenceListPatch-DN18TrPp.js",
-  "/assets/JournalBookView-BoHM9hZ4.js",
+  "/assets/apiGL-Cku4D1IQ.js",
+  "/assets/presenceListPatch-CxCF9hJg.js",
+  "/assets/JournalBookView-CFS-juqe.js",
   "/assets/brandNames-DXNkSTQD.js",
-  "/assets/FoodWebGraph-CMP-3_JK.js",
-  "/assets/mascotBehaviorEngine-CC1AlWhh.js",
-  "/assets/MediaLibraryMenu-DBLmhbZn.js",
+  "/assets/FoodWebGraph-BFoyB1_v.js",
+  "/assets/mascotBehaviorEngine-CE9KEuei.js",
+  "/assets/MediaLibraryMenu-ihRF7tL2.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
