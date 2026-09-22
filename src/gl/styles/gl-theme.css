@@ -3263,6 +3263,12 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-help-btn {
+  /* Pastille ronde : centrer le « ? » (même principe que `.fm-help-btn` / `.btn`). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
   width: 44px;
   height: 44px;
   border-radius: var(--gl-radius-pill);
