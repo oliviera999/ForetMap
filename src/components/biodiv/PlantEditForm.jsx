@@ -7,6 +7,7 @@ import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistor
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
   HAZARD_EXPOSURE_OPTIONS,
+  HEALTH_RISK_OPTIONS,
   PLANT_DETERMINATION_FIELDS,
   PLANT_PHOTO_FIELD_OPTIONS,
   TOXICITY_LEVEL_OPTIONS,
@@ -56,8 +57,47 @@ function PlantEditForm({
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const [uploadingField, setUploadingField] = useState('');
+  const [gbifBusy, setGbifBusy] = useState(false);
+  const [gbifProposal, setGbifProposal] = useState(null);
 
   const photoFields = PLANT_PHOTO_FIELD_OPTIONS;
+
+  const verifyOnGbif = async () => {
+    const q =
+      String(form.scientific_name || '').trim() ||
+      String(form.name || '').trim() ||
+      String(form.accepted_scientific_name || '').trim();
+    if (q.length < 2) {
+      onToast?.('Indique un nom scientifique ou un nom d’usage (2 caractères min.).');
+      return;
+    }
+    setGbifBusy(true);
+    setGbifProposal(null);
+    try {
+      const res = await api(`/api/plants/gbif-match?q=${encodeURIComponent(q)}`);
+      setGbifProposal(res);
+      if (res?.warnings?.length) onToast?.(res.warnings[0]);
+    } catch (e) {
+      onToast?.(e?.message || 'Vérification GBIF impossible');
+    } finally {
+      setGbifBusy(false);
+    }
+  };
+
+  const applyGbifProposal = () => {
+    const proposal = gbifProposal?.proposal;
+    if (!proposal || typeof proposal !== 'object') return;
+    setForm((f) => {
+      const next = { ...f };
+      for (const [key, value] of Object.entries(proposal)) {
+        if (value == null || value === '') continue;
+        next[key] = String(value);
+      }
+      return next;
+    });
+    setGbifProposal(null);
+    onToast?.('Proposition GBIF appliquée — enregistre la fiche pour confirmer.');
+  };
 
   const uploadPhoto = async (field, file) => {
     if (!file) return;
@@ -233,6 +273,38 @@ function PlantEditForm({
                   );
                 })}
               </div>
+              {(Array.isArray(form.map_ids) ? form.map_ids : []).map((mapId) => {
+                const notes =
+                  form.map_site_notes && typeof form.map_site_notes === 'object'
+                    ? form.map_site_notes[mapId] || ''
+                    : '';
+                const mapLabel =
+                  maps.find((m) => String(m.id) === String(mapId))?.label ||
+                  maps.find((m) => String(m.id) === String(mapId))?.name ||
+                  mapId;
+                return (
+                  <div key={`notes-${mapId}`} className="field" style={{ marginTop: 8 }}>
+                    <label>Notes de site — {mapLabel}</label>
+                    <MarkdownTextarea
+                      value={notes}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((f) => ({
+                          ...f,
+                          map_site_notes: {
+                            ...(f.map_site_notes && typeof f.map_site_notes === 'object'
+                              ? f.map_site_notes
+                              : {}),
+                            [mapId]: value,
+                          },
+                        }));
+                      }}
+                      rows={2}
+                      placeholder="Effectifs, nidification, localisation sur ce site…"
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : null}
         </div>
@@ -349,6 +421,59 @@ function PlantEditForm({
                 à valider » à côté de l’avertissement.
               </span>
             </label>
+          </div>
+        </div>
+      </details>
+      {/* Risque sanitaire : bloc distinct de la toxicité. La rage ou le tétanos ne rendent
+          pas l'espèce toxique, elles la rendent porteuse — et cocher « mortel » sur la fiche
+          du renard serait faux tout en rendant la pastille de toxicité illisible. */}
+      <details className="plant-more" open>
+        <summary>Risque sanitaire</summary>
+        <div className="plant-meta-grid">
+          <p className="section-sub" style={{ margin: 0 }}>
+            Ce que l’espèce peut <strong>transmettre</strong> — maladie, parasite, allergie. Rien à
+            voir avec la toxicité : l’animal n’est pas dangereux à toucher par nature, il est
+            porteur.
+          </p>
+          <div className="field">
+            <label>Risques identifiés</label>
+            <div className="plant-hazard-exposure-choices">
+              {HEALTH_RISK_OPTIONS.map((entry) => {
+                const selected = String(form.health_risk || '')
+                  .split(',')
+                  .map((value) => value.trim())
+                  .filter(Boolean);
+                const checked = selected.includes(entry.value);
+                return (
+                  <label key={entry.value} className="plant-hazard-exposure-choice">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const next = checked
+                          ? selected.filter((value) => value !== entry.value)
+                          : [...selected, entry.value];
+                        // Ordre canonique réimposé, comme `normalizeHealthRisk` côté serveur.
+                        const ordered = HEALTH_RISK_OPTIONS.map((row) => row.value).filter(
+                          (value) => next.includes(value),
+                        );
+                        set('health_risk')({ target: { value: ordered.join(',') } });
+                      }}
+                    />
+                    <span>{entry.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          <div className="field">
+            <label>Circonstances et conduite à tenir</label>
+            <MarkdownTextarea
+              value={form.health_notes}
+              onChange={set('health_notes')}
+              rows={3}
+              placeholder="Comment le risque se présente et quoi faire. Ex. : « Toute morsure ou griffure impose une consultation médicale immédiate. »"
+            />
           </div>
         </div>
       </details>
@@ -478,6 +603,8 @@ function PlantEditForm({
                 <option value="indigene">Indigène</option>
                 <option value="introduit">Introduit</option>
                 <option value="envahissant">Envahissant</option>
+                <option value="endemique">Endémique</option>
+                <option value="domestique">Domestique</option>
               </select>
             </div>
             <div className="field">
@@ -538,6 +665,72 @@ function PlantEditForm({
                 onChange={set('gbif_key')}
                 placeholder="Identifiant numérique"
               />
+            </div>
+            <div className="field">
+              <label>Nom accepté (GBIF)</label>
+              <input
+                value={form.accepted_scientific_name || ''}
+                onChange={set('accepted_scientific_name')}
+                placeholder="Si différent du nom d’usage"
+              />
+            </div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={saving || gbifBusy}
+                onClick={verifyOnGbif}
+                style={{ minHeight: 44 }}
+              >
+                {gbifBusy ? 'Vérification GBIF…' : 'Vérifier sur GBIF'}
+              </button>
+              {gbifProposal?.proposal ? (
+                <div
+                  className="plant-gbif-proposal"
+                  style={{
+                    marginTop: 8,
+                    padding: 12,
+                    border: '1px solid var(--border, #c5d4c0)',
+                    borderRadius: 8,
+                  }}
+                >
+                  <p style={{ margin: '0 0 8px' }}>
+                    Proposition ({gbifProposal.matchType}
+                    {gbifProposal.confidence != null
+                      ? `, confiance ${gbifProposal.confidence}`
+                      : ''}
+                    )
+                    {gbifProposal.gbif_page ? (
+                      <>
+                        {' '}
+                        —{' '}
+                        <a href={gbifProposal.gbif_page} target="_blank" rel="noopener noreferrer">
+                          ouvrir GBIF
+                        </a>
+                      </>
+                    ) : null}
+                  </p>
+                  <pre
+                    style={{
+                      margin: '0 0 8px',
+                      whiteSpace: 'pre-wrap',
+                      fontSize: 12,
+                      maxHeight: 160,
+                      overflow: 'auto',
+                    }}
+                  >
+                    {JSON.stringify(gbifProposal.proposal, null, 2)}
+                  </pre>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ minHeight: 44 }}
+                    onClick={applyGbifProposal}
+                  >
+                    Appliquer la proposition
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

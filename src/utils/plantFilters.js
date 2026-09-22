@@ -159,6 +159,7 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
     plant.name,
     plant.description,
     plant.scientific_name,
+    plant.accepted_scientific_name,
     plant.habitat,
     plantTaxonomyValue(plant, 'kingdom'),
     plantTaxonomyValue(plant, 'group'),

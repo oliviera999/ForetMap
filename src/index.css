@@ -2893,6 +2893,13 @@
     }
     .plant-hazard--toxique { border-color:#ea580c; background:#fff5ed; }
     .plant-hazard--mortel { border-color:#b91c1c; background:#fef2f2; }
+    /* Risque sanitaire : bleu médical, pour qu'un avertissement « porteur de la rage » ne se
+       confonde pas avec la gamme ambre → rouge de la toxicité propre à l'espèce. */
+    .plant-hazard--sante { border-color:#0369a1; background:#f0f9ff; }
+    .plant-hazard--sante .plant-hazard__label { color:#075985; }
+    .plant-hazard--sante .plant-hazard__exposure { color:#075985; border-color:rgba(3,105,161,.28); }
+    .plant-hazard--sante .plant-hazard__notes { color:#0c4a6e; }
+    .plant-hazard--sante .plant-hazard__notes a { color:#0369a1; }
     .plant-hazard__head {
       display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
     }
@@ -2924,6 +2931,26 @@
     }
     .plant-hazard--mortel .plant-hazard__notes { color:#7f1d1d; }
     .plant-hazard__notes a { color:var(--ink-warning); }
+    /* Panneau prof « Dangers à valider » : file de relecture, repliée par défaut. */
+    .plant-hazard-review {
+      border:1px solid var(--accent-warning-solid); border-radius:8px;
+      background:var(--tint-warning); padding:8px 11px; margin:8px 0;
+    }
+    .plant-hazard-review > summary {
+      display:flex; align-items:center; gap:6px; min-height:44px; cursor:pointer;
+      font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--ink-warning);
+    }
+    .plant-hazard-review__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+    .plant-hazard-review__item {
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      background:rgba(255,255,255,.72); border-radius:6px; padding:4px 8px;
+    }
+    .plant-hazard-review__name {
+      flex:1 1 150px; min-height:44px; text-align:left; border:none; background:none;
+      font-size:var(--text-sm); font-weight:var(--fw-bold); color:#7c3a06; cursor:pointer;
+    }
+    .plant-hazard-review__name:disabled { cursor:default; }
+    .plant-hazard-review__tags { display:flex; flex-wrap:wrap; gap:4px; }
     /* Formulaire : cases à cocher des voies d'exposition — cible tactile >= 44px. */
     .plant-hazard-exposure-choices { display:flex; flex-wrap:wrap; gap:4px 14px; }
     .plant-hazard-exposure-choice,

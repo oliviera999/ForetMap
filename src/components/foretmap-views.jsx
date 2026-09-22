@@ -22,12 +22,17 @@ import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
-import { EMPTY_PLANT_FORM, extractPlantForm } from '../utils/plantFormValues.js';
+import {
+  EMPTY_PLANT_FORM,
+  extractPlantForm,
+  persistPlantMapSiteNotes,
+} from '../utils/plantFormValues.js';
 import { DialogShell } from './DialogShell';
 import { PlantEditForm } from './biodiv/PlantEditForm.jsx';
 import { PlantCatalogTile } from './biodiv/PlantCatalogTile.jsx';
 import { PlantImportPanel } from './biodiv/PlantImportPanel.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
+import { PlantHazardReviewPanel } from './biodiv/PlantHazardReviewPanel.jsx';
 import { PlantCatalogPreviewModal } from './biodiv/PlantCatalogPreview.jsx';
 import {
   IconBiodiv,
@@ -53,6 +58,7 @@ function PlantManager({
   onOpenPlant = null,
   maps = [],
   onActiveMapChange = null,
+  canValidateHazards = false,
 }) {
   const { confirm } = useAppDialogs();
   const publicSettings = usePublicSettings();
@@ -120,8 +126,15 @@ function PlantManager({
     if (!form.name.trim()) return;
     setSaving(true);
     try {
+      let savedId = editId;
       if (editId) await api(`/api/plants/${editId}`, 'PUT', form);
-      else await api('/api/plants', 'POST', form);
+      else {
+        const created = await api('/api/plants', 'POST', form);
+        savedId = created?.id;
+      }
+      if (savedId) {
+        await persistPlantMapSiteNotes(api, savedId, form.map_ids, form.map_site_notes);
+      }
       await onRefresh();
       setEditId(null);
       setShowAdd(false);
@@ -136,6 +149,7 @@ function PlantManager({
   const autoSavePersist = useCallback(async () => {
     const sent = form;
     await api(`/api/plants/${editId}`, 'PUT', sent);
+    await persistPlantMapSiteNotes(api, editId, sent.map_ids, sent.map_site_notes);
     await onRefresh();
     return sent;
   }, [editId, form, onRefresh]);
@@ -211,6 +225,14 @@ function PlantManager({
         onActiveMapChange={onActiveMapChange}
         showZonePresence
         {...filterPanelProps}
+      />
+
+      <PlantHazardReviewPanel
+        canValidate={canValidateHazards}
+        plants={plants}
+        onRefresh={onRefresh}
+        onOpenPlant={onOpenPlant}
+        onToast={setToast}
       />
 
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />

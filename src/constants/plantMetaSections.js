@@ -8,12 +8,19 @@ export const PLANT_META_SECTIONS = [
     title: 'Identité',
     items: [
       { key: 'second_name', label: 'Deuxième nom' },
-      { key: 'scientific_name', label: 'Nom scientifique' },
+      { key: 'scientific_name', label: 'Nom scientifique (usage)' },
+      { key: 'accepted_scientific_name', label: 'Nom accepté (GBIF)' },
       { key: 'taxon_kingdom', label: 'Règne (taxon)' },
+      { key: 'taxon_phylum', label: 'Embranchement (latin)' },
+      { key: 'taxon_class', label: 'Classe (latin)' },
+      { key: 'taxon_order', label: 'Ordre (latin)' },
       { key: 'taxon_group', label: 'Grand groupe' },
-      { key: 'taxon_family', label: 'Famille' },
+      { key: 'taxon_family', label: 'Famille (vernaculaire)' },
+      { key: 'taxon_family_latin', label: 'Famille (latin)' },
       { key: 'taxon_genus', label: 'Genre' },
-      { key: 'gbif_key', label: 'Clé GBIF' },
+      { key: 'gbif_key', label: 'Clé GBIF (usage)' },
+      { key: 'gbif_accepted_key', label: 'Clé GBIF (accepté)' },
+      { key: 'gbif_checked_at', label: 'Vérifié GBIF le' },
       { key: 'geographic_origin', label: 'Origine géographique' },
       {
         key: 'origin_status',
@@ -23,6 +30,8 @@ export const PLANT_META_SECTIONS = [
           indigene: 'Indigène',
           introduit: 'Introduit',
           envahissant: 'Envahissant',
+          endemique: 'Endémique',
+          domestique: 'Domestique',
         },
       },
       {
@@ -139,8 +148,28 @@ export const HAZARD_EXPOSURE_OPTIONS = [
   { value: 'seve_latex', label: 'Sève ou latex' },
 ];
 
+/**
+ * Risques sanitaires — parité avec le SET SQL `plants.health_risk` et `lib/plantHealthRisk.js`.
+ *
+ * Séparés de la toxicité : la rage ou le tétanos ne rendent pas l'espèce toxique, elles la
+ * rendent porteuse. Les deux blocs cohabitent sur la fiche sans se confondre.
+ */
+export const HEALTH_RISK_OPTIONS = [
+  { value: 'rage', label: 'Rage' },
+  { value: 'tetanos', label: 'Tétanos' },
+  { value: 'salmonellose', label: 'Salmonellose' },
+  { value: 'leptospirose', label: 'Leptospirose' },
+  { value: 'toxoplasmose', label: 'Toxoplasmose' },
+  { value: 'vecteur', label: 'Vecteur de maladie' },
+  { value: 'allergie', label: 'Allergie' },
+];
+
 export const TOXICITY_LEVEL_LABELS = Object.fromEntries(
   TOXICITY_LEVEL_OPTIONS.map((entry) => [entry.value, entry.label]),
+);
+
+export const HEALTH_RISK_LABELS = Object.fromEntries(
+  HEALTH_RISK_OPTIONS.map((entry) => [entry.value, entry.label]),
 );
 
 export const HAZARD_EXPOSURE_LABELS = Object.fromEntries(

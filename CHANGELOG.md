@@ -42,6 +42,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : origine, risque sanitaire et validation des dangers (lot 2)
+
+- Migration **271** : `origin_status` gagne **`endemique`** et **`domestique`** (« endémique »
+  était jusqu'ici un alias de « indigène » — l'arganier était indistinguable d'une espèce
+  simplement indigène, et un animal de ferme n'avait aucune valeur correcte) ; nouvelles
+  colonnes **`health_risk`** (SET : rage, tétanos, salmonellose, leptospirose, toxoplasmose,
+  vecteur, allergie), **`health_notes`**, **`hazard_reviewed_by`** (FK `users`,
+  `ON DELETE SET NULL`) et **`hazard_reviewed_at`**, plus les seeds d'amorçage
+  (7 endémiques, 7 domestiques, 18 risques sanitaires).
+- Fiche : **second encadré « Risque sanitaire »**, bleu et non repliable, distinct de la
+  toxicité — la rage ne rend pas le renard toxique, elle le rend porteur, et écrire « mortel »
+  sur sa fiche rendrait la pastille de danger illisible sur tout le catalogue animal.
+- **Invalidation automatique de la relecture** : toute modification de `toxicity_level`,
+  `hazard_exposure`, `hazard_notes`, `health_risk` ou `health_notes` remet `hazard_reviewed`
+  à 0 et efface le relecteur. Sans elle, une coche continuait de certifier un texte réécrit
+  depuis.
+- API : **`POST /api/plants/:id/validate-hazard`** (`{ reviewed?: false }` pour retirer la
+  validation), sous une permission dédiée **`plants.hazards.validate`** (« Valider les
+  dangers », accordée à `admin` et `prof`, pas à `prof_classe`) : renseigner un danger et
+  certifier qu'il a été relu ne sont pas le même geste.
+- Base biodiversité (prof) : encadré **« Dangers à valider »** listant les fiches renseignées
+  non relues, les plus graves d'abord, avec bouton de validation ligne à ligne.
+
+### Ajouté — Biodiversité structure : référentiel GBIF + notes de site (lot 3)
+
+- Migration **270** : colonnes `accepted_scientific_name`, `gbif_accepted_key`,
+  `taxon_phylum` / `taxon_class` / `taxon_order` / `taxon_family_latin`, `gbif_checked_at` ;
+  `map_species.site_notes` + seeds d’amorçage.
+- Fiche : nom accepté si différent, classification latine repliable, lien GBIF ;
+  notes « Sur ce site » ; recherche sur le nom accepté.
+- API : `GET /api/plants/gbif-match` (proposition seule), `PUT /api/plants/:id/map-species/:mapId`
+  (`site_notes`) ; sync `map_ids` préserve les notes.
+
 ### Ajouté — Biodiversité structure : vue `v_visit_coverage` (lot 9)
 
 - Migration **269** : vue `v_visit_coverage` (`SQL SECURITY INVOKER`) avec alias

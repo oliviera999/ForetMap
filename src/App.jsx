@@ -1494,6 +1494,7 @@ function App() {
                               onOpenPlant={openPlantCatalogPreviewById}
                               maps={visibleMaps}
                               onActiveMapChange={setActiveMapId}
+                              canValidateHazards={hasPermissionInRole('plants.hazards.validate')}
                             />
                           </TabSuspense>
                         )}

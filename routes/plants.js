@@ -38,6 +38,7 @@ const {
   validateImportPayloadRow,
   parsePlantIdsQueryParam,
 } = require('../lib/plantsRouteHelpers');
+const { hazardReviewInvalidated } = require('../lib/plantHazardReview');
 const {
   buildSpeciesAutofill,
   parseAutofillSourcesQueryParam,
@@ -45,9 +46,16 @@ const {
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
 const { enrichPlantRow } = require('../lib/biodivReadModel');
-const { loadPlantMapIdsMap, syncPlantMaps, normalizeMapIds } = require('../lib/speciesJunction');
+const {
+  loadPlantMapIdsMap,
+  loadPlantMapSiteNotesMap,
+  syncPlantMaps,
+  upsertMapSpeciesSiteNotes,
+  normalizeMapIds,
+} = require('../lib/speciesJunction');
 const { logAudit } = require('../lib/auditLog');
 const { z, validate } = require('../lib/validate');
+const { matchGbifSpeciesProposal } = require('../lib/gbifMatch');
 
 const dbApi = { queryAll, queryOne, execute, withTransaction };
 
@@ -470,13 +478,13 @@ router.get(
     // (PlantMetaSections, FoodWebView…) sont rendus depuis les lignes de cette liste — toutes les
     // colonnes du catalogue (photos, remarques, écologie…) sont donc consommées. Table sans donnée sensible.
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
-    const mapIdsByPlant = await loadPlantMapIdsMap(
-      dbApi,
-      rows.map((row) => row.id),
-    );
+    const plantIds = rows.map((row) => row.id);
+    const mapIdsByPlant = await loadPlantMapIdsMap(dbApi, plantIds);
+    const siteNotesByPlant = await loadPlantMapSiteNotesMap(dbApi, plantIds);
     const enriched = rows.map((row) => ({
       ...enrichPlantRow(row),
       map_ids: mapIdsByPlant.get(Number(row.id)) || [],
+      map_site_notes: siteNotesByPlant.get(Number(row.id)) || {},
     }));
     plantsListCache.set('all', enriched);
     res.json(enriched);
@@ -665,6 +673,95 @@ router.post('/plantnet-identify', requirePermission('plants.manage'), async (req
   }
 });
 
+/**
+ * Proposition GBIF (lecture seule) — le client applique via PUT /api/plants/:id après confirmation.
+ */
+router.get('/gbif-match', requirePermission('plants.manage'), async (req, res) => {
+  try {
+    const query = asTrimmedString(req.query?.q);
+    if (!query || query.length < 2) {
+      return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
+    }
+    if (query.length > 120) {
+      return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
+    }
+    const result = await matchGbifSpeciesProposal(query, { timeoutMs: 8000 });
+    res.json(result);
+  } catch (e) {
+    logRouteError(e, req, 'Correspondance GBIF en échec');
+    res.status(502).json({ error: 'Impossible d’interroger GBIF pour le moment' });
+  }
+});
+
+router.put(
+  '/:id/map-species/:mapId',
+  requirePermission('plants.manage'),
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    const mapId = asTrimmedString(req.params.mapId);
+    if (!Number.isInteger(plantId) || plantId <= 0 || !mapId) {
+      return res.status(400).json({ error: 'Identifiants invalides' });
+    }
+    const siteNotes = Object.prototype.hasOwnProperty.call(req.body || {}, 'site_notes')
+      ? req.body.site_notes
+      : undefined;
+    if (siteNotes === undefined) {
+      return res.status(400).json({ error: 'Champ site_notes requis' });
+    }
+    const out = await upsertMapSpeciesSiteNotes(dbApi, plantId, mapId, siteNotes);
+    if (!out.ok) {
+      return res.status(out.status || 400).json({ error: out.error || 'Mise à jour impossible' });
+    }
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'update_plant_map_notes', plantId, mapId });
+    res.json(out);
+  }),
+);
+
+/**
+ * Valide la relecture des dangers d'une fiche (`hazard_reviewed` + qui, + quand).
+ *
+ * Permission dédiée `plants.hazards.validate`, distincte de `plants.manage` : renseigner un
+ * danger et certifier qu'il a été relu ne sont pas le même geste, et le pré-remplissage
+ * bibliographique de la migration 251 arrive précisément non relu. Accordée à l'admin et au
+ * prof, pas au prof de classe.
+ *
+ * Corps optionnel `{ "reviewed": false }` pour retirer la validation (une relecture peut
+ * conclure que la fiche est à revoir).
+ */
+router.post(
+  '/:id/validate-hazard',
+  requirePermission('plants.hazards.validate'),
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const reviewed = req.body?.reviewed === false ? 0 : 1;
+    const reviewerId = reviewed ? String(req.auth?.userId || '') || null : null;
+    const reviewedAt = reviewed ? nowDbTimestamp() : null;
+    await execute(
+      'UPDATE plants SET hazard_reviewed = ?, hazard_reviewed_by = ?, hazard_reviewed_at = ? WHERE id = ?',
+      [reviewed, reviewerId, reviewedAt, plantId],
+    );
+
+    const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plantId]);
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'update_plant', plantId });
+    await logAudit(
+      reviewed ? 'validate_plant_hazard' : 'invalidate_plant_hazard',
+      'plant',
+      plantId,
+      `${reviewed ? 'Validation' : 'Retrait de validation'} des dangers — ${plant.name || plantId}`,
+      { req, payload: { toxicity_level: plant.toxicity_level || null } },
+    );
+    res.json(enrichPlantRow(updated));
+  }),
+);
+
 router.post(
   '/',
   requirePermission('plants.manage'),
@@ -686,7 +783,7 @@ router.post(
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
-    res.status(201).json({ ...enrichPlantRow(plant), map_ids: mapIds });
+    res.status(201).json({ ...enrichPlantRow(plant), map_ids: mapIds, map_site_notes: {} });
   }),
 );
 
@@ -700,7 +797,14 @@ router.put(
     if (photoError) return res.status(400).json({ error: photoError });
     const payload = buildPlantPayload(req.body, plant);
     if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
-    const setClause = PLANT_COLUMNS.map((col) => `${col}=?`).join(', ');
+    // Une modification du danger ou du risque sanitaire annule la relecture : la coche
+    // certifierait sinon un texte qui n'existe plus (cf. lib/plantHazardReview.js).
+    const reviewInvalidated = hazardReviewInvalidated(plant, payload);
+    if (reviewInvalidated) payload.hazard_reviewed = 0;
+    const setClause = [
+      ...PLANT_COLUMNS.map((col) => `${col}=?`),
+      ...(reviewInvalidated ? ['hazard_reviewed_by=NULL', 'hazard_reviewed_at=NULL'] : []),
+    ].join(', ');
     const values = [...PLANT_COLUMNS.map((col) => payload[col]), plant.id];
     await execute(`UPDATE plants SET ${setClause} WHERE id=?`, values);
     let mapIds;

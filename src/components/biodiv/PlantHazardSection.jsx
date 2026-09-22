@@ -5,6 +5,8 @@ import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import {
   HAZARD_EXPOSURE_LABELS,
   HAZARD_EXPOSURE_OPTIONS,
+  HEALTH_RISK_LABELS,
+  HEALTH_RISK_OPTIONS,
   TOXICITY_LEVEL_LABELS,
 } from '../../constants/plantMetaSections.js';
 import { IconWarning } from '../../shared/icons.jsx';
@@ -28,9 +30,10 @@ import { IconWarning } from '../../shared/icons.jsx';
 
 /** Ordre canonique des voies d'exposition, pour un affichage stable entre deux fiches. */
 const EXPOSURE_ORDER = HAZARD_EXPOSURE_OPTIONS.map((entry) => entry.value);
+const HEALTH_RISK_ORDER = HEALTH_RISK_OPTIONS.map((entry) => entry.value);
 
-/** Découpe la valeur du SET SQL (`'contact,seve_latex'`) en libellés lisibles. */
-export function listHazardExposureLabels(value) {
+/** Découpe une valeur de SET SQL (`'contact,seve_latex'`) en libellés lisibles et ordonnés. */
+function listSetLabels(value, order, labels) {
   const raw = normalizedPlantValue(value);
   if (!raw) return [];
   const found = new Set(
@@ -39,8 +42,67 @@ export function listHazardExposureLabels(value) {
       .map((entry) => entry.trim())
       .filter(Boolean),
   );
-  return EXPOSURE_ORDER.filter((entry) => found.has(entry)).map(
-    (entry) => HAZARD_EXPOSURE_LABELS[entry],
+  return order.filter((entry) => found.has(entry)).map((entry) => labels[entry]);
+}
+
+export function listHazardExposureLabels(value) {
+  return listSetLabels(value, EXPOSURE_ORDER, HAZARD_EXPOSURE_LABELS);
+}
+
+export function listHealthRiskLabels(value) {
+  return listSetLabels(value, HEALTH_RISK_ORDER, HEALTH_RISK_LABELS);
+}
+
+/**
+ * Encadré « Risque sanitaire » — ce que l'espèce peut *transmettre*.
+ *
+ * Bloc séparé de la toxicité, et pas par souci de rangement : la rage, le tétanos ou la
+ * salmonellose ne rendent pas l'animal dangereux à toucher par nature, elles le rendent
+ * porteur. Les fondre dans l'encadré de toxicité obligerait à écrire « mortel » sur la fiche
+ * du renard — faux, et la pastille de toxicité deviendrait illisible sur tout le catalogue
+ * animal. Comme l'encadré de danger, il n'est pas repliable et s'affiche même non relu.
+ */
+export function PlantHealthRiskSection({ plant, onOpenGlossaryTerm = undefined }) {
+  const risks = listHealthRiskLabels(plant?.health_risk);
+  const notes = normalizedPlantValue(plant?.health_notes);
+  const hasRisk = risks.length > 0;
+  const autolinkEnabled = typeof onOpenGlossaryTerm === 'function' && hasRisk && Boolean(notes);
+  const glossaryItems = useGlossaryLinkIndex({ enabled: autolinkEnabled });
+  if (!hasRisk) return null;
+
+  const Text = autolinkEnabled ? GlossaryMarkdown : MarkdownContent;
+  const textProps = autolinkEnabled ? { glossaryItems, onOpenGlossaryTerm } : {};
+  const reviewed = plant?.hazard_reviewed === 1 || plant?.hazard_reviewed === '1';
+
+  return (
+    <section
+      className="plant-hazard plant-hazard--sante"
+      role="note"
+      aria-label={`Risque sanitaire : ${risks.join(', ')}`}
+    >
+      <div className="plant-hazard__head">
+        <span className="plant-hazard__label">
+          <IconWarning size={14} /> Risque sanitaire
+        </span>
+        {reviewed ? null : (
+          <span className="plant-hazard__unreviewed" title="Information non encore relue">
+            à valider
+          </span>
+        )}
+      </div>
+      <ul className="plant-hazard__exposures">
+        {risks.map((label) => (
+          <li key={label} className="plant-hazard__exposure">
+            {label}
+          </li>
+        ))}
+      </ul>
+      {notes ? (
+        <Text className="plant-hazard__notes" {...textProps}>
+          {notes}
+        </Text>
+      ) : null}
+    </section>
   );
 }
 
