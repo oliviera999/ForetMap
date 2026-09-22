@@ -44,7 +44,7 @@ export const BIODIV_SORT = Object.freeze({
 });
 
 /** Valeur du sélecteur « Carte » = toute la biodiversité du site (hors carte précise). */
-export const BIODIV_MAP_FILTER_ALL = '__all_site__';
+export const BIODIV_MAP_FILTER_ALL = '__biodiv_all_site__';
 
 /**
  * @param {object} plant
