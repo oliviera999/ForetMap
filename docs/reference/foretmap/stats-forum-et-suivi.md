@@ -77,7 +77,15 @@ commentaires) et rester informé (notifications, temps réel).
 - **Journal d'audit** : les actions sensibles (créations, suppressions, validations,
   prises de main sur un compte, tentatives de connexion douteuses…) sont consignées
   avec leur auteur et leur date. Sa lecture est réservée aux profils disposant de la
-  permission dédiée.
+  permission dédiée. Les **créations et modifications** de zones, plantes, repères,
+  groupes, tutoriels, packs mascotte, questions QCM et liens du réseau trophique y
+  figurent aussi.
+- **Journal de sécurité (administrateurs)** : sous-onglet dédié dans Audit, réservé aux
+  administrateurs. Il reprend les mêmes événements avec l’**adresse IP** et le
+  **navigateur** utilisés, des filtres (période, compte, action, IP) et un export
+  tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
+  historique : on peut toujours remonter jusqu’à l’auteur via son compte, puis croiser
+  l’IP et le navigateur.
 - **Suivi utilisateurs (administrateur)** : dans les paramètres d’administration,
   un panneau dédié montre (1) qui est **en ligne** ou **vu récemment** (sans surcharger
   le serveur : pas de battement de cœur permanent), (2) le **passage** dans les

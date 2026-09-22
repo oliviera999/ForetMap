@@ -367,6 +367,10 @@ router.post(
     const created = await enrichGroupRow(
       await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
     );
+    await logAudit('create_group', 'group', id, name, {
+      req,
+      payload: { slug, kind },
+    });
     res.status(201).json(created);
   }),
 );
@@ -567,6 +571,10 @@ router.patch(
     const updated = await enrichGroupRow(
       await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
     );
+    await logAudit('update_group', 'group', id, name, {
+      req,
+      payload: { slug, kind, is_active: isActive },
+    });
     res.json(membersAffected ? { ...updated, roles_recomputed: applied } : updated);
   }),
 );

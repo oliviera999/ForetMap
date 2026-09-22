@@ -535,6 +535,10 @@ router.post('/mascot-packs', requirePermission('visit.manage'), async (req, res)
       await copyVisitMascotPackAssetDirectory(sourcePackIdForCopy, packUuid);
     }
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
+    await logAudit('visit_mascot_pack_create', 'visit_mascot_pack', packUuid, label, {
+      req,
+      payload: { catalog_id: catalogId, is_published: isPublished },
+    });
     res.status(201).json(serializeVisitMascotPackRow(row));
   } catch (err) {
     logRouteError(err, req);
@@ -594,6 +598,10 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage'), async (req, r
       [label, packJson, isPublished, now, packId],
     );
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    await logAudit('visit_mascot_pack_update', 'visit_mascot_pack', packId, label, {
+      req,
+      payload: { is_published: isPublished },
+    });
     res.json(serializeVisitMascotPackRow(row));
   } catch (err) {
     logRouteError(err, req);

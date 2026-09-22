@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — journal de sécurité admin (IP) et audit élargi
+
+- Permission **`audit.security.read`** (profil **admin** uniquement) : consultation du
+  journal `security_events` avec adresse IP et User-Agent, filtres (période, compte,
+  action, IP) et export CSV / JSON (`GET /api/audit/security`,
+  `GET /api/audit/security/export`). Sous-onglet **Sécurité** dans l’écran Audit.
+- Journalisation des créations / modifications encore muettes : zones, plantes, repères,
+  groupes, tutoriels, packs mascotte visite, questions QCM, liens du réseau trophique
+  (en plus des suppressions déjà tracées).
+
 ### Corrigé — réalignement des profils du 22/09/2026 : mise en code et angles morts
 
 Deux scripts d'exploitation ont été passés à la main sur la base de production : textes de la

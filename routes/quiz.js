@@ -35,6 +35,7 @@ const {
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glossaryMatch');
 const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
 const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
+const { logAudit } = require('../lib/auditLog');
 const {
   resolvePresentContext,
   assertPresentAllowed,
@@ -644,6 +645,11 @@ router.post(
       const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
         requireNew: true,
       });
+      const code = result.question?.question_code || null;
+      await logAudit('create_quiz', 'quiz_question', code, code || 'Question QCM créée', {
+        req,
+        payload: { question_code: code },
+      });
       return res.status(201).json({ ok: true, created: true, question: result.question });
     } catch (err) {
       const status = err.statusCode || 400;
@@ -664,6 +670,10 @@ router.put(
       const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
         question_code: code,
         requireExisting: true,
+      });
+      await logAudit('update_quiz', 'quiz_question', code, code, {
+        req,
+        payload: { question_code: code },
       });
       return res.json({ ok: true, created: false, question: result.question });
     } catch (err) {

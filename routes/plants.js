@@ -783,6 +783,10 @@ router.post(
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
+    await logAudit('create_plant', 'plant', result.insertId, payload.name, {
+      req,
+      payload: { name: payload.name },
+    });
     res.status(201).json({ ...enrichPlantRow(plant), map_ids: mapIds, map_site_notes: {} });
   }),
 );
@@ -817,6 +821,10 @@ router.put(
     const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
     invalidatePlantsListCache();
     emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
+    await logAudit('update_plant', 'plant', plant.id, payload.name, {
+      req,
+      payload: { name: payload.name },
+    });
     res.json({ ...enrichPlantRow(updated), map_ids: normalizeMapIds(mapIds) });
   }),
 );
