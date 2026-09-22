@@ -294,6 +294,68 @@ test('GET /api/plan/content : ?map_id doit être déclaré, carte inconnue → 4
   }
 });
 
+test('GET /api/plan/content : catégorie masquée retire les lieux orphelins, garde les mixtes et les sans catégorie', async () => {
+  const orphan = await fx.createZone({
+    mapId,
+    name: 'Chaufferie orpheline',
+    points: POLYGON,
+  });
+  const mixed = await fx.createZone({
+    mapId,
+    name: 'Salle mixte',
+    points: [
+      { xp: 30, yp: 30 },
+      { xp: 40, yp: 30 },
+      { xp: 40, yp: 40 },
+    ],
+  });
+  const bare = await fx.createZone({
+    mapId,
+    name: 'Entrée sans catégorie',
+    points: [
+      { xp: 50, yp: 50 },
+      { xp: 60, yp: 50 },
+      { xp: 60, yp: 60 },
+    ],
+  });
+  createdIds.zones.push(orphan.id, mixed.id, bare.id);
+
+  const hidden = await fx.createLocationCategory({
+    mapId,
+    label: 'Technique masquée',
+    surfaces: ['map', 'visit', 'plan'],
+    zoneIds: [orphan.id, mixed.id],
+  });
+  const visible = await fx.createLocationCategory({
+    mapId,
+    label: 'Salles visibles',
+    surfaces: ['map', 'visit', 'plan'],
+    zoneIds: [mixed.id],
+  });
+  createdIds.categories.push(hidden.id, visible.id);
+
+  await setSetting('ui.plan.hidden_category_ids', hidden.id, {
+    userType: 'teacher',
+    userId: 'test',
+  });
+  invalidateSettingsCache();
+  planContentCache.clear();
+  try {
+    const res = await request(app).get('/api/plan/content').expect(200);
+    const zoneIds = (res.body.zones || []).map((z) => z.id);
+    assert.ok(!zoneIds.includes(orphan.id), 'lieu uniquement dans la catégorie masquée absent');
+    assert.ok(zoneIds.includes(mixed.id), 'lieu mixte toujours présent');
+    assert.ok(zoneIds.includes(bare.id), 'lieu sans catégorie toujours présent');
+    const mixedRow = (res.body.zones || []).find((z) => z.id === mixed.id);
+    assert.deepEqual(mixedRow.category_ids, [visible.id]);
+    assert.ok(!res.body.categories.some((c) => c.id === hidden.id));
+    assert.ok(res.body.categories.some((c) => c.id === visible.id));
+  } finally {
+    await setSetting('ui.plan.hidden_category_ids', '', { userType: 'teacher', userId: 'test' });
+    invalidateSettingsCache();
+  }
+});
+
 test('GET /api/plan/content : un seul plan publié → aucun sélecteur (maps vide)', async () => {
   const res = await request(app).get('/api/plan/content').expect(200);
   assert.deepEqual(res.body.maps, [], 'pas de sélecteur quand rien n’est déclaré');

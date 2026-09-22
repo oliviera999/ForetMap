@@ -1113,8 +1113,8 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.attribution`          | string  | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
 | `ui.plan.public_base_url`      | string  | vide                               | URL publique du plan, base des liens profonds imprimés  |
 | `ui.plan.brand`                | json    | `{}`                               | Identité visuelle (couleurs / logo) du plan             |
-| `ui.plan.default_category_ids` | string  | vide                               | Catégories visibles à l'ouverture (ids séparés par `;`) |
-| `ui.plan.hidden_category_ids`  | string  | vide                               | Catégories jamais montrées par le plan (idem)           |
+| `ui.plan.default_category_ids` | string  | vide                               | Catégories cochées à l'ouverture (`;` / `,` / espaces) ; vide = tout ; un changement côté admin réapplique le choix sur les appareils |
+| `ui.plan.hidden_category_ids`  | string  | vide                               | Catégories retirées des filtres ; lieux n'ayant **que** ces catégories exclus de la charge (idem séparateurs)                        |
 | `ui.plan.heading_up_enabled`   | boolean | `false`                            | Autorise le bouton « Orienter » (boussole) sur le Plan  |
 | `ui.map.heading_up_enabled`    | boolean | `false`                            | Idem sur la carte de travail ForetMap                   |
 | `ui.map.show_tutorial_dots`    | boolean | `false`                            | Pastilles violettes tutoriel sur zones/repères (carte)  |
@@ -1938,17 +1938,20 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     domaine tiers depuis toutes les pages.
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
-    `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
+    `default_category_ids` (restreint aux catégories réellement servies dans le catalogue),
+    `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage).
     `ui.plan.map_id` et `ui.plan.selectable_map_ids` ne sont **pas** repris ici (l'identifiant
     servi est déjà dans `map`, les plans proposés dans `maps`).
   - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la
     surface `plan`, moins celles listées par `ui.plan.hidden_category_ids`.
   - `zones` / `markers` : champs **publics** uniquement — `id`, `name` / `label`, `emoji`,
     `points` (zone) ou `x_pct` / `y_pct` (repère), `color`, `description` / `note`,
-    `category_ids`, `search_aliases` (**tableau**), textes `visit_subtitle`,
-    `visit_short_description`, `visit_details_title`, `visit_details_text`, et
-    `map_lead_photo` (même sérialisation que la visite). Ni espèces, ni historique de culture,
-    ni progression, ni `hidden_surfaces`.
+    `category_ids` (sans les ids masqués), `search_aliases` (**tableau**), textes
+    `visit_subtitle`, `visit_short_description`, `visit_details_title`, `visit_details_text`,
+    et `map_lead_photo` (même sérialisation que la visite). Un lieu dont **toutes** les
+    catégories sont masquées par réglage est **absent** de la charge ; un lieu sans aucune
+    catégorie reste. Ni espèces, ni historique de culture, ni progression, ni
+    `hidden_surfaces`.
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
   `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,

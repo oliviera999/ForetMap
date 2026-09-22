@@ -6,6 +6,7 @@ import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
 import { FORETMAP_AUDIENCE_ROLE_OPTIONS } from '../../shared/ui/LocationAudienceFields.jsx';
+import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
 
 const STAFF_KEYS = Object.freeze({
   title: 'ui.staff_plan.title',
@@ -164,8 +165,10 @@ export function StaffPlanSettingsPanel({
         label="Catégories cochées d’office"
         value={get(STAFF_KEYS.defaultCategoryIds, '')}
         disabled={readOnly || savingKey === STAFF_KEYS.defaultCategoryIds}
-        hint="Sélection multiple — enregistrée immédiatement."
+        hint="Sélection multiple — enregistrée immédiatement. Vide = tout afficher à l’ouverture."
         testId="staff-plan-default-category-ids"
+        requireSurface="staff"
+        excludeIds={parseCategoryIdsSetting(get(STAFF_KEYS.hiddenCategoryIds, ''))}
         onSave={(next) =>
           saveSetting(STAFF_KEYS.defaultCategoryIds, next, 'Catégories par défaut enregistrées')
         }
@@ -175,8 +178,10 @@ export function StaffPlanSettingsPanel({
         label="Catégories masquées"
         value={get(STAFF_KEYS.hiddenCategoryIds, '')}
         disabled={readOnly || savingKey === STAFF_KEYS.hiddenCategoryIds}
-        hint="Ces catégories n’apparaissent pas sur le plan des personnels."
+        hint="Retirées des filtres, et les lieux qui n’appartenaient qu’à elles disparaissent du plan."
         testId="staff-plan-hidden-category-ids"
+        requireSurface="staff"
+        excludeIds={parseCategoryIdsSetting(get(STAFF_KEYS.defaultCategoryIds, ''))}
         onSave={(next) =>
           saveSetting(STAFF_KEYS.hiddenCategoryIds, next, 'Catégories masquées enregistrées')
         }

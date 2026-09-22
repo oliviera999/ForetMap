@@ -32,6 +32,15 @@ export function PlanFiltersSheet({
   totalCount = null,
 }) {
   const hasSelection = selectedIds.size > 0;
+  // Même règle que les puces (`MapCategoryChips`) : une catégorie sans lieu vide la carte
+  // si on la coche — on ne la propose pas, sauf si elle est déjà cochée (pour pouvoir la
+  // décocher).
+  const shown = (categories || []).filter((category) => {
+    const id = String(category.id);
+    if (selectedIds.has(id)) return true;
+    if (!counts) return true;
+    return (counts.get(id) || 0) > 0;
+  });
   return (
     <BottomSheet
       open={open}
@@ -63,7 +72,7 @@ export function PlanFiltersSheet({
           : 'Aucun filtre : tous les lieux du plan sont affichés.'}
       </p>
       <ul className="plan-filters-sheet__list">
-        {(categories || []).map((category) => {
+        {shown.map((category) => {
           const id = String(category.id);
           const active = selectedIds.has(id);
           const count = counts?.get(id) ?? null;
