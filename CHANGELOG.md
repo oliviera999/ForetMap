@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — édition de zone : l’emoji ne retombe plus sur 🌱
+
+- Dans la fiche zone (onglet Modifier), l’effet de resynchronisation ignorait la colonne
+  `zones.emoji` et ne regardait que le préfixe du nom ; à défaut il prenait le premier emoji
+  de la liste (`🌱`). À l’ouverture, l’emoji « sautait » donc vers la pousse alors que la
+  colonne dédiée était correcte. Init et reset utilisent désormais `zoneEmojiOf` (colonne puis
+  préfixe), et `zone.emoji` est dans les dépendances de l’effet.
+- Couverture : `tests-ui/components/map/ZoneInfoModal.emoji.test.jsx`.
+
 ### Corrigé — prise de contrôle : un mot de passe changé coupe aussi la session « voir comme »
 
 - Le jeton de prise de contrôle portait l'époque de session **de la cible**, pas celle de
