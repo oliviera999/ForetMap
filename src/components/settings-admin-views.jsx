@@ -129,6 +129,11 @@ const SEARCH_INDEX = [
       'oauth',
       'sécurité',
       'securite',
+      'suivi',
+      'compteurs',
+      'plantnet',
+      'jwt',
+      'maintenance',
     ],
   },
 ];
@@ -420,39 +425,55 @@ function SettingsAdminView({
     );
   };
 
-  const renderSettingsSearch = (scopedSections) => {
-    const filtered = pickSections(filteredSettingSections, scopedSections);
-    const count = countSectionRows(filtered);
-    const totalInScope = countSectionRows(pickSections(settingSections, scopedSections));
+  const goToAdminSection = (sectionId) => {
+    setAdminSection(sectionId);
+    setSearchQuery('');
+  };
+
+  /** Barre unique en tête de console — filtre tous les réglages, pas seulement l’onglet courant. */
+  const renderGlobalSearchBar = () => {
+    if (!canReadSettings) return null;
+    const matchCount = countSectionRows(filteredSettingSections);
+    const totalCount = countSectionRows(settingSections);
     return (
-      <>
-        <div className="settings-admin-card" style={{ marginBottom: 12 }}>
-          <div className="field" style={{ marginBottom: 8 }}>
-            <label>Recherche dans les paramètres</label>
-            <input
-              type="text"
-              value={searchQuery}
-              placeholder="Ex: maintenance, oauth, jwt, carte, public…"
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <div
+        className="settings-admin-card settings-admin-search"
+        data-testid="settings-admin-search"
+        style={{ marginBottom: 12 }}
+      >
+        <div
+          className="field"
+          style={{ marginBottom: searchActive || searchTabHints.length ? 8 : 0 }}
+        >
+          <label htmlFor="settings-admin-search-input">Rechercher un paramètre</label>
+          <input
+            id="settings-admin-search-input"
+            type="search"
+            value={searchQuery}
+            placeholder="Ex. : maintenance, oauth, jwt, carte, mascotte, moodle…"
+            autoComplete="off"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        {searchTabHints.length > 0 ? (
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}
+            aria-label="Sections correspondant à la recherche"
+          >
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>Aller à :</span>
+            {searchTabHints.map((hint) => (
+              <button
+                key={hint.id}
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => goToAdminSection(hint.id)}
+              >
+                {hint.label}
+              </button>
+            ))}
           </div>
-          {searchTabHints.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-                Aller à :
-              </span>
-              {searchTabHints.map((hint) => (
-                <button
-                  key={hint.id}
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setAdminSection(hint.id)}
-                >
-                  {hint.label}
-                </button>
-              ))}
-            </div>
-          )}
+        ) : null}
+        {searchActive ? (
           <div
             style={{
               display: 'flex',
@@ -463,17 +484,37 @@ function SettingsAdminView({
             }}
           >
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
-              {count} paramètre(s) affiché(s) sur {totalInScope}
+              {matchCount} paramètre(s) trouvé(s) sur {totalCount}
+              {searchTabHints.length > 0
+                ? ` · ${searchTabHints.length} section(s) thématique(s)`
+                : ''}
             </div>
-            {searchQuery && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
-                Réinitialiser le filtre
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setSearchQuery('')}
+            >
+              Effacer la recherche
+            </button>
           </div>
-        </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+            Tapez un mot pour filtrer tous les réglages, ou pour ouvrir la bonne section (Plan,
+            Visite, Moodle…).
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const renderSettingSectionsGrid = (scopedSectionIds) => {
+    const source = searchActive ? filteredSettingSections : settingSections;
+    const sections = pickSections(source, scopedSectionIds);
+    const count = countSectionRows(sections);
+    return (
+      <>
         <div className="settings-admin-grid">
-          {filtered.map((section) => (
+          {sections.map((section) => (
             <AdminSection
               key={section.id}
               id={section.id ?? section.title}
@@ -485,12 +526,51 @@ function SettingsAdminView({
             </AdminSection>
           ))}
         </div>
-        {count === 0 && (
+        {count === 0 ? (
           <div className="empty" style={{ marginTop: 12 }}>
-            <p>Aucun paramètre ne correspond au filtre saisi.</p>
+            <p>
+              {searchActive
+                ? 'Aucun paramètre de cette section ne correspond à la recherche.'
+                : 'Aucun paramètre dans cette section.'}
+            </p>
           </div>
-        )}
+        ) : null}
       </>
+    );
+  };
+
+  /** Résultats transverses : tous les onglets à la fois, tant qu’une recherche est active. */
+  const renderGlobalSearchResults = () => {
+    const count = countSectionRows(filteredSettingSections);
+    return (
+      <div data-testid="settings-admin-search-results">
+        <div className="settings-admin-grid">
+          {filteredSettingSections.map((section) => (
+            <AdminSection
+              key={section.id}
+              id={`search-${section.id ?? section.title}`}
+              title={section.title}
+              defaultOpen
+              forceOpen
+            >
+              {section.rows.map((row) => renderSettingField(row))}
+            </AdminSection>
+          ))}
+        </div>
+        {count === 0 && searchTabHints.length === 0 ? (
+          <div className="empty" style={{ marginTop: 12 }}>
+            <p>Aucun paramètre ni section ne correspond à « {searchQuery.trim()} ».</p>
+          </div>
+        ) : null}
+        {count === 0 && searchTabHints.length > 0 ? (
+          <div className="empty" style={{ marginTop: 12 }}>
+            <p>
+              Pas de réglage listé pour « {searchQuery.trim()} », mais des sections thématiques
+              correspondent — utilisez « Aller à » ci-dessus.
+            </p>
+          </div>
+        ) : null}
+      </div>
     );
   };
 
@@ -513,6 +593,7 @@ function SettingsAdminView({
     } catch (_) {
       /* ignore */
     }
+    setSearchQuery('');
     if (adminSection !== 'pedago') {
       setAdminSection('pedago');
       return;
@@ -783,295 +864,314 @@ function SettingsAdminView({
         </div>
       )}
       {msg && <div className="auth-success">{msg}</div>}
-      <div
-        className="fm-subtabs settings-admin-subtabs"
-        role="tablist"
-        aria-label="Sections paramètres"
-      >
-        {topTabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={adminSection === t.id}
-            className={adminSection === t.id ? 'is-active' : ''}
-            onClick={() => setAdminSection(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
 
-      {adminSection === 'accueil' && canReadSettings
-        ? renderSettingsSearch(ACCUEIL_SECTION_IDS)
-        : null}
+      {renderGlobalSearchBar()}
 
-      {adminSection === 'pedago' && canReadSettings ? (
+      {searchActive && canReadSettings ? (
+        renderGlobalSearchResults()
+      ) : (
         <>
-          {renderSettingsSearch(PEDAGO_SECTION_IDS)}
-          <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
-            <FMLearningGatingSettings get={get} saveSetting={saveSetting} savingKey={savingKey} />
-          </AdminSection>
-        </>
-      ) : null}
-
-      {adminSection === 'carto' && canCarto ? renderCarto() : null}
-
-      {adminSection === 'plan' && canReadSettings ? (
-        <>
-          <PlanSettingsPanel
-            maps={maps}
-            get={get}
-            saveSetting={saveSetting}
-            savingKey={savingKey}
-            canWrite={canWriteSettings}
-            onMessage={(okMsg) => {
-              setMsg(okMsg);
-              setErr('');
-              load();
-            }}
-            onError={(errMsg) => setErr(errMsg)}
-          />
-          {/* Les deux plans partagent leur carte et leurs lieux : les régler au même endroit
-              évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
-          <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
-          <StaffPlanSettingsPanel
-            maps={maps}
-            get={get}
-            saveSetting={saveSetting}
-            savingKey={savingKey}
-            canWrite={canWriteSettings}
-            onMessage={(okMsg) => {
-              setMsg(okMsg);
-              setErr('');
-              load();
-            }}
-            onError={(errMsg) => setErr(errMsg)}
-          />
-        </>
-      ) : null}
-
-      {adminSection === 'brand' && canReadSettings ? (
-        <div className="settings-admin-grid">
-          <ForetBrandEditor
-            title="Marque ForetMap"
-            value={get('ui.foret.brand', {})}
-            defaults={FORETMAP_BRAND_DEFAULTS}
-            disabled={!canWriteSettings}
-            saving={savingKey === 'ui.foret.brand'}
-            onSave={(next) => saveSetting('ui.foret.brand', next, 'Identité ForetMap enregistrée')}
-          />
-          <ForetBrandEditor
-            title="Marque Plan Lyautey"
-            value={get('ui.plan.brand', {})}
-            defaults={PLAN_BRAND_DEFAULTS}
-            disabled={!canWriteSettings}
-            saving={savingKey === 'ui.plan.brand'}
-            onSave={(next) => saveSetting('ui.plan.brand', next, 'Identité Plan enregistrée')}
-          />
-        </div>
-      ) : null}
-
-      {adminSection === 'visit' && canReadSettings ? (
-        <AdminSection id="mascots" title="Mascottes de visite" defaultOpen>
-          <label
-            className="field"
-            style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
-            data-testid="visit-heading-up-setting"
-          >
-            <input
-              type="checkbox"
-              checked={Boolean(get('ui.visit.heading_up_enabled', false))}
-              disabled={savingKey === 'ui.visit.heading_up_enabled' || !canWriteSettings}
-              onChange={(e) =>
-                saveSetting(
-                  'ui.visit.heading_up_enabled',
-                  e.target.checked,
-                  e.target.checked
-                    ? 'Orientation boussole autorisée sur la Visite'
-                    : 'Orientation boussole désactivée sur la Visite',
-                )
-              }
-            />
-            <span>
-              Autoriser « Me situer » / « Orienter » sur la Visite (la carte affichée doit aussi
-              l’autoriser dans son calage GPS).
-            </span>
-          </label>
-          <CategoryIdsMultiSelect
-            label="Catégories cochées d’office sur la Visite"
-            value={get('ui.visit.default_category_ids', '')}
-            disabled={!canWriteSettings || savingKey === 'ui.visit.default_category_ids'}
-            hint="Les catégories sélectionnées sont pré-cochées pour les visiteurs."
-            testId="visit-default-category-ids"
-            onSave={(next) =>
-              saveSetting(
-                'ui.visit.default_category_ids',
-                next,
-                'Catégories Visite par défaut enregistrées',
-              )
-            }
-          />
-          <VisitMascotSettingsPanel
-            defaultValue={get('ui.visit.mascot.default_id', '')}
-            onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
-          />
-        </AdminSection>
-      ) : null}
-
-      {adminSection === 'integs' && canManageMoodle ? (
-        <MoodleAdminPanel
-          get={get}
-          saveSetting={saveSetting}
-          savingKey={savingKey}
-          onMessage={(okMsg) => {
-            setMsg(okMsg);
-            setErr('');
-          }}
-          onError={(errMsg) => setErr(errMsg)}
-        />
-      ) : null}
-
-      {adminSection === 'aide' && (canReadSettings || canManageTours) ? renderAide() : null}
-
-      {adminSection === 'ops' && canReadSettings ? (
-        <>
-          {renderSettingsSearch(OPS_SECTION_IDS)}
-          <AdminSection id="user-tracking" title="Suivi utilisateurs" defaultOpen={false}>
-            <UserTrackingPanel onError={(errMsg) => setErr(errMsg)} />
-          </AdminSection>
-          <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
-            <UsagePanel onError={(errMsg) => setErr(errMsg)} />
-          </AdminSection>
           <div
-            className="settings-admin-grid settings-admin-grid--single-on-mobile"
-            style={{ marginTop: 12 }}
+            className="fm-subtabs settings-admin-subtabs"
+            role="tablist"
+            aria-label="Sections paramètres"
           >
-            <AdminSection id="system" title="Actions système" defaultOpen={false}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
-                  Diagnostic complet
-                </button>
-                {allowRemoteLogs ? (
-                  <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
-                    Charger logs
-                  </button>
-                ) : null}
-                <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>
-                  Diagnostic OAuth
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={fetchSpeciesAutofillProvidersTest}
-                  disabled={savingKey === 'species-autofill-test'}
-                >
-                  {savingKey === 'species-autofill-test'
-                    ? 'Test…'
-                    : 'Test connectivité (Pl@ntNet / OpenAI)'}
-                </button>
-                {canWriteSecrets && allowRemoteRestart ? (
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={triggerRestart}
-                    disabled={savingKey === 'restart'}
-                  >
-                    {savingKey === 'restart' ? '…' : 'Redémarrer'}
-                  </button>
-                ) : null}
-              </div>
-              <p
-                style={{ margin: '8px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+            {topTabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={adminSection === t.id}
+                className={adminSection === t.id ? 'is-active' : ''}
+                onClick={() => setAdminSection(t.id)}
               >
-                Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code>{' '}
-                définies sur le serveur (variables d’environnement). Aucune clé n’est affichée ni
-                enregistrée ici.
-              </p>
-            </AdminSection>
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
-            <AdminSection id="diagnostics" title="Diagnostics" defaultOpen={false}>
-              {systemDiagnostics && (
-                <div
-                  style={{
-                    marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0,
-                  }}
-                >
-                  <p style={{ marginTop: 0, fontSize: 'var(--text-sm)' }}>
-                    {summarizeDiagnostics(systemDiagnostics)}
+          {adminSection === 'accueil' && canReadSettings
+            ? renderSettingSectionsGrid(ACCUEIL_SECTION_IDS)
+            : null}
+
+          {adminSection === 'pedago' && canReadSettings ? (
+            <>
+              {renderSettingSectionsGrid(PEDAGO_SECTION_IDS)}
+              <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
+                <FMLearningGatingSettings
+                  get={get}
+                  saveSetting={saveSetting}
+                  savingKey={savingKey}
+                />
+              </AdminSection>
+            </>
+          ) : null}
+
+          {adminSection === 'carto' && canCarto ? renderCarto() : null}
+
+          {adminSection === 'plan' && canReadSettings ? (
+            <>
+              <PlanSettingsPanel
+                maps={maps}
+                get={get}
+                saveSetting={saveSetting}
+                savingKey={savingKey}
+                canWrite={canWriteSettings}
+                onMessage={(okMsg) => {
+                  setMsg(okMsg);
+                  setErr('');
+                  load();
+                }}
+                onError={(errMsg) => setErr(errMsg)}
+              />
+              {/* Les deux plans partagent leur carte et leurs lieux : les régler au même endroit
+                  évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
+              <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
+              <StaffPlanSettingsPanel
+                maps={maps}
+                get={get}
+                saveSetting={saveSetting}
+                savingKey={savingKey}
+                canWrite={canWriteSettings}
+                onMessage={(okMsg) => {
+                  setMsg(okMsg);
+                  setErr('');
+                  load();
+                }}
+                onError={(errMsg) => setErr(errMsg)}
+              />
+            </>
+          ) : null}
+
+          {adminSection === 'brand' && canReadSettings ? (
+            <div className="settings-admin-grid">
+              <ForetBrandEditor
+                title="Marque ForetMap"
+                value={get('ui.foret.brand', {})}
+                defaults={FORETMAP_BRAND_DEFAULTS}
+                disabled={!canWriteSettings}
+                saving={savingKey === 'ui.foret.brand'}
+                onSave={(next) =>
+                  saveSetting('ui.foret.brand', next, 'Identité ForetMap enregistrée')
+                }
+              />
+              <ForetBrandEditor
+                title="Marque Plan Lyautey"
+                value={get('ui.plan.brand', {})}
+                defaults={PLAN_BRAND_DEFAULTS}
+                disabled={!canWriteSettings}
+                saving={savingKey === 'ui.plan.brand'}
+                onSave={(next) => saveSetting('ui.plan.brand', next, 'Identité Plan enregistrée')}
+              />
+            </div>
+          ) : null}
+
+          {adminSection === 'visit' && canReadSettings ? (
+            <AdminSection id="mascots" title="Mascottes de visite" defaultOpen>
+              <label
+                className="field"
+                style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}
+                data-testid="visit-heading-up-setting"
+              >
+                <input
+                  type="checkbox"
+                  checked={Boolean(get('ui.visit.heading_up_enabled', false))}
+                  disabled={savingKey === 'ui.visit.heading_up_enabled' || !canWriteSettings}
+                  onChange={(e) =>
+                    saveSetting(
+                      'ui.visit.heading_up_enabled',
+                      e.target.checked,
+                      e.target.checked
+                        ? 'Orientation boussole autorisée sur la Visite'
+                        : 'Orientation boussole désactivée sur la Visite',
+                    )
+                  }
+                />
+                <span>
+                  Autoriser « Me situer » / « Orienter » sur la Visite (la carte affichée doit aussi
+                  l’autoriser dans son calage GPS).
+                </span>
+              </label>
+              <CategoryIdsMultiSelect
+                label="Catégories cochées d’office sur la Visite"
+                value={get('ui.visit.default_category_ids', '')}
+                disabled={!canWriteSettings || savingKey === 'ui.visit.default_category_ids'}
+                hint="Les catégories sélectionnées sont pré-cochées pour les visiteurs."
+                testId="visit-default-category-ids"
+                onSave={(next) =>
+                  saveSetting(
+                    'ui.visit.default_category_ids',
+                    next,
+                    'Catégories Visite par défaut enregistrées',
+                  )
+                }
+              />
+              <VisitMascotSettingsPanel
+                defaultValue={get('ui.visit.mascot.default_id', '')}
+                onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
+              />
+            </AdminSection>
+          ) : null}
+
+          {adminSection === 'integs' && canManageMoodle ? (
+            <MoodleAdminPanel
+              get={get}
+              saveSetting={saveSetting}
+              savingKey={savingKey}
+              onMessage={(okMsg) => {
+                setMsg(okMsg);
+                setErr('');
+              }}
+              onError={(errMsg) => setErr(errMsg)}
+            />
+          ) : null}
+
+          {adminSection === 'aide' && (canReadSettings || canManageTours) ? renderAide() : null}
+
+          {adminSection === 'ops' && canReadSettings ? (
+            <>
+              {renderSettingSectionsGrid(OPS_SECTION_IDS)}
+              <AdminSection id="user-tracking" title="Suivi utilisateurs" defaultOpen={false}>
+                <UserTrackingPanel onError={(errMsg) => setErr(errMsg)} />
+              </AdminSection>
+              <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
+                <UsagePanel onError={(errMsg) => setErr(errMsg)} />
+              </AdminSection>
+              <div
+                className="settings-admin-grid settings-admin-grid--single-on-mobile"
+                style={{ marginTop: 12 }}
+              >
+                <AdminSection id="system" title="Actions système" defaultOpen={false}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
+                      Diagnostic complet
+                    </button>
+                    {allowRemoteLogs ? (
+                      <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
+                        Charger logs
+                      </button>
+                    ) : null}
+                    <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>
+                      Diagnostic OAuth
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={fetchSpeciesAutofillProvidersTest}
+                      disabled={savingKey === 'species-autofill-test'}
+                    >
+                      {savingKey === 'species-autofill-test'
+                        ? 'Test…'
+                        : 'Test connectivité (Pl@ntNet / OpenAI)'}
+                    </button>
+                    {canWriteSecrets && allowRemoteRestart ? (
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={triggerRestart}
+                        disabled={savingKey === 'restart'}
+                      >
+                        {savingKey === 'restart' ? '…' : 'Redémarrer'}
+                      </button>
+                    ) : null}
+                  </div>
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--ink-soft)',
+                    }}
+                  >
+                    Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code>{' '}
+                    définies sur le serveur (variables d’environnement). Aucune clé n’est affichée
+                    ni enregistrée ici.
                   </p>
-                  <details>
-                    <summary style={{ cursor: 'pointer', minHeight: 44 }}>
-                      Détail technique (JSON)
-                    </summary>
+                </AdminSection>
+              </div>
+
+              {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
+                <AdminSection id="diagnostics" title="Diagnostics" defaultOpen={false}>
+                  {systemDiagnostics && (
+                    <div
+                      style={{
+                        marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0,
+                      }}
+                    >
+                      <p style={{ marginTop: 0, fontSize: 'var(--text-sm)' }}>
+                        {summarizeDiagnostics(systemDiagnostics)}
+                      </p>
+                      <details>
+                        <summary style={{ cursor: 'pointer', minHeight: 44 }}>
+                          Détail technique (JSON)
+                        </summary>
+                        <pre
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            maxHeight: 280,
+                            overflow: 'auto',
+                            fontSize: 'var(--text-sm)',
+                            background: '#eff6ff',
+                            borderRadius: 8,
+                            padding: 8,
+                          }}
+                        >
+                          {JSON.stringify(systemDiagnostics, null, 2)}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+                  {speciesAutofillTest && (
                     <pre
                       style={{
                         whiteSpace: 'pre-wrap',
                         maxHeight: 280,
                         overflow: 'auto',
                         fontSize: 'var(--text-sm)',
-                        background: '#eff6ff',
+                        background: 'var(--tint-success)',
+                        borderRadius: 8,
+                        padding: 8,
+                        marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,
+                      }}
+                    >
+                      {JSON.stringify(speciesAutofillTest, null, 2)}
+                    </pre>
+                  )}
+                  {oauthDebug && (
+                    <pre
+                      style={{
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: 220,
+                        overflow: 'auto',
+                        fontSize: 'var(--text-sm)',
+                        background: '#f9fafb',
                         borderRadius: 8,
                         padding: 8,
                       }}
                     >
-                      {JSON.stringify(systemDiagnostics, null, 2)}
+                      {JSON.stringify(oauthDebug, null, 2)}
                     </pre>
-                  </details>
-                </div>
+                  )}
+                  {logs.length > 0 && (
+                    <pre
+                      style={{
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: 260,
+                        overflow: 'auto',
+                        fontSize: 'var(--text-xs)',
+                        background: '#111827',
+                        color: '#f9fafb',
+                        borderRadius: 8,
+                        padding: 8,
+                      }}
+                    >
+                      {logs.join('\n')}
+                    </pre>
+                  )}
+                </AdminSection>
               )}
-              {speciesAutofillTest && (
-                <pre
-                  style={{
-                    whiteSpace: 'pre-wrap',
-                    maxHeight: 280,
-                    overflow: 'auto',
-                    fontSize: 'var(--text-sm)',
-                    background: 'var(--tint-success)',
-                    borderRadius: 8,
-                    padding: 8,
-                    marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,
-                  }}
-                >
-                  {JSON.stringify(speciesAutofillTest, null, 2)}
-                </pre>
-              )}
-              {oauthDebug && (
-                <pre
-                  style={{
-                    whiteSpace: 'pre-wrap',
-                    maxHeight: 220,
-                    overflow: 'auto',
-                    fontSize: 'var(--text-sm)',
-                    background: '#f9fafb',
-                    borderRadius: 8,
-                    padding: 8,
-                  }}
-                >
-                  {JSON.stringify(oauthDebug, null, 2)}
-                </pre>
-              )}
-              {logs.length > 0 && (
-                <pre
-                  style={{
-                    whiteSpace: 'pre-wrap',
-                    maxHeight: 260,
-                    overflow: 'auto',
-                    fontSize: 'var(--text-xs)',
-                    background: '#111827',
-                    color: '#f9fafb',
-                    borderRadius: 8,
-                    padding: 8,
-                  }}
-                >
-                  {logs.join('\n')}
-                </pre>
-              )}
-            </AdminSection>
-          )}
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
     </div>
   );
 }
