@@ -72,4 +72,36 @@
   --accent-warning-solid: #f59e0b;
   --accent-info-solid: #2563eb;
   --accent-danger-solid: #dc2626;
+
+  /* ── Écrans pédago & biodiversité ───────────────────────────────────────
+     Les lots « structure biodiversité » (groupes emboîtés, individus, dangers d'une fiche)
+     ont apporté leur propre traîne de verts, de bruns et d'un bleu « santé ». Les valeurs
+     ci-dessous sont reprises À L'OCTET PRÈS de `src/index.css` : les nommer ne repeint
+     rien, exactement comme la couche neutre du haut de cette feuille. Ce qui change, c'est
+     que l'écran suivant pioche un rôle au lieu d'inventer un hexadécimal de plus.
+
+     Elles restent distinctes de `--line-leaf` / `--line-sage` / `--ink-moss` : rapprocher
+     ces teintes serait une DÉCISION sur la direction de teinte du thème forêt, pas un
+     nettoyage — et c'est précisément ce que le commentaire d'en-tête met hors périmètre. */
+  --surface-pedago: #f7faf7;
+  --surface-pedago-soft: #f4f8f4;
+  --line-pedago: #d7e3d7;
+  --line-pedago-soft: #e8efe8;
+  --line-pedago-pill: #d0ddd0;
+  /* Filet des formulaires biodiversité. Il s'écrivait `var(--border, #c5d4c0)` : le
+     token `--border` n'a jamais été déclaré nulle part, c'est donc le repli qui rendait. */
+  --line-pedago-strong: #c5d4c0;
+  --ink-pedago-soft: #5a6b5a;
+  --ink-pedago-faint: #9aaa9a;
+  --accent-leaf-deep: #2d5a2d;
+  /* Brun d'écorce : la courbe « hauteur » d'un individu, et l'encre des encarts de danger. */
+  --accent-bark: #8b5a2b;
+  --ink-bark-deep: #7c3a06;
+  /* Bleu « santé » : la quatrième famille de danger d'une fiche plante, à côté des
+     encres d'état de `state-inks.css` (qui, elles, disent succès / alerte / erreur).
+     `--ink-info-deep` prolonge vers le foncé l'encre `--ink-info` de `state-inks.css` ; il
+     sert aussi au niveau « info » du centre de notifications, d'où son nom de famille. */
+  --accent-health-solid: #0369a1;
+  --tint-health: #f0f9ff;
+  --ink-info-deep: #0c4a6e;
 }

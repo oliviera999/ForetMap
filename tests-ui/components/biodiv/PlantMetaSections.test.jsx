@@ -38,7 +38,7 @@ describe('PlantMetaSections', () => {
   test('valeurs d’identité → section repliable avec labels et valeurs', () => {
     render(<PlantMetaSections plant={{ scientific_name: 'Malus domestica', habitat: 'Verger' }} />);
     expect(screen.getByText('Identité')).toBeInTheDocument();
-    expect(screen.getByText('Nom scientifique')).toBeInTheDocument();
+    expect(screen.getByText('Nom scientifique (usage)')).toBeInTheDocument();
     expect(screen.getByText('Malus domestica')).toBeInTheDocument();
     expect(screen.getByText('Écologie et usages')).toBeInTheDocument();
     expect(screen.getByText('Verger')).toBeInTheDocument();

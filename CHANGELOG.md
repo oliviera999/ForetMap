@@ -9,6 +9,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la CI de `main` était rouge, et plus aucune branche n'exécutait ses tests e2e
+
+Les lots « structure biodiversité » (groupes emboîtés, individus, dangers d'une fiche) ont été
+fusionnés avec **neuf tests rouges** : cinq garde-fous de dette côté `node:test`, quatre
+assertions d'interface restées sur l'état d'avant. Sur `main` comme sur chaque branche ouverte.
+
+La conséquence dépassait l'affichage d'une pastille rouge. Dans `ci.yml`, les étapes Playwright
+suivent les tests back-end **dans le même job** : un échec à l'étape 7 saute les étapes 8 à 14,
+donc le smoke « Plan » et le smoke mobile-webkit n'étaient plus *en échec*, ils n'étaient plus
+**exécutés du tout**. Aucune pull request du dépôt ne passait plus un seul test e2e — y compris
+celle qui corrige justement un défaut du Plan.
+
+Aucune couleur n'a changé de valeur, aucune règle métier n'a bougé :
+
+- **Couleur** — la traîne apportée par ces lots (verts pédago, brun d'écorce, bleu « santé »)
+  est promue en tokens dans `src/shared/styles/color-tokens.css`, **à l'octet près**, comme la
+  couche neutre l'avait été. Nommer une valeur ne repeint rien ; ce qui change, c'est que
+  l'écran suivant pioche un rôle au lieu d'inventer un hexadécimal de plus. Trois replis
+  `var(--token, #valeur)` désignaient au passage des tokens qui **n'existent nulle part**
+  (`--line`, `--border`) : c'était le repli qui rendait, toujours. Les plafonds des cliquets
+  descendent à l'état résorbé (669 → 664 en CSS, 147 → 144 en style inline).
+- **Dialogues natifs** — les deux `window.confirm()` des vues Individus et Groupes emboîtés
+  passent par `useAppDialogs()`, comme le reste du front : une promesse plutôt qu'un dialogue
+  qui gèle le thread, ignore le thème et peut être supprimé sans bruit en PWA.
+- **Seuil de rupture** — le `599px` ajouté pour les filtres pédago devient `640px`, le seuil
+  canonique le plus proche ; un seuil neuf ne s'ajoute pas à la dette tolérée.
+- **Assertions restées en arrière** — `map_site_notes` est un objet comme `map_ids` est un
+  tableau ; le pôle « Suivi » s'ouvre désormais sur « Individus » ; le libellé dit « Nom
+  scientifique (usage) » depuis qu'il se distingue du nom accepté. Dans les trois cas c'est le
+  test qui décrivait un état révolu, pas le code qui régressait.
+
 ### Corrigé — Plan : la liste « Parcours » était inerte tant que le bandeau d'accueil s'affichait
 
 Sur le plan (planlyautey, proflyautey), ouvrir la puce **Parcours** puis toucher un parcours ne

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete } from '../../shared/icons.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 function GrowthChart({ measurements }) {
   const points = (measurements || []).filter(
@@ -50,6 +51,7 @@ export function IndividualsView({
   onOpenPlant = null,
 }) {
   const { plants = [] } = useData() || {};
+  const { confirm } = useAppDialogs();
   const [mapId, setMapId] = useState(initialMapId || '');
   const [items, setItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -149,7 +151,8 @@ export function IndividualsView({
   };
 
   const removeIndividual = async (id) => {
-    if (!window.confirm('Supprimer cet individu et ses mesures ?')) return;
+    if (!(await confirm({ message: 'Supprimer cet individu et ses mesures ?', danger: true })))
+      return;
     try {
       await api(`/api/individuals/${id}`, 'DELETE');
       if (selectedId === id) {

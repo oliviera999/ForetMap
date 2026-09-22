@@ -251,7 +251,7 @@ function PlantEditForm({
                         minHeight: 44,
                         padding: '4px 10px',
                         borderRadius: 8,
-                        border: '1px solid var(--border, #c5d4c0)',
+                        border: '1px solid var(--line-pedago-strong)',
                         cursor: 'pointer',
                       }}
                     >
@@ -708,7 +708,7 @@ function PlantEditForm({
                   style={{
                     marginTop: 8,
                     padding: 12,
-                    border: '1px solid var(--border, #c5d4c0)',
+                    border: '1px solid var(--line-pedago-strong)',
                     borderRadius: 8,
                   }}
                 >
@@ -732,7 +732,7 @@ function PlantEditForm({
                     style={{
                       margin: '0 0 8px',
                       whiteSpace: 'pre-wrap',
-                      fontSize: 12,
+                      fontSize: 'var(--text-xs)',
                       maxHeight: 160,
                       overflow: 'auto',
                     }}
