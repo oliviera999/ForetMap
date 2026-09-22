@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — les caches PWA se vident à la révocation d'un accès (lot G, constat S8)
+
+- **Une 401/403 au rafraîchissement retire l'entrée du cache.** Le service worker du plan
+  garde `/api/plan/content` hors ligne ; après une révocation du code, la charge — entrées,
+  loge, infirmerie — restait sur l'appareil **indéfiniment**, la stratégie ne mémorisant que
+  les réponses valides. Le contenu périmé part désormais une dernière fois (la réponse est
+  déjà rendue quand le réseau tranche), puis le chargement suivant renvoie à l'écran de code.
+- **La route n'a pas été retirée du cache**, contrairement à ce que l'arbitrage envisageait :
+  le hors-ligne est la raison d'être du plan public — un visiteur qui scanne le QR code à
+  l'entrée n'a pas toujours de réseau.
+- **La politique d'API entre dans le nom du cache.** `activate` supprime tout cache dont le
+  nom diffère, mais le hash ne couvrait que le précache : retirer une route de l'allowlist ne
+  purgeait rien tant qu'aucun bundle ne bougeait.
+- **Corrigé au passage** : `putInCache` mémorisait toute réponse, 401 et 500 comprises —
+  l'erreur d'un instant devenait la réponse hors ligne pour la durée du cache.
+- Le profil `staff`, qui ne met aucune API en cache, est **inchangé**.
+
 ### Sécurité — les images téléversées ne portent plus leurs métadonnées (lot F, constat S7)
 
 - **EXIF, coordonnées GPS, IPTC et XMP retirés à l'écriture** de toute image sous `uploads/`.

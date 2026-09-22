@@ -17,8 +17,8 @@
 > septembre** qui est décrit, avant correctif. Chaque constat traité porte une ligne
 > **« Corrigé »** qui dit où.
 >
-> **Mise à jour du 22 septembre 2026, soir** : le **lot F** est livré — **S7 est traité**
-> (§2.7). Restent ouverts S8 à S11 (lots G à L).
+> **Mise à jour du 22 septembre 2026, soir** : les lots **F** et **G** sont livrés — **S7 et
+> S8 sont traités** (§2.7, §2.8). Restent ouverts S9 à S11 (lots H à L).
 >
 > **Note d'exécution — les chiffres sont mesurés, pas estimés.** L'application a été montée
 > localement sur le fixture anonymisé (`foretmap_local`, migré à la volée : 7 cartes, dont
@@ -233,6 +233,27 @@ téléchargeables sans authentification. Sur un établissement où les photos so
 élèves mineurs sur site, c'est le constat P1 le plus concret.
 
 ### 2.8 — S8 (P1) · Le service worker du plan conserve les données sur l'appareil
+
+**Corrigé** (lot G) — mais pas en retirant `/api/plan/content` du cache, ce que l'arbitrage
+annoncé envisageait. Le hors-ligne est la raison d'être de cette stratégie : un visiteur qui
+scanne le QR code à l'entrée de l'établissement n'a pas toujours de réseau. Deux mécanismes
+plutôt qu'un retrait :
+
+1. **Éviction sur refus d'autorisation** (`src/shared/pwa/swTemplate.js`) — une 401/403 au
+   rafraîchissement retire l'entrée du cache. Le contenu périmé part **une dernière fois**,
+   la réponse étant déjà rendue quand le réseau tranche ; le chargement suivant renvoie à
+   l'écran de code. Ce résidu est le prix du hors-ligne, et il est documenté dans le gabarit
+   plutôt que passé sous silence.
+2. **La politique d'API entre dans le nom du cache** (`scripts/build-pwa.js`, `precacheHash`).
+   `activate` supprimait déjà tout cache dont le nom diffère, mais le hash ne couvrait que le
+   précache : retirer une route de l'allowlist ne purgeait rien tant qu'aucun bundle ne
+   bougeait. C'est ce qui manquait à la « purge versionnée » que le constat appelait.
+
+**Trouvé au passage** : `putInCache` mémorisait **toute** réponse, 401 et 500 comprises —
+l'erreur d'un instant devenait la réponse hors ligne pour la durée du cache. Seules les
+réponses valides sont désormais mémorisées.
+
+Le profil `staff`, qui ne met aucune API en cache, est inchangé : c'était déjà le bon choix.
 
 `scripts/build-pwa.js` :
 
