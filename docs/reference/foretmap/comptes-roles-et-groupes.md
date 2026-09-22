@@ -181,7 +181,8 @@ peut pas se promouvoir administrateur, ni créer ou modifier un compte administr
 Aujourd'hui, le n3boss par défaut dispose déjà de pouvoirs sensibles qu'il faut avoir
 en tête avant de distribuer le rôle : créer des comptes professeurs, supprimer des
 comptes élèves, lire le journal d'audit. Ce n'est pas « toute la gestion pédagogique »
-au sens anodin du terme.
+au sens anodin du terme. Le **journal de sécurité** (adresses IP, navigateur, export
+incident) reste réservé à l'administrateur.
 
 ### Deux métiers d'enseignant : n3boss et prof de classe
 

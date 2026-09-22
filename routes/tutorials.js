@@ -681,6 +681,10 @@ router.post(
     const zMap = await fetchZonesForTutorials([createdId]);
     const mMap = await fetchMarkersForTutorials([createdId]);
     await emitTutorialTasksChanged('tutorial_create', createdId);
+    await logAudit('create_tutorial', 'tutorial', createdId, title, {
+      req,
+      payload: { type, slug },
+    });
     res
       .status(201)
       .json(
@@ -935,6 +939,10 @@ router.put(
     const zMap = await fetchZonesForTutorials([existingId]);
     const mMap = await fetchMarkersForTutorials([existingId]);
     await emitTutorialTasksChanged('tutorial_update', existingId);
+    await logAudit('update_tutorial', 'tutorial', existingId, nextTitle, {
+      req,
+      payload: { type: nextType },
+    });
     res.json(
       toPublicTutorialRow(
         { ...updated, linked_tasks_count: linked?.c || 0 },

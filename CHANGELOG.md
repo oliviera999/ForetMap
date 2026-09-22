@@ -51,6 +51,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   correctement.
 - **Tests** : `tests/uploads-exif.test.js` (7 cas), dont un passe par la route réelle
   `POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
+### Ajouté — journal de sécurité admin (IP) et audit élargi
+
+- Permission **`audit.security.read`** (profil **admin** uniquement) : consultation du
+  journal `security_events` avec adresse IP et User-Agent, filtres (période, compte,
+  action, IP) et export CSV / JSON (`GET /api/audit/security`,
+  `GET /api/audit/security/export`). Sous-onglet **Sécurité** dans l’écran Audit.
+- Journalisation des créations / modifications encore muettes : zones, plantes, repères,
+  groupes, tutoriels, packs mascotte visite, questions QCM, liens du réseau trophique
+  (en plus des suppressions déjà tracées).
 
 ### Corrigé — réalignement des profils du 22/09/2026 : mise en code et angles morts
 
@@ -110,6 +119,15 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
 ### Corrigé — LTI : clé privée lisible depuis cPanel
+### Corrigé — compteur de commentaires sur les tâches (badge + non lus)
+
+- Le badge à côté de « Commentaires de la tâche » restait à **0** tant que la section
+  était repliée (aucun appel réseau volontaire pour limiter la charge). Un résumé
+  groupé `GET /api/context-comments/counts` alimente désormais le **total** dès
+  l’affichage de la liste, et une **pastille** signale les commentaires non lus
+  jusqu’à l’ouverture de la section. Les demandes de plusieurs cartes sont fusionnées
+  en un seul appel HTTP.
+
 ### Sécurité — politique d'accès par surface appliquée côté serveur (lots P0 A–E)
 
 > Suite de l'audit `docs/AUDIT_SECURITE_2026-09-22.md`. **Changement de comportement d'API** :
