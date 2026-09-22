@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — LTI : clé privée lisible depuis cPanel
+
+- `LTI_TOOL_PRIVATE_KEY` : normalisation des guillemets et des `\n` littéraux (panneaux
+  d’environnement type cPanel) avant `importPKCS8`, pour éviter l’échec JWKS
+  « Invalid character ».
+
 ### Modifié — Plan Lyautey / personnels : favicon officiel du lycée
 
 - Favicon et icônes PWA de `planlyautey` et `proflyautey` alignés sur le PNG officiel de
