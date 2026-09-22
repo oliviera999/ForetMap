@@ -45,11 +45,18 @@ export const EMPTY_PLANT_FORM = {
   description: '',
   second_name: '',
   scientific_name: '',
+  accepted_scientific_name: '',
   taxon_kingdom: '',
   taxon_group: '',
   taxon_family: '',
   taxon_genus: '',
+  taxon_phylum: '',
+  taxon_class: '',
+  taxon_order: '',
+  taxon_family_latin: '',
   gbif_key: '',
+  gbif_accepted_key: '',
+  gbif_checked_at: '',
   habitat_type: '',
   trophic_role: '',
   life_cycle: '',
@@ -82,6 +89,8 @@ export const EMPTY_PLANT_FORM = {
   hazard_exposure: '',
   hazard_notes: '',
   hazard_reviewed: '',
+  health_risk: '',
+  health_notes: '',
   photo_credit: '',
   photo_licence: '',
   photo_species: '',
@@ -90,6 +99,7 @@ export const EMPTY_PLANT_FORM = {
   photo_fruit: '',
   photo_harvest_part: '',
   map_ids: [],
+  map_site_notes: {},
 };
 
 /**
@@ -99,12 +109,34 @@ export const EMPTY_PLANT_FORM = {
 export function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
-    if (k === 'map_ids') return;
+    if (k === 'map_ids' || k === 'map_site_notes') return;
     form[k] = normalizedPlantValue(plant[k]);
   });
   if (!form.emoji) form.emoji = '🌱';
   form.map_ids = Array.isArray(plant.map_ids)
     ? [...new Set(plant.map_ids.map((id) => String(id || '').trim()).filter(Boolean))]
     : [];
+  form.map_site_notes =
+    plant.map_site_notes && typeof plant.map_site_notes === 'object'
+      ? { ...plant.map_site_notes }
+      : {};
   return form;
+}
+
+/** Persiste les notes de site (une requête par carte). */
+export async function persistPlantMapSiteNotes(apiFn, plantId, mapIds, mapSiteNotes) {
+  const id = Number(plantId);
+  if (!Number.isInteger(id) || id <= 0 || typeof apiFn !== 'function') return;
+  const ids = Array.isArray(mapIds) ? mapIds : [];
+  const notes = mapSiteNotes && typeof mapSiteNotes === 'object' ? mapSiteNotes : {};
+  await Promise.all(
+    ids.map((mapId) => {
+      const mid = String(mapId || '').trim();
+      if (!mid) return Promise.resolve();
+      const site_notes = notes[mid] != null ? String(notes[mid]) : '';
+      return apiFn(`/api/plants/${id}/map-species/${encodeURIComponent(mid)}`, 'PUT', {
+        site_notes,
+      });
+    }),
+  );
 }

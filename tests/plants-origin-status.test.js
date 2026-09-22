@@ -62,8 +62,22 @@ describe('origin_status — statut biogéographique pédagogique', () => {
     assert.equal(mapped.origin_status, 'introduit');
   });
 
-  it('les trois valeurs canoniques sont stables', () => {
-    assert.deepEqual([...ORIGIN_STATUS_VALUES], ['indigene', 'introduit', 'envahissant']);
+  it('endémique et domestique sont des valeurs à part entière (migration 271)', () => {
+    // Avant la 271, `endemique` était un alias de `indigene` : l'arganier, endémique du
+    // Maroc, était indistinguable d'une espèce simplement indigène, et l'âne n'avait
+    // aucune case du tout.
+    assert.equal(normalizeOriginStatus('endemique'), 'endemique');
+    assert.equal(normalizeOriginStatus('Endémique'), 'endemique');
+    assert.equal(normalizeOriginStatus('domestique'), 'domestique');
+    assert.equal(originStatusLabel('endemique'), 'Endémique');
+    assert.equal(originStatusLabel('domestique'), 'Domestique');
+  });
+
+  it('les cinq valeurs canoniques sont stables', () => {
+    assert.deepEqual(
+      [...ORIGIN_STATUS_VALUES],
+      ['indigene', 'introduit', 'envahissant', 'endemique', 'domestique'],
+    );
   });
 });
 

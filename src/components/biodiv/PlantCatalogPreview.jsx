@@ -19,13 +19,14 @@ import {
   PlantSummaryBadges,
   PlantEcosystemHumanLead,
   PlantTaxonomyLine,
+  PlantSiteNotesBlock,
   PlantPedagoTraitBadges,
   PlantRangeGauges,
   PlantPedagoFetchedSections,
 } from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
 import { PlantDeterminationSection } from './PlantDeterminationSection.jsx';
-import { PlantHazardSection } from './PlantHazardSection.jsx';
+import { PlantHazardSection, PlantHealthRiskSection } from './PlantHazardSection.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 import {
   IconBiodiv,
@@ -45,6 +46,7 @@ export function PlantBiodiversityCatalogPreviewCard({
   zones = [],
   markers = [],
   maps = [],
+  activeMapId = null,
   myObservationCount = 0,
   siteObservationCount = 0,
   onObservationAcknowledged = null,
@@ -68,6 +70,19 @@ export function PlantBiodiversityCatalogPreviewCard({
     dataBiodivPlantId != null && dataBiodivPlantId !== ''
       ? { 'data-biodiv-plant-id': dataBiodivPlantId }
       : {};
+  const usageName = normalizedPlantValue(plant.scientific_name);
+  const acceptedName = normalizedPlantValue(plant.accepted_scientific_name);
+  const showAccepted = acceptedName && acceptedName.toLowerCase() !== usageName.toLowerCase();
+  const gbifKey =
+    plant?.taxonomy?.gbifAcceptedKey ||
+    plant?.taxonomy?.gbifKey ||
+    plant?.gbif_accepted_key ||
+    plant?.gbif_key;
+  const gbifHref =
+    gbifKey != null && Number(gbifKey) > 0
+      ? `https://www.gbif.org/species/${Number(gbifKey)}`
+      : null;
+  const previewMapId = activeMapId || plant.preview_map_id || null;
   return (
     <article className="biodiv-card fade-in" {...dataAttr}>
       <div className="biodiv-card-head">
@@ -75,9 +90,17 @@ export function PlantBiodiversityCatalogPreviewCard({
           <span className="biodiv-emoji">{plant.emoji}</span>
           <div className="biodiv-card-title-content">
             <h3>{plant.name}</h3>
-            <p className="plant-scientific">
-              {normalizedPlantValue(plant.scientific_name) || 'Nom scientifique non renseigne'}
-            </p>
+            <p className="plant-scientific">{usageName || 'Nom scientifique non renseigne'}</p>
+            {showAccepted ? (
+              <p className="plant-accepted-name">Nom accepté : {acceptedName}</p>
+            ) : null}
+            {gbifHref ? (
+              <p className="plant-gbif-link">
+                <a href={gbifHref} target="_blank" rel="noopener noreferrer">
+                  Fiche GBIF
+                </a>
+              </p>
+            ) : null}
           </div>
         </div>
         {normalizedPlantValue(plant.group_2) && <span className="task-chip">{plant.group_2}</span>}
@@ -95,10 +118,14 @@ export function PlantBiodiversityCatalogPreviewCard({
         {/* Le danger passe avant tout le reste, et hors d'un <details> : un avertissement
             de toxicité derrière un repli fermé n'avertit personne. */}
         <PlantHazardSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
+        {/* Risque sanitaire : encadré distinct, pour ne pas faire passer un animal porteur
+            de la rage pour un animal toxique. */}
+        <PlantHealthRiskSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
         <PlantDeterminationSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantTaxonomyLine plant={plant} />
+        <PlantSiteNotesBlock plant={plant} activeMapId={previewMapId} maps={maps} />
         <PlantPedagoTraitBadges plant={plant} />
         <PlantRangeGauges plant={plant} />
         <CatalogRemarksSection plant={plant} />
