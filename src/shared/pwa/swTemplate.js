@@ -99,9 +99,30 @@ function isImageOrFont(pathname) {
   return IMAGE_FONT_EXTENSIONS.some((ext) => pathname.endsWith(ext));
 }
 
+/**
+ * Une réponse d'autorisation refusée : le laissez-passer a été révoqué, le code changé, ou
+ * le rôle du lecteur a évolué. Le cache qui porte encore l'ancienne réponse doit être vidé,
+ * sans quoi l'appareil rejouerait indéfiniment un contenu auquel il n'a plus droit
+ * (docs/AUDIT_SECURITE_2026-09-22.md, constat S8).
+ */
+function isAuthRefusal(response) {
+  return !!response && (response.status === 401 || response.status === 403);
+}
+
+/** Retire une entrée du cache (révocation) — sans bruit si elle n'y était pas. */
+function evictFromCache(request) {
+  return caches.open(CACHE_NAME).then((cache) => cache.delete(request)).catch(() => undefined);
+}
+
 function putInCache(request, response) {
-  const clone = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  // Seules les réponses valides sont mémorisées. Auparavant une 401 ou une 500 devenait la
+  // réponse servie hors ligne : l'erreur d'un instant se figeait pour la durée du cache.
+  if (response && response.ok) {
+    const clone = response.clone();
+    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  } else if (isAuthRefusal(response)) {
+    evictFromCache(request);
+  }
   return response;
 }
 
@@ -118,12 +139,25 @@ function cacheFirst(request) {
   });
 }
 
+/**
+ * Lecture « stale-while-revalidate » : la réponse mémorisée part tout de suite, le réseau
+ * rafraîchit derrière. C'est ce qui rend le plan consultable sans réseau — un visiteur qui
+ * scanne le QR code à l'entrée de l'établissement n'a pas toujours de connexion.
+ *
+ * **Révocation** : si le rafraîchissement revient en 401/403, l'entrée est retirée du cache.
+ * Le contenu périmé a donc pu être servi **une dernière fois** (la réponse était déjà partie
+ * quand le réseau a tranché) ; le chargement suivant renvoie à l'écran de code. Servir le
+ * réseau d'abord supprimerait ce dernier affichage, mais au prix du hors-ligne, qui est la
+ * raison d'être de cette stratégie.
+ */
 function staleWhileRevalidate(request) {
   return caches.open(CACHE_NAME).then((cache) => cache.match(request).then((cached) => {
     const networkPromise = fetch(request)
       .then((response) => {
         if (response && response.ok) {
           cache.put(request, response.clone());
+        } else if (isAuthRefusal(response)) {
+          cache.delete(request);
         }
         return response;
       })

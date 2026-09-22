@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-2fa42f09";
+const CACHE_NAME = "foretmap-plan-c08598d5";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,21 +15,21 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-HjWKs-io.js",
+  "/assets/plan-Bd0YTGxw.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-BjKb3xjJ.js",
-  "/assets/react-vendor-Dcb_X5td.js",
-  "/assets/icons-BNguv2wG.js",
-  "/assets/ErrorBoundary-CP7t-rDn.js",
+  "/assets/VisitMascotFallbackSvg-BnVw2tps.js",
+  "/assets/react-vendor-CiETBgCW.js",
+  "/assets/icons-DU9XRG1S.js",
+  "/assets/ErrorBoundary-CTz0Ti5A.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/HelpDock-C-XIejqf.js",
+  "/assets/HelpDock-BEiWspU1.js",
   "/assets/HelpDock-D1tmIwbp.css",
-  "/assets/AppPlan-CgwdWwWr.js",
+  "/assets/AppPlan-Bu_0voUX.js",
   "/assets/AppPlan-e94BIYQn.css",
-  "/assets/useBrandTheme-DweNqMM5.js",
+  "/assets/useBrandTheme-vyPm_Y3W.js",
   "/assets/placeSearch-oEXvS_TX.js",
   "/assets/placeStatus-Q1NnX946.js",
-  "/assets/useMapGuidance-CvpLZ90B.js",
+  "/assets/useMapGuidance-BtIvnfZC.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
@@ -74,9 +74,30 @@ function isImageOrFont(pathname) {
   return IMAGE_FONT_EXTENSIONS.some((ext) => pathname.endsWith(ext));
 }
 
+/**
+ * Une réponse d'autorisation refusée : le laissez-passer a été révoqué, le code changé, ou
+ * le rôle du lecteur a évolué. Le cache qui porte encore l'ancienne réponse doit être vidé,
+ * sans quoi l'appareil rejouerait indéfiniment un contenu auquel il n'a plus droit
+ * (docs/AUDIT_SECURITE_2026-09-22.md, constat S8).
+ */
+function isAuthRefusal(response) {
+  return !!response && (response.status === 401 || response.status === 403);
+}
+
+/** Retire une entrée du cache (révocation) — sans bruit si elle n'y était pas. */
+function evictFromCache(request) {
+  return caches.open(CACHE_NAME).then((cache) => cache.delete(request)).catch(() => undefined);
+}
+
 function putInCache(request, response) {
-  const clone = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  // Seules les réponses valides sont mémorisées. Auparavant une 401 ou une 500 devenait la
+  // réponse servie hors ligne : l'erreur d'un instant se figeait pour la durée du cache.
+  if (response && response.ok) {
+    const clone = response.clone();
+    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  } else if (isAuthRefusal(response)) {
+    evictFromCache(request);
+  }
   return response;
 }
 
@@ -93,12 +114,25 @@ function cacheFirst(request) {
   });
 }
 
+/**
+ * Lecture « stale-while-revalidate » : la réponse mémorisée part tout de suite, le réseau
+ * rafraîchit derrière. C'est ce qui rend le plan consultable sans réseau — un visiteur qui
+ * scanne le QR code à l'entrée de l'établissement n'a pas toujours de connexion.
+ *
+ * **Révocation** : si le rafraîchissement revient en 401/403, l'entrée est retirée du cache.
+ * Le contenu périmé a donc pu être servi **une dernière fois** (la réponse était déjà partie
+ * quand le réseau a tranché) ; le chargement suivant renvoie à l'écran de code. Servir le
+ * réseau d'abord supprimerait ce dernier affichage, mais au prix du hors-ligne, qui est la
+ * raison d'être de cette stratégie.
+ */
 function staleWhileRevalidate(request) {
   return caches.open(CACHE_NAME).then((cache) => cache.match(request).then((cached) => {
     const networkPromise = fetch(request)
       .then((response) => {
         if (response && response.ok) {
           cache.put(request, response.clone());
+        } else if (isAuthRefusal(response)) {
+          cache.delete(request);
         }
         return response;
       })
