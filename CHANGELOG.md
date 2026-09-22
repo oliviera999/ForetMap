@@ -9,6 +9,57 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — plan public et plan des personnels : déconnexion et choix du plan affiché
+
+- **Bouton ⚙️ dans la barre haute** des deux plans (`planlyautey`, `proflyautey` /
+  `stafflyautey`), à côté du « ? ». Il ouvre une feuille **« Réglages »** — ce que règle le
+  **lecteur** sur son appareil, par opposition aux réglages d'établissement de la console. Le
+  bouton n'apparaît que s'il y a quelque chose à y faire : jamais sur un plan public ouvert à
+  carte unique.
+- **Se déconnecter.** Toujours proposé sur le plan des personnels (on y entre par un compte ou
+  par un code) ; sur le plan public, seulement quand l'établissement le ferme par un code de
+  diffusion. Nouvelles routes `POST /api/plan/logout` et `POST /api/staff-plan/logout` : elles
+  effacent le cookie de laissez-passer (`HttpOnly`, hors de portée du navigateur), le front
+  retire ensuite le jeton du compte, et la charge est redemandée — l'écran d'entrée revient de
+  lui-même, sans rechargement de page. Le code d'un lien profond (`?code=`) part avec la
+  session, adresse comprise : conservé, il aurait reposé le laissez-passer à la requête
+  suivante. Rendre un laissez-passer de code est inscrit au journal d'audit
+  (`staff_plan.access.code_released`), en regard de son ouverture. Sur un poste partagé de
+  salle des professeurs, l'onglet resté ouvert était le vrai risque.
+- **Plan affiché.** Deux nouveaux réglages, `ui.plan.selectable_map_ids` et
+  `ui.staff_plan.selectable_map_ids` (cases à cocher dans _Réglages → Plan_), déclarent les
+  **autres** plans qu'un produit peut servir. Les cartes déclarées rejoignent le sélecteur
+  « Plan affiché » de la feuille de réglages, et sortent dans la charge sous **`maps`**
+  (`[{ id, label }]`, vide quand rien n'est déclaré). Le choix est mémorisé par appareil et
+  porté par l'adresse (`?map_id=`), donc partageable. Les listes sont **propres à chaque
+  surface** : les personnels peuvent ouvrir des plans que le public n'a pas.
+- Changer de plan **repart de zéro** (recherche, lieu ouvert, parcours en cours, filtres) : les
+  identifiants de lieux et les slugs de parcours ne sont uniques que sur leur carte. Les clés
+  de stockage des filtres et de la reprise de parcours portent désormais la carte
+  (`plan:categories:<carte>`), comme le faisaient déjà la Visite et la carte de travail — les
+  filtres mémorisés avant cette version sont donc remis au défaut une fois.
+- Un plan mémorisé qui n'est plus proposé (retiré des réglages, dépublié) retombe sur le plan
+  de l'établissement au lieu d'afficher « Le plan n'a pas pu être chargé ».
+- Compteur d'usage : nouvel événement `map_switch` (produit `plan`).
+- Tests : `tests/plan-content.test.js`, `tests/staff-plan-content.test.js` (déconnexion, liste
+  blanche, `maps`) et `tests-ui/plan/PlanSettingsSheet.test.jsx` (montage réel des deux
+  variantes). Doc : `docs/API.md`, `docs/reference/plan/presentation.md`,
+  `docs/reference/plan/plan-des-personnels.md`.
+
+### Sécurité — `?map_id=` sur les plans : liste blanche au lieu de n'importe quelle carte
+
+- `GET /api/plan/content?map_id=…` servait **n'importe quelle carte de la base** à qui devinait
+  son identifiant, sans aucune session : `?map_id=foret` sortait la carte de travail de la
+  forêt comestible sur le plan public. Le filtre de surface ne protégeait rien, un lieu sans
+  catégorie et sans `hidden_surfaces` étant visible sur **toutes** les surfaces.
+- Une carte demandée doit désormais être la carte réglée du plan, ou figurer dans
+  `ui.<surface>.selectable_map_ids`. Hors liste : **400 « Carte introuvable »**, comme un
+  identifiant inexistant — distinguer les deux apprendrait au curieux quelles cartes existent
+  sans être publiées. Même règle sur `/api/staff-plan/content`.
+- Conséquence pour l'exploitation : un lien `?map_id=` vers une carte autre que celle du
+  réglage cesse de fonctionner tant que la carte n'est pas déclarée. C'est le seul changement
+  de comportement du lot.
+
 ### Corrigé — la mascotte redevient visible sur les cartes de gestion des tâches
 
 - Sur les cartes de l'espace « Cartes & tâches » (carte seule et vue scindée carte + tâches),

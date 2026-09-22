@@ -91,6 +91,21 @@ router.post(
   }),
 );
 
+/**
+ * Déconnexion : oublie le laissez-passer posé par `POST /access`.
+ *
+ * Le plan public n'a ni compte ni session — il n'a qu'un cookie de laissez-passer quand
+ * l'établissement le ferme par un code. « Se déconnecter » ne peut donc vouloir dire qu'une
+ * chose ici : rendre l'appareil à l'écran de saisie du code, par exemple sur un poste
+ * partagé ou une borne. Toujours `200`, même sans cookie : une déconnexion n'a pas à dire si
+ * quelqu'un était entré.
+ */
+router.post('/logout', (req, res) => {
+  planAccessGate.clear(res);
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true });
+});
+
 /** Réglages publics seuls (coquille : titre, message d'accueil, mode d'accès). */
 router.get(
   '/settings',

@@ -253,23 +253,76 @@ test('GET /api/plan/content : audience héritée d’une catégorie et lieu rest
   assert.ok(!ids.includes(inherited.body.id), 'lieu restreint par héritage absent lui aussi');
 });
 
-test('GET /api/plan/content : ?map_id explicite, carte inconnue → 400, catégories masquées par réglage', async () => {
+test('GET /api/plan/content : ?map_id doit être déclaré, carte inconnue → 400, catégories masquées par réglage', async () => {
   await request(app).get('/api/plan/content?map_id=nope-plan').expect(400);
   const other = await fx.createMap({ label: 'Autre' });
   const cat = await fx.createLocationCategory({ mapId: other.id, label: 'À cacher' });
   createdIds.categories.push(cat.id);
+  // Une carte qui existe mais n'est pas déclarée dans `ui.plan.selectable_map_ids` reste
+  // refusée : c'est ce qui empêche `?map_id=foret` de sortir la carte de travail de la forêt
+  // comestible sur le plan public.
+  await request(app).get(`/api/plan/content?map_id=${other.id}`).expect(400);
   await setSetting('ui.plan.hidden_category_ids', cat.id, { userType: 'teacher', userId: 'test' });
+  await setSetting('ui.plan.selectable_map_ids', other.id, {
+    userType: 'teacher',
+    userId: 'test',
+  });
   invalidateSettingsCache();
   try {
     const res = await request(app).get(`/api/plan/content?map_id=${other.id}`).expect(200);
     assert.equal(res.body.map.id, other.id);
     assert.ok(!res.body.categories.some((c) => c.id === cat.id));
     assert.deepEqual(res.body.settings.hidden_category_ids, [cat.id]);
+    // Les deux cartes sont proposées au changement, intitulés compris ; la liste
+    // d'identifiants, elle, reste un réglage d'exploitation et ne sort pas.
+    assert.deepEqual(
+      (res.body.maps || []).map((m) => m.id).sort(),
+      [mapId, other.id].sort(),
+      'les deux plans sont proposés',
+    );
+    assert.ok(
+      (res.body.maps || []).every((m) => typeof m.label === 'string' && m.label.length > 0),
+      'chaque plan proposé porte son intitulé',
+    );
+    assert.equal(res.body.settings.selectable_map_ids, undefined);
   } finally {
     await setSetting('ui.plan.hidden_category_ids', '', { userType: 'teacher', userId: 'test' });
+    await setSetting('ui.plan.selectable_map_ids', '', { userType: 'teacher', userId: 'test' });
     invalidateSettingsCache();
     await execute('DELETE FROM location_categories WHERE map_id = ?', [other.id]);
     await execute('DELETE FROM maps WHERE id = ?', [other.id]);
+  }
+});
+
+test('GET /api/plan/content : un seul plan publié → aucun sélecteur (maps vide)', async () => {
+  const res = await request(app).get('/api/plan/content').expect(200);
+  assert.deepEqual(res.body.maps, [], 'pas de sélecteur quand rien n’est déclaré');
+});
+
+test('POST /api/plan/logout : oublie le laissez-passer du code de diffusion', async () => {
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash('codeplan-logout', 10);
+  await setSetting('ui.plan.access_mode', 'code', { userType: 'teacher', userId: 'test' });
+  await setSetting('security.plan_access_code_hash', hash, {
+    userType: 'teacher',
+    userId: 'test',
+  });
+  invalidateSettingsCache();
+  planContentCache.clear();
+  try {
+    const agent = request.agent(app);
+    await agent.get('/api/plan/content').expect(401);
+    await agent.post('/api/plan/access').send({ code: 'codeplan-logout' }).expect(200);
+    await agent.get('/api/plan/content').expect(200);
+    await agent.post('/api/plan/logout').expect(200);
+    await agent.get('/api/plan/content').expect(401);
+  } finally {
+    await setSetting('ui.plan.access_mode', 'public', { userType: 'teacher', userId: 'test' });
+    await setSetting('security.plan_access_code_hash', '', {
+      userType: 'teacher',
+      userId: 'test',
+    });
+    invalidateSettingsCache();
   }
 });
 

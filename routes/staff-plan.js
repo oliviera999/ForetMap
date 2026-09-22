@@ -147,6 +147,41 @@ router.post(
 );
 
 /**
+ * Déconnexion du plan des personnels.
+ *
+ * Deux voies d'entrée, deux choses à oublier : le laissez-passer du code partagé, effacé ici
+ * (c'est un cookie `HttpOnly`, le navigateur ne peut pas s'en charger seul), et le jeton du
+ * compte, que le front retire de son stockage local juste après. Le jeton ForetMap n'est pas
+ * révocable côté serveur — il expire de lui-même — mais la déconnexion doit au moins rendre
+ * l'appareil : sur un poste de salle des professeurs, l'onglet resté ouvert est le vrai
+ * risque, pas le jeton.
+ *
+ * Toujours `200`, sans exiger d'être entré : une déconnexion ne dit pas qui était là.
+ */
+router.post(
+  '/logout',
+  asyncHandler(async (req, res) => {
+    setPrivateHeaders(res);
+    const hadCodePass = staffPlanAccessGate.read(req) === 'ok';
+    staffPlanAccessGate.clear(res);
+    if (hadCodePass) {
+      // Le journal trace l'ouverture par code (`code_granted`) : sans sa contrepartie, un
+      // laissez-passer semblait courir sept jours alors qu'il avait été rendu.
+      await logAudit(
+        'staff_plan.access.code_released',
+        'staff_plan',
+        null,
+        'Laissez-passer rendu',
+        {
+          payload: { ip: req.ip, requestId: req.requestId },
+        },
+      );
+    }
+    res.json({ ok: true });
+  }),
+);
+
+/**
  * Charge agrégée de la surface personnels : carte, réglages, catégories, lieux et parcours,
  * filtrés pour le lecteur. Refus explicite (401) plutôt que charge appauvrie : le front doit
  * pouvoir proposer la connexion, et éventuellement le code.

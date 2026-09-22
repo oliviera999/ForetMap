@@ -278,6 +278,23 @@ se situer quand le plan est calé. Le bouton attire discrètement l'œil tant qu
 jamais été ouverte sur cet appareil, puis se calme. C'est le même mécanisme d'aide que dans
 ForetMap et dans Gnomes & Licornes.
 
+### Réglages du visiteur (bouton ⚙️)
+
+À côté du « ? », un bouton **⚙️** ouvre les réglages **du lecteur** — ce qu'il règle sur son
+téléphone, par opposition aux réglages d'établissement ci-dessous. Il n'apparaît que s'il y a
+quelque chose à y faire, donc jamais sur un plan public à carte unique.
+
+- **Plan affiché** — quand l'établissement publie plusieurs plans (voir « Autres plans
+  proposés »), on choisit ici celui qu'on regarde. Le choix est retenu sur l'appareil et
+  inscrit dans l'adresse : un lien copié après avoir changé de plan rouvre le bon plan.
+  Changer de plan **repart de zéro** : recherche, lieu ouvert, parcours en cours et filtres
+  sont remis au réglage de l'établissement, puisque les lieux et les catégories ne sont pas
+  les mêmes d'un plan à l'autre.
+- **Se déconnecter** — n'apparaît que si le plan est fermé par un **code d'accès** : c'est
+  alors le moyen d'oublier le code retenu sur l'appareil, par exemple sur une borne d'accueil
+  ou un poste partagé. Le plan redemande ensuite le code. Sur un plan public ouvert, il n'y a
+  rien à quitter, donc pas de bouton.
+
 ### Réglages d'établissement
 
 Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
@@ -285,6 +302,7 @@ Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 | Réglage                     | Effet                                                                    |
 | --------------------------- | ------------------------------------------------------------------------ |
 | Carte du plan               | quel plan est affiché par défaut                                         |
+| Autres plans proposés       | plans que le visiteur peut choisir dans ⚙️ (voir ci-dessous)             |
 | Titre                       | le titre en haut de l'écran                                              |
 | Message d'accueil           | la phrase montrée une fois par appareil                                  |
 | Mention de source           | petite mention en bas du plan (origine du fond de carte)                 |
@@ -293,6 +311,24 @@ Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 | Catégories masquées         | catégories jamais proposées sur le plan                                  |
 | Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours |
 | Code d'accès                | saisi en clair dans les réglages ; seul un empreinte est stockée         |
+
+#### Autres plans proposés
+
+Un établissement a souvent plusieurs cartes dans ForetMap : le lycée, une annexe, la forêt
+comestible, un site de sortie. **Aucune n'est publique par défaut.** Cocher une carte dans
+« Autres plans proposés » fait deux choses, et seulement pour les cartes cochées :
+
+1. elle rejoint le sélecteur **« Plan affiché »** du bouton ⚙️ ;
+2. elle devient joignable par un lien `?map_id=…` — les autres sont refusées, même si on en
+   devine l'identifiant.
+
+> **À vérifier avant de cocher.** Une carte proposée au public montre ses lieux comme le plan
+> principal : passer en revue ses catégories et ses masquages sur la surface **Plan** avant de
+> l'ouvrir. La carte de travail de la forêt comestible, en particulier, n'a rien à faire dans
+> cette liste tant qu'elle n'a pas été relue pour le public.
+
+Une carte **inactive** n'est jamais servie, même cochée. La liste est propre au plan public :
+le [plan des personnels](plan-des-personnels.md) a la sienne.
 
 ### Mettre le Plan en service
 
@@ -303,7 +339,8 @@ Avant d'annoncer le plan aux visiteurs, vérifier dans l'ordre :
 2. **Fond de carte** — image assez nette pour zoomer, avec la **mention de source** renseignée
    (licence / origine du dessin).
 3. **Carte du plan** — la bonne carte est choisie dans les réglages, et ses lieux utiles sont
-   visibles sur la surface **Plan** (catégories et masquages par lieu).
+   visibles sur la surface **Plan** (catégories et masquages par lieu). Si d'autres plans sont
+   proposés au visiteur, faire la même revue sur chacun d'eux.
 4. **Alias et catégories** — les autres noms de recherche sont saisis ; les détails trop
    denses sont en « visible seulement au zoom ».
 5. **Calage GPS** (si on veut « Me situer ») — trois points de calage posés sur cette carte.
