@@ -159,6 +159,14 @@ export function TeacherTopTabs({
       visible: canPlants || hasPermission('id_keys.manage'),
     },
     {
+      id: 'individuals',
+      pole: 'tracking',
+      Icon: IconBiodiv,
+      label: 'Individus',
+      visible:
+        hasPermission('individuals.manage') || hasPermission('individuals.measure') || canPlants,
+    },
+    {
       id: 'tuto',
       pole: 'contents',
       Icon: IconTuto,

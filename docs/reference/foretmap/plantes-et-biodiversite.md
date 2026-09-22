@@ -82,6 +82,15 @@ fois, avec retour en arrière, jusqu’à la fiche de l’espèce. Les énoncés
 enseignants autorisés créent et publient les clés (couplets, propositions, image
 optionnelle par proposition).
 
+## Suivi d’individus (arbres)
+
+L’onglet **Individus** permet de suivre un arbre précis (rattaché à une espèce, une
+carte, éventuellement une zone ou un repère). Les élèves saisissent des **mesures**
+(circonférence à 1,30 m, hauteur, diamètre de couronne). L’application affiche une
+**courbe de croissance** et une estimation pédagogique de biomasse, de carbone et de
+CO₂ — clairement présentée comme un **ordre de grandeur** (formule établie pour des
+arbres tropicaux).
+
 S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
 figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
 caroubier, arganier, citronnier, palmier-dattier, artichaut, pois chiche, fenugrec,
