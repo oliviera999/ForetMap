@@ -7,6 +7,9 @@ import { PLAN_VARIANT } from '../utils/planVariants.js';
 /** Identité stable pour « aucun signalement » (cf. `myReports`). */
 const EMPTY_REPORTS = Object.freeze([]);
 
+/** Idem pour « un seul plan publié » : pas de sélecteur à afficher. */
+const EMPTY_MAPS = Object.freeze([]);
+
 /**
  * Charge publique du plan (lot 4) : un seul appel au montage, pas de polling — le contenu
  * d'un plan d'établissement change quelques fois par an, et le produit doit rester utilisable
@@ -100,6 +103,8 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
     viewer: content?.viewer || null,
     routes: content?.routes || [],
     categories: content?.categories || [],
+    /** Plans proposés au changement (`ui.<surface>.selectable_map_ids`), intitulés compris. */
+    maps: content?.maps || EMPTY_MAPS,
     settings: content?.settings || null,
     map: content?.map || null,
     loading,

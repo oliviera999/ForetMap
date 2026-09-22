@@ -59,6 +59,7 @@ const planApiMock = vi.hoisted(() => ({
   fetchPlanContent: vi.fn(async () => content),
   reportPlanUsage: vi.fn(),
   submitPlanAccessCode: vi.fn(async () => ({ ok: true })),
+  submitPlanLogout: vi.fn(async () => ({ ok: true })),
   submitPlaceSuggestion: vi.fn(async () => ({ ok: true })),
   fetchPlanShellSettings: vi.fn(async () => ({})),
 }));
@@ -120,6 +121,13 @@ vi.mock('../../src/shared/pct-map/useMapPosition.js', () => ({
 }));
 
 const { AppPlan } = await import('../../src/plan/AppPlan.jsx');
+
+/**
+ * Clé de mémoire des filtres : elle porte **la carte affichée** depuis que l'établissement
+ * peut publier plusieurs plans (`planStorageKeys`). Les catégories d'un plan n'ont rien à
+ * dire de celles d'un autre.
+ */
+const CATEGORIES_KEY = 'plan:categories:lyautey';
 
 beforeEach(() => {
   planApiMock.fetchPlanContent.mockClear();
@@ -355,7 +363,7 @@ describe('AppPlan — montage', () => {
     // Attente explicite : la feuille précédente peut encore se fermer (history différé) ; une
     // assertion synchrone tombait par intermittence dans la suite complète.
     await waitFor(() => expect(screen.queryByText('CDI')).toBeNull());
-    expect(JSON.parse(window.localStorage.getItem('plan:categories'))).toEqual(['c-sport']);
+    expect(JSON.parse(window.localStorage.getItem(CATEGORIES_KEY))).toEqual(['c-sport']);
 
     fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     await waitFor(() => expect(screen.getByText('CDI')).toBeTruthy());
@@ -368,7 +376,7 @@ describe('AppPlan — montage', () => {
    * sauteraient d'un coup, sans que rien ne l'explique.
    */
   test('le choix mémorisé est en place dès l’affichage, et la première bascule part de lui', async () => {
-    window.localStorage.setItem('plan:categories', JSON.stringify(['c-salles']));
+    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(['c-salles']));
     render(<AppPlan />);
 
     const salles = await screen.findByRole('button', { name: /Salles/ });
@@ -379,7 +387,7 @@ describe('AppPlan — montage', () => {
     expect(sport.getAttribute('aria-pressed')).toBe('true');
     // La catégorie mémorisée n'a pas sauté : la bascule s'ajoute au choix, elle ne le remplace pas.
     expect(salles.getAttribute('aria-pressed')).toBe('true');
-    expect(JSON.parse(window.localStorage.getItem('plan:categories')).sort()).toEqual([
+    expect(JSON.parse(window.localStorage.getItem(CATEGORIES_KEY)).sort()).toEqual([
       'c-salles',
       'c-sport',
     ]);
@@ -689,7 +697,7 @@ describe('AppPlan — affichage des repères et des zones (audit 2026-09)', () =
   test('filtre qui ne laisse aucun lieu : la carte le dit et propose de tout réafficher', async () => {
     // Choix mémorisé sur l'appareil pointant une catégorie devenue vide : sans état explicite,
     // le visiteur voit un plan nu sans savoir pourquoi (audit C6).
-    window.localStorage.setItem('plan:categories', JSON.stringify(['c-vide']));
+    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(['c-vide']));
     planApiMock.fetchPlanContent.mockResolvedValueOnce({
       ...content,
       categories: [

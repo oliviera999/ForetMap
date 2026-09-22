@@ -51,6 +51,7 @@ const planApiMock = vi.hoisted(() => ({
   fetchPlanContent: vi.fn(async () => staffContent),
   reportPlanUsage: vi.fn(),
   submitPlanAccessCode: vi.fn(async () => ({ ok: true })),
+  submitPlanLogout: vi.fn(async () => ({ ok: true })),
   submitPlaceSuggestion: vi.fn(async () => ({ ok: true })),
   fetchPlanShellSettings: vi.fn(async () => ({})),
 }));

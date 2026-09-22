@@ -190,15 +190,30 @@ body.plan-body {
   cursor: pointer;
 }
 
+/* --- Outils de la barre haute (réglages + aide) --------------------------------------- */
+
+.plan-topbar__tools {
+  grid-area: help;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
 /* --- Aide (dock partagé) ------------------------------------------------------------- */
 
 .plan-help-dock {
-  grid-area: help;
+  /* La case de grille est portée par `.plan-topbar__tools` : le dock n'est plus qu'un
+     élément de cette rangée, à côté du bouton des réglages. */
   position: static;
   z-index: 4;
 }
 
-.plan-help-btn {
+/* Le bouton des réglages porte exactement la même pastille que celui de l'aide : une seule
+   règle pour les deux, plutôt qu'une copie qui divergera à la première retouche. */
+.plan-help-btn,
+.plan-topbar__tool {
+  flex: 0 0 auto;
+  line-height: 1;
   width: var(--tap-target);
   height: var(--tap-target);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -211,7 +226,8 @@ body.plan-body {
   cursor: pointer;
 }
 
-.plan-help-btn:focus-visible {
+.plan-help-btn:focus-visible,
+.plan-topbar__tool:focus-visible {
   outline: 2px solid var(--surface-plain);
   outline-offset: 2px;
 }
@@ -1174,4 +1190,79 @@ body.plan-body {
 .plan-place__links-list li {
   margin: 0.2em 0;
   min-height: 28px;
+}
+
+/* --- Feuille « Réglages » (plan affiché, session) ------------------------------------- */
+
+.plan-settings-sheet__section {
+  margin: 0 0 var(--space-5, 20px);
+}
+
+.plan-settings-sheet__section:last-child {
+  margin-bottom: 0;
+}
+
+.plan-settings-sheet__title {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-md, 1.05rem);
+  font-weight: var(--fw-bold, 700);
+  color: var(--plan-ink);
+}
+
+.plan-settings-sheet__list {
+  margin: 0 0 var(--space-2, 8px);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2, 8px);
+}
+
+.plan-settings-sheet__map {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 1px solid var(--plan-border, var(--line-muted));
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-plain);
+  color: var(--plan-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-settings-sheet__map.is-active {
+  border-color: var(--plan-primary);
+  box-shadow: inset 0 0 0 1px var(--plan-primary);
+  font-weight: var(--fw-bold, 700);
+  cursor: default;
+}
+
+.plan-settings-sheet__map:focus-visible {
+  outline: 2px solid var(--leaf);
+  outline-offset: 2px;
+}
+
+.plan-settings-sheet__map-label {
+  min-width: 0;
+}
+
+.plan-settings-sheet__map-state {
+  flex: 0 0 auto;
+  color: var(--plan-primary);
+}
+
+.plan-settings-sheet__note {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--plan-muted);
+  font-size: var(--text-sm, 0.9rem);
+}
+
+.plan-settings-sheet__error {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--ink-danger);
+  font-size: var(--text-sm, 0.9rem);
 }

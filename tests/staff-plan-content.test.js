@@ -61,6 +61,7 @@ test.before(async () => {
     'ui.staff_plan.allowed_role_slugs',
     'security.staff_plan_access_code_hash',
     'ui.staff_plan.code_role_slug',
+    'ui.staff_plan.selectable_map_ids',
   ]) {
     snapshots.push(await snapshotSetting(key));
   }
@@ -212,6 +213,69 @@ test('porteur de code : entre, mais ne voit pas ce qui est réservé à l’enca
   // Le complément par défaut vise l'encadrement : un `personnel` ne l'obtient pas.
   const staffPlace = res.body.markers.find((m) => m.id === ids.staffOnlyPlace);
   assert.deepEqual(staffPlace.notes, []);
+});
+
+test('POST /api/staff-plan/logout : le laissez-passer de code est rendu', async () => {
+  await setSetting('ui.staff_plan.access_mode', 'code', { userType: 'teacher', userId: 'test' });
+  await request(app)
+    .post('/api/settings/admin/staff-plan-access-code')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ code: 'code-de-test-1234' })
+    .expect(200);
+  invalidateSettingsCache();
+
+  const agent = request.agent(app);
+  await agent.post('/api/staff-plan/access').send({ code: 'code-de-test-1234' }).expect(200);
+  await agent.get('/api/staff-plan/content').expect(200);
+
+  const out = await agent.post('/api/staff-plan/logout').expect(200);
+  assert.equal(out.body.ok, true);
+  // Le cookie est bien annulé sur la réponse, et non simplement ignoré.
+  assert.match(
+    [].concat(out.headers['set-cookie'] || []).join(' '),
+    /staff_plan_access=;.*Max-Age=0/,
+  );
+  const after = await agent.get('/api/staff-plan/content').expect(401);
+  assert.equal(after.body.auth_required, true);
+});
+
+test('POST /api/staff-plan/logout : répond 200 même sans session à rendre', async () => {
+  const res = await request(app).post('/api/staff-plan/logout').expect(200);
+  assert.equal(res.body.ok, true);
+});
+
+test('plans proposés : propres à la surface personnels, et liste blanche de ?map_id=', async () => {
+  const other = await fx.createMap({ label: 'Annexe des personnels' });
+  try {
+    // Non déclarée : refusée, exactement comme une carte inexistante.
+    await auth(request(app).get(`/api/staff-plan/content?map_id=${other.id}`)).expect(400);
+
+    await setSetting('ui.staff_plan.selectable_map_ids', other.id, {
+      userType: 'teacher',
+      userId: 'test',
+    });
+    invalidateSettingsCache();
+
+    const res = await auth(request(app).get('/api/staff-plan/content')).expect(200);
+    assert.deepEqual(
+      (res.body.maps || []).map((m) => m.id).sort(),
+      [mapId, other.id].sort(),
+      'les deux plans sont proposés aux personnels',
+    );
+    await auth(request(app).get(`/api/staff-plan/content?map_id=${other.id}`)).expect(200);
+
+    // La déclaration est propre à la surface : le plan public n'en hérite pas.
+    const publicRes = await request(app).get('/api/plan/content').expect(200);
+    assert.deepEqual(publicRes.body.maps, [], 'le plan public ne propose rien de plus');
+    await request(app).get(`/api/plan/content?map_id=${other.id}`).expect(400);
+  } finally {
+    await setSetting('ui.staff_plan.selectable_map_ids', '', {
+      userType: 'teacher',
+      userId: 'test',
+    });
+    invalidateSettingsCache();
+    await execute('DELETE FROM maps WHERE id = ?', [other.id]);
+  }
 });
 
 test('laissez-passer forgé : signature invalide, porte fermée', async () => {
