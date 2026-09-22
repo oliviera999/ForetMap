@@ -354,6 +354,17 @@ function MapViewImpl({
    * la mascotte jusqu'à l'invisible — voir `resolveMapViewMascotFitScale`.
    */
   const [workMascotFitScale, setWorkMascotFitScale] = useState(1);
+  /**
+   * Hauteur affichée du plan DANS SharedMapStage (`fitRect.height`).
+   *
+   * Le viewport historique (`useMapGestures`) mesure `imgSize` sur son `<img>` — non monté en
+   * consultation, où c'est `SharedMapStage` qui porte l'image. `imgSize.h` y restait donc au
+   * `1` initial de `usePctMapViewport`, et la marge basse de `clampMapMascotPctForViewport`
+   * (fraction de cette hauteur) envoyait la mascotte à `top: 7800%` — invisible sur la carte
+   * de travail des tâches. La scène partagée est la seule à connaître sa hauteur : on la lui
+   * demande.
+   */
+  const [workFitHeightPx, setWorkFitHeightPx] = useState(0);
   /** Consultation élève/prof sans édition géométrie ni glisser de repères. */
   const useSharedViewStage = mode === 'view' && !markerPositionUnlocked;
   const onWorkViewportChange = useCallback((api) => {
@@ -363,6 +374,8 @@ function MapViewImpl({
     if (root && w > 0) root.style.setProperty('--fm-map-canvas-w', `${w}px`);
     const s = Number(api?.committed?.s) || 0;
     if (s > 0) setWorkMascotFitScale(resolveMapViewMascotFitScale(s));
+    const fitH = Number(api?.fitRect?.height) || 0;
+    if (fitH > 0) setWorkFitHeightPx((prev) => (prev === fitH ? prev : fitH));
   }, []);
   const focusMapPct = useCallback(
     (pct, opts) => {
@@ -539,7 +552,7 @@ function MapViewImpl({
   } = useMapViewMascot({
     mapId: activeMapId,
     markers: mapMarkersOnActiveMap,
-    fitHeightPx: imgSize.h,
+    fitHeightPx: useSharedViewStage ? workFitHeightPx : imgSize.h,
     enabled: mode === 'view',
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: student?.visit_mascot_catalog_id,

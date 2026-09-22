@@ -76,8 +76,18 @@ export function resolveMapViewMascotFitScale(worldScale) {
   return Math.max(1, 1 / s);
 }
 
+/** Ordonnée % maximale : la mascotte garde les pieds sur le plan, jamais sous son bord bas. */
+export const MAP_VIEW_MASCOT_MAX_Y_PCT = 99.2;
+
 /**
  * Évite que la mascotte soit coupée en bas du viewport (repère %, pieds en bas du sprite).
+ *
+ * **Le résultat reste toujours DANS le plan** (`yp` ≤ `MAP_VIEW_MASCOT_MAX_Y_PCT`) : la marge
+ * basse est une fraction de la hauteur du plan, or une hauteur non encore mesurée (le
+ * `{ w: 1, h: 1 }` initial de `usePctMapViewport`) la portait à 7800 % — la mascotte partait à
+ * 25 000 px sous la carte, donc invisible, précisément sur la carte de travail des tâches.
+ * Une marge qui dépasse le plan n'a pas de sens : on la plafonne au lieu de la propager.
+ *
  * @param {number} xp
  * @param {number} yp
  * @param {number} fitHeightPx hauteur affichée du plan en px
@@ -87,10 +97,10 @@ export function clampMapMascotPctForViewport(xp, yp, fitHeightPx = 0) {
   const nx = Math.max(0, Math.min(100, Number(xp) || 0));
   const rawY = Math.max(0, Math.min(100, Number(yp) || 0));
   if (!(fitHeightPx > 0)) return { xp: nx, yp: rawY };
-  const minVisibleY = Math.max(
-    6,
-    (MAP_VIEW_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100,
+  const minVisibleY = Math.min(
+    MAP_VIEW_MASCOT_MAX_Y_PCT,
+    Math.max(6, (MAP_VIEW_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100),
   );
-  const ny = Math.max(minVisibleY, Math.min(99.2, rawY));
+  const ny = Math.max(minVisibleY, Math.min(MAP_VIEW_MASCOT_MAX_Y_PCT, rawY));
   return { xp: nx, yp: ny };
 }
