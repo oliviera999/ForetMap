@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Comptes : hauteur des champs de filtre
+
+- Barre Rechercher / Profil / Type de compte / Groupe / Tri : densité alignée sur les
+  filtres Tâches (38 px desktop, 44 px tactile) au lieu du padding formulaire trop haut.
+
 ### Corrigé — Plan Lyautey : menu Parcours sous la carte
 
 - La liste des parcours s'ouvrait **sous** la carte : la rangée de filtres coupait le
