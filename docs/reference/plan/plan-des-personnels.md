@@ -131,12 +131,23 @@ n'a pas de version publique acceptable.
 - **Lire le complément réservé** d'un lieu, dans un encadré « 🔒 Réservé aux personnels » sous
   la fiche. Ce texte se saisit dans la console ForetMap, sur la fiche du lieu, champ
   « Complément réservé » — voir [Carte et zones](../foretmap/carte-et-zones.md).
+
+  **Mise en forme.** Ce que vous écrivez dans la console s'affiche ici avec son aération :
+  une **ligne vide** sépare deux paragraphes, un simple retour à la ligne reste un retour à
+  la ligne, et une ligne commençant par « **-** » devient une puce. Les liens sont
+  cliquables. Le Plan est volontairement léger — il s'ouvre sur un téléphone, souvent en
+  réseau d'établissement — et ne reprend donc que ces trois formes-là : le gras, les titres
+  et les tableaux du champ de saisie ne sont pas rendus ici, même s'ils le sont sur la carte
+  de travail. Écrivez les consignes en blocs courts et en puces, c'est ce qui se lit le mieux
+  sur place.
+
 - **Signaler ou proposer** quelque chose sur un lieu, depuis sa fiche : « Signaler un problème
   ou proposer une correction ». Le message est attaché **au lieu concerné**, dans ses
   commentaires, là où un administrateur le retrouve avec son contexte. (Réservé aux comptes :
   un porteur de code n'a pas d'identité à associer au message.) Le profil « Personnel » en
-  fait partie : c'est le public de ce plan, il peut signaler même s'il ne participe ni au
-  forum ni aux commentaires de la console.
+  fait partie : c'est le public de ce plan. Ce bouton reste la bonne porte même depuis que le
+  personnel participe au forum et aux commentaires, parce qu'il vérifie que le lieu visé est
+  bien un lieu **que vous voyez sur ce plan**.
 
   **Où va le message, et qui le voit ?** Il n'est envoyé à personne par courriel : il devient
   un commentaire du lieu. Un administrateur le retrouve à deux endroits — sur la fiche du lieu

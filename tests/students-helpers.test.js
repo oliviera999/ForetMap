@@ -128,7 +128,14 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportUserType('eleve'), 'student');
     assert.equal(userTypeForImportRoleSlug('admin'), 'teacher');
     assert.equal(userTypeForImportRoleSlug('visiteur'), 'student');
-    assert.equal(userTypeForImportRoleSlug('personnel'), 'student');
+    /*
+     * « Personnel » importe un compte **enseignant** depuis le réalignement du 22/09/2026.
+     * La clé d'appariement de l'import est `type|prénom|nom` : tant que ce profil était
+     * déclaré `student`, un ré-import du fichier des personnels ne retrouvait plus les
+     * comptes existants — devenus `teacher` en base — et repartait en création.
+     */
+    assert.equal(userTypeForImportRoleSlug('personnel'), 'teacher');
+    assert.equal(userTypeForRole({ slug: 'personnel', rank: 320 }), 'teacher');
   });
 
   it('normalizeImportRoleSlug : libellés renommés en base (alias dynamiques)', () => {

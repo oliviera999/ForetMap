@@ -9,6 +9,64 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — réalignement des profils du 22/09/2026 : mise en code et angles morts
+
+Deux scripts d'exploitation ont été passés à la main sur la base de production : textes de la
+carte Lyautey, et réalignement des profils — `prof` (n3boss) réduit à l'équipe n³, `prof_classe`
+pour les 275 autres enseignants avec une interface de type apprenant, et 148 personnels passés
+en compte enseignant au rang 320. Rien de tout cela ne vivait dans le code. Ce lot le met en
+code et referme ce que le réalignement avait laissé ouvert.
+
+- **Parité code ↔ base** (migration `269`, idempotente, plus `SYSTEM_ROLES` et
+  `ROLE_PERMISSION_MATRIX`). Toute base neuve — CI, poste de développement, réinstallation —
+  repartait sur l'ancien modèle : `personnel` au rang 50, `prof_classe` avec « Accès interface
+  n3boss ». Deux modèles de droits qui divergent en silence, c'est la panne qu'on ne reproduit
+  jamais en local. Chaque retrait est inscrit dans `rbac_seeded_permissions` pour qu'il survive
+  au semis de démarrage.
+- **« Prof de classe » redevient éditable.** Le verrou qui interdit de décocher « Accès
+  interface n3boss » couvrait ce profil. Une fois la permission retirée en base, la console
+  répondait donc `400` à **tout** enregistrement de ses permissions — y compris une
+  modification sans rapport — et la seule façon de sauvegarder était de re-cocher le droit
+  qu'on venait de retirer. Le verrou ne garde que `admin` et `prof`, les deux profils pour qui
+  le retirer reviendrait à se couper la main.
+- **Le personnel retrouve la parole.** Le forum et les commentaires de contexte refusaient en
+  bloc les profils « type visiteur » — une liste qui décrit le **parcours** (pas de carte de
+  travail, pas de tâches) et où `personnel` figure légitimement. Agents, vie scolaire et AED
+  étaient donc muets, alors que ce sont eux qui voient le terrain. Parcours et parole sont
+  désormais deux questions distinctes (`PARTICIPATION_EXCLUDED_ROLE_SLUGS`, qui ne retient que
+  `visiteur`), côté serveur comme dans la navigation : l'onglet **Forum** réapparaît pour le
+  personnel et les profs de classe. `POST /api/staff-plan/report` reste la porte des
+  signalements depuis proflyautey — non plus par contournement, mais parce qu'elle vérifie que
+  le lieu visé est bien visible par ce lecteur-là sur le plan des personnels.
+- **Un personnel rattaché à une classe reste personnel.** Au rang 50, « le plus élevé
+  l'emporte » lui faisait adopter le profil du groupe, donc perdre `staff_plan.access`, donc
+  l'entrée sur proflyautey — alors que sa fiche affichait bien « Personnel ». Le rang 320 le
+  place au-dessus des paliers n3beur et sous « Prof de classe » : « Personnel » dit *qui est
+  cette personne*, pas où elle en est d'une progression. Le repli sur le profil attribué reste
+  en place pour les groupes qui **imposent** leur profil.
+- **Import des personnels.** La clé d'appariement est `type de compte | prénom | nom`, et
+  « Personnel » y était déclaré compte élève : un ré-import du fichier des personnels ne
+  retrouvait plus aucun des 148 comptes — devenus enseignants — et repartait en création, donc
+  en doublons ou en rejets « Email déjà utilisé ». Le profil crée désormais un compte
+  enseignant, l'appariement est rétabli, une création qui ressemble à un doublon est signalée
+  au rapport (`cross_type_homonym`), et un n3boss peut tenir le fichier des personnels sans
+  être administrateur. Le `user_type` d'un compte existant n'a jamais été, et n'est toujours
+  pas, réécrit par un import.
+- **Encarts réservés lisibles sur proflyautey.** Les compléments de lieu (`location_notes`)
+  sont rédigés dans la console avec la chaîne Markdown complète ; le Plan, volontairement sans
+  moteur Markdown — il s'ouvre sur un téléphone, souvent en réseau d'établissement —, rendait
+  tout le texte dans un seul `<p>`, où HTML replie les retours à la ligne en espaces. Un encart
+  aéré en blocs et en puces arrivait donc en un pavé, tirets compris, alors que le même texte
+  s'affichait correctement sur la carte de travail et dans la Visite. Le Plan reconnaît
+  désormais les trois formes qui portent une consigne : ligne vide (paragraphe), retour à la
+  ligne simple, et puce `-` / `*`. Les liens restent cliquables, y compris dans une puce.
+
+Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` porte bien
+`tasks.assign_self`, `tasks.done_self`, `tasks.unassign_self` et `tasks.propose` en base, mais
+`task_assignments` est centrée sur l'élève (`student_id`, lectures filtrées sur
+`user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
+ce profil.
+
 ### Ajouté — plan public et plan des personnels : déconnexion et choix du plan affiché
 
 - **Bouton ⚙️ dans la barre haute** des deux plans (`planlyautey`, `proflyautey` /

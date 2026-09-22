@@ -13,6 +13,11 @@ export const UNITARY_CREATE_ROLE_SLUGS = [
   'admin',
 ];
 
+/**
+ * Profil pour lequel le formulaire de création unitaire propose un rattachement de groupe.
+ * Ce n'est **pas** le type de compte (`users.user_type`) : « Personnel » crée désormais un
+ * compte enseignant (`IMPORT_ROLE_DEFINITIONS`), mais reste rattachable à un groupe.
+ */
 export function isStudentUnitaryCreateRole(slug) {
   const s = String(slug || '')
     .trim()

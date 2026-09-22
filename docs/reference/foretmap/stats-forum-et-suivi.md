@@ -32,12 +32,22 @@ commentaires) et rester informé (notifications, temps réel).
 ## Le forum et les commentaires
 
 - **Forum** : des fils de discussion avec messages, images et réactions emoji. Il peut
-  être **cloisonné par groupe** (chaque classe son espace). Les visiteurs n'y ont pas
-  accès, et le module entier peut être désactivé.
+  être **cloisonné par groupe** (chaque classe son espace). Seuls les **visiteurs** n'y ont
+  pas accès, et le module entier peut être désactivé.
+- **Qui participe** : élèves, personnels (AED, vie scolaire, agents), profs de classe,
+  n3boss et administrateurs — écrire, répondre et réagir. Le personnel et les profs de
+  classe n'ont pas de carte de travail ni de tâches, mais ils ont la parole : ce sont eux
+  qui voient le terrain au quotidien. Ouvrir un **nouveau sujet** suppose d'appartenir à au
+  moins un groupe, puisque le forum est cloisonné par groupe : pensez à rattacher les
+  personnels à un groupe (par exemple « Personnels ») si vous voulez qu'ils puissent lancer
+  des discussions et pas seulement répondre.
 - **Modération** : les messages peuvent être **signalés** ; les professeurs disposent
   des outils de modération (masquer, supprimer, traiter les signalements).
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
-  projet ou une zone — la discussion reste au plus près du travail concerné. La liste
+  projet ou une zone — la discussion reste au plus près du travail concerné. Mêmes
+  participants que le forum : tout le monde sauf les visiteurs. Depuis le **Plan des
+  personnels**, le bouton « Signaler ou proposer » d'une fiche de lieu écrit dans ces mêmes
+  commentaires, et le message ressort dans « Messages reçus sur les lieux ». La liste
   n’est chargée **qu’à l’ouverture** de la section (pas d’aperçu tant qu’elle est
   repliée) ; un point signale les nouveaux messages reçus en temps réel sans ouvrir.
 

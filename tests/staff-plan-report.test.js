@@ -4,10 +4,13 @@
  * « Signaler un problème ou proposer une correction » depuis le plan des personnels.
  *
  * Le cas central est celui du profil **`personnel`** : c'est le public visé par proflyautey
- * (`lib/rbac.js` lui donne `staff_plan.access` et rien d'autre), et c'est aussi un profil en
- * lecture seule que `routes/context-comments.js` refuse. Le bouton était donc affiché à des
- * gens à qui l'envoi répondait 403. Ces assertions tiennent les deux bouts : l'envoi passe par
- * la porte de cette surface, et le routeur des commentaires de la console reste fermé.
+ * (`lib/rbac.js` lui donne `staff_plan.access` et rien d'autre). Cette porte est née d'un
+ * blocage — `routes/context-comments.js` refusait alors ce profil, si bien que le bouton était
+ * affiché à des gens à qui l'envoi répondait 403. Le blocage a été levé depuis (réalignement du
+ * 22/09/2026 : `PARTICIPATION_EXCLUDED_ROLE_SLUGS` ne retient plus que `visiteur`), mais la
+ * porte reste, et pour une meilleure raison : elle vérifie que le lieu visé est **réellement
+ * visible par ce lecteur-là sur la surface `staff`**, ce que la route générique de la console
+ * ne fait pas. C'est ce que tiennent les assertions ci-dessous.
  */
 
 require('./helpers/setup');
@@ -179,11 +182,16 @@ test('une zone se signale aussi, et le message ressort dans le journal des lieux
   assert.equal(hit.image_paths_json, undefined);
 });
 
-test('le routeur des commentaires de la console reste fermé à un profil lecture seule', async () => {
-  const res = await asPersonnel(request(app).post('/api/context-comments'))
+/*
+ * La porte dédiée ne se justifie plus par un refus du routeur générique — un personnel y est
+ * désormais admis, comme un apprenant — mais par la garde de lieu qu'elle ajoute : le test
+ * suivant montre que `/api/staff-plan/report` refuse un lieu hors de portée du lecteur, là où
+ * la route de la console ne connaît pas la notion de surface.
+ */
+test('le routeur des commentaires de la console admet désormais un personnel', async () => {
+  await asPersonnel(request(app).post('/api/context-comments'))
     .send({ contextType: 'marker', contextId: ids.staffPlace, body: 'Essai direct' })
-    .expect(403);
-  assert.match(String(res.body.error || ''), /visiteur ou personnel/);
+    .expect(201);
 });
 
 test('lieu hors de portée du lecteur : introuvable, et rien n’est écrit', async () => {

@@ -958,6 +958,38 @@ body.plan-body {
 }
 
 /*
+ * Mise en blocs des textes éditoriaux (`PlanLinkedText`). Un texte d'une seule ligne reste un
+ * `<p>` unique portant la classe d'appel ; dès qu'il compte plusieurs paragraphes ou une liste,
+ * celle-ci passe sur un `<div>` conteneur et chaque bloc reçoit les classes ci-dessous. Les
+ * compléments réservés d'un lieu sont rédigés dans la console avec la chaîne Markdown complète :
+ * sans ces règles, un encart aéré en blocs et en puces arrivait ici en un seul pavé.
+ */
+.plan-place__para {
+  margin: 0 0 var(--space-2, 8px);
+  line-height: var(--lh-relaxed, 1.6);
+}
+
+.plan-place__list {
+  margin: 0 0 var(--space-2, 8px);
+  padding-left: 1.25em;
+  line-height: var(--lh-relaxed, 1.6);
+}
+
+.plan-place__list li + li {
+  margin-top: 4px;
+}
+
+/* Le dernier bloc ne double pas la marge basse du conteneur. */
+.plan-place__para:last-child,
+.plan-place__list:last-child {
+  margin-bottom: 0;
+}
+
+.plan-place__restricted-text {
+  line-height: var(--lh-relaxed, 1.6);
+}
+
+/*
  * Liens des textes éditoriaux du Plan (`PlanLinkedText`). Même grammaire que
  * `.markdown-content a` côté ForetMap : souligné, et une flèche quand le lien quitte
  * l'application. `target='_blank'` n'est posé que sur la famille « externe », donc le

@@ -79,6 +79,7 @@ import { visibleMapsForScope } from './utils/appMapScope';
 import {
   canManagePedagoContent,
   isClassTeacherRole,
+  isForumExcludedRole,
   isVisitorLikeRole,
   resolveParticipationFlag,
   shouldUseTeacherChrome,
@@ -672,7 +673,14 @@ function App() {
   const handleMapLocationTasksFocus = useCallback((focus) => {
     setTasksLocationFocus(focus);
   }, []);
-  const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
+  /*
+   * Forum : fermé au seul profil « visiteur », comme côté serveur
+   * (`PARTICIPATION_EXCLUDED_ROLE_SLUGS`). Ce n'est **pas** `isVisitor` : personnel et prof de
+   * classe suivent le parcours apprenant sans carte ni tâches, mais participent au forum.
+   */
+  const canAccessForum =
+    !isForumExcludedRole(effectiveRoleContext.roleSlug) &&
+    publicSettings?.modules?.forum_enabled !== false;
   const canParticipateForum = useMemo(
     () =>
       resolveParticipationFlag({

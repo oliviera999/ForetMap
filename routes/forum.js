@@ -10,7 +10,7 @@ const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
   getActor,
   canModerateWithTeacherAccess,
-  isVisitorRole,
+  isParticipationExcludedRole,
   createCooldownChecker,
   studentParticipationAllowed,
 } = require('../lib/shared/participationGuards');
@@ -140,11 +140,15 @@ async function loadForumPostReactions(postIds = [], actor = null) {
 
 router.use(requireAuth);
 router.use(requireModuleEnabled('foret', 'forum', 'Forum désactivé'));
+/*
+ * Le forum est fermé au seul profil « visiteur ». Il l'était aussi à « personnel », parce que
+ * la garde s'appuyait sur la liste des profils **sans carte de travail ni tâches**, qui n'a
+ * jamais eu vocation à décider de la parole. Un agent, un AED, un membre de la vie scolaire
+ * participe (docs/reference/foretmap/stats-forum-et-suivi.md).
+ */
 router.use((req, res, next) => {
-  if (isVisitorRole(req.auth)) {
-    return res
-      .status(403)
-      .json({ error: 'Accès refusé au forum pour le profil visiteur ou personnel' });
+  if (isParticipationExcludedRole(req.auth)) {
+    return res.status(403).json({ error: 'Accès refusé au forum pour le profil visiteur' });
   }
   return next();
 });

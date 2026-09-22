@@ -338,3 +338,36 @@ test('setAssignedRole(null) : le compte retombe sur le défaut de son type', asy
   assert.strictEqual(out.roleSlug, 'visiteur');
   assert.strictEqual(await effectiveSlug('student', studentId), 'visiteur');
 });
+
+/**
+ * Rang de « Personnel » : 320 (réalignement du 22/09/2026), au-dessus de tous les paliers
+ * n3beur et sous « Prof de classe ».
+ *
+ * Au rang 50 d'origine, « le plus élevé l'emporte » faisait perdre à un personnel sa qualité
+ * de personnel dès qu'il était rattaché à un groupe classe — vie scolaire suivant une classe,
+ * agent inscrit à un projet. Il se retrouvait avec un profil effectif d'élève, donc sans
+ * `staff_plan.access`, donc à la porte de proflyautey, alors que sa fiche affichait bien
+ * « Personnel ». C'est ce que ce test empêche de revenir.
+ */
+test('personnel : rang 320, au-dessus des paliers n3beur et sous prof de classe', async () => {
+  const personnel = await roleBySlug('personnel');
+  assert.strictEqual(Number(personnel.rank), 320);
+  assert.ok(Number(personnel.rank) > Number((await roleBySlug('eleve_chevronne')).rank));
+  assert.ok(Number(personnel.rank) < Number((await roleBySlug('prof_classe')).rank));
+  // Sous le seuil de la vue globale : le rang ne confère aucune capacité au passage.
+  assert.ok(Number(personnel.rank) < 400);
+});
+
+test('personnel : un groupe n3beur ne lui retire plus sa qualité de personnel', async () => {
+  const userId = await createUser('staff_in_class');
+  await setAssignedRole(userId, (await roleBySlug('personnel')).id);
+  const groupId = await createGroup({ defaultRoleSlug: 'eleve_chevronne' });
+  await addMember(groupId, userId);
+  await recomputeUserRole(userId);
+  assert.strictEqual(await effectiveSlug('student', userId), 'personnel');
+
+  // Le groupe reste bien un groupe conférant : c'est le rang qui tranche, pas un filtrage.
+  const desc = await describeUserRoles(userId);
+  assert.strictEqual(desc.effective.source, 'assigned');
+  assert.ok(desc.conferring.some((c) => c.groupId === groupId));
+});
