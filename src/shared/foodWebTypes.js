@@ -6,7 +6,8 @@
  * ET les métadonnées d'orientation synchronisées en cas d'ajout d'un type.
  */
 
-export const INTERACTION_TYPES = [
+/** Types communs aux deux produits (ENUM de `gl_species_interactions`). */
+export const INTERACTION_TYPES_CORE = [
   'pollinisation',
   'herbivorie',
   'predation',
@@ -21,6 +22,16 @@ export const INTERACTION_TYPES = [
   'parasitisme',
   'excretion',
   'assimilation',
+];
+
+/** Types ForetMap : le socle commun, plus les cinq de la migration 272. */
+export const INTERACTION_TYPES = [
+  ...INTERACTION_TYPES_CORE,
+  'mutualisme',
+  'commensalisme',
+  'mycophagie',
+  'allelopathie',
+  'facilitation',
 ];
 
 export const INTERACTION_TYPE_LABELS = {
@@ -38,7 +49,35 @@ export const INTERACTION_TYPE_LABELS = {
   parasitisme: 'Parasitisme',
   excretion: 'Excrétion',
   assimilation: 'Assimilation',
+  mutualisme: 'Mutualisme',
+  commensalisme: 'Commensalisme',
+  mycophagie: 'Mycophagie',
+  allelopathie: 'Allélopathie',
+  facilitation: 'Facilitation',
 };
+
+/** Niveaux de preuve d'un lien (migration 272) — miroir du noyau backend. */
+export const EVIDENCE_LEVELS = ['bibliographie', 'observe_site', 'hypothese'];
+
+export const EVIDENCE_LEVEL_LABELS = {
+  bibliographie: 'Documenté',
+  observe_site: 'Observé sur le site',
+  hypothese: 'Hypothèse',
+};
+
+export const DEFAULT_EVIDENCE_LEVEL = 'bibliographie';
+
+/** Efficacité d'un pollinisateur — ne s'applique qu'au type `pollinisation`. */
+export const POLLINATION_EFFICACIES = ['efficace', 'accessoire', 'visiteur', 'voleur_nectar'];
+
+export const POLLINATION_EFFICACY_LABELS = {
+  efficace: 'Pollinisateur efficace',
+  accessoire: 'Pollinisateur accessoire',
+  visiteur: 'Simple visiteur',
+  voleur_nectar: 'Voleur de nectar',
+};
+
+export const POLLINATION_TYPE = 'pollinisation';
 
 /**
  * Orientation, libellé de relation et sens du flux de matière par type — miroir de
@@ -73,6 +112,21 @@ export const INTERACTION_TYPE_META = {
     matterFlow: 'from_to',
   },
   assimilation: { orientation: 'directed', relation: 'est assimilé par', matterFlow: 'from_to' },
+  // Migration 272 : quatre rapports sans transfert de matière, et la mycophagie, qui en est
+  // un — brouter un mycélium vivant n'est pas fragmenter de la matière morte.
+  mutualisme: { orientation: 'mutual', relation: 'en mutualisme avec', matterFlow: 'none' },
+  commensalisme: { orientation: 'directed', relation: 'profite de', matterFlow: 'none' },
+  mycophagie: { orientation: 'consumed', relation: 'est consommée par', matterFlow: 'to_from' },
+  allelopathie: {
+    orientation: 'directed',
+    relation: 'inhibe par ses substances',
+    matterFlow: 'none',
+  },
+  facilitation: {
+    orientation: 'directed',
+    relation: 'facilite l’installation de',
+    matterFlow: 'none',
+  },
 };
 
 const DEFAULT_INTERACTION_META = {
@@ -99,6 +153,22 @@ export function interactionTypeMeta(type) {
 /** Sens du flux de matière d'un type (`to_from` / `from_to` / `none`). */
 export function interactionMatterFlow(type) {
   return interactionTypeMeta(type).matterFlow || 'none';
+}
+
+/** Libellé FR d'un niveau de preuve, avec repli sur « Documenté ». */
+export function evidenceLevelLabel(level) {
+  const key = String(level || '')
+    .trim()
+    .toLowerCase();
+  return EVIDENCE_LEVEL_LABELS[key] || EVIDENCE_LEVEL_LABELS[DEFAULT_EVIDENCE_LEVEL];
+}
+
+/** Libellé FR d'une efficacité de pollinisation (chaîne vide si non renseignée). */
+export function pollinationEfficacyLabel(efficacy) {
+  const key = String(efficacy || '')
+    .trim()
+    .toLowerCase();
+  return POLLINATION_EFFICACY_LABELS[key] || '';
 }
 
 /**

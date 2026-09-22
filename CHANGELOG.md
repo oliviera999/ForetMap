@@ -42,6 +42,71 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : types d'interaction et qualité du lien (lot 1)
+
+- Migration **272** : l'ENUM `species_interactions.interaction_type` passe de 14 à **19 valeurs**
+  (**`mutualisme`**, **`commensalisme`**, **`mycophagie`**, **`allelopathie`**, **`facilitation`**,
+  ajoutées **en fin** d'ENUM pour ne déplacer aucun indice existant) ; nouvelles colonnes
+  **`evidence_level`** (`bibliographie` / `observe_site` / `hypothese`, NOT NULL défaut
+  `bibliographie`), **`pollination_efficacy`** (`efficace` / `accessoire` / `visiteur` /
+  `voleur_nectar`, NULL) et **`source_ref`** ; la vue **`v_food_web`** est recréée pour les
+  exposer, et l'amorçage (`sql/biodiv_structure_seeds/01_interactions.sql`) est rejoué sous
+  garde de nom d'espèce.
+- **Cinq relations qui n'avaient pas de mot juste.** `symbiose` absorbait le mutualisme sans vie
+  commune (fourmis et pucerons), `decomposition` la mycophagie — brouter un mycélium vivant
+  n'est pas fragmenter de la matière morte — et `competition` servait de fourre-tout au
+  voisinage, qu'il soit hostile (allélopathie du noyer) ou favorable (facilitation par une
+  plante nourrice). Seule `mycophagie` transporte de la matière (`to_from`) ; les quatre autres
+  restent hors bilan de matière.
+- **La fiabilité d'un lien est maintenant écrite.** Un réseau trophique pédagogique mêle du
+  documenté, de l'observé sur place et de l'hypothèse ; sans `evidence_level`, tout s'affichait
+  avec la même autorité. Le graphe distingue désormais l'hypothèse (trait pointillé, atténué) et
+  l'observation de terrain (trait épaissi), et `source_ref` permet de citer la référence.
+- **`pollination_efficacy` refuse d'être un champ décoratif** : elle n'est acceptée que si le
+  type est `pollinisation` (sinon **400**) et repasse à `NULL` si le type change — un « voleur de
+  nectar » sur une relation de prédation n'aurait rien voulu dire.
+- API : `GET /api/food-web/interaction-types` renvoie désormais
+  `{ types, evidenceLevels, pollinationEfficacies }` ; les trois champs de qualité circulent en
+  lecture (`GET /api/food-web`) comme en écriture (`POST` / `PUT`), et l'éditeur du réseau les
+  propose (l'efficacité pollinisatrice n'apparaissant que pour `pollinisation`).
+- **GL reste à 14 types.** L'ENUM `gl_species_interactions` n'est pas touchée : la frontière est
+  tenue par `allowedTypes` dans `makeFoodWebStore`, `GET /api/gl/food-web/interaction-types`
+  expose les 14 valeurs d'origine, et les écritures GL sur un type ForetMap répondent **400**.
+  Le noyau partagé (`lib/shared/foodWebCore.js`, `src/shared/foodWebTypes.js`) expose donc deux
+  listes : `INTERACTION_TYPES_CORE` (14) et `INTERACTION_TYPES` (19).
+
+### Ajouté — Biodiversité structure : notions des programmes et filtres quiz / glossaire (lot 8)
+
+- Migration **273** : tables **`curriculum_notions`** (référentiel des notions officielles :
+  cycles 3 et 4, seconde, spécialités SVT de première et terminale, enseignement scientifique),
+  **`quiz_category_notions`**, **`quiz_question_notions`** et **`glossary_term_notions`**, plus
+  l'amorçage de 12 notions et 42 liaisons de catégories
+  (`sql/biodiv_structure_seeds/07_programmes.sql`).
+- **Une question hérite des notions de sa catégorie.** Rattacher les 17 catégories coûte 42
+  lignes ; rattacher les ~500 questions une à une aurait laissé orpheline chaque question
+  ajoutée ensuite. `quiz_question_notions` ne sert donc qu'à l'exception, avec un mode
+  **`ajout`** / **`exclusion`** : notions effectives = (notions de la catégorie − exclusions)
+  ∪ ajouts. Sans ce mode, corriger une question rangée dans la mauvaise catégorie imposait de
+  la déplacer (ce qui casse son numéro) ou de dérattacher toute la catégorie.
+- API : routeur **`/api/curriculum`** — `GET /niveaux`, `GET /notions` (effectifs de questions
+  et de termes par notion), `GET /notions/:id`, et les rattachements en lecture publique /
+  écriture `plants.manage` pour les catégories de quiz, les questions et les termes de
+  glossaire. `GET /quiz-questions/:code/notions` renvoie `{ inherited, added, excluded,
+  effective }` : un écran de rattachement doit pouvoir montrer *pourquoi* une notion
+  s'applique.
+- Filtres : **`notionId`** et **`notionNiveau`** sur `GET /api/quiz/draw`,
+  `GET /api/quiz/questions`, `GET /api/quiz/categories` et `GET /api/glossary/terms` ; la
+  fiche d'un terme (`GET /api/glossary/terms/:code`) porte désormais ses `notions`. Deux
+  paramètres distincts parce que `niveau` est déjà pris **deux fois** — niveau d'une question
+  (`college` / `lycee`) et profondeur d'un terme (`base` / `approfondissement` / `avance`) ;
+  le niveau scolaire d'une notion est une troisième échelle. Une valeur hors ENUM donne
+  **400**, pas un filtre ignoré en silence.
+- UI : menus « Niveau du programme » et « Notion du programme » dans les onglets Quiz et
+  Glossaire (choisir une notion restreint aussi les catégories offertes) ; encadré
+  **« Au programme »** sur la fiche d'un terme ; panneau prof **« Lancer un quiz par notion du
+  programme »**, qui tire une question de la notion choisie et l'affiche dans la section de
+  test.
+
 ### Ajouté — Biodiversité structure : origine, risque sanitaire et validation des dangers (lot 2)
 
 - Migration **271** : `origin_status` gagne **`endemique`** et **`domestique`** (« endémique »

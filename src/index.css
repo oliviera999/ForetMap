@@ -9208,6 +9208,18 @@
   font-weight: var(--fw-semibold);
   color: var(--ink-soft);
 }
+/* Un intitulé de notion de programme fait une phrase entière (« Biodiversité, résultat et
+   étape de l'évolution ») : sur une colonne de 160 px, le menu n'affiche que ses premiers
+   mots, et deux notions du même thème deviennent indiscernables. */
+.pedago-filter-field--wide {
+  grid-column: span 2;
+  min-width: 0;
+}
+@media (max-width: 599px) {
+  .pedago-filter-field--wide {
+    grid-column: span 1;
+  }
+}
 .pedago-error {
   color: var(--ink-danger);
   font-size: var(--text-sm);
@@ -9330,7 +9342,8 @@
   margin-top: 14px;
 }
 .pedago-quiz-admin { display: grid; gap: 20px; }
-.pedago-quiz-admin__catalog .pedago-qcm-admin { padding: 14px; }
+.pedago-quiz-admin__catalog .pedago-qcm-admin,
+.pedago-quiz-admin__notions .pedago-qcm-admin { padding: 14px; }
 .pedago-quiz-admin__editor .pedago-quiz-editor { padding: 14px; }
 .pedago-quiz-editor__grid {
   display: grid;
@@ -9780,6 +9793,11 @@
 .pedago-foodweb-graph__arrowhead--competition { stroke: #666666; fill: #666666; stroke-dasharray: 4 4; }
 .pedago-foodweb-graph__line--default,
 .pedago-foodweb-graph__arrowhead--default { stroke: var(--ink-dim); fill: var(--ink-dim); }
+/* Niveau de preuve (migration 272) : registre distinct de la teinte, qui dit le type.
+   Un lien hypothétique se lit en tirets courts, une observation de terrain en trait
+   renforcé. Déclarés après les types pour l'emporter sur leur figuré. */
+.pedago-foodweb-graph__line--hypothese { stroke-dasharray: 3 6; opacity: 0.7; }
+.pedago-foodweb-graph__line--observe-site { stroke-width: 2.6; }
 .pedago-foodweb-graph__line-halo {
   fill: none;
   stroke: var(--accent-success-solid);

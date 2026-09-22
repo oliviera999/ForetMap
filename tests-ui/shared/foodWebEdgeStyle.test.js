@@ -1,10 +1,13 @@
 import { describe, test, expect } from 'vitest';
 import {
+  EVIDENCE_HYPOTHESIS_DASH,
+  EVIDENCE_SITE_WIDTH_BOOST,
   INTERACTION_EDGE_STYLES,
   LEGEND_ENTRIES,
   TROPHIC_EDGE_TYPES,
   buildEdgeExportCss,
   colorDistanceRgb,
+  edgeEvidenceClass,
   edgeStyleClass,
   edgeStyleForType,
   isTrophicEdgeType,
@@ -132,13 +135,103 @@ describe('foodWebEdgeStyle', () => {
       'frugivorie',
       'granivorie',
       'parasitisme',
+      // Migration 272 : brouter un mycélium vivant est une consommation, pas de la
+      // fragmentation de matière morte.
+      'mycophagie',
     ]);
     expect(isTrophicEdgeType('predation')).toBe(true);
     expect(isTrophicEdgeType('detritivorie')).toBe(true);
+    expect(isTrophicEdgeType('mycophagie')).toBe(true);
     expect(isTrophicEdgeType('pollinisation')).toBe(false);
+    expect(isTrophicEdgeType('mutualisme')).toBe(false);
     // Excrétion et assimilation transportent de la matière, mais dans l'autre sens : ce
     // sont des apports minéraux, pas des flux trophiques (cf. `matterFlow`).
     expect(isTrophicEdgeType('excretion')).toBe(false);
     expect(isTrophicEdgeType('assimilation')).toBe(false);
+  });
+
+  test('les types de la migration 272 rejoignent la famille de teinte dont ils relèvent', () => {
+    expect(INTERACTION_EDGE_STYLES.mutualisme.color).toBe(INTERACTION_EDGE_STYLES.symbiose.color);
+    expect(INTERACTION_EDGE_STYLES.commensalisme.color).toBe(
+      INTERACTION_EDGE_STYLES.symbiose.color,
+    );
+    expect(INTERACTION_EDGE_STYLES.facilitation.color).toBe(
+      INTERACTION_EDGE_STYLES.plante_hote.color,
+    );
+    expect(INTERACTION_EDGE_STYLES.allelopathie.color).toBe(
+      INTERACTION_EDGE_STYLES.competition.color,
+    );
+    expect(INTERACTION_EDGE_STYLES.mycophagie.color).toBe(
+      INTERACTION_EDGE_STYLES.decomposition.color,
+    );
+  });
+
+  test('le mutualisme apparaît symétrique dans la légende', () => {
+    // La liste en dur des types symétriques avait oublié le mutualisme : la légende le lit
+    // désormais dans les métadonnées d'orientation.
+    const bySymmetry = Object.fromEntries(LEGEND_ENTRIES.map((e) => [e.type, e.symmetric]));
+    expect(bySymmetry.mutualisme).toBe(true);
+    expect(bySymmetry.symbiose).toBe(true);
+    expect(bySymmetry.competition).toBe(true);
+    expect(bySymmetry.commensalisme).toBe(false);
+  });
+});
+
+/**
+ * Niveau de preuve : second registre graphique, indépendant du type.
+ *
+ * Un lien recopié d'une flore et un lien constaté dans la cour se lisaient à l'identique.
+ * La teinte continue de dire le TYPE ; c'est la continuité du trait qui dit la preuve.
+ */
+describe('niveau de preuve', () => {
+  test('une hypothèse passe en tirets courts, quel que soit le figuré du type', () => {
+    const base = resolveEdgeRenderStyle('predation');
+    expect(base.dash).toBe(null);
+    const hypothese = resolveEdgeRenderStyle('predation', { evidenceLevel: 'hypothese' });
+    expect(hypothese.dash).toBe(EVIDENCE_HYPOTHESIS_DASH);
+    expect(hypothese.color).toBe(base.color);
+    expect(hypothese.opacity).toBeLessThan(1);
+  });
+
+  test('une observation faite sur le site renforce le trait', () => {
+    const base = resolveEdgeRenderStyle('herbivorie');
+    const onSite = resolveEdgeRenderStyle('herbivorie', { evidenceLevel: 'observe_site' });
+    expect(onSite.width).toBe(base.width + EVIDENCE_SITE_WIDTH_BOOST);
+    expect(onSite.dash).toBe(base.dash);
+    expect(onSite.opacity).toBe(1);
+  });
+
+  test('un lien documenté (ou sans niveau) garde le style du type', () => {
+    const base = resolveEdgeRenderStyle('symbiose');
+    for (const level of [null, undefined, '', 'bibliographie']) {
+      const style = resolveEdgeRenderStyle('symbiose', { evidenceLevel: level });
+      expect(style.dash).toBe(base.dash);
+      expect(style.width).toBe(base.width);
+      expect(style.opacity).toBe(1);
+    }
+  });
+
+  test('preuve et sélection se cumulent', () => {
+    const style = resolveEdgeRenderStyle('predation', {
+      active: true,
+      evidenceLevel: 'observe_site',
+    });
+    expect(style.halo).toBe(true);
+    expect(style.width).toBeGreaterThan(
+      resolveEdgeRenderStyle('predation', { evidenceLevel: 'observe_site' }).width,
+    );
+  });
+
+  test('edgeEvidenceClass ne marque que ce qui sort de l’ordinaire', () => {
+    expect(edgeEvidenceClass('hypothese')).toBe('pedago-foodweb-graph__line--hypothese');
+    expect(edgeEvidenceClass('observe_site')).toBe('pedago-foodweb-graph__line--observe-site');
+    expect(edgeEvidenceClass('bibliographie')).toBe('');
+    expect(edgeEvidenceClass(null)).toBe('');
+  });
+
+  test('le CSS d’export porte les deux règles de preuve', () => {
+    const css = buildEdgeExportCss();
+    expect(css).toContain('.pedago-foodweb-graph__line--hypothese');
+    expect(css).toContain('.pedago-foodweb-graph__line--observe-site');
   });
 });

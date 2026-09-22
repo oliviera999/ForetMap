@@ -6,6 +6,7 @@ import {
 } from '../../shared/foodWebTypes.js';
 import {
   buildEdgeExportCss,
+  edgeEvidenceClass,
   edgeStyleClass,
   resolveEdgeRenderStyle,
 } from '../../shared/foodWebEdgeStyle.js';
@@ -1247,7 +1248,11 @@ export function FoodWebGraph({
             const edgeType = String(edge.type || '').toLowerCase();
             const markerKey = INTERACTION_TYPES.includes(edgeType) ? edgeType : 'default';
             const markerId = `url(#fw-arrow-${markerKey})`;
-            const renderStyle = resolveEdgeRenderStyle(edge.type, { active });
+            const renderStyle = resolveEdgeRenderStyle(edge.type, {
+              active,
+              evidenceLevel: edge.evidenceLevel,
+            });
+            const evidenceClass = edgeEvidenceClass(edge.evidenceLevel);
             return (
               <g key={edge.id}>
                 {renderStyle.halo ? (
@@ -1262,10 +1267,11 @@ export function FoodWebGraph({
                 ) : null}
                 <path
                   d={d}
-                  className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
+                  className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${evidenceClass ? ` ${evidenceClass}` : ''}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
                   stroke={renderStyle.color}
                   strokeWidth={renderStyle.width}
                   strokeDasharray={renderStyle.dash || undefined}
+                  opacity={renderStyle.opacity === 1 ? undefined : renderStyle.opacity}
                   markerEnd={markerId}
                   markerStart={edge.symmetric ? markerId : undefined}
                 />

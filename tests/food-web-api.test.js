@@ -207,6 +207,93 @@ test('GET /api/food-web/interaction-types — catalogue public', async () => {
   assert.ok(Array.isArray(res.body.types));
   assert.ok(res.body.types.includes('pollinisation'));
   assert.ok(res.body.types.includes('symbiose'));
+  // Migration 272 : les cinq types ajoutés et les listes de qualité du lien.
+  assert.ok(res.body.types.includes('mutualisme'));
+  assert.ok(res.body.types.includes('mycophagie'));
+  assert.deepStrictEqual(res.body.evidenceLevels, ['bibliographie', 'observe_site', 'hypothese']);
+  assert.deepStrictEqual(res.body.pollinationEfficacies, [
+    'efficace',
+    'accessoire',
+    'visiteur',
+    'voleur_nectar',
+  ]);
+});
+
+test('GET /api/food-web — la qualité du lien remonte par la vue', async () => {
+  const res = await request(app).get('/api/food-web').expect(200);
+  const row = res.body.items.find((item) => Number(item.id) === interactionId);
+  assert.ok(row);
+  // NOT NULL DEFAULT : une relation antérieure à la migration est « documentée ».
+  assert.strictEqual(row.evidence_level, 'bibliographie');
+  assert.strictEqual(row.pollination_efficacy, null);
+  assert.strictEqual(row.source_ref, null);
+});
+
+test('CRUD /api/food-web/interactions — qualité du lien persistée', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const auth = `Bearer ${token}`;
+
+  const created = await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({
+      from_id: plantToId,
+      to_id: plantFromId,
+      interaction_type: 'pollinisation',
+      description: 'Butinage observé en mai',
+      evidence_level: 'observe_site',
+      pollination_efficacy: 'voleur_nectar',
+      source_ref: 'Relevé de la classe de 4e, mai 2026',
+    })
+    .expect(201);
+  const newId = Number(created.body.interaction.id);
+  assert.strictEqual(created.body.interaction.evidence_level, 'observe_site');
+  assert.strictEqual(created.body.interaction.pollination_efficacy, 'voleur_nectar');
+  assert.strictEqual(created.body.interaction.source_ref, 'Relevé de la classe de 4e, mai 2026');
+
+  // Un type de la migration 272 est accepté côté ForetMap (et son ENUM l'accepte aussi).
+  const mutualisme = await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({ from_id: plantFromId, to_id: plantToId, interaction_type: 'mutualisme' })
+    .expect(201);
+  assert.strictEqual(mutualisme.body.interaction.interaction_type, 'mutualisme');
+
+  // Une efficacité de pollinisation hors pollinisation est refusée.
+  await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({
+      from_id: plantFromId,
+      to_id: plantToId,
+      interaction_type: 'commensalisme',
+      pollination_efficacy: 'efficace',
+    })
+    .expect(400);
+
+  // Changer de type efface l'efficacité devenue hors sujet.
+  const updated = await request(app)
+    .put(`/api/food-web/interactions/${newId}`)
+    .set('Authorization', auth)
+    .send({
+      from_id: plantToId,
+      to_id: plantFromId,
+      interaction_type: 'mycophagie',
+      evidence_level: 'hypothese',
+    })
+    .expect(200);
+  assert.strictEqual(updated.body.interaction.interaction_type, 'mycophagie');
+  assert.strictEqual(updated.body.interaction.evidence_level, 'hypothese');
+  assert.strictEqual(updated.body.interaction.pollination_efficacy, null);
+
+  await request(app)
+    .delete(`/api/food-web/interactions/${newId}`)
+    .set('Authorization', auth)
+    .expect(200);
+  await request(app)
+    .delete(`/api/food-web/interactions/${Number(mutualisme.body.interaction.id)}`)
+    .set('Authorization', auth)
+    .expect(200);
 });
 
 test('POST /api/food-web/interactions — refus sans authentification', async () => {

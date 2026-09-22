@@ -20,6 +20,17 @@ const TABLES = [
   'glossary_term_interactions',
 ];
 
+/**
+ * Colonnes explicites pour les tables dont le schéma a grossi depuis l'extraction du jeu de
+ * contenu. `sql/biodiv_pedago_seed.sql` porte des `INSERT … VALUES` sans liste de colonnes :
+ * dès qu'une migration en ajoute une (272 : `evidence_level`, `pollination_efficacy`,
+ * `source_ref`), le nombre de valeurs ne correspond plus et l'import échoue en bloc. Nommer
+ * les colonnes du dump laisse les nouvelles prendre leur valeur par défaut.
+ */
+const EXPLICIT_COLUMNS = {
+  species_interactions: '(id, from_plant_id, to_plant_id, interaction_type, description)',
+};
+
 function extractInsert(sql, table) {
   const marker = 'INSERT INTO `' + table + '` VALUES';
   const start = sql.indexOf(marker);
@@ -45,7 +56,9 @@ function extractInsert(sql, table) {
       continue;
     }
     if (!inString && c === ';') {
-      return sql.slice(start, i + 1).replace(/^INSERT INTO/i, 'INSERT IGNORE INTO');
+      const stmt = sql.slice(start, i + 1).replace(/^INSERT INTO/i, 'INSERT IGNORE INTO');
+      const columns = EXPLICIT_COLUMNS[table];
+      return columns ? stmt.replace(/`\s+VALUES/, '` ' + columns + ' VALUES') : stmt;
     }
     i++;
   }

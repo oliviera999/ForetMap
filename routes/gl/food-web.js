@@ -5,11 +5,20 @@ const { queryAll, queryOne, execute } = require('../../database');
 const asyncHandler = require('../../lib/asyncHandler');
 const { z, validate } = require('../../lib/validate');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
-const { INTERACTION_TYPES, makeFoodWebStore } = require('../../lib/shared/foodWebCore');
+const { INTERACTION_TYPES_CORE, makeFoodWebStore } = require('../../lib/shared/foodWebCore');
 const { normalizeOptionalString: normalizeBiomeSlug } = require('../../lib/shared/httpHelpers');
 
 const router = express.Router();
 
+/**
+ * Magasin CRUD GL — borné aux 14 types communs.
+ *
+ * L'ENUM de `gl_species_interactions` n'a pas été étendue par la migration 272 : les cinq
+ * types ajoutés (mutualisme, commensalisme, mycophagie, allélopathie, facilitation) et les
+ * colonnes de qualité du lien appartiennent à ForetMap seul. `allowedTypes` refuse donc ici
+ * ce que le noyau partagé accepte ailleurs — sans cette borne, une écriture GL sur un type
+ * inconnu de son ENUM finirait en erreur SQL (ou en valeur tronquée selon le mode strict).
+ */
 const foodWebStore = makeFoodWebStore(
   { queryOne, execute },
   {
@@ -17,6 +26,7 @@ const foodWebStore = makeFoodWebStore(
     fromCol: 'from_species_id',
     toCol: 'to_species_id',
     refTable: 'gl_species',
+    allowedTypes: INTERACTION_TYPES_CORE,
   },
 );
 
@@ -98,7 +108,7 @@ router.get(
 );
 
 router.get('/food-web/interaction-types', requireGlPermission('gl.read'), (_req, res) => {
-  res.json({ types: INTERACTION_TYPES });
+  res.json({ types: INTERACTION_TYPES_CORE });
 });
 
 router.post(

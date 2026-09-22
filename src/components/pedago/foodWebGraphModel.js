@@ -38,10 +38,14 @@ export const GRAPH_PRESETS = Object.freeze({
     'frugivorie',
     'granivorie',
     'parasitisme',
+    // Migration 272 : brouter un mycélium vivant est bien une consommation.
+    'mycophagie',
   ]),
   // Autres relations : services, rapports, et apports de matière minérale — excrétion et
   // assimilation, détachées de `nitrification` par la migration 255, y rejoignent le
-  // cycle de l'azote plutôt que le réseau alimentaire.
+  // cycle de l'azote plutôt que le réseau alimentaire. Mutualisme, commensalisme,
+  // allélopathie et facilitation (migration 272) en relèvent aussi : ce sont des rapports
+  // entre espèces, pas des transferts de matière.
   relations: Object.freeze([
     'pollinisation',
     'plante_hote',
@@ -50,6 +54,10 @@ export const GRAPH_PRESETS = Object.freeze({
     'nitrification',
     'excretion',
     'assimilation',
+    'mutualisme',
+    'commensalisme',
+    'allelopathie',
+    'facilitation',
   ]),
   all: null,
 });
@@ -143,6 +151,11 @@ export function buildGraphModel(items) {
       id: row.id,
       type: row.interaction_type,
       description: row.description || '',
+      // Qualité du lien (migration 272) : le rendu en a besoin pour marquer une hypothèse
+      // ou une observation de terrain, le panneau de détail pour les nommer.
+      evidenceLevel: row.evidence_level || null,
+      pollinationEfficacy: row.pollination_efficacy || null,
+      sourceRef: row.source_ref || null,
       relation: oriented.relation,
       symmetric: oriented.symmetric,
       tailId,
