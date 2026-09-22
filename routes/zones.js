@@ -601,6 +601,13 @@ router.put(
     const linksRows = await loadLocationLinksMap(db, 'zone', [zone.id]);
     const notesRows = await loadLocationNotesMap(db, 'zone', [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
+    await logAudit(
+      'update_zone',
+      'zone',
+      zone.id,
+      name !== undefined ? String(name).trim() : zone.name,
+      { req, payload: { map_id: updatedWithVisit.map_id } },
+    );
     res.json(
       serializeLocationRow(
         attachNotesToEntity(
@@ -751,6 +758,7 @@ router.post(
     const linksRows = await loadLocationLinksMap(db, 'zone', [id]);
     const notesRows = await loadLocationNotesMap(db, 'zone', [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
+    await logAudit('create_zone', 'zone', id, name.trim(), { req, payload: { map_id: mapId } });
     res.status(201).json(
       serializeLocationRow(
         attachNotesToEntity(

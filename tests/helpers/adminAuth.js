@@ -24,6 +24,8 @@ const DEFAULT_TEST_ADMIN_PERMISSIONS = [
   'groups.manage',
   'task-projects.manage',
   'tutorials.manage',
+  'audit.read',
+  'audit.security.read',
 ];
 
 /**

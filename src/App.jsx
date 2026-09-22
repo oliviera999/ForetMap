@@ -1543,7 +1543,9 @@ function App() {
                         {tab === 'audit' &&
                           (hasPermission('audit.read') ? (
                             <TabSuspense>
-                              <AuditLogLazy />
+                              <AuditLogLazy
+                                canReadSecurity={hasPermission('audit.security.read')}
+                              />
                             </TabSuspense>
                           ) : (
                             <div className="empty">

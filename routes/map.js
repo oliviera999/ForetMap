@@ -371,6 +371,10 @@ router.post(
     const linksRows = await loadLocationLinksMap(db, 'marker', [id]);
     const notesRows = await loadLocationNotesMap(db, 'marker', [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
+    await logAudit('create_marker', 'marker', id, label.trim(), {
+      req,
+      payload: { map_id: mapId },
+    });
     res.status(201).json(
       serializeLocationRow(
         attachNotesToEntity(
@@ -539,6 +543,13 @@ router.put(
     const linksRows = await loadLocationLinksMap(db, 'marker', [m.id]);
     const notesRows = await loadLocationNotesMap(db, 'marker', [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
+    await logAudit(
+      'update_marker',
+      'marker',
+      m.id,
+      label !== undefined ? String(label).trim() : m.label,
+      { req, payload: { map_id: updated.map_id } },
+    );
     res.json(
       serializeLocationRow(
         attachNotesToEntity(

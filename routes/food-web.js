@@ -12,6 +12,7 @@ const {
   makeFoodWebStore,
 } = require('../lib/shared/foodWebCore');
 const { mapPresencePlantIdsSubquery } = require('../lib/speciesJunction');
+const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
 
@@ -185,6 +186,15 @@ router.post(
   requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.create(req.body || {});
+    if (result.ok && result.row?.id) {
+      await logAudit(
+        'food_web_create',
+        'species_interaction',
+        result.row.id,
+        result.row.interaction_type || 'interaction',
+        { req, payload: { from_id: result.row.from_id, to_id: result.row.to_id } },
+      );
+    }
     return respondFromStoreResult(res, result, 201);
   }),
 );
@@ -196,6 +206,15 @@ router.put(
   validate({ params: interactionIdParamsSchema }),
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.update(Number(req.params.id), req.body || {});
+    if (result.ok) {
+      await logAudit(
+        'food_web_update',
+        'species_interaction',
+        Number(req.params.id),
+        result.row?.interaction_type || 'interaction',
+        { req },
+      );
+    }
     return respondFromStoreResult(res, result, 200);
   }),
 );
@@ -208,6 +227,13 @@ router.delete(
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.remove(Number(req.params.id));
     if (!result.ok) return res.status(result.status).json({ error: result.error });
+    await logAudit(
+      'food_web_delete',
+      'species_interaction',
+      Number(req.params.id),
+      'Suppression interaction trophique',
+      { req },
+    );
     return res.json({ success: true });
   }),
 );
