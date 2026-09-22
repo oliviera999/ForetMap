@@ -78,8 +78,8 @@
       "_react-vendor-Dcb_X5td.js"
     ]
   },
-  "_GLBrandColorEditor-BTfkWXsE.js": {
-    "file": "assets/GLBrandColorEditor-BTfkWXsE.js",
+  "_GLBrandColorEditor-CEdG2udm.js": {
+    "file": "assets/GLBrandColorEditor-CEdG2udm.js",
     "name": "GLBrandColorEditor",
     "imports": [
       "_rolldown-runtime-hePW80VL.js",
@@ -511,7 +511,7 @@
     ]
   },
   "gl.html": {
-    "file": "assets/gl-DtmnZKbn.js",
+    "file": "assets/gl-CSJ6RkbA.js",
     "name": "gl",
     "src": "gl.html",
     "isEntry": true,
@@ -927,7 +927,7 @@
     ]
   },
   "src/gl/components/GLContentsAdminView.jsx": {
-    "file": "assets/GLContentsAdminView-B26FZjKJ.js",
+    "file": "assets/GLContentsAdminView-BEY9zS_7.js",
     "name": "GLContentsAdminView",
     "src": "src/gl/components/GLContentsAdminView.jsx",
     "isDynamicEntry": true,
@@ -945,7 +945,7 @@
       "_LearningGatingLocksPanel-Dp_IS1dk.js",
       "_GatingPolicyEditor-nJAfVh9i.js",
       "_TourOverridesEditor-CfZMHdtS.js",
-      "_GLBrandColorEditor-BTfkWXsE.js",
+      "_GLBrandColorEditor-CEdG2udm.js",
       "_downloadGlFile-C-zgHWYq.js",
       "_GLBadge-C8e6xLG1.js",
       "_GLDataList-DEOmgnQ3.js"
@@ -955,7 +955,7 @@
     ]
   },
   "src/gl/components/GLForumView.jsx": {
-    "file": "assets/GLForumView-CRsX5Uaz.js",
+    "file": "assets/GLForumView-Gyt7csM1.js",
     "name": "GLForumView",
     "src": "src/gl/components/GLForumView.jsx",
     "isDynamicEntry": true,
@@ -968,7 +968,7 @@
     ]
   },
   "src/gl/components/GLGameMasterConsole.jsx": {
-    "file": "assets/GLGameMasterConsole-0PAEeVF7.js",
+    "file": "assets/GLGameMasterConsole-BQQWJbDZ.js",
     "name": "GLGameMasterConsole",
     "src": "src/gl/components/GLGameMasterConsole.jsx",
     "isDynamicEntry": true,
@@ -994,7 +994,7 @@
     ]
   },
   "src/gl/components/GLHistoryView.jsx": {
-    "file": "assets/GLHistoryView-DdXsdCs8.js",
+    "file": "assets/GLHistoryView-BJlouQW5.js",
     "name": "GLHistoryView",
     "src": "src/gl/components/GLHistoryView.jsx",
     "isDynamicEntry": true,
@@ -1006,7 +1006,7 @@
     ]
   },
   "src/gl/components/GLJournalView.jsx": {
-    "file": "assets/GLJournalView-DhzLvi6T.js",
+    "file": "assets/GLJournalView-DAW_gPEq.js",
     "name": "GLJournalView",
     "src": "src/gl/components/GLJournalView.jsx",
     "isDynamicEntry": true,
@@ -1020,7 +1020,7 @@
     ]
   },
   "src/gl/components/GLMarketView.jsx": {
-    "file": "assets/GLMarketView-C5hp8cBG.js",
+    "file": "assets/GLMarketView-DS0HcY5l.js",
     "name": "GLMarketView",
     "src": "src/gl/components/GLMarketView.jsx",
     "isDynamicEntry": true,
@@ -1034,7 +1034,7 @@
     ]
   },
   "src/gl/components/GLMascotsAdminView.jsx": {
-    "file": "assets/GLMascotsAdminView-DKkmAkX5.js",
+    "file": "assets/GLMascotsAdminView-DtVr6Y26.js",
     "name": "GLMascotsAdminView",
     "src": "src/gl/components/GLMascotsAdminView.jsx",
     "isDynamicEntry": true,
@@ -1058,7 +1058,7 @@
     ]
   },
   "src/gl/components/GLPlayerJournalView.jsx": {
-    "file": "assets/GLPlayerJournalView-y8fvyZLO.js",
+    "file": "assets/GLPlayerJournalView-DxGvboQq.js",
     "name": "GLPlayerJournalView",
     "src": "src/gl/components/GLPlayerJournalView.jsx",
     "isDynamicEntry": true,
@@ -1074,7 +1074,7 @@
     ]
   },
   "src/gl/components/GLSettingsView.jsx": {
-    "file": "assets/GLSettingsView-44iWjFSr.js",
+    "file": "assets/GLSettingsView-p_19yldt.js",
     "name": "GLSettingsView",
     "src": "src/gl/components/GLSettingsView.jsx",
     "isDynamicEntry": true,
@@ -1087,14 +1087,14 @@
       "_apiGL-Cku4D1IQ.js",
       "gl.html",
       "_GatingPolicyEditor-nJAfVh9i.js",
-      "_GLBrandColorEditor-BTfkWXsE.js"
+      "_GLBrandColorEditor-CEdG2udm.js"
     ],
     "css": [
       "assets/gl-admin-DdNNed4y.css"
     ]
   },
   "src/gl/components/GLTutorialsView.jsx": {
-    "file": "assets/GLTutorialsView-7hG298Y9.js",
+    "file": "assets/GLTutorialsView-Csh5o1Lm.js",
     "name": "GLTutorialsView",
     "src": "src/gl/components/GLTutorialsView.jsx",
     "isDynamicEntry": true,
@@ -1109,7 +1109,7 @@
     ]
   },
   "src/gl/components/GLUsersAdminView.jsx": {
-    "file": "assets/GLUsersAdminView-B0_9uEBG.js",
+    "file": "assets/GLUsersAdminView-BJEXA7w9.js",
     "name": "GLUsersAdminView",
     "src": "src/gl/components/GLUsersAdminView.jsx",
     "isDynamicEntry": true,
@@ -1132,7 +1132,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleActiveGameBanner.jsx": {
-    "file": "assets/GLGameMasterConsoleActiveGameBanner-CIifYQee.js",
+    "file": "assets/GLGameMasterConsoleActiveGameBanner-BVftONfX.js",
     "name": "GLGameMasterConsoleActiveGameBanner",
     "src": "src/gl/components/mj/GLGameMasterConsoleActiveGameBanner.jsx",
     "isDynamicEntry": true,
@@ -1145,7 +1145,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleLive.jsx": {
-    "file": "assets/GLGameMasterConsoleLive-CrTRFPD1.js",
+    "file": "assets/GLGameMasterConsoleLive-ClYwp_t6.js",
     "name": "GLGameMasterConsoleLive",
     "src": "src/gl/components/mj/GLGameMasterConsoleLive.jsx",
     "isDynamicEntry": true,
@@ -1155,7 +1155,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleParties.jsx": {
-    "file": "assets/GLGameMasterConsoleParties-BnfVZ1rR.js",
+    "file": "assets/GLGameMasterConsoleParties-BWZtGhwI.js",
     "name": "GLGameMasterConsoleParties",
     "src": "src/gl/components/mj/GLGameMasterConsoleParties.jsx",
     "isDynamicEntry": true,
@@ -1166,7 +1166,7 @@
     ]
   },
   "src/gl/components/mj/GLGameMasterConsoleTeams.jsx": {
-    "file": "assets/GLGameMasterConsoleTeams-DR18W0bS.js",
+    "file": "assets/GLGameMasterConsoleTeams-DPclcgsX.js",
     "name": "GLGameMasterConsoleTeams",
     "src": "src/gl/components/mj/GLGameMasterConsoleTeams.jsx",
     "isDynamicEntry": true,
