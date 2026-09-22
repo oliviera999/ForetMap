@@ -4,8 +4,13 @@ const { test, describe, before } = require('node:test');
 const assert = require('node:assert');
 const {
   INTERACTION_TYPES,
+  INTERACTION_TYPES_CORE,
   INTERACTION_TYPE_META,
   INTERACTION_TYPE_LABELS,
+  EVIDENCE_LEVELS,
+  EVIDENCE_LEVEL_LABELS,
+  POLLINATION_EFFICACIES,
+  POLLINATION_EFFICACY_LABELS,
   interactionMatterFlow,
   interactionTypeMeta,
   orientInteraction,
@@ -63,6 +68,18 @@ describe('matterFlow', () => {
     }
   });
 
+  test('la mycophagie est un flux trophique, les quatre autres ajouts n’en sont pas', () => {
+    // Migration 272. Brouter un mycélium vivant transporte de la matière vers le
+    // consommateur ; le mutualisme, le commensalisme, l'allélopathie et la facilitation sont
+    // des rapports entre espèces, pas des transferts.
+    assert.strictEqual(interactionMatterFlow('mycophagie'), 'to_from');
+    assert.strictEqual(interactionTypeMeta('mycophagie').orientation, 'consumed');
+    for (const type of ['mutualisme', 'commensalisme', 'allelopathie', 'facilitation']) {
+      assert.strictEqual(interactionMatterFlow(type), 'none', type);
+    }
+    assert.strictEqual(interactionTypeMeta('mutualisme').orientation, 'mutual');
+  });
+
   test('les flux trophiques et les apports minéraux vont en sens contraires', () => {
     // C'est l'inversion qui rendait `nitrification` illisible tant qu'il mélangeait
     // l'excrétion des poissons et l'oxydation bactérienne.
@@ -99,6 +116,27 @@ describe('orientInteraction suit matterFlow', () => {
 describe('parité backend / miroir ESM', () => {
   test('les deux copies listent exactement les mêmes types', () => {
     assert.deepStrictEqual([...front.INTERACTION_TYPES].sort(), [...INTERACTION_TYPES].sort());
+  });
+
+  test('la liste bornée GL est identique des deux côtés, et incluse dans celle de ForetMap', () => {
+    assert.deepStrictEqual(
+      [...front.INTERACTION_TYPES_CORE].sort(),
+      [...INTERACTION_TYPES_CORE].sort(),
+    );
+    for (const type of INTERACTION_TYPES_CORE) {
+      assert.ok(INTERACTION_TYPES.includes(type), `${type} absent de la liste ForetMap`);
+    }
+  });
+
+  test('niveaux de preuve et efficacités de pollinisation sont identiques des deux côtés', () => {
+    assert.deepStrictEqual([...front.EVIDENCE_LEVELS], [...EVIDENCE_LEVELS]);
+    assert.deepStrictEqual({ ...front.EVIDENCE_LEVEL_LABELS }, { ...EVIDENCE_LEVEL_LABELS });
+    assert.deepStrictEqual([...front.POLLINATION_EFFICACIES], [...POLLINATION_EFFICACIES]);
+    assert.deepStrictEqual(
+      { ...front.POLLINATION_EFFICACY_LABELS },
+      { ...POLLINATION_EFFICACY_LABELS },
+    );
+    assert.strictEqual(front.POLLINATION_TYPE, 'pollinisation');
   });
 
   test('les libellés sont identiques des deux côtés', () => {

@@ -59,6 +59,8 @@ describe('Permissions ForetMap : matrices catalogue', () => {
         'stats.read.group',
         // Plan des personnels : un prof de classe est un personnel du lycée, il y entre.
         'staff_plan.access',
+        // Clés d'identification (lot biodiversité 6) : édition pédagogique, sans périmètre jardin.
+        'id_keys.manage',
         // Droits de l'apprenant (réalignement du 22/09/2026) — inertes tant que
         // `task_assignments` est centrée sur l'élève, mais présents en base de production.
         'tasks.propose',

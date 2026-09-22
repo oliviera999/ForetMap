@@ -26,18 +26,27 @@ celles qu'ils ont **observées** sur le terrain.
 
 Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
 
-- les **noms** : nom usuel, deuxième nom, nom scientifique, et un **emoji** ;
-- la **classification** : règne, grand groupe, famille, genre ;
+- les **noms** : nom usuel, deuxième nom, nom scientifique d’usage, et un **emoji** ;
+  si le **nom accepté** (référentiel GBIF) diffère, il s’affiche sous le nom d’usage, avec
+  un lien vers la fiche GBIF quand une clé est connue ;
+- la **classification** : règne, grand groupe, famille, genre ; une **classification
+  latine** repliable (embranchement, classe, ordre, famille) issue des vérifications GBIF ;
+  un **fil de groupes emboîtés** (« Êtres vivants › Eucaryotes › … ») quand la fiche est
+  rattachée à l’arbre pédagogique, chaque groupe montrant son caractère partagé au survol ;
+- les **notes de site** : observations propres à une carte (effectifs, nidification…)
+  affichées « Sur ce site » quand on ouvre la fiche depuis cette carte ;
 - l'**écologie** : habitat, milieu, rôle dans l'écosystème, rôle trophique,
   origine géographique, **statut biogéographique** (indigène / introduit /
-  envahissant), **statut UICN** (Liste rouge mondiale), cycle de vie / longévité,
-  taille, reproduction ;
+  envahissant / endémique / domestique), **statut UICN** (Liste rouge mondiale),
+  cycle de vie / longévité, taille, reproduction ;
 - l'**usage humain** : caractère **comestible** (oui / non / non renseigné), utilité,
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
   préférée, nutriments préférés ;
 - la **détermination** : critères d'identification, confusions possibles, période
   d'observation (voir ci-dessous) ;
+- le **danger** (ce que l'espèce fait à qui la touche ou la mange) et le **risque
+  sanitaire** (ce qu'elle peut transmettre), en deux blocs distincts ;
 - des **remarques** libres (trois champs) et une description générale ;
 - des **photos multiples**, rangées en six cases : illustration principale, espèce,
   feuille, fleur, fruit, partie récoltée — chaque case peut contenir plusieurs images
@@ -55,6 +64,33 @@ lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, 
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
 décomposent.
 
+## Groupes emboîtés
+
+L’onglet **Groupes emboîtés** propose une activité de classification : l’enseignant choisit
+des espèces (ou en tire au sort sur une carte) ; l’application calcule le plus petit arbre
+qui les contient et affiche des **boîtes emboîtées**, chacune portant le caractère partagé
+du groupe. En mode élève, on place les espèces dans les groupes puis on lance la
+**correction automatique**. Les professeurs qui gèrent la biodiversité peuvent aussi
+ajouter, déplacer ou supprimer des groupes (un déplacement qui ferait une boucle est
+refusé).
+
+## Clés d’identification
+
+L’onglet **Clés d’identification** propose des parcours dichotomiques : une question à la
+fois, avec retour en arrière, jusqu’à la fiche de l’espèce. Les énoncés décrivent des
+**caractères observables** — jamais une invitation à cueillir, goûter ou manipuler. Les
+enseignants autorisés créent et publient les clés (couplets, propositions, image
+optionnelle par proposition).
+
+## Suivi d’individus (arbres)
+
+L’onglet **Individus** permet de suivre un arbre précis (rattaché à une espèce, une
+carte, éventuellement une zone ou un repère). Les élèves saisissent des **mesures**
+(circonférence à 1,30 m, hauteur, diamètre de couronne). L’application affiche une
+**courbe de croissance** et une estimation pédagogique de biomasse, de carbone et de
+CO₂ — clairement présentée comme un **ordre de grandeur** (formule établie pour des
+arbres tropicaux).
+
 S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
 figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
 caroubier, arganier, citronnier, palmier-dattier, artichaut, pois chiche, fenugrec,
@@ -71,13 +107,21 @@ libellule, gerris — la gambusie n’est plus seule) et des **sauvages utiles**
 (sureau, lierre, pâquerette, plantain, violette).
 
 Certaines fiches portent un **statut biogéographique** : **indigène** (présente
-naturellement dans la région, comme l’arganier ou le hérisson d’Algérie),
-**introduite** (amenée par l’humain, comme le tilapia du Nil en aquaponie ou le
-figuier de Barbarie), ou **envahissante** (introduite et qui menace les espèces
-locales — la gambusie et l’élodée en sont des exemples du jardin). Ce statut
-apparaît en pastille sur les vignettes et la fiche, et on peut filtrer le
-catalogue dessus. Il complète l’origine géographique (texte libre) sans la
-remplacer.
+naturellement dans la région, comme le hérisson d’Algérie), **introduite**
+(amenée par l’humain, comme le tilapia du Nil en aquaponie ou le figuier de
+Barbarie), **envahissante** (introduite et qui menace les espèces locales — la
+gambusie et l’élodée en sont des exemples du jardin), **endémique** (qui n’existe
+nulle part ailleurs qu’ici : l’arganier, le discoglosse peint du Maroc, le
+rougequeue de Moussier) ou **domestique** (les animaux de la ferme : âne, chèvre,
+mouton, vache, cheval barbe, mulet, chat). Ce statut apparaît en pastille sur les
+vignettes et la fiche, et on peut filtrer le catalogue dessus. Il complète
+l’origine géographique (texte libre) sans la remplacer.
+
+Les deux dernières valeurs répondent à un manque : « endémique » était jusqu’ici
+confondu avec « indigène », alors que l’arganier n’est pas seulement présent
+naturellement au Maroc, il n’existe qu’ici — c’est l’argument de conservation le
+plus fort qu’une fiche puisse porter. Et un animal de ferme n’était ni l’un ni
+l’autre : le dire « introduit » le rangeait, à tort, avec le tilapia.
 
 Elles peuvent aussi porter un **statut UICN** (Liste rouge mondiale) : codes
 EX, EW, CR, EN, VU, NT, LC, DD ou NE. La pastille affiche par exemple « UICN LC »
@@ -163,6 +207,53 @@ Cas à regarder en premier, parce qu'ils sont contre-intuitifs : le **laurier-sa
 grave chez les élèves porteurs d'un déficit en G6PD, fréquent sur le pourtour
 méditerranéen ; le latex du **figuier** brûle au soleil ; les glochides du **figuier de
 Barbarie** sont presque impossibles à retirer de la peau.
+
+### La file « Dangers à valider »
+
+Relire une centaine de fiches une par une, en ouvrant le catalogue au hasard, n'est pas un
+travail tenable. La base biodiversité affiche donc, pour les comptes autorisés, un encadré
+repliable **« Dangers à valider »** qui liste exactement les fiches dont le danger ou le
+risque sanitaire est renseigné sans avoir été relu, les plus graves en tête. Chaque ligne
+porte un bouton **Valider** ; un clic sur le nom ouvre la fiche pour la lire d'abord.
+L'encadré disparaît quand la file est vide.
+
+Valider une fiche enregistre désormais **qui** a validé et **quand**. La case « Danger relu et
+validé » du formulaire ne disait rien de tout cela : une fiche cochée ne permettait ni de
+vérifier la relecture ni de la dater.
+
+Surtout : **modifier un champ de danger ou de risque sanitaire remet la fiche « à valider »**,
+et efface le nom du relecteur. Le cas n'est pas un abus, c'est l'ordinaire — une fiche validée,
+puis un collègue qui corrige la conduite à tenir six mois plus tard, et l'avertissement
+repasserait pour relu alors que personne n'a lu la correction. Changer le nom, la photo ou
+l'écologie de la fiche ne touche pas à la validation.
+
+Le droit de valider est **séparé** du droit de gérer les fiches : un compte peut renseigner un
+danger sans pouvoir certifier qu'il a été relu. Il est accordé d'office à l'administrateur et
+au professeur, pas au professeur de classe.
+
+## L'encadré « Risque sanitaire »
+
+La rage, le tétanos, la salmonellose ou la leptospirose ne sont pas de la toxicité. Le renard
+n'est pas dangereux à toucher par nature : il peut être **porteur**. Écrire « potentiellement
+mortel » sur sa fiche serait faux, et rendrait la pastille de danger illisible sur tout le
+catalogue animal.
+
+La fiche porte donc un **second encadré**, distinct et de couleur différente, avec deux champs :
+
+- **Risques identifiés** — rage, tétanos, salmonellose, leptospirose, toxoplasmose, vecteur de
+  maladie, allergie. Plusieurs cases peuvent être cochées : le chat cumule rage et
+  toxoplasmose.
+- **Circonstances et conduite à tenir** — comment le risque se présente et quoi faire. Ex. :
+  « Toute morsure ou griffure impose une consultation médicale immédiate. »
+
+Comme l'encadré de danger, il **ne se replie pas**, s'affiche même non relu (avec la mention
+« à valider ») et n'apparaît pas du tout si rien n'est renseigné.
+
+**18 fiches** sont déjà renseignées : les carnivores sauvages et le chat (rage), les
+deux pipistrelles (virus apparentés à la rage), les tortues (salmonelles), le rat rayé
+(leptospirose), le compost et les déjections (tétanos), le moustique et la mouche (vecteurs),
+l'olivier, l'oléastre et la pariétaire (pollen allergisant). Ces fiches arrivent, elles aussi,
+**à valider**.
 
 ## Crédit et licence des photos
 

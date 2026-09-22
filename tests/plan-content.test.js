@@ -402,14 +402,18 @@ test('zones : hidden_surfaces / search_aliases en écriture, exposition et ?surf
   assert.deepEqual(createRes.body.hidden_surfaces, ['visit']);
   assert.equal(createRes.body.search_aliases, 'salle de sport ; gym');
 
-  const list = await request(app).get(`/api/zones?map_id=${mapId}`).expect(200);
+  const list = await auth(request(app).get(`/api/zones?map_id=${mapId}`)).expect(200);
   const row = list.body.find((z) => z.id === createRes.body.id);
   assert.deepEqual(row.hidden_surfaces, ['visit']);
   assert.equal(row.search_aliases, 'salle de sport ; gym');
 
-  const onVisit = await request(app).get(`/api/zones?map_id=${mapId}&surface=visit`).expect(200);
+  const onVisit = await auth(request(app).get(`/api/zones?map_id=${mapId}&surface=visit`)).expect(
+    200,
+  );
   assert.ok(!onVisit.body.some((z) => z.id === createRes.body.id));
-  const onPlan = await request(app).get(`/api/zones?map_id=${mapId}&surface=plan`).expect(200);
+  const onPlan = await auth(request(app).get(`/api/zones?map_id=${mapId}&surface=plan`)).expect(
+    200,
+  );
   assert.ok(onPlan.body.some((z) => z.id === createRes.body.id));
   await request(app).get(`/api/zones?surface=carte`).expect(400);
 
@@ -446,11 +450,13 @@ test('repères : hidden_surfaces / search_aliases en écriture, exposition et ?s
   assert.deepEqual(createRes.body.hidden_surfaces, ['plan']);
   assert.equal(createRes.body.search_aliases, 'loge ; entrée');
 
-  const onPlan = await request(app)
-    .get(`/api/map/markers?map_id=${mapId}&surface=plan`)
-    .expect(200);
+  const onPlan = await auth(
+    request(app).get(`/api/map/markers?map_id=${mapId}&surface=plan`),
+  ).expect(200);
   assert.ok(!onPlan.body.some((m) => m.id === createRes.body.id));
-  const onMap = await request(app).get(`/api/map/markers?map_id=${mapId}&surface=map`).expect(200);
+  const onMap = await auth(request(app).get(`/api/map/markers?map_id=${mapId}&surface=map`)).expect(
+    200,
+  );
   const row = onMap.body.find((m) => m.id === createRes.body.id);
   assert.deepEqual(row.hidden_surfaces, ['plan']);
 
@@ -481,7 +487,7 @@ test('catégories : zoom_only en écriture et en lecture (désencombrement, lot 
     .expect(200);
   assert.equal(kept.body.zoom_only, true, 'omis = inchangé');
 
-  const list = await request(app).get(`/api/map-categories?map_id=${mapId}`).expect(200);
+  const list = await auth(request(app).get(`/api/map-categories?map_id=${mapId}`)).expect(200);
   assert.equal(list.body.find((c) => c.id === created.body.id).zoom_only, true);
 
   const zoomOnlyAtCreate = await auth(request(app).post('/api/map-categories'))
@@ -515,13 +521,13 @@ test('catégories : surfaces en écriture (défaut toutes), exposition et ?surfa
     .expect(200);
   assert.deepEqual(kept.body.surfaces, ['plan']);
 
-  const onPlan = await request(app)
-    .get(`/api/map-categories?map_id=${mapId}&surface=plan`)
-    .expect(200);
+  const onPlan = await auth(
+    request(app).get(`/api/map-categories?map_id=${mapId}&surface=plan`),
+  ).expect(200);
   assert.ok(onPlan.body.some((c) => c.id === createdCat.body.id));
-  const onVisit = await request(app)
-    .get(`/api/map-categories?map_id=${mapId}&surface=visit`)
-    .expect(200);
+  const onVisit = await auth(
+    request(app).get(`/api/map-categories?map_id=${mapId}&surface=visit`),
+  ).expect(200);
   assert.ok(!onVisit.body.some((c) => c.id === createdCat.body.id));
   await request(app).get('/api/map-categories?surface=zzz').expect(400);
   await auth(request(app).post('/api/map-categories'))
@@ -534,12 +540,12 @@ test('catégories : surfaces en écriture (défaut toutes), exposition et ?surfa
     zone.id,
     createdCat.body.id,
   ]);
-  const onMap = await request(app).get(`/api/zones?map_id=${mapId}&surface=map`).expect(200);
+  const onMap = await auth(request(app).get(`/api/zones?map_id=${mapId}&surface=map`)).expect(200);
   assert.ok(!onMap.body.some((z) => z.id === zone.id));
-  const all = await request(app).get(`/api/zones?map_id=${mapId}`).expect(200);
+  const all = await auth(request(app).get(`/api/zones?map_id=${mapId}`)).expect(200);
   assert.ok(
     all.body.some((z) => z.id === zone.id),
-    'sans ?surface=, tout est renvoyé',
+    'sans ?surface=, un gestionnaire voit tout',
   );
 });
 

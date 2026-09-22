@@ -12,7 +12,7 @@
  * sa fiche affichait bien « Personnel ».
  *
  * Deux défenses, testées ici toutes les deux :
- *   1. le **rang** (320 depuis le réalignement du 22/09/2026, migration 269) : un groupe de
+ *   1. le **rang** (320 depuis le réalignement du 22/09/2026, migration 277) : un groupe de
  *      classe ne recouvre plus le profil, le cas ne se produit donc plus par ce chemin ;
  *   2. le **repli sur le profil attribué** dans `resolveAccountStaffPlanAccess`, qui reste
  *      nécessaire — un groupe qui **impose** son profil (`force_default_role`) passe devant le

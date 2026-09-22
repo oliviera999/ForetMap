@@ -3,12 +3,20 @@
  * Aligné sur l’ENUM SQL `plants.origin_status` et `lib/plantOriginStatus.js`.
  */
 
-export const ORIGIN_STATUS_VALUES = Object.freeze(['indigene', 'introduit', 'envahissant']);
+export const ORIGIN_STATUS_VALUES = Object.freeze([
+  'indigene',
+  'introduit',
+  'envahissant',
+  'endemique',
+  'domestique',
+]);
 
 export const ORIGIN_STATUS_LABELS = Object.freeze({
   indigene: 'Indigène',
   introduit: 'Introduit',
   envahissant: 'Envahissant',
+  endemique: 'Endémique',
+  domestique: 'Domestique',
 });
 
 const ORIGIN_STATUS_SET = new Set(ORIGIN_STATUS_VALUES);

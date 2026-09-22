@@ -4,16 +4,50 @@ import { useData } from '../../contexts/DataContext.jsx';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
 import { GRAPH_PRESET_LABELS, itemsForPreset } from './foodWebGraphModel.js';
 import {
+  DEFAULT_EVIDENCE_LEVEL,
+  EVIDENCE_LEVELS,
   INTERACTION_TYPES,
+  POLLINATION_EFFICACIES,
+  POLLINATION_TYPE,
+  evidenceLevelLabel,
   interactionTypeLabel as interactionLabel,
   orientInteraction,
+  pollinationEfficacyLabel,
 } from '../../shared/foodWebTypes.js';
 import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { IconAdd, IconDelete, IconEdit, IconFoodweb } from '../../shared/icons.jsx';
 
-const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
+const EMPTY_FORM = {
+  fromId: '',
+  toId: '',
+  type: INTERACTION_TYPES[0],
+  description: '',
+  evidenceLevel: DEFAULT_EVIDENCE_LEVEL,
+  pollinationEfficacy: '',
+  sourceRef: '',
+};
+
+/**
+ * Corps de requête commun à la création et à la modification.
+ *
+ * L'efficacité de pollinisation n'est envoyée que pour une pollinisation : le serveur refuse
+ * la combinaison (une « efficacité » sur une prédation ne veut rien dire), et un champ resté
+ * rempli après un changement de type ferait échouer l'enregistrement sans que rien à l'écran
+ * ne l'explique.
+ */
+function interactionPayload(form) {
+  return {
+    to_id: form.toId ? Number(form.toId) : null,
+    interaction_type: form.type,
+    description: form.description.trim() || null,
+    evidence_level: form.evidenceLevel || DEFAULT_EVIDENCE_LEVEL,
+    pollination_efficacy:
+      form.type === POLLINATION_TYPE && form.pollinationEfficacy ? form.pollinationEfficacy : null,
+    source_ref: form.sourceRef.trim() || null,
+  };
+}
 
 function normalizeMapId(value) {
   if (value == null || value === '') return '';
@@ -140,9 +174,7 @@ export function FoodWebView({
       try {
         await api('/api/food-web/interactions', 'POST', {
           from_id: fromId,
-          to_id: form.toId ? Number(form.toId) : null,
-          interaction_type: form.type,
-          description: form.description.trim() || null,
+          ...interactionPayload(form),
         });
         setForm((prev) => ({ ...EMPTY_FORM, type: prev.type }));
         await loadFoodWeb();
@@ -164,9 +196,7 @@ export function FoodWebView({
       try {
         await api(`/api/food-web/interactions/${editForm.id}`, 'PUT', {
           from_id: Number(editForm.fromId),
-          to_id: editForm.toId ? Number(editForm.toId) : null,
-          interaction_type: editForm.type,
-          description: editForm.description.trim() || null,
+          ...interactionPayload(editForm),
         });
         setEditForm(null);
         await loadFoodWeb();
@@ -433,6 +463,37 @@ export function FoodWebView({
             ))}
           </select>
         </label>
+        <label className="pedago-filter-field">
+          <span>Niveau de preuve</span>
+          <select
+            className="form-select"
+            value={form.evidenceLevel}
+            onChange={(e) => setForm((p) => ({ ...p, evidenceLevel: e.target.value }))}
+          >
+            {EVIDENCE_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {evidenceLevelLabel(level)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {form.type === POLLINATION_TYPE ? (
+          <label className="pedago-filter-field">
+            <span>Efficacité du pollinisateur (optionnel)</span>
+            <select
+              className="form-select"
+              value={form.pollinationEfficacy}
+              onChange={(e) => setForm((p) => ({ ...p, pollinationEfficacy: e.target.value }))}
+            >
+              <option value="">— non précisée —</option>
+              {POLLINATION_EFFICACIES.map((value) => (
+                <option key={value} value={value}>
+                  {pollinationEfficacyLabel(value)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="pedago-filter-field pedago-foodweb__admin-desc">
           <span>Description (optionnel)</span>
           <input
@@ -444,12 +505,28 @@ export function FoodWebView({
             placeholder="Ex. Transport du pollen entre fleurs"
           />
         </label>
+        <label className="pedago-filter-field pedago-foodweb__admin-desc">
+          <span>Source (optionnel)</span>
+          <input
+            type="text"
+            className="form-input"
+            maxLength={255}
+            value={form.sourceRef}
+            onChange={(e) => setForm((p) => ({ ...p, sourceRef: e.target.value }))}
+            placeholder="Ouvrage, article ou lien à l’appui"
+          />
+        </label>
       </div>
       <p className="section-sub pedago-foodweb__admin-hint">
         Saisis la <strong>source</strong> = l&apos;espèce qui agit (pour la prédation/herbivorie, le{' '}
         <em>consommateur</em>) et la <strong>cible</strong> = l&apos;espèce subissant l&apos;action
         (la proie / ressource). L&apos;affichage inverse automatiquement la flèche dans le sens
         écologique «&nbsp;est mangée par&nbsp;».
+      </p>
+      <p className="section-sub pedago-foodweb__admin-hint">
+        Le <strong>niveau de preuve</strong> dit d&apos;où vient l&apos;information : une hypothèse
+        est tracée en pointillé, une relation <em>observée sur le site</em> en trait renforcé. Une
+        relation documentée gagne à porter sa <strong>source</strong>.
       </p>
       {adminError ? <p className="pedago-error">{adminError}</p> : null}
       <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
@@ -491,6 +568,16 @@ export function FoodWebView({
               onOpenGlossaryTerm={onOpenGlossaryTerm}
             />
           ) : null}
+          {/* Qualité du lien : l'élève doit pouvoir distinguer ce qui a été vu sur le site
+              de ce qui est recopié d'une flore, ou simplement supposé. */}
+          <p className="section-sub pedago-foodweb__quality">
+            {evidenceLevelLabel(selectedRow.evidence_level)}
+            {selectedRow.interaction_type === POLLINATION_TYPE &&
+            selectedRow.pollination_efficacy ? (
+              <> · {pollinationEfficacyLabel(selectedRow.pollination_efficacy)}</>
+            ) : null}
+            {selectedRow.source_ref ? <> · source : {selectedRow.source_ref}</> : null}
+          </p>
         </div>
       ) : null}
       {canManage && selectedRow ? (
@@ -527,6 +614,39 @@ export function FoodWebView({
                   ))}
                 </select>
               </label>
+              <label className="pedago-filter-field">
+                <span>Niveau de preuve</span>
+                <select
+                  className="form-select"
+                  value={editForm.evidenceLevel}
+                  onChange={(e) => setEditForm((p) => ({ ...p, evidenceLevel: e.target.value }))}
+                >
+                  {EVIDENCE_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {evidenceLevelLabel(level)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {editForm.type === POLLINATION_TYPE ? (
+                <label className="pedago-filter-field">
+                  <span>Efficacité du pollinisateur</span>
+                  <select
+                    className="form-select"
+                    value={editForm.pollinationEfficacy}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, pollinationEfficacy: e.target.value }))
+                    }
+                  >
+                    <option value="">— non précisée —</option>
+                    {POLLINATION_EFFICACIES.map((value) => (
+                      <option key={value} value={value}>
+                        {pollinationEfficacyLabel(value)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <label className="pedago-filter-field pedago-foodweb__admin-desc">
                 <span>Description</span>
                 <input
@@ -535,6 +655,16 @@ export function FoodWebView({
                   maxLength={255}
                   value={editForm.description}
                   onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                />
+              </label>
+              <label className="pedago-filter-field pedago-foodweb__admin-desc">
+                <span>Source</span>
+                <input
+                  type="text"
+                  className="form-input"
+                  maxLength={255}
+                  value={editForm.sourceRef}
+                  onChange={(e) => setEditForm((p) => ({ ...p, sourceRef: e.target.value }))}
                 />
               </label>
             </div>
@@ -571,6 +701,9 @@ export function FoodWebView({
                 toId: selectedRow.to_id == null ? '' : String(selectedRow.to_id),
                 type: selectedRow.interaction_type,
                 description: selectedRow.description || '',
+                evidenceLevel: selectedRow.evidence_level || DEFAULT_EVIDENCE_LEVEL,
+                pollinationEfficacy: selectedRow.pollination_efficacy || '',
+                sourceRef: selectedRow.source_ref || '',
               });
             }}
           >

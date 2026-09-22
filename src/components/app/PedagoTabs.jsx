@@ -13,6 +13,15 @@ const QuizAdminViewLazy = lazy(() =>
 const FoodWebViewLazy = lazy(() =>
   import('../pedago-views').then((m) => ({ default: m.FoodWebView })),
 );
+const NestedGroupsViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.NestedGroupsView })),
+);
+const IdKeysViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.IdKeysView })),
+);
+const IndividualsViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.IndividualsView })),
+);
 const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default: m.AboutView })));
 
 /**
@@ -50,6 +59,9 @@ export function PedagoTabs({
   maps,
   foodWebHighlightPlantId,
   canManageFoodWeb,
+  canManageIdKeys = false,
+  canManageIndividuals = false,
+  canMeasureIndividuals = false,
   appVersion,
   onOpenSettingsLearning = null,
   canReadSiteIssues = false,
@@ -114,6 +126,32 @@ export function PedagoTabs({
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             highlightPlantId={foodWebHighlightPlantId}
             canManage={canManageFoodWeb}
+          />
+        </TabSuspense>
+      )}
+      {tab === 'nested-groups' && (
+        <TabSuspense>
+          <NestedGroupsViewLazy
+            maps={maps}
+            initialMapId={activeMapId}
+            canManage={canManageFoodWeb}
+            onOpenPlant={onOpenPlantCatalogPreview}
+          />
+        </TabSuspense>
+      )}
+      {tab === 'id-keys' && (
+        <TabSuspense>
+          <IdKeysViewLazy canManage={canManageIdKeys} onOpenPlant={onOpenPlantCatalogPreview} />
+        </TabSuspense>
+      )}
+      {tab === 'individuals' && (
+        <TabSuspense>
+          <IndividualsViewLazy
+            maps={maps}
+            initialMapId={activeMapId}
+            canManage={canManageIndividuals}
+            canMeasure={canMeasureIndividuals}
+            onOpenPlant={onOpenPlantCatalogPreview}
           />
         </TabSuspense>
       )}

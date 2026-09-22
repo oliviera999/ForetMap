@@ -43,12 +43,52 @@ const HABITAT_LABELS = {
 export function PlantTaxonomyLine({ plant }) {
   const tax = plant?.taxonomy;
   if (!tax || typeof tax !== 'object') return null;
-  const parts = [tax.kingdom, tax.group, tax.family, tax.genus].filter(Boolean);
-  if (parts.length === 0) return null;
+  const vernacular = [tax.kingdom, tax.group, tax.family, tax.genus].filter(Boolean);
+  const latin = [tax.phylum, tax.className, tax.order, tax.familyLatin].filter(Boolean);
+  if (vernacular.length === 0 && latin.length === 0) return null;
   return (
     <div className="plant-meta-item plant-taxonomy-line">
       <div className="plant-meta-label">Taxonomie</div>
-      <p className="plant-meta-value">{parts.join(' › ')}</p>
+      {vernacular.length > 0 ? <p className="plant-meta-value">{vernacular.join(' › ')}</p> : null}
+      {latin.length > 0 ? (
+        <details className="plant-taxonomy-latin">
+          <summary>Classification latine (GBIF)</summary>
+          <p className="plant-meta-value">{latin.join(' › ')}</p>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+/** Notes de présence propres à une carte (`map_site_notes`). */
+export function PlantSiteNotesBlock({ plant, activeMapId = null, maps = [] }) {
+  const notesByMap =
+    plant?.map_site_notes && typeof plant.map_site_notes === 'object' ? plant.map_site_notes : {};
+  const entries = Object.entries(notesByMap).filter(([, note]) => String(note || '').trim());
+  if (entries.length === 0) return null;
+  const mapLabel = (mapId) => {
+    const m = (maps || []).find((x) => String(x.id) === String(mapId));
+    return m?.name || mapId;
+  };
+  const preferred = activeMapId ? notesByMap[String(activeMapId)] : null;
+  if (preferred) {
+    return (
+      <div className="plant-meta-item plant-site-notes">
+        <div className="plant-meta-label">Sur ce site</div>
+        <p className="plant-meta-value">{preferred}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="plant-meta-item plant-site-notes">
+      <div className="plant-meta-label">Notes de site</div>
+      <ul className="plant-site-notes-list">
+        {entries.map(([mapId, note]) => (
+          <li key={mapId}>
+            <strong>{mapLabel(mapId)} :</strong> {note}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

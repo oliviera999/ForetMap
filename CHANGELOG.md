@@ -17,7 +17,7 @@ pour les 275 autres enseignants avec une interface de type apprenant, et 148 per
 en compte enseignant au rang 320. Rien de tout cela ne vivait dans le code. Ce lot le met en
 code et referme ce que le réalignement avait laissé ouvert.
 
-- **Parité code ↔ base** (migration `269`, idempotente, plus `SYSTEM_ROLES` et
+- **Parité code ↔ base** (migration `277`, idempotente, plus `SYSTEM_ROLES` et
   `ROLE_PERMISSION_MATRIX`). Toute base neuve — CI, poste de développement, réinstallation —
   repartait sur l'ancien modèle : `personnel` au rang 50, `prof_classe` avec « Accès interface
   n3boss ». Deux modèles de droits qui divergent en silence, c'est la panne qu'on ne reproduit
@@ -67,6 +67,175 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
 ### Corrigé — LTI : clé privée lisible depuis cPanel
+### Sécurité — politique d'accès par surface appliquée côté serveur (lots P0 A–E)
+
+> Suite de l'audit `docs/AUDIT_SECURITE_2026-09-22.md`. **Changement de comportement d'API** :
+> voir « Périmètre de surface » dans `docs/API.md`.
+
+- **La surface est désormais décidée par le serveur** (produit résolu par host + état
+  d'authentification), plus par le paramètre `?surface=` envoyé par le client. Nouveau noyau
+  pur `lib/shared/surfaceCore.js`, garde `lib/surfaceAccess.js`.
+- **Les routes génériques de lieux sont gardées comme les points d'entrée composites.**
+  `/api/zones`, `/api/zones/:id`, `/api/map/markers`, `/api/map-categories` et `/api/maps`
+  exigent sur une surface gardée (`plan`, `staff`) le même laissez-passer que
+  `/api/plan/content` et `/api/staff-plan/content`. Auparavant, fermer le plan par un code ne
+  fermait que la charge composite : `/api/zones?map_id=lyautey` rendait les 36 zones du lycée à
+  un visiteur sans code.
+- **Chaque surface ne sert que les cartes qui y sont déclarées.** Une carte hors surface répond
+  `400 « Carte introuvable »` — le même message qu'un identifiant inexistant. Nouveau réglage
+  `ui.visit.selectable_map_ids` (portée `admin`) ; vide, la Visite sert les cartes actives
+  **moins** celles déclarées pour les plans gardés.
+- **`GET /api/visit/content` reçoit la liste blanche qui lui manquait** : c'était la fuite la
+  plus large — `?map_id=lyautey` servait 36 zones et 47 repères, 211 Ko, sans compte.
+- **`hidden_surfaces` et les `surfaces` de catégorie sont appliqués inconditionnellement.**
+  `?surface=` reste accepté mais s'**ajoute** en intersection : il ne peut plus qu'affiner.
+- **Exception de gestion conservée** : un porteur de `zones.manage` / `map.manage_markers` lit
+  sans filtre de surface sur le produit ForêtMap — l'onglet « Lieux » doit montrer les lieux
+  masqués pour permettre de les corriger.
+- **`X-Foretmap-Product` n'est plus honoré en production** (hors harnais e2e) : la surface s'y
+  déduit du host seul.
+- **Tests** : `tests/security-surfaces.test.js` (9 cas — matrice surface × route × laissez-passer,
+  non-régression `hidden_surfaces` et « omission de `map_id` »). Six lectures de
+  `tests/plan-content.test.js` ont été authentifiées : elles figeaient le comportement vulnérable.
+- **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
+  ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
+  localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : suivi d'individus arbres et mesures (lot 7)
+
+- Migration **276** : tables **`tracked_individuals`** et **`individual_measurements`**.
+- Permissions **`individuals.manage`** (admin, prof) et **`individuals.measure`** (admin, prof,
+  paliers `eleve_*`) ; API `/api/individuals` (CRUD, mesures, estimations).
+- Estimations pédagogiques (Chave 2014) : D=C/π, biomasse, carbone, CO₂ — disclaimer
+  « ordre de grandeur » ; courbe de croissance dans l'onglet **Individus**.
+
+### Ajouté — Biodiversité structure : clés dichotomiques d'identification (lot 6)
+
+- Migration **275** : tables **`id_keys`**, **`id_key_couplets`**, **`id_key_leads`** (chaque
+  proposition mène soit au couplet suivant, soit à une espèce).
+- Permission **`id_keys.manage`** (admin, prof, prof_classe) : éditeur de couplets / leads /
+  images, refus des cycles et des énoncés invitant à manipuler ; lecteur élève (une question,
+  retour arrière, arrivée sur la fiche).
+- La section **Détermination** de la fiche continue d'afficher `identification_criteria`,
+  `lookalike_species` et `identification_period`.
+
+### Ajouté — Biodiversité structure : classification en groupes emboîtés (lot 5)
+
+- Migration **274** : table **`clades`** (arbre pédagogique : `parent_id`,
+  `shared_attribute` = caractère partagé) et colonne **`plants.clade_id`** (groupe le plus
+  précis, `ON DELETE SET NULL`) ; amorçage de 43 groupes et rattachement des fiches vivantes
+  (`sql/biodiv_structure_seeds/06_classification.sql`).
+- API **`/api/clades`** : lecture publique de l'arbre et du fil d'ancêtres ; activité
+  « Groupes emboîtés » (`POST …/activity/subtree`, `POST …/activity/check`) ; CRUD sous
+  **`plants.manage`** avec interdiction des cycles (`lib/clades.js`).
+- Fiche : fil « Êtres vivants › … » (attribut au survol) ; onglet pédagogique **Groupes
+  emboîtés** (préparation enseignant, mode élève avec correction automatique, admin de
+  l'arbre).
+
+### Ajouté — Biodiversité structure : types d'interaction et qualité du lien (lot 1)
+
+- Migration **272** : l'ENUM `species_interactions.interaction_type` passe de 14 à **19 valeurs**
+  (**`mutualisme`**, **`commensalisme`**, **`mycophagie`**, **`allelopathie`**, **`facilitation`**,
+  ajoutées **en fin** d'ENUM pour ne déplacer aucun indice existant) ; nouvelles colonnes
+  **`evidence_level`** (`bibliographie` / `observe_site` / `hypothese`, NOT NULL défaut
+  `bibliographie`), **`pollination_efficacy`** (`efficace` / `accessoire` / `visiteur` /
+  `voleur_nectar`, NULL) et **`source_ref`** ; la vue **`v_food_web`** est recréée pour les
+  exposer, et l'amorçage (`sql/biodiv_structure_seeds/01_interactions.sql`) est rejoué sous
+  garde de nom d'espèce.
+- **Cinq relations qui n'avaient pas de mot juste.** `symbiose` absorbait le mutualisme sans vie
+  commune (fourmis et pucerons), `decomposition` la mycophagie — brouter un mycélium vivant
+  n'est pas fragmenter de la matière morte — et `competition` servait de fourre-tout au
+  voisinage, qu'il soit hostile (allélopathie du noyer) ou favorable (facilitation par une
+  plante nourrice). Seule `mycophagie` transporte de la matière (`to_from`) ; les quatre autres
+  restent hors bilan de matière.
+- **La fiabilité d'un lien est maintenant écrite.** Un réseau trophique pédagogique mêle du
+  documenté, de l'observé sur place et de l'hypothèse ; sans `evidence_level`, tout s'affichait
+  avec la même autorité. Le graphe distingue désormais l'hypothèse (trait pointillé, atténué) et
+  l'observation de terrain (trait épaissi), et `source_ref` permet de citer la référence.
+- **`pollination_efficacy` refuse d'être un champ décoratif** : elle n'est acceptée que si le
+  type est `pollinisation` (sinon **400**) et repasse à `NULL` si le type change — un « voleur de
+  nectar » sur une relation de prédation n'aurait rien voulu dire.
+- API : `GET /api/food-web/interaction-types` renvoie désormais
+  `{ types, evidenceLevels, pollinationEfficacies }` ; les trois champs de qualité circulent en
+  lecture (`GET /api/food-web`) comme en écriture (`POST` / `PUT`), et l'éditeur du réseau les
+  propose (l'efficacité pollinisatrice n'apparaissant que pour `pollinisation`).
+- **GL reste à 14 types.** L'ENUM `gl_species_interactions` n'est pas touchée : la frontière est
+  tenue par `allowedTypes` dans `makeFoodWebStore`, `GET /api/gl/food-web/interaction-types`
+  expose les 14 valeurs d'origine, et les écritures GL sur un type ForetMap répondent **400**.
+  Le noyau partagé (`lib/shared/foodWebCore.js`, `src/shared/foodWebTypes.js`) expose donc deux
+  listes : `INTERACTION_TYPES_CORE` (14) et `INTERACTION_TYPES` (19).
+
+### Ajouté — Biodiversité structure : notions des programmes et filtres quiz / glossaire (lot 8)
+
+- Migration **273** : tables **`curriculum_notions`** (référentiel des notions officielles :
+  cycles 3 et 4, seconde, spécialités SVT de première et terminale, enseignement scientifique),
+  **`quiz_category_notions`**, **`quiz_question_notions`** et **`glossary_term_notions`**, plus
+  l'amorçage de 12 notions et 42 liaisons de catégories
+  (`sql/biodiv_structure_seeds/07_programmes.sql`).
+- **Une question hérite des notions de sa catégorie.** Rattacher les 17 catégories coûte 42
+  lignes ; rattacher les ~500 questions une à une aurait laissé orpheline chaque question
+  ajoutée ensuite. `quiz_question_notions` ne sert donc qu'à l'exception, avec un mode
+  **`ajout`** / **`exclusion`** : notions effectives = (notions de la catégorie − exclusions)
+  ∪ ajouts. Sans ce mode, corriger une question rangée dans la mauvaise catégorie imposait de
+  la déplacer (ce qui casse son numéro) ou de dérattacher toute la catégorie.
+- API : routeur **`/api/curriculum`** — `GET /niveaux`, `GET /notions` (effectifs de questions
+  et de termes par notion), `GET /notions/:id`, et les rattachements en lecture publique /
+  écriture `plants.manage` pour les catégories de quiz, les questions et les termes de
+  glossaire. `GET /quiz-questions/:code/notions` renvoie `{ inherited, added, excluded,
+  effective }` : un écran de rattachement doit pouvoir montrer *pourquoi* une notion
+  s'applique.
+- Filtres : **`notionId`** et **`notionNiveau`** sur `GET /api/quiz/draw`,
+  `GET /api/quiz/questions`, `GET /api/quiz/categories` et `GET /api/glossary/terms` ; la
+  fiche d'un terme (`GET /api/glossary/terms/:code`) porte désormais ses `notions`. Deux
+  paramètres distincts parce que `niveau` est déjà pris **deux fois** — niveau d'une question
+  (`college` / `lycee`) et profondeur d'un terme (`base` / `approfondissement` / `avance`) ;
+  le niveau scolaire d'une notion est une troisième échelle. Une valeur hors ENUM donne
+  **400**, pas un filtre ignoré en silence.
+- UI : menus « Niveau du programme » et « Notion du programme » dans les onglets Quiz et
+  Glossaire (choisir une notion restreint aussi les catégories offertes) ; encadré
+  **« Au programme »** sur la fiche d'un terme ; panneau prof **« Lancer un quiz par notion du
+  programme »**, qui tire une question de la notion choisie et l'affiche dans la section de
+  test.
+
+### Ajouté — Biodiversité structure : origine, risque sanitaire et validation des dangers (lot 2)
+
+- Migration **271** : `origin_status` gagne **`endemique`** et **`domestique`** (« endémique »
+  était jusqu'ici un alias de « indigène » — l'arganier était indistinguable d'une espèce
+  simplement indigène, et un animal de ferme n'avait aucune valeur correcte) ; nouvelles
+  colonnes **`health_risk`** (SET : rage, tétanos, salmonellose, leptospirose, toxoplasmose,
+  vecteur, allergie), **`health_notes`**, **`hazard_reviewed_by`** (FK `users`,
+  `ON DELETE SET NULL`) et **`hazard_reviewed_at`**, plus les seeds d'amorçage
+  (7 endémiques, 7 domestiques, 18 risques sanitaires).
+- Fiche : **second encadré « Risque sanitaire »**, bleu et non repliable, distinct de la
+  toxicité — la rage ne rend pas le renard toxique, elle le rend porteur, et écrire « mortel »
+  sur sa fiche rendrait la pastille de danger illisible sur tout le catalogue animal.
+- **Invalidation automatique de la relecture** : toute modification de `toxicity_level`,
+  `hazard_exposure`, `hazard_notes`, `health_risk` ou `health_notes` remet `hazard_reviewed`
+  à 0 et efface le relecteur. Sans elle, une coche continuait de certifier un texte réécrit
+  depuis.
+- API : **`POST /api/plants/:id/validate-hazard`** (`{ reviewed?: false }` pour retirer la
+  validation), sous une permission dédiée **`plants.hazards.validate`** (« Valider les
+  dangers », accordée à `admin` et `prof`, pas à `prof_classe`) : renseigner un danger et
+  certifier qu'il a été relu ne sont pas le même geste.
+- Base biodiversité (prof) : encadré **« Dangers à valider »** listant les fiches renseignées
+  non relues, les plus graves d'abord, avec bouton de validation ligne à ligne.
+
+### Ajouté — Biodiversité structure : référentiel GBIF + notes de site (lot 3)
+
+- Migration **270** : colonnes `accepted_scientific_name`, `gbif_accepted_key`,
+  `taxon_phylum` / `taxon_class` / `taxon_order` / `taxon_family_latin`, `gbif_checked_at` ;
+  `map_species.site_notes` + seeds d’amorçage.
+- Fiche : nom accepté si différent, classification latine repliable, lien GBIF ;
+  notes « Sur ce site » ; recherche sur le nom accepté.
+- API : `GET /api/plants/gbif-match` (proposition seule), `PUT /api/plants/:id/map-species/:mapId`
+  (`site_notes`) ; sync `map_ids` préserve les notes.
+
+### Ajouté — Biodiversité structure : vue `v_visit_coverage` (lot 9)
+
+- Migration **269** : vue `v_visit_coverage` (`SQL SECURITY INVOKER`) avec alias
+  **`statut_short`** (évite le nom technique MariaDB `Name_exp_11` sur certaines bases).
+- Colonnes legacy `zones.current_plant` / `map_markers.plant_name` **conservées** : encore
+  lues et écrites par l’API et les formulaires carte.
+
 ### Corrigé — LTI : clé privée via fichier sur cPanel
 
 - Sur o2switch / nodevenv, une PEM dans `LTI_TOOL_PRIVATE_KEY` est mutilée par l’`export`

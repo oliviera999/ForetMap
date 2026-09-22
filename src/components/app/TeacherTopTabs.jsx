@@ -37,6 +37,7 @@ import {
   IconQuiz,
   IconSettings,
   IconStats,
+  IconSearch,
   IconTasks,
   IconTuto,
   IconVisit,
@@ -142,6 +143,28 @@ export function TeacherTopTabs({
       Icon: IconFoodweb,
       label: 'Réseau trophique',
       visible: canPlants,
+    },
+    {
+      id: 'nested-groups',
+      pole: 'contents',
+      Icon: IconBiodiv,
+      label: 'Groupes emboîtés',
+      visible: canPlants,
+    },
+    {
+      id: 'id-keys',
+      pole: 'contents',
+      Icon: IconSearch,
+      label: 'Clés d’identification',
+      visible: canPlants || hasPermission('id_keys.manage'),
+    },
+    {
+      id: 'individuals',
+      pole: 'tracking',
+      Icon: IconBiodiv,
+      label: 'Individus',
+      visible:
+        hasPermission('individuals.manage') || hasPermission('individuals.measure') || canPlants,
     },
     {
       id: 'tuto',

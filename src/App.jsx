@@ -704,6 +704,9 @@ function App() {
     [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
   );
   const canManageFoodWeb = hasPermission('plants.manage');
+  const canManageIdKeys = hasPermission('id_keys.manage');
+  const canManageIndividuals = hasPermission('individuals.manage');
+  const canMeasureIndividuals = hasPermission('individuals.measure');
 
   const canParticipateContextComments = useMemo(
     () =>
@@ -1502,6 +1505,7 @@ function App() {
                               onOpenPlant={openPlantCatalogPreviewById}
                               maps={visibleMaps}
                               onActiveMapChange={setActiveMapId}
+                              canValidateHazards={hasPermissionInRole('plants.hazards.validate')}
                             />
                           </TabSuspense>
                         )}
@@ -1637,6 +1641,9 @@ function App() {
                           maps={visibleMaps}
                           foodWebHighlightPlantId={foodWebHighlightPlantId}
                           canManageFoodWeb={canManageFoodWeb}
+                          canManageIdKeys={canManageIdKeys}
+                          canManageIndividuals={canManageIndividuals}
+                          canMeasureIndividuals={canMeasureIndividuals}
                           appVersion={appVersion}
                           canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                           onOpenSettingsLearning={handleOpenSettingsLearning}
@@ -1752,6 +1759,9 @@ function App() {
                             maps={visibleMaps}
                             foodWebHighlightPlantId={foodWebHighlightPlantId}
                             canManageFoodWeb={canManageFoodWeb}
+                            canManageIdKeys={canManageIdKeys}
+                            canManageIndividuals={canManageIndividuals}
+                            canMeasureIndividuals={canMeasureIndividuals}
                             appVersion={appVersion}
                           />
                         </>

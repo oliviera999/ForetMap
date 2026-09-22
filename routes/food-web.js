@@ -5,12 +5,23 @@ const { queryAll, queryOne, execute } = require('../database');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { INTERACTION_TYPES, makeFoodWebStore } = require('../lib/shared/foodWebCore');
+const {
+  INTERACTION_TYPES,
+  EVIDENCE_LEVELS,
+  POLLINATION_EFFICACIES,
+  makeFoodWebStore,
+} = require('../lib/shared/foodWebCore');
 const { mapPresencePlantIdsSubquery } = require('../lib/speciesJunction');
 
 const router = express.Router();
 
-/** Magasin CRUD ForetMap (plantes) bâti sur le noyau partagé. */
+/**
+ * Magasin CRUD ForetMap (plantes) bâti sur le noyau partagé.
+ *
+ * `quality: true` : seule `species_interactions` porte les colonnes de qualité du lien
+ * (migration 272). Le vocabulaire complet — 19 types — est celui de ForetMap ; GL reste aux
+ * 14 types communs (cf. `routes/gl/food-web.js`).
+ */
 const foodWebStore = makeFoodWebStore(
   { queryOne, execute },
   {
@@ -18,6 +29,7 @@ const foodWebStore = makeFoodWebStore(
     fromCol: 'from_plant_id',
     toCol: 'to_plant_id',
     refTable: 'plants',
+    quality: true,
   },
 );
 
@@ -25,7 +37,8 @@ const foodWebStore = makeFoodWebStore(
 async function loadEnrichedInteraction(id) {
   return queryOne(
     `SELECT id, interaction_type, from_id, from_name, from_emoji,
-            to_id, to_name, to_emoji, description
+            to_id, to_name, to_emoji, description,
+            evidence_level, pollination_efficacy, source_ref
        FROM v_food_web WHERE id = ? LIMIT 1`,
     [id],
   );
@@ -60,7 +73,8 @@ function normalizeMapId(value) {
 }
 
 const FOOD_WEB_SELECT = `fw.id, fw.interaction_type, fw.from_id, fw.from_name, fw.from_emoji,
-                fw.from_role, fw.to_id, fw.to_name, fw.to_emoji, fw.to_role, fw.description`;
+                fw.from_role, fw.to_id, fw.to_name, fw.to_emoji, fw.to_role, fw.description,
+                fw.evidence_level, fw.pollination_efficacy, fw.source_ref`;
 
 /**
  * Filtre de périmètre (zone ou carte) pour une relation.
@@ -116,7 +130,8 @@ router.get(
 
     const items = await queryAll(
       `SELECT id, interaction_type, from_id, from_name, from_emoji, from_role,
-              to_id, to_name, to_emoji, to_role, description
+              to_id, to_name, to_emoji, to_role, description,
+              evidence_level, pollination_efficacy, source_ref
          FROM v_food_web
         ORDER BY interaction_type ASC, from_name ASC, to_name ASC`,
     );
@@ -152,9 +167,16 @@ router.get(
   }),
 );
 
-/** GET /api/food-web/interaction-types — catalogue des types (pour l'éditeur). */
+/**
+ * GET /api/food-web/interaction-types — vocabulaire de l'éditeur.
+ * Les listes de qualité du lien voyagent avec les types : l'éditeur a besoin des trois.
+ */
 router.get('/interaction-types', (req, res) => {
-  res.json({ types: INTERACTION_TYPES });
+  res.json({
+    types: INTERACTION_TYPES,
+    evidenceLevels: EVIDENCE_LEVELS,
+    pollinationEfficacies: POLLINATION_EFFICACIES,
+  });
 });
 
 /** POST /api/food-web/interactions — créer une interaction (admin biodiversité). */

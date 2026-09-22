@@ -129,6 +129,37 @@ test('CRUD /api/gl/food-web/interactions — MJ seulement', async () => {
     .expect(200);
 });
 
+test('GL reste aux 14 types communs (isolement produit, migration 272)', async () => {
+  // Les cinq types ajoutés côté ForetMap n'existent pas dans l'ENUM de
+  // `gl_species_interactions` : le noyau partagé doit les refuser ici, avant l'écriture.
+  const types = await request(app)
+    .get('/api/gl/food-web/interaction-types')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(types.body.types.length, 14);
+  for (const absent of [
+    'mutualisme',
+    'commensalisme',
+    'mycophagie',
+    'allelopathie',
+    'facilitation',
+  ]) {
+    assert.ok(!types.body.types.includes(absent), `${absent} ne doit pas être proposé côté GL`);
+    await request(app)
+      .post('/api/gl/food-web/interactions')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ from_id: fromId, to_id: toId, interaction_type: absent })
+      .expect(400);
+  }
+
+  const glEnum = await queryOne(
+    `SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gl_species_interactions'
+        AND COLUMN_NAME = 'interaction_type'`,
+  );
+  assert.ok(!/mutualisme/.test(String(glEnum.t)), 'l’ENUM GL ne doit pas avoir été étendue');
+});
+
 test('la vue morte v_gl_food_web n’est pas recréée', async () => {
   const views = await queryOne(
     `SELECT COUNT(*) AS n FROM information_schema.views

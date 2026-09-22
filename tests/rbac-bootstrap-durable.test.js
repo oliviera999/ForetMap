@@ -88,7 +88,7 @@ describe('Semis RBAC durable', () => {
     assert.ok(role);
     assert.equal(role.display_name, 'Personnel');
     /*
-     * 320, et non plus 50 (réalignement du 22/09/2026, migration 269). Au rang du visiteur,
+     * 320, et non plus 50 (réalignement du 22/09/2026, migration 277). Au rang du visiteur,
      * « le plus élevé l'emporte » faisait perdre à un personnel sa qualité de personnel dès
      * qu'il était rattaché à un groupe classe — donc `staff_plan.access`, donc l'entrée sur
      * proflyautey. Le rang ne lui donne rien au passage : la vue globale commence à 400.
