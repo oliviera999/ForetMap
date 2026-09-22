@@ -93,6 +93,7 @@ const glLoreRouter = require('./routes/gl/lore').router;
 const glStatsRouter = require('./routes/gl/stats');
 const glossaryRouter = require('./routes/glossary');
 const quizRouter = require('./routes/quiz');
+const curriculumRouter = require('./routes/curriculum');
 const learningLinksRouter = require('./routes/learning-links');
 const learningGatingRouter = require('./routes/learning-gating');
 const foodWebRouter = require('./routes/food-web');
@@ -526,6 +527,8 @@ app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
 app.use('/api/glossary', glossaryRouter);
 app.use('/api/quiz', quizRouter);
+// Notions des programmes (lot 8) : lecture publique, rattachements sous `plants.manage`.
+app.use('/api/curriculum', curriculumRouter);
 app.use('/api/learning-links', learningLinksRouter);
 app.use('/api/learning/gating', learningGatingRouter);
 app.use('/api/food-web', foodWebRouter);

@@ -9,6 +9,12 @@ import {
   fetchLearnedGlossaryCodes,
 } from './GlossaryTermLearnedAcknowledge.jsx';
 import { IconGlossary } from '../../shared/icons.jsx';
+import { useCurriculumNotions } from '../../hooks/useCurriculumNotions.js';
+import {
+  CURRICULUM_NIVEAU_OPTIONS,
+  buildNotionOptions,
+  curriculumNiveauLabel,
+} from '../../utils/curriculumNotions.js';
 
 const NIVEAU_OPTIONS = [
   { value: '', label: 'Tous niveaux' },
@@ -28,6 +34,10 @@ export function GlossaryView({
   const [search, setSearch] = useState('');
   const [niveau, setNiveau] = useState('');
   const [categorie, setCategorie] = useState('');
+  // Notion du programme (migration 273) : distincte du « niveau » du terme, qui dit sa
+  // profondeur (base / approfondissement / avancé) et non la classe où il est travaillé.
+  const [notionNiveau, setNotionNiveau] = useState('');
+  const [notionId, setNotionId] = useState('');
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +97,8 @@ export function GlossaryView({
       if (q) params.set('q', q);
       if (niveau) params.set('niveau', niveau);
       if (categorie) params.set('categorie', categorie);
+      if (notionId) params.set('notionId', notionId);
+      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
       const qs = params.toString();
       const data = await api(`/api/glossary/terms${qs ? `?${qs}` : ''}`);
       if (seq !== loadTermsSeqRef.current) return;
@@ -98,7 +110,7 @@ export function GlossaryView({
     } finally {
       if (seq === loadTermsSeqRef.current) setLoading(false);
     }
-  }, [search, niveau, categorie]);
+  }, [search, niveau, categorie, notionId, notionNiveau]);
 
   useEffect(() => {
     const timer = setTimeout(loadTerms, search.trim() ? 280 : 0);
@@ -147,6 +159,21 @@ export function GlossaryView({
     ],
     [categories],
   );
+
+  const notions = useCurriculumNotions();
+  const visibleNotions = useMemo(
+    () => (notionNiveau ? notions.filter((n) => n.niveau === notionNiveau) : notions),
+    [notions, notionNiveau],
+  );
+  const notionOptions = useMemo(
+    () => buildNotionOptions(visibleNotions, { countKey: 'glossary_count' }),
+    [visibleNotions],
+  );
+
+  useEffect(() => {
+    if (!notionId) return;
+    if (!visibleNotions.some((n) => n.id === notionId)) setNotionId('');
+  }, [visibleNotions, notionId]);
 
   const selectTerm = useCallback(
     (code) => {
@@ -198,6 +225,34 @@ export function GlossaryView({
             onChange={(e) => setCategorie(e.target.value)}
           >
             {categorieOptions.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="pedago-filter-field">
+          <span>Niveau du programme</span>
+          <select
+            className="form-select"
+            value={notionNiveau}
+            onChange={(e) => setNotionNiveau(e.target.value)}
+          >
+            {CURRICULUM_NIVEAU_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="pedago-filter-field pedago-filter-field--wide">
+          <span>Notion du programme</span>
+          <select
+            className="form-select"
+            value={notionId}
+            onChange={(e) => setNotionId(e.target.value)}
+          >
+            {notionOptions.map((opt) => (
               <option key={opt.value || 'all'} value={opt.value}>
                 {opt.label}
               </option>
@@ -300,6 +355,20 @@ export function GlossaryView({
                   >
                     {detail.etymologie}
                   </GlossaryMarkdown>
+                </div>
+              ) : null}
+
+              {detail.notions?.length > 0 ? (
+                <div className="pedago-remediation" style={{ marginTop: 16 }}>
+                  <strong>Au programme</strong>
+                  <ul className="pedago-link-list">
+                    {detail.notions.map((n) => (
+                      <li key={n.id}>
+                        <strong>{curriculumNiveauLabel(n.niveau)}</strong> — {n.notion}
+                        {n.theme ? <span className="section-sub"> ({n.theme})</span> : null}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
 

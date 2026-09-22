@@ -19,6 +19,12 @@ const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
 const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/shared/httpHelpers');
+const {
+  buildGlossaryTermNotionFilter,
+  listGlossaryTermNotions,
+  normalizeCurriculumNiveau,
+  normalizeNotionId,
+} = require('../lib/curriculumNotions');
 
 /**
  * Liste complète des termes actifs — le cas de très loin le plus fréquent : `useGlossaryLinkIndex`
@@ -40,13 +46,26 @@ const glossaryCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
   if (!code) ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
 });
 
-/** GET /api/glossary/terms?q=&niveau=&categorie= */
+/** GET /api/glossary/terms?q=&niveau=&categorie=&notionId=&notionNiveau= */
 router.get(
   '/terms',
   asyncHandler(async (req, res) => {
     const q = normalizeOptionalFilter(req.query?.q);
     const niveau = normalizeOptionalFilter(req.query?.niveau);
     const categorie = normalizeOptionalFilter(req.query?.categorie);
+    // `niveau` désigne ici la profondeur du terme (`base` / `approfondissement` / `avance`) ;
+    // le niveau **scolaire** d'une notion de programme est une autre échelle, d'où
+    // `notionNiveau` (migration 273). Même nommage que `GET /api/quiz/draw`.
+    const notionId = normalizeOptionalFilter(req.query?.notionId ?? req.query?.notion_id);
+    const notionNiveau = normalizeOptionalFilter(
+      req.query?.notionNiveau ?? req.query?.notion_niveau,
+    );
+    if (notionId && !normalizeNotionId(notionId)) {
+      return res.status(400).json({ error: 'notionId invalide' });
+    }
+    if (notionNiveau && !normalizeCurriculumNiveau(notionNiveau)) {
+      return res.status(400).json({ error: 'notionNiveau invalide' });
+    }
 
     const params = [];
     let sql = `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte
@@ -61,6 +80,11 @@ router.get(
       sql += ' AND niveau = ?';
       params.push(niveau);
     }
+    const notionFilter = buildGlossaryTermNotionFilter({ notionId, niveau: notionNiveau });
+    if (notionFilter) {
+      sql += notionFilter.sql;
+      params.push(...notionFilter.params);
+    }
     if (q) {
       sql += ' AND (terme LIKE ? OR variantes LIKE ?)';
       const needle = `%${q}%`;
@@ -68,7 +92,7 @@ router.get(
     }
     sql += ' ORDER BY categorie ASC, terme ASC';
 
-    const cacheable = !q && !niveau && !categorie;
+    const cacheable = !q && !niveau && !categorie && !notionFilter;
     if (cacheable) {
       const cached = glossaryTermsCache.get(GLOSSARY_TERMS_CACHE_KEY);
       if (cached) return res.json({ items: cached });
@@ -138,6 +162,10 @@ router.get(
       [code],
     );
 
+    // Notions des programmes rattachées au terme (migration 273) : affichées à l'élève
+    // comme au professeur, elles disent à quoi le mot sert dans la progression.
+    const notions = await listGlossaryTermNotions({ queryAll }, code);
+
     const incomingRelations = await queryAll(
       `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
          FROM glossary_term_relations r
@@ -154,6 +182,7 @@ router.get(
       linkedPlants,
       linkedTutorials,
       linkedQuizQuestions,
+      notions,
       tutorialsCount: linkedTutorials.length,
     });
   }),

@@ -14,6 +14,8 @@ import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js';
 import { IconQuiz } from '../../shared/icons.jsx';
 import { oluQuizHeaderSubtitle } from '../../shared/utils/oluLearningVoice.js';
+import { useCurriculumNotions } from '../../hooks/useCurriculumNotions.js';
+import { CURRICULUM_NIVEAU_OPTIONS, buildNotionOptions } from '../../utils/curriculumNotions.js';
 
 const THEME_OPTIONS = [
   { value: '', label: 'Tous thèmes' },
@@ -57,6 +59,10 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
   const [niveau, setNiveau] = useState('');
   const [difficulte, setDifficulte] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
+  // Notion du programme : le niveau scolaire restreint la liste des notions, la notion
+  // restreint ensuite les catégories et le tirage (migration 273).
+  const [notionNiveau, setNotionNiveau] = useState('');
+  const [notionId, setNotionId] = useState('');
   const [illustratedOnly, setIllustratedOnly] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -81,6 +87,8 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
       const params = new URLSearchParams();
       if (theme) params.set('theme', theme);
       if (niveau) params.set('niveau', niveau);
+      if (notionId) params.set('notionId', notionId);
+      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
       const qs = params.toString();
       const data = await api(`/api/quiz/categories${qs ? `?${qs}` : ''}`);
       if (seq !== loadCategoriesSeqRef.current) return;
@@ -91,7 +99,7 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     } finally {
       if (seq === loadCategoriesSeqRef.current) setLoadingCategories(false);
     }
-  }, [theme, niveau]);
+  }, [theme, niveau, notionId, notionNiveau]);
 
   useEffect(() => {
     loadCategories();
@@ -142,6 +150,21 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
     if (!categorieSlug) return;
     if (!categories.some((c) => c.slug === categorieSlug)) setCategorieSlug('');
   }, [categories, categorieSlug]);
+
+  const notions = useCurriculumNotions();
+  const visibleNotions = useMemo(
+    () => (notionNiveau ? notions.filter((n) => n.niveau === notionNiveau) : notions),
+    [notions, notionNiveau],
+  );
+  const notionOptions = useMemo(() => buildNotionOptions(visibleNotions), [visibleNotions]);
+
+  // Changer de niveau scolaire ne doit pas laisser une notion d'un autre niveau active :
+  // le tirage annoncerait « aucune question » sans qu'on voie pourquoi (même correctif que
+  // le filtre de catégorie ci-dessus).
+  useEffect(() => {
+    if (!notionId) return;
+    if (!visibleNotions.some((n) => n.id === notionId)) setNotionId('');
+  }, [visibleNotions, notionId]);
 
   const categorieOptions = useMemo(
     () => [
@@ -209,6 +232,8 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
       if (niveau) params.set('niveau', niveau);
       if (difficulte) params.set('difficulte', difficulte);
       if (illustratedOnly) params.set('illustrated', '1');
+      if (notionId) params.set('notionId', notionId);
+      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
       const draw = await api(`/api/quiz/draw?${params.toString()}`);
       const code = draw?.question_code;
       if (!code) throw new Error('Aucune question disponible');
@@ -424,6 +449,34 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
             onChange={(e) => setDifficulte(e.target.value)}
           >
             {DIFFICULTE_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="pedago-filter-field">
+          <span>Niveau du programme</span>
+          <select
+            className="form-select"
+            value={notionNiveau}
+            onChange={(e) => setNotionNiveau(e.target.value)}
+          >
+            {CURRICULUM_NIVEAU_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="pedago-filter-field pedago-filter-field--wide">
+          <span>Notion du programme</span>
+          <select
+            className="form-select"
+            value={notionId}
+            onChange={(e) => setNotionId(e.target.value)}
+          >
+            {notionOptions.map((opt) => (
               <option key={opt.value || 'all'} value={opt.value}>
                 {opt.label}
               </option>
