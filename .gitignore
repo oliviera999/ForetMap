@@ -25,8 +25,9 @@ dist.discarded/
 # *.sqlite
 # *.sqlite3
 
-# Uploads (images zones / task-logs)
-uploads/
+# Secrets LTI locaux (clé privée outil — jamais versionner)
+lti-keys/
+
 
 # Médias GL locaux (import via npm run gl:import:media)
 médias/

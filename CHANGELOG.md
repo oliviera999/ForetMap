@@ -42,6 +42,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Corrigé — LTI : clé privée via fichier sur cPanel
+
+- Sur o2switch / nodevenv, une PEM dans `LTI_TOOL_PRIVATE_KEY` est mutilée par l’`export`
+  shell (`\n` → cassé). Ajout de **`LTI_TOOL_PRIVATE_KEY_FILE`** (recommandé) et
+  **`LTI_TOOL_PRIVATE_KEY_B64`** ; la variable PEM directe reste pour le `.env` local.
 
 ### Modifié — Plan Lyautey / personnels : favicon officiel du lycée
 
