@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — les images téléversées ne portent plus leurs métadonnées (lot F, constat S7)
+
+- **EXIF, coordonnées GPS, IPTC et XMP retirés à l'écriture** de toute image sous `uploads/`.
+  Une photo prise au téléphone sur le terrain conservait jusqu'ici le lieu exact où elle avait
+  été prise, et les familles `zones/`, `markers/`, `students/`, `tasks/` sont servies
+  **publiquement** : le fichier était téléchargeable sans authentification. Nouveau module
+  `lib/imageMetadata.js`.
+- **Le retrait est posé sur les deux points de passage de l'écriture** (`saveBase64ToDisk`,
+  `writeBufferToDisk`) et non sur les vingt appelants — un vingt-et-unième ajouté demain n'aura
+  pas à y penser.
+- **L'orientation EXIF est appliquée avant d'être jetée** : une photo prise de côté n'arrive
+  plus couchée. C'est ce que faisait déjà la vignette, et que l'original ne faisait pas.
+- **Ne sont pas retraités, volontairement** : les SVG (qui seraient rastérisés), les images
+  animées (qui seraient aplaties sur leur première image) et tout ce que `sharp` ne sait pas
+  lire (JSON, archives…), écrits tels quels. Sans `sharp` sur l'hôte, le retrait n'a pas lieu
+  et l'absence est journalisée en `warn`.
+- **Stock antérieur** : `node scripts/strip-uploads-exif.js` — rapport en lecture seule par
+  défaut, `--apply` pour récrire, `--dir=` pour borner à une famille. N'écrit que les images
+  porteuses de métadonnées, par fichier temporaire puis `rename`.
+- **Corrigé au passage** : quatre scripts de migration écrivaient sans `await`
+  (`migrate-images-to-disk`, `gl-import-wp`, `migrate-sqlite-to-mysql` ×2). Défaut latent que le
+  travail ajouté par le nettoyage aurait rendu réel ; les routes de production attendaient déjà
+  correctement.
+- **Tests** : `tests/uploads-exif.test.js` (7 cas), dont un passe par la route réelle
+  `POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
+
 ### Corrigé — réalignement des profils du 22/09/2026 : mise en code et angles morts
 
 Deux scripts d'exploitation ont été passés à la main sur la base de production : textes de la

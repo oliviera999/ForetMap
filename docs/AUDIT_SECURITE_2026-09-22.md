@@ -17,6 +17,9 @@
 > septembre** qui est décrit, avant correctif. Chaque constat traité porte une ligne
 > **« Corrigé »** qui dit où.
 >
+> **Mise à jour du 22 septembre 2026, soir** : le **lot F** est livré — **S7 est traité**
+> (§2.7). Restent ouverts S8 à S11 (lots G à L).
+>
 > **Note d'exécution — les chiffres sont mesurés, pas estimés.** L'application a été montée
 > localement sur le fixture anonymisé (`foretmap_local`, migré à la volée : 7 cartes, dont
 > `lyautey` avec 36 zones et 44 repères), et chaque constat a été **reproduit par requête HTTP
@@ -199,6 +202,19 @@ surface n'est pas encore une garde des données.
 des ancrages d'une carte qu'il n'affiche pas, et aucune surface n'a besoin du catalogue complet.
 
 ### 2.7 — S7 (P1) · Les métadonnées EXIF des photos ne sont jamais retirées
+
+**Corrigé** (lot F) : `lib/imageMetadata.js` retire EXIF/GPS, IPTC et XMP, posé sur les **deux
+points de passage** de l'écriture (`saveBase64ToDisk`, `writeBufferToDisk`) plutôt que sur les
+vingt appelants. L'orientation est appliquée avant d'être jetée. Le stock antérieur se traite
+par `scripts/strip-uploads-exif.js` (lecture seule par défaut). Filet :
+`tests/uploads-exif.test.js`, dont un cas passe par la vraie route
+`POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
+
+**Trouvé au passage** : quatre scripts de migration appelaient l'écriture **sans `await`**
+(`migrate-images-to-disk`, `gl-import-wp`, `migrate-sqlite-to-mysql` ×2). Le défaut était
+latent — l'écriture partait sans que personne l'attende — et le travail ajouté par le retrait
+des métadonnées l'aurait rendu réel. Corrigé dans le même lot ; les routes de production, elles,
+attendaient déjà toutes correctement.
 
 Recherche de `exif` sur tout le dépôt (hors `node_modules`) : **aucune occurrence**.
 

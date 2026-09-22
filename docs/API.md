@@ -1213,6 +1213,15 @@ sur le préfixe pour les lignes non migrées.
 | PUT     | `/api/zones/:id/photos/reorder`   | oui                | Réordonner : corps JSON **`photo_ids`** (ou **`ordered_ids`**) = tableau des `id` dans le nouvel ordre (exactement toutes les photos de la zone) |
 | DELETE  | `/api/zones/:id/photos/:pid`      | oui                | Supprimer photo                                                                                                                                  |
 
+- **Métadonnées des images** : toute image téléversée (photos de zones et de repères, avatars,
+  pièces jointes, carnets, médias de visite et G&L) est **débarrassée de ses métadonnées** à
+  l'écriture — EXIF et coordonnées **GPS**, IPTC, XMP — et son orientation EXIF est appliquée
+  avant d'être jetée (`lib/imageMetadata.js`, lot F de `docs/AUDIT_SECURITE_2026-09-22.md`).
+  Le fichier stocké n'est donc **pas** l'octet pour octet de ce qui a été envoyé : un JPEG est
+  ré-encodé (qualité 90), un PNG l'est sans perte. Ne traversent pas le nettoyage, et sont
+  écrits tels quels : les SVG, les images animées, et tout ce que `sharp` ne sait pas lire.
+  Sans le module `sharp` sur l'hôte, le retrait n'a pas lieu et l'absence est journalisée en
+  `warn` (voir `docs/EXPLOITATION.md`).
 - **`GET /api/zones/:id/photos`** : chaque entrée inclut **`image_url`** (URL **`/uploads/zones/{id}/{photoId}.jpg`** pour les fichiers créés par l’API — pas de passage par `/api` pour le chargement navigateur) et **`thumb_url`** (`*.thumb.jpg`, **absent** ou `null` si la vignette n’existe pas, p. ex. module **`sharp`** indisponible sur l’hôte). Le champ **`image_path`** (relatif à `uploads/`) reste exposé.
 - Le champ `name` peut commencer par un **emoji de zone** : préfixe (séquence emoji) suivi d’un **espace** puis le libellé ; l’UI carte permet de choisir l’emoji dans une grille ou de coller un pictogramme.
 - **`POST /api/zones`** : corps JSON `name`, `points` (≥ 3 sommets `{ xp, yp }` en pourcentage de l’image — format **validé**, 400 si `points` n’est pas un tableau de sommets numériques, idem sur `PUT` quand `points` est fourni), `map_id` ; optionnellement `color`, **`living_beings`** (tableau de noms du catalogue, ordre conservé), `current_plant` (colonne legacy, ignorée en persistance si `living_beings` est non vide — alors `current_plant` est stocké vide), **`category_ids`**, **`description`** (texte, chaîne vide si absent).
