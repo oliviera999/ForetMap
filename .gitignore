@@ -33,6 +33,18 @@ lti-keys/
 médias/
 medias/
 
+# Médias téléversés (runtime et tests) — ne jamais versionner.
+#
+# `uploads/` est alimenté par l'application (photos de zones et de repères, avatars, pièces
+# jointes du forum, carnets) et par la suite de tests, qui y laisse ses fixtures. Rien n'y est
+# du code : le dossier n'a jamais été suivi, et il ne doit pas l'être. Trois de ses familles
+# sont d'ailleurs explicitement privées côté serveur — `observations/`, `task-logs/`,
+# `user-journal/` (`lib/uploadsPrivatePaths.js`) — et deux autres portent des photos d'élèves
+# (`students/`, `zones/`). Les versionner mettrait des données personnelles dans l'historique,
+# c'est-à-dire exactement ce que `docs/AUDIT_SECURITE_2026-09-22.md` §12 relève comme blocage
+# à la publication du dépôt.
+uploads/
+
 # Sauvegardes BDD (scripts/db-backup.sh) — ne jamais versionner (PII)
 backups/
 *.sql.gz

@@ -3,6 +3,11 @@ const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
 const { resolveScopedMapFilter, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
+const {
+  withLocationSurface,
+  intersectSurfaceMapScope,
+  filterRowsForSurface,
+} = require('../lib/surfaceAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const {
@@ -32,7 +37,6 @@ const {
   normalizeSearchAliases,
   serializeSurfaceSet,
   readSurfaceQuery,
-  isVisibleOnSurface,
 } = require('../lib/locationSurfaces');
 const {
   readAudienceWriteFields,
@@ -202,28 +206,37 @@ registerEntityPhotoRoutes(router, {
   },
 });
 
-// `authenticate` : session facultative (lecture publique conservée), mais hydratée quand
-// elle existe — c'est elle qui porte le périmètre cartes.
+// `authenticate` : session facultative, hydratée quand elle existe — c'est elle qui porte
+// le périmètre cartes, et c'est elle qui, avec le host, décide de la surface.
+// `withLocationSurface` : surface décidée par le serveur, laissez-passer exigé par les
+// surfaces gardées, cartes de la surface (`docs/AUDIT_SECURITE_2026-09-22.md`, lots A/B/D).
 router.get(
   '/markers',
   authenticate,
+  withLocationSurface,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
-    // `?surface=map|visit|plan` (lot 4) : ne renvoie que les repères visibles sur cette surface.
+    // `?surface=` n'élargit plus rien : il s'ajoute à la surface du serveur en intersection
+    // (`lib/shared/surfaceCore.js`). On continue de rejeter une valeur inconnue.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
-    const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
+    const { publicSurface, viewerAuth, filters } = req.locationSurface;
     // Périmètre cartes : sans `map_id`, la liste est ramenée aux cartes autorisées. Se cumule
     // au filtre d'audience appliqué plus bas, qui trie les lieux d'une même carte par rôle.
     const scope = await resolveScopedMapFilter(req.auth || null, mapId);
     if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
-    const rows = scope.mapIds
+    // …puis au périmètre de la **surface** : une carte non déclarée sur la surface servie
+    // n'en sort pas, même si le compte y a droit par ailleurs.
+    const surfaceScope = intersectSurfaceMapScope(req.locationSurface, scope.mapIds, mapId);
+    if (surfaceScope.notFound) return res.status(400).json({ error: 'Carte introuvable' });
+    if (surfaceScope.mapIds && surfaceScope.mapIds.length === 0) return res.json([]);
+    const rows = surfaceScope.mapIds
       ? await queryAll(
-          `${MARKERS_LIST_SQL} WHERE m.map_id IN (${scope.mapIds.map(() => '?').join(',')}) ORDER BY m.created_at`,
-          scope.mapIds,
+          `${MARKERS_LIST_SQL} WHERE m.map_id IN (${surfaceScope.mapIds.map(() => '?').join(',')}) ORDER BY m.created_at`,
+          surfaceScope.mapIds,
         )
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
     const markerIds = rows.map((row) => row.id);
@@ -250,10 +263,8 @@ router.get(
         ),
       ),
     );
-    const surfaced = surfaceQuery.value
-      ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
-      : result;
-    res.json(filterLocationsForViewer(surfaced, req.auth, { publicSurface }));
+    const surfaced = filterRowsForSurface(result, filters);
+    res.json(filterLocationsForViewer(surfaced, viewerAuth, { publicSurface }));
   }),
 );
 

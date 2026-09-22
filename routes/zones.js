@@ -39,8 +39,12 @@ const {
   normalizeSearchAliases,
   serializeSurfaceSet,
   readSurfaceQuery,
-  isVisibleOnSurface,
 } = require('../lib/locationSurfaces');
+const {
+  withLocationSurface,
+  intersectSurfaceMapScope,
+  filterRowsForSurface,
+} = require('../lib/surfaceAccess');
 const {
   readAudienceWriteFields,
   assertAudienceGroupsExist,
@@ -225,30 +229,41 @@ LEFT JOIN visit_zones vz ON vz.id = z.id`;
 /** Historique affiché sur la liste carte (le reste via GET /api/zones/:id). */
 const ZONE_LIST_HISTORY_LIMIT = 5;
 
-// `authenticate` : session facultative (la visite publique lit les zones sans compte),
-// hydratée quand elle existe — c'est elle qui porte le périmètre cartes.
+// `authenticate` : session facultative, hydratée quand elle existe — c'est elle qui porte
+// le périmètre cartes, et c'est elle qui, avec le host, décide de la surface.
+// `withLocationSurface` : surface décidée par le serveur, laissez-passer exigé par les
+// surfaces gardées, cartes de la surface (`docs/AUDIT_SECURITE_2026-09-22.md`, lots A/B/D).
 router.get(
   '/',
   authenticate,
+  withLocationSurface,
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
-    // `?surface=map|visit|plan` (lot 4) : ne renvoie que les zones visibles sur cette surface.
+    // `?surface=` n'élargit plus rien : il s'ajoute à la surface du serveur en intersection
+    // (`lib/shared/surfaceCore.js`). On continue de rejeter une valeur inconnue.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
-    const publicSurface = surfaceQuery.value === 'visit' || surfaceQuery.value === 'plan';
+    const { publicSurface, viewerAuth, filters } = req.locationSurface;
     // Périmètre cartes : carte demandée hors périmètre → 403 ; sans `map_id`, la liste
     // complète est ramenée aux cartes autorisées (sinon la garde tiendrait à l'omission
     // du paramètre). Se cumule au filtre d'audience appliqué plus bas, qui trie les lieux
     // d'une même carte selon le rôle.
     const scope = await resolveScopedMapFilter(req.auth || null, mapId);
     if (scope.forbidden) return res.status(403).json(MAP_OUT_OF_SCOPE);
-    const zones = scope.mapIds
+    // …puis au périmètre de la **surface** : une carte non déclarée sur la surface servie
+    // n'en sort pas, même si le compte y a droit par ailleurs.
+    const surfaceScope = intersectSurfaceMapScope(req.locationSurface, scope.mapIds, mapId);
+    if (surfaceScope.notFound) return res.status(400).json({ error: 'Carte introuvable' });
+    // Périmètre vide (aucune carte commune à la surface et au compte) : aucune zone. Le
+    // court-circuit évite surtout un `IN ()` invalide.
+    if (surfaceScope.mapIds && surfaceScope.mapIds.length === 0) return res.json([]);
+    const zones = surfaceScope.mapIds
       ? await queryAll(
-          `${ZONES_LIST_SQL} WHERE z.map_id IN (${scope.mapIds.map(() => '?').join(',')})`,
-          scope.mapIds,
+          `${ZONES_LIST_SQL} WHERE z.map_id IN (${surfaceScope.mapIds.map(() => '?').join(',')})`,
+          surfaceScope.mapIds,
         )
       : await queryAll(ZONES_LIST_SQL);
     const zoneIds = zones.map((z) => z.id);
@@ -331,20 +346,20 @@ router.get(
     for (const row of result) {
       delete row.visit_body_json;
     }
-    const surfaced = surfaceQuery.value
-      ? result.filter((row) => isVisibleOnSurface(row, surfaceQuery.value))
-      : result;
-    res.json(filterLocationsForViewer(surfaced, req.auth, { publicSurface }));
+    const surfaced = filterRowsForSurface(result, filters);
+    res.json(filterLocationsForViewer(surfaced, viewerAuth, { publicSurface }));
   }),
 );
 
 router.get(
   '/:id',
   authenticate,
+  withLocationSurface,
   asyncHandler(async (req, res) => {
     const zone = await queryOne(`${ZONES_DETAIL_SQL} WHERE z.id = ?`, [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    if (!canViewLocation(zone, req.auth)) {
+    const { publicSurface, viewerAuth, filters } = req.locationSurface;
+    if (!canViewLocation(zone, viewerAuth, { publicSurface })) {
       return res.status(404).json({ error: 'Zone introuvable' });
     }
     // Accès direct par identifiant : la carte de la zone est relue en base, pas déduite
@@ -352,6 +367,10 @@ router.get(
     if (!(await canAccessMapId(req.auth || null, zone.map_id))) {
       return res.status(403).json(MAP_OUT_OF_SCOPE);
     }
+    // …et la carte doit appartenir à la surface servie : sans cela, `/api/zones/:id`
+    // rouvrait une à une les zones que la liste vient de fermer.
+    const detailScope = intersectSurfaceMapScope(req.locationSurface, null, zone.map_id);
+    if (detailScope.notFound) return res.status(404).json({ error: 'Zone introuvable' });
     const history = await queryAll(
       `${ZONE_HISTORY_SQL} WHERE zone_id = ? ORDER BY harvested_at DESC LIMIT ${ZONE_HISTORY_MAX_ROWS}`,
       [req.params.id],
@@ -382,8 +401,15 @@ router.get(
           notesRows.get(String(zone.id)) || [],
         ),
       ),
-      req.auth,
+      viewerAuth,
+      { publicSurface },
     );
+    // Masquage par surface : une zone masquée sur la surface servie reste introuvable par
+    // son identifiant, sans quoi le filtre de la liste se contournerait un accès à la fois
+    // (`docs/AUDIT_SECURITE_2026-09-22.md` S2).
+    if (!payload || !filterRowsForSurface([payload], filters).length) {
+      return res.status(404).json({ error: 'Zone introuvable' });
+    }
     res.json(payload);
   }),
 );

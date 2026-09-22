@@ -18,7 +18,12 @@ const {
   listCategories,
 } = require('../lib/locationCategories');
 const { loadLocationNotesMap, attachNotesToEntity } = require('../lib/locationNotes');
-const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
+const {
+  nowIso,
+  resolveVisitMapId,
+  resolveVisitMapIdForViewer,
+  mapExists,
+} = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
   sanitizeTargetId,
@@ -220,8 +225,11 @@ router.get(
   '/content',
   authenticate,
   asyncHandler(async (req, res) => {
-    const mapId = await resolveVisitMapId(req.query.map_id);
-    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+    // Liste blanche de la Visite : une carte réservée à une surface gardée n'y est pas
+    // servie (`docs/AUDIT_SECURITE_2026-09-22.md`, lot B).
+    const visitMap = await resolveVisitMapIdForViewer(req.query.map_id, req.auth);
+    if (visitMap.error) return res.status(400).json({ error: visitMap.error });
+    const mapId = visitMap.mapId;
     const cached = visitContentCache.get(mapId);
     if (cached) return res.json(projectVisitContentForViewer(cached, req.auth));
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });

@@ -715,9 +715,12 @@ borner. Un sous-groupe sans périmètre propre hérite de l’ancêtre le plus p
 un. La restriction individuelle `users.affiliation` a été **supprimée** (migration `267`) : la
 colonne n’existe plus, le champ n’est plus accepté par aucune route.
 
-**Jamais bornés** : les lectures **sans session** (visite publique, plan public — le périmètre
-cloisonne des classes entre elles, il ne ferme pas le site) et les comptes portant
-`teacher.access` ou le rôle `admin`.
+**Jamais bornés par le périmètre de groupe** : les comptes portant `teacher.access` ou le rôle
+`admin`. Les lectures **sans session** ne le sont pas non plus — mais elles sont désormais
+bornées par la **surface** (voir la section suivante) : jusqu'au 22 septembre 2026, « non
+borné » y voulait dire « tout le catalogue », ce qui ouvrait la carte du plan de
+l'établissement à un visiteur sans compte
+(`docs/AUDIT_SECURITE_2026-09-22.md`, constats S1 et S4).
 
 Routes concernées :
 
@@ -730,6 +733,51 @@ Routes concernées :
 | `GET /api/map-routes`           | Même règle que `GET /api/zones` (après la garde d’accès du plan, sur les surfaces qui la déclenchent)               |
 | `GET /api/map-routes/:idOrSlug` | **403** si le parcours appartient à une carte hors périmètre                                                        |
 | `GET /api/map-categories`       | `?map_id=` hors périmètre → **403** (la liste sans `map_id` n’est pas bornée : ce sont des métadonnées d’habillage) |
+
+### Périmètre de **surface** (depuis le 22 septembre 2026)
+
+Le périmètre de groupe ci-dessus cloisonne des **comptes**. Il s'ajoute désormais à un
+périmètre de **surface**, qui cloisonne les **produits** — et qui, lui, s'applique aussi aux
+lectures anonymes.
+
+**La surface est décidée par le serveur**, jamais par le client :
+
+| Produit (host)                      | Lecteur         | Surface |
+| ----------------------------------- | --------------- | ------- |
+| `plan` (planlyautey)                | quel qu'il soit | `plan`  |
+| `staff` (proflyautey, stafflyautey) | quel qu'il soit | `staff` |
+| `foret` / défaut                    | authentifié     | `map`   |
+| `foret` / défaut                    | anonyme         | `visit` |
+
+Conséquences sur les routes de lieux (`/api/zones`, `/api/zones/:id`, `/api/map/markers`,
+`/api/map-categories`, `/api/maps`) :
+
+1. **Laissez-passer exigé.** Sur une surface gardée (`plan`, `staff`), ces routes réclament le
+   même laissez-passer que le point d'entrée composite de la surface —
+   `401 { error, access_required: true }` sinon. Auparavant, fermer le plan par un code ne
+   fermait que `/api/plan/content`.
+2. **Cartes déclarées.** Chaque surface ne sert que les cartes qui y sont déclarées
+   (`ui.plan.map_id` + `ui.plan.selectable_map_ids`, idem `ui.staff_plan.*`, et
+   `ui.visit.selectable_map_ids` pour la Visite). Une carte hors surface répond
+   **`400 { error: 'Carte introuvable' }`** — le même message qu'un identifiant inexistant,
+   pour ne pas apprendre au curieux quelles cartes existent sans être publiées.
+   Par défaut, `ui.visit.selectable_map_ids` étant vide, la Visite sert les cartes actives
+   **moins** celles déclarées pour les plans gardés.
+3. **`?surface=` ne peut plus élargir.** Le paramètre reste accepté, mais il s'**ajoute** à la
+   surface du serveur en **intersection** : un lieu n'est renvoyé que s'il est visible sur
+   toutes les surfaces demandées. `hidden_surfaces` et les `surfaces` de catégorie sont donc
+   appliqués **même quand le client n'envoie pas le paramètre** — c'était le contournement du
+   constat S2. Une valeur inconnue reste un `400`.
+4. **Exception de gestion.** Un porteur de `zones.manage` / `map.manage_markers` lit sans
+   filtre de surface **sur le produit ForêtMap** : l'onglet « Lieux » doit montrer les lieux
+   masqués pour permettre de les corriger. Sa demande explicite de `?surface=` reste honorée,
+   et il ne gagne aucune visibilité d'audience au passage.
+
+`GET /api/visit/content` applique la même liste blanche (point 2) : `?map_id=` hors Visite
+répond `400 { error: 'Carte introuvable' }`. C'est la route qui n'en avait **aucune**.
+
+La surcharge d'en-tête **`X-Foretmap-Product`** n'est honorée **qu'hors production** (et dans
+le harnais e2e) : en production, la surface se déduit du host seul.
 
 Refus : `403 { error, code: 'MAP_OUT_OF_SCOPE' }`. Les lectures filtrées par élève
 (tâches, statistiques) restent régies par le périmètre de groupe déjà en place

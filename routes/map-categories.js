@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, authenticate } = require('../middleware/requireTeacher');
 const { requireMapAccess } = require('../lib/mapAccess');
+const { withLocationSurface, intersectSurfaceMapScope } = require('../lib/surfaceAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
@@ -122,14 +123,18 @@ async function pruneInvalidAssignments(categoryId) {
 /**
  * Catalogue public : catégories actives, filtrables par carte et par type de lieu.
  *
- * `requireMapAccess` refuse un `?map_id=` hors périmètre. La liste sans `map_id` n'est pas
- * bornée : elle ne porte que des libellés, emojis et couleurs — des métadonnées d'habillage,
- * pas du contenu de carte — et les catégories globales (`map_id IS NULL`) s'appliquent
- * partout.
+ * `requireMapAccess` refuse un `?map_id=` hors périmètre du compte, `withLocationSurface`
+ * hors périmètre de la **surface** — et exige le laissez-passer que la surface réclame. La
+ * liste sans `map_id` n'est pas bornée par carte : elle ne porte que des libellés, emojis et
+ * couleurs — des métadonnées d'habillage, pas du contenu de carte — et les catégories
+ * globales (`map_id IS NULL`) s'appliquent partout. Elle l'est en revanche par surface :
+ * une catégorie sensible qui n'apparaît pas sur le plan n'a pas à en sortir le nom
+ * (`docs/AUDIT_SECURITE_2026-09-22.md`, lots C et D).
  */
 router.get(
   '/',
   authenticate,
+  withLocationSurface,
   requireMapAccess(),
   asyncHandler(async (req, res) => {
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
@@ -140,10 +145,12 @@ router.get(
     if (kind && kind !== 'zone' && kind !== 'marker') {
       return res.status(400).json({ error: 'kind doit valoir zone ou marker' });
     }
-    // `?surface=map|visit|plan` (lot 4) : catégories qui apparaissent sur cette surface.
+    // `?surface=` n'élargit plus rien : il s'ajoute à la surface du serveur en intersection.
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
-    res.json(await listCategories(db, { mapId, kind, surface: surfaceQuery.value }));
+    const surfaceScope = intersectSurfaceMapScope(req.locationSurface, null, mapId);
+    if (surfaceScope.notFound) return res.status(400).json({ error: 'Carte introuvable' });
+    res.json(await listCategories(db, { mapId, kind, surface: req.locationSurface.filters }));
   }),
 );
 

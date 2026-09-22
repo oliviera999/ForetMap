@@ -9,6 +9,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — politique d'accès par surface appliquée côté serveur (lots P0 A–E)
+
+> Suite de l'audit `docs/AUDIT_SECURITE_2026-09-22.md`. **Changement de comportement d'API** :
+> voir « Périmètre de surface » dans `docs/API.md`.
+
+- **La surface est désormais décidée par le serveur** (produit résolu par host + état
+  d'authentification), plus par le paramètre `?surface=` envoyé par le client. Nouveau noyau
+  pur `lib/shared/surfaceCore.js`, garde `lib/surfaceAccess.js`.
+- **Les routes génériques de lieux sont gardées comme les points d'entrée composites.**
+  `/api/zones`, `/api/zones/:id`, `/api/map/markers`, `/api/map-categories` et `/api/maps`
+  exigent sur une surface gardée (`plan`, `staff`) le même laissez-passer que
+  `/api/plan/content` et `/api/staff-plan/content`. Auparavant, fermer le plan par un code ne
+  fermait que la charge composite : `/api/zones?map_id=lyautey` rendait les 36 zones du lycée à
+  un visiteur sans code.
+- **Chaque surface ne sert que les cartes qui y sont déclarées.** Une carte hors surface répond
+  `400 « Carte introuvable »` — le même message qu'un identifiant inexistant. Nouveau réglage
+  `ui.visit.selectable_map_ids` (portée `admin`) ; vide, la Visite sert les cartes actives
+  **moins** celles déclarées pour les plans gardés.
+- **`GET /api/visit/content` reçoit la liste blanche qui lui manquait** : c'était la fuite la
+  plus large — `?map_id=lyautey` servait 36 zones et 47 repères, 211 Ko, sans compte.
+- **`hidden_surfaces` et les `surfaces` de catégorie sont appliqués inconditionnellement.**
+  `?surface=` reste accepté mais s'**ajoute** en intersection : il ne peut plus qu'affiner.
+- **Exception de gestion conservée** : un porteur de `zones.manage` / `map.manage_markers` lit
+  sans filtre de surface sur le produit ForêtMap — l'onglet « Lieux » doit montrer les lieux
+  masqués pour permettre de les corriger.
+- **`X-Foretmap-Product` n'est plus honoré en production** (hors harnais e2e) : la surface s'y
+  déduit du host seul.
+- **Tests** : `tests/security-surfaces.test.js` (9 cas — matrice surface × route × laissez-passer,
+  non-régression `hidden_surfaces` et « omission de `map_id` »). Six lectures de
+  `tests/plan-content.test.js` ont été authentifiées : elles figeaient le comportement vulnérable.
+- **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
+  ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
+  localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
 ### Corrigé — LTI : clé privée via fichier sur cPanel
 
 - Sur o2switch / nodevenv, une PEM dans `LTI_TOOL_PRIVATE_KEY` est mutilée par l’`export`

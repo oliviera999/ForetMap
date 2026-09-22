@@ -8,8 +8,14 @@
 > service workers PWA, en-têtes et limitation de débit. Rédigé le **2026-09-22** sur la branche
 > `claude/admiring-johnson-kqj6o1` (base `main`, v1.172.0).
 >
-> **État des lieux seul — aucune modification de code.** Le plan de correction du §7 attend
-> validation avant tout changement structurant, conformément à la méthode demandée.
+> **État au 22 septembre 2026 (second passage, même jour)** : l'état des lieux a été validé et
+> les lots **P0 (A–E)** et **M** ont été livrés. Les constats **S1 à S6** sont **traités**, avec
+> un filet de non-régression (`tests/security-surfaces.test.js`, neuf cas). Le §11 rend compte
+> de la livraison, le §12 du scan de secrets. **S7 à S11 restent ouverts** (lots F–L, P1/P2).
+>
+> Le document reste rédigé au présent de l'audit : c'est l'état **constaté le matin du 22
+> septembre** qui est décrit, avant correctif. Chaque constat traité porte une ligne
+> **« Corrigé »** qui dit où.
 >
 > **Note d'exécution — les chiffres sont mesurés, pas estimés.** L'application a été montée
 > localement sur le fixture anonymisé (`foretmap_local`, migré à la volée : 7 cartes, dont
@@ -65,11 +71,22 @@ et l'échéance de début novembre reste tenable. **`proflyautey` doit rester en
 que les tests du §8 passent : c'est la surface qui portera les consignes réservées aux
 personnels, et c'est elle que le §2.5 montre aujourd'hui contournable par une route générique.
 
+> **Mise à jour du 22 septembre 2026, après livraison des lots P0 (§11).** Les constats S1 à
+> S6 et S12 sont traités et couverts par des tests ; les mesures du §11.3 montrent la carte
+> `lyautey` fermée sur toutes les routes anonymes. Le **go** pour le lien jury reste
+> subordonné à deux vérifications qui ne relèvent pas du code et n'ont **pas** été faites ici :
+> rejouer les mesures **sur la production** (celles du §11.3 portent sur le fixture), et
+> vérifier que `ui.plan.selectable_map_ids` y déclare bien les cartes attendues — la garde
+> vaut ce que vaut cette déclaration. **`proflyautey` reste en 503** : sa réouverture est une
+> décision d'exploitation, distincte de ce correctif.
+
 ---
 
 ## 2. Constats
 
 ### 2.1 — S1 (P0, critique) · Le code du plan ne protège pas les données
+
+**Corrigé** (lots A/B/D) : `lib/surfaceAccess.js` — `withLocationSurface` exige sur les routes génériques le laissez-passer de la surface, et borne la réponse aux cartes qui y sont déclarées. Mesure d'après correctif, plan en mode `code` : les six routes du tableau du §1 répondent `401` sans le code, et `200` avec.
 
 `ui.plan.access_mode = 'code'` ferme `/api/plan/content` et `/api/map-routes`, et **rien
 d'autre**. Les quatre routes génériques qui portent la même matière répondent `200` à un
@@ -91,6 +108,8 @@ existe. Le périmètre par carte ne s'applique donc qu'aux comptes élèves ; le
 compte, lui, voit tout.
 
 ### 2.2 — S2 (P0, critique) · `hidden_surfaces` n'est filtré que si le client le demande
+
+**Corrigé** (lot C) : le filtrage est inconditionnel — `filterRowsForSurface` s'applique à partir de la surface du serveur, que `?surface=` soit absent, présent ou contradictoire. Couvert par le test « non-régression S2 », qui rejoue les cinq formes d'appel.
 
 Le serveur **sait** filtrer par surface — et le fait correctement quand on le lui demande :
 
@@ -117,6 +136,8 @@ demandant n'est pas un masquage.
 
 ### 2.3 — S3 (P0, critique) · La surface est un paramètre du client
 
+**Corrigé** (lot A) : `lib/shared/surfaceCore.js` décide la surface à partir du produit résolu par host et de l'état d'authentification. `?surface=` ne s'applique plus qu'en **intersection**. La surcharge `X-Foretmap-Product` n'est honorée qu'hors production (et dans le harnais e2e, qui tourne volontairement en `NODE_ENV=production`).
+
 `readSurfaceQuery(req.query.surface)` : la surface — donc la politique de visibilité — est
 déclarée par l'appelant. L'exigence cible (« surface déterminée côté serveur, Host ou origine,
 jamais par un paramètre client ») n'est pas remplie sur ces routes.
@@ -133,6 +154,8 @@ par en-tête ce que le host vient de fermer.
 
 ### 2.4 — S4 (P0, important) · Omettre `map_id` élargit l'accès
 
+**Corrigé** (lot B) : `intersectSurfaceMapScope` ramène toute lecture, avec ou sans `map_id`, aux cartes de la surface. Mesure d'après correctif, anonyme sur le produit ForêtMap : `/api/zones` rend 69 zones de 5 cartes au lieu de 118 de 7 — `lyautey` n'en fait plus partie.
+
 | Requête anonyme                   | Renvoyé                       |
 | --------------------------------- | ----------------------------- |
 | `/api/zones?map_id=lyautey`       | 36 zones (1 carte)            |
@@ -146,6 +169,8 @@ comme le périmètre d'un anonyme vaut `null` (§2.1), la réduction ne s'appliq
 garde tient bel et bien à l'omission d'un paramètre, pour celui qui n'a pas de compte.
 
 ### 2.5 — S5 (P0, critique) · La surface `staff` est servie à l'anonyme par la route générique
+
+**Corrigé** (lot D) : sur le produit `staff`, les routes génériques passent par `resolveStaffPlanViewer` — le même lecteur que `/api/staff-plan/content`. `?surface=staff` depuis une autre surface ne peut plus qu'intersecter, donc jamais élargir.
 
 `/api/staff-plan/content` est correctement gardé (`401`, §1) — `lib/staffPlanAccess.js` est la
 pièce la plus rigoureuse de l'ensemble : rôle authentifié, code plus court (7 j contre 30),
@@ -166,6 +191,8 @@ note renvoyée). C'est la raison de fond de maintenir `proflyautey` en 503 : la 
 surface n'est pas encore une garde des données.
 
 ### 2.6 — S6 (P0, moyen) · Géoréférencement exposé à toutes les surfaces
+
+**Corrigé** (lot E), mais **pas comme prévu**. Le plan annonçait d'omettre `georef` pour les surfaces « qui n'en ont pas besoin ». À l'implémentation, un test a montré que la Visite **s'en sert** : `src/components/visit-views.jsx` affiche la position du lecteur sur un terrain d'apprentissage. Retirer les ancres aurait cassé la fonction sans rien protéger. Ce qui fuyait, ce sont les ancres de `lyautey` — fermées par le périmètre de surface du lot B, qui sort la carte du catalogue public. Le catalogue `/api/maps` est en outre gardé comme les autres routes sur les surfaces à laissez-passer.
 
 `GET /api/maps` renvoie anonymement les 7 cartes avec `georef` (ancrages lat/lng) et
 `gps_enabled` — 6 des 7 sont géoréférencées, `lyautey` comprise. Le plan public n'a pas besoin
@@ -236,6 +263,32 @@ raisonnablement avoir fermé la création de comptes. À traiter comme un point 
 réglages, pas comme une faille.
 
 ---
+
+### 2.12 — S12 (P0, critique) · La Visite publique n'avait **aucune** liste blanche de cartes
+
+_Constat ajouté le 22 septembre 2026 pendant la correction, absent du premier passage._
+
+Le plan public refuse une carte non déclarée depuis le lot 8 — `resolvePlanMap`
+(`lib/planContent.js`) vérifie `?map_id=` contre `ui.plan.selectable_map_ids` et répond
+« Carte introuvable » sinon. La Visite, elle, n'avait **rien** :
+
+```js
+async function resolveVisitMapId(rawMapId) {
+  const requested = String(rawMapId || '').trim();
+  if (requested) return requested; // ← n'importe quel identifiant, tel quel
+  return resolveDefaultMapId('visit');
+}
+```
+
+`GET /api/visit/content?map_id=lyautey` servait donc le plan du lycée — **36 zones et 47
+repères, tous `is_active = 1`** — à un visiteur sans compte, en 211 Ko, sur une route dont le
+premier passage avait noté l'ouverture (§4.2) sans en mesurer la portée. C'est, en volume, la
+**plus grosse fuite anonyme** de la carte `lyautey` : plus large que les routes génériques, et
+elle ne dépendait d'aucun paramètre à deviner.
+
+**Corrigé** (lot B) : `resolveVisitMapIdForViewer` applique à la Visite la liste blanche que le
+plan avait déjà. Un gestionnaire de lieux n'est pas borné — il prépare les contenus de visite
+carte par carte depuis la console.
 
 ## 3. Ce qui est déjà conforme — et qu'il ne faut pas défaire
 
@@ -348,9 +401,9 @@ depuis `lyautey`. **C'est le seul point à renverser** — le reste du chantier 
 
 ---
 
-## 7. Plan de correction proposé — **en attente de validation**
+## 7. Plan de correction — **P0 et M livrés, P1/P2 ouverts**
 
-### P0 — avant tout lien transmis au jury
+### P0 — avant tout lien transmis au jury · **livré** (voir §11)
 
 | Lot   | Objet                                                                                                                                                                                                                                                                             | Traite |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
@@ -385,7 +438,7 @@ publication du code, pas le lien jury.
 
 ---
 
-## 8. Tests exigés — à livrer avec les correctifs
+## 8. Tests exigés — **livrés pour P0** (`tests/security-surfaces.test.js`)
 
 1. **Matrice surface × route × authentification** (`tests/security-surfaces.test.js`, supertest) :
    pour chaque route du §4.1 et chaque surface, un appel sans authentification et sans code doit
@@ -435,4 +488,135 @@ encore.
   des données. Leurs gardes ont été lues, non mesurées. Une passe dédiée reste à faire.
 - Les **328 routes G&L** n'ont pas été sondées individuellement : l'isolement produit a été
   vérifié, le détail de leurs gardes non.
-- Aucun **scan de secrets sur l'historique Git** n'a été lancé (lot M).
+- Le **scan de secrets sur l'historique Git** a depuis été lancé : voir §12.
+
+---
+
+## 11. Livraison des lots P0 (A–E) — 22 septembre 2026
+
+### 11.1 Ce qui a été écrit
+
+| Fichier                                                                                             | Rôle                                                                                              |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `lib/shared/surfaceCore.js` _(neuf)_                                                                | **Noyau pur** : décide la surface (produit × authentification), et l'intersection de `?surface=`  |
+| `lib/surfaceAccess.js` _(neuf)_                                                                     | Garde `withLocationSurface` : laissez-passer de la surface, cartes déclarées, filtrage des lignes |
+| `lib/visitRouteShared.js`                                                                           | `resolveVisitMapIdForViewer` — la liste blanche qui manquait à la Visite (S12)                    |
+| `lib/locationCategories.js`                                                                         | `listCategories` accepte **plusieurs** surfaces (intersection)                                    |
+| `lib/settings.js`                                                                                   | Réglage `ui.visit.selectable_map_ids` (portée `admin`, pas `public` — cf. S10)                    |
+| `routes/zones.js`, `routes/map.js`, `routes/map-categories.js`, `routes/maps.js`, `routes/visit.js` | Branchement de la garde                                                                           |
+| `tests/security-surfaces.test.js` _(neuf)_                                                          | Neuf cas : la matrice du §8, exécutable                                                           |
+
+### 11.2 La décision de conception, en une phrase
+
+**Une carte réservée à une surface gardée n'est pas servie sur la surface publique tant qu'un
+administrateur ne l'y a pas explicitement mise.** `ui.visit.selectable_map_ids` fait autorité
+dès qu'il est renseigné ; à défaut, la Visite sert les cartes actives **moins** celles
+déclarées pour les plans (`ui.plan.map_id`, `ui.staff_plan.*`). C'est ce qui ferme `lyautey`
+sans rien déclarer à la main, et sans fermer les terrains d'apprentissage.
+
+### 11.3 Mesures après correctif
+
+Même environnement et même méthode qu'au premier passage (fixture migré, plan en mode `code`) :
+
+| Requête **anonyme**                                         | Avant                 | Après                   |
+| ----------------------------------------------------------- | --------------------- | ----------------------- |
+| `/api/zones?map_id=lyautey` _(host foretmap)_               | `200` — 36 zones      | `400` Carte introuvable |
+| `/api/map/markers?map_id=lyautey` _(host foretmap)_         | `200` — 44 repères    | `400` Carte introuvable |
+| `/api/visit/content?map_id=lyautey`                         | `200` — 211 Ko        | `400` Carte introuvable |
+| `/api/zones` _(sans `map_id`)_                              | 118 zones / 7 cartes  | 69 zones / 5 cartes     |
+| `/api/map/markers` _(sans `map_id`)_                        | 95 repères / 7 cartes | 47 repères / 5 cartes   |
+| `/api/zones?map_id=lyautey` _(host planlyautey, sans code)_ | `200` — 36 zones      | `401` code requis       |
+| `/api/maps` _(host planlyautey, sans code)_                 | `200` — 7 cartes      | `401` code requis       |
+
+Et la garde n'enferme pas dehors — **avec** le bon code, sur `planlyautey` :
+`/api/plan/content` `200`, `/api/zones` 36 zones, `/api/map-categories` 11 catégories,
+et `/api/map/markers` **42** repères : les deux marqués `hidden_surfaces: ['plan']` sont
+filtrés, `?surface=` absent, présent ou contradictoire — S2 fermé.
+
+### 11.4 Ce qui a été corrigé en cours de route
+
+**Le lot E a été resserré.** Le plan annonçait d'omettre `georef` pour « les surfaces qui n'en
+ont pas besoin ». À l'implémentation, deux tests de `tests/settings-maps-georef.test.js` sont
+tombés — et la lecture du front a montré que la **Visite s'en sert** : `visit-views.jsx` affiche
+la position du lecteur sur un terrain d'apprentissage. Retirer les ancres aurait cassé la
+fonction sans rien protéger : ce qui fuyait, ce sont les ancres de `lyautey`, déjà fermées par
+le périmètre de surface du lot B. Le retrait a donc été annulé, et le catalogue `/api/maps`
+simplement gardé comme les autres routes. Un correctif de sécurité qui casse une fonction
+d'usage est un correctif qu'on finit par désactiver.
+
+### 11.5 Vérifications
+
+- `npm test` — **3882 passés, 0 échec** (2 ignorés), dont les 9 nouveaux cas.
+- `npm run test:ui` — **4652 passés**. `npm run test:content` — **64 passés**.
+- `npm run lint` — 0 erreur. `npm run format:check` — conforme.
+- **Efficacité du filet vérifiée** : en neutralisant volontairement le filtrage de surface et la
+  liste blanche, 4 des 9 cas tombent. Un test de sécurité qui ne rougit jamais ne prouve rien.
+- Six tests de `tests/plan-content.test.js` ont dû être **authentifiés** : ils écrivaient en tant
+  que professeur puis relisaient **anonymement**, c'est-à-dire qu'ils figeaient le comportement
+  vulnérable. Leur intention (exposition de `hidden_surfaces`, sémantique de `?surface=`) est
+  conservée à l'identique.
+
+### 11.6 Ce qui reste ouvert
+
+S7 (EXIF), S8 (caches PWA), S9 (`robots.txt`), S10 (`/api/settings/public`), S11 (réglages
+d'inscription) — lots F à L, P1 et P2, non engagés.
+
+---
+
+## 12. Lot M — scan de secrets sur l'historique Git
+
+### 12.1 Méthode, et un faux négatif évité
+
+Le dépôt était cloné en **superficiel** (`.git/shallow`, 104 commits depuis le 17 septembre)
+alors que le projet en compte **3 421** depuis le 18 mars 2026 : un premier scan n'a couvert que
+**3 %** de l'historique. Le clone a été complété (`git fetch --unshallow`) avant de recommencer
+sur les **44 030 blobs** réellement présents.
+
+Un second faux négatif a été écarté en chemin : `grep -I` sur le flux `git cat-file --batch`
+classe l'ensemble comme binaire (le flux contient des images) et ne rend **rien**. C'est le
+genre de « zéro résultat » rassurant qui ne prouve rien — la passe a été refaite sans `-I`.
+
+### 12.2 Ce qui est propre
+
+Aucune occurrence, sur l'historique complet : secret client Google (`GOCSPX-`), clé AWS
+(`AKIA…`), clé privée réelle, jeton signé (JWT), URI de base de données avec identifiants,
+jeton Slack / OpenAI / GitHub. La seule ligne `BEGIN PRIVATE KEY` est un **gabarit commenté**
+de `.env.example`. `.env`, `.env.local` et `.env.production` n'ont **jamais** été versionnés.
+`sql/biodiv_pedago_seed.sql` ne contient aucune adresse e-mail.
+
+### 12.3 **Un blocage pour la publication**
+
+> **`sql/foretmap_bdd_complete.sql` — dump de production de 4,3 Mo — est dans l'historique.**
+
+|            |                                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ajouté par | `6b11e9fe4` — _feat(biodiv): glossaire, QCM et réseau trophique v1.59.1_                                                                                                                               |
+| Retiré par | `7167ac0e2` — _fix(sécurité): retirer le dump de production versionné (données personnelles)_                                                                                                          |
+| Contenu    | **36 adresses e-mail** (`@lyceelyautey.org`, `@pedagolyautey.org`, `@gmail.com`…), **41 hachages bcrypt**, 94 tables dont `users`, `forum_posts`, `observation_logs`, `context_comments`, `user_roles` |
+
+Le retrait a porté sur la **tête**, pas sur l'historique : le blob reste accessible à tout
+clone. Pour un dépôt privé, l'exposition est celle des personnes qui ont accès au dépôt ; **à la
+publication sous licence libre, elle devient publique** — données personnelles d'élèves et de
+personnels d'un établissement scolaire, dont des mineurs.
+
+**Conséquence : le dépôt ne peut pas être publié en l'état.** Trois actions, dans cet ordre,
+et aucune n'est à prendre seul :
+
+1. **Réécrire l'historique** (`git-filter-repo` ou BFG) pour retirer le blob, puis forcer la
+   mise à jour de toutes les références. Opération **destructive et coordonnée** : elle change
+   tous les identifiants de commit, invalide chaque clone et chaque PR ouverte. Elle demande une
+   fenêtre annoncée, et n'a pas été engagée ici.
+2. **Considérer les 41 mots de passe comme compromis** : réinitialisation forcée des comptes
+   concernés. Le facteur bcrypt 10 protège contre l'usage immédiat, pas contre une attaque hors
+   ligne patiente.
+3. **Tracer l'incident RGPD** : 36 personnes identifiables, établissement scolaire, mineurs
+   probables. La qualification relève du responsable de traitement, pas de cet audit.
+
+Les trois autres blobs porteurs de hachages sont `tests/tasks-validate-rbac.test.js` — des
+fixtures de test, sans portée.
+
+### 12.4 Limite
+
+Le scan repose sur des **motifs**. Un secret sans forme reconnaissable (mot de passe court en
+clair dans un commentaire, jeton maison sans préfixe) n'est pas détecté. Ce qui précède établit
+qu'aucun secret **de forme connue** subsiste, pas qu'il n'y en a aucun.
