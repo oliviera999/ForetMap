@@ -20,9 +20,9 @@ restent dans ForetMap et dans la Visite. L’administrateur peut toutefois consu
 suivi d’usage du monorepo — sans jamais identifier un visiteur du plan.
 
 Dans l'onglet du navigateur (et si on installe le plan sur l'écran d'accueil), l'icône
-reprend la **charte graphique du Lycée Lyautey** : fond bleu marine et monogramme en traits
-légers. L’interface (barre haute, boutons, puces) suit les mêmes bleus. Le **logo officiel**
-du lycée apparaît discrètement en bas à gauche du plan.
+est le **favicon officiel du lycée** (même image que sur le site lyceelyautey.org).
+L’interface (barre haute, boutons, puces) suit les bleus de la charte. Le **logo officiel**
+du lycée apparaît aussi discrètement en bas à gauche du plan.
 
 ## Ce que voit un visiteur
 

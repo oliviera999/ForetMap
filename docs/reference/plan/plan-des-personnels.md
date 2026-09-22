@@ -240,8 +240,8 @@ poste, un départ ou un prêt d'appareil. Sans réseau, l'application s'ouvre et
 peut pas charger.
 
 ⚠️ **La distinction visuelle repose sur la couleur et le titre.** La barre haute est brune sur
-proflyautey, bleu marine sur planlyautey, et l'icône d'onglet porte un cadenas. Regardez-la
-avant de montrer votre écran à quelqu'un d'extérieur.
+proflyautey, bleu marine sur planlyautey ; l'icône d'onglet est la même (logo officiel du
+lycée). Regardez la couleur de la barre avant de montrer votre écran à quelqu'un d'extérieur.
 
 ⚠️ **« Retiré du plan public » n'est pas « secret ».** C'est une mesure d'éditorialisation :
 on ne met pas la chaufferie sur le plan des familles. Pour une information réellement sensible,
