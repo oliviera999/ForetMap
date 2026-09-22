@@ -21,7 +21,6 @@ const {
 const {
   makeGoogleOAuthState,
   buildOAuthFrontendRedirect,
-  buildOAuthFrontendErrorRedirect,
   exchangeGoogleCode,
   verifyGoogleIdToken,
 } = require('../../lib/googleOAuthShared');
@@ -921,7 +920,7 @@ router.post(
     const actorRoleSlug = String(req.glAuth.roleSlug || 'gl_admin').toLowerCase();
 
     const actorAdmin = await queryOne(
-      `SELECT id, email, display_name, role, is_active
+      `SELECT id, email, display_name, role, is_active, foretmap_user_id
        FROM gl_admins
       WHERE id = ?
       LIMIT 1`,
@@ -946,6 +945,9 @@ router.post(
       actorUserType: 'gl_admin',
       actorUserId: String(actorAdmin.id),
       actorRoleSlug,
+      actorTokenEpoch: actorAdmin.foretmap_user_id
+        ? await getUserTokenEpoch(actorAdmin.foretmap_user_id)
+        : 0,
     };
     const token = await signGlToken(claims);
 

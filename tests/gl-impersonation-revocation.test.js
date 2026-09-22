@@ -129,6 +129,14 @@ describe('hydrateGlAuthFromClaims — prise de contrôle', () => {
     assert.equal(auth, null);
   });
 
+  it('rend null dès que le mot de passe de l’acteur a changé', async () => {
+    const auth = await hydrateGlAuthFromClaims(
+      { ...PLAYER_CLAIMS, actorTokenEpoch: 0 },
+      depsWithActor({ id: 9, role: 'mj', is_active: 1, token_epoch: 3 }),
+    );
+    assert.equal(auth, null);
+  });
+
   it('n’affecte pas une session de joueur ordinaire', async () => {
     const auth = await hydrateGlAuthFromClaims(
       { product: 'gl', userType: 'gl_player', userId: '42' },
@@ -140,6 +148,23 @@ describe('hydrateGlAuthFromClaims — prise de contrôle', () => {
 });
 
 describe('actorStillMayImpersonate — compte enseignant lié (CDG-12)', () => {
+  it('refuse un acteur dont l’époque de jeton a changé (mot de passe modifié)', async () => {
+    assert.equal(
+      await actorStillMayImpersonate(
+        { ...PLAYER_CLAIMS, actorTokenEpoch: 0 },
+        depsWithActor({ id: 9, role: 'mj', is_active: 1, token_epoch: 2 }),
+      ),
+      false,
+    );
+    assert.equal(
+      await actorStillMayImpersonate(
+        { ...PLAYER_CLAIMS, actorTokenEpoch: 2 },
+        depsWithActor({ id: 9, role: 'mj', is_active: 1, token_epoch: 2 }),
+      ),
+      true,
+    );
+  });
+
   it('refuse un acteur dont l’enseignant est désactivé ou privé de teacher.access', async () => {
     assert.equal(
       await actorStillMayImpersonate(

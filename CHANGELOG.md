@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — prise de contrôle : un mot de passe changé coupe aussi la session « voir comme »
+
+- Le jeton de prise de contrôle portait l'époque de session **de la cible**, pas celle de
+  l'acteur. Après un changement de mot de passe de l'administrateur (ou du MJ), la session
+  contrôlée restait valable, et « Revenir à mon compte » pouvait même réémettre un jeton
+  admin/MJ frais. On snapshot désormais l'époque de l'acteur (`actorTokenEpoch`) à
+  l'ouverture et on la revérifie à chaque requête (ForetMap et Gnomes & Licornes).
+
 ### Ajouté — plan public et plan des personnels : déconnexion et choix du plan affiché
 
 - **Bouton ⚙️ dans la barre haute** des deux plans (`planlyautey`, `proflyautey` /
