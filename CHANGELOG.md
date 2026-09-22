@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — bouton d'aide « ? » recentré dans son cercle
+
+- Le glyphe « ? » pouvait paraître décalé dans la pastille (ForetMap, G&L, plan) : pas de
+  centrage flex / `line-height: 1` / `padding: 0` sur `.fm-help-btn`, `.gl-help-btn` et
+  `.plan-help-btn`.
+- Réparation d'un sélecteur CSS cassé (compaction du « ? » dans la barre carte) qui avait
+  été scindé par l'insertion des styles d'en-tête du carnet.
+
 ### Ajouté — catalogue biodiversité : option « toute la biodiversité du site »
 
 - Le sélecteur de carte du catalogue propose désormais **Toute la biodiversité du site**
