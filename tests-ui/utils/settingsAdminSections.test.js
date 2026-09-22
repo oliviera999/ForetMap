@@ -101,6 +101,11 @@ describe('filterSettingSections + countSectionRows', () => {
     expect(out.map((s) => s.id)).toEqual(['operations']);
     expect(countSectionRows(out)).toBe(1);
   });
+  test('filtre sur le titre de section → toutes les lignes de la section', () => {
+    const out = filterSettingSections(sections, 'sécurité', ROLE_TERMS);
+    expect(out.map((s) => s.id)).toEqual(['security']);
+    expect(countSectionRows(out)).toBe(1);
+  });
   test('filtre sur la clé brute et sur le texte d’aide (contraintes)', () => {
     expect(countSectionRows(filterSettingSections(sections, 'password_min', ROLE_TERMS))).toBe(1);
     expect(countSectionRows(filterSettingSections(sections, 'min 4', ROLE_TERMS))).toBe(1);

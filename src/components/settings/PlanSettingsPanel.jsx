@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
+import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
 
 const PLAN_KEYS = Object.freeze({
   mapId: 'ui.plan.map_id',
@@ -174,8 +175,10 @@ export function PlanSettingsPanel({
         label="Catégories cochées d’office"
         value={get(PLAN_KEYS.defaultCategoryIds, '')}
         disabled={readOnly || savingKey === PLAN_KEYS.defaultCategoryIds}
-        hint="Sélection multiple — enregistrée immédiatement."
+        hint="Sélection multiple — enregistrée immédiatement. Vide = tout afficher à l’ouverture."
         testId="plan-default-category-ids"
+        requireSurface="plan"
+        excludeIds={parseCategoryIdsSetting(get(PLAN_KEYS.hiddenCategoryIds, ''))}
         onSave={(next) =>
           saveSetting(PLAN_KEYS.defaultCategoryIds, next, 'Catégories par défaut enregistrées')
         }
@@ -185,8 +188,10 @@ export function PlanSettingsPanel({
         label="Catégories masquées"
         value={get(PLAN_KEYS.hiddenCategoryIds, '')}
         disabled={readOnly || savingKey === PLAN_KEYS.hiddenCategoryIds}
-        hint="Ces catégories n’apparaissent pas sur le Plan."
+        hint="Retirées des filtres, et les lieux qui n’appartenaient qu’à elles disparaissent du plan."
         testId="plan-hidden-category-ids"
+        requireSurface="plan"
+        excludeIds={parseCategoryIdsSetting(get(PLAN_KEYS.defaultCategoryIds, ''))}
         onSave={(next) =>
           saveSetting(PLAN_KEYS.hiddenCategoryIds, next, 'Catégories masquées enregistrées')
         }

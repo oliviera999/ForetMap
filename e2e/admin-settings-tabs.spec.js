@@ -38,9 +38,17 @@ test('admin Paramètres : sous-onglets Accueil / Cartographie / Aide', async ({ 
 
   if (await accueil.isVisible({ timeout: 3000 }).catch(() => false)) {
     await accueil.click();
-    await expect(page.getByText(/Recherche dans les paramètres|Accueil/i).first()).toBeVisible({
+  }
+
+  const search = page.getByTestId('settings-admin-search');
+  if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await expect(page.getByLabelText(/Rechercher un paramètre/i)).toBeVisible();
+    await page.getByLabelText(/Rechercher un paramètre/i).fill('maintenance');
+    await expect(page.getByTestId('settings-admin-search-results')).toBeVisible({
       timeout: 10_000,
     });
+    await page.getByRole('button', { name: /Effacer la recherche/i }).click();
+    await expect(page.getByRole('tab', { name: /Accueil/i })).toBeVisible();
   }
 
   if (await carto.isVisible({ timeout: 3000 }).catch(() => false)) {

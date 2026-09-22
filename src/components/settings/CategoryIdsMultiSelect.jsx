@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import {
   createLatestWriteQueue,
@@ -7,7 +7,28 @@ import {
 } from '../../utils/categoryIdsSetting.js';
 
 /**
+ * La catégorie apparaît-elle sur la surface demandée ?
+ * @param {{ surfaces?: unknown, is_active?: boolean }} cat
+ * @param {string} surface
+ */
+function categoryMatchesSurface(cat, surface) {
+  if (!surface) return true;
+  const list = Array.isArray(cat?.surfaces) ? cat.surfaces : [];
+  return list.map(String).includes(String(surface));
+}
+
+/**
  * Multi-sélection de catégories de lieux (ids stockés en chaîne `;`-séparée).
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {string} props.value
+ * @param {(next: string) => Promise<unknown>|unknown} props.onSave
+ * @param {boolean} [props.disabled]
+ * @param {string} [props.hint]
+ * @param {string} [props.testId]
+ * @param {string} [props.requireSurface] ex. `plan` / `staff` — n'affiche que ces catégories
+ * @param {Iterable<string>|null} [props.excludeIds] ids déjà pris ailleurs (exclusion mutuelle)
  */
 export function CategoryIdsMultiSelect({
   label,
@@ -16,6 +37,8 @@ export function CategoryIdsMultiSelect({
   disabled = false,
   hint = '',
   testId = 'category-ids-multi-select',
+  requireSurface = '',
+  excludeIds = null,
 }) {
   const [categories, setCategories] = useState([]);
   const [loadErr, setLoadErr] = useState('');
@@ -38,6 +61,15 @@ export function CategoryIdsMultiSelect({
       },
     );
   }
+
+  const excluded = useMemo(() => {
+    const set = new Set();
+    for (const id of excludeIds || []) {
+      const s = String(id || '').trim();
+      if (s) set.add(s);
+    }
+    return set;
+  }, [excludeIds]);
 
   useEffect(() => {
     if (dirtyRef.current) return;
@@ -67,6 +99,18 @@ export function CategoryIdsMultiSelect({
     };
   }, []);
 
+  const shown = useMemo(() => {
+    return (categories || []).filter((cat) => {
+      if (cat && cat.is_active === false) return false;
+      if (!categoryMatchesSurface(cat, requireSurface)) return false;
+      const id = String(cat.id);
+      // Déjà sélectionné : rester visible même si désormais exclu (pour pouvoir décocher).
+      if (selected.has(id)) return true;
+      if (excluded.has(id)) return false;
+      return true;
+    });
+  }, [categories, requireSurface, excluded, selected]);
+
   const toggle = (id) => {
     if (disabled) return;
     const next = new Set(selectedRef.current);
@@ -89,7 +133,7 @@ export function CategoryIdsMultiSelect({
       ) : null}
       {loadErr ? <p className="auth-error">{loadErr}</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {categories.map((cat) => {
+        {shown.map((cat) => {
           const id = String(cat.id);
           const checked = selected.has(id);
           return (
@@ -120,7 +164,7 @@ export function CategoryIdsMultiSelect({
             </label>
           );
         })}
-        {!categories.length && !loadErr ? (
+        {!shown.length && !loadErr ? (
           <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
             Aucune catégorie définie.
           </span>

@@ -12,7 +12,6 @@ import { api } from '../../services/api';
 import {
   MARKER_EMOJIS,
   ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
-  detectLeadingMarkerEmoji,
   stripLeadingMarkerEmoji,
 } from '../../constants/emojis';
 import { ZONE_COLORS } from '../../constants/garden';
@@ -31,6 +30,7 @@ import {
   mergeZoneListIntoDetail,
 } from '../../utils/zoneModalForm.js';
 import { isInfrastructureLocation, locationCategoryIds } from '../../utils/locationCategories.js';
+import { zoneEmojiOf } from '../../utils/zoneDisplay.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -125,12 +125,10 @@ function ZoneInfoModal({
   const [zoneName, setZoneName] = useState(
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
   );
+  // Colonne `zones.emoji` (audit C4) en priorité — le reset d'effet doit la suivre,
+  // sinon un emoji hors préfixe de nom retombe sur markerEmojis[0] (🌱).
   const [zoneEmoji, setZoneEmoji] = useState(
-    () =>
-      String(zone.emoji || '').trim() ||
-      detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) ||
-      markerEmojis[0] ||
-      '📍',
+    () => zoneEmojiOf(zone, emojiParsingList) || markerEmojis[0] || '📍',
   );
   const [livingBeings, setLivingBeings] = useState(() =>
     orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
@@ -227,9 +225,7 @@ function ZoneInfoModal({
 
   useEffect(() => {
     setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
-    setZoneEmoji(
-      detectLeadingMarkerEmoji(zone.name || '', emojiParsingList) || markerEmojis[0] || '📍',
-    );
+    setZoneEmoji(zoneEmojiOf(zone, emojiParsingList) || markerEmojis[0] || '📍');
     setLivingBeings(
       orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
     );
@@ -249,6 +245,7 @@ function ZoneInfoModal({
   }, [
     zone.id,
     zone.name,
+    zone.emoji,
     zone.living_beings,
     zone.living_beings_list,
     zone.current_plant,

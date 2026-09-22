@@ -9,6 +9,11 @@ describe('zoneDisplay — colonne emoji en priorité, repli sur le préfixe du n
     expect(zoneEmojiOf({ emoji: '', name: '🌳 Verger' })).toBe('🌳');
     expect(zoneEmojiOf({ name: 'Verger' })).toBe('');
   });
+  // Régression ZoneInfoModal : sans colonne ni préfixe, le formulaire retombe sur 🌱 —
+  // zoneEmojiOf doit rester '' pour que le modal applique son repli, sans écraser une colonne.
+  it('colonne seule (nom sans préfixe) : ne pas perdre l’emoji dédié', () => {
+    expect(zoneEmojiOf({ emoji: '💧', name: 'Bassins Est' })).toBe('💧');
+  });
   it('titre : nom sans préfixe, nom brut si rien à retirer', () => {
     expect(zoneTitleOf({ name: '🌳 Verger' })).toBe('Verger');
     expect(zoneTitleOf({ name: 'Verger' })).toBe('Verger');

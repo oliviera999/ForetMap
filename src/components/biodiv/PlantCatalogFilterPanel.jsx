@@ -6,7 +6,7 @@ import {
 } from '../../utils/plantFilters';
 import { ORIGIN_STATUS_VALUES, ORIGIN_STATUS_LABELS } from '../../utils/plantOriginStatus.js';
 import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnStatus.js';
-import { BIODIV_SORT } from '../../utils/biodivCatalogLoad.js';
+import { BIODIV_MAP_FILTER_ALL, BIODIV_SORT } from '../../utils/biodivCatalogLoad.js';
 
 /**
  * Panneau de filtres / tri / chips du catalogue biodiversité.
@@ -96,6 +96,22 @@ export function PlantCatalogFilterPanel({
   const effectiveTrophic = trophicRole ?? agro ?? '';
   const mapList = Array.isArray(maps) ? maps : [];
   const showMapSelect = typeof onActiveMapChange === 'function' && mapList.length > 0;
+  const mapSelectValue =
+    zonePresence === ZONE_PRESENCE_FILTER.ALL ? BIODIV_MAP_FILTER_ALL : activeMapId || '';
+
+  const handleMapSelectChange = (e) => {
+    const next = e.target.value;
+    if (next === BIODIV_MAP_FILTER_ALL) {
+      if (typeof setZonePresence === 'function') {
+        setZonePresence(ZONE_PRESENCE_FILTER.ALL);
+      }
+      return;
+    }
+    onActiveMapChange(next);
+    if (zonePresence === ZONE_PRESENCE_FILTER.ALL && typeof setZonePresence === 'function') {
+      setZonePresence(ZONE_PRESENCE_FILTER.IN_MAP);
+    }
+  };
 
   useEffect(() => {
     if (habitat && !habitatOptions.includes(habitat)) setHabitat('');
@@ -153,11 +169,12 @@ export function PlantCatalogFilterPanel({
             <label htmlFor={mapSelectId}>Carte</label>
             <select
               id={mapSelectId}
-              value={activeMapId || ''}
-              onChange={(e) => onActiveMapChange(e.target.value)}
+              value={mapSelectValue}
+              onChange={handleMapSelectChange}
               aria-label="Sélection de carte active"
               style={{ background: 'white' }}
             >
+              <option value={BIODIV_MAP_FILTER_ALL}>Toute la biodiversité du site</option>
               {mapList.map((mp) => (
                 <option key={mp.id} value={mp.id}>
                   {mp.name || mp.id}

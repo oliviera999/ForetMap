@@ -128,9 +128,11 @@ const { AppPlan } = await import('../../src/plan/AppPlan.jsx');
  * dire de celles d'un autre.
  */
 const CATEGORIES_KEY = 'plan:categories:lyautey';
+const CATEGORIES_DEFAULTS_KEY = 'plan:categories-defaults:lyautey';
 
 beforeEach(() => {
   planApiMock.fetchPlanContent.mockClear();
+  planApiMock.fetchPlanContent.mockResolvedValue(content);
   planApiMock.reportPlanUsage.mockClear();
   positionStub.toggle.mockClear();
   planApiMock.submitPlanAccessCode.mockClear();
@@ -404,13 +406,52 @@ describe('AppPlan — montage', () => {
     await waitFor(() =>
       expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('search_empty', 'piscine'),
     );
+    // Refermer la feuille : sinon la pile d'overlays / le focus peut polluer le test suivant.
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer les résultats' }));
+    await waitFor(() => expect(screen.queryByTestId('plan-results-sheet')).toBeNull());
   });
 
   test('lien profond ?lieu= ouvre directement la fiche', async () => {
     window.history.replaceState(null, '', '/?lieu=m-gym');
-    render(<AppPlan />);
+    await act(async () => {
+      render(<AppPlan />);
+      await Promise.resolve();
+    });
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(placeSheet.textContent).toContain('Gymnase');
+    // Dépiiler l'overlay du lien profond avant le test suivant (pile module partagée).
+    await act(async () => {
+      abandonAllOverlays();
+      await Promise.resolve();
+    });
+  });
+
+  test('première pose de l’empreinte des défauts : ne pas écraser un choix déjà mémorisé', async () => {
+    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(['c-salles']));
+    render(<AppPlan />);
+    const salles = await screen.findByRole('button', { name: /Salles/ });
+    expect(salles.getAttribute('aria-pressed')).toBe('true');
+    await waitFor(() =>
+      expect(JSON.parse(window.localStorage.getItem(CATEGORIES_DEFAULTS_KEY))).toEqual([]),
+    );
+    expect(JSON.parse(window.localStorage.getItem(CATEGORIES_KEY))).toEqual(['c-salles']);
+  });
+
+  test('changement admin des catégories cochées d’office écrase la mémoire appareil', async () => {
+    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(['c-salles']));
+    window.localStorage.setItem(CATEGORIES_DEFAULTS_KEY, JSON.stringify([]));
+    planApiMock.fetchPlanContent.mockResolvedValue({
+      ...content,
+      settings: { ...content.settings, default_category_ids: ['c-sport'] },
+    });
+    render(<AppPlan />);
+    const sport = await screen.findByRole('button', { name: /Sport/ });
+    await waitFor(() => expect(sport.getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByRole('button', { name: /Salles/ }).getAttribute('aria-pressed')).toBe(
+      'false',
+    );
+    expect(JSON.parse(window.localStorage.getItem(CATEGORIES_KEY))).toEqual(['c-sport']);
+    expect(JSON.parse(window.localStorage.getItem(CATEGORIES_DEFAULTS_KEY))).toEqual(['c-sport']);
   });
 
   test('repères superposés : pastille de groupe, puis liste des lieux du groupe (lot 5)', async () => {
@@ -459,7 +500,15 @@ describe('AppPlan — montage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
     const replaceSpy = vi.spyOn(window.history, 'replaceState');
-    fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
+    const picker = screen.getByTestId('map-route-picker');
+    // La puce Parcours doit rester hors du bandeau scrollable : sinon overflow coupe la
+    // liste et elle s'affiche sous la carte.
+    expect(picker.closest('.plan-filters__scroll')).toBeNull();
+    expect(picker.closest('.plan-filters__row')).toBeTruthy();
+    fireEvent.click(picker);
+    const list = document.querySelector('.plan-routes__list');
+    expect(list).toBeTruthy();
+    expect(list.closest('.plan-filters__scroll')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
 
     const sheet = await screen.findByTestId('plan-route-sheet');

@@ -189,8 +189,8 @@ code est d'ailleurs inscrit au journal d'audit, en regard de son ouverture.
 
 Si l'établissement propose plusieurs plans (voir ci-dessous), on choisit ici celui qu'on
 regarde. Le choix est retenu sur l'appareil, et porté par l'adresse : un lien copié rouvre le
-même plan. Changer de plan repart de zéro — recherche, lieu ouvert, parcours en cours et
-filtres — puisque les lieux et les catégories diffèrent d'un plan à l'autre.
+même plan. Changer de plan repart de zéro pour la recherche, le lieu ouvert et le parcours —
+les **filtres** restent mémorisés **par plan** (on retrouve ceux qu'on y avait laissés).
 
 La liste des plans proposés se règle dans **Réglages → Plan Lyautey → Plan des personnels**,
 champ **« Autres plans proposés aux personnels »**. Elle est **propre à cette surface** : un
@@ -251,8 +251,8 @@ poste, un départ ou un prêt d'appareil. Sans réseau, l'application s'ouvre et
 peut pas charger.
 
 ⚠️ **La distinction visuelle repose sur la couleur et le titre.** La barre haute est brune sur
-proflyautey, bleu marine sur planlyautey, et l'icône d'onglet porte un cadenas. Regardez-la
-avant de montrer votre écran à quelqu'un d'extérieur.
+proflyautey, bleu marine sur planlyautey ; l'icône d'onglet est la même (logo officiel du
+lycée). Regardez la couleur de la barre avant de montrer votre écran à quelqu'un d'extérieur.
 
 ⚠️ **« Retiré du plan public » n'est pas « secret ».** C'est une mesure d'éditorialisation :
 on ne met pas la chaufferie sur le plan des familles. Pour une information réellement sensible,

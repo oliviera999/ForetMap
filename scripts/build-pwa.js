@@ -96,7 +96,7 @@ const PWA_PROFILES = Object.freeze({
     apiNetworkFirst: Object.freeze([]),
   }),
   staff: Object.freeze({
-    // Icônes partagées avec le plan public (`assetsDir: 'plan'`) plus le favicon propre.
+    // Icônes partagées avec le plan public (`assetsDir: 'plan'`) ; SVG staff = copie du plan.
     staticPrecache: Object.freeze([
       '/staff/favicon.svg',
       '/plan/favicon.ico',

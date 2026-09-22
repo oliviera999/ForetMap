@@ -20,9 +20,9 @@ restent dans ForetMap et dans la Visite. L’administrateur peut toutefois consu
 suivi d’usage du monorepo — sans jamais identifier un visiteur du plan.
 
 Dans l'onglet du navigateur (et si on installe le plan sur l'écran d'accueil), l'icône
-reprend la **charte graphique du Lycée Lyautey** : fond bleu marine et monogramme en traits
-légers. L’interface (barre haute, boutons, puces) suit les mêmes bleus. Le **logo officiel**
-du lycée apparaît discrètement en bas à gauche du plan.
+est le **favicon officiel du lycée** (même image que sur le site lyceelyautey.org).
+L’interface (barre haute, boutons, puces) suit les bleus de la charte. Le **logo officiel**
+du lycée apparaît aussi discrètement en bas à gauche du plan.
 
 ## Ce que voit un visiteur
 
@@ -210,7 +210,13 @@ Trois réglages, dans _Réglages → Catégories de lieux_ :
   en entier. Ils réapparaissent dès qu'on zoome. C'est la case à cocher pour les sanitaires,
   les points d'eau, les locaux techniques.
 - **Les catégories cochées d'office** (réglage d'établissement, ci-dessous) décident de ce qui
-  est visible à la première ouverture. Un plan lisible commence par montrer peu.
+  est visible à la première ouverture. Un plan lisible commence par montrer peu. **Vide =
+  tout afficher.** Si l'établissement change ce réglage, le choix est **réappliqué** sur les
+  appareils (il remplace le filtre que le visiteur avait mémorisé).
+- **Les catégories masquées** (même écran de réglages) ne sont plus proposées dans les filtres
+  : un lieu qui n'appartenait **qu'à** ces catégories disparaît du plan ; un lieu qui en a
+  encore d'autres reste, sans les étiquettes masquées. Les lieux **sans aucune catégorie**
+  restent toujours visibles.
 
 Une étiquette de catégorie **sans aucun lieu** n'est pas proposée au visiteur (elle ne ferait
 que vider la carte) ; si un choix mémorisé sur l'appareil ne laisse plus rien à voir, le plan
@@ -287,9 +293,10 @@ quelque chose à y faire, donc jamais sur un plan public à carte unique.
 - **Plan affiché** — quand l'établissement publie plusieurs plans (voir « Autres plans
   proposés »), on choisit ici celui qu'on regarde. Le choix est retenu sur l'appareil et
   inscrit dans l'adresse : un lien copié après avoir changé de plan rouvre le bon plan.
-  Changer de plan **repart de zéro** : recherche, lieu ouvert, parcours en cours et filtres
-  sont remis au réglage de l'établissement, puisque les lieux et les catégories ne sont pas
-  les mêmes d'un plan à l'autre.
+  Changer de plan **repart de zéro** pour la recherche, le lieu ouvert et le parcours en
+  cours. Les **filtres de catégories**, eux, sont mémorisés **par plan** : en revenant sur un
+  plan déjà visité, on retrouve le filtre qu'on y avait laissé (sauf si l'établissement a
+  changé les catégories cochées d'office — voir ci-dessous).
 - **Se déconnecter** — n'apparaît que si le plan est fermé par un **code d'accès** : c'est
   alors le moyen d'oublier le code retenu sur l'appareil, par exemple sur une borne d'accueil
   ou un poste partagé. Le plan redemande ensuite le code. Sur un plan public ouvert, il n'y a
@@ -299,18 +306,18 @@ quelque chose à y faire, donc jamais sur un plan public à carte unique.
 
 Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 
-| Réglage                     | Effet                                                                    |
-| --------------------------- | ------------------------------------------------------------------------ |
-| Carte du plan               | quel plan est affiché par défaut                                         |
-| Autres plans proposés       | plans que le visiteur peut choisir dans ⚙️ (voir ci-dessous)             |
-| Titre                       | le titre en haut de l'écran                                              |
-| Message d'accueil           | la phrase montrée une fois par appareil                                  |
-| Mention de source           | petite mention en bas du plan (origine du fond de carte)                 |
-| Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                    |
-| Catégories cochées d'office | les étiquettes actives à la première ouverture                           |
-| Catégories masquées         | catégories jamais proposées sur le plan                                  |
-| Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours |
-| Code d'accès                | saisi en clair dans les réglages ; seul un empreinte est stockée         |
+| Réglage                     | Effet                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| Carte du plan               | quel plan est affiché par défaut                                                                   |
+| Autres plans proposés       | plans que le visiteur peut choisir dans ⚙️ (voir ci-dessous)                                       |
+| Titre                       | le titre en haut de l'écran                                                                        |
+| Message d'accueil           | la phrase montrée une fois par appareil                                                            |
+| Mention de source           | petite mention en bas du plan (origine du fond de carte)                                           |
+| Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                                              |
+| Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
+| Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
+| Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
+| Code d'accès                | saisi en clair dans les réglages ; seul un empreinte est stockée                                   |
 
 #### Autres plans proposés
 

@@ -187,11 +187,16 @@ actions sensibles.
     s'affiche en pastille sur le pôle et sur l'onglet) ;
   - **Administration** — Profils & utilisateurs, Paramètres, À propos.
 
-  Dans **Paramètres**, la console est découpée en sous-onglets : Accueil & modules,
-  Pédagogie, Cartographie (cartes, zones & repères, catégories, parcours), Plan Lyautey,
-  Identité visuelle, Visite, Intégrations (Moodle), Aide & découverte, Usage &
-  exploitation. Un professeur avec seulement la gestion des zones y voit la
-  Cartographie ; un délégué « visites guidées » n'y voit que l'aide dédiée.
+  Dans **Paramètres**, une **barre de recherche** en tête de page filtre tous les
+  réglages d’un coup (libellé, identifiant technique, portée) et propose des raccourcis
+  « Aller à » vers les sections thématiques (Plan, Visite, Moodle…). Tant qu’une
+  recherche est active, les résultats s’affichent à la place des sous-onglets ; les
+  sections trouvées s’ouvrent d’elles-mêmes. La console reste découpée en sous-onglets
+  hors recherche : Accueil & modules, Pédagogie, Cartographie (cartes, zones &
+  repères, catégories, parcours), Plan Lyautey, Identité visuelle, Visite,
+  Intégrations (Moodle), Aide & découverte, Usage & exploitation. Un professeur avec
+  seulement la gestion des zones y voit la Cartographie ; un délégué « visites
+  guidées » n’y voit que l’aide dédiée.
 
   Cliquer un pôle ouvre son premier onglet ; les onglets et les pôles portent des
   icônes uniformes (fini les emojis d'interface, réservés désormais au contenu :

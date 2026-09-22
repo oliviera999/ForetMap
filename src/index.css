@@ -2680,24 +2680,24 @@
     /* Le « ? » était exclu de la compaction (48px) : en portrait il impose une barre plus haute que sur les autres onglets. */
     .main.main--map-visible .map-view-toolbar .fm-help-btn,
     .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
-    .map-view-root--solo .map-view-toolbar /* En-tête de « Mon carnet » : titre à gauche, bouton d'aide `?` à droite (parité GLHelpPanel). */
-.fm-journal__header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.fm-journal__header-row h2 {
-  margin: 0;
-}
-
-.fm-help-btn {
+    .map-view-root--solo .map-view-toolbar .fm-help-btn {
       min-width:36px;
       min-height:36px;
       width:36px;
       height:36px;
       font-size:var(--text-sm);
       box-shadow:0 1px 10px rgba(26,71,49,.14);
+    }
+
+    /* En-tête de « Mon carnet » : titre à gauche, bouton d'aide `?` à droite (parité GLHelpPanel). */
+    .fm-journal__header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .fm-journal__header-row h2 {
+      margin: 0;
     }
 
     @media (max-width:1023px), (pointer:coarse) {
@@ -7263,6 +7263,14 @@
  */
 
 .fm-help-btn {
+  /* Pastille ronde : centrer le glyphe « ? » (métriques de fonte variables selon
+     l'écran / la compaction 36↔48 px), comme `.btn` — sinon le point d'interrogation
+     paraît décalé dans le cercle. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
   min-width: 48px;
   min-height: 48px;
   width: 48px;
@@ -8316,13 +8324,26 @@
   align-items: flex-end;
   align-content: flex-end;
   margin-bottom: 10px;
+  /* Densité de barre de filtres (comme `.task-filters`) : les tokens de formulaire
+     (44 px / pad 11) laissaient trop d'air autour du texte des selects Comptes. */
+  --fm-control-pad-y: 9px;
+  --fm-control-pad-x: 12px;
+  --fm-control-chevron-gutter: 30px;
+  --fm-control-radius: 8px;
+  --fm-control-min-h: 38px;
+}
+@media (pointer: coarse) {
+  .profiles-admin-list-toolbar {
+    --fm-control-min-h: var(--tap-target, 44px);
+  }
 }
 .profiles-admin-list-toolbar input[type='search'],
 .profiles-admin-list-toolbar input:not([type]),
 .profiles-admin-list-toolbar select {
-  min-height: 44px;
   flex: 1 1 160px;
   max-width: 100%;
+  font-size: var(--text-sm);
+  background-position: right 10px center;
 }
 .profiles-admin-page-size {
   display: inline-flex;
@@ -8334,7 +8355,6 @@
   flex: 0 0 auto;
 }
 .profiles-admin-page-size select {
-  min-height: 44px;
   flex: 0 0 auto;
 }
 .profiles-admin-pagination {
@@ -8550,7 +8570,6 @@
 }
 .profiles-admin-filter > input,
 .profiles-admin-filter > select {
-  min-height: 44px;
   max-width: 100%;
 }
 

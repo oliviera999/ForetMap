@@ -66,6 +66,67 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `task_assignments` est centrée sur l'élève (`student_id`, lectures filtrées sur
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
+### Corrigé — LTI : clé privée lisible depuis cPanel
+
+- `LTI_TOOL_PRIVATE_KEY` : normalisation des guillemets et des `\n` littéraux (panneaux
+  d’environnement type cPanel) avant `importPKCS8`, pour éviter l’échec JWKS
+  « Invalid character ».
+
+### Modifié — Plan Lyautey / personnels : favicon officiel du lycée
+
+- Favicon et icônes PWA de `planlyautey` et `proflyautey` alignés sur le PNG officiel de
+  [lyceelyautey.org](https://lyceelyautey.org/wp-content/uploads/2025/12/faveicon-lyaute.png)
+  (`public/plan/lyautey-favicon.png`, régénération `npm run icons:plan`).
+- L’ancien monogramme SVG abstrait (et le cadenas du plan personnels) est retiré ; la
+  distinction d’onglet reste le titre et la couleur de thème.
+
+### Corrigé — Comptes : hauteur des champs de filtre
+
+- Barre Rechercher / Profil / Type de compte / Groupe / Tri : densité alignée sur les
+  filtres Tâches (38 px desktop, 44 px tactile) au lieu du padding formulaire trop haut.
+
+### Corrigé — Plan Lyautey : menu Parcours sous la carte
+
+- La liste des parcours s'ouvrait **sous** la carte : la rangée de filtres coupait le
+  débordement (`overflow-y: hidden`) et l'empilement laissait la carte au-dessus.
+- La puce Parcours est hors du bandeau scrollable ; z-index de la barre de filtres relevé.
+
+### Corrigé — Plan Lyautey : masquage de catégories et défauts admin
+
+- **Catégories masquées** : les lieux qui n'appartenaient qu'à ces catégories sont exclus de
+  la charge (`/api/plan/content` et plan des personnels) ; les lieux vraiment sans catégorie
+  restent visibles sous filtre.
+- **Changement des catégories cochées d'office** : l'empreinte côté appareil est mise à jour
+  et le filtre mémorisé est écrasé par les nouveaux défauts.
+- Console admin : listes filtrées par surface (`plan` / `staff`), exclusion mutuelle
+  défaut ↔ masqué, aides clarifiées (vide = tout).
+- Doc de référence : mémoire des filtres **par plan** (changement de carte ≠ reset filtres) ;
+  feuille Filtres alignée sur les puces (pas de catégorie à 0 lieu).
+
+### Corrigé — bouton d'aide « ? » recentré dans son cercle
+
+- Le glyphe « ? » pouvait paraître décalé dans la pastille (ForetMap, G&L, plan) : pas de
+  centrage flex / `line-height: 1` / `padding: 0` sur `.fm-help-btn`, `.gl-help-btn` et
+  `.plan-help-btn`.
+- Réparation d'un sélecteur CSS cassé (compaction du « ? » dans la barre carte) qui avait
+  été scindé par l'insertion des styles d'en-tête du carnet.
+
+### Ajouté — catalogue biodiversité : option « toute la biodiversité du site »
+
+- Le sélecteur de carte du catalogue propose désormais **Toute la biodiversité du site**
+  (présence `ALL`, hors filtre d’une carte précise). Choisir une carte précise restaure
+  le filtre « présentes sur la carte » si on était en mode site entier.
+- Doc de référence et tests UI du panneau de filtres alignés.
+
+### Corrigé — édition de zone : l’emoji ne retombe plus sur 🌱
+
+- Dans la fiche zone (onglet Modifier), l’effet de resynchronisation ignorait la colonne
+  `zones.emoji` et ne regardait que le préfixe du nom ; à défaut il prenait le premier emoji
+  de la liste (`🌱`). À l’ouverture, l’emoji « sautait » donc vers la pousse alors que la
+  colonne dédiée était correcte. Init et reset utilisent désormais `zoneEmojiOf` (colonne puis
+  préfixe), et `zone.emoji` est dans les dépendances de l’effet.
+- Couverture : `tests-ui/components/map/ZoneInfoModal.emoji.test.jsx`.
+
 ### Corrigé — prise de contrôle : un mot de passe changé coupe aussi la session « voir comme »
 
 - Le jeton de prise de contrôle portait l'époque de session **de la cible**, pas celle de

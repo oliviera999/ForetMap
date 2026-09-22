@@ -89,6 +89,8 @@ export function filterSettingSections(sections, searchQuery, roleTerms) {
   if (!query) return sections;
   return sections
     .map((section) => {
+      const sectionTitle = String(section.title || '').toLowerCase();
+      const sectionMatches = sectionTitle.includes(query);
       const rows = section.rows.filter((row) => {
         const label = resolveSettingLabel(row.key, roleTerms).toLowerCase();
         const key = String(row.key || '').toLowerCase();
@@ -101,6 +103,10 @@ export function filterSettingSections(sections, searchQuery, roleTerms) {
           help.includes(query)
         );
       });
+      // Titre de section seul : on garde toutes les lignes pour que « Sécurité » ouvre le bloc.
+      if (sectionMatches && rows.length === 0) {
+        return { ...section, rows: section.rows };
+      }
       return { ...section, rows };
     })
     .filter((section) => section.rows.length > 0);

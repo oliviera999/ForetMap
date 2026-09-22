@@ -71,6 +71,8 @@ export function planStorageKeys(variant, mapId = '') {
   const perMap = (base) => (map ? `${prefix}:${base}:${map}` : `${prefix}:${base}`);
   return {
     categories: perMap('categories'),
+    /** Empreinte des `default_category_ids` serveur — si elle change, la mémoire appareil est écrasée. */
+    categoriesDefaults: perMap('categories-defaults'),
     welcome: `${prefix}:welcome-seen`,
     headingUp: `${prefix}:heading-up`,
     scaleCompass: `${prefix}:scale-compass`,
