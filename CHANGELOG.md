@@ -16,6 +16,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   contrôlée restait valable, et « Revenir à mon compte » pouvait même réémettre un jeton
   admin/MJ frais. On snapshot désormais l'époque de l'acteur (`actorTokenEpoch`) à
   l'ouverture et on la revérifie à chaque requête (ForetMap et Gnomes & Licornes).
+### Documentation — audit de sécurité d'accès aux données (22 sept. 2026)
+
+- **`docs/AUDIT_SECURITE_2026-09-22.md`** : état des lieux de la politique d'accès côté serveur
+  des trois surfaces (`foretmap`, `planlyautey`, `proflyautey`). Inventaire des routes **mesuré**
+  (123 routes `GET` ForêtMap sondées anonymement sur le fixture migré) plutôt que déduit de la
+  lecture : 31 chemins répondent `200` à un appelant non authentifié.
+- **Constat principal** : la politique d'accès existe et fonctionne, mais elle est posée sur les
+  points d'entrée composites de chaque surface (`/api/plan/content`, `/api/staff-plan/content`)
+  et **pas** sur les routes génériques qui servent les mêmes lignes (`/api/zones`,
+  `/api/map/markers`, `/api/maps`, `/api/map-categories`). Plan en mode `code` :
+  `/api/plan/content` rend `401` pendant que `/api/zones?map_id=lyautey` rend 36 zones.
+- Onze constats (S1–S11), dont le filtrage `hidden_surfaces` conditionné à un paramètre du
+  client, la surface décidée par le client, les métadonnées EXIF jamais retirées des photos
+  d'origine, et l'absence de `robots.txt`. Plan de correction priorisé (lots A–M) **en attente
+  de validation** — aucun code modifié.
+- Les points déjà conformes sont listés explicitement (handshake socket.io authentifié,
+  `/uploads` sans listage et familles privées gardées, jetons de réinitialisation hachés à TTL,
+  impersonation journalisée, isolement G&L) pour qu'une passe ultérieure ne les défasse pas.
 
 ### Ajouté — plan public et plan des personnels : déconnexion et choix du plan affiché
 
