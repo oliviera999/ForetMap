@@ -50,6 +50,12 @@ const {
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/shared/httpHelpers');
+const {
+  buildQuizQuestionNotionFilter,
+  buildQuizCategoryNotionFilter,
+  normalizeCurriculumNiveau,
+  normalizeNotionId,
+} = require('../lib/curriculumNotions');
 
 const router = express.Router();
 const FM_QCM_JWT_KIND = 'fm_quiz_present';
@@ -102,6 +108,27 @@ function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
   return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
 }
 
+/**
+ * Filtre « notion du programme » d'une requête de questions (migration 273).
+ *
+ * `niveau` est déjà pris : il désigne le niveau propre à la question (`college` / `lycee`).
+ * Le niveau **scolaire** d'une notion (`cycle4`, `seconde`, `terminale_spe`…) est une autre
+ * échelle, d'où le paramètre distinct `notionNiveau`. Les deux graphies sont acceptées
+ * (`notionId` / `notion_id`) : la première suit les autres filtres de cette route, la
+ * seconde le nommage des colonnes renvoyées par l'API.
+ *
+ * @returns {{ error: string }|{ filter: { sql: string, params: unknown[] }|null }}
+ */
+function resolveNotionFilter(query, alias, build = buildQuizQuestionNotionFilter) {
+  const notionId = normalizeOptionalFilter(query?.notionId ?? query?.notion_id);
+  const notionNiveau = normalizeOptionalFilter(query?.notionNiveau ?? query?.notion_niveau);
+  if (notionId && !normalizeNotionId(notionId)) return { error: 'notionId invalide' };
+  if (notionNiveau && !normalizeCurriculumNiveau(notionNiveau)) {
+    return { error: 'notionNiveau invalide' };
+  }
+  return { filter: build({ notionId, niveau: notionNiveau, alias }) };
+}
+
 async function tryHydrateAuth(req) {
   if (!JWT_SECRET) return null;
   const token = parseBearerToken(req);
@@ -151,17 +178,33 @@ router.get(
       sql += ' AND theme = ?';
       params.push(theme);
     }
+    // Notion du programme choisie : seules les catégories qui la traitent sont proposées.
+    // Sans ce filtre, le menu gardait ses 17 entrées dont la plupart ne tireraient rien.
+    const notionCategories = resolveNotionFilter(
+      req.query,
+      'quiz_categories',
+      buildQuizCategoryNotionFilter,
+    );
+    if (notionCategories.error) return res.status(400).json({ error: notionCategories.error });
+    if (notionCategories.filter) {
+      sql += notionCategories.filter.sql;
+      params.push(...notionCategories.filter.params);
+    }
     sql += ' ORDER BY order_index ASC, nom ASC';
 
     const categories = await queryAll(sql, params);
     if (niveau) {
-      const counts = await queryAll(
-        `SELECT categorie_slug, COUNT(*) AS total
-           FROM quiz_questions
-          WHERE statut = 'actif' AND niveau = ?
-          GROUP BY categorie_slug`,
-        [niveau],
-      );
+      const countParams = [niveau];
+      let countSql = `SELECT categorie_slug, COUNT(*) AS total
+                        FROM quiz_questions
+                       WHERE statut = 'actif' AND niveau = ?`;
+      const notionCounts = resolveNotionFilter(req.query, 'quiz_questions');
+      if (notionCounts.filter) {
+        countSql += notionCounts.filter.sql;
+        countParams.push(...notionCounts.filter.params);
+      }
+      countSql += ' GROUP BY categorie_slug';
+      const counts = await queryAll(countSql, countParams);
       const countBySlug = new Map(
         counts.map((row) => [row.categorie_slug, Number(row.total || 0)]),
       );
@@ -208,6 +251,15 @@ router.get(
     }
     if (illustratedOnly) {
       whereSql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
+    }
+    // Tirage « par notion du programme » : c'est ce qui permet à un professeur de lancer un
+    // quiz sur « Biodiversité, résultat et étape de l'évolution » sans deviner quelles
+    // catégories la traitent. L'héritage de catégorie est appliqué par le fragment.
+    const notionDraw = resolveNotionFilter(req.query, 'quiz_questions');
+    if (notionDraw.error) return res.status(400).json({ error: notionDraw.error });
+    if (notionDraw.filter) {
+      whereSql += notionDraw.filter.sql;
+      params.push(...notionDraw.filter.params);
     }
     // Questions réservées à la validation d'une fiche (sévérité `strict`) : jamais dans le
     // tirage libre, sinon l'élève y verrait la bonne réponse sans enjeu.
@@ -264,6 +316,12 @@ router.get(
     if (niveau) {
       sql += ' AND q.niveau = ?';
       params.push(niveau);
+    }
+    const notionList = resolveNotionFilter(req.query, 'q');
+    if (notionList.error) return res.status(400).json({ error: notionList.error });
+    if (notionList.filter) {
+      sql += notionList.filter.sql;
+      params.push(...notionList.filter.params);
     }
     sql += ' ORDER BY c.theme ASC, q.categorie_slug ASC, q.numero_dans_categorie ASC';
 

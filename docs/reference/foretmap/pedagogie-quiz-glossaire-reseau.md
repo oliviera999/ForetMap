@@ -11,6 +11,45 @@ vérifier les connaissances, le **Glossaire** pour le vocabulaire, le **Réseau
 trophique** pour visualiser les relations entre espèces, et le **Carnet
 d'observation** pour l'écriture naturaliste libre.
 
+## Les notions des programmes
+
+- **Chaque question de quiz et chaque terme de glossaire peut être relié aux notions des
+  programmes officiels** : le cycle 3 et le cycle 4, la seconde, les spécialités SVT de
+  première et de terminale, l'enseignement scientifique de première et de terminale. Douze
+  notions sont livrées, de « Classer les organismes, exploiter les liens de parenté » à
+  « Le carbone et les écosystèmes face au changement climatique ».
+- **Filtrer par notion.** Les onglets Quiz et Glossaire proposent deux menus
+  supplémentaires : le niveau du programme, puis la notion. Choisir une notion restreint
+  aussi la liste des catégories proposées, et le nombre entre parenthèses annonce combien
+  de questions (ou de termes) la notion permet d'atteindre — une notion sans contenu ne se
+  présente donc pas comme un choix utile.
+- **Lancer un quiz sur une notion.** Dans l'écran Quiz du professeur, un panneau « Lancer un
+  quiz par notion du programme » liste le référentiel par niveau ; un clic tire une question
+  de cette notion et l'affiche dans la section de test. Le professeur qui prépare une séance
+  part ainsi de ce qu'il doit traiter, sans deviner quelles catégories le traitent.
+- **Le rattachement se fait par catégorie, pas question par question.** Une question hérite
+  des notions de sa catégorie de quiz : les catégories sont rattachées une fois pour toutes,
+  et une question ajoutée plus tard est rattachée du même coup. Quand une question s'écarte
+  de sa catégorie — une question sur la photosynthèse rangée dans « Sol vivant & compostage » —
+  on peut lui **ajouter** une notion ou lui **retirer** une notion héritée, sans toucher aux
+  questions voisines.
+- **Les notions sont visibles de tous.** La fiche d'un terme de glossaire affiche, sous
+  l'intitulé « Au programme », le niveau et la notion auxquels il se rattache : un élève sait
+  à quoi le mot qu'il lit va servir dans l'année.
+
+> ⚠️ **Point d'attention** — Le mot « niveau » désigne trois choses différentes dans
+> l'application : le niveau d'une question (collège / lycée), la profondeur d'un terme de
+> glossaire (base / approfondissement / avancé) et le niveau scolaire d'une notion de
+> programme. Les menus les nomment distinctement (« Niveau » / « Niveau du programme »), mais
+> la confusion reste facile à faire en lisant un export.
+
+> ⚠️ **Point d'attention** — Seules les **catégories** de quiz sont rattachées dans le
+> catalogue livré ; **aucun terme de glossaire ne l'est encore**. Le filtre par notion de
+> l'onglet Glossaire ne renvoie donc rien tant qu'un professeur n'a pas fait ce
+> rattachement. Deux catégories citées par le référentiel (« milieux et terrain », « démarche
+> et mesure ») n'existent pas dans tous les jeux de données : leurs liaisons sont simplement
+> absentes là où la catégorie manque.
+
 ## Le Quiz
 
 - **L'élève** répond à des questions à choix multiples depuis son onglet Quiz ; il voit
@@ -116,14 +155,15 @@ d'observation** pour l'écriture naturaliste libre.
   le graphe s'appuie sur le catalogue de biodiversité.
 - **Trois vues du graphe.** Par défaut, **Réseau alimentaire** ne montre que ce qui
   transporte de la matière d’un être vivant vers celui qui le consomme : herbivorie,
-  prédation, décomposition, détritivorie, frugivorie, granivorie, parasitisme. C’est la
-  vue à présenter en classe pour une chaîne alimentaire. **Autres relations** isole
-  pollinisation, plante hôte, symbiose, compétition, et le cycle de l’azote
+  prédation, décomposition, détritivorie, frugivorie, granivorie, mycophagie,
+  parasitisme. C’est la vue à présenter en classe pour une chaîne alimentaire.
+  **Autres relations** isole pollinisation, plante hôte, symbiose, mutualisme,
+  commensalisme, compétition, allélopathie, facilitation, et le cycle de l’azote
   (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
   l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
   disponibles dans chaque vue.
-- **Quatorze types d’interaction.** Six ont été ajoutés pour cesser de ranger sous un
-  mot des relations différentes. Deux cas concrets :
+- **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
+  mot des relations différentes. Quelques cas concrets :
   - Un merle qui picore une figue tombée était noté « décomposition ». Il fait de la
     **frugivorie** : il mange le fruit, il ne le minéralise pas. De même, un cloporte ou
     un ver de compost fait de la **détritivorie** — il fragmente la matière morte, ce
@@ -134,8 +174,29 @@ d'observation** pour l'écriture naturaliste libre.
     (**nitrification** au sens strict) et la reprise des nitrates par les plantes
     aquatiques (**assimilation**). Les trois étapes du cycle de l’azote sont maintenant
     lisibles séparément sur le graphe.
+  - « Symbiose » servait aussi aux entraides sans vie commune : les fourmis qui gardent
+    un troupeau de pucerons pour leur miellat font du **mutualisme**. Quand un seul des
+    deux y gagne et que l’autre est indifférent — un oiseau qui niche dans une haie —
+    c’est du **commensalisme**. Et brouter un mycélium vivant, ce n’est pas fragmenter de
+    la matière morte : c’est de la **mycophagie**.
+  - « Compétition » était devenue le mot du voisinage en général, qu’il soit hostile ou
+    favorable. Le noyer qui empêche chimiquement ses voisines de pousser fait de
+    l’**allélopathie** ; une plante nourrice qui abrite un jeune semis fait de la
+    **facilitation**. C’est exactement le raisonnement des associations de cultures.
   - S’y ajoutent **granivorie** et **parasitisme**, disponibles à la saisie même si
     aucune interaction ne les utilise encore.
+- **Chaque lien dit maintenant d’où il vient.** Le professeur choisit son **niveau de
+  preuve** — « Documenté » (travail de référence), « Observé sur le site » (constaté au
+  jardin) ou « Hypothèse » (plausible, non vérifié) — et peut citer une **source**
+  (ouvrage, page web). Le graphe le montre : une hypothèse se dessine en pointillé
+  atténué, une observation de terrain d’un trait plus appuyé. Un réseau pédagogique mêle
+  forcément les trois, et tout afficher avec la même autorité apprenait aux élèves à ne
+  pas faire la différence. Cliquer une relation affiche le niveau de preuve et la source.
+- **Pour la pollinisation, l’efficacité du visiteur peut être précisée** :
+  « Pollinisateur efficace », « Pollinisateur accessoire », « Simple visiteur » ou
+  « Voleur de nectar » — tous les insectes qui viennent sur une fleur ne la pollinisent
+  pas, et certains prennent le nectar sans rien rendre. Ce choix n’apparaît que sur une
+  relation de pollinisation, et disparaît si le type est changé.
 - **Les détritivores ont des nourritures nommées.** Vers, cloportes, collemboles,
   escargots d’eau, fourmis ou blattes pointent vers des fiches-ressources du
   catalogue — litière de feuilles, compost et épluchures, bois mort, biofilm, fruits
