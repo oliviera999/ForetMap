@@ -59,6 +59,17 @@ export async function submitPlanAccessCode(code, variant = PLAN_VARIANT) {
 }
 
 /**
+ * Déconnexion : le serveur oublie le laissez-passer (cookie `HttpOnly`, hors de portée du
+ * navigateur), l'appelant oublie ensuite le jeton local (`variant.clearToken`).
+ *
+ * Le jeton est signé sur l'appel : sans lui, la route du plan des personnels répondrait
+ * quand même `200`, mais le journal d'audit ne saurait pas qui a rendu son laissez-passer.
+ */
+export async function submitPlanLogout(variant = PLAN_VARIANT) {
+  return planApi(`${variant.apiBase}/logout`, 'POST', {}, variant.getToken);
+}
+
+/**
  * Message « je signale / je propose » attaché à un lieu : un commentaire de contexte
  * (`context_comments`, `context_type` `zone` ou `marker`). Réutiliser cette table plutôt que
  * d'inventer une boîte de réception met le message **sous le lieu concerné**, là où un

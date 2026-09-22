@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
+import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 
 const PLAN_KEYS = Object.freeze({
   mapId: 'ui.plan.map_id',
@@ -10,6 +11,7 @@ const PLAN_KEYS = Object.freeze({
   welcomeHint: 'ui.plan.welcome_hint',
   attribution: 'ui.plan.attribution',
   publicBaseUrl: 'ui.plan.public_base_url',
+  selectableMapIds: 'ui.plan.selectable_map_ids',
   defaultCategoryIds: 'ui.plan.default_category_ids',
   hiddenCategoryIds: 'ui.plan.hidden_category_ids',
   accessMode: 'ui.plan.access_mode',
@@ -100,6 +102,18 @@ export function PlanSettingsPanel({
           ))}
         </select>
       </label>
+
+      <MapIdsMultiSelect
+        label="Autres plans proposés au visiteur"
+        value={get(PLAN_KEYS.selectableMapIds, '')}
+        maps={maps}
+        disabled={readOnly || savingKey === PLAN_KEYS.selectableMapIds}
+        hint="Ces cartes s’ajoutent au sélecteur « Plan affiché » des réglages du site Plan, et sont les seules que ?map_id= accepte. Sans elles, le plan n’affiche que la carte ci-dessus. N’y mettez que des cartes destinées au public."
+        testId="plan-selectable-map-ids"
+        onSave={(next) =>
+          saveSetting(PLAN_KEYS.selectableMapIds, next, 'Plans proposés enregistrés')
+        }
+      />
 
       <label className="field">
         <span>Titre</span>

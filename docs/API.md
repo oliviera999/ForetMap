@@ -1905,11 +1905,27 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 | ------- | --------------------------- | ------ | ------------------------------------------------------------------------- |
 | GET     | `/api/plan/content?map_id=` | non    | Charge publique : carte, réglages, catégories, lieux visibles sur le plan |
 | GET     | `/api/plan/settings`        | non    | Réglages publics `ui.plan.*` seuls (coquille)                             |
+| POST    | `/api/plan/logout`          | non    | Oublie le laissez-passer du code de diffusion (cookie `plan_access`)      |
 
-- **Carte servie** : `map_id` si fourni (**400** si la carte n'existe pas), sinon le réglage
-  `ui.plan.map_id` s'il désigne une carte **active**, sinon la première carte active
-  (**404** s'il n'y en a aucune) — le plan doit toujours pouvoir s'afficher.
-- **Réponse** : `{ map, settings, categories, zones, markers }`.
+- **Carte servie** : `map_id` si fourni **et déclaré** (voir ci-dessous ; **400** sinon, et
+  **400** aussi si la carte n'existe pas), sinon le réglage `ui.plan.map_id` s'il désigne une
+  carte **active**, sinon la première carte active (**404** s'il n'y en a aucune) — le plan
+  doit toujours pouvoir s'afficher.
+- **Cartes acceptées et proposées** : le réglage `ui.plan.selectable_map_ids` (identifiants
+  séparés par `;`, portée publique) déclare les **autres** plans que ce produit peut servir.
+  C'est à la fois la liste blanche de `?map_id=` — sans elle, n'importe quelle carte de la base
+  sortait sur le plan public à qui devinait son identifiant, la carte de travail comprise — et
+  la liste proposée au lecteur dans « Réglages → Plan affiché ». La carte servie en fait
+  toujours partie, qu'elle soit déclarée ou non.
+- **`POST /api/plan/logout`** : efface le cookie de laissez-passer, sans corps ni condition.
+  Toujours **200**, même sans laissez-passer — une déconnexion n'a pas à dire si quelqu'un
+  était entré. Sur un plan `public` il n'y a rien à rendre : le front n'y propose pas le bouton.
+- **Réponse** : `{ map, maps, settings, categories, zones, markers, routes }`.
+  - `maps` : `[{ id, label }]` — plans proposés au changement (carte servie comprise), triés
+    par `sort_order` puis intitulé. **Tableau vide** quand rien n'est déclaré : le front
+    n'affiche alors aucun sélecteur. Les cartes **inactives** n'y figurent pas, sauf celle qui
+    est servie. La liste d'identifiants (`selectable_map_ids`) n'est, elle, pas reprise dans
+    `settings` — c'est un réglage d'exploitation.
   - `map` : `{ id, label, map_image_url, frame_padding_px, gps_enabled, heading_up_enabled, scale_compass_enabled, geo_anchors }` —
     `gps_enabled` et `geo_anchors` servent au **point de position** du plan (lot 6) ;
     `scale_compass_enabled` (booléen ; vrai si ancres présentes **et** case admin, défaut admin `1`)
@@ -1923,7 +1939,8 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies), `hidden_category_ids`.
-    `ui.plan.map_id` n'est **pas** repris ici (l'identifiant est déjà dans `map`).
+    `ui.plan.map_id` et `ui.plan.selectable_map_ids` ne sont **pas** repris ici (l'identifiant
+    servi est déjà dans `map`, les plans proposés dans `maps`).
   - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la
     surface `plan`, moins celles listées par `ui.plan.hidden_category_ids`.
   - `zones` / `markers` : champs **publics** uniquement — `id`, `name` / `label`, `emoji`,
@@ -1937,8 +1954,9 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,
   `private, max-age=60` quand `access_mode` vaut `code` (un cache partagé ne doit pas
   servir la charge sans laissez-passer). Un refus 401 porte `Cache-Control: no-store`.
-- **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open` et `go` via
-  `POST /api/usage` (produit `plan`) — voir **Compteur d'usage anonyme**.
+- **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open`, `go` et
+  `map_switch` (changement de plan affiché) via `POST /api/usage` (produit `plan`) — voir
+  **Compteur d'usage anonyme**.
 
 ### Surfaces d'affichage des lieux
 
@@ -2263,6 +2281,7 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 | GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled }`         |
 | GET     | `/api/staff-plan/content?map_id=` | compte **ou** laissez-passer | Charge de la surface `staff`, filtrée pour le lecteur                             |
 | POST    | `/api/staff-plan/access`          | non                          | `{ code }` → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
+| POST    | `/api/staff-plan/logout`          | non                          | Rend le laissez-passer de code (cookie `staff_plan_access`) — toujours **200**    |
 | POST    | `/api/staff-plan/report`          | compte uniquement            | `{ contextType: 'zone'\|'marker', contextId, body }` → « Signaler ou proposer »   |
 
 ### Porte d'entrée
@@ -2303,10 +2322,33 @@ l'ouvrir.
 Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available }` —
 `code_available` dit au front s'il doit proposer la saisie du code à côté de la connexion.
 
+### Déconnexion (`POST /api/staff-plan/logout`)
+
+Deux voies d'entrée, deux choses à oublier. Le **laissez-passer de code** est effacé par cette
+route — c'est un cookie `HttpOnly`, le navigateur ne peut pas s'en charger seul — et le
+**jeton du compte** est retiré du stockage local par le front juste après. Un jeton ForetMap
+n'est pas révocable côté serveur (il expire de lui-même) : la route rend l'appareil, pas le
+jeton. Sur un poste partagé de salle des professeurs, c'est l'onglet resté ouvert qui est le
+risque.
+
+Toujours **200**, même sans session : une déconnexion ne dit pas qui était là. Rendre un
+laissez-passer est inscrit au journal d'audit (`staff_plan.access.code_released`), en regard
+de l'ouverture (`code_granted`) — sans quoi un laissez-passer semblait courir sept jours alors
+qu'il avait été rendu.
+
+### Plans proposés
+
+`ui.staff_plan.selectable_map_ids` (identifiants séparés par `;`, portée publique) déclare les
+**autres** plans que cette surface peut servir. Liste **propre à la surface** : un lecteur
+identifié peut ouvrir des plans que le plan public n'offre pas (annexes, locaux techniques) —
+le plan public n'en hérite pas, et réciproquement. Mêmes règles que sur `/api/plan` : liste
+blanche de `?map_id=` (**400** hors liste) et liste proposée sous `maps`. La **carte d'accueil**
+reste celle du plan public (`ui.plan.map_id`), partagée par les deux surfaces.
+
 ### Réponse
 
-`{ map, settings, categories, zones, markers, routes, viewer, my_reports }` — identique au plan
-public, plus `viewer` :
+`{ map, maps, settings, categories, zones, markers, routes, viewer, my_reports }` — identique
+au plan public, plus `viewer` :
 `{ via: 'account'|'code', role_slug, can_edit_locations, console_base_url, can_report }`.
 `console_base_url` (origine de la console ForetMap, depuis `FRONTEND_ORIGIN`) n'est renseignée
 que pour un lecteur portant `zones.manage` ou `map.manage_markers` ; le front n'affiche le lien

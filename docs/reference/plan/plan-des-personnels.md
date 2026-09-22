@@ -155,6 +155,38 @@ n'a pas de version publique acceptable.
 - **Ouvrir la console ForetMap** pour corriger le lieu — lien affiché uniquement aux comptes
   qui peuvent réellement éditer zones et repères.
 
+## Se déconnecter, changer de plan (bouton ⚙️)
+
+À droite du titre, à côté du « ? », un bouton **⚙️** ouvre les réglages de l'appareil.
+
+### Se déconnecter
+
+Toujours proposé ici : on entre sur ce plan par un compte ou par un code, il y a donc toujours
+quelque chose à rendre. « Se déconnecter » retire le compte de cet appareil **et** rend le
+laissez-passer du code s'il y en avait un ; l'écran de connexion revient aussitôt.
+
+C'est le geste à faire sur un **poste partagé** — salle des professeurs, ordinateur de la vie
+scolaire, téléphone prêté. Sans lui, l'onglet resté ouvert donnait accès aux lieux réservés et
+aux compléments confidentiels à qui passait ensuite devant l'écran. Rendre un laissez-passer de
+code est d'ailleurs inscrit au journal d'audit, en regard de son ouverture.
+
+> La déconnexion ne « coupe » rien à distance : elle rend **cet appareil-là**. Si un téléphone
+> est perdu, prévenez un administrateur — c'est le mot de passe, ou le code partagé, qu'il
+> faudra changer.
+
+### Changer de plan affiché
+
+Si l'établissement propose plusieurs plans (voir ci-dessous), on choisit ici celui qu'on
+regarde. Le choix est retenu sur l'appareil, et porté par l'adresse : un lien copié rouvre le
+même plan. Changer de plan repart de zéro — recherche, lieu ouvert, parcours en cours et
+filtres — puisque les lieux et les catégories diffèrent d'un plan à l'autre.
+
+La liste des plans proposés se règle dans **Réglages → Plan Lyautey → Plan des personnels**,
+champ **« Autres plans proposés aux personnels »**. Elle est **propre à cette surface** : un
+lecteur identifié peut ouvrir des plans que le plan public n'offre pas — une annexe, un niveau
+technique, un site distant — sans que le public y ait accès. La carte d'accueil, elle, reste
+celle du plan public. Une carte inactive n'est jamais proposée, même cochée.
+
 ## Décider ce que chacun voit
 
 Chaque lieu porte quatre cases, « Masquer sur » : **Carte**, **Visite**, **Plan public**,
@@ -193,6 +225,7 @@ Ces lieux restent visibles sur le plan des personnels : vous ne perdez rien, vou
 | Titre, message d'accueil, mention     | Non — propres au plan des personnels                 |
 | Profils autorisés (compte)            | Non — propres au plan des personnels                 |
 | Catégories cochées d'office, masquées | Non — propres au plan des personnels                 |
+| Autres plans proposés au changement   | Non — propres au plan des personnels                 |
 | Mode d'entrée, code, profil du code   | Non — propres au plan des personnels                 |
 
 La carte n'a volontairement **pas** de réglage séparé : deux réglages à tenir synchronisés à la

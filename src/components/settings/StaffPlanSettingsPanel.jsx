@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
+import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
 import { FORETMAP_AUDIENCE_ROLE_OPTIONS } from '../../shared/ui/LocationAudienceFields.jsx';
 
@@ -10,6 +11,7 @@ const STAFF_KEYS = Object.freeze({
   title: 'ui.staff_plan.title',
   welcomeHint: 'ui.staff_plan.welcome_hint',
   attribution: 'ui.staff_plan.attribution',
+  selectableMapIds: 'ui.staff_plan.selectable_map_ids',
   defaultCategoryIds: 'ui.staff_plan.default_category_ids',
   hiddenCategoryIds: 'ui.staff_plan.hidden_category_ids',
   allowedRoleSlugs: 'ui.staff_plan.allowed_role_slugs',
@@ -28,6 +30,8 @@ const STAFF_KEYS = Object.freeze({
  * @param {object} props
  * @param {Array<{ slug: string, label?: string, display_name?: string }>} [props.roles] profils
  *   proposés (défaut : ceux de « Qui peut voir »).
+ * @param {Array<{ id: string, label?: string, is_active?: number|boolean }>} [props.maps] cartes
+ *   de l'établissement, pour déclarer les plans proposés au changement.
  * @param {(key: string, fallback?: unknown) => unknown} props.get
  * @param {(key: string, value: unknown, okMsg?: string) => Promise<void>} props.saveSetting
  * @param {string} [props.savingKey]
@@ -39,6 +43,7 @@ export function StaffPlanSettingsPanel({
   // Même vocabulaire que « Qui peut voir » sur une fiche de lieu : le profil endossé par un
   // porteur de code n'a de sens que s'il fait partie des profils que l'audience sait filtrer.
   roles = FORETMAP_AUDIENCE_ROLE_OPTIONS,
+  maps = [],
   get,
   saveSetting,
   savingKey = '',
@@ -105,6 +110,18 @@ export function StaffPlanSettingsPanel({
         roles={roles}
         onSave={(next) =>
           saveSetting(STAFF_KEYS.allowedRoleSlugs, next, 'Profils autorisés enregistrés')
+        }
+      />
+
+      <MapIdsMultiSelect
+        label="Autres plans proposés aux personnels"
+        value={get(STAFF_KEYS.selectableMapIds, '')}
+        maps={maps}
+        disabled={readOnly || savingKey === STAFF_KEYS.selectableMapIds}
+        hint="Liste propre à cette surface : un lecteur identifié peut ouvrir des plans que le plan public n’offre pas (annexes, locaux techniques). La carte d’accueil reste celle du plan public."
+        testId="staff-plan-selectable-map-ids"
+        onSave={(next) =>
+          saveSetting(STAFF_KEYS.selectableMapIds, next, 'Plans proposés enregistrés')
         }
       />
 
