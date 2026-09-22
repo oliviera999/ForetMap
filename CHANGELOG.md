@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Plan Lyautey : menu Parcours sous la carte
+
+- La liste des parcours s'ouvrait **sous** la carte : la rangée de filtres coupait le
+  débordement (`overflow-y: hidden`) et l'empilement laissait la carte au-dessus.
+- La puce Parcours est hors du bandeau scrollable ; z-index de la barre de filtres relevé.
+
 ### Corrigé — bouton d'aide « ? » recentré dans son cercle
 
 - Le glyphe « ? » pouvait paraître décalé dans la pastille (ForetMap, G&L, plan) : pas de

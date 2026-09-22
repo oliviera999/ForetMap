@@ -958,6 +958,11 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         }
       />
 
+      {/*
+        La puce Parcours reste hors du bandeau scrollable : `overflow-x: auto` +
+        `overflow-y: hidden` y coupait la liste déroulante, qui s'ouvrait alors
+        sous la carte (empilement). Les puces de catégories gardent le défilement.
+      */}
       <div className="plan-filters">
         <div className="plan-filters__row">
           <PlanRoutePicker
@@ -967,27 +972,29 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             open={routePickerOpen}
             onToggle={setRoutePickerOpen}
           />
-          {(categories || []).length > 0 ? (
-            <button
-              type="button"
-              className={`plan-chip plan-chip--filters${selectedCategoryIds.size > 0 ? ' is-active' : ''}`}
-              aria-expanded={filtersOpen}
-              data-testid="plan-filters-button"
-              onClick={() => setFiltersOpen((open) => !open)}
-            >
-              Filtres
-              {selectedCategoryIds.size > 0 ? (
-                <span className="plan-chip__count">{selectedCategoryIds.size}</span>
-              ) : null}
-            </button>
-          ) : null}
-          <PlanCategoryChips
-            categories={categories}
-            selectedIds={selectedCategoryIds}
-            onToggle={toggleCategory}
-            onReset={resetCategories}
-            counts={counts}
-          />
+          <div className="plan-filters__scroll">
+            {(categories || []).length > 0 ? (
+              <button
+                type="button"
+                className={`plan-chip plan-chip--filters${selectedCategoryIds.size > 0 ? ' is-active' : ''}`}
+                aria-expanded={filtersOpen}
+                data-testid="plan-filters-button"
+                onClick={() => setFiltersOpen((open) => !open)}
+              >
+                Filtres
+                {selectedCategoryIds.size > 0 ? (
+                  <span className="plan-chip__count">{selectedCategoryIds.size}</span>
+                ) : null}
+              </button>
+            ) : null}
+            <PlanCategoryChips
+              categories={categories}
+              selectedIds={selectedCategoryIds}
+              onToggle={toggleCategory}
+              onReset={resetCategories}
+              counts={counts}
+            />
+          </div>
         </div>
       </div>
 
