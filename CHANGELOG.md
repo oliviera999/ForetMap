@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Plan Lyautey / personnels : favicon officiel du lycée
+
+- Favicon et icônes PWA de `planlyautey` et `proflyautey` alignés sur le PNG officiel de
+  [lyceelyautey.org](https://lyceelyautey.org/wp-content/uploads/2025/12/faveicon-lyaute.png)
+  (`public/plan/lyautey-favicon.png`, régénération `npm run icons:plan`).
+- L’ancien monogramme SVG abstrait (et le cadenas du plan personnels) est retiré ; la
+  distinction d’onglet reste le titre et la couleur de thème.
+
 ### Corrigé — Comptes : hauteur des champs de filtre
 
 - Barre Rechercher / Profil / Type de compte / Groupe / Tri : densité alignée sur les
