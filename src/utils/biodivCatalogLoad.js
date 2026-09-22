@@ -43,6 +43,9 @@ export const BIODIV_SORT = Object.freeze({
   RECENT_OBSERVED: 'recent_observed',
 });
 
+/** Valeur du sélecteur « Carte » = toute la biodiversité du site (hors carte précise). */
+export const BIODIV_MAP_FILTER_ALL = '__all_site__';
+
 /**
  * @param {object} plant
  * @returns {boolean}

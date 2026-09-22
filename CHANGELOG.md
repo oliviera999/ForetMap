@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — catalogue biodiversité : option « toute la biodiversité du site »
+
+- Le sélecteur de carte du catalogue propose désormais **Toute la biodiversité du site**
+  (présence `ALL`, hors filtre d’une carte précise). Choisir une carte précise restaure
+  le filtre « présentes sur la carte » si on était en mode site entier.
+- Doc de référence et tests UI du panneau de filtres alignés.
+
 ### Corrigé — édition de zone : l’emoji ne retombe plus sur 🌱
 
 - Dans la fiche zone (onglet Modifier), l’effet de resynchronisation ignorait la colonne

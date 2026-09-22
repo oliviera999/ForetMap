@@ -2,7 +2,7 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { PlantCatalogFilterPanel } from '../../../src/components/biodiv/PlantCatalogFilterPanel.jsx';
 import { ZONE_PRESENCE_FILTER } from '../../../src/utils/plantFilters.js';
-import { BIODIV_SORT } from '../../../src/utils/biodivCatalogLoad.js';
+import { BIODIV_MAP_FILTER_ALL, BIODIV_SORT } from '../../../src/utils/biodivCatalogLoad.js';
 
 const PLANTS = [
   {
@@ -107,6 +107,35 @@ describe('PlantCatalogFilterPanel — surface carte / présence / chips', () => 
       target: { value: 'n3' },
     });
     expect(onActiveMapChange).toHaveBeenCalledWith('n3');
+  });
+
+  test('option « Toute la biodiversité du site » force la présence ALL', () => {
+    const { setZonePresence, onActiveMapChange } = setup();
+    fireEvent.change(screen.getByLabelText('Sélection de carte active'), {
+      target: { value: BIODIV_MAP_FILTER_ALL },
+    });
+    expect(setZonePresence).toHaveBeenCalledWith(ZONE_PRESENCE_FILTER.ALL);
+    expect(onActiveMapChange).not.toHaveBeenCalled();
+  });
+
+  test('revenir d’une carte après « tout le site » restaure IN_MAP', () => {
+    const { setZonePresence, onActiveMapChange } = setup({
+      zonePresence: ZONE_PRESENCE_FILTER.ALL,
+    });
+    expect(screen.getByLabelText('Sélection de carte active')).toHaveValue(BIODIV_MAP_FILTER_ALL);
+    fireEvent.change(screen.getByLabelText('Sélection de carte active'), {
+      target: { value: 'n3' },
+    });
+    expect(onActiveMapChange).toHaveBeenCalledWith('n3');
+    expect(setZonePresence).toHaveBeenCalledWith(ZONE_PRESENCE_FILTER.IN_MAP);
+  });
+
+  test('présence ALL affiche l’option site dans le sélecteur de carte', () => {
+    setup({ zonePresence: ZONE_PRESENCE_FILTER.ALL });
+    expect(screen.getByLabelText('Sélection de carte active')).toHaveValue(BIODIV_MAP_FILTER_ALL);
+    expect(
+      screen.getByRole('option', { name: 'Toute la biodiversité du site' }),
+    ).toBeInTheDocument();
   });
 
   test('réinitialiser restaure defaultZonePresence IN_MAP', () => {

@@ -203,10 +203,12 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
 1. L'élève ouvre l'onglet **Biodiversité** : le catalogue s'affiche en **vignettes** —
    photo, nom, nom scientifique, quelques pastilles (rôle trophique, comestibilité,
    milieu, statut biogéographique, statut UICN) et le bouton d'observation. En tête
-   de page, il choisit la **carte** (celle de l'application entière — le même choix
-   que sur le plan), la **présence** sur cette carte (par défaut : espèces présentes
-   sur la carte active — zones, repères, ou rattachement direct à la carte), une
-   **recherche** et un filtre par **règne**. Des pastilles rapides permettent de
+   de page, il choisit la **carte** : soit **toute la biodiversité du site**, soit une
+   carte précise (ce choix de carte précise est le même que sur le plan de l'application).
+   Avec une carte précise, il peut aussi filtrer la **présence** (par défaut : espèces
+   présentes sur cette carte — zones, repères, ou rattachement direct ; ou absentes ;
+   ou toutes les fiches). Une **recherche** et un filtre par **règne** complètent la
+   surface. Des pastilles rapides permettent de
    ne garder que les espèces **comestibles**, **UICN menacées**, déjà **observées**
    ou **pas encore**. Un tri par nom (A→Z / Z→A) ou par observations personnelles
    complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
