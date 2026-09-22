@@ -550,7 +550,7 @@
     ]
   },
   "index.vite.html": {
-    "file": "assets/main-DuXICfmI.js",
+    "file": "assets/main-B8mPUVwZ.js",
     "name": "main",
     "src": "index.vite.html",
     "isEntry": true,
@@ -653,7 +653,7 @@
     ]
   },
   "src/components/VisitMascotPackManager.jsx": {
-    "file": "assets/VisitMascotPackManager-B6e0wXWa.js",
+    "file": "assets/VisitMascotPackManager-hgE7jvQF.js",
     "name": "VisitMascotPackManager",
     "src": "src/components/VisitMascotPackManager.jsx",
     "isDynamicEntry": true,
@@ -675,7 +675,7 @@
     ]
   },
   "src/components/about-views.jsx": {
-    "file": "assets/about-views-BuaDuqsi.js",
+    "file": "assets/about-views-CQb6Bsw8.js",
     "name": "about-views",
     "src": "src/components/about-views.jsx",
     "isDynamicEntry": true,
@@ -690,7 +690,7 @@
     ]
   },
   "src/components/audit-views.jsx": {
-    "file": "assets/audit-views-SfO9XkGn.js",
+    "file": "assets/audit-views-DO6wpzi6.js",
     "name": "audit-views",
     "src": "src/components/audit-views.jsx",
     "isDynamicEntry": true,
@@ -699,11 +699,12 @@
       "_VisitMascotFallbackSvg-ow32Hkfx.js",
       "_react-vendor-Dcb_X5td.js",
       "_icons-BNguv2wG.js",
+      "_downloadApiFile-B0iR_DHk.js",
       "index.vite.html"
     ]
   },
   "src/components/biodiv/PlantCatalogPreview.jsx": {
-    "file": "assets/PlantCatalogPreview-DCwX4e31.js",
+    "file": "assets/PlantCatalogPreview-CqmvDPpD.js",
     "name": "PlantCatalogPreview",
     "src": "src/components/biodiv/PlantCatalogPreview.jsx",
     "isDynamicEntry": true,
@@ -724,7 +725,7 @@
     ]
   },
   "src/components/foretmap-views.jsx": {
-    "file": "assets/foretmap-views-CuriKspW.js",
+    "file": "assets/foretmap-views-eOSKRHhl.js",
     "name": "foretmap-views",
     "src": "src/components/foretmap-views.jsx",
     "isDynamicEntry": true,
@@ -744,7 +745,7 @@
     ]
   },
   "src/components/forum-views.jsx": {
-    "file": "assets/forum-views-DdwvRn8f.js",
+    "file": "assets/forum-views-GINQtqca.js",
     "name": "forum-views",
     "src": "src/components/forum-views.jsx",
     "isDynamicEntry": true,
@@ -759,7 +760,7 @@
     ]
   },
   "src/components/journal/UserJournalView.jsx": {
-    "file": "assets/UserJournalView-an53-p0V.js",
+    "file": "assets/UserJournalView-C_j8WG_M.js",
     "name": "UserJournalView",
     "src": "src/components/journal/UserJournalView.jsx",
     "isDynamicEntry": true,
@@ -792,7 +793,7 @@
     ]
   },
   "src/components/pedago-views.jsx": {
-    "file": "assets/pedago-views-DkBzgjyO.js",
+    "file": "assets/pedago-views-DDipvlPL.js",
     "name": "pedago-views",
     "src": "src/components/pedago-views.jsx",
     "isDynamicEntry": true,
@@ -813,7 +814,7 @@
     ]
   },
   "src/components/profiles-views.jsx": {
-    "file": "assets/profiles-views-C1LpNNTN.js",
+    "file": "assets/profiles-views-B19bNUxC.js",
     "name": "profiles-views",
     "src": "src/components/profiles-views.jsx",
     "isDynamicEntry": true,
@@ -831,7 +832,7 @@
     ]
   },
   "src/components/settings-admin-views.jsx": {
-    "file": "assets/settings-admin-views-CZXzFzPK.js",
+    "file": "assets/settings-admin-views-BiaVQSVy.js",
     "name": "settings-admin-views",
     "src": "src/components/settings-admin-views.jsx",
     "isDynamicEntry": true,
@@ -857,7 +858,7 @@
     ]
   },
   "src/components/stats-views.jsx": {
-    "file": "assets/stats-views-BZnTWkUa.js",
+    "file": "assets/stats-views-C50jn0FY.js",
     "name": "stats-views",
     "src": "src/components/stats-views.jsx",
     "isDynamicEntry": true,
@@ -878,7 +879,7 @@
     ]
   },
   "src/components/tutorials-views.jsx": {
-    "file": "assets/tutorials-views-B70V3teL.js",
+    "file": "assets/tutorials-views-BkyMm1ew.js",
     "name": "tutorials-views",
     "src": "src/components/tutorials-views.jsx",
     "isDynamicEntry": true,
@@ -896,7 +897,7 @@
     ]
   },
   "src/components/visit-views.jsx": {
-    "file": "assets/visit-views-DkaTUzZu.js",
+    "file": "assets/visit-views-usmUPldW.js",
     "name": "visit-views",
     "src": "src/components/visit-views.jsx",
     "isDynamicEntry": true,
