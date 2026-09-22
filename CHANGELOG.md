@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — « Mes statistiques » : progression et tâches réservées aux comptes n3beurs
+
+- Un compte **hors groupe n3beur** (visiteur, membre du personnel, prof de classe, n3boss,
+  administrateur) voyait dans sa fiche **Mes statistiques** un badge de palier, une barre de
+  progression et une « Activité récente » qui ne le concernaient pas : faute de bloc
+  `progression`, l'affichage retombait sur l'échelle n3beur par défaut et annonçait
+  « Profil actuel : 🪨 n3beur novice » à un visiteur.
+- `GET /api/stats/me/:userId` renvoie désormais **`is_n3beur`** et n'interroge les tâches que
+  pour un compte n3beur — profil effectif de palier, ou compte encore promotible membre d'un
+  groupe actif conférant un palier (même règle que `isN3beurAccount`). Sinon `progression`
+  vaut `null`, `assignments` est vide et les compteurs de tâches valent `0`.
+- La fiche masque en conséquence le badge de palier, la barre de progression, la grille des
+  tâches (validées / en cours / en attente / total) et « Activité récente ». Le volet
+  **Biodiversité & tutoriels** (espèces observées, observations, tutoriels lus) reste visible
+  pour **tous** les comptes. Un rattachement à un groupe n3beur fait réapparaître le tout.
+- Nouveau helper `getAccountN3beurStatus` (`lib/n3beurStudents.js`) ; tests
+  `tests/stats-me-n3beur-visibility.test.js` et
+  `tests-ui/components/StudentStatsN3beurVisibility.test.jsx`.
 ### Corrigé — proflyautey : un personnel rattaché à un groupe était refusé à sa porte
 
 - La garde du plan des personnels ne regardait que le profil **effectif**
