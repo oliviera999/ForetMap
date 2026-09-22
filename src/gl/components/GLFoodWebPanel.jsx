@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FoodWebGraph } from '../../components/pedago/FoodWebGraph.jsx';
-import { INTERACTION_TYPES, interactionTypeLabel } from '../../shared/foodWebTypes.js';
+// Les 14 types communs, et non la liste ForetMap : l'ENUM de `gl_species_interactions`
+// ignore les cinq types de la migration 272, et l'API GL les refuse (isolement des produits).
+import { INTERACTION_TYPES_CORE, interactionTypeLabel } from '../../shared/foodWebTypes.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
@@ -184,7 +186,7 @@ export function GLFoodWebPanel({ biomes = [], canManage = false, onOpenSpecies }
               value={form.interaction_type}
               onChange={(e) => setForm((prev) => ({ ...prev, interaction_type: e.target.value }))}
             >
-              {INTERACTION_TYPES.map((type) => (
+              {INTERACTION_TYPES_CORE.map((type) => (
                 <option key={type} value={type}>
                   {interactionTypeLabel(type)}
                 </option>
