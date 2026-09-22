@@ -9,6 +9,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Plan : la liste « Parcours » était inerte tant que le bandeau d'accueil s'affichait
+
+Sur le plan (planlyautey, proflyautey), ouvrir la puce **Parcours** puis toucher un parcours ne
+faisait rien : le bouton s'affichait normalement, mais le **bandeau d'accueil** — « Touchez un
+lieu, ou cherchez-le. » — interceptait le geste par-dessus la liste. Le visiteur tapait dans le
+vide, et précisément pendant sa première visite, puisque c'est là que le bandeau est montré. Il
+fallait d'abord fermer le bandeau (« J'ai compris ») pour que la liste réponde — un
+enchaînement que rien n'indiquait.
+
+La rangée de commandes (`.plan-filters`, qui porte la puce Parcours et sa liste) et le bandeau
+portaient **le même rang d'empilement**. À égalité, c'est l'ordre du document qui tranche, et
+le bandeau, déclaré plus bas, passait devant. Le rang élevé posé sur la liste déroulante
+elle-même ne pouvait rien y faire : il ne vaut qu'entre éléments frères, à l'intérieur du bloc
+qui les contient. La rangée de commandes passe donc désormais franchement au-dessus.
+
+C'est la même famille de défaut que le bouton d'aide recouvert en septembre : **un message
+passif ne doit jamais recouvrir une commande**. Un garde-fou statique
+(`tests/plan-stacking-guard.test.js`) fige cette règle entre les deux couches, et se lit en
+quelques millisecondes là où le parcours complet demande deux minutes.
+
+### Corrigé — le test e2e du mode parcours ne pollue plus la base, et ne se cascade plus
+
+Ce défaut d'interface bloquait le test e2e `plan-routes-mode`, et le faisait échouer d'une
+manière qui masquait sa propre cause — le smoke « Plan » de la CI est resté rouge plusieurs
+jours, sur `main` comme sur toutes les branches ouvertes :
+
+1. le clic impossible faisait expirer le test (`Test timeout of 120000ms exceeded`) ;
+2. Playwright démontait alors ses fixtures, le nettoyage en `finally` levait
+   `Target page, context or browser has been closed`, et **le parcours de test survivait en
+   base** ;
+3. la reprise en créait un second, du même titre, et le clic devenait ambigu
+   (`strict mode violation … resolved to 2 elements`) — le seul message qu'on lisait.
+
+Le nettoyage passe maintenant par un contexte de requête créé à la main, dans un `afterEach`
+qui a son propre budget de temps : il n'est plus emporté par un test qui expire. Et le parcours
+de test porte un titre unique, comme son slug l'était déjà, de sorte qu'une fuite résiduelle ne
+puisse plus faire échouer la tentative suivante. Le test échoue désormais sur ce qui ne va pas,
+au lieu de se saborder.
+
 ### Corrigé — réalignement des profils du 22/09/2026 : mise en code et angles morts
 
 Deux scripts d'exploitation ont été passés à la main sur la base de production : textes de la
