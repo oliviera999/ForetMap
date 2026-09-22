@@ -36,6 +36,7 @@ import {
   submitPlaceSuggestion,
 } from './planApi.js';
 import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
+import { fingerprintCategoryDefaults } from './utils/planCategoryDefaults.js';
 import { PlanAccountGate } from './components/PlanAccountGate.jsx';
 import {
   buildPlaceUrl,
@@ -120,6 +121,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const storageKeys = useMemo(() => planStorageKeys(variant, map?.id || ''), [variant, map]);
   const {
     categories: CATEGORIES_STORAGE_KEY,
+    categoriesDefaults: CATEGORIES_DEFAULTS_STORAGE_KEY,
     welcome: WELCOME_STORAGE_KEY,
     headingUp: HEADING_UP_STORAGE_KEY,
     scaleCompass: SCALE_COMPASS_STORAGE_KEY,
@@ -291,6 +293,10 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * contenu suffit), et, sur un appareil chargé, il pouvait même être exécuté **après** un
    * appui sur une puce. Les filtres se remettaient alors tout seuls au défaut, sans que rien
    * ne l'explique à l'écran (vu en intégration le 17/09/2026, job `quality`).
+   *
+   * Exception : si l'établissement **change** `default_category_ids`, l'empreinte diverge et
+   * un effet ciblé écrase la mémoire appareil (voir plus bas) — ce n'est pas le même cas que
+   * « recharger le même contenu ».
    */
   const defaultCategoryIds = useMemo(() => {
     if (!settings) return EMPTY_CATEGORY_IDS;
@@ -302,6 +308,31 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const selectedCategoryIdsRef = useRef(selectedCategoryIds);
   selectedCategoryIdsRef.current = selectedCategoryIds;
 
+  /**
+   * Changement admin des catégories cochées d'office → écraser le choix mémorisé sur
+   * l'appareil et repartir des nouveaux défauts (même en session).
+   * Première pose de l'empreinte : on l'enregistre sans toucher à un choix déjà mémorisé
+   * (évite d'écraser tous les appareils au déploiement de cette mécanique).
+   */
+  useEffect(() => {
+    if (!settings) return;
+    const adminDefaults = settings.default_category_ids || [];
+    const fingerprint = fingerprintCategoryDefaults(adminDefaults);
+    const storedDefaults = safeLocalStorageReadJson(CATEGORIES_DEFAULTS_STORAGE_KEY, null);
+    const storedFingerprint =
+      storedDefaults === null ? null : fingerprintCategoryDefaults(storedDefaults);
+    if (storedFingerprint === fingerprint) return;
+    if (storedDefaults === null) {
+      safeLocalStorageWriteJson(CATEGORIES_DEFAULTS_STORAGE_KEY, adminDefaults);
+      return;
+    }
+    const nextDefaults = adminDefaults.map(String).filter((id) => categoriesById.has(id));
+    safeLocalStorageWriteJson(CATEGORIES_STORAGE_KEY, nextDefaults);
+    safeLocalStorageWriteJson(CATEGORIES_DEFAULTS_STORAGE_KEY, adminDefaults);
+    // Poser le choix explicite : le useMemo de `defaultCategoryIds` ne se recalcule pas
+    // juste parce que le localStorage a changé.
+    setChosenCategoryIds(new Set(nextDefaults));
+  }, [settings, categoriesById, CATEGORIES_STORAGE_KEY, CATEGORIES_DEFAULTS_STORAGE_KEY]);
   useEffect(() => {
     if (!settings?.welcome_hint) return;
     if (safeLocalStorageReadJson(WELCOME_STORAGE_KEY, false)) return;

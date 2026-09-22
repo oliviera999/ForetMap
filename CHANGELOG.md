@@ -15,6 +15,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   débordement (`overflow-y: hidden`) et l'empilement laissait la carte au-dessus.
 - La puce Parcours est hors du bandeau scrollable ; z-index de la barre de filtres relevé.
 
+### Corrigé — Plan Lyautey : masquage de catégories et défauts admin
+
+- **Catégories masquées** : les lieux qui n'appartenaient qu'à ces catégories sont exclus de
+  la charge (`/api/plan/content` et plan des personnels) ; les lieux vraiment sans catégorie
+  restent visibles sous filtre.
+- **Changement des catégories cochées d'office** : l'empreinte côté appareil est mise à jour
+  et le filtre mémorisé est écrasé par les nouveaux défauts.
+- Console admin : listes filtrées par surface (`plan` / `staff`), exclusion mutuelle
+  défaut ↔ masqué, aides clarifiées (vide = tout).
+- Doc de référence : mémoire des filtres **par plan** (changement de carte ≠ reset filtres) ;
+  feuille Filtres alignée sur les puces (pas de catégorie à 0 lieu).
+
 ### Corrigé — bouton d'aide « ? » recentré dans son cercle
 
 - Le glyphe « ? » pouvait paraître décalé dans la pastille (ForetMap, G&L, plan) : pas de

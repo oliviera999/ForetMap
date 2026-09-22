@@ -178,8 +178,8 @@ code est d'ailleurs inscrit au journal d'audit, en regard de son ouverture.
 
 Si l'établissement propose plusieurs plans (voir ci-dessous), on choisit ici celui qu'on
 regarde. Le choix est retenu sur l'appareil, et porté par l'adresse : un lien copié rouvre le
-même plan. Changer de plan repart de zéro — recherche, lieu ouvert, parcours en cours et
-filtres — puisque les lieux et les catégories diffèrent d'un plan à l'autre.
+même plan. Changer de plan repart de zéro pour la recherche, le lieu ouvert et le parcours —
+les **filtres** restent mémorisés **par plan** (on retrouve ceux qu'on y avait laissés).
 
 La liste des plans proposés se règle dans **Réglages → Plan Lyautey → Plan des personnels**,
 champ **« Autres plans proposés aux personnels »**. Elle est **propre à cette surface** : un
