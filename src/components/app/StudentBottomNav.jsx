@@ -103,6 +103,7 @@ export function buildStudentNavItems({
   items.push({ id: 'foodweb', label: 'Réseau', icon: <IconFoodweb size={20} /> });
   items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
   items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
+  items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
   if (tutorialsModuleEnabled && canAccessTutorials) {
     items.push({ id: 'tuto', label: 'Tuto', icon: <IconTuto size={20} /> });
   }

@@ -2843,6 +2843,22 @@ sont refusés.
 | DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet |
 | PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
 
+### Suivi d'individus arbres (`/api/individuals`)
+
+Migration `276`. Lecture publique ; création/édition sous `individuals.manage` (admin, prof) ;
+saisie de mesures sous `individuals.measure` (admin, prof, paliers élève). Chaque mesure
+peut porter une estimation pédagogique (Chave 2014) avec disclaimer « ordre de grandeur ».
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/individuals` | non | Liste (`?mapId=`, `?plantId=`, `?active=0` pour inclure les inactifs) |
+| GET | `/api/individuals/:id` | non | Détail + `measurements[]` (avec `estimate`) + `disclaimer` |
+| POST | `/api/individuals` | `individuals.manage` | Créer (plant_id, map_id, label ; zone_id / marker_id optionnels) |
+| PUT | `/api/individuals/:id` | `individuals.manage` | Modifier libellé, densité, rattachements, actif |
+| DELETE | `/api/individuals/:id` | `individuals.manage` | Supprimer (cascade mesures) |
+| POST | `/api/individuals/:id/measurements` | `individuals.measure` | Ajouter une mesure (measured_at + au moins une grandeur) |
+| DELETE | `/api/individuals/:id/measurements/:measurementId` | `individuals.manage` | Supprimer une mesure |
+
 ### Notions des programmes (`/api/curriculum`)
 
 Référentiel des notions officielles (migration `273`) : il relie le catalogue pédagogique à ce

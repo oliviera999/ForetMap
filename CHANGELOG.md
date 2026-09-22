@@ -42,6 +42,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : suivi d'individus arbres et mesures (lot 7)
+
+- Migration **276** : tables **`tracked_individuals`** et **`individual_measurements`**.
+- Permissions **`individuals.manage`** (admin, prof) et **`individuals.measure`** (admin, prof,
+  paliers `eleve_*`) ; API `/api/individuals` (CRUD, mesures, estimations).
+- Estimations pédagogiques (Chave 2014) : D=C/π, biomasse, carbone, CO₂ — disclaimer
+  « ordre de grandeur » ; courbe de croissance dans l'onglet **Individus**.
+
 ### Ajouté — Biodiversité structure : clés dichotomiques d'identification (lot 6)
 
 - Migration **275** : tables **`id_keys`**, **`id_key_couplets`**, **`id_key_leads`** (chaque

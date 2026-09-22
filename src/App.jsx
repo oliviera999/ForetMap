@@ -697,6 +697,8 @@ function App() {
   );
   const canManageFoodWeb = hasPermission('plants.manage');
   const canManageIdKeys = hasPermission('id_keys.manage');
+  const canManageIndividuals = hasPermission('individuals.manage');
+  const canMeasureIndividuals = hasPermission('individuals.measure');
 
   const canParticipateContextComments = useMemo(
     () =>
@@ -1632,6 +1634,8 @@ function App() {
                           foodWebHighlightPlantId={foodWebHighlightPlantId}
                           canManageFoodWeb={canManageFoodWeb}
                           canManageIdKeys={canManageIdKeys}
+                          canManageIndividuals={canManageIndividuals}
+                          canMeasureIndividuals={canMeasureIndividuals}
                           appVersion={appVersion}
                           canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                           onOpenSettingsLearning={handleOpenSettingsLearning}
@@ -1748,6 +1752,8 @@ function App() {
                             foodWebHighlightPlantId={foodWebHighlightPlantId}
                             canManageFoodWeb={canManageFoodWeb}
                             canManageIdKeys={canManageIdKeys}
+                            canManageIndividuals={canManageIndividuals}
+                            canMeasureIndividuals={canMeasureIndividuals}
                             appVersion={appVersion}
                           />
                         </>
