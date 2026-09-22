@@ -459,7 +459,15 @@ describe('AppPlan — montage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
 
     const replaceSpy = vi.spyOn(window.history, 'replaceState');
-    fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
+    const picker = screen.getByTestId('map-route-picker');
+    // La puce Parcours doit rester hors du bandeau scrollable : sinon overflow coupe la
+    // liste et elle s'affiche sous la carte.
+    expect(picker.closest('.plan-filters__scroll')).toBeNull();
+    expect(picker.closest('.plan-filters__row')).toBeTruthy();
+    fireEvent.click(picker);
+    const list = document.querySelector('.plan-routes__list');
+    expect(list).toBeTruthy();
+    expect(list.closest('.plan-filters__scroll')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
 
     const sheet = await screen.findByTestId('plan-route-sheet');
