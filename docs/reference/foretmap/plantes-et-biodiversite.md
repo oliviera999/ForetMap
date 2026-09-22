@@ -74,6 +74,14 @@ du groupe. En mode élève, on place les espèces dans les groupes puis on lance
 ajouter, déplacer ou supprimer des groupes (un déplacement qui ferait une boucle est
 refusé).
 
+## Clés d’identification
+
+L’onglet **Clés d’identification** propose des parcours dichotomiques : une question à la
+fois, avec retour en arrière, jusqu’à la fiche de l’espèce. Les énoncés décrivent des
+**caractères observables** — jamais une invitation à cueillir, goûter ou manipuler. Les
+enseignants autorisés créent et publient les clés (couplets, propositions, image
+optionnelle par proposition).
+
 S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
 figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
 caroubier, arganier, citronnier, palmier-dattier, artichaut, pois chiche, fenugrec,

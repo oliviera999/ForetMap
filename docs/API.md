@@ -2825,6 +2825,24 @@ sont refusés à l'écriture.
 
 `plants.clade_id` est éditable via les routes plantes existantes (whitelist `PLANT_COLUMNS`).
 
+### Clés d'identification dichotomiques (`/api/id-keys`)
+
+Migration `275`. Lecture des clés **publiées** sans auth ; brouillons et écriture sous
+`id_keys.manage` (admin, prof, prof_classe). Chaque lead a exactement une issue
+(`next_couplet_id` XOR `plant_id`) ; les cycles et les formulations invitant à manipuler
+sont refusés.
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons) |
+| GET | `/api/id-keys/:idOrSlug` | non / manage | Détail (couplets + leads). Brouillon → 404 sans `id_keys.manage` |
+| POST | `/api/id-keys` | `id_keys.manage` | Créer une clé (slug, title…) + couplet n°1 |
+| PUT | `/api/id-keys/:id` | `id_keys.manage` | Métadonnées / publication (graph validé si `is_published`) |
+| DELETE | `/api/id-keys/:id` | `id_keys.manage` | Supprimer la clé (cascade couplets/leads) |
+| POST | `/api/id-keys/:id/couplets` | `id_keys.manage` | Ajouter un couplet |
+| DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet |
+| PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
+
 ### Notions des programmes (`/api/curriculum`)
 
 Référentiel des notions officielles (migration `273`) : il relie le catalogue pédagogique à ce

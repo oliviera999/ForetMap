@@ -98,6 +98,7 @@ const learningLinksRouter = require('./routes/learning-links');
 const learningGatingRouter = require('./routes/learning-gating');
 const foodWebRouter = require('./routes/food-web');
 const cladesRouter = require('./routes/clades');
+const idKeysRouter = require('./routes/id-keys');
 
 const app = express();
 
@@ -534,6 +535,7 @@ app.use('/api/learning-links', learningLinksRouter);
 app.use('/api/learning/gating', learningGatingRouter);
 app.use('/api/food-web', foodWebRouter);
 app.use('/api/clades', cladesRouter);
+app.use('/api/id-keys', idKeysRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/school-calendar', schoolCalendarRouter);
 app.use('/api/task-projects', taskProjectsRouter);

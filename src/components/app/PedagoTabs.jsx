@@ -16,6 +16,9 @@ const FoodWebViewLazy = lazy(() =>
 const NestedGroupsViewLazy = lazy(() =>
   import('../pedago-views').then((m) => ({ default: m.NestedGroupsView })),
 );
+const IdKeysViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.IdKeysView })),
+);
 const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default: m.AboutView })));
 
 /**
@@ -53,6 +56,7 @@ export function PedagoTabs({
   maps,
   foodWebHighlightPlantId,
   canManageFoodWeb,
+  canManageIdKeys = false,
   appVersion,
   onOpenSettingsLearning = null,
   canReadSiteIssues = false,
@@ -128,6 +132,11 @@ export function PedagoTabs({
             canManage={canManageFoodWeb}
             onOpenPlant={onOpenPlantCatalogPreview}
           />
+        </TabSuspense>
+      )}
+      {tab === 'id-keys' && (
+        <TabSuspense>
+          <IdKeysViewLazy canManage={canManageIdKeys} onOpenPlant={onOpenPlantCatalogPreview} />
         </TabSuspense>
       )}
       {tab === 'about' && (
