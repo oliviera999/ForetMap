@@ -114,7 +114,9 @@ function printLti(lti) {
   line('');
   line('Entrée depuis le cours (LTI 1.3) :');
   if (!lti.configured) {
-    line('  secrets absents de .env (lancement désactivé)');
+    line('  secrets absents (lancement désactivé)');
+    line('  Sur cPanel : LTI_TOOL_PRIVATE_KEY_FILE=/chemin/hors-web/tool-pkcs8.pem');
+    for (const err of lti.errors || []) line(`  ERREUR [${err.step}] ${err.message}`);
     return;
   }
   line(
@@ -123,7 +125,8 @@ function printLti(lti) {
   line(
     `  JWKS plateforme : ${lti.jwksOk ? `OK (${lti.jwksKeys} clé(s))` : 'KO'} ${lti.platformJwksUrl || ''}`,
   );
-  line(`  clé de l’outil : ${lti.toolJwkOk ? 'OK' : 'KO'} (kid ${lti.toolKid || '?'})`);
+  const src = lti.toolKeySource ? ` via ${lti.toolKeySource}` : '';
+  line(`  clé de l’outil : ${lti.toolJwkOk ? 'OK' : 'KO'} (kid ${lti.toolKid || '?'}${src})`);
   for (const err of lti.errors || []) line(`  ERREUR [${err.step}] ${err.message}`);
 }
 

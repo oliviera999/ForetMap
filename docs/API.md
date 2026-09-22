@@ -2532,7 +2532,9 @@ Outil unique Moodle pour ForetMap **et** G&L (spécification section 21, lot M6)
 deuxième synchronisation : on rattache au compte `users` déjà connu. Aucun AGS, aucun
 Deep Linking, jamais de création de compte (`INSERT users` interdit). Secrets dans `.env`
 (`LTI_ISSUER`, `LTI_CLIENT_ID`, `LTI_DEPLOYMENT_ID`, `LTI_PLATFORM_AUTH_URL`,
-`LTI_PLATFORM_JWKS_URL`, `LTI_TOOL_PRIVATE_KEY`, `LTI_TOOL_KID`) — jamais renvoyés.
+`LTI_PLATFORM_JWKS_URL`, `LTI_TOOL_PRIVATE_KEY_FILE` / `LTI_TOOL_PRIVATE_KEY_B64` /
+`LTI_TOOL_PRIVATE_KEY`, `LTI_TOOL_KID`) — jamais renvoyés. Sur cPanel, préférer
+**`LTI_TOOL_PRIVATE_KEY_FILE`** (PEM hors webroot).
 Sans eux, **`/login`**, **`/launch`** et **`/.well-known/jwks.json`** répondent
 **`503 { error: 'Entrée depuis le cours non configurée', code: 'LTI_NOT_CONFIGURED' }`** ;
 **`POST /session`** n'exige que un ticket valide (pas de relecture des secrets `.env`).
