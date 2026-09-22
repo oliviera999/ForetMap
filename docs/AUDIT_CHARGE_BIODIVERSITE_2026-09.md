@@ -158,14 +158,15 @@ Tout le reste — B1, les images, le coût mémoire du DOM — est **linéaire e
 sans plafond. Une borne d'affichage est le remède le plus économique : elle divise B1 par le
 même facteur sans toucher à aucune route.
 
-**Remède** : premier lot borné (24 cartes) + « Voir plus » ou chargement à l'approche du bas de
-page. Le compteur affiché (« X / Y êtres vivants à l'écran ») reste vrai et devient même plus
-informatif.
+**Remède** : premier lot borné + « Voir plus » ou chargement à l'approche du bas de page. Le
+compteur affiché (« X / Y êtres vivants à l'écran ») reste vrai et devient même plus informatif.
 
-**Sans objet en l'état (lot 1).** Les vignettes ne coûtent plus rien par fiche : le DOM d'une
-vignette est une poignée de nœuds, sans requête et sans rendu Markdown. La borne d'affichage
-reste la parade si le catalogue devait dépasser quelques centaines de fiches — elle n'est plus
-nécessaire aujourd'hui.
+**Traité (lot 1A).** Les vignettes restent légères (lot 1) et sont désormais **bornées** :
+`useBiodivCatalogPage` monte d'abord **36 vignettes** (`BIODIV_PAGE_SIZE`), puis le bouton
+**Voir plus** ajoute 36 éléments à la fois. Le compteur distingue donc bien le total filtré de ce
+qui est réellement monté. Chaque changement de filtre remet la fenêtre à 36 (`filterResetKey`) :
+on ne garde pas une page profonde après avoir changé de recherche ou de carte. Couverture :
+`tests/biodiv-catalog-load-caps.test.js` verrouille `BIODIV_PAGE_SIZE = 36`.
 
 ### B3. [MAJEUR] Les appels dépendants des filtres n'ont pas d'anti-rebond
 
@@ -192,11 +193,20 @@ au filtrage ; (b) à défaut, appliquer le même anti-rebond de 280 ms ; (c) mé
 par carte au niveau de la vue plutôt que dans la carte, pour que le remontage ne rappelle pas
 le serveur.
 
-**Sans objet (lot 1), garde-fou levé (lot 2).** Le volet lourd — le remontage des cartes et sa
-rafale — a disparu avec les vignettes : filtrer ne monte plus rien. Restent les deux appels de
-**page**, qui repartent à chaque changement de filtre ; leur coût est désormais borné et
-constant côté serveur (B4), et le plafond de 60 qui rendait le choix de la source délicat est
-levé. Le remède (a) reste applicable si l'on veut supprimer jusqu'à ces deux appels.
+**Traité (lot 1A).** Le volet lourd — le remontage des cartes et sa rafale — avait disparu avec
+les vignettes (lot 1). Les deux appels de **page** restants sont maintenant protégés par les mêmes
+contraintes que le serveur :
+
+- les ids sont normalisés, dédupliqués et triés avant appel ;
+- `usePlantObservationCounts` et `useLearningGatingSummary` attendent **280 ms** quand la clé
+  change, ce qui absorbe les frappes successives dans le champ de recherche ;
+- le client découpe au-delà de **200 ids par requête** (`chunkIds`) et fusionne les réponses, au
+  lieu de tronquer silencieusement la 201e fiche ;
+- les filtres/tri qui dépendent des observations basculent explicitement en **portée complète**
+  (`needsFullCounts`) ; les autres restent sur la fenêtre affichée.
+
+Couverture : `tests/biodiv-catalog-load-caps.test.js` verrouille le plafond serveur (200), le
+plafond client (200), le découpage 200+50 et l'alignement du résumé de conditionnement.
 
 ### B4. [MAJEUR] `/api/learning/gating/summary` : 3 à 4 requêtes SQL **par ressource**, en série
 
@@ -661,13 +671,14 @@ plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le c
 
 ### Bilan chiffré
 
-|                                        | Avant                              | Après les trois lots                  |
-| -------------------------------------- | ---------------------------------- | ------------------------------------- |
-| Ouverture du catalogue biodiversité    | ≈ 471 appels, ≈ 1 400 requêtes SQL | **3 appels**, ≈ 15 requêtes SQL       |
-| Ouverture d'**une** fiche              | 0 (déjà chargée)                   | 4 appels — pour la seule fiche lue    |
-| Filtrer / rechercher dans le catalogue | relance la rafale complète         | 2 appels de page, à coût SQL constant |
-| Onglet Tâches (40 tuiles)              | 120 appels                         | **40 appels**                         |
-| `/gating/summary` (60 réfs)            | ~180 à 240 requêtes SQL en série   | **≤ 6, constantes**                   |
+|                                        | Avant                                        | Après les lots 1-3 + 1A                         |
+| -------------------------------------- | -------------------------------------------- | ----------------------------------------------- |
+| Ouverture du catalogue biodiversité    | ≈ 471 appels, ≈ 1 400 requêtes SQL           | **3 appels**, ≈ 15 requêtes SQL pour la fenêtre |
+| Ouverture d'**une** fiche              | 0 (déjà chargée)                             | 4 appels — pour la seule fiche lue              |
+| Filtrer / rechercher dans le catalogue | relance la rafale complète                   | appels de page anti-rebond 280 ms, lots de 200  |
+| Catalogue > 200 fiches                 | annonces/compteurs au risque d'être tronqués | lots successifs fusionnés, sans perte de fiche  |
+| Onglet Tâches (40 tuiles)              | 120 appels                                   | **40 appels**                                   |
+| `/gating/summary` (60 réfs)            | ~180 à 240 requêtes SQL en série             | **≤ 6, constantes** par lot                     |
 
 ## 6. Comment le mesurer
 
@@ -688,10 +699,14 @@ plan sont devenus sans objet. Le **lot 2** a dégraissé ce qui restait sur le c
    mesuré (15,2) est une **borne basse** : le scénario ne rejoue que 20 fiches sur 78, et
    seulement les routes publiques (le volet commentaires, authentifié, n'est pas simulé).
 
-2. **Compteur de requêtes en test — fait pour B4 et T1.** Le motif existait déjà
+2. **Compteur de requêtes en test — fait pour B4 et T1 ; garde-fous de lots faits pour B2/B3.**
+   Le motif existait déjà
    (`tests/gl-market-trades-batch.test.js` compare un compteur de requêtes SQL avant/après) ;
    `tests/learning-gating-summary-batch.test.js` le porte sur le résumé de conditionnement, et
    `tests/media-library-usage-cache.test.js` sur l'usage de la médiathèque.
+   `tests/biodiv-catalog-load-caps.test.js` ne compte pas le SQL : il verrouille les invariants
+   qui évitent le retour de la rafale côté client (36 vignettes, 200 ids par lot, découpage 200+50,
+   alignement avec `SUMMARY_MAX_REFS`).
 
    Ce dernier a une valeur qui dépasse la non-régression : **c'est lui qui a corrigé le
    chiffrage de T1.** Écrire le test a obligé à compter au lieu d'estimer, et les trois nombres

@@ -10,6 +10,8 @@ package-lock.json
 src/index.css
 src/gl/styles/gl-theme.css
 CHANGELOG.md
+# Tableaux Markdown trop larges : Prettier les réduit à une colonne illisible.
+docs/API.md
 data/
 public/
 lib/visit-pack/

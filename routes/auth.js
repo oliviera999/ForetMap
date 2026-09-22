@@ -47,7 +47,11 @@ const {
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { resolveLoginAccountByIdentifier } = require('../lib/identity');
-const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const {
+  getUserTokenEpoch,
+  bumpUserTokenEpoch,
+  applyImpersonationActorClaims,
+} = require('../lib/auth/tokenEpoch');
 const {
   shouldRenewAuthToken,
   carrySessionStart,
@@ -293,11 +297,7 @@ router.get('/me', requireAuth, async (req, res) => {
         const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
           const tp = carrySessionStart(session.tokenPayload, claims);
-          if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
-            tp.impersonating = true;
-            tp.actorUserType = claims.actorUserType;
-            tp.actorUserId = claims.actorUserId;
-          }
+          applyImpersonationActorClaims(tp, claims);
           body.refreshedToken = await signAuthToken(tp);
           body.auth = exposeAuth({
             ...tp,
@@ -320,15 +320,7 @@ router.get('/me', requireAuth, async (req, res) => {
         const tp = carrySessionStart(session.tokenPayload, tokenClaims);
         // La prise de contrôle est reconduite ici aussi : sinon l'administrateur se
         // retrouvait avec un jeton ordinaire du compte contrôlé, sans issue (CDG-08).
-        if (
-          tokenClaims?.impersonating &&
-          tokenClaims.actorUserType &&
-          tokenClaims.actorUserId != null
-        ) {
-          tp.impersonating = true;
-          tp.actorUserType = tokenClaims.actorUserType;
-          tp.actorUserId = tokenClaims.actorUserId;
-        }
+        applyImpersonationActorClaims(tp, tokenClaims);
         body.refreshedToken = await signAuthToken(tp);
         body.auth = exposeAuth({
           ...tp,
@@ -1580,6 +1572,7 @@ router.post(
       impersonating: true,
       actorUserType: req.auth.userType,
       actorUserId: req.auth.userId,
+      actorTokenEpoch: await getUserTokenEpoch(req.auth.userId),
     };
     const token = await signAuthToken(tokenPayload);
     let hydrated;

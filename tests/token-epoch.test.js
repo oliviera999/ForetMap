@@ -13,7 +13,11 @@ const bcrypt = require('bcryptjs');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { hashResetToken } = require('../lib/passwordReset');
-const { getUserTokenEpoch, bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const {
+  getUserTokenEpoch,
+  bumpUserTokenEpoch,
+  applyImpersonationActorClaims,
+} = require('../lib/auth/tokenEpoch');
 const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 
 const stamp = Date.now();
@@ -134,4 +138,23 @@ test('GL : un reset admin du mot de passe joueur révoque sa session', async () 
     player.linked_foretmap_user_id,
   ]);
   assert.strictEqual(Number(epoch.token_epoch), 1);
+});
+
+test('applyImpersonationActorClaims recopie l époque snapshotée, sans la relire', () => {
+  const payload = { userType: 'student', userId: 's1' };
+  applyImpersonationActorClaims(payload, {
+    impersonating: true,
+    actorUserType: 'teacher',
+    actorUserId: 't1',
+    actorTokenEpoch: 4,
+  });
+  assert.strictEqual(payload.impersonating, true);
+  assert.strictEqual(payload.actorUserId, 't1');
+  assert.strictEqual(payload.actorTokenEpoch, 4);
+  applyImpersonationActorClaims(payload, {
+    impersonating: true,
+    actorUserType: 'teacher',
+    actorUserId: 't1',
+  });
+  assert.strictEqual(payload.actorTokenEpoch, 0);
 });

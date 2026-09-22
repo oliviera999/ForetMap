@@ -66,6 +66,31 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `task_assignments` est centrée sur l'élève (`student_id`, lectures filtrées sur
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
+### Corrigé — prise de contrôle : un mot de passe changé coupe aussi la session « voir comme »
+
+- Le jeton de prise de contrôle portait l'époque de session **de la cible**, pas celle de
+  l'acteur. Après un changement de mot de passe de l'administrateur (ou du MJ), la session
+  contrôlée restait valable, et « Revenir à mon compte » pouvait même réémettre un jeton
+  admin/MJ frais. On snapshot désormais l'époque de l'acteur (`actorTokenEpoch`) à
+  l'ouverture et on la revérifie à chaque requête (ForetMap et Gnomes & Licornes).
+### Documentation — audit de sécurité d'accès aux données (22 sept. 2026)
+
+- **`docs/AUDIT_SECURITE_2026-09-22.md`** : état des lieux de la politique d'accès côté serveur
+  des trois surfaces (`foretmap`, `planlyautey`, `proflyautey`). Inventaire des routes **mesuré**
+  (123 routes `GET` ForêtMap sondées anonymement sur le fixture migré) plutôt que déduit de la
+  lecture : 31 chemins répondent `200` à un appelant non authentifié.
+- **Constat principal** : la politique d'accès existe et fonctionne, mais elle est posée sur les
+  points d'entrée composites de chaque surface (`/api/plan/content`, `/api/staff-plan/content`)
+  et **pas** sur les routes génériques qui servent les mêmes lignes (`/api/zones`,
+  `/api/map/markers`, `/api/maps`, `/api/map-categories`). Plan en mode `code` :
+  `/api/plan/content` rend `401` pendant que `/api/zones?map_id=lyautey` rend 36 zones.
+- Onze constats (S1–S11), dont le filtrage `hidden_surfaces` conditionné à un paramètre du
+  client, la surface décidée par le client, les métadonnées EXIF jamais retirées des photos
+  d'origine, et l'absence de `robots.txt`. Plan de correction priorisé (lots A–M) **en attente
+  de validation** — aucun code modifié.
+- Les points déjà conformes sont listés explicitement (handshake socket.io authentifié,
+  `/uploads` sans listage et familles privées gardées, jetons de réinitialisation hachés à TTL,
+  impersonation journalisée, isolement G&L) pour qu'une passe ultérieure ne les défasse pas.
 
 ### Ajouté — plan public et plan des personnels : déconnexion et choix du plan affiché
 
