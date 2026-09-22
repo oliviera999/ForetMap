@@ -47,9 +47,10 @@ commentaires) et rester informé (notifications, temps réel).
   projet ou une zone — la discussion reste au plus près du travail concerné. Mêmes
   participants que le forum : tout le monde sauf les visiteurs. Depuis le **Plan des
   personnels**, le bouton « Signaler ou proposer » d'une fiche de lieu écrit dans ces mêmes
-  commentaires, et le message ressort dans « Messages reçus sur les lieux ». La liste
-  n’est chargée **qu’à l’ouverture** de la section (pas d’aperçu tant qu’elle est
-  repliée) ; un point signale les nouveaux messages reçus en temps réel sans ouvrir.
+  commentaires, et le message ressort dans « Messages reçus sur les lieux ». Sur la
+  liste, le **nombre** de commentaires s’affiche même quand la section est repliée ;
+  un **point** signale les messages non lus (jamais ouverts, ou nouveaux depuis la
+  dernière consultation). Ouvrir la section marque les messages comme lus.
 
 ## Notifications et temps réel
 

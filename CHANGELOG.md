@@ -67,6 +67,15 @@ Les tâches pour comptes enseignants restent **hors de ce lot** : `prof_classe` 
 `user_type = 'student'`) — ces droits sont donc inertes, et l'onglet Tâches reste masqué pour
 ce profil.
 ### Corrigé — LTI : clé privée lisible depuis cPanel
+### Corrigé — compteur de commentaires sur les tâches (badge + non lus)
+
+- Le badge à côté de « Commentaires de la tâche » restait à **0** tant que la section
+  était repliée (aucun appel réseau volontaire pour limiter la charge). Un résumé
+  groupé `GET /api/context-comments/counts` alimente désormais le **total** dès
+  l’affichage de la liste, et une **pastille** signale les commentaires non lus
+  jusqu’à l’ouverture de la section. Les demandes de plusieurs cartes sont fusionnées
+  en un seul appel HTTP.
+
 ### Sécurité — politique d'accès par surface appliquée côté serveur (lots P0 A–E)
 
 > Suite de l'audit `docs/AUDIT_SECURITE_2026-09-22.md`. **Changement de comportement d'API** :
