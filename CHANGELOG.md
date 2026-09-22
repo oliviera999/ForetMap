@@ -9,11 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Corrigé — LTI : clé privée lisible depuis cPanel
+### Corrigé — LTI : clé privée via fichier sur cPanel
 
-- `LTI_TOOL_PRIVATE_KEY` : normalisation des guillemets et des `\n` littéraux (panneaux
-  d’environnement type cPanel) avant `importPKCS8`, pour éviter l’échec JWKS
-  « Invalid character ».
+- Sur o2switch / nodevenv, une PEM dans `LTI_TOOL_PRIVATE_KEY` est mutilée par l’`export`
+  shell (`\n` → cassé). Ajout de **`LTI_TOOL_PRIVATE_KEY_FILE`** (recommandé) et
+  **`LTI_TOOL_PRIVATE_KEY_B64`** ; la variable PEM directe reste pour le `.env` local.
 
 ### Modifié — Plan Lyautey / personnels : favicon officiel du lycée
 
