@@ -42,6 +42,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : classification en groupes emboîtés (lot 5)
+
+- Migration **274** : table **`clades`** (arbre pédagogique : `parent_id`,
+  `shared_attribute` = caractère partagé) et colonne **`plants.clade_id`** (groupe le plus
+  précis, `ON DELETE SET NULL`) ; amorçage de 43 groupes et rattachement des fiches vivantes
+  (`sql/biodiv_structure_seeds/06_classification.sql`).
+- API **`/api/clades`** : lecture publique de l'arbre et du fil d'ancêtres ; activité
+  « Groupes emboîtés » (`POST …/activity/subtree`, `POST …/activity/check`) ; CRUD sous
+  **`plants.manage`** avec interdiction des cycles (`lib/clades.js`).
+- Fiche : fil « Êtres vivants › … » (attribut au survol) ; onglet pédagogique **Groupes
+  emboîtés** (préparation enseignant, mode élève avec correction automatique, admin de
+  l'arbre).
+
 ### Ajouté — Biodiversité structure : types d'interaction et qualité du lien (lot 1)
 
 - Migration **272** : l'ENUM `species_interactions.interaction_type` passe de 14 à **19 valeurs**

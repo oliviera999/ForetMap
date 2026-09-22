@@ -144,6 +144,13 @@ export function TeacherTopTabs({
       visible: canPlants,
     },
     {
+      id: 'nested-groups',
+      pole: 'contents',
+      Icon: IconBiodiv,
+      label: 'Groupes emboîtés',
+      visible: canPlants,
+    },
+    {
       id: 'tuto',
       pole: 'contents',
       Icon: IconTuto,

@@ -2807,6 +2807,24 @@ Import local : `npm run db:import:biodiv` (après `npm run db:migrate`) — alim
 `sql/biodiv_pedago_seed.sql`, extrait de contenu **sans données personnelles**
 (régénération : `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`).
 
+### Classification — groupes emboîtés (`/api/clades`)
+
+Arbre pédagogique de classification (migration `274`) : chaque nœud porte un **caractère
+partagé** (`shared_attribute`). Lecture publique ; écriture sous `plants.manage`. Les cycles
+sont refusés à l'écriture.
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/clades` | non | Liste plate ordonnée (`items[]` : id, parent_id, name, shared_attribute, description, sort_order) |
+| GET | `/api/clades/:id/path` | non | Fil d'ancêtres racine → nœud (pour le fil de fiche). **400** / **404** si id invalide / inconnu |
+| POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }`. Réponse `{ tree, plants, cladeOptions }` |
+| POST | `/api/clades/activity/check` | non | Correction : `{ placements: [{ plantId, cladeId }] }` → `{ results, correctCount, total, allCorrect }` |
+| POST | `/api/clades` | prof (`plants.manage`) | Créer un groupe (`id` slug, name, shared_attribute, parent_id?, sort_order?) |
+| PUT | `/api/clades/:id` | prof (`plants.manage`) | Modifier / déplacer. **400** si le déplacement créerait un cycle |
+| DELETE | `/api/clades/:id` | prof (`plants.manage`) | Supprimer. **409** s'il reste des sous-groupes (`ON DELETE RESTRICT`) |
+
+`plants.clade_id` est éditable via les routes plantes existantes (whitelist `PLANT_COLUMNS`).
+
 ### Notions des programmes (`/api/curriculum`)
 
 Référentiel des notions officielles (migration `273`) : il relie le catalogue pédagogique à ce
