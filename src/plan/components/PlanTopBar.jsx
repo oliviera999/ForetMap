@@ -14,6 +14,8 @@ import { useId } from 'react';
  * @param {number} [props.resultCount] nombre de résultats (annonce vocale).
  * @param {import('react').ReactNode} [props.help] bouton d'aide (dock partagé), aligné
  *   sur le titre plutôt que posé par-dessus.
+ * @param {import('react').ReactNode} [props.tools] commandes servies à côté de l'aide
+ *   (aujourd'hui : l'ouverture des réglages du lecteur).
  */
 export function PlanTopBar({
   title,
@@ -23,6 +25,7 @@ export function PlanTopBar({
   resultCount = null,
   logoUrl = '',
   help = null,
+  tools = null,
 }) {
   const inputId = useId();
   return (
@@ -64,7 +67,12 @@ export function PlanTopBar({
             : ''}
         </p>
       </div>
-      {help}
+      {/* L'aide et les réglages partagent la même case de la grille : deux cibles de 44 px
+          côte à côte, plutôt qu'une seconde rangée volée à la carte. */}
+      <div className="plan-topbar__tools">
+        {tools}
+        {help}
+      </div>
     </header>
   );
 }

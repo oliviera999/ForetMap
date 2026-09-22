@@ -17,6 +17,7 @@ import { useTimedToastState } from '../shared/hooks/useTimedToastState.js';
 import { useBottomSheetInset } from '../shared/ui/useBottomSheetInset.js';
 import { PlanCategoryChips } from './components/PlanCategoryChips.jsx';
 import { PlanFiltersSheet } from './components/PlanFiltersSheet.jsx';
+import { PlanSettingsSheet } from './components/PlanSettingsSheet.jsx';
 import { PlanHelp } from './components/PlanHelp.jsx';
 import { PlanRoutePicker } from './components/PlanRoutePicker.jsx';
 import { PLAN_ROUTE_BAR_FOCUS_INSET_PX, PlanRouteBar } from './components/PlanRouteBar.jsx';
@@ -28,7 +29,12 @@ import { PlanPlaceSheet } from './components/PlanPlaceSheet.jsx';
 import { PlanResultsSheet } from './components/PlanResultsSheet.jsx';
 import { PlanTopBar } from './components/PlanTopBar.jsx';
 import { usePlanContent } from './hooks/usePlanContent.js';
-import { reportPlanUsage, submitPlanAccessCode, submitPlaceSuggestion } from './planApi.js';
+import {
+  reportPlanUsage,
+  submitPlanAccessCode,
+  submitPlanLogout,
+  submitPlaceSuggestion,
+} from './planApi.js';
 import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
 import { PlanAccountGate } from './components/PlanAccountGate.jsx';
 import {
@@ -38,6 +44,7 @@ import {
   planPlaceFocusPct,
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
+import { buildMapUrl, readMapIdFromLocation } from './utils/planMaps.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
@@ -65,20 +72,28 @@ const EMPTY_REPORTS = Object.freeze([]);
  * (`POST /api/usage`) sait qu'un lieu a été ouvert.
  */
 export function AppPlan({ variant = PLAN_VARIANT }) {
-  const storageKeys = useMemo(() => planStorageKeys(variant), [variant]);
-  const {
-    categories: CATEGORIES_STORAGE_KEY,
-    welcome: WELCOME_STORAGE_KEY,
-    headingUp: HEADING_UP_STORAGE_KEY,
-    scaleCompass: SCALE_COMPASS_STORAGE_KEY,
-    route: ROUTE_RESUME_STORAGE_KEY,
-  } = storageKeys;
+  /**
+   * Clé du plan choisi : elle ne dépend que de la variante, et doit donc être lisible
+   * **avant** de savoir quelle carte le serveur va servir — c'est elle qui le décide.
+   */
+  const MAP_ID_STORAGE_KEY = useMemo(() => planStorageKeys(variant).mapId, [variant]);
   /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
   const [accessCode, setAccessCode] = useState(() =>
     typeof window === 'undefined'
       ? ''
       : String(new URLSearchParams(window.location.search).get('code') || '').trim(),
   );
+  /**
+   * Plan affiché quand l'établissement en publie plusieurs (« Réglages → Plan affiché »).
+   * L'adresse (`?map_id=`, QR code d'annexe) l'emporte sur la mémoire de l'appareil : elle
+   * est plus récente et plus explicite. Vide = le plan réglé côté serveur.
+   */
+  const [mapId, setMapId] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    const fromUrl = readMapIdFromLocation(window.location.search);
+    if (fromUrl) return fromUrl;
+    return String(safeLocalStorageReadJson(MAP_ID_STORAGE_KEY, '') || '');
+  });
   const {
     content,
     places,
@@ -87,6 +102,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     routes,
     categories,
     settings,
+    maps,
     map,
     loading,
     error,
@@ -95,9 +111,24 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     codeAvailable,
     viewer,
     reload,
-  } = usePlanContent('', accessCode, variant);
+  } = usePlanContent(mapId, accessCode, variant);
+  /**
+   * Clés de stockage **de la carte réellement servie**, et non de celle demandée : `mapId`
+   * vaut `''` quand on laisse le serveur choisir, et deux plans partageraient alors la même
+   * mémoire de filtres et de parcours.
+   */
+  const storageKeys = useMemo(() => planStorageKeys(variant, map?.id || ''), [variant, map]);
+  const {
+    categories: CATEGORIES_STORAGE_KEY,
+    welcome: WELCOME_STORAGE_KEY,
+    headingUp: HEADING_UP_STORAGE_KEY,
+    scaleCompass: SCALE_COMPASS_STORAGE_KEY,
+    route: ROUTE_RESUME_STORAGE_KEY,
+  } = storageKeys;
   /** Liste complète des catégories (feuille basse) — la rangée de puces n'en montre que 3. */
   const [filtersOpen, setFiltersOpen] = useState(false);
+  /** Réglages du lecteur : plan affiché, déconnexion. */
+  const [settingsOpen, setSettingsOpen] = useState(false);
   /** Hauteur réellement occupée par la barre d'étape, mesurée par elle (voir `MapRouteBar`). */
   const [routeBarHeight, setRouteBarHeight] = useState(0);
   const [offline, setOffline] = useState(
@@ -135,6 +166,18 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const consoleBaseUrl = String(viewer?.console_base_url || '').replace(/\/+$/, '');
   const canEditLocations = !!viewer?.can_edit_locations && !!consoleBaseUrl;
   const canSuggest = !!viewer?.can_report;
+
+  /**
+   * Y a-t-il une session à rendre ?
+   *
+   * Plan des personnels : toujours — on y entre par un compte ou par un laissez-passer de
+   * code. Plan public : seulement quand l'établissement le ferme par un code de diffusion ;
+   * ouvert à tous, il n'y a rien à quitter, et un bouton « Se déconnecter » n'y voudrait rien
+   * dire.
+   */
+  const canLogout = Boolean(variant.requiresAccount || settings?.access_mode === 'code');
+  /** Réglages ouvrables : une session à rendre, ou plusieurs plans proposés. */
+  const hasSettings = canLogout || (maps || []).length > 1;
 
   /** Envoi d'un signalement attaché au lieu ouvert (commentaires de contexte). */
   const suggestForPlace = useCallback(
@@ -382,6 +425,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    resetForMapChange,
   } = useMapRouteMode({
     routes,
     places,
@@ -459,6 +503,23 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     window.addEventListener('popstate', syncPlaceParam);
     return () => window.removeEventListener('popstate', syncPlaceParam);
   }, [selectedPlace]);
+
+  /**
+   * Même traitement pour `?map_id=`, et pour la même raison : le changement de plan se fait
+   * **depuis une feuille basse**, dont la fermeture dépile une entrée d'historique et emporte
+   * l'adresse qu'on venait d'écrire. Sans cette réaffirmation, le plan choisi disparaissait
+   * de la barre d'adresse aussitôt les réglages refermés — donc du lien qu'on y copie.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history?.replaceState) return undefined;
+    const syncMapParam = () => {
+      if (readMapIdFromLocation(window.location.search) === mapId) return;
+      window.history.replaceState(null, '', buildMapUrl(window.location, mapId));
+    };
+    syncMapParam();
+    window.addEventListener('popstate', syncMapParam);
+    return () => window.removeEventListener('popstate', syncMapParam);
+  }, [mapId]);
 
   // Lien profond `?lieu=` : une seule fois, au premier contenu reçu.
   useEffect(() => {
@@ -716,6 +777,91 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     safeLocalStorageWriteJson(WELCOME_STORAGE_KEY, true);
   }, [WELCOME_STORAGE_KEY]);
 
+  /**
+   * Changement de plan (« Réglages → Plan affiché »).
+   *
+   * Tout ce qui décrivait le plan quitté s'en va : recherche, sélection, groupe ouvert,
+   * guidage, parcours en cours. Les identifiants de lieux et les slugs de parcours ne sont
+   * uniques que sur leur carte — garder l'état reviendrait à viser un lieu qui n'existe plus
+   * ici. Les filtres repartent des défauts de l'établissement (`setChosenCategoryIds(null)`),
+   * la mémoire de chaque plan restant dans sa propre clé (`planStorageKeys`).
+   *
+   * L'adresse suit, débarrassée de `?lieu=` et `?parcours=` : un lien copié après changement
+   * de plan doit rouvrir ce plan-là, et rien de l'ancien.
+   */
+  const selectMap = useCallback(
+    (nextMapId) => {
+      const id = String(nextMapId || '').trim();
+      if (!id || id === String(map?.id || '')) return;
+      safeLocalStorageWriteJson(MAP_ID_STORAGE_KEY, id);
+      setMapId(id);
+      setSettingsOpen(false);
+      setFiltersOpen(false);
+      setResultsOpen(false);
+      setGroupPlaces(null);
+      setQuery('');
+      setSelectedPlace(null);
+      setChosenCategoryIds(null);
+      resetForMapChange();
+      resetGuidanceRef.current?.();
+      // Les liens profonds ont déjà été appliqués — et ils désignaient l'autre plan : ils ne
+      // doivent pas se rejouer sur celui-ci.
+      deepLinkAppliedRef.current = true;
+      routeLinkAppliedRef.current = true;
+      reportPlanUsage('map_switch', id, variant);
+      // `?lieu=` et `?parcours=` s'en vont ici ; `?map_id=` est (ré)affirmé par son propre
+      // effet, qui survit au `history.back()` de la feuille qui se referme.
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState(null, '', buildRouteUrl(window.location, ''));
+      }
+    },
+    [MAP_ID_STORAGE_KEY, map, resetForMapChange, variant],
+  );
+
+  /**
+   * Déconnexion. Le serveur oublie le laissez-passer (cookie `HttpOnly`), l'appareil oublie
+   * le jeton du compte, puis la charge est redemandée : le serveur répond alors « connexion
+   * requise » et l'écran d'entrée revient de lui-même. Pas de `location.reload()` — le plan
+   * doit aussi se déconnecter hors ligne, sans dépendre d'un chargement de page.
+   *
+   * Le code d'un lien profond (`?code=`) part avec la session, adresse comprise : conservé,
+   * il reposerait le laissez-passer à la requête suivante et la déconnexion n'aurait rien
+   * déconnecté. Effacer le code suffit à relancer la charge — d'où le `reload()` réservé au
+   * cas contraire.
+   */
+  const logout = useCallback(async () => {
+    await submitPlanLogout(variant);
+    variant.clearToken?.();
+    if (accessCode) {
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('code');
+        const query = params.toString();
+        window.history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${query ? `?${query}` : ''}`,
+        );
+      }
+      setAccessCode('');
+      return;
+    }
+    reload();
+  }, [accessCode, reload, variant]);
+
+  /**
+   * Un plan mémorisé qui n'est plus proposé (retiré des réglages, dépublié) répond `400`.
+   * On retombe alors sur le plan réglé par l'établissement plutôt que de laisser l'écran
+   * « Le plan n'a pas pu être chargé » à quelqu'un qui n'a rien fait de mal.
+   */
+  useEffect(() => {
+    if (!mapId || error?.status !== 400) return;
+    safeLocalStorageWriteJson(MAP_ID_STORAGE_KEY, '');
+    // L'adresse suit toute seule (effet de synchronisation de `?map_id=`) : sinon le plan
+    // disparu reviendrait au prochain chargement de la page.
+    setMapId('');
+  }, [error, mapId, MAP_ID_STORAGE_KEY]);
+
   // Plan des personnels : le serveur n'a reconnu ni compte ni laissez-passer. On propose la
   // connexion, et la saisie du code seulement si un administrateur l'a activée.
   if (authRequired) {
@@ -792,6 +938,23 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             hasRoutes={(routes || []).some((r) => (r?.steps || []).length > 0)}
             onOpen={() => reportPlanUsage('help_open', 'plan')}
           />
+        }
+        tools={
+          /* Pas de bouton quand il n'y aurait rien derrière : un plan public unique n'a ni
+             session à rendre ni autre plan à proposer. */
+          hasSettings ? (
+            <button
+              type="button"
+              className="plan-topbar__tool"
+              aria-expanded={settingsOpen}
+              aria-label="Réglages"
+              title="Réglages"
+              data-testid="plan-settings-button"
+              onClick={() => setSettingsOpen((open) => !open)}
+            >
+              <span aria-hidden>⚙️</span>
+            </button>
+          ) : null
         }
       />
 
@@ -964,6 +1127,21 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         counts={counts}
         shownCount={filteredPlaces.length}
         totalCount={places.length}
+      />
+
+      <PlanSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        maps={maps}
+        currentMapId={String(map?.id || '')}
+        onSelectMap={selectMap}
+        canLogout={canLogout}
+        onLogout={logout}
+        sessionHint={
+          variant.requiresAccount
+            ? 'Ferme votre session sur cet appareil : le plan des personnels redemandera la connexion.'
+            : 'Oublie le code d’accès mémorisé sur cet appareil : le plan le redemandera.'
+        }
       />
 
       <PlanPlaceSheet

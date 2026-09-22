@@ -836,6 +836,7 @@ function SettingsAdminView({
               évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
           <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
           <StaffPlanSettingsPanel
+            maps={maps}
             get={get}
             saveSetting={saveSetting}
             savingKey={savingKey}
