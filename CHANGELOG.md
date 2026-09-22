@@ -9,6 +9,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la mascotte redevient visible sur les cartes de gestion des tâches
+
+- Sur les cartes de l'espace « Cartes & tâches » (carte seule et vue scindée carte + tâches),
+  la mascotte était **absente de l'écran** : le calque était bien rendu, mais positionné à
+  `top: 7800 %`, soit ~25 000 px sous le plan.
+- Cause : la carte de consultation passe par `SharedMapStage`, qui porte sa propre image. Le
+  viewport historique (`useMapGestures`) ne mesurait donc jamais rien et restait sur le
+  `{ w: 1, h: 1 }` initial de `usePctMapViewport`. La marge basse de
+  `clampMapMascotPctForViewport`, exprimée en fraction de la hauteur du plan, valait alors
+  `78 / 1 × 100 = 7800 %`.
+- `map-views.jsx` transmet désormais la **hauteur réellement affichée** du plan
+  (`fitRect.height` de `SharedMapStage`) en mode consultation, et garde `imgSize.h` pour le
+  calque d'édition historique.
+- `clampMapMascotPctForViewport` **plafonne** sa marge basse : la position rendue ne peut plus
+  sortir du plan, quelle que soit la hauteur reçue. Même durcissement sur le jumeau
+  `clampVisitMascotPctForViewport` (carte de visite), où le calcul était identique.
+- Tests : `tests/map-view-mascot-motion.test.js` (bornes du clamp) et
+  `e2e/map-tasks-mascot.spec.js` (mascotte peinte dans la scène, carte seule et vue scindée).
+
 ### Modifié — « Mes statistiques » : progression et tâches réservées aux comptes n3beurs
 
 - Un compte **hors groupe n3beur** (visiteur, membre du personnel, prof de classe, n3boss,

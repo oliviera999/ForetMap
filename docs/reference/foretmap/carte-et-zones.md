@@ -301,6 +301,9 @@ boussole. Le point s'affiche désormais **même si la mascotte est masquée** : 
 mascotte sont deux choses différentes. Quand la mascotte est visible, elle continue de suivre
 la position comme avant. Zoomer sur un lieu (une tâche, une recherche, une étape de parcours)
 **ne fait plus disparaître** la mascotte : elle garde au moins sa taille habituelle à l'écran.
+Elle reste aussi **toujours posée sur le plan** : sur les cartes de l'espace « Cartes & tâches »
+(carte seule ou vue scindée carte + tâches), elle se plaçait hors du plan et devenait
+invisible ; elle s'affiche désormais à sa place dès l'ouverture de la carte.
 
 Si l'orientation boussole est autorisée (réglage Carte **et** case sur cette carte dans le
 calage GPS), le bouton **« Orienter »** fait tourner le plan pour aligner le regard vers le
