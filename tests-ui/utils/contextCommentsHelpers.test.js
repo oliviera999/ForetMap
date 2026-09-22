@@ -5,6 +5,7 @@ import {
   canModerate,
   contextCommentDraftKey,
   contextCommentReadCursorKey,
+  hasUnreadContextComments,
   parseReactionEmojiList,
   readContextCommentDraft,
   readContextCommentReadCursor,
@@ -75,6 +76,26 @@ describe('read cursor local storage', () => {
   test('retourne null sur stockage corrompu', () => {
     window.localStorage.setItem(contextCommentReadCursorKey('eleve', 'u1', 'task', 5), '{bad json');
     expect(readContextCommentReadCursor('eleve', 'u1', 'task', 5)).toBeNull();
+  });
+});
+
+describe('hasUnreadContextComments', () => {
+  test('sans commentaire : pas de non-lu', () => {
+    expect(hasUnreadContextComments(0, null)).toBe(false);
+    expect(hasUnreadContextComments(0, { newestId: 3 })).toBe(false);
+  });
+
+  test('jamais consulté avec commentaires : non lu', () => {
+    expect(hasUnreadContextComments(12, null)).toBe(true);
+  });
+
+  test('curseur à jour : lu', () => {
+    expect(hasUnreadContextComments(12, { newestId: 12 })).toBe(false);
+    expect(hasUnreadContextComments(10, { newestId: 12 })).toBe(false);
+  });
+
+  test('nouveau message après lecture : non lu', () => {
+    expect(hasUnreadContextComments(15, { newestId: 12 })).toBe(true);
   });
 });
 

@@ -210,6 +210,48 @@ test('Commentaires contextuels: cycle création/lecture/suppression sur une tâc
   assert.strictEqual(deleted.body, '');
 });
 
+test('Commentaires contextuels: résumé groupé /counts (total + newestId)', async () => {
+  const teacher = await teacherToken();
+  const student = await registerStudent('ComCounts');
+  const { taskId } = await createContextFixture(teacher);
+  const other = await createContextFixture(teacher);
+
+  const a = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({ contextType: 'task', contextId: taskId, body: 'Premier message.' })
+    .expect(201);
+  const b = await request(app)
+    .post('/api/context-comments')
+    .set(auth(student.authToken))
+    .send({ contextType: 'task', contextId: taskId, body: 'Second message plus récent.' })
+    .expect(201);
+
+  const counts = await request(app)
+    .get(
+      `/api/context-comments/counts?contextType=task&contextIds=${encodeURIComponent(taskId)},${encodeURIComponent(other.taskId)},999999`,
+    )
+    .set(auth(student.authToken))
+    .expect(200);
+
+  assert.strictEqual(counts.body?.contextType, 'task');
+  assert.strictEqual(counts.body?.counts?.[String(taskId)]?.total, 2);
+  assert.strictEqual(counts.body?.counts?.[String(taskId)]?.newestId, b.body.id);
+  assert.ok(Number(b.body.id) >= Number(a.body.id));
+  assert.strictEqual(counts.body?.counts?.[String(other.taskId)]?.total, 0);
+  assert.strictEqual(counts.body?.counts?.[String(other.taskId)]?.newestId, 0);
+  assert.strictEqual(counts.body?.counts?.['999999']?.total, 0);
+
+  await request(app)
+    .get('/api/context-comments/counts?contextType=task')
+    .set(auth(student.authToken))
+    .expect(400);
+  await request(app)
+    .get('/api/context-comments/counts?contextType=nope&contextIds=1')
+    .set(auth(student.authToken))
+    .expect(400);
+});
+
 test('Commentaires contextuels: pagination triée du plus récent au plus ancien', async () => {
   const teacher = await teacherToken();
   const student = await registerStudent('ComOrder');

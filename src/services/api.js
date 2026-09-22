@@ -376,6 +376,21 @@ export async function listContextComments({ contextType, contextId, page = 1, pa
   return api(`/api/context-comments?${qs.toString()}`);
 }
 
+/**
+ * Résumé groupé (total + newestId) pour une liste de contextes.
+ * @param {{ contextType: string, contextIds: Array<string|number> }} opts
+ */
+export async function getContextCommentCounts({ contextType, contextIds }) {
+  const ids = (Array.isArray(contextIds) ? contextIds : [])
+    .map((id) => String(id ?? '').trim())
+    .filter(Boolean);
+  const qs = new URLSearchParams({
+    contextType: String(contextType || ''),
+    contextIds: ids.join(','),
+  });
+  return api(`/api/context-comments/counts?${qs.toString()}`);
+}
+
 export async function createContextComment({ contextType, contextId, body, images }) {
   const payload = { contextType, contextId };
   if (body !== undefined && body !== null && String(body).length > 0) payload.body = body;

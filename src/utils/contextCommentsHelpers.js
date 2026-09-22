@@ -61,6 +61,20 @@ export function writeContextCommentReadCursor(userType, userId, contextType, con
   );
 }
 
+/**
+ * Y a-t-il des commentaires plus récents que le curseur de lecture ?
+ * Sans curseur et avec au moins un commentaire → non lus (jamais consultés).
+ *
+ * @param {number} newestId
+ * @param {{ newestId: number } | null} cursor
+ */
+export function hasUnreadContextComments(newestId, cursor) {
+  const newest = Math.max(0, Number(newestId) || 0);
+  if (newest <= 0) return false;
+  if (!cursor) return true;
+  return newest > Number(cursor.newestId || 0);
+}
+
 export function parseReactionEmojiList(rawValue) {
   const raw = String(rawValue || '').trim();
   if (!raw) return [...DEFAULT_REACTION_EMOJIS];
