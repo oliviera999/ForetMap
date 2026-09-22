@@ -42,6 +42,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : vue `v_visit_coverage` (lot 9)
+
+- Migration **269** : vue `v_visit_coverage` (`SQL SECURITY INVOKER`) avec alias
+  **`statut_short`** (évite le nom technique MariaDB `Name_exp_11` sur certaines bases).
+- Colonnes legacy `zones.current_plant` / `map_markers.plant_name` **conservées** : encore
+  lues et écrites par l’API et les formulaires carte.
+
 ### Corrigé — LTI : clé privée via fichier sur cPanel
 
 - Sur o2switch / nodevenv, une PEM dans `LTI_TOOL_PRIVATE_KEY` est mutilée par l’`export`
