@@ -37,6 +37,7 @@ import {
   IconQuiz,
   IconSettings,
   IconStats,
+  IconSearch,
   IconTasks,
   IconTuto,
   IconVisit,
@@ -149,6 +150,13 @@ export function TeacherTopTabs({
       Icon: IconBiodiv,
       label: 'Groupes emboîtés',
       visible: canPlants,
+    },
+    {
+      id: 'id-keys',
+      pole: 'contents',
+      Icon: IconSearch,
+      label: 'Clés d’identification',
+      visible: canPlants || hasPermission('id_keys.manage'),
     },
     {
       id: 'tuto',

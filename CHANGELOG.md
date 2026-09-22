@@ -42,6 +42,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Sans changement volontaire** : la Visite publique et les terrains d'apprentissage restent
   ouverts sans compte, le géoréférencement reste servi à la Visite (elle s'en sert pour
   localiser le lecteur), et le périmètre de groupe des comptes est inchangé — il s'ajoute.
+### Ajouté — Biodiversité structure : clés dichotomiques d'identification (lot 6)
+
+- Migration **275** : tables **`id_keys`**, **`id_key_couplets`**, **`id_key_leads`** (chaque
+  proposition mène soit au couplet suivant, soit à une espèce).
+- Permission **`id_keys.manage`** (admin, prof, prof_classe) : éditeur de couplets / leads /
+  images, refus des cycles et des énoncés invitant à manipuler ; lecteur élève (une question,
+  retour arrière, arrivée sur la fiche).
+- La section **Détermination** de la fiche continue d'afficher `identification_criteria`,
+  `lookalike_species` et `identification_period`.
+
 ### Ajouté — Biodiversité structure : classification en groupes emboîtés (lot 5)
 
 - Migration **274** : table **`clades`** (arbre pédagogique : `parent_id`,

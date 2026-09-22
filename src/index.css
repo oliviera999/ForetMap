@@ -2948,6 +2948,31 @@
     }
     .nested-groups-admin__row-actions { display:flex; gap:6px; flex-wrap:wrap; }
 
+    /* Clés d'identification dichotomiques (lot 6) */
+    .id-keys-view { padding: 12px 4px 24px; max-width: 920px; }
+    .id-keys-view__header h2 { display:flex; align-items:center; gap:8px; margin:0 0 6px; }
+    .id-keys-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+    .id-keys-list li { display:flex; flex-wrap:wrap; gap:8px; align-items:center; min-height:44px; }
+    .id-keys-create { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:16px; }
+    .id-key-leads { list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+    .id-key-lead-btn {
+      display:flex; gap:12px; align-items:center; width:100%; text-align:left;
+      min-height:48px; white-space:normal;
+    }
+    .id-key-lead-img { width:64px; height:64px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+    .id-key-reader__nav { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .id-key-editor__meta {
+      display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      margin:12px 0;
+    }
+    .id-key-editor__check { display:flex; align-items:center; gap:8px; min-height:44px; }
+    .id-key-editor__couplet-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+    .id-key-editor__lead {
+      display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      padding:10px; border:1px solid #d7e3d7; border-radius:8px; margin:8px 0;
+    }
+    .id-key-editor__lead-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+
     /* Encadré « Danger » : hors `<details>`, en tête de fiche. Trois paliers de couleur
        pour que la gravité se lise avant le texte. `irritation` reprend l'ambre des
        confusions possibles ; `toxique` et `mortel` montent vers le rouge. */

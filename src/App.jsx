@@ -696,6 +696,7 @@ function App() {
     [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged],
   );
   const canManageFoodWeb = hasPermission('plants.manage');
+  const canManageIdKeys = hasPermission('id_keys.manage');
 
   const canParticipateContextComments = useMemo(
     () =>
@@ -1630,6 +1631,7 @@ function App() {
                           maps={visibleMaps}
                           foodWebHighlightPlantId={foodWebHighlightPlantId}
                           canManageFoodWeb={canManageFoodWeb}
+                          canManageIdKeys={canManageIdKeys}
                           appVersion={appVersion}
                           canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                           onOpenSettingsLearning={handleOpenSettingsLearning}
@@ -1745,6 +1747,7 @@ function App() {
                             maps={visibleMaps}
                             foodWebHighlightPlantId={foodWebHighlightPlantId}
                             canManageFoodWeb={canManageFoodWeb}
+                            canManageIdKeys={canManageIdKeys}
                             appVersion={appVersion}
                           />
                         </>
