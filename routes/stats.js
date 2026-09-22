@@ -8,6 +8,7 @@ const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope')
 const { getOnlineUserIdSet } = require('../lib/realtime');
 const { attachPresenceStatus } = require('../lib/shared/presenceCore');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
+const { getAccountN3beurStatus } = require('../lib/n3beurStudents');
 
 const router = express.Router();
 
@@ -179,10 +180,16 @@ async function userStats(userId, options = {}) {
     [userId],
   );
   if (!s) return null;
-  const isStudent = String(s.user_type || '').toLowerCase() === 'student';
-  const progressionConfig = isStudent ? await getStudentProgressionConfig() : null;
+  // Progression n3beur et tâches ne concernent que les comptes n3beurs (profil effectif de
+  // palier, ou compte encore promotible membre d'un groupe n3beur). Un visiteur, un membre du
+  // personnel ou un encadrant n'a ni échelle de paliers ni activité de tâches à afficher :
+  // sa fiche se limite au volet biodiversité & tutoriels (docs/reference/foretmap/stats-forum-et-suivi.md).
+  const n3beurStatus = await getAccountN3beurStatus(s.id);
+  const isN3beur = n3beurStatus.isN3beur;
+  const tracksTasks = String(s.user_type || '').toLowerCase() === 'student' && isN3beur;
+  const progressionConfig = tracksTasks ? await getStudentProgressionConfig() : null;
   let assignments = [];
-  if (isStudent) {
+  if (tracksTasks) {
     assignments = await queryAll(
       `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
        FROM task_assignments ta
@@ -201,7 +208,7 @@ async function userStats(userId, options = {}) {
   const total = assignments.length;
   const engagement = await fetchUserEngagementStats(s.id);
   let progression = null;
-  if (isStudent) {
+  if (tracksTasks) {
     const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig, {
       recordPromotionNotice: !!options.recordPromotionNotice,
     });
@@ -228,6 +235,7 @@ async function userStats(userId, options = {}) {
     description: s.description,
     avatar_path: s.avatar_path,
     last_seen: s.last_seen,
+    is_n3beur: isN3beur,
     stats: {
       done,
       pending,

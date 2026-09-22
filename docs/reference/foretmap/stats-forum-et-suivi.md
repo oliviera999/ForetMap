@@ -20,6 +20,13 @@ commentaires) et rester informé (notifications, temps réel).
   dédiée) pour les bulletins ou les bilans.
 - **Côté élève** : chacun voit sa propre progression ; l'accès aux statistiques
   générales est un réglage (activable ou non par l'administrateur).
+- **Fiche « Mes statistiques » d'un compte hors groupe n3beur** (visiteur, membre du
+  personnel, professeur, administrateur) : ni badge de palier, ni barre de progression,
+  ni compteurs de tâches, ni « Activité récente » — ces rubriques n'ont pas de sens pour
+  un compte qui ne fait pas de tâches. Sa fiche se limite au volet **Biodiversité &
+  tutoriels** (espèces observées, observations, tutoriels lus), qui reste visible pour
+  tout le monde. Dès qu'un compte rejoint un groupe conférant un palier n3beur, les
+  rubriques de progression et de tâches réapparaissent.
 - **Filtrage par groupe** : un professeur au périmètre limité ne voit que ses groupes.
 
 ## Le forum et les commentaires
