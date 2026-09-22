@@ -1,6 +1,6 @@
 ﻿Rôle;Prénom;Nom;Mot de passe;Groupes (noms/slugs | chemin Parent>Enfant);Pseudo (optionnel);Email (optionnel);Description (optionnel)
 visiteur;Vera;Visite;azerty123;6ème A;vera_visite;vera.visite@gmail.com;Profil écrit en slug. La classe est créée si elle n’existe pas encore. E-mail hors domaines établissement accepté. Remplacer ou supprimer.
-Personnel;Paul;Personnel;azerty123;Personnel;paul_personnel;paul.personnel@etablissement.example;Même profil écrit avec son nom affiché : slug et libellé sont acceptés indifféremment. Remplacer ou supprimer.
+Personnel;Paul;Personnel;MotDePasse12!;Personnel;paul_personnel;paul.personnel@etablissement.example;Même profil écrit avec son nom affiché : slug et libellé sont acceptés indifféremment. « Personnel » crée un compte enseignant, d’où un mot de passe plus long. Remplacer ou supprimer.
 eleve_novice;Nina;Novice;azerty123;6ème A | 6ème B;nina_novice;nina.novice@etablissement.example;"Deux classes séparées par « | » (le « ; » marche aussi). Remplacer ou supprimer."
 n3beur novice;Noé;Nouveau;azerty123;6ème B;;;Ligne minimale : nom affiché du profil, pseudo / e-mail / description laissés vides. Remplacer ou supprimer.
 Élève avancé;Ava;Avance;azerty123;6ème A > Atelier sciences;ava_avance;ava.avance@example.org;Accents, majuscules et espaces sont neutralisés dans la colonne Rôle. Chemin « Parent > Enfant » : le sous-groupe est créé sous sa classe. Remplacer ou supprimer.

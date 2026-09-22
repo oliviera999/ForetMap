@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // « Mes signalements sur ce lieu » — la moitié « retour à l'auteur » du statut de traitement.
-// Sans ce bloc, signaler depuis le plan revenait à parler dans le vide : la fiche n'affiche pas
-// les commentaires du lieu, et le routeur de la console refuse le profil `personnel` en lecture.
+// Sans ce bloc, signaler depuis le plan revenait à parler dans le vide : la fiche du Plan
+// n'affiche pas les commentaires du lieu, et la console n'est pas servie sur proflyautey.
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';

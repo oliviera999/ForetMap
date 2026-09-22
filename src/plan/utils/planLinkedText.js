@@ -14,8 +14,22 @@
  * `src/shared/platform/markdown.js` — externe en nouvel onglet, interne et contact dans
  * l'onglet courant, le reste laissé en texte. Elle n'est pas importée de là : `src/plan/**`
  * ne doit pas tirer la chaîne Markdown, et ce module ne couvre volontairement qu'un
- * sous-ensemble (les liens). Les deux se testent côte à côte
- * (`tests/plan-linked-text.test.js`).
+ * sous-ensemble. Les deux se testent côte à côte (`tests/plan-linked-text.test.js`).
+ *
+ * MISE EN BLOCS (`splitPlanTextBlocks`)
+ * ------------------------------------
+ * Les liens ne suffisaient pas. Les compléments réservés d'un lieu (`location_notes`) et les
+ * descriptions sont rédigés dans la console, avec la chaîne Markdown complète : paragraphes
+ * séparés par une ligne vide, listes à puces `- `. Le Plan rendait tout cela dans un unique
+ * `<p>` — et HTML replie les retours à la ligne en espaces. Un encart aéré en trois blocs et
+ * cinq puces arrivait donc sur proflyautey en un seul pavé, tirets compris, alors que le même
+ * texte s'affichait correctement sur la carte de travail et dans la Visite.
+ *
+ * On couvre donc ici les trois seules constructions qui portent la mise en forme d'une
+ * consigne : la ligne vide (nouveau paragraphe), le retour à la ligne simple (saut de ligne,
+ * comme `marked` avec `breaks: true`) et la puce `- ` / `* ` en début de ligne. Le reste du
+ * Markdown (gras, titres, tableaux) reste volontairement hors périmètre : ce serait remettre
+ * un moteur Markdown dans le bundle qu'on cherche à garder mince.
  */
 
 /** `[libellé](cible)` puis URL nue — l'ordre compte : la forme Markdown gagne. */
@@ -79,4 +93,52 @@ export function splitPlanTextLinks(text) {
     out.push({ type: 'text', value: source.slice(cursor) });
   }
   return out;
+}
+
+/** Puce de liste en début de ligne : `- ` ou `* `, après une éventuelle indentation. */
+const LIST_ITEM_RE = /^\s*[-*]\s+(.*)$/;
+
+/**
+ * Découpe un texte en blocs affichables : paragraphes et listes à puces.
+ *
+ * Les lignes vides séparent les blocs. Une suite de lignes commençant par `- ` (ou `* `) forme
+ * une liste ; toute autre suite forme un paragraphe dont chaque ligne est un saut de ligne.
+ * Chaque ligne est ensuite découpée en segments par `splitPlanTextLinks`, si bien qu'un lien
+ * reste cliquable à l'intérieur d'une puce.
+ *
+ * @param {string} text
+ * @returns {Array<{ type: 'paragraph' | 'list',
+ *   lines: Array<ReturnType<typeof splitPlanTextLinks>> }>}
+ *   `lines` = les lignes du paragraphe, ou les éléments de la liste (puce retirée).
+ */
+export function splitPlanTextBlocks(text) {
+  const source = String(text ?? '');
+  if (!source.trim()) return [];
+  const blocks = [];
+  let current = null;
+  const flush = () => {
+    if (current && current.lines.length > 0) blocks.push(current);
+    current = null;
+  };
+  // `\r\n` et `\r` normalisés : un texte collé depuis un traitement de texte Windows ne doit
+  // pas produire une ligne vide sur deux.
+  for (const rawLine of source.replace(/\r\n?/g, '\n').split('\n')) {
+    if (!rawLine.trim()) {
+      flush();
+      continue;
+    }
+    const bullet = LIST_ITEM_RE.exec(rawLine);
+    const type = bullet ? 'list' : 'paragraph';
+    // Une puce qui suit un paragraphe (ou l'inverse) ouvre un bloc, sans ligne vide requise.
+    if (!current || current.type !== type) {
+      flush();
+      current = { type, lines: [] };
+    }
+    const content = bullet ? bullet[1] : rawLine.trim();
+    const segments = splitPlanTextLinks(content);
+    // `splitPlanTextLinks('')` rend `[]` : une puce vide (« - ») ne crée pas d'élément muet.
+    if (segments.length > 0) current.lines.push(segments);
+  }
+  flush();
+  return blocks;
 }

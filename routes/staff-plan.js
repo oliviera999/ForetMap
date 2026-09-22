@@ -251,13 +251,15 @@ router.get(
  * modération, des photos et du signalement déjà en place. Il ressort aussi dans la vue
  * « Messages reçus sur les lieux » de la console (`GET /api/context-comments/recent`).
  *
- * Pourquoi une route ici plutôt qu'un appel direct à `POST /api/context-comments` : ce
- * routeur-là refuse les profils en lecture seule — `visiteur` **et `personnel`** — alors que
- * `personnel` est précisément le public de cette surface. Un agent voyait donc le bouton et
- * recevait un 403 en l'utilisant. Plutôt que d'ouvrir les commentaires de la console à un
- * profil qui n'y a rien à faire, l'écriture passe par la porte de cette surface, avec sa
- * propre garde : un compte autorisé sur le plan des personnels, et un lieu réellement visible
- * par ce lecteur sur le plan des personnels.
+ * Pourquoi une route ici plutôt qu'un appel direct à `POST /api/context-comments` : cette
+ * porte a sa **propre garde de lieu**. Elle exige un compte autorisé sur le plan des
+ * personnels *et* un lieu réellement visible par ce lecteur-là sur la surface `staff` — ce
+ * que la route générique ne vérifie pas, puisqu'elle sert la console. Sans elle, déposer un
+ * message supposerait de connaître un identifiant de lieu, pas de le voir.
+ *
+ * Elle est née d'un autre besoin : `POST /api/context-comments` refusait alors `personnel`,
+ * public même de cette surface. Ce blocage a été levé (`PARTICIPATION_EXCLUDED_ROLE_SLUGS`
+ * ne retient plus que `visiteur`), mais la garde de lieu, elle, reste indispensable.
  */
 router.post(
   '/report',

@@ -174,6 +174,22 @@ router.post(
         u,
       ]),
     );
+    /*
+     * Index « prénom + nom », tous types de compte confondus. L'appariement, lui, reste sur
+     * `type|prénom|nom` — deux personnes distinctes peuvent être homonymes de part et d'autre.
+     * Cet index sert uniquement à **signaler** une création qui ressemble à un doublon : c'est
+     * la forme qu'avait prise la bascule des personnels en compte enseignant (le fichier les
+     * décrivait comme élèves, plus aucune ligne ne retrouvait son compte, et l'import repartait
+     * en création). Un signalement, pas un refus : bloquer priverait un vrai homonyme de compte.
+     */
+    const existingByNameAnyType = new Map();
+    for (const u of existingUsers) {
+      const key = `${asTrimmedString(u.first_name).toLowerCase()}|${asTrimmedString(u.last_name).toLowerCase()}`;
+      if (!existingByNameAnyType.has(key)) existingByNameAnyType.set(key, []);
+      existingByNameAnyType.get(key).push(u);
+    }
+    /** Lignes créées alors qu'un homonyme existe sous l'autre type de compte. */
+    const crossTypeHomonymRows = [];
     const pseudoOwner = new Map();
     const emailOwner = new Map();
     for (const u of existingUsers) {
@@ -279,7 +295,19 @@ router.post(
         continue;
       }
 
-      if (existing && existing.user_type === 'teacher' && !actorIsAdmin) {
+      /*
+       * Un compte enseignant existant ne se modifie que par un administrateur (CDG-03) —
+       * **sauf** s'il porte le profil « Personnel ». Ce profil est un compte enseignant depuis
+       * le réalignement du 22/09/2026, mais il n'a aucun droit d'encadrement : réserver la
+       * tenue du fichier des personnels au seul administrateur reviendrait à protéger un agent
+       * d'entretien comme on protège un n3boss. Un changement de profil reste soumis à
+       * `checkRoleAssignmentAllowed` un peu plus bas.
+       */
+      const existingIsProtectedTeacher =
+        existing &&
+        existing.user_type === 'teacher' &&
+        String(existing.role_slug || '').toLowerCase() !== 'personnel';
+      if (existingIsProtectedTeacher && !actorIsAdmin) {
         report.totals.skipped_invalid += 1;
         report.errors.push({
           row: rowNumber,
@@ -353,6 +381,13 @@ router.post(
         emailOwner.set(payload.email.toLowerCase(), existing?.id || '__pending__');
       }
 
+      if (!existing) {
+        const homonyms = existingByNameAnyType.get(
+          `${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`,
+        );
+        if (Array.isArray(homonyms) && homonyms.length > 0) crossTypeHomonymRows.push(rowNumber);
+      }
+
       validRows.push({
         ...rowItem,
         existing,
@@ -371,6 +406,19 @@ router.post(
           groups: (payload.groupRefs || []).map((r) => r.path.join(' > ')).join(' | ') || null,
         });
       }
+    }
+
+    if (crossTypeHomonymRows.length > 0) {
+      const prefix = crossTypeHomonymRows.length > 1 ? 'Lignes' : 'Ligne';
+      report.infos.push({
+        code: 'cross_type_homonym',
+        rows: [...crossTypeHomonymRows],
+        message:
+          `${prefix} ${crossTypeHomonymRows.join(', ')} : un compte du même prénom et nom existe ` +
+          'déjà sous l’autre type de compte. L’import va créer un compte séparé. S’il s’agit ' +
+          'de la même personne, corrigez la colonne Rôle du fichier (le type de compte en ' +
+          'découle) plutôt que de créer un doublon.',
+      });
     }
 
     report.totals.valid = validRows.length;

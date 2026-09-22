@@ -5,11 +5,18 @@
  *
  * Régression corrigée ici : le profil effectif (`user_roles.is_primary`) n'est pas ce qu'un
  * administrateur attribue. Un groupe actif confère le sien dès qu'il est de rang supérieur, et
- * « Personnel » est le plus bas du catalogue (rang 50, sous « n3beur novice » à 100). Un
+ * « Personnel » était alors le plus bas du catalogue (rang 50, sous « n3beur novice » à 100). Un
  * personnel rattaché à un groupe — vie scolaire qui suit une classe, agent inscrit à un projet —
  * se retrouvait donc avec un profil effectif d'élève, sans `staff_plan.access` ni case cochée :
  * « Connexion réussie, mais ce compte n'a pas encore l'accès au plan des personnels », alors que
  * sa fiche affichait bien « Personnel ».
+ *
+ * Deux défenses, testées ici toutes les deux :
+ *   1. le **rang** (320 depuis le réalignement du 22/09/2026, migration 277) : un groupe de
+ *      classe ne recouvre plus le profil, le cas ne se produit donc plus par ce chemin ;
+ *   2. le **repli sur le profil attribué** dans `resolveAccountStaffPlanAccess`, qui reste
+ *      nécessaire — un groupe qui **impose** son profil (`force_default_role`) passe devant le
+ *      rang, et rien n'interdit à un administrateur de rebaisser celui de « Personnel ».
  */
 
 require('./helpers/setup');
@@ -69,34 +76,43 @@ async function staffAccessOf(userId, userType) {
 }
 
 describe('Plan des personnels — profil attribué vs profil effectif', () => {
-  it('un « Personnel » rattaché à un groupe de classe entre quand même', async () => {
+  it('un « Personnel » rattaché à un groupe de classe garde son profil (rang 320)', async () => {
     const userId = await createAccount({ roleSlug: 'personnel', userType: 'student' });
     const groupId = await createGroup('eleve_novice');
     const attach = await addUserToGroup(userId, groupId);
     assert.ok(attach.ok, `rattachement refusé : ${attach.error || ''}`);
     await recomputeUserRole(userId);
 
+    // Première défense : le groupe ne prend plus la main, « le plus élevé l'emporte » jouant
+    // désormais en faveur du personnel (320 contre 100).
     const authz = await buildAuthzPayload('student', userId);
-    // Le groupe a bien pris la main sur le profil effectif : c'est la situation à couvrir.
-    assert.equal(authz.roleSlug, 'eleve_novice');
-    assert.equal(authz.permissions.includes('staff_plan.access'), false);
+    assert.equal(authz.roleSlug, 'personnel');
+    assert.equal(authz.permissions.includes('staff_plan.access'), true);
 
     const access = await staffAccessOf(userId, 'student');
     assert.equal(access.ok, true, 'le personnel reste refusé à sa propre porte');
-    assert.equal(access.via, 'assigned_role');
-    // Le profil d'audience suit le profil attribué : il voit ce qu'un personnel doit voir.
+    // Plus besoin du repli : l'accès passe par le profil effectif lui-même.
+    assert.equal(access.via, 'role');
     assert.equal(access.roleSlug, 'personnel');
   });
 
-  it('idem quand le groupe impose son profil', async () => {
+  /** Seconde défense : un groupe qui **impose** son profil passe devant le rang. */
+  it('le repli sur le profil attribué joue quand le groupe impose son profil', async () => {
     const userId = await createAccount({ roleSlug: 'personnel', userType: 'student' });
     const groupId = await createGroup('eleve_novice', { force: true });
     const attach = await addUserToGroup(userId, groupId);
     assert.ok(attach.ok, `rattachement refusé : ${attach.error || ''}`);
     await recomputeUserRole(userId);
 
+    // Le profil effectif est bien celui du groupe : c'est la situation que le repli couvre.
+    const authz = await buildAuthzPayload('student', userId);
+    assert.equal(authz.roleSlug, 'eleve_novice');
+    assert.equal(authz.permissions.includes('staff_plan.access'), false);
+
     const access = await staffAccessOf(userId, 'student');
     assert.equal(access.ok, true);
+    assert.equal(access.via, 'assigned_role');
+    // Le profil d'audience suit le profil attribué : il voit ce qu'un personnel doit voir.
     assert.equal(access.roleSlug, 'personnel');
   });
 

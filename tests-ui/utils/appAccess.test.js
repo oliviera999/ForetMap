@@ -3,6 +3,7 @@ import {
   isPrivilegedRole,
   isClassTeacherRole,
   isVisitorLikeRole,
+  isForumExcludedRole,
   shouldUseTeacherChrome,
   canManagePedagoContent,
   resolveParticipationFlag,
@@ -33,6 +34,32 @@ describe('isClassTeacherRole / isVisitorLikeRole / shouldUseTeacherChrome', () =
       shouldUseTeacherChrome({ roleSlug: 'prof', hasTeacherAccess: true, roleViewMode: 'student' }),
     ).toBe(false);
     expect(shouldUseTeacherChrome({ roleSlug: 'visiteur', hasTeacherAccess: false })).toBe(false);
+  });
+});
+
+/**
+ * Parcours et parole sont deux questions distinctes, côté front comme côté serveur
+ * (`PARTICIPATION_EXCLUDED_ROLE_SLUGS`, `lib/shared/visitorRoles.js`). L'onglet Forum était
+ * dérivé de `isVisitorLikeRole` : il disparaissait donc pour le personnel et les profs de
+ * classe, deux publics que le serveur laisse désormais écrire — une fonction livrée que
+ * personne ne trouve.
+ */
+describe('isForumExcludedRole', () => {
+  test('seul le visiteur est privé de forum', () => {
+    expect(isForumExcludedRole('visiteur')).toBe(true);
+    expect(isForumExcludedRole(' VISITEUR ')).toBe(true);
+    expect(isForumExcludedRole('personnel')).toBe(false);
+    expect(isForumExcludedRole('prof_classe')).toBe(false);
+    expect(isForumExcludedRole('eleve_novice')).toBe(false);
+    expect(isForumExcludedRole('')).toBe(false);
+    expect(isForumExcludedRole(null)).toBe(false);
+  });
+
+  test('ne se confond pas avec le parcours visiteur', () => {
+    for (const slug of ['personnel', 'prof_classe']) {
+      expect(isVisitorLikeRole(slug)).toBe(true);
+      expect(isForumExcludedRole(slug)).toBe(false);
+    }
   });
 });
 

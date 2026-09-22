@@ -14,15 +14,37 @@
  * Taxonomie des profils — **source unique** (audit CDG-44). Toute règle qui classe un profil
  * par son slug ou son rang s'écrit ici, jamais dans une liste locale côté route ou composant.
  *
- * - encadrement (`ENCADREMENT_ROLE_SLUGS`) : enseignants système, `teacher.access` verrouillé ;
+ * - encadrement (`ENCADREMENT_ROLE_SLUGS`) : enseignants système, hors échelle n3beur ;
+ * - porte n3boss verrouillée (`TEACHER_ACCESS_LOCKED_ROLE_SLUGS`) : sous-ensemble de
+ *   l'encadrement dont `teacher.access` ne se décoche pas depuis la console ;
  * - privilégiés (`PRIVILEGED_SYSTEM_ROLE_SLUGS`) : dont l'attribution se confirme ;
  * - hors échelle (`NON_N3BEUR_SYSTEM_ROLE_SLUGS`) : encadrement + lecture seule ;
  * - paliers d'origine (`N3BEUR_TIER_SLUGS`) et profils du jeu (`GL_ROLE_SLUGS`) ;
  * - réservés (`RESERVED_ROLE_SLUGS`) : slugs système qu'un profil sur mesure ne peut prendre.
  */
 
-/** Enseignants système : ne peuvent pas perdre `teacher.access` depuis la console. */
+/**
+ * Enseignants système : profils portés par des comptes `user_type = 'teacher'`, et jamais
+ * des paliers n3beur quel que soit leur rang (`NON_N3BEUR_SYSTEM_ROLE_SLUGS`).
+ *
+ * À ne pas confondre avec `TEACHER_ACCESS_LOCKED_ROLE_SLUGS` : depuis le réalignement des
+ * profils du 22/09/2026, « Prof de classe » est bien un enseignant système **sans**
+ * `teacher.access`. Les deux listes ont divergé, elles ne doivent plus être dérivées l'une
+ * de l'autre.
+ */
 export const ENCADREMENT_ROLE_SLUGS = Object.freeze(['admin', 'prof', 'prof_classe']);
+
+/**
+ * Profils dont `teacher.access` ne peut pas être décoché depuis « Profils & utilisateurs ».
+ *
+ * Le droit ouvre l'interface n3boss et une partie des routes de la console : le retirer à
+ * `admin` ou `prof` revient à se couper la main. « Prof de classe » n'y figure plus — il a
+ * une interface de type apprenant, et le verrou rendait son profil entièrement
+ * inenregistrable depuis la console une fois la permission retirée en base.
+ *
+ * Figée contre `ROLE_PERMISSION_MATRIX` par `tests/foretmap-permissions-catalog-alignment.test.js`.
+ */
+export const TEACHER_ACCESS_LOCKED_ROLE_SLUGS = Object.freeze(['admin', 'prof']);
 
 /** Profils d'administration / pilotage : attribution et retrait confirmés explicitement. */
 export const PRIVILEGED_SYSTEM_ROLE_SLUGS = Object.freeze(['admin', 'prof']);
@@ -84,6 +106,11 @@ export function isSystemStaffRoleSlug(slug) {
 /** Enseignant système (`admin`, `prof`, `prof_classe`). */
 export function isEncadrementRoleSlug(slug) {
   return ENCADREMENT_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
+}
+
+/** Profil dont `teacher.access` est verrouillé côté console (`admin`, `prof`). */
+export function isTeacherAccessLockedRoleSlug(slug) {
+  return TEACHER_ACCESS_LOCKED_ROLE_SLUGS.includes(normalizeRoleSlug(slug));
 }
 
 /** Profil dont l'attribution demande une confirmation (`admin`, `prof`). */

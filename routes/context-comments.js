@@ -11,7 +11,7 @@ const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
   getActor,
   canModerateWithTeacherAccess,
-  isVisitorRole,
+  isParticipationExcludedRole,
   createCooldownChecker,
   studentParticipationAllowed,
 } = require('../lib/shared/participationGuards');
@@ -129,10 +129,18 @@ router.use(requireAuth);
 router.use(
   requireModuleEnabled('foret', 'context_comments', 'Commentaires de contexte désactivés'),
 );
+/*
+ * Seul « visiteur » est privé de commentaires. « Personnel » l'était aussi, la garde
+ * s'appuyant sur la liste des profils **sans carte de travail ni tâches** — deux questions
+ * distinctes. Ce blocage avait déjà imposé une porte de contournement dédiée pour les
+ * signalements du plan des personnels (`POST /api/staff-plan/report`), qui reste en place :
+ * elle vérifie en plus que le lieu est réellement visible par ce lecteur sur la surface
+ * `staff`, ce que cette route-ci ne fait pas.
+ */
 router.use((req, res, next) => {
-  if (isVisitorRole(req.auth)) {
+  if (isParticipationExcludedRole(req.auth)) {
     return res.status(403).json({
-      error: 'Accès refusé aux commentaires de contexte pour le profil visiteur ou personnel',
+      error: 'Accès refusé aux commentaires de contexte pour le profil visiteur',
     });
   }
   return next();
