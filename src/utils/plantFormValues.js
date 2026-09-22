@@ -85,6 +85,7 @@ export const EMPTY_PLANT_FORM = {
   identification_criteria: '',
   lookalike_species: '',
   identification_period: '',
+  clade_id: '',
   toxicity_level: '',
   hazard_exposure: '',
   hazard_notes: '',

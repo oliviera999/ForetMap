@@ -13,6 +13,9 @@ const QuizAdminViewLazy = lazy(() =>
 const FoodWebViewLazy = lazy(() =>
   import('../pedago-views').then((m) => ({ default: m.FoodWebView })),
 );
+const NestedGroupsViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.NestedGroupsView })),
+);
 const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default: m.AboutView })));
 
 /**
@@ -114,6 +117,16 @@ export function PedagoTabs({
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             highlightPlantId={foodWebHighlightPlantId}
             canManage={canManageFoodWeb}
+          />
+        </TabSuspense>
+      )}
+      {tab === 'nested-groups' && (
+        <TabSuspense>
+          <NestedGroupsViewLazy
+            maps={maps}
+            initialMapId={activeMapId}
+            canManage={canManageFoodWeb}
+            onOpenPlant={onOpenPlantCatalogPreview}
           />
         </TabSuspense>
       )}

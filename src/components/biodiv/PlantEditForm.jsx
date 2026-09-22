@@ -659,6 +659,24 @@ function PlantEditForm({
               <input value={form.taxon_genus} onChange={set('taxon_genus')} placeholder="Genre…" />
             </div>
             <div className="field">
+              <label>Groupe emboîté (classification)</label>
+              <input
+                value={form.clade_id || ''}
+                onChange={set('clade_id')}
+                placeholder="ex. angiospermes, oiseaux…"
+                list="plant-clade-id-suggestions"
+              />
+              <datalist id="plant-clade-id-suggestions">
+                <option value="angiospermes" />
+                <option value="monocotyledones" />
+                <option value="gymnospermes" />
+                <option value="champignons" />
+                <option value="insectes" />
+                <option value="oiseaux" />
+                <option value="mammiferes" />
+              </datalist>
+            </div>
+            <div className="field">
               <label>Clé GBIF</label>
               <input
                 value={form.gbif_key}

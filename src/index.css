@@ -2883,6 +2883,71 @@
       font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
     }
     .plant-determination__alert-text a { color:var(--ink-warning); }
+
+    /* Fil de classification emboîtée (lot 5) */
+    .plant-clade-breadcrumb { margin: 6px 0 10px; }
+    .plant-clade-breadcrumb__list {
+      display:flex; flex-wrap:wrap; align-items:center; gap:2px 0;
+      list-style:none; margin:0; padding:0;
+      font-size:var(--text-sm); color:var(--forest);
+    }
+    .plant-clade-breadcrumb__sep { margin:0 6px; color:#9aaa9a; }
+    .plant-clade-breadcrumb__name {
+      cursor:help; border-bottom:1px dotted rgba(45,90,45,.35);
+    }
+
+    /* Activité Groupes emboîtés */
+    .nested-groups-view { padding: 12px 4px 24px; max-width: 920px; }
+    .nested-groups-view__header h2 {
+      display:flex; align-items:center; gap:8px; margin:0 0 6px;
+    }
+    .nested-groups-view__modes { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+    .nested-groups-setup__picks {
+      display:flex; flex-wrap:wrap; gap:6px; max-height:180px; overflow:auto;
+      margin:8px 0 12px; padding:8px; border:1px solid #d7e3d7; border-radius:8px;
+    }
+    .nested-groups-chip {
+      display:inline-flex; align-items:center; gap:4px; min-height:36px;
+      padding:4px 8px; background:#f4f8f4; border-radius:6px; font-size:var(--text-sm);
+    }
+    .nested-groups-setup__map {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 16px;
+    }
+    .nested-groups-box {
+      border:2px solid color-mix(in srgb, var(--leaf) 55%, #2d5a2d);
+      border-radius:10px; margin:8px 0; padding:8px;
+      background: color-mix(in srgb, var(--sage, #c8dcc8) calc(8% + var(--nested-depth, 0) * 4%), white);
+    }
+    .nested-groups-box__head {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:6px;
+    }
+    .nested-groups-box__attr {
+      font-size:var(--text-xs); color:#5a6b5a; font-style:italic;
+    }
+    .nested-groups-species {
+      display:inline-block; margin:3px 6px 3px 0; padding:4px 8px;
+      background:#fff; border-radius:999px; border:1px solid #d0ddd0;
+      font-size:var(--text-sm);
+    }
+    .nested-groups-placements {
+      list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column; gap:8px;
+    }
+    .nested-groups-placements li {
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center; min-height:44px;
+    }
+    .nested-groups-admin { margin-top:28px; padding-top:16px; border-top:1px solid #d7e3d7; }
+    .nested-groups-admin__form {
+      display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      margin:12px 0;
+    }
+    .nested-groups-admin__actions { display:flex; gap:8px; align-items:end; }
+    .nested-groups-admin__list { list-style:none; margin:0; padding:0; }
+    .nested-groups-admin__list li {
+      display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;
+      padding:8px 0; border-bottom:1px solid #e8efe8; min-height:44px; align-items:center;
+    }
+    .nested-groups-admin__row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+
     /* Encadré « Danger » : hors `<details>`, en tête de fiche. Trois paliers de couleur
        pour que la gravité se lise avant le texte. `irritation` reprend l'ambre des
        confusions possibles ; `toxique` et `mortel` montent vers le rouge. */

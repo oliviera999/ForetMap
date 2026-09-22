@@ -31,6 +31,8 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   un lien vers la fiche GBIF quand une clé est connue ;
 - la **classification** : règne, grand groupe, famille, genre ; une **classification
   latine** repliable (embranchement, classe, ordre, famille) issue des vérifications GBIF ;
+  un **fil de groupes emboîtés** (« Êtres vivants › Eucaryotes › … ») quand la fiche est
+  rattachée à l’arbre pédagogique, chaque groupe montrant son caractère partagé au survol ;
 - les **notes de site** : observations propres à une carte (effectifs, nidification…)
   affichées « Sur ce site » quand on ouvre la fiche depuis cette carte ;
 - l'**écologie** : habitat, milieu, rôle dans l'écosystème, rôle trophique,
@@ -61,6 +63,16 @@ vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, car
 lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
 décomposent.
+
+## Groupes emboîtés
+
+L’onglet **Groupes emboîtés** propose une activité de classification : l’enseignant choisit
+des espèces (ou en tire au sort sur une carte) ; l’application calcule le plus petit arbre
+qui les contient et affiche des **boîtes emboîtées**, chacune portant le caractère partagé
+du groupe. En mode élève, on place les espèces dans les groupes puis on lance la
+**correction automatique**. Les professeurs qui gèrent la biodiversité peuvent aussi
+ajouter, déplacer ou supprimer des groupes (un déplacement qui ferait une boucle est
+refusé).
 
 S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
 figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
