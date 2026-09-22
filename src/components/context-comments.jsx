@@ -12,8 +12,10 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
 import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
 import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.jsx';
+import { fetchContextCommentSummary } from '../utils/contextCommentCountsBatch.js';
 import {
   canModerate,
+  hasUnreadContextComments,
   parseReactionEmojiList,
   readContextCommentDraft,
   readContextCommentReadCursor,
@@ -65,40 +67,44 @@ function ContextComments({
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const markCommentsRead = useCallback(
-    (list) => {
-      if (!currentUserType || !currentUserId || !Array.isArray(list) || list.length === 0) return;
-      const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
-      writeContextCommentReadCursor(
-        currentUserType,
-        currentUserId,
-        contextType,
-        contextId,
-        newestId,
-      );
+    (newestId) => {
+      if (!currentUserType || !currentUserId) return;
+      const id = Math.max(0, Number(newestId) || 0);
+      writeContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId, id);
       setHasUnreadComments(false);
     },
     [contextId, contextType, currentUserId, currentUserType],
   );
 
-  const applyUnreadFromFirstPage = useCallback(
-    (list) => {
-      const newestId = list?.[0]?.id != null ? Number(list[0].id) : 0;
+  const applyUnreadFromNewest = useCallback(
+    (newestId) => {
       const cursor = readContextCommentReadCursor(
         currentUserType,
         currentUserId,
         contextType,
         contextId,
       );
-      setHasUnreadComments((prev) => {
-        if (cursor && newestId > cursor.newestId) return true;
-        if (cursor && newestId <= cursor.newestId) return false;
-        return prev;
-      });
+      setHasUnreadComments(hasUnreadContextComments(newestId, cursor));
     },
     [contextId, contextType, currentUserId, currentUserType],
   );
 
   const loadSeqRef = useRef(0);
+  const summarySeqRef = useRef(0);
+
+  const loadSummary = useCallback(async () => {
+    if (!contextType || contextId == null || contextId === '') return;
+    const mySeq = ++summarySeqRef.current;
+    try {
+      const summary = await fetchContextCommentSummary(contextType, contextId);
+      if (mySeq !== summarySeqRef.current) return;
+      setTotal(summary.total);
+      applyUnreadFromNewest(summary.newestId);
+    } catch {
+      // Le badge reste à 0 ; l'ouverture de la section récupérera la liste complète.
+    }
+  }, [applyUnreadFromNewest, contextId, contextType]);
+
   const load = useCallback(
     async (nextPage = 1) => {
       if (!contextType || !contextId) return;
@@ -117,8 +123,8 @@ function ContextComments({
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || nextPage));
         if (nextPage === 1) {
-          applyUnreadFromFirstPage(list);
-          markCommentsRead(list);
+          const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
+          markCommentsRead(newestId);
         }
       } catch (err) {
         if (mySeq !== loadSeqRef.current) return;
@@ -127,7 +133,7 @@ function ContextComments({
         if (mySeq === loadSeqRef.current) setLoading(false);
       }
     },
-    [contextId, contextType, applyUnreadFromFirstPage, markCommentsRead],
+    [contextId, contextType, markCommentsRead],
   );
 
   useEffect(() => {
@@ -137,6 +143,8 @@ function ContextComments({
   }, [contextType, contextId, defaultOpen]);
 
   useEffect(() => {
+    summarySeqRef.current += 1;
+    loadSeqRef.current += 1;
     setHasUnreadComments(false);
     setItems([]);
     setTotal(0);
@@ -153,13 +161,18 @@ function ContextComments({
     };
   }, [body, contextType, contextId]);
 
-  // D1-A : aucun GET tant que la section est fermée (listes tâches / tutoriels).
+  // Section ouverte : liste paginée complète. Section fermée : résumé léger (badge + non-lus),
+  // coalescé en un seul GET /counts pour toute la liste visible.
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return;
-    if (!isOpen) return;
-    setExpandedReactionsByComment({});
-    void load(1);
-  }, [isOpen, contextType, contextId, load]);
+    if (isOpen) {
+      summarySeqRef.current += 1;
+      setExpandedReactionsByComment({});
+      void load(1);
+      return;
+    }
+    void loadSummary();
+  }, [isOpen, contextType, contextId, load, loadSummary]);
 
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return undefined;
@@ -173,13 +186,14 @@ function ContextComments({
       if (!sameContext(payload)) return;
       if (!isOpen) {
         setHasUnreadComments(true);
+        void loadSummary();
         return;
       }
       void load(page);
     };
     window.addEventListener('foretmap_realtime', onRealtime);
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [contextId, contextType, isOpen, load, page]);
+  }, [contextId, contextType, isOpen, load, loadSummary, page]);
 
   useEffect(() => {
     const refreshAuth = () => setAuthClaims(getAuthClaims());

@@ -22,7 +22,9 @@ const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
   loadContextCommentReactions,
   listContextComments,
+  countContextCommentsByContextIds,
   softDeleteContextComment,
+  CONTEXT_COMMENT_COUNTS_MAX_IDS,
   CONTEXT_COMMENT_LIMITS,
   insertContextComment,
   makeContextTypeNormalizer,
@@ -173,6 +175,51 @@ router.get(
       // Poser un statut est un droit distinct de celui de lire le journal : le front masque
       // les boutons plutôt que d'offrir une action qui répondrait 403.
       can_set_status: hasPermission(req.auth, PLACE_STATUS_PERMISSION),
+    });
+  }),
+);
+
+/**
+ * Résumé groupé (total + dernier id) pour afficher le badge et les non-lus **sans**
+ * ouvrir chaque section — une requête SQL pour toute une liste de tâches / tutoriels.
+ * Inspiré de `GET /api/learning/gating/summary` (lots de refs, absence = zéro).
+ */
+router.get(
+  '/counts',
+  asyncHandler(async (req, res) => {
+    const contextType = normalizeContextType(req.query.contextType);
+    if (!contextType) {
+      return res
+        .status(400)
+        .json({ error: 'contextType invalide (task|project|zone|marker|plant|tutorial)' });
+    }
+    const rawIds = String(req.query.contextIds || '')
+      .split(',')
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+    const uniqueIds = [...new Set(rawIds)];
+    if (uniqueIds.length === 0) {
+      return res.status(400).json({ error: 'contextIds requis' });
+    }
+    if (uniqueIds.length > CONTEXT_COMMENT_COUNTS_MAX_IDS) {
+      return res.status(400).json({
+        error: `Trop d’identifiants (max ${CONTEXT_COMMENT_COUNTS_MAX_IDS})`,
+        code: 'CONTEXT_COMMENT_COUNTS_LIMIT',
+      });
+    }
+    const map = await countContextCommentsByContextIds(contextType, uniqueIds);
+    const counts = {};
+    for (const id of uniqueIds) {
+      const row = map.get(String(id));
+      counts[String(id)] = {
+        total: row?.total || 0,
+        newestId: row?.newestId || 0,
+      };
+    }
+    return res.json({
+      contextType,
+      counts,
+      max_ids: CONTEXT_COMMENT_COUNTS_MAX_IDS,
     });
   }),
 );
