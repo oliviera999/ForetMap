@@ -2891,6 +2891,24 @@ sont refusés.
 | DELETE | `/api/id-keys/:id/couplets/:coupletId` | `id_keys.manage` | Supprimer un couplet |
 | PUT | `/api/id-keys/:id/couplets/:coupletId/leads` | `id_keys.manage` | Remplacer les propositions (`leads[]`) |
 
+### Séances pédagogiques (`/api/pedago-sessions`)
+
+Migration `282`. Orchestration des onglets existants (clé, fiche, réseau, quiz) — **distinct**
+des parcours géographiques (`/api/map-routes`). Templates seed : `college_reconaitre`,
+`college_qui_mange`. La structure des étapes est figée ; le prof configure carte / clé /
+plantes / quiz via `PUT`.
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/pedago-sessions` | non | Liste des séances **publiées** (étapes résolues avec `config`) |
+| GET | `/api/pedago-sessions?all=1` | `plants.manage` | Inclut les brouillons |
+| GET | `/api/pedago-sessions/:idOrSlug` | non / manage | Détail ; brouillon → 404 sans `plants.manage` |
+| POST | `/api/pedago-sessions` | `plants.manage` | Créer une copie depuis `templateKey` |
+| PUT | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Titre, config (carte, clé, plantes, notion/quiz), publication |
+
+Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
+`open_quiz`, `open_glossary`. MVP : `completeWhen` = `manual` uniquement.
+
 ### Suivi d'individus arbres (`/api/individuals`)
 
 Migration `276`. Lecture publique ; création/édition sous `individuals.manage` (admin, prof) ;

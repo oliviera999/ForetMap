@@ -36,6 +36,7 @@ export const POLLING_COARSE_TABS = new Set([
   'glossary',
   'quiz',
   'foodweb',
+  'sessions',
   'media_library',
 ]);
 export const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
@@ -96,4 +97,8 @@ export const KNOWN_TAB_VALUES = new Set([
   'glossary',
   'quiz',
   'foodweb',
+  'nested-groups',
+  'id-keys',
+  'individuals',
+  'sessions',
 ]);

@@ -38,6 +38,7 @@ import {
   IconSettings,
   IconStats,
   IconSearch,
+  IconSessions,
   IconTasks,
   IconTuto,
   IconVisit,
@@ -167,6 +168,13 @@ export function TeacherTopTabs({
       Icon: IconSearch,
       label: 'Clés d’identification',
       visible: canPlants || hasPermission('id_keys.manage'),
+    },
+    {
+      id: 'sessions',
+      pole: 'contents',
+      Icon: IconSessions,
+      label: 'Séances',
+      visible: canPlants,
     },
     {
       id: 'individuals',

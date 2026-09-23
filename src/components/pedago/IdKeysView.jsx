@@ -353,8 +353,12 @@ function EditorPanel({ keyBundle, onReload, plants }) {
 
 /**
  * Lecteur élève (une question à la fois) + éditeur pour `id_keys.manage`.
+ * @param {object} props
+ * @param {boolean} [props.canManage]
+ * @param {(plantId: number|string) => void} [props.onOpenPlant]
+ * @param {string|number|null} [props.initialKey] — id ou slug à ouvrir au montage / changement
  */
-export function IdKeysView({ canManage = false, onOpenPlant = null }) {
+export function IdKeysView({ canManage = false, onOpenPlant = null, initialKey = null }) {
   const { plants = [] } = useData() || {};
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
@@ -372,7 +376,7 @@ export function IdKeysView({ canManage = false, onOpenPlant = null }) {
     loadList().catch(() => setItems([]));
   }, [loadList]);
 
-  const openKey = async (idOrSlug, nextMode = 'read') => {
+  const openKey = useCallback(async (idOrSlug, nextMode = 'read') => {
     setError('');
     try {
       const data = await api(`/api/id-keys/${encodeURIComponent(idOrSlug)}`);
@@ -381,7 +385,13 @@ export function IdKeysView({ canManage = false, onOpenPlant = null }) {
     } catch (err) {
       setError(err?.message || 'Chargement impossible');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const raw = initialKey != null ? String(initialKey).trim() : '';
+    if (!raw) return;
+    openKey(raw, 'read');
+  }, [initialKey, openKey]);
 
   const createKey = async () => {
     setError('');

@@ -42,7 +42,8 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
 - Réseau trophique : types « scolaires » (prédation, herbivorie, pollinisation,
   parasitisme, décomposition…). Pas de jargon sur la solidité du lien (hypothèse /
   observé) ni d’efficacité du pollinisateur.
-- Clés d’identification : **lecture** guidée (une question à la fois).
+- Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
+  le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
 - Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant.
 - Groupes emboîtés, suivi d’arbres avec formules, détails GBIF / classification latine :
   **masqués** ou uniquement proposés dans une séance préparée par le professeur.
@@ -61,7 +62,9 @@ Public typique : seconde, spécialité SVT, enseignement scientifique.
   - suivi d’un arbre : mesures et courbe de croissance ;
   - estimations (biomasse, carbone, CO₂) : **repliées** sous un titre du type « Pour
     aller plus loin — ordre de grandeur », avec le rappel que la formule vient d’arbres
-    tropicaux.
+    tropicaux ;
+  - clés d’identification : le mode **Schéma** aide à voir la structure de la clé
+    (au-delà du fil Questions).
 - Quiz / glossaire : toutes les notions du référentiel livré (seconde à terminale
   incluses).
 
@@ -73,7 +76,8 @@ Public typique : licence, formation d’enseignants, projets de recherche pédag
   - estimations biomasse / carbone / CO₂ visibles sans les cacher derrière un repli ;
   - détails de qualité des liens et d’efficacité de pollinisation pleinement exposés ;
   - classification latine et référentiel scientifique (lien GBIF) au premier plan ;
-  - liberté d’explorer l’arbre des groupes et les clés sans parcours imposé.
+  - liberté d’explorer l’arbre des groupes et les clés sans parcours imposé (mode
+    Schéma particulièrement utile pour parcourir la structure).
 
 > **Rappel** — « Université » ne crée pas un nouveau rôle dans l’établissement : c’est
 > un **niveau d’affichage**. Les comptes élèves du lycée peuvent être placés en
@@ -142,13 +146,17 @@ dans une séance lancée par le professeur (quand les séances guidées existero
 | Individu : biomasse / CO₂                     | —                  | R        | O          |
 | Validation des dangers, admin clés / clades   | — (prof)           | — (prof) | — (prof)   |
 
-## Séances types (guide papier — utilisables dès maintenant)
+## Séances types (guide + lanceur app)
 
-En attendant un lanceur de séances dans l’application, le professeur peut **reproduire
-ces enchaînements à la main** (annoncer l’ordre aux élèves, ouvrir les bons onglets).
+Deux pilotes collège sont disponibles dans l’onglet **Séances** : démarrage guidé,
+une étape à la fois, en ouvrant les outils déjà présents (clé, fiche, réseau, quiz).
+Le professeur configure carte / clé / plantes / quiz sans modifier la structure.
 
-> 🔧 **À implémenter (plus tard) :** modèles de séances dans l’application (démarrage
-> guidé, une étape à la fois). D’abord valider ces canevas avec l’équipe pédagogique.
+Les **parcours** sur la carte (Visite / Carte) restent un outil distinct : lieux à
+visiter, pas enchaînement pédagogique d’onglets.
+
+> 🔧 **À implémenter (plus tard) :** séances C/D (lycée), preuve « j’ai compris »,
+> compteur de démarrages, éditeur libre d’étapes, lien tâches.
 
 ### Séance A — Collège · 45 min · « Reconnaître sans toucher »
 

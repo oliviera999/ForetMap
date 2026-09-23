@@ -110,6 +110,11 @@ import { PedagoTabs } from './components/app/PedagoTabs.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
+import { PedagoSessionBanner } from './components/pedago/PedagoSessionBanner.jsx';
+import {
+  readStoredPedagoSession,
+  writeStoredPedagoSession,
+} from './components/pedago/SessionsView.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
@@ -969,7 +974,11 @@ function App() {
     usePlantCatalogPreview(plants);
   const [pedagoGlossaryCode, setPedagoGlossaryCode] = useState(null);
   const [pedagoQuizQuestionCode, setPedagoQuizQuestionCode] = useState(null);
+  const [pedagoQuizNotionId, setPedagoQuizNotionId] = useState(null);
+  const [pedagoQuizNotionNiveau, setPedagoQuizNotionNiveau] = useState(null);
+  const [pedagoIdKeysInitialKey, setPedagoIdKeysInitialKey] = useState(null);
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
+  const [activePedagoSession, setActivePedagoSession] = useState(() => readStoredPedagoSession());
   // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
   // onglets pour survivre à tout changement de vue — audit A1).
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
@@ -1014,13 +1023,127 @@ function App() {
   );
 
   const openPedagoFoodWeb = useCallback(
-    (plantId = null) => {
+    (plantId = null, mapId = null) => {
       const id = plantId != null ? Number(plantId) : null;
+      const map = mapId != null ? String(mapId).trim() : '';
+      if (map) chooseMap(map);
       setFoodWebHighlightPlantId(Number.isFinite(id) && id > 0 ? id : null);
       navigateTab('foodweb');
       setPlantCatalogPreview(null);
     },
-    [setPlantCatalogPreview, navigateTab],
+    [setPlantCatalogPreview, navigateTab, chooseMap],
+  );
+
+  const dispatchPedagoSessionStep = useCallback(
+    (step) => {
+      if (!step?.action) return;
+      const { type, payload = {} } = step.action;
+      setPlantCatalogPreview(null);
+      if (type === 'message') {
+        navigateTab('sessions');
+        return;
+      }
+      if (type === 'open_id_key') {
+        setPedagoIdKeysInitialKey(payload.keyIdOrSlug || null);
+        navigateTab('id-keys');
+        return;
+      }
+      if (type === 'open_plant') {
+        const pid = payload.plantId != null ? Number(payload.plantId) : null;
+        if (Number.isFinite(pid) && pid > 0) openPlantCatalogPreviewById(pid);
+        else navigateTab('plants');
+        return;
+      }
+      if (type === 'open_foodweb') {
+        openPedagoFoodWeb(payload.highlightPlantId ?? null, payload.mapId ?? null);
+        return;
+      }
+      if (type === 'open_quiz') {
+        const code = payload.questionCode
+          ? String(payload.questionCode).trim().toUpperCase()
+          : null;
+        setPedagoQuizQuestionCode(code || null);
+        setPedagoQuizNotionId(payload.notionId ? String(payload.notionId).trim() : null);
+        setPedagoQuizNotionNiveau(
+          payload.notionNiveau ? String(payload.notionNiveau).trim() : null,
+        );
+        navigateTab('quiz');
+        return;
+      }
+      if (type === 'open_glossary') {
+        const c = payload.termCode ? String(payload.termCode).trim() : '';
+        if (c) setPedagoGlossaryCode(c);
+        navigateTab('glossary');
+      }
+    },
+    [navigateTab, openPlantCatalogPreviewById, openPedagoFoodWeb, setPlantCatalogPreview],
+  );
+
+  const persistPedagoSession = useCallback((next) => {
+    setActivePedagoSession(next);
+    writeStoredPedagoSession(next);
+  }, []);
+
+  const startPedagoSession = useCallback(
+    (session) => {
+      if (!session?.steps?.length) return;
+      const next = {
+        id: session.id,
+        slug: session.slug,
+        title: session.title,
+        templateKey: session.templateKey,
+        steps: session.steps,
+        stepIndex: 0,
+      };
+      persistPedagoSession(next);
+      dispatchPedagoSessionStep(next.steps[0]);
+    },
+    [persistPedagoSession, dispatchPedagoSessionStep],
+  );
+
+  const exitPedagoSession = useCallback(() => {
+    persistPedagoSession(null);
+  }, [persistPedagoSession]);
+
+  const goPedagoSessionStep = useCallback(
+    (delta) => {
+      setActivePedagoSession((prev) => {
+        if (!prev?.steps?.length) return prev;
+        const nextIndex = prev.stepIndex + delta;
+        if (nextIndex < 0) return prev;
+        if (nextIndex >= prev.steps.length) {
+          writeStoredPedagoSession(null);
+          return null;
+        }
+        const next = { ...prev, stepIndex: nextIndex };
+        writeStoredPedagoSession(next);
+        queueMicrotask(() => dispatchPedagoSessionStep(next.steps[nextIndex]));
+        return next;
+      });
+    },
+    [dispatchPedagoSessionStep],
+  );
+
+  const pedagoSessionCurrentStep =
+    activePedagoSession?.steps?.[activePedagoSession.stepIndex] || null;
+
+  const sessionsProps = useMemo(
+    () => ({
+      canManage: canManageFoodWeb,
+      maps: visibleMaps,
+      plants,
+      activeSession: activePedagoSession,
+      currentStep: pedagoSessionCurrentStep,
+      onStartSession: startPedagoSession,
+    }),
+    [
+      canManageFoodWeb,
+      visibleMaps,
+      plants,
+      activePedagoSession,
+      pedagoSessionCurrentStep,
+      startPedagoSession,
+    ],
   );
 
   // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
@@ -1303,6 +1426,18 @@ function App() {
                       onClose={closeGlossaryPopover}
                       onOpenFullGlossary={openPedagoGlossaryTerm}
                       showFullGlossaryLink={tab !== 'glossary'}
+                    />
+                  )}
+                  {activePedagoSession && pedagoSessionCurrentStep && (
+                    <PedagoSessionBanner
+                      sessionTitle={activePedagoSession.title}
+                      step={pedagoSessionCurrentStep}
+                      stepIndex={activePedagoSession.stepIndex}
+                      stepCount={activePedagoSession.steps.length}
+                      onPrev={() => goPedagoSessionStep(-1)}
+                      onNext={() => goPedagoSessionStep(1)}
+                      onExit={exitPedagoSession}
+                      onShowMessage={() => navigateTab('sessions')}
                     />
                   )}
                   {plantCatalogPreview && (
@@ -1699,6 +1834,9 @@ function App() {
                             onGlossarySelectedCodeChange={setPedagoGlossaryCode}
                             canManageQuiz={canManageQuiz}
                             quizInitialQuestionCode={pedagoQuizQuestionCode}
+                            quizInitialNotionId={pedagoQuizNotionId}
+                            quizInitialNotionNiveau={pedagoQuizNotionNiveau}
+                            idKeysInitialKey={pedagoIdKeysInitialKey}
                             maps={visibleMaps}
                             foodWebHighlightPlantId={foodWebHighlightPlantId}
                             canManageFoodWeb={canManageFoodWeb}
@@ -1708,6 +1846,7 @@ function App() {
                             appVersion={appVersion}
                             canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                             onOpenSettingsLearning={handleOpenSettingsLearning}
+                            sessionsProps={sessionsProps}
                           />
                         </>
                       )}
@@ -1817,6 +1956,9 @@ function App() {
                               glossarySelectedCode={pedagoGlossaryCode}
                               onGlossarySelectedCodeChange={setPedagoGlossaryCode}
                               quizInitialQuestionCode={pedagoQuizQuestionCode}
+                              quizInitialNotionId={pedagoQuizNotionId}
+                              quizInitialNotionNiveau={pedagoQuizNotionNiveau}
+                              idKeysInitialKey={pedagoIdKeysInitialKey}
                               maps={visibleMaps}
                               foodWebHighlightPlantId={foodWebHighlightPlantId}
                               canManageFoodWeb={canManageFoodWeb}
@@ -1824,6 +1966,7 @@ function App() {
                               canManageIndividuals={canManageIndividuals}
                               canMeasureIndividuals={canMeasureIndividuals}
                               appVersion={appVersion}
+                              sessionsProps={sessionsProps}
                             />
                           </>
                         )}

@@ -9,12 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Clés d’identification : mode Schéma
+
+- Lecteur : bascule **Questions / Schéma** (préférence mémorisée). Le schéma affiche
+  l’arbre des couplets et propositions (vignettes si `image_url`), avec navigation
+  depuis le couplet courant uniquement.
+
 ### Corrigé — Mascotte : clic fond libre sur le plan
 
 - Sur Visite et carte de travail, un clic **hors** zone / repère déplace à nouveau la
   mascotte **vers le point cliqué** (le calque SVG des zones couvrait tout le plan et
   avalait ces clics).
 
+### Ajouté — Séances pédagogiques pilotes A/B
+
+- Onglet **Séances** : catalogue, bandeau d’étapes, dispatch vers clé / fiche / réseau /
+  quiz (vues existantes). Templates collège **Reconnaître sans toucher** et **Qui mange
+  qui** (seed migration **282**).
+- API `GET/POST/PUT /api/pedago-sessions` ; config prof (carte, clé, plantes, quiz) sans
+  éditeur libre d’étapes. Distinct des parcours carte (`map_routes`).
+- Lot 0 nav : `id-keys` / `nested-groups` / `individuals` / `sessions` dans
+  `KNOWN_TAB_VALUES` ; props d’entrée `IdKeysView.initialKey`,
+  `QuizView.initialNotionId|Niveau`.
 
 ### Modifié — Défaut biodiversité = Collège
 
@@ -32,7 +48,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Migration **280** (`maps.pedago_level`, `groups.pedago_level`,
   `users.biodiv_pedago_level`) ; réglages admin ; écrans carte / groupe / profil ;
   masquages fiches, réseau, onglets, quiz/glossaire ; aperçu « Voir comme un élève ».
-- Doc de référence mise au présent (séances guidées app restent `🔧`).
+- Doc de référence mise au présent ; séances app pilotes A/B livrées ensuite (voir ci-dessus).
 
 ### Corrigé — parcours invisibles en Visite et sur la carte avec tâches
 

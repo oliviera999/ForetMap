@@ -15,6 +15,8 @@ export function QuizAdminView({
   onOpenGlossaryTerm,
   onOpenSettingsLearning = null,
   initialQuestionCode = null,
+  initialNotionId = null,
+  initialNotionNiveau = null,
 }) {
   const editorRef = useRef(null);
   const playRef = useRef(null);
@@ -70,10 +72,12 @@ export function QuizAdminView({
       <section ref={playRef} className="pedago-quiz-admin__play">
         <h2 className="section-title">Tester comme un élève</h2>
         <QuizView
-          key={`${playQuestionCode ?? 'libre'}-${notionDraw.seq}`}
+          key={`${playQuestionCode ?? 'libre'}-${notionDraw.seq}-${initialNotionId ?? ''}-${initialNotionNiveau ?? ''}`}
           onOpenPlant={onOpenPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
           initialQuestionCode={playQuestionCode}
+          initialNotionId={initialNotionId}
+          initialNotionNiveau={initialNotionNiveau}
         />
       </section>
     </div>

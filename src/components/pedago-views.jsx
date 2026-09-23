@@ -5,4 +5,6 @@ export { FoodWebView } from './pedago/FoodWebView.jsx';
 export { NestedGroupsView } from './pedago/NestedGroupsView.jsx';
 export { IdKeysView } from './pedago/IdKeysView.jsx';
 export { IndividualsView } from './pedago/IndividualsView.jsx';
+export { SessionsView } from './pedago/SessionsView.jsx';
+export { PedagoSessionBanner } from './pedago/PedagoSessionBanner.jsx';
 export { PlantRangeGauge } from './pedago/PlantRangeGauge.jsx';
