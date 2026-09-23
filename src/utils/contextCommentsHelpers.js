@@ -35,6 +35,16 @@ export function contextCommentReadCursorKey(userType, userId, contextType, conte
   return `foretmap:contextCommentReadCursor:${String(userType || '')}:${String(userId || '')}:${String(contextType || '')}:${String(contextId ?? '')}`;
 }
 
+/**
+ * Curseur de lecture : le marqueur du dernier commentaire **vu** dans ce contexte.
+ *
+ * C'est une **chaîne opaque**, pas un nombre. Les identifiants de commentaire sont des UUID :
+ * les convertir en nombre donnait `NaN`, replié en `0`, et le badge « non lus » ne se
+ * déclenchait jamais. Les curseurs écrits par l'ancienne version (`{ newestId: 0 }`) sont
+ * relus tels quels et normalisés en `'0'` — ils ne correspondront à aucun UUID, donc le fil
+ * paraîtra non lu **une fois**, puis le curseur se remettra à jour. C'est le bon sens de
+ * l'erreur : mieux vaut signaler à tort une fois que taire indéfiniment.
+ */
 export function readContextCommentReadCursor(userType, userId, contextType, contextId) {
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return null;
   try {
@@ -44,8 +54,8 @@ export function readContextCommentReadCursor(userType, userId, contextType, cont
     );
     if (!raw) return null;
     const o = JSON.parse(raw);
-    const newestId = Number(o?.newestId);
-    if (!Number.isFinite(newestId) || newestId < 0) return null;
+    const newestId = normalizeContextCommentMarker(o?.newestId);
+    if (!newestId) return null;
     return { newestId };
   } catch {
     return null;
@@ -54,25 +64,47 @@ export function readContextCommentReadCursor(userType, userId, contextType, cont
 
 export function writeContextCommentReadCursor(userType, userId, contextType, contextId, newestId) {
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return;
-  const n = Math.max(0, Math.floor(Number(newestId) || 0));
   safeLocalStorageSetItem(
     contextCommentReadCursorKey(userType, userId, contextType, contextId),
-    JSON.stringify({ newestId: n }),
+    JSON.stringify({ newestId: normalizeContextCommentMarker(newestId) }),
   );
 }
 
 /**
- * Y a-t-il des commentaires plus récents que le curseur de lecture ?
- * Sans curseur et avec au moins un commentaire → non lus (jamais consultés).
+ * Marqueur de commentaire sous sa forme canonique : une chaîne, vide si absente.
  *
- * @param {number} newestId
- * @param {{ newestId: number } | null} cursor
+ * Accepte aussi bien un UUID qu'un ancien identifiant numérique, pour que les curseurs déjà
+ * écrits dans les navigateurs restent lisibles.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeContextCommentMarker(value) {
+  if (value == null) return '';
+  const raw = String(value).trim();
+  // `'0'` était la valeur écrite quand il n'y avait rien à marquer : elle vaut « aucun ».
+  return raw === '0' ? '' : raw;
+}
+
+/**
+ * Le dernier commentaire a-t-il changé depuis la dernière lecture ?
+ *
+ * Comparaison par **égalité**, et non par ordre : les identifiants sont des UUID, on ne peut
+ * pas dire lequel est « plus grand », seulement s'il s'agit du même. Sans curseur et avec au
+ * moins un commentaire → jamais consulté, donc non lu.
+ *
+ * Conséquence assumée du changement de sémantique : un marqueur qui *recule* (cas de bord —
+ * suppression définitive du dernier message) compte désormais comme « non lu » au lieu d'être
+ * ignoré. Le fil a bel et bien changé ; le signaler une fois est le comportement souhaitable.
+ *
+ * @param {string|number|null|undefined} newestId marqueur servi par l'API
+ * @param {{ newestId: string } | null} cursor curseur de lecture local
  */
 export function hasUnreadContextComments(newestId, cursor) {
-  const newest = Math.max(0, Number(newestId) || 0);
-  if (newest <= 0) return false;
+  const newest = normalizeContextCommentMarker(newestId);
+  if (!newest) return false;
   if (!cursor) return true;
-  return newest > Number(cursor.newestId || 0);
+  return newest !== normalizeContextCommentMarker(cursor.newestId);
 }
 
 export function parseReactionEmojiList(rawValue) {

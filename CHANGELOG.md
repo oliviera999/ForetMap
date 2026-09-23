@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — le badge « non lus » des commentaires ne s'allumait jamais
+
+- **Le défaut.** Les identifiants de commentaire sont des **UUID**, mais toute la chaîne des
+  non-lus supposait des nombres croissants. Côté serveur, `MAX(id)` rendait le plus grand
+  identifiant *au sens alphabétique* et `Number(uuid)` valait `NaN`, replié en `0` ; côté
+  client, `hasUnreadContextComments` testait `newest <= 0` et rendait donc **toujours
+  `false`**. La moitié « non lus » du badge livré la veille était inerte. Le **nombre** de
+  commentaires, lui, était juste — `COUNT(*)` n'a pas ce problème.
+- **Trouvé en cherchant plus bas** : l'échec du test `/counts` restait capricieux même après
+  ce premier correctif — **quatre exécutions sur six**. La cause réelle était en base :
+  `created_at` était un `DATETIME` **à la seconde**, et les deux requêtes qui ordonnent les
+  messages trient par `created_at DESC, id DESC`. Deux messages d'une même seconde étaient
+  donc départagés par un UUID tiré au hasard. Ce n'est pas un cas de bord : c'est un échange
+  vif entre un professeur et un élève.
+- **Deuxième conséquence, invisible jusque-là** : le **fil lui-même** pouvait s'afficher dans
+  le désordre. Le correctif la traite en même temps.
+- **Migration 278** : `created_at` passe à la **milliseconde**. Corriger la cause plutôt que
+  d'ajouter une colonne de séquence ne change **aucune** requête — `ORDER BY created_at DESC`
+  redevient discriminant de lui-même. Zéro échec sur huit exécutions après migration.
+- **`newestId` devient une chaîne opaque**, comparée par **égalité** : on ne peut pas dire
+  qu'un UUID est « plus grand » qu'un autre, seulement s'il s'agit du même. `docs/API.md` le
+  dit.
+- **Ce que cela coûte** : les repères de lecture déjà enregistrés dans les navigateurs ne
+  valaient rien et sont repris de zéro — les fils déjà lus paraîtront non lus **une fois**.
+  C'est le bon sens de l'erreur : mieux vaut signaler à tort une fois que taire indéfiniment.
+- **Filet** : `tests/context-comments-ordering.test.js` (ordre à la même seconde, marqueur du
+  dernier message, et une **garde de schéma** sur la précision de la colonne — vérifié qu'il
+  tombe 4 fois sur 4 quand on réintroduit le défaut).
+
+
 ### Documentation — note « modèle de sécurité » pour les administrateurs
 
 - **`docs/reference/exploitation/modele-de-securite.md`** : qui voit quoi, sur quelle

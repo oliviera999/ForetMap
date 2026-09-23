@@ -236,10 +236,15 @@ test('Commentaires contextuels: résumé groupé /counts (total + newestId)', as
 
   assert.strictEqual(counts.body?.contextType, 'task');
   assert.strictEqual(counts.body?.counts?.[String(taskId)]?.total, 2);
+  // `newestId` désigne le commentaire le plus récent — le second, pas « le plus grand id ».
+  // Les identifiants sont des UUID : le tri se fait sur la date, et la valeur reste une
+  // chaîne (la convertir en nombre donnait `NaN`, replié en `0`).
   assert.strictEqual(counts.body?.counts?.[String(taskId)]?.newestId, b.body.id);
-  assert.ok(Number(b.body.id) >= Number(a.body.id));
+  assert.notStrictEqual(b.body.id, a.body.id);
+  assert.strictEqual(typeof counts.body?.counts?.[String(taskId)]?.newestId, 'string');
   assert.strictEqual(counts.body?.counts?.[String(other.taskId)]?.total, 0);
-  assert.strictEqual(counts.body?.counts?.[String(other.taskId)]?.newestId, 0);
+  // Contexte sans commentaire : marqueur vide, jamais `0` — `0` serait un identifiant.
+  assert.strictEqual(counts.body?.counts?.[String(other.taskId)]?.newestId, '');
   assert.strictEqual(counts.body?.counts?.['999999']?.total, 0);
 
   await request(app)
