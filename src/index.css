@@ -2961,37 +2961,7 @@
       min-height:48px; white-space:normal;
     }
     .id-key-lead-img { width:64px; height:64px; object-fit:cover; border-radius:8px; flex-shrink:0; }
-    .id-key-reader__mode { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
-    .id-key-reader__mode .btn { min-height:44px; }
     .id-key-reader__nav { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-    .id-key-schema { margin:8px 0; }
-    .id-key-schema__scroll {
-      overflow:auto; max-height:min(70vh, 560px); border:1px solid var(--line-pedago);
-      border-radius:10px; background:var(--surface-pedago);
-    }
-    .id-key-schema__svg { display:block; min-width:100%; height:auto; }
-    .id-key-schema__edge-line { fill:none; stroke:var(--ink-pedago-soft); stroke-width:2; }
-    .id-key-schema__edge--path .id-key-schema__edge-line { stroke:var(--leaf); stroke-width:2.5; }
-    .id-key-schema__edge--active .id-key-schema__edge-line { stroke:var(--forest); stroke-width:3; }
-    .id-key-schema__edge--dim { opacity:0.35; }
-    .id-key-schema__edge-hit { fill:transparent; stroke:transparent; stroke-width:18; cursor:pointer; }
-    .id-key-schema__edge--clickable { cursor:pointer; }
-    .id-key-schema__edge-label-bg { fill:var(--surface-pedago); stroke:var(--line-pedago); }
-    .id-key-schema__edge-label-text { font-size:11px; fill:var(--ink-pedago); }
-    .id-key-schema__edge-img { width:36px; height:36px; object-fit:cover; border-radius:6px; }
-    .id-key-schema__edge-tap, .id-key-schema__node-tap {
-      fill:transparent; cursor:pointer;
-    }
-    .id-key-schema__node-shape { fill:var(--surface-pedago-soft); stroke:var(--forest); stroke-width:2; }
-    .id-key-schema__node--current .id-key-schema__node-shape {
-      fill:var(--leaf); stroke:var(--forest); stroke-width:3;
-    }
-    .id-key-schema__node--path .id-key-schema__node-shape { stroke:var(--leaf); }
-    .id-key-schema__node--dim { opacity:0.35; }
-    .id-key-schema__node-number, .id-key-schema__node-label { font-size:12px; fill:var(--ink-pedago); font-weight:600; }
-    .id-key-schema__node--current .id-key-schema__node-number { fill:#fff; }
-    .id-key-schema__node-emoji { font-size:14px; }
-    .id-key-schema__hint { margin:8px 0 0; font-size:var(--text-sm); }
     .id-key-editor__meta {
       display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
       margin:12px 0;
