@@ -47,7 +47,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     // Section « Détermination » des fiches espèces : repliée d'office, comme les
     // autres sections de la fiche. Un site peut la rendre permanente (`ui.biodiv`).
     determination_always_open: false,
-    pedago_level_default: 'lycee',
+    pedago_level_default: 'college',
     pedago_pref_can_raise: false,
   },
   runtime: {

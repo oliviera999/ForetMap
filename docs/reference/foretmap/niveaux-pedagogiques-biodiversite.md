@@ -98,10 +98,13 @@ Du plus fort au plus faible :
    uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
 3. **Socle** = le **plus simple** parmi le niveau du **groupe** (s’il y en a plusieurs,
    le plus simple l’emporte), le niveau de la **carte** active, et le **défaut de
-   l’établissement** (réglage admin ; proposition : **Lycée**).
+   l’établissement** (réglage admin ; **Collège** par défaut).
 4. **Préférence personnelle** : par défaut elle ne peut que **simplifier** par rapport
    au socle. Un administrateur peut cocher l’option qui autorise à **relever** le niveau
    (projets ponctuels, club science…).
+
+Pour un public **lycée** ou un **club / TIPE**, on relève le niveau sur la **carte** ou
+le **groupe** concerné, plutôt que de changer le défaut de tout le site.
 
 Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
 validation, administration), quel que soit le niveau fixé pour les élèves.

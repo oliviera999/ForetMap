@@ -16,7 +16,7 @@ const PEDAGO_RANK = Object.freeze({
   universite: 2,
 });
 
-export const DEFAULT_SITE_LEVEL = 'lycee';
+export const DEFAULT_SITE_LEVEL = 'college';
 
 export const COLLEGE_FOODWEB_TYPES = Object.freeze([
   'pollinisation',

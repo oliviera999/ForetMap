@@ -59,7 +59,7 @@ export function BiodivPedagoProvider({
     if (!canTeacherPreview && teacherPreview) setTeacherPreview(null);
   }, [canTeacherPreview, teacherPreview, setTeacherPreview]);
 
-  const siteDefault = publicSettings?.biodiv?.pedago_level_default ?? 'lycee';
+  const siteDefault = publicSettings?.biodiv?.pedago_level_default ?? 'college';
   const prefCanRaise = Boolean(publicSettings?.biodiv?.pedago_pref_can_raise);
 
   const level = useMemo(() => {
@@ -105,7 +105,7 @@ export function BiodivPedagoProvider({
 }
 
 const FALLBACK = Object.freeze({
-  level: 'lycee',
+  level: 'college',
   teacherPreview: null,
   setTeacherPreview: () => {},
   canTeacherPreview: false,

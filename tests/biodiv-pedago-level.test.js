@@ -24,7 +24,11 @@ test('normalizePedagoLevel accepte collège / lycée / université (accents)', (
 test('minPedagoLevel retient le plus simple', () => {
   assert.equal(minPedagoLevel(['universite', 'college', 'lycee']), 'college');
   assert.equal(minPedagoLevel([null, 'lycee']), 'lycee');
-  assert.equal(minPedagoLevel([]), 'lycee');
+  assert.equal(minPedagoLevel([]), 'college');
+});
+
+test('resolveBiodivPedagoLevel — défaut site Collège si rien n’est fourni', () => {
+  assert.equal(resolveBiodivPedagoLevel({}), 'college');
 });
 
 test('resolveBiodivPedagoLevel — visite invitée toujours collège', () => {

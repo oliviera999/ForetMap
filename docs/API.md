@@ -1136,7 +1136,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` et `ui.biodiv.pedago_pref_can_raise`. Cartes / groupes : champ `pedago_level`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
 
 Aides contextuelles (public) :
 
