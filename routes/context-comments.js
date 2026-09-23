@@ -213,7 +213,9 @@ router.get(
       const row = map.get(String(id));
       counts[String(id)] = {
         total: row?.total || 0,
-        newestId: row?.newestId || 0,
+        // Marqueur opaque du dernier commentaire (chaîne vide = aucun) : le client le compare
+        // par égalité à son curseur de lecture. Voir `countContextCommentsByContextIds`.
+        newestId: row?.newestId || '',
       };
     }
     return res.json({

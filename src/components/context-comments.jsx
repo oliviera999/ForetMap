@@ -69,8 +69,15 @@ function ContextComments({
   const markCommentsRead = useCallback(
     (newestId) => {
       if (!currentUserType || !currentUserId) return;
-      const id = Math.max(0, Number(newestId) || 0);
-      writeContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId, id);
+      // Marqueur opaque (UUID) : surtout pas de conversion en nombre — c'est ce `Number()`
+      // qui rendait `NaN`, replié en `0`, et qui neutralisait la détection des non-lus.
+      writeContextCommentReadCursor(
+        currentUserType,
+        currentUserId,
+        contextType,
+        contextId,
+        newestId,
+      );
       setHasUnreadComments(false);
     },
     [contextId, contextType, currentUserId, currentUserType],
@@ -123,8 +130,8 @@ function ContextComments({
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || nextPage));
         if (nextPage === 1) {
-          const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
-          markCommentsRead(newestId);
+          // La liste est triée du plus récent au plus ancien : le premier porte le marqueur.
+          markCommentsRead(list[0]?.id ?? '');
         }
       } catch (err) {
         if (mySeq !== loadSeqRef.current) return;
