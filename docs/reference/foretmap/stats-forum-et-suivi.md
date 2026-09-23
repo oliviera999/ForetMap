@@ -52,6 +52,12 @@ commentaires) et rester informé (notifications, temps réel).
   un **point** signale les messages non lus (jamais ouverts, ou nouveaux depuis la
   dernière consultation). Ouvrir la section marque les messages comme lus.
 
+  > ⚠️ **Corrigé le 23 septembre 2026** — le point « non lus » ne s’allumait **jamais**, et
+  > deux messages envoyés dans la même seconde pouvaient s’afficher dans le désordre. Le
+  > nombre, lui, a toujours été juste. Au premier chargement suivant la correction, les fils
+  > déjà lus paraîtront **une fois** non lus : les repères de lecture enregistrés par les
+  > navigateurs ne valaient rien et sont repris de zéro.
+
 ## Notifications et temps réel
 
 - Un **centre de notifications** signale ce qui est nouveau ; les événements critiques
