@@ -76,11 +76,18 @@ refusé).
 
 ## Clés d’identification
 
-L’onglet **Clés d’identification** propose des parcours dichotomiques : une question à la
-fois, avec retour en arrière, jusqu’à la fiche de l’espèce. Les énoncés décrivent des
-**caractères observables** — jamais une invitation à cueillir, goûter ou manipuler. Les
-enseignants autorisés créent et publient les clés (couplets, propositions, image
-optionnelle par proposition).
+L’onglet **Clés d’identification** propose des parcours dichotomiques jusqu’à la fiche
+de l’espèce. Deux modes de lecture, interchangeables à tout moment :
+
+- **Questions** : une fourche à la fois, avec retour en arrière ;
+- **Schéma** : l’arbre entier de la clé (couplets et propositions), avec le couplet
+  courant mis en évidence ; on avance en touchant une branche depuis ce couplet. Les
+  images associées aux propositions apparaissent sur le schéma quand elles sont
+  renseignées.
+
+Les énoncés décrivent des **caractères observables** — jamais une invitation à
+cueillir, goûter ou manipuler. Les enseignants autorisés créent et publient les clés
+(couplets, propositions, image optionnelle par proposition).
 
 ## Suivi d’individus (arbres)
 
