@@ -19,10 +19,13 @@ describe('contextCommentCountsBatch', () => {
   });
 
   test('fusionne plusieurs ids du même type en un seul appel', async () => {
+    // `newestId` est un marqueur opaque (UUID) depuis le correctif des non-lus : il traverse
+    // le lot tel quel, sans conversion en nombre — c'est cette conversion qui le ramenait à
+    // `0` et neutralisait le badge.
     getContextCommentCounts.mockResolvedValue({
       counts: {
-        a: { total: 2, newestId: 20 },
-        b: { total: 0, newestId: 0 },
+        a: { total: 2, newestId: '973af731-ad0e-4477-9668-bf37c406f795' },
+        b: { total: 0, newestId: '' },
       },
     });
 
@@ -39,7 +42,7 @@ describe('contextCommentCountsBatch', () => {
       contextType: 'task',
       contextIds: expect.arrayContaining(['a', 'b']),
     });
-    expect(sa).toEqual({ total: 2, newestId: 20 });
-    expect(sb).toEqual({ total: 0, newestId: 0 });
+    expect(sa).toEqual({ total: 2, newestId: '973af731-ad0e-4477-9668-bf37c406f795' });
+    expect(sb).toEqual({ total: 0, newestId: '' });
   });
 });
