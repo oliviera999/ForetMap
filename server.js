@@ -32,6 +32,7 @@ const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
+const { resolveSecureProductId } = require('./lib/surfaceAccess');
 const { PRODUCT_IDS, getProduct, listAuthRateLimitPaths } = require('./lib/products');
 const usageRouters = require('./routes/usage');
 const { registerPwaRoutes } = require('./lib/pwaRoutes');
@@ -178,7 +179,7 @@ app.use(createPermissionsPolicyMiddleware());
 // le host, et `X-Robots-Tag: noindex` sur toute réponse d'un produit non référençable (plan
 // public, plan des personnels). Monté ICI, avec les autres en-têtes : plus bas, la garde de
 // disponibilité `/api` et `express.static` répondraient sans que l'en-tête soit posé.
-registerRobotsRoutes(app, { resolveProductFromRequest, getProduct });
+registerRobotsRoutes(app, { resolveProductFromRequest: resolveSecureProductId, getProduct });
 // En-tetes de securite (nosniff, frameguard, HSTS, referrer-policy, etc.).
 // CSP laisse au middleware dedie ci-dessous (img-src) : le CSP par defaut de helmet
 // casserait la SPA (polices Google, styles inline). COEP/CORP desactives : /uploads et

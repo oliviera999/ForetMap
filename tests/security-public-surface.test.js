@@ -21,6 +21,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, initDatabase } = require('../database');
 const { PUBLIC_SETTINGS_SCOPES, pickAllowedPaths } = require('../lib/publicSettingsScope');
+const { isProductOverrideAllowed, resolveSecureProductId } = require('../lib/surfaceAccess');
 
 test.before(async () => {
   await initSchema();
@@ -88,6 +89,37 @@ test('pickAllowedPaths ne rend que les chemins demandés, sans inventer de branc
   for (const [productId, paths] of Object.entries(PUBLIC_SETTINGS_SCOPES)) {
     assert.ok(paths.length > 0, `${productId} doit déclarer un périmètre`);
   }
+});
+
+test('la surcharge d’en-tête ne choisit pas le produit en production', () => {
+  // Sans cette garde, la réduction du lot K serait contournable : il suffirait de rejouer la
+  // requête avec `X-Foretmap-Product: staff` pour récupérer `ui.staff_plan.*` depuis n'importe
+  // quel host, et de reconstituer les 95 clés produit par produit. C'est la même règle que le
+  // lot A applique aux surfaces — `robots.txt` et `/api/settings/public` la lisent désormais
+  // aussi (`resolveSecureProductId`, et non `resolveProductFromRequest`).
+  const req = {
+    get: (h) => (h.toLowerCase() === 'x-foretmap-product' ? 'staff' : ''),
+    hostname: 'foretmap.example',
+  };
+  const previous = { env: process.env.NODE_ENV, e2e: process.env.E2E_DISABLE_RATE_LIMIT };
+  try {
+    process.env.NODE_ENV = 'production';
+    // `E2E_DISABLE_RATE_LIMIT=1` rouvre délibérément la surcharge pour le harnais e2e (lot A),
+    // et il est posé dans le `.env` de développement : il faut le retirer pour observer le
+    // comportement de production. Ce drapeau ne doit jamais être posé en production — il y
+    // désactiverait aussi le limiteur, ce qui est une ouverture autrement plus large.
+    delete process.env.E2E_DISABLE_RATE_LIMIT;
+    assert.equal(isProductOverrideAllowed(), false);
+    assert.equal(resolveSecureProductId(req), 'foret', 'le host doit primer en production');
+  } finally {
+    process.env.NODE_ENV = previous.env;
+    if (previous.e2e === undefined) delete process.env.E2E_DISABLE_RATE_LIMIT;
+    else process.env.E2E_DISABLE_RATE_LIMIT = previous.e2e;
+  }
+  // …et reste honorée hors production, sans quoi le harnais de test et l'e2e ne pourraient
+  // plus viser un produit.
+  assert.equal(isProductOverrideAllowed(), true);
+  assert.equal(resolveSecureProductId(req), 'staff');
 });
 
 test('Permissions-Policy : posée partout, géolocalisation conservée (lot L)', async () => {

@@ -8,7 +8,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
 const { scopePublicSettings } = require('../lib/publicSettingsScope');
-const { resolveProductFromRequest } = require('../lib/productResolver');
+const { resolveSecureProductId } = require('../lib/surfaceAccess');
 const { invalidateMapsListCache } = require('./maps');
 
 // `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.
@@ -118,7 +118,10 @@ router.get(
     res.json({
       settings: scopePublicSettings(
         { ...settings.nested, realtime: getSocketIoRealtimePublicConfig() },
-        resolveProductFromRequest(req),
+        // `resolveSecureProductId` et non `resolveProductFromRequest` : la surcharge
+        // `X-Foretmap-Product` n'est lue qu'hors production (lot A). Sinon n'importe qui
+        // rejouerait la requête sur les quatre produits et reconstituerait les 95 clés.
+        resolveSecureProductId(req),
       ),
     });
   }),
