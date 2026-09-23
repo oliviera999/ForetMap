@@ -476,7 +476,9 @@ CREATE TABLE IF NOT EXISTS context_comments (
   place_status_at DATETIME NULL DEFAULT NULL,
   place_status_by_user_type VARCHAR(16) NULL DEFAULT NULL,
   place_status_by_user_id VARCHAR(64) NULL DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Milliseconde (migration 278) : à la seconde, deux messages d'un même échange étaient
+  -- départagés par leur UUID, donc au hasard — ordre du fil comme marqueur du dernier message.
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_context_comments_context_created (context_type, context_id, created_at),
   INDEX idx_context_comments_author (author_user_type, author_user_id, created_at),
