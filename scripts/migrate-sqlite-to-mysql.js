@@ -192,7 +192,7 @@ async function main() {
       );
       if (l.image_data) {
         const relativePath = `task-logs/${l.task_id}_${inserted.insertId}.jpg`;
-        saveBase64ToDisk(relativePath, l.image_data);
+        await saveBase64ToDisk(relativePath, l.image_data);
         await conn.execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [
           relativePath,
           inserted.insertId,
@@ -210,7 +210,7 @@ async function main() {
       );
       if (p.image_data) {
         const relativePath = `zones/${p.zone_id}/${inserted.insertId}.jpg`;
-        saveBase64ToDisk(relativePath, p.image_data);
+        await saveBase64ToDisk(relativePath, p.image_data);
         await conn.execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [
           relativePath,
           inserted.insertId,

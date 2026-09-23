@@ -46,6 +46,7 @@ Il poursuit trois objectifs, dans l'ordre :
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | [INCOHERENCES.md](INCOHERENCES.md)                                       | Registre d'arbitrage : incohérences relevées, options de correction                                                                           | ✅ Rédigé |
 | [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md) | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage | ✅ Rédigé |
+| [exploitation/modele-de-securite.md](exploitation/modele-de-securite.md) | Qui voit quoi, sur quelle adresse : les quatre publics, les trois règles invariantes, ce que vous réglez vous-même                            | ✅ Rédigé |
 
 ### ForetMap
 

@@ -17,6 +17,15 @@
 > septembre** qui est décrit, avant correctif. Chaque constat traité porte une ligne
 > **« Corrigé »** qui dit où.
 >
+> **Mise à jour du 22 septembre 2026, soir** : les lots **F** et **G** sont livrés — **S7 et
+> S8 sont traités** (§2.7, §2.8).
+>
+> **Mise à jour du 23 septembre 2026** : les lots **H à L** sont livrés — **S9, S10 et S11 sont
+> traités**, et la revue d'en-têtes du lot L est faite (§13). **Tous les constats S1 à S12 sont
+> désormais traités.** Reste ouvert le **seul point bloquant** avant publication du code : le
+> dump de production dans l'historique Git (§12), dont la remédiation relève d'une décision du
+> responsable de traitement.
+>
 > **Note d'exécution — les chiffres sont mesurés, pas estimés.** L'application a été montée
 > localement sur le fixture anonymisé (`foretmap_local`, migré à la volée : 7 cartes, dont
 > `lyautey` avec 36 zones et 44 repères), et chaque constat a été **reproduit par requête HTTP
@@ -200,6 +209,19 @@ des ancrages d'une carte qu'il n'affiche pas, et aucune surface n'a besoin du ca
 
 ### 2.7 — S7 (P1) · Les métadonnées EXIF des photos ne sont jamais retirées
 
+**Corrigé** (lot F) : `lib/imageMetadata.js` retire EXIF/GPS, IPTC et XMP, posé sur les **deux
+points de passage** de l'écriture (`saveBase64ToDisk`, `writeBufferToDisk`) plutôt que sur les
+vingt appelants. L'orientation est appliquée avant d'être jetée. Le stock antérieur se traite
+par `scripts/strip-uploads-exif.js` (lecture seule par défaut). Filet :
+`tests/uploads-exif.test.js`, dont un cas passe par la vraie route
+`POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
+
+**Trouvé au passage** : quatre scripts de migration appelaient l'écriture **sans `await`**
+(`migrate-images-to-disk`, `gl-import-wp`, `migrate-sqlite-to-mysql` ×2). Le défaut était
+latent — l'écriture partait sans que personne l'attende — et le travail ajouté par le retrait
+des métadonnées l'aurait rendu réel. Corrigé dans le même lot ; les routes de production, elles,
+attendaient déjà toutes correctement.
+
 Recherche de `exif` sur tout le dépôt (hors `node_modules`) : **aucune occurrence**.
 
 Les originaux sont écrits tels quels — `lib/uploads.js` :
@@ -218,6 +240,27 @@ téléchargeables sans authentification. Sur un établissement où les photos so
 
 ### 2.8 — S8 (P1) · Le service worker du plan conserve les données sur l'appareil
 
+**Corrigé** (lot G) — mais pas en retirant `/api/plan/content` du cache, ce que l'arbitrage
+annoncé envisageait. Le hors-ligne est la raison d'être de cette stratégie : un visiteur qui
+scanne le QR code à l'entrée de l'établissement n'a pas toujours de réseau. Deux mécanismes
+plutôt qu'un retrait :
+
+1. **Éviction sur refus d'autorisation** (`src/shared/pwa/swTemplate.js`) — une 401/403 au
+   rafraîchissement retire l'entrée du cache. Le contenu périmé part **une dernière fois**,
+   la réponse étant déjà rendue quand le réseau tranche ; le chargement suivant renvoie à
+   l'écran de code. Ce résidu est le prix du hors-ligne, et il est documenté dans le gabarit
+   plutôt que passé sous silence.
+2. **La politique d'API entre dans le nom du cache** (`scripts/build-pwa.js`, `precacheHash`).
+   `activate` supprimait déjà tout cache dont le nom diffère, mais le hash ne couvrait que le
+   précache : retirer une route de l'allowlist ne purgeait rien tant qu'aucun bundle ne
+   bougeait. C'est ce qui manquait à la « purge versionnée » que le constat appelait.
+
+**Trouvé au passage** : `putInCache` mémorisait **toute** réponse, 401 et 500 comprises —
+l'erreur d'un instant devenait la réponse hors ligne pour la durée du cache. Seules les
+réponses valides sont désormais mémorisées.
+
+Le profil `staff`, qui ne met aucune API en cache, est inchangé : c'était déjà le bon choix.
+
 `scripts/build-pwa.js` :
 
 - produit `plan` : `apiStaleWhileRevalidate: ['/api/plan/content', '/api/plan/settings']` ;
@@ -235,6 +278,10 @@ existants est à prévoir avec le correctif.
 Rien n'empêche l'indexation de `planlyautey` ni, à son activation, de `proflyautey`. Aucun
 `noindex` ni en-tête `X-Robots-Tag` n'est posé par produit.
 
+> **Corrigé** — lot **J** (23/09) : `robots.txt` par produit et `X-Robots-Tag: noindex,
+nofollow, noarchive` sur les surfaces gardées (`lib/robotsRoutes.js`, drapeau `indexable` au
+> registre `lib/products.js`). Filet : `tests/security-robots.test.js`. Détail : §13.4.
+
 ### 2.10 — S10 (P2) · `/api/settings/public` renseigne sur la topologie
 
 **95 clés** sont déclarées `scope: 'public'`, dont :
@@ -251,6 +298,10 @@ Aucun secret n'y transite, mais l'ensemble compose une carte de reconnaissance g
 réduire au strict nécessaire au front de **chaque** produit (le front du plan n'a pas besoin de
 connaître l'état de la surface personnels).
 
+> **Corrigé** — lot **K** (23/09) : `/api/settings/public` borné au périmètre de chaque
+> produit (`lib/publicSettingsScope.js`) ; `ui.staff_plan.*` ne sort plus sur aucune surface
+> publique. Filet : `tests/security-public-surface.test.js`. Détail : §13.5.
+
 ### 2.11 — S11 (P1, piège de configuration) · Deux réglages d'inscription indépendants
 
 `ui.auth.allow_register` est vérifié en un seul point (`routes/auth.js:528`, `POST /api/auth/register`).
@@ -261,6 +312,10 @@ Les deux gardes sont réelles et leurs défauts sont sûrs — mais **fermer l'i
 pas l'auto-inscription Google**. Un administrateur qui décoche « autoriser l'inscription » croit
 raisonnablement avoir fermé la création de comptes. À traiter comme un point d'ergonomie des
 réglages, pas comme une faille.
+
+> **Corrigé** — lot **I** (23/09) : `ui.auth.allow_register` devient l'interrupteur général
+> de la création de comptes (`lib/registrationPolicy.js`), et les libellés d'administration le
+> disent. Filet : `tests/security-registration-policy.test.js`. Détail : §13.3.
 
 ---
 
@@ -458,9 +513,14 @@ publication du code, pas le lien jury.
 
 ## 9. Note « modèle de sécurité » — qui voit quoi
 
-Rédigée ici sous sa forme **cible**. À extraire vers `docs/reference/exploitation/` une fois les
-lots P0 validés et livrés — la publier avant décrirait une politique que le code n'applique pas
-encore.
+**Extraite le 23 septembre 2026** vers
+[`docs/reference/exploitation/modele-de-securite.md`](reference/exploitation/modele-de-securite.md),
+les lots P0 étant livrés et mesurés : c'est là qu'elle vit désormais, en langue non technique,
+à l'usage des administrateurs et de la direction. Le tableau ci-dessous en reste la forme
+courte, pour qui lit cet audit.
+
+Elle n'a volontairement pas été publiée avant : elle aurait décrit une politique que le code
+n'appliquait pas encore.
 
 | Surface                  | Host            | Entrée                                       | Voit                                                              | Ne voit jamais                                                                       |
 | ------------------------ | --------------- | -------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -620,3 +680,102 @@ fixtures de test, sans portée.
 Le scan repose sur des **motifs**. Un secret sans forme reconnaissable (mot de passe court en
 clair dans un commentaire, jeton maison sans préfixe) n'est pas détecté. Ce qui précède établit
 qu'aucun secret **de forme connue** subsiste, pas qu'il n'y en a aucun.
+
+---
+
+## 13. Livraison des lots P1/P2 restants (H à L) — 23 septembre 2026
+
+Les lots **F** et **G** ayant été livrés la veille (S7, S8), ce lot ferme les quatre constats
+restants : **S9**, **S10**, **S11** et la revue d'en-têtes annoncée en **L**. Aucun d'eux n'est
+critique — aucun n'ouvre de données. Ils partagent en revanche un même défaut de forme : ils
+laissent l'application **se décrire** plus qu'elle n'en a besoin, ou laissent une garde ne pas
+tenir la promesse que son libellé fait à l'administrateur.
+
+### 13.1 Ce qui a été écrit
+
+| Fichier                                               | Rôle                                                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `lib/realtime.js`                                     | **Lot H** — `subscribe:map` passe par `canAccessMapId()` ; un refus quitte la salle courante |
+| `lib/registrationPolicy.js` _(neuf)_                  | **Lot I** — `allow_register` devient l'interrupteur général de la création de comptes        |
+| `routes/auth.js`                                      | Les deux chemins d'inscription lisent la même politique                                      |
+| `lib/robotsRoutes.js` _(neuf)_                        | **Lot J** — `/robots.txt` par produit + `X-Robots-Tag` sur les surfaces gardées              |
+| `lib/products.js`, `plan.html`                        | Drapeau `indexable` au registre ; `<meta name="robots">` sur l'entrée du plan                |
+| `lib/publicSettingsScope.js` _(neuf)_                 | **Lot K** — `/api/settings/public` borné au périmètre de chaque produit                      |
+| `lib/securityHeaders.js` _(neuf)_                     | **Lot L** — `Permissions-Policy` ; politique CORS journalisée au démarrage                   |
+| `tests/security-realtime-map-scope.test.js` _(neuf)_  | Lot H — trois cas (poignée de main, `subscribe:map`, compte non borné)                       |
+| `tests/security-registration-policy.test.js` _(neuf)_ | Lot I — trois cas (fermé ferme les deux chemins, ouvert garde son réglage propre)            |
+| `tests/security-robots.test.js` _(neuf)_              | Lot J — quatre cas (HTML, API, surface publique non dé-référencée)                           |
+| `tests/security-public-surface.test.js` _(neuf)_      | Lots K et L — cinq cas                                                                       |
+
+### 13.2 Lot H — le périmètre de groupe ne s'arrêtait pas à la socket
+
+`subscribe:map` ne vérifiait que l'**existence** de la carte (`mapExists`). Un compte ForêtMap
+authentifié mais borné par le périmètre de son groupe pouvait donc s'abonner à n'importe quelle
+carte — `lyautey` comprise — et recevoir ensuite tous ses signaux de mutation. La charge utile
+ne porte pas de contenu (un motif, des identifiants), mais elle trahit l'activité d'une carte
+qu'on n'a pas le droit de lire : qui édite, et quand.
+
+Ce n'est pas un oubli de règle, c'est un oubli de **lieu** : la règle existait
+(`requireMapAccess` sur les routes HTTP), elle n'avait simplement pas été portée sur le second
+canal. Une connexion socket vit bien plus longtemps qu'une requête — c'est précisément là
+qu'une vérification manquante dure.
+
+Le refus **quitte** la salle courante au lieu de la conserver : si le périmètre change pendant
+la session, changer de carte ne doit pas laisser le flux précédent ouvert.
+
+### 13.3 Lot I — une garde que l'administrateur croyait avoir posée
+
+`ui.auth.allow_register` fermait le formulaire d'inscription ;
+`ui.auth.allow_google_auto_register` fermait la création à la première connexion Google. Les
+deux gardes étaient réelles et leurs défauts sûrs — mais **fermer l'inscription ne fermait pas
+l'auto-inscription Google**.
+
+Le correctif ne supprime pas le second réglage : il reste utile pour n'autoriser la connexion
+Google qu'aux comptes existants, inscriptions ouvertes par ailleurs. Il le **subordonne** au
+premier, et les libellés d'administration le disent désormais. Une garde qu'on croit avoir
+posée doit tenir.
+
+### 13.4 Lot J — une adresse indexée est une adresse qu'on n'a plus à deviner
+
+Le dépôt ne servait aucun `robots.txt` (`GET /robots.txt` rendait le HTML de repli de la SPA) et
+aucune réponse ne portait `X-Robots-Tag`, hors `/api/staff-plan/content`.
+
+Deux garde-fous sont posés, parce qu'ils n'échouent pas ensemble : un `robots.txt` **par
+produit** (ce qu'un robot lit avant de parcourir) et `X-Robots-Tag: noindex, nofollow,
+noarchive` sur **toute** réponse d'un produit non référençable (ce qui vaut pour une adresse
+déjà connue d'un moteur, qu'un `robots.txt` ne retirerait jamais de l'index). Le drapeau vit au
+registre (`lib/products.js`, champ `indexable`) : ajouter un produit, c'est ajouter une entrée,
+pas un `if`.
+
+### 13.5 Lot K — la carte de reconnaissance
+
+95 clés `scope: 'public'` étaient servies **identiques à tous les hosts**. Au premier rang,
+`ui.staff_plan.access_mode` apprenait à n'importe quel visiteur de `foretmap.*` que la surface
+des personnels existe et dans quel état elle est — alors qu'elle n'est pas encore ouverte.
+
+Le registre n'est pas touché : c'est la **réponse** qui est bornée au périmètre de chaque
+produit (`lib/publicSettingsScope.js`). La liste a été établie à partir des valeurs par défaut
+du front (`src/utils/appPublicSettings.js`), qui énumèrent exactement les sections fusionnées.
+Constat utile au passage : les fronts du plan et du plan personnels **n'appellent pas** cette
+route — ils lisent `/api/plan/content` et `/api/staff-plan/content`, qui portent leur garde.
+
+### 13.6 Lot L — ce qui était déjà en place, et ce qui manquait
+
+**CORS était déjà borné** : en production, `buildCorsOptions()` rend `origin: false` (same-origin
+seulement) à défaut de `FRONTEND_ORIGINS`. Rien à corriger ; la politique effective est
+désormais **journalisée au démarrage**, pour qu'un opérateur la constate sans relire le code.
+
+Manquait `Permissions-Policy`, que `helmet` ne pose pas. Elle laisse `geolocation=(self)` — la
+géolocalisation est une fonction du produit, y compris sur la Visite — et refuse ce dont le code
+ne se sert pas. `camera` reste à `(self)` plutôt qu'à `()` : les champs de téléversement portent
+`capture="environment"`, et la directive ne gouverne que `getUserMedia`. Ne pas parier sur le
+comportement d'un navigateur futur pour une photo prise par un élève sur le terrain.
+
+### 13.7 Ce qui reste ouvert
+
+- **Le dump de production dans l'historique Git** (§12) : remédiation non engagée, décision du
+  responsable de traitement. C'est le **seul point bloquant** avant publication du code.
+- **Les mesures sur la production** : tout ce qui précède est mesuré sur le fixture anonymisé.
+  Avant un lien transmis au jury, rejouer les sondes du §11.3 sur la production, et y vérifier
+  `ui.plan.selectable_map_ids`.
+- `proflyautey` reste à **503**, conformément à la consigne.

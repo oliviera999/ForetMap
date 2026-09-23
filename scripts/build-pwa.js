@@ -156,13 +156,30 @@ function collectEntryFiles(viteManifest, entryKey) {
   return files;
 }
 
-/** Hash court et stable d'une liste d'URL (invalide le cache dès qu'un bundle change). */
-function precacheHash(product, precache) {
-  return crypto
-    .createHash('sha256')
-    .update(`${product}\n${precache.join('\n')}`)
-    .digest('hex')
-    .slice(0, 8);
+/**
+ * Hash court et stable du **contenu mis en cache** : la liste d'URL précachées et la politique
+ * d'API. Le nom du cache en dérive, et `activate` supprime tout cache dont le nom diffère —
+ * changer l'un ou l'autre purge donc les appareils au prochain chargement.
+ *
+ * La politique d'API est entrée dans le hash au lot G de `docs/AUDIT_SECURITE_2026-09-22.md`
+ * (constat **S8**). Sans elle, retirer une route de l'allowlist ne changeait pas le nom du
+ * cache tant qu'aucun bundle ne bougeait : la route disparaissait de la politique, mais les
+ * réponses déjà mémorisées restaient sur l'appareil et continuaient d'être servies. Une purge
+ * qui dépend d'un changement sans rapport n'est pas une purge.
+ *
+ * @param {string} product
+ * @param {string[]} precache
+ * @param {{ apiStaleWhileRevalidate?: string[], apiNetworkFirst?: string[] }} [apiPolicy]
+ */
+function precacheHash(product, precache, apiPolicy) {
+  const parts = [product, precache.join('\n')];
+  if (apiPolicy) {
+    parts.push(
+      `swr:${[...(apiPolicy.apiStaleWhileRevalidate || [])].join(',')}`,
+      `nf:${[...(apiPolicy.apiNetworkFirst || [])].join(',')}`,
+    );
+  }
+  return crypto.createHash('sha256').update(parts.join('\n')).digest('hex').slice(0, 8);
 }
 
 /**
@@ -188,7 +205,10 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
   const precache = [
     ...new Set([...htmlEntries, OFFLINE_PATH, '/manifest.json', ...staticPrecache, ...bundles]),
   ];
-  const cacheName = `foretmap-${product.id}-${precacheHash(product.id, precache)}`;
+  const cacheName = `foretmap-${product.id}-${precacheHash(product.id, precache, {
+    apiStaleWhileRevalidate: profile.apiStaleWhileRevalidate,
+    apiNetworkFirst: profile.apiNetworkFirst,
+  })}`;
   const serviceWorker = renderServiceWorker({
     product: product.id,
     cacheName,

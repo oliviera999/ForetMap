@@ -9,6 +9,123 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — note « modèle de sécurité » pour les administrateurs
+
+- **`docs/reference/exploitation/modele-de-securite.md`** : qui voit quoi, sur quelle
+  adresse. Les quatre publics (visite libre, ForêtMap connecté, plan public, plan des
+  personnels), les trois règles invariantes, ce que protègent les lots F à L sans que
+  personne ait à y penser, et les réglages que l'administrateur tient lui-même.
+- Rédigée en langue non technique : c'est le dernier livrable du chantier de sécurité, et
+  celui qui sert le jour où il faut répondre à « est-ce qu'un parent pourra voir ça ? ».
+- Elle n'a **pas** été publiée plus tôt : avant les lots P0, elle aurait décrit une
+  politique que le code n'appliquait pas encore. Le §9 de l'audit pointe désormais vers
+  elle au lieu de la garder en double.
+
+
+### Sécurité — le périmètre de cartes s'applique aussi à la socket (lot H, §4.3)
+
+- **`subscribe:map` vérifie désormais le périmètre du compte**, et plus seulement l'existence
+  de la carte. Un élève borné par le périmètre de son groupe pouvait s'abonner à n'importe
+  quelle carte — `lyautey` comprise — et recevoir ensuite tous ses signaux de mutation : pas
+  de contenu, mais qui édite quoi, et quand. La règle existait déjà sur les routes HTTP
+  (`requireMapAccess`) ; elle n'avait pas été portée sur le second canal, qui vit pourtant
+  bien plus longtemps qu'une requête.
+- **Un refus quitte la salle carte courante** au lieu de la conserver : un périmètre révoqué
+  en cours de session ne laisse pas le flux précédent ouvert.
+- Les comptes de gestion (permission `teacher.access`, rôle `admin`) ne sont pas bornés —
+  inchangé.
+
+### Sécurité — un seul interrupteur pour la création de comptes (lot I, constat S11)
+
+- **Fermer l'inscription ferme aussi l'auto-inscription Google.** Les deux réglages étaient
+  indépendants : `ui.auth.allow_register` fermait le formulaire, `ui.auth.allow_google_auto_register`
+  la création à la première connexion Google. Un administrateur qui décochait « autoriser
+  l'inscription » croyait raisonnablement avoir fermé la création de comptes ; il lui en
+  restait un chemin ouvert. Nouveau module `lib/registrationPolicy.js`, lu par les deux
+  chemins.
+- **Le second réglage garde son rôle propre** : inscriptions ouvertes, il continue de
+  n'autoriser que la connexion des comptes Google déjà existants.
+- **Les libellés d'administration le disent** : « Autoriser la création de comptes (formulaire
+  et première connexion Google) », et la mention « sans effet si la création de comptes est
+  fermée ci-dessus » sur le réglage Google.
+
+### Sécurité — les surfaces gardées ne sont plus référençables (lot J, constat S9)
+
+- **`GET /robots.txt` est servi par produit.** Il n'existait aucun `robots.txt` : la route
+  rendait le HTML de repli de la SPA. `planlyautey` et `proflyautey` répondent désormais
+  `Disallow: /` ; ForêtMap et GL, `Disallow: /api/` + `Disallow: /uploads/`. Nouveau module
+  `lib/robotsRoutes.js`, drapeau `indexable` au registre des produits.
+- **`X-Robots-Tag: noindex, nofollow, noarchive` sur toute réponse** d'un produit non
+  référençable — HTML, assets et API, refus compris. Les deux garde-fous sont posés parce
+  qu'ils n'échouent pas ensemble : un `robots.txt` interdit le parcours, il ne retire pas de
+  l'index une adresse reçue par ailleurs.
+- `plan.html` porte en plus un `<meta name="robots">`, comme `staff.html` l'avait déjà.
+
+### Sécurité — `/api/settings/public` borné à chaque produit (lot K, constat S10)
+
+- **95 clés publiques étaient servies identiques à tous les hosts.** Au premier rang,
+  `ui.staff_plan.access_mode` apprenait à n'importe quel visiteur de ForêtMap que la surface
+  des personnels **existe** et dans quel état elle est — alors qu'elle n'est pas encore
+  ouverte. Nouveau module `lib/publicSettingsScope.js`.
+- **Chaque front ne reçoit que les sections qu'il lit** : ForêtMap tout sauf `ui.plan.*` et
+  `ui.staff_plan.*`, GL seulement le rendu de carte. Le registre des réglages est inchangé —
+  c'est la réponse qui est réduite, pas la portée des clés, et les lectures serveur
+  (`getSettingValue`) ne passent pas par là.
+- Constat utile au passage : les fronts du plan et du plan des personnels **n'appellent pas**
+  cette route.
+
+### Sécurité — en-têtes complémentaires et politique CORS lisible (lot L)
+
+- **`Permissions-Policy` sur toutes les réponses** : `geolocation=(self)` et `camera=(self)`
+  (fonctions du produit), micro, paiement, USB, MIDI, série, Bluetooth et cohortes d'intérêt
+  refusés. `helmet` ne la pose pas. Nouveau module `lib/securityHeaders.js`.
+- **La politique CORS effective est journalisée au démarrage.** Elle était déjà bornée en
+  production (`origin: false` à défaut de `FRONTEND_ORIGINS`) ; rien à corriger, mais un
+  opérateur peut désormais la constater sans relire le code.
+
+
+### Sécurité — les caches PWA se vident à la révocation d'un accès (lot G, constat S8)
+
+- **Une 401/403 au rafraîchissement retire l'entrée du cache.** Le service worker du plan
+  garde `/api/plan/content` hors ligne ; après une révocation du code, la charge — entrées,
+  loge, infirmerie — restait sur l'appareil **indéfiniment**, la stratégie ne mémorisant que
+  les réponses valides. Le contenu périmé part désormais une dernière fois (la réponse est
+  déjà rendue quand le réseau tranche), puis le chargement suivant renvoie à l'écran de code.
+- **La route n'a pas été retirée du cache**, contrairement à ce que l'arbitrage envisageait :
+  le hors-ligne est la raison d'être du plan public — un visiteur qui scanne le QR code à
+  l'entrée n'a pas toujours de réseau.
+- **La politique d'API entre dans le nom du cache.** `activate` supprime tout cache dont le
+  nom diffère, mais le hash ne couvrait que le précache : retirer une route de l'allowlist ne
+  purgeait rien tant qu'aucun bundle ne bougeait.
+- **Corrigé au passage** : `putInCache` mémorisait toute réponse, 401 et 500 comprises —
+  l'erreur d'un instant devenait la réponse hors ligne pour la durée du cache.
+- Le profil `staff`, qui ne met aucune API en cache, est **inchangé**.
+
+### Sécurité — les images téléversées ne portent plus leurs métadonnées (lot F, constat S7)
+
+- **EXIF, coordonnées GPS, IPTC et XMP retirés à l'écriture** de toute image sous `uploads/`.
+  Une photo prise au téléphone sur le terrain conservait jusqu'ici le lieu exact où elle avait
+  été prise, et les familles `zones/`, `markers/`, `students/`, `tasks/` sont servies
+  **publiquement** : le fichier était téléchargeable sans authentification. Nouveau module
+  `lib/imageMetadata.js`.
+- **Le retrait est posé sur les deux points de passage de l'écriture** (`saveBase64ToDisk`,
+  `writeBufferToDisk`) et non sur les vingt appelants — un vingt-et-unième ajouté demain n'aura
+  pas à y penser.
+- **L'orientation EXIF est appliquée avant d'être jetée** : une photo prise de côté n'arrive
+  plus couchée. C'est ce que faisait déjà la vignette, et que l'original ne faisait pas.
+- **Ne sont pas retraités, volontairement** : les SVG (qui seraient rastérisés), les images
+  animées (qui seraient aplaties sur leur première image) et tout ce que `sharp` ne sait pas
+  lire (JSON, archives…), écrits tels quels. Sans `sharp` sur l'hôte, le retrait n'a pas lieu
+  et l'absence est journalisée en `warn`.
+- **Stock antérieur** : `node scripts/strip-uploads-exif.js` — rapport en lecture seule par
+  défaut, `--apply` pour récrire, `--dir=` pour borner à une famille. N'écrit que les images
+  porteuses de métadonnées, par fichier temporaire puis `rename`.
+- **Corrigé au passage** : quatre scripts de migration écrivaient sans `await`
+  (`migrate-images-to-disk`, `gl-import-wp`, `migrate-sqlite-to-mysql` ×2). Défaut latent que le
+  travail ajouté par le nettoyage aurait rendu réel ; les routes de production attendaient déjà
+  correctement.
+- **Tests** : `tests/uploads-exif.test.js` (7 cas), dont un passe par la route réelle
+  `POST /api/zones/:id/photos` jusqu'au fichier servi publiquement.
 ### Corrigé — la CI de `main` était rouge, et plus aucune branche n'exécutait ses tests e2e
 
 Les lots « structure biodiversité » (groupes emboîtés, individus, dangers d'une fiche) ont été

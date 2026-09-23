@@ -129,6 +129,42 @@ test('precacheHash : stable, 8 hexadécimaux, sensible au contenu et au produit'
   assert.notStrictEqual(a, precacheHash('gl', ['/a', '/b']));
 });
 
+test('precacheHash : la politique d’API entre dans le nom du cache (S8)', () => {
+  // Sans cela, retirer une route de l'allowlist ne changeait pas le nom du cache tant qu'aucun
+  // bundle ne bougeait : la politique changeait, les réponses déjà mémorisées restaient sur
+  // l'appareil. `activate` ne purge que les caches dont le nom diffère — une purge qui dépend
+  // d'un changement sans rapport n'est pas une purge.
+  const precache = ['/', '/assets/main.js'];
+  const avec = precacheHash('plan', precache, {
+    apiStaleWhileRevalidate: ['/api/plan/content'],
+    apiNetworkFirst: [],
+  });
+  const sans = precacheHash('plan', precache, {
+    apiStaleWhileRevalidate: [],
+    apiNetworkFirst: [],
+  });
+  assert.match(avec, /^[0-9a-f]{8}$/);
+  assert.notStrictEqual(avec, sans, 'changer l’allowlist doit changer le nom du cache');
+
+  // La stratégie compte autant que la liste : déplacer une route de SWR vers network-first
+  // change ce qui est servi hors ligne.
+  const versNetworkFirst = precacheHash('plan', precache, {
+    apiStaleWhileRevalidate: [],
+    apiNetworkFirst: ['/api/plan/content'],
+  });
+  assert.notStrictEqual(avec, versNetworkFirst);
+  assert.notStrictEqual(sans, versNetworkFirst);
+
+  // Et le hash reste stable à politique égale (sinon chaque build purgerait tout le monde).
+  assert.strictEqual(
+    avec,
+    precacheHash('plan', precache, {
+      apiStaleWhileRevalidate: ['/api/plan/content'],
+      apiNetworkFirst: [],
+    }),
+  );
+});
+
 test('buildProductPwa : seuls les bundles de la bonne entrée sont précachés', () => {
   const exists = () => true;
   const gl = buildProductPwa(PRODUCTS.gl, { viteManifest: FAKE_VITE_MANIFEST, exists });

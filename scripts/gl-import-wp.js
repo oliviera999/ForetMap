@@ -633,7 +633,7 @@ async function mirrorOneMediaUrl(
   });
   const ext = extFromUrlOrContentType(urlValue, contentType);
   const relativePath = `${targetDir}/${checksum}.${ext}`.replace(/\\/g, '/');
-  writeBufferToDisk(relativePath, buffer);
+  await writeBufferToDisk(relativePath, buffer);
   const localUrl = `/uploads/${relativePath}`;
   mediaCache.set(urlValue, localUrl);
   if (mediaStats) {

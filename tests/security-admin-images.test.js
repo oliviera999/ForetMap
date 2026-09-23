@@ -78,7 +78,7 @@ test('Route image zone lit bien depuis disque', async () => {
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
-  saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
+  await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
 
   const res = await request(app)
@@ -137,7 +137,7 @@ test('Route image task log lit bien depuis disque (mode disk-only)', async () =>
   );
   const logId = created.insertId;
   const relativePath = `task-logs/${taskId}_${logId}.jpg`;
-  saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
+  await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
 
   const res = await request(app)

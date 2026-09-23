@@ -156,6 +156,108 @@ test('fetch : un GET HTML passe par networkFirst avec repli offline, un asset pa
   assert.strictEqual(intercepted, false);
 });
 
+/**
+ * Bac à sable de cache partagé par les cas de révocation : un `Map` derrière l'API `caches`,
+ * pour observer ce que le SW y met et ce qu'il en retire.
+ */
+function cacheSandbox(context, initial = []) {
+  const store = new Map(initial);
+  const keyOf = (request) =>
+    typeof request === 'string' ? request : new URL(request.url).pathname;
+  const cache = {
+    match: (request) => Promise.resolve(store.get(keyOf(request))),
+    put: (request, response) => {
+      store.set(keyOf(request), response);
+      return Promise.resolve();
+    },
+    delete: (request) => Promise.resolve(store.delete(keyOf(request))),
+  };
+  context.caches = {
+    open: () => Promise.resolve(cache),
+    match: (request) => cache.match(request),
+    keys: () => Promise.resolve([]),
+  };
+  return store;
+}
+
+test('révocation : une 401 au rafraîchissement vide l’entrée mise en cache (S8)', async () => {
+  // Le constat S8 : la charge du plan restait sur l'appareil après une révocation du code, et
+  // le service worker la rejouait indéfiniment — `stale-while-revalidate` ne mémorise que les
+  // réponses valides, donc la 401 ne remplaçait jamais le contenu périmé.
+  const source = renderServiceWorker({
+    ...BASE_OPTIONS,
+    product: 'plan',
+    apiStaleWhileRevalidate: ['/api/plan/content'],
+    apiNetworkFirst: [],
+  });
+  const { listeners, context } = loadServiceWorker(source);
+  const stale = {
+    ok: true,
+    status: 200,
+    body: 'plan périmé',
+    clone: () => ({ body: 'plan périmé' }),
+  };
+  const store = cacheSandbox(context, [['/api/plan/content', stale]]);
+
+  // Le code a été révoqué : le serveur refuse.
+  context.fetch = () => Promise.resolve({ ok: false, status: 401, clone: () => ({}) });
+
+  let responded;
+  listeners.fetch({
+    request: { method: 'GET', url: 'https://plan.test/api/plan/content' },
+    respondWith: (promise) => {
+      responded = promise;
+    },
+  });
+  // Le contenu périmé part une dernière fois — la réponse était déjà rendue quand le réseau
+  // a tranché. C'est le coût assumé du hors-ligne, documenté dans le gabarit.
+  assert.deepStrictEqual(await responded, stale);
+
+  // …mais l'entrée est retirée : le chargement suivant n'a plus rien à servir.
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(
+    store.has('/api/plan/content'),
+    false,
+    'l’entrée révoquée doit être retirée du cache',
+  );
+});
+
+test('une réponse en erreur ne devient jamais la réponse hors ligne', async () => {
+  // `putInCache` mémorisait toute réponse, 401 et 500 comprises : l'erreur d'un instant se
+  // figeait pour la durée du cache.
+  const source = renderServiceWorker({ ...BASE_OPTIONS, apiNetworkFirst: ['/api/zones'] });
+  const { listeners, context } = loadServiceWorker(source);
+  const store = cacheSandbox(context);
+
+  for (const status of [401, 500]) {
+    context.fetch = () => Promise.resolve({ ok: false, status, clone: () => ({ status }) });
+    let responded;
+    listeners.fetch({
+      request: { method: 'GET', url: 'https://foretmap.test/api/zones' },
+      respondWith: (promise) => {
+        responded = promise;
+      },
+    });
+    await responded;
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(store.has('/api/zones'), false, `une ${status} ne doit pas être mémorisée`);
+  }
+
+  // Une réponse valide, elle, est bien mémorisée : la stratégie reste utile.
+  const fresh = { ok: true, status: 200, clone: () => ({ body: 'ok' }) };
+  context.fetch = () => Promise.resolve(fresh);
+  let responded;
+  listeners.fetch({
+    request: { method: 'GET', url: 'https://foretmap.test/api/zones' },
+    respondWith: (promise) => {
+      responded = promise;
+    },
+  });
+  await responded;
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(store.has('/api/zones'), 'une réponse valide doit rester mise en cache');
+});
+
 test('renderServiceWorker refuse une configuration incomplète', () => {
   assert.throws(() => renderServiceWorker({ ...BASE_OPTIONS, product: '' }), /product/);
   assert.throws(() => renderServiceWorker({ ...BASE_OPTIONS, cacheName: '' }), /cacheName/);

@@ -7,6 +7,7 @@ const express = require('express');
 const http = require('http');
 const fs = require('fs');
 const cors = require('cors');
+const { createPermissionsPolicyMiddleware, describeCorsPolicy } = require('./lib/securityHeaders');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
@@ -31,9 +32,11 @@ const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
 const { parseBearerToken, JWT_SECRET, requirePermission } = require('./middleware/requireTeacher');
 const { verifyJwtToken } = require('./lib/auth/jwtPipeline');
 const { resolveProductFromRequest } = require('./lib/productResolver');
+const { resolveSecureProductId } = require('./lib/surfaceAccess');
 const { PRODUCT_IDS, getProduct, listAuthRateLimitPaths } = require('./lib/products');
 const usageRouters = require('./routes/usage');
 const { registerPwaRoutes } = require('./lib/pwaRoutes');
+const { registerRobotsRoutes } = require('./lib/robotsRoutes');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
 const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('./lib/csp');
 const { cspReportHandler, BODY_LIMIT: CSP_BODY_LIMIT } = require('./lib/cspReport');
@@ -167,6 +170,16 @@ function buildCorsOptions() {
 
 const corsOpts = buildCorsOptions();
 app.use(cors(corsOpts));
+// La politique CORS effective au journal de démarrage : un opérateur doit pouvoir la constater
+// sans relire `buildCorsOptions()` (lot L de l'audit sécurité 2026-09-22).
+logger.info({ cors: describeCorsPolicy(corsOpts) }, 'Politique CORS');
+// `Permissions-Policy` : helmet ne la pose pas. Montée ici pour couvrir HTML, assets et API.
+app.use(createPermissionsPolicyMiddleware());
+// Référencement par produit (lot J de l'audit sécurité, constat S9) : `/robots.txt` servi selon
+// le host, et `X-Robots-Tag: noindex` sur toute réponse d'un produit non référençable (plan
+// public, plan des personnels). Monté ICI, avec les autres en-têtes : plus bas, la garde de
+// disponibilité `/api` et `express.static` répondraient sans que l'en-tête soit posé.
+registerRobotsRoutes(app, { resolveProductFromRequest: resolveSecureProductId, getProduct });
 // En-tetes de securite (nosniff, frameguard, HSTS, referrer-policy, etc.).
 // CSP laisse au middleware dedie ci-dessous (img-src) : le CSP par defaut de helmet
 // casserait la SPA (polices Google, styles inline). COEP/CORP desactives : /uploads et

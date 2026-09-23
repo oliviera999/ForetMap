@@ -46,7 +46,7 @@ async function migrateTable(options, config) {
     const relativePath = config.relativePath(row);
     try {
       if (!options.dryRun) {
-        saveBase64ToDisk(relativePath, row.image_data);
+        await saveBase64ToDisk(relativePath, row.image_data);
         if (options.clearLegacy) {
           await execute(config.updateWithClearSql, [relativePath, row.id]);
         } else {
