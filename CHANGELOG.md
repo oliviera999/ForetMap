@@ -9,6 +9,68 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — le périmètre de cartes s'applique aussi à la socket (lot H, §4.3)
+
+- **`subscribe:map` vérifie désormais le périmètre du compte**, et plus seulement l'existence
+  de la carte. Un élève borné par le périmètre de son groupe pouvait s'abonner à n'importe
+  quelle carte — `lyautey` comprise — et recevoir ensuite tous ses signaux de mutation : pas
+  de contenu, mais qui édite quoi, et quand. La règle existait déjà sur les routes HTTP
+  (`requireMapAccess`) ; elle n'avait pas été portée sur le second canal, qui vit pourtant
+  bien plus longtemps qu'une requête.
+- **Un refus quitte la salle carte courante** au lieu de la conserver : un périmètre révoqué
+  en cours de session ne laisse pas le flux précédent ouvert.
+- Les comptes de gestion (permission `teacher.access`, rôle `admin`) ne sont pas bornés —
+  inchangé.
+
+### Sécurité — un seul interrupteur pour la création de comptes (lot I, constat S11)
+
+- **Fermer l'inscription ferme aussi l'auto-inscription Google.** Les deux réglages étaient
+  indépendants : `ui.auth.allow_register` fermait le formulaire, `ui.auth.allow_google_auto_register`
+  la création à la première connexion Google. Un administrateur qui décochait « autoriser
+  l'inscription » croyait raisonnablement avoir fermé la création de comptes ; il lui en
+  restait un chemin ouvert. Nouveau module `lib/registrationPolicy.js`, lu par les deux
+  chemins.
+- **Le second réglage garde son rôle propre** : inscriptions ouvertes, il continue de
+  n'autoriser que la connexion des comptes Google déjà existants.
+- **Les libellés d'administration le disent** : « Autoriser la création de comptes (formulaire
+  et première connexion Google) », et la mention « sans effet si la création de comptes est
+  fermée ci-dessus » sur le réglage Google.
+
+### Sécurité — les surfaces gardées ne sont plus référençables (lot J, constat S9)
+
+- **`GET /robots.txt` est servi par produit.** Il n'existait aucun `robots.txt` : la route
+  rendait le HTML de repli de la SPA. `planlyautey` et `proflyautey` répondent désormais
+  `Disallow: /` ; ForêtMap et GL, `Disallow: /api/` + `Disallow: /uploads/`. Nouveau module
+  `lib/robotsRoutes.js`, drapeau `indexable` au registre des produits.
+- **`X-Robots-Tag: noindex, nofollow, noarchive` sur toute réponse** d'un produit non
+  référençable — HTML, assets et API, refus compris. Les deux garde-fous sont posés parce
+  qu'ils n'échouent pas ensemble : un `robots.txt` interdit le parcours, il ne retire pas de
+  l'index une adresse reçue par ailleurs.
+- `plan.html` porte en plus un `<meta name="robots">`, comme `staff.html` l'avait déjà.
+
+### Sécurité — `/api/settings/public` borné à chaque produit (lot K, constat S10)
+
+- **95 clés publiques étaient servies identiques à tous les hosts.** Au premier rang,
+  `ui.staff_plan.access_mode` apprenait à n'importe quel visiteur de ForêtMap que la surface
+  des personnels **existe** et dans quel état elle est — alors qu'elle n'est pas encore
+  ouverte. Nouveau module `lib/publicSettingsScope.js`.
+- **Chaque front ne reçoit que les sections qu'il lit** : ForêtMap tout sauf `ui.plan.*` et
+  `ui.staff_plan.*`, GL seulement le rendu de carte. Le registre des réglages est inchangé —
+  c'est la réponse qui est réduite, pas la portée des clés, et les lectures serveur
+  (`getSettingValue`) ne passent pas par là.
+- Constat utile au passage : les fronts du plan et du plan des personnels **n'appellent pas**
+  cette route.
+
+### Sécurité — en-têtes complémentaires et politique CORS lisible (lot L)
+
+- **`Permissions-Policy` sur toutes les réponses** : `geolocation=(self)` et `camera=(self)`
+  (fonctions du produit), micro, paiement, USB, MIDI, série, Bluetooth et cohortes d'intérêt
+  refusés. `helmet` ne la pose pas. Nouveau module `lib/securityHeaders.js`.
+- **La politique CORS effective est journalisée au démarrage.** Elle était déjà bornée en
+  production (`origin: false` à défaut de `FRONTEND_ORIGINS`) ; rien à corriger, mais un
+  opérateur peut désormais la constater sans relire le code.
+
+
 ### Sécurité — les caches PWA se vident à la révocation d'un accès (lot G, constat S8)
 
 - **Une 401/403 au rafraîchissement retire l'entrée du cache.** Le service worker du plan
