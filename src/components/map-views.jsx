@@ -1441,18 +1441,24 @@ function MapViewImpl({
           animateZoomTowardScale={animateZoomTowardScale}
           onOpenFullscreen={openMapFullscreen}
           stageOwnsViewportControls={useSharedViewStage}
-          routesSlot={
-            mode === 'view' ? (
-              <MapRoutePicker
-                routes={mapRoutes}
-                places={routePlaces}
-                open={routePickerOpen}
-                onToggle={setRoutePickerOpen}
-                onStart={startRoute}
-              />
-            ) : null
-          }
         />
+      ) : null}
+
+      {mode === 'view' && !mapFullscreen ? (
+        <div className="map-view-routes-row" data-testid="map-view-routes-row">
+          {/*
+            Hors de la barre d'outils (`overflow-x: auto` + `overflow-y: hidden`) : même
+            motif que `.plan-filters` — sinon la liste Parcours est coupée / passée sous la
+            carte, et la puce disparaît dans le défilement horizontal des commandes.
+          */}
+          <MapRoutePicker
+            routes={mapRoutes}
+            places={routePlaces}
+            open={routePickerOpen}
+            onToggle={setRoutePickerOpen}
+            onStart={startRoute}
+          />
+        </div>
       ) : null}
 
       <MascotGpsStatusBanner gps={mascotGps} />

@@ -41,13 +41,20 @@ function sortOrderOr(raw, fallback = ROUTE_SORT_ORDER_DEFAULT) {
   return Number.isFinite(value) && String(raw ?? '').trim() !== '' ? value : fallback;
 }
 
-/** Brouillon d'un parcours neuf : publié sur le plan seul, c'est là qu'ils servent. */
+/**
+ * Brouillon d'un parcours neuf.
+ *
+ * Défaut **Carte + Visite + Plan** : les trois écrans qui consomment les parcours depuis
+ * l'activation Visite/carte (`docs/AUDIT_PARCOURS_2026-09.md` §2.3). Le défaut historique
+ * « Plan seul » laissait des parcours publiés invisibles dans ForetMap tant que personne
+ * ne cochait les deux autres cases — cas constaté en prod (catalogue Visite vide).
+ */
 export const EMPTY_ROUTE_DRAFT = Object.freeze({
   title: '',
   slug: '',
   description: '',
   audience: '',
-  surfaces: ['plan'],
+  surfaces: ['map', 'visit', 'plan'],
   is_published: false,
   sort_order: ROUTE_SORT_ORDER_DEFAULT,
   steps: [],
@@ -65,7 +72,7 @@ export function routeDraftFrom(route) {
     slug: String(route?.slug || ''),
     description: String(route?.description || ''),
     audience: String(route?.audience || ''),
-    surfaces: normalizeSurfaceList(route?.surfaces ?? ['plan']),
+    surfaces: normalizeSurfaceList(route?.surfaces ?? EMPTY_ROUTE_DRAFT.surfaces),
     is_published: !!route?.is_published,
     sort_order: sortOrderOr(route?.sort_order),
     steps: (route?.steps || []).map((step) => ({

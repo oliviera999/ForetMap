@@ -198,9 +198,13 @@ export function VisitMapChrome({
   categoryCounts = null,
 }) {
   const searchInputId = useId();
-  const showDiscover =
-    typeof onSearchQueryChange === 'function' ||
-    (Array.isArray(categoryCatalog) && categoryCatalog.length > 0);
+  const hasCategories =
+    Array.isArray(categoryCatalog) &&
+    categoryCatalog.length > 0 &&
+    selectedCategoryIds &&
+    typeof onToggleCategory === 'function' &&
+    typeof onResetCategories === 'function';
+  const showDiscover = typeof onSearchQueryChange === 'function' || hasCategories || !!routesSlot;
   const showSearchDropdown =
     typeof onSelectSearchResult === 'function' &&
     String(searchQuery || '').trim() &&
@@ -262,7 +266,6 @@ export function VisitMapChrome({
             </div>
           ) : null}
         </div>
-        {routesSlot ? <div className="visit-map-card__chrome-routes">{routesSlot}</div> : null}
         <div className="visit-map-card__chrome-actions">
           {/* Zone 2 — affichage du plan : trois commandes de même nature, même forme,
               un seul bloc. Sans ce regroupement, elles étaient éparpillées entre un état
@@ -400,20 +403,28 @@ export function VisitMapChrome({
               ) : null}
             </div>
           ) : null}
-          {categoryCatalog.length > 0 &&
-          selectedCategoryIds &&
-          typeof onToggleCategory === 'function' &&
-          typeof onResetCategories === 'function' ? (
-            <div className="visit-map-card__chrome-chips">
-              <MapCategoryChips
-                categories={categoryCatalog}
-                selectedIds={selectedCategoryIds}
-                onToggle={onToggleCategory}
-                onReset={onResetCategories}
-                counts={categoryCounts}
-                className="visit-chips"
-                chipClassName="visit-chip"
-              />
+          {/*
+            Parcours hors du bandeau scrollable des puces : comme `.plan-filters`, pour que
+            la liste déroulante ne soit pas coupée (`overflow-x: auto` + `overflow-y: hidden`).
+          */}
+          {routesSlot || hasCategories ? (
+            <div className="visit-map-card__chrome-filters">
+              {routesSlot ? (
+                <div className="visit-map-card__chrome-routes">{routesSlot}</div>
+              ) : null}
+              {hasCategories ? (
+                <div className="visit-map-card__chrome-chips">
+                  <MapCategoryChips
+                    categories={categoryCatalog}
+                    selectedIds={selectedCategoryIds}
+                    onToggle={onToggleCategory}
+                    onReset={onResetCategories}
+                    counts={categoryCounts}
+                    className="visit-chips"
+                    chipClassName="visit-chip"
+                  />
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

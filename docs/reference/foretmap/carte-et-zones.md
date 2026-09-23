@@ -265,9 +265,12 @@ Composer un parcours :
 - Un parcours naît **brouillon** : il n'apparaît nulle part tant que la case « Publié » n'est
   pas cochée — pas même pour qui connaîtrait son adresse.
 - Les cases **« proposé sur »** décident des surfaces, comme pour les lieux. Un parcours neuf
-  vise le **Plan** seul ; on peut aussi le proposer sur la **Carte** (feuille de séance dans
-  ForetMap) et la **Visite** (parcours fléché grand public). Chaque surface n'affiche que les
-  parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable.
+  vise par défaut la **Carte**, la **Visite** et le **Plan** ; on peut retirer celles qui ne
+  conviennent pas, ou ajouter le **Plan des personnels**. Chaque surface n'affiche que les
+  parcours qui la ciblent, avec une barre d'étape en bas et la carte restée utilisable. Un
+  parcours publié sans Carte ni Visite n'apparaît **pas** dans ForetMap — l'éditeur le rappelle.
+  La Visite ne sert que les cartes de terrain (pas le plan de l'établissement réservé à
+  planlyautey) : créez le parcours sur la même carte que celle ouverte en Visite.
 - **Quitter n'efface pas l'avancement** : le bouton « Reprendre le parcours » revient à l'étape
   où l'on s'était arrêté, sur les trois surfaces, et **même après un rechargement de page**.
   Relancer le parcours depuis la liste, lui, repart de la première étape. L'avancement vit sur

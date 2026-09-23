@@ -69,6 +69,7 @@ describe('MapRoutesPanel', () => {
     await screen.findByText('Portes ouvertes');
     expect(api).toHaveBeenCalledWith('/api/map-routes/manage?map_id=lyautey');
     expect(screen.getByText(/Publié · 1 étape · plan · Familles/)).toBeTruthy();
+    expect(screen.getByText(/Invisible dans ForetMap/, { exact: false })).toBeTruthy();
   });
 
   test('la recherche de lieux trouve un repère par son alias', async () => {

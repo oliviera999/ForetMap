@@ -980,7 +980,7 @@ CREATE TABLE IF NOT EXISTS map_routes (
   title VARCHAR(180) NOT NULL,
   description TEXT DEFAULT NULL,
   audience VARCHAR(120) NOT NULL DEFAULT '',
-  surfaces SET('map','visit','plan','staff') NOT NULL DEFAULT 'plan',
+  surfaces SET('map','visit','plan','staff') NOT NULL DEFAULT 'map,visit,plan',
   is_published TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 100,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
