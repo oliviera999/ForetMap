@@ -162,6 +162,11 @@ d'observation** pour l'écriture naturaliste libre.
   (nitrification, excrétion, assimilation). **Tout** superpose les deux pour
   l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
   disponibles dans chaque vue.
+
+> 🔧 **À implémenter :** adapter la densité du réseau (types avancés, niveau de preuve
+> des liens) au **niveau pédagogique** Collège / Lycée / Université — voir
+> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :
   - Un merle qui picore une figue tombée était noté « décomposition ». Il fait de la
@@ -377,4 +382,4 @@ y sont liées : voir [Tâches, tutoriels et validation](taches-tutoriels-et-vali
 
 ## Pour aller plus loin
 
-[Présentation générale](presentation.md) · [Plantes et biodiversité](plantes-et-biodiversite.md) · [Stats, forum et suivi](stats-forum-et-suivi.md) · [Sommaire](../README.md)
+[Présentation générale](presentation.md) · [Plantes et biodiversité](plantes-et-biodiversite.md) · [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md) · [Stats, forum et suivi](stats-forum-et-suivi.md) · [Sommaire](../README.md)

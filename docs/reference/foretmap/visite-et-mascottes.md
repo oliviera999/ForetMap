@@ -414,4 +414,4 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 
 ## Pour aller plus loin
 
-[Présentation générale](presentation.md) · [Carte et zones](carte-et-zones.md) · [Sommaire](../README.md)
+[Présentation générale](presentation.md) · [Carte et zones](carte-et-zones.md) · [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md) (visite invitée = affichage Collège) · [Sommaire](../README.md)

@@ -96,6 +96,11 @@ photos (plante, feuille, fleur, fruit…), conseils de plantation, sources.
   bases naturalistes de référence) et l'**identification par photo** (on photographie
   la plante, l'application propose l'espèce). Un import en masse existe aussi.
 
+> 🔧 **À implémenter :** filtrer la densité des outils biodiversité selon un niveau
+> Collège / Lycée / Université (réglable par compte, carte ou groupe ; visite invitée
+> toujours en Collège) — détail dans
+> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+
 ### Les tâches et leur validation
 
 Le moteur pédagogique de l'application :
