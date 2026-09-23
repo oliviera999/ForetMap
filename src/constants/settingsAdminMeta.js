@@ -273,13 +273,14 @@ export const KEY_META = {
     order: 41,
   },
   'ui.biodiv.pedago_level_default': {
-    label: 'Biodiversité — niveau pédagogique par défaut (Collège / Lycée / Université)',
+    label:
+      'Biodiversité — niveau pédagogique par défaut du site (Collège recommandé ; relever via carte ou groupe pour les classes lycée / projets)',
     section: 'modules',
     order: 41.1,
   },
   'ui.biodiv.pedago_pref_can_raise': {
     label:
-      'Biodiversité — la préférence personnelle peut relever le niveau (sinon elle ne peut que simplifier)',
+      'Biodiversité — autoriser la préférence personnelle à relever le niveau (sinon elle ne peut que simplifier ; laisser décoché pour un cadrage strict)',
     section: 'modules',
     order: 41.2,
   },

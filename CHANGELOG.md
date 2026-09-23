@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Défaut biodiversité = Collège
+
+- `ui.biodiv.pedago_level_default` et secours code : **Collège** (plus **Lycée**).
+- `ui.biodiv.pedago_pref_can_raise` reste **désactivé** (la préférence ne peut que
+  simplifier). Migration **281** pose / aligne ces réglages en base.
+- Libellés admin précisés : relever le niveau via **carte** ou **groupe** pour les
+  classes lycée / projets, plutôt que le défaut site.
+
 ### Ajouté — Niveaux pédagogiques biodiversité (lot A)
 
 - Trois niveaux d’affichage (**Collège / Lycée / Université**) avec résolution
