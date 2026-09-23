@@ -410,10 +410,18 @@ retrouve automatiquement la bonne fiche.
 > ⚠️ **Point d'attention** — La **suppression** d'une fiche est immédiate et sans
 > corbeille. Les zones et repères qui référençaient l'espèce perdent ce lien.
 
+> 🔧 **À implémenter :** adapter l’affichage du catalogue et des outils associés
+> (groupes emboîtés, suivi d’arbres, détails scientifiques) selon le **niveau
+> pédagogique** Collège / Lycée / Université — voir
+> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+
 ## Pour aller plus loin
 
 - Retour au [sommaire de la documentation](../README.md) ;
 - [Présentation générale de ForetMap](presentation.md) ;
+- [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md) —
+  Collège / Lycée / Université, réglages souhaités (compte, carte, groupe), séances
+  types (cahier des charges, pas encore dans l’application) ;
 - [La carte et les zones](carte-et-zones.md) — où l'on associe les espèces aux lieux
   du jardin (et, pour les espèces sans lieu précis, directement à la carte) ;
 - Le réseau trophique, le glossaire et les quiz reliés aux fiches sont détaillés dans

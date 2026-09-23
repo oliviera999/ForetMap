@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Doc de référence : niveaux pédagogiques biodiversité
+
+- Nouveau guide
+  [niveaux-pedagogiques-biodiversite.md](docs/reference/foretmap/niveaux-pedagogiques-biodiversite.md) :
+  niveaux **Collège / Lycée / Université**, réglages souhaités (compte, carte, groupe),
+  visite invitée toujours en Collège, séances types papier ; marqueurs `🔧 À implémenter`
+  (pas de code dans ce lot).
+
 ### Correctif — le badge « non lus » des commentaires ne s'allumait jamais
 
 - **Le défaut.** Les identifiants de commentaire sont des **UUID**, mais toute la chaîne des
