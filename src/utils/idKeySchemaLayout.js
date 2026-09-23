@@ -187,7 +187,6 @@ export function layoutIdKeySchema(keyBundle) {
     }
   }
 
-  const totalW = subtreeWidth.get(rootId) || H_GAP;
   place(rootId, PAD, 0);
 
   const nodeList = [...placed.values()];
