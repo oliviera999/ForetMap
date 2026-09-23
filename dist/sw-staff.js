@@ -1,6 +1,6 @@
 /* Service worker « staff » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-staff-74f290e6";
+const CACHE_NAME = "foretmap-staff-f6b848a2";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,7 +15,7 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/staff-C7lfa6sn.js",
+  "/assets/staff-BYoNd3e5.js",
   "/assets/staff-Bf5NeZrP.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-ow32Hkfx.js",
@@ -25,12 +25,12 @@ const PRECACHE_URLS = [
   "/assets/ErrorBoundary-1Md48zKX.css",
   "/assets/HelpDock-BtmBqfMz.js",
   "/assets/HelpDock-ML7ofH8p.css",
-  "/assets/AppPlan-B3i-47sn.js",
+  "/assets/AppPlan-SJ5RWPu6.js",
   "/assets/AppPlan-C5ZI9x9D.css",
-  "/assets/useBrandTheme-CoMIfYW5.js",
+  "/assets/useBrandTheme-DQWxhe1V.js",
   "/assets/placeSearch-oEXvS_TX.js",
   "/assets/placeStatus-Q1NnX946.js",
-  "/assets/useMapGuidance-BhlUFngQ.js",
+  "/assets/useMapGuidance-CjGxwmb4.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
