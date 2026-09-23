@@ -55,15 +55,27 @@ async function fetchLinkedPlantsForTerms(terms) {
   return [...byId.values()];
 }
 
-export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode = null }) {
+export function QuizView({
+  onOpenPlant,
+  onOpenGlossaryTerm,
+  initialQuestionCode = null,
+  initialNotionId = null,
+  initialNotionNiveau = null,
+}) {
   const [theme, setTheme] = useState('');
   const [niveau, setNiveau] = useState('');
   const [difficulte, setDifficulte] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
   // Notion du programme : le niveau scolaire restreint la liste des notions, la notion
   // restreint ensuite les catégories et le tirage (migration 273).
-  const [notionNiveau, setNotionNiveau] = useState('');
-  const [notionId, setNotionId] = useState('');
+  const [notionNiveau, setNotionNiveau] = useState(() =>
+    initialNotionNiveau != null ? String(initialNotionNiveau).trim() : '',
+  );
+  const [notionId, setNotionId] = useState(() =>
+    initialNotionId != null && String(initialNotionId).trim() !== ''
+      ? String(initialNotionId).trim()
+      : '',
+  );
   const [illustratedOnly, setIllustratedOnly] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -146,6 +158,16 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
       cancelled = true;
     };
   }, [initialQuestionCode]);
+
+  useEffect(() => {
+    if (initialNotionNiveau != null) setNotionNiveau(String(initialNotionNiveau).trim());
+  }, [initialNotionNiveau]);
+
+  useEffect(() => {
+    if (initialNotionId != null && String(initialNotionId).trim() !== '') {
+      setNotionId(String(initialNotionId).trim());
+    }
+  }, [initialNotionId]);
 
   useEffect(() => {
     if (!categorieSlug) return;

@@ -1265,4 +1265,28 @@ CREATE TABLE IF NOT EXISTS user_product_visits (
   CONSTRAINT fk_user_product_visits_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Séances pédagogiques (pilotes A/B) — migration 282
+CREATE TABLE IF NOT EXISTS pedago_sessions (
+  id CHAR(36) NOT NULL,
+  slug VARCHAR(120) NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  description TEXT DEFAULT NULL,
+  level ENUM('college','lycee','universite') NOT NULL DEFAULT 'college',
+  template_key VARCHAR(64) NOT NULL,
+  map_id VARCHAR(32) DEFAULT NULL,
+  config_json LONGTEXT NOT NULL,
+  steps_json LONGTEXT NOT NULL,
+  is_published TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 100,
+  created_by VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_pedago_sessions_slug (slug),
+  INDEX idx_pedago_sessions_published (is_published, sort_order),
+  INDEX idx_pedago_sessions_level (level),
+  CONSTRAINT fk_pedago_sessions_map FOREIGN KEY (map_id) REFERENCES maps (id) ON DELETE SET NULL,
+  CONSTRAINT fk_pedago_sessions_user FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

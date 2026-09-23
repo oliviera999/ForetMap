@@ -22,6 +22,9 @@ const IdKeysViewLazy = lazy(() =>
 const IndividualsViewLazy = lazy(() =>
   import('../pedago-views').then((m) => ({ default: m.IndividualsView })),
 );
+const SessionsViewLazy = lazy(() =>
+  import('../pedago-views').then((m) => ({ default: m.SessionsView })),
+);
 const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default: m.AboutView })));
 
 /**
@@ -56,6 +59,9 @@ export function PedagoTabs({
   onGlossarySelectedCodeChange,
   canManageQuiz,
   quizInitialQuestionCode,
+  quizInitialNotionId = null,
+  quizInitialNotionNiveau = null,
+  idKeysInitialKey = null,
   maps,
   foodWebHighlightPlantId,
   canManageFoodWeb,
@@ -65,6 +71,7 @@ export function PedagoTabs({
   appVersion,
   onOpenSettingsLearning = null,
   canReadSiteIssues = false,
+  sessionsProps = null,
 }) {
   return (
     <>
@@ -106,6 +113,8 @@ export function PedagoTabs({
               onOpenGlossaryTerm={onOpenGlossaryTerm}
               onOpenSettingsLearning={onOpenSettingsLearning}
               initialQuestionCode={quizInitialQuestionCode}
+              initialNotionId={quizInitialNotionId}
+              initialNotionNiveau={quizInitialNotionNiveau}
             />
           </TabSuspense>
         ) : (
@@ -114,6 +123,8 @@ export function PedagoTabs({
               onOpenPlant={onOpenPlantCatalogPreview}
               onOpenGlossaryTerm={onOpenGlossaryTerm}
               initialQuestionCode={quizInitialQuestionCode}
+              initialNotionId={quizInitialNotionId}
+              initialNotionNiveau={quizInitialNotionNiveau}
             />
           </TabSuspense>
         ))}
@@ -141,7 +152,11 @@ export function PedagoTabs({
       )}
       {tab === 'id-keys' && (
         <TabSuspense>
-          <IdKeysViewLazy canManage={canManageIdKeys} onOpenPlant={onOpenPlantCatalogPreview} />
+          <IdKeysViewLazy
+            canManage={canManageIdKeys}
+            onOpenPlant={onOpenPlantCatalogPreview}
+            initialKey={idKeysInitialKey}
+          />
         </TabSuspense>
       )}
       {tab === 'individuals' && (
@@ -153,6 +168,11 @@ export function PedagoTabs({
             canMeasure={canMeasureIndividuals}
             onOpenPlant={onOpenPlantCatalogPreview}
           />
+        </TabSuspense>
+      )}
+      {tab === 'sessions' && sessionsProps && (
+        <TabSuspense>
+          <SessionsViewLazy {...sessionsProps} />
         </TabSuspense>
       )}
       {tab === 'about' && (

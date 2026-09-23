@@ -26,6 +26,7 @@
     @import './shared/styles/map-category-chips.css';
     @import './shared/styles/data-list.css';
     @import './shared/styles/learning-gating.css';
+    @import './shared/styles/pedago-sessions.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';

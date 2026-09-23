@@ -29,8 +29,9 @@ import {
   IconNotebook,
   IconProfiles,
   IconQuiz,
-  IconStats,
   IconSearch,
+  IconSessions,
+  IconStats,
   IconTasks,
   IconTuto,
   IconVisit,
@@ -108,6 +109,7 @@ export function buildStudentNavItems({
     items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
   }
   items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
+  items.push({ id: 'sessions', label: 'Séances', icon: <IconSessions size={20} /> });
   if (showIndividuals) {
     items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
   }

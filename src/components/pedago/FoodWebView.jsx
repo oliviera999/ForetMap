@@ -94,13 +94,12 @@ export function FoodWebView({
   // Auto-liens des descriptions d'interaction (texte brut).
   const glossaryIndex = useGlossaryLinkIndex();
 
-  // Lien « Voir le réseau trophique » depuis une fiche : cadrer sur la carte active
+  // Lien « Voir le réseau » / séance pédagogique : cadrer sur la carte demandée
   // même si l'onglet était déjà ouvert avec un autre filtre.
   useEffect(() => {
-    if (highlightPlantId == null) return;
     const next = normalizeMapId(initialMapId);
     if (next) setMapId(next);
-  }, [highlightPlantId, initialMapId]);
+  }, [initialMapId, highlightPlantId]);
 
   const loadFoodWeb = useCallback(async () => {
     const seq = ++loadFoodWebSeqRef.current;

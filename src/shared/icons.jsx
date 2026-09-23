@@ -135,6 +135,7 @@ export const IconQuiz = ui(HelpCircle);
 export const IconGlossary = ui(BookOpen);
 export const IconFoodweb = ui(Network);
 export const IconTuto = ui(BookMarked);
+export const IconSessions = ui(GraduationCap);
 export const IconForum = ui(MessagesSquare);
 export const IconStats = ui(BarChart3);
 export const IconVisit = ui(Compass);
