@@ -88,11 +88,19 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
 ]);
 
 export const KEY_META = {
-  'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
+  // Interrupteur général de création de comptes : décoché, il ferme aussi l'auto-inscription
+  // Google ci-dessous (lot I de l'audit sécurité 2026-09-22, constat S11).
+  'ui.auth.allow_register': {
+    label: 'Autoriser la création de comptes (formulaire et première connexion Google)',
+    section: 'auth',
+    order: 10,
+  },
   'ui.auth.allow_google_student': { section: 'auth', order: 20, dynamicLabel: 'googleStudent' },
   'ui.auth.allow_google_teacher': { section: 'auth', order: 30, dynamicLabel: 'googleTeacher' },
   'ui.auth.allow_google_auto_register': {
-    label: 'Créer un compte à la première connexion Google (désactivé = connexion seule)',
+    label:
+      'Créer un compte à la première connexion Google (désactivé = connexion seule ; ' +
+      'sans effet si la création de comptes est fermée ci-dessus)',
     section: 'auth',
     order: 35,
   },
