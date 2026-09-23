@@ -225,7 +225,9 @@ function SecurityEventsPanel({ roleTerms }) {
           loadRows();
         }}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--text-sm)' }}
+        >
           Du
           <input
             type="date"
@@ -234,11 +236,15 @@ function SecurityEventsPanel({ roleTerms }) {
             onChange={(e) => setFrom(e.target.value)}
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--text-sm)' }}
+        >
           Au
           <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--text-sm)' }}
+        >
           Compte (id)
           <input
             type="text"
@@ -249,7 +255,9 @@ function SecurityEventsPanel({ roleTerms }) {
             autoComplete="off"
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--text-sm)' }}
+        >
           Action
           <input
             type="text"
@@ -260,7 +268,9 @@ function SecurityEventsPanel({ roleTerms }) {
             autoComplete="off"
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--text-sm)' }}
+        >
           IP
           <input
             type="text"

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit } from '../../shared/icons.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
 function NestedBox({ node, depth = 0, showPlants = true }) {
   if (!node) return null;
@@ -31,6 +32,7 @@ function NestedBox({ node, depth = 0, showPlants = true }) {
 }
 
 function AdminTreePanel({ items, onReload, canManage }) {
+  const { confirm } = useAppDialogs();
   const [form, setForm] = useState({
     id: '',
     name: '',
@@ -92,7 +94,7 @@ function AdminTreePanel({ items, onReload, canManage }) {
   };
 
   const remove = async (id) => {
-    if (!window.confirm(`Supprimer le groupe « ${id} » ?`)) return;
+    if (!(await confirm({ message: `Supprimer le groupe « ${id} » ?`, danger: true }))) return;
     setError('');
     try {
       await api(`/api/clades/${encodeURIComponent(id)}`, 'DELETE');

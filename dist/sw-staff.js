@@ -1,6 +1,6 @@
 /* Service worker « staff » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-staff-50e37eb2";
+const CACHE_NAME = "foretmap-staff-ec59c72a";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,7 +15,7 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/staff-CeR2rAVB.js",
+  "/assets/staff-Cv8CkrHG.js",
   "/assets/staff-Bf5NeZrP.css",
   "/assets/rolldown-runtime-hePW80VL.js",
   "/assets/VisitMascotFallbackSvg-ow32Hkfx.js",
@@ -23,10 +23,10 @@ const PRECACHE_URLS = [
   "/assets/icons-BNguv2wG.js",
   "/assets/ErrorBoundary-BSDTRo2e.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/HelpDock-B5nE8oUT.js",
-  "/assets/HelpDock-D1tmIwbp.css",
-  "/assets/AppPlan-Bgwbshte.js",
-  "/assets/AppPlan-e94BIYQn.css",
+  "/assets/HelpDock-DZrWa9HJ.js",
+  "/assets/HelpDock-ML7ofH8p.css",
+  "/assets/AppPlan-D5oAu2ut.js",
+  "/assets/AppPlan-C5ZI9x9D.css",
   "/assets/useBrandTheme-CPrisaAG.js",
   "/assets/placeSearch-oEXvS_TX.js",
   "/assets/placeStatus-Q1NnX946.js",
