@@ -197,7 +197,9 @@ Cartographie.
    (butée souple qui ramène la vue en place), **pincer** zoome et déplace dans le même
    geste, un **double-tap** zoome sur le point touché (un second double-tap réajuste le
    plan), un glisser rapide continue sur sa lancée, et la molette ou les boutons +/−
-   gardent le point visé sous le pointeur.
+   gardent le point visé sous le pointeur. Si une **mascotte** est affichée, un clic sur le
+   plan — y compris **hors** de toute zone ou repère — la fait marcher jusqu'au point
+   touché ; un clic sur un lieu l'y amène aussi en ouvrant la fiche.
 2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone

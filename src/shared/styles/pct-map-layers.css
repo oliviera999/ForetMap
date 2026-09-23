@@ -10,10 +10,14 @@
   width: 100%;
   height: 100%;
   overflow: visible;
+  /* Le SVG couvre tout le plan : sans ceci, les zones « vides » (hors polygone)
+     captent le clic et bloquent le déplacement mascotte vers un point libre. */
+  pointer-events: none;
 }
 
 .fm-pct-zone {
   cursor: pointer;
+  pointer-events: auto;
 }
 
 /* Contour d'un pixel et demi **à l'écran** quel que soit le zoom : `non-scaling-stroke` neutralise

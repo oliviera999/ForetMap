@@ -117,8 +117,8 @@ familles.
 - Chaque mascotte est un personnage animé (démarche, humeurs, célébrations) doté de
   **bulles de dialogue** contextuelles : elle commente les déplacements, l'ouverture
   d'une zone ou d'un repère, le marquage « vu »… La toucher la fait réagir.
-- Elle se déplace **au clic** sur le plan et retient sa position d'une visite à
-  l'autre.
+- Elle se déplace **au clic** sur le plan — vers un **repère**, une **zone**, ou n'importe
+  quel autre point du dessin — et retient sa position d'une visite à l'autre.
 - **Une seule liste de mascottes.** Les mascottes livrées avec l'application et celles
   créées au studio « Packs mascotte » (une fois publiées) figurent dans la même liste et
   se règlent de la même façon : les unes comme les autres peuvent être proposées aux
@@ -385,7 +385,7 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 ## ⚠️ Points d'attention
 
 > ⚠️ **Point d'attention** — **La mascotte ne suit pas le GPS** : elle se déplace
-> uniquement au clic sur un lieu. En revanche, si le plan de visite est **calé**, le
+> au clic sur le plan (lieu ou point libre). En revanche, si le plan de visite est **calé**, le
 > bouton **« Me situer »** peut afficher la position réelle (et **« Orienter »** /
 > l'échelle si les réglages le permettent), comme sur la carte de travail et le Plan
 > Lyautey. Une visite « guidée pas à pas par la position » (mascotte qui avance toute

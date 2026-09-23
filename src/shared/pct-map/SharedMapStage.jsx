@@ -30,6 +30,7 @@ import {
 } from './pctMapLabels.js';
 import { PctDirectLine, PctPositionLayer } from './PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
+import { shouldIgnorePctMapBackgroundClick } from './pctMapBackgroundClick.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
 const DEFAULT_GESTURE_IGNORE =
@@ -413,13 +414,9 @@ export function SharedMapStage({
     (event) => {
       if (typeof onBackgroundClick !== 'function') return;
       // Ne pas traiter un clic issu des commandes / pastilles / zones (déjà stoppés).
-      if (
-        event.target?.closest?.(
-          '.fm-pct-map-controls, .plan-map-controls, .fm-map-action, .fm-pct-marker, .fm-pct-zones, .map-route-bar, .map-route-resume',
-        )
-      ) {
-        return;
-      }
+      // `.fm-pct-zone` (groupe), pas `.fm-pct-zones` (SVG plein cadre) — sinon le fond
+      // libre ne déplace plus la mascotte.
+      if (shouldIgnorePctMapBackgroundClick(event.target)) return;
       if (consumeSkipClick()) return;
       onBackgroundClick(event);
     },

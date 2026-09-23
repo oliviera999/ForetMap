@@ -1161,7 +1161,10 @@ function MapViewImpl({
   const onWorkBackgroundClick = useCallback(
     (event) => {
       if (!showMapMascot) return;
-      const pct = workViewportApiRef.current.toImagePct?.(event.clientX, event.clientY);
+      /* Clic fond libre (hors zone/repère) : même destination que le point cliqué. */
+      const pct = workViewportApiRef.current.toImagePct?.(event.clientX, event.clientY, {
+        clamp: true,
+      });
       if (pct) moveMapMascotTo(pct.xp, pct.yp);
     },
     [showMapMascot, moveMapMascotTo],

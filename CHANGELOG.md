@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Mascotte : clic fond libre sur le plan
+
+- Sur Visite et carte de travail, un clic **hors** zone / repère déplace à nouveau la
+  mascotte **vers le point cliqué** (le calque SVG des zones couvrait tout le plan et
+  avalait ces clics).
+
+
 ### Modifié — Défaut biodiversité = Collège
 
 - `ui.biodiv.pedago_level_default` et secours code : **Collège** (plus **Lycée**).
