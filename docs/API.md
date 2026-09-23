@@ -1890,7 +1890,7 @@ Contexte supporté :
 | Méthode | URL | Description |
 | ------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---- | ------ | ----- | ------------------------------------------- | -------------------------------------------- |
 | GET | `/api/context-comments?contextType=task  | project                                                                                                 | zone | marker | plant | tutorial&contextId=:id&page=1&page_size=20` | Liste paginée des commentaires d’un contexte |
-| GET | `/api/context-comments/counts?contextType=&contextIds=1,2,3` | Résumé groupé (`total` + `newestId` par id) pour badges / non-lus **sans** ouvrir chaque section — **100 ids max** ; ids sans commentaire → `{ total: 0, newestId: 0 }` |
+| GET | `/api/context-comments/counts?contextType=&contextIds=1,2,3` | Résumé groupé (`total` + `newestId` par id) pour badges / non-lus **sans** ouvrir chaque section — **100 ids max** ; ids sans commentaire → `{ total: 0, newestId: '' }`. Depuis le 23/09/2026, **`newestId` est une chaîne opaque** (l'identifiant du commentaire le plus récent, trié par date) et non un nombre : les identifiants sont des UUID, et le client la compare par **égalité** à son curseur de lecture, jamais par ordre |
 | POST | `/api/context-comments` | Créer un commentaire (`{ contextType, contextId, body?, images? }`) |
 | POST | `/api/context-comments/:id/reactions` | Toggle d’une réaction emoji (`{ emoji }`) |
 | DELETE | `/api/context-comments/:id` | Supprimer un commentaire (auteur ou n3boss/admin) |

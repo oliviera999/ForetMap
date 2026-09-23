@@ -1,11 +1,12 @@
 /**
- * Regroupe les demandes de résumé (total + newestId) émises par plusieurs
+ * Regroupe les demandes de résumé (total + marqueur du dernier commentaire) émises par plusieurs
  * `ContextComments` montés en même temps (liste de tâches) en un seul
  * `GET /api/context-comments/counts`, sur le modèle des lots de
  * `useLearningGatingSummary` (max 100 ids / requête).
  */
 
 import { getContextCommentCounts } from '../services/api.js';
+import { normalizeContextCommentMarker } from './contextCommentsHelpers.js';
 
 const MAX_IDS_PER_REQUEST = 100;
 const FLUSH_DELAY_MS = 40;
@@ -14,13 +15,15 @@ const FLUSH_DELAY_MS = 40;
 const queuesByType = new Map();
 
 function emptySummary() {
-  return { total: 0, newestId: 0 };
+  return { total: 0, newestId: '' };
 }
 
 function normalizeSummary(row) {
   return {
     total: Math.max(0, Number(row?.total) || 0),
-    newestId: Math.max(0, Number(row?.newestId ?? row?.newest_id) || 0),
+    // Marqueur opaque : les identifiants de commentaire sont des UUID. Les convertir en
+    // nombre donnait `NaN`, replié en `0`, et le badge « non lus » restait muet.
+    newestId: normalizeContextCommentMarker(row?.newestId ?? row?.newest_id),
   };
 }
 
@@ -70,7 +73,7 @@ async function flushType(contextType) {
 /**
  * @param {string} contextType
  * @param {string|number} contextId
- * @returns {Promise<{ total: number, newestId: number }>}
+ * @returns {Promise<{ total: number, newestId: string }>}
  */
 export function fetchContextCommentSummary(contextType, contextId) {
   const type = String(contextType || '').trim();
