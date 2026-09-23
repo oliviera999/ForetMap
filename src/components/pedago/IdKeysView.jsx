@@ -2,9 +2,30 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
+import { IdKeySchemaView } from './IdKeySchemaView.jsx';
+
+const READER_MODE_KEY = 'foretmap.id-keys.readerMode';
+
+function readStoredReaderMode() {
+  try {
+    const raw = window.localStorage.getItem(READER_MODE_KEY);
+    return raw === 'schema' ? 'schema' : 'questions';
+  } catch (_) {
+    return 'questions';
+  }
+}
+
+function storeReaderMode(mode) {
+  try {
+    window.localStorage.setItem(READER_MODE_KEY, mode);
+  } catch (_) {
+    /* navigation privée / quota */
+  }
+}
 
 function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
   const [history, setHistory] = useState([]);
+  const [readerMode, setReaderMode] = useState(readStoredReaderMode);
   const startCouplet = useMemo(
     () =>
       (keyBundle?.couplets || []).find((c) => Number(c.number) === 1) || keyBundle?.couplets?.[0],
@@ -13,6 +34,23 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
   const currentId = history.length ? history[history.length - 1] : startCouplet?.id;
   const current = (keyBundle?.couplets || []).find((c) => Number(c.id) === Number(currentId));
   const [arrivedPlant, setArrivedPlant] = useState(null);
+
+  const setMode = useCallback((mode) => {
+    setReaderMode(mode);
+    storeReaderMode(mode);
+  }, []);
+
+  const chooseLead = useCallback((lead) => {
+    if (lead.plant_id) {
+      setArrivedPlant({
+        id: lead.plant_id,
+        name: lead.plant_name,
+        emoji: lead.plant_emoji,
+      });
+    } else if (lead.next_couplet_id) {
+      setHistory((h) => [...h, lead.next_couplet_id]);
+    }
+  }, []);
 
   if (!keyBundle) return null;
   if (arrivedPlant) {
@@ -54,35 +92,61 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
         {keyBundle.title}
         {keyBundle.scope_label ? ` — ${keyBundle.scope_label}` : ''}
       </h3>
-      <p className="muted">
-        Couplet {current.number} — choisissez le caractère observé (sans manipuler).
-      </p>
-      <ul className="id-key-leads">
-        {(current.leads || []).map((lead) => (
-          <li key={lead.id}>
-            <button
-              type="button"
-              className="btn id-key-lead-btn"
-              onClick={() => {
-                if (lead.plant_id) {
-                  setArrivedPlant({
-                    id: lead.plant_id,
-                    name: lead.plant_name,
-                    emoji: lead.plant_emoji,
-                  });
-                } else if (lead.next_couplet_id) {
-                  setHistory((h) => [...h, lead.next_couplet_id]);
-                }
-              }}
-            >
-              {lead.image_url ? (
-                <img src={lead.image_url} alt="" className="id-key-lead-img" />
-              ) : null}
-              <span>{lead.statement}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="id-key-reader__modes" role="group" aria-label="Mode de lecture">
+        <button
+          type="button"
+          className={readerMode === 'questions' ? 'btn btn-primary' : 'btn'}
+          aria-pressed={readerMode === 'questions'}
+          onClick={() => setMode('questions')}
+        >
+          Questions
+        </button>
+        <button
+          type="button"
+          className={readerMode === 'schema' ? 'btn btn-primary' : 'btn'}
+          aria-pressed={readerMode === 'schema'}
+          onClick={() => setMode('schema')}
+        >
+          Schéma
+        </button>
+      </div>
+      {readerMode === 'schema' ? (
+        <>
+          <p className="muted">
+            Couplet {current.number} — schéma de la clé (branche active depuis le nœud mis en
+            évidence).
+          </p>
+          <IdKeySchemaView
+            keyBundle={keyBundle}
+            currentCoupletId={currentId}
+            history={history}
+            onChooseLead={chooseLead}
+            onOpenPlant={onOpenPlant}
+          />
+        </>
+      ) : (
+        <>
+          <p className="muted">
+            Couplet {current.number} — choisissez le caractère observé (sans manipuler).
+          </p>
+          <ul className="id-key-leads">
+            {(current.leads || []).map((lead) => (
+              <li key={lead.id}>
+                <button
+                  type="button"
+                  className="btn id-key-lead-btn"
+                  onClick={() => chooseLead(lead)}
+                >
+                  {lead.image_url ? (
+                    <img src={lead.image_url} alt="" className="id-key-lead-img" />
+                  ) : null}
+                  <span>{lead.statement}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <div className="id-key-reader__nav">
         <button
           type="button"
@@ -420,7 +484,10 @@ export function IdKeysView({ canManage = false, onOpenPlant = null, initialKey =
         <h2>
           <IconSearch size={22} /> Clés d’identification
         </h2>
-        <p>Une question à la fois, caractères observables seulement — jusqu’à la fiche espèce.</p>
+        <p>
+          Mode Questions (une fourche à la fois) ou Schéma (arbre de la clé) — caractères
+          observables seulement, jusqu’à la fiche espèce.
+        </p>
       </header>
       {error ? <p className="form-error">{error}</p> : null}
 
