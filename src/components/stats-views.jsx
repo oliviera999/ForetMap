@@ -339,6 +339,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(
     student?.visit_mascot_catalog_id || '',
   );
+  const [biodivPedagoLevel, setBiodivPedagoLevel] = useState(student?.biodiv_pedago_level || '');
   // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
   const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry();
@@ -408,6 +409,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         email: email.trim() || null,
         description: description.trim() || null,
         visit_mascot_catalog_id: visitMascotCatalogId || null,
+        biodiv_pedago_level: biodivPedagoLevel || null,
         currentPassword,
       };
       if (avatarData) payload.avatarData = avatarData;
@@ -419,6 +421,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setEmail(updated?.email || '');
       setDescription(updated?.description || '');
       setVisitMascotCatalogId(updated?.visit_mascot_catalog_id || '');
+      setBiodivPedagoLevel(updated?.biodiv_pedago_level || '');
       setCurrentPassword('');
       setAvatarData(null);
       setRemoveAvatar(false);
@@ -590,6 +593,19 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
             </option>
           ))}
         </select>
+      </div>
+      <div className="field" data-testid="profile-biodiv-pedago-level">
+        <label>Niveau d’affichage biodiversité</label>
+        <select value={biodivPedagoLevel} onChange={(e) => setBiodivPedagoLevel(e.target.value)}>
+          <option value="">— Hériter (carte / groupe / établissement) —</option>
+          <option value="college">Collège (plus simple)</option>
+          <option value="lycee">Lycée</option>
+          <option value="universite">Université</option>
+        </select>
+        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          Par défaut, cette préférence ne peut que simplifier l’affichage. Un administrateur peut
+          autoriser à relever le niveau dans les paramètres du site.
+        </small>
       </div>
       <div className="field">
         <label>Description</label>

@@ -272,6 +272,17 @@ export const KEY_META = {
     section: 'modules',
     order: 41,
   },
+  'ui.biodiv.pedago_level_default': {
+    label: 'Biodiversité — niveau pédagogique par défaut (Collège / Lycée / Université)',
+    section: 'modules',
+    order: 41.1,
+  },
+  'ui.biodiv.pedago_pref_can_raise': {
+    label:
+      'Biodiversité — la préférence personnelle peut relever le niveau (sinon elle ne peut que simplifier)',
+    section: 'modules',
+    order: 41.2,
+  },
   'observations.journal_max_chars': {
     label: 'Carnet — max. caractères par article (0 = illimité)',
     section: 'modules',

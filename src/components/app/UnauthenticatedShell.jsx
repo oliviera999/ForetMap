@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import { PublicSettingsProvider } from '../../contexts/PublicSettingsContext.jsx';
+import { BiodivPedagoProvider } from '../../contexts/BiodivPedagoContext.jsx';
 import { AppStatusSticky } from '../../shared/components/AppStatusSticky.jsx';
 import { TimedToast as Toast } from '../../shared/components/TimedToast.jsx';
 import { oauthFeedbackDurationMs } from '../../utils/appShellHelpers';
@@ -53,41 +54,43 @@ export function UnauthenticatedShell({
 }) {
   return (
     <PublicSettingsProvider value={publicSettings}>
-      <>
-        <AppStatusSticky />
-        {toast && (
-          <Toast msg={toast} onDone={onToastDone} durationMs={oauthFeedbackDurationMs(toast)} />
-        )}
-        {showPublicVisit ? (
-          <div id="app">
-            {/* `<main>` : repère principal de la visite invitée (cf. audit §6). */}
-            <main className="main main--guest-visit">
-              <TabSuspense>
-                <VisitViewLazy
-                  student={null}
-                  isTeacher={false}
-                  initialMapId={visitInitialMapId}
-                  onBackToAuth={onGuestBackToAuth}
-                  availableTutorials={GUEST_VISIT_TUTORIALS}
-                  requireGuestMascotChoice={guestVisitNeedsMascotChoice}
-                  onGuestMascotChoiceDone={onGuestMascotChoiceDone}
-                />
-              </TabSuspense>
-            </main>
-            <AppFooter versionPrefix={footerVersionPrefix} appVersion={appVersion} />
-          </div>
-        ) : (
-          <AuthScreen
-            onLogin={onLogin}
-            appVersion={appVersion}
-            uiSettings={publicSettings}
-            onVisitGuest={onVisitGuest}
-            isN3Affiliated={isN3Affiliated}
-            oauthFeedback={oauthFeedback}
-            onOauthFeedbackDismiss={onOauthFeedbackDismiss}
-          />
-        )}
-      </>
+      <BiodivPedagoProvider isGuestVisit={!!showPublicVisit}>
+        <>
+          <AppStatusSticky />
+          {toast && (
+            <Toast msg={toast} onDone={onToastDone} durationMs={oauthFeedbackDurationMs(toast)} />
+          )}
+          {showPublicVisit ? (
+            <div id="app">
+              {/* `<main>` : repère principal de la visite invitée (cf. audit §6). */}
+              <main className="main main--guest-visit">
+                <TabSuspense>
+                  <VisitViewLazy
+                    student={null}
+                    isTeacher={false}
+                    initialMapId={visitInitialMapId}
+                    onBackToAuth={onGuestBackToAuth}
+                    availableTutorials={GUEST_VISIT_TUTORIALS}
+                    requireGuestMascotChoice={guestVisitNeedsMascotChoice}
+                    onGuestMascotChoiceDone={onGuestMascotChoiceDone}
+                  />
+                </TabSuspense>
+              </main>
+              <AppFooter versionPrefix={footerVersionPrefix} appVersion={appVersion} />
+            </div>
+          ) : (
+            <AuthScreen
+              onLogin={onLogin}
+              appVersion={appVersion}
+              uiSettings={publicSettings}
+              onVisitGuest={onVisitGuest}
+              isN3Affiliated={isN3Affiliated}
+              oauthFeedback={oauthFeedback}
+              onOauthFeedbackDismiss={onOauthFeedbackDismiss}
+            />
+          )}
+        </>
+      </BiodivPedagoProvider>
     </PublicSettingsProvider>
   );
 }

@@ -36,6 +36,7 @@ import {
   IconVisit,
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 const COMPACT_WIDTH_QUERY = '(max-width: 1023px)';
 const COMPACT_POINTER_QUERY = '(pointer: coarse)';
@@ -74,6 +75,8 @@ export function buildStudentNavItems({
   observationsEnabled,
   visitEnabled,
   canAccessForum,
+  showNestedGroups = true,
+  showIndividuals = true,
 }) {
   const assignedSuffix =
     studentActiveAssignedTasksCount > 0 ? ` (${studentActiveAssignedTasksCount})` : '';
@@ -101,9 +104,13 @@ export function buildStudentNavItems({
   items.push({ id: 'quiz', label: 'Quiz', icon: <IconQuiz size={20} /> });
   items.push({ id: 'glossary', label: 'Glossaire', icon: <IconGlossary size={20} /> });
   items.push({ id: 'foodweb', label: 'Réseau', icon: <IconFoodweb size={20} /> });
-  items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
+  if (showNestedGroups) {
+    items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
+  }
   items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
-  items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
+  if (showIndividuals) {
+    items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
+  }
   if (tutorialsModuleEnabled && canAccessTutorials) {
     items.push({ id: 'tuto', label: 'Tuto', icon: <IconTuto size={20} /> });
   }
@@ -156,6 +163,9 @@ export function StudentBottomNav({
   const pointerCompact = useMediaQuery(COMPACT_POINTER_QUERY);
   const isCompact =
     layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
+  const { canShow } = useBiodivPedago();
+  const showNestedGroups = canShow('nested_groups_tab');
+  const showIndividuals = canShow('individuals_tab');
 
   const items = useMemo(
     () =>
@@ -172,6 +182,8 @@ export function StudentBottomNav({
         observationsEnabled,
         visitEnabled,
         canAccessForum,
+        showNestedGroups,
+        showIndividuals,
       }),
     [
       canAccessStudentMapTasks,
@@ -186,6 +198,8 @@ export function StudentBottomNav({
       observationsEnabled,
       visitEnabled,
       canAccessForum,
+      showNestedGroups,
+      showIndividuals,
     ],
   );
 

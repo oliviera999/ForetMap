@@ -795,6 +795,7 @@ router.patch(
       hasEmail,
       hasDescription,
       hasVisitMascotCatalogId,
+      hasBiodivPedagoLevel,
       hasAvatarData,
       removeAvatar,
     } = flags;
@@ -814,6 +815,21 @@ router.patch(
     );
     if (!mascotRes.ok) return res.status(400).json({ error: mascotRes.error });
     const visitMascotCatalogId = mascotRes.value;
+
+    const { normalizePedagoLevel } = require('../lib/biodivPedagoLevel');
+    let biodivPedagoLevel = normalizePedagoLevel(student.biodiv_pedago_level);
+    if (hasBiodivPedagoLevel) {
+      if (body.biodiv_pedago_level == null || String(body.biodiv_pedago_level).trim() === '') {
+        biodivPedagoLevel = null;
+      } else {
+        biodivPedagoLevel = normalizePedagoLevel(body.biodiv_pedago_level);
+        if (!biodivPedagoLevel) {
+          return res
+            .status(400)
+            .json({ error: 'biodiv_pedago_level invalide (college|lycee|universite)' });
+        }
+      }
+    }
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
       return res.status(400).json({ error: PSEUDO_INVALID_MSG });
@@ -842,14 +858,32 @@ router.patch(
 
     try {
       await execute(
-        "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, visit_mascot_catalog_id = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
-        [pseudo, email, description, avatarPath, visitMascotCatalogId, student.id],
+        `UPDATE users
+            SET pseudo = ?, email = ?, description = ?, avatar_path = ?,
+                visit_mascot_catalog_id = ?, biodiv_pedago_level = ?,
+                display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,'')))
+          WHERE id = ? AND user_type = 'student'`,
+        [
+          pseudo,
+          email,
+          description,
+          avatarPath,
+          visitMascotCatalogId,
+          biodivPedagoLevel,
+          student.id,
+        ],
       );
     } catch (err) {
-      if (isDuplicateEntryError(err)) {
+      if (err && (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR')) {
+        await execute(
+          "UPDATE users SET pseudo = ?, email = ?, description = ?, avatar_path = ?, visit_mascot_catalog_id = ?, display_name = TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) WHERE id = ? AND user_type = 'student'",
+          [pseudo, email, description, avatarPath, visitMascotCatalogId, student.id],
+        );
+      } else if (isDuplicateEntryError(err)) {
         return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
+      } else {
+        throw err;
       }
-      throw err;
     }
     const updated = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       student.id,
@@ -868,6 +902,7 @@ router.patch(
           email: !!hasEmail,
           description: !!hasDescription,
           visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
+          biodiv_pedago_level: !!hasBiodivPedagoLevel,
           avatar: !!(hasAvatarData || removeAvatar),
         },
       },

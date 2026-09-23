@@ -111,6 +111,7 @@ import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
+import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
 import { reportUsage } from './shared/usage/reportUsage.js';
 import { withAppBase } from './shared/appBase.js';
@@ -120,6 +121,7 @@ import { AppDialogsProvider, useAppDialogs } from './shared/components/AppDialog
 import { DataProvider } from './contexts/DataContext.jsx';
 import { TourProvider } from './contexts/TourContext.jsx';
 import { readStoredTab } from './utils/appShellHelpers';
+import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useAppDataSync } from './hooks/useAppDataSync';
 import { useAppDataPolling } from './hooks/useAppDataPolling';
@@ -163,6 +165,8 @@ function App() {
   /** Progression des visites guidées liée au compte (null = pas encore hydratée). */
   const [discoveryTourSeen, setDiscoveryTourSeen] = useState(null);
   const [discoveryTourSeenReady, setDiscoveryTourSeenReady] = useState(false);
+  /** Niveaux pédagogiques des groupes dont l'utilisateur est membre (`/api/auth/me`). */
+  const [biodivGroupPedagoLevels, setBiodivGroupPedagoLevels] = useState([]);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
@@ -391,6 +395,11 @@ function App() {
         d.discoveryTourSeen && typeof d.discoveryTourSeen === 'object' ? d.discoveryTourSeen : {};
       setDiscoveryTourSeen((prev) => mergeDiscoveryTourSeenMaps(prev, fromServer));
       setDiscoveryTourSeenReady(true);
+      if (Array.isArray(d.biodivGroupPedagoLevels)) {
+        setBiodivGroupPedagoLevels(
+          d.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
+        );
+      }
     },
     [mergeAuthMeResponseBase],
   );
@@ -399,6 +408,7 @@ function App() {
     (options) => {
       setDiscoveryTourSeen(null);
       setDiscoveryTourSeenReady(false);
+      setBiodivGroupPedagoLevels([]);
       forceLogoutBase(options);
     },
     [forceLogoutBase],
@@ -833,6 +843,10 @@ function App() {
             updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
+          biodiv_pedago_level:
+            updatedUser?.biodiv_pedago_level !== undefined
+              ? updatedUser.biodiv_pedago_level
+              : (prev?.biodiv_pedago_level ?? null),
         };
         saveStoredSession({ user: next, ...(nextToken ? { token: nextToken } : {}) });
         return next;
@@ -882,6 +896,7 @@ function App() {
           email: session?.email || null,
           avatar_path: session?.avatar_path || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
+          biodiv_pedago_level: session?.biodiv_pedago_level || null,
         });
       } else {
         updateStudentSession(session);
@@ -894,6 +909,11 @@ function App() {
           : {};
       setDiscoveryTourSeen(fromServer);
       setDiscoveryTourSeenReady(true);
+      if (Array.isArray(session?.biodivGroupPedagoLevels)) {
+        setBiodivGroupPedagoLevels(
+          session.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
+        );
+      }
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
       if (isVisitorLikeRole(roleSlug)) {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
@@ -921,6 +941,7 @@ function App() {
     setAuthClaims(null);
     setDiscoveryTourSeen(null);
     setDiscoveryTourSeenReady(false);
+    setBiodivGroupPedagoLevels([]);
   }, [studentRef]);
 
   useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
@@ -1237,465 +1258,293 @@ function App() {
     currentUser?.displayName ||
     formatFullName(currentUser) ||
     DEFAULT_USER_LABEL;
+  const activeMapPedagoLevel = normalizePedagoLevel(
+    (Array.isArray(visibleMaps) ? visibleMaps : []).find(
+      (m) => String(m?.id) === String(activeMapId),
+    )?.pedago_level,
+  );
+  const userBiodivPedagoPref = normalizePedagoLevel(
+    student?.biodiv_pedago_level ?? sessionUser?.biodiv_pedago_level,
+  );
 
   return (
     <PublicSettingsProvider value={publicSettings}>
-      <AppDialogsProvider>
-        <AppDialogsBridge dialogsRef={appDialogsRef} />
-        <SessionProvider value={sessionContextValue}>
-          <DataProvider value={dataContextValue}>
-            <TourProvider
-              tab={tab}
-              isTeacher={effectiveIsTeacher}
-              enabled={discoveryTourAutoEnabled}
-              accountSeen={discoveryTourSeen}
-              accountSeenReady={discoveryTourSeenReady}
-              onTourSeen={persistDiscoveryTourSeen}
-            >
-              <div
-                id="app"
-                style={foretBrandStyle}
-                data-brand-logo={foretBrand.logoUrl || undefined}
+      <BiodivPedagoProvider
+        isGuestVisit={false}
+        userPreference={userBiodivPedagoPref}
+        mapLevel={activeMapPedagoLevel}
+        groupLevels={biodivGroupPedagoLevels}
+        canTeacherPreview={effectiveIsTeacher}
+      >
+        <AppDialogsProvider>
+          <AppDialogsBridge dialogsRef={appDialogsRef} />
+          <SessionProvider value={sessionContextValue}>
+            <DataProvider value={dataContextValue}>
+              <TourProvider
+                tab={tab}
+                isTeacher={effectiveIsTeacher}
+                enabled={discoveryTourAutoEnabled}
+                accountSeen={discoveryTourSeen}
+                accountSeenReady={discoveryTourSeenReady}
+                onTourSeen={persistDiscoveryTourSeen}
               >
-                {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
+                <div
+                  id="app"
+                  style={foretBrandStyle}
+                  data-brand-logo={foretBrand.logoUrl || undefined}
+                >
+                  {/* Fiche rapide du glossaire : hors des onglets et hors des modales, pour
                   survivre à tout changement de vue et se poser au-dessus de l'aperçu
                   de tutoriel (audit A1). */}
-                {glossaryPopoverCode && (
-                  <GlossaryPopover
-                    open
-                    glossaryCode={glossaryPopoverCode}
-                    onClose={closeGlossaryPopover}
-                    onOpenFullGlossary={openPedagoGlossaryTerm}
-                    showFullGlossaryLink={tab !== 'glossary'}
-                  />
-                )}
-                {plantCatalogPreview && (
-                  <Suspense fallback={null}>
-                    <PlantCatalogPreviewModalLazy
-                      plant={plantCatalogPreview}
-                      maps={visibleMaps}
-                      onClose={() => setPlantCatalogPreview(null)}
-                      onForceLogout={forceLogout}
-                      onOpenPlant={openPlantCatalogPreviewById}
-                      onOpenGlossaryTerm={openGlossaryPopover}
-                      onNavigateToFoodWeb={openPedagoFoodWeb}
-                      onOpenQuizQuestion={openPedagoQuizQuestion}
-                    />
-                  </Suspense>
-                )}
-                {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
-                  <div className="fade-in install-ios-banner" role="status" aria-live="polite">
-                    <span>
-                      Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager,
-                      puis « Sur l’écran d’accueil ».
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
-                        setShowIosInstallHint(false);
-                      }}
-                    >
-                      Masquer
-                    </button>
-                  </div>
-                )}
-                {serverDown && (
-                  <NoticeBanner tone="warning">
-                    {appServerDownNotice}
-                    {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver
-                      pendant la tentative et garantir une cible tactile ≥ 44px. */}
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                      onClick={retryServerNow}
-                      disabled={retryingServer}
-                    >
-                      {appRetryNow}
-                    </button>
-                  </NoticeBanner>
-                )}
-                {!serverDown && swUpdate && (
-                  <NoticeBanner tone="info">
-                    <strong>Une nouvelle version est disponible.</strong> Rechargez quand cela vous
-                    arrange — votre travail en cours n’est pas interrompu.
-                    {/* Bouton rendu ici (plutôt que via `action`) pour garantir une cible
-                      tactile ≥ 44px, comme le bandeau « serveur indisponible ». */}
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
-                      onClick={swUpdate.apply}
-                    >
-                      Recharger
-                    </button>
-                  </NoticeBanner>
-                )}
-                {!serverDown && latestCriticalNotification && (
-                  <div className="fade-in notif-critical-banner" role="alert">
-                    <strong>{latestCriticalNotification.title}</strong>{' '}
-                    {latestCriticalNotification.message}
-                  </div>
-                )}
-                {sessionValidationError && studentForUi && !effectiveIsTeacher && (
-                  <NoticeBanner
-                    tone="info"
-                    action={{
-                      label: 'Réessayer',
-                      onClick: () => {
-                        setSessionValidationError(false);
-                        validateStudentSession(studentForUi);
-                      },
-                    }}
-                  >
-                    <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent être
-                    un peu vieilles — un clic pour rafraîchir.
-                  </NoticeBanner>
-                )}
-                <AppStatusSticky />
-                {toast && (
-                  <Toast
-                    msg={toast}
-                    onDone={handleToastDone}
-                    durationMs={oauthFeedbackDurationMs(toast)}
-                  />
-                )}
-                {profilePromotion &&
-                  !effectiveIsTeacher &&
-                  studentForUi &&
-                  !studentForUi.preview_mode && (
-                    <AutoProfilePromotionModal
-                      data={profilePromotion}
-                      roleTerms={roleTerms}
-                      onClose={() => setProfilePromotion(null)}
+                  {glossaryPopoverCode && (
+                    <GlossaryPopover
+                      open
+                      glossaryCode={glossaryPopoverCode}
+                      onClose={closeGlossaryPopover}
+                      onOpenFullGlossary={openPedagoGlossaryTerm}
+                      showFullGlossaryLink={tab !== 'glossary'}
                     />
                   )}
-                {showPin && (
-                  <PinModal
-                    onSuccess={() => {
-                      setPinSuccessFetchAllTick((n) => n + 1);
-                      setAuthClaims(getAuthClaims());
-                      setShowPin(false);
-                      setToast('Connexion professeur réussie, tout roule');
-                    }}
-                    onClose={() => setShowPin(false)}
-                    uiSettings={publicSettings}
-                    isN3Affiliated={isN3Affiliated}
-                  />
-                )}
-                {showStats && canOpenUserDialogs && (
-                  <AppUserDialog
-                    open={showStats}
-                    onClose={handleCloseStatsDialog}
-                    ariaLabel="Statistiques utilisateur"
-                    closeLabel="Fermer la fenêtre des statistiques"
-                  >
-                    <StudentStatsLazy student={statsDialogTarget} />
-                  </AppUserDialog>
-                )}
-                {showProfile && canOpenUserDialogs && profileTargetUser && (
-                  <AppUserDialog
-                    open={showProfile}
-                    onClose={handleCloseProfileDialog}
-                    ariaLabel="Profil utilisateur"
-                    closeLabel="Fermer la fenêtre du profil"
-                  >
-                    <StudentProfileEditorLazy
-                      student={profileTargetUser}
-                      onUpdated={handleProfileUpdated}
-                      onClose={handleCloseProfileDialog}
+                  {plantCatalogPreview && (
+                    <Suspense fallback={null}>
+                      <PlantCatalogPreviewModalLazy
+                        plant={plantCatalogPreview}
+                        maps={visibleMaps}
+                        onClose={() => setPlantCatalogPreview(null)}
+                        onForceLogout={forceLogout}
+                        onOpenPlant={openPlantCatalogPreviewById}
+                        onOpenGlossaryTerm={openGlossaryPopover}
+                        onNavigateToFoodWeb={openPedagoFoodWeb}
+                        onOpenQuizQuestion={openPedagoQuizQuestion}
+                      />
+                    </Suspense>
+                  )}
+                  {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
+                    <div className="fade-in install-ios-banner" role="status" aria-live="polite">
+                      <span>
+                        Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager,
+                        puis « Sur l’écran d’accueil ».
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
+                          setShowIosInstallHint(false);
+                        }}
+                      >
+                        Masquer
+                      </button>
+                    </div>
+                  )}
+                  {serverDown && (
+                    <NoticeBanner tone="warning">
+                      {appServerDownNotice}
+                      {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver
+                      pendant la tentative et garantir une cible tactile ≥ 44px. */}
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                        onClick={retryServerNow}
+                        disabled={retryingServer}
+                      >
+                        {appRetryNow}
+                      </button>
+                    </NoticeBanner>
+                  )}
+                  {!serverDown && swUpdate && (
+                    <NoticeBanner tone="info">
+                      <strong>Une nouvelle version est disponible.</strong> Rechargez quand cela
+                      vous arrange — votre travail en cours n’est pas interrompu.
+                      {/* Bouton rendu ici (plutôt que via `action`) pour garantir une cible
+                      tactile ≥ 44px, comme le bandeau « serveur indisponible ». */}
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                        onClick={swUpdate.apply}
+                      >
+                        Recharger
+                      </button>
+                    </NoticeBanner>
+                  )}
+                  {!serverDown && latestCriticalNotification && (
+                    <div className="fade-in notif-critical-banner" role="alert">
+                      <strong>{latestCriticalNotification.title}</strong>{' '}
+                      {latestCriticalNotification.message}
+                    </div>
+                  )}
+                  {sessionValidationError && studentForUi && !effectiveIsTeacher && (
+                    <NoticeBanner
+                      tone="info"
+                      action={{
+                        label: 'Réessayer',
+                        onClick: () => {
+                          setSessionValidationError(false);
+                          validateStudentSession(studentForUi);
+                        },
+                      }}
+                    >
+                      <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent
+                      être un peu vieilles — un clic pour rafraîchir.
+                    </NoticeBanner>
+                  )}
+                  <AppStatusSticky />
+                  {toast && (
+                    <Toast
+                      msg={toast}
+                      onDone={handleToastDone}
+                      durationMs={oauthFeedbackDurationMs(toast)}
                     />
-                  </AppUserDialog>
-                )}
+                  )}
+                  {profilePromotion &&
+                    !effectiveIsTeacher &&
+                    studentForUi &&
+                    !studentForUi.preview_mode && (
+                      <AutoProfilePromotionModal
+                        data={profilePromotion}
+                        roleTerms={roleTerms}
+                        onClose={() => setProfilePromotion(null)}
+                      />
+                    )}
+                  {showPin && (
+                    <PinModal
+                      onSuccess={() => {
+                        setPinSuccessFetchAllTick((n) => n + 1);
+                        setAuthClaims(getAuthClaims());
+                        setShowPin(false);
+                        setToast('Connexion professeur réussie, tout roule');
+                      }}
+                      onClose={() => setShowPin(false)}
+                      uiSettings={publicSettings}
+                      isN3Affiliated={isN3Affiliated}
+                    />
+                  )}
+                  {showStats && canOpenUserDialogs && (
+                    <AppUserDialog
+                      open={showStats}
+                      onClose={handleCloseStatsDialog}
+                      ariaLabel="Statistiques utilisateur"
+                      closeLabel="Fermer la fenêtre des statistiques"
+                    >
+                      <StudentStatsLazy student={statsDialogTarget} />
+                    </AppUserDialog>
+                  )}
+                  {showProfile && canOpenUserDialogs && profileTargetUser && (
+                    <AppUserDialog
+                      open={showProfile}
+                      onClose={handleCloseProfileDialog}
+                      ariaLabel="Profil utilisateur"
+                      closeLabel="Fermer la fenêtre du profil"
+                    >
+                      <StudentProfileEditorLazy
+                        student={profileTargetUser}
+                        onUpdated={handleProfileUpdated}
+                        onClose={handleCloseProfileDialog}
+                      />
+                    </AppUserDialog>
+                  )}
 
-                <AppHeader
-                  isStandaloneMode={isStandaloneMode}
-                  deferredInstallPrompt={deferredInstallPrompt}
-                  onInstallClick={handleInstallClick}
-                  isTeacher={isTeacher}
-                  effectiveIsTeacher={effectiveIsTeacher}
-                  appVersion={appVersion}
-                  teacherSyncStatus={teacherSyncStatus}
-                  publicSettings={publicSettings}
-                  notificationRoleKey={notificationRoleKey}
-                  notifications={notifications}
-                  notificationsUnreadCount={notificationsUnreadCount}
-                  notificationPrefs={notificationPrefs}
-                  notificationMetrics={notificationMetrics}
-                  onNotificationTogglePref={updatePreference}
-                  onNotificationOpenAction={openNotificationAction}
-                  onNotificationMarkAsRead={markAsRead}
-                  onNotificationMarkAllRead={markAllRead}
-                  onNotificationRemove={removeNotification}
-                  onNotificationClearRead={clearRead}
-                  onNotificationOpenPanel={trackOpenedPanel}
-                  onNotificationResetMetrics={resetMetrics}
-                  currentUser={currentUser}
-                  currentUserLabel={currentUserLabel}
-                  canOpenUserDialogs={canOpenUserDialogs}
-                  canOpenTeacherStatsFromBadge={canOpenTeacherStatsFromBadge}
-                  roleTerms={roleTerms}
-                  onOpenStats={handleOpenStatsDialog}
-                  onOpenTeacherStatsTab={handleOpenTeacherStatsTab}
-                  onOpenProfile={handleOpenProfileDialog}
-                  roleViewMode={roleViewMode}
-                  canSwitchToStudentView={canSwitchToStudentView}
-                  canSwitchToTeacherView={canSwitchToTeacherView}
-                  onRoleViewModeSelect={handleRoleViewModeSelect}
-                  onRequestPin={handleRequestPin}
-                  onLogout={handleLogout}
-                  helpText={helpText}
-                />
+                  <AppHeader
+                    isStandaloneMode={isStandaloneMode}
+                    deferredInstallPrompt={deferredInstallPrompt}
+                    onInstallClick={handleInstallClick}
+                    isTeacher={isTeacher}
+                    effectiveIsTeacher={effectiveIsTeacher}
+                    appVersion={appVersion}
+                    teacherSyncStatus={teacherSyncStatus}
+                    publicSettings={publicSettings}
+                    notificationRoleKey={notificationRoleKey}
+                    notifications={notifications}
+                    notificationsUnreadCount={notificationsUnreadCount}
+                    notificationPrefs={notificationPrefs}
+                    notificationMetrics={notificationMetrics}
+                    onNotificationTogglePref={updatePreference}
+                    onNotificationOpenAction={openNotificationAction}
+                    onNotificationMarkAsRead={markAsRead}
+                    onNotificationMarkAllRead={markAllRead}
+                    onNotificationRemove={removeNotification}
+                    onNotificationClearRead={clearRead}
+                    onNotificationOpenPanel={trackOpenedPanel}
+                    onNotificationResetMetrics={resetMetrics}
+                    currentUser={currentUser}
+                    currentUserLabel={currentUserLabel}
+                    canOpenUserDialogs={canOpenUserDialogs}
+                    canOpenTeacherStatsFromBadge={canOpenTeacherStatsFromBadge}
+                    roleTerms={roleTerms}
+                    onOpenStats={handleOpenStatsDialog}
+                    onOpenTeacherStatsTab={handleOpenTeacherStatsTab}
+                    onOpenProfile={handleOpenProfileDialog}
+                    roleViewMode={roleViewMode}
+                    canSwitchToStudentView={canSwitchToStudentView}
+                    canSwitchToTeacherView={canSwitchToTeacherView}
+                    onRoleViewModeSelect={handleRoleViewModeSelect}
+                    onRequestPin={handleRequestPin}
+                    onLogout={handleLogout}
+                    helpText={helpText}
+                  />
 
-                <RolePreviewBanners
-                  authClaims={authClaims}
-                  sessionUser={sessionUser}
-                  isTeacher={isTeacher}
-                  roleViewMode={roleViewMode}
-                  helpText={helpText}
-                  onStopImpersonation={stopAdminImpersonation}
-                />
+                  <RolePreviewBanners
+                    authClaims={authClaims}
+                    sessionUser={sessionUser}
+                    isTeacher={isTeacher}
+                    roleViewMode={roleViewMode}
+                    helpText={helpText}
+                    onStopImpersonation={stopAdminImpersonation}
+                  />
 
-                {effectiveIsTeacher ? (
-                  /* `<main>` et non `<div>` : sans repère principal, `axe` signalait
+                  {effectiveIsTeacher ? (
+                    /* `<main>` et non `<div>` : sans repère principal, `axe` signalait
                      `landmark-one-main` sur tous les écrans et `region` sur CHAQUE bloc de
                      contenu hors repère — 401 nœuds sur les tâches, 522 sur la biodiversité.
                      Les styles ciblent la classe, pas la balise : rendu inchangé.
                      Cf. `docs/AUDIT_VISITE_UI_UX_2026-09.md` §6. */
-                  <main
-                    className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
-                  >
-                    <TeacherTopTabs
-                      tab={tab}
-                      onTabChange={handleTeacherTabChange}
-                      shouldUseDesktopSplit={shouldUseDesktopSplit}
-                      teacherPendingValidationCount={teacherPendingValidationCount}
-                      tutorialsModuleEnabled={tutorialsModuleEnabled}
-                      statsEnabled={publicSettings?.modules?.stats_enabled !== false}
-                      visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                      observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
-                      canAccessForum={canAccessForum}
-                      isN3Affiliated={isN3Affiliated}
-                      hasPermission={hasPermission}
-                      hasPermissionInRole={hasPermissionInRole}
-                    />
-                    {loading ? (
-                      <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
-                    ) : (
-                      <>
-                        <MapTasksArea
-                          isTeacher
-                          student={currentUser}
-                          maps={visibleMaps}
-                          onMapChange={chooseMap}
-                          useSplitMapTasks={useSplitMapTasks}
-                          tab={tab}
-                          tutorialsModuleEnabled={tutorialsModuleEnabled}
-                          canAccessSoloMapTasks
-                          canSelfAssignTasks
-                          canViewOtherUsersIdentity
-                          hasPermission={hasPermission}
-                          hasPermissionInRole={hasPermissionInRole}
-                          onZoneUpdate={updateZone}
-                          onRefresh={fetchAll}
-                          onForceLogout={forceLogout}
-                          onLocationTasksFocus={handleMapLocationTasksFocus}
-                          onNavigateToTasksForLocation={
-                            effectiveIsTeacher || canAccessStudentMapTasks
-                              ? navigateToTasksForLocation
-                              : undefined
-                          }
-                          onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                          mapLocationFocus={tasksLocationFocus}
-                          onMapLocationFocusChange={setTasksLocationFocus}
-                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          onPersistVisitMascotId={onPersistVisitMascotId}
-                        />
-                        {tab === 'plants' && (
-                          <TabSuspense>
-                            <PlantManagerLazy
-                              onRefresh={fetchAll}
-                              onForceLogout={forceLogout}
-                              onOpenPlant={openPlantCatalogPreviewById}
-                              maps={visibleMaps}
-                              onActiveMapChange={setActiveMapId}
-                              canValidateHazards={hasPermissionInRole('plants.hazards.validate')}
-                            />
-                          </TabSuspense>
-                        )}
-                        {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
-                          <TabSuspense>
-                            <TutorialsViewLazy
-                              maps={visibleMaps}
-                              isTeacher
-                              onRefresh={fetchAll}
-                              onForceLogout={forceLogout}
-                            />
-                          </TabSuspense>
-                        )}
-                        {publicSettings?.modules?.stats_enabled !== false &&
-                          tab === 'stats' &&
-                          (canReadStats ? (
-                            <TabSuspense>
-                              <TeacherStatsLazy />
-                            </TabSuspense>
-                          ) : (
-                            <div className="empty">
-                              <p>
-                                Pas l’accès stats ici — demande un coup de main côté n3boss si
-                                besoin.
-                              </p>
-                            </div>
-                          ))}
-                        {tab === 'profiles' && (
-                          <TabSuspense>
-                            <ProfilesAdminViewLazy
-                              onImpersonationApplied={handleAdminImpersonationApplied}
-                            />
-                          </TabSuspense>
-                        )}
-                        {tab === 'audit' &&
-                          (hasPermission('audit.read') ? (
-                            <TabSuspense>
-                              <AuditLogLazy
-                                canReadSecurity={hasPermission('audit.security.read')}
-                              />
-                            </TabSuspense>
-                          ) : (
-                            <div className="empty">
-                              <p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p>
-                            </div>
-                          ))}
-                        {publicSettings?.modules?.visit_enabled !== false &&
-                          tab === 'mascot_packs' && (
-                            <div
-                              className="mascot-pack-studio-page"
-                              style={{ padding: '12px 16px 24px' }}
-                            >
-                              <h2 className="section-title" style={{ marginTop: 0 }}>
-                                Packs mascotte (visite)
-                              </h2>
-                              <p className="section-sub" style={{ marginBottom: 14 }}>
-                                Les packs publiés sont proposés aux visiteurs sur{' '}
-                                <strong>toutes les cartes</strong> de la visite.
-                              </p>
-                              <Suspense
-                                fallback={
-                                  <AppLoader
-                                    text="Chargement de l’éditeur packs mascotte…"
-                                    style={MASCOT_PACK_LOADER_STYLE}
-                                    textClassName="section-sub"
-                                  />
-                                }
-                              >
-                                <VisitMascotPackManagerLazy
-                                  variant="page"
-                                  onPacksChanged={fetchAll}
-                                  onForceLogout={forceLogout}
-                                  mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
-                                  onDirtyChange={onMascotPackDirtyChange}
-                                />
-                              </Suspense>
-                            </div>
-                          )}
-                        {tab === 'settings' && (
-                          <TabSuspense>
-                            <SettingsAdminViewLazy
-                              canReadSettings={hasPermissionInRole('admin.settings.read')}
-                              canWriteSettings={hasPermissionInRole('admin.settings.write')}
-                              canManageTours={hasPermissionInRole('tours.manage')}
-                              canManageMoodle={hasPermissionInRole('integrations.moodle.manage')}
-                              canManageZones={hasPermissionInRole('zones.manage')}
-                              canManageMarkers={hasPermissionInRole('map.manage_markers')}
-                              canWriteSecrets={hasPermissionInRole('admin.settings.secrets.write')}
-                            />
-                          </TabSuspense>
-                        )}
-                        {tab === 'media_library' && (
-                          <TabSuspense>
-                            <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
-                          </TabSuspense>
-                        )}
-                        {publicSettings?.modules?.observations_enabled !== false &&
-                          tab === 'notebook' &&
-                          (sessionUser?.id || authClaims?.userId) && (
-                            <TabSuspense>
-                              <ObservationNotebookLazy
-                                zones={zones}
-                                isTeacher={isTeacher}
-                                onForceLogout={forceLogout}
-                                onNavigateTab={(nav) => {
-                                  if (nav?.tab) navigateTab(nav.tab);
-                                }}
-                              />
-                            </TabSuspense>
-                          )}
-                        {tab === 'forum' && canAccessForum && (
-                          <TabSuspense>
-                            <ForumViewLazy authClaims={authClaims} canParticipateForum />
-                          </TabSuspense>
-                        )}
-                        <PedagoTabs
-                          isTeacher
-                          tab={tab}
-                          visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                          student={currentUser}
-                          tutorials={tutorials}
-                          activeMapId={activeMapId}
-                          zones={zones}
-                          markers={markers}
-                          onForceLogout={forceLogout}
-                          onOpenMascotPackStudioTab={openMascotPackStudioTab}
-                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          onPersistVisitMascotId={onPersistVisitMascotId}
-                          onOpenGlossaryTerm={openGlossaryPopover}
-                          onOpenQuizQuestion={openPedagoQuizQuestion}
-                          glossarySelectedCode={pedagoGlossaryCode}
-                          onGlossarySelectedCodeChange={setPedagoGlossaryCode}
-                          canManageQuiz={canManageQuiz}
-                          quizInitialQuestionCode={pedagoQuizQuestionCode}
-                          maps={visibleMaps}
-                          foodWebHighlightPlantId={foodWebHighlightPlantId}
-                          canManageFoodWeb={canManageFoodWeb}
-                          canManageIdKeys={canManageIdKeys}
-                          canManageIndividuals={canManageIndividuals}
-                          canMeasureIndividuals={canMeasureIndividuals}
-                          appVersion={appVersion}
-                          canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
-                          onOpenSettingsLearning={handleOpenSettingsLearning}
-                        />
-                      </>
-                    )}
-                  </main>
-                ) : (
-                  <>
                     <main
-                      className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
+                      className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
                     >
+                      <TeacherTopTabs
+                        tab={tab}
+                        onTabChange={handleTeacherTabChange}
+                        shouldUseDesktopSplit={shouldUseDesktopSplit}
+                        teacherPendingValidationCount={teacherPendingValidationCount}
+                        tutorialsModuleEnabled={tutorialsModuleEnabled}
+                        statsEnabled={publicSettings?.modules?.stats_enabled !== false}
+                        visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                        observationsEnabled={
+                          publicSettings?.modules?.observations_enabled !== false
+                        }
+                        canAccessForum={canAccessForum}
+                        isN3Affiliated={isN3Affiliated}
+                        hasPermission={hasPermission}
+                        hasPermissionInRole={hasPermissionInRole}
+                      />
                       {loading ? (
                         <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
                       ) : (
                         <>
                           <MapTasksArea
-                            isTeacher={false}
-                            student={studentForUi}
+                            isTeacher
+                            student={currentUser}
                             maps={visibleMaps}
                             onMapChange={chooseMap}
                             useSplitMapTasks={useSplitMapTasks}
                             tab={tab}
                             tutorialsModuleEnabled={tutorialsModuleEnabled}
-                            canAccessSoloMapTasks={canAccessStudentMapTasks}
-                            splitMapCanSelfAssignTasks={canSelfAssignTasks}
-                            canSelfAssignTasks={canSelfAssignTasks}
-                            canEnrollOnTasks={canSelfAssignMoreTasks}
-                            canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                            canAccessSoloMapTasks
+                            canSelfAssignTasks
+                            canViewOtherUsersIdentity
+                            hasPermission={hasPermission}
+                            hasPermissionInRole={hasPermissionInRole}
                             onZoneUpdate={updateZone}
                             onRefresh={fetchAll}
                             onForceLogout={forceLogout}
                             onLocationTasksFocus={handleMapLocationTasksFocus}
-                            onNavigateToTasksForLocation={navigateToTasksForLocation}
+                            onNavigateToTasksForLocation={
+                              effectiveIsTeacher || canAccessStudentMapTasks
+                                ? navigateToTasksForLocation
+                                : undefined
+                            }
                             onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
                             mapLocationFocus={tasksLocationFocus}
                             onMapLocationFocusChange={setTasksLocationFocus}
@@ -1704,11 +1553,13 @@ function App() {
                           />
                           {tab === 'plants' && (
                             <TabSuspense>
-                              <PlantViewerLazy
+                              <PlantManagerLazy
+                                onRefresh={fetchAll}
                                 onForceLogout={forceLogout}
                                 onOpenPlant={openPlantCatalogPreviewById}
                                 maps={visibleMaps}
                                 onActiveMapChange={setActiveMapId}
+                                canValidateHazards={hasPermissionInRole('plants.hazards.validate')}
                               />
                             </TabSuspense>
                           )}
@@ -1717,27 +1568,102 @@ function App() {
                               <TabSuspense>
                                 <TutorialsViewLazy
                                   maps={visibleMaps}
-                                  isTeacher={false}
+                                  isTeacher
                                   onRefresh={fetchAll}
                                   onForceLogout={forceLogout}
                                 />
                               </TabSuspense>
                             )}
-                          {tab === 'stats' && canViewGeneralStats && (
-                            <TabSuspense>
-                              <TeacherStatsLazy />
-                            </TabSuspense>
-                          )}
-                          {tab === 'profiles' && canAccessProfiles && (
+                          {publicSettings?.modules?.stats_enabled !== false &&
+                            tab === 'stats' &&
+                            (canReadStats ? (
+                              <TabSuspense>
+                                <TeacherStatsLazy />
+                              </TabSuspense>
+                            ) : (
+                              <div className="empty">
+                                <p>
+                                  Pas l’accès stats ici — demande un coup de main côté n3boss si
+                                  besoin.
+                                </p>
+                              </div>
+                            ))}
+                          {tab === 'profiles' && (
                             <TabSuspense>
                               <ProfilesAdminViewLazy
                                 onImpersonationApplied={handleAdminImpersonationApplied}
                               />
                             </TabSuspense>
                           )}
+                          {tab === 'audit' &&
+                            (hasPermission('audit.read') ? (
+                              <TabSuspense>
+                                <AuditLogLazy
+                                  canReadSecurity={hasPermission('audit.security.read')}
+                                />
+                              </TabSuspense>
+                            ) : (
+                              <div className="empty">
+                                <p>
+                                  Journal d’audit réservé — il te manque un droit pour l’ouvrir.
+                                </p>
+                              </div>
+                            ))}
+                          {publicSettings?.modules?.visit_enabled !== false &&
+                            tab === 'mascot_packs' && (
+                              <div
+                                className="mascot-pack-studio-page"
+                                style={{ padding: '12px 16px 24px' }}
+                              >
+                                <h2 className="section-title" style={{ marginTop: 0 }}>
+                                  Packs mascotte (visite)
+                                </h2>
+                                <p className="section-sub" style={{ marginBottom: 14 }}>
+                                  Les packs publiés sont proposés aux visiteurs sur{' '}
+                                  <strong>toutes les cartes</strong> de la visite.
+                                </p>
+                                <Suspense
+                                  fallback={
+                                    <AppLoader
+                                      text="Chargement de l’éditeur packs mascotte…"
+                                      style={MASCOT_PACK_LOADER_STYLE}
+                                      textClassName="section-sub"
+                                    />
+                                  }
+                                >
+                                  <VisitMascotPackManagerLazy
+                                    variant="page"
+                                    onPacksChanged={fetchAll}
+                                    onForceLogout={forceLogout}
+                                    mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
+                                    onDirtyChange={onMascotPackDirtyChange}
+                                  />
+                                </Suspense>
+                              </div>
+                            )}
+                          {tab === 'settings' && (
+                            <TabSuspense>
+                              <SettingsAdminViewLazy
+                                canReadSettings={hasPermissionInRole('admin.settings.read')}
+                                canWriteSettings={hasPermissionInRole('admin.settings.write')}
+                                canManageTours={hasPermissionInRole('tours.manage')}
+                                canManageMoodle={hasPermissionInRole('integrations.moodle.manage')}
+                                canManageZones={hasPermissionInRole('zones.manage')}
+                                canManageMarkers={hasPermissionInRole('map.manage_markers')}
+                                canWriteSecrets={hasPermissionInRole(
+                                  'admin.settings.secrets.write',
+                                )}
+                              />
+                            </TabSuspense>
+                          )}
+                          {tab === 'media_library' && (
+                            <TabSuspense>
+                              <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
+                            </TabSuspense>
+                          )}
                           {publicSettings?.modules?.observations_enabled !== false &&
                             tab === 'notebook' &&
-                            (studentForUi?.id || sessionUser?.id || authClaims?.userId) && (
+                            (sessionUser?.id || authClaims?.userId) && (
                               <TabSuspense>
                                 <ObservationNotebookLazy
                                   zones={zones}
@@ -1751,28 +1677,27 @@ function App() {
                             )}
                           {tab === 'forum' && canAccessForum && (
                             <TabSuspense>
-                              <ForumViewLazy
-                                authClaims={authClaims}
-                                canParticipateForum={canParticipateForum}
-                              />
+                              <ForumViewLazy authClaims={authClaims} canParticipateForum />
                             </TabSuspense>
                           )}
                           <PedagoTabs
-                            isTeacher={false}
+                            isTeacher
                             tab={tab}
                             visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                            student={studentForUi}
+                            student={currentUser}
                             tutorials={tutorials}
                             activeMapId={activeMapId}
                             zones={zones}
                             markers={markers}
                             onForceLogout={forceLogout}
+                            onOpenMascotPackStudioTab={openMascotPackStudioTab}
                             onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                             onPersistVisitMascotId={onPersistVisitMascotId}
                             onOpenGlossaryTerm={openGlossaryPopover}
                             onOpenQuizQuestion={openPedagoQuizQuestion}
                             glossarySelectedCode={pedagoGlossaryCode}
                             onGlossarySelectedCodeChange={setPedagoGlossaryCode}
+                            canManageQuiz={canManageQuiz}
                             quizInitialQuestionCode={pedagoQuizQuestionCode}
                             maps={visibleMaps}
                             foodWebHighlightPlantId={foodWebHighlightPlantId}
@@ -1781,34 +1706,155 @@ function App() {
                             canManageIndividuals={canManageIndividuals}
                             canMeasureIndividuals={canMeasureIndividuals}
                             appVersion={appVersion}
+                            canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
+                            onOpenSettingsLearning={handleOpenSettingsLearning}
                           />
                         </>
                       )}
                     </main>
-                    <StudentBottomNav
-                      tab={tab}
-                      onTabChange={navigateTab}
-                      canAccessStudentMapTasks={canAccessStudentMapTasks}
-                      isVisitor={isVisitor}
-                      shouldUseDesktopSplit={shouldUseDesktopSplit}
-                      tutorialsModuleEnabled={tutorialsModuleEnabled}
-                      canAccessTutorials={canAccessTutorials}
-                      studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
-                      canViewGeneralStats={canViewGeneralStats}
-                      canAccessProfiles={canAccessProfiles}
-                      profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
-                      observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
-                      visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                      canAccessForum={canAccessForum}
-                    />
-                  </>
-                )}
-                <AppFooter versionPrefix={appFooterVersionPrefix} appVersion={appVersion} />
-              </div>
-            </TourProvider>
-          </DataProvider>
-        </SessionProvider>
-      </AppDialogsProvider>
+                  ) : (
+                    <>
+                      <main
+                        className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
+                      >
+                        {loading ? (
+                          <AppLoader text={appLoaderText} style={FULL_PAGE_LOADER_STYLE} />
+                        ) : (
+                          <>
+                            <MapTasksArea
+                              isTeacher={false}
+                              student={studentForUi}
+                              maps={visibleMaps}
+                              onMapChange={chooseMap}
+                              useSplitMapTasks={useSplitMapTasks}
+                              tab={tab}
+                              tutorialsModuleEnabled={tutorialsModuleEnabled}
+                              canAccessSoloMapTasks={canAccessStudentMapTasks}
+                              splitMapCanSelfAssignTasks={canSelfAssignTasks}
+                              canSelfAssignTasks={canSelfAssignTasks}
+                              canEnrollOnTasks={canSelfAssignMoreTasks}
+                              canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                              onZoneUpdate={updateZone}
+                              onRefresh={fetchAll}
+                              onForceLogout={forceLogout}
+                              onLocationTasksFocus={handleMapLocationTasksFocus}
+                              onNavigateToTasksForLocation={navigateToTasksForLocation}
+                              onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                              mapLocationFocus={tasksLocationFocus}
+                              onMapLocationFocusChange={setTasksLocationFocus}
+                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                              onPersistVisitMascotId={onPersistVisitMascotId}
+                            />
+                            {tab === 'plants' && (
+                              <TabSuspense>
+                                <PlantViewerLazy
+                                  onForceLogout={forceLogout}
+                                  onOpenPlant={openPlantCatalogPreviewById}
+                                  maps={visibleMaps}
+                                  onActiveMapChange={setActiveMapId}
+                                />
+                              </TabSuspense>
+                            )}
+                            {publicSettings?.modules?.tutorials_enabled !== false &&
+                              tab === 'tuto' && (
+                                <TabSuspense>
+                                  <TutorialsViewLazy
+                                    maps={visibleMaps}
+                                    isTeacher={false}
+                                    onRefresh={fetchAll}
+                                    onForceLogout={forceLogout}
+                                  />
+                                </TabSuspense>
+                              )}
+                            {tab === 'stats' && canViewGeneralStats && (
+                              <TabSuspense>
+                                <TeacherStatsLazy />
+                              </TabSuspense>
+                            )}
+                            {tab === 'profiles' && canAccessProfiles && (
+                              <TabSuspense>
+                                <ProfilesAdminViewLazy
+                                  onImpersonationApplied={handleAdminImpersonationApplied}
+                                />
+                              </TabSuspense>
+                            )}
+                            {publicSettings?.modules?.observations_enabled !== false &&
+                              tab === 'notebook' &&
+                              (studentForUi?.id || sessionUser?.id || authClaims?.userId) && (
+                                <TabSuspense>
+                                  <ObservationNotebookLazy
+                                    zones={zones}
+                                    isTeacher={isTeacher}
+                                    onForceLogout={forceLogout}
+                                    onNavigateTab={(nav) => {
+                                      if (nav?.tab) navigateTab(nav.tab);
+                                    }}
+                                  />
+                                </TabSuspense>
+                              )}
+                            {tab === 'forum' && canAccessForum && (
+                              <TabSuspense>
+                                <ForumViewLazy
+                                  authClaims={authClaims}
+                                  canParticipateForum={canParticipateForum}
+                                />
+                              </TabSuspense>
+                            )}
+                            <PedagoTabs
+                              isTeacher={false}
+                              tab={tab}
+                              visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                              student={studentForUi}
+                              tutorials={tutorials}
+                              activeMapId={activeMapId}
+                              zones={zones}
+                              markers={markers}
+                              onForceLogout={forceLogout}
+                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                              onPersistVisitMascotId={onPersistVisitMascotId}
+                              onOpenGlossaryTerm={openGlossaryPopover}
+                              onOpenQuizQuestion={openPedagoQuizQuestion}
+                              glossarySelectedCode={pedagoGlossaryCode}
+                              onGlossarySelectedCodeChange={setPedagoGlossaryCode}
+                              quizInitialQuestionCode={pedagoQuizQuestionCode}
+                              maps={visibleMaps}
+                              foodWebHighlightPlantId={foodWebHighlightPlantId}
+                              canManageFoodWeb={canManageFoodWeb}
+                              canManageIdKeys={canManageIdKeys}
+                              canManageIndividuals={canManageIndividuals}
+                              canMeasureIndividuals={canMeasureIndividuals}
+                              appVersion={appVersion}
+                            />
+                          </>
+                        )}
+                      </main>
+                      <StudentBottomNav
+                        tab={tab}
+                        onTabChange={navigateTab}
+                        canAccessStudentMapTasks={canAccessStudentMapTasks}
+                        isVisitor={isVisitor}
+                        shouldUseDesktopSplit={shouldUseDesktopSplit}
+                        tutorialsModuleEnabled={tutorialsModuleEnabled}
+                        canAccessTutorials={canAccessTutorials}
+                        studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+                        canViewGeneralStats={canViewGeneralStats}
+                        canAccessProfiles={canAccessProfiles}
+                        profilesLabel={isClassTeacher ? 'Classe' : 'Profils'}
+                        observationsEnabled={
+                          publicSettings?.modules?.observations_enabled !== false
+                        }
+                        visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                        canAccessForum={canAccessForum}
+                      />
+                    </>
+                  )}
+                  <AppFooter versionPrefix={appFooterVersionPrefix} appVersion={appVersion} />
+                </div>
+              </TourProvider>
+            </DataProvider>
+          </SessionProvider>
+        </AppDialogsProvider>
+      </BiodivPedagoProvider>
     </PublicSettingsProvider>
   );
 }

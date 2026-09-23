@@ -15,6 +15,7 @@ import {
   buildNotionOptions,
   curriculumNiveauLabel,
 } from '../../utils/curriculumNotions.js';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 const NIVEAU_OPTIONS = [
   { value: '', label: 'Tous niveaux' },
@@ -161,9 +162,21 @@ export function GlossaryView({
   );
 
   const notions = useCurriculumNotions();
+  const { curriculumNiveaux } = useBiodivPedago();
+  const curriculumNiveauOptions = useMemo(() => {
+    if (!curriculumNiveaux) return CURRICULUM_NIVEAU_OPTIONS;
+    const allowed = new Set(curriculumNiveaux);
+    return CURRICULUM_NIVEAU_OPTIONS.filter((opt) => !opt.value || allowed.has(opt.value));
+  }, [curriculumNiveaux]);
+  const notionsForLevel = useMemo(() => {
+    if (!curriculumNiveaux) return notions;
+    const allowed = new Set(curriculumNiveaux);
+    return notions.filter((n) => allowed.has(n.niveau));
+  }, [notions, curriculumNiveaux]);
   const visibleNotions = useMemo(
-    () => (notionNiveau ? notions.filter((n) => n.niveau === notionNiveau) : notions),
-    [notions, notionNiveau],
+    () =>
+      notionNiveau ? notionsForLevel.filter((n) => n.niveau === notionNiveau) : notionsForLevel,
+    [notionsForLevel, notionNiveau],
   );
   const notionOptions = useMemo(
     () => buildNotionOptions(visibleNotions, { countKey: 'glossary_count' }),
@@ -238,7 +251,7 @@ export function GlossaryView({
             value={notionNiveau}
             onChange={(e) => setNotionNiveau(e.target.value)}
           >
-            {CURRICULUM_NIVEAU_OPTIONS.map((opt) => (
+            {curriculumNiveauOptions.map((opt) => (
               <option key={opt.value || 'all'} value={opt.value}>
                 {opt.label}
               </option>

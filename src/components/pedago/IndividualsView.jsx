@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete } from '../../shared/icons.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 
@@ -51,6 +52,8 @@ export function IndividualsView({
   onOpenPlant = null,
 }) {
   const { plants = [] } = useData() || {};
+  const { visibility } = useBiodivPedago();
+  const biomassVisibility = visibility('biomass_estimates');
   const { confirm } = useAppDialogs();
   const [mapId, setMapId] = useState(initialMapId || '');
   const [items, setItems] = useState([]);
@@ -302,17 +305,31 @@ export function IndividualsView({
             ) : null}
           </h3>
           <GrowthChart measurements={detail.measurements} />
-          {latestEstimate ? (
-            <div className="individuals-estimate" role="note">
-              <p>
-                D ≈ {latestEstimate.diameter_cm?.toFixed?.(1)} cm · biomasse ≈{' '}
-                {latestEstimate.biomass_kg} kg · C ≈ {latestEstimate.carbon_kg} kg · CO₂ ≈{' '}
-                {latestEstimate.co2_kg} kg
-              </p>
-              <p className="individuals-estimate__disclaimer">
-                {disclaimer || latestEstimate.disclaimer}
-              </p>
-            </div>
+          {latestEstimate && biomassVisibility !== 'hide' ? (
+            biomassVisibility === 'collapsed' ? (
+              <details className="individuals-estimate" role="note">
+                <summary>Pour aller plus loin — ordre de grandeur (biomasse / carbone)</summary>
+                <p>
+                  D ≈ {latestEstimate.diameter_cm?.toFixed?.(1)} cm · biomasse ≈{' '}
+                  {latestEstimate.biomass_kg} kg · C ≈ {latestEstimate.carbon_kg} kg · CO₂ ≈{' '}
+                  {latestEstimate.co2_kg} kg
+                </p>
+                <p className="individuals-estimate__disclaimer">
+                  {disclaimer || latestEstimate.disclaimer}
+                </p>
+              </details>
+            ) : (
+              <div className="individuals-estimate" role="note">
+                <p>
+                  D ≈ {latestEstimate.diameter_cm?.toFixed?.(1)} cm · biomasse ≈{' '}
+                  {latestEstimate.biomass_kg} kg · C ≈ {latestEstimate.carbon_kg} kg · CO₂ ≈{' '}
+                  {latestEstimate.co2_kg} kg
+                </p>
+                <p className="individuals-estimate__disclaimer">
+                  {disclaimer || latestEstimate.disclaimer}
+                </p>
+              </div>
+            )
           ) : (
             <p className="muted">{disclaimer}</p>
           )}
