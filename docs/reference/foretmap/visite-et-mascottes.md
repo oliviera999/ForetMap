@@ -412,6 +412,10 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > pas d'historique de versions : publier écrase l'état précédent (exporter une archive
 > avant les grands changements fait office de sauvegarde).
 
+> 🔧 **À implémenter :** en visite invitée, appliquer systématiquement l’affichage
+> biodiversité **Collège** (pas d’outils lycée / université) — voir
+> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Carte et zones](carte-et-zones.md) · [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md) (visite invitée = affichage Collège) · [Sommaire](../README.md)
