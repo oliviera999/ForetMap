@@ -52,6 +52,7 @@ function GroupSettingsPanel({
   const [defaultRoleId, setDefaultRoleId] = useState('');
   const [forceDefaultRole, setForceDefaultRole] = useState(false);
   const [parentGroupId, setParentGroupId] = useState('');
+  const [pedagoLevel, setPedagoLevel] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -61,6 +62,7 @@ function GroupSettingsPanel({
     setDefaultRoleId(group?.default_role_id != null ? String(group.default_role_id) : '');
     setForceDefaultRole(!!group?.force_default_role);
     setParentGroupId(group?.parent_group_id != null ? String(group.parent_group_id) : '');
+    setPedagoLevel(group?.pedago_level || '');
     setClassCode(group?.class_code || null);
   }, [group]);
 
@@ -92,6 +94,7 @@ function GroupSettingsPanel({
     try {
       const body = {
         parent_group_id: parentGroupId || null,
+        pedago_level: pedagoLevel || null,
       };
       if (canManageDefaultRole) {
         body.default_role_id = defaultRoleId ? Number(defaultRoleId) : null;
@@ -145,6 +148,19 @@ function GroupSettingsPanel({
         <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
           Un sous-groupe hérite du périmètre cartes de sa classe et reste visible par ses
           responsables. Choisir « Aucun » le détache.
+        </small>
+      </div>
+      <div className="field" data-testid="group-pedago-level">
+        <label>Niveau pédagogique biodiversité</label>
+        <select value={pedagoLevel} onChange={(e) => setPedagoLevel(e.target.value)}>
+          <option value="">— Hériter (défaut site / carte) —</option>
+          <option value="college">Collège</option>
+          <option value="lycee">Lycée</option>
+          <option value="universite">Université</option>
+        </select>
+        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          Adapte l’affichage biodiversité pour les membres de ce groupe. Si plusieurs groupes fixent
+          un niveau, le plus simple l’emporte.
         </small>
       </div>
       <div className="field">

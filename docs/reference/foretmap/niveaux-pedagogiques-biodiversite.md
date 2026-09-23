@@ -5,12 +5,11 @@
 > élèves, sans jargon technique.
 > Retour au sommaire : [../README.md](../README.md)
 
-> 🔧 **À implémenter :** l’essentiel de ce document (niveaux, réglages, masquages,
-> séances guidées) **n’est pas encore dans l’application**. Aujourd’hui, les outils
-> biodiversité avancés (groupes emboîtés, qualité des liens du réseau, suivi d’arbres
-> et estimations, etc.) sont visibles dès qu’ils existent, sans filtre de niveau. Ce
-> texte sert de cahier des charges pédagogique et de guide pour préparer des séances
-> **à la main** en attendant le code.
+> **Lot A livré :** les trois niveaux d’affichage, les réglages (compte, carte, groupe,
+> défaut établissement), la visite invitée en Collège, l’aperçu professeur « Voir comme
+> un élève », et les masquages catalogue / réseau / groupes / individus / quiz-glossaire
+> sont **en place**. Les **séances guidées** dans l’application restent à venir (section
+> dédiée plus bas).
 
 ## À quoi ça sert
 
@@ -82,7 +81,7 @@ Public typique : licence, formation d’enseignants, projets de recherche pédag
 
 ## Qui règle le niveau, et où
 
-Trois endroits complémentaires (à implémenter) :
+Trois endroits complémentaires :
 
 | Où                              | Qui le règle                                            | À quoi ça sert                                                                            |
 | ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -90,23 +89,22 @@ Trois endroits complémentaires (à implémenter) :
 | **Carte**                       | Professeur / admin sur une carte (forêt, daya, sortie…) | Une sortie terrain « collège » sur la daya, une carte « lycée » pour la forêt comestible. |
 | **Groupe**                      | Professeur / admin sur un groupe (classe, club…)        | Toute la 4ᵉ B en collège ; le club SVT Terminale en lycée ou université.                  |
 
-### Ordre proposé quand plusieurs réglages coexistent
+### Ordre quand plusieurs réglages coexistent
 
 Du plus fort au plus faible :
 
-1. **Visite invitée** → toujours **Collège** (voir ci-dessous) — non contournable.
-2. **Préférence personnelle** de l’utilisateur connecté, si elle est renseignée.
-3. **Niveau du groupe** auquel l’utilisateur est rattaché pour la séance (s’il y en a
-   plusieurs, retenir le **plus simple** parmi collège ≺ lycée ≺ université, pour ne
-   pas surcharger un collégien placé par erreur dans un groupe mixte).
-4. **Niveau de la carte** active (celle qu’on est en train de consulter).
-5. **Défaut de l’établissement** (à définir par l’admin ; proposition : **Lycée** pour
-   un lycée, **Collège** si le public dominant est collégien).
+1. **Visite invitée** → toujours **Collège** — non contournable.
+2. **Aperçu professeur** « Voir comme un élève — Collège / Lycée / Université » (session
+   uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
+3. **Socle** = le **plus simple** parmi le niveau du **groupe** (s’il y en a plusieurs,
+   le plus simple l’emporte), le niveau de la **carte** active, et le **défaut de
+   l’établissement** (réglage admin ; proposition : **Lycée**).
+4. **Préférence personnelle** : par défaut elle ne peut que **simplifier** par rapport
+   au socle. Un administrateur peut cocher l’option qui autorise à **relever** le niveau
+   (projets ponctuels, club science…).
 
-> 🔧 **À implémenter :** écrans de réglage (compte, fiche carte, fiche groupe), défaut
-> établissement, et application réelle des masquages dans le catalogue, le réseau, les
-> clés, les groupes emboîtés et le suivi d’individus. Prévoir aussi un bouton
-> « Voir comme un élève — Collège / Lycée / Université » pour le professeur.
+Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
+validation, administration), quel que soit le niveau fixé pour les élèves.
 
 ## Visite invitée
 

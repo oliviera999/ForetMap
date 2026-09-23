@@ -319,6 +319,28 @@ export function MapsAdminPanel({
                 />{' '}
                 Active
               </label>
+              <label className="field" style={{ minWidth: 160 }}>
+                <span style={{ display: 'block', fontSize: 'var(--text-xs)', marginBottom: 2 }}>
+                  Niveau pédagogique
+                </span>
+                <select
+                  value={m.pedago_level || ''}
+                  disabled={readOnly || mapSavingKey === `map:${m.id}`}
+                  onChange={(e) =>
+                    saveMap(
+                      m.id,
+                      { pedago_level: e.target.value || null },
+                      'Niveau pédagogique enregistré',
+                    )
+                  }
+                  data-testid={`map-pedago-level-${m.id}`}
+                >
+                  <option value="">— Hériter (défaut site) —</option>
+                  <option value="college">Collège</option>
+                  <option value="lycee">Lycée</option>
+                  <option value="universite">Université</option>
+                </select>
+              </label>
             </div>
             <div style={{ marginTop: 8 }}>
               <AdminTextSettingField

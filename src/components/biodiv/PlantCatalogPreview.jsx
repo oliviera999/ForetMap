@@ -29,6 +29,7 @@ import { PlantDeterminationSection } from './PlantDeterminationSection.jsx';
 import { PlantCladeBreadcrumb } from './PlantCladeBreadcrumb.jsx';
 import { PlantHazardSection, PlantHealthRiskSection } from './PlantHazardSection.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import {
   IconBiodiv,
   IconClose,
@@ -63,6 +64,9 @@ export function PlantBiodiversityCatalogPreviewCard({
   onOpenQuizQuestion = null,
   onNavigateToFoodWeb = null,
 }) {
+  const { visibility, canShow } = useBiodivPedago();
+  const latinVisibility = visibility('accepted_name_gbif_latin');
+  const showClade = canShow('clade_breadcrumb');
   if (!plant) return null;
   const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
   const pMarkers = markers.filter((m) => plantLinkedToMapMarker(plant, m));
@@ -91,16 +95,33 @@ export function PlantBiodiversityCatalogPreviewCard({
           <span className="biodiv-emoji">{plant.emoji}</span>
           <div className="biodiv-card-title-content">
             <h3>{plant.name}</h3>
-            <p className="plant-scientific">{usageName || 'Nom scientifique non renseigne'}</p>
-            {showAccepted ? (
-              <p className="plant-accepted-name">Nom accepté : {acceptedName}</p>
-            ) : null}
-            {gbifHref ? (
-              <p className="plant-gbif-link">
-                <a href={gbifHref} target="_blank" rel="noopener noreferrer">
-                  Fiche GBIF
-                </a>
-              </p>
+            {latinVisibility !== 'hide' ? (
+              <>
+                <p className="plant-scientific">{usageName || 'Nom scientifique non renseigne'}</p>
+                {showAccepted && latinVisibility === 'open' ? (
+                  <p className="plant-accepted-name">Nom accepté : {acceptedName}</p>
+                ) : null}
+                {showAccepted && latinVisibility === 'collapsed' ? (
+                  <details className="plant-accepted-name-details">
+                    <summary>Nom accepté / classification</summary>
+                    <p className="plant-accepted-name">Nom accepté : {acceptedName}</p>
+                    {gbifHref ? (
+                      <p className="plant-gbif-link">
+                        <a href={gbifHref} target="_blank" rel="noopener noreferrer">
+                          Fiche GBIF
+                        </a>
+                      </p>
+                    ) : null}
+                  </details>
+                ) : null}
+                {latinVisibility === 'open' && gbifHref ? (
+                  <p className="plant-gbif-link">
+                    <a href={gbifHref} target="_blank" rel="noopener noreferrer">
+                      Fiche GBIF
+                    </a>
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </div>
         </div>
@@ -124,7 +145,7 @@ export function PlantBiodiversityCatalogPreviewCard({
         <PlantHealthRiskSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
         <PlantDeterminationSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
-        <PlantCladeBreadcrumb plant={plant} />
+        {showClade ? <PlantCladeBreadcrumb plant={plant} /> : null}
         <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantTaxonomyLine plant={plant} />
         <PlantSiteNotesBlock plant={plant} activeMapId={previewMapId} maps={maps} />

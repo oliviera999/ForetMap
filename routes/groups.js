@@ -234,6 +234,7 @@ router.get(
         parent_group_id: g.parent_group_id || null,
         default_role_id: g.default_role_id ?? null,
         force_default_role: Number(g.force_default_role) !== 0,
+        pedago_level: g.pedago_level || null,
       })),
     });
   }),
@@ -500,6 +501,20 @@ router.patch(
     if (forceError) return res.status(400).json({ error: forceError });
     if (!slug || !name) return res.status(400).json({ error: 'slug et name requis' });
     if (!kind) return res.status(400).json({ error: 'kind invalide (class|team|unit|club)' });
+    const { normalizePedagoLevel } = require('../lib/biodivPedagoLevel');
+    let pedagoLevel = normalizePedagoLevel(group.pedago_level);
+    if (req.body?.pedago_level !== undefined) {
+      if (req.body.pedago_level == null || String(req.body.pedago_level).trim() === '') {
+        pedagoLevel = null;
+      } else {
+        pedagoLevel = normalizePedagoLevel(req.body.pedago_level);
+        if (!pedagoLevel) {
+          return res
+            .status(400)
+            .json({ error: 'pedago_level invalide (college|lycee|universite)' });
+        }
+      }
+    }
     if (parentGroupId && parentGroupId === id)
       return res.status(400).json({ error: 'Un groupe ne peut pas être son propre parent' });
     if (parentGroupId) {
@@ -538,7 +553,7 @@ router.patch(
       await execute(
         `UPDATE \`groups\`
           SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
-              default_role_id = ?, force_default_role = ?,
+              default_role_id = ?, force_default_role = ?, pedago_level = ?,
               is_active = ?, updated_at = NOW()
         WHERE id = ?`,
         [
@@ -549,12 +564,38 @@ router.patch(
           parentGroupId,
           defaultRoleId,
           forceDefaultRole ? 1 : 0,
+          pedagoLevel,
           isActive,
           id,
         ],
       );
     } catch (err) {
-      rethrowSlugConflict(err);
+      if (err && (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR')) {
+        try {
+          await execute(
+            `UPDATE \`groups\`
+              SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
+                  default_role_id = ?, force_default_role = ?,
+                  is_active = ?, updated_at = NOW()
+            WHERE id = ?`,
+            [
+              slug,
+              name,
+              description,
+              kind,
+              parentGroupId,
+              defaultRoleId,
+              forceDefaultRole ? 1 : 0,
+              isActive,
+              id,
+            ],
+          );
+        } catch (err2) {
+          rethrowSlugConflict(err2);
+        }
+      } else {
+        rethrowSlugConflict(err);
+      }
     }
 
     // Profil par défaut, imposition ou activité modifiés : le profil effectif des membres est

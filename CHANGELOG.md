@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Niveaux pédagogiques biodiversité (lot A)
+
+- Trois niveaux d’affichage (**Collège / Lycée / Université**) avec résolution
+  visite invitée → aperçu prof → min(groupe, carte, défaut site) → préférence
+  (abaissement seul sauf `ui.biodiv.pedago_pref_can_raise`).
+- Migration **280** (`maps.pedago_level`, `groups.pedago_level`,
+  `users.biodiv_pedago_level`) ; réglages admin ; écrans carte / groupe / profil ;
+  masquages fiches, réseau, onglets, quiz/glossaire ; aperçu « Voir comme un élève ».
+- Doc de référence mise au présent (séances guidées app restent `🔧`).
+
 ### Corrigé — parcours invisibles en Visite et sur la carte avec tâches
 
 - **Cause.** Un parcours neuf naissait coché **Plan seul** ; le catalogue Visite en prod
@@ -25,11 +35,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Ajouté — Doc de référence : niveaux pédagogiques biodiversité
 
-- Nouveau guide
-  [niveaux-pedagogiques-biodiversite.md](docs/reference/foretmap/niveaux-pedagogiques-biodiversite.md) :
-  niveaux **Collège / Lycée / Université**, réglages souhaités (compte, carte, groupe),
-  visite invitée toujours en Collège, séances types papier ; marqueurs `🔧 À implémenter`
-  (pas de code dans ce lot).
+- Guide
+  [niveaux-pedagogiques-biodiversite.md](docs/reference/foretmap/niveaux-pedagogiques-biodiversite.md)
+  (niveaux, réglages, visite invitée, séances papier) — **lot A** désormais implémenté
+  (voir entrée ci-dessus) ; séances app encore `🔧`.
 
 ### Correctif — le badge « non lus » des commentaires ne s'allumait jamais
 

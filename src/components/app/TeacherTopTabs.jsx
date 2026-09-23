@@ -43,6 +43,8 @@ import {
   IconVisit,
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { PEDAGO_LEVEL_LABELS, PEDAGO_LEVELS } from '../../utils/biodivPedagoLevel.js';
 
 const POLES = [
   { id: 'contents', label: 'Contenus', Icon: IconPoleContents },
@@ -102,6 +104,14 @@ export function TeacherTopTabs({
   const isCompact =
     layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
 
+  const {
+    canShow,
+    canTeacherPreview,
+    teacherPreview,
+    setTeacherPreview,
+    level: effectivePedagoLevel,
+  } = useBiodivPedago();
+
   const pendingCount = teacherPendingValidationCount > 0 ? teacherPendingValidationCount : 0;
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
   const mapTasksText = tutorialsModuleEnabled ? 'Cartes, tâches et tuto' : 'Cartes & tâches';
@@ -149,7 +159,7 @@ export function TeacherTopTabs({
       pole: 'contents',
       Icon: IconBiodiv,
       label: 'Groupes emboîtés',
-      visible: canPlants,
+      visible: canPlants && canShow('nested_groups_tab'),
     },
     {
       id: 'id-keys',
@@ -164,7 +174,10 @@ export function TeacherTopTabs({
       Icon: IconBiodiv,
       label: 'Individus',
       visible:
-        hasPermission('individuals.manage') || hasPermission('individuals.measure') || canPlants,
+        (hasPermission('individuals.manage') ||
+          hasPermission('individuals.measure') ||
+          canPlants) &&
+        canShow('individuals_tab'),
     },
     {
       id: 'tuto',
@@ -312,6 +325,40 @@ export function TeacherTopTabs({
           </div>
         ) : null}
       </nav>
+      {canTeacherPreview ? (
+        <div
+          className="biodiv-pedago-preview"
+          data-testid="biodiv-pedago-preview"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '4px 10px',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--ink-soft)',
+          }}
+        >
+          <label htmlFor="biodiv-pedago-preview-select">Voir comme un élève</label>
+          <select
+            id="biodiv-pedago-preview-select"
+            value={teacherPreview || ''}
+            onChange={(e) => setTeacherPreview(e.target.value || null)}
+            aria-label="Aperçu niveau pédagogique biodiversité"
+          >
+            <option value="">— Vue gestion (complet) —</option>
+            {PEDAGO_LEVELS.map((lv) => (
+              <option key={lv} value={lv}>
+                {PEDAGO_LEVEL_LABELS[lv]}
+              </option>
+            ))}
+          </select>
+          {teacherPreview ? (
+            <span aria-live="polite">
+              Aperçu {PEDAGO_LEVEL_LABELS[effectivePedagoLevel] || effectivePedagoLevel}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {isCompact ? (
         <BottomSheet
           open={drawerOpen}

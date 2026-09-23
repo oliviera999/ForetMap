@@ -61,6 +61,8 @@ const MAP_SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
 
+const { normalizePedagoLevel } = require('../lib/biodivPedagoLevel');
+
 const router = express.Router();
 
 function parseBoolean(value, fallback) {
@@ -70,31 +72,26 @@ function parseBoolean(value, fallback) {
   return fallback;
 }
 
+const MAP_SELECT_FULL =
+  'id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled, pedago_level';
+const MAP_SELECT_LEGACY =
+  'id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled, 1 AS scale_compass_enabled, NULL AS pedago_level';
+
 async function getMapById(id) {
   try {
-    return await queryOne(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled FROM maps WHERE id = ? LIMIT 1',
-      [id],
-    );
+    return await queryOne(`SELECT ${MAP_SELECT_FULL} FROM maps WHERE id = ? LIMIT 1`, [id]);
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-    return queryOne(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled, 1 AS scale_compass_enabled FROM maps WHERE id = ? LIMIT 1',
-      [id],
-    );
+    return queryOne(`SELECT ${MAP_SELECT_LEGACY} FROM maps WHERE id = ? LIMIT 1`, [id]);
   }
 }
 
 async function listMaps() {
   try {
-    return await queryAll(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled FROM maps ORDER BY sort_order ASC, label ASC',
-    );
+    return await queryAll(`SELECT ${MAP_SELECT_FULL} FROM maps ORDER BY sort_order ASC, label ASC`);
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-    return queryAll(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled, 1 AS scale_compass_enabled FROM maps ORDER BY sort_order ASC, label ASC',
-    );
+    return queryAll(`SELECT ${MAP_SELECT_LEGACY} FROM maps ORDER BY sort_order ASC, label ASC`);
   }
 }
 
@@ -104,6 +101,7 @@ function serializeMap(row) {
     ...row,
     map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
     is_active: !!row.is_active,
+    pedago_level: normalizePedagoLevel(row.pedago_level),
   });
 }
 
@@ -475,13 +473,26 @@ router.put(
             return Math.min(Math.max(n, 0), 32);
           })();
     const isActive = parseBoolean(req.body?.is_active, !!map.is_active);
+    const pedagoLevel =
+      req.body?.pedago_level !== undefined
+        ? normalizePedagoLevel(req.body.pedago_level)
+        : normalizePedagoLevel(map.pedago_level);
+    if (
+      req.body?.pedago_level !== undefined &&
+      req.body.pedago_level != null &&
+      String(req.body.pedago_level).trim() !== '' &&
+      pedagoLevel == null
+    ) {
+      return res.status(400).json({ error: 'pedago_level invalide (college|lycee|universite)' });
+    }
     if (!label) return res.status(400).json({ error: 'Label requis' });
     try {
       await execute(
         `UPDATE maps
-            SET label = ?, map_image_url = ?, sort_order = ?, frame_padding_px = ?, is_active = ?
+            SET label = ?, map_image_url = ?, sort_order = ?, frame_padding_px = ?, is_active = ?,
+                pedago_level = ?
           WHERE id = ?`,
-        [label, mapImageUrl, sortOrder, framePadding, isActive ? 1 : 0, map.id],
+        [label, mapImageUrl, sortOrder, framePadding, isActive ? 1 : 0, pedagoLevel, map.id],
       );
     } catch (e) {
       if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
@@ -502,6 +513,7 @@ router.put(
         sort_order: updated.sort_order,
         frame_padding_px: updated.frame_padding_px,
         is_active: !!updated.is_active,
+        pedago_level: normalizePedagoLevel(updated.pedago_level),
       },
     });
     res.json(serializeMap(updated));

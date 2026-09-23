@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS maps (
   geo_anchors_json LONGTEXT DEFAULT NULL,
   gps_enabled TINYINT(1) NOT NULL DEFAULT 0,
   heading_up_enabled TINYINT(1) NOT NULL DEFAULT 0,
-  scale_compass_enabled TINYINT(1) NOT NULL DEFAULT 1
+  scale_compass_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  pedago_level ENUM('college','lycee','universite') DEFAULT NULL
+    COMMENT 'Niveau pédagogique biodiversité pour cette carte (NULL = hériter)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES
   ('foret', 'Forêt comestible', '/maps/map-foret.svg', 1),
@@ -541,6 +543,8 @@ CREATE TABLE IF NOT EXISTS users (
   sync_exempt TINYINT(1) NOT NULL DEFAULT 0,
   last_seen VARCHAR(32) DEFAULT NULL,
   discovery_tour_seen_json LONGTEXT NULL COMMENT 'JSON des visites guidees deja presentees (welcome, map, ...)',
+  biodiv_pedago_level ENUM('college','lycee','universite') DEFAULT NULL
+    COMMENT 'Preference personnelle affichage biodiversite (NULL = heriter)',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_users_type_legacy (user_type, legacy_user_id),
@@ -782,6 +786,8 @@ CREATE TABLE IF NOT EXISTS `groups` (
   -- Profil par défaut autoritaire plutôt que simple plancher (migration 265) : s'applique
   -- même en baisse et met le compte hors de la montée automatique par tâches validées.
   force_default_role TINYINT(1) NOT NULL DEFAULT 0,
+  pedago_level ENUM('college','lycee','universite') DEFAULT NULL
+    COMMENT 'Niveau pédagogique biodiversité pour ce groupe (NULL = hériter)',
   class_code VARCHAR(16) DEFAULT NULL,
   UNIQUE KEY uq_groups_class_code (class_code),
   is_active TINYINT(1) NOT NULL DEFAULT 1,

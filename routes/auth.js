@@ -374,6 +374,12 @@ router.get('/me', requireAuth, async (req, res) => {
     } catch (_) {
       body.discoveryTourSeen = {};
     }
+    try {
+      const { loadUserGroupPedagoLevels } = require('../lib/biodivPedagoLevel');
+      body.biodivGroupPedagoLevels = await loadUserGroupPedagoLevels(req.auth.userId);
+    } catch (_) {
+      body.biodivGroupPedagoLevels = [];
+    }
   }
   res.json(body);
 });
@@ -417,7 +423,7 @@ router.patch(
     // password_hash requis ici pour vérifier le mot de passe actuel (bcrypt), jamais renvoyé au client.
     const account = await queryOne(
       `SELECT id, user_type, email, pseudo, description,
-              visit_mascot_catalog_id, avatar_path, password_hash
+              visit_mascot_catalog_id, biodiv_pedago_level, avatar_path, password_hash
          FROM users WHERE id = ? LIMIT 1`,
       [auth.userId],
     );
@@ -433,6 +439,7 @@ router.patch(
       hasEmail,
       hasDescription,
       hasVisitMascotCatalogId,
+      hasBiodivPedagoLevel,
       hasAvatarData,
       removeAvatar,
     } = flags;
@@ -453,6 +460,21 @@ router.patch(
     if (!mascotRes.ok) return res.status(400).json({ error: mascotRes.error });
     const visitMascotCatalogId = mascotRes.value;
 
+    const { normalizePedagoLevel } = require('../lib/biodivPedagoLevel');
+    let biodivPedagoLevel = normalizePedagoLevel(account.biodiv_pedago_level);
+    if (hasBiodivPedagoLevel) {
+      if (body.biodiv_pedago_level == null || String(body.biodiv_pedago_level).trim() === '') {
+        biodivPedagoLevel = null;
+      } else {
+        biodivPedagoLevel = normalizePedagoLevel(body.biodiv_pedago_level);
+        if (!biodivPedagoLevel) {
+          return res
+            .status(400)
+            .json({ error: 'biodiv_pedago_level invalide (college|lycee|universite)' });
+        }
+      }
+    }
+
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
     const avatarRes = await applyAvatarUpdate({
@@ -472,21 +494,39 @@ router.patch(
     try {
       await execute(
         `UPDATE users
-            SET pseudo = ?, email = ?, description = ?, visit_mascot_catalog_id = ?, avatar_path = ?, updated_at = NOW()
+            SET pseudo = ?, email = ?, description = ?, visit_mascot_catalog_id = ?,
+                biodiv_pedago_level = ?, avatar_path = ?, updated_at = NOW()
           WHERE id = ?`,
-        [pseudo, email, description, visitMascotCatalogId, avatarPath, account.id],
+        [
+          pseudo,
+          email,
+          description,
+          visitMascotCatalogId,
+          biodivPedagoLevel,
+          avatarPath,
+          account.id,
+        ],
       );
     } catch (err) {
-      if (isDuplicateEntryError(err)) {
+      if (err && (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR')) {
+        await execute(
+          `UPDATE users
+              SET pseudo = ?, email = ?, description = ?, visit_mascot_catalog_id = ?,
+                  avatar_path = ?, updated_at = NOW()
+            WHERE id = ?`,
+          [pseudo, email, description, visitMascotCatalogId, avatarPath, account.id],
+        );
+      } else if (isDuplicateEntryError(err)) {
         return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
+      } else {
+        throw err;
       }
-      throw err;
     }
 
     // Toutes les colonnes SAUF password_hash : l'objet est renvoyé tel quel au front (profil complet).
     const updated = await queryOne(
       `SELECT id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
-              description, avatar_path, visit_mascot_catalog_id, auth_provider,
+              description, avatar_path, visit_mascot_catalog_id, biodiv_pedago_level, auth_provider,
               is_active, last_seen, created_at, updated_at
          FROM users WHERE id = ? LIMIT 1`,
       [account.id],
@@ -507,6 +547,7 @@ router.patch(
           email: !!hasEmail,
           description: !!hasDescription,
           visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
+          biodiv_pedago_level: !!hasBiodivPedagoLevel,
           avatar: !!(hasAvatarData || removeAvatar),
         },
       },
@@ -766,6 +807,14 @@ router.post(
       passwordMustReset: !!Number(account.password_must_reset || 0),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
+      biodivGroupPedagoLevels: await (async () => {
+        try {
+          const { loadUserGroupPedagoLevels } = require('../lib/biodivPedagoLevel');
+          return await loadUserGroupPedagoLevels(account.id);
+        } catch (_) {
+          return [];
+        }
+      })(),
     });
   }),
 );

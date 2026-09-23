@@ -18,6 +18,7 @@ import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { IconAdd, IconDelete, IconEdit, IconFoodweb } from '../../shared/icons.jsx';
+import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 const EMPTY_FORM = {
   fromId: '',
@@ -63,6 +64,10 @@ export function FoodWebView({
   highlightPlantId = null,
   canManage = false,
 }) {
+  const { foodWebTypes, canShow } = useBiodivPedago();
+  const showAdvancedFoodWeb = canShow('foodweb_advanced');
+  const showPollinationEfficacy = canShow('pollination_efficacy');
+  const allowedInteractionTypes = useMemo(() => foodWebTypes(INTERACTION_TYPES), [foodWebTypes]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -228,10 +233,12 @@ export function FoodWebView({
   );
 
   const filteredItems = useMemo(() => {
-    const byPreset = itemsForPreset(items, graphPreset);
+    const byPreset = itemsForPreset(items, graphPreset).filter((row) =>
+      allowedInteractionTypes.includes(String(row.interaction_type || '')),
+    );
     if (!interactionFilter || graphPreset !== 'all') return byPreset;
     return byPreset.filter((row) => String(row.interaction_type || '') === interactionFilter);
-  }, [items, interactionFilter, graphPreset]);
+  }, [items, interactionFilter, graphPreset, allowedInteractionTypes]);
 
   const grouped = useMemo(() => {
     const map = new Map();
@@ -245,10 +252,12 @@ export function FoodWebView({
 
   const interactionTypes = useMemo(() => {
     const set = new Set(
-      itemsForPreset(items, graphPreset).map((row) => String(row.interaction_type || 'autre')),
+      itemsForPreset(items, graphPreset)
+        .map((row) => String(row.interaction_type || 'autre'))
+        .filter((t) => allowedInteractionTypes.includes(t)),
     );
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [items, graphPreset]);
+  }, [items, graphPreset, allowedInteractionTypes]);
 
   // Changement de carte/zone/preset : un type d'interaction absent du nouveau jeu
   // laissait le menu vide et la vue annonçait « aucune interaction » à tort.
@@ -440,7 +449,7 @@ export function FoodWebView({
             value={form.type}
             onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
           >
-            {INTERACTION_TYPES.map((t) => (
+            {allowedInteractionTypes.map((t) => (
               <option key={t} value={t}>
                 {interactionLabel(t)}
               </option>
@@ -463,21 +472,23 @@ export function FoodWebView({
             ))}
           </select>
         </label>
-        <label className="pedago-filter-field">
-          <span>Niveau de preuve</span>
-          <select
-            className="form-select"
-            value={form.evidenceLevel}
-            onChange={(e) => setForm((p) => ({ ...p, evidenceLevel: e.target.value }))}
-          >
-            {EVIDENCE_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {evidenceLevelLabel(level)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {form.type === POLLINATION_TYPE ? (
+        {showAdvancedFoodWeb ? (
+          <label className="pedago-filter-field">
+            <span>Niveau de preuve</span>
+            <select
+              className="form-select"
+              value={form.evidenceLevel}
+              onChange={(e) => setForm((p) => ({ ...p, evidenceLevel: e.target.value }))}
+            >
+              {EVIDENCE_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {evidenceLevelLabel(level)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {showPollinationEfficacy && form.type === POLLINATION_TYPE ? (
           <label className="pedago-filter-field">
             <span>Efficacité du pollinisateur (optionnel)</span>
             <select
@@ -570,14 +581,17 @@ export function FoodWebView({
           ) : null}
           {/* Qualité du lien : l'élève doit pouvoir distinguer ce qui a été vu sur le site
               de ce qui est recopié d'une flore, ou simplement supposé. */}
-          <p className="section-sub pedago-foodweb__quality">
-            {evidenceLevelLabel(selectedRow.evidence_level)}
-            {selectedRow.interaction_type === POLLINATION_TYPE &&
-            selectedRow.pollination_efficacy ? (
-              <> · {pollinationEfficacyLabel(selectedRow.pollination_efficacy)}</>
-            ) : null}
-            {selectedRow.source_ref ? <> · source : {selectedRow.source_ref}</> : null}
-          </p>
+          {showAdvancedFoodWeb ? (
+            <p className="section-sub pedago-foodweb__quality">
+              {evidenceLevelLabel(selectedRow.evidence_level)}
+              {showPollinationEfficacy &&
+              selectedRow.interaction_type === POLLINATION_TYPE &&
+              selectedRow.pollination_efficacy ? (
+                <> · {pollinationEfficacyLabel(selectedRow.pollination_efficacy)}</>
+              ) : null}
+              {selectedRow.source_ref ? <> · source : {selectedRow.source_ref}</> : null}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {canManage && selectedRow ? (
