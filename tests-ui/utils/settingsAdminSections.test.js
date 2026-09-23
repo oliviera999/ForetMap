@@ -16,10 +16,11 @@ const ROLE_TERMS = {
 describe('resolveSettingLabel', () => {
   test('libellé statique des clés connues', () => {
     expect(resolveSettingLabel('ui.auth.allow_register', ROLE_TERMS)).toBe(
-      'Afficher "Créer un compte"',
+      'Autoriser la création de comptes (formulaire et première connexion Google)',
     );
     expect(resolveSettingLabel('ui.auth.allow_google_auto_register', ROLE_TERMS)).toBe(
-      'Créer un compte à la première connexion Google (désactivé = connexion seule)',
+      'Créer un compte à la première connexion Google (désactivé = connexion seule ; ' +
+        'sans effet si la création de comptes est fermée ci-dessus)',
     );
   });
   test('libellés dynamiques construits depuis la terminologie des rôles', () => {

@@ -61,7 +61,7 @@ test('GET /uploads/... image pose Cache-Control public', async () => {
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
-  saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
+  await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
 
   const res = await request(app).get(`/uploads/${relativePath}`).expect(200);
   assert.strictEqual(
@@ -82,7 +82,7 @@ test('GET /api/zones/:id/photos/:pid/data redirige vers /uploads (302, sans suiv
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
-  saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
+  await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
 
   const res = await request(app)

@@ -7,6 +7,8 @@ const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
+const { scopePublicSettings } = require('../lib/publicSettingsScope');
+const { resolveSecureProductId } = require('../lib/surfaceAccess');
 const { invalidateMapsListCache } = require('./maps');
 
 // `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.
@@ -110,11 +112,17 @@ router.get(
   asyncHandler(async (req, res) => {
     const settings = await getSettings('public');
     const { getSocketIoRealtimePublicConfig } = require('../lib/socketIoTransport');
+    // Périmètre par produit (lot K de l'audit sécurité, constat S10) : le front de chaque
+    // surface ne reçoit que les sections qu'il lit. `realtime` est ajouté avant le filtrage
+    // pour qu'il soit soumis à la même liste que le reste.
     res.json({
-      settings: {
-        ...settings.nested,
-        realtime: getSocketIoRealtimePublicConfig(),
-      },
+      settings: scopePublicSettings(
+        { ...settings.nested, realtime: getSocketIoRealtimePublicConfig() },
+        // `resolveSecureProductId` et non `resolveProductFromRequest` : la surcharge
+        // `X-Foretmap-Product` n'est lue qu'hors production (lot A). Sinon n'importe qui
+        // rejouerait la requête sur les quatre produits et reconstituerait les 95 clés.
+        resolveSecureProductId(req),
+      ),
     });
   }),
 );

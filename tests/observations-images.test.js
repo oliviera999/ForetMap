@@ -28,7 +28,7 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
   );
   const obsId = created.insertId;
   const relativePath = `observations/${studentId}_${obsId}.jpg`;
-  saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
+  await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, obsId]);
 
   const res = await request(app)

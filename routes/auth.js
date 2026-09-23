@@ -42,6 +42,10 @@ const {
 const { recomputeUserRole } = require('../lib/effectiveRole');
 const { getSettingValue, getAuthJwtTtls } = require('../lib/settings');
 const {
+  isRegistrationAllowed,
+  isGoogleAutoRegistrationAllowed,
+} = require('../lib/registrationPolicy');
+const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
 } = require('../lib/studentTaskEnrollment');
@@ -517,8 +521,8 @@ router.patch(
 router.post(
   '/register',
   asyncHandler(async (req, res) => {
-    const allowReg = await getSettingValue('ui.auth.allow_register', true);
-    if (!allowReg) return res.status(403).json({ error: 'La création de compte est désactivée.' });
+    if (!(await isRegistrationAllowed()))
+      return res.status(403).json({ error: 'La création de compte est désactivée.' });
     const { firstName, lastName, password } = req.body;
     const pseudo = normalizeOptionalString(req.body?.pseudo);
     const email = normalizeEmail(req.body?.email ?? req.body?.mail);
@@ -1213,11 +1217,9 @@ router.get('/google/callback', async (req, res) => {
     }
     let accountJustCreated = false;
     if (!student) {
-      const allowGoogleAutoRegister = await getSettingValue(
-        'ui.auth.allow_google_auto_register',
-        false,
-      );
-      if (!allowGoogleAutoRegister) {
+      // Subordonné à `ui.auth.allow_register` depuis le lot I (constat S11) : fermer les
+      // inscriptions ferme aussi ce chemin-ci.
+      if (!(await isGoogleAutoRegistrationAllowed())) {
         return res.redirect(
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_not_found', mode),
         );

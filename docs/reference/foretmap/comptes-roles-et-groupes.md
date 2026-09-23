@@ -43,8 +43,12 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   disponible).
 - **L'inscription des élèves est autonome** : prénom, nom, mot de passe (pseudo,
   e-mail et description optionnels). Un administrateur peut désactiver
-  l'inscription libre dans les réglages. Le **pseudo** accepte les lettres (y compris
-  accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
+  l'inscription libre dans les réglages : « Autoriser la création de comptes » est
+  l'**interrupteur général** — décoché, il ferme le formulaire d'inscription **et** la
+  création automatique d'un compte à la première connexion Google, quel que soit l'état du
+  réglage Google situé juste en dessous. Jusqu'au 23 septembre 2026, les deux réglages
+  étaient indépendants et ce second chemin restait ouvert. Le **pseudo** accepte les lettres
+  (y compris accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
