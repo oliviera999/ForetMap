@@ -238,6 +238,23 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
       .toBeLessThan(1.5);
   });
 
+  test('clic fond libre (hors lieu) déplace la mascotte au point cliqué', async ({ page }) => {
+    const stage = page.locator('.visit-map-stage');
+    await stage.scrollIntoViewIfNeeded();
+    /* Coin bas-droit hors zone seedée (centroïde 50,45) et hors repères (12/88, 50). */
+    await clickVisitMapAtPct(page, 92, 88);
+    await expect
+      .poll(
+        async () => {
+          const { xp, yp } = await readMascotPct(page);
+          if (!Number.isFinite(xp) || !Number.isFinite(yp)) return 999;
+          return Math.max(Math.abs(xp - 92), Math.abs(yp - 88));
+        },
+        { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
+      )
+      .toBeLessThan(2);
+  });
+
   test('marche : classe walking pendant le déplacement puis retrait', async ({ page }) => {
     const stage = page.locator('.visit-map-stage');
     const mascot = stage.locator('.visit-map-mascot');
