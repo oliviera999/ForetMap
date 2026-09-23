@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — note « modèle de sécurité » pour les administrateurs
+
+- **`docs/reference/exploitation/modele-de-securite.md`** : qui voit quoi, sur quelle
+  adresse. Les quatre publics (visite libre, ForêtMap connecté, plan public, plan des
+  personnels), les trois règles invariantes, ce que protègent les lots F à L sans que
+  personne ait à y penser, et les réglages que l'administrateur tient lui-même.
+- Rédigée en langue non technique : c'est le dernier livrable du chantier de sécurité, et
+  celui qui sert le jour où il faut répondre à « est-ce qu'un parent pourra voir ça ? ».
+- Elle n'a **pas** été publiée plus tôt : avant les lots P0, elle aurait décrit une
+  politique que le code n'appliquait pas encore. Le §9 de l'audit pointe désormais vers
+  elle au lieu de la garder en double.
+
+
 ### Sécurité — le périmètre de cartes s'applique aussi à la socket (lot H, §4.3)
 
 - **`subscribe:map` vérifie désormais le périmètre du compte**, et plus seulement l'existence

@@ -513,9 +513,14 @@ publication du code, pas le lien jury.
 
 ## 9. Note « modèle de sécurité » — qui voit quoi
 
-Rédigée ici sous sa forme **cible**. À extraire vers `docs/reference/exploitation/` une fois les
-lots P0 validés et livrés — la publier avant décrirait une politique que le code n'applique pas
-encore.
+**Extraite le 23 septembre 2026** vers
+[`docs/reference/exploitation/modele-de-securite.md`](reference/exploitation/modele-de-securite.md),
+les lots P0 étant livrés et mesurés : c'est là qu'elle vit désormais, en langue non technique,
+à l'usage des administrateurs et de la direction. Le tableau ci-dessous en reste la forme
+courte, pour qui lit cet audit.
+
+Elle n'a volontairement pas été publiée avant : elle aurait décrit une politique que le code
+n'appliquait pas encore.
 
 | Surface                  | Host            | Entrée                                       | Voit                                                              | Ne voit jamais                                                                       |
 | ------------------------ | --------------- | -------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
