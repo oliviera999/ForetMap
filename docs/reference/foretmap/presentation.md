@@ -213,6 +213,10 @@ actions sensibles.
 > **Plus** pour les onglets secondaires ; le professeur ouvre les onglets d'un pôle
 > dans un menu bas.
 >
+> Le bouton **Retour** du navigateur ou du téléphone suit la navigation dans l'app :
+> il ferme d'abord une fenêtre ouverte (fiche, formulaire…), puis revient à l'onglet
+> précédent, et seulement ensuite quitte l'application.
+>
 > Les demandes de confirmation et de saisie (« Supprimer… ? », titre d'un élément…)
 > s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —
 > plus de boîtes grises du navigateur ; les messages d'erreur passent par des

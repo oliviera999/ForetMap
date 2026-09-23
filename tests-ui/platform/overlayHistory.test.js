@@ -113,4 +113,12 @@ describe('overlayHistory — profondeur d’historique', () => {
     expect(a).not.toHaveBeenCalled();
     expect(b).not.toHaveBeenCalled();
   });
+
+  test('isNativeFilePickerGuardActive suit arm / disarm', () => {
+    expect(mod.isNativeFilePickerGuardActive()).toBe(false);
+    mod.armNativeFilePickerGuard();
+    expect(mod.isNativeFilePickerGuardActive()).toBe(true);
+    mod.disarmNativeFilePickerGuard();
+    expect(mod.isNativeFilePickerGuardActive()).toBe(false);
+  });
 });

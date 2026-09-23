@@ -36,6 +36,14 @@ export function disarmNativeFilePickerGuard() {
 }
 
 /**
+ * Vrai tant que la garde file-picker absorbe encore des `popstate` (caméra / galerie).
+ * Les autres écouteurs d’historique (ex. onglets) doivent s’abstenir sans consommer le budget.
+ */
+export function isNativeFilePickerGuardActive() {
+  return nativePickerGuard.active && nativePickerGuard.budget > 0;
+}
+
+/**
  * À appeler juste avant `input.click()` sur un file picker (galerie / APN).
  * Ignore plusieurs `popstate` (souvent >2 sur Android au retour caméra). Ne pas désarmer sur
  * `window` `focus` : il peut arriver avant `change` et laissait passer les `popstate` suivants.

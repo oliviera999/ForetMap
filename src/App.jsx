@@ -20,6 +20,7 @@ import { resolveTooltipKey } from './utils/helpResolve';
 import {
   IOS_INSTALL_HINT_DISMISSED_KEY,
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
+  KNOWN_TAB_VALUES,
 } from './constants/app-runtime';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
@@ -94,6 +95,7 @@ import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
 import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
 import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
 import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
+import { useTabBrowserHistory } from './shared/platform/useTabBrowserHistory';
 import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { AppFooter } from './components/app/AppFooter.jsx';
@@ -164,6 +166,13 @@ function App() {
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
+  const isKnownForetTab = useCallback((id) => KNOWN_TAB_VALUES.has(id), []);
+  /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
+  const { navigateTab } = useTabBrowserHistory({
+    tab,
+    setTab,
+    isKnownTab: isKnownForetTab,
+  });
   /**
    * Compteur d'usage anonyme (lot 8) : une ouverture par session, puis l'onglet consulté.
    * Aucun identifiant n'est envoyé — seulement le nom de l'événement et l'onglet.
@@ -593,14 +602,14 @@ function App() {
           return;
         }
       }
-      setTab(nextTab);
+      navigateTab(nextTab);
     },
-    [tab, setTab],
+    [tab, navigateTab],
   );
 
   const openMascotPackStudioTab = useCallback(() => {
-    setTab('mascot_packs');
-  }, [setTab]);
+    navigateTab('mascot_packs');
+  }, [navigateTab]);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
     const fallbackName = resolveSessionDisplayName(
@@ -787,15 +796,15 @@ function App() {
   // ── Callbacks du header (AppHeader) ─────────────────────────────────────────
   const handleOpenStatsDialog = useCallback(() => setShowStats(true), []);
   const handleCloseStatsDialog = useCallback(() => setShowStats(false), []);
-  const handleOpenTeacherStatsTab = useCallback(() => setTab('stats'), []);
+  const handleOpenTeacherStatsTab = useCallback(() => navigateTab('stats'), [navigateTab]);
   const handleOpenSettingsLearning = useCallback(() => {
     try {
       sessionStorage.setItem('foretmap:settings:focus', 'learning-gating');
     } catch (_) {
       /* ignore */
     }
-    setTab('settings');
-  }, [setTab]);
+    navigateTab('settings');
+  }, [navigateTab]);
   const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
   const handleCloseProfileDialog = useCallback(() => setShowProfile(false), []);
   const handleRequestPin = useCallback(() => setShowPin(true), []);
@@ -930,9 +939,9 @@ function App() {
       setTasksLocationFocus(focus);
       if (!(effectiveIsTeacher || canAccessStudentMapTasks)) return;
       if (useSplitMapTasks) return;
-      setTab('tasks');
+      navigateTab('tasks');
     },
-    [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks],
+    [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks, navigateTab],
   );
 
   const { plantCatalogPreview, setPlantCatalogPreview, openPlantCatalogPreviewById } =
@@ -965,10 +974,10 @@ function App() {
     (code) => {
       const c = String(code || '').trim();
       setPedagoGlossaryCode(c || null);
-      setTab('glossary');
+      navigateTab('glossary');
       setPlantCatalogPreview(null);
     },
-    [setPlantCatalogPreview],
+    [setPlantCatalogPreview, navigateTab],
   );
 
   const openPedagoQuizQuestion = useCallback(
@@ -977,20 +986,20 @@ function App() {
         .trim()
         .toUpperCase();
       setPedagoQuizQuestionCode(c || null);
-      setTab('quiz');
+      navigateTab('quiz');
       setPlantCatalogPreview(null);
     },
-    [setPlantCatalogPreview],
+    [setPlantCatalogPreview, navigateTab],
   );
 
   const openPedagoFoodWeb = useCallback(
     (plantId = null) => {
       const id = plantId != null ? Number(plantId) : null;
       setFoodWebHighlightPlantId(Number.isFinite(id) && id > 0 ? id : null);
-      setTab('foodweb');
+      navigateTab('foodweb');
       setPlantCatalogPreview(null);
     },
-    [setPlantCatalogPreview],
+    [setPlantCatalogPreview, navigateTab],
   );
 
   // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
@@ -1124,11 +1133,18 @@ function App() {
         return;
       }
       if (action.tab) {
-        setTab(action.tab);
+        navigateTab(action.tab);
         return;
       }
     },
-    [effectiveIsTeacher, markAsRead, studentForUi, trackActionClick, validateStudentSession],
+    [
+      effectiveIsTeacher,
+      markAsRead,
+      navigateTab,
+      studentForUi,
+      trackActionClick,
+      validateStudentSession,
+    ],
   );
 
   // O5 — valeurs de session globales exposées par contexte (cf. SessionContext).
@@ -1611,7 +1627,7 @@ function App() {
                                 isTeacher={isTeacher}
                                 onForceLogout={forceLogout}
                                 onNavigateTab={(nav) => {
-                                  if (nav?.tab) setTab(nav.tab);
+                                  if (nav?.tab) navigateTab(nav.tab);
                                 }}
                               />
                             </TabSuspense>
@@ -1728,7 +1744,7 @@ function App() {
                                   isTeacher={isTeacher}
                                   onForceLogout={forceLogout}
                                   onNavigateTab={(nav) => {
-                                    if (nav?.tab) setTab(nav.tab);
+                                    if (nav?.tab) navigateTab(nav.tab);
                                   }}
                                 />
                               </TabSuspense>
@@ -1771,7 +1787,7 @@ function App() {
                     </main>
                     <StudentBottomNav
                       tab={tab}
-                      onTabChange={setTab}
+                      onTabChange={navigateTab}
                       canAccessStudentMapTasks={canAccessStudentMapTasks}
                       isVisitor={isVisitor}
                       shouldUseDesktopSplit={shouldUseDesktopSplit}
