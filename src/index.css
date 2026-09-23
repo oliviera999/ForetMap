@@ -532,7 +532,7 @@
     }
     .notif-level-critical { background:#fee2e2; color:var(--ink-danger); }
     .notif-level-important { background:#fef3c7; color:var(--ink-warning); }
-    .notif-level-info { background:#e0f2fe; color:#0c4a6e; }
+    .notif-level-info { background:#e0f2fe; color:var(--ink-info-deep); }
     .notif-time { font-size:var(--text-xs); color:#7a8b81; }
     .notif-title { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--forest); }
     .notif-message { font-size:var(--text-sm); color:#53645a; line-height:1.35; }
@@ -2880,7 +2880,7 @@
       color:var(--ink-warning); font-weight:var(--fw-bold);
     }
     .plant-determination__alert-text {
-      font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
+      font-size:var(--text-sm); color:var(--ink-bark-deep); line-height:var(--lh-normal); word-break:break-word;
     }
     .plant-determination__alert-text a { color:var(--ink-warning); }
 
@@ -2891,9 +2891,9 @@
       list-style:none; margin:0; padding:0;
       font-size:var(--text-sm); color:var(--forest);
     }
-    .plant-clade-breadcrumb__sep { margin:0 6px; color:#9aaa9a; }
+    .plant-clade-breadcrumb__sep { margin:0 6px; color:var(--ink-pedago-faint); }
     .plant-clade-breadcrumb__name {
-      cursor:help; border-bottom:1px dotted rgba(45,90,45,.35);
+      cursor:help; border-bottom:1px dotted color-mix(in srgb, var(--accent-leaf-deep) 35%, transparent);
     }
 
     /* Activité Groupes emboîtés */
@@ -2904,29 +2904,29 @@
     .nested-groups-view__modes { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
     .nested-groups-setup__picks {
       display:flex; flex-wrap:wrap; gap:6px; max-height:180px; overflow:auto;
-      margin:8px 0 12px; padding:8px; border:1px solid #d7e3d7; border-radius:8px;
+      margin:8px 0 12px; padding:8px; border:1px solid var(--line-pedago); border-radius:8px;
     }
     .nested-groups-chip {
       display:inline-flex; align-items:center; gap:4px; min-height:36px;
-      padding:4px 8px; background:#f4f8f4; border-radius:6px; font-size:var(--text-sm);
+      padding:4px 8px; background:var(--surface-pedago-soft); border-radius:6px; font-size:var(--text-sm);
     }
     .nested-groups-setup__map {
       display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 16px;
     }
     .nested-groups-box {
-      border:2px solid color-mix(in srgb, var(--leaf) 55%, #2d5a2d);
+      border:2px solid color-mix(in srgb, var(--leaf) 55%, var(--accent-leaf-deep));
       border-radius:10px; margin:8px 0; padding:8px;
-      background: color-mix(in srgb, var(--sage, #c8dcc8) calc(8% + var(--nested-depth, 0) * 4%), white);
+      background: color-mix(in srgb, var(--sage) calc(8% + var(--nested-depth, 0) * 4%), white);
     }
     .nested-groups-box__head {
       display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:6px;
     }
     .nested-groups-box__attr {
-      font-size:var(--text-xs); color:#5a6b5a; font-style:italic;
+      font-size:var(--text-xs); color:var(--ink-pedago-soft); font-style:italic;
     }
     .nested-groups-species {
       display:inline-block; margin:3px 6px 3px 0; padding:4px 8px;
-      background:#fff; border-radius:999px; border:1px solid #d0ddd0;
+      background:var(--surface-plain); border-radius:999px; border:1px solid var(--line-pedago-pill);
       font-size:var(--text-sm);
     }
     .nested-groups-placements {
@@ -2935,7 +2935,7 @@
     .nested-groups-placements li {
       display:flex; flex-wrap:wrap; gap:8px; align-items:center; min-height:44px;
     }
-    .nested-groups-admin { margin-top:28px; padding-top:16px; border-top:1px solid #d7e3d7; }
+    .nested-groups-admin { margin-top:28px; padding-top:16px; border-top:1px solid var(--line-pedago); }
     .nested-groups-admin__form {
       display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
       margin:12px 0;
@@ -2944,7 +2944,7 @@
     .nested-groups-admin__list { list-style:none; margin:0; padding:0; }
     .nested-groups-admin__list li {
       display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;
-      padding:8px 0; border-bottom:1px solid #e8efe8; min-height:44px; align-items:center;
+      padding:8px 0; border-bottom:1px solid var(--line-pedago-soft); min-height:44px; align-items:center;
     }
     .nested-groups-admin__row-actions { display:flex; gap:6px; flex-wrap:wrap; }
 
@@ -2969,7 +2969,7 @@
     .id-key-editor__couplet-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
     .id-key-editor__lead {
       display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-      padding:10px; border:1px solid #d7e3d7; border-radius:8px; margin:8px 0;
+      padding:10px; border:1px solid var(--line-pedago); border-radius:8px; margin:8px 0;
     }
     .id-key-editor__lead-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 
@@ -2983,14 +2983,14 @@
       display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
       margin:8px 0 16px;
     }
-    .individuals-chart { width:100%; max-width:360px; height:auto; margin:8px 0; background:#f7faf7; border-radius:8px; }
-    .individuals-chart__c { stroke: var(--leaf, #3d7a3d); stroke-width:2; }
-    .individuals-chart__h { stroke: #8b5a2b; stroke-width:2; stroke-dasharray:4 3; }
+    .individuals-chart { width:100%; max-width:360px; height:auto; margin:8px 0; background:var(--surface-pedago); border-radius:8px; }
+    .individuals-chart__c { stroke: var(--leaf); stroke-width:2; }
+    .individuals-chart__h { stroke: var(--accent-bark); stroke-width:2; stroke-dasharray:4 3; }
     .individuals-estimate {
-      border-left:4px solid var(--leaf, #3d7a3d); padding:8px 12px; background:#f4f8f4; border-radius:0 8px 8px 0;
+      border-left:4px solid var(--leaf); padding:8px 12px; background:var(--surface-pedago-soft); border-radius:0 8px 8px 0;
       margin:8px 0;
     }
-    .individuals-estimate__disclaimer { font-size:var(--text-xs); font-style:italic; color:#5a6b5a; margin:4px 0 0; }
+    .individuals-estimate__disclaimer { font-size:var(--text-xs); font-style:italic; color:var(--ink-pedago-soft); margin:4px 0 0; }
     .individuals-measurements { list-style:none; margin:8px 0; padding:0; }
 
     /* Encadré « Danger » : hors `<details>`, en tête de fiche. Trois paliers de couleur
@@ -3005,11 +3005,11 @@
     .plant-hazard--mortel { border-color:#b91c1c; background:#fef2f2; }
     /* Risque sanitaire : bleu médical, pour qu'un avertissement « porteur de la rage » ne se
        confonde pas avec la gamme ambre → rouge de la toxicité propre à l'espèce. */
-    .plant-hazard--sante { border-color:#0369a1; background:#f0f9ff; }
-    .plant-hazard--sante .plant-hazard__label { color:#075985; }
-    .plant-hazard--sante .plant-hazard__exposure { color:#075985; border-color:rgba(3,105,161,.28); }
-    .plant-hazard--sante .plant-hazard__notes { color:#0c4a6e; }
-    .plant-hazard--sante .plant-hazard__notes a { color:#0369a1; }
+    .plant-hazard--sante { border-color:var(--accent-health-solid); background:var(--tint-health); }
+    .plant-hazard--sante .plant-hazard__label { color:var(--ink-info); }
+    .plant-hazard--sante .plant-hazard__exposure { color:var(--ink-info); border-color:color-mix(in srgb, var(--accent-health-solid) 28%, transparent); }
+    .plant-hazard--sante .plant-hazard__notes { color:var(--ink-info-deep); }
+    .plant-hazard--sante .plant-hazard__notes a { color:var(--accent-health-solid); }
     .plant-hazard__head {
       display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
     }
@@ -3031,13 +3031,13 @@
       list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:5px;
     }
     .plant-hazard__exposure {
-      font-size:var(--text-xs); color:#7c3a06; font-weight:var(--fw-bold);
+      font-size:var(--text-xs); color:var(--ink-bark-deep); font-weight:var(--fw-bold);
       background:rgba(255,255,255,.8); border:1px solid rgba(146,64,14,.28);
       border-radius:999px; padding:2px 9px;
     }
     .plant-hazard--mortel .plant-hazard__exposure { color:var(--ink-danger); border-color:rgba(153,27,27,.28); }
     .plant-hazard__notes {
-      font-size:var(--text-sm); color:#7c3a06; line-height:var(--lh-normal); word-break:break-word;
+      font-size:var(--text-sm); color:var(--ink-bark-deep); line-height:var(--lh-normal); word-break:break-word;
     }
     .plant-hazard--mortel .plant-hazard__notes { color:#7f1d1d; }
     .plant-hazard__notes a { color:var(--ink-warning); }
@@ -3053,11 +3053,11 @@
     .plant-hazard-review__list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
     .plant-hazard-review__item {
       display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-      background:rgba(255,255,255,.72); border-radius:6px; padding:4px 8px;
+      background:color-mix(in srgb, var(--surface-plain) 72%, transparent); border-radius:6px; padding:4px 8px;
     }
     .plant-hazard-review__name {
       flex:1 1 150px; min-height:44px; text-align:left; border:none; background:none;
-      font-size:var(--text-sm); font-weight:var(--fw-bold); color:#7c3a06; cursor:pointer;
+      font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--ink-bark-deep); cursor:pointer;
     }
     .plant-hazard-review__name:disabled { cursor:default; }
     .plant-hazard-review__tags { display:flex; flex-wrap:wrap; gap:4px; }
@@ -9325,7 +9325,7 @@
   grid-column: span 2;
   min-width: 0;
 }
-@media (max-width: 599px) {
+@media (max-width: 640px) {
   .pedago-filter-field--wide {
     grid-column: span 1;
   }
