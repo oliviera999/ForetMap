@@ -68,7 +68,8 @@ réglages. Voici ce que contient le jeu, regroupé comme dans la navigation :
 > Sur téléphone, les onglets principaux tiennent dans la barre du bas ; le bouton « Plus »
 > ouvre les autres dans une **feuille basse** commune à toutes les applications de la
 > plateforme (poignée pour l'agrandir, glisser vers le bas ou bouton retour pour la
-> refermer).
+> refermer). Le bouton **Retour** du navigateur ou du téléphone ferme d'abord une feuille
+> ou une fenêtre ouverte, puis revient à l'onglet précédent, avant de quitter le jeu.
 
 ### Cartes (le plateau de jeu)
 

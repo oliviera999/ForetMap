@@ -3,7 +3,7 @@ import { apiGL } from './services/apiGL.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { useGlSessionState } from './hooks/useGlSessionState.js';
 import { useGlGameRuntime } from './hooks/useGlGameRuntime.js';
-import { GL_TAB_STORAGE_KEY } from './constants/app-runtime.js';
+import { GL_TAB_STORAGE_KEY, GL_VALID_TABS } from './constants/app-runtime.js';
 import { isModuleEnabled } from './constants/modules.js';
 import {
   readStoredGlTab,
@@ -20,6 +20,7 @@ import {
   resolveGlJoueursSubTab,
   isGlTabVisibleInNav,
 } from './utils/glAppShellHelpers.js';
+import { useTabBrowserHistory } from '../shared/platform/useTabBrowserHistory.js';
 import { computePlayerVitality, findPlayerMascotId } from './utils/glGameplayRules.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
@@ -106,6 +107,13 @@ export function AppGL() {
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
+  const isKnownGlTab = useCallback((id) => GL_VALID_TABS.has(id), []);
+  /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
+  const { navigateTab } = useTabBrowserHistory({
+    tab,
+    setTab,
+    isKnownTab: isKnownGlTab,
+  });
   /**
    * Compteur d'usage anonyme (lot 8 du plan de convergence) : une ouverture par session, puis
    * l'onglet consulté. Aucun identifiant de joueur n'est envoyé — seulement le nom de
@@ -283,9 +291,9 @@ export function AppGL() {
   }, []);
 
   const openLoreGlossaryFullTab = useCallback(() => {
-    setTab('lore-glossary');
+    navigateTab('lore-glossary');
     setLoreGlossaryFocusCode(loreGlossaryPopoverCode);
-  }, [loreGlossaryPopoverCode]);
+  }, [loreGlossaryPopoverCode, navigateTab]);
 
   const clearLoreGlossaryFocus = useCallback(() => {
     setLoreGlossaryFocusCode(null);
@@ -302,12 +310,15 @@ export function AppGL() {
     setSpellPopoverCode(null);
   }, []);
 
-  const openGlossaryFullTab = useCallback((code) => {
-    const trimmed = String(code || '').trim();
-    setGlossaryPopoverCode(null);
-    setGlossaryFocusCode(trimmed || null);
-    setTab('glossary');
-  }, []);
+  const openGlossaryFullTab = useCallback(
+    (code) => {
+      const trimmed = String(code || '').trim();
+      setGlossaryPopoverCode(null);
+      setGlossaryFocusCode(trimmed || null);
+      navigateTab('glossary');
+    },
+    [navigateTab],
+  );
 
   const clearGlossaryFocus = useCallback(() => {
     setGlossaryFocusCode(null);
@@ -321,35 +332,38 @@ export function AppGL() {
   // Navigation « profonde » depuis le carnet : reçoit soit un id d'onglet (string, rétro-
   // compatible), soit une cible { tab, focusType, focusRef }. Pose la cible de focus puis
   // change d'onglet ; la vue destinataire ouvre l'élément via son useEffect de focus.
-  const handleNavigateFromImport = useCallback((target) => {
-    if (!target) return;
-    const t = typeof target === 'string' ? { tab: target } : target;
-    if (!t.tab) return;
-    switch (t.focusType) {
-      case 'glossary':
-        setGlossaryPopoverCode(null);
-        setGlossaryFocusCode(t.focusRef || null);
-        break;
-      case 'lore_glossary':
-        setLoreGlossaryFocusCode(t.focusRef || null);
-        break;
-      case 'ecosystem':
-        setEcosystemFocusSlug(t.focusRef || null);
-        break;
-      case 'tutorial':
-        setTutorialFocusId(t.focusRef || null);
-        break;
-      case 'feuillet':
-        setFeuilletFocusCode(t.focusRef || null);
-        break;
-      case 'species':
-        setSpeciesFocusCode(t.focusRef || null);
-        break;
-      default:
-        break;
-    }
-    setTab(t.tab);
-  }, []);
+  const handleNavigateFromImport = useCallback(
+    (target) => {
+      if (!target) return;
+      const t = typeof target === 'string' ? { tab: target } : target;
+      if (!t.tab) return;
+      switch (t.focusType) {
+        case 'glossary':
+          setGlossaryPopoverCode(null);
+          setGlossaryFocusCode(t.focusRef || null);
+          break;
+        case 'lore_glossary':
+          setLoreGlossaryFocusCode(t.focusRef || null);
+          break;
+        case 'ecosystem':
+          setEcosystemFocusSlug(t.focusRef || null);
+          break;
+        case 'tutorial':
+          setTutorialFocusId(t.focusRef || null);
+          break;
+        case 'feuillet':
+          setFeuilletFocusCode(t.focusRef || null);
+          break;
+        case 'species':
+          setSpeciesFocusCode(t.focusRef || null);
+          break;
+        default:
+          break;
+      }
+      navigateTab(t.tab);
+    },
+    [navigateTab],
+  );
 
   const joueursNavOptions = useMemo(
     () => ({
@@ -360,9 +374,9 @@ export function AppGL() {
   );
   const handleTabChange = useCallback(
     (tabId) => {
-      setTab(resolveGlMainTabChange(tabId, modules, joueursNavOptions));
+      navigateTab(resolveGlMainTabChange(tabId, modules, joueursNavOptions));
     },
-    [modules, joueursNavOptions],
+    [modules, joueursNavOptions, navigateTab],
   );
   const natureSubTab = resolveGlNatureSubTab(tab);
   const adventureSubTab = resolveGlAdventureSubTab(tab, modules);
@@ -791,12 +805,12 @@ export function AppGL() {
                   {resolveGlNavActiveTab(tab) === 'monde-gl' ? (
                     <GLMondeView
                       activeSubTab={mondeSubTab}
-                      onSubTabChange={setTab}
+                      onSubTabChange={navigateTab}
                       modules={modules}
                       auth={auth}
                       brandSlots={glBrand?.slots}
                       glossaryLinkItems={glossaryLinkItems}
-                      onNavigateTab={setTab}
+                      onNavigateTab={navigateTab}
                       onOpenGlossaryTerm={openGlossaryPopover}
                       loreGlossaryFocusCode={loreGlossaryFocusCode}
                       loreGlossaryPopoverCode={loreGlossaryPopoverCode}
@@ -814,7 +828,7 @@ export function AppGL() {
                   {resolveGlNavActiveTab(tab) === 'adventure' ? (
                     <GLAdventureView
                       activeSubTab={adventureSubTab}
-                      onSubTabChange={setTab}
+                      onSubTabChange={navigateTab}
                       modules={modules}
                       gameState={gameState}
                       brandSlots={glBrand?.slots}
@@ -919,7 +933,7 @@ export function AppGL() {
                   {resolveGlNavActiveTab(tab) === 'nature' ? (
                     <GLNatureView
                       activeSubTab={natureSubTab}
-                      onSubTabChange={setTab}
+                      onSubTabChange={navigateTab}
                       gameState={effectiveGameState}
                       glossaryLinkItems={glossaryLinkItems}
                       onOpenGlossaryTerm={openGlossaryPopover}
@@ -940,7 +954,7 @@ export function AppGL() {
                   {resolveGlNavActiveTab(tab) === 'joueurs' ? (
                     <GLJoueursView
                       activeSubTab={joueursSubTab}
-                      onSubTabChange={setTab}
+                      onSubTabChange={navigateTab}
                       modules={modules}
                       vitalityEnabled={!!gameplaySettings.vitalityEnabled}
                       heartsTradable={!!gameplaySettings.marketHeartsEnabled}
@@ -967,7 +981,7 @@ export function AppGL() {
                   {tab === 'contents' && showStaffAdminUi && (
                     <GLContentsAdminView
                       auth={auth}
-                      onNavigateTab={setTab}
+                      onNavigateTab={navigateTab}
                       glossaryLinkItems={glossaryLinkItems}
                       loreGlossaryLinkItems={loreGlossaryLinkItems}
                       onOpenGlossaryTerm={openGlossaryPopover}

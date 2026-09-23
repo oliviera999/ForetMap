@@ -228,6 +228,12 @@ qui a son propre budget de temps : il n'est plus emporté par un test qui expire
 de test porte un titre unique, comme son slug l'était déjà, de sorte qu'une fuite résiduelle ne
 puisse plus faire échouer la tentative suivante. Le test échoue désormais sur ce qui ne va pas,
 au lieu de se saborder.
+### Ajouté — retour navigateur entre onglets
+
+- Sur **ForetMap** et **Gnomes & Licornes**, le bouton Retour du navigateur ou du
+  téléphone restaure l’onglet précédent après avoir fermé les fenêtres ouvertes, au lieu
+  de quitter immédiatement l’application.
+
 ### Ajouté — journal de sécurité admin (IP) et audit élargi
 
 - Permission **`audit.security.read`** (profil **admin** uniquement) : consultation du
