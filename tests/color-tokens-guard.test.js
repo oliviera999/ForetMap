@@ -44,9 +44,9 @@ const PRODUCT_ENTRIES = [
  * Plafonds. À BAISSER quand un lot résorbe, jamais à monter : une hausse signifie qu'une
  * couleur a été écrite en dur là où un rôle existait.
  */
-const CEILING_CSS_HEX = 669;
+const CEILING_CSS_HEX = 664;
 const CEILING_CSS_RGBA = 580;
-const CEILING_INLINE_COLOR = 147;
+const CEILING_INLINE_COLOR = 144;
 
 /** Les illustrations ont leur propre palette : une mascotte n'obéit pas à l'échelle d'UI. */
 const isIllustration = (file) => /Svg\.jsx$/.test(file);

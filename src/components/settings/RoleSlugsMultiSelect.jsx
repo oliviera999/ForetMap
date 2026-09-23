@@ -88,7 +88,7 @@ export function RoleSlugsMultiSelect({
                 minHeight: 44,
                 padding: '4px 10px',
                 borderRadius: 8,
-                border: `1px solid ${checked ? 'var(--leaf)' : 'var(--line, #d1d5db)'}`,
+                border: `1px solid ${checked ? 'var(--leaf)' : 'var(--line-muted)'}`,
                 background: checked ? 'color-mix(in srgb, var(--leaf) 12%, white)' : 'white',
                 cursor: disabled ? 'not-allowed' : 'pointer',
               }}

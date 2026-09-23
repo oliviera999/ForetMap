@@ -275,8 +275,25 @@ body.plan-body {
 
 .plan-filters {
   position: relative;
-  /* Au-dessus de `.plan-main` : la liste Parcours déborde sur la carte. */
-  z-index: 4;
+  /*
+   * Au-dessus de `.plan-main` : la liste Parcours déborde sur la carte.
+   *
+   * 5, et non 4 : à 4, cette rangée était à **égalité** avec le bandeau d'accueil
+   * (`.plan-welcome`), et une égalité se tranche par l'ordre du document. Le bandeau vivant
+   * dans `.plan-main`, donc plus bas, il passait devant — et comme `.plan-routes` ouvre son
+   * propre contexte d'empilement, le `z-index: 5` de la liste déroulante ne pouvait pas l'en
+   * sortir : il ne vaut qu'entre frères, à l'intérieur de ce contexte.
+   *
+   * Effet mesuré au clic : le bouton d'un parcours était *visible* mais inerte — le bandeau
+   * interceptait le pointeur par-dessus (« `.plan-welcome__text` … intercepts pointer
+   * events »). Sur un téléphone, le doigt tapait dans le vide pendant toute la première
+   * visite, c'est-à-dire exactement quand le bandeau est affiché. Même famille de défaut que
+   * le bouton d'aide recouvert (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` G1) : un
+   * message passif ne doit jamais recouvrir une commande.
+   *
+   * Gardé par `tests/plan-stacking-guard.test.js`.
+   */
+  z-index: 5;
   overflow: visible;
   background: var(--plan-bg);
   border-bottom: 1px solid rgba(24, 48, 88, 0.12);

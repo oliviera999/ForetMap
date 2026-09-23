@@ -63,7 +63,8 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     const onTabChange = vi.fn();
     render(<TeacherTopTabs {...baseProps} onTabChange={onTabChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Suivi' }));
-    expect(onTabChange).toHaveBeenCalledWith('tasks');
+    // Premier onglet visible du pôle Suivi : « Individus » depuis l'ajout de cette vue.
+    expect(onTabChange).toHaveBeenCalledWith('individuals');
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
     // Sans permissions admin, le premier onglet visible du pôle est « À propos ».
     expect(onTabChange).toHaveBeenCalledWith('about');

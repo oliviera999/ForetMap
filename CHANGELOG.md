@@ -9,6 +9,78 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — la CI de `main` était rouge, et plus aucune branche n'exécutait ses tests e2e
+
+Les lots « structure biodiversité » (groupes emboîtés, individus, dangers d'une fiche) ont été
+fusionnés avec **neuf tests rouges** : cinq garde-fous de dette côté `node:test`, quatre
+assertions d'interface restées sur l'état d'avant. Sur `main` comme sur chaque branche ouverte.
+
+La conséquence dépassait l'affichage d'une pastille rouge. Dans `ci.yml`, les étapes Playwright
+suivent les tests back-end **dans le même job** : un échec à l'étape 7 saute les étapes 8 à 14,
+donc le smoke « Plan » et le smoke mobile-webkit n'étaient plus *en échec*, ils n'étaient plus
+**exécutés du tout**. Aucune pull request du dépôt ne passait plus un seul test e2e — y compris
+celle qui corrige justement un défaut du Plan.
+
+Aucune couleur n'a changé de valeur, aucune règle métier n'a bougé :
+
+- **Couleur** — la traîne apportée par ces lots (verts pédago, brun d'écorce, bleu « santé »)
+  est promue en tokens dans `src/shared/styles/color-tokens.css`, **à l'octet près**, comme la
+  couche neutre l'avait été. Nommer une valeur ne repeint rien ; ce qui change, c'est que
+  l'écran suivant pioche un rôle au lieu d'inventer un hexadécimal de plus. Trois replis
+  `var(--token, #valeur)` désignaient au passage des tokens qui **n'existent nulle part**
+  (`--line`, `--border`) : c'était le repli qui rendait, toujours. Les plafonds des cliquets
+  descendent à l'état résorbé (669 → 664 en CSS, 147 → 144 en style inline).
+- **Dialogues natifs** — les deux `window.confirm()` des vues Individus et Groupes emboîtés
+  passent par `useAppDialogs()`, comme le reste du front : une promesse plutôt qu'un dialogue
+  qui gèle le thread, ignore le thème et peut être supprimé sans bruit en PWA.
+- **Taille de texte en dur** — les `fontSize` littéraux posés en style inline (fiche plante,
+  puis journal de sécurité) passent aux tokens `--text-xs` / `--text-sm` : une taille écrite
+  là est à spécificité maximale, donc hors de portée de toute feuille.
+- **Seuil de rupture** — le `599px` ajouté pour les filtres pédago devient `640px`, le seuil
+  canonique le plus proche ; un seuil neuf ne s'ajoute pas à la dette tolérée.
+- **Assertions restées en arrière** — `map_site_notes` est un objet comme `map_ids` est un
+  tableau ; le pôle « Suivi » s'ouvre désormais sur « Individus » ; le libellé dit « Nom
+  scientifique (usage) » depuis qu'il se distingue du nom accepté. Dans les trois cas c'est le
+  test qui décrivait un état révolu, pas le code qui régressait.
+
+### Corrigé — Plan : la liste « Parcours » était inerte tant que le bandeau d'accueil s'affichait
+
+Sur le plan (planlyautey, proflyautey), ouvrir la puce **Parcours** puis toucher un parcours ne
+faisait rien : le bouton s'affichait normalement, mais le **bandeau d'accueil** — « Touchez un
+lieu, ou cherchez-le. » — interceptait le geste par-dessus la liste. Le visiteur tapait dans le
+vide, et précisément pendant sa première visite, puisque c'est là que le bandeau est montré. Il
+fallait d'abord fermer le bandeau (« J'ai compris ») pour que la liste réponde — un
+enchaînement que rien n'indiquait.
+
+La rangée de commandes (`.plan-filters`, qui porte la puce Parcours et sa liste) et le bandeau
+portaient **le même rang d'empilement**. À égalité, c'est l'ordre du document qui tranche, et
+le bandeau, déclaré plus bas, passait devant. Le rang élevé posé sur la liste déroulante
+elle-même ne pouvait rien y faire : il ne vaut qu'entre éléments frères, à l'intérieur du bloc
+qui les contient. La rangée de commandes passe donc désormais franchement au-dessus.
+
+C'est la même famille de défaut que le bouton d'aide recouvert en septembre : **un message
+passif ne doit jamais recouvrir une commande**. Un garde-fou statique
+(`tests/plan-stacking-guard.test.js`) fige cette règle entre les deux couches, et se lit en
+quelques millisecondes là où le parcours complet demande deux minutes.
+
+### Corrigé — le test e2e du mode parcours ne pollue plus la base, et ne se cascade plus
+
+Ce défaut d'interface bloquait le test e2e `plan-routes-mode`, et le faisait échouer d'une
+manière qui masquait sa propre cause — le smoke « Plan » de la CI est resté rouge plusieurs
+jours, sur `main` comme sur toutes les branches ouvertes :
+
+1. le clic impossible faisait expirer le test (`Test timeout of 120000ms exceeded`) ;
+2. Playwright démontait alors ses fixtures, le nettoyage en `finally` levait
+   `Target page, context or browser has been closed`, et **le parcours de test survivait en
+   base** ;
+3. la reprise en créait un second, du même titre, et le clic devenait ambigu
+   (`strict mode violation … resolved to 2 elements`) — le seul message qu'on lisait.
+
+Le nettoyage passe maintenant par un contexte de requête créé à la main, dans un `afterEach`
+qui a son propre budget de temps : il n'est plus emporté par un test qui expire. Et le parcours
+de test porte un titre unique, comme son slug l'était déjà, de sorte qu'une fuite résiduelle ne
+puisse plus faire échouer la tentative suivante. Le test échoue désormais sur ce qui ne va pas,
+au lieu de se saborder.
 ### Ajouté — journal de sécurité admin (IP) et audit élargi
 
 - Permission **`audit.security.read`** (profil **admin** uniquement) : consultation du
