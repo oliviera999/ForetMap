@@ -31,7 +31,8 @@ familles.
   **rose des vents** apparaissent aussi (masquables via le bouton 📏) ; le professeur peut les
   désactiver pour cette carte dans le calage GPS.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
-  case « Visite »), une puce **« Parcours »** les liste. En choisir un affiche une barre d'étape
+  case « Visite », sur **la même carte** que celle ouverte ici), une puce **« Parcours »** les
+  liste à côté des filtres de catégories. En choisir un affiche une barre d'étape
   en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
   n'est enregistré côté serveur — comme sur le Plan Lyautey. On peut quitter, puis **reprendre à
   l'étape où l'on s'était arrêté** (« Reprendre le parcours »), même après avoir rechargé la

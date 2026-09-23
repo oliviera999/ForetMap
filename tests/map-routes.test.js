@@ -160,7 +160,11 @@ test('création, étapes, publication et lecture publique filtrée par surface',
     .expect(201);
   createdRouteIds.push(created.body.id);
   assert.equal(created.body.slug, 'tour-du-lycee');
-  assert.deepEqual(created.body.surfaces, ['plan'], 'publié sur le plan par défaut');
+  assert.deepEqual(
+    created.body.surfaces,
+    ['map', 'visit', 'plan'],
+    'nouveau parcours : Carte + Visite + Plan par défaut',
+  );
   assert.equal(created.body.is_published, false, 'brouillon par défaut');
   assert.equal(created.body.steps.length, 2);
   assert.equal(created.body.steps[0].step_title, 'Départ');
@@ -186,7 +190,10 @@ test('création, étapes, publication et lecture publique filtrée par surface',
   const onVisit = await request(app)
     .get(`/api/map-routes?map_id=${map.id}&surface=visit`)
     .expect(200);
-  assert.ok(!onVisit.body.some((r) => r.id === created.body.id));
+  assert.ok(
+    onVisit.body.some((r) => r.id === created.body.id),
+    'défaut Carte+Visite+Plan : visible aussi en Visite une fois publié',
+  );
   await request(app).get('/api/map-routes?surface=zzz').expect(400);
 
   // Détail accessible par slug (c'est ce que porte le lien profond du QR code).

@@ -67,6 +67,10 @@ describe('routePlaceOptions', () => {
 });
 
 describe('brouillon et charge d’API', () => {
+  test('un parcours neuf propose Carte, Visite et Plan', () => {
+    expect(EMPTY_ROUTE_DRAFT.surfaces).toEqual(['map', 'visit', 'plan']);
+  });
+
   test('un parcours serveur devient un brouillon sans valeur nulle', () => {
     const draft = routeDraftFrom({
       title: 'Portes ouvertes',

@@ -5349,7 +5349,7 @@
       display:flex;
       align-items:center;
       gap:var(--space-2, 8px);
-      width:100%;
+      flex:1 1 auto;
       min-width:0;
       max-width:100%;
       overflow-x:auto;
@@ -5491,6 +5491,14 @@
     }
 
     /* Mode parcours (Visite + carte) — mêmes classes que le Plan (`map-route*`). */
+    /* Rangée dédiée sous la barre d'outils carte : hors overflow de la toolbar. */
+    .map-view-routes-row{
+      position:relative;z-index:5;flex:0 0 auto;overflow:visible;
+      display:flex;align-items:center;gap:8px;
+      width:var(--fm-map-canvas-w, 100%);max-width:100%;margin-inline:auto;
+      padding:4px 6px 2px;box-sizing:border-box;
+    }
+    .map-view-routes-row:not(:has(.map-chip)){display:none;}
     .map-routes{position:relative;z-index:3;flex:0 0 auto;}
     .map-chip{
       display:inline-flex;align-items:center;gap:4px;min-height:44px;
@@ -5597,6 +5605,12 @@
     /* Guidage en cours : la reprise de parcours remonte au-dessus de la barre, plutôt que
        de disparaître sous elle (les deux affordances restent atteignables). */
     .map-route-resume--above-guide{bottom:calc(16px + 96px);}
+    /* Filtres Visite : Parcours hors scroll des puces (même motif que `.plan-filters`). */
+    .visit-map-card__chrome-filters{
+      position:relative;z-index:5;overflow:visible;
+      display:flex;align-items:center;gap:var(--space-2, 8px);
+      width:100%;min-width:0;max-width:100%;
+    }
     .visit-map-card__chrome-routes{flex:0 0 auto;}
     .map-view-toolbar-routes{display:inline-flex;align-items:center;}
     .visit-mascot-preview-body .visit-map-mascot-rive-shell,

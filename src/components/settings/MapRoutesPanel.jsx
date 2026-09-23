@@ -365,6 +365,16 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
         <strong>Visite</strong>. Un parcours coché sur le seul <strong>Plan personnels</strong>{' '}
         reste invisible du public.
       </p>
+      {draft.is_published &&
+      !(draft.surfaces || []).includes('map') &&
+      !(draft.surfaces || []).includes('visit') ? (
+        <p style={{ ...HINT_STYLE, color: 'var(--warn, #b45309)' }} role="status">
+          Publié sans <strong>Carte</strong> ni <strong>Visite</strong> : ce parcours n’apparaîtra
+          pas dans ForetMap (onglet Visite ni carte avec tâches). Cochez au moins l’une de ces
+          surfaces, et créez-le sur la <strong>même carte</strong> que celle ouverte en Visite
+          (terrains d’apprentissage — pas le plan de l’établissement réservé à planlyautey).
+        </p>
+      ) : null}
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input
@@ -529,6 +539,13 @@ export function MapRoutesPanel({ maps = [], onMessage, onError }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <strong>{route.title}</strong>
               <div style={HINT_STYLE}>{routeSummaryLine(route)}</div>
+              {route.is_published &&
+              !(route.surfaces || []).includes('map') &&
+              !(route.surfaces || []).includes('visit') ? (
+                <div style={{ ...HINT_STYLE, color: 'var(--warn, #b45309)' }} role="status">
+                  Invisible dans ForetMap (Visite / carte) — cochez Carte ou Visite via Éditer.
+                </div>
+              ) : null}
             </div>
             <button
               type="button"

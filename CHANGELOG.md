@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — parcours invisibles en Visite et sur la carte avec tâches
+
+- **Cause.** Un parcours neuf naissait coché **Plan seul** ; le catalogue Visite en prod
+  était donc vide (`GET /api/visit/content` → `routes: []`), et la carte de travail n'offre
+  que les parcours cochés **Carte**. La puce Parcours était en plus coincée dans des barres
+  à `overflow` (toolbar carte / en-tête visite), comme avant le correctif Plan.
+- **Correctifs.** Défaut éditeur + API + schéma : **Carte + Visite + Plan**. Migration
+  **279** : les parcours déjà publiés sur le Plan gagnent Carte et Visite s'il leur
+  manquait. Alerte dans _Réglages → Parcours_ si un parcours publié n'a ni Carte ni Visite.
+  Puce Parcours hors overflow (rangée dédiée carte, filtres visite — même motif que le Plan).
+- **À savoir.** La Visite ne sert pas la carte du plan d'établissement (lyautey) : le
+  parcours doit vivre sur la **même carte de terrain** que celle ouverte en Visite
+  (n³, forêt…).
+
 ### Ajouté — Doc de référence : niveaux pédagogiques biodiversité
 
 - Nouveau guide

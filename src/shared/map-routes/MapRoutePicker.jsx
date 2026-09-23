@@ -7,9 +7,10 @@ import { resolveRouteSteps } from './mapRouteSteps.js';
  *
  * Un parcours **sans étape affichable** n'est pas proposé, et le nombre annoncé est celui des
  * étapes **réellement affichables** : celles dont le lieu est présent dans `places`, exactement
- * ce que comptera la barre d'étape. Sans `places`, on retombe sur les étapes servies par
- * l'API — ce que faisait cette liste jusqu'ici, au risque d'annoncer « 5 étapes » là où la
- * barre en montrait 3 (`docs/AUDIT_PARCOURS_2026-09.md` §2.4, versant client).
+ * ce que comptera la barre d'étape. Sans `places` (`null` / `undefined`), on retombe sur les
+ * étapes servies par l'API — utile pendant le premier rendu avant l'arrivée des lieux.
+ * Un tableau vide, lui, filtre vraiment (aucun lieu connu → aucune offre).
+ * (`docs/AUDIT_PARCOURS_2026-09.md` §2.4, versant client).
  */
 export function MapRoutePicker({ routes, places, onStart, open, onToggle, className = '' }) {
   const offered = useMemo(
@@ -17,7 +18,8 @@ export function MapRoutePicker({ routes, places, onStart, open, onToggle, classN
       (routes || [])
         .map((route) => ({
           route,
-          count: places ? resolveRouteSteps(route, places).length : (route?.steps || []).length,
+          count:
+            places == null ? (route?.steps || []).length : resolveRouteSteps(route, places).length,
         }))
         .filter((entry) => entry.count > 0),
     [routes, places],

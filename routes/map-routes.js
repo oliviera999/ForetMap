@@ -406,7 +406,8 @@ router.post(
         String(req.body?.audience || '')
           .trim()
           .slice(0, ROUTE_AUDIENCE_MAX),
-        serializeSurfaceSet(surfaces.value === null ? ['plan'] : surfaces.value),
+        // Défaut aligné sur l'éditeur (`EMPTY_ROUTE_DRAFT`) : Carte + Visite + Plan.
+        serializeSurfaceSet(surfaces.value === null ? ['map', 'visit', 'plan'] : surfaces.value),
         req.body?.is_published ? 1 : 0,
         sortOrder.value === undefined ? 100 : sortOrder.value,
       ],
