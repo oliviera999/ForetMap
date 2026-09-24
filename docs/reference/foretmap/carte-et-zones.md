@@ -437,10 +437,12 @@ acceptent des **liens**. Trois formes sont reconnues :
 | `/tutoriels/3`, `/visite?zone=…` — une page de l'application | même onglet, comme un clic normal        |
 | `mailto:…`, `tel:…`                                          | ouvre la messagerie ou l'appel           |
 
-Le bouton **« Lien »** de la barre d'outils fait le travail : on sélectionne le texte, on
-clique, on colle l'adresse. Une adresse non reconnue est **refusée avec un message** au lieu
-d'être enregistrée à moitié — avant, un lien interne disparaissait en silence à
-l'enregistrement.
+Le bouton **« Lien »** de la barre de mise en forme (à déplier avec « Aa Mise en forme »)
+fait le travail : on sélectionne le texte, on clique, puis un petit panneau demande le
+**texte à afficher** et l'**adresse**. Une adresse tapée sans « https:// » est complétée
+toute seule. Une adresse non reconnue est **refusée avec un message** simple (le détail des
+formes acceptées est dans « En savoir plus ») au lieu d'être enregistrée à moitié — avant, un
+lien interne disparaissait en silence à l'enregistrement.
 
 Un lien écrit dans la **description** est lu par tous ceux qui voient le lieu ; un lien écrit
 dans un **complément réservé** ne l'est que par l'audience de ce complément-là. C'est la

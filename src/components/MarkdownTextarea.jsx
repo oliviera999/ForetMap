@@ -1,22 +1,15 @@
 import React from 'react';
 import { LINK_INPUT_HELP } from '../shared/platform/markdown.js';
-import { RichTextEditor } from './RichTextEditor.jsx';
+import { RICH_TEXT_DEFAULT_HINT, RichTextEditor } from './RichTextEditor.jsx';
+
+const PLAIN_TEXTAREA_HINT = `Mise en forme Markdown : **gras**, *italique*, ## titre, - liste. ${LINK_INPUT_HELP}`;
 
 /**
  * Éditeur visuel compatible avec les anciennes props de textarea + value/onChange.
  * La valeur reste du Markdown pour préserver les contrats API existants.
  */
 const MarkdownTextarea = React.forwardRef(function MarkdownTextarea(
-  {
-    value,
-    onChange,
-    rows = 3,
-    className = '',
-    toolbar = true,
-    hint = `Mise en forme visuelle : titres, listes, citations et liens. ${LINK_INPUT_HELP} Le contenu reste enregistré en Markdown.`,
-    rich = true,
-    ...rest
-  },
+  { value, onChange, rows = 3, className = '', toolbar = true, hint, rich = true, ...rest },
   forwardedRef,
 ) {
   if (rich) {
@@ -28,11 +21,12 @@ const MarkdownTextarea = React.forwardRef(function MarkdownTextarea(
         rows={rows}
         className={className}
         toolbar={toolbar}
-        hint={hint}
+        hint={hint === undefined ? RICH_TEXT_DEFAULT_HINT : hint}
         {...rest}
       />
     );
   }
+  const plainHint = hint === undefined ? PLAIN_TEXTAREA_HINT : hint;
 
   return (
     <div className="markdown-textarea-wrap">
@@ -44,9 +38,9 @@ const MarkdownTextarea = React.forwardRef(function MarkdownTextarea(
         className={['markdown-textarea-input', className].filter(Boolean).join(' ')}
         {...rest}
       />
-      {hint && (
+      {plainHint && (
         <p className="markdown-textarea-hint" aria-hidden="true">
-          {hint}
+          {plainHint}
         </p>
       )}
     </div>

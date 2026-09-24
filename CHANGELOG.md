@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — barre de mise en forme compréhensible pour un collégien, retour à la ligne corrigé
+
+- **Barre repliée par défaut.** `RichTextEditor` (donc `MarkdownTextarea`, partout dans
+  ForetMap et sur les écrans G&L qui l'emploient) n'affiche plus qu'un bouton discret
+  « Aa Mise en forme » : la plupart des textes n'ont aucune mise en forme. La barre se déplie
+  d'office si la valeur est déjà mise en forme (`hasMarkdownFormatting`, nouveau
+  `src/utils/richTextFormatting.js`), sauf si l'utilisateur l'a refermée.
+- **Libellés en mots simples** : Gras, Italique, Titre, Liste, Lien, Annuler, Rétablir ; outils
+  rares derrière « Plus… » (Petit titre, Liste 1-2-3, Encadré, Ligne de séparation). Infobulles
+  avec raccourci (Ctrl/Cmd+B, I, K, Z). Fini « B », « H2 », « --- », « Délier ».
+- **Boutons actifs** (`aria-pressed`, classe `is-active`) selon la sélection ;
+  « Enlever le lien » n'apparaît que dans un lien.
+- **Panneau de lien intégré** à deux champs (texte affiché, adresse) à la place du `prompt` :
+  insertion possible sans sélection, `https://` ajouté à une adresse tapée sans protocole
+  (`normalizeLinkInput`), message d'erreur simple avec détail dans « En savoir plus », Entrée
+  ne soumet plus le formulaire englobant.
+- **Aide sans jargon**, visible seulement barre ouverte : plus de « Markdown » ni de
+  `mailto:` dans l'aide par défaut.
+- **Correctif retour à la ligne** : dans Chrome/Edge, Entrée créait un `<div>`, retiré par
+  l'assainissement — la nouvelle ligne se collait à la précédente. Le séparateur `<p>` est
+  désormais posé juste avant chaque Entrée (Chrome l'ignore pendant l'événement de focus), la
+  première ligne nue est rangée dans un paragraphe, et les `<div>` résiduels (Safari, collage)
+  sont convertis en `<p>` en conservant la position du curseur. Maj+Entrée donne un simple
+  saut de ligne, conservé au réaffichage.
+- Tests : `tests-ui/RichTextEditor.test.jsx` (nouveau), `tests/rich-text-formatting.test.js`
+  (nouveau), `tests-ui/LocationLinksFields.test.jsx` adapté. Doc de référence :
+  `presentation.md` (nouvelle section « Écrire un texte »), `carte-et-zones.md` (liens).
+
 ### Ajouté — forum commun ForetMap / G&L : épingler, modifier, citer, non-lus par sujet, signalements
 
 - **Un seul forum pour les deux produits.** Côté serveur, `lib/shared/forumCore.js` porte
