@@ -495,6 +495,94 @@
     .notif-panel-close:hover { background:rgba(0,0,0,.06); color:var(--forest); }
     .notif-panel-close:active { background:rgba(0,0,0,.1); }
     .notif-panel-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    /* Menu « Aperçu » de l'en-tête : vue de rôle simulée + niveau d'affichage biodiversité. */
+    .preview-menu { position:relative; display:inline-flex; }
+    .preview-menu__trigger.is-active { background:var(--sun); color:var(--forest); }
+    .preview-menu__summary {
+      max-width:22ch;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:var(--fw-semibold);
+    }
+    .preview-menu__panel {
+      position:fixed;
+      top:calc(56px + var(--safe-top) + 8px);
+      right:10px;
+      width:min(92vw, 340px);
+      max-height:min(78vh, 560px);
+      overflow:auto;
+      color:var(--forest);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      --fm-panel-bg:var(--surface-plain);
+      --fm-panel-border:var(--mint);
+      --fm-panel-radius:12px;
+      --fm-panel-shadow:0 12px 28px rgba(0,0,0,.22);
+      --fm-panel-pad:12px;
+      z-index:var(--fm-z-popover);
+    }
+    .preview-menu__head {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .preview-menu__close {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:44px;
+      min-height:44px;
+      margin:-8px -6px -8px 0;
+      border:none;
+      border-radius:10px;
+      background:transparent;
+      color:#4f5f56;
+      cursor:pointer;
+    }
+    .preview-menu__close:hover { background:rgba(0,0,0,.06); color:var(--forest); }
+    .preview-menu__intro,
+    .preview-menu__hint {
+      margin:0;
+      font-size:var(--text-xs);
+      color:var(--ink-soft);
+      line-height:1.4;
+    }
+    .preview-menu__group {
+      margin:0;
+      padding:0;
+      border:none;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .preview-menu__group legend {
+      padding:0;
+      margin-bottom:4px;
+      font-size:var(--text-xs);
+      font-weight:var(--fw-bold);
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      color:var(--ink-soft);
+    }
+    .preview-menu__option {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:44px;
+      padding:0 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:var(--text-sm);
+    }
+    .preview-menu__option:hover { background:rgba(0,0,0,.04); }
+    .preview-menu__option:has(input:checked) {
+      background:var(--mint);
+      font-weight:var(--fw-semibold);
+    }
+    .preview-menu__option input { margin:0; accent-color:var(--forest); }
     .notif-prefs {
       display:flex;
       gap:8px;
@@ -2773,6 +2861,7 @@
       }
       /* PWA : libellé « Installer » masqué (icône + aria-label / title suffisent, gain de place). */
       header .install-btn .lock-label { display: none; }
+      header .preview-menu__summary { display: none; }
       header .user-badge {
         min-height:44px;
         padding:6px 10px;

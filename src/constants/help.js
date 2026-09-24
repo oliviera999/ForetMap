@@ -15,9 +15,10 @@ const HELP_TOOLTIPS = {
       textTeacher: 'Voir où en sont les n3beurs (stats collectives).',
     },
     profileEdit: { text: 'Ajuster ton profil (pseudo, avatar, etc.).' },
-    roleReset: { textTeacher: 'Revenir à ton affichage habituel.' },
-    roleStudent: { textTeacher: 'Voir l’app comme un n3beur (aperçu).' },
-    roleTeacher: { textTeacher: 'Voir l’app comme un n3boss (aperçu).' },
+    preview: {
+      textTeacher:
+        'Aperçu : voir l’app comme un n3beur ou un n3boss, et choisir le niveau d’affichage biodiversité.',
+    },
     teacherLogin: {
       text: 'Se connecter avec un compte n3boss (professeur).',
       textTeacher: 'Se connecter avec un compte n3boss (professeur).',

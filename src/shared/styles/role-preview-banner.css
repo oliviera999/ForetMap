@@ -36,6 +36,20 @@
   flex-shrink: 0;
 }
 
+.role-preview-banner--preview {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.role-preview-banner--preview .role-preview-banner__text {
+  flex: 1 1 220px;
+}
+
+.role-preview-banner__actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .role-preview-banner__icon {
   flex-shrink: 0;
   font-size: var(--text-md);

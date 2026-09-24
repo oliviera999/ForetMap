@@ -5,9 +5,9 @@
       "textTeacher": "Voir où en sont les n3beurs (stats collectives)."
     },
     "header.profileEdit": { "text": "Ajuster ton profil (pseudo, avatar, etc.)." },
-    "header.roleReset": { "textTeacher": "Revenir à ton affichage habituel." },
-    "header.roleStudent": { "textTeacher": "Voir l'app comme un n3beur (aperçu)." },
-    "header.roleTeacher": { "textTeacher": "Voir l'app comme un n3boss (aperçu)." },
+    "header.preview": {
+      "textTeacher": "Aperçu : voir l’app comme un n3beur ou un n3boss, et choisir le niveau d’affichage biodiversité."
+    },
     "header.teacherLogin": {
       "text": "Se connecter avec un compte n3boss (professeur).",
       "textTeacher": "Se connecter avec un compte n3boss (professeur)."
