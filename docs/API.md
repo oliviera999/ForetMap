@@ -1892,6 +1892,43 @@ Contraintes principales :
 
 ---
 
+## Notifications
+
+Notifications **adressées à un compte précis** (migration `289`, table `notifications`). Toutes les routes exigent un utilisateur connecté (`Authorization: Bearer <token>`) et ne lisent ou n'écrivent **que les notifications du compte connecté** : un identifiant appartenant à un autre compte répond `404`, comme un identifiant inexistant.
+
+| Méthode | URL                                      | Description                                                                                                                                                    |
+| ------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/notifications?limit=30&before=:id` | Liste du compte connecté, de la plus récente à la plus ancienne. `limit` borné à 100 (défaut 30) ; `before` (id) pagine. Réponse `{ items, unread_count }` |
+| POST    | `/api/notifications/:id/read`            | Marque une notification comme lue → `{ ok: true }`                                                                                                             |
+| POST    | `/api/notifications/read-all`            | Marque toutes les notifications non lues comme lues → `{ ok: true, updated }`                                                                                  |
+| DELETE  | `/api/notifications/:id`                 | Supprime une notification → `{ ok: true }`                                                                                                                     |
+
+Chaque élément de `items` : `{ id, kind, title, body, target, read, read_at, created_at }`. `target` décrit l'élément à ouvrir au clic, ou vaut `null` :
+
+- `{ type: 'task', id, mapId, filter? }` : une tâche (`filter` optionnel : `to_validate`, `overdue`) ;
+- `{ type: 'place', id, mapId, kind }` : un lieu de la carte (`kind` = `zone` ou `marker`) ;
+- `{ type: 'thread', id, postId? }` : un fil du forum, et éventuellement le message visé ;
+- `{ type: 'settings', section }` : une section des paramètres.
+
+Événements émis (l'auteur de l'action n'est **jamais** notifié de sa propre action) :
+
+| `kind`                                              | Destinataires                              | Déclencheur                                                                                   |
+| --------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `task_proposed`                                     | comptes ayant `tasks.validate`             | proposition de tâche par un n3beur                                                            |
+| `task_assigned_self`                                | référents de la tâche                      | `POST /api/tasks/:id/assign`                                                                  |
+| `task_assigned_group`                               | n3beurs inscrits par le groupe             | `POST /api/tasks/:id/assign-group`                                                            |
+| `task_done`                                         | référents + comptes ayant `tasks.validate` | `POST /api/tasks/:id/done`, quand la tâche passe réellement à « faite »                       |
+| `task_validated` / `task_reopened`                  | n3beurs inscrits                           | validation (`POST /api/tasks/:id/validate` ou `PUT`) / renvoi de « faite » à « en cours »     |
+| `task_proposal_accepted` / `task_proposal_rejected` | auteur de la proposition                   | proposition passée à un statut actif / supprimée                                              |
+| `task_deleted`                                      | n3beurs inscrits                           | `DELETE /api/tasks/:id`                                                                       |
+| `task_comment`                                      | n3beurs inscrits + référents               | commentaire contextuel sur une tâche                                                          |
+| `place_message`                                     | comptes ayant `place_messages.manage`      | commentaire sur un lieu, ou `POST /api/staff-plan/report`                                     |
+| `place_message_status`                              | auteur du message                          | `PATCH /api/context-comments/:id/place-status`                                                |
+| `forum_reply`                                       | auteur du sujet + participants             | nouveau message dans un fil                                                                   |
+| `task_deadline_soon` / `task_overdue`               | n3beurs inscrits                           | job quotidien (échéance demain / dépassée), une seule fois par tâche et par compte            |
+
+Temps réel : chaque session ForetMap rejoint le salon Socket.IO `user:<id>` ; une nouvelle notification y émet `notifications:new` (`{ ts, kind }`) et le client recharge la liste. Les notifications de plus de **60 jours** sont purgées par le job quotidien.
+
 ## Commentaires contextuels
 
 Toutes les routes commentaires contextuels exigent un utilisateur connecté (`Authorization: Bearer <token>`), **n3beur** (profil autre que **visiteur**) ou **n3boss**.

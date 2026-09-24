@@ -23,6 +23,7 @@ const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { runAutoArchiveJob } = require('./lib/autoArchive');
+const { purgeOldNotifications } = require('./lib/notifications');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { recordBoot, recordStop, recordCrash } = require('./lib/bootJournal');
@@ -70,6 +71,7 @@ const referenceDocsRouter = require('./routes/reference-docs');
 const mediaLibraryRouter = require('./routes/media-library');
 const forumRouter = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
+const notificationsRouter = require('./routes/notifications');
 const groupsRouter = require('./routes/groups');
 const glAuthRouter = require('./routes/gl/auth');
 const glContentRouter = require('./routes/gl/content');
@@ -583,6 +585,7 @@ settingsRouter.setRestartShutdownHandler(gracefulShutdown);
 app.use('/api/media-library', mediaLibraryRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/context-comments', contextCommentsRouter);
+app.use('/api/notifications', notificationsRouter);
 app.use('/api/groups', groupsRouter);
 
 // Docs locales (Markdown) accessibles depuis l'onglet "À propos"
@@ -791,6 +794,7 @@ function scheduleRecurringTaskSpawn() {
     runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
     // Archivage automatique des tâches/projets validés anciens (réglable, cf. lib/autoArchive).
     runAutoArchiveJob().catch((err) => logger.warn({ err }, 'Job archivage automatique'));
+    purgeOldNotifications().catch((err) => logger.warn({ err }, 'Job purge notifications'));
   };
   recurringJobFirstTimeoutId = setTimeout(() => {
     recurringJobFirstTimeoutId = null;
