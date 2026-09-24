@@ -298,6 +298,20 @@ describe('App — ouverture de la cible d’une notification', () => {
     expect(typeof probes.mapTasks.at(-1).onTasksFocusRequestHandled).toBe('function');
   });
 
+  test('lien direct ?tache= : la tâche est ouverte après chargement, l’adresse est nettoyée', async () => {
+    window.history.replaceState(null, '', '/?tache=42&carte=n3');
+    try {
+      await renderAppWith(STUDENT_SESSION);
+      await waitFor(() =>
+        expect(probes.mapTasks.at(-1).tasksFocusRequest).toMatchObject({ taskId: '42' }),
+      );
+      expect(window.location.search).not.toContain('tache=');
+    } finally {
+      window.sessionStorage.clear();
+      window.history.replaceState(null, '', '/');
+    }
+  });
+
   test('réglages : la section demandée est posée pour la vue Réglages', async () => {
     await openFromNotification({ type: 'settings', section: 'accueil' });
     expect(window.sessionStorage.getItem('foretmap:settings:focus')).toBe('accueil');
