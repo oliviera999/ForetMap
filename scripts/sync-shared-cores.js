@@ -120,7 +120,8 @@ function esmCoreToCjs(text, relSrc) {
 
 /** Rend le miroir CJS d'une paire depuis le disque (sans écrire). */
 function renderMirror(relSrc) {
-  const text = fs.readFileSync(path.join(root, relSrc), 'utf8');
+  // Checkout Windows (core.autocrlf) : les regex ancrées sur `\n` exigent des fins de ligne LF.
+  const text = fs.readFileSync(path.join(root, relSrc), 'utf8').replace(/\r\n/g, '\n');
   return esmCoreToCjs(text, relSrc);
 }
 
@@ -137,7 +138,7 @@ function checkAll() {
       diverged.push({ relSrc, outName, missing: true });
       continue;
     }
-    if (fs.readFileSync(to, 'utf8') !== expected) {
+    if (fs.readFileSync(to, 'utf8').replace(/\r\n/g, '\n') !== expected) {
       diverged.push({ relSrc, outName, missing: false });
     }
   }

@@ -241,3 +241,40 @@ describe('SharedForumView — panneau Signalements', () => {
     expect(screen.queryByRole('region', { name: /Signalements à traiter/ })).toBeNull();
   });
 });
+
+describe('SharedForumView — ouverture depuis une notification', () => {
+  test('ouvre le sujet demandé, amène la réponse visée et ne rejoue pas la demande', async () => {
+    const scrollIntoView = vi.fn();
+    const original = window.HTMLElement.prototype.scrollIntoView;
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    try {
+      const adapter = fakeAdapter({ threads: [THREAD_B, THREAD_A] });
+      const onHandled = vi.fn();
+      const request = { id: 'a', postId: 'p2', nonce: 'n-1' };
+      const { rerender } = renderView(adapter, {
+        threadRequest: request,
+        onThreadRequestHandled: onHandled,
+      });
+
+      await waitFor(() => expect(adapter.getThread).toHaveBeenCalledWith('a', expect.anything()));
+      expect(onHandled).toHaveBeenCalledWith('n-1');
+      await screen.findByText('Près de la mare.');
+      expect(document.querySelector('[data-post-id="p2"]')).not.toBeNull();
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+
+      rerender(
+        <SharedForumView
+          adapter={adapter}
+          currentUser={STUDENT}
+          unreadStorageKey={STORAGE_KEY}
+          reactionEmojis={['👍', '🌱']}
+          threadRequest={request}
+          onThreadRequestHandled={onHandled}
+        />,
+      );
+      expect(onHandled).toHaveBeenCalledTimes(1);
+    } finally {
+      window.HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+});

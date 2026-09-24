@@ -742,13 +742,15 @@ traité, jamais _par qui_.
 
 Ce qui est arrivé depuis votre dernière visite est marqué « nouveau » et compté en
 tête de liste ; « Tout marquer comme lu » remet le compteur à zéro. **Ce repère de
-lecture est propre à l'appareil** (comme celui de la cloche de notifications) : il ne
-dit pas à vos collègues que vous avez lu, et il ne suit pas d'un ordinateur à l'autre.
+lecture est propre à l'appareil** : il ne dit pas à vos collègues que vous avez lu, et
+il ne suit pas d'un ordinateur à l'autre.
 
-Enfin, tant que la console est ouverte, un message reçu sur un lieu apparaît aussi
-dans la **cloche de notifications** (rubrique « Propositions »), avec le nom du lieu
-et le début du texte. C'est ce qui manquait : un signalement n'attend plus qu'on
-rouvre le repère par hasard.
+Enfin, chaque message reçu sur un lieu arrive aussi dans la **cloche de notifications**
+(rubrique « Messages ») de toutes les personnes qui traitent ces messages, **même si la
+console n'était pas ouverte**, avec le nom du lieu, la carte, l'auteur et le début du
+texte. Un clic sur la notification **ouvre la carte concernée, centrée sur le lieu, avec
+sa fenêtre ouverte sur les messages**. Dans l'autre sens, l'auteur est prévenu quand son
+message est pris en compte, traité ou classé sans suite, et le même clic le ramène au lieu.
 
 ## La vue grand écran « Cartes & tâches »
 

@@ -9,6 +9,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — notifications serveur adressées à une personne, qui ouvrent l’élément exact
+
+- **Notifications stockées sur le serveur** (migration `289_notifications`, `lib/notifications.js`,
+  routes `GET/PATCH/DELETE /api/notifications*`, salon Socket.IO `user:<id>` → événement
+  `notifications:new`). Chaque avis est adressé à un compte, **nomme** la tâche, le lieu ou le
+  sujet (qui a agi, extrait du message, lieu et échéance) et porte une **cible** à ouvrir.
+  Lu / non lu suit d’un appareil à l’autre ; purge automatique au-delà de 60 jours.
+- **Événements branchés** (`lib/notificationEvents.js`, émission sans attendre la réponse HTTP) :
+  proposition de tâche, inscription, inscription d’office, tâche marquée faite (« attend votre
+  validation »), validée, renvoyée, proposition acceptée / non retenue, tâche supprimée,
+  commentaire de tâche, message sur un lieu (personnes qui traitent ces messages) et retour de
+  statut à son auteur, nouvelle réponse au forum (participants du sujet). Jamais pour sa propre
+  action.
+- **Rappels d’échéance quotidiens dédoublonnés** (`lib/taskDeadlineReminders.js`) : veille,
+  jour J, puis « en retard » (une fois, pendant 7 jours au plus).
+- **Ouverture précise de la cible** (`App.openTarget`, demandes à usage unique
+  `useConsumableRequest`) : tâche amenée à l’écran et encadrée (filtres remis à plat, statut
+  « Terminée (à valider) » ou nouveau filtre **« En retard »**) ; carte centrée sur le lieu,
+  fenêtre ouverte sur ses **messages dépliés** ; sujet du forum ouvert à la réponse visée
+  (forum commun `SharedForumView`) ; section des réglages. Message « introuvable » si
+  l’élément a disparu.
+- **Centre de notifications** : chaque avis est un bouton « Voir la tâche », « Voir le lieu et
+  ses messages », « Voir la réponse »… ; bandeau critique avec le même accès ; avis d’état
+  (échéances, tâches à valider, modules désactivés) ciblés et à clé stable. Les anciens avis
+  locaux d’événements (propositions, messages de lieux « tant que la console est ouverte »,
+  « Mise à jour reçue ») sont retirés au profit des notifications serveur.
+- **Liens directs** `?tache=`, `?lieu=&carte=`, `?fil=&message=` (`src/utils/deepLinkTarget.js`),
+  conservés à travers la connexion.
+- Tests : `tests/notifications*.test.js`, `tests-ui` (centre, cibles, liens, câblage App, forum,
+  fenêtre de zone), e2e `e2e/notifications-targets.spec.js`. Docs : `docs/API.md`,
+  `docs/reference/foretmap/` (suivi, carte, tâches, présentation).
+
+### Corrigé — build Windows : miroirs `lib/shared/` en échec sur fins de ligne CRLF
+
+- `scripts/sync-shared-cores.js` normalise les fins de ligne avant transformation : sur un
+  checkout Windows (`core.autocrlf`), la détection de `export {` échouait
+  (« aucun export détecté ») et interrompait `npm run build`.
+
 ### Modifié — barre de mise en forme compréhensible pour un collégien, retour à la ligne corrigé
 
 - **Barre repliée par défaut.** `RichTextEditor` (donc `MarkdownTextarea`, partout dans

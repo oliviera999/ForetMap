@@ -559,6 +559,7 @@ function MarkerModal({
                 contextId={marker.id}
                 title="Commentaires du repère"
                 placeholder="Ajouter une observation sur ce repère…"
+                defaultOpen={focusComments}
                 canParticipateContextComments={canParticipateContextComments}
               />
             </div>
