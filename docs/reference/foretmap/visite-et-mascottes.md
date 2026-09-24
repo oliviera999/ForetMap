@@ -93,8 +93,11 @@ familles.
   « Présentation du lieu » et — s'il y a plusieurs cartes — le **choix de la carte**
   (la carte choisie ici est **retenue par l'appareil** et rouverte à la visite suivante,
   y compris sur la carte de travail — voir « Quel plan s'ouvre à l'arrivée ? » dans
-  [La carte, les zones et les repères](carte-et-zones.md)) ; à
-  droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
+  [La carte, les zones et les repères](carte-et-zones.md)). **Connecté**, on retrouve en
+  visite les mêmes cartes que sur la carte de travail (celles de ses classes, ou toutes pour
+  un prof) — y compris une carte aussi proposée sur le plan de l'établissement, comme le
+  complexe sportif ; **sans compte**, seules les cartes ouvertes à la visite publique sont
+  servies ; à droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
   compact). Sous cette barre : une **recherche de lieux** et, s'il y a des catégories,
   des **puces de filtre** (comme sur le plan de l'établissement) pour n'afficher que

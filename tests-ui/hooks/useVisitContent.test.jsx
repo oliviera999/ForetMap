@@ -142,6 +142,46 @@ describe('useVisitContent', () => {
     expect(onForceLogout).not.toHaveBeenCalled();
   });
 
+  it('échec sur une autre carte : ne garde pas les lieux de la carte précédente', async () => {
+    // Régression « Carte introuvable » en visite : le fond de la nouvelle carte s'affichait
+    // sous les zones et repères de l'ancienne, et le cadrage se calait sur eux.
+    const bothActive = [
+      { id: 'foret', is_active: true },
+      { id: 'complexe', is_active: true },
+    ];
+    api.mockImplementation(async (path) => {
+      if (path === '/api/maps') return bothActive;
+      if (String(path).includes('map_id=complexe')) throw new Error('Carte introuvable');
+      if (String(path).startsWith('/api/visit/content')) {
+        return { zones: [{ id: 1 }], markers: [{ id: 2 }], tutorials: [] };
+      }
+      return { seen: [] };
+    });
+    const apiRef = { current: null };
+    render(<Harness apiRef={apiRef} />);
+    await waitFor(() => expect(apiRef.current.content.zones).toEqual([{ id: 1 }]));
+
+    act(() => apiRef.current.setMapId('complexe'));
+    await waitFor(() => expect(apiRef.current.content.map_id).toBe('complexe'));
+    expect(apiRef.current.content.zones).toEqual([]);
+    expect(apiRef.current.content.markers).toEqual([]);
+    expect(alertSpy).toHaveBeenCalledWith('Carte introuvable');
+  });
+
+  it('échec de rechargement de la même carte : garde le contenu affiché', async () => {
+    mockApiRoutes({ content: { zones: [{ id: 1 }], markers: [], tutorials: [] } });
+    const apiRef = { current: null };
+    render(<Harness apiRef={apiRef} />);
+    await waitFor(() => expect(apiRef.current.content.zones).toEqual([{ id: 1 }]));
+
+    api.mockImplementation(async (path) => {
+      if (path === '/api/maps') return MAPS;
+      throw new Error('réseau');
+    });
+    await act(async () => apiRef.current.loadData());
+    expect(apiRef.current.content.zones).toEqual([{ id: 1 }]);
+  });
+
   it('initialLoading ne couvre que le premier chargement (les suivants gardent la vue)', async () => {
     mockApiRoutes({ content: { zones: [{ id: 1 }], markers: [], tutorials: [] } });
     const apiRef = { current: null };

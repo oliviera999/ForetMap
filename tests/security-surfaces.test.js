@@ -41,7 +41,7 @@ let planMapId;
 /** Carte « visite » : aucune déclaration de plan, donc servie sur la surface publique. */
 let visitMapId;
 const snapshots = [];
-const created = { zones: [], markers: [] };
+const created = { zones: [], markers: [], users: [], groups: [] };
 
 function asTeacher(req) {
   return req.set('Authorization', `Bearer ${teacherToken}`);
@@ -104,6 +104,15 @@ test.after(async () => {
     await execute('DELETE FROM zones WHERE map_id = ?', [id]);
     await execute('DELETE FROM map_markers WHERE map_id = ?', [id]);
     await execute('DELETE FROM maps WHERE id = ?', [id]);
+  }
+  for (const id of created.groups) {
+    await execute('DELETE FROM group_scopes WHERE group_id = ?', [id]);
+    await execute('DELETE FROM group_members WHERE group_id = ?', [id]);
+    await execute('DELETE FROM `groups` WHERE id = ?', [id]);
+  }
+  for (const id of created.users) {
+    await execute('DELETE FROM user_roles WHERE user_id = ?', [id]);
+    await execute('DELETE FROM users WHERE id = ?', [id]);
   }
   for (const snap of snapshots) await restoreSetting(snap);
   invalidateSettingsCache();
@@ -200,6 +209,94 @@ test('surface visite : les terrains d’apprentissage restent ouverts sans compt
     assert.equal(res.status, 200, `${route.label} doit rester ouverte sur un terrain public`);
   }
   await request(app).get(`/api/visit/content?map_id=${visitMapId}`).expect(200);
+});
+
+/**
+ * Lecteur connecté **sans** permission de gestion des lieux (profil `personnel`), rattaché
+ * facultativement à un groupe dont le périmètre cartes est `scopeMapIds`.
+ */
+async function createNonManagerToken({ scopeMapIds = null } = {}) {
+  const { signAuthToken } = require('../middleware/requireTeacher');
+  const { queryOne } = require('../database');
+  const { clearMapAccessCache } = require('../lib/mapAccess');
+  const role = await queryOne("SELECT id FROM roles WHERE slug = 'personnel' LIMIT 1");
+  assert.ok(role?.id, 'rôle personnel requis');
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const userId = `u-visit-${stamp}`;
+  await execute(
+    `INSERT INTO users (id, user_type, email, pseudo, password_hash, display_name, first_name, last_name, is_active)
+     VALUES (?, 'student', ?, ?, 'x', 'Lecteur Visite', 'L', 'V', 1)`,
+    [userId, `visit.${stamp}@test.local`, `visit_${stamp}`],
+  );
+  created.users.push(userId);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
+    ['student', userId, role.id],
+  );
+  await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, userId]);
+  if (scopeMapIds) {
+    const groupId = `g-visit-${stamp}`;
+    await execute(
+      "INSERT INTO `groups` (id, slug, name, kind, is_active) VALUES (?, ?, ?, 'class', 1)",
+      [groupId, groupId, 'Groupe visite (test)'],
+    );
+    created.groups.push(groupId);
+    await execute(
+      "INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
+      [groupId, userId],
+    );
+    for (const mapId of scopeMapIds) {
+      await execute('INSERT INTO group_scopes (group_id, map_id) VALUES (?, ?)', [groupId, mapId]);
+    }
+  }
+  clearMapAccessCache();
+  return signAuthToken({
+    userType: 'student',
+    userId,
+    canonicalUserId: userId,
+    roleId: role.id,
+    roleSlug: 'personnel',
+    roleDisplayName: 'Personnel',
+  });
+}
+
+test('visite connectée : une carte listée par /api/maps est lisible en visite', async () => {
+  // Régression « Carte introuvable » en mode visite (prof sans classe, complexe déclaré sur le
+  // plan) : `/api/maps` listait la carte au compte connecté, `/api/visit/content` la refusait,
+  // et la vue gardait les lieux de la carte précédente sur le fond de la nouvelle.
+  const token = await createNonManagerToken();
+  const bearer = (req) => req.set('Authorization', `Bearer ${token}`);
+  const maps = await bearer(request(app).get('/api/maps')).expect(200);
+  assert.ok(
+    maps.body.some((m) => m.id === planMapId),
+    'carte listée au compte connecté',
+  );
+  const content = await bearer(request(app).get(`/api/visit/content?map_id=${planMapId}`));
+  assert.equal(content.status, 200, content.body?.error);
+  // L'anonyme, lui, reste dehors (lot B).
+  await request(app).get(`/api/visit/content?map_id=${planMapId}`).expect(400);
+});
+
+test('visite connectée : le périmètre du compte continue de borner la carte', async () => {
+  const token = await createNonManagerToken({ scopeMapIds: [visitMapId] });
+  const bearer = (req) => req.set('Authorization', `Bearer ${token}`);
+  const maps = await bearer(request(app).get('/api/maps')).expect(200);
+  assert.ok(!maps.body.some((m) => m.id === planMapId), 'carte hors périmètre non listée');
+  const refused = await bearer(request(app).get(`/api/visit/content?map_id=${planMapId}`));
+  assert.equal(refused.status, 400);
+  assert.equal(refused.body.error, 'Carte introuvable');
+  await bearer(request(app).get(`/api/visit/content?map_id=${visitMapId}`)).expect(200);
+});
+
+test('visite connectée sur le produit plan : la liste blanche publique s’applique', async () => {
+  // Hors surface de travail, être connecté n'élargit rien : la Visite reste bornée.
+  const token = await createNonManagerToken();
+  const res = await onPlan(request(app).get(`/api/visit/content?map_id=${planMapId}`)).set(
+    'Authorization',
+    `Bearer ${token}`,
+  );
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'Carte introuvable');
 });
 
 test('un gestionnaire lit la carte du plan depuis la console ForêtMap', async () => {

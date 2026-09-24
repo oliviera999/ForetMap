@@ -110,6 +110,25 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
       else notify(err.message || 'Erreur chargement visite');
+      // Échec sur une **autre** carte que celle dont on affiche les lieux : on vide le
+      // contenu plutôt que de laisser les zones et repères de la carte précédente posés sur
+      // le fond de la nouvelle (et le cadrage calé sur eux). Un rechargement raté de la
+      // même carte garde, lui, ce qui est affiché.
+      if (requestedMapId === String(visitLoadMapIdLiveRef.current).trim()) {
+        setContent((prev) =>
+          String(prev?.map_id ?? '').trim() === requestedMapId
+            ? prev
+            : {
+                zones: [],
+                markers: [],
+                tutorials: [],
+                mascot_packs: [],
+                routes: [],
+                categories: [],
+                map_id: requestedMapId,
+              },
+        );
+      }
     } finally {
       setLoading(false);
       setHasLoadedOnce(true);
