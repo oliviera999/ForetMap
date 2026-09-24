@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { scopeLabel, buildConstraintHelp } from '../utils/settingDisplay.js';
 import {
   resolveSettingLabel,
+  resolveSettingOptionLabel,
   buildSettingSections,
   filterSettingSections,
   countSectionRows,
@@ -381,7 +382,7 @@ function SettingsAdminView({
               <option key={String(opt)} value={String(opt)}>
                 {isMapDefault
                   ? (maps || []).find((m) => m.id === String(opt))?.label || String(opt)
-                  : String(opt)}
+                  : resolveSettingOptionLabel(key, opt)}
               </option>
             ))}
           </select>

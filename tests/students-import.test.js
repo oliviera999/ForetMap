@@ -381,6 +381,192 @@ test('POST /api/students/import accepte un MDP court si allow_weak_passwords', a
   });
 });
 
+test('shouldKeepExistingImportRole : jamais de rétrogradation, montée stricte seulement', () => {
+  const { shouldKeepExistingImportRole } = require('../lib/studentRouteHelpers');
+  assert.strictEqual(shouldKeepExistingImportRole(30, 10), true);
+  assert.strictEqual(shouldKeepExistingImportRole(30, 30), true);
+  assert.strictEqual(shouldKeepExistingImportRole(30, 40), false);
+  assert.strictEqual(shouldKeepExistingImportRole(null, 10), false);
+  assert.strictEqual(shouldKeepExistingImportRole(30, undefined), true);
+});
+
+test('resolveImportProfileUpdates : update remplace, fill complète seulement le vide', () => {
+  const { resolveImportProfileUpdates } = require('../lib/studentRouteHelpers');
+  const existing = {
+    display_name: 'Léa Martin',
+    email: 'lea@example.com',
+    pseudo: '',
+    description: null,
+    has_password: 1,
+  };
+  const payload = {
+    firstName: 'Léa',
+    lastName: 'Martin',
+    email: 'autre@example.com',
+    pseudo: 'lea_m',
+    description: 'Déléguée',
+    password: 'nouveau123',
+  };
+  assert.deepStrictEqual(resolveImportProfileUpdates(existing, payload, 'update'), {
+    display_name: 'Léa Martin',
+    email: 'autre@example.com',
+    pseudo: 'lea_m',
+    description: 'Déléguée',
+    password: 'nouveau123',
+  });
+  assert.deepStrictEqual(resolveImportProfileUpdates(existing, payload, 'fill'), {
+    pseudo: 'lea_m',
+    description: 'Déléguée',
+  });
+  assert.deepStrictEqual(
+    resolveImportProfileUpdates({ ...existing, has_password: 0 }, payload, 'fill').password,
+    'nouveau123',
+  );
+  assert.deepStrictEqual(
+    resolveImportProfileUpdates(existing, { firstName: 'Léa', lastName: 'Martin' }, 'update'),
+    { display_name: 'Léa Martin' },
+  );
+});
+
+test('POST /api/students/import : un ré-import ne rétrograde jamais le profil', async () => {
+  const unique = Date.now();
+  await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'create.csv',
+      fileDataBase64: Buffer.from(
+        [IMPORT_CSV_HEADER, `eleve_chevronne;Haut;Niveau-${unique};pass123;;;;`].join('\n'),
+        'utf8',
+      ).toString('base64'),
+    })
+    .expect(200);
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'reimport.csv',
+      fileDataBase64: Buffer.from(
+        [IMPORT_CSV_HEADER, `eleve;Haut;Niveau-${unique};;;;;Toujours là`].join('\n'),
+        'utf8',
+      ).toString('base64'),
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.totals.updated, 1, JSON.stringify(res.body.report.errors));
+  const info = res.body.report.infos.find((i) => i.code === 'role_kept_higher');
+  assert.ok(info, JSON.stringify(res.body.report.infos));
+  assert.deepEqual(info.rows, [2]);
+  assert.strictEqual(res.body.report.preview[0].role_slug, 'eleve_chevronne');
+  assert.strictEqual(res.body.report.preview[0].role_kept, true);
+  const row = await queryOne(
+    "SELECT id, description FROM users WHERE user_type = 'student' AND last_name = ?",
+    [`Niveau-${unique}`],
+  );
+  assert.strictEqual(row.description, 'Toujours là');
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [row.id],
+  );
+  assert.strictEqual(role?.slug, 'eleve_chevronne');
+});
+
+test('POST /api/students/import : existingStrategy=fill complète sans écraser', async () => {
+  const unique = Date.now();
+  await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'create.csv',
+      fileDataBase64: Buffer.from(
+        [IMPORT_CSV_HEADER, `eleve;Fill;Only-${unique};pass123;;;fill_${unique}@example.com;`].join(
+          '\n',
+        ),
+        'utf8',
+      ).toString('base64'),
+    })
+    .expect(200);
+  const before = await queryOne(
+    "SELECT id, password_hash FROM users WHERE user_type = 'student' AND last_name = ?",
+    [`Only-${unique}`],
+  );
+
+  const res = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'fill.csv',
+      existingStrategy: 'fill',
+      fileDataBase64: Buffer.from(
+        [
+          IMPORT_CSV_HEADER,
+          `eleve_avance;Fill;Only-${unique};autreMdp123;;fill_${unique};change_${unique}@example.com;Complété`,
+        ].join('\n'),
+        'utf8',
+      ).toString('base64'),
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.report.options.existingStrategy, 'fill');
+  assert.strictEqual(res.body.report.totals.updated, 1, JSON.stringify(res.body.report.errors));
+  const after = await queryOne(
+    'SELECT email, pseudo, description, password_hash FROM users WHERE id = ?',
+    [before.id],
+  );
+  assert.strictEqual(String(after.email).toLowerCase(), `fill_${unique}@example.com`);
+  assert.strictEqual(after.pseudo, `fill_${unique}`);
+  assert.strictEqual(after.description, 'Complété');
+  assert.strictEqual(after.password_hash, before.password_hash);
+  // La montée de profil s'applique quel que soit le mode.
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+     INNER JOIN roles r ON r.id = ur.role_id
+     WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [before.id],
+  );
+  assert.strictEqual(role?.slug, 'eleve_avance');
+});
+
+test('POST /api/students/import : existingStrategy prime sur le réglage, valeur invalide → 400', async () => {
+  const unique = Date.now();
+  const csv = [IMPORT_CSV_HEADER, `eleve;Choix;Ponctuel-${unique};pass123;;;;v1`].join('\n');
+  const send = (body) =>
+    request(app)
+      .post('/api/students/import')
+      .set('Authorization', 'Bearer ' + teacherToken)
+      .send({
+        fileName: 'choix.csv',
+        fileDataBase64: Buffer.from(body, 'utf8').toString('base64'),
+      });
+  await send(csv).expect(200);
+
+  const skipped = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'choix.csv',
+      existingStrategy: 'skip',
+      fileDataBase64: Buffer.from(csv.replace(';v1', ';v2'), 'utf8').toString('base64'),
+    })
+    .expect(200);
+  assert.strictEqual(skipped.body.report.options.existingStrategy, 'skip');
+  assert.strictEqual(skipped.body.report.totals.skipped_existing, 1);
+
+  const invalid = await request(app)
+    .post('/api/students/import')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({
+      fileName: 'choix.csv',
+      existingStrategy: 'ecraser',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+    })
+    .expect(400);
+  assert.match(invalid.body.error, /existingStrategy/);
+});
+
 async function createTeacherWithRole({ firstName, lastName, roleSlug, email, password }) {
   const id = crypto.randomUUID();
   const hash = await bcrypt.hash(password || 'MotDePasse12!', 10);

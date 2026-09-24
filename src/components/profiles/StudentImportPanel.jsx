@@ -1,17 +1,28 @@
+import { useState } from 'react';
 import { api } from '../../services/api';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../shared/platform/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
 import { IconFileSpreadsheet, IconFileText } from '../../shared/icons.jsx';
 
+/** Traitement d'un compte déjà présent ; '' = réglage de l'établissement. */
+const EXISTING_STRATEGY_OPTIONS = [
+  { value: '', label: 'Selon les réglages de l’établissement' },
+  { value: 'update', label: 'Mettre à jour avec les données du fichier' },
+  { value: 'fill', label: 'Compléter seulement les informations manquantes' },
+  { value: 'skip', label: 'Ignorer les comptes déjà présents' },
+];
+
 /**
  * Panneau « Import {studentPlural} (CSV / XLSX) » (administration des profils).
  * Adaptateur du composant générique `ImportPanel` (audit 2026-07, P1) : fournit
  * le spécifique (endpoints, messages, totaux, carte + permission). Le parent ne
  * fournit que le contexte (`roleTerms`, `canImport`) et les retours (`setErr`/`setMsg`
- * vers les bandeaux, `onImported()` → rechargement). Comportement inchangé.
+ * vers les bandeaux, `onImported()` → rechargement).
  */
 function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }) {
+  const [existingStrategy, setExistingStrategy] = useState('');
+
   const downloadStudentsTemplate = async (format) => {
     try {
       await downloadApiFile(
@@ -30,6 +41,7 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
         fileName: file.name,
         fileDataBase64: base64,
         dryRun,
+        ...(existingStrategy ? { existingStrategy } : {}),
       });
       setReport(result.report || null);
       if ((result.report?.totals?.created || 0) > 0 || (result.report?.totals?.updated || 0) > 0) {
@@ -71,17 +83,34 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
             : plusieurs noms ou slugs séparés par <code>|</code> ou <code>;</code>, chemins{' '}
             <code>Parent&gt;Enfant</code> (création automatique si absents). Une même personne sur
             plusieurs lignes est fusionnée (groupes cumulés ; dernière ligne pour le reste) — un
-            message d&apos;info le signale. Un compte déjà présent (même prénom, nom et type) est{' '}
-            <strong>mis à jour</strong> par défaut ; réglable dans Réglages → Imports de comptes
-            (ignorer, ou autoriser des mots de passe courts).
+            message d&apos;info le signale. Un compte déjà présent (même prénom, nom et type){' '}
+            <strong>garde toujours son profil le plus élevé</strong> : l&apos;import peut le faire
+            monter de niveau, jamais redescendre.
           </p>
+          <div className="field" style={{ margin: '0 0 10px' }}>
+            <label htmlFor="student-import-existing-strategy">
+              Comptes déjà présents : que faire des données du fichier ?
+            </label>
+            <select
+              id="student-import-existing-strategy"
+              value={existingStrategy}
+              onChange={(e) => setExistingStrategy(e.target.value)}
+              style={{ minHeight: 44 }}
+            >
+              {EXISTING_STRATEGY_OPTIONS.map((opt) => (
+                <option key={opt.value || 'default'} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <p
             style={{ margin: '0 0 10px', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
           >
             Remplacez ou supprimez les lignes d&apos;exemple avant l&apos;import. Les e-mails du
             fichier ne sont pas limités aux domaines Google / Moodle de l&apos;établissement. À la
-            mise à jour, un mot de passe vide dans le fichier laisse le mot de passe actuel
-            inchangé.
+            mise à jour, une cellule vide dans le fichier (mot de passe compris) laisse la valeur
+            actuelle inchangée.
           </p>
         </>
       }

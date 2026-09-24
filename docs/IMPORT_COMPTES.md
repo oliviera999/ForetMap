@@ -85,8 +85,14 @@ l'erreur de ligne le dit explicitement au lieu d'un « rôle invalide » génér
   administrateur peuvent importer un compte enseignant (`prof`, `prof_classe`).
 - Le dernier administrateur ne peut pas être rétrogradé par un import.
 - Compte déjà présent (même type + prénom + nom) : **mis à jour** par défaut
-  (`students.import.existing_strategy` = `update` | `skip`). Cellule vide = valeur
-  actuelle conservée (mot de passe compris).
+  (`students.import.existing_strategy` = `update` | `fill` | `skip`, surchargeable pour un
+  import par `existingStrategy` dans le corps de la requête). Cellule vide = valeur
+  actuelle conservée (mot de passe compris). En `fill`, le fichier ne complète que les
+  champs vides du profil (mot de passe posé seulement si le compte n'en a pas).
+- **Jamais de rétrogradation** : sur un compte existant, le profil du fichier ne
+  s'applique que s'il est de rang strictement supérieur au profil actuel (effectif ou
+  attribué) ; sinon le profil est conservé et le rapport le signale (`infos[]`, code
+  `role_kept_higher`).
 - Même personne sur plusieurs lignes : fusionnée (groupes cumulés, dernière ligne
   renseignée pour le reste), signalée dans `infos[]`.
 - Les adresses e-mail du fichier ne sont **pas** filtrées par les domaines autorisés

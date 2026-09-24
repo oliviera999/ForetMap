@@ -31,6 +31,12 @@ export function resolveSettingLabel(key, roleTerms) {
   return meta.label || humanizeKey(key);
 }
 
+/** Libellé d'une valeur de réglage à choix (`optionLabels` des métadonnées), sinon la valeur brute. */
+export function resolveSettingOptionLabel(key, value) {
+  const label = KEY_META[key]?.optionLabels?.[String(value)];
+  return label || String(value);
+}
+
 /**
  * Regroupe les réglages en sections triées (ordre de section puis titre) ; dans chaque section,
  * lignes triées par ordre de champ puis clé. Chaque ligne est enrichie de `_sectionId`,

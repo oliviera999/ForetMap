@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — import de comptes : jamais de rétrogradation, mode « compléter seulement »
+
+- **Profil le plus élevé conservé** (`POST /api/students/import`) : sur un compte déjà présent,
+  le profil du fichier ne s'applique que s'il est de rang strictement supérieur au profil
+  effectif ou attribué. Un ré-import du fichier de rentrée ne ramène plus un n3beur chevronné
+  au palier novice ; les lignes concernées sont signalées (`infos[]`, code `role_kept_higher`).
+- **Nouvelle stratégie `fill`** pour `students.import.existing_strategy` (`update` \| `fill` \|
+  `skip`) : le fichier ne complète que les champs vides du profil (e-mail, pseudo, description,
+  nom affiché ; mot de passe seulement si le compte n'en a pas). Choix ponctuel dans le panneau
+  d'import (`existingStrategy` dans le corps, valeur inconnue → 400), sinon réglage de
+  l'établissement. Unicité pseudo / e-mail contrôlée sur les seules valeurs réellement écrites.
+- Réglages : les valeurs à choix peuvent porter un libellé lisible (`optionLabels`).
+
 ### Ajouté — notifications serveur adressées à une personne, qui ouvrent l’élément exact
 
 - **Notifications stockées sur le serveur** (migration `289_notifications`, `lib/notifications.js`,
