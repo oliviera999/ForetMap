@@ -5,6 +5,7 @@ const { requireAuth, requirePermission } = require('../middleware/requireTeacher
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitForumChanged } = require('../lib/realtime');
+const { fireAndForget, notifyForumReply } = require('../lib/notificationEvents');
 const { isReportsEnabled } = require('../lib/settings');
 const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
@@ -555,6 +556,10 @@ router.post(
       payload: { thread_id: thread.id, images_count: imageList.length },
     });
     emitForumChanged({ reason: 'post_created', threadId: thread.id, postId });
+    fireAndForget(
+      () => notifyForumReply({ threadId: thread.id, postId, body, actorUserId: actor.userId }),
+      { postId },
+    );
     res.status(201).json(post);
   }),
 );

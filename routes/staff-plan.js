@@ -29,6 +29,7 @@ const {
   findPlanPlace,
 } = require('../lib/planContent');
 const { emitContextCommentsChanged } = require('../lib/realtime');
+const { fireAndForget, notifyContextComment } = require('../lib/notificationEvents');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
 const { getActor, createCooldownChecker } = require('../lib/shared/participationGuards');
 const {
@@ -346,6 +347,16 @@ router.post(
       contextId: place.id,
       commentId: created.id,
     });
+    fireAndForget(
+      () =>
+        notifyContextComment({
+          contextType: place.kind,
+          contextId: place.id,
+          body,
+          actorUserId: actor.userId,
+        }),
+      { commentId: created.id },
+    );
     return res.status(201).json({
       ok: true,
       id: created.id,
