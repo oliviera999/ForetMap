@@ -16,7 +16,7 @@ import { act, render, waitFor } from '@testing-library/react';
  * simples sondes à la place des grosses vues.
  */
 
-const probes = vi.hoisted(() => ({ mapTasks: [], pedago: [], unauthenticated: [] }));
+const probes = vi.hoisted(() => ({ mapTasks: [], pedago: [], unauthenticated: [], header: [] }));
 const session = vi.hoisted(() => ({ stored: null, claims: null }));
 const dataSyncCalls = vi.hoisted(() => []);
 const tokenRenewalCalls = vi.hoisted(() => []);
@@ -31,6 +31,12 @@ vi.mock('../src/components/app/PedagoTabs.jsx', () => ({
   PedagoTabs: (props) => {
     probes.pedago.push(props);
     return <div data-testid="pedago-tabs" />;
+  },
+}));
+vi.mock('../src/components/app/AppHeader.jsx', () => ({
+  AppHeader: (props) => {
+    probes.header.push(props);
+    return <div data-testid="app-header" />;
   },
 }));
 vi.mock('../src/components/app/UnauthenticatedShell.jsx', () => ({
@@ -139,6 +145,7 @@ beforeEach(() => {
   probes.mapTasks.length = 0;
   probes.pedago.length = 0;
   probes.unauthenticated.length = 0;
+  probes.header.length = 0;
   dataSyncCalls.length = 0;
   tokenRenewalCalls.length = 0;
   apiMock.mockClear();
@@ -244,6 +251,56 @@ describe('App — session élève expirée ou révoquée (CDG-27)', () => {
     expect(probes.unauthenticated.at(-1).toast).toBe(
       'Votre compte a été supprimé par un responsable.',
     );
+  });
+});
+
+/**
+ * Ouverture précise depuis une notification : la cible serveur (`target`) devient une
+ * demande à usage unique transmise à la vue concernée, puis consommée par elle — un
+ * remontage de la carte ou de la liste ne doit pas la rejouer.
+ */
+describe('App — ouverture de la cible d’une notification', () => {
+  async function openFromNotification(target) {
+    const { stored, claims } = TEACHER_SESSION;
+    await renderAppWith({ stored, claims });
+    await waitFor(() => expect(probes.header.length).toBeGreaterThan(0));
+    await act(async () => {
+      probes.header.at(-1).onNotificationOpenAction({ id: 'srv-1', target });
+    });
+  }
+
+  test('message sur un lieu : demande de lieu vers la carte, consommée une fois', async () => {
+    await openFromNotification({ type: 'place', kind: 'marker', id: '12', mapId: 'n3' });
+    await waitFor(() =>
+      expect(probes.mapTasks.at(-1).mapPlaceRequest).toMatchObject({
+        kind: 'marker',
+        id: '12',
+        mapId: 'n3',
+      }),
+    );
+    expect(window.localStorage.getItem('foretmap_active_map')).toBe('n3');
+    const { nonce } = probes.mapTasks.at(-1).mapPlaceRequest;
+    expect(nonce).toBeTruthy();
+    await act(async () => {
+      probes.mapTasks.at(-1).onMapPlaceRequestHandled(nonce);
+    });
+    await waitFor(() => expect(probes.mapTasks.at(-1).mapPlaceRequest).toBeNull());
+  });
+
+  test('tâche à valider : demande de focus avec le filtre « à valider »', async () => {
+    await openFromNotification({ type: 'task', id: '42', mapId: 'm1', filter: 'to_validate' });
+    await waitFor(() =>
+      expect(probes.mapTasks.at(-1).tasksFocusRequest).toMatchObject({
+        taskId: '42',
+        filter: 'to_validate',
+      }),
+    );
+    expect(typeof probes.mapTasks.at(-1).onTasksFocusRequestHandled).toBe('function');
+  });
+
+  test('réglages : la section demandée est posée pour la vue Réglages', async () => {
+    await openFromNotification({ type: 'settings', section: 'accueil' });
+    expect(window.sessionStorage.getItem('foretmap:settings:focus')).toBe('accueil');
   });
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 import { api, AccountDeletedError } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -27,6 +27,7 @@ import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
   isTaskUrgentPending,
+  isTaskValidated,
   filterStatusShowsValidated,
   partitionTasksByValidated,
   applyTaskFilters,
@@ -97,6 +98,8 @@ function TasksViewImpl({
   onOpenPlantCatalogPreview = null,
   hasPermissionInRole = () => false,
   onStartPedagoSession = null,
+  focusRequest = null,
+  onFocusRequestHandled = null,
 }) {
   const publicSettings = usePublicSettings();
   const { prompt } = useAppDialogs();
@@ -574,6 +577,73 @@ function TasksViewImpl({
     setFilterStatus('validated');
     setHasTouchedStatusFilter(true);
   }, [setFilterStatus, setHasTouchedStatusFilter]);
+  /**
+   * Notification / lien direct « tâche » : filtres remis à plat (plus le statut demandé —
+   * « à valider », « en retard »), puis la carte de la tâche est amenée à l'écran et mise
+   * en évidence. Sans tâche précise, seul le filtre est posé. Consommée une fois (nonce).
+   */
+  const [highlightTaskId, setHighlightTaskId] = useState('');
+  const handledFocusRequestRef = useRef(null);
+  useEffect(() => {
+    if (!focusRequest?.nonce || handledFocusRequestRef.current === focusRequest.nonce) return;
+    const wantedTaskId = focusRequest.taskId != null ? String(focusRequest.taskId) : '';
+    const task = wantedTaskId ? tasks.find((t) => String(t.id) === wantedTaskId) : null;
+    if (wantedTaskId && !task) return;
+    handledFocusRequestRef.current = focusRequest.nonce;
+    let status = '';
+    if (focusRequest.filter === 'to_validate') status = 'done';
+    else if (focusRequest.filter === 'overdue') status = 'overdue';
+    else if (task && isTaskValidated(task)) status = 'validated';
+    setFilterText('');
+    setFilterZone('');
+    setFilterProject('');
+    setFilterGroupId('');
+    setFilterUrgentCategory('');
+    setFilterRecurrence('');
+    setFilterMap('all');
+    setFilterStatus(status);
+    setHasTouchedStatusFilter(!!status);
+    if (task) setHighlightTaskId(wantedTaskId);
+    onFocusRequestHandled?.(focusRequest.nonce);
+  }, [
+    focusRequest,
+    tasks,
+    onFocusRequestHandled,
+    setFilterText,
+    setFilterZone,
+    setFilterProject,
+    setFilterGroupId,
+    setFilterUrgentCategory,
+    setFilterRecurrence,
+    setFilterMap,
+    setFilterStatus,
+    setHasTouchedStatusFilter,
+  ]);
+  useEffect(() => {
+    if (!highlightTaskId) return undefined;
+    let attempts = 0;
+    let cardEl = null;
+    let timer = null;
+    const tick = () => {
+      attempts += 1;
+      cardEl = Array.from(document.querySelectorAll('[data-task-id]')).find(
+        (node) => node.getAttribute('data-task-id') === highlightTaskId,
+      );
+      if (cardEl) {
+        cardEl.classList.add('task-card--highlight');
+        cardEl.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        return;
+      }
+      if (attempts < 20) timer = setTimeout(tick, 100);
+    };
+    timer = setTimeout(tick, 50);
+    const clearTimer = setTimeout(() => setHighlightTaskId(''), 4000);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearTimer);
+      cardEl?.classList.remove('task-card--highlight');
+    };
+  }, [highlightTaskId]);
   // La section « 🚨 Urgent ! » ne retient que les tâches urgentes ENCORE en cours de vie :
   // une tâche urgente validée doit repartir dans « ✅ Validées » / « ✅ Récemment validées »
   // (avant, elle restait piégée dans l'encart urgence, retirée de toutes les autres sections).

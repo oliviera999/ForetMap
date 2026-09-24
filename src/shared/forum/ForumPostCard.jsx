@@ -89,7 +89,10 @@ export function ForumPostCard({
   };
 
   return (
-    <article className={`forum-post ${deleted ? 'is-deleted' : ''}`}>
+    <article
+      className={`forum-post ${deleted ? 'is-deleted' : ''}`}
+      data-post-id={p.id != null ? String(p.id) : undefined}
+    >
       <div className="forum-post-head">
         <strong>{p.author_display_name}</strong>
         <time dateTime={p.created_at || undefined}>{formatDateTimeFr(p.created_at)}</time>

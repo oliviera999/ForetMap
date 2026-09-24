@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import {
@@ -222,6 +223,23 @@ export function LocationVisitAside({
       )}
     </div>
   );
+}
+
+/**
+ * Ref à poser sur un bloc de la fenêtre de lieu : si `active` au montage, le bloc est amené
+ * dans la vue (ouverture depuis une notification « message sur un lieu »).
+ */
+export function useScrollIntoViewOnMount(active) {
+  const ref = useRef(null);
+  const activeAtMountRef = useRef(active);
+  useEffect(() => {
+    if (!activeAtMountRef.current) return undefined;
+    const id = setTimeout(() => {
+      ref.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }, 60);
+    return () => clearTimeout(id);
+  }, []);
+  return ref;
 }
 
 /** Tutoriel sans lieu ou entièrement sur la carte `mapId`. */

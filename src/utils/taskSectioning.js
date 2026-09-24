@@ -110,6 +110,17 @@ export function prioritizeTasksAwaitingValidation(list) {
   return awaiting.length === 0 ? others : [...awaiting, ...others];
 }
 
+/**
+ * Tâche encore à réaliser (à faire / en cours) dont l'échéance est dépassée — filtre
+ * de statut « En retard ». Une tâche terminée, validée ou en attente n'est plus « en retard ».
+ */
+export function isTaskOverdue(task) {
+  const effective = taskEffectiveStatus(task);
+  if (effective !== 'available' && effective !== 'in_progress') return false;
+  const d = daysUntil(task?.due_date);
+  return d !== null && d < 0;
+}
+
 /** Une tâche passe-t-elle l'ensemble des filtres de la vue Tâches ? */
 export function taskMatchesFilters(
   t,
@@ -136,7 +147,9 @@ export function taskMatchesFilters(
   if (filterStatus) {
     const eff = taskEffectiveStatus(t);
     let matches = eff === filterStatus;
-    if (filterStatus === 'validated') {
+    if (filterStatus === 'overdue') {
+      matches = isTaskOverdue(t);
+    } else if (filterStatus === 'validated') {
       matches = eff === 'validated' || eff === 'project_validated';
     } else if (filterStatus === 'on_hold') {
       matches = eff === 'on_hold';

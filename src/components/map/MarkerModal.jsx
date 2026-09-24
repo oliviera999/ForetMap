@@ -23,7 +23,7 @@ import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
-import { LocationVisitAside } from './mapModalShared.jsx';
+import { LocationVisitAside, useScrollIntoViewOnMount } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 import {
@@ -67,13 +67,15 @@ function MarkerModal({
   canParticipateContextComments = true,
   onRequestAdjustMarkerPosition = null,
   onOpenPlantCatalogPreview = null,
+  focusComments = false,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const { confirm } = useAppDialogs();
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
-  const [tab, setTab] = useState('tasks');
+  const [tab, setTab] = useState(focusComments && !isNew ? 'info' : 'tasks');
+  const commentsRef = useScrollIntoViewOnMount(focusComments && !isNew);
   const [form, setForm] = useState(() => markerFormFromMarker(marker));
   const [saving, setSaving] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
@@ -551,13 +553,15 @@ function MarkerModal({
               </p>
             )}
           {contextCommentsEnabled && (
-            <ContextComments
-              contextType="marker"
-              contextId={marker.id}
-              title="Commentaires du repère"
-              placeholder="Ajouter une observation sur ce repère…"
-              canParticipateContextComments={canParticipateContextComments}
-            />
+            <div ref={commentsRef}>
+              <ContextComments
+                contextType="marker"
+                contextId={marker.id}
+                title="Commentaires du repère"
+                placeholder="Ajouter une observation sur ce repère…"
+                canParticipateContextComments={canParticipateContextComments}
+              />
+            </div>
           )}
         </div>
       )}

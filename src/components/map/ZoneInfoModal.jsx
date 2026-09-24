@@ -55,7 +55,7 @@ import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
-import { LocationVisitAside } from './mapModalShared.jsx';
+import { LocationVisitAside, useScrollIntoViewOnMount } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 import {
@@ -97,6 +97,7 @@ function ZoneInfoModal({
   onNavigateToTasksForLocation = null,
   onOpenTutorialPreview = null,
   onOpenPlantCatalogPreview = null,
+  focusComments = false,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -121,7 +122,8 @@ function ZoneInfoModal({
     };
   }, [zone]);
 
-  const [tab, setTab] = useState('tasks');
+  const [tab, setTab] = useState(focusComments ? 'info' : 'tasks');
+  const commentsRef = useScrollIntoViewOnMount(focusComments);
   const [zoneName, setZoneName] = useState(
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
   );
@@ -513,13 +515,15 @@ function ZoneInfoModal({
               </p>
             )}
           {contextCommentsEnabled && (
-            <ContextComments
-              contextType="zone"
-              contextId={zone.id}
-              title="Commentaires de la zone"
-              placeholder="Ajouter une observation sur cette zone…"
-              canParticipateContextComments={canParticipateContextComments}
-            />
+            <div ref={commentsRef}>
+              <ContextComments
+                contextType="zone"
+                contextId={zone.id}
+                title="Commentaires de la zone"
+                placeholder="Ajouter une observation sur cette zone…"
+                canParticipateContextComments={canParticipateContextComments}
+              />
+            </div>
           )}
         </div>
       )}

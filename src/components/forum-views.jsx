@@ -19,7 +19,12 @@ const FORETMAP_LIMITS = Object.freeze({ titleMin: 4, titleMax: 180, bodyMax: 400
  * déjà en mémoire, les groupes, l'éditeur visuel et le rendu Markdown avec glossaire, et
  * relaie les événements temps réel `forum:changed`.
  */
-function ForumView({ authClaims, canParticipateForum = true }) {
+function ForumView({
+  authClaims,
+  canParticipateForum = true,
+  threadRequest = null,
+  onThreadRequestHandled = null,
+}) {
   const adapter = useMemo(
     () =>
       createForumAdapter({ request: api, basePath: '/api/forum', capabilities: { groups: true } }),
@@ -81,6 +86,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
       Markdown={MarkdownContent}
       Editor={MarkdownTextarea}
       refreshSignal={refreshSignal}
+      threadRequest={threadRequest}
+      onThreadRequestHandled={onThreadRequestHandled}
       readOnlyNote={
         <p className="forum-muted">
           Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux
