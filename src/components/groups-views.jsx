@@ -519,7 +519,12 @@ function GroupTreeNode({
   return (
     <div style={{ marginLeft: depth === 0 ? 0 : 16 }}>
       <div
-        style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, marginBottom: 8 }}
+        style={{
+          border: '1px solid var(--line-soft)',
+          borderRadius: 8,
+          padding: 8,
+          marginBottom: 8,
+        }}
         data-testid={`group-row-${id}`}
       >
         <div

@@ -432,7 +432,8 @@ CREATE TABLE IF NOT EXISTS forum_posts (
   author_user_type VARCHAR(16) NOT NULL,
   author_user_id VARCHAR(64) NOT NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Milliseconde (migration 291) : départage deux messages de la même seconde.
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_forum_posts_thread_created (thread_id, created_at),
   INDEX idx_forum_posts_author (author_user_type, author_user_id, created_at),
