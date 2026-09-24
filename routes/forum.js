@@ -215,6 +215,45 @@ router.get(
   }),
 );
 
+/**
+ * Marqueur du dernier message publié par **quelqu'un d'autre** dans le périmètre visible :
+ * le client le compare à son curseur de lecture local pour allumer le point « non lus ».
+ * Ses propres messages sont exclus, sinon publier allumerait son propre point.
+ */
+router.get(
+  '/unread-marker',
+  asyncHandler(async (req, res) => {
+    const actor = getActor(req.auth);
+    if (!actor) return res.status(401).json({ error: 'Session invalide' });
+    const visibleGroupIds = await resolveForumVisibleGroupIds(req.auth);
+    if (Array.isArray(visibleGroupIds) && !visibleGroupIds.length) {
+      return res.json({ latest_post_id: null, latest_post_at: null });
+    }
+    const whereParts = [
+      'p.is_deleted = 0',
+      'NOT (p.author_user_type = ? AND p.author_user_id = ?)',
+    ];
+    const whereParams = [actor.userType, actor.userId];
+    if (Array.isArray(visibleGroupIds)) {
+      whereParts.push(`t.group_id IN (${visibleGroupIds.map(() => '?').join(',')})`);
+      whereParams.push(...visibleGroupIds);
+    }
+    const row = await queryOne(
+      `SELECT p.id, p.created_at
+         FROM forum_posts p
+         JOIN forum_threads t ON t.id = p.thread_id
+        WHERE ${whereParts.join(' AND ')}
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 1`,
+      whereParams,
+    );
+    res.json({
+      latest_post_id: row?.id || null,
+      latest_post_at: row?.created_at || null,
+    });
+  }),
+);
+
 router.post(
   '/threads',
   asyncHandler(async (req, res) => {

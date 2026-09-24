@@ -157,6 +157,24 @@ describe('StudentBottomNav', () => {
     expect(onTabChange).toHaveBeenCalledWith('forum');
   });
 
+  test('point non lu sur Forum (barre complète)', () => {
+    const { rerender } = render(<StudentBottomNav {...baseProps} />);
+    expect(screen.queryByRole('img', { name: 'Nouveaux messages' })).toBeNull();
+    rerender(<StudentBottomNav {...baseProps} hasForumUnread />);
+    const forumBtn = screen.getByRole('button', { name: /Forum/ });
+    expect(within(forumBtn).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+  });
+
+  test('mode compact : point non lu reporté sur Plus puis sur Forum dans le tiroir', async () => {
+    render(<StudentBottomNav {...baseProps} layoutMode="compact" tab="map" hasForumUnread />);
+    const more = screen.getByRole('button', { name: /Plus d'onglets/ });
+    expect(within(more).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+    fireEvent.click(more);
+    const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
+    const forumBtn = within(sheet).getByRole('button', { name: /Forum/ });
+    expect(within(forumBtn).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+  });
+
   test('mode compact : Plus actif quand l’onglet courant est hors primary', () => {
     render(<StudentBottomNav {...baseProps} layoutMode="compact" tab="about" />);
     const more = screen.getByRole('button', { name: /Plus d'onglets/ });

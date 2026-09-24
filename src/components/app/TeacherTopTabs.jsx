@@ -46,6 +46,7 @@ import {
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { PEDAGO_LEVEL_LABELS, PEDAGO_LEVELS } from '../../utils/biodivPedagoLevel.js';
+import { UnreadDot } from './UnreadDot.jsx';
 
 const POLES = [
   { id: 'contents', label: 'Contenus', Icon: IconPoleContents },
@@ -89,6 +90,8 @@ export function TeacherTopTabs({
   visitEnabled,
   observationsEnabled = true,
   canAccessForum,
+  /** Point rouge sur l'onglet Forum (et son pôle) : message d'autrui non lu. */
+  hasForumUnread = false,
   isN3Affiliated,
   hasPermission,
   hasPermissionInRole,
@@ -231,7 +234,14 @@ export function TeacherTopTabs({
       label: 'Carnet',
       visible: Boolean(observationsEnabled),
     },
-    { id: 'forum', pole: 'tracking', Icon: IconForum, label: 'Forum', visible: canAccessForum },
+    {
+      id: 'forum',
+      pole: 'tracking',
+      Icon: IconForum,
+      label: 'Forum',
+      unread: hasForumUnread,
+      visible: canAccessForum,
+    },
     {
       id: 'audit',
       pole: 'tracking',
@@ -316,6 +326,7 @@ export function TeacherTopTabs({
               >
                 <Icon size={16} /> {label}
                 {id === 'tracking' && <PendingBadge count={pendingCount} />}
+                <UnreadDot show={visibleTabs.some((t) => t.pole === id && t.unread)} />
               </button>
             );
           })}
@@ -324,10 +335,11 @@ export function TeacherTopTabs({
           <div className="top-tabs app-tabs-surface top-tabs--secondary">
             {visibleTabs
               .filter((t) => t.pole === activePoleId)
-              .map(({ id, Icon, label, badge }) => (
+              .map(({ id, Icon, label, badge, unread }) => (
                 <TopTab key={id} id={id} tab={tab} onTabChange={onTabChange}>
                   <Icon size={15} /> {label}
                   {badge && <PendingBadge count={pendingCount} />}
+                  <UnreadDot show={unread} />
                 </TopTab>
               ))}
           </div>
@@ -378,7 +390,7 @@ export function TeacherTopTabs({
           initialSnap="half"
         >
           <div className="fm-nav-drawer-tabs" role="list" aria-label={`Onglets ${sheetTitle}`}>
-            {sheetTabs.map(({ id, Icon, label, badge }) => {
+            {sheetTabs.map(({ id, Icon, label, badge, unread }) => {
               const isActive = tab === id;
               return (
                 <button
@@ -394,6 +406,7 @@ export function TeacherTopTabs({
                   <span className="fm-nav-drawer-tab__label">
                     {label}
                     {badge ? <PendingBadge count={pendingCount} /> : null}
+                    <UnreadDot show={unread} />
                   </span>
                 </button>
               );

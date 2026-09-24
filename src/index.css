@@ -864,6 +864,25 @@
       min-width:18px;
       text-align:center;
     }
+    /* Point « non lu » (forum) : en ligne dans les onglets prof et le tiroir, posé sur
+       l'icône dans la barre basse. */
+    .nav-unread-dot {
+      display:inline-block;
+      flex:0 0 auto;
+      width:9px;
+      height:9px;
+      margin-left:6px;
+      border-radius:50%;
+      background:var(--alert);
+      box-shadow:0 0 0 2px var(--surface-plain);
+      vertical-align:middle;
+    }
+    .nav-btn > .nav-unread-dot {
+      position:absolute;
+      top:7px;
+      left:calc(50% + 8px);
+      margin-left:0;
+    }
     .teacher-main > *:not(.top-tabs):not(.teacher-nav) {
       flex:1;
       min-height:0;

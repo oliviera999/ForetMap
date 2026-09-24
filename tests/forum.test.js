@@ -127,6 +127,44 @@ test('Forum: un élève peut créer un sujet et répondre', async () => {
   assert.ok(detail.body.posts.length >= 2);
 });
 
+test('Forum: marqueur non lu — dernier message d’autrui, jamais le sien', async () => {
+  await request(app).get('/api/forum/unread-marker').expect(401);
+
+  const author = await registerStudent('UnreadAuthor');
+  const reader = await registerStudent('UnreadReader');
+  const create = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet non lu ${Date.now()}`, body: 'Message qui doit allumer le point.' })
+    .expect(201);
+  const firstPostId = create.body?.first_post_id;
+  assert.ok(firstPostId);
+
+  const forReader = await request(app)
+    .get('/api/forum/unread-marker')
+    .set(auth(reader.authToken))
+    .expect(200);
+  assert.strictEqual(forReader.body.latest_post_id, firstPostId);
+  assert.ok(forReader.body.latest_post_at);
+
+  const forAuthor = await request(app)
+    .get('/api/forum/unread-marker')
+    .set(auth(author.authToken))
+    .expect(200);
+  assert.notStrictEqual(forAuthor.body.latest_post_id, firstPostId);
+
+  // Un message supprimé n'allume plus le point.
+  await request(app)
+    .delete(`/api/forum/posts/${firstPostId}`)
+    .set(auth(author.authToken))
+    .expect(200);
+  const afterDelete = await request(app)
+    .get('/api/forum/unread-marker')
+    .set(auth(reader.authToken))
+    .expect(200);
+  assert.notStrictEqual(afterDelete.body.latest_post_id, firstPostId);
+});
+
 test('Forum: un prof peut verrouiller un sujet', async () => {
   const student = await registerStudent('LockForum');
   const teacher = await teacherToken();

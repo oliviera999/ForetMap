@@ -38,11 +38,20 @@ import {
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { UnreadDot } from './UnreadDot.jsx';
 
 const COMPACT_WIDTH_QUERY = '(max-width: 1023px)';
 const COMPACT_POINTER_QUERY = '(pointer: coarse)';
 
-function NavButton({ id, tab, onTabChange, icon, children, className = 'nav-btn' }) {
+function NavButton({
+  id,
+  tab,
+  onTabChange,
+  icon,
+  children,
+  unread = false,
+  className = 'nav-btn',
+}) {
   const isActive = tab === id;
   return (
     <button
@@ -55,6 +64,7 @@ function NavButton({ id, tab, onTabChange, icon, children, className = 'nav-btn'
         {icon}
       </span>{' '}
       {children}
+      <UnreadDot show={unread} />
     </button>
   );
 }
@@ -153,6 +163,8 @@ export function StudentBottomNav({
   observationsEnabled,
   visitEnabled,
   canAccessForum,
+  /** Point rouge sur l'onglet Forum : message d'autrui non lu. */
+  hasForumUnread = false,
   /**
    * `auto` : compact si max-width 1023px ou pointeur coarse.
    * `compact` / `full` : forçage (tests).
@@ -224,6 +236,9 @@ export function StudentBottomNav({
   const showMore = isCompact && overflowCount > 0;
   const showMoreActive = showMore && primaryItems.every((item) => item.id !== tab);
   const barItems = showMore ? primaryItems : items;
+  const isUnread = (id) => id === 'forum' && hasForumUnread;
+  const moreHasUnread =
+    showMore && items.some((item) => isUnread(item.id) && !barItems.includes(item));
 
   useEffect(() => {
     const el = navRef.current?.querySelector('[aria-current="page"]');
@@ -251,6 +266,7 @@ export function StudentBottomNav({
             tab={tab}
             onTabChange={onTabChange}
             icon={item.icon}
+            unread={isUnread(item.id)}
           >
             {item.label}
           </NavButton>
@@ -268,6 +284,7 @@ export function StudentBottomNav({
               ⋯
             </span>{' '}
             Plus
+            <UnreadDot show={moreHasUnread} />
           </button>
         ) : null}
       </nav>
@@ -295,7 +312,10 @@ export function StudentBottomNav({
                   <span className="fm-nav-drawer-tab__icon" aria-hidden="true">
                     {item.icon}
                   </span>
-                  <span className="fm-nav-drawer-tab__label">{item.label}</span>
+                  <span className="fm-nav-drawer-tab__label">
+                    {item.label}
+                    <UnreadDot show={isUnread(item.id)} />
+                  </span>
                 </button>
               );
             })}

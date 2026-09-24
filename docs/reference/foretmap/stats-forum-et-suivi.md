@@ -41,6 +41,17 @@ commentaires) et rester informé (notifications, temps réel).
   moins un groupe, puisque le forum est cloisonné par groupe : pensez à rattacher les
   personnels à un groupe (par exemple « Personnels ») si vous voulez qu'ils puissent lancer
   des discussions et pas seulement répondre.
+- **Messages non lus** : un **point rouge** s'allume sur l'onglet **Forum** dès qu'une autre
+  personne publie un message (nouveau sujet ou réponse) que vous n'avez pas encore vu. Sur
+  téléphone, quand le Forum est rangé dans le menu, le point apparaît aussi sur le bouton
+  « Plus » ; côté professeur, il apparaît aussi sur le pôle **Suivi**. Ouvrir le forum
+  éteint le point. Vos propres messages ne l'allument jamais.
+
+  > ⚠️ **Point d'attention** — La lecture est mémorisée **sur l'appareil** : un message lu
+  > sur l'ordinateur de la salle peut encore apparaître comme non lu sur le téléphone. La
+  > toute première fois qu'un compte ouvre l'application sur un appareil, le point s'allume
+  > s'il existe déjà des messages, puisque rien n'y a encore été lu.
+
 - **Modération** : les messages peuvent être **signalés** ; les professeurs disposent
   des outils de modération (masquer, supprimer, traiter les signalements).
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
