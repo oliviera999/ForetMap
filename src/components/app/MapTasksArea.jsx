@@ -45,6 +45,8 @@ export function MapTasksArea({
   onMapLocationFocusChange,
   onOpenPlantCatalogPreview,
   onPersistVisitMascotId = null,
+  mapRouteRequest = null,
+  onStartPedagoSession = null,
 }) {
   return (
     <>
@@ -71,6 +73,7 @@ export function MapTasksArea({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
               onPersistVisitMascotId={onPersistVisitMascotId}
               onForceLogout={onForceLogout}
+              routeRequest={mapRouteRequest}
             />
           </section>
           <section className="desktop-split-pane desktop-split-pane--tasks">
@@ -91,6 +94,7 @@ export function MapTasksArea({
                 mapLocationFocus={mapLocationFocus}
                 onMapLocationFocusChange={onMapLocationFocusChange}
                 onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+                onStartPedagoSession={onStartPedagoSession}
               />
             </div>
           </section>
@@ -111,6 +115,7 @@ export function MapTasksArea({
           onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
           onPersistVisitMascotId={onPersistVisitMascotId}
           onForceLogout={onForceLogout}
+          routeRequest={mapRouteRequest}
         />
       )}
       {!useSplitMapTasks && tab === 'tasks' && canAccessSoloMapTasks && (
@@ -130,6 +135,7 @@ export function MapTasksArea({
           mapLocationFocus={mapLocationFocus}
           onMapLocationFocusChange={onMapLocationFocusChange}
           onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+          onStartPedagoSession={onStartPedagoSession}
         />
       )}
     </>

@@ -50,6 +50,7 @@ export function IndividualsView({
   canManage = false,
   canMeasure = false,
   onOpenPlant = null,
+  initialIndividualId = null,
 }) {
   const { plants = [] } = useData() || {};
   const { visibility } = useBiodivPedago();
@@ -88,7 +89,7 @@ export function IndividualsView({
     loadList().catch(() => setItems([]));
   }, [loadList]);
 
-  const openDetail = async (id) => {
+  const openDetail = useCallback(async (id) => {
     setError('');
     setSelectedId(id);
     try {
@@ -99,7 +100,12 @@ export function IndividualsView({
       setError(err?.message || 'Chargement impossible');
       setDetail(null);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const id = Number(initialIndividualId);
+    if (Number.isInteger(id) && id > 0) openDetail(id);
+  }, [initialIndividualId, openDetail]);
 
   const createIndividual = async () => {
     setError('');

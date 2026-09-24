@@ -11,7 +11,7 @@
   border-bottom: 1px solid color-mix(in srgb, var(--leaf, #4a7c59) 40%, transparent);
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 30;
 }
 
 .pedago-session-banner__session {
@@ -172,4 +172,156 @@
   border-radius: 8px;
   padding: 0.5rem 0.65rem;
   gap: 0.4rem;
+}
+
+/* Panneaux prof (partage / suivi) sous la carte de séance */
+.pedago-sessions__panel {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--leaf, #4a7c59) 8%, transparent);
+}
+
+.pedago-sessions__panel .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 20rem;
+}
+
+.pedago-sessions__panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.pedago-sessions__link code {
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+
+.pedago-sessions__qr {
+  width: 200px;
+  height: 200px;
+  image-rendering: pixelated;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.pedago-sessions__panel .shared-btn,
+.pedago-sessions__card-actions > button {
+  min-height: 44px;
+}
+
+.pedago-sessions__runs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pedago-sessions__runs-table th,
+.pedago-sessions__runs-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--forest, #1a4d2e) 12%, transparent);
+}
+
+.pedago-sessions__create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pedago-sessions__create .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pedago-sessions__create select {
+  min-height: 44px;
+}
+
+.pedago-sessions__prereq {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.pedago-sessions__prereq--locked {
+  font-weight: 600;
+  color: var(--alert, #9a3412);
+}
+
+/* Badges (ludification) */
+.pedago-rewards {
+  margin-bottom: 1rem;
+}
+
+.pedago-rewards__list,
+.pedago-rewards--new {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pedago-rewards__item {
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--leaf, #4a7c59) 18%, transparent);
+  color: var(--forest, #1a4d2e);
+}
+
+.pedago-rewards__item--locked {
+  opacity: 0.55;
+  background: color-mix(in srgb, var(--forest, #1a4d2e) 6%, transparent);
+}
+
+.pedago-rewards--new .pedago-rewards__item {
+  border-radius: 8px;
+}
+
+.pedago-rewards__desc {
+  opacity: 0.85;
+}
+
+/* Éditeur d'étapes (séance libre) */
+.pedago-step-editor__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pedago-step-editor__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.pedago-step-editor__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pedago-step-editor__tools {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pedago-step-editor__tools > button {
+  min-width: 44px;
+  min-height: 44px;
 }

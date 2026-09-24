@@ -133,12 +133,25 @@ test('runs : démarrage / fin élève, /me/runs, /stats réservé prof (migratio
     assert.equal(done.body.run.completed, true);
     assert.equal(done.body.run.completionCount, 1);
     assert.ok(done.body.run.firstCompletedAt);
+    assert.ok(done.body.rewards.some((r) => r.key === 'session_first'));
 
     const again = await request(app)
       .post(`/api/pedago-sessions/${slug}/runs/complete`)
       .set(studentAuth)
       .expect(200);
     assert.equal(again.body.run.completionCount, 2);
+    assert.deepEqual(
+      again.body.rewards.map((r) => r.key),
+      ['session_replay'],
+      'seuls les badges nouvellement obtenus sont renvoyés',
+    );
+
+    const rewards = await request(app).get('/api/rewards/me').set(studentAuth).expect(200);
+    const keys = rewards.body.rewards.map((r) => r.key);
+    assert.ok(keys.includes('session_first'));
+    assert.ok(keys.includes('session_replay'));
+    assert.ok(rewards.body.catalogue.length >= keys.length);
+    await request(app).get('/api/rewards/me').expect(401);
 
     const mine = await request(app)
       .get('/api/pedago-sessions/me/runs')
@@ -169,6 +182,162 @@ test('runs : démarrage / fin élève, /me/runs, /stats réservé prof (migratio
   } finally {
     await execute('DELETE FROM pedago_session_runs WHERE user_id = ?', [studentId]).catch(() => {});
     await execute('DELETE FROM users WHERE id = ?', [studentId]).catch(() => {});
+  }
+});
+
+test('lot 5 : partage, suivi par élève, séance libre, prérequis', async () => {
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Seance', lastName: `Lot5${stamp}`, password: 'pwd12345' })
+    .expect(201);
+  const studentId = reg.body.id;
+  const studentAuth = { Authorization: `Bearer ${reg.body.authToken}` };
+  let customId = '';
+
+  try {
+    // Lien direct + QR code
+    const share = await request(app)
+      .get('/api/pedago-sessions/college-qui-mange-qui/share')
+      .set(auth())
+      .expect(200);
+    assert.match(share.body.link, /\?seance=college-qui-mange-qui$/);
+    assert.match(share.body.qrDataUrl, /^data:image\/png;base64,/);
+    assert.equal(share.body.isPublished, true);
+    await request(app)
+      .get('/api/pedago-sessions/college-qui-mange-qui/share')
+      .set(studentAuth)
+      .expect(403);
+
+    // Suivi nominatif (réservé prof)
+    await request(app)
+      .post('/api/pedago-sessions/college-qui-mange-qui/runs/start')
+      .set(studentAuth)
+      .expect(200);
+    await request(app)
+      .get('/api/pedago-sessions/college-qui-mange-qui/runs')
+      .set(studentAuth)
+      .expect(403);
+    const runs = await request(app)
+      .get('/api/pedago-sessions/college-qui-mange-qui/runs')
+      .set(auth())
+      .expect(200);
+    const mine = runs.body.students.find((s) => s.userId === studentId);
+    assert.ok(mine);
+    assert.equal(mine.lastName, `Lot5${stamp}`);
+    assert.ok(mine.startCount >= 1);
+
+    // Séances lycée semées en brouillon
+    const all = await request(app).get('/api/pedago-sessions?all=1').set(auth()).expect(200);
+    const c = all.body.items.find((i) => i.slug === 'lycee-un-arbre-qui-grandit');
+    const d = all.body.items.find((i) => i.slug === 'lycee-classer-pour-de-vrai');
+    assert.equal(c.level, 'lycee');
+    assert.ok(c.steps.some((s) => s.action.type === 'open_individual'));
+    assert.ok(d.steps.some((s) => s.action.type === 'open_nested_groups'));
+
+    // Séance libre : étapes éditables, cibles vérifiées à la publication
+    const created = await request(app)
+      .post('/api/pedago-sessions')
+      .set(auth())
+      .send({
+        templateKey: 'custom',
+        slug: `libre-${stamp}`,
+        steps: [
+          { id: 's1', title: 'Consigne', action: { type: 'message', payload: {} } },
+          {
+            id: 's2',
+            title: 'Parcours',
+            action: { type: 'open_map_route', payload: { routeSlug: `absent-${stamp}` } },
+          },
+        ],
+      })
+      .expect(201);
+    customId = created.body.id;
+    assert.equal(created.body.templateKey, 'custom');
+    assert.equal(created.body.title, 'Nouvelle séance');
+    assert.equal(created.body.steps[1].action.payload.routeSlug, `absent-${stamp}`);
+
+    const refused = await request(app)
+      .put(`/api/pedago-sessions/${customId}`)
+      .set(auth())
+      .send({ isPublished: true })
+      .expect(400);
+    assert.match(refused.body.error, /parcours/);
+
+    const edited = await request(app)
+      .put(`/api/pedago-sessions/${customId}`)
+      .set(auth())
+      .send({
+        steps: [{ id: 's1', title: 'Seule étape', action: { type: 'message', payload: {} } }],
+        requiresSessionId: 'pedago-session-college-reconaitre',
+        isPublished: true,
+      })
+      .expect(200);
+    assert.equal(edited.body.steps.length, 1);
+    assert.equal(edited.body.config.requiresSessionId, 'pedago-session-college-reconaitre');
+
+    await request(app)
+      .put('/api/pedago-sessions/college-qui-mange-qui')
+      .set(auth())
+      .send({ steps: [{ id: 'x', title: 'X', action: { type: 'message' } }] })
+      .expect(400);
+    await request(app)
+      .put(`/api/pedago-sessions/${customId}`)
+      .set(auth())
+      .send({ requiresSessionId: customId })
+      .expect(400);
+
+    // Prérequis : verrouillé tant que la séance A n'est pas terminée
+    const locked = await request(app)
+      .post(`/api/pedago-sessions/${customId}/runs/start`)
+      .set(studentAuth)
+      .expect(403);
+    assert.equal(locked.body.locked, true);
+    assert.equal(locked.body.requiresSessionId, 'pedago-session-college-reconaitre');
+    await request(app)
+      .post('/api/pedago-sessions/college-reconaitre-sans-toucher/runs/complete')
+      .set(studentAuth)
+      .expect(200);
+    await request(app)
+      .post(`/api/pedago-sessions/${customId}/runs/start`)
+      .set(studentAuth)
+      .expect(200);
+    await request(app).post(`/api/pedago-sessions/${customId}/runs/start`).set(auth()).expect(200);
+  } finally {
+    await execute('DELETE FROM pedago_session_runs WHERE user_id = ?', [studentId]).catch(() => {});
+    await execute('DELETE FROM user_rewards WHERE user_id = ?', [studentId]).catch(() => {});
+    await execute('DELETE FROM users WHERE id = ?', [studentId]).catch(() => {});
+    if (customId) {
+      await execute('DELETE FROM pedago_sessions WHERE id = ?', [customId]).catch(() => {});
+    }
+  }
+});
+
+test('lot 5 : lien tâche → séance (migration 286)', async () => {
+  const created = await request(app)
+    .post('/api/tasks')
+    .set(auth())
+    .send({ title: `Tâche séance ${stamp}`, pedago_session_id: 'college-qui-mange-qui' })
+    .expect(201);
+  const taskId = created.body.id;
+  try {
+    assert.equal(created.body.pedago_session_id, 'pedago-session-college-qui-mange');
+    await request(app)
+      .post('/api/tasks')
+      .set(auth())
+      .send({ title: `Tâche KO ${stamp}`, pedago_session_id: 'seance-inexistante' })
+      .expect(400);
+    const list = await request(app).get('/api/tasks').set(auth()).expect(200);
+    const items = Array.isArray(list.body) ? list.body : list.body.tasks || list.body.items || [];
+    const listed = items.find((t) => t.id === taskId);
+    if (listed) assert.equal(listed.pedago_session_id, 'pedago-session-college-qui-mange');
+    const cleared = await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set(auth())
+      .send({ pedago_session_id: null })
+      .expect(200);
+    assert.equal(cleared.body.pedago_session_id ?? null, null);
+  } finally {
+    await execute('DELETE FROM tasks WHERE id = ?', [taskId]).catch(() => {});
   }
 });
 

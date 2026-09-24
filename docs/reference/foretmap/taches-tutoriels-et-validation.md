@@ -53,6 +53,7 @@ Chaque tâche décrit précisément le travail attendu :
 | Référents            | Des professeurs (ou élèves expérimentés) « à qui s'adresser » ; recommandés si la tâche est difficile ou dangereuse.                                                     |
 | Tutoriels liés       | Les fiches pratiques à lire avant de commencer.                                                                                                                          |
 | Espèces liées        | Les êtres vivants du catalogue concernés par la tâche.                                                                                                                   |
+| Séance liée          | Optionnel : une séance pédagogique à suivre ; la carte de la tâche affiche « Lancer la séance ». Terminer la séance ne valide pas la tâche.                              |
 | Récurrence           | Aucune (tâche unique), hebdomadaire, toutes les 2 semaines, ou mensuelle.                                                                                                |
 
 Si une tâche compliquée ou dangereuse n'a pas de référent, un avertissement invite

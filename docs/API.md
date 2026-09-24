@@ -1719,7 +1719,13 @@ Contrat principal :
 - La capacité respecte `required_students` à partir de la lecture initiale de la tâche. Contrairement à l'auto-inscription `assign`, cette route ne verrouille pas la ligne `tasks` avec `FOR UPDATE` ; c'est l'index unique `(task_id, student_id)` qui empêche les doublons par n3beur, et le `ON DUPLICATE KEY UPDATE` qui rend le lot idempotent en cas de course sur un même élève.
 - Le plafond d'auto-inscriptions n3beur (`tasks.student_max_active_assignments` / `roles.max_concurrent_tasks`) ne s'applique pas : c'est une action n3boss.
 
-\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
+\* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`, `pedago_session_id`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
+
+**Séance pédagogique liée** — `POST /api/tasks`, `PUT /api/tasks/:id` (`tasks.manage`) : champ
+optionnel `pedago_session_id` (id ou slug d’une séance existante, sinon 400 `Séance pédagogique
+introuvable` ; `null` / vide = aucun lien). Migration `286`, FK `ON DELETE SET NULL`. Renvoyé
+dans la liste et le détail des tâches ; l’interface affiche « Lancer la séance ». Terminer la
+séance **ne valide pas** la tâche.
 
 **Photo illustrative (fiche tâche)** — `POST /api/tasks`, `POST /api/tasks/proposals`, `PUT /api/tasks/:id` :
 
@@ -2895,25 +2901,47 @@ sont refusés.
 
 ### Séances pédagogiques (`/api/pedago-sessions`)
 
-Migration `282`. Orchestration des onglets existants (clé, fiche, réseau, quiz) — **distinct**
-des parcours géographiques (`/api/map-routes`). Templates seed : `college_reconaitre`,
-`college_qui_mange`. La structure des étapes est figée ; le prof configure carte / clé /
-plantes / quiz via `PUT`.
+Migration `282`. Orchestration des onglets existants (clé, fiche, réseau, quiz, arbres suivis,
+boîtes emboîtées, parcours) — **distinct** des parcours géographiques (`/api/map-routes`), qu’une
+étape peut toutefois lancer. Modèles : `college_reconaitre`, `college_qui_mange` (publiés),
+`lycee_arbre`, `lycee_classer` (migration `284`, semés **en brouillon**) et `custom` (séance
+libre). Pour un modèle, la structure des étapes est figée et le prof configure carte / clé /
+plantes / arbre suivi / quiz via `PUT` ; pour une séance `custom`, `steps` est éditable.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
 | GET | `/api/pedago-sessions` | non | Liste des séances **publiées** (étapes résolues avec `config`) |
 | GET | `/api/pedago-sessions?all=1` | `plants.manage` | Inclut les brouillons |
 | GET | `/api/pedago-sessions/:idOrSlug` | non / manage | Détail ; brouillon → 404 sans `plants.manage` |
-| POST | `/api/pedago-sessions` | `plants.manage` | Créer une copie depuis `templateKey` |
-| PUT | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Titre, config (carte, clé, plantes, notion/quiz), publication |
-| POST | `/api/pedago-sessions/:idOrSlug/runs/start` | connecté | Enregistre un démarrage (`{ run }`) ; séance non publiée → 404 |
-| POST | `/api/pedago-sessions/:idOrSlug/runs/complete` | connecté | Enregistre une fin (`{ run }`) ; crée la ligne si le démarrage manque ; non publiée → 404 |
+| POST | `/api/pedago-sessions` | `plants.manage` | Créer depuis `templateKey` (titre et niveau par défaut du modèle) ; `custom` accepte `steps` |
+| PUT | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Titre, config (carte, clé, plantes ≤ 6, `individualId`, `mapRouteSlug`, notion/quiz, `requiresSessionId`), `steps` (séance `custom` uniquement, sinon 400), publication |
+| POST | `/api/pedago-sessions/:idOrSlug/runs/start` | connecté | Enregistre un démarrage (`{ run }`) ; non publiée → 404 ; prérequis non terminé → 403 `{ error, locked: true, requiresSessionId, requiresSessionTitle }` |
+| POST | `/api/pedago-sessions/:idOrSlug/runs/complete` | connecté | Enregistre une fin (`{ run, rewards }`, `rewards` = badges **nouvellement** obtenus) ; crée la ligne si le démarrage manque ; non publiée → 404 ; prérequis → 403 |
 | GET | `/api/pedago-sessions/me/runs` | connecté | `{ runs: [{ sessionId, startCount, completionCount, completed, firstStartedAt, lastStartedAt, firstCompletedAt, lastCompletedAt }] }` |
 | GET | `/api/pedago-sessions/stats` | `plants.manage` | Agrégats anonymes `{ stats: [{ sessionId, startedUsers, completedUsers, lastCompletedAt }] }` |
+| GET | `/api/pedago-sessions/:idOrSlug/runs` | `plants.manage` | Suivi nominatif `{ sessionId, groupId, students: [{ userId, firstName, lastName, startCount, completionCount, completed, lastStartedAt, lastCompletedAt }] }` ; `?groupId=` → tous les élèves du groupe (y compris non démarrés), groupe hors périmètre → 403 ; sans groupe → comptes ayant ouvert la séance (périmètre du prof) |
+| GET | `/api/pedago-sessions/:idOrSlug/share` | `plants.manage` | `{ link, qrDataUrl, isPublished }` — lien direct `/?seance=<slug>` et QR code PNG (data URL) ; `?base_url=` pour forcer l’hôte |
 
 Actions d’étape (`action.type`) : `message`, `open_id_key`, `open_plant`, `open_foodweb`,
-`open_quiz`, `open_glossary`. MVP : `completeWhen` = `manual` uniquement.
+`open_quiz`, `open_glossary`, `open_individual` (`individualId`), `open_nested_groups`
+(`plantIds`, 2 à 6), `open_map_route` (`routeSlug`, `mapId`). MVP : `completeWhen` = `manual`
+uniquement. Séance `custom` : chaque étape porte ses cibles (la config ne sert que de défaut) ;
+à la publication, les plantes, arbres suivis, parcours et clés référencés doivent exister,
+sinon 400 `Publication impossible : …`. Prérequis (`config.requiresSessionId`) : une autre
+séance existante, jamais elle-même ; les gestionnaires (`plants.manage`) ne sont jamais bloqués.
+
+Lien direct : `/?seance=<slug>` ouvre l’application et démarre la séance (après connexion si
+besoin, le slug est gardé en `sessionStorage`).
+
+### Badges (`/api/rewards`)
+
+Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une seule fois). Les
+règles sont côté serveur (`lib/rewards.js`) ; aujourd’hui alimentées par les fins de séance
+(`session_first`, `session_three`, `session_replay`, `session_lycee`).
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, emoji, title, description, awardedAt }], catalogue: [{ key, emoji, title, description }] }` |
 
 Preuve légère (migration `283`, table `pedago_session_runs`) : une ligne par couple
 (séance, utilisateur) avec compteurs cumulés de démarrages et de fins. Les visiteurs non

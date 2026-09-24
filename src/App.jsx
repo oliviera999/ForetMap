@@ -117,6 +117,10 @@ import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
 } from './components/pedago/SessionsView.jsx';
+import {
+  consumeSessionLinkFromLocation,
+  clearPendingSessionLink,
+} from './utils/pedagoSessionLink.js';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
@@ -982,6 +986,12 @@ function App() {
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
   const [activePedagoSession, setActivePedagoSession] = useState(() => readStoredPedagoSession());
   const [completedPedagoSession, setCompletedPedagoSession] = useState(null);
+  const [pendingSessionSlug, setPendingSessionSlug] = useState(() =>
+    consumeSessionLinkFromLocation(),
+  );
+  const pedagoAuthenticated = !!(student || isTeacherAccount);
+  const [pedagoEntry, setPedagoEntry] = useState(null);
+  const [pedagoMapRouteRequest, setPedagoMapRouteRequest] = useState(null);
   const [pedagoRunsVersion, setPedagoRunsVersion] = useState(0);
   // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
   // onglets pour survivre à tout changement de vue — audit A1).
@@ -1078,9 +1088,45 @@ function App() {
         const c = payload.termCode ? String(payload.termCode).trim() : '';
         if (c) setPedagoGlossaryCode(c);
         navigateTab('glossary');
+        return;
+      }
+      const map = payload.mapId ? String(payload.mapId).trim() : '';
+      if (type === 'open_individual') {
+        if (map) chooseMap(map);
+        const iid = Number(payload.individualId);
+        setPedagoEntry((prev) => ({
+          ...prev,
+          individualId: Number.isInteger(iid) && iid > 0 ? iid : null,
+        }));
+        navigateTab('individuals');
+        return;
+      }
+      if (type === 'open_nested_groups') {
+        if (map) chooseMap(map);
+        const plantIds = (Array.isArray(payload.plantIds) ? payload.plantIds : [])
+          .map(Number)
+          .filter((n) => Number.isInteger(n) && n > 0);
+        setPedagoEntry((prev) => ({
+          ...prev,
+          nestedGroups: { plantIds, mapId: map || null, nonce: Date.now() },
+        }));
+        navigateTab('nested-groups');
+        return;
+      }
+      if (type === 'open_map_route') {
+        if (map) chooseMap(map);
+        const slug = payload.routeSlug ? String(payload.routeSlug).trim() : '';
+        if (slug) setPedagoMapRouteRequest({ slug, nonce: Date.now() });
+        navigateTab('map');
       }
     },
-    [navigateTab, openPlantCatalogPreviewById, openPedagoFoodWeb, setPlantCatalogPreview],
+    [
+      navigateTab,
+      openPlantCatalogPreviewById,
+      openPedagoFoodWeb,
+      setPlantCatalogPreview,
+      chooseMap,
+    ],
   );
 
   const persistPedagoSession = useCallback((next) => {
@@ -1090,19 +1136,28 @@ function App() {
 
   const postPedagoRun = useCallback(
     (sessionId, kind) => {
-      if (!student || !sessionId) return Promise.resolve();
+      if (!pedagoAuthenticated || !sessionId) return Promise.resolve(null);
       return api(
         `/api/pedago-sessions/${encodeURIComponent(sessionId)}/runs/${kind}`,
         'POST',
-      ).catch(() => {});
+      ).catch(() => null);
     },
-    [student],
+    [pedagoAuthenticated],
   );
 
   const startPedagoSession = useCallback(
-    (session) => {
-      if (!session?.steps?.length) return;
-      postPedagoRun(session.id, 'start');
+    async (session) => {
+      if (!session?.steps?.length) return false;
+      if (pedagoAuthenticated && session.id) {
+        try {
+          await api(`/api/pedago-sessions/${encodeURIComponent(session.id)}/runs/start`, 'POST');
+        } catch (err) {
+          if (err?.body?.locked) {
+            setToast(err.body.error || 'Cette séance est encore verrouillée.');
+            return false;
+          }
+        }
+      }
       const next = {
         id: session.id,
         slug: session.slug,
@@ -1113,8 +1168,9 @@ function App() {
       };
       persistPedagoSession(next);
       dispatchPedagoSessionStep(next.steps[0]);
+      return true;
     },
-    [persistPedagoSession, dispatchPedagoSessionStep, postPedagoRun],
+    [pedagoAuthenticated, persistPedagoSession, dispatchPedagoSessionStep],
   );
 
   const exitPedagoSession = useCallback(() => {
@@ -1130,7 +1186,14 @@ function App() {
       if (nextIndex >= prev.steps.length) {
         persistPedagoSession(null);
         setCompletedPedagoSession(prev);
-        postPedagoRun(prev.id, 'complete').then(() => setPedagoRunsVersion((v) => v + 1));
+        postPedagoRun(prev.id, 'complete').then((res) => {
+          setPedagoRunsVersion((v) => v + 1);
+          if (Array.isArray(res?.rewards) && res.rewards.length) {
+            setCompletedPedagoSession((cur) =>
+              cur && cur.id === prev.id ? { ...cur, newRewards: res.rewards } : cur,
+            );
+          }
+        });
         return;
       }
       const next = { ...prev, stepIndex: nextIndex };
@@ -1151,7 +1214,7 @@ function App() {
       activeSession: activePedagoSession,
       currentStep: pedagoSessionCurrentStep,
       onStartSession: startPedagoSession,
-      isAuthenticated: !!student,
+      isAuthenticated: pedagoAuthenticated,
       runsVersion: pedagoRunsVersion,
     }),
     [
@@ -1161,10 +1224,35 @@ function App() {
       activePedagoSession,
       pedagoSessionCurrentStep,
       startPedagoSession,
-      student,
+      pedagoAuthenticated,
       pedagoRunsVersion,
     ],
   );
+
+  const launchPedagoSession = useCallback(
+    async (idOrSlug) => {
+      const key = String(idOrSlug || '').trim();
+      if (!key) return false;
+      let session = null;
+      try {
+        session = await api(`/api/pedago-sessions/${encodeURIComponent(key)}`);
+        if (!session?.steps?.length) throw new Error('empty');
+      } catch {
+        setToast('Cette séance n’est plus disponible.');
+        return false;
+      }
+      return startPedagoSession(session);
+    },
+    [startPedagoSession],
+  );
+
+  useEffect(() => {
+    if (!pendingSessionSlug || !pedagoAuthenticated) return;
+    const slug = pendingSessionSlug;
+    setPendingSessionSlug(null);
+    clearPendingSessionLink();
+    launchPedagoSession(slug);
+  }, [pendingSessionSlug, pedagoAuthenticated, launchPedagoSession]);
 
   // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
   // s'il vient de notre origine (audit A10 — un tutoriel `type = 'link'` affiche un site
@@ -1473,7 +1561,8 @@ function App() {
                     <PedagoSessionDoneDialog
                       session={completedPedagoSession}
                       canAddToNotebook={
-                        !!student && publicSettings?.modules?.observations_enabled !== false
+                        pedagoAuthenticated &&
+                        publicSettings?.modules?.observations_enabled !== false
                       }
                       onClose={() => setCompletedPedagoSession(null)}
                       onOpenNotebook={() => {
@@ -1702,6 +1791,8 @@ function App() {
                       ) : (
                         <>
                           <MapTasksArea
+                            mapRouteRequest={pedagoMapRouteRequest}
+                            onStartPedagoSession={launchPedagoSession}
                             isTeacher
                             student={currentUser}
                             maps={visibleMaps}
@@ -1890,6 +1981,7 @@ function App() {
                             canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
                             onOpenSettingsLearning={handleOpenSettingsLearning}
                             sessionsProps={sessionsProps}
+                            pedagoEntry={pedagoEntry}
                           />
                         </>
                       )}
@@ -1904,6 +1996,8 @@ function App() {
                         ) : (
                           <>
                             <MapTasksArea
+                              mapRouteRequest={pedagoMapRouteRequest}
+                              onStartPedagoSession={launchPedagoSession}
                               isTeacher={false}
                               student={studentForUi}
                               maps={visibleMaps}
@@ -2010,6 +2104,7 @@ function App() {
                               canMeasureIndividuals={canMeasureIndividuals}
                               appVersion={appVersion}
                               sessionsProps={sessionsProps}
+                              pedagoEntry={pedagoEntry}
                             />
                           </>
                         )}

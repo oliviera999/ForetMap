@@ -2,8 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../../services/api.js';
 import { Button } from '../../shared/ui/Button.jsx';
+import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx';
+import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 
 const STORAGE_KEY = 'foretmap.pedagoSession.v1';
+
+export const CREATABLE_TEMPLATES = Object.freeze([
+  { key: 'lycee_arbre', label: 'Lycée · Un arbre qui grandit' },
+  { key: 'lycee_classer', label: 'Lycée · Classer pour de vrai' },
+  { key: 'college_reconaitre', label: 'Collège · Reconnaître sans toucher' },
+  { key: 'college_qui_mange', label: 'Collège · Qui mange qui' },
+  { key: 'custom', label: 'Séance libre (étapes à composer)' },
+]);
+
+const LEVEL_LABELS = { college: 'Collège', lycee: 'Lycée', universite: 'Université' };
 
 export function readStoredPedagoSession() {
   try {
@@ -27,7 +39,23 @@ export function writeStoredPedagoSession(state) {
 }
 
 /**
- * Catalogue + message d’étape + formulaire config prof (templates A/B).
+ * Séance verrouillée pour cet utilisateur : prérequis défini et pas encore terminé.
+ * Les gestionnaires ne sont jamais bloqués.
+ */
+export function sessionLockFor(session, myRuns, canManage) {
+  const requiredId = session?.config?.requiresSessionId;
+  if (!requiredId || canManage) return null;
+  if (myRuns?.[requiredId]?.completed) return null;
+  return requiredId;
+}
+
+function uniqueSlug(templateKey) {
+  const base = templateKey.replace(/_/g, '-');
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+/**
+ * Catalogue + message d’étape + création / configuration prof (modèles et séances libres).
  */
 export function SessionsView({
   canManage = false,
@@ -47,10 +75,15 @@ export function SessionsView({
   const [idKeys, setIdKeys] = useState([]);
   const [myRuns, setMyRuns] = useState({});
   const [runStats, setRunStats] = useState({});
+  const [rewards, setRewards] = useState({ rewards: [], catalogue: [] });
+  const [panel, setPanel] = useState(null);
+  const [newTemplate, setNewTemplate] = useState('custom');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setMyRuns({});
+      setRewards({ rewards: [], catalogue: [] });
       return;
     }
     let cancelled = false;
@@ -63,6 +96,17 @@ export function SessionsView({
       })
       .catch(() => {
         if (!cancelled) setMyRuns({});
+      });
+    api('/api/rewards/me')
+      .then((data) => {
+        if (cancelled) return;
+        setRewards({
+          rewards: Array.isArray(data?.rewards) ? data.rewards : [],
+          catalogue: Array.isArray(data?.catalogue) ? data.catalogue : [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setRewards({ rewards: [], catalogue: [] });
       });
     return () => {
       cancelled = true;
@@ -115,12 +159,36 @@ export function SessionsView({
       .catch(() => setIdKeys([]));
   }, [canManage]);
 
+  const titleById = useMemo(() => {
+    const map = {};
+    for (const it of items) map[it.id] = it.title;
+    return map;
+  }, [items]);
+
+  async function createSession() {
+    setCreating(true);
+    setError('');
+    try {
+      const created = await api('/api/pedago-sessions', 'POST', {
+        templateKey: newTemplate,
+        slug: uniqueSlug(newTemplate),
+      });
+      setItems((prev) => [...prev, created]);
+      setConfigTarget(created);
+    } catch (err) {
+      setError(err?.message || 'Création impossible');
+    } finally {
+      setCreating(false);
+    }
+  }
+
   const showMessage = activeSession && currentStep && currentStep.action?.type === 'message';
 
   if (configTarget) {
     return (
       <SessionConfigForm
         session={configTarget}
+        sessions={items}
         maps={maps}
         plants={plants}
         idKeys={idKeys}
@@ -134,15 +202,56 @@ export function SessionsView({
     );
   }
 
+  const earnedKeys = new Set(rewards.rewards.map((r) => r.key));
+
   return (
     <div className="pedago-sessions" data-testid="pedago-sessions">
       <header className="pedago-sessions__header">
         <h1 className="section-title">Séances</h1>
         <p className="section-sub">
-          Enchaînements guidés sur les outils déjà présents (clé, fiche, réseau, quiz). Les parcours
-          sur la carte restent dans Visite / Carte.
+          Enchaînements guidés sur les outils déjà présents (clé, fiche, réseau, quiz, arbres
+          suivis, boîtes emboîtées, parcours).
         </p>
       </header>
+
+      {isAuthenticated && rewards.catalogue.length > 0 && (
+        <section className="pedago-rewards" aria-label="Mes badges" data-testid="pedago-rewards">
+          <h2 className="pedago-sessions__panel-title">
+            Mes badges ({earnedKeys.size}/{rewards.catalogue.length})
+          </h2>
+          <ul className="pedago-rewards__list">
+            {rewards.catalogue.map((r) => (
+              <li
+                key={r.key}
+                className={`pedago-rewards__item${earnedKeys.has(r.key) ? '' : ' pedago-rewards__item--locked'}`}
+                title={r.description}
+                data-earned={earnedKeys.has(r.key) ? 'true' : 'false'}
+              >
+                <span aria-hidden="true">{earnedKeys.has(r.key) ? r.emoji : '🔒'}</span> {r.title}
+                {earnedKeys.has(r.key) ? '' : ' (à obtenir)'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {canManage && (
+        <div className="pedago-sessions__create" data-testid="pedago-session-create">
+          <label className="form-field">
+            <span>Nouvelle séance</span>
+            <select value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)}>
+              {CREATABLE_TEMPLATES.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="button" variant="secondary" onClick={createSession} disabled={creating}>
+            {creating ? 'Création…' : 'Créer (brouillon)'}
+          </Button>
+        </div>
+      )}
 
       {showMessage && (
         <article className="pedago-sessions__message card" data-testid="pedago-session-message">
@@ -159,11 +268,15 @@ export function SessionsView({
         </p>
       )}
 
-      {!loading && !error && (
+      {!loading && (
         <ul className="pedago-sessions__list">
           {items.map((session) => {
             const myRun = myRuns[session.id];
             const stats = runStats[session.id];
+            const lockedBy = sessionLockFor(session, myRuns, canManage);
+            const requiredTitle = session.config?.requiresSessionId
+              ? titleById[session.config.requiresSessionId] || 'une autre séance'
+              : null;
             return (
               <li key={session.id} className="pedago-sessions__card card">
                 <div className="pedago-sessions__card-main">
@@ -179,17 +292,24 @@ export function SessionsView({
                     ) : null}
                   </h2>
                   <p className="section-sub">
-                    {session.level === 'college'
-                      ? 'Collège'
-                      : session.level === 'lycee'
-                        ? 'Lycée'
-                        : 'Université'}
+                    {LEVEL_LABELS[session.level] || 'Collège'}
                     {' · '}
                     {session.steps?.length || 0} étapes
+                    {session.templateKey === 'custom' ? ' · séance libre' : ''}
                     {!session.isPublished ? ' · brouillon' : ''}
                   </p>
                   {session.description ? (
                     <p className="pedago-sessions__desc">{session.description}</p>
+                  ) : null}
+                  {requiredTitle ? (
+                    <p
+                      className={`pedago-sessions__prereq${lockedBy ? ' pedago-sessions__prereq--locked' : ''}`}
+                      data-testid="pedago-session-prereq"
+                    >
+                      {lockedBy
+                        ? `🔒 Termine d’abord « ${requiredTitle} »`
+                        : `Après « ${requiredTitle} »`}
+                    </p>
                   ) : null}
                   {canManage ? (
                     <p className="pedago-sessions__stats" data-testid="pedago-session-stats">
@@ -202,16 +322,42 @@ export function SessionsView({
                     type="button"
                     variant="primary"
                     onClick={() => onStartSession?.(session)}
-                    disabled={!session.isPublished && !canManage}
+                    disabled={(!session.isPublished && !canManage) || !!lockedBy}
                   >
                     {activeSession?.id === session.id ? 'Reprendre' : 'Démarrer'}
                   </Button>
                   {canManage && (
-                    <Button type="button" variant="ghost" onClick={() => setConfigTarget(session)}>
-                      Configurer
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setConfigTarget(session)}
+                      >
+                        Configurer
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setPanel({ kind: 'share', sessionId: session.id })}
+                      >
+                        Partager
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setPanel({ kind: 'runs', sessionId: session.id })}
+                      >
+                        Suivi
+                      </Button>
+                    </>
                   )}
                 </div>
+                {canManage && panel?.sessionId === session.id && panel.kind === 'share' && (
+                  <SessionSharePanel session={session} onClose={() => setPanel(null)} />
+                )}
+                {canManage && panel?.sessionId === session.id && panel.kind === 'runs' && (
+                  <SessionRunsPanel session={session} onClose={() => setPanel(null)} />
+                )}
               </li>
             );
           })}
@@ -221,7 +367,66 @@ export function SessionsView({
   );
 }
 
-function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved }) {
+function useIndividuals(enabled) {
+  const [individuals, setIndividuals] = useState([]);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    api('/api/individuals')
+      .then((data) => {
+        if (!cancelled) setIndividuals(Array.isArray(data?.items) ? data.items : []);
+      })
+      .catch(() => {
+        if (!cancelled) setIndividuals([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return individuals;
+}
+
+function useMapRoutes(mapId, enabled) {
+  const [routes, setRoutes] = useState([]);
+  useEffect(() => {
+    if (!enabled || !mapId) {
+      setRoutes([]);
+      return;
+    }
+    let cancelled = false;
+    api(`/api/map-routes?map_id=${encodeURIComponent(mapId)}&surface=map`)
+      .then((rows) => {
+        if (!cancelled) setRoutes(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setRoutes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mapId, enabled]);
+  return routes;
+}
+
+function stripResolvedStep(step) {
+  return {
+    id: step.id,
+    title: step.title || '',
+    body: step.body || '',
+    action: { type: step.action?.type || 'message', payload: { ...(step.action?.payload || {}) } },
+    completeWhen: 'manual',
+  };
+}
+
+function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCancel, onSaved }) {
+  const tpl = session.templateKey;
+  const isA = tpl === 'college_reconaitre';
+  const isB = tpl === 'college_qui_mange';
+  const isC = tpl === 'lycee_arbre';
+  const isD = tpl === 'lycee_classer';
+  const isCustom = tpl === 'custom';
+  const plantSlots = isD ? 6 : 3;
+
   const [title, setTitle] = useState(session.title || '');
   const [mapId, setMapId] = useState(session.config?.mapId || session.mapId || '');
   const [keyIdOrSlug, setKeyIdOrSlug] = useState(session.config?.keyIdOrSlug || '');
@@ -229,17 +434,28 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
     session.config?.plantId != null ? String(session.config.plantId) : '',
   );
   const [plantIds, setPlantIds] = useState(() =>
-    (session.config?.plantIds || []).map(String).concat(['', '', '']).slice(0, 3),
+    (session.config?.plantIds || []).map(String).concat(Array(6).fill('')).slice(0, plantSlots),
   );
-  const [notionNiveau, setNotionNiveau] = useState(session.config?.notionNiveau || 'cycle4');
+  const [individualId, setIndividualId] = useState(
+    session.config?.individualId != null ? String(session.config.individualId) : '',
+  );
+  const [requiresSessionId, setRequiresSessionId] = useState(
+    session.config?.requiresSessionId || '',
+  );
+  const [steps, setSteps] = useState(() =>
+    isCustom && session.steps?.length ? session.steps.map(stripResolvedStep) : [newStep(0)],
+  );
+  const [notionNiveau, setNotionNiveau] = useState(
+    session.config?.notionNiveau || (session.level === 'lycee' ? 'lycee' : 'cycle4'),
+  );
   const [notionId, setNotionId] = useState(session.config?.notionId || '');
   const [questionCode, setQuestionCode] = useState(session.config?.questionCode || '');
   const [isPublished, setIsPublished] = useState(!!session.isPublished);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const isA = session.templateKey === 'college_reconaitre';
-  const isB = session.templateKey === 'college_qui_mange';
+  const individuals = useIndividuals(isC || isCustom);
+  const mapRoutes = useMapRoutes(mapId, isCustom);
 
   const plantOptions = useMemo(
     () =>
@@ -261,15 +477,22 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
         notionId: notionId.trim() || null,
         questionCode: questionCode.trim() || null,
         mapId: mapId || null,
+        requiresSessionId: requiresSessionId || null,
       };
       if (isA) {
         body.keyIdOrSlug = keyIdOrSlug || null;
         body.plantId = plantId ? Number(plantId) : null;
         body.plantIds = plantId ? [Number(plantId)] : [];
       }
-      if (isB) {
+      if (isB || isD) {
         body.plantIds = plantIds.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0);
         body.plantId = body.plantIds[0] || null;
+      }
+      if (isC) {
+        body.individualId = individualId ? Number(individualId) : null;
+      }
+      if (isCustom) {
+        body.steps = steps.map((s, i) => ({ ...s, title: s.title.trim() || `Étape ${i + 1}` }));
       }
       const updated = await api(
         `/api/pedago-sessions/${encodeURIComponent(session.id)}`,
@@ -292,8 +515,9 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
     >
       <h1 className="section-title">Configurer · {session.title}</h1>
       <p className="section-sub">
-        La structure des étapes est figée (modèle {session.templateKey}). Choisis carte, contenus et
-        publication.
+        {isCustom
+          ? 'Séance libre : compose les étapes. À la publication, chaque cible est vérifiée.'
+          : `La structure des étapes est figée (modèle ${tpl}). Choisis carte, contenus et publication.`}
       </p>
 
       <label className="form-field">
@@ -307,7 +531,7 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
           <option value="">— aucune —</option>
           {(maps || []).map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name || m.id}
+              {m.name || m.label || m.id}
             </option>
           ))}
         </select>
@@ -341,10 +565,10 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
         </>
       )}
 
-      {isB && (
+      {(isB || isD) && (
         <fieldset className="form-field">
-          <legend>Trois plantes du site</legend>
-          {[0, 1, 2].map((idx) => (
+          <legend>{isD ? 'Six espèces à classer' : 'Trois plantes du site'}</legend>
+          {Array.from({ length: plantSlots }, (_, idx) => (
             <select
               key={idx}
               value={plantIds[idx] || ''}
@@ -366,32 +590,75 @@ function SessionConfigForm({ session, maps, plants, idKeys, onCancel, onSaved })
         </fieldset>
       )}
 
+      {isC && (
+        <label className="form-field">
+          <span>Arbre suivi</span>
+          <select value={individualId} onChange={(e) => setIndividualId(e.target.value)}>
+            <option value="">— à choisir en séance —</option>
+            {individuals.map((it) => (
+              <option key={it.id} value={String(it.id)}>
+                {it.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {isCustom && (
+        <SessionStepEditor
+          steps={steps}
+          onChange={setSteps}
+          plantOptions={plantOptions}
+          idKeys={idKeys}
+          individuals={individuals}
+          mapRoutes={mapRoutes}
+        />
+      )}
+
+      {!isCustom && (
+        <>
+          <label className="form-field">
+            <span>Quiz · niveau de notion</span>
+            <select value={notionNiveau} onChange={(e) => setNotionNiveau(e.target.value)}>
+              <option value="">— libre —</option>
+              <option value="cycle3">Cycle 3</option>
+              <option value="cycle4">Cycle 4</option>
+              <option value="lycee">Lycée</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Quiz · id de notion (optionnel)</span>
+            <input
+              value={notionId}
+              onChange={(e) => setNotionId(e.target.value)}
+              placeholder="ex. notion uuid"
+            />
+          </label>
+
+          <label className="form-field">
+            <span>Quiz · code question fixe (optionnel)</span>
+            <input
+              value={questionCode}
+              onChange={(e) => setQuestionCode(e.target.value)}
+              placeholder="QF0001"
+            />
+          </label>
+        </>
+      )}
+
       <label className="form-field">
-        <span>Quiz · niveau de notion</span>
-        <select value={notionNiveau} onChange={(e) => setNotionNiveau(e.target.value)}>
-          <option value="">— libre —</option>
-          <option value="cycle3">Cycle 3</option>
-          <option value="cycle4">Cycle 4</option>
-          <option value="lycee">Lycée</option>
+        <span>Prérequis (séance à terminer avant)</span>
+        <select value={requiresSessionId} onChange={(e) => setRequiresSessionId(e.target.value)}>
+          <option value="">— aucun —</option>
+          {sessions
+            .filter((s) => s.id !== session.id)
+            .map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
         </select>
-      </label>
-
-      <label className="form-field">
-        <span>Quiz · id de notion (optionnel)</span>
-        <input
-          value={notionId}
-          onChange={(e) => setNotionId(e.target.value)}
-          placeholder="ex. notion uuid"
-        />
-      </label>
-
-      <label className="form-field">
-        <span>Quiz · code question fixe (optionnel)</span>
-        <input
-          value={questionCode}
-          onChange={(e) => setQuestionCode(e.target.value)}
-          placeholder="QF0001"
-        />
       </label>
 
       <label className="form-field form-field--checkbox">

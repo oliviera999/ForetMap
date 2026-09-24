@@ -193,6 +193,7 @@ function MapViewImpl({
   onOpenPlantCatalogPreview = null,
   onPersistVisitMascotId = null,
   onForceLogout,
+  routeRequest = null,
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
@@ -444,6 +445,16 @@ function MapViewImpl({
   useEffect(() => {
     resetForMapChange();
   }, [activeMapId, resetForMapChange]);
+  // Séance pédagogique : « ouvrir le parcours X » — attend que les parcours de la carte
+  // soient chargés, puis démarre une seule fois par demande (nonce).
+  const handledRouteRequestRef = useRef(null);
+  useEffect(() => {
+    if (!routeRequest?.slug || handledRouteRequestRef.current === routeRequest.nonce) return;
+    const route = mapRoutes.find((r) => r.slug === routeRequest.slug);
+    if (!route) return;
+    handledRouteRequestRef.current = routeRequest.nonce;
+    startRoute(route);
+  }, [routeRequest, mapRoutes, startRoute]);
   useEffect(() => {
     if (mode !== 'view' && activeRoute) exitRoute();
   }, [mode, activeRoute, exitRoute]);

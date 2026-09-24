@@ -20,6 +20,11 @@ const {
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { mapExists } = require('../lib/mapQueries');
 const {
+  TEMPLATE_KEYS,
+  TEMPLATE_DEFAULT_TITLES,
+  TEMPLATE_LEVELS,
+  collectStepReferences,
+  resolveSteps,
   validateSteps,
   normalizeConfig,
   stepsForTemplate,
@@ -29,13 +34,21 @@ const {
   normalizeTemplateKey,
   normalizeLevel,
   parseJsonField,
+  sessionDeepLink,
 } = require('../lib/pedagoSessions');
 const {
   recordRunStart,
   recordRunComplete,
   listRunsForUser,
+  listRunsForSession,
   getRunStats,
+  hasCompletedSession,
 } = require('../lib/pedagoSessionRuns');
+const { evaluateSessionRewards } = require('../lib/rewards');
+const { getScopedStudentIds } = require('../lib/groupScope');
+const { resolveRouteBaseUrl } = require('../lib/mapRoutes');
+// `qrcode` (MIT, https://github.com/soldair/node-qrcode) : déjà utilisé pour les parcours.
+const QRCode = require('qrcode');
 
 const router = express.Router();
 const manageSessions = requirePermission('plants.manage');
@@ -65,6 +78,45 @@ async function loadSessionByIdOrSlug(idOrSlug) {
 
 function isPlainObject(v) {
   return v != null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Contrôle à la publication d'une séance libre : chaque cible d'étape doit encore exister.
+ * Les modèles gardent leurs placeholders « à choisir en séance » et ne sont pas contrôlés.
+ */
+async function findMissingReferences(steps) {
+  const refs = collectStepReferences(steps);
+  const missing = [];
+  if (refs.plantIds.length) {
+    const rows = await queryAll(
+      `SELECT id FROM plants WHERE id IN (${refs.plantIds.map(() => '?').join(',')})`,
+      refs.plantIds,
+    );
+    const found = new Set(rows.map((r) => Number(r.id)));
+    const lost = refs.plantIds.filter((id) => !found.has(id));
+    if (lost.length) missing.push(`plante(s) introuvable(s) ${lost.join(', ')}`);
+  }
+  if (refs.individualIds.length) {
+    const rows = await queryAll(
+      `SELECT id FROM tracked_individuals WHERE id IN (${refs.individualIds.map(() => '?').join(',')})`,
+      refs.individualIds,
+    );
+    const found = new Set(rows.map((r) => Number(r.id)));
+    const lost = refs.individualIds.filter((id) => !found.has(id));
+    if (lost.length) missing.push(`arbre(s) suivi(s) introuvable(s) ${lost.join(', ')}`);
+  }
+  for (const slug of refs.routeSlugs) {
+    const row = await queryOne('SELECT id FROM map_routes WHERE slug = ? LIMIT 1', [slug]);
+    if (!row) missing.push(`parcours « ${slug} » introuvable`);
+  }
+  for (const ref of refs.keyRefs) {
+    const row = await queryOne('SELECT id FROM id_keys WHERE slug = ? OR id = ? LIMIT 1', [
+      ref,
+      Number(ref) || 0,
+    ]);
+    if (!row) missing.push(`clé « ${ref} » introuvable`);
+  }
+  return missing;
 }
 
 router.get(
@@ -114,7 +166,31 @@ router.get(
   }),
 );
 
-function runHandler(record) {
+/**
+ * Prérequis de séance (déblocage) : `config.requiresSessionId` doit avoir été terminée.
+ * Les gestionnaires de séances ne sont jamais bloqués (préparation, démonstration).
+ */
+async function checkPrerequisite(req, row, userId) {
+  const config = normalizeConfig(parseJsonField(row.config_json, {}));
+  const requiredId = config.requiresSessionId;
+  if (!requiredId || hasPermission(req.auth, 'plants.manage')) return { ok: true };
+  if (await hasCompletedSession(userId, requiredId)) return { ok: true };
+  const required = await queryOne('SELECT id, title FROM pedago_sessions WHERE id = ? LIMIT 1', [
+    requiredId,
+  ]);
+  if (!required) return { ok: true };
+  return {
+    ok: false,
+    body: {
+      error: `Termine d’abord la séance « ${required.title} »`,
+      locked: true,
+      requiresSessionId: required.id,
+      requiresSessionTitle: required.title,
+    },
+  };
+}
+
+function runHandler(kind) {
   return asyncHandler(async (req, res) => {
     const userId = String(req.auth?.userId || '').trim();
     if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
@@ -122,13 +198,52 @@ function runHandler(record) {
     if (!row || !row.is_published) {
       return res.status(404).json({ error: 'Séance introuvable' });
     }
-    const run = await record(row.id, userId);
-    return res.json({ run });
+    const gate = await checkPrerequisite(req, row, userId);
+    if (!gate.ok) return res.status(403).json(gate.body);
+    if (kind === 'start') {
+      const run = await recordRunStart(row.id, userId);
+      return res.json({ run });
+    }
+    const run = await recordRunComplete(row.id, userId);
+    const rewards = await evaluateSessionRewards(userId, { run, level: row.level });
+    return res.json({ run, rewards });
   });
 }
 
-router.post('/:idOrSlug/runs/start', requireAuth, runHandler(recordRunStart));
-router.post('/:idOrSlug/runs/complete', requireAuth, runHandler(recordRunComplete));
+router.post('/:idOrSlug/runs/start', requireAuth, runHandler('start'));
+router.post('/:idOrSlug/runs/complete', requireAuth, runHandler('complete'));
+
+router.get(
+  '/:idOrSlug/runs',
+  manageSessions,
+  asyncHandler(async (req, res) => {
+    const row = await loadSessionByIdOrSlug(req.params.idOrSlug);
+    if (!row) return res.status(404).json({ error: 'Séance introuvable' });
+    const groupId = String(req.query?.groupId || req.query?.group_id || '').trim() || null;
+    const scope = await getScopedStudentIds(req.auth, { groupId });
+    if (scope.unauthorizedGroup) {
+      return res.status(403).json({ error: 'Groupe hors de votre périmètre' });
+    }
+    const students = await listRunsForSession(row.id, scope.all ? null : scope.studentIds);
+    return res.json({ sessionId: row.id, groupId, students });
+  }),
+);
+
+router.get(
+  '/:idOrSlug/share',
+  manageSessions,
+  asyncHandler(async (req, res) => {
+    const row = await loadSessionByIdOrSlug(req.params.idOrSlug);
+    if (!row) return res.status(404).json({ error: 'Séance introuvable' });
+    const baseUrl = resolveRouteBaseUrl({
+      query: req.query?.base_url,
+      request: `${req.protocol}://${req.get('host')}`,
+    });
+    const link = sessionDeepLink(baseUrl, row.slug);
+    const qrDataUrl = await QRCode.toDataURL(link, { margin: 1, width: 320 });
+    return res.json({ link, qrDataUrl, isPublished: !!row.is_published });
+  }),
+);
 
 router.get(
   '/:idOrSlug',
@@ -153,17 +268,17 @@ router.post(
     if (!templateKey) {
       return res
         .status(400)
-        .json({ error: 'templateKey invalide (college_reconaitre | college_qui_mange)' });
+        .json({ error: `templateKey invalide (${[...TEMPLATE_KEYS].join(' | ')})` });
     }
-    const steps = stepsForTemplate(templateKey);
+    const steps =
+      templateKey === 'custom' && Array.isArray(req.body?.steps)
+        ? req.body.steps
+        : stepsForTemplate(templateKey);
     const stepsCheck = validateSteps(steps);
     if (!stepsCheck.ok) return res.status(400).json({ error: stepsCheck.error });
 
     const title =
-      String(req.body?.title || '').trim() ||
-      (templateKey === 'college_qui_mange'
-        ? 'Qui mange qui sur le site'
-        : 'Reconnaître sans toucher');
+      String(req.body?.title || '').trim() || TEMPLATE_DEFAULT_TITLES[templateKey] || 'Séance';
     let slug = normalizeSlug(req.body?.slug);
     if (!slug) {
       slug = normalizeSlug(
@@ -172,7 +287,7 @@ router.post(
     }
     if (!slug) return res.status(400).json({ error: 'slug invalide' });
 
-    const level = normalizeLevel(req.body?.level);
+    const level = normalizeLevel(req.body?.level || TEMPLATE_LEVELS[templateKey]);
     const config = normalizeConfig({
       ...defaultConfigForTemplate(templateKey),
       ...(isPlainObject(req.body?.config) ? req.body.config : {}),
@@ -189,6 +304,13 @@ router.post(
     const id = crypto.randomUUID();
     const description = req.body?.description != null ? String(req.body.description).trim() : '';
     const isPublished = req.body?.isPublished === true || req.body?.is_published === true ? 1 : 0;
+    if (isPublished && templateKey === 'custom') {
+      const resolved = resolveSteps(stepsCheck.steps, config, { payloadFirst: true });
+      const missing = await findMissingReferences(resolved);
+      if (missing.length) {
+        return res.status(400).json({ error: `Publication impossible : ${missing.join(' ; ')}` });
+      }
+    }
     const sortOrder = Number.isFinite(Number(req.body?.sortOrder))
       ? Math.trunc(Number(req.body.sortOrder))
       : 100;
@@ -227,7 +349,8 @@ router.post(
 );
 
 /**
- * Mise à jour config prof (carte / clé / plantes / quiz) + publication — sans éditer la structure.
+ * Mise à jour config prof (carte / clé / plantes / quiz / prérequis) + publication.
+ * Les étapes (`steps`) ne sont modifiables que pour une séance libre (`custom`).
  */
 router.put(
   '/:idOrSlug',
@@ -262,6 +385,13 @@ router.put(
       notionNiveau: pick('notionNiveau', 'notionNiveau', prevConfig.notionNiveau),
       notionId: pick('notionId', 'notionId', prevConfig.notionId),
       questionCode: pick('questionCode', 'questionCode', prevConfig.questionCode),
+      individualId: pick('individualId', 'individualId', prevConfig.individualId),
+      mapRouteSlug: pick('mapRouteSlug', 'mapRouteSlug', prevConfig.mapRouteSlug),
+      requiresSessionId: pick(
+        'requiresSessionId',
+        'requiresSessionId',
+        prevConfig.requiresSessionId,
+      ),
     });
 
     let mapId = nextConfig.mapId;
@@ -272,10 +402,43 @@ router.put(
       mapId = null;
     }
 
+    if (nextConfig.requiresSessionId) {
+      if (nextConfig.requiresSessionId === row.id) {
+        return res.status(400).json({ error: 'Une séance ne peut pas être son propre prérequis' });
+      }
+      const required = await queryOne('SELECT id FROM pedago_sessions WHERE id = ? LIMIT 1', [
+        nextConfig.requiresSessionId,
+      ]);
+      if (!required) return res.status(400).json({ error: 'Séance prérequise introuvable' });
+    }
+
+    let stepsJson = row.steps_json;
+    if (req.body?.steps !== undefined) {
+      if (row.template_key !== 'custom') {
+        return res.status(400).json({
+          error: 'Les étapes d’un modèle sont figées : crée une séance libre pour les modifier',
+        });
+      }
+      const stepsCheck = validateSteps(req.body.steps);
+      if (!stepsCheck.ok) return res.status(400).json({ error: stepsCheck.error });
+      stepsJson = JSON.stringify(stepsCheck.steps);
+    }
+
     let isPublished = row.is_published ? 1 : 0;
     if (req.body?.isPublished !== undefined || req.body?.is_published !== undefined) {
       const raw = req.body.isPublished !== undefined ? req.body.isPublished : req.body.is_published;
       isPublished = raw === true || raw === 1 || raw === '1' ? 1 : 0;
+    }
+
+    if (isPublished && row.template_key === 'custom') {
+      const check = validateSteps(parseJsonField(stepsJson, []));
+      const resolved = check.ok
+        ? resolveSteps(check.steps, nextConfig, { payloadFirst: true })
+        : [];
+      const missing = await findMissingReferences(resolved);
+      if (missing.length) {
+        return res.status(400).json({ error: `Publication impossible : ${missing.join(' ; ')}` });
+      }
     }
 
     const sortOrder =
@@ -286,7 +449,7 @@ router.put(
     await execute(
       `UPDATE pedago_sessions
           SET title = ?, description = ?, level = ?, map_id = ?,
-              config_json = ?, is_published = ?, sort_order = ?
+              config_json = ?, steps_json = ?, is_published = ?, sort_order = ?
         WHERE id = ?`,
       [
         title,
@@ -294,6 +457,7 @@ router.put(
         level,
         mapId,
         JSON.stringify({ ...nextConfig, mapId }),
+        stepsJson,
         isPublished,
         sortOrder,
         row.id,
