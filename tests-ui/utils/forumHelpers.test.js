@@ -4,6 +4,7 @@ import {
   parseReactionEmojiList,
   isForumModerator,
   forumPageCount,
+  applyReactionToggle,
 } from '../../src/utils/forumHelpers.js';
 
 describe('parseReactionEmojiList', () => {
@@ -71,5 +72,38 @@ describe('forumPageCount', () => {
     expect(forumPageCount(20, 20)).toBe(1);
     expect(forumPageCount(21, 20)).toBe(2);
     expect(forumPageCount(101, 50)).toBe(3);
+  });
+});
+
+describe('applyReactionToggle', () => {
+  test('ajoute une réaction absente, avec reacted_by_me', () => {
+    expect(applyReactionToggle([], '👍', true)).toEqual([
+      { emoji: '👍', count: 1, reacted_by_me: true },
+    ]);
+    expect(applyReactionToggle(undefined, '👍', false)).toEqual([]);
+  });
+
+  test('incrémente / décrémente la réaction existante', () => {
+    const list = [{ emoji: '👍', count: 2, reacted_by_me: false }];
+    expect(applyReactionToggle(list, '👍', true)).toEqual([
+      { emoji: '👍', count: 3, reacted_by_me: true },
+    ]);
+    const mine = [{ emoji: '👍', count: 3, reacted_by_me: true }];
+    expect(applyReactionToggle(mine, '👍', false)).toEqual([
+      { emoji: '👍', count: 2, reacted_by_me: false },
+    ]);
+  });
+
+  test('retire la réaction retombée à zéro, sans toucher aux autres', () => {
+    const list = [
+      { emoji: '👍', count: 1, reacted_by_me: true },
+      { emoji: '🌱', count: 4, reacted_by_me: false },
+    ];
+    expect(applyReactionToggle(list, '👍', false)).toEqual([list[1]]);
+  });
+
+  test('idempotent si l’état est déjà celui annoncé', () => {
+    const list = [{ emoji: '👍', count: 2, reacted_by_me: true }];
+    expect(applyReactionToggle(list, '👍', true)).toBe(list);
   });
 });

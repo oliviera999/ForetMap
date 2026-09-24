@@ -6761,10 +6761,6 @@
     max-height:none;
     overflow:visible;
   }
-  /* Forum : la colonne liste imposait min 280px → dépassement sur petits écrans */
-  .forum-grid {
-    grid-template-columns:minmax(0, 1fr);
-  }
   html {
     overflow-x:clip;
   }
@@ -6961,8 +6957,69 @@
 .forum-head h3 {
   min-width:0;
   flex:1 1 auto;
+  margin:0;
   overflow-wrap:anywhere;
   word-break:break-word;
+}
+.forum-head__title {
+  display:grid;
+  gap:2px;
+  min-width:0;
+  flex:1 1 220px;
+}
+.forum-head__title .forum-muted {
+  margin:0;
+}
+.forum-readonly-note {
+  background:var(--surface-cool);
+  border:1px solid #e2e8f0;
+}
+.forum-readonly-note p {
+  margin:0;
+  line-height:var(--lh-normal);
+}
+.forum-form-actions {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+/* Retour à la liste : utile seulement quand liste et discussion ne tiennent pas côte à côte. */
+.forum-back-btn {
+  display:none;
+  justify-self:start;
+}
+.forum-badges {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+}
+.forum-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  padding:1px 7px;
+  border-radius:999px;
+  font-size:var(--text-xs);
+  font-weight:600;
+  background:var(--tint-success);
+  color:#1f6b40;
+  white-space:nowrap;
+}
+.forum-badge--locked {
+  background:#f3f0e8;
+  color:#6b5a2e;
+}
+.forum-locked-note {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f7f4ec;
+  color:#6b5a2e;
+  font-size:var(--text-sm);
 }
 .forum-thread-list {
   display:grid;
@@ -7051,7 +7108,7 @@
   overflow-wrap:anywhere;
   word-break:break-word;
 }
-.forum-post-head span {
+.forum-post-head time {
   flex:0 0 auto;
   white-space:nowrap;
   font-size:var(--text-xs);
@@ -7068,20 +7125,32 @@
   max-width:100%;
 }
 .forum-post-actions {
-  display:grid;
-  grid-template-columns:auto minmax(0, 1fr) auto;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
   gap:6px;
   align-items:center;
   min-width:0;
   max-width:100%;
 }
-.forum-post-actions {
+.forum-report-form {
   --fm-control-radius:8px;
   --fm-control-pad-y:8px;
   --fm-control-pad-x:10px;
   --fm-control-min-h:36px;
+  display:grid;
+  gap:6px;
+  min-width:0;
+  padding:8px;
+  border-radius:8px;
+  background:#f7faf8;
 }
-.forum-post-actions input {
+.forum-report-form label {
+  font-size:var(--text-sm);
+  font-weight:600;
+  color:#415449;
+}
+.forum-report-form input {
   min-width:0;
   width:100%;
   max-width:100%;
@@ -7091,7 +7160,10 @@
   display:flex;
   flex-wrap:wrap;
   align-items:center;
+  justify-content:center;
   gap:8px;
+  font-size:var(--text-sm);
+  color:#53705f;
 }
 .forum-pager--posts {
   justify-content:flex-end;
@@ -7106,9 +7178,11 @@
   min-width:0;
   max-width:100%;
 }
-@media (max-width:960px) {
+/* Une colonne : liste OU discussion (bascule `forum-view--pane-*`, même seuil que
+   NARROW_QUERY dans forum-views.jsx), sinon la discussion était reléguée sous la liste. */
+@media (max-width:1023px) {
   .forum-grid {
-    grid-template-columns:1fr;
+    grid-template-columns:minmax(0, 1fr);
   }
   .forum-thread-list,
   .forum-post-list {
@@ -7116,13 +7190,26 @@
     overflow:visible;
     overflow-x:hidden;
   }
+  .forum-view--pane-list .forum-panel--detail,
+  .forum-view--pane-detail .forum-panel--list,
+  .forum-view--pane-detail .forum-composer {
+    display:none;
+  }
+  .forum-back-btn {
+    display:inline-flex;
+  }
 }
 @media (max-width:480px) {
-  .forum-post-actions {
-    grid-template-columns:1fr;
-  }
-  .forum-post-head span {
+  .forum-post-head time {
     white-space:normal;
+  }
+  .forum-form-actions .btn {
+    flex:1 1 auto;
+  }
+}
+@media (pointer:coarse) {
+  .forum-report-form {
+    --fm-control-min-h:var(--tap-target, 44px);
   }
 }
 
@@ -7466,8 +7553,11 @@
   flex-wrap:wrap;
   gap:6px;
 }
-.message-reactions-row.compact {
-  gap:0;
+.message-reactions-row.is-readonly {
+  opacity:.85;
+}
+.message-reactions-row.is-readonly .message-reaction-chip {
+  cursor:default;
 }
 .message-reaction-chip {
   border:1px solid rgba(0,0,0,.14);
@@ -7491,6 +7581,13 @@
   background:#e9f8ee;
   border-color:var(--sage);
   color:#1f6b40;
+}
+@media (pointer:coarse) {
+  .message-reaction-chip {
+    min-height:var(--tap-target, 44px);
+    min-width:var(--tap-target, 44px);
+    justify-content:center;
+  }
 }
 
 /* ── CONTEXTUAL HELP ── */

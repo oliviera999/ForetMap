@@ -96,16 +96,44 @@ describe('ForumPostCard', () => {
     expect(screen.queryByRole('button', { name: 'Supprimer' })).not.toBeInTheDocument();
   });
 
-  test('signalement : saisie du motif et envoi', () => {
-    const h = renderCard({ isOwner: true, reportReason: 'spam' });
+  test('propriétaire : Supprimer, mais pas de signalement de son propre message', () => {
+    const h = renderCard({ isOwner: true });
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
     expect(h.onDelete).toHaveBeenCalledWith('p1');
-    const input = screen.getByPlaceholderText('Motif de signalement');
+    expect(screen.queryByRole('button', { name: 'Signaler' })).not.toBeInTheDocument();
+  });
+
+  test('signalement replié : le champ n’apparaît qu’après « Signaler », étiqueté', async () => {
+    const h = renderCard({ reportReason: 'spam' });
+    expect(screen.queryByPlaceholderText('Motif de signalement')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
+    const input = screen.getByLabelText('Motif du signalement');
     expect(input).toHaveValue('spam');
     fireEvent.change(input, { target: { value: 'spam!' } });
     expect(h.onReportReasonChange).toHaveBeenCalledWith('p1', 'spam!');
-    fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Envoyer le signalement' }));
     expect(h.onReport).toHaveBeenCalledWith('p1');
+  });
+
+  test('signalement : envoi bloqué tant que le motif fait moins de 3 caractères', () => {
+    const h = renderCard({ reportReason: 'ab' });
+    fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
+    const send = screen.getByRole('button', { name: 'Envoyer le signalement' });
+    expect(send).toBeDisabled();
+    fireEvent.click(send);
+    expect(h.onReport).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByLabelText('Motif du signalement')).not.toBeInTheDocument();
+  });
+
+  test('réactions repliées : les réactions existantes restent visibles et cliquables', () => {
+    const h = renderCard({
+      post: post({ reactions: [{ emoji: '❤️', count: 2, reacted_by_me: true }] }),
+    });
+    const chip = screen.getByRole('button', { name: '❤️ : 2 réactions' });
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(chip);
+    expect(h.onReact).toHaveBeenCalledWith('p1', '❤️');
   });
 
   test('signalements désactivés : pas de champ ni bouton Signaler', () => {
