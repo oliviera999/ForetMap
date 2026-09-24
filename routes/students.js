@@ -42,8 +42,10 @@ const {
   resolveImportRows,
   csvEscape,
   buildTemplateWorkbookRows,
-  hasImportScalarValue,
   buildRoleAliasesFromDbRows,
+  normalizeImportExistingStrategy,
+  shouldKeepExistingImportRole,
+  resolveImportProfileUpdates,
 } = require('../lib/studentRouteHelpers');
 
 const { z, validate } = require('../lib/validate');
@@ -124,12 +126,20 @@ router.post(
       return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
     }
 
-    const existingStrategyRaw = await getSettingValue(
-      'students.import.existing_strategy',
-      'update',
-    );
-    const existingStrategy =
-      String(existingStrategyRaw || '').toLowerCase() === 'skip' ? 'skip' : 'update';
+    // Choix ponctuel dans le panneau d'import, sinon le réglage de l'établissement.
+    const requestedStrategy = req.body?.existingStrategy;
+    const hasRequestedStrategy =
+      requestedStrategy != null && String(requestedStrategy).trim() !== '';
+    if (hasRequestedStrategy && !normalizeImportExistingStrategy(requestedStrategy)) {
+      return res
+        .status(400)
+        .json({ error: 'existingStrategy invalide (update, fill ou skip attendu)' });
+    }
+    const existingStrategy = hasRequestedStrategy
+      ? normalizeImportExistingStrategy(requestedStrategy)
+      : normalizeImportExistingStrategy(
+          await getSettingValue('students.import.existing_strategy', 'update'),
+        ) || 'update';
     const allowWeakPasswords = !!(await getSettingValue(
       'students.import.allow_weak_passwords',
       false,
@@ -155,11 +165,15 @@ router.post(
     };
 
     const existingUsers = await queryAll(
-      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.pseudo, u.email, r.slug AS role_slug
+      `SELECT u.id, u.user_type, u.first_name, u.last_name, u.pseudo, u.email,
+              u.display_name, u.description,
+              (u.password_hash IS NOT NULL AND u.password_hash <> '') AS has_password,
+              r.slug AS role_slug, r.\`rank\` AS role_rank, ra.\`rank\` AS assigned_role_rank
          FROM users u
          LEFT JOIN user_roles ur
            ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
          LEFT JOIN roles r ON r.id = ur.role_id
+         LEFT JOIN roles ra ON ra.id = u.assigned_role_id
         WHERE u.user_type IN ('student', 'teacher')`,
     );
     // Périmètre de l'acteur : sans vue globale, seuls les comptes de ses groupes sont
@@ -269,6 +283,8 @@ router.post(
     );
 
     const validRows = [];
+    /** Comptes existants dont le profil actuel, plus élevé, est conservé. */
+    const keptHigherRoleRows = [];
     for (const rowItem of mergedRows) {
       const { payload, rowNumber } = rowItem;
       const keyByName = `${payload.userType}|${payload.firstName.toLowerCase()}|${payload.lastName.toLowerCase()}`;
@@ -338,8 +354,24 @@ router.post(
         });
         continue;
       }
-      // Cellule Rôle vide sur un compte existant = profil inchangé (CDG-23).
-      const roleChangeRequested = !!payload.roleInput;
+      // Cellule Rôle vide sur un compte existant = profil inchangé (CDG-23) ; un profil de
+      // rang inférieur ou égal au profil actuel (effectif ou attribué) aussi : un ré-import
+      // ne rétrograde jamais un compte.
+      let roleChangeRequested = !!payload.roleInput;
+      if (existing && roleChangeRequested) {
+        const existingRanks = [existing.role_rank, existing.assigned_role_rank]
+          .filter((r) => r != null)
+          .map(Number)
+          .filter(Number.isFinite);
+        const existingRank = existingRanks.length ? Math.max(...existingRanks) : null;
+        const importedRank = rolesBySlug.get(payload.roleSlug)?.rank;
+        if (shouldKeepExistingImportRole(existingRank, importedRank)) {
+          roleChangeRequested = false;
+          if (existing.role_slug && existing.role_slug !== payload.roleSlug) {
+            keptHigherRoleRows.push(rowNumber);
+          }
+        }
+      }
       if (existing && roleChangeRequested) {
         const roleCheck = await checkRoleAssignmentAllowed({
           actor: req.auth,
@@ -354,15 +386,21 @@ router.post(
         }
       }
 
+      const profileUpdates = existing
+        ? resolveImportProfileUpdates(existing, payload, existingStrategy)
+        : null;
+      const writtenPseudo = existing ? profileUpdates.pseudo : payload.pseudo;
+      const writtenEmail = existing ? profileUpdates.email : payload.email;
+
       const uniquenessErrors = [];
-      if (payload.pseudo) {
-        const ownerId = pseudoOwner.get(payload.pseudo.toLowerCase());
+      if (writtenPseudo) {
+        const ownerId = pseudoOwner.get(writtenPseudo.toLowerCase());
         if (ownerId && (!existing || ownerId !== existing.id)) {
           uniquenessErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
         }
       }
-      if (payload.email) {
-        const ownerId = emailOwner.get(payload.email.toLowerCase());
+      if (writtenEmail) {
+        const ownerId = emailOwner.get(writtenEmail.toLowerCase());
         if (ownerId && (!existing || ownerId !== existing.id)) {
           uniquenessErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
         }
@@ -373,11 +411,11 @@ router.post(
         continue;
       }
 
-      if (payload.pseudo) {
-        pseudoOwner.set(payload.pseudo.toLowerCase(), existing?.id || '__pending__');
+      if (writtenPseudo) {
+        pseudoOwner.set(writtenPseudo.toLowerCase(), existing?.id || '__pending__');
       }
-      if (payload.email) {
-        emailOwner.set(payload.email.toLowerCase(), existing?.id || '__pending__');
+      if (writtenEmail) {
+        emailOwner.set(writtenEmail.toLowerCase(), existing?.id || '__pending__');
       }
 
       if (!existing) {
@@ -392,6 +430,7 @@ router.post(
         existing,
         action: existing ? 'update' : 'create',
         roleChangeRequested,
+        profileUpdates,
       });
       if (report.preview.length < 20) {
         report.preview.push({
@@ -403,8 +442,25 @@ router.post(
           first_name: payload.firstName,
           last_name: payload.lastName,
           groups: (payload.groupRefs || []).map((r) => r.path.join(' > ')).join(' | ') || null,
+          ...(existing
+            ? {
+                fields: Object.keys(profileUpdates).filter((k) => k !== 'display_name'),
+                role_kept: !roleChangeRequested && !!payload.roleInput,
+              }
+            : {}),
         });
       }
+    }
+
+    if (keptHigherRoleRows.length > 0) {
+      const prefix = keptHigherRoleRows.length > 1 ? 'Lignes' : 'Ligne';
+      report.infos.push({
+        code: 'role_kept_higher',
+        rows: [...keptHigherRoleRows],
+        message:
+          `${prefix} ${keptHigherRoleRows.join(', ')} : le compte a déjà un profil de niveau ` +
+          'supérieur ou égal à celui du fichier — son profil actuel est conservé.',
+      });
     }
 
     if (crossTypeHomonymRows.length > 0) {
@@ -453,30 +509,24 @@ router.post(
     const usersForGroups = [];
 
     for (const rowItem of validRows) {
-      const { payload, rowNumber, action, existing, roleChangeRequested } = rowItem;
+      const { payload, rowNumber, action, existing, roleChangeRequested, profileUpdates } = rowItem;
       const roleSlug = payload.roleSlug;
       const roleId = roleIdBySlug.get(roleSlug);
       const displayName = `${payload.firstName} ${payload.lastName}`.trim();
 
       try {
         if (action === 'update' && existing?.id) {
-          const sets = ['display_name = ?', 'updated_at = NOW()'];
-          const params = [displayName];
-          if (hasImportScalarValue(payload.email)) {
-            sets.push('email = ?');
-            params.push(payload.email);
-          }
-          if (hasImportScalarValue(payload.pseudo)) {
-            sets.push('pseudo = ?');
-            params.push(payload.pseudo);
-          }
-          if (hasImportScalarValue(payload.description)) {
-            sets.push('description = ?');
-            params.push(payload.description);
+          const sets = ['updated_at = NOW()'];
+          const params = [];
+          for (const col of ['display_name', 'email', 'pseudo', 'description']) {
+            if (hasOwn(profileUpdates, col)) {
+              sets.push(`${col} = ?`);
+              params.push(profileUpdates[col]);
+            }
           }
           let passwordChanged = false;
-          if (payload.password) {
-            const hash = await bcrypt.hash(payload.password, 10);
+          if (profileUpdates.password) {
+            const hash = await bcrypt.hash(profileUpdates.password, 10);
             sets.push('password_hash = ?');
             params.push(hash);
             passwordChanged = true;

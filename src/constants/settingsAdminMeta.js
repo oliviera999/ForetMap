@@ -445,9 +445,14 @@ export const KEY_META = {
   },
   'students.import.existing_strategy': {
     label:
-      'Import comptes — compte déjà présent (même prénom + nom + type) : mettre à jour ou ignorer',
+      'Import comptes — compte déjà présent (même prénom + nom + type) : traitement par défaut (le profil n’est jamais rétrogradé)',
     section: 'imports',
     order: 10,
+    optionLabels: {
+      update: 'Mettre à jour avec les données du fichier',
+      fill: 'Compléter seulement les informations manquantes',
+      skip: 'Ignorer la ligne',
+    },
   },
   'students.import.allow_weak_passwords': {
     label:

@@ -417,18 +417,27 @@ sous-onglet consulté qui est rouvert.
   sont **fusionnées** : les groupes s'ajoutent, et pour le reste (pseudo, e-mail…)
   c'est la **dernière ligne** qui compte — un message d'information le signale dans
   le rapport. Si un compte **existe déjà** sur le site (même prénom, nom et type
-  élève/enseignant), l'import **met à jour** ses infos par défaut (pseudo, e-mail,
-  description, profil, groupes ajoutés ; mot de passe seulement s'il est renseigné
-  dans le fichier). Un compte **enseignant** existant n'est modifié que par un
+  élève/enseignant), il **garde toujours son profil le plus élevé** : l'import peut le
+  faire monter de niveau (un novice indiqué « avancé » dans le fichier devient avancé),
+  jamais redescendre (un n3beur devenu chevronné grâce à ses tâches le reste, même si
+  le fichier de rentrée le décrit comme novice) ; le rapport signale les lignes où le
+  profil actuel a été conservé. Pour les **autres informations** (pseudo, e-mail,
+  description, mot de passe), on choisit au moment de l'import, dans le panneau, ce que
+  font les données du fichier quand elles diffèrent de celles du site :
+  **mettre à jour** (le fichier remplace les valeurs en place — c'est le comportement
+  par défaut), **compléter seulement** (le fichier ne remplit que ce qui manque au
+  profil, sans rien écraser ; le mot de passe n'est posé que si le compte n'en a pas),
+  ou **ignorer** les comptes déjà présents. Sans choix dans le panneau, c'est le réglage
+  de l'établissement qui s'applique (**Réglages → Imports de comptes**). Dans tous les
+  cas, les groupes du fichier s'ajoutent à ceux du compte. Un compte **enseignant** existant n'est modifié que par un
   administrateur ; un élève existant doit être dans le périmètre de la personne qui
   importe ; on n'importe pas son propre compte. Une cellule **vide** laisse la valeur actuelle
   (comme pour le mot de passe) : un fichier de rentrée incomplet n'efface pas
   l'adresse ou le pseudo déjà en place. Un n3boss **ne peut pas** modifier un
   compte administrateur par ce fichier (mot de passe, profil, coordonnées) — seul
   un administrateur le peut ; le dernier administrateur ne peut pas être
-  rétrogradé. Un administrateur peut choisir d'**ignorer** ces
-  doublons à la place, et autoriser des **mots de passe plus courts** que le
-  plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
+  rétrogradé. Un administrateur peut aussi autoriser des **mots de passe plus courts**
+  que le plancher habituel — dans **Réglages → Imports de comptes**. Le modèle
   téléchargeable contient **un exemple par profil et par situation** (profil écrit en
   slug ou en toutes lettres, une ou plusieurs classes, sous-groupe « classe >
   atelier », sans groupe, ligne réduite au strict minimum, même personne sur deux

@@ -139,6 +139,25 @@ describe('StudentImportPanel', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Importer' })).toBeTruthy());
   });
 
+  test('par défaut, aucune stratégie envoyée (réglage de l’établissement)', async () => {
+    renderPanel();
+    pickFile();
+    fireEvent.click(screen.getByRole('button', { name: 'Importer' }));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    expect(api.mock.calls[0][2]).not.toHaveProperty('existingStrategy');
+  });
+
+  test('« Compléter seulement » : existingStrategy=fill envoyé', async () => {
+    renderPanel();
+    fireEvent.change(screen.getByLabelText(/Comptes déjà présents/), {
+      target: { value: 'fill' },
+    });
+    pickFile();
+    fireEvent.click(screen.getByRole('button', { name: 'Importer' }));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    expect(api.mock.calls[0][2].existingStrategy).toBe('fill');
+  });
+
   test('sans permission : bouton Importer désactivé', () => {
     renderPanel({ canImport: false });
     expect(screen.getByRole('button', { name: 'Importer' }).disabled).toBe(true);
