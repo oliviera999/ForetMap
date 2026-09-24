@@ -539,6 +539,39 @@
     .notif-title { font-size:var(--text-sm); font-weight:var(--fw-bold); color:var(--forest); }
     .notif-message { font-size:var(--text-sm); color:#53645a; line-height:1.35; }
     .notif-item-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    /* Corps d'avis cliquable : tout le bloc mène à l'élément concerné (cible ≥ 44px). */
+    .notif-item-main {
+      display:grid;
+      gap:4px;
+      width:100%;
+      min-height:44px;
+      padding:4px;
+      margin:-4px;
+      border:0;
+      border-radius:8px;
+      background:transparent;
+      text-align:left;
+      font:inherit;
+      color:inherit;
+    }
+    button.notif-item-main { cursor:pointer; }
+    button.notif-item-main:hover { background:rgba(82,183,136,.08); }
+    button.notif-item-main:focus-visible { outline:2px solid var(--leaf); outline-offset:2px; }
+    .notif-item-top-left { display:inline-flex; align-items:center; gap:6px; }
+    .notif-unread-dot {
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      background:var(--leaf);
+      flex:none;
+    }
+    .notif-action-label {
+      font-size:var(--text-sm);
+      font-weight:var(--fw-bold);
+      color:var(--leaf-deep, var(--forest));
+    }
+    .notif-item-actions .btn { min-height:44px; }
+    .notif-critical-banner__action { margin-left:10px; min-height:44px; vertical-align:middle; }
     .notif-metrics {
       margin-top:8px;
       border-top:1px solid #edf3ee;

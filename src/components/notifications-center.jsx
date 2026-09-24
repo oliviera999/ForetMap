@@ -8,11 +8,14 @@ import {
   formatNotificationDateFr,
   notificationLevelClass,
 } from '../shared/notifications/notificationCenterCore.js';
+import { isNotificationActionable, notificationActionLabel } from '../utils/notificationTargets.js';
 
 const CATEGORY_LABELS = {
   [NOTIFICATION_CATEGORY.DEADLINES]: 'Échéances',
   [NOTIFICATION_CATEGORY.VALIDATIONS]: 'Validations',
   [NOTIFICATION_CATEGORY.PROPOSALS]: 'Propositions',
+  [NOTIFICATION_CATEGORY.TASKS]: 'Mes tâches',
+  [NOTIFICATION_CATEGORY.MESSAGES]: 'Messages',
   [NOTIFICATION_CATEGORY.OPERATIONS]: 'Exploitation',
   [NOTIFICATION_CATEGORY.SECURITY]: 'Sécurité',
 };
@@ -25,6 +28,8 @@ function preferenceCategoriesForRole(roleKey) {
   if (roleKey === 'student') {
     return [
       NOTIFICATION_CATEGORY.DEADLINES,
+      NOTIFICATION_CATEGORY.TASKS,
+      NOTIFICATION_CATEGORY.MESSAGES,
       NOTIFICATION_CATEGORY.OPERATIONS,
       NOTIFICATION_CATEGORY.SECURITY,
     ];
@@ -33,12 +38,16 @@ function preferenceCategoriesForRole(roleKey) {
     return [
       NOTIFICATION_CATEGORY.VALIDATIONS,
       NOTIFICATION_CATEGORY.PROPOSALS,
+      NOTIFICATION_CATEGORY.TASKS,
+      NOTIFICATION_CATEGORY.MESSAGES,
       NOTIFICATION_CATEGORY.OPERATIONS,
     ];
   }
   return [
     NOTIFICATION_CATEGORY.VALIDATIONS,
     NOTIFICATION_CATEGORY.PROPOSALS,
+    NOTIFICATION_CATEGORY.TASKS,
+    NOTIFICATION_CATEGORY.MESSAGES,
     NOTIFICATION_CATEGORY.OPERATIONS,
     NOTIFICATION_CATEGORY.SECURITY,
   ];
@@ -140,51 +149,69 @@ function NotificationCenter({
       </div>
       <div className="notif-list">
         {items.length === 0 && <p className="notif-empty">Aucune notification pour le moment.</p>}
-        {items.map((item) => (
-          <article
-            key={item.id}
-            className={`notif-item ${item.read ? 'read' : 'unread'} notif-${levelClass(item.level)}`}
-          >
-            <div className="notif-item-top">
-              <span className={`notif-level notif-level-${levelClass(item.level)}`}>
-                {NOTIFICATION_LEVEL_LABELS[item.level] || 'Info'}
+        {items.map((item) => {
+          const actionable = isNotificationActionable(item);
+          const actionLabel = actionable ? notificationActionLabel(item) || 'Ouvrir' : '';
+          const body = (
+            <>
+              <span className="notif-item-top">
+                <span className="notif-item-top-left">
+                  {!item.read && <span className="notif-unread-dot" aria-hidden="true" />}
+                  <span className={`notif-level notif-level-${levelClass(item.level)}`}>
+                    {NOTIFICATION_LEVEL_LABELS[item.level] || 'Info'}
+                  </span>
+                </span>
+                <span className="notif-time">{formatRelative(item.createdAt)}</span>
               </span>
-              <span className="notif-time">{formatRelative(item.createdAt)}</span>
-            </div>
-            <div className="notif-title">{item.title}</div>
-            <p className="notif-message">{item.message}</p>
-            <div className="notif-item-actions">
-              {!item.read && (
+              <span className="notif-title">
+                {!item.read && <span className="sr-only">Non lue : </span>}
+                {item.title}
+              </span>
+              {item.message && <span className="notif-message">{item.message}</span>}
+              {actionable && <span className="notif-action-label">{actionLabel} →</span>}
+            </>
+          );
+          return (
+            <article
+              key={item.id}
+              className={`notif-item ${item.read ? 'read' : 'unread'} notif-${levelClass(item.level)}`}
+            >
+              {actionable ? (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => onMarkAsRead?.(item.id)}
-                >
-                  Marquer lu
-                </button>
-              )}
-              {item.action && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
+                  className="notif-item-main"
                   onClick={() => {
                     onOpenAction?.(item);
                     closePanel();
                   }}
                 >
-                  Ouvrir
+                  {body}
                 </button>
+              ) : (
+                <div className="notif-item-main">{body}</div>
               )}
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => onRemove?.(item.id)}
-              >
-                Retirer
-              </button>
-            </div>
-          </article>
-        ))}
+              <div className="notif-item-actions">
+                {!item.read && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onMarkAsRead?.(item.id)}
+                  >
+                    Marquer lu
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-label={`Retirer la notification : ${item.title}`}
+                  onClick={() => onRemove?.(item.id)}
+                >
+                  Retirer
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
       <details className="notif-metrics">
         <summary>Diagnostic notifications</summary>
