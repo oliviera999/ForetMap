@@ -24,6 +24,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : `tests/app-preview.test.js`, `tests-ui/components/app/AppPreviewMenu.test.jsx`,
   bannières mises à jour. Doc de référence : niveaux pédagogiques et comptes/rôles.
 
+### Corrigé — CI `test` de nouveau verte (10 échecs présents sur `main`)
+
+- **Forum : marqueur « non lus » déterministe** (migration `291`) : `forum_posts.created_at`
+  passe à la milliseconde, comme `context_comments` (migration 278). Trié à la seconde puis
+  sur un UUID aléatoire, `GET /api/forum/unread-marker` pouvait désigner l'un ou l'autre de
+  deux messages de la même seconde et rallumer le point « non lus » après lecture ; c'était
+  aussi la cause du test intermittent « marqueur non lu ».
+- **Fin de séance** : `PedagoSessionDoneDialog` passe sur `DialogShell` (Échap, overlay,
+  piège et restauration du focus) au lieu d'écouteurs posés sur l'élément `dialog`
+  (garde `jsx-a11y/no-noninteractive-element-interactions`).
+- **Couleurs** : littéraux égaux à un token remplacés (`#fff`, `#1f2937`, `#dcfce7`,
+  `#16a34a`, `#e5e7eb`…), replis `var(--forest, #…)` morts retirés de `pedago-sessions.css`
+  (seul `src/index.css` la charge, où ces variables sont définies — et les replis portaient
+  de mauvaises valeurs). Quatre verts foncés du schéma de clé passent sur les tokens voisins
+  (`--forest`, `--ink-success`, `--accent-leaf-deep`). Plafonds du cliquet abaissés :
+  663 hexadécimaux, 579 `rgb()/rgba()`.
+- **Suivi des séances** : le tableau par élève utilise `.fm-table fm-table--dense` (plus de
+  filets réécrits pour ce seul écran) ; tailles de police de `pedago-sessions.css` et du
+  schéma de clé ramenées sur l'échelle `--text-*`.
+- **Forum G&L, mode invité** : le test et `docs/API.md` décrivaient une lecture ouverte à
+  l'invité ; le code, l'interface (pas d'onglet Forum en mode découverte) et la doc de
+  référence la refusent. Le test vérifie désormais ce refus (`403 guestBlocked`), sans
+  changement de comportement.
+- **Parcours G&L** : le garde-fou des ancres reconnaît aussi l'ancre transmise en objet
+  d'attributs à un composant partagé (`{ 'data-gl-tour': 'forum-threads' }`), déjà posée par
+  `GLForumView`.
+
 ### Corrigé — échelles de niveau pédagogique reliées (quiz, glossaire, groupes, séances)
 
 Cinq échelles de niveau coexistaient sans lien : affichage (`pedago_level` collège / lycée /

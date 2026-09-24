@@ -1,7 +1,7 @@
 'use strict';
 
-// Forum GL : noms d'auteurs exposés (pseudo / nom du MJ, jamais l'e-mail), écriture
-// refusée au mode invité, verrouillage d'un sujet inexistant → 404.
+// Forum GL : noms d'auteurs exposés (pseudo / nom du MJ, jamais l'e-mail), mode invité sans
+// accès au forum (docs/reference/gl/presentation.md), verrouillage d'un sujet inexistant → 404.
 require('./helpers/setup');
 const { test, before } = require('node:test');
 const assert = require('node:assert');
@@ -98,17 +98,20 @@ test('sujet et messages portent le nom affiché de leur auteur', async () => {
   assert.strictEqual(row.author_display_name, player.pseudo);
 });
 
-test('le mode invité lit le forum mais ne peut pas y écrire', async () => {
-  await request(app)
+test('le mode invité n’a pas accès au forum, ni en lecture ni en écriture', async () => {
+  // Choix produit (doc de référence GL, « Le mode invité ne donne pas accès au forum ») :
+  // l'onglet n'est pas proposé à l'invité et `requireGlAuth` le refuse sur tout le routeur.
+  const read = await request(app)
     .get('/api/gl/forum/threads')
     .set('Authorization', `Bearer ${guestToken}`)
-    .expect(200);
-  const res = await request(app)
+    .expect(403);
+  assert.strictEqual(read.body.guestBlocked, true);
+  const write = await request(app)
     .post('/api/gl/forum/threads')
     .set('Authorization', `Bearer ${guestToken}`)
     .send({ title: 'Invité', body: 'Bonjour' })
     .expect(403);
-  assert.match(res.body.error, /invité/i);
+  assert.strictEqual(write.body.guestBlocked, true);
 });
 
 test('verrouiller un sujet inexistant répond 404', async () => {
@@ -132,8 +135,10 @@ test('GET /config : emojis, signalements et droits selon le compte', async () =>
   assert.strictEqual(forAdmin.body.can_moderate, true);
   assert.strictEqual(forAdmin.body.moderator_can_reply_locked, true);
 
+  // L'invité n'a pas accès au forum : la configuration lui est refusée comme le reste.
   const forGuest = await request(app).get('/api/gl/forum/config').set(bearer(guestToken));
-  assert.strictEqual(forGuest.body.can_participate, false);
+  assert.strictEqual(forGuest.status, 403);
+  assert.strictEqual(forGuest.body.guestBlocked, true);
 });
 
 test('création : réponse compatible (champs à plat + thread + first_post_id)', async () => {
