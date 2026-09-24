@@ -1,4 +1,5 @@
 import { Button } from '../../shared/ui/Button.jsx';
+import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 
 export const STEP_ACTION_LABELS = Object.freeze({
   message: 'Consigne (texte seul)',
@@ -85,9 +86,11 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
             onChange={(e) => onPayload({ notionNiveau: e.target.value || null })}
           >
             <option value="">— libre —</option>
-            <option value="cycle3">Cycle 3</option>
-            <option value="cycle4">Cycle 4</option>
-            <option value="lycee">Lycée</option>
+            {NOTION_NIVEAU_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="form-field">

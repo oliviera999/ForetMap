@@ -6,6 +6,9 @@
 // hérite des notions de sa catégorie, et `quiz_question_notions` n'existe que pour
 // l'exception (`ajout` / `exclusion`). Une régression sur cette règle ne se voit pas dans
 // l'interface — le tirage rend simplement une question de moins, ou une de trop.
+//
+// Depuis la migration 290, l'héritage est filtré par **palier** (lib/pedagoScales.js) et le
+// glossaire suit le même modèle (catégorie → notions, exceptions par terme).
 
 require('./helpers/setup');
 const { test, before, after } = require('node:test');
@@ -31,11 +34,20 @@ const exceptionCode = `QCX${stamp}`.slice(0, 16);
 const otherCode = `QCO${stamp}`.slice(0, 16);
 const termCode = `GCN${stamp}`.slice(0, 16);
 const otherTermCode = `GCO${stamp}`.slice(0, 16);
+const advancedTermCode = `GCA${stamp}`.slice(0, 16);
+// Catégorie de glossaire propre au test : les catégories réelles (`ecologie`…) sont
+// rattachées par l'amorçage de la migration 290 et fausseraient les attentes.
+const glossCat = `gct${stamp}`.slice(0, 64);
+// Catégorie « à cheval » collège / lycée, pour la garde de palier.
+const palierCatSlug = `cnp${stamp}`.slice(0, 64);
+const collegeCode = `QCC${stamp}`.slice(0, 16);
+const lyceeCode = `QCL${stamp}`.slice(0, 16);
 
 /** Notions du référentiel livré, utilisées comme points d'appui. */
 const NOTION_A = '2-BIODIV'; // Seconde
 const NOTION_B = 'T-DOM'; // Terminale spécialité
 const NOTION_C = 'C3-VIV'; // Cycle 3
+const NOTION_C4 = 'C4-VIV'; // Cycle 4
 
 let token = '';
 const auth = () => ({ Authorization: `Bearer ${token}` });
@@ -58,6 +70,7 @@ before(async () => {
   for (const [slug, nom, order] of [
     [catSlug, 'Test notions — catégorie porteuse', 991],
     [otherCatSlug, 'Test notions — catégorie voisine', 992],
+    [palierCatSlug, 'Test notions — catégorie collège et lycée', 993],
   ]) {
     await execute(
       `INSERT IGNORE INTO quiz_categories (slug, nom, theme, order_index)
@@ -68,33 +81,39 @@ before(async () => {
   await insertQuestion(heritedCode, catSlug, 1);
   await insertQuestion(exceptionCode, catSlug, 2);
   await insertQuestion(otherCode, otherCatSlug, 1);
+  await insertQuestion(collegeCode, palierCatSlug, 1, 'college');
+  await insertQuestion(lyceeCode, palierCatSlug, 2, 'lycee');
 
-  for (const [code, terme] of [
-    [termCode, 'Terme notion de test'],
-    [otherTermCode, 'Terme sans notion de test'],
+  for (const [code, terme, niveau] of [
+    [termCode, 'Terme notion de test', 'base'],
+    [otherTermCode, 'Terme sans notion de test', 'base'],
+    [advancedTermCode, 'Terme avancé de test', 'avance'],
   ]) {
     await execute(
       `INSERT IGNORE INTO glossary_terms (glossary_code, terme, categorie, niveau, definition_courte, statut)
-       VALUES (?, ?, 'ecologie', 'base', 'Définition courte.', 'actif')`,
-      [code, terme],
+       VALUES (?, ?, ?, ?, 'Définition courte.', 'actif')`,
+      [code, terme, glossCat, niveau],
     );
   }
 });
 
 after(async () => {
-  for (const code of [termCode, otherTermCode]) {
+  await execute('DELETE FROM glossary_category_notions WHERE categorie = ?', [glossCat]).catch(
+    () => {},
+  );
+  for (const code of [termCode, otherTermCode, advancedTermCode]) {
     await execute('DELETE FROM glossary_term_notions WHERE glossary_code = ?', [code]).catch(
       () => {},
     );
     await execute('DELETE FROM glossary_terms WHERE glossary_code = ?', [code]).catch(() => {});
   }
-  for (const code of [heritedCode, exceptionCode, otherCode]) {
+  for (const code of [heritedCode, exceptionCode, otherCode, collegeCode, lyceeCode]) {
     await execute('DELETE FROM quiz_question_notions WHERE question_code = ?', [code]).catch(
       () => {},
     );
     await execute('DELETE FROM quiz_questions WHERE question_code = ?', [code]).catch(() => {});
   }
-  for (const slug of [catSlug, otherCatSlug]) {
+  for (const slug of [catSlug, otherCatSlug, palierCatSlug]) {
     await execute('DELETE FROM quiz_category_notions WHERE categorie_slug = ?', [slug]).catch(
       () => {},
     );
@@ -279,6 +298,201 @@ test('les effectifs par notion comptent les questions héritées', async () => {
   assert.ok((res.body?.quizCategories || []).some((c) => c.slug === catSlug));
 });
 
+test('une question de lycée n’hérite pas des notions de collège de sa catégorie', async () => {
+  // Catégorie rattachée à une notion de cycle 4 et à une notion de seconde.
+  await request(app)
+    .put(`/api/curriculum/quiz-categories/${palierCatSlug}/notions`)
+    .set(auth())
+    .send({ notion_ids: [NOTION_C4, NOTION_A] })
+    .expect(200);
+
+  const cycle4 = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionNiveau=cycle4`)
+    .expect(200);
+  assert.deepEqual(
+    (cycle4.body?.items || []).map((i) => i.question_code),
+    [collegeCode],
+    'un tirage cycle 4 ne doit jamais sortir une question de lycée',
+  );
+
+  // Une question de collège peut servir de révision sur une notion de lycée.
+  const seconde = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionId=${NOTION_A}`)
+    .expect(200);
+  assert.deepEqual(
+    (seconde.body?.items || []).map((i) => i.question_code).sort(),
+    [collegeCode, lyceeCode].sort(),
+  );
+
+  const described = await describeQuestionNotions(db, lyceeCode);
+  assert.equal(described.niveau, 'lycee');
+  assert.deepEqual(
+    described.inherited.map((n) => n.id),
+    [NOTION_A],
+  );
+  assert.deepEqual(
+    described.out_of_level.map((n) => n.id),
+    [NOTION_C4],
+    'la notion écartée par le palier reste visible, avec sa raison',
+  );
+  assert.deepEqual(
+    described.effective.map((n) => n.id),
+    [NOTION_A],
+  );
+});
+
+test('un ajout explicite passe outre la garde de palier', async () => {
+  await request(app)
+    .put(`/api/curriculum/quiz-questions/${lyceeCode}/notions`)
+    .set(auth())
+    .send({ ajouts: [NOTION_C4], exclusions: [] })
+    .expect(200);
+  const res = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionNiveau=cycle4`)
+    .expect(200);
+  assert.deepEqual(
+    (res.body?.items || []).map((i) => i.question_code).sort(),
+    [collegeCode, lyceeCode].sort(),
+  );
+  await request(app)
+    .put(`/api/curriculum/quiz-questions/${lyceeCode}/notions`)
+    .set(auth())
+    .send({ ajouts: [], exclusions: [] })
+    .expect(200);
+});
+
+test('notionNiveau accepte une étape ou une liste — les séances lycée ne sont plus en 400', async () => {
+  const lycee = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionNiveau=lycee`)
+    .expect(200);
+  assert.deepEqual(
+    (lycee.body?.items || []).map((i) => i.question_code).sort(),
+    [collegeCode, lyceeCode].sort(),
+  );
+  const college = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionNiveau=college`)
+    .expect(200);
+  assert.deepEqual(
+    (college.body?.items || []).map((i) => i.question_code),
+    [collegeCode],
+  );
+  const list = await request(app)
+    .get(`/api/quiz/questions?categorieSlug=${palierCatSlug}&notionNiveau=cycle3,cycle4`)
+    .expect(200);
+  assert.deepEqual(
+    (list.body?.items || []).map((i) => i.question_code),
+    [collegeCode],
+  );
+  const drawn = await request(app)
+    .get(`/api/quiz/draw?categorieSlug=${palierCatSlug}&notionNiveau=college`)
+    .expect(200);
+  assert.equal(drawn.body?.question_code, collegeCode);
+  await request(app).get('/api/quiz/categories?notionNiveau=lycee').expect(200);
+  await request(app).get('/api/glossary/terms?notionNiveau=college').expect(200);
+  await request(app).get('/api/quiz/draw?notionNiveau=universite').expect(400);
+
+  const notions = await request(app).get('/api/curriculum/notions?niveau=college').expect(200);
+  assert.deepEqual([...new Set((notions.body?.items || []).map((n) => n.niveau))].sort(), [
+    'cycle3',
+    'cycle4',
+  ]);
+});
+
+test('les niveaux scolaires exposent leur étape et leur palier', async () => {
+  const res = await request(app).get('/api/curriculum/niveaux').expect(200);
+  const byValue = new Map((res.body?.niveaux || []).map((n) => [n.value, n]));
+  assert.equal(byValue.get('cycle3').etape, 'college');
+  assert.equal(byValue.get('cycle3').palier, 1);
+  assert.equal(byValue.get('es_terminale').etape, 'lycee');
+  assert.equal(byValue.get('es_terminale').palier, byValue.get('terminale_spe').palier);
+});
+
+test('le glossaire hérite des notions de sa catégorie, au palier du terme', async () => {
+  await request(app)
+    .put(`/api/curriculum/glossary-categories/${glossCat}/notions`)
+    .send({ notion_ids: [NOTION_C4] })
+    .expect(401);
+  await request(app)
+    .put('/api/curriculum/glossary-categories/categorie-qui-nexiste-pas/notions')
+    .set(auth())
+    .send({ notion_ids: [NOTION_C4] })
+    .expect(404);
+
+  await request(app)
+    .put(`/api/curriculum/glossary-categories/${glossCat}/notions`)
+    .set(auth())
+    .send({ notion_ids: [NOTION_C4, NOTION_A] })
+    .expect(200);
+  const category = await request(app)
+    .get(`/api/curriculum/glossary-categories/${glossCat}/notions`)
+    .expect(200);
+  assert.deepEqual(
+    (category.body?.items || []).map((n) => n.id).sort(),
+    [NOTION_A, NOTION_C4].sort(),
+  );
+
+  // Terme « base » : hérite des deux notions.
+  const base = await request(app).get(`/api/curriculum/glossary-terms/${otherTermCode}/notions`);
+  assert.equal(base.status, 200);
+  assert.deepEqual(base.body.effective.map((n) => n.id).sort(), [NOTION_A, NOTION_C4].sort());
+  assert.deepEqual(base.body.items, base.body.effective);
+
+  // Terme « avancé » : la notion de cycle 4 est écartée par le palier.
+  const advanced = await request(app)
+    .get(`/api/curriculum/glossary-terms/${advancedTermCode}/notions`)
+    .expect(200);
+  assert.deepEqual(
+    advanced.body.effective.map((n) => n.id),
+    [NOTION_A],
+  );
+  assert.deepEqual(
+    advanced.body.out_of_level.map((n) => n.id),
+    [NOTION_C4],
+  );
+
+  const filtered = await request(app)
+    .get(`/api/glossary/terms?categorie=${glossCat}&notionNiveau=cycle4`)
+    .expect(200);
+  const codes = (filtered.body?.items || []).map((t) => t.glossary_code).sort();
+  assert.deepEqual(codes, [otherTermCode, termCode].sort());
+
+  const detail = await request(app).get(`/api/glossary/terms/${advancedTermCode}`).expect(200);
+  assert.deepEqual(
+    (detail.body?.notions || []).map((n) => n.id),
+    [NOTION_A],
+  );
+
+  const counted = await request(app).get(`/api/curriculum/notions/${NOTION_C4}`).expect(200);
+  assert.ok(Number(counted.body?.glossary_count) >= 2);
+  assert.ok((counted.body?.glossaryCategories || []).includes(glossCat));
+});
+
+test('un terme de glossaire peut exclure une notion héritée', async () => {
+  const res = await request(app)
+    .put(`/api/curriculum/glossary-terms/${otherTermCode}/notions`)
+    .set(auth())
+    .send({ ajouts: [], exclusions: [NOTION_C4] })
+    .expect(200);
+  assert.deepEqual(
+    res.body.effective.map((n) => n.id),
+    [NOTION_A],
+  );
+  assert.deepEqual(
+    res.body.excluded.map((n) => n.id),
+    [NOTION_C4],
+  );
+  await request(app)
+    .put(`/api/curriculum/glossary-terms/${otherTermCode}/notions`)
+    .set(auth())
+    .send({ ajouts: [NOTION_B], exclusions: [NOTION_B] })
+    .expect(400);
+  await request(app)
+    .put(`/api/curriculum/glossary-terms/${otherTermCode}/notions`)
+    .set(auth())
+    .send({})
+    .expect(400);
+});
+
 test('normalisation des identifiants et des niveaux (utilitaires partagés)', () => {
   assert.equal(normalizeNotionId(' 2-biodiv '), '2-BIODIV');
   assert.equal(normalizeNotionId('DROP TABLE'), null);
@@ -337,4 +551,51 @@ test('les niveaux annoncés couvrent exactement ceux des notions livrées', asyn
   const niveaux = res.body?.niveaux || [];
   assert.equal(niveaux.length, CURRICULUM_NIVEAUX.length);
   assert.ok(niveaux.every((n) => Number(n.notion_count) >= 1));
+});
+
+test('filtre de niveau côté UI : étapes, resserrement à la classe, choix explicite respecté', async () => {
+  const {
+    CURRICULUM_NIVEAU_OPTIONS,
+    NOTION_NIVEAU_FILTER_OPTIONS,
+    notionNiveauOptionsFor,
+    resolveNotionNiveaux,
+    notionsForNiveauFilter,
+  } = await import('../src/utils/curriculumNotions.js');
+  // Toute option proposée est une valeur que l'API accepte.
+  for (const opt of NOTION_NIVEAU_FILTER_OPTIONS) {
+    const res = await request(app).get(`/api/quiz/categories?notionNiveau=${opt.value}`);
+    assert.equal(res.status, 200, `option refusée par l'API : ${opt.value}`);
+  }
+  assert.equal(CURRICULUM_NIVEAU_OPTIONS[0].value, '');
+
+  const sixieme = ['cycle3'];
+  assert.deepEqual(
+    notionNiveauOptionsFor(sixieme).map((o) => o.value),
+    ['', 'cycle3'],
+  );
+  // Valeur reçue d'une séance, hors du public : conservée dans le menu.
+  assert.ok(
+    notionNiveauOptionsFor(sixieme, 'cycle4')
+      .map((o) => o.value)
+      .includes('cycle4'),
+  );
+  assert.deepEqual(resolveNotionNiveaux('college', sixieme), ['cycle3']);
+  assert.deepEqual(resolveNotionNiveaux('cycle4', sixieme), ['cycle4']);
+  assert.equal(resolveNotionNiveaux('', sixieme), null);
+  assert.deepEqual(resolveNotionNiveaux('lycee', null).length, 5);
+
+  const sample = [
+    { id: 'C3-VIV', niveau: 'cycle3' },
+    { id: 'C4-VIV', niveau: 'cycle4' },
+    { id: '2-BIODIV', niveau: 'seconde' },
+  ];
+  assert.deepEqual(
+    notionsForNiveauFilter(sample, '', sixieme).map((n) => n.id),
+    ['C3-VIV'],
+  );
+  assert.deepEqual(
+    notionsForNiveauFilter(sample, 'lycee', null).map((n) => n.id),
+    ['2-BIODIV'],
+  );
+  assert.equal(notionsForNiveauFilter(sample, '', null).length, 3);
 });

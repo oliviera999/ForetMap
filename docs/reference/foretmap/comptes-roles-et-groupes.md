@@ -275,6 +275,13 @@ Les groupes structurent la vie pédagogique :
   parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
   pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de
   son périmètre.
+- **Niveau du programme de la classe** : cycle 3, cycle 4, seconde, première ou terminale
+  (spécialité SVT ou enseignement scientifique). C'est lui qui distingue une 6ᵉ d'une 3ᵉ,
+  là où l'affichage biodiversité ne connaît que « Collège ». Il resserre les notions du quiz
+  et du glossaire proposées aux élèves (une classe de cycle 3 ne voit plus le cycle 4), et
+  il fixe l'affichage biodiversité quand celui-ci est laissé en automatique. Laissé vide, il
+  **hérite du groupe parent** : on le règle une fois sur l'unité « Niveau 6ᵉ » et toutes ses
+  classes en profitent. Voir [Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md#les-échelles-de-niveau-et-leurs-correspondances).
 - **Profil par défaut** : un groupe peut conférer un profil à ses membres (par exemple
   « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en élève dès son
   rattachement, selon la règle « le plus élevé l'emporte ». Changer ce profil réaligne

@@ -235,6 +235,7 @@ router.get(
         default_role_id: g.default_role_id ?? null,
         force_default_role: Number(g.force_default_role) !== 0,
         pedago_level: g.pedago_level || null,
+        curriculum_niveau: g.curriculum_niveau || null,
       })),
     });
   }),
@@ -515,6 +516,23 @@ router.patch(
         }
       }
     }
+    // Niveau du programme de la classe (migration 290) : distingue cycle 3 et cycle 4, et
+    // fixe l'étape d'affichage quand `pedago_level` reste vide (lib/pedagoScales.js).
+    const { normalizeCurriculumNiveauValue } = require('../lib/pedagoScales');
+    let curriculumNiveau = normalizeCurriculumNiveauValue(group.curriculum_niveau);
+    if (req.body?.curriculum_niveau !== undefined) {
+      if (req.body.curriculum_niveau == null || String(req.body.curriculum_niveau).trim() === '') {
+        curriculumNiveau = null;
+      } else {
+        curriculumNiveau = normalizeCurriculumNiveauValue(req.body.curriculum_niveau);
+        if (!curriculumNiveau) {
+          return res.status(400).json({
+            error:
+              'curriculum_niveau invalide (cycle3|cycle4|seconde|premiere_spe|terminale_spe|es_premiere|es_terminale)',
+          });
+        }
+      }
+    }
     if (parentGroupId && parentGroupId === id)
       return res.status(400).json({ error: 'Un groupe ne peut pas être son propre parent' });
     if (parentGroupId) {
@@ -554,7 +572,7 @@ router.patch(
         `UPDATE \`groups\`
           SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
               default_role_id = ?, force_default_role = ?, pedago_level = ?,
-              is_active = ?, updated_at = NOW()
+              curriculum_niveau = ?, is_active = ?, updated_at = NOW()
         WHERE id = ?`,
         [
           slug,
@@ -565,6 +583,7 @@ router.patch(
           defaultRoleId,
           forceDefaultRole ? 1 : 0,
           pedagoLevel,
+          curriculumNiveau,
           isActive,
           id,
         ],

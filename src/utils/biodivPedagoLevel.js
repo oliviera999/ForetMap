@@ -2,6 +2,8 @@
  * Niveaux pédagogiques d'affichage biodiversité — miroir ESM de lib/biodivPedagoLevel.js.
  */
 
+import { visibleCurriculumNiveaux } from './pedagoScales.js';
+
 export const PEDAGO_LEVELS = Object.freeze(['college', 'lycee', 'universite']);
 
 export const PEDAGO_LEVEL_LABELS = Object.freeze({
@@ -113,8 +115,12 @@ export function foodWebTypesForPedagoLevel(level, allTypes) {
   return list.filter((t) => allowed.has(String(t || '').trim()));
 }
 
-export function curriculumNiveauxForPedagoLevel(level) {
+/**
+ * Niveaux programme visibles en filtre, ou `null` pour tous. Règle portée par
+ * `visibleCurriculumNiveaux` (pedagoScales) : l'étape donne le plafond, le niveau du
+ * programme des classes de l'élève (`classNiveaux`) le resserre.
+ */
+export function curriculumNiveauxForPedagoLevel(level, classNiveaux = []) {
   const lv = normalizePedagoLevel(level) || DEFAULT_SITE_LEVEL;
-  if (lv === 'college') return ['cycle3', 'cycle4'];
-  return null;
+  return visibleCurriculumNiveaux({ level: lv, classNiveaux });
 }

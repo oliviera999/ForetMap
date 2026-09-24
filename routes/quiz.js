@@ -54,7 +54,7 @@ const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/sha
 const {
   buildQuizQuestionNotionFilter,
   buildQuizCategoryNotionFilter,
-  normalizeCurriculumNiveau,
+  parseNotionNiveauFilter,
   normalizeNotionId,
 } = require('../lib/curriculumNotions');
 
@@ -114,9 +114,11 @@ function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
  *
  * `niveau` est déjà pris : il désigne le niveau propre à la question (`college` / `lycee`).
  * Le niveau **scolaire** d'une notion (`cycle4`, `seconde`, `terminale_spe`…) est une autre
- * échelle, d'où le paramètre distinct `notionNiveau`. Les deux graphies sont acceptées
- * (`notionId` / `notion_id`) : la première suit les autres filtres de cette route, la
- * seconde le nommage des colonnes renvoyées par l'API.
+ * échelle, d'où le paramètre distinct `notionNiveau`. Il accepte aussi une étape (`college`,
+ * `lycee`) ou une liste séparée par des virgules (lib/pedagoScales.js) : c'est ce qu'envoient
+ * les séances lycée. Les deux graphies sont acceptées (`notionId` / `notion_id`) : la
+ * première suit les autres filtres de cette route, la seconde le nommage des colonnes
+ * renvoyées par l'API.
  *
  * @returns {{ error: string }|{ filter: { sql: string, params: unknown[] }|null }}
  */
@@ -124,10 +126,9 @@ function resolveNotionFilter(query, alias, build = buildQuizQuestionNotionFilter
   const notionId = normalizeOptionalFilter(query?.notionId ?? query?.notion_id);
   const notionNiveau = normalizeOptionalFilter(query?.notionNiveau ?? query?.notion_niveau);
   if (notionId && !normalizeNotionId(notionId)) return { error: 'notionId invalide' };
-  if (notionNiveau && !normalizeCurriculumNiveau(notionNiveau)) {
-    return { error: 'notionNiveau invalide' };
-  }
-  return { filter: build({ notionId, niveau: notionNiveau, alias }) };
+  const parsedNiveau = parseNotionNiveauFilter(notionNiveau);
+  if (parsedNiveau?.error) return { error: parsedNiveau.error };
+  return { filter: build({ notionId, niveau: parsedNiveau?.niveaux || null, alias }) };
 }
 
 async function tryHydrateAuth(req) {
