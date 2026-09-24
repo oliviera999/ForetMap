@@ -112,14 +112,76 @@ commentaires) et rester informé (notifications, temps réel).
 
 ## Notifications et temps réel
 
-- Un **centre de notifications** signale ce qui est nouveau ; les événements critiques
-  s'affichent en bandeau.
-- **Échéances de l'élève** : deux avis suivent ses tâches en cours — « Échéance proche »
-  (à rendre aujourd'hui ou demain) et « Tâches en retard » (date limite dépassée). Ils se
-  comptent en **jours de calendrier** : une tâche à rendre _aujourd'hui_ est annoncée comme
-  proche, jamais comme en retard. Chacun est un avis **d'état** : il passe tout seul en
-  « lu » dès qu'aucune tâche ne le justifie plus (échéance repoussée, tâche terminée ou
-  validée), au lieu de s'empiler à chaque changement de compte.
+### La cloche de notifications
+
+La **cloche** en haut de l'écran rassemble ce qui vous concerne **personnellement**. Chaque
+notification est adressée à une personne précise, dit **de quoi il s'agit** (le titre de la
+tâche, le nom du lieu, le sujet du forum, qui a agi, un extrait du message) et **un clic
+ouvre exactement l'élément concerné**. Les événements critiques (tâche en retard, par
+exemple) s'affichent aussi en bandeau, avec le même bouton d'accès.
+
+Les notifications sont **conservées sur le serveur** : on les retrouve d'un appareil à
+l'autre, et « lu » sur l'ordinateur vaut « lu » sur la tablette. Elles arrivent en direct
+quand l'application est ouverte ; sinon, elles attendent la prochaine connexion. Elles
+sont effacées automatiquement au bout de **60 jours**.
+
+| Qui la reçoit                                    | Quand                                                                     | Ce qu'un clic ouvre                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Les personnes qui valident les tâches            | Un n3beur propose une tâche                                               | La tâche proposée                                              |
+| Les référents de la tâche                        | Un n3beur s'inscrit à une tâche (avec le nombre de places occupées)       | La tâche                                                       |
+| Les référents et les personnes qui valident      | Une tâche est marquée faite                                               | La tâche, dans la liste filtrée « Terminée (à valider) »       |
+| Les inscrits                                     | Leur tâche est validée, ou renvoyée « à reprendre »                       | La tâche, mise en évidence dans la liste                       |
+| Les élèves inscrits d'office                     | Un professeur les inscrit à une tâche                                     | La tâche                                                       |
+| L'auteur d'une proposition                       | Sa proposition est acceptée ou non retenue                                | La tâche (si elle existe encore)                               |
+| Les inscrits                                     | Leur tâche est supprimée                                                  | Rien : la tâche n'existe plus                                  |
+| Les inscrits et les référents                    | Un commentaire est ajouté sur la tâche                                    | La tâche                                                       |
+| Les personnes qui traitent les messages de lieux | Un message est déposé sur une zone ou un repère                           | La carte centrée sur le lieu, fenêtre ouverte sur ses messages |
+| L'auteur d'un message de lieu                    | Son message est pris en compte, traité ou classé sans suite               | Le lieu et ses messages                                        |
+| Les participants d'un sujet du forum             | Une nouvelle réponse y est publiée                                        | Le sujet, à la réponse en question                             |
+| Les inscrits à une tâche en cours                | Chaque matin, la veille et le jour de l'échéance, puis une fois en retard | La tâche                                                       |
+
+On ne reçoit jamais de notification pour **sa propre action**. Les rappels d'échéance ne
+sont envoyés **qu'une fois** par tâche et par étape (demain, aujourd'hui, en retard) ; le
+rappel « en retard » cesse une semaine après la date limite.
+
+Si l'élément a disparu entre-temps (tâche supprimée, lieu retiré), un message « introuvable »
+s'affiche au lieu d'ouvrir une page vide.
+
+### Les avis d'état
+
+À côté des notifications, quelques **avis d'état** décrivent une situation en cours plutôt
+qu'un événement. Ils passent tout seuls en « lu » dès que la situation disparaît :
+
+- **Échéances de l'élève** : « Échéance proche » (à rendre aujourd'hui ou demain) et
+  « Tâches en retard » (date limite dépassée). Ils se comptent en **jours de calendrier** :
+  une tâche à rendre _aujourd'hui_ est annoncée comme proche, jamais comme en retard. S'il
+  n'y a qu'une tâche, l'avis la nomme et l'ouvre ; s'il y en a plusieurs, il ouvre la liste
+  filtrée (« En retard » ou vos tâches).
+- **Tâches à valider** (professeur) : le nombre de tâches en attente ; le clic ouvre la liste
+  filtrée « Terminée (à valider) ».
+- **Serveur indisponible**, **connexion Google désactivée**, **modules désactivés**
+  (administrateur, avec le nom des modules concernés et un accès direct aux réglages).
+
+Dans le panneau, les préférences permettent de masquer une famille (Mes tâches, Messages,
+Propositions, Validations, Échéances…).
+
+### Les liens directs
+
+Une tâche, un lieu ou un sujet du forum peut s'ouvrir par un **lien direct** (collé dans un
+courriel ou l'ENT, par exemple). Si la personne n'est pas encore connectée, le lien est
+retenu : il s'ouvre juste après la connexion.
+
+> ⚠️ **Points d'attention**
+>
+> - Les notifications de lieux et de propositions ne s'affichaient avant que **si la console
+>   était ouverte** au moment de l'arrivée du message, et restaient propres à l'appareil.
+>   Elles sont désormais conservées sur le serveur ; en revanche, les anciens avis locaux
+>   (antérieurs à ce changement) ne sont pas repris.
+> - La préférence « masquer une famille » reste **propre à l'appareil** : elle ne suit pas
+>   d'un ordinateur à l'autre, contrairement à l'état lu / non lu.
+
+### Le temps réel
+
 - L'application se met à jour **en temps réel** : une tâche validée par le professeur
   apparaît chez l'élève sans recharger la page ; les listes d'élèves et de tâches
   restent synchrones entre les écrans ouverts. Une observation ajoutée ou retirée

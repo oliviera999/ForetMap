@@ -60,7 +60,7 @@ Il poursuit trois objectifs, dans l'ordre :
 | [foretmap/comptes-roles-et-groupes.md](foretmap/comptes-roles-et-groupes.md)                   | Inscription (code de classe), rôles et paliers (dont **Prof de classe**), groupes, gestion profs                           | ✅ Rédigé |
 | [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                             | Parcours de visite grand public, mascottes                                                                                 | ✅ Rédigé |
 | [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md)     | Quiz, glossaire, réseau trophique, carnet d'observation                                                                    | ✅ Rédigé |
-| [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                           | Statistiques, classement, forum, notifications, audit                                                                      | ✅ Rédigé |
+| [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                           | Statistiques, classement, forum, notifications ciblées et liens directs, audit                                             | ✅ Rédigé |
 | [foretmap/rentree-moodle.md](foretmap/rentree-moodle.md)                                       | La rentrée avec Moodle : cohortes → groupes et classes G&L, simulation, conflits, entrée depuis un cours (déjà connecté)   | ✅ Rédigé |
 
 ### Plan Lyautey

@@ -521,6 +521,7 @@ function ZoneInfoModal({
                 contextId={zone.id}
                 title="Commentaires de la zone"
                 placeholder="Ajouter une observation sur cette zone…"
+                defaultOpen={focusComments}
                 canParticipateContextComments={canParticipateContextComments}
               />
             </div>

@@ -152,7 +152,11 @@ existe, lui, sur la carte de travail des élèves.
 - **Notifications**, **visite guidée** de prise en main et **panneau d'aide** : l'écran
   se met à jour en temps réel (une validation, une observation, un message forum
   apparaissent sans recharger). Si la connexion live est coupée, les listes se
-  rattrapent d'elles-mêmes en une à deux minutes.
+  rattrapent d'elles-mêmes en une à deux minutes. Chaque notification est adressée à une
+  personne, nomme précisément la tâche, le lieu ou le sujet concerné et **l'ouvre d'un
+  clic** (tâche mise en évidence, carte centrée sur le lieu avec ses messages, réponse du
+  forum) ; elle suit d'un appareil à l'autre. Une tâche, un lieu ou un sujet peut aussi
+  être partagé par **lien direct**.
 - Dans la **visite guidée**, le texte de chaque étape s'affiche **progressivement**, à la
   manière d'un dialogue de jeu, dans une bulle encadrée. Un **clic sur la bulle** — ou une
   première pression sur `Entrée` / `→` — affiche tout le texte immédiatement ; la pression

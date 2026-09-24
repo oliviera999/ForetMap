@@ -389,7 +389,13 @@ router.post(
     });
     emitForumChanged({ reason: 'post_created', threadId: thread.id, postId });
     fireAndForget(
-      () => notifyForumReply({ threadId: thread.id, postId, body, actorUserId: actor.userId }),
+      () =>
+        notifyForumReply({
+          threadId: thread.id,
+          postId,
+          body: payload.body,
+          actorUserId: actor.userId,
+        }),
       { postId },
     );
     res.status(201).json(post);

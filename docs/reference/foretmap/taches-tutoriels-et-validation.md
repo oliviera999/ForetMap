@@ -105,9 +105,16 @@ faire défiler la page.
   retour du téléphone — la referme, et « Voir les N tâches » applique. Aucun filtre n'a
   disparu : ils sont simplement rangés.
 - **Le nombre de filtres posés** s'affiche sur le bouton, et chaque filtre actif apparaît
-  en **étiquette** sous la barre (« Lieu : 🐝 Ruche », « Statut : Terminée »…). Un appui
-  sur l'étiquette retire ce filtre ; « Tout effacer » les retire tous. C'est le garde-fou
-  contre la liste qui semble vide alors qu'un filtre oublié la restreint.
+  en **étiquette** sous la barre (« Lieu : 🐝 Ruche », « Statut : Terminée (à valider) »…).
+  Un appui sur l'étiquette retire ce filtre ; « Tout effacer » les retire tous. C'est le
+  garde-fou contre la liste qui semble vide alors qu'un filtre oublié la restreint.
+- **Le filtre de statut** propose, en plus des états habituels, **« Terminée (à valider) »**
+  (les tâches qui attendent une décision) et **« En retard »** : les tâches encore à faire ou
+  en cours dont la date limite est dépassée.
+- **Arriver depuis une notification ou un lien direct** : la liste retire d'abord les
+  filtres qui pourraient cacher la tâche, pose le bon statut (« Terminée (à valider) » pour
+  une tâche à valider, « En retard » pour un rappel de retard…), puis **amène la tâche à
+  l'écran et l'encadre quelques secondes** pour qu'on la repère d'un coup d'œil.
 - **L'affichage** est mémorisé d'une visite à l'autre. À la toute première visite, les
   écrans étroits (téléphone) démarrent en **condensé** — une ligne par tâche — pour en
   montrer davantage d'un coup ; les grands écrans démarrent en **tuiles**. Chacun peut en

@@ -94,7 +94,7 @@ describe('taskFilterSummary', () => {
     );
     assert.strictEqual(chips[2].label, 'Projet : Verger');
     assert.strictEqual(chips[4].label, 'Urgent ! uniquement');
-    assert.strictEqual(chips[5].label, 'Statut : Terminée');
+    assert.strictEqual(chips[5].label, 'Statut : Terminée (à valider)');
     assert.ok(chips.every((c) => c.removeLabel));
   });
 
