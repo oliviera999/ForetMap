@@ -667,7 +667,6 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
       email: `profil_${Date.now()}@example.com`,
       description: 'Description mise à jour',
       avatarData: tinyAvatar,
-      currentPassword: 'pwd123',
     })
     .expect(200);
 
@@ -683,7 +682,7 @@ test('PATCH /api/students/:id/profile rejette un email invalide', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${studentData.authToken}`)
-    .send({ email: 'pas-un-email', currentPassword: 'pwd123' })
+    .send({ email: 'pas-un-email' })
     .expect(400);
   assert.ok(res.body.error);
 });
@@ -704,25 +703,26 @@ test('PATCH /api/students/:id/profile rejette un conflit pseudo', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${studentData.authToken}`)
-    .send({ pseudo: pseudoConflict, currentPassword: 'pwd123' })
+    .send({ pseudo: pseudoConflict })
     .expect(409);
   assert.ok(res.body.error);
 });
 
-test('PATCH /api/students/:id/profile rejette un mot de passe actuel invalide', async () => {
+test('PATCH /api/students/:id/profile n’exige pas le mot de passe actuel', async () => {
+  const pseudo = `nopwd_${Date.now()}`;
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${studentData.authToken}`)
-    .send({ pseudo: `new_${Date.now()}`, currentPassword: 'bad-password' })
-    .expect(401);
-  assert.ok(res.body.error);
+    .send({ pseudo })
+    .expect(200);
+  assert.strictEqual(res.body.pseudo, pseudo);
 });
 
 test('PATCH /api/students/:id/profile : « affiliation » seule n’est plus un champ de profil', async () => {
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${studentData.authToken}`)
-    .send({ affiliation: 'n3', currentPassword: 'pwd123' })
+    .send({ affiliation: 'n3' })
     .expect(400);
   assert.match(String(res.body.error || ''), /Aucun champ de profil/i);
 });
@@ -730,7 +730,7 @@ test('PATCH /api/students/:id/profile : « affiliation » seule n’est plus un 
 test('PATCH /api/students/:id/profile sans token renvoie 401', async () => {
   await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
-    .send({ pseudo: `profil_no_token_${Date.now()}`, currentPassword: 'pwd123' })
+    .send({ pseudo: `profil_no_token_${Date.now()}` })
     .expect(401);
 });
 
@@ -743,7 +743,7 @@ test('PATCH /api/students/:id/profile refuse la modification par un autre élèv
   await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${other.body.authToken}`)
-    .send({ pseudo: `profil_other_${Date.now()}`, currentPassword: 'pwd123' })
+    .send({ pseudo: `profil_other_${Date.now()}` })
     .expect(403);
 });
 

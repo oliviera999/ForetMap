@@ -107,15 +107,10 @@ describe('validateProfileEditorFields', () => {
     pseudo: 'momo_lyautey',
     email: 'moi@exemple.com',
     description: 'Salut',
-    currentPassword: 'xx',
   };
 
   test('champs valides → pas d’erreur', () => {
     expect(validateProfileEditorFields(valid)).toBe('');
-  });
-
-  test('mot de passe actuel facultatif côté client (compte Google sans mot de passe)', () => {
-    expect(validateProfileEditorFields({ ...valid, currentPassword: '' })).toBe('');
   });
 
   test('pseudo invalide (trop court ou caractères interdits) ; pseudo vide toléré', () => {

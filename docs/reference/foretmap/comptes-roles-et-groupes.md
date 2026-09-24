@@ -50,10 +50,12 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   étaient indépendants et ce second chemin restait ouvert. Le **pseudo** accepte les lettres
   (y compris accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
+- **Modifier son profil** (pseudo, e-mail, description, photo, mascotte, niveau d'affichage) :
+  depuis « Mon profil », sans redonner son mot de passe — être connecté suffit.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
-  sont déconnectés. Un compte **Google** sans mot de passe peut modifier son profil et se
-  donner un mot de passe sans rien redonner, ou passer par « mot de passe oublié ». Un mot de
+  sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
+  sans rien redonner, ou passer par « mot de passe oublié ». Un mot de
   passe **provisoire** (posé par un responsable ou par le jeu) est signalé à la connexion :
   l'application invite à en choisir un nouveau.
 - **Connexion refusée** : un seul message (« Identifiant ou mot de passe incorrect »), que le

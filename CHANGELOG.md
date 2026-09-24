@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — « Mon profil » n'exige plus le mot de passe actuel
+
+- `PATCH /api/auth/me/profile` et `PATCH /api/students/:id/profile` ne vérifient plus
+  `currentPassword` : la session suffit pour modifier pseudo, e-mail, description, photo,
+  mascotte ou niveau d'affichage. Le changement de mot de passe (`POST /api/auth/me/password`)
+  continue, lui, de redemander le mot de passe actuel.
+- Écran « Mon profil » : le champ « Mot de passe actuel » passe dans la section « Changer mon
+  mot de passe ». Tests, `docs/API.md` et doc de référence mis à jour.
+
 ### Ajouté — Séances pédagogiques : lien direct, suivi par élève, lycée, séance libre, badges, tâches (lot 5)
 
 - **Lien direct + QR code** : `/?seance=<slug>` démarre la séance (après connexion si besoin,

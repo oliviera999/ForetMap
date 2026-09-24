@@ -127,10 +127,7 @@ describe('Auth', () => {
     const res = await request(app)
       .patch('/api/auth/me/profile')
       .set('Authorization', `Bearer ${login.body.authToken}`)
-      .send({
-        visit_mascot_catalog_id: offerte.catalog_id,
-        currentPassword: password,
-      })
+      .send({ visit_mascot_catalog_id: offerte.catalog_id })
       .expect(200);
     assert.strictEqual(res.body.visit_mascot_catalog_id, offerte.catalog_id);
 
@@ -157,7 +154,7 @@ describe('Auth', () => {
     await request(app)
       .patch('/api/auth/me/profile')
       .set('Authorization', `Bearer ${login.body.authToken}`)
-      .send({ visit_mascot_catalog_id: retiree.catalog_id, currentPassword: password })
+      .send({ visit_mascot_catalog_id: retiree.catalog_id })
       .expect(400);
   });
 

@@ -398,7 +398,6 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       pseudo,
       email,
       description,
-      currentPassword,
     });
     if (validationError) return setErr(validationError);
 
@@ -410,7 +409,6 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         description: description.trim() || null,
         visit_mascot_catalog_id: visitMascotCatalogId || null,
         biodiv_pedago_level: biodivPedagoLevel || null,
-        currentPassword,
       };
       if (avatarData) payload.avatarData = avatarData;
       if (removeAvatar) payload.removeAvatar = true;
@@ -422,7 +420,6 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setDescription(updated?.description || '');
       setVisitMascotCatalogId(updated?.visit_mascot_catalog_id || '');
       setBiodivPedagoLevel(updated?.biodiv_pedago_level || '');
-      setCurrentPassword('');
       setAvatarData(null);
       setRemoveAvatar(false);
       setAvatarPreview(getStudentAvatarUrl(updated));
@@ -617,19 +614,6 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           placeholder="Je participe souvent à l'arrosage."
         />
       </div>
-      <div className="field">
-        <label>Mot de passe actuel</label>
-        <input
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          placeholder="••••"
-          autoComplete="current-password"
-        />
-        <small className="section-sub">
-          Demandé pour enregistrer, sauf si ton compte n’a pas de mot de passe (connexion Google).
-        </small>
-      </div>
       {err && (
         <div className="auth-error">
           <IconWarning size={14} /> {err}
@@ -654,9 +638,19 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         Changer mon mot de passe
       </h3>
       <p className="section-sub">
-        Renseigne ton mot de passe actuel ci-dessus (sauf compte Google), puis le nouveau deux fois.
-        Tes autres appareils seront déconnectés.
+        Renseigne ton mot de passe actuel (sauf compte Google), puis le nouveau deux fois. Tes
+        autres appareils seront déconnectés.
       </p>
+      <div className="field">
+        <label>Mot de passe actuel</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="••••"
+          autoComplete="current-password"
+        />
+      </div>
       <div className="field">
         <label>Nouveau mot de passe</label>
         <input
