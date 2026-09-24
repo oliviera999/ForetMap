@@ -96,6 +96,46 @@
   gap: 0.4rem;
 }
 
+.pedago-sessions__done-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  background: color-mix(in srgb, var(--leaf, #4a7c59) 18%, transparent);
+  color: var(--forest, #1a4d2e);
+}
+
+.pedago-sessions__stats {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.pedago-session-done {
+  max-width: 28rem;
+}
+
+.pedago-session-done__ok {
+  margin: 0.5rem 0 0;
+  color: var(--forest, #1a4d2e);
+  font-weight: 600;
+}
+
+.pedago-session-done__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.pedago-session-done__actions > button {
+  min-height: 44px;
+}
+
 .pedago-sessions__message {
   padding: 1rem;
   margin-bottom: 1rem;

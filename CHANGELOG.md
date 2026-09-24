@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Séances pédagogiques : fin de séance, suivi et note au carnet (lot 4)
+
+- **Suivi léger** (migration `283`, table `pedago_session_runs`) : pour chaque personne
+  connectée, démarrages et fins de séance sont comptés (une ligne par séance et par
+  personne, compteurs cumulés pour « rejouer »). Routes `POST /api/pedago-sessions/:idOrSlug/runs/start|complete`,
+  `GET /api/pedago-sessions/me/runs`, `GET /api/pedago-sessions/stats` (`plants.manage`,
+  agrégats sans nom). Les visites invitées ne laissent aucune trace.
+- **Fin de séance** : « Terminer » ouvre une fenêtre « Séance terminée » qui propose une
+  **note préremplie dans le carnet** (étapes suivies, vignettes des plantes vues, invites
+  « Ce que j’ai observé / appris »), via la route d’articles existante du carnet.
+- **Catalogue** : étiquette « Terminée ×N » côté élève, ligne « Démarrée par N · terminée
+  par M » côté professeur. `lib/pedagoSessionRuns.js` sert de point d’accroche unique pour
+  une future ludification (badges, séries, déblocages).
+
 ### Corrigé — Défilement impossible dans « Mon profil » et « Mes statistiques », croix de fermeture déplacées
 
 - **Cause** : l'agrandissement des cibles tactiles à 44 px (pseudo-élément `::after` de

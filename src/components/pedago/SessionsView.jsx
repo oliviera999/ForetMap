@@ -37,12 +37,58 @@ export function SessionsView({
   currentStep = null,
   onStartSession,
   onOpenConfig = null,
+  isAuthenticated = false,
+  runsVersion = 0,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [configTarget, setConfigTarget] = useState(null);
   const [idKeys, setIdKeys] = useState([]);
+  const [myRuns, setMyRuns] = useState({});
+  const [runStats, setRunStats] = useState({});
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setMyRuns({});
+      return;
+    }
+    let cancelled = false;
+    api('/api/pedago-sessions/me/runs')
+      .then((data) => {
+        if (cancelled) return;
+        const map = {};
+        for (const run of Array.isArray(data?.runs) ? data.runs : []) map[run.sessionId] = run;
+        setMyRuns(map);
+      })
+      .catch(() => {
+        if (!cancelled) setMyRuns({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, runsVersion]);
+
+  useEffect(() => {
+    if (!canManage) {
+      setRunStats({});
+      return;
+    }
+    let cancelled = false;
+    api('/api/pedago-sessions/stats')
+      .then((data) => {
+        if (cancelled) return;
+        const map = {};
+        for (const s of Array.isArray(data?.stats) ? data.stats : []) map[s.sessionId] = s;
+        setRunStats(map);
+      })
+      .catch(() => {
+        if (!cancelled) setRunStats({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, runsVersion]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,41 +161,60 @@ export function SessionsView({
 
       {!loading && !error && (
         <ul className="pedago-sessions__list">
-          {items.map((session) => (
-            <li key={session.id} className="pedago-sessions__card card">
-              <div className="pedago-sessions__card-main">
-                <h2 className="pedago-sessions__card-title">{session.title}</h2>
-                <p className="section-sub">
-                  {session.level === 'college'
-                    ? 'Collège'
-                    : session.level === 'lycee'
-                      ? 'Lycée'
-                      : 'Université'}
-                  {' · '}
-                  {session.steps?.length || 0} étapes
-                  {!session.isPublished ? ' · brouillon' : ''}
-                </p>
-                {session.description ? (
-                  <p className="pedago-sessions__desc">{session.description}</p>
-                ) : null}
-              </div>
-              <div className="pedago-sessions__card-actions">
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => onStartSession?.(session)}
-                  disabled={!session.isPublished && !canManage}
-                >
-                  {activeSession?.id === session.id ? 'Reprendre' : 'Démarrer'}
-                </Button>
-                {canManage && (
-                  <Button type="button" variant="ghost" onClick={() => setConfigTarget(session)}>
-                    Configurer
+          {items.map((session) => {
+            const myRun = myRuns[session.id];
+            const stats = runStats[session.id];
+            return (
+              <li key={session.id} className="pedago-sessions__card card">
+                <div className="pedago-sessions__card-main">
+                  <h2 className="pedago-sessions__card-title">
+                    {session.title}
+                    {myRun?.completed ? (
+                      <span
+                        className="pedago-sessions__done-badge"
+                        data-testid="pedago-session-done-badge"
+                      >
+                        Terminée{myRun.completionCount > 1 ? ` ×${myRun.completionCount}` : ''}
+                      </span>
+                    ) : null}
+                  </h2>
+                  <p className="section-sub">
+                    {session.level === 'college'
+                      ? 'Collège'
+                      : session.level === 'lycee'
+                        ? 'Lycée'
+                        : 'Université'}
+                    {' · '}
+                    {session.steps?.length || 0} étapes
+                    {!session.isPublished ? ' · brouillon' : ''}
+                  </p>
+                  {session.description ? (
+                    <p className="pedago-sessions__desc">{session.description}</p>
+                  ) : null}
+                  {canManage ? (
+                    <p className="pedago-sessions__stats" data-testid="pedago-session-stats">
+                      {`Démarrée par ${stats?.startedUsers || 0} · terminée par ${stats?.completedUsers || 0}`}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="pedago-sessions__card-actions">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => onStartSession?.(session)}
+                    disabled={!session.isPublished && !canManage}
+                  >
+                    {activeSession?.id === session.id ? 'Reprendre' : 'Démarrer'}
                   </Button>
-                )}
-              </div>
-            </li>
-          ))}
+                  {canManage && (
+                    <Button type="button" variant="ghost" onClick={() => setConfigTarget(session)}>
+                      Configurer
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

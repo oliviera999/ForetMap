@@ -10,6 +10,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const asyncHandler = require('../lib/asyncHandler');
 const {
+  requireAuth,
   requirePermission,
   hasPermission,
   parseBearerToken,
@@ -29,6 +30,12 @@ const {
   normalizeLevel,
   parseJsonField,
 } = require('../lib/pedagoSessions');
+const {
+  recordRunStart,
+  recordRunComplete,
+  listRunsForUser,
+  getRunStats,
+} = require('../lib/pedagoSessionRuns');
 
 const router = express.Router();
 const manageSessions = requirePermission('plants.manage');
@@ -86,6 +93,42 @@ router.get(
     });
   }),
 );
+
+router.get(
+  '/stats',
+  manageSessions,
+  asyncHandler(async (_req, res) => {
+    const stats = await getRunStats();
+    return res.json({ stats });
+  }),
+);
+
+router.get(
+  '/me/runs',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = String(req.auth?.userId || '').trim();
+    if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    const runs = await listRunsForUser(userId);
+    return res.json({ runs });
+  }),
+);
+
+function runHandler(record) {
+  return asyncHandler(async (req, res) => {
+    const userId = String(req.auth?.userId || '').trim();
+    if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    const row = await loadSessionByIdOrSlug(req.params.idOrSlug);
+    if (!row || !row.is_published) {
+      return res.status(404).json({ error: 'Séance introuvable' });
+    }
+    const run = await record(row.id, userId);
+    return res.json({ run });
+  });
+}
+
+router.post('/:idOrSlug/runs/start', requireAuth, runHandler(recordRunStart));
+router.post('/:idOrSlug/runs/complete', requireAuth, runHandler(recordRunComplete));
 
 router.get(
   '/:idOrSlug',

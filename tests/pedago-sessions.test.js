@@ -107,6 +107,71 @@ test('POST crée une copie de template ; ?all=1 réservé manage', async () => {
   await request(app).get(`/api/pedago-sessions/${createdId}`).set(auth()).expect(200);
 });
 
+test('runs : démarrage / fin élève, /me/runs, /stats réservé prof (migration 283)', async () => {
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Seance', lastName: `Run${stamp}`, password: 'pwd12345' })
+    .expect(201);
+  const studentId = reg.body.id;
+  const studentAuth = { Authorization: `Bearer ${reg.body.authToken}` };
+  const slug = 'college-qui-mange-qui';
+
+  try {
+    await request(app).post(`/api/pedago-sessions/${slug}/runs/start`).expect(401);
+
+    const started = await request(app)
+      .post(`/api/pedago-sessions/${slug}/runs/start`)
+      .set(studentAuth)
+      .expect(200);
+    assert.equal(started.body.run.startCount, 1);
+    assert.equal(started.body.run.completed, false);
+
+    const done = await request(app)
+      .post(`/api/pedago-sessions/${slug}/runs/complete`)
+      .set(studentAuth)
+      .expect(200);
+    assert.equal(done.body.run.completed, true);
+    assert.equal(done.body.run.completionCount, 1);
+    assert.ok(done.body.run.firstCompletedAt);
+
+    const again = await request(app)
+      .post(`/api/pedago-sessions/${slug}/runs/complete`)
+      .set(studentAuth)
+      .expect(200);
+    assert.equal(again.body.run.completionCount, 2);
+
+    const mine = await request(app)
+      .get('/api/pedago-sessions/me/runs')
+      .set(studentAuth)
+      .expect(200);
+    const run = mine.body.runs.find((r) => r.sessionId === 'pedago-session-college-qui-mange');
+    assert.ok(run);
+    assert.equal(run.completed, true);
+
+    await request(app).get('/api/pedago-sessions/stats').set(studentAuth).expect(403);
+    const stats = await request(app).get('/api/pedago-sessions/stats').set(auth()).expect(200);
+    const entry = stats.body.stats.find((s) => s.sessionId === 'pedago-session-college-qui-mange');
+    assert.ok(entry);
+    assert.ok(entry.startedUsers >= 1);
+    assert.ok(entry.completedUsers >= 1);
+    assert.equal(Object.hasOwn(entry, 'userId'), false);
+
+    if (createdId) {
+      await request(app)
+        .post(`/api/pedago-sessions/${createdId}/runs/start`)
+        .set(studentAuth)
+        .expect(404);
+    }
+    await request(app)
+      .post('/api/pedago-sessions/seance-inexistante/runs/complete')
+      .set(studentAuth)
+      .expect(404);
+  } finally {
+    await execute('DELETE FROM pedago_session_runs WHERE user_id = ?', [studentId]).catch(() => {});
+    await execute('DELETE FROM users WHERE id = ?', [studentId]).catch(() => {});
+  }
+});
+
 test('seed toujours présent en base après initSchema', async () => {
   const row = await queryOne(`SELECT slug, is_published FROM pedago_sessions WHERE slug = ?`, [
     'college-qui-mange-qui',
