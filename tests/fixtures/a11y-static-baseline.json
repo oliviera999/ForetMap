@@ -1,8 +1,4 @@
 {
-  "src/components/attachment-images-picker.jsx": {
-    "jsx-a11y/img-redundant-alt": 1,
-    "jsx-a11y/no-noninteractive-element-interactions": 1
-  },
   "src/components/auth-views.jsx": {
     "jsx-a11y/no-autofocus": 2
   },
@@ -134,6 +130,9 @@
   },
   "src/shared/components/AppDialogsProvider.jsx": {
     "jsx-a11y/no-autofocus": 2
+  },
+  "src/shared/components/AttachmentImagesPicker.jsx": {
+    "jsx-a11y/no-noninteractive-element-interactions": 1
   },
   "src/shared/components/DialogShell.jsx": {
     "jsx-a11y/click-events-have-key-events": 1,

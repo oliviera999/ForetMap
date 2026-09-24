@@ -3066,26 +3066,6 @@ a.gl-glossary-inline-link:hover,
   cursor: not-allowed;
 }
 
-.gl-forum-thread > header > button {
-  border: 1px solid var(--gl-border);
-  background: var(--surface-plain);
-  color: var(--gl-color-primary);
-  border-radius: var(--gl-radius-control);
-  min-height: 38px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-weight: var(--fw-semibold);
-  font-size: var(--text-sm);
-  transition:
-    transform var(--motion-fast) var(--ease-out),
-    box-shadow var(--motion-fast) var(--ease-out);
-}
-
-.gl-forum-thread > header > button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--gl-shadow-sm);
-}
-
 .gl-mascot-svg {
   display: block;
 }
@@ -3482,8 +3462,6 @@ a.gl-glossary-inline-link:hover,
   border-radius: var(--gl-radius-pill);
 }
 
-.gl-forum-threads,
-.gl-forum-posts,
 .gl-journal-events,
 .gl-kingdom-map-zones,
 .gl-tutorials-list {
@@ -3494,7 +3472,6 @@ a.gl-glossary-inline-link:hover,
   gap: 8px;
 }
 
-.gl-forum-threads li > button,
 .gl-tutorials-list li > button {
   width: 100%;
   text-align: left;
@@ -3512,168 +3489,22 @@ a.gl-glossary-inline-link:hover,
     border-color var(--motion-fast) var(--ease-out);
 }
 
-.gl-forum-threads li > button:hover,
 .gl-tutorials-list li > button:hover {
   transform: translateY(-1px);
   box-shadow: var(--gl-shadow-sm);
 }
 
-.gl-forum-threads li.is-active > button,
 .gl-tutorials-list li.is-read > button {
   border-color: var(--gl-color-primary);
   background: color-mix(in srgb, var(--surface-plain) 68%, var(--gl-color-secondary) 32%);
   box-shadow: var(--gl-shadow-sm);
 }
 
-.gl-forum-thread {
-  margin-top: 12px;
-  border: 1px solid var(--gl-select-surface);
-  border-radius: var(--gl-radius-md);
-  padding: 12px;
-  background: var(--surface-plain);
-}
-
-.gl-forum-thread > header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  height: auto;
-  max-height: none;
-  overflow: visible;
-}
-
-.gl-forum-posts li,
 .gl-journal-event {
   border: 1px solid var(--gl-select-surface);
   border-radius: var(--gl-radius-control);
   background: var(--surface-plain);
   padding: 10px;
-}
-
-.gl-forum-posts li.is-deleted {
-  opacity: 0.65;
-}
-
-.gl-forum-threads li > button {
-  display: grid;
-  gap: 2px;
-}
-
-.gl-forum-threads li > button strong {
-  overflow-wrap: anywhere;
-}
-
-.gl-forum-threads li > button .gl-hint {
-  font-weight: var(--fw-normal, 400);
-}
-
-.gl-forum-thread > header h3 {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.gl-forum-thread__title {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.gl-forum-thread__title .gl-hint {
-  margin: 0;
-}
-
-.gl-forum-post__head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 2px 8px;
-  margin-bottom: 4px;
-}
-
-.gl-forum-post__head strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.gl-forum-post__head time {
-  font-size: var(--text-xs);
-  opacity: 0.75;
-}
-
-.gl-forum-post__body {
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  line-height: var(--lh-normal, 1.5);
-}
-
-.gl-forum-post__actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 6px;
-}
-
-.gl-forum__pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: var(--text-sm);
-}
-
-.gl-forum .gl-forum__back {
-  display: none;
-  margin-bottom: 8px;
-}
-
-.gl-forum__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.gl-forum__layout .gl-forum-thread {
-  margin-top: 10px;
-}
-
-.gl-forum__placeholder {
-  margin: 10px 0;
-}
-
-/* Deux colonnes dès qu'il y a la place : liste des sujets à gauche, discussion à droite. */
-@media (min-width: 1024px) {
-  .gl-forum__layout {
-    grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
-  }
-
-  .gl-forum__list {
-    max-height: clamp(260px, 70dvh, 760px);
-    overflow-y: auto;
-  }
-}
-
-/* Une colonne : liste OU discussion (bascule `gl-forum--pane-*`, même seuil que
-   NARROW_QUERY dans GLForumView.jsx). */
-@media (max-width: 1023px) {
-  .gl-forum--pane-list .gl-forum__detail,
-  .gl-forum--pane-detail .gl-forum__list,
-  .gl-forum--pane-detail .gl-forum__actions,
-  .gl-forum--pane-detail .gl-forum__composer {
-    display: none;
-  }
-
-  .gl-forum .gl-forum__back {
-    display: inline-flex;
-  }
-
-  .gl-forum-thread > header {
-    flex-wrap: wrap;
-  }
 }
 
 .gl-journal-event {
@@ -6999,16 +6830,14 @@ fieldset .media-library-menu__gallery {
 :where(
     .gl-subtabs button,
     .gl-glossary-popover__close,
-    .gl-help-panel > header button,
-    .gl-forum-thread > header > button
+    .gl-help-panel > header button
   ) {
   position: relative;
 }
 
 .gl-subtabs button::after,
 .gl-glossary-popover__close::after,
-.gl-help-panel > header button::after,
-.gl-forum-thread > header > button::after {
+.gl-help-panel > header button::after {
   content: '';
   position: absolute;
   left: 50%;

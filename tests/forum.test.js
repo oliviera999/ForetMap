@@ -427,3 +427,213 @@ test('Forum: premier message et réponse avec photos (image_urls)', async () => 
   assert.ok(withSoloPhoto);
   assert.strictEqual(withSoloPhoto.image_urls.length, 1);
 });
+
+test('Forum: modifier son message — auteur seulement, edited_at renseigné, refus si verrouillé', async () => {
+  const author = await registerStudent('EditAuthor');
+  const other = await registerStudent('EditOther');
+  const teacher = await teacherToken();
+  const create = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet édition ${Date.now()}`, body: 'Texte initial.' })
+    .expect(201);
+  const threadId = create.body.thread.id;
+  const postId = create.body.first_post_id;
+
+  await request(app)
+    .patch(`/api/forum/posts/${postId}`)
+    .set(auth(other.authToken))
+    .send({ body: 'Pas mon message.' })
+    .expect(403);
+  // Même un modérateur ne réécrit pas le message d'autrui (il peut seulement le supprimer).
+  await request(app)
+    .patch(`/api/forum/posts/${postId}`)
+    .set(auth(teacher))
+    .send({ body: 'Réécriture interdite.' })
+    .expect(403);
+  await request(app)
+    .patch(`/api/forum/posts/${postId}`)
+    .set(auth(author.authToken))
+    .send({ body: 'x' })
+    .expect(400);
+
+  const edited = await request(app)
+    .patch(`/api/forum/posts/${postId}`)
+    .set(auth(author.authToken))
+    .send({ body: 'Texte corrigé.' })
+    .expect(200);
+  assert.strictEqual(edited.body.body, 'Texte corrigé.');
+  assert.ok(edited.body.edited_at, 'edited_at renseigné');
+
+  await request(app)
+    .patch(`/api/forum/threads/${threadId}/lock`)
+    .set(auth(teacher))
+    .send({ locked: true })
+    .expect(200);
+  await request(app)
+    .patch(`/api/forum/posts/${postId}`)
+    .set(auth(author.authToken))
+    .send({ body: 'Après verrouillage.' })
+    .expect(409);
+});
+
+test('Forum: épingler — réservé aux modérateurs, sujet épinglé en tête de liste', async () => {
+  const student = await registerStudent('PinForum');
+  const teacher = await teacherToken();
+  const older = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(student.authToken))
+    .send({ title: `Sujet à épingler ${Date.now()}`, body: 'Plus ancien.' })
+    .expect(201);
+  await request(app)
+    .post('/api/forum/threads')
+    .set(auth(student.authToken))
+    .send({ title: `Sujet récent ${Date.now()}`, body: 'Plus récent.' })
+    .expect(201);
+  const olderId = older.body.thread.id;
+
+  await request(app)
+    .patch(`/api/forum/threads/${olderId}/pin`)
+    .set(auth(student.authToken))
+    .send({ pinned: true })
+    .expect(403);
+  const pinned = await request(app)
+    .patch(`/api/forum/threads/${olderId}/pin`)
+    .set(auth(teacher))
+    .send({ pinned: true })
+    .expect(200);
+  assert.strictEqual(Number(pinned.body.is_pinned), 1);
+
+  const list = await request(app)
+    .get('/api/forum/threads?page_size=50')
+    .set(auth(student.authToken))
+    .expect(200);
+  const firstUnpinnedIdx = list.body.items.findIndex((t) => !Number(t.is_pinned));
+  const pinnedIdx = list.body.items.findIndex((t) => t.id === olderId);
+  assert.ok(pinnedIdx >= 0);
+  assert.ok(firstUnpinnedIdx === -1 || pinnedIdx < firstUnpinnedIdx, 'épinglé avant les autres');
+
+  await request(app)
+    .patch(`/api/forum/threads/${olderId}/pin`)
+    .set(auth(teacher))
+    .send({ pinned: false })
+    .expect(200);
+});
+
+test('Forum: liste — posts_count sans messages supprimés, last_other_post_at hors ses messages', async () => {
+  const author = await registerStudent('StatsAuthor');
+  const reader = await registerStudent('StatsReader');
+  const create = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet stats ${Date.now()}`, body: 'Premier.' })
+    .expect(201);
+  const threadId = create.body.thread.id;
+  const reply = await request(app)
+    .post(`/api/forum/threads/${threadId}/posts`)
+    .set(auth(author.authToken))
+    .send({ body: 'Second, bientôt supprimé.' })
+    .expect(201);
+  await request(app)
+    .delete(`/api/forum/posts/${reply.body.id}`)
+    .set(auth(author.authToken))
+    .expect(200);
+
+  const findRow = async (token) => {
+    const list = await request(app)
+      .get('/api/forum/threads?page_size=50')
+      .set(auth(token))
+      .expect(200);
+    return list.body.items.find((t) => t.id === threadId);
+  };
+  const forAuthor = await findRow(author.authToken);
+  assert.strictEqual(Number(forAuthor.posts_count), 1);
+  assert.strictEqual(forAuthor.last_other_post_at, null, 'ses propres messages ne comptent pas');
+  const forReader = await findRow(reader.authToken);
+  assert.ok(forReader.last_other_post_at, 'le message de l’auteur compte pour un autre lecteur');
+});
+
+test('Forum: signalements — liste et traitement réservés aux modérateurs', async () => {
+  const author = await registerStudent('ReportsAuthor');
+  const reporter = await registerStudent('ReportsReporter');
+  const teacher = await teacherToken();
+  const thread = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet modération ${Date.now()}`, body: 'Message à modérer.' })
+    .expect(201);
+  const postId = thread.body.first_post_id;
+  const created = await request(app)
+    .post(`/api/forum/posts/${postId}/report`)
+    .set(auth(reporter.authToken))
+    .send({ reason: 'Hors sujet pour la classe.' })
+    .expect(201);
+  const reportId = created.body.report_id;
+  assert.ok(reportId);
+
+  await request(app).get('/api/forum/reports').set(auth(reporter.authToken)).expect(403);
+  await request(app)
+    .patch(`/api/forum/reports/${reportId}`)
+    .set(auth(reporter.authToken))
+    .send({ status: 'dismissed' })
+    .expect(403);
+
+  const open = await request(app)
+    .get('/api/forum/reports?status=open&page_size=100')
+    .set(auth(teacher))
+    .expect(200);
+  const row = open.body.items.find((r) => Number(r.id) === Number(reportId));
+  assert.ok(row, 'le signalement figure dans la liste des modérateurs');
+  assert.strictEqual(row.reason, 'Hors sujet pour la classe.');
+  assert.strictEqual(row.post_id, postId);
+  assert.ok(row.thread_title);
+  assert.match(String(row.post_excerpt), /Message à modérer/);
+
+  await request(app)
+    .patch(`/api/forum/reports/${reportId}`)
+    .set(auth(teacher))
+    .send({ status: 'nimporte' })
+    .expect(400);
+  const resolved = await request(app)
+    .patch(`/api/forum/reports/${reportId}`)
+    .set(auth(teacher))
+    .send({ status: 'dismissed' })
+    .expect(200);
+  assert.strictEqual(resolved.body.status, 'dismissed');
+
+  const stillOpen = await request(app)
+    .get('/api/forum/reports?status=open&page_size=100')
+    .set(auth(teacher))
+    .expect(200);
+  assert.ok(!stillOpen.body.items.some((r) => Number(r.id) === Number(reportId)));
+  const dismissed = await queryOne(
+    'SELECT status, resolved_at, resolved_by_user_type FROM forum_reports WHERE id = ?',
+    [reportId],
+  );
+  assert.strictEqual(dismissed.status, 'dismissed');
+  assert.ok(dismissed.resolved_at);
+  assert.ok(dismissed.resolved_by_user_type, 'modérateur ayant traité mémorisé');
+});
+
+test('Forum: supprimer un message signalé classe ses signalements ouverts comme traités', async () => {
+  const author = await registerStudent('DelReportAuthor');
+  const reporter = await registerStudent('DelReportReporter');
+  const teacher = await teacherToken();
+  const thread = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet suppression ${Date.now()}`, body: 'Message problématique.' })
+    .expect(201);
+  const postId = thread.body.first_post_id;
+  const created = await request(app)
+    .post(`/api/forum/posts/${postId}/report`)
+    .set(auth(reporter.authToken))
+    .send({ reason: 'Propos déplacés.' })
+    .expect(201);
+
+  await request(app).delete(`/api/forum/posts/${postId}`).set(auth(teacher)).expect(200);
+  const report = await queryOne('SELECT status FROM forum_reports WHERE id = ?', [
+    created.body.report_id,
+  ]);
+  assert.strictEqual(report.status, 'resolved');
+});

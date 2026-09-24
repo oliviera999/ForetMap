@@ -5,7 +5,83 @@ import {
   isForumModerator,
   forumPageCount,
   applyReactionToggle,
+  appendQuoteToDraft,
+  buildQuoteMarkdown,
+  forumThreadReadStorageKey,
+  initialThreadReadState,
+  isThreadUnread,
+  markThreadRead,
+  readThreadReadState,
+  sameForumId,
+  writeThreadReadState,
 } from '../../src/utils/forumHelpers.js';
+
+describe('citation', () => {
+  test('bloc Markdown avec l’auteur, citations imbriquées retirées', () => {
+    const quote = buildQuoteMarkdown({
+      author_display_name: 'Momo',
+      body: '> ancienne citation\nLigne 1\n\nLigne 2',
+    });
+    expect(quote).toBe('> **Momo** a écrit :\n> Ligne 1\n>\n> Ligne 2\n\n');
+  });
+
+  test('texte long tronqué, auteur absent remplacé', () => {
+    const quote = buildQuoteMarkdown({ body: 'x'.repeat(500) });
+    expect(quote.startsWith('> **Quelqu’un** a écrit :')).toBe(true);
+    expect(quote).toContain('…');
+    expect(quote.length).toBeLessThan(450);
+  });
+
+  test('ajout au brouillon : ligne vide de séparation', () => {
+    expect(appendQuoteToDraft('', '> q\n\n')).toBe('> q\n\n');
+    expect(appendQuoteToDraft('Bonjour  \n', '> q\n\n')).toBe('Bonjour\n\n> q\n\n');
+  });
+});
+
+describe('non-lus par sujet', () => {
+  const t1 = { id: 1, last_other_post_at: '2026-09-01 10:00:00' };
+  const t2 = { id: 2, last_other_post_at: '2026-09-03 10:00:00' };
+
+  test('clé par produit et compte ; vide sans identifiant', () => {
+    expect(forumThreadReadStorageKey('gl', 'gl_player', 12)).toBe(
+      'foretmap:forumThreadRead:gl:gl_player:12',
+    );
+    expect(forumThreadReadStorageKey('foret', 'student', '')).toBe('');
+  });
+
+  test('première ouverture : tout ce qui est visible est lu', () => {
+    const state = initialThreadReadState([t1, t2]);
+    expect(isThreadUnread(t1, state)).toBe(false);
+    expect(isThreadUnread(t2, state)).toBe(false);
+    expect(isThreadUnread({ id: 3, last_other_post_at: '2026-09-04 08:00:00' }, state)).toBe(true);
+  });
+
+  test('marquer lu jusqu’au dernier message d’autrui', () => {
+    const state = { baseline: '2026-09-02 00:00:00', threads: {} };
+    expect(isThreadUnread(t2, state)).toBe(true);
+    const next = markThreadRead(state, t2);
+    expect(isThreadUnread(t2, next)).toBe(false);
+    expect(markThreadRead(next, t2)).toBe(next);
+    expect(isThreadUnread({ id: 4, last_other_post_at: null }, state)).toBe(false);
+  });
+
+  test('lecture / écriture tolérantes (JSON corrompu → null)', () => {
+    const store = new Map();
+    const storage = {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, v),
+    };
+    writeThreadReadState('k', { baseline: 'b', threads: { 1: 'x' } }, storage);
+    expect(readThreadReadState('k', storage)).toEqual({ baseline: 'b', threads: { 1: 'x' } });
+    store.set('k', '{pas du json');
+    expect(readThreadReadState('k', storage)).toBeNull();
+  });
+
+  test('sameForumId compare nombre et chaîne', () => {
+    expect(sameForumId(7, '7')).toBe(true);
+    expect(sameForumId(null, 'null')).toBe(false);
+  });
+});
 
 describe('parseReactionEmojiList', () => {
   test('vide/absent : copie de la liste par défaut (jamais la même référence)', () => {

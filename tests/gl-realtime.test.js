@@ -7,7 +7,13 @@ const assert = require('node:assert');
 const http = require('http');
 const express = require('express');
 const { io: clientIo } = require('socket.io-client');
-const { initRealtime, emitGlGameEvent, shutdownRealtime } = require('../lib/realtime');
+const {
+  initRealtime,
+  emitGlGameEvent,
+  emitGlForumChanged,
+  emitForumChanged,
+  shutdownRealtime,
+} = require('../lib/realtime');
 const { initSchema, execute, queryOne } = require('../database');
 const {
   createGlAdmin,
@@ -95,6 +101,80 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   assert.strictEqual(payload.teamId, 4);
 
   await closeGlRealtimeServer(server, socket);
+});
+
+test('Socket.IO GL : gl:forum:changed arrive sans souscription, pas forum:changed ForetMap', async () => {
+  await initSchema();
+  const stamp = Date.now();
+  const admin = await createGlAdmin({
+    email: `gl.socket.forum.${stamp}@ecole.local`,
+    displayName: 'MJ Socket Forum',
+  });
+  const klass = await createGlClass({
+    name: `Classe Socket Forum ${stamp}`,
+    school: 'Ecole',
+    adminId: admin.id,
+  });
+  const player = await createGlPlayer({
+    classId: klass.id,
+    pseudo: `socket-forum-player-${stamp}`,
+    password: 'motdepasse123',
+  });
+  const { playerToken } = await signTokens({
+    playerId: player.id,
+    playerPseudo: player.pseudo,
+    playerPermissions: ['gl.read'],
+  });
+
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    ...SOCKET_CONNECT_OPTS,
+    auth: { token: playerToken },
+  });
+
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('timeout connexion Socket.IO GL')), 20_000);
+      socket.once('connect', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      socket.once('connect_error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
+    const payload = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('timeout gl:forum:changed')), 8000);
+      socket.once('gl:forum:changed', (msg) => {
+        clearTimeout(timeout);
+        resolve(msg);
+      });
+      emitGlForumChanged({ reason: 'post_created', threadId: 5 });
+    });
+    assert.strictEqual(payload.reason, 'post_created');
+    assert.strictEqual(payload.threadId, 5);
+    assert.ok(payload.ts);
+
+    let receivedForetmapForum = false;
+    socket.once('forum:changed', () => {
+      receivedForetmapForum = true;
+    });
+    emitForumChanged({ reason: 'post_created', threadId: 'fm-1' });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    assert.strictEqual(receivedForetmapForum, false, 'isolement : pas d’événement ForetMap');
+  } finally {
+    await closeGlRealtimeServer(server, socket);
+  }
 });
 
 test('Socket.IO GL : un compte désactivé est refusé à la connexion', async () => {

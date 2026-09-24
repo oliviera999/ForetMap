@@ -121,12 +121,20 @@ distinct du glossaire scientifique) et tutoriels.
 
 ### Les joueurs (la vie sociale)
 
-- **Forum** : discussions entre joueurs. Chaque message affiche le **pseudo** de son auteur
-  (ou le nom du MJ) et sa date. Sur grand écran, la liste des sujets et la discussion sont
-  côte à côte ; sur téléphone, on passe de l'une à l'autre (bouton « ← Tous les sujets »).
-  Chacun peut supprimer ses propres messages ; le MJ peut supprimer n'importe quel message
-  et verrouiller un sujet (il reste le seul à pouvoir y répondre). Le mode invité ne donne
-  pas accès au forum.
+- **Forum** : discussions entre joueurs, avec le **même fonctionnement que le forum
+  ForetMap**. Chaque message affiche le **pseudo** de son auteur (ou le nom du MJ) et sa
+  date. Sur grand écran, la liste des sujets et la discussion sont côte à côte ; sur
+  téléphone, on passe de l'une à l'autre (bouton « ← Tous les sujets »). On peut joindre
+  jusqu'à **trois photos** à un message, **réagir** avec un emoji, **citer** un message dans
+  sa réponse, **corriger** son propre message (mention « modifié le … ») et **signaler** un
+  message déplacé. Une **pastille** signale les sujets où quelqu'un d'autre a écrit depuis
+  la dernière lecture (mémorisée sur l'appareil). Le forum se met à jour **tout seul**
+  quand quelqu'un publie, sans recharger la page.
+- **Rôle du MJ au forum** : il peut supprimer n'importe quel message, **épingler** un sujet
+  (il reste en tête de liste) et le **verrouiller** — il reste alors le seul à pouvoir y
+  répondre ou y corriger ses messages. Le bouton **« Signalements (n) »** ouvre les
+  messages signalés : voir le sujet, supprimer le message, marquer comme traité ou classer
+  sans suite. Le mode invité ne donne pas accès au forum.
 - **Marché** : échanges de cœurs et de gemmes **entre deux joueurs d'une même classe**,
   avec discussion et double validation (chacun doit accepter).
 - **Statistiques** : progression personnelle et de classe.

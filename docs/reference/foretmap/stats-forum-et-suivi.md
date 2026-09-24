@@ -52,6 +52,19 @@ commentaires) et rester informé (notifications, temps réel).
   > toute première fois qu'un compte ouvre l'application sur un appareil, le point s'allume
   > s'il existe déjà des messages, puisque rien n'y a encore été lu.
 
+- **Non lus sujet par sujet** : dans la liste, une **pastille** devant le titre signale les
+  sujets où quelqu'un d'autre a écrit depuis votre dernière lecture. Ouvrir le sujet
+  l'éteint. Là aussi, la lecture est mémorisée sur l'appareil ; la toute première fois,
+  tout ce qui est déjà visible compte comme lu (aucune pastille « de bienvenue »).
+- **Sujets épinglés** : les professeurs peuvent **épingler** un sujet important (consignes,
+  règles de la classe). Il reste en tête de liste, avec la mention « Épinglé », avant les
+  sujets triés par dernier message. Le même bouton le « désépingle ».
+- **Citer** : le bouton « Citer » sous un message recopie un extrait de ce message (avec le
+  nom de son auteur) dans le champ de réponse ; on complète ensuite sa propre réponse.
+- **Modifier son message** : l'auteur d'un message peut le **corriger** (« Modifier »,
+  puis « Enregistrer »). Le message affiche alors « modifié le … ». Un professeur ne réécrit
+  pas le message de quelqu'un d'autre : il peut seulement le supprimer. On ne modifie plus
+  rien dans un sujet verrouillé.
 - **Affichage** : sur ordinateur, la liste des sujets est à gauche et la discussion à droite.
   Sur téléphone ou tablette en portrait, on voit d'abord la **liste** ; toucher un sujet
   ouvre la **discussion** en plein écran, et le bouton « ← Tous les sujets » ramène à la liste.
@@ -63,8 +76,13 @@ commentaires) et rester informé (notifications, temps réel).
 - **Signaler / supprimer** : « Signaler » ouvre un petit champ pour le motif (au moins trois
   caractères) ; on ne signale pas ses propres messages. Supprimer un message demande une
   confirmation ; le message est alors remplacé par « [message supprimé] » pour tout le monde.
-- **Modération** : les messages peuvent être **signalés** ; les professeurs disposent
-  des outils de modération (masquer, supprimer, traiter les signalements).
+- **Modération** : les messages peuvent être **signalés**. Les professeurs qui modèrent le
+  forum voient un bouton **« Signalements (n) »** en haut de la liste des sujets : il ouvre
+  les signalements à traiter de leurs groupes, avec le motif, un extrait du message, le
+  sujet, l'auteur et la personne qui a signalé. Pour chacun : « Voir le sujet », « Supprimer
+  le message », « Marquer comme traité » ou « Classer sans suite ». Supprimer un message
+  signalé classe automatiquement ses signalements comme traités. Les professeurs peuvent
+  aussi **verrouiller** un sujet (plus de réponses) et l'**épingler**.
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
   projet ou une zone — la discussion reste au plus près du travail concerné. Mêmes
   participants que le forum : tout le monde sauf les visiteurs. Depuis le **Plan des
