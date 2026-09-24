@@ -44,7 +44,10 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
   observé) ni d’efficacité du pollinisateur.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
-- Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant.
+- Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant — et seulement du
+  cycle 3 pour une classe dont le niveau du programme est « Cycle 3 » (voir
+  [plus bas](#les-échelles-de-niveau-et-leurs-correspondances)). Le quiz propose d'emblée
+  les questions « Collège ».
 - Groupes emboîtés, suivi d’arbres avec formules, détails GBIF / classification latine :
   **masqués** ou uniquement proposés dans une séance préparée par le professeur.
 
@@ -130,6 +133,44 @@ un collégien. Dès qu’un aperçu est actif, le bouton se colore et **un seul 
 rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui remet tout à zéro.
 Les droits réels du professeur ne changent jamais ; le choix de niveau est oublié à la
 fermeture du navigateur.
+
+## Les échelles de niveau et leurs correspondances
+
+Plusieurs « niveaux » coexistent dans l'application, chacun né d'un besoin différent. Ils
+sont désormais **reliés entre eux** par une seule table de correspondance, dont la
+référence commune est le **niveau du programme** (du cycle 3 à la terminale) :
+
+| Échelle                               | Où on la trouve               | Valeurs                                                           | Correspondance                                                                      |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Affichage biodiversité**            | compte, carte, groupe, séance | Collège, Lycée, Université                                        | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
+| **Niveau de la classe** (nouveau)     | groupe                        | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.) | c'est la référence elle-même                                                        |
+| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                    | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
+| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                   | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
+| **Difficulté d'une question**         | quiz                          | ★ à ★★★★★                                                         | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
+| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                               | c'est la référence elle-même                                                        |
+
+Ce que ça change concrètement :
+
+- **Un quiz « cycle 4 » ne tire plus de questions de lycée.** Une question n'hérite des
+  notions de sa catégorie que si elles sont de son niveau ou au-dessus. Avant, un tirage
+  « cycle 4 » — celui des séances collège — sortait une question de lycée sur trois.
+- **Le glossaire est relié aux notions.** Le filtre par notion de l'onglet Glossaire
+  fonctionne (il ne renvoyait rien), et la fiche d'un terme affiche « Au programme ».
+- **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau du programme de la
+  classe**. Réglé une fois sur l'unité « Niveau 6ᵉ », il vaut pour toutes ses classes
+  (un groupe laissé vide hérite de son parent). Il resserre les notions proposées à ses
+  élèves (une classe de cycle 3 ne voit plus le cycle 4) et, si l'affichage biodiversité
+  du groupe est laissé en automatique, il le fixe : cycles 3 et 4 → Collège, seconde et
+  au-delà → Lycée.
+- **Les séances suivent la classe.** Une séance qui demande « tout le collège » tire, pour
+  une 6ᵉ, dans le cycle 3 seulement. Une séance qui vise explicitement un cycle (« cycle 4 »)
+  est respectée telle quelle : c'est le choix du professeur. Les séances lycée, qui
+  demandaient « tout le lycée », fonctionnent (elles étaient refusées).
+
+> ⚠️ **Point d'attention** — Tant qu'aucun groupe n'a de niveau du programme, rien ne
+> distingue le cycle 3 du cycle 4 : tout le monde est traité en « Collège » (cycles 3 et 4).
+> Pour une classe de 6ᵉ, régler **Cycle 3** sur l'unité ou la classe (Profils &
+> utilisateurs → Groupes → Réglages).
 
 ## Visite invitée
 
@@ -252,7 +293,7 @@ visiter —, mais une étape de séance peut en lancer un directement sur la car
 2. Lancer une **clé d’identification** adaptée au lieu.
 3. Ouvrir la **fiche** de l’espèce atteinte ; lire danger / risque sanitaire.
 4. Faire un **mini-quiz** sur une notion de classification ou d’identification (cycle 3
-   ou 4).
+   ou 4 : « tout le collège », resserré au cycle de la classe si elle en a un).
 
 ### Séance B — Collège · 45 min · « Qui mange qui sur le site »
 
@@ -260,7 +301,8 @@ visiter —, mais une étape de séance peut en lancer un directement sur la car
    renseignées).
 2. Ouvrir le **réseau** filtré sur cette carte, en ne commentant que prédation,
    herbivorie, pollinisation.
-3. Mini-quiz sur une notion d’écologie / réseaux (cycle 4).
+3. Mini-quiz sur une notion d’écologie / réseaux (cycle 4). Pour une classe de 6ᵉ, le
+   professeur peut passer le quiz de la séance en « Cycle 3 » ou « Tout le collège ».
 
 ### Séance C — Lycée · 90 min · « Un arbre qui grandit »
 
@@ -290,9 +332,11 @@ Disponible en brouillon : le professeur choisit les six espèces puis publie.
 > commentaire oral du professeur.
 
 > ⚠️ **Point d'attention** — Le mot « niveau » existe déjà pour autre chose (niveau
-> d’une question de quiz collège/lycée, profondeur d’un terme de glossaire). Ici il
-> s’agit du **niveau pédagogique d’affichage** de la biodiversité : l’interface le nomme
-> toujours « Affichage biodiversité » ou « Affichage Collège » pour rester distinct.
+> d’une question de quiz collège/lycée, profondeur d’un terme de glossaire, niveau du
+> programme d'une classe). Ici il s’agit du **niveau pédagogique d’affichage** de la
+> biodiversité : l’interface le nomme toujours « Affichage biodiversité » ou « Affichage
+> Collège » pour rester distinct. Les correspondances entre toutes ces échelles sont
+> dans [le tableau ci-dessus](#les-échelles-de-niveau-et-leurs-correspondances).
 
 > ⚠️ **Point d'attention** — L’éditeur de visite garde sa propre bascule « Aperçu comme
 > élève », qui ne concerne que le rendu de la visite et n’apparaît pas dans le menu

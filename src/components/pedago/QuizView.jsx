@@ -15,7 +15,13 @@ import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js'
 import { IconQuiz } from '../../shared/icons.jsx';
 import { oluQuizHeaderSubtitle } from '../../shared/utils/oluLearningVoice.js';
 import { useCurriculumNotions } from '../../hooks/useCurriculumNotions.js';
-import { CURRICULUM_NIVEAU_OPTIONS, buildNotionOptions } from '../../utils/curriculumNotions.js';
+import {
+  buildNotionOptions,
+  notionNiveauOptionsFor,
+  notionsForNiveauFilter,
+  resolveNotionNiveaux,
+} from '../../utils/curriculumNotions.js';
+import { etapeForCurriculumNiveau } from '../../utils/pedagoScales.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 const THEME_OPTIONS = [
@@ -38,6 +44,23 @@ const DIFFICULTE_OPTIONS = [
   { value: '4', label: '★★★★' },
   { value: '5', label: '★★★★★ Difficile' },
 ];
+
+/**
+ * Niveau de question proposé par défaut : « Collège » quand tout le public est au collège
+ * (notions visibles toutes de cycle 3 ou 4). Les échelles se répondent — un élève en
+ * affichage Collège ne tire plus par défaut des questions de lycée — mais le filtre reste
+ * modifiable. `null` (pas de contexte, professeur en vue complète, lycée) : aucun défaut.
+ */
+function defaultQuestionNiveau(curriculumNiveaux) {
+  if (!Array.isArray(curriculumNiveaux) || curriculumNiveaux.length === 0) return '';
+  return curriculumNiveaux.every((n) => etapeForCurriculumNiveau(n) === 'college') ? 'college' : '';
+}
+
+/** Valeur du paramètre `notionNiveau` : le filtre choisi, resserré aux niveaux du public. */
+function notionNiveauParam(filter, curriculumNiveaux) {
+  const niveaux = resolveNotionNiveaux(filter, curriculumNiveaux);
+  return niveaux ? niveaux.join(',') : '';
+}
 
 async function fetchLinkedPlantsForTerms(terms) {
   const codes = (terms || []).map((t) => t.glossary_code).filter(Boolean);
@@ -62,8 +85,9 @@ export function QuizView({
   initialNotionId = null,
   initialNotionNiveau = null,
 }) {
+  const { curriculumNiveaux } = useBiodivPedago();
   const [theme, setTheme] = useState('');
-  const [niveau, setNiveau] = useState('');
+  const [niveau, setNiveau] = useState(() => defaultQuestionNiveau(curriculumNiveaux));
   const [difficulte, setDifficulte] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
   // Notion du programme : le niveau scolaire restreint la liste des notions, la notion
@@ -100,8 +124,9 @@ export function QuizView({
       const params = new URLSearchParams();
       if (theme) params.set('theme', theme);
       if (niveau) params.set('niveau', niveau);
+      const niveauParam = notionNiveauParam(notionNiveau, curriculumNiveaux);
       if (notionId) params.set('notionId', notionId);
-      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
+      else if (niveauParam) params.set('notionNiveau', niveauParam);
       const qs = params.toString();
       const data = await api(`/api/quiz/categories${qs ? `?${qs}` : ''}`);
       if (seq !== loadCategoriesSeqRef.current) return;
@@ -112,7 +137,7 @@ export function QuizView({
     } finally {
       if (seq === loadCategoriesSeqRef.current) setLoadingCategories(false);
     }
-  }, [theme, niveau, notionId, notionNiveau]);
+  }, [theme, niveau, notionId, notionNiveau, curriculumNiveaux]);
 
   useEffect(() => {
     loadCategories();
@@ -175,21 +200,15 @@ export function QuizView({
   }, [categories, categorieSlug]);
 
   const notions = useCurriculumNotions();
-  const { curriculumNiveaux } = useBiodivPedago();
-  const curriculumNiveauOptions = useMemo(() => {
-    if (!curriculumNiveaux) return CURRICULUM_NIVEAU_OPTIONS;
-    const allowed = new Set(curriculumNiveaux);
-    return CURRICULUM_NIVEAU_OPTIONS.filter((opt) => !opt.value || allowed.has(opt.value));
-  }, [curriculumNiveaux]);
-  const notionsForLevel = useMemo(() => {
-    if (!curriculumNiveaux) return notions;
-    const allowed = new Set(curriculumNiveaux);
-    return notions.filter((n) => allowed.has(n.niveau));
-  }, [notions, curriculumNiveaux]);
+  // Niveaux du programme : ceux du public (étape d'affichage, resserrée à la classe), et
+  // le filtre choisi — niveau, étape entière ou valeur reçue d'une séance.
+  const curriculumNiveauOptions = useMemo(
+    () => notionNiveauOptionsFor(curriculumNiveaux, notionNiveau),
+    [curriculumNiveaux, notionNiveau],
+  );
   const visibleNotions = useMemo(
-    () =>
-      notionNiveau ? notionsForLevel.filter((n) => n.niveau === notionNiveau) : notionsForLevel,
-    [notionsForLevel, notionNiveau],
+    () => notionsForNiveauFilter(notions, notionNiveau, curriculumNiveaux),
+    [notions, notionNiveau, curriculumNiveaux],
   );
   const notionOptions = useMemo(() => buildNotionOptions(visibleNotions), [visibleNotions]);
 
@@ -267,8 +286,9 @@ export function QuizView({
       if (niveau) params.set('niveau', niveau);
       if (difficulte) params.set('difficulte', difficulte);
       if (illustratedOnly) params.set('illustrated', '1');
+      const niveauParam = notionNiveauParam(notionNiveau, curriculumNiveaux);
       if (notionId) params.set('notionId', notionId);
-      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
+      else if (niveauParam) params.set('notionNiveau', niveauParam);
       const draw = await api(`/api/quiz/draw?${params.toString()}`);
       const code = draw?.question_code;
       if (!code) throw new Error('Aucune question disponible');
