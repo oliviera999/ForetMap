@@ -2105,6 +2105,8 @@
       flex-direction:column;
       overflow:hidden;
       padding:12px 12px 0;
+      max-height:min(88vh, calc(100vh - var(--safe-top) - var(--safe-bottom) - 32px));
+      max-height:min(88dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px));
     }
     .log-modal.log-modal--with-close .log-modal__head {
       flex-shrink:0;
@@ -2115,7 +2117,7 @@
       padding:0 4px 8px;
     }
     .log-modal.log-modal--with-close .modal-close {
-      position:static;
+      position:relative;
       top:auto;
       right:auto;
       flex-shrink:0;
@@ -10603,10 +10605,14 @@ a.fm-glossary-inline-link:focus-visible,
  *
  * L'expansion reste inférieure à la gouttière des conteneurs visés, de sorte que deux
  * cibles voisines ne se recouvrent pas.
+ *
+ * Le bouton DOIT rester positionné (relative, absolute, fixed ou sticky) : en `static`, le
+ * pseudo-élément se cale sur le premier ancêtre positionné et `max(100%, 44px)` prend la
+ * taille de la modale entière — un calque invisible qui avale le défilement et les touchers.
+ * `:where()` ramène la spécificité à zéro pour qu'un bouton déjà placé en `absolute` par son
+ * composant (croix en haut à droite d'une modale) garde sa position.
  */
-.modal-close,
-header .lock-btn,
-.editorial-photo-lightbox__close {
+:where(.modal-close, header .lock-btn, .editorial-photo-lightbox__close) {
   position: relative;
 }
 

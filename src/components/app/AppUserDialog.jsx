@@ -2,9 +2,6 @@ import { Suspense } from 'react';
 import { DialogShell } from '../DialogShell';
 import { IconClose } from '../../shared/icons.jsx';
 
-/** Hauteur max des modales utilisateur (constante de module : évite un objet recréé à chaque rendu). */
-const USER_DIALOG_STYLE = { maxHeight: '88vh' };
-
 /**
  * Coquille commune des modales « utilisateur » du shell (statistiques, profil) :
  * overlay, bouton de fermeture et zone défilante étaient recopiés à l'identique
@@ -24,7 +21,6 @@ export function AppUserDialog({ open, onClose, ariaLabel, closeLabel, children }
       onClose={onClose}
       overlayClassName="modal-overlay"
       dialogClassName="log-modal log-modal--with-close fade-in"
-      dialogStyle={USER_DIALOG_STYLE}
       ariaLabel={ariaLabel}
       closeOnOverlay
     >
