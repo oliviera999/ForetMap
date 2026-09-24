@@ -237,7 +237,7 @@ describe('TaskFiltersBar', () => {
       renderBar({ filterZone: 'marker:m1', filterStatus: 'done' });
       const chips = screen.getByRole('group', { name: 'Filtres actifs' });
       expect(within(chips).getByText('Lieu : 🐝 Ruche')).toBeTruthy();
-      expect(within(chips).getByText('Statut : Terminée')).toBeTruthy();
+      expect(within(chips).getByText('Statut : Terminée (à valider)')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Filtres (2 actifs)' })).toBeTruthy();
     });
 

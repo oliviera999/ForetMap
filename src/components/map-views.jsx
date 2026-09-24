@@ -194,6 +194,9 @@ function MapViewImpl({
   onPersistVisitMascotId = null,
   onForceLogout,
   routeRequest = null,
+  onRouteRequestHandled = null,
+  placeRequest = null,
+  onPlaceRequestHandled = null,
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
@@ -454,7 +457,45 @@ function MapViewImpl({
     if (!route) return;
     handledRouteRequestRef.current = routeRequest.nonce;
     startRoute(route);
-  }, [routeRequest, mapRoutes, startRoute]);
+    onRouteRequestHandled?.(routeRequest.nonce);
+  }, [routeRequest, mapRoutes, startRoute, onRouteRequestHandled]);
+  // Notification / lien direct « lieu » : sélectionne la zone ou le repère, centre la carte
+  // dessus et ouvre la fenêtre sur ses messages. Consommée une seule fois (nonce), puis
+  // rendue à l'appelant pour qu'un remontage de la carte ne la rejoue pas.
+  const [commentsFocusKey, setCommentsFocusKey] = useState(null);
+  const handledPlaceRequestRef = useRef(null);
+  useEffect(() => {
+    if (!placeRequest?.id || handledPlaceRequestRef.current === placeRequest.nonce) return;
+    if (placeRequest.mapId && String(placeRequest.mapId) !== String(activeMapId || '')) return;
+    const isMarker = placeRequest.kind === 'marker';
+    const list = isMarker ? mapMarkersOnActiveMap : mapZonesOnActiveMap;
+    const place = list.find((p) => String(p.id) === String(placeRequest.id));
+    if (!place) return;
+    handledPlaceRequestRef.current = placeRequest.nonce;
+    setCommentsFocusKey(`${isMarker ? 'marker' : 'zone'}:${place.id}`);
+    if (isMarker) {
+      setSelectedZone(null);
+      setSelectedMarker(place);
+    } else {
+      setSelectedMarker(null);
+      setSelectedZone(place);
+    }
+    const pct = isMarker ? markerFocusPct(place) : zoneFocusPctFromPoints(place.points);
+    setTimeout(() => {
+      if (pct) focusMapPct(pct);
+    }, 250);
+    onPlaceRequestHandled?.(placeRequest.nonce);
+  }, [
+    placeRequest,
+    activeMapId,
+    mapMarkersOnActiveMap,
+    mapZonesOnActiveMap,
+    focusMapPct,
+    onPlaceRequestHandled,
+  ]);
+  useEffect(() => {
+    if (!selectedZone && !selectedMarker) setCommentsFocusKey(null);
+  }, [selectedZone, selectedMarker]);
   useEffect(() => {
     if (mode !== 'view' && activeRoute) exitRoute();
   }, [mode, activeRoute, exitRoute]);
@@ -1237,6 +1278,7 @@ function MapViewImpl({
           emojiParsingList={emojiParsingList}
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
+          focusComments={commentsFocusKey === `zone:${selectedZone.id}`}
           onClose={() => {
             clearMapMascotDetailAfterMove();
             setSelectedZone(null);
@@ -1292,6 +1334,7 @@ function MapViewImpl({
           markerEmojis={markerEmojis}
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
+          focusComments={commentsFocusKey === `marker:${selectedMarker.id}`}
           onClose={() => {
             clearMapMascotDetailAfterMove();
             setSelectedMarker(null);

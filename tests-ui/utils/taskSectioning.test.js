@@ -15,6 +15,7 @@ import {
   isTaskValidated,
   filterStatusShowsValidated,
   partitionTasksByValidated,
+  isTaskOverdue,
 } from '../../src/utils/taskSectioning.js';
 
 const BASE_FILTERS = { filterMap: 'all', activeMapId: 'foret' };
@@ -301,6 +302,28 @@ describe('studentUrgentDueTasks', () => {
     const plainSooner = { id: 'plain', status: 'available', due_date: inDays(1) };
     const out = studentUrgentDueTasks([plainSooner, absoluteLater]);
     expect(out.map((t) => t.id)).toEqual(['abs', 'plain']);
+  });
+});
+
+describe('filtre « En retard »', () => {
+  const inDays = (n) => new Date(Date.now() + n * 86400000).toISOString();
+
+  test('isTaskOverdue : échéance passée sur une tâche encore à réaliser', () => {
+    expect(isTaskOverdue({ status: 'available', due_date: inDays(-3) })).toBe(true);
+    expect(isTaskOverdue({ status: 'in_progress', due_date: inDays(-1) })).toBe(true);
+    expect(isTaskOverdue({ status: 'available', due_date: inDays(2) })).toBe(false);
+    expect(isTaskOverdue({ status: 'available' })).toBe(false);
+    expect(isTaskOverdue({ status: 'done', due_date: inDays(-3) })).toBe(false);
+    expect(isTaskOverdue({ status: 'validated', due_date: inDays(-3) })).toBe(false);
+    expect(isTaskOverdue({ status: 'on_hold', due_date: inDays(-3) })).toBe(false);
+  });
+
+  test('le statut « overdue » du filtre ne retient que les tâches en retard', () => {
+    const late = { id: 'late', title: 'A', status: 'available', due_date: inDays(-2) };
+    const soon = { id: 'soon', title: 'B', status: 'available', due_date: inDays(2) };
+    const done = { id: 'done', title: 'C', status: 'done', due_date: inDays(-2) };
+    const out = applyTaskFilters([late, soon, done], { ...BASE_FILTERS, filterStatus: 'overdue' });
+    expect(out.map((t) => t.id)).toEqual(['late']);
   });
 });
 

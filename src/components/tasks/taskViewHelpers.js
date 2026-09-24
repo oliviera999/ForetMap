@@ -12,7 +12,8 @@ export const TEACHER_STATUS_ACTIONS = [
 export const TASK_STATUS_FILTER_OPTIONS = [
   { value: 'in_progress', label: 'En cours' },
   { value: 'available', label: 'À faire' },
-  { value: 'done', label: 'Terminée' },
+  { value: 'done', label: 'Terminée (à valider)' },
+  { value: 'overdue', label: 'En retard' },
   { value: 'validated', label: 'Validée' },
   { value: 'proposed', label: 'Proposée' },
   { value: 'on_hold', label: 'En attente' },

@@ -46,8 +46,23 @@ export function MapTasksArea({
   onOpenPlantCatalogPreview,
   onPersistVisitMascotId = null,
   mapRouteRequest = null,
+  onMapRouteRequestHandled = null,
+  mapPlaceRequest = null,
+  onMapPlaceRequestHandled = null,
+  tasksFocusRequest = null,
+  onTasksFocusRequestHandled = null,
   onStartPedagoSession = null,
 }) {
+  const mapRequestProps = {
+    routeRequest: mapRouteRequest,
+    onRouteRequestHandled: onMapRouteRequestHandled,
+    placeRequest: mapPlaceRequest,
+    onPlaceRequestHandled: onMapPlaceRequestHandled,
+  };
+  const tasksRequestProps = {
+    focusRequest: tasksFocusRequest,
+    onFocusRequestHandled: onTasksFocusRequestHandled,
+  };
   return (
     <>
       {useSplitMapTasks && (
@@ -73,7 +88,7 @@ export function MapTasksArea({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
               onPersistVisitMascotId={onPersistVisitMascotId}
               onForceLogout={onForceLogout}
-              routeRequest={mapRouteRequest}
+              {...mapRequestProps}
             />
           </section>
           <section className="desktop-split-pane desktop-split-pane--tasks">
@@ -95,6 +110,7 @@ export function MapTasksArea({
                 onMapLocationFocusChange={onMapLocationFocusChange}
                 onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
                 onStartPedagoSession={onStartPedagoSession}
+                {...tasksRequestProps}
               />
             </div>
           </section>
@@ -115,7 +131,7 @@ export function MapTasksArea({
           onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
           onPersistVisitMascotId={onPersistVisitMascotId}
           onForceLogout={onForceLogout}
-          routeRequest={mapRouteRequest}
+          {...mapRequestProps}
         />
       )}
       {!useSplitMapTasks && tab === 'tasks' && canAccessSoloMapTasks && (
@@ -136,6 +152,7 @@ export function MapTasksArea({
           onMapLocationFocusChange={onMapLocationFocusChange}
           onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
           onStartPedagoSession={onStartPedagoSession}
+          {...tasksRequestProps}
         />
       )}
     </>

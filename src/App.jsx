@@ -9,6 +9,7 @@ import {
   clearStoredSession,
 } from './services/api';
 import { useAuthSession } from './hooks/useAuthSession';
+import { useConsumableRequest } from './hooks/useConsumableRequest';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
@@ -1383,6 +1384,86 @@ function App() {
 
   useToastNotificationBridge({ toast, addNotification });
 
+  // Demandes de navigation précises (notification, lien direct) : chacune est servie une
+  // seule fois par la vue cible ; si l'élément reste introuvable, on le dit.
+  const [mapPlaceRequest, issueMapPlaceRequest, consumeMapPlaceRequest] = useConsumableRequest({
+    onExpire: () => setToast('Ce lieu n’est plus disponible (supprimé ou masqué).'),
+  });
+  const [tasksFocusRequest, issueTasksFocusRequest, consumeTasksFocusRequest] =
+    useConsumableRequest({
+      onExpire: (req) =>
+        setToast(
+          req?.taskId
+            ? 'Cette tâche n’est plus disponible (supprimée, archivée ou hors de votre accès).'
+            : 'Impossible d’ouvrir la liste des tâches demandée.',
+        ),
+    });
+  const [forumThreadRequest, issueForumThreadRequest, consumeForumThreadRequest] =
+    useConsumableRequest({ timeoutMs: 0 });
+  const consumePedagoMapRouteRequest = useCallback(() => setPedagoMapRouteRequest(null), []);
+
+  /**
+   * Ouvre l'élément visé par une notification ou un lien direct :
+   * `{ type: 'task'|'place'|'thread'|'settings', id, mapId, kind, postId, filter, section }`.
+   * @returns {boolean} `true` si la cible est reconnue.
+   */
+  const openTarget = useCallback(
+    (target) => {
+      const type = String(target?.type || '');
+      const id = target?.id != null ? String(target.id) : '';
+      const mapId = target?.mapId ? String(target.mapId) : '';
+      setPlantCatalogPreview(null);
+      const mapTasksTab = shouldUseDesktopSplit && canAccessStudentMapTasks ? 'maptasks' : null;
+      if (type === 'task') {
+        if (mapId) chooseMap(mapId);
+        issueTasksFocusRequest({ taskId: id || null, filter: target?.filter || null });
+        navigateTab(mapTasksTab || 'tasks');
+        return true;
+      }
+      if (type === 'place') {
+        if (!id) return false;
+        if (mapId) chooseMap(mapId);
+        issueMapPlaceRequest({
+          kind: target?.kind === 'marker' ? 'marker' : 'zone',
+          id,
+          mapId: mapId || null,
+        });
+        navigateTab(mapTasksTab || 'map');
+        return true;
+      }
+      if (type === 'thread') {
+        if (!id) return false;
+        issueForumThreadRequest({ id, postId: target?.postId || null });
+        navigateTab('forum');
+        return true;
+      }
+      if (type === 'settings') {
+        const section = String(target?.section || id || '').trim();
+        if (section) {
+          try {
+            sessionStorage.setItem('foretmap:settings:focus', section);
+          } catch (_) {
+            /* ignore */
+          }
+          window.dispatchEvent(new Event('foretmap:settings:focus'));
+        }
+        navigateTab('settings');
+        return true;
+      }
+      return false;
+    },
+    [
+      canAccessStudentMapTasks,
+      chooseMap,
+      issueForumThreadRequest,
+      issueMapPlaceRequest,
+      issueTasksFocusRequest,
+      navigateTab,
+      setPlantCatalogPreview,
+      shouldUseDesktopSplit,
+    ],
+  );
+
   const openNotificationAction = useCallback(
     (item) => {
       if (!item?.id) return;
@@ -1393,6 +1474,8 @@ function App() {
         validateStudentSession(studentForUi);
         return;
       }
+      if (item.target && openTarget(item.target)) return;
+      if (action.target && openTarget(action.target)) return;
       if (action.tab) {
         navigateTab(action.tab);
         return;
@@ -1402,6 +1485,7 @@ function App() {
       effectiveIsTeacher,
       markAsRead,
       navigateTab,
+      openTarget,
       studentForUi,
       trackActionClick,
       validateStudentSession,
@@ -1792,6 +1876,11 @@ function App() {
                         <>
                           <MapTasksArea
                             mapRouteRequest={pedagoMapRouteRequest}
+                            onMapRouteRequestHandled={consumePedagoMapRouteRequest}
+                            mapPlaceRequest={mapPlaceRequest}
+                            onMapPlaceRequestHandled={consumeMapPlaceRequest}
+                            tasksFocusRequest={tasksFocusRequest}
+                            onTasksFocusRequestHandled={consumeTasksFocusRequest}
                             onStartPedagoSession={launchPedagoSession}
                             isTeacher
                             student={currentUser}
@@ -1946,7 +2035,12 @@ function App() {
                             )}
                           {tab === 'forum' && canAccessForum && (
                             <TabSuspense>
-                              <ForumViewLazy authClaims={authClaims} canParticipateForum />
+                              <ForumViewLazy
+                                authClaims={authClaims}
+                                canParticipateForum
+                                threadRequest={forumThreadRequest}
+                                onThreadRequestHandled={consumeForumThreadRequest}
+                              />
                             </TabSuspense>
                           )}
                           <PedagoTabs
@@ -1997,6 +2091,11 @@ function App() {
                           <>
                             <MapTasksArea
                               mapRouteRequest={pedagoMapRouteRequest}
+                              onMapRouteRequestHandled={consumePedagoMapRouteRequest}
+                              mapPlaceRequest={mapPlaceRequest}
+                              onMapPlaceRequestHandled={consumeMapPlaceRequest}
+                              tasksFocusRequest={tasksFocusRequest}
+                              onTasksFocusRequestHandled={consumeTasksFocusRequest}
                               onStartPedagoSession={launchPedagoSession}
                               isTeacher={false}
                               student={studentForUi}
@@ -2073,6 +2172,8 @@ function App() {
                                 <ForumViewLazy
                                   authClaims={authClaims}
                                   canParticipateForum={canParticipateForum}
+                                  threadRequest={forumThreadRequest}
+                                  onThreadRequestHandled={consumeForumThreadRequest}
                                 />
                               </TabSuspense>
                             )}

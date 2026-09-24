@@ -579,6 +579,15 @@ function SettingsAdminView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canReadSettings, canCarto]);
 
+  // Demande de focus posée par l'appli (bandeau, notification) alors que la vue est déjà
+  // ouverte : l'événement relance la lecture de la clé de session.
+  const [focusSignal, setFocusSignal] = useState(0);
+  useEffect(() => {
+    const onFocusRequest = () => setFocusSignal((n) => n + 1);
+    window.addEventListener('foretmap:settings:focus', onFocusRequest);
+    return () => window.removeEventListener('foretmap:settings:focus', onFocusRequest);
+  }, []);
+
   useEffect(() => {
     if (loading) return;
     let focus = null;
@@ -587,7 +596,22 @@ function SettingsAdminView({
     } catch (_) {
       /* ignore */
     }
-    if (focus !== 'learning-gating') return;
+    if (!focus) return;
+    if (focus !== 'learning-gating') {
+      // Forme « section » ou « section/sous-onglet » (ex. `accueil`, `carto/messages`).
+      try {
+        sessionStorage.removeItem('foretmap:settings:focus');
+      } catch (_) {
+        /* ignore */
+      }
+      const [section, sub] = focus.split('/');
+      if (!topTabs.some((t) => t.id === section)) return;
+      setSearchQuery('');
+      setAdminSection(section);
+      if (sub && section === 'carto') setCartoSub(sub);
+      if (sub && section === 'aide') setAideSub(sub);
+      return;
+    }
     try {
       sessionStorage.removeItem('foretmap:settings:focus');
     } catch (_) {
@@ -609,7 +633,7 @@ function SettingsAdminView({
         block: 'start',
       });
     });
-  }, [loading, adminSection]);
+  }, [loading, adminSection, focusSignal, topTabs]);
 
   const fetchLogs = async () => {
     setErr('');

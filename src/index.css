@@ -1450,6 +1450,11 @@
       transition:transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base), border-color var(--motion-base), background var(--motion-base);
     }
     .task-card:active { transform:scale(.99); }
+    /* Tâche ouverte depuis une notification ou un lien direct. */
+    .task-card.task-card--highlight {
+      border-color:var(--leaf);
+      box-shadow:0 0 0 3px rgba(82,183,136,.45), var(--shadow-soft);
+    }
     .task-card--tile {
       margin-bottom:0;
       border-color:rgba(82,183,136,.24);

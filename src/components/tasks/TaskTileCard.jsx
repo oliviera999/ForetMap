@@ -194,6 +194,7 @@ function TaskTileCardImpl({
     <div
       className={`task-card ${viewMode === 'tiles' ? 'task-card--tile' : ''}${isCondensed ? ` task-card--condensed${condensedExpanded ? ' task-card--condensed-open' : ''}` : ''} fade-in ${isMine ? 'mine' : ''} ${effectiveStatus === 'validated' ? 'done' : ''} ${effectiveStatus === 'proposed' ? 'proposed' : ''} ${isTaskDraggingThis ? 'task-card--dragging' : ''}`}
       style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+      data-task-id={t.id != null ? String(t.id) : undefined}
       draggable={enableTaskDrag}
       onDragStart={(event) => {
         if (!enableTaskDrag) return;

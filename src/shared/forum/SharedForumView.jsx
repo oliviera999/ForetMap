@@ -47,6 +47,8 @@ export function SharedForumView({
   readOnlyNote = null,
   refreshSignal = 0,
   threadListAttrs = undefined,
+  threadRequest = null,
+  onThreadRequestHandled = null,
 }) {
   const [toast, setToast] = useState('');
   const {
@@ -219,6 +221,47 @@ export function SharedForumView({
       if (el) el.scrollTop = el.scrollHeight;
     });
   };
+
+  // Notification / lien direct : ouvre le sujet demandé puis amène la réponse visée à
+  // l'écran (en passant à la page qui la contient si besoin). Une seule fois par nonce.
+  const handledThreadRequestRef = useRef(null);
+  const [pendingPostId, setPendingPostId] = useState('');
+  useEffect(() => {
+    if (!threadRequest?.id || handledThreadRequestRef.current === threadRequest.nonce) return;
+    handledThreadRequestRef.current = threadRequest.nonce;
+    setSelectedThreadId(threadRequest.id);
+    setMobilePane('detail');
+    setReportsOpen(false);
+    setPendingPostId(threadRequest.postId ? String(threadRequest.postId) : '');
+    onThreadRequestHandled?.(threadRequest.nonce);
+  }, [threadRequest, onThreadRequestHandled]);
+  useEffect(() => {
+    if (!pendingPostId || detailLoading) return;
+    if (!threadDetail || !sameForumId(threadDetail.id, selectedThreadId)) return;
+    const onPage = posts.some((p) => String(p.id) === pendingPostId);
+    const lastPage = forumPageCount(postsTotal, POST_PAGE_SIZE);
+    if (!onPage && postsPage < lastPage) {
+      loadThreadDetail(selectedThreadId, lastPage);
+      return;
+    }
+    setPendingPostId('');
+    if (!onPage) return;
+    requestAnimationFrame(() => {
+      const el = Array.from(postListRef.current?.querySelectorAll?.('[data-post-id]') || []).find(
+        (node) => node.getAttribute('data-post-id') === pendingPostId,
+      );
+      el?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    });
+  }, [
+    pendingPostId,
+    detailLoading,
+    threadDetail,
+    selectedThreadId,
+    posts,
+    postsPage,
+    postsTotal,
+    loadThreadDetail,
+  ]);
 
   const refreshAfterAction = async () => {
     await Promise.all([
