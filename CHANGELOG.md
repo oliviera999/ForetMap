@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Séances pédagogiques : lien direct, suivi par élève, lycée, séance libre, badges, tâches (lot 5)
+
+- **Lien direct + QR code** : `/?seance=<slug>` démarre la séance (après connexion si besoin,
+  slug gardé en `sessionStorage`) ; `GET /api/pedago-sessions/:idOrSlug/share` renvoie le lien
+  et un QR code PNG (bibliothèque [`qrcode`](https://github.com/soldair/node-qrcode), MIT,
+  déjà utilisée pour les parcours). Bouton **Partager** côté prof.
+- **Suivi par élève / groupe** : `GET /api/pedago-sessions/:idOrSlug/runs?groupId=`, périmètre
+  calculé par `getScopedStudentIds` (groupes du prof) ; panneau **Suivi** (pas commencée / en
+  cours / terminée ×N).
+- **Séances lycée C et D** (migration `284`, en brouillon) : nouvelles actions d’étape
+  `open_individual` (arbre suivi) et `open_nested_groups` (boîtes emboîtées, 6 espèces) ; les
+  vues existantes acceptent une entrée directe.
+- **Séance libre** (`templateKey: custom`) : éditeur d’étapes (ajout, ordre, suppression, outil
+  et cible par étape) ; à la publication, les plantes / arbres / parcours / clés référencés
+  doivent exister. Les modèles gardent leurs étapes figées.
+- **Badges génériques** (migration `285`, table `user_rewards`, `lib/rewards.js`,
+  `GET /api/rewards/me`) : première séance, trois séances, séance refaite, niveau lycée ; la fin
+  de séance renvoie les badges nouvellement obtenus. **Prérequis de séance**
+  (`config.requiresSessionId`) : démarrage refusé (403 `locked`) tant que la séance requise
+  n’est pas terminée ; les gestionnaires ne sont jamais bloqués. Le déblocage GL n’est pas
+  touché.
+- **Tâche → séance** (migration `286`, `tasks.pedago_session_id`, FK `ON DELETE SET NULL`) :
+  choix dans le formulaire, bouton **Lancer la séance** sur la carte. Terminer la séance ne
+  valide **pas** la tâche. Nouvelle action d’étape `open_map_route` (lance un parcours sur la
+  carte).
+
 ### Modifié — Commentaires contextuels : pastille chiffrée rouge (non-lus) / verte (tout lu)
 
 - Le petit point « non lu » et le nombre brut sont remplacés par **une seule pastille** :

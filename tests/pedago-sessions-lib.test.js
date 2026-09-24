@@ -5,6 +5,12 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  TEMPLATE_KEYS,
+  TEMPLATE_DEFAULT_TITLES,
+  TEMPLATE_LEVELS,
+  collectStepReferences,
+  defaultConfigForTemplate,
+  sessionDeepLink,
   validateAction,
   validateSteps,
   resolveSteps,
@@ -42,8 +48,87 @@ test('helpers : action.type et résolution config → étapes', () => {
   const fw = withPlants.find((s) => s.action.type === 'open_foodweb');
   assert.equal(fw.action.payload.mapId, 'map-a');
 
-  const cfg = normalizeConfig({ plantIds: ['x', 7, 7, 8, 9, 10] });
-  assert.deepEqual(cfg.plantIds, [7, 8, 9]);
+  const cfg = normalizeConfig({ plantIds: ['x', 7, 7, 8, 9, 10, 11, 12, 13] });
+  assert.deepEqual(cfg.plantIds, [7, 8, 9, 10, 11, 12]);
+});
+
+test('templates lycée C/D, séance libre et nouvelles actions', () => {
+  for (const key of ['lycee_arbre', 'lycee_classer', 'custom']) {
+    assert.ok(TEMPLATE_KEYS.has(key), key);
+    assert.equal(validateSteps(stepsForTemplate(key)).ok, true, key);
+    assert.ok(TEMPLATE_DEFAULT_TITLES[key]);
+  }
+  assert.equal(TEMPLATE_LEVELS.lycee_arbre, 'lycee');
+  assert.equal(TEMPLATE_LEVELS.lycee_classer, 'lycee');
+  assert.equal(defaultConfigForTemplate('lycee_arbre').notionNiveau, 'lycee');
+
+  const c = resolveSteps(stepsForTemplate('lycee_arbre'), { individualId: 5, mapId: 'foret' });
+  const ind = c.filter((s) => s.action.type === 'open_individual');
+  assert.equal(ind.length, 2);
+  assert.equal(ind[0].action.payload.individualId, 5);
+  assert.equal(ind[0].action.payload.mapId, 'foret');
+
+  const d = resolveSteps(stepsForTemplate('lycee_classer'), { plantIds: [1, 2, 3, 4, 5, 6] });
+  const nested = d.find((s) => s.action.type === 'open_nested_groups');
+  assert.deepEqual(nested.action.payload.plantIds, [1, 2, 3, 4, 5, 6]);
+
+  assert.equal(validateAction({ type: 'open_map_route' }).ok, true);
+  const route = resolveSteps(
+    [{ id: 'r', title: 'R', action: { type: 'open_map_route', payload: { routeSlug: 'tour' } } }],
+    { mapRouteSlug: 'autre' },
+    { payloadFirst: true },
+  );
+  assert.equal(
+    route[0].action.payload.routeSlug,
+    'tour',
+    'séance libre : la cible de l’étape prime',
+  );
+  const templ = resolveSteps(
+    [{ id: 'r', title: 'R', action: { type: 'open_map_route', payload: { routeSlug: 'tour' } } }],
+    { mapRouteSlug: 'autre' },
+  );
+  assert.equal(templ[0].action.payload.routeSlug, 'autre', 'modèle : la config du prof prime');
+
+  const cfg = normalizeConfig({ individualId: '9', mapRouteSlug: ' t ', requiresSessionId: 'x' });
+  assert.equal(cfg.individualId, 9);
+  assert.equal(cfg.mapRouteSlug, 't');
+  assert.equal(cfg.requiresSessionId, 'x');
+});
+
+test('collectStepReferences et sessionDeepLink', () => {
+  const refs = collectStepReferences([
+    { action: { type: 'open_plant', payload: { plantId: 3 } } },
+    { action: { type: 'open_nested_groups', payload: { plantIds: [3, 4] } } },
+    { action: { type: 'open_individual', payload: { individualId: 8 } } },
+    { action: { type: 'open_map_route', payload: { routeSlug: 'tour' } } },
+    { action: { type: 'open_id_key', payload: { keyIdOrSlug: 'arbres' } } },
+    { action: { type: 'message', payload: {} } },
+  ]);
+  assert.deepEqual(refs.plantIds.sort(), [3, 4]);
+  assert.deepEqual(refs.individualIds, [8]);
+  assert.deepEqual(refs.routeSlugs, ['tour']);
+  assert.deepEqual(refs.keyRefs, ['arbres']);
+
+  assert.equal(
+    sessionDeepLink('https://foret.example/', 'lycee-classer'),
+    'https://foret.example/?seance=lycee-classer',
+  );
+});
+
+test('rewards : règles pures et catalogue', () => {
+  const { sessionRewardKeysFor, describeReward, REWARD_CATALOGUE } = require('../lib/rewards');
+  assert.deepEqual(sessionRewardKeysFor({ completionCount: 1, distinctCompleted: 1 }), [
+    'session_first',
+  ]);
+  assert.deepEqual(
+    sessionRewardKeysFor({ completionCount: 2, distinctCompleted: 3, level: 'lycee' }),
+    ['session_first', 'session_three', 'session_replay', 'session_lycee'],
+  );
+  assert.deepEqual(sessionRewardKeysFor({}), []);
+  assert.equal(describeReward('inconnu'), null);
+  const first = describeReward('session_first', '2026-09-01T08:00:00Z');
+  assert.equal(first.awardedAt, '2026-09-01T08:00:00.000Z');
+  assert.ok(REWARD_CATALOGUE.every((r) => r.key && r.title && r.emoji));
 });
 
 test('runs : serializeRunRow et summarizeRunStats (agrégats anonymes)', () => {

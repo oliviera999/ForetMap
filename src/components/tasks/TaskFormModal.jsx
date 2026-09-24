@@ -13,6 +13,7 @@ import { TaskFormImageField } from './TaskFormImageField.jsx';
 import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
 import { TaskFormLevelsField } from './TaskFormLevelsField.jsx';
+import { TaskFormPedagoSessionField } from './TaskFormPedagoSessionField.jsx';
 import {
   LocationPickList,
   filterSelectableZones,
@@ -553,6 +554,12 @@ function TaskFormModal({
             }))
           }
           onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
+        />
+      )}
+      {!isProposal && (
+        <TaskFormPedagoSessionField
+          value={form.pedago_session_id}
+          onChange={set('pedago_session_id')}
         />
       )}
       {!isProposal && (

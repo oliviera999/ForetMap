@@ -86,6 +86,7 @@ export function buildInitialTaskForm({
           ? editTask.importance_level
           : '',
       recurrence: editTask.recurrence || '',
+      pedago_session_id: editTask.pedago_session_id || '',
       living_beings: orderedLivingBeingsForForm(
         editTask.living_beings_list || editTask.living_beings,
         '',
@@ -111,6 +112,7 @@ export function buildInitialTaskForm({
     difficulty_level: '',
     importance_level: '',
     recurrence: '',
+    pedago_session_id: '',
     assign_student_ids: [],
   };
 }
@@ -160,6 +162,7 @@ export function buildTaskSavePayload({
     difficulty_level: form.difficulty_level ? form.difficulty_level : null,
     importance_level: form.importance_level ? form.importance_level : null,
     recurrence: form.recurrence || null,
+    pedago_session_id: form.pedago_session_id || null,
     living_beings: [
       ...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean)),
     ],

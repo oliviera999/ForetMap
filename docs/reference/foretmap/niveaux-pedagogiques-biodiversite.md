@@ -148,12 +148,51 @@ dans une séance lancée par le professeur (quand les séances guidées existero
 
 ## Séances types (guide + lanceur app)
 
-Deux pilotes collège sont disponibles dans l’onglet **Séances** : démarrage guidé,
-une étape à la fois, en ouvrant les outils déjà présents (clé, fiche, réseau, quiz).
-Le professeur configure carte / clé / plantes / quiz sans modifier la structure.
+L’onglet **Séances** propose des enchaînements guidés, une étape à la fois, qui ouvrent
+les outils déjà présents : clé, fiche, réseau, quiz, arbre suivi, boîtes emboîtées et
+parcours sur la carte.
 
-Les **parcours** sur la carte (Visite / Carte) restent un outil distinct : lieux à
-visiter, pas enchaînement pédagogique d’onglets.
+- Deux séances collège (A et B) sont prêtes et publiées.
+- Deux séances lycée (C et D) existent **en brouillon** : le professeur choisit l’arbre
+  suivi (C) ou les six espèces (D), puis publie.
+- Pour les séances types, la suite des étapes est fixe : le professeur règle seulement
+  carte, clé, plantes, arbre suivi et quiz.
+- Le professeur peut aussi créer une **séance libre** et composer lui-même ses étapes :
+  ajouter, monter, descendre, supprimer, et choisir pour chacune l’outil ouvert et sa
+  cible (une espèce, un arbre, un parcours…). Au moment de publier, l’application vérifie
+  que chaque cible existe toujours ; sinon elle refuse en disant laquelle manque.
+- Toute nouvelle séance est créée en brouillon depuis la liste « Nouvelle séance ».
+
+Les **parcours** sur la carte (Visite / Carte) restent un outil à part — des lieux à
+visiter —, mais une étape de séance peut en lancer un directement sur la carte.
+
+### Partager une séance (lien direct et QR code)
+
+- Sur chaque séance, le bouton **Partager** donne un lien direct et un **QR code** à
+  imprimer ou à afficher sur le terrain.
+- En scannant le code, l’élève arrive dans l’application et la séance démarre. S’il doit
+  d’abord se connecter, elle démarre juste après la connexion.
+- Une séance encore en brouillon peut être partagée, mais le lien ne fonctionnera pour
+  les élèves qu’une fois la séance publiée.
+
+### Enchaîner les séances (prérequis) et badges
+
+- Le professeur peut indiquer qu’une séance ne s’ouvre qu’**après une autre** : elle
+  apparaît alors avec un cadenas « Termine d’abord … » tant que l’élève n’a pas terminé
+  la première.
+- Les professeurs ne sont jamais bloqués par un prérequis, pour pouvoir préparer et
+  montrer la séance.
+- En terminant des séances, l’élève gagne des **badges** : première séance, trois séances
+  différentes, séance refaite, séance de niveau lycée. Les nouveaux badges s’affichent
+  dans la fenêtre de fin de séance. Le catalogue affiche « Mes badges », avec ceux qui
+  restent à gagner.
+
+### Lancer une séance depuis une tâche
+
+- Dans le formulaire d’une tâche, le professeur peut choisir une **séance liée**.
+- La carte de la tâche affiche alors un bouton **« Lancer la séance »**.
+- Terminer la séance **ne valide pas** la tâche : la validation reste une décision du
+  professeur, comme avant.
 
 ### Fin de séance, suivi et carnet
 
@@ -168,6 +207,12 @@ visiter, pas enchaînement pédagogique d’onglets.
   « ×2 », « ×3 »… si elle a été refaite).
 - Le professeur voit sur chaque séance : **« Démarrée par N · terminée par M »**. Ce sont
   des nombres de personnes, sans aucun nom.
+- Le bouton **Suivi** donne le détail **par élève** : pas commencée, en cours, ou
+  terminée (combien de fois, et la date de la dernière fin).
+  - Si le professeur choisit un **groupe**, il voit tous les élèves du groupe, y compris
+    ceux qui n’ont pas encore ouvert la séance.
+  - Sans groupe choisi, il voit les élèves qui ont ouvert la séance.
+  - Un professeur ne voit que les groupes de son périmètre.
 
 > ⚠️ **Point d'attention** — Le suivi ne concerne que les personnes **connectées** : une
 > visite invitée peut suivre une séance, mais ne laisse aucune trace et ne voit pas
@@ -177,8 +222,11 @@ visiter, pas enchaînement pédagogique d’onglets.
 > jusqu’au bout du bandeau. Ce n’est **pas une preuve de compréhension** : le mini-quiz
 > et la note du carnet restent les vrais supports d’évaluation.
 
-> 🔧 **À implémenter (plus tard) :** séances C/D (lycée), éditeur libre d’étapes, lien
-> avec les tâches, détail du suivi par élève ou par groupe.
+> ⚠️ **Point d'attention** — Les badges récompensent la **régularité**, pas la réussite :
+> ils se gagnent en terminant des séances, pas en répondant juste au quiz.
+
+> ⚠️ **Point d'attention** — Le prérequis d’une séance et le déblocage des chapitres de
+> Gnomes & Licornes sont deux mécanismes distincts : régler l’un ne change rien à l’autre.
 
 ### Séance A — Collège · 45 min · « Reconnaître sans toucher »
 
@@ -198,6 +246,8 @@ visiter, pas enchaînement pédagogique d’onglets.
 
 ### Séance C — Lycée · 90 min · « Un arbre qui grandit »
 
+Disponible en brouillon : le professeur choisit l’arbre suivi puis publie.
+
 1. Ouvrir un **individu suivi** (arbre identifié) sur la carte.
 2. Saisir la **circonférence** (et la hauteur si possible).
 3. Lire le **graphique** de croissance.
@@ -206,6 +256,8 @@ visiter, pas enchaînement pédagogique d’onglets.
 5. Relier à une notion climat / carbone ou agrosystèmes du référentiel.
 
 ### Séance D — Lycée · 45 min · « Classer pour de vrai »
+
+Disponible en brouillon : le professeur choisit les six espèces puis publie.
 
 1. Le professeur choisit **six espèces** d’une carte.
 2. Les élèves placent les espèces dans les **boîtes emboîtées** (activité groupes).

@@ -90,6 +90,20 @@ export function PedagoSessionDoneDialog({
           Bravo, tu as terminé « {session.title} ».
           {canAddToNotebook ? ' Tu peux garder une trace de ce que tu as vu dans ton carnet.' : ''}
         </p>
+        {Array.isArray(session.newRewards) && session.newRewards.length > 0 && (
+          <ul
+            className="pedago-rewards pedago-rewards--new"
+            aria-label="Nouveaux badges"
+            data-testid="pedago-session-new-rewards"
+          >
+            {session.newRewards.map((r) => (
+              <li key={r.key} className="pedago-rewards__item">
+                <span aria-hidden="true">{r.emoji}</span> <strong>{r.title}</strong>
+                <span className="pedago-rewards__desc"> — {r.description}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {added && (
           <p className="pedago-session-done__ok" role="status">
             Note ajoutée à ton carnet : complète-la quand tu veux.

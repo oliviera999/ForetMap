@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit } from '../../shared/icons.jsx';
@@ -208,6 +208,7 @@ export function NestedGroupsView({
   initialMapId = null,
   canManage = false,
   onOpenPlant = null,
+  activityRequest = null,
 }) {
   const { plants = [] } = useData() || {};
   const [items, setItems] = useState([]);
@@ -244,24 +245,43 @@ export function NestedGroupsView({
     );
   };
 
-  const buildSubtree = async (payload) => {
-    setLoading(true);
-    setError('');
-    setCheckResult(null);
-    try {
-      const data = await api('/api/clades/activity/subtree', 'POST', payload);
-      setTree(data.tree || null);
-      setActivityPlants(data.plants || []);
-      setCladeOptions(data.cladeOptions || []);
-      setPlacements({});
-      if (!canManage) setMode('student');
-    } catch (err) {
-      setError(err?.message || 'Impossible de construire l’activité');
-      setTree(null);
-    } finally {
-      setLoading(false);
+  const buildSubtree = useCallback(
+    async (payload, { forceStudent = false } = {}) => {
+      setLoading(true);
+      setError('');
+      setCheckResult(null);
+      try {
+        const data = await api('/api/clades/activity/subtree', 'POST', payload);
+        setTree(data.tree || null);
+        setActivityPlants(data.plants || []);
+        setCladeOptions(data.cladeOptions || []);
+        setPlacements({});
+        if (!canManage || forceStudent) setMode('student');
+      } catch (err) {
+        setError(err?.message || 'Impossible de construire l’activité');
+        setTree(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [canManage],
+  );
+
+  // Séance pédagogique : l'activité est lancée d'emblée avec les espèces choisies par le prof
+  // (ou tirées d'une carte), en mode élève.
+  const handledActivityNonceRef = useRef(null);
+  useEffect(() => {
+    if (!activityRequest || handledActivityNonceRef.current === activityRequest.nonce) return;
+    handledActivityNonceRef.current = activityRequest.nonce;
+    const ids = Array.isArray(activityRequest.plantIds) ? activityRequest.plantIds : [];
+    if (ids.length >= 2) {
+      setSelectedIds(ids);
+      buildSubtree({ plantIds: ids }, { forceStudent: true });
+    } else if (activityRequest.mapId) {
+      setMapId(activityRequest.mapId);
+      buildSubtree({ mapId: activityRequest.mapId, count: 6 }, { forceStudent: true });
     }
-  };
+  }, [activityRequest, buildSubtree]);
 
   const startFromSelection = () => buildSubtree({ plantIds: selectedIds });
   const startFromMap = () => buildSubtree({ mapId, count: Number(count) || 6 });

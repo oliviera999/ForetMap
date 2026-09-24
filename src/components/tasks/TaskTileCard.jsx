@@ -117,6 +117,7 @@ function TaskTileCardImpl({
   onTaskDragStart = null,
   onTaskDragEnd = null,
   draggingTaskId = null,
+  onStartPedagoSession = null,
 }) {
   const [coverLightbox, setCoverLightbox] = useState(null);
   const [condensedExpanded, setCondensedExpanded] = useState(false);
@@ -422,6 +423,15 @@ function TaskTileCardImpl({
             </div>
           )}
           <div className="task-actions">
+            {t.pedago_session_id && onStartPedagoSession ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onStartPedagoSession(t.pedago_session_id)}
+              >
+                🧭 Lancer la séance
+              </button>
+            ) : null}
             {!isTeacher &&
               canEnrollNewTask &&
               !isMine &&

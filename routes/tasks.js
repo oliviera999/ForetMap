@@ -266,7 +266,7 @@ const TASK_LIST_SQL_BASE = `
            t.zone_id, t.marker_id, t.start_date, t.due_date, t.required_students, t.completion_mode,
            t.danger_level, t.difficulty_level, t.importance_level, t.sort_order, t.status,
            t.archived_at, t.archived_via_project, t.validated_at, t.created_at,
-           t.recurrence, t.parent_task_id, t.recurrence_series_id,
+           t.recurrence, t.parent_task_id, t.recurrence_series_id, t.pedago_session_id,
            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
            m.id AS map_id_resolved_join, m.label AS map_label,
            t.image_path AS task_cover_image_path
@@ -366,6 +366,18 @@ async function validateTutorialIds(tutorialIds) {
     if (!existing.has(Number(tid))) return { error: 'Tutoriel introuvable' };
   }
   return { tutorialIds };
+}
+
+/** Séance pédagogique liée (optionnelle) : vide → null ; sinon doit exister. */
+async function validatePedagoSessionId(raw) {
+  const key = raw == null ? '' : String(raw).trim();
+  if (!key) return { sessionId: null };
+  const row = await queryOne('SELECT id FROM pedago_sessions WHERE id = ? OR slug = ? LIMIT 1', [
+    key,
+    key,
+  ]);
+  if (!row) return { error: 'Séance pédagogique introuvable' };
+  return { sessionId: String(row.id) };
 }
 
 router.get(
@@ -818,6 +830,8 @@ router.post(
     const referentIds = normalizeIdArray(referent_user_ids);
     const referentValidation = await validateReferentUserIds(referentIds);
     if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
+    const sessionValidation = await validatePedagoSessionId(req.body?.pedago_session_id);
+    if (sessionValidation.error) return res.status(400).json({ error: sessionValidation.error });
 
     const reqStudents = sanitizeRequiredStudents(required_students);
     const completionMode = normalizeTaskCompletionMode(completion_mode);
@@ -848,7 +862,7 @@ router.post(
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, pedago_session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -868,6 +882,7 @@ router.post(
           parsedRecurrence.value,
           seriesId,
           anchorDate,
+          sessionValidation.sessionId,
           nowDbTimestamp(),
         ],
       );
@@ -965,6 +980,7 @@ router.put('/:id', async (req, res) => {
         'referent_user_ids',
         'recurrence',
         'completion_mode',
+        'pedago_session_id',
       ];
       const attempted = forbiddenForProposer.find((key) =>
         Object.prototype.hasOwnProperty.call(req.body || {}, key),
@@ -1064,6 +1080,18 @@ router.put('/:id', async (req, res) => {
     }
     const referentValidation = await validateReferentUserIds(nextReferentIds);
     if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
+
+    let nextPedagoSessionId = task.pedago_session_id || null;
+    if (
+      isTeacherManageAction &&
+      Object.prototype.hasOwnProperty.call(req.body, 'pedago_session_id')
+    ) {
+      const sessionValidation = await validatePedagoSessionId(req.body.pedago_session_id);
+      if (sessionValidation.error) {
+        return res.status(400).json({ error: sessionValidation.error });
+      }
+      nextPedagoSessionId = sessionValidation.sessionId;
+    }
 
     const reqStudents =
       required_students != null
@@ -1227,7 +1255,7 @@ router.put('/:id', async (req, res) => {
         ]);
       }
       await tx.execute(
-        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id) WHERE id=?',
+        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id), pedago_session_id=? WHERE id=?',
         [
           title ?? task.title,
           description ?? task.description,
@@ -1246,6 +1274,7 @@ router.put('/:id', async (req, res) => {
           nextImportanceLevel,
           nextRecurrence,
           nextSeriesId,
+          nextPedagoSessionId,
           task.id,
         ],
       );

@@ -95,6 +95,7 @@ function TasksViewImpl({
   onMapLocationFocusChange = null,
   onOpenPlantCatalogPreview = null,
   hasPermissionInRole = () => false,
+  onStartPedagoSession = null,
 }) {
   const publicSettings = usePublicSettings();
   const { prompt } = useAppDialogs();
@@ -759,6 +760,7 @@ function TasksViewImpl({
       onTaskDragStart: startTaskDrag,
       onTaskDragEnd: clearTaskDragState,
       onOpenBiodiversityFromTaskName,
+      onStartPedagoSession,
     }),
     [
       viewMode,
@@ -803,6 +805,7 @@ function TasksViewImpl({
       startTaskDrag,
       clearTaskDragState,
       onOpenBiodiversityFromTaskName,
+      onStartPedagoSession,
     ],
   );
 

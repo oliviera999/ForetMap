@@ -72,6 +72,7 @@ export function PedagoTabs({
   onOpenSettingsLearning = null,
   canReadSiteIssues = false,
   sessionsProps = null,
+  pedagoEntry = null,
 }) {
   return (
     <>
@@ -147,6 +148,7 @@ export function PedagoTabs({
             initialMapId={activeMapId}
             canManage={canManageFoodWeb}
             onOpenPlant={onOpenPlantCatalogPreview}
+            activityRequest={pedagoEntry?.nestedGroups || null}
           />
         </TabSuspense>
       )}
@@ -167,6 +169,7 @@ export function PedagoTabs({
             canManage={canManageIndividuals}
             canMeasure={canMeasureIndividuals}
             onOpenPlant={onOpenPlantCatalogPreview}
+            initialIndividualId={pedagoEntry?.individualId ?? null}
           />
         </TabSuspense>
       )}
