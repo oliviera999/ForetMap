@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-999a91a8";
+const CACHE_NAME = "foretmap-gl-8b4e01a0";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,29 +9,29 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-C8QqgotG.js",
+  "/assets/gl-CFQIxCOb.js",
   "/assets/gl-Bq-9ka6e.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/VisitMascotFallbackSvg-DW7pofml.js",
-  "/assets/react-vendor-CiETBgCW.js",
-  "/assets/icons-DU9XRG1S.js",
-  "/assets/ErrorBoundary-Diq2EIcf.js",
+  "/assets/VisitMascotFallbackSvg-BvcObs7B.js",
+  "/assets/react-vendor-Dcb_X5td.js",
+  "/assets/icons-BNguv2wG.js",
+  "/assets/ErrorBoundary-Cr7SWqcI.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-DGdgA_SB.js",
+  "/assets/ImageLightboxProvider-8CuqWKeP.js",
   "/assets/ImageLightboxProvider-BQXMtgsx.css",
   "/assets/markdown-BT1_tLPZ.js",
-  "/assets/spriteCutCatalogEntry-DkZiO-GE.js",
-  "/assets/socket-io-CQ0Cr98w.js",
-  "/assets/GuidedTourOverlay-BhR3Foq4.js",
-  "/assets/HelpDock-BudPnXth.js",
+  "/assets/spriteCutCatalogEntry-BDAVMTQx.js",
+  "/assets/socket-io-SGWxBABF.js",
+  "/assets/GuidedTourOverlay-SSz-790S.js",
+  "/assets/HelpDock-Bp985h0V.js",
   "/assets/HelpDock-ML7ofH8p.css",
-  "/assets/apiGL-Cueg3COi.js",
-  "/assets/presenceListPatch-40QWy-GS.js",
-  "/assets/JournalBookView-CcYDEVpb.js",
+  "/assets/apiGL-DeZ0BRUj.js",
+  "/assets/presenceListPatch-D1r80SZu.js",
+  "/assets/JournalBookView-Dlc5gZyC.js",
   "/assets/brandNames-DXNkSTQD.js",
-  "/assets/FoodWebGraph-Dt8CsIyc.js",
-  "/assets/mascotBehaviorEngine-D_YEOO96.js",
-  "/assets/MediaLibraryMenu-XlrgBFvg.js",
+  "/assets/FoodWebGraph-kVb4vLU-.js",
+  "/assets/mascotBehaviorEngine-CKANAF4s.js",
+  "/assets/MediaLibraryMenu-BCpuXB6D.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
