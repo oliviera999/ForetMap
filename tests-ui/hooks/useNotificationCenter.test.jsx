@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
-import { useNotificationCenter } from '../../src/hooks/useNotificationCenter.js';
+const apiMock = vi.hoisted(() => vi.fn(async () => ({ items: [] })));
+vi.mock('../../src/services/api', () => ({ api: apiMock }));
+
+const { useNotificationCenter } = await import('../../src/hooks/useNotificationCenter.js');
 
 /**
  * Notifications « d'état » (serveur indisponible, temps réel hors ligne, session non
@@ -197,43 +200,126 @@ describe('useNotificationCenter — échéances n3beur', () => {
 });
 
 /**
- * Messages reçus sur un lieu — dont les signalements déposés depuis le plan des personnels.
- * Avant cette règle, rien n'avertissait : le message attendait qu'on rouvre le repère.
+ * Avis d'état à clé stable : un seul élément, mis à jour en place, avec une cible précise.
+ * Avant : une clé par valeur du compteur (`teacher-pending-3`, `-4`…) empilait les avis.
  */
-describe('useNotificationCenter — messages reçus sur les lieux', () => {
-  const message = {
-    id: 'c-1',
-    place_label: 'Porte du gymnase',
-    body: 'La porte est condamnée depuis la rentrée.',
+describe('useNotificationCenter — avis d’état ciblés', () => {
+  it('validations en attente : clé stable, compte mis à jour, cible « à valider »', () => {
+    const { result, rerender } = mountCenter({ teacherPendingValidationCount: 2 });
+    let item = findByKey(result, 'teacher-pending');
+    expect(item?.message).toBe('2 tâches terminées attendent votre validation.');
+    expect(item?.target).toEqual({ type: 'task', filter: 'to_validate' });
+
+    rerender({ isTeacher: true, isAdmin: false, teacherPendingValidationCount: 3 });
+    const pending = result.current.items.filter((i) => i.key === 'teacher-pending');
+    expect(pending).toHaveLength(1);
+    expect(pending[0].message).toBe('3 tâches terminées attendent votre validation.');
+
+    rerender({ isTeacher: true, isAdmin: false, teacherPendingValidationCount: 0 });
+    item = findByKey(result, 'teacher-pending');
+    expect(item?.read).toBe(true);
+  });
+
+  it('un avis lu et inchangé ne redevient pas non lu', () => {
+    const { result, rerender } = mountCenter({ teacherPendingValidationCount: 1 });
+    act(() => result.current.markAsRead(findByKey(result, 'teacher-pending').id));
+    rerender({ isTeacher: true, isAdmin: false, teacherPendingValidationCount: 1 });
+    expect(findByKey(result, 'teacher-pending')?.read).toBe(true);
+  });
+
+  it('modules désactivés (admin) : les modules sont nommés, cible Réglages', () => {
+    const { result } = renderHook(() =>
+      useNotificationCenter({
+        isTeacher: true,
+        isAdmin: true,
+        publicSettings: { modules: { visit_enabled: false, stats_enabled: false } },
+      }),
+    );
+    const item = findByKey(result, 'admin-modules-disabled');
+    expect(item?.message).toBe('Désactivés : Visite, Statistiques.');
+    expect(item?.target).toEqual({ type: 'settings', section: 'accueil' });
+  });
+
+  it('élève : une seule tâche en retard mène directement à elle', () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    const due = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const { result } = renderHook(() =>
+      useNotificationCenter({
+        isTeacher: false,
+        isAdmin: false,
+        student: { id: 's1', first_name: 'Lina', last_name: 'B' },
+        tasksForActiveMap: [
+          {
+            id: 't9',
+            title: 'Arroser les fraisiers',
+            status: 'available',
+            due_date: due,
+            assignments: [{ student_id: 's1' }],
+          },
+        ],
+      }),
+    );
+    const item = findByKey(result, 'student-deadline-overdue');
+    expect(item?.message).toBe('« Arroser les fraisiers » est en retard.');
+    expect(item?.target).toEqual({ type: 'task', id: 't9', filter: 'overdue' });
+  });
+});
+
+/**
+ * Notifications serveur : chargées pour le compte connecté, rechargées à l'arrivée d'un
+ * événement temps réel personnel, « lu » enregistré côté serveur.
+ */
+describe('useNotificationCenter — notifications serveur', () => {
+  const serverRow = {
+    id: 7,
+    kind: 'place_message',
+    title: 'Message sur « Mare » (Forêt)',
+    body: 'Léa M. : la bâche est déchirée',
+    target: { type: 'place', id: 'z1', mapId: 'foret', kind: 'zone' },
+    read: false,
+    created_at: new Date().toISOString(),
   };
 
-  it('un message non lu produit une notification nommant le lieu', () => {
-    const { result } = mountCenter({ newPlaceMessages: [message] });
-    const item = findByKey(result, 'place-message-c-1');
-    expect(item?.title).toBe('Message sur « Porte du gymnase »');
-    expect(item?.message).toBe('La porte est condamnée depuis la rentrée.');
-    expect(item?.action).toEqual({ tab: 'settings' });
+  beforeEach(() => {
+    apiMock.mockReset();
+    apiMock.mockImplementation(async (url) => {
+      if (String(url).startsWith('/api/notifications?')) {
+        return { items: [serverRow], unread_count: 1 };
+      }
+      return { ok: true };
+    });
+  });
+
+  it('charge les notifications du compte et les fusionne aux avis locaux', async () => {
+    const { result } = mountCenter({ serverEnabled: true });
+    await waitFor(() => expect(result.current.items.some((i) => i.id === 'srv-7')).toBe(true));
+    const item = result.current.items.find((i) => i.id === 'srv-7');
+    expect(item.title).toBe('Message sur « Mare » (Forêt)');
+    expect(item.message).toBe('Léa M. : la bâche est déchirée');
+    expect(item.target).toEqual(serverRow.target);
     expect(result.current.unreadCount).toBe(1);
   });
 
-  it('le même message rechargé ne sonne pas deux fois', () => {
-    const { result, rerender } = mountCenter({ newPlaceMessages: [message] });
-    rerender({ isTeacher: true, isAdmin: false, newPlaceMessages: [{ ...message }] });
-    const items = result.current.items.filter((item) => item.key === 'place-message-c-1');
-    expect(items).toHaveLength(1);
+  it('« lu » est envoyé au serveur', async () => {
+    const { result } = mountCenter({ serverEnabled: true });
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+    act(() => result.current.markAsRead('srv-7'));
+    expect(result.current.unreadCount).toBe(0);
+    expect(apiMock).toHaveBeenCalledWith('/api/notifications/7/read', 'POST');
   });
 
-  it('un lieu supprimé reste annonçable', () => {
-    const { result } = mountCenter({
-      newPlaceMessages: [{ id: 'c-2', place_label: '', body: 'Signalement orphelin' }],
+  it('un événement temps réel personnel recharge la liste', async () => {
+    mountCenter({ serverEnabled: true });
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(1));
+    act(() => {
+      window.dispatchEvent(new CustomEvent('foretmap_notifications_new', { detail: {} }));
     });
-    expect(findByKey(result, 'place-message-c-2')?.title).toBe('Message sur « Lieu supprimé »');
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2));
   });
 
-  it('côté élève, aucune notification de ce type', () => {
-    const { result } = renderHook(() =>
-      useNotificationCenter({ isTeacher: false, isAdmin: false, newPlaceMessages: [message] }),
-    );
-    expect(findByKey(result, 'place-message-c-1')).toBeNull();
+  it('sans session (visite), aucun appel serveur', () => {
+    mountCenter({ serverEnabled: false });
+    expect(apiMock).not.toHaveBeenCalled();
   });
 });

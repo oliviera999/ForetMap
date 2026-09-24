@@ -321,6 +321,12 @@ export function useForetmapRealtime({
       }
     };
     socket.on('presence:update', onPresenceUpdate);
+    // Notification adressée à ce compte (salon personnel) : le centre de notifications
+    // recharge sa liste depuis le serveur.
+    const onNotificationsNew = (payload) => {
+      window.dispatchEvent(new CustomEvent('foretmap_notifications_new', { detail: payload }));
+    };
+    socket.on('notifications:new', onNotificationsNew);
     window.addEventListener('online', onBrowserOnline);
     if (socket.connected) setRtStatus('live');
 
@@ -341,6 +347,7 @@ export function useForetmapRealtime({
       socket.off('context-comments:changed', onContextCommentsRealtime);
       socket.off('observations:changed', onObservationsRealtime);
       socket.off('presence:update', onPresenceUpdate);
+      socket.off('notifications:new', onNotificationsNew);
       window.removeEventListener('online', onBrowserOnline);
       if (tasksRtDebounceRef.current) {
         clearTimeout(tasksRtDebounceRef.current);

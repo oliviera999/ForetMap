@@ -4,55 +4,31 @@ import {
   NOTIFICATION_LEVEL,
   NOTIFICATION_PREFS_DEFAULTS,
 } from '../constants/notifications';
+import { api } from '../services/api';
 import { readJsonStorage, writeJsonStorage } from '../shared/notifications/storage.js';
 import { assignmentMatchesStudent } from '../utils/task-assignments.js';
 import { daysUntil } from '../utils/badges.jsx';
+import {
+  isServerNotificationId,
+  notificationFromServer,
+  serverIdFromNotificationId,
+  sortNotificationsByDateDesc,
+} from '../utils/notificationTargets.js';
 
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const DEDUP_COOLDOWN_MS = 10 * 60 * 1000;
-/** Préfixe clé notif « proposition n3boss » — dédup forte (pas seulement le cooldown 10 min). */
-const TEACHER_PROPOSED_NOTIF_PREFIX = 'teacher-proposed-';
-/**
- * Préfixe clé notif « message reçu sur un lieu ». Même dédup forte : un message déjà annoncé
- * ne doit pas revenir sonner à chaque rechargement de la liste tant qu'il n'a pas été lu — la
- * clé porte l'identifiant du commentaire, qui ne change jamais.
- */
-const PLACE_MESSAGE_NOTIF_PREFIX = 'place-message-';
+/** Rechargement de secours des notifications serveur (le temps réel peut être coupé). */
+const SERVER_REFRESH_MS = 2 * 60 * 1000;
+const SERVER_PAGE_SIZE = 30;
 
-/** Vrai pour les clés dont une seule notification doit sortir, cooldown ou pas. */
-function isOnceOnlyNotifKey(key) {
-  const value = String(key || '');
-  return (
-    value.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) || value.startsWith(PLACE_MESSAGE_NOTIF_PREFIX)
-  );
-}
-
-/** Extrait court d'un message, pour la ligne de notification. */
-function placeMessageExcerpt(body, maxLength = 90) {
-  const text = String(body || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!text) return 'Nouveau message.';
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
-}
-
-function proposalSuffixFromTeacherNotifKey(key) {
-  const s = String(key || '');
-  if (!s.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX)) return null;
-  return s.slice(TEACHER_PROPOSED_NOTIF_PREFIX.length);
-}
-
-function stableProposedTaskKey(task) {
-  if (task?.id != null && task.id !== '') return `id:${String(task.id)}`;
-  if (task?.task_id != null && task.task_id !== '') return `task_id:${String(task.task_id)}`;
-  return `title:${String(task?.title || task?.name || '')
-    .trim()
-    .toLowerCase()}`;
-}
-
-/** Défaut d'identité stable : un `[]` littéral en défaut de prop relancerait l'effet à chaque rendu. */
-const EMPTY_PLACE_MESSAGES = Object.freeze([]);
+/** Modules signalés à l'admin quand ils sont coupés (libellés des Réglages). */
+const ADMIN_WATCHED_MODULES = [
+  ['tutorials_enabled', 'Tutoriels'],
+  ['visit_enabled', 'Visite'],
+  ['stats_enabled', 'Statistiques'],
+  ['observations_enabled', 'Observations'],
+];
 
 function nowIso() {
   return new Date().toISOString();
@@ -72,27 +48,29 @@ function makeStoreKey(prefix, roleKey) {
   return `foretmap_notifications_${prefix}_${roleKey}`;
 }
 
-function proposerNameFromTask(task) {
-  const direct = String(
-    task?.proposer || task?.proposed_by || task?.proposed_by_name || task?.proposedBy || '',
-  ).trim();
-  if (direct) return direct;
-  const description = String(task?.description || '');
-  const match = description.match(/(?:^|\n)Proposition (?:élève|n3beur):\s*(.+)\s*$/m);
-  return String(match?.[1] || '').trim();
-}
-
+/**
+ * Centre de notifications ForetMap.
+ *
+ * Deux sources fusionnées, triées par date :
+ * - **serveur** (`serverEnabled`) : notifications adressées au compte connecté (tâche
+ *   proposée, validée, message sur un lieu, réponse au forum, échéance…), chacune avec une
+ *   cible précise ; rechargées à l'arrivée d'un événement temps réel personnel, au retour
+ *   sur l'onglet et périodiquement ; l'état « lu » est enregistré sur le serveur ;
+ * - **locale** : avis « d'état » calculés sur l'appareil (serveur injoignable, temps réel
+ *   coupé, validations en attente, échéances, réglages admin), à clé stable, mis à jour en
+ *   place et clos quand la condition retombe.
+ */
 export function useNotificationCenter({
   isTeacher,
   isAdmin,
   tasksForActiveMap = [],
   student,
   teacherPendingValidationCount = 0,
-  newPlaceMessages = EMPTY_PLACE_MESSAGES,
   rtStatus = 'off',
   serverDown = false,
   sessionValidationError = false,
   publicSettings = null,
+  serverEnabled = false,
 }) {
   const roleKey = roleForStorage({ isAdmin, isTeacher });
   const notificationsStorageKey = useMemo(() => makeStoreKey('items', roleKey), [roleKey]);
@@ -100,6 +78,8 @@ export function useNotificationCenter({
   const metricsStorageKey = useMemo(() => makeStoreKey('metrics', roleKey), [roleKey]);
 
   const [items, setItems] = useState([]);
+  const [serverItems, setServerItems] = useState([]);
+  const serverItemsRef = useRef([]);
   const [prefs, setPrefs] = useState(() => ({
     ...(NOTIFICATION_PREFS_DEFAULTS[roleKey] || {}),
     ...readJsonStorage(prefsStorageKey, {}),
@@ -112,10 +92,13 @@ export function useNotificationCenter({
     }),
   );
   const lastSeenKeysRef = useRef({});
-  const lastTeacherProposedKeysRef = useRef(new Set());
   // Vrai tant que `items` reflète encore l'état d'avant chargement (montage ou changement de clé) :
   // l'effet de persistance saute ce tour pour ne pas écraser le storage avec l'état pré-hydratation.
   const skipNextPersistRef = useRef(true);
+
+  useEffect(() => {
+    serverItemsRef.current = serverItems;
+  }, [serverItems]);
 
   const bumpMetric = useCallback((field) => {
     setMetrics((prev) => ({
@@ -140,17 +123,12 @@ export function useNotificationCenter({
         return Number.isFinite(ts) && ts >= cutoff;
       })
       .slice(0, MAX_ITEMS);
-    const restoredProposedKeys = new Set();
     skipNextPersistRef.current = true;
     setItems(sanitized);
     for (const item of sanitized) {
       if (!item?.key) continue;
       lastSeenKeysRef.current[item.key] = Date.parse(item.createdAt || '') || Date.now();
-      const propSuffix = proposalSuffixFromTeacherNotifKey(item.key);
-      if (propSuffix) restoredProposedKeys.add(propSuffix);
     }
-    // Remontage React / nouvel onglet : retrouver les propositions déjà notifiées (le ref seul ne suffit pas).
-    lastTeacherProposedKeysRef.current = restoredProposedKeys;
   }, [notificationsStorageKey]);
 
   // Persistance des notifications déplacée hors des updaters `setItems` (pas d'effet de bord
@@ -196,6 +174,41 @@ export function useNotificationCenter({
     [prefs],
   );
 
+  // ── Source serveur ──────────────────────────────────────────────────────────
+  const refreshServerNotifications = useCallback(async () => {
+    try {
+      const data = await api(`/api/notifications?limit=${SERVER_PAGE_SIZE}`);
+      const rows = Array.isArray(data?.items) ? data.items : [];
+      const next = rows.map(notificationFromServer);
+      const known = new Set(serverItemsRef.current.map((item) => item.id));
+      if (next.some((item) => !known.has(item.id))) bumpMetric('created');
+      setServerItems(next);
+    } catch (_) {
+      /* hors ligne ou session expirée : la liste courante reste affichée */
+    }
+  }, [bumpMetric]);
+
+  useEffect(() => {
+    if (!serverEnabled) {
+      setServerItems([]);
+      return undefined;
+    }
+    refreshServerNotifications();
+    const onNew = () => refreshServerNotifications();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshServerNotifications();
+    };
+    window.addEventListener('foretmap_notifications_new', onNew);
+    document.addEventListener('visibilitychange', onVisible);
+    const id = setInterval(refreshServerNotifications, SERVER_REFRESH_MS);
+    return () => {
+      window.removeEventListener('foretmap_notifications_new', onNew);
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(id);
+    };
+  }, [serverEnabled, refreshServerNotifications]);
+
+  // ── Avis locaux ─────────────────────────────────────────────────────────────
   const addNotification = useCallback(
     (payload) => {
       const {
@@ -205,6 +218,7 @@ export function useNotificationCenter({
         title,
         message,
         action = null,
+        target = null,
         force = false,
       } = payload || {};
       if (!title || !message) return false;
@@ -212,9 +226,6 @@ export function useNotificationCenter({
       const dedupKey = String(key || `${level}:${title}:${message}`);
       const nowTs = Date.now();
       const lastTs = lastSeenKeysRef.current[dedupKey] || 0;
-      // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore
-      // « proposée » ; un message reçu sur un lieu non plus tant qu'il est le même message.
-      if (!force && lastTs > 0 && isOnceOnlyNotifKey(dedupKey)) return false;
       if (!force && nowTs - lastTs < DEDUP_COOLDOWN_MS) return false;
       lastSeenKeysRef.current[dedupKey] = nowTs;
       const item = {
@@ -225,6 +236,7 @@ export function useNotificationCenter({
         title,
         message,
         action,
+        target,
         read: false,
         createdAt: nowIso(),
       };
@@ -235,29 +247,63 @@ export function useNotificationCenter({
     [bumpMetric, isCategoryEnabled],
   );
 
-  const markAllRead = useCallback(() => {
-    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
-  }, []);
-
-  const markAsRead = useCallback((id) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
-  }, []);
-
-  const removeNotification = useCallback((id) => {
-    setItems((prev) => {
-      const victim = prev.find((item) => item.id === id);
-      if (victim?.key) {
-        const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
-        if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
-        delete lastSeenKeysRef.current[victim.key];
-      }
-      return prev.filter((item) => item.id !== id);
-    });
-  }, []);
-
-  const clearRead = useCallback(() => {
-    setItems((prev) => prev.filter((item) => !item.read));
-  }, []);
+  /**
+   * Avis « d'état » à clé stable : un seul élément par clé, mis à jour en place. Il redevient
+   * non lu seulement si son contenu change (nouveau compte, nouveaux modules) — un avis déjà
+   * lu et inchangé ne ressonne pas à chaque rendu.
+   */
+  const upsertStateNotification = useCallback(
+    (payload) => {
+      const {
+        key,
+        level = NOTIFICATION_LEVEL.INFO,
+        category = null,
+        title,
+        message,
+        action = null,
+        target = null,
+      } = payload || {};
+      if (!key || !title || !message) return;
+      if (!isCategoryEnabled(category)) return;
+      setItems((prev) => {
+        const existing = prev.find((item) => item.key === key);
+        if (!existing) {
+          lastSeenKeysRef.current[key] = Date.now();
+          const item = {
+            id: makeId(),
+            key,
+            level,
+            category,
+            title,
+            message,
+            action,
+            target,
+            read: false,
+            createdAt: nowIso(),
+          };
+          return [item, ...prev].slice(0, MAX_ITEMS);
+        }
+        const changed = existing.title !== title || existing.message !== message;
+        if (!changed && existing.level === level) return prev;
+        return prev.map((item) =>
+          item.key === key
+            ? {
+                ...item,
+                level,
+                category,
+                title,
+                message,
+                action,
+                target,
+                read: changed ? false : item.read,
+                createdAt: changed ? nowIso() : item.createdAt,
+              }
+            : item,
+        );
+      });
+    },
+    [isCategoryEnabled],
+  );
 
   /**
    * Clôt une notification « d'état » (serveur indisponible, temps réel hors ligne, session
@@ -271,6 +317,57 @@ export function useNotificationCenter({
       if (!prev.some((item) => item.key === key && !item.read)) return prev;
       return prev.map((item) => (item.key === key && !item.read ? { ...item, read: true } : item));
     });
+  }, []);
+
+  // ── Actions utilisateur (les deux sources) ──────────────────────────────────
+  const markAllRead = useCallback(() => {
+    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    if (serverItemsRef.current.some((item) => !item.read)) {
+      setServerItems((prev) => prev.map((item) => ({ ...item, read: true })));
+      api('/api/notifications/read-all', 'POST').catch(() => {});
+    }
+  }, []);
+
+  const markAsRead = useCallback((id) => {
+    if (isServerNotificationId(id)) {
+      const current = serverItemsRef.current.find((item) => item.id === id);
+      if (!current || current.read) return;
+      setServerItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
+      );
+      api(
+        `/api/notifications/${encodeURIComponent(serverIdFromNotificationId(id))}/read`,
+        'POST',
+      ).catch(() => {});
+      return;
+    }
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  }, []);
+
+  const removeNotification = useCallback((id) => {
+    if (isServerNotificationId(id)) {
+      setServerItems((prev) => prev.filter((item) => item.id !== id));
+      api(
+        `/api/notifications/${encodeURIComponent(serverIdFromNotificationId(id))}`,
+        'DELETE',
+      ).catch(() => {});
+      return;
+    }
+    setItems((prev) => {
+      const victim = prev.find((item) => item.id === id);
+      if (victim?.key) delete lastSeenKeysRef.current[victim.key];
+      return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const clearRead = useCallback(() => {
+    setItems((prev) => prev.filter((item) => !item.read));
+    const readServer = serverItemsRef.current.filter((item) => item.read);
+    if (readServer.length === 0) return;
+    setServerItems((prev) => prev.filter((item) => !item.read));
+    for (const item of readServer) {
+      api(`/api/notifications/${encodeURIComponent(item.serverId)}`, 'DELETE').catch(() => {});
+    }
   }, []);
 
   const updatePreference = useCallback(
@@ -296,69 +393,34 @@ export function useNotificationCenter({
     setMetrics({ created: 0, opened: 0, actions: 0 });
   }, []);
 
-  // Règles de génération: n3boss
+  // Règles d'état : n3boss — tâches terminées en attente de validation (clé stable ; le
+  // clic ouvre la liste filtrée sur « à valider »).
   useEffect(() => {
-    if (!isTeacher) return;
-    if (teacherPendingValidationCount > 0) {
-      addNotification({
-        key: `teacher-pending-${teacherPendingValidationCount}`,
-        level: NOTIFICATION_LEVEL.IMPORTANT,
-        category: NOTIFICATION_CATEGORY.VALIDATIONS,
-        title: 'Validations en attente',
-        message: `${teacherPendingValidationCount} tâche(s) attend(ent) une validation.`,
-        action: { tab: 'tasks' },
-      });
+    if (!isTeacher || teacherPendingValidationCount <= 0) {
+      resolveNotificationsByKey('teacher-pending');
+      return;
     }
-  }, [addNotification, isTeacher, teacherPendingValidationCount]);
+    const n = teacherPendingValidationCount;
+    upsertStateNotification({
+      key: 'teacher-pending',
+      level: NOTIFICATION_LEVEL.IMPORTANT,
+      category: NOTIFICATION_CATEGORY.VALIDATIONS,
+      title: 'Validations en attente',
+      message:
+        n === 1
+          ? '1 tâche terminée attend votre validation.'
+          : `${n} tâches terminées attendent votre validation.`,
+      target: { type: 'task', filter: 'to_validate' },
+    });
+  }, [
+    isTeacher,
+    notificationsStorageKey,
+    resolveNotificationsByKey,
+    teacherPendingValidationCount,
+    upsertStateNotification,
+  ]);
 
-  useEffect(() => {
-    if (!isTeacher) return;
-    const proposedTasks = tasksForActiveMap.filter((task) => task.status === 'proposed');
-    for (const task of proposedTasks) {
-      const taskKey = stableProposedTaskKey(task);
-
-      if (lastTeacherProposedKeysRef.current.has(taskKey)) continue;
-
-      const taskTitle = String(task?.title || task?.name || '').trim() || 'Tâche sans titre';
-      const proposer = proposerNameFromTask(task);
-      const added = addNotification({
-        key: `${TEACHER_PROPOSED_NOTIF_PREFIX}${taskKey}`,
-        level: NOTIFICATION_LEVEL.IMPORTANT,
-        category: NOTIFICATION_CATEGORY.PROPOSALS,
-        title: taskTitle,
-        message: proposer
-          ? `Nouvelle proposition de tâche de ${proposer}.`
-          : 'Nouvelle proposition de tâche à examiner.',
-        action: { tab: 'tasks' },
-      });
-      // Ne jamais remplacer le ref par la liste courante : un rafraîchissement vide
-      // réinitialisait le set et refaisait une notif pour les mêmes propositions.
-      if (added) lastTeacherProposedKeysRef.current.add(taskKey);
-    }
-  }, [addNotification, isTeacher, tasksForActiveMap]);
-
-  /**
-   * Messages reçus sur un lieu (zone ou repère) depuis la dernière lecture — dont les
-   * signalements déposés sur le plan des personnels. Sans cette règle, un message n'était
-   * découvert qu'en rouvrant le lieu concerné : l'application n'avertissait personne.
-   */
-  useEffect(() => {
-    if (!isTeacher) return;
-    for (const message of newPlaceMessages) {
-      if (!message?.id) continue;
-      const placeLabel = String(message.place_label || '').trim() || 'Lieu supprimé';
-      addNotification({
-        key: `${PLACE_MESSAGE_NOTIF_PREFIX}${message.id}`,
-        level: NOTIFICATION_LEVEL.INFO,
-        category: NOTIFICATION_CATEGORY.PROPOSALS,
-        title: `Message sur « ${placeLabel} »`,
-        message: placeMessageExcerpt(message.body),
-        action: { tab: 'settings' },
-      });
-    }
-  }, [addNotification, isTeacher, newPlaceMessages]);
-
-  // Règles de génération: n3beur
+  // Règles d'état : n3beur — échéances de ses propres tâches.
   useEffect(() => {
     if (isTeacher || !student) return;
     // Matcher partagé (task-assignments) : même normalisation prénom+nom (trim + minuscules)
@@ -369,52 +431,60 @@ export function useNotificationCenter({
         Array.isArray(task.assignments) &&
         task.assignments.some((a) => assignmentMatchesStudent(a, student)),
     );
-    let soonCount = 0;
-    let overdueCount = 0;
+    const soon = [];
+    const overdue = [];
     for (const task of mine) {
       // Même compte à rebours que les puces d'échéance des tuiles (`daysUntil`) : dates
       // nues comparées en heure locale. Une tâche due AUJOURD'HUI (0) est « proche », pas
       // « en retard » — l'ancien calcul en millisecondes la déclarait en retard dès minuit.
       const diffDays = daysUntil(task?.due_date);
       if (diffDays == null) continue;
-      if (diffDays < 0) overdueCount += 1;
-      else if (diffDays <= 1) soonCount += 1;
+      if (diffDays < 0) overdue.push(task);
+      else if (diffDays <= 1) soon.push(task);
     }
-    // Règles d'ÉTAT (comme les notifications d'exploitation) : clé stable, et clôture dès
-    // que la condition retombe. Avec une clé porteuse du compte, chaque variation créait un
-    // item de plus et aucun n'était jamais refermé — la pile restait « 2 tâches en retard »
-    // longtemps après leur validation.
-    if (soonCount > 0) {
-      addNotification({
+    const describe = (list) => {
+      if (list.length === 1) return `« ${String(list[0]?.title || 'Tâche').trim()} »`;
+      return `${list.length} tâches`;
+    };
+    // Une seule tâche : l'avis mène directement à elle ; sinon à la liste filtrée.
+    const targetFor = (list, filter) =>
+      list.length === 1 && list[0]?.id != null
+        ? { type: 'task', id: String(list[0].id), filter }
+        : { type: 'task', filter };
+    if (soon.length > 0) {
+      upsertStateNotification({
         key: 'student-deadline-soon',
         level: NOTIFICATION_LEVEL.IMPORTANT,
         category: NOTIFICATION_CATEGORY.DEADLINES,
         title: 'Échéance proche',
-        message: `${soonCount} tâche(s) à faire d'ici demain.`,
-        action: { tab: 'tasks' },
+        message: `${describe(soon)} à terminer d'ici demain.`,
+        target: targetFor(soon, null),
       });
     } else {
       resolveNotificationsByKey('student-deadline-soon');
     }
-    if (overdueCount > 0) {
-      addNotification({
+    if (overdue.length > 0) {
+      upsertStateNotification({
         key: 'student-deadline-overdue',
         level: NOTIFICATION_LEVEL.CRITICAL,
         category: NOTIFICATION_CATEGORY.DEADLINES,
         title: 'Tâches en retard',
-        message: `${overdueCount} tâche(s) sont déjà en retard.`,
-        action: { tab: 'tasks' },
+        message:
+          overdue.length === 1
+            ? `${describe(overdue)} est en retard.`
+            : `${describe(overdue)} sont en retard.`,
+        target: targetFor(overdue, 'overdue'),
       });
     } else {
       resolveNotificationsByKey('student-deadline-overdue');
     }
   }, [
-    addNotification,
     isTeacher,
     notificationsStorageKey,
     resolveNotificationsByKey,
     student,
     tasksForActiveMap,
+    upsertStateNotification,
   ]);
 
   // Règles de génération: opérations. Chaque règle d'état clôt sa notification quand la
@@ -432,7 +502,6 @@ export function useNotificationCenter({
       category: NOTIFICATION_CATEGORY.OPERATIONS,
       title: 'Serveur indisponible',
       message: 'Synchronisation ralentie, réessai automatique en cours.',
-      action: { tab: 'map' },
     });
   }, [addNotification, notificationsStorageKey, resolveNotificationsByKey, serverDown]);
 
@@ -471,54 +540,46 @@ export function useNotificationCenter({
     sessionValidationError,
   ]);
 
+  // Règles d'état : administration (réglages « Accueil & modules »).
   useEffect(() => {
     if (!isAdmin) return;
     if (
       publicSettings?.auth?.allow_google_student === false &&
       publicSettings?.auth?.allow_google_teacher === false
     ) {
-      addNotification({
+      upsertStateNotification({
         key: 'admin-google-disabled',
         level: NOTIFICATION_LEVEL.INFO,
         category: NOTIFICATION_CATEGORY.SECURITY,
-        title: 'OAuth Google désactivé',
-        message: 'La connexion Google est coupée pour n3beurs et n3boss.',
-        action: { tab: 'settings' },
+        title: 'Connexion Google désactivée',
+        message: 'La connexion Google est coupée pour tous les comptes.',
+        target: { type: 'settings', section: 'accueil' },
       });
+    } else {
+      resolveNotificationsByKey('admin-google-disabled');
     }
-    const modulesDisabled = [
-      'tutorials_enabled',
-      'visit_enabled',
-      'stats_enabled',
-      'observations_enabled',
-    ].filter((key) => publicSettings?.modules?.[key] === false).length;
-    if (modulesDisabled > 0) {
-      addNotification({
-        key: `admin-modules-disabled-${modulesDisabled}`,
+    const disabledLabels = ADMIN_WATCHED_MODULES.filter(
+      ([key]) => publicSettings?.modules?.[key] === false,
+    ).map(([, label]) => label);
+    if (disabledLabels.length > 0) {
+      upsertStateNotification({
+        key: 'admin-modules-disabled',
         level: NOTIFICATION_LEVEL.INFO,
         category: NOTIFICATION_CATEGORY.OPERATIONS,
         title: 'Modules désactivés',
-        message: `${modulesDisabled} module(s) UI sont désactivés.`,
-        action: { tab: 'settings' },
+        message: `Désactivé${disabledLabels.length > 1 ? 's' : ''} : ${disabledLabels.join(', ')}.`,
+        target: { type: 'settings', section: 'accueil' },
       });
+    } else {
+      resolveNotificationsByKey('admin-modules-disabled');
     }
-  }, [addNotification, isAdmin, publicSettings]);
-
-  // Événements temps réel (digest)
-  useEffect(() => {
-    const onRealtime = (event) => {
-      const domain = event?.detail?.domain || 'données';
-      addNotification({
-        key: `realtime-${domain}`,
-        level: NOTIFICATION_LEVEL.INFO,
-        category: NOTIFICATION_CATEGORY.OPERATIONS,
-        title: 'Mise à jour reçue',
-        message: `Le module "${domain}" vient d'être mis à jour.`,
-      });
-    };
-    window.addEventListener('foretmap_realtime', onRealtime);
-    return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [addNotification]);
+  }, [
+    isAdmin,
+    notificationsStorageKey,
+    publicSettings,
+    resolveNotificationsByKey,
+    upsertStateNotification,
+  ]);
 
   // Nettoyage périodique
   useEffect(() => {
@@ -536,15 +597,23 @@ export function useNotificationCenter({
     return () => clearInterval(id);
   }, []);
 
-  const unreadCount = useMemo(() => items.filter((item) => !item.read).length, [items]);
+  const allItems = useMemo(
+    () =>
+      sortNotificationsByDateDesc([
+        ...serverItems.filter((item) => isCategoryEnabled(item.category)),
+        ...items,
+      ]),
+    [items, serverItems, isCategoryEnabled],
+  );
+  const unreadCount = useMemo(() => allItems.filter((item) => !item.read).length, [allItems]);
   const latestCritical = useMemo(
-    () => items.find((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL) || null,
-    [items],
+    () => allItems.find((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL) || null,
+    [allItems],
   );
 
   return {
     roleKey,
-    items,
+    items: allItems,
     unreadCount,
     latestCritical,
     prefs,
@@ -557,6 +626,7 @@ export function useNotificationCenter({
     clearRead,
     trackOpenedPanel,
     trackActionClick,
+    refreshServerNotifications,
     resetMetrics,
   };
 }

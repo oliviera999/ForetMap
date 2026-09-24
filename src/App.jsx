@@ -10,10 +10,10 @@ import {
 } from './services/api';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useConsumableRequest } from './hooks/useConsumableRequest';
+import { isNotificationActionable, notificationActionLabel } from './utils/notificationTargets.js';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
-import { usePlaceMessagesInbox } from './hooks/usePlaceMessagesInbox';
 import { useForumUnread } from './hooks/useForumUnread';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
@@ -1344,15 +1344,6 @@ function App() {
     },
     [fetchAll],
   );
-  /**
-   * Messages déposés sur des lieux (zones, repères) — dont les signalements venus du plan des
-   * personnels. Chargés une fois puis rafraîchis par le temps réel : ils alimentent le centre
-   * de notifications, faute de quoi un message n'était découvert qu'en rouvrant son lieu.
-   */
-  const { unreadItems: newPlaceMessages } = usePlaceMessagesInbox({
-    enabled: effectiveIsTeacher && publicSettings?.modules?.context_comments_enabled !== false,
-  });
-
   const {
     roleKey: notificationRoleKey,
     items: notifications,
@@ -1375,11 +1366,11 @@ function App() {
     tasksForActiveMap,
     student: studentForUi,
     teacherPendingValidationCount,
-    newPlaceMessages,
     rtStatus: teacherSyncStatus,
     serverDown,
     sessionValidationError,
     publicSettings,
+    serverEnabled: hasAuthenticatedShell && !showPublicVisit,
   });
 
   useToastNotificationBridge({ toast, addNotification });
@@ -1723,6 +1714,15 @@ function App() {
                     <div className="fade-in notif-critical-banner" role="alert">
                       <strong>{latestCriticalNotification.title}</strong>{' '}
                       {latestCriticalNotification.message}
+                      {isNotificationActionable(latestCriticalNotification) && (
+                        <button
+                          type="button"
+                          className="btn btn-sm notif-critical-banner__action"
+                          onClick={() => openNotificationAction(latestCriticalNotification)}
+                        >
+                          {notificationActionLabel(latestCriticalNotification) || 'Ouvrir'}
+                        </button>
+                      )}
                     </div>
                   )}
                   {sessionValidationError && studentForUi && !effectiveIsTeacher && (
