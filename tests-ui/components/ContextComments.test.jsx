@@ -73,7 +73,7 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
     expect(document.querySelector('.context-comments-preview')).toBeNull();
   });
 
-  test('section fermée avec commentaires jamais lus : pastille non lu', async () => {
+  test('section fermée avec commentaires jamais lus : pastille rouge avec tous les non-lus', async () => {
     getContextCommentCounts.mockResolvedValue({
       counts: { t1: { total: 2, newestId: 20 } },
     });
@@ -81,13 +81,12 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
     renderComments();
 
     await waitFor(() => {
-      expect(document.querySelector('.context-comments-unread-dot')).toBeTruthy();
-      expect(document.querySelector('.context-comments-count')?.textContent).toBe('2');
+      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('2');
     });
   });
 
-  test('section fermée déjà lue : pas de pastille', async () => {
-    writeContextCommentReadCursor('student', 's1', 'task', 't1', 20);
+  test('section fermée déjà lue : pastille verte avec le total', async () => {
+    writeContextCommentReadCursor('student', 's1', 'task', 't1', 20, 2);
     getContextCommentCounts.mockResolvedValue({
       counts: { t1: { total: 2, newestId: 20 } },
     });
@@ -95,9 +94,28 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
     renderComments();
 
     await waitFor(() => {
-      expect(document.querySelector('.context-comments-count')?.textContent).toBe('2');
+      expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('2');
     });
-    expect(document.querySelector('.context-comments-unread-dot')).toBeNull();
+    expect(document.querySelector('.context-comments-count--unread')).toBeNull();
+  });
+
+  test('nouveaux commentaires depuis la lecture : seuls les nouveaux sont comptés', async () => {
+    writeContextCommentReadCursor('student', 's1', 'task', 't1', 20, 2);
+    getContextCommentCounts.mockResolvedValue({
+      counts: { t1: { total: 5, newestId: 50 } },
+    });
+
+    renderComments();
+
+    await waitFor(() => {
+      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('3');
+    });
+  });
+
+  test('aucun commentaire : pas de pastille', async () => {
+    renderComments();
+    await waitFor(() => expect(getContextCommentCounts).toHaveBeenCalled());
+    expect(document.querySelector('.context-comments-count')).toBeNull();
   });
 
   test('un seul appel liste complet à l’ouverture', async () => {
@@ -122,7 +140,8 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
       expect(screen.getByText('Message 2')).toBeTruthy();
       expect(screen.getByText('Message 1')).toBeTruthy();
     });
-    expect(document.querySelector('.context-comments-unread-dot')).toBeNull();
+    expect(document.querySelector('.context-comments-count--unread')).toBeNull();
+    expect(document.querySelector('.context-comments-count--read')?.textContent).toBe('2');
   });
 
   test('repli : conserve le total affiché sans nouvel appel liste', async () => {
@@ -147,7 +166,7 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
     expect(getContextCommentCounts.mock.calls.length).toBeGreaterThanOrEqual(countsBeforeCollapse);
   });
 
-  test('temps réel section fermée : point non lu + refresh résumé', async () => {
+  test('temps réel section fermée : pastille rouge + refresh résumé', async () => {
     getContextCommentCounts
       .mockResolvedValueOnce({ counts: { t1: { total: 0, newestId: 0 } } })
       .mockResolvedValue({ counts: { t1: { total: 1, newestId: 11 } } });
@@ -165,8 +184,7 @@ describe('ContextComments (résumé fermé + liste à l’ouverture)', () => {
     );
 
     await waitFor(() => {
-      expect(document.querySelector('.context-comments-unread-dot')).toBeTruthy();
-      expect(document.querySelector('.context-comments-count')?.textContent).toBe('1');
+      expect(document.querySelector('.context-comments-count--unread')?.textContent).toBe('1');
     });
     expect(listContextComments).not.toHaveBeenCalled();
   });

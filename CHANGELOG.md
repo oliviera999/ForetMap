@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Commentaires contextuels : pastille chiffrée rouge (non-lus) / verte (tout lu)
+
+- Le petit point « non lu » et le nombre brut sont remplacés par **une seule pastille** :
+  rouge avec le **nombre de non-lus**, verte avec le **total** une fois tout lu, absente
+  sans commentaire. Rouge foncé (`#c0392b`) plutôt que `--alert` pour un chiffre blanc
+  lisible (contraste AA).
+- Le curseur de lecture local mémorise désormais aussi le **total vu** ; les non-lus sont
+  l'écart avec le total actuel (au moins 1 dès que le fil a changé). Nouvel utilitaire
+  `countUnreadContextComments` (`src/utils/contextCommentsHelpers.js`). Aucun changement
+  côté serveur.
+
 ### Ajouté — Séances pédagogiques : fin de séance, suivi et note au carnet (lot 4)
 
 - **Suivi léger** (migration `283`, table `pedago_session_runs`) : pour chaque personne

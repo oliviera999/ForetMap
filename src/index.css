@@ -7247,17 +7247,28 @@
   min-width:0;
   text-align:left;
 }
-.context-comments-unread-dot {
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  flex-shrink:0;
-  background:var(--forest);
-  opacity:0.75;
-  box-shadow:0 0 0 1.5px rgba(255, 255, 255, 0.95);
-}
 .context-comments-count {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  min-width:22px;
+  height:22px;
+  padding:0 7px;
+  border-radius:999px;
+  box-sizing:border-box;
+  font-size:var(--text-xs);
+  font-weight:700;
+  line-height:1;
   font-variant-numeric:tabular-nums;
+  color:#fff;
+}
+.context-comments-count--read {
+  background:var(--forest);
+}
+/* Plus foncé que --alert : un chiffre blanc sur #e76f51 reste sous le contraste AA (≈ 3:1). */
+.context-comments-count--unread {
+  background:#c0392b;
 }
 .context-comments-preview {
   border-top:1px solid rgba(0,0,0,.06);

@@ -69,10 +69,22 @@ commentaires) et rester informé (notifications, temps réel).
   projet ou une zone — la discussion reste au plus près du travail concerné. Mêmes
   participants que le forum : tout le monde sauf les visiteurs. Depuis le **Plan des
   personnels**, le bouton « Signaler ou proposer » d'une fiche de lieu écrit dans ces mêmes
-  commentaires, et le message ressort dans « Messages reçus sur les lieux ». Sur la
-  liste, le **nombre** de commentaires s’affiche même quand la section est repliée ;
-  un **point** signale les messages non lus (jamais ouverts, ou nouveaux depuis la
-  dernière consultation). Ouvrir la section marque les messages comme lus.
+  commentaires, et le message ressort dans « Messages reçus sur les lieux ». À côté du
+  titre de la section, même repliée, une **pastille chiffrée** résume la situation :
+  - **rouge** avec le **nombre de commentaires non lus** (jamais ouverts, ou arrivés
+    depuis la dernière consultation) ;
+  - **verte** avec le **nombre total** de commentaires une fois tout lu ;
+  - **aucune pastille** quand il n'y a pas encore de commentaire.
+
+  Ouvrir la section marque les messages comme lus et la pastille repasse au vert.
+
+  > ⚠️ **Points d'attention** — le suivi de lecture est propre à chaque appareil : un fil
+  > lu sur l'ordinateur de la salle reste rouge sur le téléphone. Le nombre de non-lus est
+  > déduit de l'écart avec le nombre de commentaires lors de la dernière lecture : si des
+  > messages ont été supprimés entre-temps, il peut être sous-estimé (il vaut toujours au
+  > moins 1 dès qu'il y a du nouveau). Au premier affichage après cette évolution, les fils
+  > déjà lus mais modifiés depuis comptent tous leurs commentaires comme non lus, une seule
+  > fois.
 
   > ⚠️ **Corrigé le 23 septembre 2026** — le point « non lus » ne s’allumait **jamais**, et
   > deux messages envoyés dans la même seconde pouvaient s’afficher dans le désordre. Le
