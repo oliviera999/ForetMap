@@ -6,6 +6,11 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
 const { emitContextCommentsChanged } = require('../lib/realtime');
+const {
+  fireAndForget,
+  notifyContextComment,
+  notifyPlaceMessageStatus,
+} = require('../lib/notificationEvents');
 const { isReportsEnabled } = require('../lib/settings');
 const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
@@ -271,6 +276,17 @@ router.patch(
       contextId: comment.context_id,
       commentId: comment.id,
     });
+    if (comment.place_status !== previousStatus) {
+      fireAndForget(
+        () =>
+          notifyPlaceMessageStatus({
+            commentId: comment.id,
+            status: comment.place_status,
+            actorUserId: actor.userId,
+          }),
+        { commentId: comment.id },
+      );
+    }
     return res.json({ ok: true, id: comment.id, place_status: comment.place_status });
   }),
 );
@@ -422,6 +438,10 @@ router.post(
       },
     );
     emitContextCommentsChanged({ reason: 'comment_created', contextType, contextId, commentId });
+    fireAndForget(
+      () => notifyContextComment({ contextType, contextId, body, actorUserId: actor.userId }),
+      { commentId },
+    );
     return res.status(201).json(created);
   }),
 );

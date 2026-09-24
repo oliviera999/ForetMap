@@ -9,6 +9,13 @@ const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { logAudit } = require('../lib/auditLog');
 const { emitTasksChanged } = require('../lib/realtime');
+const { getActor } = require('../lib/shared/participationGuards');
+const { listTaskAssigneeIds } = require('../lib/notifications');
+const {
+  fireAndForget,
+  notifyTaskStatusChange,
+  notifyTaskDeleted,
+} = require('../lib/notificationEvents');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
 const { syncTaskSpecies, loadTaskSpeciesMap } = require('../lib/speciesJunction');
 const dbSpecies = { queryAll, queryOne, execute, withTransaction };
@@ -1363,6 +1370,18 @@ router.put('/:id', async (req, res) => {
     if (becameValidated) {
       await syncProgressionForValidatedTask(task.id);
     }
+    if (!isProposerAction) {
+      const putActor = getActor(auth);
+      fireAndForget(
+        () =>
+          notifyTaskStatusChange({
+            task: updated,
+            previousStatus: currentStatus,
+            actorUserId: putActor?.userId || null,
+          }),
+        { taskId: task.id },
+      );
+    }
     res.json(updated);
   } catch (e) {
     let exposeDetail = false;
@@ -1384,6 +1403,12 @@ router.delete(
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    // Lus avant la transaction : la suppression efface les inscriptions.
+    const deletedAssigneeIds = await listTaskAssigneeIds(task.id);
+    const deletedProposerId =
+      normalizeTaskStatusForRead(task.status) === 'proposed'
+        ? await getTaskProposerStudentId(task.id)
+        : null;
     if (task.image_path) deleteFile(task.image_path);
     // Suppression atomique : sans transaction, un échec entre deux DELETE laissait une tâche
     // amputée de ses logs/assignations (les écritures composées de ce fichier — POST/PUT/validate —
@@ -1399,6 +1424,16 @@ router.delete(
       taskId: req.params.id,
       mapId: resolveTaskMapId(task),
     });
+    fireAndForget(
+      () =>
+        notifyTaskDeleted({
+          task: { ...task, status: normalizeTaskStatusForRead(task.status) },
+          assigneeIds: deletedAssigneeIds,
+          proposerId: deletedProposerId,
+          actorUserId: getActor(req.auth)?.userId || null,
+        }),
+      { taskId: task.id },
+    );
     const delProjectId =
       task.project_id != null && String(task.project_id).trim()
         ? String(task.project_id).trim()
@@ -1495,6 +1530,15 @@ router.post(
     await syncProgressionForValidatedTask(task.id);
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    fireAndForget(
+      () =>
+        notifyTaskStatusChange({
+          task: updated,
+          previousStatus: currentStatus,
+          actorUserId: getActor(req.auth)?.userId || null,
+        }),
+      { taskId: task.id },
+    );
     await syncTaskProjectCompletionForProjects([task.project_id]);
     res.json(updated);
   }),

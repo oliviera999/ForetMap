@@ -24,6 +24,7 @@ const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { runAutoArchiveJob } = require('./lib/autoArchive');
 const { purgeOldNotifications } = require('./lib/notifications');
+const { runTaskDeadlineRemindersJob } = require('./lib/taskDeadlineReminders');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { recordBoot, recordStop, recordCrash } = require('./lib/bootJournal');
@@ -795,6 +796,7 @@ function scheduleRecurringTaskSpawn() {
     // Archivage automatique des tâches/projets validés anciens (réglable, cf. lib/autoArchive).
     runAutoArchiveJob().catch((err) => logger.warn({ err }, 'Job archivage automatique'));
     purgeOldNotifications().catch((err) => logger.warn({ err }, 'Job purge notifications'));
+    runTaskDeadlineRemindersJob().catch((err) => logger.warn({ err }, 'Job rappels d’échéance'));
   };
   recurringJobFirstTimeoutId = setTimeout(() => {
     recurringJobFirstTimeoutId = null;

@@ -6,10 +6,17 @@ const {
   assignmentRowMatchesStudent,
 } = require('../../lib/tasks/assignmentIdentityMatch');
 const { requirePermission } = require('../../middleware/requireTeacher');
+const { getActor } = require('../../lib/shared/participationGuards');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
+const {
+  fireAndForget,
+  notifyTaskSelfAssigned,
+  notifyTaskGroupAssigned,
+  notifyTaskDone,
+} = require('../../lib/notificationEvents');
 const { syncTaskProjectCompletionForProjects } = require('../../lib/syncTaskProjectCompletion');
 const {
   countStudentActiveTaskAssignments,
@@ -142,6 +149,16 @@ router.post(
       payload: { student_id: action.studentId || null, status: newStatus },
     });
     emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    fireAndForget(
+      () =>
+        notifyTaskSelfAssigned({
+          task: updated,
+          firstName: action.firstName,
+          lastName: action.lastName,
+          actorUserId: action.actorUserId,
+        }),
+      { taskId: task.id },
+    );
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
   }),
@@ -222,13 +239,27 @@ router.post(
         );
       }
       await recalculateTaskStatus(locked, tx);
-      return { assigned: toAssign.length, skipped };
+      return {
+        assigned: toAssign.length,
+        skipped,
+        assignedIds: toAssign.map((student) => String(student.id)),
+      };
     });
 
     if (outcome.http) return res.status(outcome.http).json({ error: outcome.error });
-    const { assigned, skipped } = outcome;
+    const { assigned, skipped, assignedIds } = outcome;
     const updated = await getTaskWithAssignments(task.id);
     emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    const groupActor = getActor(req.auth);
+    fireAndForget(
+      () =>
+        notifyTaskGroupAssigned({
+          task: updated,
+          studentIds: assignedIds,
+          actorUserId: groupActor?.userId || null,
+        }),
+      { taskId: task.id },
+    );
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     return res.json({ task: updated, assigned, skipped, considered: students.length });
   }),
@@ -339,6 +370,18 @@ router.post(
       },
     });
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
+    if (normalizeTaskStatusForRead(task.status) !== 'done') {
+      fireAndForget(
+        () =>
+          notifyTaskDone({
+            task: updated,
+            firstName: action.firstName,
+            lastName: action.lastName,
+            actorUserId: action.actorUserId,
+          }),
+        { taskId: task.id },
+      );
+    }
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
   }),

@@ -6,6 +6,7 @@ const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
+const { fireAndForget, notifyTaskProposed } = require('../../lib/notificationEvents');
 const { syncTaskSpecies } = require('../../lib/speciesJunction');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
 const {
@@ -193,6 +194,16 @@ router.post(
       payload: { proposer, student_id: action.studentId, required_students: reqStudents },
     });
     emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
+    fireAndForget(
+      () =>
+        notifyTaskProposed({
+          task,
+          proposerFirstName: action.firstName,
+          proposerLastName: action.lastName,
+          actorUserId: action.actorUserId,
+        }),
+      { taskId: id },
+    );
     res.status(201).json(task);
   }),
 );
