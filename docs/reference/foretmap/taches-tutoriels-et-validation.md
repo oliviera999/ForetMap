@@ -69,6 +69,20 @@ parce que son projet a été validé) : elle rejoint alors « ✅ Validées » c
 « Proposée » reste, elle, dans l'encart : quelque chose est encore attendu de l'équipe
 pédagogique.
 
+## Les tâches à valider passent en premier
+
+Pour toute personne **autorisée à valider les tâches** (en général les professeurs, et tout
+rôle à qui ce droit a été donné), l'écran Tâches met en avant ce qui attend sa décision :
+
+- la section **« ⏳ En attente de validation »** s'affiche **en tête**, avant « En cours » et
+  « À faire » ;
+- dans les autres regroupements qui mélangent plusieurs statuts — l'encart « 🚨 Urgent ! »,
+  les blocs de projets, « Mes tâches » et les résultats filtrés — les tâches terminées en
+  attente de validation sont **placées en haut**, le reste gardant son ordre habituel.
+
+Les personnes sans ce droit voient l'ordre habituel : « En attente de validation » reste
+plus bas, après les tâches sur lesquelles elles peuvent agir.
+
 ## Retrouver une tâche : recherche, filtres et affichage
 
 L'écran Tâches propose une **barre de recherche**, un **bouton « ⚙️ Filtres »** et un

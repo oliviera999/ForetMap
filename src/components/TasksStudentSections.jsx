@@ -14,9 +14,10 @@ import {
  *
  * Rend, dans l'ordre, les sections « En cours (déjà prises) », « Tâches à faire »,
  * « Mes propositions », le bloc des projets actifs, puis « En attente de validation »,
- * « En attente » et « Récemment validées ». Affiché lorsque l'élève n'a pas de filtres
- * actifs. Présentation pure : ne fait que composer `TaskTileSection` et
- * `TaskProjectsBlock`. DOM/classes/textes strictement inchangés.
+ * « En attente » et « Récemment validées ». Avec `validationFirst` (rôle autorisé à
+ * valider les tâches), « En attente de validation » passe en tête. Affiché lorsque
+ * l'élève n'a pas de filtres actifs. Présentation pure : ne fait que composer
+ * `TaskTileSection` et `TaskProjectsBlock`.
  *
  * @param {object} props
  * @param {Array} props.inProgressNotMine tâches en cours déjà prises par d'autres
@@ -26,6 +27,7 @@ import {
  * @param {Array} props.onHoldNotMine tâches en attente (hors les miennes)
  * @param {Array} props.recentlyValidatedForStudent tâches récemment validées de l'élève
  * @param {Array} props.activeProjects projets actifs à afficher dans le bloc projets
+ * @param {boolean} [props.validationFirst] affiche « En attente de validation » en premier
  * @param {string} props.sectionListClass classe CSS de la liste selon le mode d'affichage
  * @param {object} props.taskTileProps props communes passées à chaque `TaskTileSection`
  * @param {object} props.taskProjectsBlockProps props communes du `TaskProjectsBlock`
@@ -38,12 +40,26 @@ export function TasksStudentSections({
   onHoldNotMine,
   recentlyValidatedForStudent,
   activeProjects,
+  validationFirst = false,
   sectionListClass,
   taskTileProps,
   taskProjectsBlockProps,
 }) {
+  const awaitingValidationSection = (
+    <TaskTileSection
+      title={
+        <>
+          <IconHourglass size={16} /> En attente de validation
+        </>
+      }
+      tasks={doneNotMine}
+      sectionListClass={sectionListClass}
+      taskTileProps={taskTileProps}
+    />
+  );
   return (
     <>
+      {validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
           <>
@@ -75,16 +91,7 @@ export function TasksStudentSections({
         taskTileProps={taskTileProps}
       />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
-      <TaskTileSection
-        title={
-          <>
-            <IconHourglass size={16} /> En attente de validation
-          </>
-        }
-        tasks={doneNotMine}
-        sectionListClass={sectionListClass}
-        taskTileProps={taskTileProps}
-      />
+      {!validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
           <>

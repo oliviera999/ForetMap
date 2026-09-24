@@ -32,6 +32,7 @@ import {
   applyTaskFilters,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
+  prioritizeTasksAwaitingValidation,
 } from '../utils/taskSectioning.js';
 import {
   hasActiveStudentFilters,
@@ -576,9 +577,17 @@ function TasksViewImpl({
   // La section « 🚨 Urgent ! » ne retient que les tâches urgentes ENCORE en cours de vie :
   // une tâche urgente validée doit repartir dans « ✅ Validées » / « ✅ Récemment validées »
   // (avant, elle restait piégée dans l'encart urgence, retirée de toutes les autres sections).
+  const validationFirst = teacherTaskPerms.canValidateTasks;
+  const prioritizeForValidator = useCallback(
+    (list) => (validationFirst ? prioritizeTasksAwaitingValidation(list) : list),
+    [validationFirst],
+  );
   const urgentCategoryTasks = useMemo(
-    () => allFiltered.filter(isTaskUrgentPending).sort(compareTasksByImportanceThenDueDate),
-    [allFiltered],
+    () =>
+      prioritizeForValidator(
+        allFiltered.filter(isTaskUrgentPending).sort(compareTasksByImportanceThenDueDate),
+      ),
+    [allFiltered, prioritizeForValidator],
   );
   const allFilteredWithoutUrgent = useMemo(
     () => allFiltered.filter((t) => !isTaskUrgentPending(t)),
@@ -595,8 +604,13 @@ function TasksViewImpl({
       if (bucket) bucket.push(t);
       else byProject.set(projectId, [t]);
     }
+    if (validationFirst) {
+      for (const [projectId, bucket] of byProject) {
+        byProject.set(projectId, prioritizeTasksAwaitingValidation(bucket));
+      }
+    }
     return byProject;
-  }, [allFilteredWithoutUrgent]);
+  }, [allFilteredWithoutUrgent, validationFirst]);
   const visibleProjectIds = useMemo(
     () => new Set(visibleProjects.map((p) => String(p.id || ''))),
     [visibleProjects],
@@ -614,8 +628,12 @@ function TasksViewImpl({
     [isTeacher, allFiltered, student],
   );
   const myTasks = useMemo(
-    () => studentActiveAssignedTasks(regularFiltered, student),
-    [regularFiltered, student],
+    () => prioritizeForValidator(studentActiveAssignedTasks(regularFiltered, student)),
+    [regularFiltered, student, prioritizeForValidator],
+  );
+  const studentFilteredResults = useMemo(
+    () => prioritizeForValidator(regularFiltered),
+    [regularFiltered, prioritizeForValidator],
   );
   const { available, inProgress, done, validated, proposed, onHold } = useMemo(
     () => partitionTasksByEffectiveStatus(regularFiltered),
@@ -1062,6 +1080,7 @@ function TasksViewImpl({
           onHold={onHold}
           validated={validated}
           activeProjects={activeProjects}
+          validationFirst={validationFirst}
           roleTerms={roleTerms}
           sectionListClass={sectionListClass}
           taskTileProps={taskTileProps}
@@ -1077,7 +1096,7 @@ function TasksViewImpl({
                     <IconSearch size={16} /> {`Résultats filtrés (${regularFiltered.length})`}
                   </>
                 }
-                tasks={regularFiltered}
+                tasks={studentFilteredResults}
                 sectionListClass={sectionListClass}
                 taskTileProps={taskTileProps}
                 showWhenEmpty
@@ -1093,6 +1112,7 @@ function TasksViewImpl({
               onHoldNotMine={onHoldNotMine}
               recentlyValidatedForStudent={recentlyValidatedForStudent}
               activeProjects={activeProjects}
+              validationFirst={validationFirst}
               sectionListClass={sectionListClass}
               taskTileProps={taskTileProps}
               taskProjectsBlockProps={taskProjectsBlockProps}

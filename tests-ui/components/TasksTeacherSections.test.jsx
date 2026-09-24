@@ -64,4 +64,18 @@ describe('TasksTeacherSections', () => {
     // En cours, À faire, Propositions, En attente de validation, En attente, Validées
     expect(counts).toEqual(['1', '2', '1', '3', '1', '1']);
   });
+
+  test('place « En attente de validation » en tête quand validationFirst', () => {
+    renderSections({ validationFirst: true });
+    const sections = screen.getAllByTestId('tile-section');
+    expect(sections[0]).toHaveTextContent('En attente de validation (3)');
+    expect(sections.map((el) => el.getAttribute('data-count'))).toEqual([
+      '3',
+      '1',
+      '2',
+      '1',
+      '1',
+      '1',
+    ]);
+  });
 });

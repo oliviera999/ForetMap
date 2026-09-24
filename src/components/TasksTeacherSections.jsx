@@ -14,8 +14,9 @@ import {
  *
  * Rend, dans l'ordre, les sections « En cours », « À faire », le bloc des projets
  * actifs, puis « Propositions », « En attente de validation », « En attente » et
- * « Validées ». Présentation pure : ne fait que composer `TaskTileSection` et
- * `TaskProjectsBlock`. DOM/classes/textes strictement inchangés.
+ * « Validées ». Avec `validationFirst` (droit de valider les tâches), la section
+ * « En attente de validation » passe en tête. Présentation pure : ne fait que composer
+ * `TaskTileSection` et `TaskProjectsBlock`.
  *
  * @param {object} props
  * @param {Array} props.inProgress tâches en cours
@@ -25,6 +26,7 @@ import {
  * @param {Array} props.onHold tâches en attente
  * @param {Array} props.validated tâches validées
  * @param {Array} props.activeProjects projets actifs à afficher dans le bloc projets
+ * @param {boolean} [props.validationFirst] affiche « En attente de validation » en premier
  * @param {{ studentPlural: string }} props.roleTerms terminologie de rôle (pluriel élève)
  * @param {string} props.sectionListClass classe CSS de la liste selon le mode d'affichage
  * @param {object} props.taskTileProps props communes passées à chaque `TaskTileSection`
@@ -38,13 +40,27 @@ export function TasksTeacherSections({
   onHold,
   validated,
   activeProjects,
+  validationFirst = false,
   roleTerms,
   sectionListClass,
   taskTileProps,
   taskProjectsBlockProps,
 }) {
+  const awaitingValidationSection = (
+    <TaskTileSection
+      title={
+        <>
+          <IconHourglass size={16} /> {`En attente de validation (${done.length})`}
+        </>
+      }
+      tasks={done}
+      sectionListClass={sectionListClass}
+      taskTileProps={taskTileProps}
+    />
+  );
   return (
     <>
+      {validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
           <>
@@ -76,16 +92,7 @@ export function TasksTeacherSections({
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
-      <TaskTileSection
-        title={
-          <>
-            <IconHourglass size={16} /> {`En attente de validation (${done.length})`}
-          </>
-        }
-        tasks={done}
-        sectionListClass={sectionListClass}
-        taskTileProps={taskTileProps}
-      />
+      {!validationFirst && awaitingValidationSection}
       <TaskTileSection
         title={
           <>

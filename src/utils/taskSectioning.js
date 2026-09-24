@@ -91,6 +91,25 @@ export function taskSectionStatus(task) {
   return taskEffectiveStatus({ ...task, project_status: null });
 }
 
+/** Tâche terminée par les participants, en attente de la validation d'un prof. */
+export function isTaskAwaitingValidation(task) {
+  return taskSectionStatus(task) === 'done';
+}
+
+/**
+ * Remonte les tâches en attente de validation en tête de liste (tri stable : l'ordre
+ * d'origine est conservé de part et d'autre). Réservé aux utilisateurs pouvant valider.
+ */
+export function prioritizeTasksAwaitingValidation(list) {
+  const awaiting = [];
+  const others = [];
+  for (const t of Array.isArray(list) ? list : []) {
+    if (isTaskAwaitingValidation(t)) awaiting.push(t);
+    else others.push(t);
+  }
+  return awaiting.length === 0 ? others : [...awaiting, ...others];
+}
+
 /** Une tâche passe-t-elle l'ensemble des filtres de la vue Tâches ? */
 export function taskMatchesFilters(
   t,
