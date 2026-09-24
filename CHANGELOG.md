@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — « Carte introuvable » en mode visite (complexe Nawal El Moutawakel)
+
+- **Symptôme** : pour un prof sans classe (ni permission de gestion des lieux), choisir le
+  complexe en mode visite affichait « Carte introuvable » ; le fond du complexe s'affichait
+  sous les zones et repères de N³, et le cadrage se calait sur eux (carte décentrée vers le bas).
+- **Cause** : `/api/maps` liste au compte connecté toutes les cartes de son périmètre, tandis
+  que `/api/visit/content` appliquait la liste blanche de la Visite **publique**, qui exclut les
+  cartes déclarées sur un plan gardé (`ui.plan.selectable_map_ids`).
+- **Serveur** : `resolveVisitMapIdForViewer` borne un lecteur connecté sur la surface `map` par
+  le périmètre de son compte (`canAccessMapId`), comme les routes de la carte ; l'anonyme et les
+  produits plan / personnels gardent la liste blanche publique.
+- **Front** : `useVisitContent` vide le contenu quand le chargement d'une **autre** carte échoue,
+  au lieu de laisser les lieux de la carte précédente sur le nouveau fond.
+- Tests : `tests/security-surfaces.test.js` (3 cas), `tests-ui/hooks/useVisitContent.test.jsx`
+  (2 cas).
+
 ### Modifié — menu « Aperçu » unique dans l'en-tête (vue de rôle + affichage biodiversité)
 
 - **Bug corrigé** : le sélecteur « Voir comme un élève », rendu hors de `.teacher-nav`, héritait

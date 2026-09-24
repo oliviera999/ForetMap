@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-b362a94a";
+const CACHE_NAME = "foretmap-gl-ffb3f437";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -9,29 +9,29 @@ const PRECACHE_URLS = [
   "/manifest.json",
   "/gl/favicon.svg",
   "/gl/logo.png",
-  "/assets/gl-C_zOJbzK.js",
+  "/assets/gl-dGI7oscg.js",
   "/assets/gl-Dm1wfjNP.css",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/AppDialogsProvider-C4M6n1QR.js",
-  "/assets/react-vendor-CiETBgCW.js",
-  "/assets/icons-DU9XRG1S.js",
-  "/assets/ErrorBoundary-CXZs4fNW.js",
+  "/assets/AppDialogsProvider-CXDMcml_.js",
+  "/assets/react-vendor-Dcb_X5td.js",
+  "/assets/icons-BNguv2wG.js",
+  "/assets/ErrorBoundary-C5N53ggk.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-COXMxMq5.js",
+  "/assets/ImageLightboxProvider-CQ-PsWkc.js",
   "/assets/ImageLightboxProvider-BQXMtgsx.css",
   "/assets/markdown-BT1_tLPZ.js",
-  "/assets/spriteCutCatalogEntry-BChDNI2J.js",
-  "/assets/socket-io-CQ0Cr98w.js",
-  "/assets/GuidedTourOverlay-hLlR1QF4.js",
-  "/assets/HelpDock-CFAe4ZIb.js",
+  "/assets/spriteCutCatalogEntry-CTYeaP-2.js",
+  "/assets/socket-io-SGWxBABF.js",
+  "/assets/GuidedTourOverlay-Bvkbve9k.js",
+  "/assets/HelpDock-DwnfGkPt.js",
   "/assets/HelpDock-ML7ofH8p.css",
-  "/assets/apiGL-LQEzXZ9r.js",
-  "/assets/presenceListPatch-ec7kIza8.js",
-  "/assets/JournalBookView-CZLWNENq.js",
+  "/assets/apiGL-C7MQBNLu.js",
+  "/assets/presenceListPatch-DpwjUstN.js",
+  "/assets/JournalBookView-Cwjsg730.js",
   "/assets/brandNames-DXNkSTQD.js",
-  "/assets/FoodWebGraph-BApEIV7V.js",
-  "/assets/mascotBehaviorEngine-WwAWHKYH.js",
-  "/assets/MediaLibraryMenu-Dk3wX8_6.js",
+  "/assets/FoodWebGraph-BguooGV6.js",
+  "/assets/mascotBehaviorEngine-CAZEJOzS.js",
+  "/assets/MediaLibraryMenu-BXLt5Od4.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).

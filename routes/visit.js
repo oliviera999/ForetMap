@@ -35,6 +35,7 @@ const {
   ratioPct,
 } = require('../lib/visitContentHelpers');
 const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
+const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
 
 const router = express.Router();
 
@@ -227,7 +228,9 @@ router.get(
   asyncHandler(async (req, res) => {
     // Liste blanche de la Visite : une carte réservée à une surface gardée n'y est pas
     // servie (`docs/AUDIT_SECURITE_2026-09-22.md`, lot B).
-    const visitMap = await resolveVisitMapIdForViewer(req.query.map_id, req.auth);
+    const visitMap = await resolveVisitMapIdForViewer(req.query.map_id, req.auth, {
+      surface: resolveSurfaceForRequest(req),
+    });
     if (visitMap.error) return res.status(400).json({ error: visitMap.error });
     const mapId = visitMap.mapId;
     const cached = visitContentCache.get(mapId);
