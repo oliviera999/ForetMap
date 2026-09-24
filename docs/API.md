@@ -782,6 +782,11 @@ Conséquences sur les routes de lieux (`/api/zones`, `/api/zones/:id`, `/api/map
 
 `GET /api/visit/content` applique la même liste blanche (point 2) : `?map_id=` hors Visite
 répond `400 { error: 'Carte introuvable' }`. C'est la route qui n'en avait **aucune**.
+Exceptions : un gestionnaire de lieux n'est pas borné ; un lecteur **connecté sur le produit
+ForêtMap** (surface `map`) est borné par le **périmètre de son compte** et non par la liste
+blanche publique — exactement les cartes que lui liste `GET /api/maps`. Sans cela, une carte
+déclarée sur un plan gardé était proposée en mode visite puis refusée (« Carte introuvable »).
+Une carte hors périmètre répond le même `400`.
 
 La surcharge d'en-tête **`X-Foretmap-Product`** n'est honorée **qu'hors production** (et dans
 le harnais e2e) : en production, la surface se déduit du host seul.
