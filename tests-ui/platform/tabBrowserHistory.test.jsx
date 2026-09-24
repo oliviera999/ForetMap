@@ -49,8 +49,11 @@ describe('useTabBrowserHistory — empilement et Retour', () => {
         historyStates.push(state);
       },
       back() {
-        if (historyStates.length <= 1) return;
-        historyStates.pop();
+        history.go(-1);
+      },
+      go(delta) {
+        if (delta >= 0 || historyStates.length <= 1) return;
+        historyStates.splice(historyStates.length + delta);
         const event = { state: historyStates[historyStates.length - 1] };
         popListeners.forEach((fn) => fn(event));
       },
@@ -142,5 +145,50 @@ describe('useTabBrowserHistory — empilement et Retour', () => {
     rerender({ currentTab: 'tasks' });
     expect(historyStates.length).toBe(1);
     expect(historyStates[0][TAB_HISTORY_STATE_KEY]).toBe('tasks');
+  });
+
+  /**
+   * Menu mobile de la barre prof : toucher un pôle ouvre la feuille (entrée de surcouche)
+   * ET son premier onglet (entrée d'onglet, empilée par-dessus). Choisir un autre onglet
+   * dans la feuille la ferme : le recul différé de la surcouche retombait sur l'entrée du
+   * premier onglet, et le `popstate` ramenait l'utilisateur dessus — il fallait rouvrir le
+   * pôle et cliquer une seconde fois.
+   */
+  test('fermer une surcouche en changeant d’onglet ne ramène pas l’onglet précédent', async () => {
+    const { pushOverlayClose, removeOverlayClose } =
+      await import('../../src/shared/platform/overlayHistory.js');
+    let tab = 'map';
+    const setTab = (next) => {
+      tab = next;
+    };
+    const isKnownTab = (id) => ['map', 'tasks', 'plants'].includes(id);
+    const { rerender, result } = renderHook(
+      ({ currentTab }) => useTabBrowserHistory({ tab: currentTab, setTab, isKnownTab }),
+      { initialProps: { currentTab: tab } },
+    );
+
+    const closeSheet = vi.fn();
+    act(() => {
+      pushOverlayClose(closeSheet);
+      result.current.navigateTab('tasks');
+    });
+    rerender({ currentTab: tab });
+    expect(tab).toBe('tasks');
+
+    // Même commit React (clic discret) : l'effet d'onglet empile `plants`, puis le démontage
+    // de la feuille programme son recul d'historique en microtâche.
+    act(() => {
+      result.current.navigateTab('plants');
+    });
+    rerender({ currentTab: tab });
+    await act(async () => {
+      removeOverlayClose(closeSheet);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    rerender({ currentTab: tab });
+
+    expect(tab).toBe('plants');
+    expect(closeSheet).not.toHaveBeenCalled();
+    expect(historyStates[historyStates.length - 1][TAB_HISTORY_STATE_KEY]).toBe('plants');
   });
 });

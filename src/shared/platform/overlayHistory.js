@@ -11,6 +11,8 @@ let stack = [];
  */
 let pushedEntries = 0;
 let ignorePopCount = 0;
+/** Dernier `popstate` absorbé comme recul programmatique (partagé par tous les écouteurs). */
+let lastIgnoredPopEvent = null;
 let listening = false;
 let syncScheduled = false;
 
@@ -84,13 +86,23 @@ function scheduleHistorySync() {
   Promise.resolve().then(syncHistoryDepth);
 }
 
-function onPopState() {
+/**
+ * Vrai si ce `popstate` vient d'un recul posé par la pile des surcouches, pas du visiteur.
+ * Les autres écouteurs (onglets) doivent l'ignorer quel que soit leur ordre d'inscription :
+ * avant nous, le compteur est encore positif ; après nous, l'événement a été marqué.
+ */
+export function isProgrammaticOverlayPop(event) {
+  return ignorePopCount > 0 || (event != null && event === lastIgnoredPopEvent);
+}
+
+function onPopState(event) {
   if (nativePickerGuard.active && nativePickerGuard.budget > 0) {
     nativePickerGuard.budget -= 1;
     return;
   }
   if (ignorePopCount > 0) {
     ignorePopCount -= 1;
+    lastIgnoredPopEvent = event ?? null;
     return;
   }
   // Retour navigateur : le visiteur vient de consommer une entrée de surcouche.

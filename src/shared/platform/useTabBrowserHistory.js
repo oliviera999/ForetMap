@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { isNativeFilePickerGuardActive } from './overlayHistory';
+import { isNativeFilePickerGuardActive, isProgrammaticOverlayPop } from './overlayHistory';
 import { buildTabHistoryState, readTabFromHistoryState } from './tabBrowserHistory';
 
 /**
@@ -73,6 +73,17 @@ export function useTabBrowserHistory({ tab, setTab, isKnownTab }) {
       const next = readTabFromHistoryState(event.state, isKnownTabRef.current);
       if (!next) return;
       if (next === tabRef.current) return;
+      // Une surcouche fermée dans le même clic qu'un changement d'onglet (menu mobile de la
+      // barre prof) rend son entrée après que l'onglet a empilé la sienne : ce recul n'est
+      // pas un « Retour » du visiteur, l'onglet affiché reste celui qu'il vient de choisir.
+      if (isProgrammaticOverlayPop(event)) {
+        window.history.replaceState(
+          buildTabHistoryState(tabRef.current, event.state),
+          '',
+          window.location.href,
+        );
+        return;
+      }
       syncingFromPopRef.current = true;
       setTab(next);
     };
