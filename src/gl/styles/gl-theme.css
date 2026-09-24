@@ -3556,6 +3556,126 @@ a.gl-glossary-inline-link:hover,
   opacity: 0.65;
 }
 
+.gl-forum-threads li > button {
+  display: grid;
+  gap: 2px;
+}
+
+.gl-forum-threads li > button strong {
+  overflow-wrap: anywhere;
+}
+
+.gl-forum-threads li > button .gl-hint {
+  font-weight: var(--fw-normal, 400);
+}
+
+.gl-forum-thread > header h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gl-forum-thread__title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gl-forum-thread__title .gl-hint {
+  margin: 0;
+}
+
+.gl-forum-post__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+  margin-bottom: 4px;
+}
+
+.gl-forum-post__head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gl-forum-post__head time {
+  font-size: var(--text-xs);
+  opacity: 0.75;
+}
+
+.gl-forum-post__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: var(--lh-normal, 1.5);
+}
+
+.gl-forum-post__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.gl-forum__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+
+.gl-forum .gl-forum__back {
+  display: none;
+  margin-bottom: 8px;
+}
+
+.gl-forum__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.gl-forum__layout .gl-forum-thread {
+  margin-top: 10px;
+}
+
+.gl-forum__placeholder {
+  margin: 10px 0;
+}
+
+/* Deux colonnes dès qu'il y a la place : liste des sujets à gauche, discussion à droite. */
+@media (min-width: 1024px) {
+  .gl-forum__layout {
+    grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  }
+
+  .gl-forum__list {
+    max-height: clamp(260px, 70dvh, 760px);
+    overflow-y: auto;
+  }
+}
+
+/* Une colonne : liste OU discussion (bascule `gl-forum--pane-*`, même seuil que
+   NARROW_QUERY dans GLForumView.jsx). */
+@media (max-width: 1023px) {
+  .gl-forum--pane-list .gl-forum__detail,
+  .gl-forum--pane-detail .gl-forum__list,
+  .gl-forum--pane-detail .gl-forum__actions,
+  .gl-forum--pane-detail .gl-forum__composer {
+    display: none;
+  }
+
+  .gl-forum .gl-forum__back {
+    display: inline-flex;
+  }
+
+  .gl-forum-thread > header {
+    flex-wrap: wrap;
+  }
+}
+
 .gl-journal-event {
   display: grid;
   gap: 4px;

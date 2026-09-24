@@ -121,7 +121,12 @@ distinct du glossaire scientifique) et tutoriels.
 
 ### Les joueurs (la vie sociale)
 
-- **Forum** : discussions entre joueurs.
+- **Forum** : discussions entre joueurs. Chaque message affiche le **pseudo** de son auteur
+  (ou le nom du MJ) et sa date. Sur grand écran, la liste des sujets et la discussion sont
+  côte à côte ; sur téléphone, on passe de l'une à l'autre (bouton « ← Tous les sujets »).
+  Chacun peut supprimer ses propres messages ; le MJ peut supprimer n'importe quel message
+  et verrouiller un sujet (il reste le seul à pouvoir y répondre). Le mode invité ne donne
+  pas accès au forum.
 - **Marché** : échanges de cœurs et de gemmes **entre deux joueurs d'une même classe**,
   avec discussion et double validation (chacun doit accepter).
 - **Statistiques** : progression personnelle et de classe.

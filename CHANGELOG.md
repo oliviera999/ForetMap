@@ -24,6 +24,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   sécurité (au lieu d'un `88vh` en ligne, trop haut sous les barres de Safari iOS / Chrome
   Android). Garde-fou `tests/tap-target-guard.test.js`.
 
+### Corrigé — Forums ForetMap et G&L : audit bugs, agencement et affichage tous écrans
+
+- **ForetMap** : choisir un sujet ne recharge plus la liste des sujets (elle revenait en
+  page 1 à chaque clic) ; réactions, messages d’autrui et suppressions rafraîchissent la
+  discussion sans « Chargement… » ni perte de position ; une réaction se met à jour sur
+  place. Sur téléphone/tablette (≤ 1023 px), bascule **liste ↔ discussion** avec bouton
+  « ← Tous les sujets » (la discussion était reléguée sous toute la liste). Formulaire
+  « Nouveau sujet » replié, anti double envoi, retour sur la dernière page après une réponse,
+  sujet verrouillé annoncé à la place du formulaire, badges Épinglé / Verrouillé, pagination
+  masquée s’il n’y a qu’une page. Réactions existantes visibles même repliées ; signalement
+  replié derrière « Signaler » (motif étiqueté, ≥ 3 caractères, pas sur ses propres messages) ;
+  suppression confirmée ; pastilles de réaction à 44 px au toucher.
+- **G&L** : les messages affichaient `gl_player#12` au lieu du pseudo — l’API renvoie
+  désormais `author_display_name` (pseudo / nom du MJ, jamais l’e-mail). Dates, retours à la
+  ligne conservés, deux colonnes sur grand écran et bascule liste ↔ discussion sur mobile,
+  pagination des sujets, suppression de ses messages (tout message pour le MJ) avec
+  confirmation, anti double envoi. Serveur : écriture refusée au mode invité (403),
+  verrouillage d’un sujet inexistant → 404.
+
 ### Ajouté — Forum : point rouge « messages non lus »
 
 - Un point rouge s’allume sur l’onglet **Forum** (barre élève, onglets prof, tiroirs

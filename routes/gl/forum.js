@@ -33,6 +33,34 @@ function canModerate(auth) {
   return String(auth?.userType || '').toLowerCase() === 'gl_admin';
 }
 
+/** Le mode invité est une consultation : aucune écriture dans le forum. */
+function rejectGuestWrite(req, res) {
+  if (String(req.glAuth?.userType || '').toLowerCase() !== 'gl_guest') return false;
+  res.status(403).json({ error: 'Le mode invité ne permet pas d’écrire dans le forum' });
+  return true;
+}
+
+/*
+ * Nom affiché de l'auteur : pseudo du joueur ou nom du MJ — jamais l'e-mail du staff.
+ * `alias` est une constante du code (jamais une entrée utilisateur).
+ */
+function authorDisplayNameSql(alias) {
+  return `COALESCE(
+      CASE ${alias}.author_user_type
+        WHEN 'gl_player' THEN NULLIF(pl.pseudo, '')
+        WHEN 'gl_admin' THEN NULLIF(ad.display_name, '')
+      END,
+      CASE ${alias}.author_user_type WHEN 'gl_admin' THEN 'Maître du jeu' ELSE 'Joueur' END
+    ) AS author_display_name`;
+}
+
+function authorJoinsSql(alias) {
+  return `LEFT JOIN gl_players pl
+            ON ${alias}.author_user_type = 'gl_player' AND pl.id = CAST(${alias}.author_user_id AS UNSIGNED)
+          LEFT JOIN gl_admins ad
+            ON ${alias}.author_user_type = 'gl_admin' AND ad.id = CAST(${alias}.author_user_id AS UNSIGNED)`;
+}
+
 router.use(requireGlAuth);
 router.use(requireModuleEnabled('gl', 'forum', 'Forum désactivé'));
 
@@ -44,8 +72,10 @@ router.get('/threads', validate({ query: glForumPageQuerySchema }), async (req, 
   const total = Number(totalRow?.c || 0);
   const rows = await queryAll(
     `SELECT t.id, t.title, t.author_user_type, t.author_user_id, t.is_locked, t.created_at, t.updated_at,
+            ${authorDisplayNameSql('t')},
             (SELECT COUNT(*) FROM gl_forum_posts p WHERE p.thread_id = t.id AND p.is_deleted = 0) AS posts_count
        FROM gl_forum_threads t
+       ${authorJoinsSql('t')}
       WHERE t.is_deleted = 0
       ORDER BY t.updated_at DESC, t.id DESC
       LIMIT ? OFFSET ?`,
@@ -57,6 +87,7 @@ router.get('/threads', validate({ query: glForumPageQuerySchema }), async (req, 
 });
 
 router.post('/threads', async (req, res) => {
+  if (rejectGuestWrite(req, res)) return undefined;
   const title = normalizeOptionalString(req.body?.title);
   const body = normalizeOptionalString(req.body?.body);
   if (!title || title.length < MIN_TITLE || title.length > MAX_TITLE) {
@@ -86,15 +117,21 @@ router.get('/threads/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const thread = await queryOne(
-    'SELECT * FROM gl_forum_threads WHERE id = ? AND is_deleted = 0 LIMIT 1',
+    `SELECT t.*, ${authorDisplayNameSql('t')}
+       FROM gl_forum_threads t
+       ${authorJoinsSql('t')}
+      WHERE t.id = ? AND t.is_deleted = 0
+      LIMIT 1`,
     [id],
   );
   if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
   const posts = await queryAll(
-    `SELECT id, thread_id, body, author_user_type, author_user_id, is_deleted, created_at
-       FROM gl_forum_posts
-      WHERE thread_id = ?
-      ORDER BY id ASC`,
+    `SELECT p.id, p.thread_id, p.body, p.author_user_type, p.author_user_id, p.is_deleted, p.created_at,
+            ${authorDisplayNameSql('p')}
+       FROM gl_forum_posts p
+       ${authorJoinsSql('p')}
+      WHERE p.thread_id = ?
+      ORDER BY p.id ASC`,
     [id],
   );
   return res.json({
@@ -104,6 +141,7 @@ router.get('/threads/:id', async (req, res) => {
 });
 
 router.post('/threads/:id/posts', async (req, res) => {
+  if (rejectGuestWrite(req, res)) return undefined;
   const threadId = Number(req.params.id);
   if (!Number.isFinite(threadId)) return res.status(400).json({ error: 'Identifiant invalide' });
   const thread = await queryOne(
@@ -138,6 +176,11 @@ router.patch('/threads/:id/lock', async (req, res) => {
   const id = Number(req.params.id);
   const locked = !!req.body?.locked;
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+  const thread = await queryOne(
+    'SELECT id FROM gl_forum_threads WHERE id = ? AND is_deleted = 0 LIMIT 1',
+    [id],
+  );
+  if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
   await execute('UPDATE gl_forum_threads SET is_locked = ?, updated_at = NOW() WHERE id = ?', [
     locked ? 1 : 0,
     id,
@@ -146,6 +189,7 @@ router.patch('/threads/:id/lock', async (req, res) => {
 });
 
 router.delete('/posts/:id', async (req, res) => {
+  if (rejectGuestWrite(req, res)) return undefined;
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const post = await queryOne(

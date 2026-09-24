@@ -52,6 +52,17 @@ commentaires) et rester informé (notifications, temps réel).
   > toute première fois qu'un compte ouvre l'application sur un appareil, le point s'allume
   > s'il existe déjà des messages, puisque rien n'y a encore été lu.
 
+- **Affichage** : sur ordinateur, la liste des sujets est à gauche et la discussion à droite.
+  Sur téléphone ou tablette en portrait, on voit d'abord la **liste** ; toucher un sujet
+  ouvre la **discussion** en plein écran, et le bouton « ← Tous les sujets » ramène à la liste.
+  Le formulaire d'un **nouveau sujet** reste replié derrière le bouton « + Nouveau sujet ».
+  Après une réponse, la discussion se place sur la page qui contient ce nouveau message. Un
+  sujet **verrouillé** l'indique clairement à la place du formulaire de réponse.
+- **Réactions** : les réactions déjà posées restent visibles sous chaque message ; un
+  toucher sur l'une d'elles l'ajoute ou la retire, le bouton « + » ouvre la liste complète.
+- **Signaler / supprimer** : « Signaler » ouvre un petit champ pour le motif (au moins trois
+  caractères) ; on ne signale pas ses propres messages. Supprimer un message demande une
+  confirmation ; le message est alors remplacé par « [message supprimé] » pour tout le monde.
 - **Modération** : les messages peuvent être **signalés** ; les professeurs disposent
   des outils de modération (masquer, supprimer, traiter les signalements).
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
