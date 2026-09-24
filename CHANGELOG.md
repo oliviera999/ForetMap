@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Forum : point rouge « messages non lus »
+
+- Un point rouge s’allume sur l’onglet **Forum** (barre élève, onglets prof, tiroirs
+  mobiles, bouton « Plus » et pôle **Suivi** quand le forum y est rangé) dès qu’un autre
+  compte publie un message non encore vu. Ouvrir le forum l’éteint ; ses propres messages
+  ne l’allument pas.
+- API `GET /api/forum/unread-marker` (dernier message d’autrui dans le périmètre visible) ;
+  curseur de lecture local par utilisateur, rafraîchi par le temps réel `forum:changed`,
+  au retour au premier plan et toutes les 2 min sans socket.
+
 ### Ajouté — Clés d’identification : mode Schéma
 
 - Lecteur : bascule **Questions / Schéma** (préférence mémorisée). Le schéma affiche

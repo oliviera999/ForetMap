@@ -93,6 +93,20 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(screen.queryByText(/à valider\)/)).toBeNull();
   });
 
+  test('point non lu du forum : sur le pôle Suivi, et sur l’onglet Forum quand il est visible', () => {
+    const { rerender } = render(<TeacherTopTabs {...baseProps} hasForumUnread />);
+    const tracking = screen.getByRole('button', { name: /Suivi/ });
+    expect(within(tracking).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: 'Nouveaux messages' })).toHaveLength(1);
+
+    rerender(<TeacherTopTabs {...baseProps} tab="stats" hasForumUnread />);
+    const forum = screen.getByRole('button', { name: /Forum/ });
+    expect(within(forum).getByRole('img', { name: 'Nouveaux messages' })).toBeInTheDocument();
+
+    rerender(<TeacherTopTabs {...baseProps} tab="stats" />);
+    expect(screen.queryByRole('img', { name: 'Nouveaux messages' })).toBeNull();
+  });
+
   test('l’onglet split apparaît dans Contenus quand le grand écran le permet', () => {
     render(<TeacherTopTabs {...baseProps} tab="maptasks" shouldUseDesktopSplit />);
     expect(screen.getByRole('button', { name: 'Cartes, tâches et tuto' })).toHaveClass('active');

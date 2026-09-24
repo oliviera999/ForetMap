@@ -1848,6 +1848,7 @@ Si le réglage public `ui.modules.reports_enabled` est à `false`, les routes `P
 | GET     | `/api/forum/threads?page=1&page_size=20&group_id=:id` | Liste paginée des sujets (tri : épinglés puis activité récente), filtrable par groupe |
 | POST    | `/api/forum/threads`                                  | Créer un sujet + premier message (`{ title, body?, images?, group_id? }`)             |
 | GET     | `/api/forum/threads/:id?page=1&page_size=50`          | Détail d’un sujet + messages paginés                                                  |
+| GET     | `/api/forum/unread-marker`                            | Marqueur du dernier message d’autrui (point « non lus »)                              |
 | POST    | `/api/forum/threads/:id/posts`                        | Ajouter une réponse (`{ body?, images? }`)                                            |
 | POST    | `/api/forum/posts/:id/reactions`                      | Toggle d’une réaction emoji (`{ emoji }`)                                             |
 | POST    | `/api/forum/posts/:id/report`                         | Signaler un message (`{ reason }`)                                                    |
@@ -1863,6 +1864,7 @@ Contraintes principales :
 - `POST /api/forum/posts/:id/reactions` fonctionne en **toggle** (ajoute puis retire sur second clic).
 - `GET /api/forum/threads/:id` inclut `posts[].reactions` (agrégat par emoji + `reacted_by_me`).
 - Le thread transporte `group_id` (nullable) pour la visibilité scoped. Les comptes non globaux ne voient que leurs groupes accessibles.
+- `GET /api/forum/unread-marker` (lecture seule, mêmes gardes que le reste du forum : authentifié, module actif, visiteur refusé) répond `{ latest_post_id, latest_post_at }` : le **dernier message non supprimé publié par un autre compte** dans le périmètre de groupes visible (`null` si aucun). Les messages de l’appelant sont exclus, pour que publier n’allume pas son propre point. Le client compare `latest_post_id` (UUID, comparaison par **égalité**) à un curseur de lecture local par utilisateur (`localStorage`, clé `foretmap:forumReadCursor:<userType>:<userId>`) ; ouvrir l’onglet Forum met ce curseur à jour. Rafraîchi sur l’événement temps réel `forum:changed`, au retour de l’onglet navigateur au premier plan, et toutes les 2 min si le socket n’est pas actif.
 - `409` sur réponse dans un sujet verrouillé.
 - `409` sur signalement dupliqué (même utilisateur, même message, signalement déjà ouvert).
 

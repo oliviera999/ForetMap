@@ -13,6 +13,7 @@ import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePlaceMessagesInbox } from './hooks/usePlaceMessagesInbox';
+import { useForumUnread } from './hooks/useForumUnread';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
@@ -1219,6 +1220,15 @@ function App() {
     backgroundMinIntervalMs: publicSettings?.runtime?.rest_poll_background_floor_ms,
   });
 
+  const { hasUnread: hasForumUnread } = useForumUnread({
+    enabled: !!(student || effectiveIsTeacher) && canAccessForum,
+    userType: String(authClaims?.userType || '').toLowerCase(),
+    userId: String(authClaims?.canonicalUserId || authClaims?.userId || ''),
+    isForumOpen: tab === 'forum',
+    rtStatus,
+    isTabVisible,
+  });
+
   const updateZone = useCallback(
     async (id, data) => {
       await api(`/api/zones/${id}`, 'PUT', data);
@@ -1650,6 +1660,7 @@ function App() {
                           publicSettings?.modules?.observations_enabled !== false
                         }
                         canAccessForum={canAccessForum}
+                        hasForumUnread={hasForumUnread}
                         isN3Affiliated={isN3Affiliated}
                         hasPermission={hasPermission}
                         hasPermissionInRole={hasPermissionInRole}
@@ -1988,6 +1999,7 @@ function App() {
                         }
                         visitEnabled={publicSettings?.modules?.visit_enabled !== false}
                         canAccessForum={canAccessForum}
+                        hasForumUnread={hasForumUnread}
                       />
                     </>
                   )}
