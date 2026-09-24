@@ -60,6 +60,10 @@ export function minPedagoLevel(levels, fallback = DEFAULT_SITE_LEVEL) {
   return best || normalizePedagoLevel(fallback) || DEFAULT_SITE_LEVEL;
 }
 
+/**
+ * Le défaut établissement n'est le socle que si ni la carte ni les groupes ne
+ * fixent de niveau. Sinon le plus simple des niveaux explicites l'emporte.
+ */
 export function resolveBiodivPedagoLevel(input = {}) {
   if (input.isGuestVisit) return 'college';
 
@@ -67,8 +71,14 @@ export function resolveBiodivPedagoLevel(input = {}) {
   if (preview) return preview;
 
   const siteDefault = normalizePedagoLevel(input.siteDefault) || DEFAULT_SITE_LEVEL;
-  const candidates = [...(input.groupLevels || []), input.mapLevel, siteDefault];
-  const base = minPedagoLevel(candidates, siteDefault);
+  const explicit = [];
+  for (const raw of input.groupLevels || []) {
+    const n = normalizePedagoLevel(raw);
+    if (n) explicit.push(n);
+  }
+  const mapLevel = normalizePedagoLevel(input.mapLevel);
+  if (mapLevel) explicit.push(mapLevel);
+  const base = explicit.length > 0 ? minPedagoLevel(explicit, siteDefault) : siteDefault;
 
   const pref = normalizePedagoLevel(input.userPreference);
   if (!pref) return base;

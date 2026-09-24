@@ -54,7 +54,7 @@ test('resolveBiodivPedagoLevel — aperçu prof prioritaire hors visite', () => 
   );
 });
 
-test('resolveBiodivPedagoLevel — base = min(groupes, carte, site)', () => {
+test('resolveBiodivPedagoLevel — base = min des niveaux explicites (groupes, carte)', () => {
   assert.equal(
     resolveBiodivPedagoLevel({
       siteDefault: 'universite',
@@ -62,6 +62,50 @@ test('resolveBiodivPedagoLevel — base = min(groupes, carte, site)', () => {
       groupLevels: ['universite', 'college'],
     }),
     'college',
+  );
+});
+
+test('resolveBiodivPedagoLevel — défaut Collège n’annule pas une carte ou un groupe plus élevé', () => {
+  assert.equal(
+    resolveBiodivPedagoLevel({
+      siteDefault: 'college',
+      mapLevel: 'lycee',
+    }),
+    'lycee',
+  );
+  assert.equal(
+    resolveBiodivPedagoLevel({
+      siteDefault: 'college',
+      groupLevels: ['lycee'],
+    }),
+    'lycee',
+  );
+  assert.equal(
+    resolveBiodivPedagoLevel({
+      siteDefault: 'college',
+      mapLevel: 'universite',
+      groupLevels: ['lycee'],
+    }),
+    'lycee',
+  );
+  // Groupe Collège sur une carte Lycée : le plus simple des niveaux explicites reste.
+  assert.equal(
+    resolveBiodivPedagoLevel({
+      siteDefault: 'universite',
+      mapLevel: 'lycee',
+      groupLevels: ['college'],
+    }),
+    'college',
+  );
+  // Préférence : ne peut toujours pas remonter au-dessus de ce socle.
+  assert.equal(
+    resolveBiodivPedagoLevel({
+      siteDefault: 'college',
+      mapLevel: 'lycee',
+      userPreference: 'universite',
+      prefCanRaise: false,
+    }),
+    'lycee',
   );
 });
 
