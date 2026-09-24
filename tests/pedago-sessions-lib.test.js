@@ -45,3 +45,55 @@ test('helpers : action.type et résolution config → étapes', () => {
   const cfg = normalizeConfig({ plantIds: ['x', 7, 7, 8, 9, 10] });
   assert.deepEqual(cfg.plantIds, [7, 8, 9]);
 });
+
+test('runs : serializeRunRow et summarizeRunStats (agrégats anonymes)', () => {
+  const { serializeRunRow, summarizeRunStats } = require('../lib/pedagoSessionRuns');
+  assert.equal(serializeRunRow(null), null);
+  const run = serializeRunRow({
+    session_id: 's1',
+    user_id: 'u1',
+    start_count: 2,
+    completion_count: 0,
+    first_started_at: '2026-09-01T08:00:00Z',
+    last_started_at: '2026-09-02T08:00:00Z',
+    first_completed_at: null,
+    last_completed_at: null,
+  });
+  assert.equal(run.sessionId, 's1');
+  assert.equal(run.startCount, 2);
+  assert.equal(run.completed, false);
+  assert.equal(run.lastCompletedAt, null);
+  assert.equal(run.firstStartedAt, '2026-09-01T08:00:00.000Z');
+  assert.equal(Object.hasOwn(run, 'userId'), false);
+
+  const stats = summarizeRunStats([
+    { session_id: 's1', user_id: 'u1', start_count: 1, completion_count: 0 },
+    {
+      session_id: 's1',
+      user_id: 'u2',
+      start_count: 1,
+      completion_count: 2,
+      last_completed_at: '2026-09-03T10:00:00Z',
+    },
+    {
+      session_id: 's1',
+      user_id: 'u3',
+      start_count: 0,
+      completion_count: 1,
+      last_completed_at: '2026-09-04T10:00:00Z',
+    },
+    { session_id: 's2', user_id: 'u1', start_count: 0, completion_count: 0 },
+    { session_id: null },
+  ]);
+  const s1 = stats.find((s) => s.sessionId === 's1');
+  assert.deepEqual(s1, {
+    sessionId: 's1',
+    startedUsers: 3,
+    completedUsers: 2,
+    lastCompletedAt: '2026-09-04T10:00:00.000Z',
+  });
+  const s2 = stats.find((s) => s.sessionId === 's2');
+  assert.equal(s2.startedUsers, 0);
+  assert.equal(s2.completedUsers, 0);
+  assert.deepEqual(summarizeRunStats(null), []);
+});

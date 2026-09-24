@@ -112,6 +112,7 @@ import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PedagoSessionBanner } from './components/pedago/PedagoSessionBanner.jsx';
+import { PedagoSessionDoneDialog } from './components/pedago/PedagoSessionDoneDialog.jsx';
 import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
@@ -980,6 +981,8 @@ function App() {
   const [pedagoIdKeysInitialKey, setPedagoIdKeysInitialKey] = useState(null);
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
   const [activePedagoSession, setActivePedagoSession] = useState(() => readStoredPedagoSession());
+  const [completedPedagoSession, setCompletedPedagoSession] = useState(null);
+  const [pedagoRunsVersion, setPedagoRunsVersion] = useState(0);
   // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
   // onglets pour survivre à tout changement de vue — audit A1).
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
@@ -1085,9 +1088,21 @@ function App() {
     writeStoredPedagoSession(next);
   }, []);
 
+  const postPedagoRun = useCallback(
+    (sessionId, kind) => {
+      if (!student || !sessionId) return Promise.resolve();
+      return api(
+        `/api/pedago-sessions/${encodeURIComponent(sessionId)}/runs/${kind}`,
+        'POST',
+      ).catch(() => {});
+    },
+    [student],
+  );
+
   const startPedagoSession = useCallback(
     (session) => {
       if (!session?.steps?.length) return;
+      postPedagoRun(session.id, 'start');
       const next = {
         id: session.id,
         slug: session.slug,
@@ -1099,7 +1114,7 @@ function App() {
       persistPedagoSession(next);
       dispatchPedagoSessionStep(next.steps[0]);
     },
-    [persistPedagoSession, dispatchPedagoSessionStep],
+    [persistPedagoSession, dispatchPedagoSessionStep, postPedagoRun],
   );
 
   const exitPedagoSession = useCallback(() => {
@@ -1108,21 +1123,21 @@ function App() {
 
   const goPedagoSessionStep = useCallback(
     (delta) => {
-      setActivePedagoSession((prev) => {
-        if (!prev?.steps?.length) return prev;
-        const nextIndex = prev.stepIndex + delta;
-        if (nextIndex < 0) return prev;
-        if (nextIndex >= prev.steps.length) {
-          writeStoredPedagoSession(null);
-          return null;
-        }
-        const next = { ...prev, stepIndex: nextIndex };
-        writeStoredPedagoSession(next);
-        queueMicrotask(() => dispatchPedagoSessionStep(next.steps[nextIndex]));
-        return next;
-      });
+      const prev = activePedagoSession;
+      if (!prev?.steps?.length) return;
+      const nextIndex = prev.stepIndex + delta;
+      if (nextIndex < 0) return;
+      if (nextIndex >= prev.steps.length) {
+        persistPedagoSession(null);
+        setCompletedPedagoSession(prev);
+        postPedagoRun(prev.id, 'complete').then(() => setPedagoRunsVersion((v) => v + 1));
+        return;
+      }
+      const next = { ...prev, stepIndex: nextIndex };
+      persistPedagoSession(next);
+      dispatchPedagoSessionStep(next.steps[nextIndex]);
     },
-    [dispatchPedagoSessionStep],
+    [activePedagoSession, persistPedagoSession, dispatchPedagoSessionStep, postPedagoRun],
   );
 
   const pedagoSessionCurrentStep =
@@ -1136,6 +1151,8 @@ function App() {
       activeSession: activePedagoSession,
       currentStep: pedagoSessionCurrentStep,
       onStartSession: startPedagoSession,
+      isAuthenticated: !!student,
+      runsVersion: pedagoRunsVersion,
     }),
     [
       canManageFoodWeb,
@@ -1144,6 +1161,8 @@ function App() {
       activePedagoSession,
       pedagoSessionCurrentStep,
       startPedagoSession,
+      student,
+      pedagoRunsVersion,
     ],
   );
 
@@ -1448,6 +1467,19 @@ function App() {
                       onNext={() => goPedagoSessionStep(1)}
                       onExit={exitPedagoSession}
                       onShowMessage={() => navigateTab('sessions')}
+                    />
+                  )}
+                  {completedPedagoSession && (
+                    <PedagoSessionDoneDialog
+                      session={completedPedagoSession}
+                      canAddToNotebook={
+                        !!student && publicSettings?.modules?.observations_enabled !== false
+                      }
+                      onClose={() => setCompletedPedagoSession(null)}
+                      onOpenNotebook={() => {
+                        setCompletedPedagoSession(null);
+                        navigateTab('notebook');
+                      }}
                     />
                   )}
                   {plantCatalogPreview && (

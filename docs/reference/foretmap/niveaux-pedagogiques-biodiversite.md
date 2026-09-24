@@ -8,8 +8,8 @@
 > **Lot A livré :** les trois niveaux d’affichage, les réglages (compte, carte, groupe,
 > défaut établissement), la visite invitée en Collège, l’aperçu professeur « Voir comme
 > un élève », et les masquages catalogue / réseau / groupes / individus / quiz-glossaire
-> sont **en place**. Les **séances guidées** dans l’application restent à venir (section
-> dédiée plus bas).
+> sont **en place**. Deux **séances guidées** collège sont disponibles dans l’onglet
+> **Séances**, avec un suivi simple « démarrée / terminée » (section dédiée plus bas).
 
 ## À quoi ça sert
 
@@ -155,8 +155,30 @@ Le professeur configure carte / clé / plantes / quiz sans modifier la structure
 Les **parcours** sur la carte (Visite / Carte) restent un outil distinct : lieux à
 visiter, pas enchaînement pédagogique d’onglets.
 
-> 🔧 **À implémenter (plus tard) :** séances C/D (lycée), preuve « j’ai compris »,
-> compteur de démarrages, éditeur libre d’étapes, lien tâches.
+### Fin de séance, suivi et carnet
+
+- Quand l’élève clique sur **Terminer** à la dernière étape, une fenêtre « Séance
+  terminée » s’affiche.
+- Si le carnet est activé, elle propose **« Ajouter une note à mon carnet »** : une note
+  est créée avec le titre de la séance, la liste des étapes suivies, les plantes vues
+  (sous forme de vignettes) et deux questions à compléter, « Ce que j’ai observé » et
+  « Ce que j’ai appris ». Rien n’est ajouté sans ce clic ; l’élève peut ensuite ouvrir
+  son carnet et compléter la note quand il veut.
+- Dans le catalogue, une séance déjà terminée porte l’étiquette **« Terminée »** (avec
+  « ×2 », « ×3 »… si elle a été refaite).
+- Le professeur voit sur chaque séance : **« Démarrée par N · terminée par M »**. Ce sont
+  des nombres de personnes, sans aucun nom.
+
+> ⚠️ **Point d'attention** — Le suivi ne concerne que les personnes **connectées** : une
+> visite invitée peut suivre une séance, mais ne laisse aucune trace et ne voit pas
+> l’étiquette « Terminée ».
+
+> ⚠️ **Point d'attention** — « Terminée » veut seulement dire que l’élève est allé
+> jusqu’au bout du bandeau. Ce n’est **pas une preuve de compréhension** : le mini-quiz
+> et la note du carnet restent les vrais supports d’évaluation.
+
+> 🔧 **À implémenter (plus tard) :** séances C/D (lycée), éditeur libre d’étapes, lien
+> avec les tâches, détail du suivi par élève ou par groupe.
 
 ### Séance A — Collège · 45 min · « Reconnaître sans toucher »
 
