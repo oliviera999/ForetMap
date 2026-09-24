@@ -285,6 +285,43 @@ Désormais :
   Les pastilles et les aplats colorés gardent leurs teintes vives, qui doivent rester
   franches.
 
+### Écrire un texte : la mise en forme à la demande
+
+Les zones de texte longues (description d'une tâche, d'une zone, d'un tutoriel, compte
+rendu, message du forum, commentaire…) se présentent comme une **simple zone de saisie**,
+avec un petit bouton **« Aa Mise en forme »** au-dessus, à droite. La plupart des textes
+n'ont besoin d'aucune mise en forme : l'écran reste donc léger.
+
+- **Un clic sur « Aa Mise en forme »** déplie la barre d'outils, avec des boutons écrits en
+  toutes lettres : **Gras**, **Italique**, **Titre**, **Liste**, **Lien**, puis deux flèches
+  **Annuler** et **Rétablir**. Le bouton **« Plus… »** donne accès aux outils plus rares :
+  petit titre, liste numérotée (1-2-3), encadré, ligne de séparation.
+- La barre **s'ouvre toute seule** quand le texte contient déjà de la mise en forme (un
+  titre, une liste, un mot en gras…). Si on la referme, elle reste fermée.
+- **Les boutons s'allument** quand le curseur est dans un passage déjà mis en forme : on
+  voit tout de suite qu'un mot est en gras ou qu'une ligne est un titre. Un second clic
+  retire la mise en forme.
+- **Ajouter un lien** : sélectionner le texte, cliquer sur « Lien », puis coller ou taper
+  l'adresse. Un petit panneau propose deux champs, le texte affiché et l'adresse. Sans
+  sélection, le texte tapé dans le premier champ est ajouté avec son lien. Une adresse
+  tapée sans « https:// » (par exemple www.exemple.fr) est complétée toute seule. Le bouton
+  **« Enlever le lien »** n'apparaît que lorsque le curseur est sur un lien.
+- **Retour à la ligne** : la touche **Entrée** commence un nouveau paragraphe (avec un
+  petit espace) ; **Maj + Entrée** passe simplement à la ligne suivante, sans espace. Les
+  deux sont conservés à l'enregistrement et au réaffichage.
+- Une phrase d'aide rappelle le fonctionnement sous la zone, seulement quand la barre est
+  ouverte. Les raccourcis clavier sont indiqués au survol des boutons (Ctrl+B pour le gras,
+  Ctrl+I pour l'italique, Ctrl+K pour un lien, Ctrl+Z pour annuler ; Cmd sur Mac).
+
+> ⚠️ **Points d'attention**
+>
+> - Le bouton « Annuler » s'appuie sur l'historique du navigateur : il défait bien la
+>   saisie et la mise en forme récentes, mais pas forcément au-delà d'un texte rechargé
+>   depuis le serveur.
+> - Avant cette version, dans Chrome et Edge, la touche Entrée collait parfois la nouvelle
+>   ligne à la précédente. C'est corrigé ; un texte déjà enregistré « collé » doit être
+>   reséparé à la main.
+
 ### La pastille d'état en bas d'écran
 
 Une petite **pastille discrète**, fixe en bas d'écran (dans ForetMap comme dans

@@ -197,7 +197,8 @@ describe('LocationNotesFields — édition des compléments réservés (migratio
     render(<LocationNotesFields notes={[NOTE]} onChange={vi.fn()} NoteEditor={MarkdownTextarea} />);
     const editor = screen.getByRole('textbox', { name: 'Texte du complément 1' });
     expect(editor.getAttribute('contenteditable')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Insérer un lien' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Mise en forme/ }));
+    expect(screen.getByRole('button', { name: 'Ajouter un lien' })).toBeTruthy();
   });
 
   it('sans case cochée, annonce l’encadrement — un complément ne s’ouvre pas tout seul', () => {
