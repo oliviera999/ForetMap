@@ -56,17 +56,32 @@ export function readContextCommentReadCursor(userType, userId, contextType, cont
     const o = JSON.parse(raw);
     const newestId = normalizeContextCommentMarker(o?.newestId);
     if (!newestId) return null;
-    return { newestId };
+    const total = Number(o?.total);
+    return Number.isFinite(total) && total >= 0 ? { newestId, total } : { newestId };
   } catch {
     return null;
   }
 }
 
-export function writeContextCommentReadCursor(userType, userId, contextType, contextId, newestId) {
+/**
+ * `total` : nombre de commentaires au moment de la lecture, pour pouvoir chiffrer les non-lus
+ * ensuite. Facultatif — les curseurs écrits sans lui restent valides.
+ */
+export function writeContextCommentReadCursor(
+  userType,
+  userId,
+  contextType,
+  contextId,
+  newestId,
+  total,
+) {
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return;
+  const cursor = { newestId: normalizeContextCommentMarker(newestId) };
+  const n = Number(total);
+  if (total != null && Number.isFinite(n) && n >= 0) cursor.total = n;
   safeLocalStorageSetItem(
     contextCommentReadCursorKey(userType, userId, contextType, contextId),
-    JSON.stringify({ newestId: normalizeContextCommentMarker(newestId) }),
+    JSON.stringify(cursor),
   );
 }
 
@@ -105,6 +120,26 @@ export function hasUnreadContextComments(newestId, cursor) {
   if (!newest) return false;
   if (!cursor) return true;
   return newest !== normalizeContextCommentMarker(cursor.newestId);
+}
+
+/**
+ * Nombre de commentaires non lus, déduit de l'écart entre le total actuel et le total vu lors
+ * de la dernière lecture. Toujours ≥ 1 dès que le fil a changé (des suppressions peuvent
+ * masquer des ajouts) et jamais au-delà du total. Curseur sans total mémorisé → on ne sait
+ * pas combien ont été vus, tout le fil compte comme non lu.
+ *
+ * @param {string|number|null|undefined} newestId marqueur servi par l'API
+ * @param {number} total nombre actuel de commentaires
+ * @param {{ newestId: string, total?: number } | null} cursor curseur de lecture local
+ * @returns {number}
+ */
+export function countUnreadContextComments(newestId, total, cursor) {
+  const current = Math.max(0, Number(total) || 0);
+  if (!hasUnreadContextComments(newestId, cursor)) return 0;
+  if (current === 0) return 0;
+  const seen = Number(cursor?.total);
+  if (!cursor || !Number.isFinite(seen)) return current;
+  return Math.min(current, Math.max(1, current - seen));
 }
 
 export function parseReactionEmojiList(rawValue) {

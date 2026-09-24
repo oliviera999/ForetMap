@@ -15,7 +15,7 @@ import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.
 import { fetchContextCommentSummary } from '../utils/contextCommentCountsBatch.js';
 import {
   canModerate,
-  hasUnreadContextComments,
+  countUnreadContextComments,
   parseReactionEmojiList,
   readContextCommentDraft,
   readContextCommentReadCursor,
@@ -44,7 +44,7 @@ function ContextComments({
   const [reportReasonById, setReportReasonById] = useState({});
   const [toast, setToast] = useState('');
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
-  const [hasUnreadComments, setHasUnreadComments] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(
     () => defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim(),
   );
@@ -67,7 +67,7 @@ function ContextComments({
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const markCommentsRead = useCallback(
-    (newestId) => {
+    (newestId, readTotal) => {
       if (!currentUserType || !currentUserId) return;
       // Marqueur opaque (UUID) : surtout pas de conversion en nombre — c'est ce `Number()`
       // qui rendait `NaN`, replié en `0`, et qui neutralisait la détection des non-lus.
@@ -77,21 +77,22 @@ function ContextComments({
         contextType,
         contextId,
         newestId,
+        readTotal,
       );
-      setHasUnreadComments(false);
+      setUnreadCount(0);
     },
     [contextId, contextType, currentUserId, currentUserType],
   );
 
-  const applyUnreadFromNewest = useCallback(
-    (newestId) => {
+  const applyUnreadFromSummary = useCallback(
+    (newestId, summaryTotal) => {
       const cursor = readContextCommentReadCursor(
         currentUserType,
         currentUserId,
         contextType,
         contextId,
       );
-      setHasUnreadComments(hasUnreadContextComments(newestId, cursor));
+      setUnreadCount(countUnreadContextComments(newestId, summaryTotal, cursor));
     },
     [contextId, contextType, currentUserId, currentUserType],
   );
@@ -106,11 +107,11 @@ function ContextComments({
       const summary = await fetchContextCommentSummary(contextType, contextId);
       if (mySeq !== summarySeqRef.current) return;
       setTotal(summary.total);
-      applyUnreadFromNewest(summary.newestId);
+      applyUnreadFromSummary(summary.newestId, summary.total);
     } catch {
       // Le badge reste à 0 ; l'ouverture de la section récupérera la liste complète.
     }
-  }, [applyUnreadFromNewest, contextId, contextType]);
+  }, [applyUnreadFromSummary, contextId, contextType]);
 
   const load = useCallback(
     async (nextPage = 1) => {
@@ -126,12 +127,13 @@ function ContextComments({
         });
         if (mySeq !== loadSeqRef.current) return;
         const list = Array.isArray(data?.items) ? data.items : [];
+        const listTotal = Number(data?.total || 0);
         setItems(list);
-        setTotal(Number(data?.total || 0));
+        setTotal(listTotal);
         setPage(Number(data?.page || nextPage));
         if (nextPage === 1) {
           // La liste est triée du plus récent au plus ancien : le premier porte le marqueur.
-          markCommentsRead(list[0]?.id ?? '');
+          markCommentsRead(list[0]?.id ?? '', listTotal);
         }
       } catch (err) {
         if (mySeq !== loadSeqRef.current) return;
@@ -152,7 +154,7 @@ function ContextComments({
   useEffect(() => {
     summarySeqRef.current += 1;
     loadSeqRef.current += 1;
-    setHasUnreadComments(false);
+    setUnreadCount(0);
     setItems([]);
     setTotal(0);
     setPage(1);
@@ -192,7 +194,7 @@ function ContextComments({
       const payload = detail.payload || {};
       if (!sameContext(payload)) return;
       if (!isOpen) {
-        setHasUnreadComments(true);
+        setUnreadCount((prev) => Math.max(prev, 1));
         void loadSummary();
         return;
       }
@@ -311,7 +313,7 @@ function ContextComments({
         title={title}
         total={total}
         isOpen={isOpen}
-        hasUnreadComments={hasUnreadComments}
+        unreadCount={unreadCount}
         onToggle={() => setIsOpen((prev) => !prev)}
       />
 

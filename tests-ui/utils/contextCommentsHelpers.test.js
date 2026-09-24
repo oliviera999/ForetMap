@@ -5,6 +5,7 @@ import {
   canModerate,
   contextCommentDraftKey,
   contextCommentReadCursorKey,
+  countUnreadContextComments,
   hasUnreadContextComments,
   parseReactionEmojiList,
   readContextCommentDraft,
@@ -126,6 +127,50 @@ describe('hasUnreadContextComments', () => {
     // décidable est « est-ce le même ? ». Un marqueur différent vaut donc « le fil a changé »,
     // y compris dans le cas de bord où l'ancien disparaîtrait.
     expect(hasUnreadContextComments(VU, { newestId: NOUVEAU })).toBe(true);
+  });
+});
+
+describe('countUnreadContextComments', () => {
+  const VU = '973af731-ad0e-4477-9668-bf37c406f795';
+  const NOUVEAU = '0304444d-8d91-464f-9ece-c2d3dd1fb281';
+
+  test('aucun commentaire : 0', () => {
+    expect(countUnreadContextComments('', 0, null)).toBe(0);
+  });
+
+  test('jamais consulté : tout le fil est non lu', () => {
+    expect(countUnreadContextComments(VU, 4, null)).toBe(4);
+  });
+
+  test('curseur à jour : 0', () => {
+    expect(countUnreadContextComments(VU, 4, { newestId: VU, total: 4 })).toBe(0);
+  });
+
+  test('écart avec le total lu', () => {
+    expect(countUnreadContextComments(NOUVEAU, 7, { newestId: VU, total: 4 })).toBe(3);
+  });
+
+  test('au moins 1 quand le fil a changé malgré des suppressions', () => {
+    expect(countUnreadContextComments(NOUVEAU, 3, { newestId: VU, total: 4 })).toBe(1);
+  });
+
+  test('curseur sans total mémorisé : tout le fil', () => {
+    expect(countUnreadContextComments(NOUVEAU, 5, { newestId: VU })).toBe(5);
+  });
+});
+
+describe('read cursor : total mémorisé', () => {
+  test('écrit puis relit le total lu', () => {
+    writeContextCommentReadCursor('eleve', 'u1', 'task', 5, 'abc', 3);
+    expect(readContextCommentReadCursor('eleve', 'u1', 'task', 5)).toEqual({
+      newestId: 'abc',
+      total: 3,
+    });
+  });
+
+  test('total invalide ignoré', () => {
+    writeContextCommentReadCursor('eleve', 'u1', 'task', 5, 'abc', 'x');
+    expect(readContextCommentReadCursor('eleve', 'u1', 'task', 5)).toEqual({ newestId: 'abc' });
   });
 });
 
