@@ -158,30 +158,32 @@ export function SessionRunsPanel({ session, onClose }) {
             {students.length} personne{students.length > 1 ? 's' : ''} · {started} démarrée
             {started > 1 ? 's' : ''} · {done} terminée{done > 1 ? 's' : ''}
           </p>
-          <table className="pedago-sessions__runs-table">
-            <thead>
-              <tr>
-                <th scope="col">Élève</th>
-                <th scope="col">État</th>
-                <th scope="col">Dernière fin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s) => (
-                <tr key={s.userId}>
-                  <td>{`${s.firstName} ${s.lastName}`.trim() || s.userId}</td>
-                  <td>
-                    {s.completed
-                      ? `Terminée${s.completionCount > 1 ? ` ×${s.completionCount}` : ''}`
-                      : s.startCount > 0
-                        ? 'En cours'
-                        : 'Pas commencée'}
-                  </td>
-                  <td>{formatDate(s.lastCompletedAt)}</td>
+          <div className="fm-table-wrap">
+            <table className="fm-table fm-table--dense">
+              <thead>
+                <tr>
+                  <th scope="col">Élève</th>
+                  <th scope="col">État</th>
+                  <th scope="col">Dernière fin</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {students.map((s) => (
+                  <tr key={s.userId}>
+                    <td>{`${s.firstName} ${s.lastName}`.trim() || s.userId}</td>
+                    <td>
+                      {s.completed
+                        ? `Terminée${s.completionCount > 1 ? ` ×${s.completionCount}` : ''}`
+                        : s.startCount > 0
+                          ? 'En cours'
+                          : 'Pas commencée'}
+                    </td>
+                    <td>{formatDate(s.lastCompletedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
       <div className="pedago-sessions__card-actions">

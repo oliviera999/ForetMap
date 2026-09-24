@@ -203,9 +203,13 @@ test('parcours GL : chaque ancre visée existe dans le code des vues', async () 
       );
       continue;
     }
-    const needle = `data-gl-tour="${anchor[1]}"`;
+    // Deux écritures posent la même ancre : l'attribut JSX (`data-gl-tour="x"`) et l'objet
+    // d'attributs transmis à un composant partagé qui l'étale (`{ 'data-gl-tour': 'x' }`,
+    // cf. `GLForumView` → `SharedForumView`). La seconde vit bien dans src/gl/.
+    const attr = `data-gl-tour="${anchor[1]}"`;
+    const prop = new RegExp(`['"]data-gl-tour['"]\\s*:\\s*['"]${anchor[1]}['"]`);
     assert.ok(
-      sources.some((source) => source.includes(needle)),
+      sources.some((source) => source.includes(attr) || prop.test(source)),
       `ancre « ${anchor[1]} » : citée par un parcours, posée nulle part dans src/gl/`,
     );
   }

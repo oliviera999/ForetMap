@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { api } from '../../services/api.js';
 import { Button } from '../../shared/ui/Button.jsx';
+import { DialogShell } from '../../shared/components/DialogShell.jsx';
 
 /**
  * Note de carnet proposée en fin de séance : liste des étapes + invites de réflexion.
@@ -71,18 +72,14 @@ export function PedagoSessionDoneDialog({
   }
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-content pedago-session-done"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pedago-session-done-title"
-        data-testid="pedago-session-done"
-        onClick={(ev) => ev.stopPropagation()}
-        onKeyDown={(ev) => {
-          if (ev.key === 'Escape') onClose?.();
-        }}
-      >
+    // Coque commune : fermeture par l'overlay et Échap, piège et restauration du focus
+    // (useDialogA11y) — au lieu d'écouteurs posés à la main sur l'élément `dialog`.
+    <DialogShell
+      onClose={onClose}
+      dialogClassName="modal-content pedago-session-done"
+      ariaLabelledBy="pedago-session-done-title"
+    >
+      <div data-testid="pedago-session-done">
         <h2 id="pedago-session-done-title" className="section-title">
           Séance terminée
         </h2>
@@ -130,6 +127,6 @@ export function PedagoSessionDoneDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 }
