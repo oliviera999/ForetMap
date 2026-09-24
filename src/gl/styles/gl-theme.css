@@ -6871,11 +6871,17 @@ fieldset .media-library-menu__gallery {
  *
  * L'expansion reste inférieure à la gouttière des conteneurs visés, de sorte que deux
  * cibles voisines ne se recouvrent pas.
+ *
+ * Le bouton DOIT rester positionné : en `static`, le pseudo-élément se cale sur le premier
+ * ancêtre positionné et couvre tout le panneau (défilement et touchers avalés). `:where()`
+ * laisse gagner un `position: absolute` posé par le composant lui-même.
  */
-.gl-subtabs button,
-.gl-glossary-popover__close,
-.gl-help-panel > header button,
-.gl-forum-thread > header > button {
+:where(
+    .gl-subtabs button,
+    .gl-glossary-popover__close,
+    .gl-help-panel > header button,
+    .gl-forum-thread > header > button
+  ) {
   position: relative;
 }
 

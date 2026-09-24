@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Défilement impossible dans « Mon profil » et « Mes statistiques », croix de fermeture déplacées
+
+- **Cause** : l'agrandissement des cibles tactiles à 44 px (pseudo-élément `::after` de
+  `.modal-close`) suppose un bouton positionné. Dans les modales Profil / Statistiques, la
+  croix était repassée en `position: static` : le pseudo-élément prenait la taille de la
+  modale entière, calque invisible qui avalait le défilement (doigt **et** molette, sur tous
+  les appareils) et renvoyait les touchers du formulaire vers le bouton « Fermer ».
+- **Même règle, second effet** : son `position: relative`, de même spécificité et posé en fin
+  de feuille, écrasait le placement en haut à droite des croix des autres modales (tâches,
+  zones, tutoriels…) et de la visionneuse photo, qui retombaient dans le flux.
+- **Correctif** : positionnement des hôtes en `:where(…)` (spécificité nulle, ForetMap et G&L),
+  croix Profil / Statistiques en `relative`, hauteur de ces modales en `dvh` + zones de
+  sécurité (au lieu d'un `88vh` en ligne, trop haut sous les barres de Safari iOS / Chrome
+  Android). Garde-fou `tests/tap-target-guard.test.js`.
+
 ### Ajouté — Forum : point rouge « messages non lus »
 
 - Un point rouge s’allume sur l’onglet **Forum** (barre élève, onglets prof, tiroirs
