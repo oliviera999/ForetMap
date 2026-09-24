@@ -114,6 +114,20 @@ describe('overlayHistory — profondeur d’historique', () => {
     expect(b).not.toHaveBeenCalled();
   });
 
+  test('isProgrammaticOverlayPop reconnaît le recul de la pile, pas le Retour du visiteur', async () => {
+    const close = vi.fn();
+    mod.pushOverlayClose(close);
+    mod.removeOverlayClose(close);
+    await flush();
+    // Recul programmatique en attente : reconnu avant que notre écouteur ne le consomme…
+    const programmatic = { state: {} };
+    expect(mod.isProgrammaticOverlayPop(programmatic)).toBe(true);
+    fake.listeners.forEach((fn) => fn(programmatic));
+    // … et encore après, pour les écouteurs inscrits plus tard.
+    expect(mod.isProgrammaticOverlayPop(programmatic)).toBe(true);
+    expect(mod.isProgrammaticOverlayPop({ state: {} })).toBe(false);
+  });
+
   test('isNativeFilePickerGuardActive suit arm / disarm', () => {
     expect(mod.isNativeFilePickerGuardActive()).toBe(false);
     mod.armNativeFilePickerGuard();

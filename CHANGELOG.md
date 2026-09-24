@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — menu mobile de la barre prof : il fallait choisir deux fois un onglet
+
+- Sur mobile / tablette (admin, n3boss), toucher un pôle non actif ouvre la feuille **et** son
+  premier onglet ; choisir ensuite un autre onglet ramenait sur ce premier onglet. La fermeture
+  de la feuille rendait son entrée d'historique après que l'onglet choisi avait empilé la sienne,
+  et le `popstate` programmatique était lu comme un « Retour ».
+- `overlayHistory` expose `isProgrammaticOverlayPop(event)` ; `useTabBrowserHistory` ignore ces
+  reculs (ForetMap et GL) et réaligne l'entrée courante sur l'onglet affiché. Tests Vitest
+  (`tests-ui/platform/`) reproduisant le scénario.
+
 ### Modifié — « Mon profil » n'exige plus le mot de passe actuel
 
 - `PATCH /api/auth/me/profile` et `PATCH /api/students/:id/profile` ne vérifient plus
