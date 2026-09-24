@@ -12,6 +12,7 @@ import {
   filterGroupDefaultRoles,
 } from '../utils/groupDefaultRoleOptions.js';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
+import { CURRICULUM_NIVEAUX } from '../utils/curriculumNotions.js';
 import {
   buildGroupForest,
   filterGroupMemberCandidates,
@@ -53,6 +54,7 @@ function GroupSettingsPanel({
   const [forceDefaultRole, setForceDefaultRole] = useState(false);
   const [parentGroupId, setParentGroupId] = useState('');
   const [pedagoLevel, setPedagoLevel] = useState('');
+  const [curriculumNiveau, setCurriculumNiveau] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -63,6 +65,7 @@ function GroupSettingsPanel({
     setForceDefaultRole(!!group?.force_default_role);
     setParentGroupId(group?.parent_group_id != null ? String(group.parent_group_id) : '');
     setPedagoLevel(group?.pedago_level || '');
+    setCurriculumNiveau(group?.curriculum_niveau || '');
     setClassCode(group?.class_code || null);
   }, [group]);
 
@@ -95,6 +98,7 @@ function GroupSettingsPanel({
       const body = {
         parent_group_id: parentGroupId || null,
         pedago_level: pedagoLevel || null,
+        curriculum_niveau: curriculumNiveau || null,
       };
       if (canManageDefaultRole) {
         body.default_role_id = defaultRoleId ? Number(defaultRoleId) : null;
@@ -150,17 +154,33 @@ function GroupSettingsPanel({
           responsables. Choisir « Aucun » le détache.
         </small>
       </div>
+      <div className="field" data-testid="group-curriculum-niveau">
+        <label>Niveau du programme de la classe</label>
+        <select value={curriculumNiveau} onChange={(e) => setCurriculumNiveau(e.target.value)}>
+          <option value="">— Hériter (groupe parent) —</option>
+          {CURRICULUM_NIVEAUX.map((n) => (
+            <option key={n.value} value={n.value}>
+              {n.label}
+            </option>
+          ))}
+        </select>
+        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          Resserre les notions du quiz et du glossaire proposées aux élèves (une 6ᵉ ne voit que le
+          cycle 3). Réglé sur une unité (« Niveau 6ᵉ »), il vaut pour toutes ses classes.
+        </small>
+      </div>
       <div className="field" data-testid="group-pedago-level">
         <label>Niveau pédagogique biodiversité</label>
         <select value={pedagoLevel} onChange={(e) => setPedagoLevel(e.target.value)}>
-          <option value="">— Hériter (défaut site / carte) —</option>
+          <option value="">— Automatique (niveau du programme, groupe parent, site) —</option>
           <option value="college">Collège</option>
           <option value="lycee">Lycée</option>
           <option value="universite">Université</option>
         </select>
         <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
-          Adapte l’affichage biodiversité pour les membres de ce groupe. Si plusieurs groupes fixent
-          un niveau, le plus simple l’emporte.
+          Adapte l’affichage biodiversité pour les membres de ce groupe. En automatique, il découle
+          du niveau du programme (cycles 3 et 4 : Collège ; seconde et au-delà : Lycée). Si
+          plusieurs groupes fixent un niveau, le plus simple l’emporte.
         </small>
       </div>
       <div className="field">

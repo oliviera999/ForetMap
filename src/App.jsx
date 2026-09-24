@@ -135,6 +135,7 @@ import { DataProvider } from './contexts/DataContext.jsx';
 import { TourProvider } from './contexts/TourContext.jsx';
 import { readStoredTab } from './utils/appShellHelpers';
 import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
+import { sortCurriculumNiveaux } from './utils/pedagoScales.js';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useAppDataSync } from './hooks/useAppDataSync';
 import { useAppDataPolling } from './hooks/useAppDataPolling';
@@ -180,6 +181,8 @@ function App() {
   const [discoveryTourSeenReady, setDiscoveryTourSeenReady] = useState(false);
   /** Niveaux pédagogiques des groupes dont l'utilisateur est membre (`/api/auth/me`). */
   const [biodivGroupPedagoLevels, setBiodivGroupPedagoLevels] = useState([]);
+  /** Niveaux du programme des classes de l'utilisateur (cycle 3, cycle 4…), même source. */
+  const [biodivGroupCurriculumNiveaux, setBiodivGroupCurriculumNiveaux] = useState([]);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [tab, setTab] = useState(() => readStoredTab());
@@ -413,6 +416,9 @@ function App() {
           d.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
         );
       }
+      if (Array.isArray(d.biodivGroupCurriculumNiveaux)) {
+        setBiodivGroupCurriculumNiveaux(sortCurriculumNiveaux(d.biodivGroupCurriculumNiveaux));
+      }
     },
     [mergeAuthMeResponseBase],
   );
@@ -422,6 +428,7 @@ function App() {
       setDiscoveryTourSeen(null);
       setDiscoveryTourSeenReady(false);
       setBiodivGroupPedagoLevels([]);
+      setBiodivGroupCurriculumNiveaux([]);
       forceLogoutBase(options);
     },
     [forceLogoutBase],
@@ -927,6 +934,11 @@ function App() {
           session.biodivGroupPedagoLevels.map(normalizePedagoLevel).filter(Boolean),
         );
       }
+      if (Array.isArray(session?.biodivGroupCurriculumNiveaux)) {
+        setBiodivGroupCurriculumNiveaux(
+          sortCurriculumNiveaux(session.biodivGroupCurriculumNiveaux),
+        );
+      }
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
       if (isVisitorLikeRole(roleSlug)) {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
@@ -955,6 +967,7 @@ function App() {
     setDiscoveryTourSeen(null);
     setDiscoveryTourSeenReady(false);
     setBiodivGroupPedagoLevels([]);
+    setBiodivGroupCurriculumNiveaux([]);
   }, [studentRef]);
 
   useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
@@ -1601,6 +1614,7 @@ function App() {
         userPreference={userBiodivPedagoPref}
         mapLevel={activeMapPedagoLevel}
         groupLevels={biodivGroupPedagoLevels}
+        classCurriculumNiveaux={biodivGroupCurriculumNiveaux}
         canTeacherPreview={
           effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
         }

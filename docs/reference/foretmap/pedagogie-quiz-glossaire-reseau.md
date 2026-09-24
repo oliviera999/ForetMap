@@ -33,22 +33,49 @@ d'observation** pour l'écriture naturaliste libre.
   de sa catégorie — une question sur la photosynthèse rangée dans « Sol vivant & compostage » —
   on peut lui **ajouter** une notion ou lui **retirer** une notion héritée, sans toucher aux
   questions voisines.
+- **Une question n'hérite que des notions de son niveau ou au-dessus.** Une question de
+  lycée ne reçoit pas les notions de cycle 3 ou 4 de sa catégorie : un quiz « cycle 4 » ne
+  tire donc plus de questions de lycée (elles en représentaient plus d'un tiers). Une
+  question de collège, elle, garde les notions de lycée de sa catégorie et peut servir de
+  révision en seconde. Un ajout fait à la main passe outre cette règle.
+- **Le glossaire suit le même principe.** Chaque famille de vocabulaire (écologie, sol,
+  flore…) est rattachée aux notions qui l'utilisent, et ses termes en héritent selon leur
+  profondeur : un terme « de base » vaut dès le cycle 3, un terme « d'approfondissement » à
+  partir du cycle 4, un terme « avancé » au lycée. Tous les termes du glossaire livré sauf
+  un sont ainsi reliés à au moins une notion.
+- **Des filtres « tout le collège » et « tout le lycée ».** Le menu « Niveau du programme »
+  propose, en plus de chaque niveau, l'ensemble du collège (cycles 3 et 4) ou du lycée
+  (seconde à terminale). Une séance lycée qui demande « Lycée » fonctionne désormais (elle
+  était refusée).
+- **Le quiz suit la classe de l'élève.** Pour un élève en affichage Collège, le quiz
+  propose d'emblée les questions « Collège » (le filtre reste modifiable). Si sa classe a un
+  niveau du programme (voir [Comptes, rôles et groupes](comptes-roles-et-groupes.md#les-groupes)),
+  les menus ne montrent que les notions jusqu'à ce niveau, et une demande « tout le
+  collège » faite par une séance est resserrée au cycle de la classe. Une séance qui vise
+  explicitement un autre cycle est respectée.
 - **Les notions sont visibles de tous.** La fiche d'un terme de glossaire affiche, sous
   l'intitulé « Au programme », le niveau et la notion auxquels il se rattache : un élève sait
   à quoi le mot qu'il lit va servir dans l'année.
 
-> ⚠️ **Point d'attention** — Le mot « niveau » désigne trois choses différentes dans
-> l'application : le niveau d'une question (collège / lycée), la profondeur d'un terme de
-> glossaire (base / approfondissement / avancé) et le niveau scolaire d'une notion de
-> programme. Les menus les nomment distinctement (« Niveau » / « Niveau du programme »), mais
-> la confusion reste facile à faire en lisant un export.
+> ⚠️ **Point d'attention** — Le mot « niveau » désigne plusieurs choses dans
+> l'application : le niveau d'une question (collège / lycée), sa difficulté (★ à ★★★★★), la
+> profondeur d'un terme de glossaire (base / approfondissement / avancé), le niveau scolaire
+> d'une notion de programme et l'affichage biodiversité (collège / lycée / université). Les
+> menus les nomment distinctement (« Niveau » / « Niveau du programme »), et leurs
+> correspondances sont désormais fixées une fois pour toutes — voir [Les échelles de niveau et
+> leurs correspondances](niveaux-pedagogiques-biodiversite.md#les-échelles-de-niveau-et-leurs-correspondances).
 
-> ⚠️ **Point d'attention** — Seules les **catégories** de quiz sont rattachées dans le
-> catalogue livré ; **aucun terme de glossaire ne l'est encore**. Le filtre par notion de
-> l'onglet Glossaire ne renvoie donc rien tant qu'un professeur n'a pas fait ce
-> rattachement. Deux catégories citées par le référentiel (« milieux et terrain », « démarche
-> et mesure ») n'existent pas dans tous les jeux de données : leurs liaisons sont simplement
-> absentes là où la catégorie manque.
+> ⚠️ **Point d'attention** — Le rattachement par catégorie est un point de départ : une
+> famille de vocabulaire couvre plusieurs notions, et un terme peut en recevoir une qui ne
+> le concerne pas vraiment. Comme pour une question, on peut lui **retirer** une notion
+> héritée. Deux catégories de quiz citées par le référentiel (« milieux et terrain »,
+> « démarche et mesure ») n'existent pas dans tous les jeux de données : leurs liaisons sont
+> simplement absentes là où la catégorie manque.
+
+> ⚠️ **Point d'attention** — Aucun écran ne permet encore d'éditer ces rattachements
+> (catégories et exceptions) : ils se règlent par l'API (`/api/curriculum`, permission
+> « gérer les plantes »). Le terme « calcarénite » (avancé, famille « paysage ») reste sans
+> notion : sa famille n'est reliée qu'à des notions de collège.
 
 ## Le Quiz
 

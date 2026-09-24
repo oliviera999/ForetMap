@@ -11,9 +11,11 @@ import {
 import { IconGlossary } from '../../shared/icons.jsx';
 import { useCurriculumNotions } from '../../hooks/useCurriculumNotions.js';
 import {
-  CURRICULUM_NIVEAU_OPTIONS,
   buildNotionOptions,
   curriculumNiveauLabel,
+  notionNiveauOptionsFor,
+  notionsForNiveauFilter,
+  resolveNotionNiveaux,
 } from '../../utils/curriculumNotions.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
@@ -39,6 +41,8 @@ export function GlossaryView({
   // profondeur (base / approfondissement / avancé) et non la classe où il est travaillé.
   const [notionNiveau, setNotionNiveau] = useState('');
   const [notionId, setNotionId] = useState('');
+  // Niveaux du programme visibles pour ce public (étape d'affichage, resserrée à la classe).
+  const { curriculumNiveaux } = useBiodivPedago();
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -98,8 +102,9 @@ export function GlossaryView({
       if (q) params.set('q', q);
       if (niveau) params.set('niveau', niveau);
       if (categorie) params.set('categorie', categorie);
+      const niveaux = resolveNotionNiveaux(notionNiveau, curriculumNiveaux);
       if (notionId) params.set('notionId', notionId);
-      else if (notionNiveau) params.set('notionNiveau', notionNiveau);
+      else if (niveaux) params.set('notionNiveau', niveaux.join(','));
       const qs = params.toString();
       const data = await api(`/api/glossary/terms${qs ? `?${qs}` : ''}`);
       if (seq !== loadTermsSeqRef.current) return;
@@ -111,7 +116,7 @@ export function GlossaryView({
     } finally {
       if (seq === loadTermsSeqRef.current) setLoading(false);
     }
-  }, [search, niveau, categorie, notionId, notionNiveau]);
+  }, [search, niveau, categorie, notionId, notionNiveau, curriculumNiveaux]);
 
   useEffect(() => {
     const timer = setTimeout(loadTerms, search.trim() ? 280 : 0);
@@ -162,21 +167,13 @@ export function GlossaryView({
   );
 
   const notions = useCurriculumNotions();
-  const { curriculumNiveaux } = useBiodivPedago();
-  const curriculumNiveauOptions = useMemo(() => {
-    if (!curriculumNiveaux) return CURRICULUM_NIVEAU_OPTIONS;
-    const allowed = new Set(curriculumNiveaux);
-    return CURRICULUM_NIVEAU_OPTIONS.filter((opt) => !opt.value || allowed.has(opt.value));
-  }, [curriculumNiveaux]);
-  const notionsForLevel = useMemo(() => {
-    if (!curriculumNiveaux) return notions;
-    const allowed = new Set(curriculumNiveaux);
-    return notions.filter((n) => allowed.has(n.niveau));
-  }, [notions, curriculumNiveaux]);
+  const curriculumNiveauOptions = useMemo(
+    () => notionNiveauOptionsFor(curriculumNiveaux, notionNiveau),
+    [curriculumNiveaux, notionNiveau],
+  );
   const visibleNotions = useMemo(
-    () =>
-      notionNiveau ? notionsForLevel.filter((n) => n.niveau === notionNiveau) : notionsForLevel,
-    [notionsForLevel, notionNiveau],
+    () => notionsForNiveauFilter(notions, notionNiveau, curriculumNiveaux),
+    [notions, notionNiveau, curriculumNiveaux],
   );
   const notionOptions = useMemo(
     () => buildNotionOptions(visibleNotions, { countKey: 'glossary_count' }),

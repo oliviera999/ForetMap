@@ -375,10 +375,13 @@ router.get('/me', requireAuth, async (req, res) => {
       body.discoveryTourSeen = {};
     }
     try {
-      const { loadUserGroupPedagoLevels } = require('../lib/biodivPedagoLevel');
-      body.biodivGroupPedagoLevels = await loadUserGroupPedagoLevels(req.auth.userId);
+      const { loadUserGroupPedagoProfile } = require('../lib/biodivPedagoLevel');
+      const profile = await loadUserGroupPedagoProfile(req.auth.userId);
+      body.biodivGroupPedagoLevels = profile.levels;
+      body.biodivGroupCurriculumNiveaux = profile.curriculumNiveaux;
     } catch (_) {
       body.biodivGroupPedagoLevels = [];
+      body.biodivGroupCurriculumNiveaux = [];
     }
   }
   res.json(body);
@@ -805,14 +808,18 @@ router.post(
       passwordMustReset: !!Number(account.password_must_reset || 0),
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
-      biodivGroupPedagoLevels: await (async () => {
+      ...(await (async () => {
         try {
-          const { loadUserGroupPedagoLevels } = require('../lib/biodivPedagoLevel');
-          return await loadUserGroupPedagoLevels(account.id);
+          const { loadUserGroupPedagoProfile } = require('../lib/biodivPedagoLevel');
+          const profile = await loadUserGroupPedagoProfile(account.id);
+          return {
+            biodivGroupPedagoLevels: profile.levels,
+            biodivGroupCurriculumNiveaux: profile.curriculumNiveaux,
+          };
         } catch (_) {
-          return [];
+          return { biodivGroupPedagoLevels: [], biodivGroupCurriculumNiveaux: [] };
         }
-      })(),
+      })()),
     });
   }),
 );

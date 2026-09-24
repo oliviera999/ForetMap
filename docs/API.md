@@ -1662,7 +1662,7 @@ Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: B
 | GET     | `/api/groups/import/template`     | oui (`groups.manage`)                   | Modèle CSV/XLSX d’import groupes / sous-groupes (slug, nom, type, parent, description, **profil par défaut** en slug ou nom affiché)                                                                                                                                                                                                                                                                                                                                                                             |
 | POST    | `/api/groups/import`              | oui (`groups.manage`)                   | Import en lot (CSV/XLSX base64, `dryRun?`) : crée ou met à jour les groupes ; lignes en double fusionnées (`infos[]`) ; parent par slug ou nom ; l’importateur hors vue globale devient responsable des créations top-level                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/groups`                     | oui (`groups.manage`)                   | Créer un groupe (`name`, `slug?`, `kind`, `parent_group_id?`, `description?`, `default_role_id?`, `force_default_role?`). `default_role_id` : tout profil hors `gl_*` (400 sinon), **403** si l’acteur n’a pas la vue globale (rang < 400) ou, hors administrateur, si le profil est de rang supérieur au sien (`lib/groupDefaultRolePolicy.js`) ; **400** si `force_default_role` sans `default_role_id`                                                                                                        |
-| PATCH   | `/api/groups/:id`                 | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/**parent** (`parent_group_id`, `null` = détacher ; le parent doit être dans le périmètre de l’acteur)/activation, `default_role_id`, `force_default_role` (mêmes gardes qu’à la création) ; **400** si le nouveau parent crée une parenté circulaire ou si `force_default_role` est posé sans `default_role_id` ; tout changement de profil par défaut, d’imposition ou d’activation **recalcule aussitôt le profil effectif des membres** et ajoute `roles_recomputed` à la réponse |
+| PATCH   | `/api/groups/:id`                 | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/**parent** (`parent_group_id`, `null` = détacher ; le parent doit être dans le périmètre de l’acteur)/activation, `default_role_id`, `force_default_role` (mêmes gardes qu’à la création) ; **400** si le nouveau parent crée une parenté circulaire ou si `force_default_role` est posé sans `default_role_id` ; tout changement de profil par défaut, d’imposition ou d’activation **recalcule aussitôt le profil effectif des membres** et ajoute `roles_recomputed` à la réponse. `pedago_level` (affichage biodiversité) et `curriculum_niveau` (niveau du programme de la classe : `cycle3` … `es_terminale`, `null` = hériter du groupe parent ; **400** si hors liste) — ce dernier fixe l'étape d'affichage quand `pedago_level` est vide et resserre les notions proposées aux élèves ; `GET /api/auth/me` et la connexion l'exposent sous `biodivGroupCurriculumNiveaux` (héritage des parents compris, comme `biodivGroupPedagoLevels`) |
 | DELETE  | `/api/groups/:id`                 | oui (`groups.manage`)                   | Supprimer un groupe (les enfants sont détachés) ; le profil effectif des ex-membres est recalculé immédiatement                                                                                                                                                                                                                                                                                                                                                                                                  |
 | GET     | `/api/groups/:id/members`         | oui (`groups.read` ou périmètre groupe) | Lire les membres d’un groupe : `{ user_id, user_type, user_label, is_active, role_slug, role_display_name }` (profil effectif)                                                                                                                                                                                                                                                                                                                                                                                   |
 | PUT     | `/api/groups/:id/members`         | oui (`groups.manage`)                   | Remplacer membres (`member_user_ids`, élèves et enseignants ; `manager_user_ids` accepté et fusionné pour compatibilité) et scopes (`scope_map_ids`, `scope_project_ids`) ; recalcule le profil effectif des anciens et nouveaux membres                                                                                                                                                                                                                                                                         |
@@ -3032,32 +3032,46 @@ de quiz et la base biodiversité.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/curriculum/niveaux` | non | Niveaux scolaires (`cycle3`, `cycle4`, `seconde`, `premiere_spe`, `terminale_spe`, `es_premiere`, `es_terminale`) et nombre de notions de chacun |
-| GET | `/api/curriculum/notions` | non | Référentiel ordonné par progression scolaire (`?niveau=` ; `?counts=0` pour omettre les effectifs). Chaque entrée porte `niveau_label`, `question_count` et `glossary_count` |
-| GET | `/api/curriculum/notions/:id` | non | Notion, effectifs et catégories de quiz rattachées. **400** si l'identifiant est mal formé, **404** s'il est inconnu |
+| GET | `/api/curriculum/niveaux` | non | Niveaux scolaires (`cycle3`, `cycle4`, `seconde`, `premiere_spe`, `terminale_spe`, `es_premiere`, `es_terminale`), nombre de notions de chacun, `etape` (`college` / `lycee`) et `palier` (1 = cycle 3 … 5 = terminale) |
+| GET | `/api/curriculum/notions` | non | Référentiel ordonné par progression scolaire (`?niveau=` : niveau, étape `college` / `lycee` ou liste séparée par des virgules ; `?counts=0` pour omettre les effectifs). Chaque entrée porte `niveau_label`, `question_count` et `glossary_count` |
+| GET | `/api/curriculum/notions/:id` | non | Notion, `etape`, effectifs, catégories de quiz (`quizCategories`) et de glossaire (`glossaryCategories`) rattachées. **400** si l'identifiant est mal formé, **404** s'il est inconnu |
 | GET | `/api/curriculum/quiz-categories/:slug/notions` | non | Notions d'une catégorie (celles dont ses questions héritent) |
 | PUT | `/api/curriculum/quiz-categories/:slug/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
-| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ inherited, added, excluded, effective }` — dit *pourquoi* chaque notion s'applique |
+| GET | `/api/curriculum/quiz-questions/:code/notions` | non | `{ niveau, inherited, out_of_level, added, excluded, effective }` — dit *pourquoi* chaque notion s'applique (`out_of_level` : notions de la catégorie écartées par le palier de la question) |
 | PUT | `/api/curriculum/quiz-questions/:code/notions` | prof (`plants.manage`) | Exceptions d'une question : `{ ajouts: [...], exclusions: [...] }`. **400** si une notion figure des deux côtés |
-| GET | `/api/curriculum/glossary-terms/:code/notions` | non | Notions d'un terme de glossaire |
-| PUT | `/api/curriculum/glossary-terms/:code/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
+| GET | `/api/curriculum/glossary-categories/:categorie/notions` | non | Notions d'une catégorie de glossaire (celles dont ses termes héritent, migration `290`). **404** si aucun terme ne porte cette catégorie |
+| PUT | `/api/curriculum/glossary-categories/:categorie/notions` | prof (`plants.manage`) | Remplace l'ensemble : `{ notion_ids: [...] }` |
+| GET | `/api/curriculum/glossary-terms/:code/notions` | non | Même décomposition qu'une question (`inherited`, `out_of_level`, `added`, `excluded`, `effective`) ; `items` = `effective` (forme historique) |
+| PUT | `/api/curriculum/glossary-terms/:code/notions` | prof (`plants.manage`) | Exceptions d'un terme : `{ ajouts: [...], exclusions: [...] }`. La forme historique `{ notion_ids: [...] }` vaut `ajouts` |
 
-**Une question hérite des notions de sa catégorie.** Les 17 catégories sont rattachées une fois
-pour toutes (42 liaisons livrées) ; rattacher les ~500 questions une à une aurait laissé
-orpheline chaque question ajoutée ensuite. `quiz_question_notions` ne sert donc qu'à
+**Un contenu hérite des notions de sa catégorie, à son palier.** Les 17 catégories de quiz sont
+rattachées une fois pour toutes (42 liaisons livrées) ; rattacher les ~500 questions une à une
+aurait laissé orpheline chaque question ajoutée ensuite. Depuis la migration `290`, le
+glossaire suit le même modèle (`glossary_category_notions`, 49 liaisons livrées) : sans
+héritage, `glossary_term_notions` était restée vide et le filtre notion du glossaire ne rendait
+rien. Les tables par contenu (`quiz_question_notions`, `glossary_term_notions`) ne servent qu'à
 l'exception, avec deux modes :
 
-    notions effectives = (notions de la catégorie − exclusions) ∪ ajouts
+    notions effectives = (notions de la catégorie au palier du contenu − exclusions) ∪ ajouts
 
-Les termes de glossaire, eux, n'héritent de rien : leurs catégories (`ecologie`, `sol`…) sont
-des familles de vocabulaire, pas des entrées de programme.
+**Garde de palier** (`lib/pedagoScales.js`) : chaque contenu a un palier d'entrée — question
+`college` → cycle 3, `lycee` → seconde ; terme `base` → cycle 3, `approfondissement` → cycle 4,
+`avance` → seconde. Il n'hérite que des notions de ce palier ou au-dessus : une question de
+lycée ne remonte plus dans un tirage « cycle 4 » (166 questions sur 473, soit 35 % du tirage,
+sur le corpus actuel), une question de collège peut servir de révision sur une notion de
+lycée. Un **ajout** explicite passe outre la garde.
 
-**Deux échelles de « niveau », deux paramètres.** `niveau` désigne déjà le niveau d'une question
-(`college` / `lycee`) et la profondeur d'un terme (`base` / `approfondissement` / `avance`). Le
-niveau **scolaire** d'une notion est une troisième échelle : les filtres de `/api/quiz/*` et
-`/api/glossary/terms` l'exposent sous le nom `notionNiveau` (graphie `notion_niveau` acceptée),
-et la notion elle-même sous `notionId` (ou `notion_id`). Une valeur hors ENUM ou un identifiant
-mal formé donnent **400**, jamais un filtre ignoré en silence.
+**Plusieurs échelles de « niveau », des paramètres distincts.** `niveau` désigne déjà le niveau
+d'une question (`college` / `lycee`) et la profondeur d'un terme (`base` / `approfondissement` /
+`avance`). Le niveau **scolaire** d'une notion est une autre échelle : les filtres de
+`/api/quiz/*` et `/api/glossary/terms` l'exposent sous le nom `notionNiveau` (graphie
+`notion_niveau` acceptée), et la notion elle-même sous `notionId` (ou `notion_id`).
+`notionNiveau` accepte un niveau (`cycle4`), une **étape** (`college` = cycles 3 et 4, `lycee` =
+seconde → terminale — ce qu'envoient les séances lycée) ou une **liste** séparée par des
+virgules (`cycle3,cycle4`). Une valeur inconnue (dont `universite`, qui n'a pas de notion
+propre) ou un identifiant mal formé donnent **400**, jamais un filtre ignoré en silence. Les
+correspondances entre toutes les échelles sont déclarées dans `lib/pedagoScales.js` (miroir
+`src/utils/pedagoScales.js`).
 
 ### Le `presentationToken` (QCM ForetMap et GL)
 

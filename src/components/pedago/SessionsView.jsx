@@ -4,6 +4,7 @@ import { api } from '../../services/api.js';
 import { Button } from '../../shared/ui/Button.jsx';
 import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx';
 import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
+import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 
 const STORAGE_KEY = 'foretmap.pedagoSession.v1';
 
@@ -621,9 +622,11 @@ function SessionConfigForm({ session, sessions = [], maps, plants, idKeys, onCan
             <span>Quiz · niveau de notion</span>
             <select value={notionNiveau} onChange={(e) => setNotionNiveau(e.target.value)}>
               <option value="">— libre —</option>
-              <option value="cycle3">Cycle 3</option>
-              <option value="cycle4">Cycle 4</option>
-              <option value="lycee">Lycée</option>
+              {NOTION_NIVEAU_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </label>
 

@@ -791,6 +791,10 @@ CREATE TABLE IF NOT EXISTS `groups` (
   force_default_role TINYINT(1) NOT NULL DEFAULT 0,
   pedago_level ENUM('college','lycee','universite') DEFAULT NULL
     COMMENT 'Niveau pédagogique biodiversité pour ce groupe (NULL = hériter)',
+  -- Niveau du programme de la classe (migration 290) : distingue cycle 3 et cycle 4, là où
+  -- `pedago_level` ne connaît que Collège. NULL = hériter du groupe parent.
+  curriculum_niveau ENUM('cycle3','cycle4','seconde','premiere_spe','terminale_spe','es_premiere','es_terminale') DEFAULT NULL
+    COMMENT 'Niveau du programme de la classe (NULL = hériter du groupe parent)',
   class_code VARCHAR(16) DEFAULT NULL,
   UNIQUE KEY uq_groups_class_code (class_code),
   is_active TINYINT(1) NOT NULL DEFAULT 1,

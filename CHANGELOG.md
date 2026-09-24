@@ -24,6 +24,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Tests : `tests/app-preview.test.js`, `tests-ui/components/app/AppPreviewMenu.test.jsx`,
   bannières mises à jour. Doc de référence : niveaux pédagogiques et comptes/rôles.
 
+### Corrigé — échelles de niveau pédagogique reliées (quiz, glossaire, groupes, séances)
+
+Cinq échelles de niveau coexistaient sans lien : affichage (`pedago_level` collège / lycée /
+université), niveau de question (collège / lycée) et difficulté (1–5), profondeur de terme
+(base / approfondissement / avancé), niveau scolaire des notions (cycle 3 → terminale).
+
+- **Référentiel unique** `lib/pedagoScales.js` (miroir `src/utils/pedagoScales.js`, parité
+  testée) : tout se projette sur le **palier scolaire** du programme. Une étape couvre une
+  plage (collège = cycles 3–4), un contenu a un palier d'entrée (question `lycee` → seconde ;
+  terme `avance` → seconde), la difficulté reste orthogonale.
+- **Garde de palier sur l'héritage de notions** : une question de lycée n'hérite plus des
+  notions de cycle 3 / 4 de sa catégorie. Un tirage « cycle 4 » (séances collège) sortait
+  166 questions de lycée sur 473 (35 %) sur le corpus actuel ; il n'en sort plus aucune. Un
+  ajout explicite passe outre ; `…/quiz-questions/:code/notions` expose `out_of_level`.
+- **Glossaire relié aux notions** (migration `290`) : `glossary_category_notions` (49 liaisons
+  amorcées) + `glossary_term_notions.mode` (`ajout` / `exclusion`), même modèle que le quiz.
+  `glossary_term_notions` était vide, le filtre notion du glossaire ne rendait rien ; 323 termes
+  sur 324 ont désormais au moins une notion. Routes
+  `GET|PUT /api/curriculum/glossary-categories/:categorie/notions`.
+- **`notionNiveau` accepte une étape ou une liste** (`college`, `lycee`, `cycle3,cycle4`) sur
+  `/api/quiz/*`, `/api/glossary/terms` et `/api/curriculum/notions` : les séances lycée C et D
+  envoyaient `lycee` et recevaient un **400**. Menus « Niveau du programme » (quiz, glossaire,
+  éditeurs de séance) alignés : « Tout le collège », « Tout le lycée », puis chaque niveau.
+- **Niveau du programme de la classe** (`groups.curriculum_niveau`, hérité du groupe parent) :
+  distingue cycle 3 et cycle 4 (les classes réelles sont des 6ᵉ, les séances publiées visaient
+  le cycle 4). Il resserre les notions proposées aux élèves, fixe l'étape d'affichage quand
+  `pedago_level` est vide, et est exposé par `/api/auth/me` (`biodivGroupCurriculumNiveaux`).
+  Réglage dans la fiche du groupe.
+- **Quiz d'un élève en affichage Collège** : niveau de question « Collège » proposé par
+  défaut ; une demande « tout le collège » est resserrée au cycle de la classe, un cycle
+  explicite de séance est respecté.
+- **Séance A** (« Reconnaître sans toucher ») : quiz en « tout le collège », comme l'annonçait
+  sa consigne (« cycle 3 ou 4 »), au lieu de `cycle4` seul (seulement si la valeur livrée n'a
+  pas été modifiée).
+- Tests : `tests/pedago-scales.test.js`, `tests/group-curriculum-niveau.test.js`,
+  `tests/curriculum-notions.test.js` (garde de palier, étapes, héritage glossaire),
+  `tests-ui/components/pedago/QuizLevelScales.test.jsx`. Docs : `docs/API.md`, référence
+  niveaux pédagogiques, quiz / glossaire, comptes et groupes.
+
 ### Modifié — import de comptes : jamais de rétrogradation, mode « compléter seulement »
 
 - **Profil le plus élevé conservé** (`POST /api/students/import`) : sur un compte déjà présent,

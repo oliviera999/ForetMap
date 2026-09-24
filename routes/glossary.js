@@ -22,7 +22,7 @@ const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/sha
 const {
   buildGlossaryTermNotionFilter,
   listGlossaryTermNotions,
-  normalizeCurriculumNiveau,
+  parseNotionNiveauFilter,
   normalizeNotionId,
 } = require('../lib/curriculumNotions');
 
@@ -63,9 +63,9 @@ router.get(
     if (notionId && !normalizeNotionId(notionId)) {
       return res.status(400).json({ error: 'notionId invalide' });
     }
-    if (notionNiveau && !normalizeCurriculumNiveau(notionNiveau)) {
-      return res.status(400).json({ error: 'notionNiveau invalide' });
-    }
+    // Niveau scolaire, étape (`college` / `lycee`) ou liste : même lecture que le quiz.
+    const parsedNiveau = parseNotionNiveauFilter(notionNiveau);
+    if (parsedNiveau?.error) return res.status(400).json({ error: parsedNiveau.error });
 
     const params = [];
     let sql = `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte
@@ -80,7 +80,10 @@ router.get(
       sql += ' AND niveau = ?';
       params.push(niveau);
     }
-    const notionFilter = buildGlossaryTermNotionFilter({ notionId, niveau: notionNiveau });
+    const notionFilter = buildGlossaryTermNotionFilter({
+      notionId,
+      niveau: parsedNiveau?.niveaux || null,
+    });
     if (notionFilter) {
       sql += notionFilter.sql;
       params.push(...notionFilter.params);
@@ -162,9 +165,10 @@ router.get(
       [code],
     );
 
-    // Notions des programmes rattachées au terme (migration 273) : affichées à l'élève
+    // Notions des programmes rattachées au terme (migrations 273 et 290 : héritées de sa
+    // catégorie au palier du terme, corrigées par les exceptions) : affichées à l'élève
     // comme au professeur, elles disent à quoi le mot sert dans la progression.
-    const notions = await listGlossaryTermNotions({ queryAll }, code);
+    const notions = await listGlossaryTermNotions({ queryAll, queryOne }, code);
 
     const incomingRelations = await queryAll(
       `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
