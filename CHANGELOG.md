@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Niveau pédagogique carte / groupe ignoré
+
+- Avec le défaut établissement à Collège, le socle prenait toujours le plus simple
+  **y compris** ce défaut : régler une carte ou un groupe sur Lycée ou Université ne
+  changeait rien pour les élèves.
+- Le défaut établissement ne s’applique que lorsqu’aucune carte ni aucun groupe ne
+  fixe de niveau. Si plusieurs niveaux explicites coexistent, le plus simple l’emporte.
+
 ### Ajouté — Clés d’identification : mode Schéma
 
 - Lecteur : bascule **Questions / Schéma** (préférence mémorisée). Le schéma affiche
