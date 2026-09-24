@@ -10,6 +10,7 @@ import {
 } from './services/api';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useConsumableRequest } from './hooks/useConsumableRequest';
+import { clearPendingDeepLink, consumeDeepLinkFromLocation } from './utils/deepLinkTarget.js';
 import { isNotificationActionable, notificationActionLabel } from './utils/notificationTargets.js';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
@@ -1454,6 +1455,17 @@ function App() {
       shouldUseDesktopSplit,
     ],
   );
+
+  // Lien direct (`?tache=`, `?lieu=`, `?fil=`) : appliqué une fois la session ouverte et
+  // les données chargées — la cible survit à l'écran de connexion (sessionStorage).
+  const [pendingDeepLink, setPendingDeepLink] = useState(() => consumeDeepLinkFromLocation());
+  useEffect(() => {
+    if (!pendingDeepLink || !hasAuthenticatedShell || loading) return;
+    const target = pendingDeepLink;
+    setPendingDeepLink(null);
+    clearPendingDeepLink();
+    openTarget(target);
+  }, [pendingDeepLink, hasAuthenticatedShell, loading, openTarget]);
 
   const openNotificationAction = useCallback(
     (item) => {
