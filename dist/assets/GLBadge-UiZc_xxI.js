@@ -1,0 +1,1 @@
+import{s as e}from"./VisitMascotFallbackSvg-DW7pofml.js";import{t}from"./react-vendor-CiETBgCW.js";var n=t(),r=`/workspace/src/gl/components/ui/GLBadge.jsx`;function i({tone:t=`neutral`,className:i=``,children:a}){return(0,n.jsxDEV)(`span`,{className:e(`gl-badge`,`gl-badge--${t}`,i),children:a},void 0,!1,{fileName:r,lineNumber:4,columnNumber:5},this)}export{i as t};
