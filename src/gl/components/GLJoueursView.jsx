@@ -66,7 +66,7 @@ export function GLJoueursView({
       >
         {activeSubTab === 'forum' ? (
           <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
-            <GLForumView canModerate={canModerateForum} auth={auth} />
+            <GLForumView canModerate={canModerateForum} auth={auth} token={token} />
           </Suspense>
         ) : null}
         {activeSubTab === 'market' && includeMarket ? (

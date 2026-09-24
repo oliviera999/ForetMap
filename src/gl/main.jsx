@@ -25,6 +25,7 @@ import '../shared/styles/surfaces.css';
 import '../shared/styles/presence-badge.css';
 import '../shared/styles/map-action.css';
 import '../shared/styles/data-list.css';
+import '../shared/styles/forum.css';
 import '../shared/styles/visit-map-mascot.css';
 import '../shared/styles/map-fullscreen.css';
 import './styles/gl-base.css';

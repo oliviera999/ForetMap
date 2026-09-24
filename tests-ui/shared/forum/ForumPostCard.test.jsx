@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ForumPostCard } from '../../../src/components/forum/ForumPostCard.jsx';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ForumPostCard } from '../../../src/shared/forum/ForumPostCard.jsx';
 
 function post(overrides = {}) {
   return {
@@ -24,6 +24,8 @@ function renderCard(props = {}) {
     onDelete: vi.fn(),
     onReportReasonChange: vi.fn(),
     onReport: vi.fn(),
+    onQuote: vi.fn(),
+    onEdit: vi.fn().mockResolvedValue(true),
   };
   render(
     <ForumPostCard
@@ -141,5 +143,47 @@ describe('ForumPostCard', () => {
     expect(screen.getByRole('button', { name: 'Supprimer' })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Motif de signalement')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Signaler' })).not.toBeInTheDocument();
+  });
+
+  test('Citer transmet le message entier à la vue', () => {
+    const h = renderCard({ canQuote: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Citer' }));
+    expect(h.onQuote).toHaveBeenCalledWith(expect.objectContaining({ id: 'p1' }));
+  });
+
+  test('Citer absent quand on ne peut pas répondre', () => {
+    renderCard({ canQuote: false });
+    expect(screen.queryByRole('button', { name: 'Citer' })).not.toBeInTheDocument();
+  });
+
+  test('Modifier : formulaire prérempli, Enregistrer envoie le nouveau texte puis referme', async () => {
+    const h = renderCard({ isOwner: true, canEdit: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    const field = screen.getByLabelText('Modifier le message');
+    expect(field).toHaveValue('Bonjour la forêt');
+    fireEvent.change(field, { target: { value: 'Bonjour la forêt comestible' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(h.onEdit).toHaveBeenCalledWith('p1', 'Bonjour la forêt comestible');
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Modifier le message')).not.toBeInTheDocument(),
+    );
+  });
+
+  test('Modifier : Annuler referme sans rien envoyer', () => {
+    const h = renderCard({ isOwner: true, canEdit: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(h.onEdit).not.toHaveBeenCalled();
+    expect(screen.getByText('Bonjour la forêt')).toBeInTheDocument();
+  });
+
+  test('Modifier absent sans le droit d’édition', () => {
+    renderCard({ isOwner: true, canEdit: false });
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
+  });
+
+  test('message modifié : mention « modifié le … »', () => {
+    renderCard({ post: post({ edited_at: '2026-06-12T11:00:00Z' }) });
+    expect(screen.getByText(/modifié le/)).toBeInTheDocument();
   });
 });

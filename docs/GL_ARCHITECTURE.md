@@ -328,6 +328,28 @@ Tables GL préfixées `gl_` :
   - abonnement client `subscribe:gl-class` (marché)
   - room `gl:class:{id}`
   - émission serveur `gl:market:trade-changed` via `emitGlMarketTradeChanged()`
+  - room `gl:forum` (`GL_FORUM_ROOM`) : **rejointe d'office** par toute socket GL à la
+    connexion (pas d'abonnement client) ; émission `gl:forum:changed` via
+    `emitGlForumChanged({ reason, threadId, postId? })` à chaque écriture du forum
+    (sujet, réponse, modification, réaction, signalement, épinglage, verrouillage,
+    suppression). Le client (`GLForumView`) recharge sans « Chargement… », après un
+    délai aléatoire (`jitteredRefreshDelay`) pour étaler la charge. Les sockets ForetMap ne
+    rejoignent pas cette room, et une socket GL ne reçoit pas `forum:changed` ForetMap.
+
+## Forum commun ForetMap / GL
+
+- Serveur : `lib/shared/forumCore.js`, piloté par un descripteur produit (`FORETMAP_FORUM`,
+  `GL_FORUM` : tables, préfixe d'upload `forum-posts` / `gl-forum-posts`, UUID contre
+  AUTO_INCREMENT, bornes de saisie, nom d'auteur). Les gardes propres à chaque produit
+  (périmètre de groupe et RBAC ForetMap, invité et `gl_admin` côté GL) restent dans
+  `routes/forum.js` et `routes/gl/forum.js`.
+- Front : `src/shared/forum/` (`SharedForumView`, `ForumPostCard`, composeurs, panneau des
+  signalements, non-lus par sujet) derrière `createForumAdapter({ request, basePath,
+capabilities })`. `GLForumView` fournit `apiGL`, `/api/gl/forum/config` et le temps
+  réel ; capacité `moderatorCanReplyLocked` (le MJ répond dans un sujet verrouillé).
+- Styles : `src/shared/styles/forum.css`, importé par `src/index.css` et `src/gl/main.jsx`.
+- Schéma : migration `288_gl_forum_parity.sql` (épinglage, `last_post_at`, images,
+  `edited_at`, tables `gl_forum_post_reactions` et `gl_forum_reports`).
 
 ## Frontend GL (lot actuel)
 

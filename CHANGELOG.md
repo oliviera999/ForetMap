@@ -9,6 +9,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — forum commun ForetMap / G&L : épingler, modifier, citer, non-lus par sujet, signalements
+
+- **Un seul forum pour les deux produits.** Côté serveur, `lib/shared/forumCore.js` porte
+  validation, lecture paginée, réactions, signalements, édition et suppression, piloté par un
+  descripteur produit (`FORETMAP_FORUM`, `GL_FORUM`). `routes/forum.js` et
+  `routes/gl/forum.js` ne gardent que leurs gardes propres (groupes et RBAC ForetMap, invité
+  et MJ G&L). Côté client, `src/shared/forum/` (`SharedForumView`, `ForumPostCard`,
+  composeurs, panneau des signalements, pager, hooks) derrière `createForumAdapter`.
+  `forum-views.jsx` et `GLForumView.jsx` deviennent des enveloppes minces. Styles communs dans
+  `src/shared/styles/forum.css`, et le sélecteur de photos passe dans
+  `src/shared/components/AttachmentImagesPicker.jsx`.
+- **Nouveautés visibles** (dans les deux produits) :
+  - épingler un sujet (modérateurs) ;
+  - modifier son propre message, avec la mention « modifié le … » ;
+  - citer un message dans sa réponse ;
+  - pastille « non lu » **par sujet**, mémorisée sur l'appareil à partir des seules dates
+    serveur ;
+  - bouton « Signalements (n) » pour les modérateurs : voir le sujet, supprimer le message,
+    marquer comme traité, classer sans suite. Supprimer un message classe ses signalements
+    ouverts.
+- **Parité G&L** : photos jointes (`uploads/gl-forum-posts/`), réactions emoji, signalements,
+  pagination des messages, tri épinglés puis dernier message, `GET /api/gl/forum/config`, et
+  temps réel `gl:forum:changed` (room `gl:forum` rejointe d'office par les sockets G&L). Le MJ
+  répond et corrige encore ses messages dans un sujet verrouillé.
+- **Nouvelles routes** :
+  - ForetMap : `PATCH /api/forum/posts/:id`, `GET` et `PATCH /api/forum/reports[/:id]`
+    (périmètre de groupe), `PATCH /api/forum/threads/:id/pin` ;
+  - G&L : routes miroir sous `/api/gl/forum/*`.
+  - La liste des sujets expose `posts_count` (hors messages supprimés) et
+    `last_other_post_at`.
+- **Migrations** :
+  - `287_forum_edit_pin_moderation.sql` : `forum_posts.edited_at`, `forum_reports.resolved_*` ;
+  - `288_gl_forum_parity.sql` : épinglage, `last_post_at`, images et `edited_at` G&L, tables
+    `gl_forum_post_reactions` et `gl_forum_reports`.
+- **Tests** : routes ForetMap et G&L, contrats du noyau (`tests/shared-cores-fm-gl.test.js`),
+  temps réel G&L, vue partagée avec un faux adaptateur (`tests-ui/shared/forum/`), enveloppe
+  G&L et scénario `e2e/forum.spec.js`. Docs : `docs/API.md`, `docs/GL_ARCHITECTURE.md` et
+  documents de référence (forum ForetMap, présentation G&L).
+
 ### Modifié — tâches à valider en tête pour les valideurs
 
 - Pour un utilisateur disposant du droit `tasks.validate`, la section « En attente de

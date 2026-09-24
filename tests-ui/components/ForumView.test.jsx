@@ -3,10 +3,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const apiMock = vi.fn();
-const toggleReactionMock = vi.fn();
 vi.mock('../../src/services/api', () => ({
   api: (...args) => apiMock(...args),
-  toggleForumPostReaction: (...args) => toggleReactionMock(...args),
   getAuthToken: () => '',
   AccountDeletedError: class AccountDeletedError extends Error {},
 }));
@@ -50,7 +48,7 @@ const CLAIMS = { userType: 'student', canonicalUserId: 's1', userId: 's1' };
 
 beforeEach(() => {
   apiMock.mockReset();
-  toggleReactionMock.mockReset();
+  window.localStorage.clear();
 });
 
 const THREAD_B = { ...THREAD, id: 't2', title: 'Second sujet' };
@@ -123,7 +121,13 @@ describe('ForumView — navigation et rafraîchissements', () => {
 
   test('réagir met à jour le message sur place, sans recharger la discussion', async () => {
     mockForum();
-    toggleReactionMock.mockResolvedValue({ ok: true, reacted: true, emoji: '🌱' });
+    const baseImpl = apiMock.getMockImplementation();
+    apiMock.mockImplementation((path, method, body) => {
+      if (String(path).endsWith('/reactions') && method === 'POST') {
+        return Promise.resolve({ ok: true, reacted: true, emoji: body?.emoji });
+      }
+      return baseImpl(path, method, body);
+    });
     renderForum();
     await waitFor(() => expect(screen.getByText('Bonjour')).toBeTruthy());
     const before = detailCalls().length;
@@ -132,7 +136,9 @@ describe('ForumView — navigation et rafraîchissements', () => {
     fireEvent.click(screen.getByTitle('Réagir avec 🌱'));
 
     await waitFor(() => expect(screen.getByTitle('Réagir avec 🌱')).toHaveClass('active'));
-    expect(toggleReactionMock).toHaveBeenCalledWith('p1', '🌱');
+    expect(apiMock).toHaveBeenCalledWith('/api/forum/posts/p1/reactions', 'POST', {
+      emoji: '🌱',
+    });
     expect(detailCalls().length).toBe(before);
     expect(screen.queryByText('Chargement…')).toBeNull();
   });

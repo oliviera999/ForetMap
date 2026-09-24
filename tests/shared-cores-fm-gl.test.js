@@ -193,3 +193,121 @@ test('filtre de liens : le jeu de questions passe avant le type de ressource', (
   assert.deepStrictEqual(r.where, ['question_dataset = ?', 'resource_type = ?']);
   assert.deepStrictEqual(r.params, ['qcm_lore', 'gl_chapter']);
 });
+
+/* ── Forum commun (lib/shared/forumCore.js) ─────────────────────────────────────────── */
+
+const forumCore = require('../lib/shared/forumCore');
+
+const FM_FORUM_ROUTE = path.join(__dirname, '..', 'routes', 'forum.js');
+const GL_FORUM_ROUTE = path.join(__dirname, '..', 'routes', 'gl', 'forum.js');
+
+test('forum : les deux routeurs passent par le noyau commun, avec leur descripteur', () => {
+  const fm = fs.readFileSync(FM_FORUM_ROUTE, 'utf8');
+  const gl = fs.readFileSync(GL_FORUM_ROUTE, 'utf8');
+  assert.match(fm, /require\('\.\.\/lib\/shared\/forumCore'\)/);
+  assert.match(gl, /require\('\.\.\/\.\.\/lib\/shared\/forumCore'\)/);
+  assert.match(fm, /forumCore\.FORETMAP_FORUM/);
+  assert.match(gl, /forumCore\.GL_FORUM/);
+  // Aucune requête d'écriture des tables de réactions/signalements hors du noyau.
+  for (const [name, src] of [
+    ['routes/forum.js', fm],
+    ['routes/gl/forum.js', gl],
+  ]) {
+    assert.ok(
+      !/INSERT INTO (gl_)?forum_(post_reactions|reports)/.test(src),
+      `${name} réécrit une écriture que le noyau porte déjà`,
+    );
+  }
+});
+
+test('forum : descripteurs figés, bornes historiques de chaque produit', () => {
+  assert.ok(Object.isFrozen(forumCore.FORETMAP_FORUM));
+  assert.ok(Object.isFrozen(forumCore.GL_FORUM));
+  assert.deepStrictEqual(
+    { ...forumCore.FORETMAP_FORUM.limits },
+    { MIN_TITLE: 4, MAX_TITLE: 180, MIN_BODY: 3, MAX_BODY: 4000 },
+  );
+  assert.deepStrictEqual(
+    { ...forumCore.GL_FORUM.limits },
+    { MIN_TITLE: 3, MAX_TITLE: 200, MIN_BODY: 2, MAX_BODY: 4000 },
+  );
+  assert.strictEqual(forumCore.FORETMAP_FORUM.uploadPrefix, 'forum-posts');
+  assert.strictEqual(forumCore.GL_FORUM.uploadPrefix, 'gl-forum-posts');
+  assert.deepStrictEqual([...forumCore.REPORT_STATUSES], ['open', 'resolved', 'dismissed']);
+});
+
+test('forum : validation titre / message selon le descripteur', () => {
+  assert.ok(forumCore.resolveThreadTitle(forumCore.FORETMAP_FORUM, 'abc').error);
+  assert.strictEqual(forumCore.resolveThreadTitle(forumCore.GL_FORUM, ' abc ').title, 'abc');
+  assert.ok(forumCore.resolvePostPayload(forumCore.FORETMAP_FORUM, 'ab').error);
+  assert.strictEqual(forumCore.resolvePostPayload(forumCore.GL_FORUM, 'ab').body, 'ab');
+  assert.ok(forumCore.resolveEditBody(forumCore.GL_FORUM, '  ').error);
+  assert.strictEqual(
+    forumCore.resolveEditBody(forumCore.GL_FORUM, '', { hasImages: true }).body,
+    forumCore.AUTO_BODY_WITH_PHOTOS,
+  );
+  assert.ok(forumCore.resolveReportReason('ab').error);
+  assert.strictEqual(forumCore.resolveReportReason(' spam ').reason, 'spam');
+});
+
+test('forum : règles d’édition communes (auteur, supprimé, verrouillé, contournement MJ)', () => {
+  const post = { author_user_type: 'gl_player', author_user_id: '12', is_deleted: 0 };
+  const author = { userType: 'gl_player', userId: '12' };
+  const other = { userType: 'gl_player', userId: '99' };
+  assert.strictEqual(
+    forumCore.checkPostEditable({ post, threadLocked: false, actor: author }),
+    null,
+  );
+  assert.strictEqual(
+    forumCore.checkPostEditable({ post, threadLocked: false, actor: other }).status,
+    403,
+  );
+  assert.strictEqual(
+    forumCore.checkPostEditable({ post: { ...post, is_deleted: 1 }, actor: author }).status,
+    409,
+  );
+  assert.strictEqual(
+    forumCore.checkPostEditable({ post, threadLocked: true, actor: author }).status,
+    409,
+  );
+  assert.strictEqual(
+    forumCore.checkPostEditable({
+      post,
+      threadLocked: true,
+      actor: author,
+      moderatorBypassLock: true,
+    }),
+    null,
+  );
+  assert.strictEqual(forumCore.checkPostEditable({ post: null, actor: author }).status, 404);
+});
+
+test('forum : statistiques de liste — paramètres de l’acteur avant ceux du WHERE', () => {
+  const stats = forumCore.threadListStatsSql(forumCore.GL_FORUM, 't', {
+    userType: 'gl_player',
+    userId: 12,
+  });
+  assert.deepStrictEqual(stats.params, ['gl_player', '12']);
+  assert.match(stats.select, /FROM gl_forum_posts sp/);
+  assert.match(stats.select, /AS last_other_post_at/);
+  assert.match(stats.select, /is_deleted = 0/);
+});
+
+test('forum : filtre de statut des signalements', () => {
+  assert.strictEqual(forumCore.normalizeReportStatusFilter(undefined), 'open');
+  assert.strictEqual(forumCore.normalizeReportStatusFilter('ALL'), 'all');
+  assert.strictEqual(forumCore.normalizeReportStatusFilter('dismissed'), 'dismissed');
+  assert.strictEqual(forumCore.normalizeReportStatusFilter('nimporte'), 'open');
+});
+
+test('forum : message supprimé — ni texte ni images côté API', () => {
+  const row = forumCore.sanitizePostRow(forumCore.GL_FORUM, {
+    id: 1,
+    body: '[message supprimé]',
+    is_deleted: 1,
+    image_paths_json: '["gl-forum-posts/x.png"]',
+  });
+  assert.strictEqual(row.body, '');
+  assert.deepStrictEqual(row.image_urls, []);
+  assert.ok(!('image_paths_json' in row));
+});

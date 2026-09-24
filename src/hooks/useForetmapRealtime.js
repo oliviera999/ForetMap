@@ -183,8 +183,10 @@ export function useForetmapRealtime({
   const onStudentsRealtime = useCallback(() => {
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'students' } }));
   }, []);
-  const onForumRealtime = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'forum' } }));
+  const onForumRealtime = useCallback((payload = {}) => {
+    window.dispatchEvent(
+      new CustomEvent('foretmap_realtime', { detail: { domain: 'forum', payload } }),
+    );
   }, []);
   const onContextCommentsRealtime = useCallback((payload = {}) => {
     window.dispatchEvent(
