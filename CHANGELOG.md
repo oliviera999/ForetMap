@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — tâches à valider en tête pour les valideurs
+
+- Pour un utilisateur disposant du droit `tasks.validate`, la section « En attente de
+  validation » de l'écran Tâches s'affiche en premier (vues prof et élève), et les tâches
+  terminées remontent en haut des regroupements mixtes (Urgent !, blocs projets, Mes tâches,
+  résultats filtrés). Tri stable via `prioritizeTasksAwaitingValidation`
+  (`src/utils/taskSectioning.js`) ; ordre inchangé pour les autres utilisateurs.
+
 ### Corrigé — menu mobile de la barre prof : il fallait choisir deux fois un onglet
 
 - Sur mobile / tablette (admin, n3boss), toucher un pôle non actif ouvre la feuille **et** son

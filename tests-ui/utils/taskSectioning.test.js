@@ -2,6 +2,8 @@ import { describe, test, expect } from 'vitest';
 import {
   isTaskUrgentCategory,
   isTaskUrgentPending,
+  isTaskAwaitingValidation,
+  prioritizeTasksAwaitingValidation,
   taskSectionStatus,
   taskMatchesFilters,
   applyTaskFilters,
@@ -232,6 +234,30 @@ describe('partitionTasksByEffectiveStatus', () => {
     // Aucune tâche ne doit se perdre en route.
     const total = Object.values(out).reduce((n, bucket) => n + bucket.length, 0);
     expect(total).toBe(list.length);
+  });
+});
+
+describe('priorité aux tâches en attente de validation', () => {
+  test('isTaskAwaitingValidation : vrai pour une tâche terminée, même dans un projet clos', () => {
+    expect(isTaskAwaitingValidation({ status: 'done' })).toBe(true);
+    expect(isTaskAwaitingValidation({ status: 'done', project_status: 'completed' })).toBe(true);
+    expect(isTaskAwaitingValidation({ status: 'in_progress' })).toBe(false);
+    expect(isTaskAwaitingValidation({ status: 'validated' })).toBe(false);
+  });
+
+  test('remonte les tâches terminées en tête, ordre relatif conservé', () => {
+    const list = [
+      { id: 'a', status: 'available' },
+      { id: 'b', status: 'done' },
+      { id: 'c', status: 'in_progress' },
+      { id: 'd', status: 'done' },
+    ];
+    expect(prioritizeTasksAwaitingValidation(list).map((t) => t.id)).toEqual(['b', 'd', 'a', 'c']);
+    expect(list.map((t) => t.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  test('tolère une liste absente', () => {
+    expect(prioritizeTasksAwaitingValidation(null)).toEqual([]);
   });
 });
 
