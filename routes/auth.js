@@ -419,17 +419,15 @@ router.patch(
   asyncHandler(async (req, res) => {
     const body = req.body || {};
     const auth = req.auth || {};
-    // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler ;
-    // password_hash requis ici pour vérifier le mot de passe actuel (bcrypt), jamais renvoyé au client.
+    // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler.
+    // La session suffit : le mot de passe actuel n'est redemandé que pour en changer.
     const account = await queryOne(
       `SELECT id, user_type, email, pseudo, description,
-              visit_mascot_catalog_id, biodiv_pedago_level, avatar_path, password_hash
+              visit_mascot_catalog_id, biodiv_pedago_level, avatar_path
          FROM users WHERE id = ? LIMIT 1`,
       [auth.userId],
     );
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    const reauth = await verifyCurrentPassword(account, body);
-    if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
 
     // Blocs communs avec PATCH /api/students/:id/profile extraits dans lib/profileUpdate.js
     // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.

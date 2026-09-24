@@ -53,7 +53,6 @@ const {
   applyAvatarUpdate,
   findProfileUniquenessConflict,
   isDuplicateEntryError,
-  verifyCurrentPassword,
 } = require('../lib/profileUpdate');
 
 const router = express.Router();
@@ -784,8 +783,6 @@ router.patch(
       askedStudentId,
     ]);
     if (!student) return res.status(404).json({ error: 'n3beur introuvable' });
-    const reauth = await verifyCurrentPassword(student, body);
-    if (!reauth.ok) return res.status(reauth.status).json({ error: reauth.error });
 
     // Blocs communs avec PATCH /api/auth/me/profile extraits dans lib/profileUpdate.js
     // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.

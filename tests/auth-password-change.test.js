@@ -140,11 +140,17 @@ test('compte Google sans mot de passe : édite son profil et se dote d’un mot 
     .post('/api/auth/login')
     .send({ identifier: student.pseudo, password: 'premier1234' })
     .expect(200);
-  // Désormais avec mot de passe : le redonner devient obligatoire.
+  // Même avec un mot de passe, la modification de profil se contente de la session ;
+  // seul un nouveau changement de mot de passe le redemande.
   await request(app)
     .patch('/api/auth/me/profile')
     .set('Authorization', `Bearer ${res.body.authToken}`)
     .send({ description: 'Sans mot de passe actuel' })
+    .expect(200);
+  await request(app)
+    .post('/api/auth/me/password')
+    .set('Authorization', `Bearer ${res.body.authToken}`)
+    .send({ newPassword: 'second12345' })
     .expect(400);
 });
 

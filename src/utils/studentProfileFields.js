@@ -60,8 +60,6 @@ export function buildVisitMascotOptions(allowedRaw, extraEntries = []) {
  * Retourne le message d'erreur à afficher, ou '' si tout est valide.
  */
 export function validateProfileEditorFields({ pseudo, email, description }) {
-  // Le mot de passe actuel n'est plus exigé côté client : un compte Google n'en a pas, et
-  // c'est le serveur qui sait s'il faut le redemander (`verifyCurrentPassword`, CDG-42).
   if (String(pseudo || '').trim() && !PSEUDO_RE.test(String(pseudo).trim())) {
     return PSEUDO_INVALID_MSG;
   }
