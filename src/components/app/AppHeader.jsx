@@ -3,15 +3,8 @@ import { StudentAvatar } from '../student-avatar';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { withAppBase } from '../../services/api';
 import { resolveRealtimeTooltip } from '../../utils/helpResolve';
-import {
-  IconDownload,
-  IconEdit,
-  IconKey,
-  IconLogout,
-  IconStudentView,
-  IconTeacherView,
-  IconUndo,
-} from '../../shared/icons.jsx';
+import { IconDownload, IconEdit, IconKey, IconLogout } from '../../shared/icons.jsx';
+import { AppPreviewMenu } from './AppPreviewMenu.jsx';
 // Pastille `.app-version-badge` : feuille partagée avec G&L (voir `GLAppVersionBadge`).
 import '../../shared/styles/version-badge.css';
 
@@ -20,7 +13,7 @@ import '../../shared/styles/version-badge.css';
  *
  * Composant feuille purement piloté par props : logo, badge version,
  * pastille temps réel, centre de notifications, badge utilisateur,
- * boutons rôle / connexion prof / déconnexion. Aucun état déplacé — les
+ * menu Aperçu / connexion prof / déconnexion. Aucun état déplacé — les
  * handlers (changement de vue rôle, connexion prof, déconnexion…) restent
  * définis dans `App` et sont passés en callbacks.
  */
@@ -58,7 +51,7 @@ export function AppHeader({
   onOpenStats,
   onOpenTeacherStatsTab,
   onOpenProfile,
-  // Bascule de vue rôle (prof / élève / natif)
+  // Menu Aperçu : bascule de vue rôle (prof / élève / natif)
   roleViewMode,
   canSwitchToStudentView,
   canSwitchToTeacherView,
@@ -173,41 +166,14 @@ export function AppHeader({
           </Tooltip>
         )}
         {isTeacher && (
-          <>
-            {roleViewMode !== 'native' && (
-              <Tooltip text={helpText('header.roleReset')}>
-                <button
-                  className="lock-btn"
-                  aria-label="Revenir au rôle normal"
-                  onClick={() => onRoleViewModeSelect('native')}
-                >
-                  <IconUndo />
-                </button>
-              </Tooltip>
-            )}
-            {roleViewMode !== 'student' && canSwitchToStudentView && (
-              <Tooltip text={helpText('header.roleStudent')}>
-                <button
-                  className="lock-btn"
-                  aria-label={`Passer en vue ${roleTerms.studentSingular}`}
-                  onClick={() => onRoleViewModeSelect('student')}
-                >
-                  <IconStudentView />
-                </button>
-              </Tooltip>
-            )}
-            {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
-              <Tooltip text={helpText('header.roleTeacher')}>
-                <button
-                  className="lock-btn"
-                  aria-label={`Passer en vue ${roleTerms.teacherShort}`}
-                  onClick={() => onRoleViewModeSelect('teacher')}
-                >
-                  <IconTeacherView />
-                </button>
-              </Tooltip>
-            )}
-          </>
+          <AppPreviewMenu
+            roleViewMode={roleViewMode}
+            canSwitchToStudentView={canSwitchToStudentView}
+            canSwitchToTeacherView={canSwitchToTeacherView}
+            onRoleViewModeSelect={onRoleViewModeSelect}
+            roleTerms={roleTerms}
+            helpText={helpText}
+          />
         )}
         <Tooltip text={helpText('header.teacherLogin')}>
           <button

@@ -6,8 +6,8 @@
 > Retour au sommaire : [../README.md](../README.md)
 
 > **Lot A livré :** les trois niveaux d’affichage, les réglages (compte, carte, groupe,
-> défaut établissement), la visite invitée en Collège, l’aperçu professeur « Voir comme
-> un élève », et les masquages catalogue / réseau / groupes / individus / quiz-glossaire
+> défaut établissement), la visite invitée en Collège, l’aperçu professeur (menu
+> **Aperçu** de l’en-tête), et les masquages catalogue / réseau / groupes / individus / quiz-glossaire
 > sont **en place**. Deux **séances guidées** collège sont disponibles dans l’onglet
 > **Séances**, avec un suivi simple « démarrée / terminée » (section dédiée plus bas).
 
@@ -98,8 +98,9 @@ Trois endroits complémentaires :
 Du plus fort au plus faible :
 
 1. **Visite invitée** → toujours **Collège** — non contournable.
-2. **Aperçu professeur** « Voir comme un élève — Collège / Lycée / Université » (session
+2. **Aperçu professeur** « Affichage biodiversité — Collège / Lycée / Université » (session
    uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
+   Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
 3. **Socle** = le **plus simple** parmi le niveau du **groupe** (s’il y en a plusieurs,
    le plus simple l’emporte), le niveau de la **carte** active, et le **défaut de
    l’établissement** (réglage admin ; **Collège** par défaut).
@@ -112,6 +113,23 @@ le **groupe** concerné, plutôt que de changer le défaut de tout le site.
 
 Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
 validation, administration), quel que soit le niveau fixé pour les élèves.
+
+### Le menu Aperçu
+
+Dans l’en-tête, le bouton **Aperçu** (icône en forme d’œil) réunit en un seul endroit
+tout ce qui permet à un professeur de voir l’application « avec les yeux d’un autre » :
+
+- **Interface** : _Ma vue habituelle_, _Vue élève_ (navigation en bas, écrans élève) et,
+  pour un administrateur, _Vue professeur_ (interface sans les boutons d’administration) ;
+- **Affichage biodiversité** : _Complet (vue gestion)_, _Collège_, _Lycée_ ou
+  _Université_. En vue élève, l’option automatique s’appelle _Automatique (carte et
+  groupe)_ : le niveau suit alors les mêmes règles que pour un vrai élève.
+
+Les deux se combinent : « Vue élève · Affichage Collège » montre exactement ce que voit
+un collégien. Dès qu’un aperçu est actif, le bouton se colore et **un seul bandeau**
+rappelle ce qui est simulé, avec un bouton **Quitter l’aperçu** qui remet tout à zéro.
+Les droits réels du professeur ne changent jamais ; le choix de niveau est oublié à la
+fermeture du navigateur.
 
 ## Visite invitée
 
@@ -273,8 +291,12 @@ Disponible en brouillon : le professeur choisit les six espèces puis publie.
 
 > ⚠️ **Point d'attention** — Le mot « niveau » existe déjà pour autre chose (niveau
 > d’une question de quiz collège/lycée, profondeur d’un terme de glossaire). Ici il
-> s’agit du **niveau pédagogique d’affichage** de la biodiversité. Quand l’interface
-> existera, les libellés devront rester distincts (par ex. « Affichage : Collège »).
+> s’agit du **niveau pédagogique d’affichage** de la biodiversité : l’interface le nomme
+> toujours « Affichage biodiversité » ou « Affichage Collège » pour rester distinct.
+
+> ⚠️ **Point d'attention** — L’éditeur de visite garde sa propre bascule « Aperçu comme
+> élève », qui ne concerne que le rendu de la visite et n’apparaît pas dans le menu
+> Aperçu de l’en-tête.
 
 ## Renvois
 

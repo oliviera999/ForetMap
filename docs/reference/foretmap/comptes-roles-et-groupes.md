@@ -190,6 +190,17 @@ comptes élèves, lire le journal d'audit. Ce n'est pas « toute la gestion péd
 au sens anodin du terme. Le **journal de sécurité** (adresses IP, navigateur, export
 incident) reste réservé à l'administrateur.
 
+### Voir l'application comme un autre rôle (menu Aperçu)
+
+Un n3boss ou un administrateur peut vérifier ce que voient les autres sans changer de
+compte : le bouton **Aperçu** de l'en-tête propose _Ma vue habituelle_, _Vue n3beur_ et,
+pour l'administrateur, _Vue n3boss_. Le même menu règle l'affichage biodiversité
+(Collège / Lycée / Université — voir
+[Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md#le-menu-aperçu)). Un
+bandeau rappelle l'aperçu en cours et permet d'en sortir en un clic ; les droits réels
+restent actifs quand on agit. À ne pas confondre avec la **prise de contrôle** d'un
+compte, réservée à l'administrateur et signalée par son propre bandeau.
+
 ### Deux métiers d'enseignant : n3boss et prof de classe
 
 L'établissement a besoin de **deux postures distinctes**, pas d'un seul professeur

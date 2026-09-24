@@ -23,7 +23,10 @@ const BiodivPedagoContext = createContext(null);
  * @param {string|null} [props.userPreference] — `users.biodiv_pedago_level`
  * @param {string|null} [props.mapLevel] — `maps.pedago_level` de la carte active
  * @param {string[]} [props.groupLevels] — niveaux des groupes dont l'utilisateur est membre
- * @param {boolean} [props.canTeacherPreview] — affiche le sélecteur « Voir comme »
+ * @param {boolean} [props.canTeacherPreview] — autorise l'aperçu de niveau (menu « Aperçu »
+ *   de l'en-tête)
+ * @param {boolean} [props.fullViewByDefault] — sans aperçu choisi, vue gestion complète
+ *   (chrome prof). Faux en « vue élève » : le niveau suit alors les règles élève.
  * @param {import('react').ReactNode} props.children
  */
 export function BiodivPedagoProvider({
@@ -32,6 +35,7 @@ export function BiodivPedagoProvider({
   mapLevel = null,
   groupLevels = [],
   canTeacherPreview = false,
+  fullViewByDefault = canTeacherPreview,
   children,
 }) {
   const publicSettings = usePublicSettings();
@@ -63,8 +67,7 @@ export function BiodivPedagoProvider({
   const prefCanRaise = Boolean(publicSettings?.biodiv?.pedago_pref_can_raise);
 
   const level = useMemo(() => {
-    // Prof / admin : vue gestion complète sauf aperçu « voir comme un élève ».
-    if (canTeacherPreview && !teacherPreview) return 'universite';
+    if (canTeacherPreview && fullViewByDefault && !teacherPreview) return 'universite';
     return resolveBiodivPedagoLevel({
       isGuestVisit,
       siteDefault,
@@ -82,6 +85,7 @@ export function BiodivPedagoProvider({
     userPreference,
     prefCanRaise,
     canTeacherPreview,
+    fullViewByDefault,
     teacherPreview,
   ]);
 
@@ -91,6 +95,7 @@ export function BiodivPedagoProvider({
       teacherPreview: canTeacherPreview ? teacherPreview : null,
       setTeacherPreview: canTeacherPreview ? setTeacherPreview : () => {},
       canTeacherPreview,
+      fullViewByDefault: canTeacherPreview && fullViewByDefault,
       canShow: (feature) => canShowBiodivFeature(feature, level),
       visibility: (feature) => biodivFeatureVisibility(feature, level),
       foodWebTypes: (allTypes) => foodWebTypesForPedagoLevel(level, allTypes),
@@ -98,7 +103,7 @@ export function BiodivPedagoProvider({
       levels: PEDAGO_LEVELS,
       labels: PEDAGO_LEVEL_LABELS,
     }),
-    [level, teacherPreview, setTeacherPreview, canTeacherPreview],
+    [level, teacherPreview, setTeacherPreview, canTeacherPreview, fullViewByDefault],
   );
 
   return <BiodivPedagoContext.Provider value={value}>{children}</BiodivPedagoContext.Provider>;
@@ -109,6 +114,7 @@ const FALLBACK = Object.freeze({
   teacherPreview: null,
   setTeacherPreview: () => {},
   canTeacherPreview: false,
+  fullViewByDefault: false,
   canShow: () => true,
   visibility: () => 'show',
   foodWebTypes: (all) => (Array.isArray(all) ? all : []),

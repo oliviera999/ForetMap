@@ -13,6 +13,8 @@
  * au lieu d'allonger le libellé dans une barre en nowrap.
  *
  * Onglet Carnet (pôle Suivi) : carnet personnel pour tout compte connecté.
+ * Aucun enfant supplémentaire hors `.teacher-nav` : `.teacher-main > *` lui donnerait le
+ * `flex:1` des vues (l'aperçu de niveau vit dans le menu Aperçu de l'en-tête).
  ** Accessibilité : l'onglet actif porte `aria-current="page"`, le pôle actif
  * `aria-current="true"` ; les icônes (src/shared/icons.jsx) sont décoratives.
  */
@@ -45,7 +47,6 @@ import {
 } from '../../shared/icons.jsx';
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
-import { PEDAGO_LEVEL_LABELS, PEDAGO_LEVELS } from '../../utils/biodivPedagoLevel.js';
 import { UnreadDot } from './UnreadDot.jsx';
 
 const POLES = [
@@ -108,13 +109,7 @@ export function TeacherTopTabs({
   const isCompact =
     layoutMode === 'compact' || (layoutMode === 'auto' && (widthCompact || pointerCompact));
 
-  const {
-    canShow,
-    canTeacherPreview,
-    teacherPreview,
-    setTeacherPreview,
-    level: effectivePedagoLevel,
-  } = useBiodivPedago();
+  const { canShow } = useBiodivPedago();
 
   const pendingCount = teacherPendingValidationCount > 0 ? teacherPendingValidationCount : 0;
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
@@ -345,40 +340,6 @@ export function TeacherTopTabs({
           </div>
         ) : null}
       </nav>
-      {canTeacherPreview ? (
-        <div
-          className="biodiv-pedago-preview"
-          data-testid="biodiv-pedago-preview"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '4px 10px',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--ink-soft)',
-          }}
-        >
-          <label htmlFor="biodiv-pedago-preview-select">Voir comme un élève</label>
-          <select
-            id="biodiv-pedago-preview-select"
-            value={teacherPreview || ''}
-            onChange={(e) => setTeacherPreview(e.target.value || null)}
-            aria-label="Aperçu niveau pédagogique biodiversité"
-          >
-            <option value="">— Vue gestion (complet) —</option>
-            {PEDAGO_LEVELS.map((lv) => (
-              <option key={lv} value={lv}>
-                {PEDAGO_LEVEL_LABELS[lv]}
-              </option>
-            ))}
-          </select>
-          {teacherPreview ? (
-            <span aria-live="polite">
-              Aperçu {PEDAGO_LEVEL_LABELS[effectivePedagoLevel] || effectivePedagoLevel}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
       {isCompact ? (
         <BottomSheet
           open={drawerOpen}

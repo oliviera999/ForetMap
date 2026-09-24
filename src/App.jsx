@@ -1601,7 +1601,10 @@ function App() {
         userPreference={userBiodivPedagoPref}
         mapLevel={activeMapPedagoLevel}
         groupLevels={biodivGroupPedagoLevels}
-        canTeacherPreview={effectiveIsTeacher}
+        canTeacherPreview={
+          effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
+        }
+        fullViewByDefault={effectiveIsTeacher}
       >
         <AppDialogsProvider>
           <AppDialogsBridge dialogsRef={appDialogsRef} />
@@ -1852,8 +1855,10 @@ function App() {
                     sessionUser={sessionUser}
                     isTeacher={isTeacher}
                     roleViewMode={roleViewMode}
+                    roleTerms={roleTerms}
                     helpText={helpText}
                     onStopImpersonation={stopAdminImpersonation}
+                    onRoleViewModeSelect={handleRoleViewModeSelect}
                   />
 
                   {effectiveIsTeacher ? (

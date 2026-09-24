@@ -9,6 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — menu « Aperçu » unique dans l'en-tête (vue de rôle + affichage biodiversité)
+
+- **Bug corrigé** : le sélecteur « Voir comme un élève », rendu hors de `.teacher-nav`, héritait
+  du `flex:1` des vues (`.teacher-main > *`) et coupait l'écran prof en deux (grande bande vide,
+  carte ou liste réduite de moitié), surtout sur « Cartes & tâches ».
+- **Un seul point d'entrée** (`AppPreviewMenu`) remplace les trois icônes de rôle de l'en-tête
+  et le bandeau de la barre d'onglets : *Interface* (vue habituelle / n3beur / n3boss) et
+  *Affichage biodiversité* (Complet / Collège / Lycée / Université), combinables — l'aperçu de
+  niveau est désormais disponible aussi en vue n3beur simulée (`fullViewByDefault` du contexte).
+- **Un seul bandeau** d'aperçu actif (`RolePreviewBanners`) avec bouton « Quitter l'aperçu » ;
+  le bouton de l'en-tête se colore et résume l'aperçu. Libellés partagés via
+  `src/utils/appPreview.js` ; infobulle `header.preview` remplace `header.role*`.
+- Tests : `tests/app-preview.test.js`, `tests-ui/components/app/AppPreviewMenu.test.jsx`,
+  bannières mises à jour. Doc de référence : niveaux pédagogiques et comptes/rôles.
+
 ### Modifié — import de comptes : jamais de rétrogradation, mode « compléter seulement »
 
 - **Profil le plus élevé conservé** (`POST /api/students/import`) : sur un compte déjà présent,
