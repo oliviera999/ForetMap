@@ -1,6 +1,6 @@
 /* Service worker « foret » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-foret-066cc4c6";
+const CACHE_NAME = "foretmap-foret-cb076fe6";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -17,31 +17,31 @@ const PRECACHE_URLS = [
   "/pwa-maskable-512.png",
   "/pwa-screenshot-mobile.png",
   "/pwa-screenshot-wide.png",
-  "/assets/main-dPowhkKv.js",
+  "/assets/main-Dbszkxe8.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/AppDialogsProvider-BEpYiz71.js",
+  "/assets/AppDialogsProvider-CUmLvb03.js",
   "/assets/react-vendor-Dcb_X5td.js",
   "/assets/icons-BNguv2wG.js",
-  "/assets/ErrorBoundary-Div7-Cnq.js",
+  "/assets/ErrorBoundary-DJUq7ldA.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/ImageLightboxProvider-DNn1X9Q3.js",
+  "/assets/ImageLightboxProvider-Bb042Ce0.js",
   "/assets/ImageLightboxProvider-BQXMtgsx.css",
   "/assets/markdown-BT1_tLPZ.js",
-  "/assets/spriteCutCatalogEntry-BW7-suuW.js",
-  "/assets/visitMascotPackExtras-kP2QIs31.js",
+  "/assets/spriteCutCatalogEntry-Bn4utGt9.js",
+  "/assets/visitMascotPackExtras-BkIZE6yQ.js",
   "/assets/visitMascotPackExtras-DjNdh8Y5.css",
-  "/assets/mascotPack-CQCFwV32.js",
+  "/assets/mascotPack-CMQjhBU3.js",
   "/assets/socket-io-SGWxBABF.js",
-  "/assets/MarkdownTextarea-Dn_4J-vV.js",
-  "/assets/useBrandTheme-DsGOqnu3.js",
-  "/assets/GlossaryMarkdown-DcmameXN.js",
-  "/assets/FmLearnAndImportSlot-CBxe0Ryv.js",
+  "/assets/MarkdownTextarea-YQ9N_6il.js",
+  "/assets/useBrandTheme-0ZMmOHi1.js",
+  "/assets/GlossaryMarkdown-Ax44emve.js",
+  "/assets/FmLearnAndImportSlot-B_WNh9qd.js",
   "/assets/PublicSettingsContext-DdtaWpch.js",
-  "/assets/journalUi-4TYkNr5b.js",
-  "/assets/GuidedTourOverlay-DRldJo3-.js",
+  "/assets/journalUi-DfESm7Z8.js",
+  "/assets/GuidedTourOverlay-_qUA-Pb6.js",
   "/assets/useLatestRequest-C20ZZR2I.js",
-  "/assets/datetime-fr-BGy9DgWK.js",
-  "/assets/downloadApiFile-CFoSjSne.js",
+  "/assets/datetime-fr-B9cF7kpo.js",
+  "/assets/downloadApiFile-CHEg3w89.js",
   "/assets/downloadAuthedFile-BRkwVwdZ.js",
 ];
 
@@ -65,6 +65,10 @@ const API_NETWORK_FIRST = [
   "/api/map/markers",
   "/api/tasks",
 ];
+
+// Délai d'attente du réseau des lectures network-first (HTML, API), en millisecondes ;
+// 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
+const NETWORK_TIMEOUT_MS = 4000;
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 
@@ -120,10 +124,44 @@ function putInCache(request, response) {
   return response;
 }
 
-function networkFirst(request, fallback) {
-  return fetch(request)
-    .then((response) => putInCache(request, response))
-    .catch(() => caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)));
+/**
+ * Réseau d'abord, avec délai d'attente facultatif — sur le modèle de l'option
+ * `networkTimeoutSeconds` de la stratégie `NetworkFirst` de Workbox (Google, licence MIT ;
+ * https://developer.chrome.com/docs/workbox/modules/workbox-strategies ,
+ * source : https://github.com/GoogleChrome/workbox/blob/v7/packages/workbox-strategies/src/NetworkFirst.ts ).
+ * Même contrat, réécrit ici sans la dépendance :
+ *   - le réseau répond avant le délai → sa réponse (mise en cache si valide) ;
+ *   - le délai expire → la copie en cache si elle existe ; SINON on continue d'attendre le
+ *     réseau (une page qui arrive tard vaut mieux qu'une page vide) ;
+ *   - le réseau échoue → la copie en cache, puis le repli (`offline.html` pour le HTML).
+ * La réponse réseau arrivée après le délai met quand même le cache à jour : `waitUntil`
+ * garde le service worker en vie le temps de l'écrire.
+ *
+ * @param {Request} request
+ * @param {() => Promise<Response|undefined>} [fallback]
+ * @param {{ event?: FetchEvent, timeoutMs?: number }} [options]
+ */
+function networkFirst(request, fallback, options = {}) {
+  const timeoutMs = Number(options.timeoutMs) || 0;
+  const network = fetch(request).then((response) => putInCache(request, response));
+  if (options.event && typeof options.event.waitUntil === 'function') {
+    options.event.waitUntil(network.then(() => undefined, () => undefined));
+  }
+  const networkOrCache = network.catch(() =>
+    caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)),
+  );
+  if (timeoutMs <= 0) return networkOrCache;
+  let timer = null;
+  const cacheAfterTimeout = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      caches.match(request).then(resolve, () => resolve(undefined));
+    }, timeoutMs);
+  });
+  return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
+    clearTimeout(timer);
+    // Délai écoulé sans copie en cache : on attend le réseau (ou son repli).
+    return response || networkOrCache;
+  });
 }
 
 function cacheFirst(request) {
@@ -198,7 +236,12 @@ self.addEventListener('fetch', (event) => {
 
   // HTML en network-first ; repli vers la page hors ligne.
   if (isHtmlEntry(url.pathname)) {
-    event.respondWith(networkFirst(event.request, () => caches.match(OFFLINE_PATH)));
+    event.respondWith(
+      networkFirst(event.request, () => caches.match(OFFLINE_PATH), {
+        event,
+        timeoutMs: NETWORK_TIMEOUT_MS,
+      }),
+    );
     return;
   }
 
@@ -208,9 +251,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Autres API cachées : network-first, repli cache silencieux.
+  // Autres API cachées : network-first (avec délai), repli cache silencieux.
   if (isNetworkFirstApi(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(networkFirst(event.request, null, { event, timeoutMs: NETWORK_TIMEOUT_MS }));
     return;
   }
 
@@ -220,7 +263,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // JS/CSS non hachés : network-first pour ne jamais servir une version obsolète.
+  // JS/CSS non hachés : network-first SANS délai — ne jamais servir une version obsolète.
   if (isScriptOrStyle(url.pathname)) {
     event.respondWith(networkFirst(event.request));
     return;
