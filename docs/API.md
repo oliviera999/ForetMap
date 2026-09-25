@@ -2890,8 +2890,8 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/admin/questions` | prof (`plants.manage`) | Liste complète (`theme`, `categorieSlug`, `niveau`, `q`, `statut`, `sort`) |
 | GET | `/api/quiz/admin/questions/next-code` | prof (`plants.manage`) | Prochain code libre (`QF0001`…) |
 | GET | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Fiche complète pour édition |
-| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question |
-| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante |
+| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction) |
+| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` sont remplacés) |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). |
@@ -3279,7 +3279,9 @@ question **active**, bloquants ou non, dans l'ordre du catalogue. Conséquence v
 un lien approuvé dans l'écran des liens apparaît désormais sur la fiche espèce, et un lien proposé
 (`suggested`) ou rejeté n'y apparaît jamais. Les 7 liens de `quiz_question_species` absents de la
 source unique (fixture v297) sont repris en `editorial`, approuvés et **non bloquants** : ils restent
-affichés et ne changent rien au verrouillage.
+affichés et ne changent rien au verrouillage. L'édition d'une question (`POST`/`PUT
+/api/quiz/admin/questions`) s'exécute dans une transaction, liens par mots-clés compris, comme
+l'import du catalogue.
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),

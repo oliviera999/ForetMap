@@ -94,40 +94,12 @@ router.post(
         .status(400)
         .json({ error: linksBulk.nonMarkableGatingError('fm', v.resource_type) });
     }
-    const who = actor(req);
-    await execute(
-      `INSERT INTO resource_question_links
-        (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note,
-         created_by_user_type, created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         is_gating = COALESCE(?, is_gating), weight = VALUES(weight),
-         origin = COALESCE(?, origin),
-         confidence = VALUES(confidence), status = VALUES(status), note = VALUES(note),
-         updated_at = NOW()`,
-      [
-        v.resource_type,
-        v.resource_ref,
-        v.question_code,
-        v.is_gating,
-        v.weight,
-        v.origin,
-        v.confidence == null ? null : v.confidence,
-        v.status,
-        v.note,
-        who.userType,
-        who.userId,
-        // Lien existant : le caractère bloquant et l'origine ne sont réécrits que si le corps
-        // les fournit (B3) — recréer un couple sans les dire ne doit rien conditionner.
-        provided.is_gating ? v.is_gating : null,
-        provided.origin ? v.origin : null,
-      ],
-    );
-    const row = await queryOne(
-      `SELECT * FROM resource_question_links
-        WHERE resource_type = ? AND resource_ref = ? AND question_code = ? LIMIT 1`,
-      [v.resource_type, v.resource_ref, v.question_code],
-    );
+    // Lien existant : le caractère bloquant et l'origine ne sont réécrits que si le corps les
+    // fournit (B3) — recréer un couple sans les dire ne doit rien conditionner.
+    const row = await learningLinks.upsertLink({ execute, queryOne }, v, {
+      provided,
+      actor: actor(req),
+    });
     invalidateStrictCodesCache();
     // Question inactive : le lien est enregistré mais ne verrouillera rien tant qu'elle n'est
     // pas réactivée — on le dit au professeur au lieu de le laisser croire le contraire
@@ -148,15 +120,11 @@ router.patch(
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
-    const sets = [];
-    const params = [];
+    const changes = {};
     const body = req.body || {};
     if (body.is_gating !== undefined) {
       if (body.is_gating) {
-        const existing = await queryOne(
-          'SELECT resource_type FROM resource_question_links WHERE id = ? LIMIT 1',
-          [id],
-        );
+        const existing = await learningLinks.findLinkById({ queryOne }, id);
         if (!existing) return res.status(404).json({ error: 'Lien introuvable' });
         if (!linksBulk.isMarkableResourceType('fm', existing.resource_type)) {
           return res
@@ -164,33 +132,24 @@ router.patch(
             .json({ error: linksBulk.nonMarkableGatingError('fm', existing.resource_type) });
         }
       }
-      sets.push('is_gating = ?');
-      params.push(body.is_gating ? 1 : 0);
+      changes.is_gating = body.is_gating ? 1 : 0;
     }
     if (body.weight !== undefined) {
       const w = Number(body.weight);
       if (!Number.isFinite(w) || w < 0) return res.status(400).json({ error: 'Poids invalide' });
-      sets.push('weight = ?');
-      params.push(Math.floor(w));
+      changes.weight = Math.floor(w);
     }
     if (body.status !== undefined) {
       const s = core.normalizeStatus(body.status, null);
       if (!s) return res.status(400).json({ error: 'Statut invalide' });
-      sets.push('status = ?');
-      params.push(s);
+      changes.status = s;
     }
     if (body.note !== undefined) {
-      sets.push('note = ?');
-      params.push(body.note == null ? null : String(body.note).trim().slice(0, 255) || null);
+      changes.note = body.note == null ? null : String(body.note).trim().slice(0, 255) || null;
     }
-    if (!sets.length) return res.status(400).json({ error: 'Aucune modification' });
-    params.push(id);
-    const result = await execute(
-      `UPDATE resource_question_links SET ${sets.join(', ')}, updated_at = NOW() WHERE id = ?`,
-      params,
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
-    const row = await queryOne('SELECT * FROM resource_question_links WHERE id = ? LIMIT 1', [id]);
+    if (!Object.keys(changes).length) return res.status(400).json({ error: 'Aucune modification' });
+    const row = await learningLinks.updateLink({ execute, queryOne }, id, changes);
+    if (!row) return res.status(404).json({ error: 'Lien introuvable' });
     invalidateStrictCodesCache();
     return res.json({ link: row });
   }),
@@ -248,8 +207,8 @@ router.delete(
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
-    const result = await execute('DELETE FROM resource_question_links WHERE id = ?', [id]);
-    if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
+    const deleted = await learningLinks.deleteLinkById({ execute }, id);
+    if (!deleted) return res.status(404).json({ error: 'Lien introuvable' });
     invalidateStrictCodesCache();
     return res.json({ success: true });
   }),
@@ -593,28 +552,10 @@ router.post(
     const candidates = found.slice(0, SUGGEST_MAX_CANDIDATES);
     const truncated = found.length > candidates.length;
 
-    let inserted = 0;
-    if (apply) {
-      for (const c of candidates) {
-        const result = await execute(
-          `INSERT IGNORE INTO resource_question_links
-            (resource_type, resource_ref, question_code, is_gating, weight, origin, confidence, status, note,
-             created_by_user_type, created_by_user_id)
-           VALUES (?, ?, ?, 0, 1, ?, ?, 'suggested', ?, ?, ?)`,
-          [
-            c.resource_type,
-            c.resource_ref,
-            c.question_code,
-            c.origin,
-            c.confidence,
-            String(c.reason || '').slice(0, 255) || null,
-            actor(req).userType,
-            actor(req).userId,
-          ],
-        );
-        inserted += result.affectedRows ? 1 : 0;
-      }
-    }
+    // `suggested`, non bloquant, `INSERT IGNORE` : un couple existant n'est jamais touché.
+    const inserted = apply
+      ? await learningLinks.insertSuggestedLinks({ execute }, candidates, actor(req))
+      : 0;
 
     return res.json({
       applied: apply,

@@ -93,7 +93,10 @@ d'observation** pour l'écriture naturaliste libre.
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
   tableur est **tout ou rien** : s'il est interrompu, les questions et les
-  rattachements au glossaire déjà en place restent tels quels. Dans le fichier, la colonne
+  rattachements au glossaire déjà en place restent tels quels. L'enregistrement d'une
+  question depuis sa fiche l'est aussi : ses rattachements automatiques au glossaire sont
+  enregistrés avec elle, ou pas du tout. Ni l'un ni l'autre ne touche aux rattachements
+  choisis ou relus par un professeur. Dans le fichier, la colonne
   « statut » vaut `actif` ou `inactif` ; **laissée vide, elle ne change rien** : une question
   désactivée le reste (jusqu'en septembre 2026, un fichier sans statut réactivait toutes les
   questions désactivées). Une autre valeur est signalée comme erreur sur sa ligne.
