@@ -16,6 +16,8 @@ const {
   SW_CACHE_CONTROL,
   MANIFEST_CACHE_CONTROL,
   MANIFEST_CONTENT_TYPE,
+  OFFLINE_PAGE_PATH,
+  OFFLINE_CACHE_CONTROL,
 } = require('../lib/pwaRoutes');
 
 /** Dossiers temporaires : `dist/` avec fichiers générés, `public/` avec les fichiers manuels. */
@@ -216,4 +218,72 @@ test('resolvePwaFile : matrice de décision', () => {
     }),
     { kind: 'none' },
   );
+});
+
+// ── Page hors ligne : la marque au service (audit du 25/09/2026, § 1.4.6) ──────────────
+
+const REAL_OFFLINE_PAGE = path.join(__dirname, '..', 'public', 'offline.html');
+
+test('public/offline.html n’écrit aucun nom de marque en dur', () => {
+  const html = fs.readFileSync(REAL_OFFLINE_PAGE, 'utf8');
+  const { DEFAULT_BRAND } = require('../lib/brand');
+  const hardcoded = [...new Set(Object.values(DEFAULT_BRAND))].filter((name) =>
+    html.includes(name),
+  );
+  assert.deepStrictEqual(hardcoded, [], `Marque écrite en dur : ${hardcoded.join(', ')}`);
+  assert.match(html, /%BRAND_PRODUCT_LABEL%/);
+});
+
+test('/offline.html : jetons substitués selon le produit du host, sans cache figé', async () => {
+  const { distDir } = makeDirs();
+  fs.copyFileSync(REAL_OFFLINE_PAGE, path.join(distDir, 'offline.html'));
+  const app = makeApp({ serveDist: true, distDir, staticRoot: distDir });
+
+  for (const [header, id] of [
+    [undefined, 'foret'],
+    ['gl', 'gl'],
+    ['plan', 'plan'],
+    ['staff', 'staff'],
+  ]) {
+    let req = request(app).get(OFFLINE_PAGE_PATH);
+    if (header) req = req.set('X-Foretmap-Product', header);
+    const res = await req;
+    assert.strictEqual(res.status, 200, id);
+    assert.match(String(res.headers['content-type']), /text\/html/, id);
+    assert.strictEqual(res.headers['cache-control'], OFFLINE_CACHE_CONTROL, id);
+    assert.ok(!res.text.includes('%BRAND_'), `${id} : jeton non substitué`);
+    const label = PRODUCTS[id].label.replace(/&/g, '&amp;');
+    assert.ok(res.text.includes(`<title>${label} – Hors ligne</title>`), `${id} : titre`);
+    assert.ok(res.text.includes(`accéder à ${label}.`), `${id} : texte`);
+  }
+  // Installation de référence : rendu identique au texte historique.
+  const foret = await request(app).get(OFFLINE_PAGE_PATH);
+  assert.ok(foret.text.includes('<title>ForêtMap – Hors ligne</title>'));
+  assert.ok(foret.text.includes('alt="ForêtMap"'));
+});
+
+test('/offline.html : une autre installation lit sa propre marque', () => {
+  // `lib/products.js` fige son registre au chargement : seul un processus neuf reflète
+  // une autre marque (même méthode que tests/brand.test.js).
+  const { execFileSync } = require('node:child_process');
+  const script = `const fs = require('fs');
+const { brandHtmlTokens, renderBrandHtml } = require('./lib/brandHtml');
+const { PRODUCTS } = require('./lib/products');
+const html = fs.readFileSync('public/offline.html', 'utf8');
+process.stdout.write(renderBrandHtml(html, brandHtmlTokens(PRODUCTS.foret)));`;
+  const out = execFileSync(process.execPath, ['-e', script], {
+    cwd: path.join(__dirname, '..'),
+    env: { ...process.env, FORETMAP_BRAND_APP_NAME: 'EdenMap <Test>' },
+    encoding: 'utf8',
+  });
+  assert.ok(out.includes('<title>EdenMap &lt;Test&gt; – Hors ligne</title>'), out.slice(0, 400));
+  assert.ok(!out.includes('ForêtMap'));
+});
+
+test('/offline.html absent : la requête passe au middleware suivant', async () => {
+  const { distDir } = makeDirs();
+  const app = makeApp({ serveDist: true, distDir, staticRoot: distDir });
+  app.use((req, res) => res.status(418).send('suivant'));
+  const res = await request(app).get(OFFLINE_PAGE_PATH);
+  assert.strictEqual(res.status, 418);
 });
