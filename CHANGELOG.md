@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — une seule définition de « présente sur ce site » (décision Q10)
+
+- Nouveau service `lib/biodiv/presenceService.js` : une espèce est présente sur une carte si
+  elle est au registre du site, dans une zone ou sur un repère ; chaque réponse dit par quel
+  canal. Nouvelle route `GET /api/maps/:mapId/species` (provenance et lieux ; les lieux réservés
+  ne sont nommés qu'à qui peut les voir).
+- Tous les écrans s'appuient dessus : filtre et pastille « Sur la carte » du catalogue (élève
+  et professeur), fiche espèce (provenance affichée), tirage des Groupes emboîtés (registre seul
+  auparavant), réseau trophique, visite (`site_species` dans `GET /api/visit/content`).
+  Carte forêt de la base de référence : 27 / 61 / 75 espèces selon l'écran → 75 partout.
+- Le catalogue ne refait plus la réunion côté client ; les anciens noms mono-espèce
+  (`current_plant`, `plant_name`) ne comptent plus. `loadMapSpeciesMap` (sans appelant)
+  supprimé ; la vue `v_zone_inventory` n'est plus lue par l'application.
+- Tests : `tests/species-presence-screens.test.js`, `tests/presence-service.test.js`,
+  `tests/plant-filters-map-presence.test.js`, `useMapSpeciesPresence`, `PlantCatalogPreview`.
+
 ### Modifié — liens question ↔ ressource : une seule source (piste C, tranche « liens »)
 
 - La fiche espèce, la fiche tutoriel et la fiche d'un terme du glossaire affichent les questions
