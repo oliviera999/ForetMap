@@ -1237,7 +1237,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter). Résolution : visite invitée = collège ; aperçu prof prioritaire ; sinon le plus simple des niveaux **explicites** (groupes de l’utilisateur + carte active) ; le défaut établissement n’est le socle que si aucun de ces niveaux n’est fixé. La préférence ne peut que simplifier, sauf `pedago_pref_can_raise`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter), **repli** depuis la migration 301. Résolution (résolveur unique `lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) : visite invitée = collège ; aperçu prof ; vue gestion complète = université ; **séance en cours** (elle impose son niveau) ; **classe** (`groups.curriculum_niveau`, échelle unique `cycle3` … `es_terminale`, `universite`, plus haut niveau des classes) ; à défaut, le plus simple des `pedago_level` **explicites** (groupes + carte active), puis le défaut établissement (repli, jamais plafond). L’affichage (Collège / Lycée / Université) se déduit du niveau. La préférence ne règle que l’affichage et ne peut que le simplifier, sauf `pedago_pref_can_raise` ; elle ne change pas les questions du verrouillage. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre) et `biodivGroupCurriculumNiveaux` (niveaux de ses classes, `universite` compris) ; **`GET /api/auth/me`** expose aussi **`learnerLevel`** — le niveau résolu par le serveur hors carte et hors séance, `null` pour un compte non élève : `{ niveau, contentEtape, etape, curriculumNiveaux, maxPalier, sources: { niveau, affichage } }` (`sources.niveau` ∈ `classe` \| `groupe` \| `carte` \| `site` ; `affichage` vaut `preference` quand la préférence a simplifié l’affichage).
 
 Aides contextuelles (public) :
 
@@ -3404,11 +3404,25 @@ Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
 
 **Filtre de niveau (ForetMap, 25/09/2026).** Pour un **élève**, `challenge`, `summary` et les
 accusés (`acknowledge-read`, `acknowledge-discovery`, glossaire) ne posent que les questions au
-niveau de l'élève (`lib/pedago/learnerLevel.js` : défaut établissement, groupes, classe, carte —
-palier maximal 2 au collège, 5 au lycée, aucun plafond à l'université). Si **aucune** question de
-la ressource n'est à son niveau, toutes restent posées (décision du mainteneur : garder les
-questions plutôt qu'ouvrir la ressource) et la réponse porte `level_fallback: "all_levels"`
-(sinon `"none"`). Comptes non élèves : aucun filtre, pas de `level_fallback`.
+niveau de l'élève, calculé par le **résolveur unique** `lib/pedago/learnerLevel.js` sur
+l'échelle unique (niveaux du programme + `universite`) : séance en cours, sinon classe
+(`groups.curriculum_niveau`, hérité, le plus haut), sinon replis (`groups.pedago_level`,
+carte, défaut établissement). Palier maximal = celui du niveau (cycle 3 → 1 … terminale → 5 ;
+université : aucun plafond ; niveau inconnu : 2 au collège, 5 au lycée). La préférence
+d'affichage de l'élève n'y entre pas. Si **aucune** question de la ressource n'est à son niveau,
+toutes restent posées (décision du mainteneur : garder les questions plutôt qu'ouvrir la
+ressource) et la réponse porte `level_fallback: "all_levels"` (sinon `"none"`). Comptes non
+élèves : aucun filtre, pas de `level_fallback`.
+
+**Séance en cours : `?pedagoSession=<id ou slug>`** (paramètre de requête facultatif, accepté
+aussi dans le corps des accusés). La séance impose son niveau, verrouillage compris : un élève de
+6ᵉ dans une séance « lycée » reçoit les questions de lycée. Le serveur ne sait pas quelle séance
+est ouverte dans l'onglet (quitter une séance n'est pas enregistré) : le client l'annonce, et le
+serveur ne la retient que si la séance est **publiée**, le module des séances **allumé**, et
+l'élève en a une exécution **démarrée et pas terminée depuis** (`pedago_session_runs`,
+`last_started_at` postérieur à `last_completed_at`). Sinon le paramètre est ignoré (pas
+d'erreur). Public retenu : `pedago_sessions.level`, précisé par `config.notionNiveau` s'il reste
+dans la même étape ; la classe de l'élève précise le niveau à l'intérieur de cette plage.
 
 Audits du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md) (ForetMap, août),
 [AUDIT_GATING_QCM_FEUILLETS_2026-08.md](AUDIT_GATING_QCM_FEUILLETS_2026-08.md) (GL, août) et
@@ -3435,6 +3449,9 @@ sert pour annoncer les essais restants (« il te reste 1 erreur possible ») au 
 qu'une mauvaise réponse est sans conséquence.
 Les routes `challenge` et `summary` ne comptent que les liens dont la question est encore **active**
 (`statut = 'actif'`) : une question archivée cesse de conditionner sans qu'il faille toucher au lien.
+`challenge`, `summary` et les trois accusés (tutoriel, fiche, terme du glossaire) acceptent
+`?pedagoSession=<id ou slug>` : la séance en cours impose son niveau (voir « Filtre de niveau »
+plus haut) ; le client l'ajoute tant qu'une séance est ouverte dans l'onglet.
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 

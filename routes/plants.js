@@ -16,7 +16,7 @@ const { requirePermission, requireAuth } = require('../middleware/requireTeacher
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
-const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
 const learningLinks = require('../lib/pedago/learningLinks');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk } = require('../lib/uploads');
@@ -307,7 +307,7 @@ router.post(
           resourceRef: String(pid),
           userId,
           skipGating: priorCount > 0,
-          learnerLevel: await loadLearnerLevel(userId),
+          learnerLevel: await loadLearnerLevelForRequest(req),
         },
       );
       if (!gating.ok) {
