@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
-import { api, AccountDeletedError } from '../services/api';
+import {
+  api,
+  AccountDeletedError,
+  getAuthUserId,
+  isLikelyNetworkTransportFailure,
+} from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { useQuickAssign } from '../hooks/useQuickAssign';
@@ -68,6 +73,11 @@ import {
 } from '../utils/taskLocationPicker.js';
 
 import { formatTaskActionError, filterTeacherStatusActions } from '../utils/taskActionErrors.js';
+import {
+  flushTaskDoneQueue,
+  queuedTaskDoneIds,
+  taskDoneRequestBody,
+} from '../utils/taskDoneQueue.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -81,6 +91,40 @@ import { IconCheck, IconPuzzle, IconSearch, IconUrgent } from '../shared/icons.j
 
 /** Référence stable pour « aucun projet validé à rendre » (évite un tableau neuf par rendu). */
 const EMPTY_PROJECT_LIST = Object.freeze([]);
+
+/**
+ * Messages quand une action élève NON mise en file échoue faute de réseau (piste D) : on dit
+ * pourquoi elle attend le réseau, au lieu du message générique. Seul « Marquer terminée »
+ * est gardé sur l'appareil (`utils/taskDoneQueue.js`, qui explique ces choix).
+ */
+const OFFLINE_ASSIGN_MESSAGE =
+  'Pas de réseau : pour t’inscrire, il faut le réseau (les places sont comptées). Réessaie dans un moment.';
+const OFFLINE_UNASSIGN_MESSAGE =
+  'Pas de réseau : ta place n’est pas encore libérée. Réessaie quand le réseau revient.';
+export const TASK_DONE_QUEUED_TOAST =
+  'Pas de réseau : ta tâche est notée faite et partira toute seule.';
+
+/** Remplace une panne réseau par un message d'élève (affiché tel quel, sans « Oups »). */
+function offlineActionError(err, message) {
+  if (!isLikelyNetworkTransportFailure(err)) return err;
+  return Object.assign(new Error(message), { offline: true, cause: err });
+}
+
+/** Un tutoriel lié reste à lire : le serveur refuserait le « fait » (hors ligne, pas de file). */
+function hasUnreadLinkedTutorials(task, readIds) {
+  return (task?.tutorials_linked || []).some(
+    (tu) => tu.is_active !== false && !(readIds && readIds.has(Number(tu.id))),
+  );
+}
+
+/** Envoi d'un « fait » gardé hors ligne. */
+function sendQueuedTaskDone(item) {
+  return api(
+    `/api/tasks/${encodeURIComponent(item.task_id)}/done`,
+    'POST',
+    taskDoneRequestBody(item),
+  );
+}
 
 function TasksViewImpl({
   maps = [],
@@ -218,6 +262,45 @@ function TasksViewImpl({
   useEffect(() => {
     safeLocalStorageSetItem('foretmap:tasks:viewMode', viewMode);
   }, [viewMode]);
+
+  // « Tâche faite » gardée sans réseau (piste D) : la file est propre au compte connecté,
+  // rejouée à l'ouverture de la vue et au retour du réseau.
+  const offlineAccountId = isTeacher ? '' : getAuthUserId();
+  const [queuedDoneIds, setQueuedDoneIds] = useState(() => queuedTaskDoneIds(offlineAccountId));
+  const refreshQueuedDone = useCallback(
+    () => setQueuedDoneIds(queuedTaskDoneIds(offlineAccountId)),
+    [offlineAccountId],
+  );
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
+  useEffect(() => {
+    refreshQueuedDone();
+    if (!offlineAccountId || typeof window === 'undefined') return undefined;
+    let cancelled = false;
+    const flush = async () => {
+      const out = await flushTaskDoneQueue(sendQueuedTaskDone, offlineAccountId).catch(() => null);
+      if (cancelled || !out) return;
+      refreshQueuedDone();
+      if (out.synced > 0) {
+        await onRefreshRef.current?.();
+        setToast(
+          out.synced > 1
+            ? `${out.synced} tâches notées sans réseau sont bien parties ✓`
+            : 'Ta tâche notée sans réseau est bien partie ✓',
+        );
+      }
+      if (out.refused.length > 0) {
+        const { item, message } = out.refused[0];
+        setToast(`« ${item.task_title || 'Tâche'} » n’a pas pu être marquée faite : ${message}`);
+      }
+    };
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) void flush();
+    window.addEventListener('online', flush);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', flush);
+    };
+  }, [offlineAccountId, refreshQueuedDone]);
   const tasksForLocationPicker = useMemo(
     () =>
       tasks.filter((t) => taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)),
@@ -232,7 +315,7 @@ function TasksViewImpl({
         await onRefresh();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout();
-        else setToast('Oups : ' + formatTaskActionError(e.message));
+        else setToast(e?.offline ? e.message : 'Oups : ' + formatTaskActionError(e.message));
       }
       setLoading((l) => ({ ...l, [id]: false }));
     },
@@ -285,6 +368,8 @@ function TasksViewImpl({
           firstName: student.first_name,
           lastName: student.last_name,
           studentId: student.id,
+        }).catch((err) => {
+          throw offlineActionError(err, OFFLINE_ASSIGN_MESSAGE);
         });
         setToast('C’est noté, tu t’en occupes — merci ! 🌱');
       }),
@@ -338,6 +423,8 @@ function TasksViewImpl({
               firstName: student.first_name,
               lastName: student.last_name,
               studentId: student.id,
+            }).catch((err) => {
+              throw offlineActionError(err, OFFLINE_UNASSIGN_MESSAGE);
             });
             setToast('OK, place libérée pour quelqu’un d’autre — merci d’avoir prévenu.');
           });
@@ -844,6 +931,7 @@ function TasksViewImpl({
       tooltipText,
       openTasksTutorialPreview,
       tutorialReadIds: tasksTutorialReadIds,
+      queuedDoneTaskIds: queuedDoneIds,
       enableTaskDrag: isTeacher,
       onTaskDragStart: startTaskDrag,
       onTaskDragEnd: clearTaskDragState,
@@ -890,6 +978,7 @@ function TasksViewImpl({
       tooltipText,
       openTasksTutorialPreview,
       tasksTutorialReadIds,
+      queuedDoneIds,
       startTaskDrag,
       clearTaskDragState,
       onOpenBiodiversityFromTaskName,
@@ -1012,6 +1101,13 @@ function TasksViewImpl({
             setToast('Merci pour le retour — ça aide toute l’équipe ✓');
           }}
           onForceLogout={onForceLogout}
+          offlineAllowed={
+            !!offlineAccountId && !hasUnreadLinkedTutorials(logTask, tasksTutorialReadIds)
+          }
+          onQueued={() => {
+            refreshQueuedDone();
+            setToast(TASK_DONE_QUEUED_TOAST);
+          }}
         />
       )}
       {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
