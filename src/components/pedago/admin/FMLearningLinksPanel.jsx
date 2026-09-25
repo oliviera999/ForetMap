@@ -210,9 +210,11 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
     setError('');
     setInfo('');
     try {
-      // L'action peut renvoyer un message qui remplace celui par défaut (avertissement serveur).
+      // L'action peut renvoyer un **texte** qui remplace le message par défaut (avertissement
+      // serveur). Toute autre valeur (réponse d'API renvoyée par `api(...)`) est ignorée.
       const message = await action();
-      if (message || successMessage) setInfo(message || successMessage);
+      const text = typeof message === 'string' && message ? message : successMessage;
+      if (text) setInfo(text);
       await loadLinks();
       await loadResources();
     } catch (err) {
