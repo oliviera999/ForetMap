@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
 import { IdKeySchemaView } from './IdKeySchemaView.jsx';
+import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 
 const READER_MODE_KEY = 'foretmap.id-keys.readerMode';
 
@@ -422,7 +423,13 @@ function EditorPanel({ keyBundle, onReload, plants }) {
  * @param {(plantId: number|string) => void} [props.onOpenPlant]
  * @param {string|number|null} [props.initialKey] — id ou slug à ouvrir au montage / changement
  */
-export function IdKeysView({ canManage = false, onOpenPlant = null, initialKey = null }) {
+export function IdKeysView({
+  canManage = false,
+  onOpenPlant = null,
+  initialKey = null,
+  /** Module éteint pour les élèves, vue ouverte au gestionnaire : bandeau d'avertissement. */
+  moduleOffForLearners = false,
+}) {
   const { plants = [] } = useData() || {};
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
@@ -489,6 +496,7 @@ export function IdKeysView({ canManage = false, onOpenPlant = null, initialKey =
           observables seulement, jusqu’à la fiche espèce.
         </p>
       </header>
+      {moduleOffForLearners ? <ModuleLearnerOffBanner moduleLabel="Clés d’identification" /> : null}
       {error ? <p className="form-error">{error}</p> : null}
 
       {mode === 'list' || !active ? (

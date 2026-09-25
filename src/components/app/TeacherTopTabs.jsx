@@ -90,7 +90,11 @@ export function TeacherTopTabs({
   statsEnabled,
   visitEnabled,
   observationsEnabled = true,
-  /* Modules pédagogiques activables (`ui.modules.*`) : allumés par défaut. */
+  /*
+   * Modules pédagogiques activables DISPONIBLES pour ce compte (`resolvePedagoModuleAccess`,
+   * calculé dans `App`) : allumés, ou éteints pour les élèves mais compte gestionnaire — l'onglet
+   * reste alors visible et la vue affiche un bandeau d'avertissement. Défaut : disponibles.
+   */
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,

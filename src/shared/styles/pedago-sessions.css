@@ -87,7 +87,7 @@
 .pedago-sessions__desc {
   margin: 0.35rem 0 0;
   font-size: var(--text-base);
-  line-height: 1.4;
+  line-height: var(--lh-normal);
 }
 
 .pedago-sessions__card-actions {
@@ -311,4 +311,21 @@
 .pedago-step-editor__tools > button {
   min-width: 44px;
   min-height: 44px;
+}
+
+/* Bandeau du gestionnaire : module pédagogique éteint pour les élèves (clés, individus,
+   séances, badges). Couleurs d'avertissement de `state-inks.css` — aucune teinte en dur. */
+.pedago-module-off-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-warning-solid);
+  background: var(--accent-warning);
+  color: var(--ink-warning);
+  font-size: var(--text-sm);
+  line-height: var(--lh-normal);
+}
+
+.pedago-module-off-banner__where {
+  font-size: var(--text-xs);
 }

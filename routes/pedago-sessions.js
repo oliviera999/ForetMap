@@ -44,21 +44,23 @@ const {
   getRunStats,
   hasCompletedSession,
 } = require('../lib/pedagoSessionRuns');
-const { evaluateSessionRewards } = require('../lib/rewards');
+const { evaluateSessionRewards, announceableRewards } = require('../lib/rewards');
 const { getScopedStudentIds } = require('../lib/groupScope');
 const { resolveRouteBaseUrl } = require('../lib/mapRoutes');
-const { requireModuleEnabled } = require('../lib/shared/moduleGate');
+const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 // `qrcode` (MIT, https://github.com/soldair/node-qrcode) : déjà utilisé pour les parcours.
 const QRCode = require('qrcode');
 
 const router = express.Router();
 const manageSessions = requirePermission('plants.manage');
 
-// Module éteint (`ui.modules.pedago_sessions_enabled`) : tout le routeur répond 503 — catalogue,
-// démarrage / fin d'exécution élève, mais aussi gestion prof (création, suivi, partage), comme
-// le forum et le carnet ferment aussi leurs routes de modération. Les tâches déjà liées à une
-// séance gardent leur lien en base (`tasks.pedago_session_id`) : seul le bouton disparaît.
-router.use(requireModuleEnabled('foret', 'pedago_sessions', 'Séances pédagogiques désactivées'));
+// Module éteint (`ui.modules.pedago_sessions_enabled`) : fermé aux élèves, ouvert à
+// `plants.manage` (`lib/pedagoModuleGate.js`). Usage élève (fermé) : catalogue GET `/`, détail
+// GET `/:idOrSlug` (lien direct, QR), `me/runs`, `runs/start`, `runs/complete`. Gestion
+// (ouverte au gestionnaire) : création, modification, `stats`, suivi `/:idOrSlug/runs`,
+// partage — et les routes d'usage, pour préparer ou montrer une séance. Les tâches liées
+// gardent leur lien en base (`tasks.pedago_session_id`).
+router.use(requirePedagoModuleOrManager('pedago_sessions', 'Séances pédagogiques désactivées'));
 
 const SELECT_COLS = `id, slug, title, description, level, template_key, map_id,
   config_json, steps_json, is_published, sort_order, created_at, updated_at`;
@@ -212,8 +214,10 @@ function runHandler(kind) {
       return res.json({ run });
     }
     const run = await recordRunComplete(row.id, userId);
-    const rewards = await evaluateSessionRewards(userId, { run, level: row.level });
-    return res.json({ run, rewards });
+    // Attribution toujours faite (rattrapage au rallumage) ; annonce seulement si le module
+    // récompenses est allumé (`ui.modules.rewards_enabled`).
+    const awarded = await evaluateSessionRewards(userId, { run, level: row.level });
+    return res.json({ run, rewards: await announceableRewards(awarded) });
   });
 }
 

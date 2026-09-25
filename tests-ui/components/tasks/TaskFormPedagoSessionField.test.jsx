@@ -36,12 +36,27 @@ describe('TaskFormPedagoSessionField', () => {
     expect(apiMock).toHaveBeenCalledWith('/api/pedago-sessions');
   });
 
-  it('module éteint : champ absent et aucun appel à l’API des séances', async () => {
-    const { container } = renderWithModules(
-      { pedago_sessions_enabled: false },
-      { value: 'seance-deja-liee' },
+  it('module allumé : pas d’avertissement', async () => {
+    renderWithModules({});
+    await screen.findByRole('option', { name: 'Qui mange qui' });
+    expect(screen.queryByTestId('task-form-pedago-session-off')).toBeNull();
+  });
+
+  it('module éteint : champ conservé pour le prof, avec avertissement ; lien existant gardé', async () => {
+    renderWithModules({ pedago_sessions_enabled: false }, { value: 'seance-deja-liee' });
+    expect(await screen.findByRole('option', { name: 'Qui mange qui' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Séance actuelle' })).toBeTruthy();
+    expect(screen.getByLabelText('Séance pédagogique liée').value).toBe('seance-deja-liee');
+    expect(screen.getByTestId('task-form-pedago-session-off').textContent).toMatch(
+      /désactivées pour les élèves/,
     );
-    expect(container).toBeEmptyDOMElement();
-    await waitFor(() => expect(apiMock).not.toHaveBeenCalled());
+  });
+
+  it('module éteint, prof sans droit de gestion des séances (503) : liste vide, lien gardé', async () => {
+    apiMock.mockRejectedValue(new Error('Séances pédagogiques désactivées'));
+    renderWithModules({ pedago_sessions_enabled: false }, { value: 'seance-deja-liee' });
+    await waitFor(() => expect(apiMock).toHaveBeenCalled());
+    expect(screen.getByRole('option', { name: 'Séance actuelle' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Qui mange qui' })).toBeNull();
   });
 });
