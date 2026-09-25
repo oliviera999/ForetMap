@@ -290,9 +290,40 @@ export function isLikelyNetworkTransportFailure(err) {
   );
 }
 
-function networkFailureUserMessage() {
+/**
+ * Serveur injoignable, message pour un ÉLÈVE (audit du 25/09/2026, § 1.4.6) : court, tutoyé,
+ * concret. L'ancien texte comptait 37 mots et parlait de « passerelle réseau » et
+ * d'« administrateur de la plateforme » à des élèves de 11 ans sur le terrain.
+ */
+export const NETWORK_FAILURE_USER_MESSAGE =
+  'Pas de réseau pour l’instant. Réessaie dans un moment ; si ça dure, préviens ton professeur.';
+
+/**
+ * Même situation, pour un compte personnel (prof, admin) : c'est lui qu'on prévient, il
+ * reçoit donc les pistes de diagnostic que le message élève ne porte plus.
+ */
+export const NETWORK_FAILURE_STAFF_MESSAGE =
+  'Pas de réseau pour l’instant : le serveur ne répond pas. Réessayez dans un moment ; si ça ' +
+  'dure, vérifiez la connexion de l’établissement — le site peut aussi être en maintenance.';
+
+/** Code porté par l'erreur (`err.code`) : distinguer la panne réseau sans lire le texte. */
+export const NETWORK_FAILURE_CODE = 'NETWORK_UNREACHABLE';
+
+/** Compte personnel (`userType: 'teacher'`, prof comme admin) ; élève ou visiteur sinon. */
+function isStaffSession() {
+  return getAuthClaims()?.userType === 'teacher';
+}
+
+/**
+ * Texte affiché quand le serveur ne répond pas, après épuisement des nouvelles tentatives.
+ * @param {{ dev?: boolean, staff?: boolean }} [options] injectables pour les tests
+ */
+export function networkFailureUserMessage({
+  dev = import.meta.env.DEV,
+  staff = isStaffSession(),
+} = {}) {
   // En build prod, ne pas afficher les consignes « Vite + port 3000 » (inadaptées sur serveur distant).
-  if (import.meta.env.DEV) {
+  if (dev) {
     return (
       'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 ' +
       '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), ' +
@@ -300,11 +331,24 @@ function networkFailureUserMessage() {
       'Sans l’API, toute inscription ou connexion échoue ainsi.'
     );
   }
-  return (
-    'Impossible de contacter le serveur. Vérifiez votre connexion, rechargez la page ou réessayez plus tard. ' +
-    'Si le problème continue, le site peut être en maintenance ou la passerelle réseau indisponible : ' +
-    'contactez l’administrateur de la plateforme.'
-  );
+  return staff ? NETWORK_FAILURE_STAFF_MESSAGE : NETWORK_FAILURE_USER_MESSAGE;
+}
+
+/**
+ * Erreur levée par `api()` sur panne réseau. Le message reste court ; le détail technique
+ * (erreur d'origine du navigateur, causes possibles) voyage sur l'erreur elle-même —
+ * `err.code`, `err.detail`, `err.cause` — pour un diagnostic ou un futur panneau d'aide.
+ * @param {unknown} cause erreur brute de `fetch` (`TypeError: Failed to fetch`…)
+ * @param {{ dev?: boolean, staff?: boolean }} [options]
+ */
+export function createNetworkFailureError(cause, options) {
+  const error = new Error(networkFailureUserMessage(options), { cause });
+  error.code = NETWORK_FAILURE_CODE;
+  const origin = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause ?? '');
+  error.detail =
+    `Serveur injoignable après les nouvelles tentatives (${origin || 'erreur réseau'}). ` +
+    'Causes possibles : réseau coupé, site en maintenance, passerelle réseau indisponible.';
+  return error;
 }
 
 /**
@@ -321,7 +365,7 @@ export async function api(path, method = 'GET', body) {
       resolveUrl: withAppBase,
       getToken: getAuthToken,
       onNetworkError: (err) =>
-        isLikelyNetworkTransportFailure(err) ? new Error(networkFailureUserMessage()) : null,
+        isLikelyNetworkTransportFailure(err) ? createNetworkFailureError(err) : null,
       onUnauthorized: ({ errBody, token }) => {
         const deleted = !!errBody.deleted;
         const errText = String(errBody.error || '').toLowerCase();

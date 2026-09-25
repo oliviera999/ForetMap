@@ -1,9 +1,14 @@
 import { describe, expect, test, vi } from 'vitest';
 import {
   AccountDeletedError,
+  NETWORK_FAILURE_CODE,
+  NETWORK_FAILURE_STAFF_MESSAGE,
+  NETWORK_FAILURE_USER_MESSAGE,
   api,
+  createNetworkFailureError,
   getAuthToken,
   getStoredSession,
+  networkFailureUserMessage,
   pickNewestAuthToken,
   saveStoredSession,
 } from '../src/services/api.js';
@@ -250,5 +255,49 @@ describe('api ForetMap', () => {
     const result = await api('/api/tasks/task-2/validate', 'POST');
     expect(result).toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('message de panne réseau (audit du 25/09/2026, § 1.4.6)', () => {
+  const words = (text) => text.split(/\s+/).filter((w) => /[\p{L}\d]/u.test(w));
+
+  test('élève : court, tutoyé, sans jargon', () => {
+    const message = networkFailureUserMessage({ dev: false, staff: false });
+    expect(message).toBe(NETWORK_FAILURE_USER_MESSAGE);
+    expect(words(message).length).toBeLessThanOrEqual(20);
+    expect(message).toMatch(/Réessaie\b/);
+    expect(message).toMatch(/ton professeur/);
+    expect(message).not.toMatch(/passerelle|administrateur|plateforme|serveur|Vérifiez/i);
+  });
+
+  test('compte personnel : les pistes de diagnostic, au vouvoiement', () => {
+    const message = networkFailureUserMessage({ dev: false, staff: true });
+    expect(message).toBe(NETWORK_FAILURE_STAFF_MESSAGE);
+    expect(message).toMatch(/Réessayez/);
+    expect(message).toMatch(/maintenance/);
+  });
+
+  test('le compte personnel se reconnaît au jeton (userType teacher)', () => {
+    const payload = btoa(JSON.stringify({ userType: 'teacher' }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    localStorage.setItem('foretmap_session', JSON.stringify({ token: `x.${payload}.y` }));
+    try {
+      expect(networkFailureUserMessage({ dev: false })).toBe(NETWORK_FAILURE_STAFF_MESSAGE);
+    } finally {
+      localStorage.removeItem('foretmap_session');
+    }
+    expect(networkFailureUserMessage({ dev: false })).toBe(NETWORK_FAILURE_USER_MESSAGE);
+  });
+
+  test('le détail technique voyage sur l’erreur, pas dans le message', () => {
+    const cause = new TypeError('Failed to fetch');
+    const error = createNetworkFailureError(cause, { dev: false, staff: false });
+    expect(error.message).toBe(NETWORK_FAILURE_USER_MESSAGE);
+    expect(error.code).toBe(NETWORK_FAILURE_CODE);
+    expect(error.cause).toBe(cause);
+    expect(error.detail).toMatch(/TypeError: Failed to fetch/);
+    expect(error.detail).toMatch(/passerelle/);
   });
 });

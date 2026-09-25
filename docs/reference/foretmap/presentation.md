@@ -395,6 +395,13 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
 - **Session expirée** : la connexion temps réel s'arrête proprement au lieu de réessayer
   sans fin. Les données continuent d'arriver par le rafraîchissement périodique, et le
   temps réel revient de lui-même à la reconnexion.
+- **Un message d'erreur réseau qu'un élève comprend.** Quand une action échoue parce que
+  le serveur reste injoignable (Wi-Fi coupé sur le terrain, site en maintenance), l'élève
+  lit : **« Pas de réseau pour l'instant. Réessaie dans un moment ; si ça dure, préviens
+  ton professeur. »** L'ancien message comptait 37 mots et parlait de « passerelle
+  réseau ». Un compte de professeur ou d'administrateur lit une version au vouvoiement
+  qui donne les pistes : vérifier la connexion de l'établissement, maintenance possible
+  du site.
 
 ### Quand une nouvelle version est publiée
 
