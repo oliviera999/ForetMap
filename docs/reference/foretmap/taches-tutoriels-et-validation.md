@@ -663,8 +663,10 @@ motivée**, pour juger d'un coup d'œil. Deux précautions :
   propositions, personne n'allait au bout des quarante changements, et le rattachement
   automatique ne débouchait sur rien.
 
-L'outil récupère aussi les **« questions liées »** que vous auriez déjà saisies sur une fiche
-question : elles ne remontaient pas d'elles-mêmes dans le contrôle de compréhension.
+Les **« questions liées »** saisies autrefois sur une fiche question ont été reprises une fois
+pour toutes dans l'écran (septembre 2026) : elles y figurent comme rattachements approuvés et
+non bloquants, et l'outil n'a plus à les proposer. Ce que montre l'écran est désormais
+exactement ce que montrent les fiches.
 
 Le rapprochement automatique reste une aide, pas un verdict : il propose, vous décidez.
 Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valider sa lecture.

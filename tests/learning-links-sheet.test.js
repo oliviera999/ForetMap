@@ -10,9 +10,10 @@
 //   - l'édition d'une question (`PUT /api/quiz/admin/questions/:code`) et l'import QCM, qui
 //     ne purgent que leurs propres liens par mots-clés (`origin = 'keyword'`, lot P0).
 //
-// Les cas « nominaux » (données alignées dans les tables historiques et dans RQL) doivent
-// passer avant comme après la bascule. Les cas « écart » décrivent les divergences relevées
-// par l'audit ; ils basculent explicitement avec le passage des lecteurs sur RQL.
+// Les cas « nominaux » (données alignées dans les tables historiques et dans RQL) passent
+// avant comme après la bascule. Les cas « écart » décrivent les divergences relevées par
+// l'audit : ils ont basculé explicitement avec le passage des lecteurs sur RQL (les
+// assertions d'avant la bascule sont rappelées en commentaire).
 // Tests BDD partagée : exécution séquentielle.
 
 require('./helpers/setup');
@@ -20,7 +21,9 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute, queryAll, queryOne } = require('../database');
+const fs = require('node:fs');
+const path = require('node:path');
+const { initSchema, execute, queryAll, queryOne, splitSqlStatements } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 const { applyFmQuizImport } = require('../lib/fmQuizImport');
 
@@ -58,6 +61,24 @@ const PLANT_KEYS = [
   'question_code',
 ];
 const TUTORIAL_KEYS = ['categorie_slug', 'difficulte', 'niveau', 'question', 'question_code'];
+
+/** Rejoue la migration 300 (reprise des liens historiques), avec le découpage du runner. */
+async function runMigration300() {
+  const sql = fs.readFileSync(
+    path.join(__dirname, '..', 'migrations', '300_learning_links_single_source.sql'),
+    'utf8',
+  );
+  for (const stmt of splitSqlStatements(sql)) await execute(stmt);
+}
+
+async function editorialLink(resourceType, resourceRef, questionCode) {
+  const row = await queryOne(
+    `SELECT origin, status, is_gating FROM resource_question_links
+      WHERE resource_type = ? AND resource_ref = ? AND question_code = ?`,
+    [resourceType, String(resourceRef), questionCode],
+  );
+  return row ? { origin: row.origin, status: row.status, is_gating: Number(row.is_gating) } : null;
+}
 
 async function insertRql(resourceType, resourceRef, questionCode, fields = {}) {
   await execute(
@@ -262,11 +283,25 @@ test('fiche espèce : identifiant invalide (400) ou inconnu (404)', async () => 
   assert.deepEqual(res.body, { error: 'Plante introuvable' });
 });
 
-test('écart (avant bascule) : fiche espèce — liste exacte lue dans quiz_question_species', async () => {
-  // Écart n° 2 de l'audit : un lien approuvé dans l'écran des liens (M) n'apparaît pas sur la
-  // fiche ; un lien de la table historique absent de RQL (X) y apparaît, sans verrouiller.
+test('écart corrigé : fiche espèce — liste exacte lue dans la source unique', async () => {
+  // Écart n° 2 de l'audit. AVANT la bascule, la fiche lisait `quiz_question_species` :
+  //   assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.X.code]);
+  // — le lien approuvé dans l'écran des liens (M) n'y apparaissait pas, et le lien de la
+  // table historique absent de RQL (X) y apparaissait sans compter pour le verrouillage.
+  // La fiche lit désormais RQL : M apparaît ; X n'y revient que repris par la migration 300.
   const res = await request(app).get(`/api/plants/${plantId}/quiz-questions`).expect(200);
-  assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.X.code]);
+  assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.M.code]);
+});
+
+test('écart corrigé : un lien historique repris par la migration 300 revient, non bloquant', async () => {
+  await runMigration300();
+  const res = await request(app).get(`/api/plants/${plantId}/quiz-questions`).expect(200);
+  assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.M.code, Q.X.code]);
+  assert.deepEqual(await editorialLink('plant', plantId, Q.X.code), {
+    origin: 'editorial',
+    status: 'approved',
+    is_gating: 0,
+  });
 });
 
 // ---------------------------------------------------------------------------------------
@@ -296,9 +331,18 @@ test('tutoriel : inactif (404), identifiant invalide (400) ou inconnu (404)', as
   assert.deepEqual(unknown.body, { error: 'Tutoriel introuvable' });
 });
 
-test('écart (avant bascule) : tutoriel — liste exacte lue dans quiz_question_tutorials', async () => {
+test('écart corrigé : tutoriel — liste exacte lue dans la source unique', async () => {
+  // AVANT la bascule (lecture de `quiz_question_tutorials`) :
+  //   assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.X.code]);
+  // Après : M (approuvé dans l'écran des liens) apparaît, X revient par la migration 300.
+  await runMigration300();
   const res = await request(app).get(`/api/tutorials/${tutorialId}/quiz-questions`).expect(200);
-  assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.X.code]);
+  assert.deepEqual(codesOf(res), [Q.B.code, Q.A.code, Q.M.code, Q.X.code]);
+  assert.deepEqual(await editorialLink('tutorial', tutorialId, Q.X.code), {
+    origin: 'editorial',
+    status: 'approved',
+    is_gating: 0,
+  });
 });
 
 // ---------------------------------------------------------------------------------------

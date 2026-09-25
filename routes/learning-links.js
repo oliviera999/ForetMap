@@ -22,6 +22,7 @@ const linksBulk = require('../lib/learningLinksBulk');
 const { invalidateStrictCodesCache } = require('../lib/learningGatingLockMode');
 const policyHelpers = require('../lib/gatingPolicyRouteHelpers');
 const layers = require('../lib/shared/gatingPolicyLayersCore');
+const learningLinks = require('../lib/pedago/learningLinks');
 
 const router = express.Router();
 const managePermission = requirePermission('plants.manage');
@@ -58,21 +59,16 @@ router.get(
     const filtre = core.buildLinksFilter(req.query, { allowedTypes: ALLOWED });
     if (filtre.error) return res.status(400).json({ error: filtre.error });
     const { where, params } = filtre;
-    const sql = `SELECT * FROM resource_question_links
-                 ${core.linksWhereClause(where)}
-                 ORDER BY resource_type, resource_ref, question_code
-                 LIMIT ${LINKS_MAX_ROWS}`;
-    const rows = await queryAll(sql, params);
-    // Plafond annoncé plutôt que muet (B5) : `total` dit ce que le filtre vise vraiment.
-    const countRow = await queryOne(
-      `SELECT COUNT(*) AS n FROM resource_question_links ${core.linksWhereClause(where)}`,
-      params,
+    const { links, total } = await learningLinks.listLinks(
+      { queryAll, queryOne },
+      { whereSql: core.linksWhereClause(where), params, maxRows: LINKS_MAX_ROWS },
     );
+    // Plafond annoncé plutôt que muet (B5) : `total` dit ce que le filtre vise vraiment.
     return res.json({
-      links: rows,
-      total: Number(countRow?.n || 0),
+      links,
+      total,
       max_rows: LINKS_MAX_ROWS,
-      truncated: Number(countRow?.n || 0) > rows.length,
+      truncated: total > links.length,
     });
   }),
 );
@@ -440,72 +436,10 @@ router.get(
     // L'ecran ne listait QUE les tutoriels, et cette route refusait tout autre type :
     // impossible d'y rendre bloquant un lien vers une fiche espece ou un terme de
     // glossaire, alors que le moteur d'appariement les couvre. Les trois types sont
-    // desormais servis, avec les memes compteurs.
-    const SOURCES = {
-      tutorial: {
-        table: 'tutorials',
-        select: `SELECT t.id AS ref, t.title AS label, t.type AS kind, t.is_active AS active`,
-        from: 'FROM tutorials t',
-        join: `LEFT JOIN resource_question_links l
-                 ON l.resource_type = 'tutorial'
-                -- CAST(... AS CHAR) sort en utf8mb4_general_ci alors que resource_ref est en
-                -- utf8mb4_unicode_ci : sans COLLATE explicite, MariaDB refuse la comparaison
-                -- (ER_CANT_AGGREGATE_2COLLATIONS) des que la connexion applicative s'en mele.
-                AND l.resource_ref = CAST(t.id AS CHAR) COLLATE utf8mb4_unicode_ci`,
-        group: 'GROUP BY t.id',
-        order: 'ORDER BY t.sort_order ASC, t.title ASC',
-      },
-      plant: {
-        select: `SELECT p.id AS ref, p.name AS label, p.scientific_name AS kind, 1 AS active`,
-        from: 'FROM plants p',
-        join: `LEFT JOIN resource_question_links l
-                 ON l.resource_type = 'plant'
-                AND l.resource_ref = CAST(p.id AS CHAR) COLLATE utf8mb4_unicode_ci`,
-        group: 'GROUP BY p.id',
-        order: 'ORDER BY p.name ASC',
-      },
-      glossary: {
-        select: `SELECT g.glossary_code AS ref, g.terme AS label, g.categorie AS kind, 1 AS active`,
-        from: 'FROM glossary_terms g',
-        join: `LEFT JOIN resource_question_links l
-                 ON l.resource_type = 'glossary'
-                AND l.resource_ref = g.glossary_code COLLATE utf8mb4_unicode_ci`,
-        group: "WHERE g.statut = 'actif' GROUP BY g.glossary_code",
-        order: 'ORDER BY g.terme ASC',
-      },
-    };
-    const src = SOURCES[type];
-    if (!src) return res.status(400).json({ error: 'Type de ressource invalide' });
-
-    // `gating_count` ne compte que les liens vers une question **active** : c'est ce qui
-    // verrouille réellement. Les liens bloquants vers une question désactivée sont comptés à
-    // part (`inactive_gating_count`), pour que l'écran de couverture reste juste après une
-    // désactivation en masse (lot B : 72 questions ; audit du 25/09/2026, § 1.5).
-    const rows = await queryAll(
-      `${src.select},
-              COUNT(l.id) AS links_count,
-              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1 AND lq.statut = 'actif'
-                       THEN 1 ELSE 0 END) AS gating_count,
-              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1
-                        AND (lq.statut IS NULL OR lq.statut <> 'actif')
-                       THEN 1 ELSE 0 END) AS inactive_gating_count,
-              SUM(CASE WHEN l.status = 'suggested' THEN 1 ELSE 0 END) AS suggested_count
-         ${src.from}
-         ${src.join}
-         LEFT JOIN quiz_questions lq ON lq.question_code = l.question_code
-        ${src.group}
-        ${src.order}`,
-    );
-    const resources = rows.map((r) => ({
-      ref: String(r.ref),
-      label: r.label,
-      tutorial_type: r.kind,
-      is_active: Number(r.active) === 1,
-      links_count: Number(r.links_count) || 0,
-      gating_count: Number(r.gating_count) || 0,
-      inactive_gating_count: Number(r.inactive_gating_count) || 0,
-      suggested_count: Number(r.suggested_count) || 0,
-    }));
+    // desormais servis, avec les memes compteurs (`gating_count` : liens bloquants vers une
+    // question ACTIVE ; `inactive_gating_count` a part — service `learningLinks`).
+    const resources = await learningLinks.listResourceCoverage({ queryAll }, type);
+    if (!resources) return res.status(400).json({ error: 'Type de ressource invalide' });
     return res.json({
       resource_type: type,
       // Un type non validable peut porter des liens documentaires, jamais de lien
@@ -518,19 +452,6 @@ router.get(
     });
   }),
 );
-
-/** Cle d'unicite d'un couple ressource/question, alignee sur l'index unique. */
-function linkKey(resourceType, resourceRef, questionCode) {
-  return `${resourceType}|${resourceRef}|${questionCode}`;
-}
-
-/** Couples deja lies, tous statuts confondus (y compris rejetes : ne pas re-proposer). */
-async function loadExistingLinks() {
-  const rows = await queryAll(
-    'SELECT resource_type, resource_ref, question_code FROM resource_question_links',
-  );
-  return new Set(rows.map((r) => linkKey(r.resource_type, r.resource_ref, r.question_code)));
-}
 
 /**
  * Ressources a LIBELLE court et specifique : plantes et termes de glossaire.
@@ -575,40 +496,6 @@ async function loadLabelledResources(types, refs) {
 }
 
 /**
- * Liens editoriaux quiz_question_tutorials pas encore repris dans le modele unifie.
- *
- * La migration 144 a fait cette reprise UNE FOIS ; tout rattachement editorial
- * cree depuis est reste invisible du conditionnement. Ces liens-la sont saisis a
- * la main par un professeur : ils valent bien mieux qu'une correspondance
- * textuelle, d'ou origin='import' et confiance maximale.
- */
-async function loadUnmirroredEditorialLinks(existing) {
-  const rows = await queryAll(
-    `SELECT qqt.tutorial_id, qqt.question_code, t.title
-       FROM quiz_question_tutorials qqt
-       JOIN tutorials t ON t.id = qqt.tutorial_id
-       JOIN quiz_questions q ON q.question_code = qqt.question_code AND q.statut = 'actif'`,
-  );
-  const out = [];
-  for (const row of rows) {
-    const ref = String(row.tutorial_id);
-    if (existing.has(linkKey('tutorial', ref, row.question_code))) continue;
-    out.push({
-      resource_type: 'tutorial',
-      resource_ref: ref,
-      question_code: row.question_code,
-      confidence: 1,
-      origin: 'import',
-      status: 'suggested',
-      reason: 'lien éditorial « questions liées » déjà saisi',
-      matched_terms: [],
-      resource_label: row.title,
-    });
-  }
-  return out;
-}
-
-/**
  * POST /api/learning-links/suggest
  * Rapproche automatiquement questions et tutoriels a partir de leurs CONTENUS.
  *
@@ -617,7 +504,8 @@ async function loadUnmirroredEditorialLinks(existing) {
  * status='suggested' — ils restent donc sans effet sur les eleves tant qu'ils
  * n'ont pas ete approuves.
  *
- * Corps : { apply?, minConfidence?, maxPerQuestion?, includeEditorial?, questionCodes?, resourceRefs? }
+ * Corps : { apply?, minConfidence?, maxPerQuestion?, questionCodes?, resourceRefs?, resourceTypes? }
+ * (`includeEditorial`, historique, est accepte et ignore.)
  */
 router.post(
   '/suggest',
@@ -625,7 +513,6 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = req.body || {};
     const apply = body.apply === true || body.apply === 'true';
-    const includeEditorial = body.includeEditorial !== false;
 
     const rawMin = Number(body.minConfidence);
     const minConfidence = Number.isFinite(rawMin) ? Math.min(1, Math.max(0, rawMin)) : 0.5;
@@ -663,13 +550,13 @@ router.post(
       questionCodes,
     );
 
-    const existing = await loadExistingLinks();
-    const editorial = includeEditorial ? await loadUnmirroredEditorialLinks(existing) : [];
-    // Un couple repris de l'editorial ne doit pas etre re-propose par le texte.
+    // Couples deja lies, tous statuts confondus (y compris rejetes : ne pas re-proposer).
+    const existing = await learningLinks.listLinkKeys({ queryAll });
+    // `includeEditorial` n'a plus d'effet : la reprise des « questions liées » saisies dans
+    // `quiz_question_tutorials` est faite une fois pour toutes par la migration 300, et
+    // cette table n'est plus lue (temps 1 du retrait, audit du 25/09/2026, § 3.5). Le
+    // parametre reste accepte, et `stats.editorial_candidates` vaut toujours 0.
     const seen = new Set(existing);
-    for (const link of editorial) {
-      seen.add(linkKey('tutorial', link.resource_ref, link.question_code));
-    }
 
     // Tutoriels : rapprochement de CONTENU (le titre seul ne suffit pas).
     const textual = tutorials.length
@@ -702,7 +589,7 @@ router.post(
           .map((link) => ({ ...link, matched_terms: [], resource_label: null }))
       : [];
 
-    const found = [...editorial, ...textual, ...labelled];
+    const found = [...textual, ...labelled];
     const candidates = found.slice(0, SUGGEST_MAX_CANDIDATES);
     const truncated = found.length > candidates.length;
 
@@ -738,7 +625,7 @@ router.post(
         tutorials: tutorials.length,
         questions: questions.length,
         existing_links: existing.size,
-        editorial_candidates: editorial.length,
+        editorial_candidates: 0,
         textual_candidates: textual.length,
         labelled_candidates: labelled.length,
       },

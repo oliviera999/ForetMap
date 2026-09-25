@@ -136,6 +136,14 @@ d'observation** pour l'écriture naturaliste libre.
   tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous
   l'éditeur, relie les deux — à la main ou par rapprochement automatique des contenus :
   voir [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
+- **Les questions affichées sous une fiche** — fiche espèce, tutoriel ou terme du
+  glossaire — sont exactement celles **approuvées** dans cet écran, qu'elles soient
+  bloquantes ou non ; une proposition en attente ou rejetée n'y apparaît jamais. Jusqu'en
+  septembre 2026, la fiche espèce lisait une autre liste que le contrôle de compréhension :
+  une question rattachée à la main dans l'écran n'y apparaissait pas, et sept questions y
+  étaient affichées sans compter pour la validation. Il n'y a plus qu'une liste. Ces sept
+  rattachements sont conservés comme questions liées **non bloquantes** : à rendre
+  bloquantes depuis l'écran si vous le souhaitez.
 
 ## Le Glossaire
 

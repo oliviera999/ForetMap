@@ -2974,9 +2974,9 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
-| GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées |
+| GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées : liens **approuvés** de `resource_question_links` vers une question active, bloquants ou non, ordre (catégorie, numéro). Source unique depuis la migration 300 (voir « Source unique des liens » plus bas) |
 | GET | `/api/tutorials/:id/glossary-terms` | non | Termes glossaire liés au tutoriel |
-| GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel |
+| GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel (même règle que la fiche espèce ; `404` si le tutoriel est inactif) |
 
 Import local : `npm run db:import:biodiv` (après `npm run db:migrate`) — alimenté par
 `sql/biodiv_pedago_seed.sql`, extrait de contenu **sans données personnelles**
@@ -3257,6 +3257,30 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
 | GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). |
 
+#### Source unique des liens question ↔ ressource (migration 300)
+
+Les liens vivent dans **une seule table**, `resource_question_links`, lue et écrite par le service
+`lib/pedago/learningLinks.js` (audit du 25/09/2026, § 3.2.3). Les tables historiques
+`quiz_question_species` et `quiz_question_tutorials` sont **figées** : plus aucune lecture ni
+écriture applicative (temps 1 et 2 du retrait) ; leur suppression est une migration future.
+
+| `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
+| ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`)                          | jamais                                       |
+| `import`    | migrations 144, 226, 227 (curation relue, souvent bloquante)                                | jamais                                       |
+| `generated` | scripts d'enrichissement                                                                    | jamais                                       |
+| `auto`      | `scripts/suggest-learning-links.js` (propositions)                                          | jamais                                       |
+| `keyword`   | import du catalogue QCM et édition d'une question : rapprochement des tags avec le glossaire | **oui, et seulement lui** (import, édition) |
+| `editorial` | migration 300 : reprise des liens des tables historiques absents de la source unique       | jamais                                       |
+
+Lecture « fiche » (`GET /api/plants/:id/quiz-questions`, `GET /api/tutorials/:id/quiz-questions`,
+`linkedQuizQuestions` de `GET /api/glossary/terms/:code`) : liens **`status = 'approved'`** vers une
+question **active**, bloquants ou non, dans l'ordre du catalogue. Conséquence visible (écart corrigé) :
+un lien approuvé dans l'écran des liens apparaît désormais sur la fiche espèce, et un lien proposé
+(`suggested`) ou rejeté n'y apparaît jamais. Les 7 liens de `quiz_question_species` absents de la
+source unique (fixture v297) sont repris en `editorial`, approuvés et **non bloquants** : ils restent
+affichés et ne changent rien au verrouillage.
+
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),
 `learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — **appliqué** à l'accusé),
@@ -3446,7 +3470,7 @@ Principe du score, entre 0 et 1 :
 | `apply`            | `false` | `false` = simulation, **aucune écriture**. `true` insère les candidats.  |
 | `minConfidence`    | `0.5`   | Seuil de retenue, borné à `[0,1]`.                                       |
 | `maxPerQuestion`   | `3`     | Propositions maximales par question (plafonné à 10).                     |
-| `includeEditorial` | `true`  | Reprend aussi les liens `quiz_question_tutorials` non encore répercutés. |
+| `includeEditorial` | —       | **Historique**, accepté et ignoré depuis la migration 300.               |
 | `questionCodes[]`  | —       | Restreint l'analyse à ces questions.                                     |
 | `resourceRefs[]`   | —       | Restreint l'analyse à ces tutoriels.                                     |
 
@@ -3458,9 +3482,12 @@ Deux garanties : l'insertion se fait en **`status='suggested'`** — donc sans e
 qu'un professeur n'a pas approuvé — et l'opération est **idempotente** (un couple déjà lié, quel que
 soit son statut, n'est jamais re-proposé).
 
-`includeEditorial` couvre un angle mort : la migration 144 a copié `quiz_question_tutorials` vers
-`resource_question_links` **une seule fois**. Tout rattachement éditorial créé depuis restait invisible
-du conditionnement ; il remonte ici en `origin='import'`, confiance `1`.
+`includeEditorial` couvrait un angle mort : la migration 144 avait copié `quiz_question_tutorials`
+vers `resource_question_links` **une seule fois**, et les rattachements éditoriaux créés depuis
+remontaient ici en candidats (`origin='import'`, confiance `1`). Depuis la **migration 300**, cette
+reprise est faite une fois pour toutes (liens `origin='editorial'`, approuvés, non bloquants) et
+`quiz_question_tutorials` n'est plus lue : le paramètre est accepté mais sans effet, et
+`stats.editorial_candidates` vaut toujours `0` (champ conservé pour l'écran professeur).
 
 Écran professeur : `src/components/pedago/admin/FMLearningLinksPanel.jsx`, dans l'onglet Quiz côté prof.
 

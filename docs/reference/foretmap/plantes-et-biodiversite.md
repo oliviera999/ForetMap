@@ -56,7 +56,8 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
 La fiche affiche aussi automatiquement ses liens avec le reste de l'application : les
 **mini-cartes** des zones et repères où l'espèce est présente, ses interactions du
 réseau trophique (« qui mange qui, qui aide qui »), les termes du glossaire et les
-questions de quiz qui s'y rapportent.
+questions de quiz qui s'y rapportent (celles approuvées dans l'écran « Rattacher des
+questions aux contenus »).
 
 Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des êtres
 vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
