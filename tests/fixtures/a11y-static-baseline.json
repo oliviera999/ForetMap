@@ -8,9 +8,6 @@
   "src/components/biodiv/PlantCatalogFilterPanel.jsx": {
     "jsx-a11y/label-has-associated-control": 5
   },
-  "src/components/biodiv/PlantEditForm.jsx": {
-    "jsx-a11y/label-has-associated-control": 41
-  },
   "src/components/biodiv/PlantImportPanel.jsx": {
     "jsx-a11y/label-has-associated-control": 4
   },

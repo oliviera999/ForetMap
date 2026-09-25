@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
 import { PLANT_EMOJIS } from '../../constants/emojis';
@@ -61,6 +61,17 @@ function PlantEditForm({
   maps = [],
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  // Chaque libellé est ASSOCIÉ à son champ (`htmlFor`/`id`) : au lecteur d'écran, un
+  // `<label>` simplement voisin ne nomme rien, et un toucher sur le libellé ne place pas
+  // le curseur (audit du 25/09/2026, § 1.4.7). `useId` : deux formulaires peuvent coexister.
+  const uid = useId();
+  const fieldId = (key) => `${uid}-${key}`;
+  /** Props d'un champ Markdown : l'éditeur riche est un `role="textbox"`, pas un champ
+   * « étiquetable » — il est nommé par `aria-labelledby`, le `<label>` portant l'`id`. */
+  const richFieldProps = (key) => ({
+    id: fieldId(key),
+    'aria-labelledby': fieldId(`${key}-label`),
+  });
   const [uploadingField, setUploadingField] = useState('');
   const [gbifBusy, setGbifBusy] = useState(false);
   const [gbifProposal, setGbifProposal] = useState(null);
@@ -192,13 +203,18 @@ function PlantEditForm({
         <summary>Identité</summary>
         <div className="plant-meta-grid">
           <div className="field">
-            <label>Emoji</label>
+            <label htmlFor={fieldId('emoji')}>Emoji</label>
             {/* L'emoji courant et le champ texte restent visibles ; la grille de choix se replie. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="plant-emoji-big" aria-hidden="true">
                 {form.emoji || '❓'}
               </span>
-              <input value={form.emoji} onChange={set('emoji')} placeholder="ou colle un emoji" />
+              <input
+                id={fieldId('emoji')}
+                value={form.emoji}
+                onChange={set('emoji')}
+                placeholder="ou colle un emoji"
+              />
             </div>
             <details className="plant-more">
               <summary>Choisir un emoji</summary>
@@ -218,8 +234,13 @@ function PlantEditForm({
             </details>
           </div>
           <div className="field">
-            <label>Nom *</label>
-            <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine" />
+            <label htmlFor={fieldId('name')}>Nom *</label>
+            <input
+              id={fieldId('name')}
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Ex: Aubergine"
+            />
           </div>
           <PlantnetIdentifyPanel
             saving={saving}
@@ -230,8 +251,11 @@ function PlantEditForm({
           />
           <PlantPrefillPanel form={form} setForm={setForm} saving={saving} onToast={onToast} />
           <div className="field">
-            <label>Description d'identification</label>
+            <label htmlFor={fieldId('description')} id={fieldId('description-label')}>
+              Description d'identification
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('description')}
               value={form.description}
               onChange={set('description')}
               rows={3}
@@ -240,8 +264,16 @@ function PlantEditForm({
           </div>
           {Array.isArray(maps) && maps.length > 0 ? (
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label>Présente sur ces cartes</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {/* Libellé d'un GROUPE de cases : pas un `<label>` (il n'étiquette aucun champ
+                  à lui seul), mais le nom du `role="group"`. */}
+              <span className="fm-label" id={fieldId('maps-label')}>
+                Présente sur ces cartes
+              </span>
+              <div
+                role="group"
+                aria-labelledby={fieldId('maps-label')}
+                style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
+              >
                 {maps.map((map) => {
                   const mapId = String(map.id || '').trim();
                   if (!mapId) return null;
@@ -289,8 +321,14 @@ function PlantEditForm({
                   mapId;
                 return (
                   <div key={`notes-${mapId}`} className="field" style={{ marginTop: 8 }}>
-                    <label>Notes de site — {mapLabel}</label>
+                    <label
+                      htmlFor={fieldId(`site-notes-${mapId}`)}
+                      id={fieldId(`site-notes-${mapId}-label`)}
+                    >
+                      Notes de site — {mapLabel}
+                    </label>
                     <MarkdownTextarea
+                      {...richFieldProps(`site-notes-${mapId}`)}
                       value={notes}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -326,9 +364,12 @@ function PlantEditForm({
           </p>
           {PLANT_DETERMINATION_FIELDS.map((fieldDef) => (
             <div key={fieldDef.key} className="field">
-              <label>{fieldDef.label}</label>
+              <label htmlFor={fieldId(fieldDef.key)} id={fieldId(`${fieldDef.key}-label`)}>
+                {fieldDef.label}
+              </label>
               {fieldDef.long ? (
                 <MarkdownTextarea
+                  {...richFieldProps(fieldDef.key)}
                   value={form[fieldDef.key]}
                   onChange={set(fieldDef.key)}
                   rows={fieldDef.rows}
@@ -336,6 +377,7 @@ function PlantEditForm({
                 />
               ) : (
                 <input
+                  id={fieldId(fieldDef.key)}
                   value={form[fieldDef.key]}
                   onChange={set(fieldDef.key)}
                   placeholder={fieldDef.placeholder}
@@ -357,9 +399,9 @@ function PlantEditForm({
             fiche, avant même la description.
           </p>
           <div className="field">
-            <label htmlFor="plant-toxicity-level">Niveau de danger</label>
+            <label htmlFor={fieldId('toxicity_level')}>Niveau de danger</label>
             <select
-              id="plant-toxicity-level"
+              id={fieldId('toxicity_level')}
               value={form.toxicity_level || ''}
               onChange={set('toxicity_level')}
             >
@@ -372,8 +414,14 @@ function PlantEditForm({
             </select>
           </div>
           <div className="field">
-            <label>Voies d’exposition</label>
-            <div className="plant-hazard-exposure-choices">
+            <span className="fm-label" id={fieldId('hazard-exposure-label')}>
+              Voies d’exposition
+            </span>
+            <div
+              className="plant-hazard-exposure-choices"
+              role="group"
+              aria-labelledby={fieldId('hazard-exposure-label')}
+            >
               {HAZARD_EXPOSURE_OPTIONS.map((entry) => {
                 const selected = String(form.hazard_exposure || '')
                   .split(',')
@@ -404,8 +452,11 @@ function PlantEditForm({
             </div>
           </div>
           <div className="field">
-            <label>Quel danger, et quoi faire</label>
+            <label htmlFor={fieldId('hazard_notes')} id={fieldId('hazard_notes-label')}>
+              Quel danger, et quoi faire
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('hazard_notes')}
               value={form.hazard_notes}
               onChange={set('hazard_notes')}
               rows={3}
@@ -436,8 +487,14 @@ function PlantEditForm({
             porteur.
           </p>
           <div className="field">
-            <label>Risques identifiés</label>
-            <div className="plant-hazard-exposure-choices">
+            <span className="fm-label" id={fieldId('health-risk-label')}>
+              Risques identifiés
+            </span>
+            <div
+              className="plant-hazard-exposure-choices"
+              role="group"
+              aria-labelledby={fieldId('health-risk-label')}
+            >
               {HEALTH_RISK_OPTIONS.map((entry) => {
                 const selected = String(form.health_risk || '')
                   .split(',')
@@ -467,8 +524,11 @@ function PlantEditForm({
             </div>
           </div>
           <div className="field">
-            <label>Circonstances et conduite à tenir</label>
+            <label htmlFor={fieldId('health_notes')} id={fieldId('health_notes-label')}>
+              Circonstances et conduite à tenir
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('health_notes')}
               value={form.health_notes}
               onChange={set('health_notes')}
               rows={3}
@@ -484,32 +544,39 @@ function PlantEditForm({
         <div className="plant-meta-grid">
           <div className="plant-form-grid">
             <div className="field">
-              <label>Nom scientifique</label>
+              <label htmlFor={fieldId('scientific_name')}>Nom scientifique</label>
               <input
+                id={fieldId('scientific_name')}
                 value={form.scientific_name}
                 onChange={set('scientific_name')}
                 placeholder="Ex: Solanum lycopersicum"
               />
             </div>
             <div className="field">
-              <label>Deuxième nom</label>
+              <label htmlFor={fieldId('second_name')}>Deuxième nom</label>
               <input
+                id={fieldId('second_name')}
                 value={form.second_name}
                 onChange={set('second_name')}
                 placeholder="Nom alternatif"
               />
             </div>
             <div className="field">
-              <label>Habitat</label>
+              <label htmlFor={fieldId('habitat')}>Habitat</label>
               <input
+                id={fieldId('habitat')}
                 value={form.habitat}
                 onChange={set('habitat')}
                 placeholder="Aquarium, potager…"
               />
             </div>
             <div className="field">
-              <label>Milieu</label>
-              <select value={form.habitat_type || ''} onChange={set('habitat_type')}>
+              <label htmlFor={fieldId('habitat_type')}>Milieu</label>
+              <select
+                id={fieldId('habitat_type')}
+                value={form.habitat_type || ''}
+                onChange={set('habitat_type')}
+              >
                 <option value="">—</option>
                 <option value="terrestre">Terrestre</option>
                 <option value="aquatique">Aquatique</option>
@@ -517,8 +584,12 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Rôle trophique</label>
-              <select value={form.trophic_role || ''} onChange={set('trophic_role')}>
+              <label htmlFor={fieldId('trophic_role')}>Rôle trophique</label>
+              <select
+                id={fieldId('trophic_role')}
+                value={form.trophic_role || ''}
+                onChange={set('trophic_role')}
+              >
                 <option value="">—</option>
                 {TROPHIC_ROLE_VALUES.map((role) => (
                   <option key={role} value={role} title={TROPHIC_ROLE_DEFINITIONS[role]}>
@@ -528,8 +599,9 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Comestible</label>
+              <label htmlFor={fieldId('is_edible')}>Comestible</label>
               <select
+                id={fieldId('is_edible')}
                 value={
                   form.is_edible === 1 || form.is_edible === '1'
                     ? '1'
@@ -545,8 +617,12 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Cycle de vie</label>
-              <select value={form.life_cycle || ''} onChange={set('life_cycle')}>
+              <label htmlFor={fieldId('life_cycle')}>Cycle de vie</label>
+              <select
+                id={fieldId('life_cycle')}
+                value={form.life_cycle || ''}
+                onChange={set('life_cycle')}
+              >
                 <option value="">—</option>
                 <option value="annuelle">Annuelle</option>
                 <option value="bisannuelle">Bisannuelle</option>
@@ -555,52 +631,84 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Nutrition</label>
+              <label htmlFor={fieldId('nutrition')}>Nutrition</label>
               <input
+                id={fieldId('nutrition')}
                 value={form.nutrition}
                 onChange={set('nutrition')}
                 placeholder="Autotrophe, omnivore…"
               />
             </div>
             <div className="field">
-              <label>Taille</label>
-              <input value={form.size} onChange={set('size')} placeholder="Ex: 30-80 cm" />
+              <label htmlFor={fieldId('size')}>Taille</label>
+              <input
+                id={fieldId('size')}
+                value={form.size}
+                onChange={set('size')}
+                placeholder="Ex: 30-80 cm"
+              />
             </div>
             <div className="field">
-              <label>Reproduction</label>
+              <label htmlFor={fieldId('reproduction')}>Reproduction</label>
               <input
+                id={fieldId('reproduction')}
                 value={form.reproduction}
                 onChange={set('reproduction')}
                 placeholder="Sexuée, bouturage…"
               />
             </div>
             <div className="field">
-              <label>Température min (°C)</label>
-              <input value={form.temp_min_c} onChange={set('temp_min_c')} placeholder="Ex: 10" />
-            </div>
-            <div className="field">
-              <label>Température max (°C)</label>
-              <input value={form.temp_max_c} onChange={set('temp_max_c')} placeholder="Ex: 25" />
-            </div>
-            <div className="field">
-              <label>pH min</label>
-              <input value={form.ph_min} onChange={set('ph_min')} placeholder="Ex: 6.0" />
-            </div>
-            <div className="field">
-              <label>pH max</label>
-              <input value={form.ph_max} onChange={set('ph_max')} placeholder="Ex: 7.5" />
-            </div>
-            <div className="field">
-              <label>Origine géographique</label>
+              <label htmlFor={fieldId('temp_min_c')}>Température min (°C)</label>
               <input
+                id={fieldId('temp_min_c')}
+                value={form.temp_min_c}
+                onChange={set('temp_min_c')}
+                placeholder="Ex: 10"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={fieldId('temp_max_c')}>Température max (°C)</label>
+              <input
+                id={fieldId('temp_max_c')}
+                value={form.temp_max_c}
+                onChange={set('temp_max_c')}
+                placeholder="Ex: 25"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={fieldId('ph_min')}>pH min</label>
+              <input
+                id={fieldId('ph_min')}
+                value={form.ph_min}
+                onChange={set('ph_min')}
+                placeholder="Ex: 6.0"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={fieldId('ph_max')}>pH max</label>
+              <input
+                id={fieldId('ph_max')}
+                value={form.ph_max}
+                onChange={set('ph_max')}
+                placeholder="Ex: 7.5"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={fieldId('geographic_origin')}>Origine géographique</label>
+              <input
+                id={fieldId('geographic_origin')}
                 value={form.geographic_origin}
                 onChange={set('geographic_origin')}
                 placeholder="Ex: Bassin méditerranéen"
               />
             </div>
             <div className="field">
-              <label>Statut biogéographique</label>
-              <select value={form.origin_status || ''} onChange={set('origin_status')}>
+              <label htmlFor={fieldId('origin_status')}>Statut biogéographique</label>
+              <select
+                id={fieldId('origin_status')}
+                value={form.origin_status || ''}
+                onChange={set('origin_status')}
+              >
                 <option value="">—</option>
                 <option value="indigene">Indigène</option>
                 <option value="introduit">Introduit</option>
@@ -610,8 +718,12 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Statut UICN</label>
-              <select value={form.iucn_status || ''} onChange={set('iucn_status')}>
+              <label htmlFor={fieldId('iucn_status')}>Statut UICN</label>
+              <select
+                id={fieldId('iucn_status')}
+                value={form.iucn_status || ''}
+                onChange={set('iucn_status')}
+              >
                 <option value="">—</option>
                 <option value="EX">EX — Éteinte</option>
                 <option value="EW">EW — Éteinte à l’état sauvage</option>
@@ -625,44 +737,54 @@ function PlantEditForm({
               </select>
             </div>
             <div className="field">
-              <label>Partie à récolter</label>
+              <label htmlFor={fieldId('harvest_part')}>Partie à récolter</label>
               <input
+                id={fieldId('harvest_part')}
                 value={form.harvest_part}
                 onChange={set('harvest_part')}
                 placeholder="Feuilles, fruits…"
               />
             </div>
             <div className="field">
-              <label>Règne (taxon)</label>
+              <label htmlFor={fieldId('taxon_kingdom')}>Règne (taxon)</label>
               <input
+                id={fieldId('taxon_kingdom')}
                 value={form.taxon_kingdom}
                 onChange={set('taxon_kingdom')}
                 placeholder="Animal, Végétal…"
               />
             </div>
             <div className="field">
-              <label>Grand groupe</label>
+              <label htmlFor={fieldId('taxon_group')}>Grand groupe</label>
               <input
+                id={fieldId('taxon_group')}
                 value={form.taxon_group}
                 onChange={set('taxon_group')}
                 placeholder="Angiosperme…"
               />
             </div>
             <div className="field">
-              <label>Famille</label>
+              <label htmlFor={fieldId('taxon_family')}>Famille</label>
               <input
+                id={fieldId('taxon_family')}
                 value={form.taxon_family}
                 onChange={set('taxon_family')}
                 placeholder="Famille…"
               />
             </div>
             <div className="field">
-              <label>Genre</label>
-              <input value={form.taxon_genus} onChange={set('taxon_genus')} placeholder="Genre…" />
+              <label htmlFor={fieldId('taxon_genus')}>Genre</label>
+              <input
+                id={fieldId('taxon_genus')}
+                value={form.taxon_genus}
+                onChange={set('taxon_genus')}
+                placeholder="Genre…"
+              />
             </div>
             <div className="field">
-              <label>Groupe emboîté (classification)</label>
+              <label htmlFor={fieldId('clade_id')}>Groupe emboîté (classification)</label>
               <input
+                id={fieldId('clade_id')}
                 value={form.clade_id || ''}
                 onChange={set('clade_id')}
                 placeholder="ex. angiospermes, oiseaux…"
@@ -679,16 +801,18 @@ function PlantEditForm({
               </datalist>
             </div>
             <div className="field">
-              <label>Clé GBIF</label>
+              <label htmlFor={fieldId('gbif_key')}>Clé GBIF</label>
               <input
+                id={fieldId('gbif_key')}
                 value={form.gbif_key}
                 onChange={set('gbif_key')}
                 placeholder="Identifiant numérique"
               />
             </div>
             <div className="field">
-              <label>Nom accepté (GBIF)</label>
+              <label htmlFor={fieldId('accepted_scientific_name')}>Nom accepté (GBIF)</label>
               <input
+                id={fieldId('accepted_scientific_name')}
                 value={form.accepted_scientific_name || ''}
                 onChange={set('accepted_scientific_name')}
                 placeholder="Si différent du nom d’usage"
@@ -759,8 +883,11 @@ function PlantEditForm({
         <summary>Textes longs</summary>
         <div className="plant-meta-grid">
           <div className="field">
-            <label>Rôle dans l'écosystème</label>
+            <label htmlFor={fieldId('ecosystem_role')} id={fieldId('ecosystem_role-label')}>
+              Rôle dans l'écosystème
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('ecosystem_role')}
               value={form.ecosystem_role}
               onChange={set('ecosystem_role')}
               rows={2}
@@ -768,8 +895,11 @@ function PlantEditForm({
             />
           </div>
           <div className="field">
-            <label>Utilité pour l'être humain</label>
+            <label htmlFor={fieldId('human_utility')} id={fieldId('human_utility-label')}>
+              Utilité pour l'être humain
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('human_utility')}
               value={form.human_utility}
               onChange={set('human_utility')}
               rows={2}
@@ -777,8 +907,14 @@ function PlantEditForm({
             />
           </div>
           <div className="field">
-            <label>Recommandations de plantation</label>
+            <label
+              htmlFor={fieldId('planting_recommendations')}
+              id={fieldId('planting_recommendations-label')}
+            >
+              Recommandations de plantation
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('planting_recommendations')}
               value={form.planting_recommendations}
               onChange={set('planting_recommendations')}
               rows={2}
@@ -786,8 +922,14 @@ function PlantEditForm({
             />
           </div>
           <div className="field">
-            <label>Nutriments préférés</label>
+            <label
+              htmlFor={fieldId('preferred_nutrients')}
+              id={fieldId('preferred_nutrients-label')}
+            >
+              Nutriments préférés
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('preferred_nutrients')}
               value={form.preferred_nutrients}
               onChange={set('preferred_nutrients')}
               rows={2}
@@ -795,8 +937,11 @@ function PlantEditForm({
             />
           </div>
           <div className="field">
-            <label>Sources</label>
+            <label htmlFor={fieldId('sources')} id={fieldId('sources-label')}>
+              Sources
+            </label>
             <MarkdownTextarea
+              {...richFieldProps('sources')}
               value={form.sources}
               onChange={set('sources')}
               rows={2}
@@ -815,8 +960,9 @@ function PlantEditForm({
           <div className="plant-form-grid">
             {photoFields.map((field) => (
               <div className="field" key={field.key}>
-                <label>{field.label} (URL directe)</label>
+                <label htmlFor={fieldId(field.key)}>{field.label} (URL directe)</label>
                 <input
+                  id={fieldId(field.key)}
                   value={form[field.key]}
                   onChange={set(field.key)}
                   placeholder="https://.../image.jpg ou /uploads/..."
@@ -877,16 +1023,31 @@ function PlantEditForm({
         <div className="plant-meta-grid">
           <div className="plant-form-grid">
             <div className="field">
-              <label>Remarque 1</label>
-              <input value={form.remark_1} onChange={set('remark_1')} placeholder="Optionnel" />
+              <label htmlFor={fieldId('remark_1')}>Remarque 1</label>
+              <input
+                id={fieldId('remark_1')}
+                value={form.remark_1}
+                onChange={set('remark_1')}
+                placeholder="Optionnel"
+              />
             </div>
             <div className="field">
-              <label>Remarque 2</label>
-              <input value={form.remark_2} onChange={set('remark_2')} placeholder="Optionnel" />
+              <label htmlFor={fieldId('remark_2')}>Remarque 2</label>
+              <input
+                id={fieldId('remark_2')}
+                value={form.remark_2}
+                onChange={set('remark_2')}
+                placeholder="Optionnel"
+              />
             </div>
             <div className="field">
-              <label>Remarque 3</label>
-              <input value={form.remark_3} onChange={set('remark_3')} placeholder="Optionnel" />
+              <label htmlFor={fieldId('remark_3')}>Remarque 3</label>
+              <input
+                id={fieldId('remark_3')}
+                value={form.remark_3}
+                onChange={set('remark_3')}
+                placeholder="Optionnel"
+              />
             </div>
           </div>
         </div>

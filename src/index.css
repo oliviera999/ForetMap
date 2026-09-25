@@ -263,8 +263,10 @@
     .field { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
     /* Apparence dans `shared/styles/form-controls.css` (`.fm-label`) : un seul dialecte de
        libellé pour toute l'application. Les capitales interlettrées ont disparu — voir le
-       commentaire de ce fichier-là pour le pourquoi. */
-    .field label { font-size:var(--text-sm); font-weight:var(--fw-semibold); line-height:var(--lh-tight); color:var(--leaf); }
+       commentaire de ce fichier-là pour le pourquoi.
+       `.field .fm-label` : libellé d'un GROUPE de cases (`<span>` qui nomme un
+       `role="group"`), qui n'est pas un `<label>` mais doit en avoir l'air. */
+    .field label, .field .fm-label { font-size:var(--text-sm); font-weight:var(--fw-semibold); line-height:var(--lh-tight); color:var(--leaf); }
     /* Bordure, rayon, fond, focus et chevron viennent désormais de la couche de base
        (« COUCHE DE BASE DES CHAMPS », plus haut) : `.field` ne garde que ce qui lui est
        propre, la largeur pleine. Une seule définition de l'apparence, donc un seul endroit
@@ -2966,7 +2968,7 @@
       }
       .nav-btn .nav-icon { font-size:var(--text-lg); }
       .nav-btn::after { bottom:4px; }
-      .field label { font-size:var(--text-xs); }
+      .field label, .field .fm-label { font-size:var(--text-xs); }
       /* Densité resserrée sur très petit écran : on baisse les TOKENS, pas la règle du
          champ — la gouttière du chevron suit toute seule. */
       .field { --fm-control-pad-y:10px; --fm-control-pad-x:12px; }
