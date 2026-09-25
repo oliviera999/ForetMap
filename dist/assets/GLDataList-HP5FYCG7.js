@@ -1,1 +1,0 @@
-import{t as e}from"./react-vendor-Dcb_X5td.js";import{t}from"./DataList-Kj6GjYWT.js";var n=e(),r=Object.freeze({root:`gl-data-list`,desktop:`fm-table-wrap gl-admin-table-wrap gl-data-list__desktop`,table:`fm-table fm-table--zebra gl-admin-table gl-data-table`,mobile:`gl-data-list__mobile`,card:`gl-data-card`});function i(e){return(0,n.jsx)(t,{...e,classNames:r})}export{i as t};
