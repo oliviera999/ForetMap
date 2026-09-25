@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — modules pédagogiques éteints : fermés aux élèves, ouverts au gestionnaire
+
+- Un module éteint (`ui.modules.id_keys_enabled`, `individuals_enabled`,
+  `pedago_sessions_enabled`) l'est désormais pour les élèves : onglet masqué et routes en `503`,
+  mais le compte qui a la permission de gestion du module (`id_keys.manage`,
+  `individuals.manage`, `plants.manage`) garde onglet, écrans et API pour préparer, avec un
+  bandeau « module désactivé pour les élèves ». La saisie de mesure des élèves est fermée. Le
+  forum et le carnet ne changent pas.
+- Récompenses éteintes (`ui.modules.rewards_enabled`) : les badges mérités sont enregistrés
+  sans être annoncés ni affichés, puis apparaissent tous au rallumage (sans doublon) ;
+  `GET /api/rewards/me` reste en `503`.
+
 ### Modifié — suites des décisions du 25/09 (questions 3, 9, 17 ; QF0212)
 
 - **Écran « Rattacher des questions aux contenus »** : il annonce combien de contenus se
