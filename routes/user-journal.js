@@ -161,12 +161,42 @@ router.get(
   }),
 );
 
+/**
+ * Clé d'idempotence d'un article (migration 299) : un article écrit sans réseau part au retour
+ * du réseau avec sa clé ; renvoyé (réponse perdue, file rejouée), il n'est créé qu'une fois.
+ */
+const ARTICLE_CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
+
+async function findArticleIdByClientUuid(userId, clientUuid) {
+  if (!clientUuid) return null;
+  const row = await queryOne(
+    'SELECT id FROM user_journal_articles WHERE user_id = ? AND client_uuid = ? LIMIT 1',
+    [userId, clientUuid],
+  );
+  return row ? Number(row.id) : null;
+}
+
 router.post(
   '/me/articles',
   asyncHandler(async (req, res) => {
     if (!(await ensureJournalModuleEnabled(res))) return;
     const userId = authUserId(req);
     if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+
+    const rawClientUuid = req.body?.client_uuid;
+    let clientUuid = null;
+    if (rawClientUuid != null && rawClientUuid !== '') {
+      if (typeof rawClientUuid !== 'string' || !ARTICLE_CLIENT_UUID_RE.test(rawClientUuid)) {
+        return res.status(400).json({ error: 'client_uuid invalide' });
+      }
+      clientUuid = rawClientUuid;
+      // Renvoi d'un article déjà créé : on rejoue la réponse, sans second article.
+      const existingId = await findArticleIdByClientUuid(userId, clientUuid);
+      if (existingId) {
+        return res.json({ article: await getArticleDto(existingId), replayed: true });
+      }
+    }
+
     const title = normalizeArticleTitle(req.body?.title);
     const bodyMarkdown = req.body?.bodyMarkdown != null ? String(req.body.bodyMarkdown) : '';
     const validation = await validateArticleBody(bodyMarkdown, userId);
@@ -179,11 +209,20 @@ router.post(
       if (!zone) return res.status(400).json({ error: 'Zone introuvable' });
     }
 
-    const result = await execute(
-      `INSERT INTO user_journal_articles (user_id, title, body_markdown, zone_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, NOW(), NOW())`,
-      [userId, title, validation.bodyMarkdown, zoneId],
-    );
+    let result;
+    try {
+      result = await execute(
+        `INSERT INTO user_journal_articles (user_id, title, body_markdown, zone_id, client_uuid, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+        [userId, title, validation.bodyMarkdown, zoneId, clientUuid],
+      );
+    } catch (err) {
+      // Deux envois simultanés du même article : l'index unique tranche, le second rejoue.
+      if (!clientUuid || !(err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062)) throw err;
+      const existingId = await findArticleIdByClientUuid(userId, clientUuid);
+      if (!existingId) throw err;
+      return res.json({ article: await getArticleDto(existingId), replayed: true });
+    }
     const article = await getArticleDto(result.insertId);
     emitObservationsChanged({
       reason: 'journal_article_created',

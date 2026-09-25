@@ -106,10 +106,13 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
   }
 
   let flushInFlight = null;
+  let flushAgain = null;
 
   /**
    * Rejoue les écritures **du compte connecté**, une à la fois, dans l'ordre. Un seul rejeu à
-   * la fois dans la page, même si plusieurs écrans le demandent.
+   * la fois dans la page, même si plusieurs écrans le demandent : une demande qui arrive
+   * pendant un rejeu en programme **un** autre, juste après — le retour du réseau peut
+   * survenir pendant un essai qui échoue encore, et ne doit pas être perdu.
    *
    * @param {(item: T) => Promise<unknown>} send envoi d'une écriture (lève en cas d'échec)
    * @param {string|null|undefined} userId compte connecté ; aucun rejeu sans compte
@@ -122,7 +125,15 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
   function flush(send, userId, { onRefusal = 'drop', eligible = () => true } = {}) {
     const uid = String(userId ?? '').trim();
     if (!uid) return Promise.resolve({ synced: 0, dropped: 0, refused: [], remaining: 0 });
-    if (flushInFlight) return flushInFlight;
+    if (flushInFlight) {
+      if (!flushAgain) {
+        flushAgain = flushInFlight.then(() => {
+          flushAgain = null;
+          return flush(send, userId, { onRefusal, eligible });
+        });
+      }
+      return flushAgain;
+    }
     flushInFlight = (async () => {
       let synced = 0;
       let dropped = 0;

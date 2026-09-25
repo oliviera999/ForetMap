@@ -115,8 +115,11 @@ describe('file hors ligne générique (piste D)', () => {
     expect((await q.flush(send, '')).synced).toBe(0);
     expect(send).not.toHaveBeenCalled();
     const first = q.flush(send, 'u2');
-    expect(q.flush(send, 'u2')).toBe(first);
-    await first;
+    // Une demande pendant le rejeu en programme un seul autre, juste après (pas deux envois
+    // simultanés de la même écriture).
+    const second = q.flush(send, 'u2');
+    expect(q.flush(send, 'u2')).toBe(second);
+    await Promise.all([first, second]);
     expect(send).toHaveBeenCalledTimes(1);
     expect(q.load().map((x) => x.user_id)).toEqual(['u1']);
     expect(q.listFor('u1')).toHaveLength(1);

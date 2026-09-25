@@ -2061,7 +2061,7 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | ------- | --------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------- |
 | GET     | `/api/user-journal/me`                              | propriétaire                          | `{ limits, articles[], imports[] }`                                              |
 | GET     | `/api/user-journal/me/imports/refs`                 | propriétaire                          | refs déjà importées                                                              |
-| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId? }`                                             |
+| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId?, client_uuid? }` — voir idempotence ci-dessous |
 | PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | mise à jour                                                                      |
 | PUT     | `/api/user-journal/me/articles/:id/pin`             | propriétaire                          | `{ pinned }`                                                                     |
 | DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                                                  |
@@ -2075,6 +2075,13 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | GET     | `/api/user-journal/embeds/search`                   | auth                                  | `?type=&q=` → `{ results: [{ type, ref, title }] }`                              |
 | GET     | `/api/user-journal/feed`                            | `observations.read.*`                 | articles récents (max 100)                                                       |
 | GET     | `/api/user-journal/users/:userId`                   | propriétaire ou `observations.read.*` | lecture staff                                                                    |
+
+**Idempotence de la création d'article (migration `299`, carnet hors ligne)** : `client_uuid`
+facultatif (8 à 64 caractères `[A-Za-z0-9-]`, sinon **400** `client_uuid invalide`), clé
+propre au compte. Un renvoi de la même clé ne crée pas de second article : la réponse est
+rejouée en **200** `{ article, replayed: true }` (au lieu de **201**), y compris pour deux
+envois simultanés (index unique `(user_id, client_uuid)`). C'est ainsi qu'un article écrit
+sans réseau part au retour du réseau, en un seul appel portant son titre, son texte et sa zone.
 
 ### Observations (legacy)
 

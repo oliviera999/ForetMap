@@ -10,6 +10,9 @@
 -- « Tâche faite » : `POST /api/tasks/:id/done` insère un rapport (`task_logs`) quand l'élève
 -- laisse un commentaire — un renvoi le publiait deux fois.
 --
+-- Carnet : `POST /api/user-journal/me/articles` crée un article à chaque appel. Un article
+-- écrit sans réseau part au retour du réseau avec sa clé : renvoyé, il n'apparaît qu'une fois.
+--
 -- Colonnes facultatives : les anciens clients (sans clé) gardent le comportement d'avant, et
 -- plusieurs `NULL` ne se gênent pas dans un index unique.
 --
@@ -22,3 +25,10 @@ ALTER TABLE task_logs
 
 ALTER TABLE task_logs
   ADD UNIQUE KEY uq_task_logs_student_client (student_id, client_uuid);
+
+ALTER TABLE user_journal_articles
+  ADD COLUMN client_uuid VARCHAR(64) NULL DEFAULT NULL
+    COMMENT 'Clé d''idempotence tirée par le client (migration 299) ; NULL pour les anciens clients';
+
+ALTER TABLE user_journal_articles
+  ADD UNIQUE KEY uq_uja_user_client (user_id, client_uuid);
