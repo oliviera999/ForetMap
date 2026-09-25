@@ -22,6 +22,20 @@ const {
 } = require('../lib/groupDefaultRolePolicy');
 const { logAudit } = require('../lib/auditLog');
 const { slugify } = require('../lib/shared/slug');
+const { normalizeLearnerNiveau, LEARNER_NIVEAU_VALUES } = require('../lib/pedagoScales');
+const { groupNiveauAnnotations } = require('../lib/pedago/groupLevel');
+
+const CURRICULUM_NIVEAU_ERROR = `curriculum_niveau invalide (${LEARNER_NIVEAU_VALUES.join('|')})`;
+
+/**
+ * Niveau de la classe reçu d'un formulaire (échelle unique de l'apprenant, migration 301).
+ * `undefined` : champ absent ; `null` : vidé (hériter du parent) ; `{ error }` : hors liste.
+ */
+function parseCurriculumNiveauInput(raw) {
+  if (raw === undefined) return undefined;
+  if (raw == null || String(raw).trim() === '') return null;
+  return normalizeLearnerNiveau(raw) || { error: CURRICULUM_NIVEAU_ERROR };
+}
 
 const router = express.Router();
 
@@ -140,12 +154,16 @@ const createGroupBodySchema = z
         ? null
         : b.default_role_id,
     force_default_role: b.force_default_role,
+    // Niveau de la classe, proposé par le formulaire d'après le nom (décision Q5, 25/09/2026).
+    curriculum_niveau: parseCurriculumNiveauInput(b.curriculum_niveau) ?? null,
   }))
   .superRefine((d, ctx) => {
     if (!d.slug || !d.name)
       ctx.addIssue({ code: 'custom', message: 'slug et name requis', path: [] });
     else if (!d.kind)
       ctx.addIssue({ code: 'custom', message: 'kind invalide (class|team|unit|club)', path: [] });
+    else if (d.curriculum_niveau && typeof d.curriculum_niveau === 'object')
+      ctx.addIssue({ code: 'custom', message: d.curriculum_niveau.error, path: [] });
   });
 
 async function fetchGroupMembers(groupIds) {
@@ -298,8 +316,12 @@ router.get(
     ]);
 
     const enrichedRows = await enrichGroupRows(visibleRows);
+    // Niveau effectif (hérité compris), manque et proposition d'après le nom : calculés sur
+    // TOUS les groupes, un parent hors périmètre transmet quand même son niveau.
+    const allById = new Map(rows.map((row) => [String(row.id), row]));
     const list = enrichedRows.map((enriched, i) => ({
       ...enriched,
+      ...groupNiveauAnnotations(visibleRows[i], allById),
       parent_group_id: enriched.parent_group_id || null,
       is_active: Number(enriched.is_active) !== 0,
       members: membersByGroup.get(visibleRows[i].id) || [],
@@ -320,7 +342,14 @@ router.post(
   requireGroupManagement,
   validate({ body: createGroupBodySchema }),
   asyncHandler(async (req, res) => {
-    const { slug, name, description, kind, parent_group_id: parentGroupId } = req.body;
+    const {
+      slug,
+      name,
+      description,
+      kind,
+      parent_group_id: parentGroupId,
+      curriculum_niveau: curriculumNiveau,
+    } = req.body;
     const roleCheck = await validateGroupDefaultRole(req.auth, req.body?.default_role_id);
     if (!roleCheck.ok) return res.status(roleCheck.status).json({ error: roleCheck.error });
     const defaultRoleId = roleCheck.roleId;
@@ -349,8 +378,8 @@ router.post(
     const id = crypto.randomUUID();
     try {
       await execute(
-        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, force_default_role, is_active, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, force_default_role, curriculum_niveau, is_active, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
         [
           id,
           slug,
@@ -360,6 +389,7 @@ router.post(
           parentGroupId,
           defaultRoleId,
           forceDefaultRole ? 1 : 0,
+          curriculumNiveau || null,
           normalizeId(req.auth?.userId),
         ],
       );
@@ -371,7 +401,7 @@ router.post(
     );
     await logAudit('create_group', 'group', id, name, {
       req,
-      payload: { slug, kind },
+      payload: { slug, kind, curriculum_niveau: curriculumNiveau || null },
     });
     res.status(201).json(created);
   }),
@@ -516,23 +546,14 @@ router.patch(
         }
       }
     }
-    // Niveau du programme de la classe (migration 290) : distingue cycle 3 et cycle 4, et
-    // fixe l'étape d'affichage quand `pedago_level` reste vide (lib/pedagoScales.js).
-    const { normalizeCurriculumNiveauValue } = require('../lib/pedagoScales');
-    let curriculumNiveau = normalizeCurriculumNiveauValue(group.curriculum_niveau);
-    if (req.body?.curriculum_niveau !== undefined) {
-      if (req.body.curriculum_niveau == null || String(req.body.curriculum_niveau).trim() === '') {
-        curriculumNiveau = null;
-      } else {
-        curriculumNiveau = normalizeCurriculumNiveauValue(req.body.curriculum_niveau);
-        if (!curriculumNiveau) {
-          return res.status(400).json({
-            error:
-              'curriculum_niveau invalide (cycle3|cycle4|seconde|premiere_spe|terminale_spe|es_premiere|es_terminale)',
-          });
-        }
-      }
+    // Niveau de la classe (migrations 290 et 301) : LA colonne de niveau des groupes, sur
+    // l'échelle unique de l'apprenant (`universite` compris). Il prime sur `pedago_level`.
+    let curriculumNiveau = normalizeLearnerNiveau(group.curriculum_niveau);
+    const niveauInput = parseCurriculumNiveauInput(req.body?.curriculum_niveau);
+    if (niveauInput && typeof niveauInput === 'object') {
+      return res.status(400).json({ error: niveauInput.error });
     }
+    if (niveauInput !== undefined) curriculumNiveau = niveauInput;
     if (parentGroupId && parentGroupId === id)
       return res.status(400).json({ error: 'Un groupe ne peut pas être son propre parent' });
     if (parentGroupId) {
@@ -633,7 +654,7 @@ router.patch(
     );
     await logAudit('update_group', 'group', id, name, {
       req,
-      payload: { slug, kind, is_active: isActive },
+      payload: { slug, kind, is_active: isActive, curriculum_niveau: curriculumNiveau },
     });
     res.json(membersAffected ? { ...updated, roles_recomputed: applied } : updated);
   }),
