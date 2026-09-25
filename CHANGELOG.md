@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — liens question ↔ ressource : une seule source (piste C, tranche « liens »)
+
+- La fiche espèce, la fiche tutoriel et la fiche d'un terme du glossaire affichent les questions
+  **approuvées** dans l'écran « Rattacher des questions aux contenus »
+  (`resource_question_links`), celles que lit le contrôle de compréhension : une question
+  rattachée à la main apparaît enfin sur la fiche espèce, une proposition en attente ou rejetée
+  n'y apparaît jamais. Service unique `lib/pedago/learningLinks.js`, appelé par les routes
+  `plants`, `tutorials`, `glossary`, `learning-links`, l'import et l'édition QCM ; l'import par
+  mots-clés ne purge toujours que `origin='keyword'`. L'édition d'une question enregistre la
+  question et ses liens par mots-clés dans une même transaction. `POST /api/learning-links/suggest` :
+  `includeEditorial` est accepté mais sans effet (`stats.editorial_candidates` vaut 0).
+- Migration `300` : reprend dans `resource_question_links` les liens de `quiz_question_species` et
+  `quiz_question_tutorials` qui en étaient absents (7 sur le fixture, tous côté espèces) en
+  `origin='editorial'`, approuvés et **non bloquants** ; affichage et verrouillage inchangés.
+  Les deux tables historiques ne sont plus ni lues ni écrites (temps 1 et 2 du retrait) ; leur
+  suppression (temps 3) est planifiée dans le commentaire de la migration.
+- Garde `tests/migrations-numbering.test.js` : à partir de 252, la numérotation des migrations
+  est continue. Une PR qui saute un numéro ou passe devant une autre échoue en CI au lieu d'être
+  ignorée en production (le moteur saute sans rien dire tout numéro inférieur à la version
+  courante).
+
 ### Ajouté — terrain sans réseau (piste D, audit du 25/09/2026, § 1.4.6 et § 2.4)
 
 - « Marquer terminée » fonctionne sans réseau : le marquage et son commentaire sont gardés sur
