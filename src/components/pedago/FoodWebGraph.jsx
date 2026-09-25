@@ -18,7 +18,6 @@ import {
   FOCUS_DEPTH_TITLES,
   GRAPH_PRESET_LABELS,
   LABEL_CROWD_THRESHOLD,
-  TROPHIC_COLUMN_LABELS,
   buildGraphModel,
   circleLayoutSize,
   computeChainLayout,
@@ -33,8 +32,11 @@ import {
   neighborIds,
   parallelEdgeOffset,
   parallelEdgeRanks,
+  trophicColumnLabels,
   trophicColumnXs,
   trophicLevelTitle,
+  trophicRoleOrder,
+  trophicRoleText,
   truncateNodeLabel,
 } from './foodWebGraphModel.js';
 import {
@@ -199,8 +201,6 @@ export function FoodWebGraph({
     [edges],
   );
 
-  const trophicLabelXs = useMemo(() => trophicColumnXs({ width: BASE_W }), []);
-
   /**
    * Position trophique calculée sur le réseau **affiché** (lot F4) : elle change
    * avec la carte, la zone et le cadrage, et l'interface le dit.
@@ -265,12 +265,17 @@ export function FoodWebGraph({
       // Aucun niveau calculable (cadrage « Autres relations ») : on retombe sur
       // les colonnes de rôles, qui restent justes — il n'y a alors pas de niveau.
       if (levels.bands.length === 0) {
+        // La colonne « Détritivores » n'existe que si le réseau en compte : les
+        // intitulés suivent les colonnes réellement tracées.
+        const order = trophicRoleOrder(layoutNodes);
+        const xs = trophicColumnXs({ width: BASE_W, order });
         return {
           positions: computeTrophicLayout(layoutNodes, { width: BASE_W, height: BASE_H }),
           height: BASE_H,
           bands: [],
           lanes: [],
           columns: [],
+          roleColumns: trophicColumnLabels(order).map((label, col) => ({ label, x: xs[col] })),
           kind: 'roles',
         };
       }
@@ -747,7 +752,8 @@ export function FoodWebGraph({
       const scope = node.outOfScope ? ' — hors du périmètre filtré' : '';
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? ` — ${trophicLevelTitle(level)}` : '';
-      return `${node.name}${node.role ? ` (${node.role})` : ''}${levelPart}${scope} — clic : focus, double-clic : fiche`;
+      const role = node.role ? ` (${trophicRoleText(node.role)})` : '';
+      return `${node.name}${role}${levelPart}${scope} — clic : focus, double-clic : fiche`;
     },
     [trophicLevels],
   );
@@ -761,7 +767,8 @@ export function FoodWebGraph({
       const level = trophicLevels.get(node.id);
       const levelPart = Number.isFinite(level) ? `, ${trophicLevelTitle(level)}` : '';
       const selected = focusIds.has(node.id) ? ', sélectionnée' : '';
-      return `${node.name}${node.role ? `, ${node.role}` : ''}${levelPart}${scope}${selected} — Entrée : isoler son réseau, Ctrl+Entrée : ajouter à la sélection, Maj+Entrée : ouvrir la fiche`;
+      const role = node.role ? `, ${trophicRoleText(node.role)}` : '';
+      return `${node.name}${role}${levelPart}${scope}${selected} — Entrée : isoler son réseau, Ctrl+Entrée : ajouter à la sélection, Maj+Entrée : ouvrir la fiche`;
     },
     [trophicLevels, focusIds],
   );
@@ -910,7 +917,7 @@ export function FoodWebGraph({
             className={`pedago-foodweb-graph__tbtn${layoutKind === LAYOUT_LEVELS || scene.kind === 'roles' ? ' active' : ''}`}
             onClick={() => changeLayout(LAYOUT_LEVELS)}
             aria-pressed={layoutKind === LAYOUT_LEVELS}
-            title="Producteurs en bas, consommateurs au-dessus — décomposeurs à part"
+            title="Producteurs en bas, consommateurs au-dessus — détritivores et décomposeurs à part"
           >
             <IconStats size={14} /> Niveaux
           </button>
@@ -1144,11 +1151,11 @@ export function FoodWebGraph({
 
         <g data-fw-viewport transform={transform}>
           {scene.kind === 'roles'
-            ? TROPHIC_COLUMN_LABELS.map((label, col) => (
+            ? scene.roleColumns.map(({ label, x }) => (
                 <text
                   key={label}
                   className="pedago-foodweb-graph__col-label"
-                  x={trophicLabelXs[col]}
+                  x={x}
                   y={22}
                   textAnchor="middle"
                 >
@@ -1172,7 +1179,7 @@ export function FoodWebGraph({
               </text>
             </g>
           ))}
-          {/* Voies hors échelle : décomposeurs, espèces sans niveau connu. */}
+          {/* Voies latérales : détritivores, décomposeurs, espèces sans niveau connu. */}
           {scene.laneLeft != null ? (
             <line
               className="pedago-foodweb-graph__band-rule"

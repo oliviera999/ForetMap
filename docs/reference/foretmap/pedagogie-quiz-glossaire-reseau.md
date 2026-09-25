@@ -321,6 +321,13 @@ d'observation** pour l'écriture naturaliste libre.
   - les **décomposeurs ne sont pas un étage de plus** : ils occupent une voie à part, sur le
     côté, avec les espèces dont le niveau n'est pas déterminable (aucune relation « mange »
     enregistrée). C'est un point scientifique, pas un détail d'affichage.
+  - les **détritivores** (vers de terre, cloportes, collemboles…) mangent de la matière
+    morte, comme un herbivore mange une plante : ils comptent au **niveau 2**, même quand
+    leur nourriture n'est pas affichée. Un oiseau qui mange des vers de terre apparaît donc
+    bien **consommateur secondaire** — il était annoncé primaire tant que les vers étaient
+    rangés parmi les décomposeurs. Les détritivores restent affichés **dans la voie à part**,
+    sous leur propre intitulé « Détritivores », juste avant les décomposeurs : on y lit
+    côte à côte qui fragmente la matière morte et qui la transforme en sels minéraux.
     Quand un niveau compte plus d'espèces que la largeur n'en porte, la bande se poursuit sur
     plusieurs rangées et la scène s'allonge, au lieu d'empiler les pastilles.
 - **Le cercle affiche les noms en rayon**, autour de l'anneau : ils tiennent alors même sur
@@ -328,7 +335,8 @@ d'observation** pour l'écriture naturaliste libre.
   chevauchaient à partir d'une quinzaine.
 - **La disposition choisie est mémorisée** : un professeur qui projette en « Niveaux » la
   retrouve à la séance suivante. Sur un réseau alimentaire, c'est « Niveaux » par défaut ;
-  sur « Autres relations », où aucun niveau n'a de sens, on revient aux colonnes de rôles.
+  sur « Autres relations », où aucun niveau n'a de sens, on revient aux colonnes de rôles
+  (une colonne « Détritivores » s'y ajoute quand le réseau affiché en compte).
 - Une fois une espèce isolée, le bouton **« Voir la fiche »** ouvre sa fiche —
   utile sur tablette, où le double-clic est peu naturel.
 - **Filtrer par zone ne coupe plus les liens qui en sortent.** Une espèce de la zone mangée

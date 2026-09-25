@@ -62,7 +62,40 @@ Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des �
 vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
 lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
-décomposent.
+mangent.
+
+### Le rôle trophique
+
+Chaque fiche peut porter l’un de quatre **rôles trophiques**. La pastille de la fiche en
+donne le nom, et sa définition s’affiche quand on la survole :
+
+- **Producteur** — fabrique sa propre matière avec la lumière, l’eau, l’air et les sels
+  minéraux (plantes, algues) ;
+- **Consommateur** — se nourrit d’autres êtres vivants, plantes ou animaux ;
+- **Détritivore** — se nourrit de matière organique morte (feuilles, bois, cadavres)
+  qu’il fragmente (vers de terre, cloportes, collemboles, escargots d’eau, iules…) ;
+- **Décomposeur** — transforme la matière organique morte en sels minéraux utiles aux
+  plantes (bactéries, champignons).
+
+Le rôle **Détritivore** existe depuis le 25 septembre 2026. Avant, les vers de terre, les
+cloportes et les autres petits animaux du sol étaient rangés parmi les décomposeurs. Or
+ils **fragmentent** la matière morte sans la **transformer en sels minéraux** : c’est le
+travail des bactéries et des champignons. Les 14 fiches concernées ont été reclassées
+automatiquement ; bactéries et champignons sont restés décomposeurs. La distinction change
+aussi le réseau trophique : un oiseau qui mange des vers de terre y apparaît désormais
+comme consommateur secondaire, et non plus primaire (voir
+[Quiz, glossaire, réseau](pedagogie-quiz-glossaire-reseau.md)).
+
+Le professeur choisit le rôle dans le formulaire de la fiche ; l’élève peut filtrer le
+catalogue sur un rôle (filtres avancés, « Rôle trophique ») ou taper « détritivore » dans
+la recherche.
+
+> ⚠️ **Point d'attention** — Deux cas restent à trancher avec l’équipe de SVT. Les
+> bactéries **nitrifiantes** (Nitrosomonas, Nitrobacter, Nitrospira) sont encore classées
+> décomposeurs alors qu’elles fabriquent leur matière à partir de substances minérales. Et
+> une question du quiz (« Parmi ces êtres vivants, lequel est un décomposeur ? », réponse
+> attendue : le cloporte) contredit désormais la fiche du cloporte : elle est à
+> reformuler.
 
 ## Groupes emboîtés
 

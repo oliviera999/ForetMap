@@ -16,17 +16,12 @@ import {
   IconUtensils,
 } from '../../shared/icons.jsx';
 import { originStatusLabel, normalizeOriginStatus } from '../../utils/plantOriginStatus.js';
+import { trophicRoleDefinition, trophicRoleLabel } from '../../utils/plantTrophicRole.js';
 import {
   iucnStatusBadgeLabel,
   iucnStatusLabel,
   normalizeIucnStatus,
 } from '../../utils/plantIucnStatus.js';
-
-const TROPHIC_LABELS = {
-  producteur: 'Producteur',
-  consommateur: 'Consommateur',
-  decomposeur: 'Décomposeur',
-};
 
 const HABITAT_LABELS = {
   terrestre: 'Terrestre',
@@ -96,11 +91,16 @@ export function PlantSiteNotesBlock({ plant, activeMapId = null, maps = [] }) {
 /** Badges rôle trophique, comestibilité, habitat, statut biogéographique, UICN. */
 export function PlantPedagoTraitBadges({ plant }) {
   const chips = [];
-  const trophic = String(plant?.trophic_role || '')
-    .trim()
-    .toLowerCase();
-  if (trophic && TROPHIC_LABELS[trophic]) {
-    chips.push({ key: 'trophic', label: TROPHIC_LABELS[trophic], icon: <IconLink size={12} /> });
+  const trophicLabel = trophicRoleLabel(plant?.trophic_role);
+  if (trophicLabel) {
+    // L'infobulle donne la définition : « Détritivore » et « Décomposeur » se distinguent
+    // par ce qu'ils font de la matière morte, pas par leur nom.
+    chips.push({
+      key: 'trophic',
+      label: trophicLabel,
+      icon: <IconLink size={12} />,
+      title: `${trophicLabel} : ${trophicRoleDefinition(plant?.trophic_role)}`,
+    });
   }
   if (plant?.is_edible === 1 || plant?.is_edible === true) {
     chips.push({ key: 'edible', label: 'Comestible', icon: <IconUtensils size={12} /> });

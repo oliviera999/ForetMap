@@ -68,7 +68,7 @@ test('les nourritures-nœuds ne portent pas de rôle trophique d’organisme', a
     assert.strictEqual(
       row.trophic_role,
       null,
-      `${row.name} ne doit pas être un producteur/consommateur/décomposeur`,
+      `${row.name} ne doit pas porter de rôle trophique (producteur, consommateur, détritivore, décomposeur)`,
     );
   }
 });

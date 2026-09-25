@@ -17,6 +17,11 @@ import {
   planGalleryPhotoSlots,
   galleryUploadToastMessages,
 } from '../../utils/plantPhotoGallery.js';
+import {
+  TROPHIC_ROLE_DEFINITIONS,
+  TROPHIC_ROLE_LABELS,
+  TROPHIC_ROLE_VALUES,
+} from '../../utils/plantTrophicRole.js';
 import { PlantnetIdentifyPanel } from './PlantnetIdentifyPanel.jsx';
 import { PlantPrefillPanel } from './PlantPrefillPanel.jsx';
 import { IconCamera, IconGallery, IconSave } from '../../shared/icons.jsx';
@@ -515,9 +520,11 @@ function PlantEditForm({
               <label>Rôle trophique</label>
               <select value={form.trophic_role || ''} onChange={set('trophic_role')}>
                 <option value="">—</option>
-                <option value="producteur">Producteur</option>
-                <option value="consommateur">Consommateur</option>
-                <option value="decomposeur">Décomposeur</option>
+                {TROPHIC_ROLE_VALUES.map((role) => (
+                  <option key={role} value={role} title={TROPHIC_ROLE_DEFINITIONS[role]}>
+                    {TROPHIC_ROLE_LABELS[role]}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="field">

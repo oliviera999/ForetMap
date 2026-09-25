@@ -1540,6 +1540,17 @@ espèce simplement indigène, et un animal de ferme (âne, chèvre, vache) n’a
 correcte — ni indigène, ni introduit au sens des invasions biologiques. `endemique` normalise
 donc désormais vers lui-même ; alias d’import `elevage` / `animal de ferme` → `domestique`.
 
+**Rôle trophique** — `trophic_role`, ENUM nullable : `producteur` \| `consommateur` \|
+`detritivore` \| `decomposeur`. `detritivore` est ajouté par la migration `295` : l’animal qui
+ingère et fragmente la matière organique morte (ver de terre, cloporte, collembole…) est un
+consommateur, et une proie, alors que le décomposeur au sens strict (bactéries, champignons) la
+minéralise. La migration reclasse en `detritivore` toute fiche du règne animal encore en
+`decomposeur` (14 fiches sur le fixture anonymisé) ; bactéries et champignons restent
+`decomposeur`. À l’écriture (`POST` / `PUT`, import avec l’alias `role_trophique`), casse et
+accents sont tolérés (« Détritivore » → `detritivore`) ; une valeur hors liste donne `null`.
+Listes du code : `lib/plantTrophicRole.js` (serveur) et `src/utils/plantTrophicRole.js`
+(libellés et définitions de l’interface).
+
 S’y ajoutent les quatre champs de **danger** (migration `251`). Ils répondent à une question que
 la détermination ne couvre pas : une espèce parfaitement identifiée peut rester dangereuse.
 
@@ -2929,8 +2940,10 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 | DELETE | `/api/food-web/interactions/:id` | prof (`plants.manage`) | Supprimer une interaction |
 
 > `GET /api/food-web` renvoie chaque interaction avec `from_id/from_name/from_emoji/from_role`,
-> `to_id/to_name/to_emoji/to_role` (le rôle trophique `producteur|consommateur|decomposeur` alimente
-> le regroupement par niveau du graphe) et les trois champs de qualité du lien
+> `to_id/to_name/to_emoji/to_role` (le rôle trophique `producteur|consommateur|detritivore|decomposeur`
+> alimente le regroupement par niveau du graphe : un `detritivore` — migration `295` — compte au
+> niveau 2, si bien que son prédateur passe au niveau 3, et s’affiche dans une voie « Détritivores »
+> à côté des décomposeurs ; la vue `v_food_web` n’a pas eu à être recréée) et les trois champs de qualité du lien
 > (`evidence_level`, `pollination_efficacy`, `source_ref`). Convention d'affichage : la donnée stocke `from` = acteur /
 > `to` = cible, mais la flèche est rendue dans le sens écologique « est mangée par » (flux d'énergie
 > de la ressource vers le consommateur) pour les types trophiques ; voir
