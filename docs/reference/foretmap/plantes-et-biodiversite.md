@@ -187,7 +187,8 @@ même. La fiche porte donc, séparément, quatre champs de **danger** :
   l'œil, piqûre ou morsure, sève ou latex. Plusieurs cases peuvent être cochées.
 - **Quel danger, et quoi faire** — la partie dangereuse, les circonstances, la conduite à
   tenir. Ex. : « Graines très toxiques ; ne jamais manipuler les fruits épineux. »
-- **Danger relu et validé** — une case à cocher, décrite plus bas.
+- **Danger relu et validé** — une simple mention, qui n'est plus une case à cocher : la
+  validation se fait depuis la file « Dangers à valider », décrite plus bas.
 
 Tout niveau autre que « aucun danger connu » s'affiche en **encadré rouge ou ambre, en tête
 de fiche, avant même la description** — et, contrairement à la détermination, **cet encadré
@@ -202,8 +203,8 @@ bandeau rouge.
 
 Un premier remplissage a été posé sur **107 fiches** du catalogue à partir de sources
 bibliographiques : 6 potentiellement mortelles, 36 toxiques, 51 irritantes, 14 marquées sans
-danger. **Ce remplissage n'est pas une validation.** Chaque fiche arrive avec la case
-« Danger relu et validé » décochée, et l'encadré porte alors la mention **« à valider »**.
+danger. **Ce remplissage n'est pas une validation.** Chaque fiche arrive « à valider », et
+l'encadré porte alors cette mention.
 
 Le danger s'affiche quand même, décoché ou non — c'est délibéré. Masquer un avertissement de
 toxicité en attendant une relecture serait le seul choix vraiment dangereux des deux. La
@@ -224,9 +225,12 @@ risque sanitaire est renseigné sans avoir été relu, les plus graves en tête.
 porte un bouton **Valider** ; un clic sur le nom ouvre la fiche pour la lire d'abord.
 L'encadré disparaît quand la file est vide.
 
-Valider une fiche enregistre désormais **qui** a validé et **quand**. La case « Danger relu et
-validé » du formulaire ne disait rien de tout cela : une fiche cochée ne permettait ni de
-vérifier la relecture ni de la dater.
+Valider une fiche enregistre **qui** a validé et **quand**. C'est le **seul** moyen de valider :
+le formulaire de la fiche avait une case « Danger relu et validé » que tout éditeur de fiches
+pouvait cocher, sans que personne d'habilité n'ait relu ni que la date soit notée. Elle a été
+retirée (septembre 2026) ; le formulaire indique seulement si la fiche est validée ou « à
+valider ». Les fiches qui avaient été cochées ainsi, sans relecteur connu, sont repassées
+« à valider » et réapparaissent dans la file.
 
 Surtout : **modifier un champ de danger ou de risque sanitaire remet la fiche « à valider »**,
 et efface le nom du relecteur. Le cas n'est pas un abus, c'est l'ordinaire — une fiche validée,

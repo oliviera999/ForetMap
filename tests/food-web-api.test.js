@@ -62,6 +62,18 @@ test('GET /api/food-web?zoneId= — zone inconnue 404', async () => {
   await request(app).get('/api/food-web?zoneId=zone-inexistante').expect(404);
 });
 
+// Audit du 25/09/2026 — la vue `v_zone_inventory` manquait sur une base restaurée : seul le cas
+// 404 était couvert, la route répondait 500 pour toute zone existante (migration 292).
+test('GET /api/food-web?zoneId= — zone existante 200 (vue v_zone_inventory présente)', async () => {
+  const zone = await queryOne('SELECT id FROM zones ORDER BY id LIMIT 1');
+  assert.ok(zone, 'le seed doit contenir au moins une zone');
+  const res = await request(app)
+    .get(`/api/food-web?zoneId=${encodeURIComponent(zone.id)}`)
+    .expect(200);
+  assert.strictEqual(res.body.zoneId, zone.id);
+  assert.ok(Array.isArray(res.body.items));
+});
+
 test('GET /api/food-web/interactions/:id/glossary — termes liés', async () => {
   const res = await request(app)
     .get(`/api/food-web/interactions/${interactionId}/glossary`)

@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — urgences P0 de l'audit du 25/09 (sécurité, pertes de données)
+
+- **XSS stocké par les packs de mascotte** (N1) : un fichier `.html` déposé dans un pack ou la
+  bibliothèque de sprites de visite était servi tel quel sous `/uploads`. Noms de fichiers
+  limités aux images (`sanitizeMascotPackImageFilename`), signature d'image exigée à l'écriture
+  (dépôt, bibliothèque, import ZIP — qui retire aussi l'EXIF), et tout fichier non inerte sous
+  `/uploads` est servi en téléchargement sandboxé (`server.js`).
+- **Registre des espèces par carte effacé à chaque sauvegarde de fiche** : `syncPlantMaps` est
+  désormais différentiel (seules les cartes retirées ou ajoutées sont touchées) ; présence,
+  phénologie, fréquence, validation et notes de site survivent à l'enregistrement.
+- **Liens glossaire relus supprimés par l'import QCM** : le rapprochement par mots-clés écrit et
+  purge uniquement ses propres liens (`origin = 'keyword'`) ; la curation (`origin = 'import'`,
+  bloquante) et les liens des scripts ne sont plus touchés, à l'import comme à l'édition.
+- **« Danger relu et validé » sans la permission dédiée** : le drapeau n'est plus écrit par le
+  formulaire ni par l'import (alias `danger_valide` retiré) ; seule
+  `POST /api/plants/:id/validate-hazard` le pose. Migration `293` : les fiches validées sans
+  relecteur repassent « à valider » (décision du 25/09).
+- **Vue des tutoriels en production** : `isomorphic-dompurify`, chargé à l'exécution, passe en
+  dépendance de production (`npm ci --omit=dev` l'omettait). Nouveau test
+  `tests/runtime-deps-guard.test.js` : aucun paquet de développement chargé par le serveur.
+- **Réseau trophique par zone** : migration `292` qui rétablit la vue `v_zone_inventory` absente
+  des bases restaurées ; test positif ajouté.
+- Tests : `tests/mascot-upload-xss-guard.test.js`, `tests/runtime-deps-guard.test.js`, nouveaux
+  cas dans `plants-map-species`, `plants-hazard-review`, `quiz-api`, `fm-quiz-import`,
+  `food-web-api`. Doc : `docs/API.md`, `docs/reference/foretmap/plantes-et-biodiversite.md`.
+- ⚠️ **Numérotation** : les migrations 292-293 prennent les numéros d'abord réservés au lot
+  BCDEG, qui devra être renuméroté à son application (le runner saute tout numéro inférieur à
+  la version courante).
+
 ### Ajouté — audit « état des lieux » du 25/09 et décisions du mainteneur
 
 - `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25.md` (hors GL) : cartographie technique, correspondance

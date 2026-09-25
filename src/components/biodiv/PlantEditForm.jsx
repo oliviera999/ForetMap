@@ -407,20 +407,15 @@ function PlantEditForm({
               placeholder="Partie dangereuse, circonstances, conduite à tenir. Ex. : « Graines très toxiques ; ne jamais manipuler les fruits épineux. »"
             />
           </div>
+          {/* La relecture des dangers n'est plus une case du formulaire : elle se fait depuis le
+              panneau « Dangers à valider », réservé aux porteurs de `plants.hazards.validate`, qui
+              enregistre qui a relu et quand (audit du 25/09/2026, § 1.3.6). */}
           <div className="field">
-            <label className="plant-hazard-reviewed">
-              <input
-                type="checkbox"
-                checked={form.hazard_reviewed === '1' || form.hazard_reviewed === 1}
-                onChange={(event) =>
-                  set('hazard_reviewed')({ target: { value: event.target.checked ? '1' : '' } })
-                }
-              />
-              <span>
-                Danger relu et validé. Tant que la case est décochée, la fiche affiche la mention «
-                à valider » à côté de l’avertissement.
-              </span>
-            </label>
+            <p className="plant-hazard-reviewed" role="status">
+              {form.hazard_reviewed === '1' || form.hazard_reviewed === 1
+                ? 'Danger relu et validé. Toute modification du danger ou du risque sanitaire remet la fiche « à valider ».'
+                : 'Danger à valider : la relecture se fait depuis le panneau « Dangers à valider », par un enseignant habilité.'}
+            </p>
           </div>
         </div>
       </details>

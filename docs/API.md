@@ -1533,8 +1533,11 @@ donc avec `hazard_reviewed = 0`.
 `hazard_exposure` alimente un SET SQL : les valeurs sont normalisées côté serveur
 (`lib/plantHazard.js`) et réordonnées canoniquement, une valeur non reconnue est écartée. Alias
 d’import : `toxicite` / `danger` / `gravite` → `toxicity_level` ; `voies_d_exposition` /
-`exposition` → `hazard_exposure` ; `precautions` → `hazard_notes` ; `danger_valide` →
-`hazard_reviewed`.
+`exposition` → `hazard_exposure` ; `precautions` → `hazard_notes`. Le drapeau
+`hazard_reviewed` **n'est plus accepté** par `POST`/`PUT /api/plants` ni par l'import (l'alias
+`danger_valide` a été retiré) : il n'est écrit que par `POST /api/plants/:id/validate-hazard`
+(audit du 25/09/2026, § 1.3.6). La migration `294` remet « à valider » les fiches validées sans
+relecteur.
 
 S’y ajoutent le **risque sanitaire** et la **traçabilité de la relecture** (migration `271`) :
 
@@ -1558,8 +1561,9 @@ la pastille de toxicité illisible sur tout le catalogue animal. L’affichage e
 une coche posée sur un texte relu continuerait à certifier une version qui n’existe plus — le cas
 n’est pas malveillant, c’est celui du collègue qui corrige la conduite à tenir six mois plus tard.
 Une modification qui ne touche pas à ces cinq colonnes (nom, photo, écologie…) **préserve** la
-validation. `hazard_reviewed_by` et `hazard_reviewed_at` ne sont jamais écrits par le formulaire
-ni par un import : seule `POST /api/plants/:id/validate-hazard` les renseigne.
+validation. `hazard_reviewed`, `hazard_reviewed_by` et `hazard_reviewed_at` ne sont jamais écrits
+par le formulaire ni par un import : seule `POST /api/plants/:id/validate-hazard` les renseigne
+(l'invalidation ci-dessus remet les trois à `0` / `null`).
 
 S’y ajoutent enfin deux champs d’**attribution de la photo principale** (migration `252`), aux
 mêmes noms que sur `quiz_questions` :

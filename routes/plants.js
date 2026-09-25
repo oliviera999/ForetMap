@@ -804,10 +804,11 @@ router.put(
     // Une modification du danger ou du risque sanitaire annule la relecture : la coche
     // certifierait sinon un texte qui n'existe plus (cf. lib/plantHazardReview.js).
     const reviewInvalidated = hazardReviewInvalidated(plant, payload);
-    if (reviewInvalidated) payload.hazard_reviewed = 0;
     const setClause = [
       ...PLANT_COLUMNS.map((col) => `${col}=?`),
-      ...(reviewInvalidated ? ['hazard_reviewed_by=NULL', 'hazard_reviewed_at=NULL'] : []),
+      ...(reviewInvalidated
+        ? ['hazard_reviewed=0', 'hazard_reviewed_by=NULL', 'hazard_reviewed_at=NULL']
+        : []),
     ].join(', ');
     const values = [...PLANT_COLUMNS.map((col) => payload[col]), plant.id];
     await execute(`UPDATE plants SET ${setClause} WHERE id=?`, values);

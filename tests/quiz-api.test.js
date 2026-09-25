@@ -333,7 +333,7 @@ function buildGlRqlQuestionRows() {
   ];
 }
 
-test('import écrit les liens glossaire dans RQL (origin=import) et pas dans quiz_question_glossary', async () => {
+test('import écrit les liens glossaire dans RQL (origin=keyword) et pas dans quiz_question_glossary', async () => {
   await applyFmQuizImport({ queryAll, execute }, GL_RQL_CATEGORY_ROWS, buildGlRqlQuestionRows(), {
     dryRun: false,
   });
@@ -344,8 +344,8 @@ test('import écrit les liens glossaire dans RQL (origin=import) et pas dans qui
     [GL_RQL_QUESTION_CODE],
   );
   assert.ok(
-    rqlRows.some((r) => r.resource_ref === GL_RQL_GLOSSARY_CODE && r.origin === 'import'),
-    'le lien glossaire doit exister dans resource_question_links avec origin=import',
+    rqlRows.some((r) => r.resource_ref === GL_RQL_GLOSSARY_CODE && r.origin === 'keyword'),
+    'le lien glossaire doit exister dans resource_question_links avec origin=keyword',
   );
 
   // L'ancienne table de jonction a été supprimée par la migration 186 (audit §4.5) :
@@ -380,7 +380,7 @@ test('non-régression : un lien glossaire origin=generated/approved survit à un
     [generatedRef, GL_RQL_QUESTION_CODE],
   );
 
-  // Ré-import : le DELETE scopé origin='import' ne doit PAS toucher le lien generated.
+  // Ré-import : le DELETE scopé origin='keyword' ne doit PAS toucher le lien generated.
   await applyFmQuizImport({ queryAll, execute }, GL_RQL_CATEGORY_ROWS, buildGlRqlQuestionRows(), {
     dryRun: false,
   });
@@ -397,17 +397,52 @@ test('non-régression : un lien glossaire origin=generated/approved survit à un
     'le lien origin=generated/approved doit survivre au ré-import',
   );
 
-  // Et le lien d'import est bien re-créé.
+  // Et le lien par mots-clés est bien re-créé.
   const importLink = await queryAll(
     `SELECT 1 AS ok FROM resource_question_links
       WHERE resource_type = 'glossary' AND question_code = ?
-        AND resource_ref = ? AND origin = 'import'`,
+        AND resource_ref = ? AND origin = 'keyword'`,
     [GL_RQL_QUESTION_CODE, GL_RQL_GLOSSARY_CODE],
   );
   assert.strictEqual(
     importLink.length,
     1,
-    'le lien origin=import doit être présent après ré-import',
+    'le lien origin=keyword doit être présent après ré-import',
+  );
+});
+
+// Audit du 25/09/2026, § 1.3.3 — la curation manuelle de la migration 227 est stockée sous
+// origin='import' et bloquante : un import QCM la supprimait sans message.
+test('non-régression : un lien glossaire relu (origin=import, bloquant) survit à un ré-import', async () => {
+  const curatedRef = `${GL_RQL_GLOSSARY_CODE}C`;
+  await execute(
+    `INSERT INTO glossary_terms (
+       glossary_code, terme, variantes, categorie, niveau, definition_courte, statut, created_at, updated_at
+     ) VALUES (?, ?, '', 'flore', 'base', 'Terme relu', 'actif', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE statut = 'actif'`,
+    [curatedRef, `${GL_RQL_TAG}cur`],
+  );
+  await execute(
+    `INSERT IGNORE INTO resource_question_links
+       (resource_type, resource_ref, question_code, status, origin, is_gating)
+     VALUES ('glossary', ?, ?, 'approved', 'import', 1)`,
+    [curatedRef, GL_RQL_QUESTION_CODE],
+  );
+
+  await applyFmQuizImport({ queryAll, execute }, GL_RQL_CATEGORY_ROWS, buildGlRqlQuestionRows(), {
+    dryRun: false,
+  });
+
+  const survived = await queryAll(
+    `SELECT is_gating FROM resource_question_links
+      WHERE resource_type = 'glossary' AND question_code = ? AND resource_ref = ?
+        AND origin = 'import' AND status = 'approved'`,
+    [GL_RQL_QUESTION_CODE, curatedRef],
+  );
+  assert.deepStrictEqual(
+    survived.map((r) => Number(r.is_gating)),
+    [1],
+    'le lien relu doit survivre au ré-import, toujours bloquant',
   );
 });
 
