@@ -52,6 +52,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **QF0212 reformulée** (migration `298`) : « lequel participe à la décomposition en fragmentant
   la matière morte ? » — cohérente avec la fiche du cloporte, désormais détritivore ; gardée par
   l'ancien énoncé. Test de contenu `quiz-qf0212-detritivore`.
+- **Procédure de déploiement** : `docs/RUNBOOK_DEPLOIEMENT_AUDIT_2026-09.md` (migrations 292 à
+  301 dans l'ordre, sauvegarde vérifiée, contrôles après chaque migration, tâches
+  d'administration, bascule `dist-artifact`, retour arrière).
 - **Sauvegarde BDD** (`scripts/db-backup.sh`, audit § 1.1) : `mariadb-dump` en priorité,
   `--default-character-set=utf8mb4`, clauses `DEFINER` retirées, dump vérifié avant d'être
   gardé, échec explicite quand aucun outil de dump n'est installé (il sortait en succès sans
