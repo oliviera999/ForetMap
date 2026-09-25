@@ -9,6 +9,53 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — rôle trophique « Détritivore » (décision Q7, migration 295)
+
+- Nouvelle valeur `detritivore` pour le rôle trophique des fiches : l'animal qui fragmente la
+  matière morte (ver de terre, cloporte, collembole…) n'est plus confondu avec le décomposeur
+  (bactéries, champignons), qui la minéralise. Les animaux classés « décomposeur » sont
+  reclassés (14 fiches sur le fixture anonymisé).
+- Réseau trophique : un détritivore compte au niveau 2, donc son prédateur passe au niveau
+  suivant (Étourneau unicolore : primaire → secondaire). Les détritivores sont affichés dans une
+  voie « Détritivores », à côté des décomposeurs.
+- Libellé « Détritivore » et définition pour les élèves sur la pastille, dans le formulaire, sur
+  la fiche, dans le filtre et la recherche du catalogue ; la saisie accepte les accents.
+- Niveau Collège : la détritivorie fait désormais partie des types d'interaction scolaires.
+- À suivre : la question QF0212 (« lequel est un décomposeur ? » → le cloporte) contredit
+  désormais la fiche ; `sql/biodiv_pedago_seed.sql` est à régénérer après déploiement ; le cas
+  des bactéries nitrifiantes reste à trancher par l'équipe de SVT.
+
+### Ajouté — interrupteurs d'administration des modules pédagogiques (décision Q19)
+
+- Quatre réglages publics, allumés par défaut : `ui.modules.id_keys_enabled`,
+  `ui.modules.individuals_enabled`, `ui.modules.pedago_sessions_enabled`,
+  `ui.modules.rewards_enabled` (Paramètres → Accueil & modules). Module éteint : onglet masqué
+  pour élèves et professeurs, repli automatique de l'onglet ouvert, et toutes les routes du
+  module en `503` (convention du forum et du carnet). Récompenses éteintes : aucun badge
+  attribué ni affiché. Séances éteintes : bouton « Lancer la séance » et champ « Séance liée »
+  des tâches masqués. Aucune donnée effacée ; l'onglet « Individus » reste aussi soumis au
+  niveau pédagogique.
+
+### Corrigé — terrain et accessibilité élève (piste D, audit du 25/09, § 1.4.6-1.4.8)
+
+- Barre d'outils de la carte, puces Quiz/Glossaire, groupes emboîtés et réseau trophique :
+  cibles de 44 px au doigt (30-36 px auparavant) ; rien ne change à la souris.
+- Contrastes relevés à 4,5:1 : nom scientifique des fiches, message d'erreur de connexion
+  (nouveau token `--ink-alert`), libellés de filtre, bouton secondaire enfoncé, mention de
+  crédit.
+- Panne réseau : message court et tutoyé pour les élèves, variante avec pistes pour les
+  professeurs ; détail technique porté par l'erreur. **File hors ligne de la visite
+  réparée** : l'erreur réseau convertie par `api()` n'était plus reconnue, et un « vu »
+  marqué sans réseau était annulé au lieu d'être mis en file.
+- Page hors ligne : nom du produit servi selon le host, plus de marque en dur
+  (`lib/brandHtml.js`).
+- Fiche espèce : chaque libellé nomme son champ ; `label-has-associated-control` en cliquet
+  (153 → 112).
+- Textes visiteurs : détecteur d'incitations à cueillir, goûter ou manipuler un être vivant
+  (`lib/visitorTextGuard.js`), test de contenu sur le corpus semé et
+  `npm run audit:visitor-texts` pour la base de production (fixture : 0 incitation non
+  arbitrée, 11 zones grises listées).
+
 ### Modifié — piste A de l'audit du 25/09 : niveaux, verrouillage, lot B
 
 - **Le verrouillage suit le niveau de l'élève** (décision Q1) : un élève de collège ne reçoit

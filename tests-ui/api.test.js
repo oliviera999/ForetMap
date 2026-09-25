@@ -8,6 +8,7 @@ import {
   createNetworkFailureError,
   getAuthToken,
   getStoredSession,
+  isLikelyNetworkTransportFailure,
   networkFailureUserMessage,
   pickNewestAuthToken,
   saveStoredSession,
@@ -299,5 +300,13 @@ describe('message de panne réseau (audit du 25/09/2026, § 1.4.6)', () => {
     expect(error.cause).toBe(cause);
     expect(error.detail).toMatch(/TypeError: Failed to fetch/);
     expect(error.detail).toMatch(/passerelle/);
+  });
+
+  test('l’erreur convertie par api() reste reconnue comme panne réseau (file hors ligne)', () => {
+    // La visite met le « vu » en file locale sur panne réseau ; avant, le message converti
+    // n'était plus reconnu et le marquage était annulé avec une alerte.
+    const error = createNetworkFailureError(new TypeError('Failed to fetch'), { dev: false });
+    expect(isLikelyNetworkTransportFailure(error)).toBe(true);
+    expect(isLikelyNetworkTransportFailure(new Error('Erreur serveur'))).toBe(false);
   });
 });

@@ -106,6 +106,7 @@
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
     "audit:pedago": "node scripts/audit-pedago-content.js",
+    "audit:visitor-texts": "node scripts/audit-visitor-texts.js",
     "templates:users": "node scripts/build-users-import-templates.js",
     "templates:users:check": "node scripts/build-users-import-templates.js --check",
     "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",

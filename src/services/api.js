@@ -269,10 +269,19 @@ export function getAuthClaims() {
   return token ? decodeJwtPayload(token) : null;
 }
 
-/** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */
+/** Code porté par l'erreur (`err.code`) : distinguer la panne réseau sans lire le texte. */
+export const NETWORK_FAILURE_CODE = 'NETWORK_UNREACHABLE';
+
+/**
+ * Panne de transport : erreur brute du navigateur (Chrome « Failed to fetch », Firefox
+ * « NetworkError… », etc.) **ou** erreur déjà convertie par `api()` (`err.code`). Sans ce
+ * second cas, la file hors ligne de la visite ne se déclenchait jamais : `api()` remplace le
+ * message du navigateur par un texte pour l'élève (audit du 25/09/2026, piste D).
+ */
 export function isLikelyNetworkTransportFailure(err) {
   if (!err) return false;
   if (err.name === 'AbortError') return false;
+  if (err.code === NETWORK_FAILURE_CODE) return true;
   const msg = String(err.message || err || '').toLowerCase();
   if (err instanceof TypeError && typeof fetch !== 'undefined') {
     return (
@@ -305,9 +314,6 @@ export const NETWORK_FAILURE_USER_MESSAGE =
 export const NETWORK_FAILURE_STAFF_MESSAGE =
   'Pas de réseau pour l’instant : le serveur ne répond pas. Réessayez dans un moment ; si ça ' +
   'dure, vérifiez la connexion de l’établissement — le site peut aussi être en maintenance.';
-
-/** Code porté par l'erreur (`err.code`) : distinguer la panne réseau sans lire le texte. */
-export const NETWORK_FAILURE_CODE = 'NETWORK_UNREACHABLE';
 
 /** Compte personnel (`userType: 'teacher'`, prof comme admin) ; élève ou visiteur sinon. */
 function isStaffSession() {
