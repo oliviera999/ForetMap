@@ -4,8 +4,10 @@
 > Module Gnomes & Licornes (GL) **exclu** : ses tables `gl_*` et son code ne sont ni lus ni
 > analysés ; le code partagé qui le touche est seulement signalé.
 > Livrables : ce rapport et la matrice
-> [`2026-09-matrice-tables-code.csv`](2026-09-matrice-tables-code.csv).
-> **Phase 2 non commencée** : elle attend le choix d'une piste par Oliv (§ 2).
+> [`AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv`](AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv).
+> **Statut (25/09, fin de journée)** : décisions du mainteneur reçues (§ [Décisions du
+> mainteneur](#décisions-du-mainteneur-2509)) ; mise en œuvre lancée dans l'ordre recommandé
+> (P0 → piste A → décisions Q7/Q19 → piste D → pistes B et C par tranches).
 
 ## Sommaire
 
@@ -324,7 +326,7 @@ silence) ; `UPDATE` toujours gardés par un `WHERE` ; pas d'`ALTER` à plusieurs
 
 #### 1.2.1 Matrice table → modules
 
-Fichier : [`2026-09-matrice-tables-code.csv`](2026-09-matrice-tables-code.csv), colonnes
+Fichier : [`AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv`](AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv), colonnes
 `table,module,chemin,acces,nb_references,domaine_module` ; `acces` ∈ {R, W, RW}.
 
 - **Méthode** [V] : les fichiers non-GL (`server.js`, `app.js`, `database.js`, `routes/**`,
@@ -1562,9 +1564,38 @@ Décisions qui ne relèvent pas de l'audit.
 19. **Fonctionnalités récentes** (clés d'identification, individus suivis, récompenses, exécutions
     de séance) : adoption confirmée, ou gel ? Les individus sont invisibles pour tous les élèves
     au niveau collège, et l'onglet « Clés » est affiché mais vide.
-20. **Ce rapport** : le garder dans `docs/audit/` (comme demandé), ou le ranger selon la
+20. **Ce rapport** : le garder dans `docs/audit/` (comme demandé à l'origine), ou le ranger selon la
     convention du dépôt (`docs/AUDIT_*.md` et index `docs/audits/README.md`) ? Il **n'est pas
     commité**, conformément à la consigne ; la session de travail est éphémère.
+
+---
+
+## Décisions du mainteneur (25/09)
+
+Réponses d'Oliv aux questions ci-dessus, et la façon dont elles sont appliquées.
+
+| #   | Décision                                 | Application                                                                                                                                                                                               |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Garder les questions de tous niveaux     | le filtre de niveau du verrouillage retombe sur les questions de tous niveaux quand aucune n'est au niveau de l'élève (`levelFallback: 'all_levels'`)                                                     |
+| 2   | Oui                                      | quiz libre et glossaire restent ouverts à tous les niveaux ; aucune restriction serveur ajoutée                                                                                                           |
+| 3   | Avis demandé                             | l'ouverture libre d'une fiche sans question active est **gardée** ; elle devient **visible** (écran de couverture, test de contenu, script de génération)                                                 |
+| 4   | Plutôt une échelle                       | une seule échelle côté apprenant, celle du programme (`cycle3` … `es_terminale`, plus `universite`) ; collège / lycée / université deviennent des regroupements d'affichage ; la séance impose son niveau |
+| 5   | À quoi sert `groups.curriculum_niveau` ? | niveau scolaire de la classe (migration 290), hérité par les sous-groupes ; devient la colonne de niveau des groupes (décision 4)                                                                         |
+| 6   | Davantage de notions ?                   | oui : notions de cycles 3 et 4 ajoutées d'après les attendus des programmes ; les 47 questions `glossaire_definitions` reçoivent les notions de la catégorie de leur terme                                |
+| 7   | Créer la valeur `detritivore`            | valeur ajoutée à `plants.trophic_role`, 14 animaux reclassés, réseau trophique adapté                                                                                                                     |
+| 8   | Non                                      | libellé « Partie à récolter », badge « Comestible » et textes signalés **inchangés** ; le test automatique des textes visiteurs les liste en exceptions                                                   |
+| 9   | (sans réponse)                           | règle actuelle conservée et écrite : une bonne réponse à une question désactivée cesse de compter                                                                                                         |
+| 10  | C'est-à-dire ?                           | explication donnée ; cible : une seule définition (registre ∪ localisations, avec provenance)                                                                                                             |
+| 11  | Analyser plus finement                   | analyse fine des rôles de progression menée séparément                                                                                                                                                    |
+| 12  | Document BCDEG laissé de côté            | les nouvelles migrations prennent 292 et suivants ; **le lot BCDEG devra être renuméroté** à son application (le runner saute tout numéro inférieur à la version courante)                                |
+| 13  | Oui, après revérification                | les fiches `hazard_reviewed = 1` sans relecteur repassent « à valider »                                                                                                                                   |
+| 14  | Plus tard                                | vérifications de production reportées ; les correctifs sûrs quel que soit l'état de la prod sont appliqués                                                                                                |
+| 15  | Laisser de côté                          | historique Git et mots de passe : rien                                                                                                                                                                    |
+| 16  | Détailler                                | runbook détaillé ; la PR de retrait de `dist/` ne doit être fusionnée qu'après les deux gestes serveur                                                                                                    |
+| 17  | Quelle utilité ?                         | explication donnée ; les cycles d'import sont contrôlés par un script maison, sans dépendance                                                                                                             |
+| 18  | Quel intérêt ?                           | explication donnée                                                                                                                                                                                        |
+| 19  | Adoptées, activables côté site           | un interrupteur `ui.modules.*` par fonctionnalité récente (clés, individus, récompenses, séances)                                                                                                         |
+| 20  | Convention                               | rapport rangé en `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25.md` et indexé dans `docs/audits/README.md`                                                                                                         |
 
 ---
 

@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — audit « état des lieux » du 25/09 et décisions du mainteneur
+
+- `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25.md` (hors GL) : cartographie technique, correspondance
+  base ↔ code, points chauds (niveaux, verrouillage, liens question-ressource, présence des
+  espèces, observations, table `plants`), qualité et sécurité, pistes A–D, plan de
+  refactorisation par domaine, décisions du mainteneur (§ Décisions).
+- `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv` : matrice table × module
+  (lecture / écriture), 765 lignes ; indexé dans `docs/audits/README.md`.
+
 ### Corrigé — « Carte introuvable » en mode visite (complexe Nawal El Moutawakel)
 
 - **Symptôme** : pour un prof sans classe (ni permission de gestion des lieux), choisir le
