@@ -20,6 +20,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **QF0212 reformulée** (migration `298`) : « lequel participe à la décomposition en fragmentant
   la matière morte ? » — cohérente avec la fiche du cloporte, désormais détritivore ; gardée par
   l'ancien énoncé. Test de contenu `quiz-qf0212-detritivore`.
+- **Sauvegarde BDD** (`scripts/db-backup.sh`, audit § 1.1) : `mariadb-dump` en priorité,
+  `--default-character-set=utf8mb4`, clauses `DEFINER` retirées, dump vérifié avant d'être
+  gardé, échec explicite quand aucun outil de dump n'est installé (il sortait en succès sans
+  rien sauvegarder). Essai local : restauration identique à l'octet, vues en `SQL SECURITY
+  INVOKER` sans `DEFINER`.
 - **Outillage** (question 17) : `npm run check:cycles` (script maison, sans dépendance) et
   `tests/import-cycles-guard.test.js` refusent tout cycle entre imports de premier niveau (0
   aujourd'hui ; 5 groupes de cycles serveur, tous paresseux) ; `@vitest/coverage-v8` en
