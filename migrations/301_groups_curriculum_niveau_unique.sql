@@ -69,8 +69,13 @@
 --    6ᵉ) vaut cycle 3.
 --
 -- Idempotent : l'ENUM redéclaré à l'identique ne change rien, et la pose ne touche que des
--- valeurs NULL. Aucune suppression, aucune table `gl_*`. Mesure sur la base de recette
--- anonymisée (v297, 32 groupes) : voir le rapport du lot.
+-- valeurs NULL (second passage : 0 ligne). Aucune suppression, aucune table `gl_*`.
+--
+-- Mesure sur la base de recette anonymisée (v297, 32 groupes, 0 niveau avant) : 27 groupes
+-- reçoivent `cycle3` (26 classes `26#6xx`, `26#6xx-6xx`, `60x` et l'unité `26#6`) ; 5 restent
+-- vides — `26#n3` et l'équipe `n3beurs 2025` (aucun niveau dans le nom), un groupe de test
+-- automatisé et deux groupes `test`. Élèves actifs : 428 sur 463 ont désormais un niveau de
+-- classe (cycle 3) ; les 35 autres gardent le repli (défaut de l'établissement, Collège).
 
 ALTER TABLE `groups`
   MODIFY COLUMN curriculum_niveau ENUM(
