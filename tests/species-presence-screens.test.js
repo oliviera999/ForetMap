@@ -1,12 +1,21 @@
 'use strict';
 
 /**
- * « Espèce présente sur ce site » écran par écran — tests de caractérisation.
+ * « Espèce présente sur ce site » écran par écran — une seule réponse.
  *
  * Décision Q10 du mainteneur (`docs/AUDIT_ETAT_DES_LIEUX_2026-09-25.md`, § 1.3.4 et § 3.2.6) :
- * la présence d'une espèce sur une carte a quatre définitions selon l'écran. Ce fichier fige
- * ce que chaque écran répond **aujourd'hui**, sur un jeu minimal construit sur une carte
- * dédiée, avant l'introduction d'un service unique.
+ * la présence d'une espèce sur une carte avait quatre définitions selon l'écran. Ces tests,
+ * écrits d'abord pour caractériser l'existant, fixent maintenant la définition commune
+ * (`lib/biodiv/presenceService.js`) : la **réunion** du registre de la carte, des zones et
+ * des repères, avec la provenance de chaque espèce.
+ *
+ * Avant → après, sur le jeu minimal ci-dessous :
+ * - groupes emboîtés : registre seul (A, D)            → réunion ∩ classées (A, B, C, D) ;
+ * - réseau trophique : réunion (A, B, C, D, F)         → inchangé ;
+ * - visite           : lieux publiés (B, C, D, F)      → lieux inchangés, **plus** une liste
+ *                      « espèces du site » (A, B, C, D, F, H) ;
+ * - catalogue        : réunion refaite par le client, plus l'ancien nom d'un repère
+ *                      (A, B, C, D, F, G)              → réponse du serveur (A, B, C, D, F, H).
  *
  * Jeu minimal (carte `pres-…`) :
  * - A : registre de la carte (`map_species`) seulement ;
@@ -16,7 +25,9 @@
  * - E : témoin, absent de la carte (cible des relations trophiques) ;
  * - F : une zone seulement, sans groupe emboîté (`clade_id` NULL) ;
  * - G : nommé par l'ancienne colonne mono-espèce d'un repère (`map_markers.plant_name`),
- *   sans ligne de jonction.
+ *   sans ligne de jonction — n'est **plus** compté ;
+ * - H : une zone réservée aux professeurs (`visible_role_slugs`) : présente pour tous, mais la
+ *   zone n'est nommée qu'à qui peut la voir.
  */
 
 require('./helpers/setup');
@@ -35,6 +46,7 @@ const MAP_ID = `pres-${suffix}`;
 const ROOT_CLADE = `tpres_root_${suffix}`;
 const LEAF_CLADE = `tpres_leaf_${suffix}`;
 const ZONE_ID = `pres-zone-${suffix}`;
+const RESERVED_ZONE_ID = `pres-reserved-${suffix}`;
 const MARKER_ID = `pres-marker-${suffix}`;
 const LEGACY_MARKER_ID = `pres-legacy-${suffix}`;
 
@@ -63,6 +75,29 @@ function onlyFixture(ids) {
   return sorted(new Set([...ids].map(Number).filter((id) => mine.has(id))));
 }
 
+function entryOf(species, key) {
+  return (species || []).find((e) => Number(e.plant_id) === plants[key].id);
+}
+
+const POINTS = JSON.stringify([
+  { xp: 10, yp: 10 },
+  { xp: 30, yp: 10 },
+  { xp: 30, yp: 30 },
+]);
+
+async function insertZone(zoneId, name, visibleRoleSlugs = null) {
+  await execute(
+    `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, visible_role_slugs)
+     VALUES (?, ?, ?, 0, 0, 0, 0, '', 'growing', 0, 'rect', ?, '#86efac90', ?)`,
+    [zoneId, MAP_ID, name, POINTS, visibleRoleSlugs],
+  );
+  await execute(
+    `INSERT INTO visit_zones (id, map_id, name, points, short_description, is_active, visible_role_slugs)
+     VALUES (?, ?, ?, ?, 'Texte de visite.', 1, ?)`,
+    [zoneId, MAP_ID, name, POINTS, visibleRoleSlugs],
+  );
+}
+
 before(async () => {
   await initSchema();
   token = await ensureAdminTeacherAuthToken();
@@ -78,30 +113,21 @@ before(async () => {
             (?, ?, 'Présence feuille', 'Attribut feuille', 991)`,
     [ROOT_CLADE, LEAF_CLADE, ROOT_CLADE],
   );
-  for (const key of ['A', 'B', 'C', 'D', 'E', 'G']) await insertPlant(key, LEAF_CLADE);
+  for (const key of ['A', 'B', 'C', 'D', 'E', 'G', 'H']) await insertPlant(key, LEAF_CLADE);
   await insertPlant('F', null);
 
-  const points = JSON.stringify([
-    { xp: 10, yp: 10 },
-    { xp: 30, yp: 10 },
-    { xp: 30, yp: 30 },
-  ]);
-  await execute(
-    `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color)
-     VALUES (?, ?, ?, 0, 0, 0, 0, '', 'growing', 0, 'rect', ?, '#86efac90')`,
-    [ZONE_ID, MAP_ID, `Zone présence ${suffix}`, points],
-  );
-  await execute(
-    `INSERT INTO visit_zones (id, map_id, name, points, short_description, is_active)
-     VALUES (?, ?, ?, ?, 'Texte de visite.', 1)`,
-    [ZONE_ID, MAP_ID, `Zone présence ${suffix}`, points],
-  );
+  await insertZone(ZONE_ID, `Zone présence ${suffix}`);
   for (const key of ['B', 'D', 'F']) {
     await execute('INSERT INTO zone_species (zone_id, plant_id) VALUES (?, ?)', [
       ZONE_ID,
       plants[key].id,
     ]);
   }
+  await insertZone(RESERVED_ZONE_ID, `Zone réservée ${suffix}`, JSON.stringify(['prof']));
+  await execute('INSERT INTO zone_species (zone_id, plant_id) VALUES (?, ?)', [
+    RESERVED_ZONE_ID,
+    plants.H.id,
+  ]);
 
   for (const [markerId, label, plantName] of [
     [MARKER_ID, `Repère présence ${suffix}`, ''],
@@ -176,54 +202,148 @@ async function foodWebScreen() {
   return onlyFixture(ids);
 }
 
-/** Visite publique (anonyme) : espèces portées par les lieux publiés. */
-async function visitPlacesScreen() {
-  const res = await request(app)
-    .get(`/api/visit/content?map_id=${encodeURIComponent(MAP_ID)}`)
-    .expect(200);
-  const ids = new Set();
+/** Visite publique (anonyme) : espèces des lieux publiés, et espèces du site. */
+async function visitScreen(auth = null) {
+  const req = request(app).get(`/api/visit/content?map_id=${encodeURIComponent(MAP_ID)}`);
+  if (auth) req.set(auth);
+  const res = await req.expect(200);
+  const placeIds = new Set();
   for (const loc of [...(res.body.zones || []), ...(res.body.markers || [])]) {
-    for (const id of loc.species_ids || []) ids.add(id);
+    for (const id of loc.species_ids || []) placeIds.add(id);
   }
-  return { ids: onlyFixture(ids), body: res.body };
+  return {
+    placeIds: onlyFixture(placeIds),
+    siteIds: onlyFixture((res.body.site_species || []).map((e) => e.plant_id)),
+    body: res.body,
+  };
 }
 
-/** Catalogue : filtre « Présente sur cette carte » tel que le calcule le client aujourd'hui. */
-async function catalogueClientScreen() {
-  const { plantPresentOnActiveMap } = await import(
-    pathToFileURL(path.join(__dirname, '../src/utils/plantFilters.js')).href
-  );
+/** Route de présence (catalogue, fiche espèce). */
+async function presenceRoute(auth = null, query = '') {
+  const req = request(app).get(`/api/maps/${encodeURIComponent(MAP_ID)}/species${query}`);
+  if (auth) req.set(auth);
+  const res = await req.expect(200);
+  return { ids: onlyFixture(res.body.species.map((e) => e.plant_id)), body: res.body };
+}
+
+/** Catalogue : filtre « Présente sur cette carte », appliqué par le client à la réponse serveur. */
+async function catalogueScreen() {
   const auth = { Authorization: `Bearer ${token}` };
-  const q = encodeURIComponent(MAP_ID);
-  const [plantsRes, zonesRes, markersRes] = await Promise.all([
+  const [{ plantMatchesZonePresence, ZONE_PRESENCE_FILTER }, { indexSpeciesPresence }] =
+    await Promise.all([
+      import(pathToFileURL(path.join(__dirname, '../src/utils/plantFilters.js')).href),
+      import(pathToFileURL(path.join(__dirname, '../src/utils/speciesPresence.js')).href),
+    ]);
+  const [plantsRes, presence] = await Promise.all([
     request(app).get('/api/plants').set(auth).expect(200),
-    request(app).get(`/api/zones?map_id=${q}`).set(auth).expect(200),
-    request(app).get(`/api/map/markers?map_id=${q}`).set(auth).expect(200),
+    presenceRoute(auth),
   ]);
+  const index = indexSpeciesPresence(presence.body.species);
   const present = plantsRes.body
-    .filter((p) => plantPresentOnActiveMap(p, zonesRes.body, markersRes.body, MAP_ID))
+    .filter((p) => plantMatchesZonePresence(p, index, ZONE_PRESENCE_FILTER.IN_MAP))
     .map((p) => p.id);
   return onlyFixture(present);
 }
 
-test('caractérisation — groupes emboîtés : registre seul (A, D)', async () => {
-  assert.deepEqual(await cladesScreen(), idsOf(['A', 'D']));
+const COMMON = ['A', 'B', 'C', 'D', 'F', 'H'];
+
+test('groupes emboîtés : vivier = présence commune ∩ espèces classées (A, B, C, D, H)', async () => {
+  // Avant : registre seul (A, D).
+  assert.deepEqual(await cladesScreen(), idsOf(['A', 'B', 'C', 'D', 'H']));
 });
 
-test('caractérisation — réseau trophique : réunion des trois canaux (A, B, C, D, F)', async () => {
+test('réseau trophique : présence commune, inchangée (A, B, C, D, F)', async () => {
+  // H n'a pas de relation dans le jeu minimal ; G n'est plus présent (et ne l'était pas ici).
   assert.deepEqual(await foodWebScreen(), idsOf(['A', 'B', 'C', 'D', 'F']));
 });
 
-test('caractérisation — visite : zones et repères publiés (B, C, D, F)', async () => {
-  const { ids, body } = await visitPlacesScreen();
-  assert.deepEqual(ids, idsOf(['B', 'C', 'D', 'F']));
-  // L'ancien nom mono-espèce du repère n'est qu'un libellé : aucun identifiant d'espèce.
+test('visite : lieux inchangés, liste « espèces du site » = présence commune', async () => {
+  const { placeIds, siteIds, body } = await visitScreen();
+  // Les lieux publiés gardent leurs espèces pour l'affichage sur la carte (la zone réservée
+  // n'est pas servie à un anonyme).
+  assert.deepEqual(placeIds, idsOf(['B', 'C', 'D', 'F']));
+  assert.deepEqual(siteIds, idsOf(COMMON));
+  // L'ancien nom mono-espèce reste un libellé de repère, sans être une présence.
   const legacy = (body.markers || []).find((m) => m.id === LEGACY_MARKER_ID);
   assert.ok(legacy, 'repère ancien publié');
   assert.deepEqual(legacy.species_ids, []);
   assert.deepEqual(legacy.living_beings_list, [plants.G.name]);
+  // Provenance, et lieu réservé jamais nommé à un anonyme.
+  assert.deepEqual(entryOf(body.site_species, 'A').sources, ['registre']);
+  assert.deepEqual(entryOf(body.site_species, 'D').sources, ['registre', 'zone']);
+  assert.deepEqual(entryOf(body.site_species, 'C').sources, ['repere']);
+  assert.deepEqual(entryOf(body.site_species, 'H').sources, ['zone']);
+  assert.deepEqual(entryOf(body.site_species, 'H').zones, []);
+  assert.deepEqual(
+    entryOf(body.site_species, 'B').zones.map((z) => z.id),
+    [ZONE_ID],
+  );
+  assert.ok(body.site_species_summary.total >= COMMON.length);
 });
 
-test('caractérisation — catalogue (client) : réunion + ancien nom de repère (A, B, C, D, F, G)', async () => {
-  assert.deepEqual(await catalogueClientScreen(), idsOf(['A', 'B', 'C', 'D', 'F', 'G']));
+test('catalogue : le filtre suit la réponse du serveur, sans l’ancien nom (A, B, C, D, F, H)', async () => {
+  // Avant : réunion refaite par le client, plus G par son ancien nom mono-espèce.
+  assert.deepEqual(await catalogueScreen(), idsOf(COMMON));
+});
+
+test('une seule réponse : catalogue, visite et réseau trophique donnent la même liste', async () => {
+  const auth = { Authorization: `Bearer ${token}` };
+  const route = await presenceRoute(auth);
+  const visit = await visitScreen();
+  assert.deepEqual(route.ids, visit.siteIds);
+  assert.deepEqual(await catalogueScreen(), route.ids);
+  // Réseau trophique : toutes les espèces du jeu qui ont une relation sont dans la liste.
+  for (const id of await foodWebScreen()) assert.ok(route.ids.includes(id));
+  // Groupes emboîtés : la même liste, restreinte aux espèces classées (F n'a pas de groupe).
+  assert.deepEqual(
+    await cladesScreen(),
+    route.ids.filter((id) => id !== plants.F.id),
+  );
+});
+
+test('GET /api/maps/:mapId/species — provenance et lieux par espèce', async () => {
+  const auth = { Authorization: `Bearer ${token}` };
+  const { body } = await presenceRoute(auth);
+  assert.equal(body.map_id, MAP_ID);
+  assert.deepEqual(body.sources, ['registre', 'zone', 'repere']);
+  assert.deepEqual(entryOf(body.species, 'A').sources, ['registre']);
+  assert.deepEqual(entryOf(body.species, 'A').zones, []);
+  assert.equal(entryOf(body.species, 'A').validation_status, 'attendu');
+  assert.deepEqual(entryOf(body.species, 'B').sources, ['zone']);
+  assert.deepEqual(entryOf(body.species, 'B').zones, [
+    { id: ZONE_ID, name: `Zone présence ${suffix}` },
+  ]);
+  assert.deepEqual(entryOf(body.species, 'C').markers, [
+    { id: MARKER_ID, label: `Repère présence ${suffix}` },
+  ]);
+  assert.equal(entryOf(body.species, 'G'), undefined);
+  // Un gestionnaire voit la zone réservée.
+  assert.deepEqual(
+    entryOf(body.species, 'H').zones.map((z) => z.id),
+    [RESERVED_ZONE_ID],
+  );
+});
+
+test('GET /api/maps/:mapId/species — anonyme : même présence, lieu réservé non nommé', async () => {
+  const { ids, body } = await presenceRoute();
+  assert.deepEqual(ids, idsOf(COMMON));
+  assert.deepEqual(entryOf(body.species, 'H').sources, ['zone']);
+  assert.deepEqual(entryOf(body.species, 'H').zones, []);
+});
+
+test('GET /api/maps/:mapId/species — canaux explicites, erreurs', async () => {
+  const auth = { Authorization: `Bearer ${token}` };
+  const registry = await presenceRoute(auth, '?sources=registre');
+  assert.deepEqual(registry.ids, idsOf(['A', 'D']));
+  assert.deepEqual(registry.body.sources, ['registre']);
+  const located = await presenceRoute(auth, '?sources=repere,zone');
+  assert.deepEqual(located.ids, idsOf(['B', 'C', 'D', 'F', 'H']));
+  assert.deepEqual(located.body.sources, ['zone', 'repere']);
+
+  const bad = await request(app)
+    .get(`/api/maps/${encodeURIComponent(MAP_ID)}/species?sources=nom_ancien`)
+    .set(auth)
+    .expect(400);
+  assert.match(bad.body.error, /Source de présence inconnue/);
+  await request(app).get(`/api/maps/carte-inexistante-${suffix}/species`).set(auth).expect(404);
 });

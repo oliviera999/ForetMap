@@ -65,6 +65,13 @@ familles.
   « Également dans les missions ». Les lieux d'**infrastructure** (bâtiment, mare, compostage…)
   n'affichent pas de biodiversité. Une espèce citée sur le lieu mais absente du catalogue est
   annoncée sans être ouvrable : c'est le signe qu'il manque sa fiche côté Biodiversité.
+- **Les espèces du site suivent la même règle que le reste de l'application** : une espèce
+  est présente sur le site si elle est au registre du site, dans une zone ou sur un repère
+  (voir [Plantes et biodiversité](plantes-et-biodiversite.md), « Présente sur ce site »).
+  Les lieux de la visite gardent leurs propres espèces pour l'affichage sur le plan ; la
+  fiche d'une espèce ouverte depuis la visite, y compris sans compte, dit si elle est
+  présente sur ce site et d'où vient sa présence (« au registre du site », « dans une
+  zone », « sur un repère »). Un lieu que le visiteur ne voit pas n'y est jamais nommé.
 - **Les mots du glossaire sont cliquables dans les textes de la visite** (description, détails,
   blocs éditoriaux), comme dans les tutoriels et les fiches espèces : un mot souligné ouvre sa
   **fiche rapide** par-dessus le plan, sans quitter la visite ni perdre sa place.

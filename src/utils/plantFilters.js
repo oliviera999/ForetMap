@@ -26,7 +26,15 @@ export function plantTaxonomyValue(plant, level) {
   return '';
 }
 
-/** Présence sur la carte (zones / repères / rattachement direct `map_ids`). */
+/**
+ * Filtre « Présence sur la carte » du catalogue.
+ *
+ * La présence d'une espèce sur une carte est décidée par le **serveur**
+ * (`GET /api/maps/:mapId/species`, `lib/biodiv/presenceService.js`, décision Q10) :
+ * registre de la carte, zones ou repères. Le client ne refait plus la réunion, et les
+ * anciens noms mono-espèce (`zones.current_plant`, `map_markers.plant_name`) ne comptent
+ * plus : sur la base de référence, les trois encore renseignés ont tous leur jonction.
+ */
 export const ZONE_PRESENCE_FILTER = {
   ALL: '',
   IN_MAP: 'in_map',
@@ -45,68 +53,53 @@ function entityHasPlantId(entity, plantId) {
   return ids.some((x) => Number(x) === plantId);
 }
 
-/** Noms d’êtres vivants rattachés à une zone (`living_beings_list` + colonne legacy `current_plant` si présente). */
-export function mapZoneLivingNames(zone) {
-  const names = new Set();
-  if (Array.isArray(zone?.living_beings_list)) {
-    for (const x of zone.living_beings_list) {
-      const v = nv(x);
-      if (v) names.add(v);
-    }
-  }
-  const cp = nv(zone?.current_plant);
-  if (cp) names.add(cp);
-  return names;
-}
-
-/** Noms d’êtres vivants rattachés à un repère (`living_beings_list` + colonne legacy `plant_name` si présente). */
-export function mapMarkerLivingNames(marker) {
-  const names = new Set();
-  if (Array.isArray(marker?.living_beings_list)) {
-    for (const x of marker.living_beings_list) {
-      const v = nv(x);
-      if (v) names.add(v);
-    }
-  }
-  const pn = nv(marker?.plant_name);
-  if (pn) names.add(pn);
-  return names;
-}
-
+/** La zone porte-t-elle cette espèce (jonction `species_ids`) ? Sert à nommer les lieux. */
 export function plantLinkedToMapZone(plant, zone) {
-  const plantId = plantIdOf(plant);
-  if (entityHasPlantId(zone, plantId)) return true;
-  const name = nv(plant?.name);
-  if (!name) return false;
-  return mapZoneLivingNames(zone).has(name);
+  return entityHasPlantId(zone, plantIdOf(plant));
 }
 
+/** Le repère porte-t-il cette espèce (jonction `species_ids`) ? Sert à nommer les lieux. */
 export function plantLinkedToMapMarker(plant, marker) {
-  const plantId = plantIdOf(plant);
-  if (entityHasPlantId(marker, plantId)) return true;
-  const name = nv(plant?.name);
-  if (!name) return false;
-  return mapMarkerLivingNames(marker).has(name);
+  return entityHasPlantId(marker, plantIdOf(plant));
 }
 
-/** Rattachement direct fiche → carte (`plants.map_ids`). */
-export function plantLinkedToMapDirectly(plant, activeMapId) {
-  const mapId = nv(activeMapId);
-  if (!mapId) return false;
-  const ids = plant?.map_ids;
-  if (!Array.isArray(ids) || ids.length === 0) return false;
-  return ids.some((id) => String(id) === mapId);
+/**
+ * Présente sur la carte active, d'après la réponse du serveur.
+ * @param {object} plant
+ * @param {Map<number, object>|null} presenceByPlantId index de `indexSpeciesPresence` ;
+ *   `null` = présence pas encore connue
+ * @returns {boolean|null} `null` si la présence est inconnue
+ */
+export function plantPresentOnActiveMap(plant, presenceByPlantId) {
+  if (!(presenceByPlantId instanceof Map)) return null;
+  const id = plantIdOf(plant);
+  return id != null && presenceByPlantId.has(id);
 }
 
-/** Présente sur la carte active : lieu (zone/repère) ou rattachement direct. */
-export function plantPresentOnActiveMap(plant, zones, markers, activeMapId) {
-  if (plantLinkedToMapDirectly(plant, activeMapId)) return true;
+/**
+ * Fiches à marquer « Sur la carte » dans une grille (pastille de vignette).
+ *
+ * Présence connue → réponse du serveur, la même pour l'élève et le professeur. Présence
+ * pas encore chargée → repli sur les lieux déjà connus du client (jonctions des zones et
+ * repères), sans jamais réintroduire les anciens noms mono-espèce.
+ *
+ * @returns {Set<number|string>} identifiants de fiche (tels que dans `plants`)
+ */
+export function plantIdsMarkedOnMap(plants, presenceByPlantId, zones = [], markers = []) {
+  const ids = new Set();
   const zl = Array.isArray(zones) ? zones : [];
   const ml = Array.isArray(markers) ? markers : [];
-  return (
-    zl.some((z) => plantLinkedToMapZone(plant, z)) ||
-    ml.some((m) => plantLinkedToMapMarker(plant, m))
-  );
+  for (const p of Array.isArray(plants) ? plants : []) {
+    const known = plantPresentOnActiveMap(p, presenceByPlantId);
+    if (known === true) ids.add(p.id);
+    else if (
+      known == null &&
+      (zl.some((z) => plantLinkedToMapZone(p, z)) || ml.some((m) => plantLinkedToMapMarker(p, m)))
+    ) {
+      ids.add(p.id);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -177,9 +170,15 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
   return fields.some((field) => nv(field).toLowerCase().includes(queryTrimmedLower));
 }
 
-export function plantMatchesZonePresence(plant, zones, markers, presence, activeMapId = null) {
+/**
+ * Filtre de présence. Tant que la présence de la carte est inconnue (chargement, erreur
+ * réseau), le filtre **ne retire rien** : mieux vaut montrer tout le catalogue un instant
+ * qu'un « aucun résultat » trompeur.
+ */
+export function plantMatchesZonePresence(plant, presenceByPlantId, presence) {
   if (!presence) return true;
-  const has = plantPresentOnActiveMap(plant, zones, markers, activeMapId);
+  const has = plantPresentOnActiveMap(plant, presenceByPlantId);
+  if (has == null) return true;
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
@@ -188,12 +187,10 @@ export function plantMatchesZonePresence(plant, zones, markers, presence, active
 export function plantMatchesAllFilters(
   plant,
   { structured, queryTrimmedLower, zonePresence },
-  zones,
-  markers,
-  activeMapId = null,
+  presenceByPlantId = null,
 ) {
   if (!plantMatchesStructuredFilters(plant, structured)) return false;
   if (!plantTextMatchesQuery(plant, queryTrimmedLower)) return false;
-  if (!plantMatchesZonePresence(plant, zones, markers, zonePresence, activeMapId)) return false;
+  if (!plantMatchesZonePresence(plant, presenceByPlantId, zonePresence)) return false;
   return true;
 }

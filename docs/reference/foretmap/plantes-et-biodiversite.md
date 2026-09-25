@@ -53,11 +53,47 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   (téléversées ou par lien) ;
 - les **sources** des informations (liens et références).
 
-La fiche affiche aussi automatiquement ses liens avec le reste de l'application : les
-**mini-cartes** des zones et repères où l'espèce est présente, ses interactions du
-réseau trophique (« qui mange qui, qui aide qui »), les termes du glossaire et les
-questions de quiz qui s'y rapportent (celles approuvées dans l'écran « Rattacher des
-questions aux contenus »).
+La fiche affiche aussi automatiquement ses liens avec le reste de l'application : sa
+**présence sur la carte ouverte** et d'où elle vient (voir ci-dessous), les **mini-cartes**
+des zones et repères où l'espèce se trouve, ses interactions du réseau trophique (« qui
+mange qui, qui aide qui »), les termes du glossaire et les questions de quiz qui s'y
+rapportent (celles approuvées dans l'écran « Rattacher des questions aux contenus »).
+
+### « Présente sur ce site » : une seule définition
+
+Une espèce est **présente sur une carte** dès qu'une de ces trois choses est vraie :
+
+- elle est **au registre du site** : le professeur a coché cette carte dans la fiche de
+  l'espèce (c'est le cas des espèces connues sur le site sans lieu précis, un oiseau de
+  passage par exemple) ;
+- elle figure **dans une zone** de la carte ;
+- elle figure **sur un repère** de la carte.
+
+Depuis le 25 septembre 2026, **tous les écrans donnent la même réponse** à cette question :
+le filtre « Présente sur cette carte » du catalogue, la pastille « Sur la carte » des
+vignettes (élève comme professeur), la fiche de l'espèce, le tirage au sort des **Groupes
+emboîtés**, le **réseau trophique** d'une carte et la **visite**. Avant, chaque écran avait
+sa propre règle. Sur la forêt comestible (base de référence de septembre 2026), les Groupes
+emboîtés ne tiraient que parmi les 27 espèces du registre, la visite ne connaissait que les
+61 espèces placées dans une zone ou sur un repère, le réseau trophique en comptait 75, et la
+pastille des vignettes du professeur ignorait le registre. Aujourd'hui, les 75 espèces de la
+forêt comestible sont présentes partout.
+
+La fiche dit **d'où vient la présence**, sobrement, sous « Sur la carte » : par exemple
+« Présente sur cette carte : au registre du site · dans 2 zones · sur 1 repère ». Une
+espèce seulement au registre n'a pas de mini-carte : elle est connue sur le site sans lieu
+précis. Une espèce absente de la carte ouverte porte la mention « Pas encore signalée sur
+cette carte ».
+
+Deux précisions :
+
+- les **anciens noms de lieu** (quand une zone ou un repère ne portait qu'un nom de plante
+  tapé à la main, avant le choix dans le catalogue) ne comptent plus : seules les espèces
+  choisies dans le catalogue font foi. Sur la base de référence, les trois anciens noms
+  encore renseignés avaient tous leur équivalent choisi dans le catalogue — rien n'a disparu ;
+- une espèce présente **seulement dans une zone réservée** (« Qui peut voir ce lieu ») reste
+  présente pour tout le monde, mais la zone n'est nommée qu'à ceux qui peuvent la voir : les
+  autres lisent « dans une zone », sans son nom.
 
 Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des êtres
 vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
@@ -101,7 +137,9 @@ la recherche.
 ## Groupes emboîtés
 
 L’onglet **Groupes emboîtés** propose une activité de classification : l’enseignant choisit
-des espèces (ou en tire au sort sur une carte) ; l’application calcule le plus petit arbre
+des espèces (ou en tire au sort sur une carte, parmi les espèces **présentes sur cette carte**
+— au registre, dans une zone ou sur un repère — et rangées dans l’arbre) ; l’application
+calcule le plus petit arbre
 qui les contient et affiche des **boîtes emboîtées**, chacune portant le caractère partagé
 du groupe. En mode élève, on place les espèces dans les groupes puis on lance la
 **correction automatique**. Les professeurs qui gèrent la biodiversité peuvent aussi
@@ -342,9 +380,12 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
    de page, il choisit la **carte** : soit **toute la biodiversité du site**, soit une
    carte précise (ce choix de carte précise est le même que sur le plan de l'application).
    Avec une carte précise, il peut aussi filtrer la **présence** (par défaut : espèces
-   présentes sur cette carte — zones, repères, ou rattachement direct ; ou absentes ;
-   ou toutes les fiches). Une **recherche** et un filtre par **règne** complètent la
-   surface. Des pastilles rapides permettent de
+   présentes sur cette carte — au registre du site, dans une zone ou sur un repère ; ou
+   absentes ; ou toutes les fiches). Les vignettes des espèces présentes portent la
+   pastille **« Sur la carte »**. Pendant le bref chargement de la présence, ou si le
+   serveur ne répond pas, le filtre ne retire rien (une note le signale en cas de panne)
+   plutôt que d'afficher un catalogue vide. Une **recherche** et un filtre par **règne**
+   complètent la surface. Des pastilles rapides permettent de
    ne garder que les espèces **comestibles**, **UICN menacées**, déjà **observées**
    ou **pas encore**. Un tri par nom (A→Z / Z→A) ou par observations personnelles
    complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
@@ -382,8 +423,11 @@ compte de son auteur, à sa prochaine connexion.
 
 Le professeur ajoute une fiche depuis l'onglet Biodiversité et remplit le formulaire
 (seul le nom est obligatoire). Il peut aussi cocher les **cartes** sur lesquelles
-l'espèce est présente sans être liée à une zone ou un repère précis. Il voit le même
-catalogue en vignettes que les élèves, avec deux boutons par vignette : **modifier**
+l'espèce est présente sans être liée à une zone ou un repère précis : c'est le **registre
+du site**, l'une des trois façons d'être « présente sur ce site ». Enregistrer la fiche ne
+touche pas aux cartes déjà cochées (leurs informations de suivi sont conservées). Il voit le
+même catalogue en vignettes que les élèves — la pastille « Sur la carte » y suit la même
+règle que chez eux —, avec deux boutons par vignette : **modifier**
 (le formulaire s'ouvre en fenêtre, avec l'enregistrement automatique habituel) et
 **supprimer**. Cliquer la vignette elle-même ouvre la fiche telle que les élèves la
 voient. Les changements apparaissent en temps réel chez les utilisateurs connectés.

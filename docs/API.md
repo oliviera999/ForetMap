@@ -706,6 +706,59 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 | ------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/maps` | Liste des cartes configurées, triées (`sort_order`, `id`). Retourne les champs `id`, `label`, `map_image_url`, `sort_order`, `is_active`, `updated_at`, `frame_padding_px`, **`georef`** (3 ancres de calage GPS `[{ xp, yp, lat, lng }]` ou `null`), **`gps_enabled`** (booléen ; vrai uniquement si le suivi est activé **et** le calage valide), **`heading_up_enabled`** et **`scale_compass_enabled`** (booléen ; vrai si calage valide **et** case admin activée — indépendant de `gps_enabled` ; défaut admin `1`). Utilisé par toutes les vues carte/tâches/visite ; `georef`/`gps_enabled` pilotent le suivi GPS de la mascotte (bouton « Me suivre ») ; `scale_compass_enabled` pilote l'échelle et la rose des vents. **Filtrée par le périmètre cartes du compte** (voir ci-dessous) : un élève borné ne reçoit que ses cartes ; la logique client réduit ensuite l’affichage selon le mode (élève, n3boss, visite). **Route publique (sans session)** : les ancres `georef` — donc les coordonnées GPS du site — sont lisibles par tout visiteur. Choix assumé pour un établissement dont l’adresse est publique ; à reconsidérer avant de géoréférencer un plan d’un lieu non public (audit géolocalisation 2026-09, C5). |
 
+### Présence des espèces sur une carte — `GET /api/maps/:mapId/species`
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/maps/:mapId/species` | session facultative | Espèces **présentes sur la carte**, chacune avec sa **provenance** et ses lieux. `?sources=registre,zone,repere` (facultatif) restreint explicitement les canaux ; valeur inconnue → **400**. |
+
+**Une seule définition de « présente sur ce site »** (décision Q10, `lib/biodiv/presenceService.js`) :
+une espèce est présente dès qu'**un** des trois canaux la rattache à la carte —
+
+- `registre` : rattachement direct fiche → carte (`map_species`, cases « cartes » de la fiche,
+  champ `map_ids` de `GET /api/plants`) ;
+- `zone` : l'espèce figure dans une zone de la carte (`zone_species`) ;
+- `repere` : l'espèce figure sur un repère de la carte (`marker_species`).
+
+Les anciens noms mono-espèce (`zones.current_plant`, `map_markers.plant_name`) **ne sont pas** un
+canal. Le filtre « Présente sur cette carte » du catalogue, la fiche espèce, l'activité « Groupes
+emboîtés » (`POST /api/clades/activity/subtree`), le réseau trophique (`GET /api/food-web?mapId=`)
+et la liste `site_species` de `GET /api/visit/content` s'appuient tous sur cette définition.
+
+Réponse :
+
+```json
+{
+  "map_id": "foret",
+  "sources": ["registre", "zone", "repere"],
+  "summary": { "total": 75, "registre": 27, "zone": 40, "repere": 32, "registre_seul": 14 },
+  "species": [
+    {
+      "plant_id": 12,
+      "name": "…",
+      "emoji": "🌿",
+      "sources": ["registre", "zone"],
+      "validation_status": "attendu",
+      "zones": [{ "id": "…", "name": "…" }],
+      "markers": []
+    }
+  ]
+}
+```
+
+- `species` est trié par nom (ordre français), puis identifiant. `sources` suit toujours l'ordre
+  `registre`, `zone`, `repere`. `validation_status` vient du registre (`null` hors registre).
+- `summary` : un compte par canal (une espèce peut compter dans plusieurs) et `registre_seul`
+  (au registre, placée ni dans une zone ni sur un repère).
+- **Gardes** — les mêmes que `GET /api/zones` : surface décidée par le serveur (laissez-passer des
+  surfaces gardées), carte déclarée sur la surface, périmètre de groupe du compte. Carte inconnue
+  ou hors surface → **404** « Carte introuvable » ; hors périmètre du compte → **403**
+  `MAP_OUT_OF_SCOPE`.
+- **Lieux filtrés, présence non** : la présence et ses canaux sont identiques pour tous les
+  lecteurs ; `zones` / `markers` ne citent que les lieux que **ce** lecteur voit (surfaces,
+  audience, héritage par catégorie). Une espèce présente seulement dans une zone réservée garde
+  `sources: ["zone"]` avec `zones: []`.
+
 Notes :
 
 - Le backend n’impose pas de plafond à 2 cartes : le contrat est compatible **N cartes**.
@@ -1430,6 +1483,13 @@ Contraintes importantes :
   Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`,
   chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver)
   restent listées.
+- **Espèces du site** : `GET /api/visit/content` expose **`site_species`** — la liste des espèces
+  présentes sur la carte selon la définition commune (registre, zones, repères ; même forme que
+  `species` de `GET /api/maps/:mapId/species`) — et **`site_species_summary`** (comptes par canal).
+  Les lieux cités (`zones`, `markers`) sont filtrés par lecteur comme les zones et repères du
+  contenu : un lieu masqué, réservé ou absent de la visite n'est pas nommé. Les lieux de la visite
+  gardent leurs propres `species` pour l'affichage sur le plan ; `site_species` est la réponse à
+  « quelles espèces ce site abrite-t-il ? ».
 - **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji }]`, table de jonction `zone_species` / `marker_species`, tri par nom), **`species_ids`** et **`living_beings_list`** (noms, repli sur `zones.current_plant` / `map_markers.plant_name` quand la jonction est vide). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
 - **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
 - **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
@@ -1511,7 +1571,8 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 `sources`, `ideal_temperature_c`, `optimal_ph`, `ecosystem_role`, `geographic_origin`, `human_utility`,
 `harvest_part`, `planting_recommendations`, `preferred_nutrients`, `photo_species`, `photo_leaf`,
 `photo_flower`, `photo_fruit`, `photo_harvest_part`, ainsi que **`map_ids`** (tableaux d’identifiants
-de cartes au rattachement **direct**, table `map_species` — complète la présence via zones / repères).
+de cartes au rattachement **direct**, table `map_species` — le canal `registre` de la présence ;
+la présence complète d'une carte, avec zones et repères, est servie par `GET /api/maps/:mapId/species`).
 
 S’y ajoutent les trois champs de **détermination** (aide à l’identification rigoureuse, migration `243`) :
 
@@ -2969,8 +3030,11 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 > réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
 > l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
 > (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
-> Pour **`?mapId=`**, le périmètre unit les espèces des **zones**, des **repères** et celles
-> rattachées **directement** à la carte (`map_species`).
+> Pour **`?mapId=`**, le périmètre est la présence commune (`lib/biodiv/presenceService.js`) :
+> espèces des **zones**, des **repères** et celles rattachées **directement** à la carte
+> (`map_species`) — la même liste que `GET /api/maps/:mapId/species`. Pour **`?zoneId=`**, ce
+> sont les espèces de la zone (`zone_species`, même contenu que la vue `v_zone_inventory`, que la
+> route ne lit plus).
 
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
@@ -2992,7 +3056,7 @@ sont refusés à l'écriture.
 | ------- | --- | ---- | ----------- |
 | GET | `/api/clades` | non | Liste plate ordonnée (`items[]` : id, parent_id, name, shared_attribute, description, sort_order) |
 | GET | `/api/clades/:id/path` | non | Fil d'ancêtres racine → nœud (pour le fil de fiche). **400** / **404** si id invalide / inconnu |
-| POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }`. Réponse `{ tree, plants, cladeOptions }` |
+| POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }` (tirage de `count` espèces — 2 à 20 — parmi celles **présentes sur la carte** selon la définition commune, registre, zones ou repères, et classées dans l'arbre ; avant la décision Q10, le registre seul). Réponse `{ tree, plants, cladeOptions }` |
 | POST | `/api/clades/activity/check` | non | Correction : `{ placements: [{ plantId, cladeId }] }` → `{ results, correctCount, total, allCorrect }` |
 | POST | `/api/clades` | prof (`plants.manage`) | Créer un groupe (`id` slug, name, shared_attribute, parent_id?, sort_order?) |
 | PUT | `/api/clades/:id` | prof (`plants.manage`) | Modifier / déplacer. **400** si le déplacement créerait un cycle |

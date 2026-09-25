@@ -112,7 +112,10 @@ qu'on veut). Sa fiche rassemble :
   les catégories, complétée par la pastille de sélection du système et la saisie directe
   du code hexadécimal (transparence comprise) — voir « Catégories de lieux » plus bas ;
 - la liste des **êtres vivants** présents (choisis dans le catalogue biodiversité —
-  plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage) ;
+  plusieurs espèces possibles, l'ordre choisi est conservé à l'affichage). Une espèce placée
+  dans une zone est **présente sur le site** pour toute l'application (catalogue, fiche,
+  Groupes emboîtés, réseau trophique, visite) — voir « Présente sur ce site » dans
+  [Plantes et biodiversité](plantes-et-biodiversite.md) ;
 - une ou plusieurs **catégories** (Verger, Compostage, Zone pédagogique…), créées par
   l'administrateur et utilisables comme filtre sur la carte — voir « Catégories de
   lieux » plus bas ;
