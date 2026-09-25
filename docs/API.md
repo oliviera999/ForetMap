@@ -2812,6 +2812,15 @@ décisions `link` / `create` sur un rapprochement, `keep_master` / `apply_other`
 miroirs poussés (`dryRun: false`, y compris `POST /api/gl/games/:id/teams/mirror`) — sinon
 **409** ; il ne provoque pas de 503. Simulations, lectures et `ignore` restent ouverts. `/check` et `/runs` sont soumis au limiteur strict (`authLimiter`).
 
+**Organisation du code — cible G&L (25/09/2026, décision Q18, sans changement de contrat).** Les
+lectures et écritures de la synchronisation sur les tables `gl_*` (classes, joueurs, parties,
+équipes) et ses imports de code GL passent tous par `lib/moodle/gameAdapter.js` : état local du
+plan, application (dans la transaction de la cohorte), annulation, miroir des équipes, rapport
+d'identités après exécution. Les autres fichiers de `lib/moodle/` n'en contiennent plus
+(`tests/moodle-game-adapter-isolation.test.js`). Restent dans le code Moodle, à dessein : la
+colonne `external_groups.gl_class_id`, la clé de politique `gl_class` et les genres d'action
+journalisés `gl_class.ensure`, `gl_player.ensure`, `gl_player.move` (valeurs stockées).
+
 | Méthode | URL                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/status`              | `{ configured, killSwitchOff, baseUrl, enabled, yearPrefix, lastCheck, lastRun, openConflicts, openPendingMatches }` — `configured` est un booléen (jamais le jeton) ; `enabled` reflète le réglage `integration.moodle.enabled` ; `lastCheck` est le dernier résultat de `/check` dans ce processus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -3324,6 +3333,22 @@ Ne jamais réutiliser un code d'un catalogue dans l'autre : la vérification à 
 bonnes réponses des deux jeux.
 Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_correct`, `enabled`
 (résolue avec les défauts du site).
+
+**Organisation du code — adaptateur de produit (25/09/2026, décision Q18, sans changement de
+contrat).** Le moteur (`lib/learningGating*.js`, `lib/gatingPolicyLoad.js`, `lib/learningLinksBulk.js`)
+est commun aux deux produits et ne teste plus le produit lui-même : il interroge un adaptateur, un
+objet par produit (`GATING_PRODUCTS.fm`, `GATING_PRODUCTS.gl`). La partie statique
+(`lib/pedago/gatingProductCatalog.js`, sans dépendance) décrit les types validables, les trois
+tables (liens, politiques, verrous), la clé du lecteur dans les verrous (`user_id` ou couple
+`reader_user_type` / `reader_user_id`), la source des questions et de leur niveau, et les
+**capacités** : filtre de niveau de l'apprenant (ForetMap seulement), jeux de questions
+`qcm` / `qcm_lore`, réponses d'équipe et granularité de chapitre (GL seulement). Les hooks
+(`lib/pedago/gatingProducts.js`) lisent les réglages du site, identifient le lecteur (403
+« Authentification requise » / « Profil invalide »), chargent les bonnes réponses et celles de
+l'équipe ; c'est le **seul** fichier du moteur qui importe du code GL. Ajouter une règle propre à
+un produit = une capacité et un hook, pas un `if (product === 'gl')`. Contrat et garde
+d'isolement : `tests/gating-products.test.js` ; caractérisation par produit :
+`tests/learning-gating-products-characterization.test.js`.
 
 ### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
 
