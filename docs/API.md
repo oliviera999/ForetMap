@@ -1124,6 +1124,32 @@ Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
+Modules pédagogiques activables (réglages publics booléens, défaut `true`, exposés au front
+sous `publicSettings.modules.*` et lus côté serveur par `lib/shared/moduleGate.js`) :
+
+- `ui.modules.id_keys_enabled` — clés d'identification. `false` : toutes les routes
+  `/api/id-keys` (lecture publique comprise) renvoient `503 { error: 'Clés d’identification désactivées' }` ;
+  onglet « Clés » masqué (élève et prof).
+- `ui.modules.individuals_enabled` — individus suivis. `false` : toutes les routes
+  `/api/individuals` (mesures comprises) renvoient `503 { error: 'Suivi des individus désactivé' }` ;
+  onglet « Individus » masqué. L'onglet reste **aussi** soumis au niveau pédagogique
+  (`individuals_tab`, masqué au collège) : il faut les deux pour qu'il apparaisse.
+- `ui.modules.pedago_sessions_enabled` — séances pédagogiques. `false` : toutes les routes
+  `/api/pedago-sessions` renvoient `503 { error: 'Séances pédagogiques désactivées' }` — catalogue,
+  `runs/start`, `runs/complete`, `me/runs`, **et** gestion prof (création, `stats`, suivi,
+  partage), comme le forum ferme aussi sa modération. Onglet « Séances » masqué, bandeau de
+  séance en cours retiré, bouton « Lancer la séance » des tâches et champ « Séance
+  pédagogique liée » du formulaire de tâche masqués. `tasks.pedago_session_id` n'est pas
+  effacé (le lien ressert au rallumage).
+- `ui.modules.rewards_enabled` — badges de fin de séance. `false` : `GET /api/rewards/me`
+  renvoie `503 { error: 'Récompenses désactivées' }` et `evaluateSessionRewards` n'attribue rien
+  (`runs/complete` répond `rewards: []`, aucune ligne `user_rewards`) ; « Mes badges » et les
+  badges de la fenêtre de fin de séance sont masqués. Les badges déjà gagnés restent en base ;
+  rien n'est rattrapé au rallumage (un badge se gagne à la fin de séance qui le mérite).
+
+Un onglet dont le module s'éteint pendant qu'il est ouvert est replié par
+`useTabNavigationGuards` (vers `map`, ou `visit` pour un visiteur), comme les autres modules.
+
 Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL), réglages publics `ui.map.*` :
 
 - `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé (zones et repères).
@@ -2955,6 +2981,9 @@ Migration `275`. Lecture des clés **publiées** sans auth ; brouillons et écri
 (`next_couplet_id` XOR `plant_id`) ; les cycles et les formulations invitant à manipuler
 sont refusés.
 
+Module `ui.modules.id_keys_enabled` ; sinon **503** `{ error: 'Clés d’identification désactivées' }`
+sur toutes les routes ci-dessous.
+
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
 | GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons) |
@@ -2974,6 +3003,10 @@ boîtes emboîtées, parcours) — **distinct** des parcours géographiques (`/a
 `lycee_arbre`, `lycee_classer` (migration `284`, semés **en brouillon**) et `custom` (séance
 libre). Pour un modèle, la structure des étapes est figée et le prof configure carte / clé /
 plantes / arbre suivi / quiz via `PUT` ; pour une séance `custom`, `steps` est éditable.
+
+Module `ui.modules.pedago_sessions_enabled` ; sinon **503**
+`{ error: 'Séances pédagogiques désactivées' }` sur toutes les routes ci-dessous, gestion prof
+comprise.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3006,6 +3039,9 @@ Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une s
 règles sont côté serveur (`lib/rewards.js`) ; aujourd’hui alimentées par les fins de séance
 (`session_first`, `session_three`, `session_replay`, `session_lycee`).
 
+Module `ui.modules.rewards_enabled` ; sinon **503** `{ error: 'Récompenses désactivées' }` et
+aucune attribution en fin de séance (`rewards: []`).
+
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
 | GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, emoji, title, description, awardedAt }], catalogue: [{ key, emoji, title, description }] }` |
@@ -3020,6 +3056,9 @@ connectés ne laissent aucune trace. La note de fin de séance dans le carnet r�
 Migration `276`. Lecture publique ; création/édition sous `individuals.manage` (admin, prof) ;
 saisie de mesures sous `individuals.measure` (admin, prof, paliers élève). Chaque mesure
 peut porter une estimation pédagogique (Chave 2014) avec disclaimer « ordre de grandeur ».
+
+Module `ui.modules.individuals_enabled` ; sinon **503** `{ error: 'Suivi des individus désactivé' }`
+sur toutes les routes ci-dessous.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |

@@ -17,6 +17,7 @@ const {
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const {
   validateLeadOutcome,
   findManipulationInvitation,
@@ -26,6 +27,10 @@ const {
 
 const router = express.Router();
 const manageKeys = requirePermission('id_keys.manage');
+
+// Module éteint (`ui.modules.id_keys_enabled`) : tout le routeur répond 503, lecture publique
+// comme édition — même convention que le forum et le carnet.
+router.use(requireModuleEnabled('foret', 'id_keys', 'Clés d’identification désactivées'));
 
 async function tryResolveAuth(req) {
   try {

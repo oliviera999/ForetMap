@@ -294,6 +294,32 @@ export const KEY_META = {
     section: 'modules',
     order: 40.2,
   },
+  // Modules pédagogiques adoptés le 25/09/2026 : allumés par défaut, éteints → onglet masqué
+  // pour tous (élève et prof) et API du module fermée ; les contenus restent en base.
+  'ui.modules.id_keys_enabled': {
+    label:
+      'Clés d’identification — onglet « Clés » (clés dichotomiques ; éteint : onglet masqué pour tous, clés conservées)',
+    section: 'modules',
+    order: 42,
+  },
+  'ui.modules.individuals_enabled': {
+    label:
+      'Individus suivis — onglet « Individus » (arbres suivis et mesures ; reste masqué au niveau collège même allumé)',
+    section: 'modules',
+    order: 42.1,
+  },
+  'ui.modules.pedago_sessions_enabled': {
+    label:
+      'Séances pédagogiques — onglet « Séances » (séances guidées, suivi des élèves, bouton « Lancer la séance » des tâches)',
+    section: 'modules',
+    order: 42.2,
+  },
+  'ui.modules.rewards_enabled': {
+    label:
+      'Récompenses — badges de fin de séance (éteint : plus aucun badge attribué ni affiché ; ceux déjà gagnés sont conservés)',
+    section: 'modules',
+    order: 42.3,
+  },
   'ui.modules.help_enabled': {
     label: 'Aide contextuelle (tooltips + panneau ?)',
     section: 'modules',

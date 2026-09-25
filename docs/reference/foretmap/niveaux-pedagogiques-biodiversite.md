@@ -228,6 +228,13 @@ parcours sur la carte.
 Les **parcours** sur la carte (Visite / Carte) restent un outil à part — des lieux à
 visiter —, mais une étape de séance peut en lancer un directement sur la carte.
 
+Les séances, les clés d'identification, les individus suivis et les badges sont des
+**modules activables** : un administrateur peut éteindre chacun d'eux dans **Paramètres →
+Accueil & modules** (détail dans [presentation.md](presentation.md), section
+« L'administration »). Si les clés ou les individus sont éteints alors que les séances restent
+allumées, une étape qui devait ouvrir une clé ou un arbre suivi reste sur l'onglet
+**Séances** : l'élève lit la consigne dans le bandeau et passe à l'étape suivante.
+
 ### Partager une séance (lien direct et QR code)
 
 - Sur chaque séance, le bouton **Partager** donne un lien direct et un **QR code** à
