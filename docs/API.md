@@ -2842,6 +2842,17 @@ Réglages associés (portée `admin`, éditables dans _Paramètres administrateu
 (codes de sortie 0 / 1 erreur / 2 non configuré / 3 à relire / 4 seuil ou verrou) ;
 cron de simulation quotidienne `scripts/moodle-sync-cron.sh` (`docs/CRONTAB.md`).
 
+**Niveau de la classe à la création d'un groupe** (décision du mainteneur du 25/09/2026,
+question 5) : l'action `group.ensure` d'un nouveau groupe porte `payload.curriculumNiveau`,
+posé dans `groups.curriculum_niveau` à l'application. Il est déduit **sans ambiguïté**
+(`lib/moodle/plan.js`, `cohortCurriculumNiveau`, règle de `lib/pedago/groupNiveauFromName.js`
+partagée avec la migration 301) : groupe de genre classe ou unité ; nom de la cohorte évoquant
+un seul niveau (`4e 2` → `cycle4`), l'identifiant (`26#402`, `26#4`) ne servant que si le nom
+n'en dit rien ; première et terminale seulement avec leur voie. Un nom qui évoque plusieurs
+niveaux, ou un désaccord entre nom et identifiant, laisse `null` (niveau à renseigner dans
+l'écran des groupes). Un groupe déjà lié n'est pas modifié ; annuler l'exécution retire le
+groupe comme avant.
+
 ## Entrée depuis le cours LTI 1.3 (`/api/lti`)
 
 Outil unique Moodle pour ForetMap **et** G&L (spécification section 21, lot M6). **Pas** une
