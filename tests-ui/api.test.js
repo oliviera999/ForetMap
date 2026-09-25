@@ -11,6 +11,7 @@ import {
   isLikelyNetworkTransportFailure,
   networkFailureUserMessage,
   pickNewestAuthToken,
+  purgeCachedApiResponses,
   saveStoredSession,
 } from '../src/services/api.js';
 
@@ -308,5 +309,44 @@ describe('message de panne réseau (audit du 25/09/2026, § 1.4.6)', () => {
     const error = createNetworkFailureError(new TypeError('Failed to fetch'), { dev: false });
     expect(isLikelyNetworkTransportFailure(error)).toBe(true);
     expect(isLikelyNetworkTransportFailure(new Error('Erreur serveur'))).toBe(false);
+  });
+});
+
+describe('déconnexion : purge du cache d’API (audit du 25/09/2026, piste D)', () => {
+  test('retire les réponses liées à une session, garde la visite publique et le statique', async () => {
+    const store = new Map(
+      [
+        'https://foret.example/api/tasks',
+        'https://foret.example/api/plants',
+        'https://foret.example/api/map/markers',
+        'https://foret.example/api/visit/content',
+        'https://foret.example/api/maps',
+        'https://foret.example/assets/main.js',
+      ].map((url) => [url, { url }]),
+    );
+    const cache = {
+      keys: async () => [...store.values()],
+      delete: async (req) => store.delete(req.url),
+    };
+    vi.stubGlobal('caches', { keys: async () => ['foretmap-offline-v8'], open: async () => cache });
+    try {
+      expect(await purgeCachedApiResponses()).toBe(3);
+      expect([...store.keys()].map((u) => new URL(u).pathname)).toEqual([
+        '/api/visit/content',
+        '/api/maps',
+        '/assets/main.js',
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('sans Cache Storage : aucune erreur', async () => {
+    vi.stubGlobal('caches', undefined);
+    try {
+      expect(await purgeCachedApiResponses()).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

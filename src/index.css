@@ -4658,6 +4658,13 @@
       align-items:center;
       gap:8px 12px;
     }
+    /* Observation gardée sur l'appareil faute de réseau (piste D, audit du 25/09/2026). */
+    .plant-discovery-queued {
+      margin:6px 0 0;
+      font-size:var(--text-sm);
+      color:var(--leaf);
+      line-height:1.35;
+    }
     .plant-discovery-observed-counts {
       font-size:var(--text-sm);
       color:var(--ink-soft);

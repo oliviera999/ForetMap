@@ -51,6 +51,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (`lib/brandHtml.js`).
 - Fiche espèce : chaque libellé nomme son champ ; `label-has-associated-control` en cliquet
   (153 → 112).
+- **« Espèce observée » sans réseau** (migration `296`) : clé d'idempotence `client_uuid`
+  sur `POST /api/plants/:id/acknowledge-discovery` (un renvoi n'est compté qu'une fois, y
+  compris en cas d'envois simultanés) ; file hors ligne propre à chaque compte
+  (`src/utils/plantObservationQueue.js`), rejouée au retour du réseau, pour les
+  ré-observations et les fiches non conditionnées.
+- **Déconnexion** : les réponses d'API gardées par le service worker (tâches, fiches,
+  repères) sont purgées ; la visite publique reste disponible hors ligne.
 - Textes visiteurs : détecteur d'incitations à cueillir, goûter ou manipuler un être vivant
   (`lib/visitorTextGuard.js`), test de contenu sur le corpus semé et
   `npm run audit:visitor-texts` pour la base de production (fixture : 0 incitation non

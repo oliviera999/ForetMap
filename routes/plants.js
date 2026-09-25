@@ -68,7 +68,15 @@ const router = express.Router();
 // le message d'origine, sans préfixe de chemin. `passthrough()` conserve le corps tel quel et
 // le refine reproduit `req.body.confirm !== true` (rejette toute valeur != true booléen).
 const acknowledgeDiscoveryBodySchema = z
-  .object({ confirm: z.unknown().optional() })
+  .object({
+    confirm: z.unknown().optional(),
+    // Clé d'idempotence (migration 296) : une observation renvoyée — réponse perdue, file hors
+    // ligne rejouée — n'est comptée qu'une fois.
+    client_uuid: z
+      .string()
+      .regex(/^[A-Za-z0-9-]{8,64}$/, 'client_uuid invalide')
+      .optional(),
+  })
   .passthrough()
   .refine((body) => body && body.confirm === true, {
     message: 'Confirmation explicite requise (confirm: true)',
@@ -228,9 +236,39 @@ router.get('/me/observation-counts', requireAuth, async (req, res) => {
   }
 });
 
+/** Observation déjà enregistrée sous cette clé d'idempotence (même utilisateur, même fiche). */
+async function findObservationByClientUuid(userId, plantId, clientUuid) {
+  return queryOne(
+    `SELECT observed_at FROM user_plant_observation_events
+      WHERE user_id = ? AND client_uuid = ? AND plant_id = ? LIMIT 1`,
+    [String(userId), clientUuid, plantId],
+  );
+}
+
+async function observationResponse(userId, plantId, event, replayed) {
+  const myRow = await queryOne(
+    'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
+    [String(userId), plantId],
+  );
+  const siteRow = await queryOne(
+    'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id = ?',
+    [plantId],
+  );
+  return {
+    success: true,
+    plant_id: plantId,
+    observed_at: event.observed_at,
+    my_observation_count: Number(myRow?.c) || 0,
+    site_observation_count: Number(siteRow?.c) || 0,
+    ...(replayed ? { replayed: true } : {}),
+  };
+}
+
 /**
  * Enregistre une observation (engagement terrain + lecture de fiche) pour une entrée du catalogue plants.
- * Corps JSON : { "confirm": true } (obligatoire). Chaque confirmation ajoute une ligne (compteur incrémenté).
+ * Corps JSON : { "confirm": true } (obligatoire), `client_uuid` facultatif (clé d'idempotence :
+ * un renvoi de la même clé rejoue la réponse, `replayed: true`, sans nouvelle ligne). Chaque
+ * confirmation nouvelle ajoute une ligne (compteur incrémenté).
  */
 router.post(
   '/:id/acknowledge-discovery',
@@ -248,6 +286,12 @@ router.post(
       }
       const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [pid]);
       if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
+
+      const clientUuid = req.body?.client_uuid ? String(req.body.client_uuid) : null;
+      if (clientUuid) {
+        const already = await findObservationByClientUuid(userId, pid, clientUuid);
+        if (already) return res.json(await observationResponse(userId, pid, already, true));
+      }
 
       const priorRow = await queryOne(
         'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
@@ -274,25 +318,19 @@ router.post(
       }
 
       const now = nowDbTimestamp();
-      await execute(
-        'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
-        [String(userId), pid, now],
-      );
-      const myRow = await queryOne(
-        'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
-        [String(userId), pid],
-      );
-      const siteRow = await queryOne(
-        'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id = ?',
-        [pid],
-      );
-      res.json({
-        success: true,
-        plant_id: pid,
-        observed_at: now,
-        my_observation_count: Number(myRow?.c) || 0,
-        site_observation_count: Number(siteRow?.c) || 0,
-      });
+      try {
+        await execute(
+          'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at, client_uuid) VALUES (?, ?, ?, ?)',
+          [String(userId), pid, now, clientUuid],
+        );
+      } catch (err) {
+        // Deux envois simultanés de la même observation : le second rejoue le premier.
+        if (!clientUuid || !(err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062)) throw err;
+        const already = await findObservationByClientUuid(userId, pid, clientUuid);
+        if (!already) throw err;
+        return res.json(await observationResponse(userId, pid, already, true));
+      }
+      res.json(await observationResponse(userId, pid, { observed_at: now }, false));
     } catch (e) {
       logRouteError(e, req, 'Accusé découverte espèce en échec');
       if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {

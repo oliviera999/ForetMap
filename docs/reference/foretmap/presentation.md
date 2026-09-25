@@ -385,6 +385,10 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   ne déclenche pas le bandeau.
 - **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
   incident : c'est volontaire, et le bandeau le signale.
+- **Tablette partagée : la déconnexion efface les données gardées hors ligne.** Les listes
+  que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
+  à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
+  reste disponible hors ligne (depuis septembre 2026).
 - **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
   depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
   visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de

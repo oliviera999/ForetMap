@@ -366,6 +366,15 @@ Si le professeur a rattaché des **questions de quiz « verrou »** à une fiche
 **première** observation n'est acceptée qu'après avoir répondu correctement à ces
 questions (les observations suivantes de la même espèce ne redemandent rien).
 
+**Sans réseau sur le terrain** (depuis septembre 2026) : une observation confirmée alors que
+le réseau manque est **gardée sur l'appareil** et envoyée toute seule au retour du réseau ;
+l'élève voit « Pas de réseau : ton observation est gardée et partira toute seule. » et son
+compteur augmente tout de suite. C'est possible pour une ré-observation, ou pour une fiche
+sans questions « verrou » ; une première observation qui demande des questions attend le
+réseau. Une observation envoyée deux fois (réponse perdue, appareil qui renvoie) n'est
+comptée qu'**une** fois. Sur une tablette partagée, l'observation n'est envoyée que sous le
+compte de son auteur, à sa prochaine connexion.
+
 ## Comment ça se passe — côté professeur
 
 ### Créer et modifier une fiche

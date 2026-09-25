@@ -256,11 +256,45 @@ export function saveStoredSession(next) {
   dispatchSessionChanged();
 }
 
+/** Lectures publiques de la visite, gardées hors ligne même sans session. */
+const PUBLIC_CACHED_API_RE = /\/api\/(?:maps|visit\/content)$/;
+
+/**
+ * Retire du cache du service worker les réponses d'API liées à une session (tâches, fiches,
+ * repères…). Sur une tablette partagée, elles restaient lisibles hors ligne par l'élève
+ * suivant (audit du 25/09/2026, piste D). Les lectures publiques de la visite et les fichiers
+ * statiques sont conservés. Meilleur effort : ne rejette jamais.
+ * @returns {Promise<number>} nombre de réponses retirées
+ */
+export async function purgeCachedApiResponses() {
+  try {
+    if (typeof caches === 'undefined' || typeof caches.keys !== 'function') return 0;
+    let removed = 0;
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        let pathname = '';
+        try {
+          pathname = new URL(request.url).pathname;
+        } catch {
+          continue;
+        }
+        if (!pathname.includes('/api/') || PUBLIC_CACHED_API_RE.test(pathname)) continue;
+        if (await cache.delete(request)) removed += 1;
+      }
+    }
+    return removed;
+  } catch {
+    return 0; // Cache Storage indisponible (navigation privée, contexte non sécurisé)
+  }
+}
+
 export function clearStoredSession() {
   safeLocalStorageRemoveItem(SESSION_KEY);
   safeLocalStorageRemoveItem('foretmap_auth_token');
   safeLocalStorageRemoveItem('foretmap_teacher_token');
   safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+  void purgeCachedApiResponses();
   dispatchSessionChanged();
 }
 
