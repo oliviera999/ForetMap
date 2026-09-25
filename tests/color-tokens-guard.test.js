@@ -44,7 +44,7 @@ const PRODUCT_ENTRIES = [
  * Plafonds. À BAISSER quand un lot résorbe, jamais à monter : une hausse signifie qu'une
  * couleur a été écrite en dur là où un rôle existait.
  */
-const CEILING_CSS_HEX = 663;
+const CEILING_CSS_HEX = 662;
 const CEILING_CSS_RGBA = 579;
 const CEILING_INLINE_COLOR = 144;
 

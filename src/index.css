@@ -78,6 +78,13 @@
       --soil:     #6b4226;
       --sun:      #e9c46a;
       --alert:    #e76f51;
+      /* Encre d'alerte LISIBLE (audit du 25/09/2026, § 1.4.7) : `--alert` en texte ne tenait
+         que 2,94:1 sur crème (3,09 sur blanc). Même teinte (12°), assombrie par mélange avec
+         le noir — sans nouveau littéral : ≈ #ad533d, 5,13:1 sur blanc, 4,88:1 sur crème.
+         `--alert` reste pour les aplats et les filets ; un TEXTE d'alerte prend celle-ci.
+         Pendant côté vert : `--sage` en texte (2,47:1 sur blanc) cède la place à `--leaf`,
+         le même vert assombri (153°, 6,39:1). Pas de mode sombre (`color-scheme: light`). */
+      --ink-alert: color-mix(in srgb, var(--alert) 75%, black);
       --shadow:   0 4px 24px rgba(26,71,49,.13);
       --radius:   14px;
       --bottom-nav-height: 72px;
@@ -297,7 +304,9 @@
       color:var(--forest);
       border:1px solid rgba(82,183,136,.26);
     }
-    .btn-secondary:active { background:var(--sage); color:white; }
+    /* Enfoncé / survolé : `--leaf` et non `--sage`, sur lequel le blanc ne tenait que 2,47:1
+       (audit du 25/09/2026, § 1.4.7) ; 6,39:1 ici. Même règle au survol, plus bas. */
+    .btn-secondary:active { background:var(--leaf); color:white; }
     .btn-danger { background:#fee2e2; color:var(--ink-danger); }
     .btn-danger:active { background:#fca5a5; }
     .btn-ghost { background:rgba(255,255,255,.66); color:var(--forest); border:1.5px solid var(--mint); }
@@ -309,7 +318,7 @@
     .btn-full { width:100%; }
     @media(hover:hover) {
       .btn-primary:hover { background:var(--leaf); transform:translateY(-1px); box-shadow:0 10px 20px rgba(26,71,49,.26); }
-      .btn-secondary:hover { background:var(--sage); color:white; }
+      .btn-secondary:hover { background:var(--leaf); color:white; }
       .btn-ghost:hover { background:var(--parchment); }
       .btn-danger:hover { background:#fca5a5; }
     }
@@ -2297,7 +2306,7 @@
       transition:border-color .18s, box-shadow .18s;
     }
     .pin-input:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(82,183,136,.15); }
-    .pin-error { color:var(--alert); font-size:var(--text-sm); margin-bottom:10px; animation:shake .3s ease; }
+    .pin-error { color:var(--ink-alert); font-size:var(--text-sm); margin-bottom:10px; animation:shake .3s ease; }
 
     /* ── Promotion profil auto (progression tâches) ── */
     .profile-promo-overlay {
@@ -2338,7 +2347,7 @@
       font-weight: var(--fw-bold);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--sage);
+      color: var(--leaf);
     }
     .profile-promo-card__title {
       margin: 0 0 12px;
@@ -2468,7 +2477,9 @@
       margin-top:16px;
       margin-bottom:0;
       text-align:center;
-      color:#9aa69f;
+      /* Gris-vert discret mais lisible : #9aa69f tenait 2,52:1 sur la carte blanche. Mélange
+         lichen / mousse (≈ #65776c, 145°) : 4,77:1. */
+      color:color-mix(in srgb, var(--ink-lichen) 40%, var(--ink-moss));
       font-size:var(--text-xs);
       line-height:1.25;
     }
@@ -3020,7 +3031,7 @@
     .plant-emoji-big { font-size:var(--text-2xl); width:38px; text-align:center; flex-shrink:0; font-family:var(--font-emoji-stack); }
     .plant-info { flex:1; min-width:0; }
     .plant-row-name { font-weight:var(--fw-semibold); font-size:var(--text-base); color:var(--forest); }
-    .plant-scientific { font-size:var(--text-sm); color:var(--ink-faint); font-style:italic; margin-top:2px; }
+    .plant-scientific { font-size:var(--text-sm); color:var(--ink-muted); font-style:italic; margin-top:2px; }
     .plant-row-desc {
       font-size:var(--text-sm); color:var(--ink-muted); margin-top:4px;
       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
@@ -4035,7 +4046,7 @@
     .map-location-filter-results__kind {
       font-size:var(--text-xs);
       font-weight:var(--fw-bold);
-      color:var(--sage);
+      color:var(--leaf);
       flex-shrink:0;
     }
     /* Zone sélectionnée (fiche ouverte) : pas d'outline navigateur (rectangle noir
@@ -10271,7 +10282,7 @@
   gap: 6px;
 }
 .pedago-foodweb__preset-btns .pedago-chip-btn.active {
-  background: var(--sage);
+  background: var(--leaf);
   color: var(--surface-plain);
   border-color: var(--forest);
 }
