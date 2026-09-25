@@ -53,12 +53,13 @@ d'observation** pour l'écriture naturaliste libre.
   propose, en plus de chaque niveau, l'ensemble du collège (cycles 3 et 4) ou du lycée
   (seconde à terminale). Une séance lycée qui demande « Lycée » fonctionne désormais (elle
   était refusée).
-- **Le quiz suit la classe de l'élève.** Pour un élève en affichage Collège, le quiz
+- **Le quiz suit le niveau de l'élève.** Pour un élève en affichage Collège, le quiz
   propose d'emblée les questions « Collège » (le filtre reste modifiable). Si sa classe a un
-  niveau du programme (voir [Comptes, rôles et groupes](comptes-roles-et-groupes.md#les-groupes)),
-  les menus ne montrent que les notions jusqu'à ce niveau, et une demande « tout le
-  collège » faite par une séance est resserrée au cycle de la classe. Une séance qui vise
-  explicitement un autre cycle est respectée.
+  niveau (voir [Comptes, rôles et groupes](comptes-roles-et-groupes.md#les-groupes)), les
+  menus ne montrent que les notions jusqu'à ce niveau, et une demande « tout le collège »
+  faite par une séance est resserrée au cycle de la classe. Une séance **impose son
+  niveau** : une séance « Lycée » ouvre les notions et les questions de lycée à tous ceux
+  qui la suivent, et une séance qui vise explicitement un autre cycle est respectée.
 - **Les notions sont visibles de tous.** La fiche d'un terme de glossaire affiche, sous
   l'intitulé « Au programme », le niveau et la notion auxquels il se rattache : un élève sait
   à quoi le mot qu'il lit va servir dans l'année.
