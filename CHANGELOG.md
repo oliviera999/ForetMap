@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — terrain sans réseau (piste D, audit du 25/09/2026, § 1.4.6 et § 2.4)
+
+- « Marquer terminée » fonctionne sans réseau : le marquage et son commentaire sont gardés sur
+  l'appareil, par compte, et partent seuls au retour du réseau ; la carte affiche « Notée faite —
+  partira au retour du réseau ». La photo du rapport, l'inscription et le retrait attendent le
+  réseau, avec un message qui dit pourquoi.
+- Carnet : un article écrit sans réseau est gardé sur l'appareil (titre, texte, zone) et envoyé
+  tout seul ; un refus du serveur ne jette jamais le texte ; le carnet annonce l'absence de
+  réseau au lieu de se dire vide.
+- Migration `299` : clés d'idempotence `client_uuid` sur `task_logs` et `user_journal_articles` ;
+  `POST /api/tasks/:id/done` et `POST /api/user-journal/me/articles` rejouent la réponse
+  (`replayed: true`) au lieu de dupliquer, y compris pour deux envois simultanés.
+- Service worker (quatre produits) : délai d'attente du réseau de 4 s pour le HTML et les API
+  mises en cache (modèle `networkTimeoutSeconds` de Workbox), réglable, désactivable.
+
+### Corrigé — tâche faite notifiée deux fois
+
+- Deux envois simultanés de « tâche faite » ne notifient plus deux fois les valideurs ; la
+  notification ne part que si l'appel fait avancer l'état.
+
 ### Modifié — modules pédagogiques éteints : fermés aux élèves, ouverts au gestionnaire
 
 - Un module éteint (`ui.modules.id_keys_enabled`, `individuals_enabled`,
