@@ -15,16 +15,46 @@ export const ENV_NODE_ID = '__env__';
 export const ENV_NODE_LABEL = 'Environnement';
 export const ENV_NODE_EMOJI = '🌍';
 
-/** Ordre des colonnes pour la disposition par niveau trophique. */
-export const TROPHIC_ORDER = ['producteur', 'consommateur', 'decomposeur'];
-
-/** Libellés visibles des colonnes (disposition Niveaux + colonne « Autres »). */
-export const TROPHIC_COLUMN_LABELS = Object.freeze([
-  'Producteurs',
-  'Consommateurs',
-  'Décomposeurs',
-  'Autres',
+/**
+ * Ordre des colonnes pour la disposition par rôle trophique — la chaîne de la matière :
+ * producteurs, consommateurs, puis ceux qui recyclent la matière morte. `detritivore`
+ * (migration 295) se place avant `decomposeur` : il fragmente, le décomposeur minéralise.
+ */
+export const TROPHIC_ORDER = Object.freeze([
+  'producteur',
+  'consommateur',
+  'detritivore',
+  'decomposeur',
 ]);
+
+/** Libellé de colonne de chaque rôle, et de la colonne des rôles inconnus. */
+export const TROPHIC_ROLE_COLUMN_LABELS = Object.freeze({
+  producteur: 'Producteurs',
+  consommateur: 'Consommateurs',
+  detritivore: 'Détritivores',
+  decomposeur: 'Décomposeurs',
+});
+export const TROPHIC_OTHER_COLUMN_LABEL = 'Autres';
+
+/** Libellé d'un rôle dans une phrase (infobulle, lecteur d'écran). */
+const TROPHIC_ROLE_SINGULAR = Object.freeze({
+  producteur: 'producteur',
+  consommateur: 'consommateur',
+  detritivore: 'détritivore',
+  decomposeur: 'décomposeur',
+});
+
+/** Rôle trophique normalisé (minuscules, sans espace) — chaîne vide si absent. */
+function roleKey(role) {
+  return String(role || '')
+    .trim()
+    .toLowerCase();
+}
+
+/** « détritivore », « décomposeur »… ; un rôle hors liste est rendu tel quel. */
+export function trophicRoleText(role) {
+  return TROPHIC_ROLE_SINGULAR[roleKey(role)] || String(role || '');
+}
 
 /** Présélections de graphe : séparer réseau alimentaire et autres relations. */
 export const GRAPH_PRESETS = Object.freeze({
@@ -314,8 +344,9 @@ function layoutableNodes(nodes) {
 
 /**
  * Ordre de placement sur le cercle : les espèces d'un même rôle trophique
- * forment un arc contigu (producteurs, puis consommateurs, puis décomposeurs,
- * puis rôles inconnus), et sont triées par nom à l'intérieur de chaque arc.
+ * forment un arc contigu (producteurs, puis consommateurs, détritivores,
+ * décomposeurs, puis rôles inconnus), et sont triées par nom à l'intérieur de
+ * chaque arc.
  *
  * Sans ce regroupement, l'ordre était celui d'arrivée de l'API — trié par type
  * d'interaction puis par nom de source, donc arbitraire du point de vue du
@@ -360,34 +391,56 @@ export function computeCircleLayout(nodes, { width = 640, height = 440, radius =
   return map;
 }
 
-/** Index de colonne d'un rôle trophique (les rôles inconnus vont à droite). */
-export function trophicColumn(role) {
-  const idx = TROPHIC_ORDER.indexOf(String(role || '').toLowerCase());
-  return idx === -1 ? TROPHIC_ORDER.length : idx;
+/**
+ * Index de colonne d'un rôle trophique dans `order` (les rôles inconnus vont à
+ * droite, après la dernière colonne de rôle).
+ */
+export function trophicColumn(role, order = TROPHIC_ORDER) {
+  const idx = order.indexOf(roleKey(role));
+  return idx === -1 ? order.length : idx;
 }
 
 /**
- * Abscisses des colonnes de la disposition par niveau (même formule que
+ * Rôles mis en colonnes pour ces nœuds. La colonne « Détritivores » n'apparaît
+ * que si le réseau en compte un : un réseau qui n'en a pas — celui de G&L, qui
+ * réutilise ce graphe, n'en a jamais — garde exactement ses quatre colonnes.
+ */
+export function trophicRoleOrder(nodes) {
+  const hasDetritivore = layoutableNodes(nodes).some(
+    (node) => roleKey(node?.role) === 'detritivore',
+  );
+  return hasDetritivore ? TROPHIC_ORDER : TROPHIC_ORDER.filter((role) => role !== 'detritivore');
+}
+
+/** Libellés visibles des colonnes d'un ordre de rôles, colonne « Autres » comprise. */
+export function trophicColumnLabels(order = TROPHIC_ORDER) {
+  return [...order.map((role) => TROPHIC_ROLE_COLUMN_LABELS[role]), TROPHIC_OTHER_COLUMN_LABEL];
+}
+
+/**
+ * Abscisses des colonnes de la disposition par rôle (même formule que
  * `computeTrophicLayout`) — sert aux étiquettes Producteurs / …
  */
-export function trophicColumnXs({ width = 640 } = {}) {
-  const colCount = TROPHIC_ORDER.length + 1;
+export function trophicColumnXs({ width = 640, order = TROPHIC_ORDER } = {}) {
+  const colCount = order.length + 1;
   const usableW = width - 120;
   return Array.from({ length: colCount }, (_, col) => 70 + (usableW * col) / (colCount - 1));
 }
 
 /**
- * Disposition par niveau trophique : producteurs → consommateurs →
- * décomposeurs (→ rôle inconnu), répartis verticalement dans chaque colonne.
+ * Disposition par rôle trophique : producteurs → consommateurs → détritivores
+ * (s'il y en a) → décomposeurs (→ rôle inconnu), répartis verticalement dans
+ * chaque colonne.
  */
 export function computeTrophicLayout(nodes, { width = 640, height = 440 } = {}) {
+  const order = trophicRoleOrder(nodes);
   const columns = new Map();
   for (const node of layoutableNodes(nodes)) {
-    const col = trophicColumn(node.role);
+    const col = trophicColumn(node.role, order);
     if (!columns.has(col)) columns.set(col, []);
     columns.get(col).push(node);
   }
-  const xs = trophicColumnXs({ width });
+  const xs = trophicColumnXs({ width, order });
   const map = new Map();
   for (const [col, colNodes] of columns) {
     const x = xs[col];
@@ -426,13 +479,27 @@ export const TROPHIC_LEVEL_SINGULAR = Object.freeze({
   4: 'consommateur tertiaire',
 });
 
-/** Voies hors échelle : ni l'une ni l'autre n'est un « niveau » de plus. */
+/**
+ * Voies latérales, hors des bandes de la pyramide. Décomposeurs et espèces sans
+ * niveau n'ont pas d'étage ; les détritivores en ont un (le 2) mais restent
+ * affichés à côté des décomposeurs, dans la voie de la matière morte, sous leur
+ * propre intitulé : l'élève y lit qui fragmente et qui minéralise.
+ */
+export const TROPHIC_LANE_DETRITIVORES = 'detritivores';
 export const TROPHIC_LANE_DECOMPOSERS = 'decomposeurs';
 export const TROPHIC_LANE_UNKNOWN = 'indetermine';
 export const TROPHIC_LANE_LABELS = Object.freeze({
+  [TROPHIC_LANE_DETRITIVORES]: 'Détritivores',
   [TROPHIC_LANE_DECOMPOSERS]: 'Décomposeurs',
   [TROPHIC_LANE_UNKNOWN]: 'Non déterminé',
 });
+
+/**
+ * Niveau d'un détritivore : il mange de la matière organique morte, base du
+ * réseau détritique (niveau 1), comme un herbivore mange une plante. C'est un
+ * consommateur primaire de matière morte, et son prédateur prend le niveau 3.
+ */
+export const DETRITIVORE_LEVEL = 2;
 
 /**
  * Position trophique de chaque espèce, **calculée depuis le graphe affiché**.
@@ -452,6 +519,10 @@ export const TROPHIC_LANE_LABELS = Object.freeze({
  *   comptent (`matterFlow === 'to_from'`), ce que la table des types dit déjà ;
  * - les **décomposeurs n'ont pas de niveau** : ils ne sont pas un 4ᵉ étage mais
  *   un retour de matière — les ranger dans la pyramide est l'erreur classique ;
+ * - un **détritivore** (migration 295) part du niveau 2 même sans nourriture
+ *   affichée : la matière morte qu'il mange vaut 1 par convention, et elle manque
+ *   souvent au réseau montré (isolement, niveau Collège…). Ses proies affichées
+ *   affinent ensuite la valeur comme pour tout consommateur ;
  * - une espèce **sans aucune relation trophique** n'a pas de niveau (« non
  *   déterminé ») plutôt qu'un niveau 1 par défaut ;
  * - la valeur est **fractionnaire** : un omnivore vaut 2,5 et le dit, au lieu
@@ -481,10 +552,7 @@ export function computeTrophicLevels(nodes, edges) {
   if (preys.size === 0) return levels;
 
   const species = (nodes || []).filter((node) => node && !isEnvNodeId(node.id));
-  const roleOf = (node) =>
-    String(node.role || '')
-      .trim()
-      .toLowerCase();
+  const roleOf = (node) => roleKey(node.role);
 
   for (const node of species) {
     const role = roleOf(node);
@@ -492,6 +560,12 @@ export function computeTrophicLevels(nodes, edges) {
     const myPreys = preys.get(node.id);
     if (role === 'producteur') {
       levels.set(node.id, 1);
+      continue;
+    }
+    if (role === 'detritivore') {
+      // Sans ce point de départ, un lombric sans nourriture affichée valait 1
+      // (« mangé sans manger ») et l'étourneau qui le mange, 2.
+      levels.set(node.id, DETRITIVORE_LEVEL);
       continue;
     }
     if (!myPreys || myPreys.length === 0) {
@@ -596,7 +670,9 @@ function byName(a, b) {
  *    **répartit sur plusieurs rangées** au lieu de s'empiler sur une verticale
  *    (78 producteurs sur 440 px donnaient un pas de 5,7 px) ;
  * 3. décomposeurs et espèces sans niveau vont dans une **voie latérale** : ce
- *    ne sont pas des étages de la pyramide.
+ *    ne sont pas des étages de la pyramide. Les détritivores les y rejoignent,
+ *    sous leur propre intitulé, bien qu'ils aient un niveau : la voie est celle
+ *    de la matière morte.
  *
  * La scène **grandit en hauteur** avec le nombre de rangées : le conteneur est
  * en `height: auto`, donc la place gagnée est réelle (l'échelle de rendu ne
@@ -616,14 +692,22 @@ export function computeTrophicLevelLayout(nodes, levels, { width = 880 } = {}) {
   const levelOf = (id) => (levels instanceof Map ? levels.get(id) : undefined);
 
   const bandsByLevel = new Map();
-  const laneNodes = { [TROPHIC_LANE_DECOMPOSERS]: [], [TROPHIC_LANE_UNKNOWN]: [] };
+  // Ordre d'insertion = ordre des voies à l'écran : détritivores, décomposeurs,
+  // puis espèces sans niveau.
+  const laneNodes = {
+    [TROPHIC_LANE_DETRITIVORES]: [],
+    [TROPHIC_LANE_DECOMPOSERS]: [],
+    [TROPHIC_LANE_UNKNOWN]: [],
+  };
 
   for (const node of species) {
+    const role = roleKey(node.role);
+    if (role === 'detritivore') {
+      laneNodes[TROPHIC_LANE_DETRITIVORES].push(node);
+      continue;
+    }
     const band = trophicLevelBand(levelOf(node.id));
     if (band == null) {
-      const role = String(node.role || '')
-        .trim()
-        .toLowerCase();
       const lane = role === 'decomposeur' ? TROPHIC_LANE_DECOMPOSERS : TROPHIC_LANE_UNKNOWN;
       laneNodes[lane].push(node);
       continue;

@@ -239,3 +239,72 @@ test('POST /api/plants/:id/validate-hazard — garde d’accès et fiche inconnu
     .set('Authorization', `Bearer ${token}`)
     .expect(400);
 });
+
+// Audit du 25/09/2026, § 1.3.6 — le drapeau passait par `PLANT_COLUMNS` : le formulaire et
+// l'import (`danger_valide`) le posaient avec la seule permission `plants.manage`, sans
+// relecteur ni date. Il n'est plus écrit que par la route de validation.
+test('PUT/POST /api/plants — le drapeau de relecture n’est pas écrivable par la fiche', async () => {
+  const token = await ensureAdminTeacherAuthToken({ elevated: true });
+  assert.ok(!PLANT_COLUMNS.includes('hazard_reviewed'));
+  const name = `Contournement relecture ${Date.now()}`;
+  const created = await request(app)
+    .post('/api/plants')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name, emoji: '🌿', toxicity_level: 'toxique', hazard_reviewed: 1 })
+    .expect(201);
+  try {
+    assert.equal(Number(created.body.hazard_reviewed), 0);
+    const updated = await request(app)
+      .put(`/api/plants/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name, emoji: '🌿', toxicity_level: 'toxique', hazard_reviewed: '1' })
+      .expect(200);
+    assert.equal(Number(updated.body.hazard_reviewed), 0);
+    assert.equal(updated.body.hazard_reviewed_by, null);
+  } finally {
+    await execute('DELETE FROM plants WHERE id = ?', [created.body.id]);
+  }
+});
+
+test('migration 293 — les fiches validées sans relecteur repassent « à valider »', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { splitSqlStatements } = require('../database');
+  const adminId = await getAdminTeacherUserId();
+  const stamp = Date.now();
+  const ids = [];
+  const insert = async (name, reviewed, by, at) => {
+    const r = await execute(
+      `INSERT INTO plants (name, emoji, toxicity_level, hazard_reviewed, hazard_reviewed_by, hazard_reviewed_at)
+       VALUES (?, '🌿', 'toxique', ?, ?, ?)`,
+      [name, reviewed, by, at],
+    );
+    ids.push(r.insertId);
+    return r.insertId;
+  };
+  try {
+    const orphan = await insert(`M293 orpheline ${stamp}`, 1, null, null);
+    const legit = await insert(`M293 relue ${stamp}`, 1, adminId, '2026-09-01 10:00:00');
+    const residue = await insert(`M293 résidu ${stamp}`, 0, adminId, '2026-09-01 10:00:00');
+    const sql = fs.readFileSync(
+      path.join(__dirname, '..', 'migrations', '293_plants_hazard_review_reset.sql'),
+      'utf8',
+    );
+    for (const stmt of splitSqlStatements(sql)) await execute(stmt);
+    const row = (id) =>
+      queryOne(
+        'SELECT hazard_reviewed AS r, hazard_reviewed_by AS b, hazard_reviewed_at AS a FROM plants WHERE id = ?',
+        [id],
+      );
+    const o = await row(orphan);
+    assert.equal(Number(o.r), 0);
+    const l = await row(legit);
+    assert.equal(Number(l.r), 1);
+    assert.equal(String(l.b), String(adminId));
+    const d = await row(residue);
+    assert.equal(d.b, null);
+    assert.equal(d.a, null);
+  } finally {
+    for (const id of ids) await execute('DELETE FROM plants WHERE id = ?', [id]);
+  }
+});

@@ -3,6 +3,7 @@ import {
   buildRoleDetailsPatch,
   buildNewRoleProfile,
   buildDuplicateRoleProfile,
+  suggestLadderRank,
 } from '../../src/utils/profilesRoleForm.js';
 
 describe('buildRoleDetailsPatch', () => {
@@ -171,5 +172,53 @@ describe('buildDuplicateRoleProfile', () => {
     expect(buildDuplicateRoleProfile(role, { slug: 'x', display_name: '  ' })).toEqual({
       error: 'Le nom affiché est requis',
     });
+  });
+});
+
+// Question 11 (audit du 25/09/2026) : un palier créé au rang par défaut (150) au-dessus de
+// « chevronné » (300) perdait face à lui dans la règle « le plus élevé l'emporte ».
+describe('suggestLadderRank', () => {
+  const ROLES = [
+    { slug: 'visiteur', rank: 50, min_done_tasks: null },
+    { slug: 'eleve_novice', rank: 100, min_done_tasks: 0 },
+    { slug: 'eleve_avance', rank: 200, min_done_tasks: 5 },
+    { slug: 'eleve_chevronne', rank: 300, min_done_tasks: 10 },
+    { slug: 'gl_player', rank: 120, min_done_tasks: 3 },
+    { slug: 'personnel', rank: 320, min_done_tasks: null },
+    { slug: 'prof', rank: 400, min_done_tasks: null },
+  ];
+
+  test('au-dessus du dernier palier : entre lui et le personnel', () => {
+    expect(suggestLadderRank(ROLES, 40)).toBe(310);
+  });
+
+  test('entre deux paliers : à mi-chemin de leurs rangs', () => {
+    expect(suggestLadderRank(ROLES, 7)).toBe(250);
+  });
+
+  test('à seuil égal à un palier : placé au-dessus de lui', () => {
+    expect(suggestLadderRank(ROLES, 0)).toBe(150);
+  });
+
+  test('sans seuil, sans profils connus, ou sans place : rang par défaut', () => {
+    expect(suggestLadderRank(ROLES, null)).toBe(150);
+    expect(suggestLadderRank([], 12)).toBe(150);
+    expect(
+      suggestLadderRank(
+        [
+          { slug: 'a', rank: 318, min_done_tasks: 1 },
+          { slug: 'b', rank: 319, min_done_tasks: 9 },
+        ],
+        5,
+      ),
+    ).toBe(150);
+  });
+
+  test('buildNewRoleProfile applique le rang déduit au nouveau palier', () => {
+    const out = buildNewRoleProfile(
+      { slug: 'eleve_expert', display_name: 'Expert', emoji: '🦉', min_done_tasks: '40' },
+      { roles: ROLES },
+    );
+    expect(out.payload.rank).toBe(310);
   });
 });

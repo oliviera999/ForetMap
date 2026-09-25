@@ -248,3 +248,17 @@ describe('RichTextEditor — retours à la ligne', () => {
     expect(document.execCommand).toHaveBeenCalledWith('defaultParagraphSeparator', false, 'p');
   });
 });
+
+describe('RichTextEditor — nom accessible', () => {
+  it('aria-labelledby nomme la surface éditable, pas son enveloppe', () => {
+    render(
+      <>
+        <span id="lbl-notes">Notes du professeur</span>
+        <RichTextEditor value="" onChange={vi.fn()} id="notes" aria-labelledby="lbl-notes" />
+      </>,
+    );
+    const editor = screen.getByRole('textbox', { name: 'Notes du professeur' });
+    expect(editor).toHaveAttribute('id', 'notes');
+    expect([...document.querySelectorAll('[aria-labelledby="lbl-notes"]')]).toEqual([editor]);
+  });
+});

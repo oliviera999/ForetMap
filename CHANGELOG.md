@@ -9,6 +9,142 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — paliers de progression sur mesure (question 11, migration 297)
+
+- Entre deux paliers de l'échelle n3beur, l'avis de félicitations et le motif
+  « promu / rétrogradé » suivent le **seuil** de tâches, plus le rang : atteindre un palier
+  sur mesure resté au rang par défaut (150) depuis « chevronné » (300) passait pour une
+  rétrogradation, sans félicitations.
+- Migration `297` : rangs des paliers « bébé », « expert » et « ultime » alignés sur leurs
+  seuils (90, 310, 315), gardée par la valeur par défaut (un rang réglé à la main n'est
+  jamais écrasé). Un groupe qui confère « avancé » ne masque plus un « expert » mérité.
+- Console des profils : un nouveau palier reçoit un rang déduit de son seuil
+  (`suggestLadderRank`), et non plus le rang fixe 150.
+- Tests : `tests/progression-ladder-rank.test.js`, `profilesRoleForm`. Doc :
+  `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Ajouté — rôle trophique « Détritivore » (décision Q7, migration 295)
+
+- Nouvelle valeur `detritivore` pour le rôle trophique des fiches : l'animal qui fragmente la
+  matière morte (ver de terre, cloporte, collembole…) n'est plus confondu avec le décomposeur
+  (bactéries, champignons), qui la minéralise. Les animaux classés « décomposeur » sont
+  reclassés (14 fiches sur le fixture anonymisé).
+- Réseau trophique : un détritivore compte au niveau 2, donc son prédateur passe au niveau
+  suivant (Étourneau unicolore : primaire → secondaire). Les détritivores sont affichés dans une
+  voie « Détritivores », à côté des décomposeurs.
+- Libellé « Détritivore » et définition pour les élèves sur la pastille, dans le formulaire, sur
+  la fiche, dans le filtre et la recherche du catalogue ; la saisie accepte les accents.
+- Niveau Collège : la détritivorie fait désormais partie des types d'interaction scolaires.
+- À suivre : la question QF0212 (« lequel est un décomposeur ? » → le cloporte) contredit
+  désormais la fiche ; `sql/biodiv_pedago_seed.sql` est à régénérer après déploiement ; le cas
+  des bactéries nitrifiantes reste à trancher par l'équipe de SVT.
+
+### Ajouté — interrupteurs d'administration des modules pédagogiques (décision Q19)
+
+- Quatre réglages publics, allumés par défaut : `ui.modules.id_keys_enabled`,
+  `ui.modules.individuals_enabled`, `ui.modules.pedago_sessions_enabled`,
+  `ui.modules.rewards_enabled` (Paramètres → Accueil & modules). Module éteint : onglet masqué
+  pour élèves et professeurs, repli automatique de l'onglet ouvert, et toutes les routes du
+  module en `503` (convention du forum et du carnet). Récompenses éteintes : aucun badge
+  attribué ni affiché. Séances éteintes : bouton « Lancer la séance » et champ « Séance liée »
+  des tâches masqués. Aucune donnée effacée ; l'onglet « Individus » reste aussi soumis au
+  niveau pédagogique.
+
+### Corrigé — terrain et accessibilité élève (piste D, audit du 25/09, § 1.4.6-1.4.8)
+
+- Barre d'outils de la carte, puces Quiz/Glossaire, groupes emboîtés et réseau trophique :
+  cibles de 44 px au doigt (30-36 px auparavant) ; rien ne change à la souris.
+- Contrastes relevés à 4,5:1 : nom scientifique des fiches, message d'erreur de connexion
+  (nouveau token `--ink-alert`), libellés de filtre, bouton secondaire enfoncé, mention de
+  crédit.
+- Panne réseau : message court et tutoyé pour les élèves, variante avec pistes pour les
+  professeurs ; détail technique porté par l'erreur. **File hors ligne de la visite
+  réparée** : l'erreur réseau convertie par `api()` n'était plus reconnue, et un « vu »
+  marqué sans réseau était annulé au lieu d'être mis en file.
+- Page hors ligne : nom du produit servi selon le host, plus de marque en dur
+  (`lib/brandHtml.js`).
+- Fiche espèce : chaque libellé nomme son champ ; `label-has-associated-control` en cliquet
+  (153 → 112).
+- **« Espèce observée » sans réseau** (migration `296`) : clé d'idempotence `client_uuid`
+  sur `POST /api/plants/:id/acknowledge-discovery` (un renvoi n'est compté qu'une fois, y
+  compris en cas d'envois simultanés) ; file hors ligne propre à chaque compte
+  (`src/utils/plantObservationQueue.js`), rejouée au retour du réseau, pour les
+  ré-observations et les fiches non conditionnées.
+- **Déconnexion** : les réponses d'API gardées par le service worker (tâches, fiches,
+  repères) sont purgées ; la visite publique reste disponible hors ligne.
+- Textes visiteurs : détecteur d'incitations à cueillir, goûter ou manipuler un être vivant
+  (`lib/visitorTextGuard.js`), test de contenu sur le corpus semé et
+  `npm run audit:visitor-texts` pour la base de production (fixture : 0 incitation non
+  arbitrée, 11 zones grises listées).
+
+### Modifié — piste A de l'audit du 25/09 : niveaux, verrouillage, lot B
+
+- **Le verrouillage suit le niveau de l'élève** (décision Q1) : un élève de collège ne reçoit
+  plus les questions de lycée d'une fiche (84 fiches et 67 termes n'étaient gardés que par du
+  lycée). Nouveau résolveur serveur `lib/pedago/learnerLevel.js` (défaut établissement,
+  groupes, classe, carte → palier maximal) et filtre `lib/pedago/eligibility.js`, appliqués à
+  `challenge`, `summary` et aux trois accusés (tutoriel, fiche, glossaire). Repli signalé
+  (`level_fallback: "all_levels"`) quand aucune question n'est au niveau : la fiche n'est
+  jamais ouverte par le seul filtre. GL non concerné.
+- **Niveau biodiversité** (reprise de #546) : le défaut établissement n'est plus qu'un repli —
+  un groupe Lycée n'est plus ramené au collège par le minimum avec le défaut du site.
+- **Quiz** : une séance « lycée » ne garde plus le filtre Collège pré-rempli
+  (`QuizView`, `initialQuestionNiveau`).
+- **Lot B prêt** (questions désactivées) : l'import XLSX ne réactive plus les questions
+  désactivées quand la cellule `statut` est vide (statut existant conservé ; `actif`/`inactif`
+  seulement, autre valeur refusée par ligne) ; `GET /api/learning-links/resources` ne compte
+  comme verrou que les liens vers une question active (`inactive_gating_count`,
+  `without_active_gating_count`) ; `POST /api/learning-links` avertit (`warning`) si la question
+  est inactive ; la reprise des liens éditoriaux et `scripts/generate-linked-questions.js`
+  ignorent les questions inactives.
+- **Notions de collège** (décision Q6, migration `294`) : quatre notions (C3-MATORG,
+  C3-DEVREPRO, C3-ALIM, C4-RESS) rattachées aux catégories de quiz et familles du glossaire ;
+  les 47 questions de définition reçoivent les notions de la famille de leur terme (garde de
+  palier respectée). Sur le fixture : 107 questions de collège sans notion de collège → 0.
+- Tests : `pedago-learner-level`, `learning-gating-learner-level`,
+  `learning-links-inactive-question`, `curriculum-notions-college-migration`, cas ajoutés dans
+  `fm-quiz-import`, `biodiv-pedago-level`, `QuizLevelScales` ; contenu :
+  `tests/content/curriculum-notions-coverage.test.js`. Doc : `docs/API.md`,
+  `docs/reference/foretmap/` (niveaux, tâches-tutoriels-validation, quiz-glossaire).
+
+### Corrigé — urgences P0 de l'audit du 25/09 (sécurité, pertes de données)
+
+- **XSS stocké par les packs de mascotte** (N1) : un fichier `.html` déposé dans un pack ou la
+  bibliothèque de sprites de visite était servi tel quel sous `/uploads`. Noms de fichiers
+  limités aux images (`sanitizeMascotPackImageFilename`), signature d'image exigée à l'écriture
+  (dépôt, bibliothèque, import ZIP — qui retire aussi l'EXIF), et tout fichier non inerte sous
+  `/uploads` est servi en téléchargement sandboxé (`server.js`).
+- **Registre des espèces par carte effacé à chaque sauvegarde de fiche** : `syncPlantMaps` est
+  désormais différentiel (seules les cartes retirées ou ajoutées sont touchées) ; présence,
+  phénologie, fréquence, validation et notes de site survivent à l'enregistrement.
+- **Liens glossaire relus supprimés par l'import QCM** : le rapprochement par mots-clés écrit et
+  purge uniquement ses propres liens (`origin = 'keyword'`) ; la curation (`origin = 'import'`,
+  bloquante) et les liens des scripts ne sont plus touchés, à l'import comme à l'édition.
+- **« Danger relu et validé » sans la permission dédiée** : le drapeau n'est plus écrit par le
+  formulaire ni par l'import (alias `danger_valide` retiré) ; seule
+  `POST /api/plants/:id/validate-hazard` le pose. Migration `293` : les fiches validées sans
+  relecteur repassent « à valider » (décision du 25/09).
+- **Vue des tutoriels en production** : `isomorphic-dompurify`, chargé à l'exécution, passe en
+  dépendance de production (`npm ci --omit=dev` l'omettait). Nouveau test
+  `tests/runtime-deps-guard.test.js` : aucun paquet de développement chargé par le serveur.
+- **Réseau trophique par zone** : migration `292` qui rétablit la vue `v_zone_inventory` absente
+  des bases restaurées ; test positif ajouté.
+- Tests : `tests/mascot-upload-xss-guard.test.js`, `tests/runtime-deps-guard.test.js`, nouveaux
+  cas dans `plants-map-species`, `plants-hazard-review`, `quiz-api`, `fm-quiz-import`,
+  `food-web-api`. Doc : `docs/API.md`, `docs/reference/foretmap/plantes-et-biodiversite.md`.
+- ⚠️ **Numérotation** : les migrations 292-293 prennent les numéros d'abord réservés au lot
+  BCDEG, qui devra être renuméroté à son application (le runner saute tout numéro inférieur à
+  la version courante).
+
+### Ajouté — audit « état des lieux » du 25/09 et décisions du mainteneur
+
+- `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25.md` (hors GL) : cartographie technique, correspondance
+  base ↔ code, points chauds (niveaux, verrouillage, liens question-ressource, présence des
+  espèces, observations, table `plants`), qualité et sécurité, pistes A–D, plan de
+  refactorisation par domaine, décisions du mainteneur (§ Décisions).
+- `docs/AUDIT_ETAT_DES_LIEUX_2026-09-25_matrice-tables-code.csv` : matrice table × module
+  (lecture / écriture), 765 lignes ; indexé dans `docs/audits/README.md`.
+
 ### Corrigé — « Carte introuvable » en mode visite (complexe Nawal El Moutawakel)
 
 - **Symptôme** : pour un prof sans classe (ni permission de gestion des lieux), choisir le

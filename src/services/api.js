@@ -256,11 +256,45 @@ export function saveStoredSession(next) {
   dispatchSessionChanged();
 }
 
+/** Lectures publiques de la visite, gardées hors ligne même sans session. */
+const PUBLIC_CACHED_API_RE = /\/api\/(?:maps|visit\/content)$/;
+
+/**
+ * Retire du cache du service worker les réponses d'API liées à une session (tâches, fiches,
+ * repères…). Sur une tablette partagée, elles restaient lisibles hors ligne par l'élève
+ * suivant (audit du 25/09/2026, piste D). Les lectures publiques de la visite et les fichiers
+ * statiques sont conservés. Meilleur effort : ne rejette jamais.
+ * @returns {Promise<number>} nombre de réponses retirées
+ */
+export async function purgeCachedApiResponses() {
+  try {
+    if (typeof caches === 'undefined' || typeof caches.keys !== 'function') return 0;
+    let removed = 0;
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        let pathname = '';
+        try {
+          pathname = new URL(request.url).pathname;
+        } catch {
+          continue;
+        }
+        if (!pathname.includes('/api/') || PUBLIC_CACHED_API_RE.test(pathname)) continue;
+        if (await cache.delete(request)) removed += 1;
+      }
+    }
+    return removed;
+  } catch {
+    return 0; // Cache Storage indisponible (navigation privée, contexte non sécurisé)
+  }
+}
+
 export function clearStoredSession() {
   safeLocalStorageRemoveItem(SESSION_KEY);
   safeLocalStorageRemoveItem('foretmap_auth_token');
   safeLocalStorageRemoveItem('foretmap_teacher_token');
   safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+  void purgeCachedApiResponses();
   dispatchSessionChanged();
 }
 
@@ -269,10 +303,19 @@ export function getAuthClaims() {
   return token ? decodeJwtPayload(token) : null;
 }
 
-/** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */
+/** Code porté par l'erreur (`err.code`) : distinguer la panne réseau sans lire le texte. */
+export const NETWORK_FAILURE_CODE = 'NETWORK_UNREACHABLE';
+
+/**
+ * Panne de transport : erreur brute du navigateur (Chrome « Failed to fetch », Firefox
+ * « NetworkError… », etc.) **ou** erreur déjà convertie par `api()` (`err.code`). Sans ce
+ * second cas, la file hors ligne de la visite ne se déclenchait jamais : `api()` remplace le
+ * message du navigateur par un texte pour l'élève (audit du 25/09/2026, piste D).
+ */
 export function isLikelyNetworkTransportFailure(err) {
   if (!err) return false;
   if (err.name === 'AbortError') return false;
+  if (err.code === NETWORK_FAILURE_CODE) return true;
   const msg = String(err.message || err || '').toLowerCase();
   if (err instanceof TypeError && typeof fetch !== 'undefined') {
     return (
@@ -290,9 +333,37 @@ export function isLikelyNetworkTransportFailure(err) {
   );
 }
 
-function networkFailureUserMessage() {
+/**
+ * Serveur injoignable, message pour un ÉLÈVE (audit du 25/09/2026, § 1.4.6) : court, tutoyé,
+ * concret. L'ancien texte comptait 37 mots et parlait de « passerelle réseau » et
+ * d'« administrateur de la plateforme » à des élèves de 11 ans sur le terrain.
+ */
+export const NETWORK_FAILURE_USER_MESSAGE =
+  'Pas de réseau pour l’instant. Réessaie dans un moment ; si ça dure, préviens ton professeur.';
+
+/**
+ * Même situation, pour un compte personnel (prof, admin) : c'est lui qu'on prévient, il
+ * reçoit donc les pistes de diagnostic que le message élève ne porte plus.
+ */
+export const NETWORK_FAILURE_STAFF_MESSAGE =
+  'Pas de réseau pour l’instant : le serveur ne répond pas. Réessayez dans un moment ; si ça ' +
+  'dure, vérifiez la connexion de l’établissement — le site peut aussi être en maintenance.';
+
+/** Compte personnel (`userType: 'teacher'`, prof comme admin) ; élève ou visiteur sinon. */
+function isStaffSession() {
+  return getAuthClaims()?.userType === 'teacher';
+}
+
+/**
+ * Texte affiché quand le serveur ne répond pas, après épuisement des nouvelles tentatives.
+ * @param {{ dev?: boolean, staff?: boolean }} [options] injectables pour les tests
+ */
+export function networkFailureUserMessage({
+  dev = import.meta.env.DEV,
+  staff = isStaffSession(),
+} = {}) {
   // En build prod, ne pas afficher les consignes « Vite + port 3000 » (inadaptées sur serveur distant).
-  if (import.meta.env.DEV) {
+  if (dev) {
     return (
       'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 ' +
       '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), ' +
@@ -300,11 +371,24 @@ function networkFailureUserMessage() {
       'Sans l’API, toute inscription ou connexion échoue ainsi.'
     );
   }
-  return (
-    'Impossible de contacter le serveur. Vérifiez votre connexion, rechargez la page ou réessayez plus tard. ' +
-    'Si le problème continue, le site peut être en maintenance ou la passerelle réseau indisponible : ' +
-    'contactez l’administrateur de la plateforme.'
-  );
+  return staff ? NETWORK_FAILURE_STAFF_MESSAGE : NETWORK_FAILURE_USER_MESSAGE;
+}
+
+/**
+ * Erreur levée par `api()` sur panne réseau. Le message reste court ; le détail technique
+ * (erreur d'origine du navigateur, causes possibles) voyage sur l'erreur elle-même —
+ * `err.code`, `err.detail`, `err.cause` — pour un diagnostic ou un futur panneau d'aide.
+ * @param {unknown} cause erreur brute de `fetch` (`TypeError: Failed to fetch`…)
+ * @param {{ dev?: boolean, staff?: boolean }} [options]
+ */
+export function createNetworkFailureError(cause, options) {
+  const error = new Error(networkFailureUserMessage(options), { cause });
+  error.code = NETWORK_FAILURE_CODE;
+  const origin = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause ?? '');
+  error.detail =
+    `Serveur injoignable après les nouvelles tentatives (${origin || 'erreur réseau'}). ` +
+    'Causes possibles : réseau coupé, site en maintenance, passerelle réseau indisponible.';
+  return error;
 }
 
 /**
@@ -321,7 +405,7 @@ export async function api(path, method = 'GET', body) {
       resolveUrl: withAppBase,
       getToken: getAuthToken,
       onNetworkError: (err) =>
-        isLikelyNetworkTransportFailure(err) ? new Error(networkFailureUserMessage()) : null,
+        isLikelyNetworkTransportFailure(err) ? createNetworkFailureError(err) : null,
       onUnauthorized: ({ errBody, token }) => {
         const deleted = !!errBody.deleted;
         const errText = String(errBody.error || '').toLowerCase();

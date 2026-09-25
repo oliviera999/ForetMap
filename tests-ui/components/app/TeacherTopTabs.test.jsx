@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TeacherTopTabs } from '../../../src/components/app/TeacherTopTabs.jsx';
+import { BiodivPedagoContext } from '../../../src/contexts/BiodivPedagoContext.jsx';
 
 /**
  * Permissions d'un professeur complet. Depuis `feat(rbac): profil Prof de classe`, la
@@ -147,6 +148,48 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(screen.queryByRole('button', { name: 'Visite' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Packs mascotte' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Carnet' })).toBeNull();
+  });
+
+  test('modules pédagogiques coupés → Clés d’identification / Séances / Individus masqués', () => {
+    const { rerender } = render(<TeacherTopTabs {...baseProps} />);
+    // Pôle Contenus (tab = map) : Clés et Séances présentes par défaut.
+    expect(screen.getByRole('button', { name: 'Clés d’identification' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Séances' })).toBeInTheDocument();
+    rerender(
+      <TeacherTopTabs
+        {...baseProps}
+        idKeysEnabled={false}
+        pedagoSessionsEnabled={false}
+        individualsEnabled={false}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Clés d’identification' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Séances' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Biodiversité' })).toBeInTheDocument();
+
+    // Pôle Suivi : « Individus » disparaît aussi de la rangée.
+    rerender(<TeacherTopTabs {...baseProps} tab="stats" />);
+    expect(screen.getByRole('button', { name: 'Individus' })).toBeInTheDocument();
+    rerender(<TeacherTopTabs {...baseProps} tab="stats" individualsEnabled={false} />);
+    expect(screen.queryByRole('button', { name: 'Individus' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Stats' })).toBeInTheDocument();
+  });
+
+  test('Individus éteint : le pôle Suivi s’ouvre sur son premier onglet restant', () => {
+    const onTabChange = vi.fn();
+    render(<TeacherTopTabs {...baseProps} individualsEnabled={false} onTabChange={onTabChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Suivi' }));
+    expect(onTabChange).toHaveBeenCalledWith('tasks');
+  });
+
+  test('Individus : niveau pédagogique ET interrupteur (masqué au collège même allumé)', () => {
+    const collegeLevel = { canShow: (feature) => feature !== 'individuals_tab' };
+    render(
+      <BiodivPedagoContext.Provider value={collegeLevel}>
+        <TeacherTopTabs {...baseProps} tab="stats" individualsEnabled />
+      </BiodivPedagoContext.Provider>,
+    );
+    expect(screen.queryByRole('button', { name: 'Individus' })).toBeNull();
   });
 
   test('expose l’onglet Carnet dans le pôle Suivi quand le module est actif', () => {

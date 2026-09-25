@@ -106,4 +106,19 @@ describe('QuizView — élève de 6ᵉ (cycle 3)', () => {
       ),
     );
   });
+
+  // Décision du 25/09/2026 : une séance impose son niveau. Avant, le défaut « Collège » de
+  // l'affichage de l'élève filtrait les questions de lycée d'une séance lycée (0 servie).
+  it('une séance « lycée » ne garde pas le filtre Collège de l’affichage', async () => {
+    renderForSixieme({ initialNotionNiveau: 'lycee' });
+    expect(screen.getByLabelText('Niveau').value).toBe('');
+    fireEvent.click(await screen.findByRole('button', { name: /tirer/i }));
+    await waitFor(() =>
+      expect(apiMock.mock.calls.some(([p]) => String(p).startsWith('/api/quiz/draw'))).toBe(true),
+    );
+    const draw = apiMock.mock.calls
+      .map(([p]) => String(p))
+      .find((p) => p.startsWith('/api/quiz/draw'));
+    expect(draw).not.toContain('niveau=college');
+  });
 });

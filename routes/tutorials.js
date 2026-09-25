@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
+const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
@@ -461,6 +462,7 @@ router.post(
         resourceRef: String(tid),
         userId,
         skipGating: !!existingRead,
+        learnerLevel: await loadLearnerLevel(userId),
       },
     );
     if (!gating.ok) {

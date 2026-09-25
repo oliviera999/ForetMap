@@ -238,6 +238,10 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
     rows = 3,
     maxLength,
     'aria-label': ariaLabel,
+    // Nommé par un `<label>` visible : l'attribut va sur la surface éditable (le
+    // `role="textbox"`), pas sur l'enveloppe — une `div` n'est pas « étiquetable » par
+    // `htmlFor`, seul `aria-labelledby` lui donne son nom au lecteur d'écran.
+    'aria-labelledby': ariaLabelledBy,
     ...rest
   },
   forwardedRef,
@@ -685,6 +689,7 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor(
         suppressContentEditableWarning
         role="textbox"
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         aria-multiline="true"
         aria-disabled={disabled || undefined}
         data-placeholder={placeholder}

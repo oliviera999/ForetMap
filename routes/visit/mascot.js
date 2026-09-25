@@ -15,7 +15,7 @@ const {
   hasPermission,
 } = require('../../middleware/requireTeacher');
 const { logRouteError } = require('../../lib/routeLog');
-const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../../lib/uploads');
+const { writeBufferToDisk, getAbsolutePath, deleteFile } = require('../../lib/uploads');
 const {
   getMascotPackValidatorCandidates,
   getMascotPackLibProbe,
@@ -27,7 +27,9 @@ const {
 } = require('../../lib/visitMascotPackAssetPreview');
 const {
   visitMascotPackAssetRelativeDir,
-  sanitizeMascotPackAssetFilename,
+  sanitizeMascotPackImageFilename,
+  mascotAssetImageKindFromBuffer,
+  decodeMascotAssetImageData,
   buildDefaultVisitMascotPackJson,
   listVisitMascotCatalogTemplateIds,
   resolveVisitMascotImportPublishState,
@@ -82,7 +84,7 @@ function listVisitMascotPackAssetFilenames(packId) {
   const names = fs.readdirSync(absDir);
   const out = [];
   for (const raw of names) {
-    const safe = sanitizeMascotPackAssetFilename(raw);
+    const safe = sanitizeMascotPackImageFilename(raw);
     if (!safe || safe !== raw) continue;
     if (!/\.png$/i.test(safe)) continue;
     const fp = path.join(absDir, safe);
@@ -176,7 +178,7 @@ async function removeVisitMascotPackUploadDir(packId) {
  */
 async function serveVisitMascotSpriteLibraryFile(req, res, rawFilename) {
   try {
-    const filename = sanitizeMascotPackAssetFilename(rawFilename);
+    const filename = sanitizeMascotPackImageFilename(rawFilename);
     if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
     const row = await queryOne(
       'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
@@ -290,9 +292,11 @@ async function writeVisitArchiveAssetsFromMap(packUuid, assetsMap) {
   const absDir = getAbsolutePath(relDir);
   await fs.promises.mkdir(absDir, { recursive: true });
   for (const [zipPath, buffer] of assetsMap.entries()) {
-    const filename = sanitizeMascotPackAssetFilename(path.basename(zipPath));
+    const filename = sanitizeMascotPackImageFilename(path.basename(zipPath));
     if (!filename || !Buffer.isBuffer(buffer)) continue;
-    await fs.promises.writeFile(path.join(absDir, filename), buffer);
+    // Seules de vraies images sont posées (N1) ; `writeBufferToDisk` retire aussi l'EXIF (N3).
+    if (!mascotAssetImageKindFromBuffer(buffer)) continue;
+    await writeBufferToDisk(`${relDir}/${filename}`, buffer);
   }
 }
 
@@ -308,7 +312,7 @@ function canReadVisitMascotPackAsset(req, packId, filename, published) {
 router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, res) => {
   try {
     const packId = String(req.params.packId || '').trim();
-    const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+    const filename = sanitizeMascotPackImageFilename(req.params.filename);
     if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename) {
       return res.status(400).json({ error: 'Paramètres invalides' });
     }
@@ -1080,16 +1084,18 @@ router.post('/mascot-packs/:id/assets', requirePermission('visit.manage'), async
     if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
     const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
-    const filename = sanitizeMascotPackAssetFilename(req.body.filename);
+    const filename = sanitizeMascotPackImageFilename(req.body.filename);
     const imageDataRaw = req.body.image_data;
     const imageData =
       imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
     if (!filename || !imageData) {
       return res.status(400).json({ error: 'filename et image_data requis' });
     }
+    const decoded = decodeMascotAssetImageData(imageData);
+    if (decoded.error) return res.status(400).json({ error: decoded.error });
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     try {
-      await saveBase64ToDisk(rel, imageData);
+      await writeBufferToDisk(rel, decoded.buffer);
     } catch (fileErr) {
       logRouteError(fileErr, req);
       return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
@@ -1115,7 +1121,7 @@ router.delete(
   async (req, res) => {
     try {
       const packId = String(req.params.id || '').trim();
-      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      const filename = sanitizeMascotPackImageFilename(req.params.filename);
       if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename) {
         return res.status(400).json({ error: 'Paramètres invalides' });
       }
@@ -1141,8 +1147,8 @@ router.patch(
   async (req, res) => {
     try {
       const packId = String(req.params.id || '').trim();
-      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
-      const newFilename = sanitizeMascotPackAssetFilename(req.body?.new_filename);
+      const filename = sanitizeMascotPackImageFilename(req.params.filename);
+      const newFilename = sanitizeMascotPackImageFilename(req.body?.new_filename);
       if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename || !newFilename) {
         return res.status(400).json({ error: 'Paramètres invalides' });
       }
@@ -1308,7 +1314,7 @@ router.post(
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const filename = sanitizeMascotPackAssetFilename(req.body.filename);
+      const filename = sanitizeMascotPackImageFilename(req.body.filename);
       const imageDataRaw = req.body.image_data;
       const imageData =
         imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
@@ -1317,11 +1323,13 @@ router.post(
       }
       // Réécriture en place d'un fichier historique (sous-dossier carte) plutôt que
       // création d'un doublon à plat : l'URL déjà référencée par les packs reste valide.
+      const decoded = decodeMascotAssetImageData(imageData);
+      if (decoded.error) return res.status(400).json({ error: decoded.error });
       const rel =
         resolveVisitMascotSpriteLibraryRelPath(filename) ||
         `${visitMascotSpriteLibraryRelativeDir()}/${filename}`;
       try {
-        await saveBase64ToDisk(rel, imageData);
+        await writeBufferToDisk(rel, decoded.buffer);
       } catch (fileErr) {
         logRouteError(fileErr, req);
         return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
@@ -1360,7 +1368,7 @@ router.delete(
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      const filename = sanitizeMascotPackImageFilename(req.params.filename);
       if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
       const row = await queryOne(
         'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
@@ -1385,8 +1393,8 @@ router.patch(
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
-      const newFilename = sanitizeMascotPackAssetFilename(req.body?.new_filename);
+      const filename = sanitizeMascotPackImageFilename(req.params.filename);
+      const newFilename = sanitizeMascotPackImageFilename(req.body?.new_filename);
       if (!filename || !newFilename) {
         return res.status(400).json({ error: 'Paramètres invalides' });
       }

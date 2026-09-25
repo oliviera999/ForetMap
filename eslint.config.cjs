@@ -232,16 +232,22 @@ module.exports = [
       'jsx-a11y/no-static-element-interactions': ['warn', { handlers: A11Y_INTERACTION_HANDLERS }],
       'jsx-a11y/role-has-required-aria-props': 'warn',
       'jsx-a11y/role-supports-aria-props': 'warn',
+      // Champs sans libellé associé (audit du 25/09/2026, § 1.4.7 : 153 à la réactivation).
+      // `assert: 'either'` accepte `htmlFor` OU un champ imbriqué dans le `<label>` ;
+      // `depth: 6` laisse le champ vivre dans quelques enveloppes (icône, info-bulle).
+      // Au clavier et au lecteur d'écran, un `<label>` voisin mais non associé ne dit rien :
+      // le champ reste muet. Cliquet dans `tests/a11y-static-guard.test.js`.
+      'jsx-a11y/label-has-associated-control': ['warn', { assert: 'either', depth: 6 }],
       // Désactivées, et pourquoi :
       // - dépréciées en amont par le greffon lui-même (remplacées ou obsolètes en React) ;
       'jsx-a11y/accessible-emoji': 'off',
       'jsx-a11y/label-has-for': 'off',
       'jsx-a11y/no-onchange': 'off',
-      // - bruit sans signal exploitable : ~370 et ~140 remontées, inchangées même avec
-      //   `depth: 5`, essentiellement sur des `<label>` enveloppants valides et des cellules
-      //   de tableau. À reprendre avec une configuration ajustée avant d'être jugées.
+      // - bruit sans signal exploitable : ~370 remontées, inchangées même avec `depth: 5`,
+      //   essentiellement sur des cellules de tableau. À reprendre avec une configuration
+      //   ajustée avant d'être jugée. (Sa jumelle `label-has-associated-control` est passée
+      //   en cliquet, plus haut, une fois configurée en `assert: 'either'`.)
       'jsx-a11y/control-has-associated-label': 'off',
-      'jsx-a11y/label-has-associated-control': 'off',
       // - purement stylistique (préférer `<button>` à `role="button"`), sans impact
       //   d'accessibilité réel quand le rôle est correctement porté.
       'jsx-a11y/prefer-tag-over-role': 'off',

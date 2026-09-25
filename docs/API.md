@@ -1124,6 +1124,32 @@ Réglage public de réactions :
 - `ui.reactions.allowed_emojis` (chaîne, emojis séparés par espaces ou virgules).
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
+Modules pédagogiques activables (réglages publics booléens, défaut `true`, exposés au front
+sous `publicSettings.modules.*` et lus côté serveur par `lib/shared/moduleGate.js`) :
+
+- `ui.modules.id_keys_enabled` — clés d'identification. `false` : toutes les routes
+  `/api/id-keys` (lecture publique comprise) renvoient `503 { error: 'Clés d’identification désactivées' }` ;
+  onglet « Clés » masqué (élève et prof).
+- `ui.modules.individuals_enabled` — individus suivis. `false` : toutes les routes
+  `/api/individuals` (mesures comprises) renvoient `503 { error: 'Suivi des individus désactivé' }` ;
+  onglet « Individus » masqué. L'onglet reste **aussi** soumis au niveau pédagogique
+  (`individuals_tab`, masqué au collège) : il faut les deux pour qu'il apparaisse.
+- `ui.modules.pedago_sessions_enabled` — séances pédagogiques. `false` : toutes les routes
+  `/api/pedago-sessions` renvoient `503 { error: 'Séances pédagogiques désactivées' }` — catalogue,
+  `runs/start`, `runs/complete`, `me/runs`, **et** gestion prof (création, `stats`, suivi,
+  partage), comme le forum ferme aussi sa modération. Onglet « Séances » masqué, bandeau de
+  séance en cours retiré, bouton « Lancer la séance » des tâches et champ « Séance
+  pédagogique liée » du formulaire de tâche masqués. `tasks.pedago_session_id` n'est pas
+  effacé (le lien ressert au rallumage).
+- `ui.modules.rewards_enabled` — badges de fin de séance. `false` : `GET /api/rewards/me`
+  renvoie `503 { error: 'Récompenses désactivées' }` et `evaluateSessionRewards` n'attribue rien
+  (`runs/complete` répond `rewards: []`, aucune ligne `user_rewards`) ; « Mes badges » et les
+  badges de la fenêtre de fin de séance sont masqués. Les badges déjà gagnés restent en base ;
+  rien n'est rattrapé au rallumage (un badge se gagne à la fin de séance qui le mérite).
+
+Un onglet dont le module s'éteint pendant qu'il est ouvert est replié par
+`useTabNavigationGuards` (vers `map`, ou `visit` pour un visiteur), comme les autres modules.
+
 Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL), réglages publics `ui.map.*` :
 
 - `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé (zones et repères).
@@ -1153,7 +1179,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter). Résolution : visite invitée = collège ; aperçu prof prioritaire ; sinon le plus simple des niveaux **explicites** (groupes de l’utilisateur + carte active) ; le défaut établissement n’est le socle que si aucun de ces niveaux n’est fixé. La préférence ne peut que simplifier, sauf `pedago_pref_can_raise`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
 
 Aides contextuelles (public) :
 
@@ -1469,7 +1495,7 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 | POST    | `/api/plants`                                                              | oui             | Créer une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | PUT     | `/api/plants/:id`                                                          | oui             | Modifier une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | DELETE  | `/api/plants/:id`                                                          | oui             | Supprimer une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count" }` ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
+| POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). **`client_uuid`** facultatif (8 à 64 caractères `[A-Za-z0-9-]`, migration 296) : clé d'idempotence propre à l'utilisateur — un renvoi de la même clé ne crée pas de ligne et rejoue la réponse avec `"replayed": true` (file hors ligne du client, réponse perdue). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count", "replayed"? }` ; `400` si la clé est mal formée ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/:id/validate-hazard`                                          | `plants.hazards.validate` | Confirme la relecture des dangers et du risque sanitaire : `hazard_reviewed = 1`, `hazard_reviewed_by` = compte appelant, `hazard_reviewed_at` = maintenant. Corps optionnel `{ "reviewed": false }` pour **retirer** la validation (les trois colonnes retombent à `0` / `null`). Réponse : la fiche complète ; `400` identifiant invalide, `404` fiche inconnue                                                                                                                                                                                                                                                       |
 | POST    | `/api/plants/:id/photo-upload`                                             | oui             | Uploader une photo locale pour un champ `photo*`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | POST    | `/api/plants/import`                                                       | oui             | Importer des fiches biodiversité (CSV/XLSX/Google Sheet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -1514,6 +1540,17 @@ espèce simplement indigène, et un animal de ferme (âne, chèvre, vache) n’a
 correcte — ni indigène, ni introduit au sens des invasions biologiques. `endemique` normalise
 donc désormais vers lui-même ; alias d’import `elevage` / `animal de ferme` → `domestique`.
 
+**Rôle trophique** — `trophic_role`, ENUM nullable : `producteur` \| `consommateur` \|
+`detritivore` \| `decomposeur`. `detritivore` est ajouté par la migration `295` : l’animal qui
+ingère et fragmente la matière organique morte (ver de terre, cloporte, collembole…) est un
+consommateur, et une proie, alors que le décomposeur au sens strict (bactéries, champignons) la
+minéralise. La migration reclasse en `detritivore` toute fiche du règne animal encore en
+`decomposeur` (14 fiches sur le fixture anonymisé) ; bactéries et champignons restent
+`decomposeur`. À l’écriture (`POST` / `PUT`, import avec l’alias `role_trophique`), casse et
+accents sont tolérés (« Détritivore » → `detritivore`) ; une valeur hors liste donne `null`.
+Listes du code : `lib/plantTrophicRole.js` (serveur) et `src/utils/plantTrophicRole.js`
+(libellés et définitions de l’interface).
+
 S’y ajoutent les quatre champs de **danger** (migration `251`). Ils répondent à une question que
 la détermination ne couvre pas : une espèce parfaitement identifiée peut rester dangereuse.
 
@@ -1533,8 +1570,11 @@ donc avec `hazard_reviewed = 0`.
 `hazard_exposure` alimente un SET SQL : les valeurs sont normalisées côté serveur
 (`lib/plantHazard.js`) et réordonnées canoniquement, une valeur non reconnue est écartée. Alias
 d’import : `toxicite` / `danger` / `gravite` → `toxicity_level` ; `voies_d_exposition` /
-`exposition` → `hazard_exposure` ; `precautions` → `hazard_notes` ; `danger_valide` →
-`hazard_reviewed`.
+`exposition` → `hazard_exposure` ; `precautions` → `hazard_notes`. Le drapeau
+`hazard_reviewed` **n'est plus accepté** par `POST`/`PUT /api/plants` ni par l'import (l'alias
+`danger_valide` a été retiré) : il n'est écrit que par `POST /api/plants/:id/validate-hazard`
+(audit du 25/09/2026, § 1.3.6). La migration `294` remet « à valider » les fiches validées sans
+relecteur.
 
 S’y ajoutent le **risque sanitaire** et la **traçabilité de la relecture** (migration `271`) :
 
@@ -1558,8 +1598,9 @@ la pastille de toxicité illisible sur tout le catalogue animal. L’affichage e
 une coche posée sur un texte relu continuerait à certifier une version qui n’existe plus — le cas
 n’est pas malveillant, c’est celui du collègue qui corrige la conduite à tenir six mois plus tard.
 Une modification qui ne touche pas à ces cinq colonnes (nom, photo, écologie…) **préserve** la
-validation. `hazard_reviewed_by` et `hazard_reviewed_at` ne sont jamais écrits par le formulaire
-ni par un import : seule `POST /api/plants/:id/validate-hazard` les renseigne.
+validation. `hazard_reviewed`, `hazard_reviewed_by` et `hazard_reviewed_at` ne sont jamais écrits
+par le formulaire ni par un import : seule `POST /api/plants/:id/validate-hazard` les renseigne
+(l'invalidation ci-dessus remet les trois à `0` / `null`).
 
 S’y ajoutent enfin deux champs d’**attribution de la photo principale** (migration `252`), aux
 mêmes noms que sur `quiz_questions` :
@@ -2840,7 +2881,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
-| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`) |
+| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). |
 | GET | `/api/food-web` | non | Réseau trophique (`?mapId=`, `?zoneId=` ; `zoneId` prime sur `mapId`) |
 | GET | `/api/food-web/interaction-types` | non | Vocabulaire de l'éditeur : `{ types, evidenceLevels, pollinationEfficacies }` — 19 types depuis la migration `272` |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
@@ -2899,8 +2940,10 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 | DELETE | `/api/food-web/interactions/:id` | prof (`plants.manage`) | Supprimer une interaction |
 
 > `GET /api/food-web` renvoie chaque interaction avec `from_id/from_name/from_emoji/from_role`,
-> `to_id/to_name/to_emoji/to_role` (le rôle trophique `producteur|consommateur|decomposeur` alimente
-> le regroupement par niveau du graphe) et les trois champs de qualité du lien
+> `to_id/to_name/to_emoji/to_role` (le rôle trophique `producteur|consommateur|detritivore|decomposeur`
+> alimente le regroupement par niveau du graphe : un `detritivore` — migration `295` — compte au
+> niveau 2, si bien que son prédateur passe au niveau 3, et s’affiche dans une voie « Détritivores »
+> à côté des décomposeurs ; la vue `v_food_web` n’a pas eu à être recréée) et les trois champs de qualité du lien
 > (`evidence_level`, `pollination_efficacy`, `source_ref`). Convention d'affichage : la donnée stocke `from` = acteur /
 > `to` = cible, mais la flèche est rendue dans le sens écologique « est mangée par » (flux d'énergie
 > de la ressource vers le consommateur) pour les types trophiques ; voir
@@ -2951,6 +2994,9 @@ Migration `275`. Lecture des clés **publiées** sans auth ; brouillons et écri
 (`next_couplet_id` XOR `plant_id`) ; les cycles et les formulations invitant à manipuler
 sont refusés.
 
+Module `ui.modules.id_keys_enabled` ; sinon **503** `{ error: 'Clés d’identification désactivées' }`
+sur toutes les routes ci-dessous.
+
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
 | GET | `/api/id-keys` | non | Liste des clés publiées (`?all=1` + `id_keys.manage` pour inclure les brouillons) |
@@ -2970,6 +3016,10 @@ boîtes emboîtées, parcours) — **distinct** des parcours géographiques (`/a
 `lycee_arbre`, `lycee_classer` (migration `284`, semés **en brouillon**) et `custom` (séance
 libre). Pour un modèle, la structure des étapes est figée et le prof configure carte / clé /
 plantes / arbre suivi / quiz via `PUT` ; pour une séance `custom`, `steps` est éditable.
+
+Module `ui.modules.pedago_sessions_enabled` ; sinon **503**
+`{ error: 'Séances pédagogiques désactivées' }` sur toutes les routes ci-dessous, gestion prof
+comprise.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3002,6 +3052,9 @@ Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une s
 règles sont côté serveur (`lib/rewards.js`) ; aujourd’hui alimentées par les fins de séance
 (`session_first`, `session_three`, `session_replay`, `session_lycee`).
 
+Module `ui.modules.rewards_enabled` ; sinon **503** `{ error: 'Récompenses désactivées' }` et
+aucune attribution en fin de séance (`rewards: []`).
+
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
 | GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, emoji, title, description, awardedAt }], catalogue: [{ key, emoji, title, description }] }` |
@@ -3016,6 +3069,9 @@ connectés ne laissent aucune trace. La note de fin de séance dans le carnet r�
 Migration `276`. Lecture publique ; création/édition sous `individuals.manage` (admin, prof) ;
 saisie de mesures sous `individuals.measure` (admin, prof, paliers élève). Chaque mesure
 peut porter une estimation pédagogique (Chave 2014) avec disclaimer « ordre de grandeur ».
+
+Module `ui.modules.individuals_enabled` ; sinon **503** `{ error: 'Suivi des individus désactivé' }`
+sur toutes les routes ci-dessous.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3170,7 +3226,7 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | Méthode | Route | Description |
 | ------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------- |
 | GET | `/api/learning-links` | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`). Réponse `{ links, total, max_rows: 1000, truncated }` (lot 6, B5 : le plafond n'est plus muet). |
-| POST | `/api/learning-links` | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas. **Depuis le lot 4** : `is_gating` vaut `false` par défaut, et sur un couple existant `is_gating` et `origin` ne sont réécrits que si le corps les fournit (B3). |
+| POST | `/api/learning-links` | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas. **Depuis le lot 4** : `is_gating` vaut `false` par défaut, et sur un couple existant `is_gating` et `origin` ne sont réécrits que si le corps les fournit (B3). Question **inactive** : le lien est enregistré (`201`) mais la réponse porte `warning` — il ne conditionnera rien tant qu'elle n'est pas réactivée (25/09/2026, lot B). |
 | PATCH | `/api/learning-links/:id` | Modifie `is_gating` / `weight` / `status` / `note`. |
 | DELETE | `/api/learning-links/:id` | Supprime un lien. |
 | GET | `/api/learning-links/policy?resourceType=&resourceRef=` | Politique brute + **effective** + **effectiveSources** (cascade site → type `resource_ref='*'` → ressource). Inclut `typePolicy` et `site`. |
@@ -3179,7 +3235,7 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | PUT | `/api/learning-links/type-policy` | Définit le préréglage par type (mêmes champs que `/policy`, sauf `resource_ref` implicite `*`). |
 | GET | `/api/learning-links/progress?resourceType=&resourceRef=` | Agrégats prof pour une ressource (`pending_count`, `satisfied_count`, `locked_count`) — **sans noms d'élèves**. Depuis le lot 6 : deux requêtes groupées pour toute la classe (plus une par élève), `max_students` (500) et `truncated` annoncés. |
 | GET | `/api/learning-links/config` | Réglages site effectifs (lecture seule ; écriture via `/api/settings`). |
-| GET | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?). |
+| GET | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `inactive_gating_count`, `suggested_count`), `markable` (le produit sait-il **valider** ce type ?) et `without_active_gating_count`. Depuis le 25/09/2026 (lot B), `gating_count` ne compte que les liens bloquants vers une question **active** — ce qui verrouille réellement ; les liens bloquants vers une question désactivée sont dans `inactive_gating_count`. `without_active_gating_count` = nombre de ressources qui s'ouvrent librement faute de question active. |
 | POST | `/api/learning-links/suggest` | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut. Les propositions sont insérées **non bloquantes** (lot 4 ; migration 214 aligne les propositions en attente). |
 | GET | `/api/learning-links/locks?includeExpired=&resourceType=` | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
@@ -3239,6 +3295,14 @@ session appliqué) à côté de `pending_count` (ce qu'il reste au total pour va
 serveur : `announce_on_button` et `state_icons`. Ces réglages sont de portée prof, donc illisibles
 par un élève ; les routes les résolvent pour que le front les respecte sans accéder aux réglages.
 Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
+
+**Filtre de niveau (ForetMap, 25/09/2026).** Pour un **élève**, `challenge`, `summary` et les
+accusés (`acknowledge-read`, `acknowledge-discovery`, glossaire) ne posent que les questions au
+niveau de l'élève (`lib/pedago/learnerLevel.js` : défaut établissement, groupes, classe, carte —
+palier maximal 2 au collège, 5 au lycée, aucun plafond à l'université). Si **aucune** question de
+la ressource n'est à son niveau, toutes restent posées (décision du mainteneur : garder les
+questions plutôt qu'ouvrir la ressource) et la réponse porte `level_fallback: "all_levels"`
+(sinon `"none"`). Comptes non élèves : aucun filtre, pas de `level_fallback`.
 
 Audits du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md) (ForetMap, août),
 [AUDIT_GATING_QCM_FEUILLETS_2026-08.md](AUDIT_GATING_QCM_FEUILLETS_2026-08.md) (GL, août) et

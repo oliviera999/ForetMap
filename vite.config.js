@@ -11,34 +11,15 @@ import { GL_AUTH_BACK_COVER } from './src/gl/constants/authCover.js';
 const require = createRequire(import.meta.url);
 const { getBrand } = require('./lib/brand.js');
 const { PRODUCTS, PRODUCT_IDS } = require('./lib/products.js');
+// Vocabulaire `%BRAND_*%` partagé avec `lib/pwaRoutes.js` (page hors ligne, servie depuis
+// `public/` sans passer par ce plugin).
+const { brandHtmlTokens, renderBrandHtml } = require('./lib/brandHtml.js');
 
 const brand = getBrand();
 
 // Description publique de Gnomes & Licornes (aperçus de lien, SEO) : on réutilise
 // la quatrième de couverture comme source unique du texte.
 const GL_SHARE_DESCRIPTION = GL_AUTH_BACK_COVER.join(' ');
-
-/** Échappe une valeur destinée à du texte HTML ou à un attribut `content="…"`. */
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-/**
- * Jetons de marque communs à toutes les entrées HTML. Les jetons propres à un produit
- * (`%BRAND_PRODUCT_*%`) sont ajoutés par entrée, depuis le registre `lib/products.js`.
- */
-const GLOBAL_BRAND_TOKENS = {
-  BRAND_APP_NAME: brand.appName,
-  BRAND_APP_SHORT_NAME: brand.appShortName,
-  BRAND_ORG_NAME: brand.orgName,
-  BRAND_ORG_SHORT_NAME: brand.orgShortName,
-  BRAND_GL_NAME: brand.glName,
-  BRAND_GL_SHORT_NAME: brand.glShortName,
-};
 
 /** Produit dont l'entrée HTML correspond au fichier transformé, ou `null`. */
 function resolveProductForEntry(target) {
@@ -81,20 +62,8 @@ function brandHtmlPlugin() {
     transformIndexHtml(html, ctx) {
       const target = ctx?.path || ctx?.filename || '';
       const product = resolveProductForEntry(target);
-      const tokens = {
-        ...GLOBAL_BRAND_TOKENS,
-        ...(product
-          ? {
-              BRAND_PRODUCT_NAME: product.pwa.name,
-              BRAND_PRODUCT_SHORT_NAME: product.pwa.shortName,
-              BRAND_PRODUCT_LABEL: product.label,
-              BRAND_PRODUCT_DESCRIPTION: product.pwa.description,
-            }
-          : {}),
-      };
-      const rendered = html.replace(/%(BRAND_[A-Z_]+)%/g, (match, key) =>
-        Object.prototype.hasOwnProperty.call(tokens, key) ? escapeHtml(tokens[key]) : match,
-      );
+      // Jetons communs, plus `%BRAND_PRODUCT_*%` de l'entrée (registre `lib/products.js`).
+      const rendered = renderBrandHtml(html, brandHtmlTokens(product));
 
       const tags = [
         {

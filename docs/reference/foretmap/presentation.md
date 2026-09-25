@@ -180,6 +180,24 @@ Réservée aux professeurs/administrateurs : gestion des **utilisateurs et des r
 stats…), d'une **médiathèque** d'images réutilisables, et d'un **journal d'audit** des
 actions sensibles.
 
+Les outils pédagogiques les plus récents sont aussi des **modules activables**, réglés dans
+**Paramètres → Accueil & modules** (section « Modules UI »). Ils sont **tous allumés par
+défaut**. Éteindre un module masque son onglet pour tout le monde — élèves comme
+professeurs — et ferme ses fonctions, **sans rien effacer** : le rallumer rend tout tel quel.
+
+- **Clés d'identification** — l'onglet « Clés » (clés à deux choix pour reconnaître une
+  espèce) disparaît, pour la consultation comme pour l'édition.
+- **Individus suivis** — l'onglet « Individus » (arbres suivis et leurs mesures)
+  disparaît. Même allumé, il reste masqué au niveau Collège : il faut les deux.
+- **Séances pédagogiques** — l'onglet « Séances » disparaît, ainsi que le bouton
+  « Lancer la séance » des tâches et le choix d'une séance liée dans le formulaire de
+  tâche ; une séance en cours est mise en pause (son bandeau disparaît). Les liens déjà
+  posés entre tâches et séances sont conservés.
+- **Récompenses** — plus aucun badge n'est gagné ni affiché (« Mes badges », fenêtre de fin
+  de séance). Les séances, elles, fonctionnent normalement ; les badges déjà gagnés sont
+  conservés et réapparaissent au rallumage, mais ceux qui auraient été mérités pendant la
+  coupure ne sont pas rattrapés.
+
 ## Comment l'écran s'organise
 
 - **L'élève** navigue par une barre d'onglets en bas d'écran. Sur téléphone, les
@@ -367,6 +385,10 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   ne déclenche pas le bandeau.
 - **Les données affichées peuvent donc dater** de quelques minutes le temps d'un
   incident : c'est volontaire, et le bandeau le signale.
+- **Tablette partagée : la déconnexion efface les données gardées hors ligne.** Les listes
+  que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
+  à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
+  reste disponible hors ligne (depuis septembre 2026).
 - **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
   depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
   visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de
@@ -377,6 +399,13 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
 - **Session expirée** : la connexion temps réel s'arrête proprement au lieu de réessayer
   sans fin. Les données continuent d'arriver par le rafraîchissement périodique, et le
   temps réel revient de lui-même à la reconnexion.
+- **Un message d'erreur réseau qu'un élève comprend.** Quand une action échoue parce que
+  le serveur reste injoignable (Wi-Fi coupé sur le terrain, site en maintenance), l'élève
+  lit : **« Pas de réseau pour l'instant. Réessaie dans un moment ; si ça dure, préviens
+  ton professeur. »** L'ancien message comptait 37 mots et parlait de « passerelle
+  réseau ». Un compte de professeur ou d'administrateur lit une version au vouvoiement
+  qui donne les pistes : vérifier la connexion de l'établissement, maintenance possible
+  du site.
 
 ### Quand une nouvelle version est publiée
 

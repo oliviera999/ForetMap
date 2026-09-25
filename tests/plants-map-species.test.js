@@ -81,3 +81,80 @@ test('PUT /api/plants/:id — un map_id inconnu ne vide pas les rattachements va
     ['foret'],
   );
 });
+
+// Audit du 25/09/2026, § 1.3.4 — le formulaire de fiche envoie toujours `map_ids` (y compris
+// à l'enregistrement automatique) ; la synchronisation DELETE + INSERT effaçait à chaque fois
+// le registre éditorial de la carte (présence, phénologie, fréquence, validation, notes).
+test('PUT /api/plants/:id — le registre map_species d’une carte conservée est préservé', async () => {
+  const token = await ensureAdminTeacherAuthToken({ elevated: true });
+  const stamp = Date.now();
+  const name = `Merle registre ${stamp}`;
+  const { execute } = require('../database');
+
+  const created = await request(app)
+    .post('/api/plants')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name, emoji: '🐦', map_ids: ['foret'] })
+    .expect(201);
+  const plantId = created.body.id;
+
+  await execute(
+    `UPDATE map_species
+        SET presence_status = 'resident', months_present = '3,4,5', detection_mode = 'vue,chant',
+            frequency = 'commun', validation_status = 'confirme_site', site_notes = 'Haie nord'
+      WHERE plant_id = ? AND map_id = 'foret'`,
+    [plantId],
+  );
+
+  // Même carte + une nouvelle : la ligne existante ne bouge pas, la nouvelle prend les défauts.
+  await request(app)
+    .put(`/api/plants/${plantId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name, emoji: '🐦', map_ids: ['foret', 'n3'] })
+    .expect(200);
+
+  const rows = await queryAll(
+    `SELECT map_id, presence_status, months_present, detection_mode, frequency,
+            validation_status, site_notes
+       FROM map_species WHERE plant_id = ? ORDER BY map_id`,
+    [plantId],
+  );
+  assert.deepEqual(
+    rows.map((r) => ({ ...r })),
+    [
+      {
+        map_id: 'foret',
+        presence_status: 'resident',
+        months_present: '3,4,5',
+        detection_mode: 'vue,chant',
+        frequency: 'commun',
+        validation_status: 'confirme_site',
+        site_notes: 'Haie nord',
+      },
+      {
+        map_id: 'n3',
+        presence_status: null,
+        months_present: null,
+        detection_mode: null,
+        frequency: null,
+        validation_status: 'attendu',
+        site_notes: null,
+      },
+    ],
+  );
+
+  // Retirer une carte ne touche que sa ligne.
+  await request(app)
+    .put(`/api/plants/${plantId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name, emoji: '🐦', map_ids: ['foret'] })
+    .expect(200);
+  const after = await queryAll(
+    'SELECT map_id, validation_status FROM map_species WHERE plant_id = ? ORDER BY map_id',
+    [plantId],
+  );
+  assert.deepEqual(
+    after.map((r) => ({ ...r })),
+    [{ map_id: 'foret', validation_status: 'confirme_site' }],
+  );
+});

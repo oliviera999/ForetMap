@@ -9,6 +9,9 @@ const probes = vi.hoisted(() => ({
   quiz: [],
   quizAdmin: [],
   foodweb: [],
+  idKeys: [],
+  individuals: [],
+  sessions: [],
   about: [],
 }));
 vi.mock('../../../src/components/visit-views', () => ({
@@ -33,6 +36,18 @@ vi.mock('../../../src/components/pedago-views', () => ({
   FoodWebView: (props) => {
     probes.foodweb.push(props);
     return <div data-testid="foodweb-view" />;
+  },
+  IdKeysView: (props) => {
+    probes.idKeys.push(props);
+    return <div data-testid="id-keys-view" />;
+  },
+  IndividualsView: (props) => {
+    probes.individuals.push(props);
+    return <div data-testid="individuals-view" />;
+  },
+  SessionsView: (props) => {
+    probes.sessions.push(props);
+    return <div data-testid="sessions-view" />;
   },
 }));
 vi.mock('../../../src/components/about-views', () => ({
@@ -102,6 +117,34 @@ describe('PedagoTabs', () => {
   test('module visite désactivé : onglet visite vide', () => {
     const { container } = render(<PedagoTabs {...baseProps} tab="visit" visitEnabled={false} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  test('modules pédagogiques allumés (défaut) : Clés / Individus / Séances montent leur vue', async () => {
+    const { unmount } = render(<PedagoTabs {...baseProps} tab="id-keys" />);
+    expect(await screen.findByTestId('id-keys-view')).toBeInTheDocument();
+    unmount();
+    const second = render(<PedagoTabs {...baseProps} tab="individuals" />);
+    expect(await screen.findByTestId('individuals-view')).toBeInTheDocument();
+    second.unmount();
+    render(<PedagoTabs {...baseProps} tab="sessions" sessionsProps={{ rewardsEnabled: false }} />);
+    expect(await screen.findByTestId('sessions-view')).toBeInTheDocument();
+    expect(probes.sessions[0].rewardsEnabled).toBe(false);
+  });
+
+  test('module pédagogique éteint : la vue ne monte pas (aucun appel d’API en 503)', () => {
+    const cases = [
+      { tab: 'id-keys', idKeysEnabled: false },
+      { tab: 'individuals', individualsEnabled: false },
+      { tab: 'sessions', pedagoSessionsEnabled: false, sessionsProps: {} },
+    ];
+    for (const props of cases) {
+      const { container, unmount } = render(<PedagoTabs {...baseProps} {...props} />);
+      expect(container).toBeEmptyDOMElement();
+      unmount();
+    }
+    expect(probes.idKeys).toHaveLength(0);
+    expect(probes.individuals).toHaveLength(0);
+    expect(probes.sessions).toHaveLength(0);
   });
 
   test('glossaire : code sélectionné et rappels transmis', async () => {

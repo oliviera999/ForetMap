@@ -1,7 +1,11 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { StudentBottomNav } from '../../../src/components/app/StudentBottomNav.jsx';
+import {
+  StudentBottomNav,
+  buildStudentNavItems,
+} from '../../../src/components/app/StudentBottomNav.jsx';
 import { resolveStudentMobilePrimaryIds } from '../../../src/constants/app-runtime.js';
+import { BiodivPedagoContext } from '../../../src/contexts/BiodivPedagoContext.jsx';
 
 const baseProps = {
   tab: 'map',
@@ -136,6 +140,59 @@ describe('StudentBottomNav', () => {
     expect(screen.queryByText('Forum')).toBeNull();
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Tâches')).toBeInTheDocument();
+  });
+
+  test('modules pédagogiques coupés → Clés / Séances / Individus masqués', () => {
+    const { rerender } = render(<StudentBottomNav {...baseProps} />);
+    expect(screen.getByText('Clés')).toBeInTheDocument();
+    expect(screen.getByText('Séances')).toBeInTheDocument();
+    expect(screen.getByText('Individus')).toBeInTheDocument();
+    rerender(
+      <StudentBottomNav
+        {...baseProps}
+        idKeysEnabled={false}
+        pedagoSessionsEnabled={false}
+        individualsEnabled={false}
+      />,
+    );
+    expect(screen.queryByText('Clés')).toBeNull();
+    expect(screen.queryByText('Séances')).toBeNull();
+    expect(screen.queryByText('Individus')).toBeNull();
+    // Les onglets voisins ne sont pas entraînés.
+    expect(screen.getByText('Biodiversité')).toBeInTheDocument();
+    expect(screen.getByText('Réseau')).toBeInTheDocument();
+  });
+
+  test('chaque interrupteur ne masque que son onglet', () => {
+    const ids = (overrides) =>
+      buildStudentNavItems({ ...baseProps, ...overrides }).map((item) => item.id);
+    expect(ids({})).toEqual(expect.arrayContaining(['id-keys', 'sessions', 'individuals']));
+    expect(ids({ idKeysEnabled: false })).not.toContain('id-keys');
+    expect(ids({ idKeysEnabled: false })).toEqual(
+      expect.arrayContaining(['sessions', 'individuals']),
+    );
+    expect(ids({ pedagoSessionsEnabled: false })).not.toContain('sessions');
+    expect(ids({ pedagoSessionsEnabled: false })).toContain('id-keys');
+    expect(ids({ individualsEnabled: false })).not.toContain('individuals');
+    expect(ids({ individualsEnabled: false })).toContain('sessions');
+  });
+
+  test('Individus : niveau pédagogique ET interrupteur, les deux doivent l’autoriser', () => {
+    const ids = (overrides) =>
+      buildStudentNavItems({ ...baseProps, ...overrides }).map((item) => item.id);
+    expect(ids({ showIndividuals: true, individualsEnabled: true })).toContain('individuals');
+    expect(ids({ showIndividuals: false, individualsEnabled: true })).not.toContain('individuals');
+    expect(ids({ showIndividuals: true, individualsEnabled: false })).not.toContain('individuals');
+
+    // Même règle vue du composant : niveau collège (`individuals_tab` refusé), module allumé.
+    const collegeLevel = { canShow: (feature) => feature !== 'individuals_tab' };
+    render(
+      <BiodivPedagoContext.Provider value={collegeLevel}>
+        <StudentBottomNav {...baseProps} individualsEnabled />
+      </BiodivPedagoContext.Provider>,
+    );
+    expect(screen.queryByText('Individus')).toBeNull();
+    expect(screen.getByText('Clés')).toBeInTheDocument();
   });
 
   test('mode compact : primaires + Plus, Forum via le tiroir', async () => {
