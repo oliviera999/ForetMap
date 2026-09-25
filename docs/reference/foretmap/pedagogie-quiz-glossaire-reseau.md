@@ -211,9 +211,10 @@ d'observation** pour l'écriture naturaliste libre.
   l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
   disponibles dans chaque vue.
 
-> 🔧 **À implémenter :** adapter la densité du réseau (types avancés, niveau de preuve
-> des liens) au **niveau pédagogique** Collège / Lycée / Université — voir
-> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+- **La densité du réseau suit le niveau pédagogique** : en Collège, seuls les types
+  d’interaction scolaires sont proposés, sans le niveau de preuve des liens ni l’efficacité
+  de pollinisation ; en Lycée et Université, tout est visible — voir
+  [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :

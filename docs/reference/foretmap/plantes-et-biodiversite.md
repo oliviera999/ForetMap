@@ -508,10 +508,11 @@ retrouve automatiquement la bonne fiche.
 > ⚠️ **Point d'attention** — La **suppression** d'une fiche est immédiate et sans
 > corbeille. Les zones et repères qui référençaient l'espèce perdent ce lien.
 
-> 🔧 **À implémenter :** adapter l’affichage du catalogue et des outils associés
-> (groupes emboîtés, suivi d’arbres, détails scientifiques) selon le **niveau
-> pédagogique** Collège / Lycée / Université — voir
-> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+L’affichage du catalogue et des outils associés suit le **niveau pédagogique** : en
+Collège, le nom accepté, le lien GBIF et la classification latine sont masqués, ainsi que
+le fil des groupes emboîtés, l’onglet Groupes emboîtés et le suivi des individus ; en
+Lycée, les détails scientifiques sont repliés — voir
+[Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
 ## Pour aller plus loin
 
