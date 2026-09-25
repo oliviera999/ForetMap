@@ -124,6 +124,14 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - La montée de palier est **automatique** (nombre de tâches validées) et saluée par une
   fenêtre de félicitations. Elle **relève le profil attribué** du compte ; elle ne fait
   jamais baisser un palier posé à la main (voir « Quel profil fait foi ? » ci-dessous).
+- **Le rang d'un palier sur mesure suit son seuil.** Entre deux paliers, c'est le **seuil de
+  tâches** qui dit s'il y a montée (et donc félicitations) ; mais quand un groupe confère un
+  palier, c'est le **rang** qui départage (« Quel profil fait foi ? »). Depuis septembre 2026,
+  un palier créé dans la console reçoit un rang à mi-chemin entre ses voisins de seuil (par
+  exemple 310 pour un palier à 40 tâches au-dessus de « chevronné », rang 300), au lieu du
+  rang fixe 150. Les paliers « bébé », « expert » et « ultime » ont été réalignés (rangs 90,
+  310 et 315) : « expert » passait sous « chevronné », et sa montée s'affichait comme une
+  baisse, sans félicitations.
 - **Au rattachement à un groupe**, le compte reçoit aussitôt le profil que le groupe
   confère, s'il est plus élevé que le sien : un visiteur qui rejoint une classe « n3beur
   novice » passe novice. Un élève qui revient avec 60 tâches validées retrouve son palier

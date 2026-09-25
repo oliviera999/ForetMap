@@ -9,6 +9,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — paliers de progression sur mesure (question 11, migration 297)
+
+- Entre deux paliers de l'échelle n3beur, l'avis de félicitations et le motif
+  « promu / rétrogradé » suivent le **seuil** de tâches, plus le rang : atteindre un palier
+  sur mesure resté au rang par défaut (150) depuis « chevronné » (300) passait pour une
+  rétrogradation, sans félicitations.
+- Migration `297` : rangs des paliers « bébé », « expert » et « ultime » alignés sur leurs
+  seuils (90, 310, 315), gardée par la valeur par défaut (un rang réglé à la main n'est
+  jamais écrasé). Un groupe qui confère « avancé » ne masque plus un « expert » mérité.
+- Console des profils : un nouveau palier reçoit un rang déduit de son seuil
+  (`suggestLadderRank`), et non plus le rang fixe 150.
+- Tests : `tests/progression-ladder-rank.test.js`, `profilesRoleForm`. Doc :
+  `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
 ### Ajouté — rôle trophique « Détritivore » (décision Q7, migration 295)
 
 - Nouvelle valeur `detritivore` pour le rôle trophique des fiches : l'animal qui fragmente la
