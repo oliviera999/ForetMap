@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
+
+- Le niveau d'un élève est un niveau du programme (cycle 3 → terminale) ou « Université » ;
+  Collège / Lycée / Université n'en sont que l'affichage. Un résolveur unique
+  (`lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) sert l'affichage
+  biodiversité, le verrouillage, le quiz et le glossaire : aperçu > séance en cours > niveau de
+  la classe > anciens réglages (groupe, carte) > défaut de l'établissement. La préférence de
+  l'élève ne règle plus que l'affichage.
+- **La séance impose son niveau, verrouillage compris** (`?pedagoSession=`, cru seulement pour
+  une exécution démarrée et non terminée). `GET /api/auth/me` expose `learnerLevel`.
+- Migration `301` : `groups.curriculum_niveau` accepte `universite` et reçoit le niveau déduit du
+  nom quand il est sans ambiguïté (fixture : 27 groupes sur 32, 428 élèves sur 463 au cycle 3).
+- Écran des groupes : niveau proposé d'après le nom (« Utiliser cette proposition »), niveau
+  hérité affiché, classes sans niveau signalées et filtrables. L'import Moodle pose le niveau
+  déduit à la création d'un groupe.
+
+### Refactorisation — adaptateurs de produit (piste B, décision Q18)
+
+- **Verrouillage** : le moteur commun (`lib/learningGating*.js`, `lib/gatingPolicyLoad.js`,
+  `lib/learningLinksBulk.js`) ne teste plus le produit ; il interroge un adaptateur, un objet par
+  produit (`lib/pedago/gatingProductCatalog.js`, `lib/pedago/gatingProducts.js`, seul fichier du
+  moteur qui importe du code Gnomes & Licornes). 50 lignes testant le produit, 22 noms de tables
+  GL et 9 imports GL retirés de dix fichiers.
+- **Moodle** : les accès de la synchronisation aux tables `gl_*` (30 lignes dans cinq fichiers)
+  passent par `lib/moodle/gameAdapter.js`.
+- Aucun changement de comportement : caractérisation par produit (référence figée), contrat et
+  gardes d'isolement (`tests/gating-products.test.js`, `tests/moodle-game-adapter-isolation.test.js`).
+  Aucun fichier GL modifié.
+
 ### Modifié — une seule définition de « présente sur ce site » (décision Q10)
 
 - Nouveau service `lib/biodiv/presenceService.js` : une espèce est présente sur une carte si
