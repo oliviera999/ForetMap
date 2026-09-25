@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — suites des décisions du 25/09 (questions 3, 9, 17 ; QF0212)
+
+- **Écran « Rattacher des questions aux contenus »** : il annonce combien de contenus se
+  valident sans question active, signale sur chaque contenu les liens vers des questions
+  désactivées (« sans effet ») et affiche l'avertissement du serveur quand on rattache une
+  question désactivée.
+- **Question désactivée** (question 9, règle conservée et écrite) : une bonne réponse déjà
+  donnée ne compte plus ; un contenu déjà validé le reste (doc de référence).
+- **QF0212 reformulée** (migration `298`) : « lequel participe à la décomposition en fragmentant
+  la matière morte ? » — cohérente avec la fiche du cloporte, désormais détritivore ; gardée par
+  l'ancien énoncé. Test de contenu `quiz-qf0212-detritivore`.
+- **Outillage** (question 17) : `npm run check:cycles` (script maison, sans dépendance) et
+  `tests/import-cycles-guard.test.js` refusent tout cycle entre imports de premier niveau (0
+  aujourd'hui ; 5 groupes de cycles serveur, tous paresseux) ; `@vitest/coverage-v8` en
+  dépendance de développement (licence MIT) rend `npm run test:ui:coverage` utilisable.
+
 ### Corrigé — paliers de progression sur mesure (question 11, migration 297)
 
 - Entre deux paliers de l'échelle n3beur, l'avis de félicitations et le motif

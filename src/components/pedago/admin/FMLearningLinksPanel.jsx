@@ -46,6 +46,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
   const [markable, setMarkable] = useState(true);
   const { confirm } = useAppDialogs();
   const [resources, setResources] = useState([]);
+  /** Contenus du type courant qui s'ouvrent librement faute de question active (lot B). */
+  const [withoutActiveGating, setWithoutActiveGating] = useState(0);
   const [selectedRef, setSelectedRef] = useState('');
   const [links, setLinks] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -79,6 +81,11 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
       const list = Array.isArray(res?.resources) ? res.resources : [];
       setResources(list);
       setMarkable(res?.markable !== false);
+      setWithoutActiveGating(
+        Number.isFinite(Number(res?.without_active_gating_count))
+          ? Number(res.without_active_gating_count)
+          : list.filter((r) => !(Number(r.gating_count) > 0)).length,
+      );
       // La ressource retenue doit appartenir au type courant : garder l'ancienne
       // référence en changeant d'onglet afficherait les liens d'une autre ressource.
       setSelectedRef((current) =>
@@ -203,8 +210,9 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
     setError('');
     setInfo('');
     try {
-      await action();
-      if (successMessage) setInfo(successMessage);
+      // L'action peut renvoyer un message qui remplace celui par défaut (avertissement serveur).
+      const message = await action();
+      if (message || successMessage) setInfo(message || successMessage);
       await loadLinks();
       await loadResources();
     } catch (err) {
@@ -218,7 +226,7 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
     event.preventDefault();
     if (!questionToAdd || !selectedRef) return;
     return run(async () => {
-      await api('/api/learning-links', 'POST', {
+      const res = await api('/api/learning-links', 'POST', {
         resource_type: resourceType,
         resource_ref: String(selectedRef),
         question_code: questionToAdd,
@@ -229,6 +237,8 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
         status: 'approved',
       });
       setQuestionToAdd('');
+      // Question désactivée : le lien est enregistré mais ne conditionnera rien.
+      return res?.warning ? `Question rattachée. ⚠️ ${res.warning}` : null;
     }, 'Question rattachée.');
   }
 
@@ -379,6 +389,17 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
         {totals.suggested > 0 ? ` · ${totals.suggested} proposition(s) à approuver` : ''}
       </p>
 
+      {/* Lot B (audit du 25/09/2026, question 3) : un contenu sans question **active** se
+          valide sans contrôle. C'est voulu (pas d'impasse pour l'élève), mais cela doit se voir. */}
+      {!gatingOff && markable && totals.gating > 0 && withoutActiveGating > 0 ? (
+        <p className="section-sub pedago-links__warning" role="status">
+          <IconWarning size={14} /> <strong>{withoutActiveGating}</strong> {tab.one}
+          {withoutActiveGating > 1 ? 's' : ''} sur {resources.length}{' '}
+          {withoutActiveGating > 1 ? 'se valident' : 'se valide'} sans question : aucune question
+          active n&apos;y est rattachée comme bloquante.
+        </p>
+      ) : null}
+
       {gatingOff ? (
         <p className="section-sub pedago-links__warning" role="status">
           <IconPause size={14} /> Le contrôle de compréhension est{' '}
@@ -418,6 +439,9 @@ export function FMLearningLinksPanel({ onOpenSettingsLearning = null }) {
                 <strong>{r.label}</strong>
                 <span className="section-sub">
                   {r.gating_count} question(s) bloquante(s)
+                  {Number(r.inactive_gating_count) > 0
+                    ? ` · ${r.inactive_gating_count} désactivée(s), sans effet`
+                    : ''}
                   {r.suggested_count > 0 ? ` · ${r.suggested_count} à valider` : ''}
                   {!r.is_active ? ' · masqué' : ''}
                 </span>

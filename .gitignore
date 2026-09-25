@@ -100,3 +100,6 @@ startup-diag.log
 playwright-report/
 test-results/
 blob-report/
+
+# Couverture Vitest (npm run test:ui:coverage)
+/coverage/

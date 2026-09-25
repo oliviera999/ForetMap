@@ -87,6 +87,12 @@ npm run db:backfill:users
 
 Contrôle lecture seule du corpus pédagogique : `npm run audit:pedago`.
 
+Cycles d'import : `npm run check:cycles` (sans dépendance). Il échoue si un cycle apparaît entre
+imports **de premier niveau** (côté serveur ou front) — au démarrage, un module recevrait un
+export à moitié initialisé. Les cycles coupés par un `require` placé dans une fonction sont
+seulement comptés. Le même contrôle tourne dans `npm test` (`tests/import-cycles-guard.test.js`).
+Couverture des tests d'interface : `npm run test:ui:coverage` (`@vitest/coverage-v8`).
+
 Contrôle lecture seule des textes montrés aux visiteurs (visite, fiches) : `npm run
 audit:visitor-texts`. Il liste les incitations à cueillir, goûter ou manipuler un être vivant
 et les zones grises (règle permanente du projet ; motifs dans `lib/visitorTextGuard.js`,

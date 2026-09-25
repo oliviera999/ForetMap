@@ -442,6 +442,10 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    s'ouvrent librement faute de question active. Rattacher une question désactivée reste
    possible, mais un avertissement le signale.
 
+   Une bonne réponse déjà donnée à une question **désactivée ne compte plus** : si le contenu
+   demande plusieurs bonnes réponses, l'élève peut devoir répondre à une autre question. Un
+   contenu **déjà validé le reste** : le contrôle n'a lieu qu'au moment de valider.
+
 **Les questions posées suivent le niveau de l'élève** (depuis septembre 2026). Un élève de
 collège ne reçoit que les questions de collège d'une fiche ; un élève de lycée, toutes. Le
 niveau vient de sa classe et de son groupe, à défaut du niveau par défaut de l'établissement
