@@ -154,8 +154,11 @@ const createGroupBodySchema = z
         ? null
         : b.default_role_id,
     force_default_role: b.force_default_role,
-    // Niveau de la classe, proposé par le formulaire d'après le nom (décision Q5, 25/09/2026).
-    curriculum_niveau: parseCurriculumNiveauInput(b.curriculum_niveau) ?? null,
+    // Niveau de la classe, proposé par le formulaire d'après le nom (décision Q5, 25/09/2026) ;
+    // absent du corps normalisé quand il n'est pas envoyé.
+    ...(b.curriculum_niveau !== undefined
+      ? { curriculum_niveau: parseCurriculumNiveauInput(b.curriculum_niveau) }
+      : {}),
   }))
   .superRefine((d, ctx) => {
     if (!d.slug || !d.name)
