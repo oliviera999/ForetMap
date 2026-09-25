@@ -2622,16 +2622,6 @@
       min-height:30px;
     }
     .map-toolbar-mode-btn { font-weight:var(--fw-bold); transition:all .15s; }
-    /* Convention projet : cibles tactiles >= 44px. La barre carte descendait à 30/36px. */
-    @media (pointer:coarse) {
-      .map-toolbar-mode-btn,
-      .map-toolbar-pill,
-      .map-toolbar-text-size-btn,
-      .map-toolbar-labels-btn {
-        min-height:44px;
-        min-width:44px;
-      }
-    }
     .map-toolbar-pill {
       border:1.5px solid var(--mint);
       font-weight:var(--fw-bold);
@@ -2653,6 +2643,21 @@
       padding:6px 10px;
     }
     .map-toolbar-labels-btn.is-on { background:var(--mint); }
+    /* Convention projet : cibles tactiles >= 44px. La barre carte descendait à 30/36px.
+       Bloc placé APRÈS les règles de base ci-dessus : avant elles, `.map-toolbar-pill
+       { min-height:36px }` et `.map-toolbar-text-size-btn { min-width:36px }`, de même
+       spécificité, l'écrasaient. La compaction de l'écran carte (plus bas) a son propre
+       bloc `pointer:coarse`. */
+    @media (pointer:coarse) {
+      .map-toolbar-mode-btn,
+      .map-toolbar-pill,
+      .map-toolbar-text-size-btn,
+      .map-toolbar-labels-btn,
+      .map-gesture-toggle {
+        min-height:var(--tap-target);
+        min-width:var(--tap-target);
+      }
+    }
     .map-toolbar-zoom-group {
       display:flex;
       background:var(--parchment);
@@ -2766,6 +2771,10 @@
       font-family:var(--font-sans);
       font-weight:var(--fw-semibold);
     }
+    /* Au doigt, la variante compacte (34px) repasse au minimum tactile. */
+    @media (pointer:coarse) {
+      .map-switch-select { --fm-control-min-h:var(--tap-target); }
+    }
     /* Carte (vue seule ou split) : barre d'outils compacte sur tous les viewports (comme mobile) pour gagner de la hauteur.
        `.map-view-root--solo` en plus de `main--map-visible` : évite un retour au wrap si la classe sur `main` manque un instant. */
     .main.main--map-visible .map-view-toolbar,
@@ -2836,6 +2845,40 @@
       height:36px;
       font-size:var(--text-sm);
       box-shadow:0 1px 10px rgba(26,71,49,.14);
+    }
+    /* Au doigt, la compaction ci-dessus descendait sous la règle projet des 44 px — sur
+       l'écran principal de l'élève, sur le terrain (audit du 25/09/2026, § 1.4.7). Ici la
+       cible passe avant la hauteur gagnée : la barre grandit d'une dizaine de pixels, au
+       toucher seulement ; à la souris rien ne bouge.
+       Taille RÉELLE et non zone d'appui `::after` : la barre défile (`overflow:auto`), elle
+       rognerait un agrandissement qui déborde de sa hauteur.
+       Spécificité : `button:not(.fm-help-btn)` pèse (0,4,1), au-dessus des (0,4,0) marqués
+       `!important` de `.btn-sm` et `.map-gesture-toggle` compacts ; d'où le `!important`. */
+    @media (pointer:coarse) {
+      .main.main--map-visible .map-view-toolbar button:not(.fm-help-btn),
+      .teacher-main.teacher-main--map-visible .map-view-toolbar button:not(.fm-help-btn),
+      .map-view-root--solo .map-view-toolbar button:not(.fm-help-btn) {
+        min-height:var(--tap-target) !important;
+        min-width:var(--tap-target);
+      }
+      .main.main--map-visible .map-view-toolbar .map-switch-select,
+      .teacher-main.teacher-main--map-visible .map-view-toolbar .map-switch-select,
+      .map-view-root--solo .map-view-toolbar .map-switch-select {
+        --fm-control-min-h:var(--tap-target);
+      }
+      .main.main--map-visible .map-view-toolbar .map-snap-setting,
+      .teacher-main.teacher-main--map-visible .map-view-toolbar .map-snap-setting,
+      .map-view-root--solo .map-view-toolbar .map-snap-setting {
+        min-height:var(--tap-target);
+      }
+      .main.main--map-visible .map-view-toolbar .fm-help-btn,
+      .teacher-main.teacher-main--map-visible .map-view-toolbar .fm-help-btn,
+      .map-view-root--solo .map-view-toolbar .fm-help-btn {
+        min-width:var(--tap-target);
+        min-height:var(--tap-target);
+        width:var(--tap-target);
+        height:var(--tap-target);
+      }
     }
 
     /* En-tête de « Mon carnet » : titre à gauche, bouton d'aide `?` à droite (parité GLHelpPanel). */
@@ -3059,6 +3102,10 @@
     .nested-groups-chip {
       display:inline-flex; align-items:center; gap:4px; min-height:36px;
       padding:4px 8px; background:var(--surface-pedago-soft); border-radius:6px; font-size:var(--text-sm);
+    }
+    /* Cible tactile ≥ 44 px au doigt : la puce est un `<label>` qui coche sa case. */
+    @media (pointer:coarse) {
+      .nested-groups-chip { min-height:var(--tap-target); }
     }
     .nested-groups-setup__map {
       display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0 16px;
@@ -9384,6 +9431,13 @@
   background: #e8f5ec;
   border-color: var(--sage);
 }
+/* Puces Quiz / Glossaire / fiche : 44 px au doigt (convention projet, audit du 25/09/2026
+   § 1.4.7). Elles vont à la ligne (`.pedago-chip-row` en flex-wrap) : grandir ne déborde pas. */
+@media (pointer: coarse) {
+  .pedago-chip-btn {
+    min-height: var(--tap-target);
+  }
+}
 .pedago-inline-link {
   background: none;
   border: none;
@@ -10172,6 +10226,44 @@
 }
 .pedago-foodweb-graph__export--mobile {
   display: none;
+}
+/* Puces de la sélection d'espèces isolées (sous le graphe). Elles n'étaient habillées que
+   par `shared/styles/food-web-graph.css`, que seule l'entrée G&L charge : côté ForetMap
+   c'étaient des boutons natifs, sans hauteur minimale. Même dessin, en tokens, et 44 px
+   au doigt (audit du 25/09/2026, § 1.4.7). */
+.pedago-foodweb-graph__selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+.pedago-foodweb-graph__selection-title {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--forest);
+}
+.pedago-foodweb-graph__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--leaf);
+  border-radius: 999px;
+  background: var(--tint-success);
+  color: var(--forest);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.pedago-foodweb-graph__chip:hover,
+.pedago-foodweb-graph__chip:focus-visible {
+  background: var(--tint-success-strong);
+}
+@media (pointer: coarse) {
+  .pedago-foodweb-graph__chip {
+    min-height: var(--tap-target);
+  }
 }
 .pedago-foodweb__preset-btns {
   display: flex;
