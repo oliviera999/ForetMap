@@ -6,6 +6,7 @@ const vm = require('node:vm');
 
 const { PRODUCTS } = require('../lib/products');
 const {
+  DEFAULT_NETWORK_TIMEOUT_SECONDS,
   renderServiceWorker,
   renderWebManifest,
   listProductIcons,
@@ -26,7 +27,7 @@ const BASE_OPTIONS = Object.freeze({
  * Exécute le SW rendu dans un bac à sable minimal (self/caches/fetch factices) et renvoie
  * les écouteurs enregistrés : prouve que la source est du JS valide et complet.
  */
-function loadServiceWorker(source) {
+function loadServiceWorker(source, { timers } = {}) {
   const listeners = {};
   const self = {
     addEventListener(type, handler) {
@@ -42,6 +43,9 @@ function loadServiceWorker(source) {
     URL,
     Promise,
     console,
+    // Minuteries réelles par défaut ; un test du délai réseau passe les siennes (`fakeTimers`).
+    setTimeout: timers ? timers.setTimeout : setTimeout,
+    clearTimeout: timers ? timers.clearTimeout : clearTimeout,
   };
   vm.createContext(context);
   vm.runInContext(source, context, { filename: 'sw-test.js' });
@@ -69,7 +73,8 @@ test('renderServiceWorker injecte le nom de cache et les listes (sans doublon de
 test('renderServiceWorker reprend les stratégies (HTML network-first, SWR, assets cache-first, SKIP_WAITING, purge)', () => {
   const source = renderServiceWorker(BASE_OPTIONS);
   assert.match(source, /function staleWhileRevalidate\(request\)/);
-  assert.match(source, /function networkFirst\(request, fallback\)/);
+  assert.match(source, /function networkFirst\(request, fallback, options = \{\}\)/);
+  assert.match(source, /const NETWORK_TIMEOUT_MS = 4000;/);
   assert.match(source, /function cacheFirst\(request\)/);
   assert.match(source, /isHtmlEntry\(url\.pathname\)/);
   assert.match(source, /caches\.match\(OFFLINE_PATH\)/);
@@ -314,4 +319,179 @@ test('listProductIcons ne garde que les icônes présentes sur disque', () => {
     ['/gl/apple-touch-icon.png', '/gl/favicon-32.png'],
   );
   assert.deepStrictEqual(listProductIcons(PRODUCTS.foret, { exists: () => false }), []);
+});
+
+// ── Délai d'attente du réseau (network-first HTML et API) ──────────────────────────────
+//
+// Modèle `networkTimeoutSeconds` de Workbox : passé le délai, la copie en cache part si elle
+// existe ; sinon on continue d'attendre le réseau. Audit du 25/09/2026, § 1.4.6 et § 2.4.
+
+/** Minuteries pilotées à la main : `fire()` déclenche celles qui sont en attente. */
+function fakeTimers() {
+  const pending = new Map();
+  let next = 1;
+  return {
+    setTimeout(fn, ms) {
+      const id = next;
+      next += 1;
+      pending.set(id, { fn, ms });
+      return id;
+    },
+    clearTimeout(id) {
+      pending.delete(id);
+    },
+    delays: () => [...pending.values()].map((t) => t.ms),
+    fire() {
+      const due = [...pending.entries()];
+      pending.clear();
+      for (const [, t] of due) t.fn();
+    },
+  };
+}
+
+/** Réponse réseau différée : `resolve(response)` / `reject(err)` à la main. */
+function deferredFetch(context) {
+  const control = {};
+  context.fetch = () =>
+    new Promise((resolve, reject) => {
+      control.resolve = resolve;
+      control.reject = reject;
+    });
+  return control;
+}
+
+const flushMicrotasks = () => new Promise((resolve) => setImmediate(resolve));
+
+function dispatchFetch(listeners, url) {
+  let responded;
+  const waited = [];
+  listeners.fetch({
+    request: { method: 'GET', url },
+    respondWith: (promise) => {
+      responded = promise;
+    },
+    waitUntil: (promise) => waited.push(promise),
+  });
+  return { responded, waited };
+}
+
+test('délai réseau : passé 4 s, la copie en cache est servie (API network-first)', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  const cached = { ok: true, status: 200, body: 'zones en cache' };
+  const store = cacheSandbox(context, [['/api/zones', cached]]);
+  const network = deferredFetch(context);
+
+  const { responded, waited } = dispatchFetch(listeners, 'https://foretmap.test/api/zones');
+  assert.deepStrictEqual(timers.delays(), [DEFAULT_NETWORK_TIMEOUT_SECONDS * 1000]);
+  timers.fire(); // le réseau ne répond pas
+  assert.deepStrictEqual(await responded, cached);
+
+  // La réponse réseau arrivée en retard rafraîchit quand même le cache (waitUntil).
+  const fresh = { ok: true, status: 200, clone: () => ({ body: 'zones fraîches' }) };
+  network.resolve(fresh);
+  await Promise.all(waited);
+  await flushMicrotasks();
+  assert.deepStrictEqual(store.get('/api/zones'), { body: 'zones fraîches' });
+});
+
+test('délai réseau : sans copie en cache, on continue d’attendre le réseau', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  cacheSandbox(context);
+  const network = deferredFetch(context);
+
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/api/tasks');
+  timers.fire();
+  let settled = false;
+  responded.then(() => {
+    settled = true;
+  });
+  await flushMicrotasks();
+  assert.strictEqual(settled, false, 'rien en cache : la réponse attend le réseau');
+
+  const late = { ok: true, status: 200, clone: () => ({ body: 'tâches' }) };
+  network.resolve(late);
+  assert.strictEqual(await responded, late);
+});
+
+test('délai réseau : un réseau rapide répond, la minuterie est annulée', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  cacheSandbox(context, [['/', { ok: true, body: 'page en cache' }]]);
+  const fresh = { ok: true, status: 200, clone: () => ({ body: 'page' }) };
+  context.fetch = () => Promise.resolve(fresh);
+
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/');
+  assert.strictEqual(await responded, fresh);
+  assert.deepStrictEqual(timers.delays(), [], 'minuterie annulée');
+});
+
+test('délai réseau : la page HTML en cache part au bout du délai ; sinon la page hors ligne', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  const store = cacheSandbox(context, [
+    ['/', { ok: true, body: 'coquille en cache' }],
+    ['/offline.html', { body: 'offline' }],
+  ]);
+  deferredFetch(context);
+  const first = dispatchFetch(listeners, 'https://foretmap.test/');
+  timers.fire();
+  assert.deepStrictEqual(await first.responded, { ok: true, body: 'coquille en cache' });
+
+  // Réseau coupé net, rien en cache pour cette entrée : repli sur la page hors ligne.
+  store.delete('/index.html');
+  context.fetch = () => Promise.reject(new Error('hors ligne'));
+  const second = dispatchFetch(listeners, 'https://foretmap.test/index.html');
+  assert.deepStrictEqual(await second.responded, { body: 'offline' });
+});
+
+test('délai réseau : les scripts non hachés n’ont pas de délai (jamais de version obsolète)', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  cacheSandbox(context, [['/legacy.js', { ok: true, body: 'vieux script' }]]);
+  const network = deferredFetch(context);
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/legacy.js');
+  assert.deepStrictEqual(timers.delays(), [], 'aucune minuterie pour un script');
+  const fresh = { ok: true, status: 200, clone: () => ({}) };
+  network.resolve(fresh);
+  assert.strictEqual(await responded, fresh);
+});
+
+test('délai réseau : réglable, désactivable (0) et validé', () => {
+  assert.match(
+    renderServiceWorker({ ...BASE_OPTIONS, networkTimeoutSeconds: 2.5 }),
+    /const NETWORK_TIMEOUT_MS = 2500;/,
+  );
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(
+    renderServiceWorker({ ...BASE_OPTIONS, networkTimeoutSeconds: 0 }),
+    { timers },
+  );
+  cacheSandbox(context);
+  deferredFetch(context);
+  dispatchFetch(listeners, 'https://foretmap.test/api/zones');
+  assert.deepStrictEqual(timers.delays(), []);
+  for (const bad of [-1, Number.NaN, '4', Infinity]) {
+    assert.throws(
+      () => renderServiceWorker({ ...BASE_OPTIONS, networkTimeoutSeconds: bad }),
+      /networkTimeoutSeconds/,
+    );
+  }
+});
+
+test('SW du mode dev (public/sw.js) : même délai réseau que le gabarit', async () => {
+  const source = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'public', 'sw.js'),
+    'utf8',
+  );
+  assert.match(source, /const NETWORK_TIMEOUT_MS = 4000;/);
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(source, { timers });
+  cacheSandbox(context, [['/api/zones', { ok: true, body: 'zones en cache' }]]);
+  deferredFetch(context);
+  const { responded } = dispatchFetch(listeners, 'https://foretmap.test/api/zones');
+  assert.deepStrictEqual(timers.delays(), [4000]);
+  timers.fire();
+  assert.deepStrictEqual(await responded, { ok: true, body: 'zones en cache' });
 });

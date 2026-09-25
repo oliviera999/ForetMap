@@ -396,6 +396,14 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
   à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
   reste disponible hors ligne (depuis septembre 2026).
+- **Réseau trop lent : on n'attend plus indéfiniment.** Sur le terrain, un réseau « présent
+  mais inutilisable » (une seule barre, Wi-Fi saturé par toute une classe) ne coupe pas la
+  connexion : l'appareil attendait parfois plus d'une minute. Désormais, au bout de
+  **4 secondes** sans réponse, l'application affiche la dernière version gardée sur
+  l'appareil (page, zones, fiches, repères, tâches) ; la réponse du serveur, si elle finit
+  par arriver, met cette copie à jour pour la fois suivante. S'il n'y a encore rien de
+  gardé, l'application continue d'attendre le serveur (depuis septembre 2026, pour les
+  quatre produits).
 - **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
   depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
   visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de

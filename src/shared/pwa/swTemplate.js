@@ -11,6 +11,8 @@
  *   - HTML (entrées listées) en network-first, repli sur le cache puis `offline.html` ;
  *   - API « lecture visite » en stale-while-revalidate (liste `apiStaleWhileRevalidate`) ;
  *   - autres API cachées en network-first, repli cache silencieux (liste `apiNetworkFirst`) ;
+ *   - pour ces deux network-first, un **délai d'attente du réseau** (`networkTimeoutSeconds`,
+ *     4 s par défaut) : au-delà, la copie en cache est servie si elle existe ;
  *   - `/assets/*` (bundles hachés par Vite, immuables) en cache-first — remplace le
  *     network-first historique sur JS/CSS, devenu inutile puisque le nom change à chaque build ;
  *   - JS/CSS hors `/assets/` (non hachés) en network-first, comme avant ;
@@ -18,6 +20,15 @@
  *   - message `SKIP_WAITING`, purge des anciens caches à l'activation.
  * Toute évolution de stratégie se fait ICI, puis `npm run build` régénère `dist/sw-<produit>.js`.
  */
+
+/**
+ * Délai d'attente du réseau des lectures network-first (HTML et API mises en cache), en
+ * secondes. Sur le terrain, un réseau « présent mais inutilisable » (une barre, Wi-Fi saturé
+ * d'une classe entière) ne rejette jamais la requête : sans délai, l'élève attendait jusqu'à
+ * l'abandon du navigateur, une minute et plus, alors qu'une copie était en cache (audit du
+ * 25/09/2026, § 1.4.6 et § 2.4).
+ */
+const DEFAULT_NETWORK_TIMEOUT_SECONDS = 4;
 
 /** Sérialise une liste de chaînes en littéral JS lisible (une entrée par ligne). */
 function renderStringList(values) {
@@ -36,6 +47,8 @@ function renderStringList(values) {
  * @param {string[]} [options.apiStaleWhileRevalidate] Chemins d'API en stale-while-revalidate (correspondance par suffixe).
  * @param {string[]} [options.apiNetworkFirst] Chemins d'API en network-first (correspondance exacte).
  * @param {string} [options.offlinePath] Page de repli hors ligne (`/offline.html`).
+ * @param {number} [options.networkTimeoutSeconds] Délai d'attente du réseau des lectures
+ *   network-first (HTML, API) avant de servir le cache ; `0` le désactive.
  * @returns {string}
  */
 function renderServiceWorker({
@@ -46,8 +59,17 @@ function renderServiceWorker({
   apiStaleWhileRevalidate = [],
   apiNetworkFirst = [],
   offlinePath = '/offline.html',
+  networkTimeoutSeconds = DEFAULT_NETWORK_TIMEOUT_SECONDS,
 }) {
   if (!product || typeof product !== 'string') throw new TypeError('product requis');
+  if (
+    typeof networkTimeoutSeconds !== 'number' ||
+    !Number.isFinite(networkTimeoutSeconds) ||
+    networkTimeoutSeconds < 0
+  ) {
+    throw new TypeError('networkTimeoutSeconds doit être un nombre positif ou nul');
+  }
+  const networkTimeoutMs = Math.round(networkTimeoutSeconds * 1000);
   if (!cacheName || typeof cacheName !== 'string') throw new TypeError('cacheName requis');
   if (!Array.isArray(precache)) throw new TypeError('precache doit être un tableau');
   if (!Array.isArray(htmlEntries) || htmlEntries.length === 0) {
@@ -71,6 +93,10 @@ const API_STALE_WHILE_REVALIDATE = ${renderStringList(apiStaleWhileRevalidate)};
 
 // API en lecture « network-first » (correspondance exacte du pathname).
 const API_NETWORK_FIRST = ${renderStringList(apiNetworkFirst)};
+
+// Délai d'attente du réseau des lectures network-first (HTML, API), en millisecondes ;
+// 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
+const NETWORK_TIMEOUT_MS = ${networkTimeoutMs};
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 
@@ -126,10 +152,44 @@ function putInCache(request, response) {
   return response;
 }
 
-function networkFirst(request, fallback) {
-  return fetch(request)
-    .then((response) => putInCache(request, response))
-    .catch(() => caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)));
+/**
+ * Réseau d'abord, avec délai d'attente facultatif — sur le modèle de l'option
+ * \`networkTimeoutSeconds\` de la stratégie \`NetworkFirst\` de Workbox (Google, licence MIT ;
+ * https://developer.chrome.com/docs/workbox/modules/workbox-strategies ,
+ * source : https://github.com/GoogleChrome/workbox/blob/v7/packages/workbox-strategies/src/NetworkFirst.ts ).
+ * Même contrat, réécrit ici sans la dépendance :
+ *   - le réseau répond avant le délai → sa réponse (mise en cache si valide) ;
+ *   - le délai expire → la copie en cache si elle existe ; SINON on continue d'attendre le
+ *     réseau (une page qui arrive tard vaut mieux qu'une page vide) ;
+ *   - le réseau échoue → la copie en cache, puis le repli (\`offline.html\` pour le HTML).
+ * La réponse réseau arrivée après le délai met quand même le cache à jour : \`waitUntil\`
+ * garde le service worker en vie le temps de l'écrire.
+ *
+ * @param {Request} request
+ * @param {() => Promise<Response|undefined>} [fallback]
+ * @param {{ event?: FetchEvent, timeoutMs?: number }} [options]
+ */
+function networkFirst(request, fallback, options = {}) {
+  const timeoutMs = Number(options.timeoutMs) || 0;
+  const network = fetch(request).then((response) => putInCache(request, response));
+  if (options.event && typeof options.event.waitUntil === 'function') {
+    options.event.waitUntil(network.then(() => undefined, () => undefined));
+  }
+  const networkOrCache = network.catch(() =>
+    caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)),
+  );
+  if (timeoutMs <= 0) return networkOrCache;
+  let timer = null;
+  const cacheAfterTimeout = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      caches.match(request).then(resolve, () => resolve(undefined));
+    }, timeoutMs);
+  });
+  return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
+    clearTimeout(timer);
+    // Délai écoulé sans copie en cache : on attend le réseau (ou son repli).
+    return response || networkOrCache;
+  });
 }
 
 function cacheFirst(request) {
@@ -204,7 +264,12 @@ self.addEventListener('fetch', (event) => {
 
   // HTML en network-first ; repli vers la page hors ligne.
   if (isHtmlEntry(url.pathname)) {
-    event.respondWith(networkFirst(event.request, () => caches.match(OFFLINE_PATH)));
+    event.respondWith(
+      networkFirst(event.request, () => caches.match(OFFLINE_PATH), {
+        event,
+        timeoutMs: NETWORK_TIMEOUT_MS,
+      }),
+    );
     return;
   }
 
@@ -214,9 +279,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Autres API cachées : network-first, repli cache silencieux.
+  // Autres API cachées : network-first (avec délai), repli cache silencieux.
   if (isNetworkFirstApi(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(networkFirst(event.request, null, { event, timeoutMs: NETWORK_TIMEOUT_MS }));
     return;
   }
 
@@ -226,7 +291,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // JS/CSS non hachés : network-first pour ne jamais servir une version obsolète.
+  // JS/CSS non hachés : network-first SANS délai — ne jamais servir une version obsolète.
   if (isScriptOrStyle(url.pathname)) {
     event.respondWith(networkFirst(event.request));
     return;
@@ -305,6 +370,7 @@ function renderWebManifest(product, { icons, extra } = {}) {
 }
 
 module.exports = {
+  DEFAULT_NETWORK_TIMEOUT_SECONDS,
   ICON_CANDIDATES,
   renderServiceWorker,
   renderWebManifest,
