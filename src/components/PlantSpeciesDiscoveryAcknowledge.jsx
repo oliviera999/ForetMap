@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  api,
+  AccountDeletedError,
+  createContextComment,
+  getAuthClaims,
+  getAuthToken,
+  isLikelyNetworkTransportFailure,
+} from '../services/api';
 import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
@@ -11,8 +18,31 @@ import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeC
 import { IconCheck } from '../shared/icons.jsx';
 import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
 import { chunkIds, normalizePlantIds } from '../utils/biodivCatalogLoad.js';
+import {
+  enqueuePlantObservation,
+  flushPlantObservationQueue,
+  newObservationClientUuid,
+} from '../utils/plantObservationQueue.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
+
+function currentUserId() {
+  const claims = typeof getAuthClaims === 'function' ? getAuthClaims() : null;
+  const id = claims?.canonicalUserId ?? claims?.userId;
+  return id == null ? '' : String(id);
+}
+
+function sendQueuedObservation(item) {
+  return api(`/api/plants/${item.plant_id}/acknowledge-discovery`, 'POST', {
+    confirm: true,
+    client_uuid: item.client_uuid,
+  });
+}
+
+/** Rejoue les observations mises en file sans réseau (un seul rejeu à la fois). */
+function flushQueuedObservations() {
+  return flushPlantObservationQueue(sendQueuedObservation, currentUserId()).catch(() => null);
+}
 
 /**
  * Bouton + modal pour confirmer une observation d’espèce (terrain + lecture de fiche).
@@ -38,16 +68,49 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   const [enrichError, setEnrichError] = useState('');
   const [enrichToast, setEnrichToast] = useState('');
 
+  const [queuedNotice, setQueuedNotice] = useState('');
+
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
-  const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
-  const gatingResource = useMemo(
-    () => ({ resourceType: 'plant', resourceRef: String(plantId) }),
-    [plantId],
-  );
   const my = Math.max(0, Number(myObservationCount) || 0);
   const site = Math.max(0, Number(siteObservationCount) || 0);
   const hasObserved = my > 0;
 
+  // Sans réseau, l'observation peut être mise en file seulement si le serveur ne posera pas de
+  // question à son arrivée : ré-observation (il saute alors le contrôle) ou fiche dont le
+  // résumé, chargé en ligne, dit qu'elle n'est pas conditionnée (audit du 25/09, piste D).
+  const offlineAllowedRef = useRef(false);
+  offlineAllowedRef.current = hasObserved || (!!gatingSummary && gatingSummary.required === false);
+
+  const gatingHandlers = useMemo(() => {
+    const base = createFmGatingHandlers(api);
+    return {
+      ...base,
+      fetchChallenge: async (...args) => {
+        try {
+          return await base.fetchChallenge(...args);
+        } catch (err) {
+          if (offlineAllowedRef.current && isLikelyNetworkTransportFailure(err)) {
+            return { gating_enabled: false, required: false, questions: [], offline: true };
+          }
+          throw err;
+        }
+      },
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasToken || typeof window === 'undefined') return undefined;
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      void flushQueuedObservations();
+    }
+    const onOnline = () => void flushQueuedObservations();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [hasToken]);
+  const gatingResource = useMemo(
+    () => ({ resourceType: 'plant', resourceRef: String(plantId) }),
+    [plantId],
+  );
   const busy = enrichSaving;
 
   useOverlayHistoryBack(enrichOpen, () => {
@@ -74,7 +137,24 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     if (!Number.isFinite(pid) || pid <= 0) {
       throw new Error('Fiche espèce invalide — recharge la page ou rouvre le catalogue.');
     }
-    const res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', { confirm: true });
+    const clientUuid = newObservationClientUuid();
+    let res;
+    try {
+      res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', {
+        confirm: true,
+        client_uuid: clientUuid,
+      });
+    } catch (err) {
+      const userId = currentUserId();
+      if (!offlineAllowedRef.current || !userId || !isLikelyNetworkTransportFailure(err)) {
+        throw err;
+      }
+      enqueuePlantObservation({ user_id: userId, plant_id: pid, client_uuid: clientUuid });
+      setQueuedNotice('Pas de réseau : ton observation est gardée et partira toute seule.');
+      onAcknowledged?.(pid, { my_observation_count: my + 1, site_observation_count: site + 1 });
+      return;
+    }
+    setQueuedNotice('');
     if (!res || res.success !== true) {
       throw new Error('Réponse serveur inattendue. Réessayez ou recharge la page.');
     }
@@ -82,7 +162,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       my_observation_count: Number(res.my_observation_count) || 0,
       site_observation_count: Number(res.site_observation_count) || 0,
     });
-  }, [plantId, onAcknowledged]);
+  }, [plantId, onAcknowledged, my, site]);
 
   const submitEnrichment = useCallback(
     async (onClose) => {
@@ -261,6 +341,11 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
         ) : (
           ackButton
         )}
+        {queuedNotice ? (
+          <p className="plant-discovery-queued" role="status">
+            {queuedNotice}
+          </p>
+        ) : null}
       </FmLearnAndImportSlot>
       {enrichOpen ? renderEnrichStep(enrichOpen, () => setEnrichOpen(false)) : null}
     </>

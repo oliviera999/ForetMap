@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ForêtMap – Hors ligne</title>
+  <!-- Jetons de marque (BRAND_PRODUCT_LABEL…) substitués au service par
+       lib/pwaRoutes.js, avec le vocabulaire de lib/brandHtml.js — le même que le plugin
+       Vite des entrées HTML. La marque ne s'écrit jamais en dur, et chaque produit
+       (jeu, plans) y lit son propre nom. -->
+  <title>%BRAND_PRODUCT_LABEL% – Hors ligne</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -36,9 +40,9 @@
   </style>
 </head>
 <body>
-  <img src="/icon.svg" alt="ForêtMap" />
+  <img src="/icon.svg" alt="%BRAND_PRODUCT_LABEL%" />
   <h1>Vous êtes hors ligne</h1>
-  <p>Reconnectez-vous à internet pour accéder à ForêtMap. Les données consultées récemment restent disponibles.</p>
+  <p>Reconnectez-vous à internet pour accéder à %BRAND_PRODUCT_LABEL%. Les données consultées récemment restent disponibles.</p>
   <button onclick="window.location.reload()">Réessayer</button>
 </body>
 </html>

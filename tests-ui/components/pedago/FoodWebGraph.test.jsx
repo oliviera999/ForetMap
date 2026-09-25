@@ -149,6 +149,57 @@ describe('FoodWebGraph', () => {
     expect(getByLabelText(/Trèfle.*niveau 1 dans ce réseau/)).toBeTruthy();
   });
 
+  test('détritivore (migration 295) : voie à part, et son prédateur au niveau 3', () => {
+    const items = [
+      {
+        id: 7,
+        interaction_type: 'predation',
+        from_id: 1,
+        from_name: 'Étourneau',
+        from_emoji: '🐦',
+        from_role: 'consommateur',
+        to_id: 2,
+        to_name: 'Lombric',
+        to_emoji: '🪱',
+        to_role: 'detritivore',
+        description: '',
+      },
+    ];
+    const { getByText, getByLabelText, queryByText } = render(<FoodWebGraph items={items} />);
+    expect(getByText('Détritivores')).toBeTruthy();
+    expect(queryByText('Consommateurs primaires')).toBeNull();
+    expect(getByText('Consommateurs secondaires')).toBeTruthy();
+    expect(getByLabelText(/Étourneau, consommateur, niveau 3 dans ce réseau/)).toBeTruthy();
+    expect(getByLabelText(/Lombric, détritivore, niveau 2 dans ce réseau/)).toBeTruthy();
+  });
+
+  test('colonnes de rôles : « Détritivores » n’apparaît que si le réseau en compte', () => {
+    const { getByText, queryByText, unmount } = render(
+      <FoodWebGraph items={[NITRI_ITEM, ENV_ITEM]} />,
+    );
+    fireEvent.click(getByText(/^Autres relations$/));
+    fireEvent.click(getByText(/Niveaux/));
+    expect(queryByText('Détritivores')).toBeNull();
+    unmount();
+
+    const symbiose = {
+      id: 8,
+      interaction_type: 'symbiose',
+      from_id: 50,
+      from_name: 'Ver de compost',
+      from_role: 'detritivore',
+      to_id: 51,
+      to_name: 'Bactérie du compost',
+      to_role: 'decomposeur',
+      description: '',
+    };
+    const view = render(<FoodWebGraph items={[NITRI_ITEM, symbiose]} />);
+    fireEvent.click(view.getByText(/^Autres relations$/));
+    fireEvent.click(view.getByText(/Niveaux/));
+    expect(view.getByText('Détritivores')).toBeTruthy();
+    expect(view.getByText('Décomposeurs')).toBeTruthy();
+  });
+
   test('bouton Voir la fiche ouvre l’espèce isolée', () => {
     const onOpenPlant = vi.fn();
     const { container, getByRole } = render(

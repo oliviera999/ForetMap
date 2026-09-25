@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS plants (
   taxon_genus VARCHAR(96) DEFAULT NULL COMMENT 'Genre',
   gbif_key INT UNSIGNED DEFAULT NULL COMMENT 'Identifiant taxon GBIF',
   habitat_type ENUM('terrestre','aquatique','les_deux') DEFAULT NULL,
-  trophic_role ENUM('producteur','consommateur','decomposeur') DEFAULT NULL,
+  -- `detritivore` : migration 295 (l'animal qui fragmente la matière morte ≠ le décomposeur).
+  trophic_role ENUM('producteur','consommateur','detritivore','decomposeur') DEFAULT NULL,
   is_ornamental TINYINT(1) NOT NULL DEFAULT 0,
   life_cycle ENUM('annuelle','bisannuelle','vivace','variable') DEFAULT NULL,
   temp_min_c SMALLINT DEFAULT NULL,

@@ -38,6 +38,10 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     context_comments_enabled: true,
     reports_enabled: true,
     presence_enabled: true,
+    id_keys_enabled: true,
+    individuals_enabled: true,
+    pedago_sessions_enabled: true,
+    rewards_enabled: true,
   },
   help: {
     show_context_hints: true,

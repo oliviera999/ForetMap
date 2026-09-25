@@ -40,12 +40,12 @@ async function getSiteGating() {
   return getFmGatingSite();
 }
 
-async function questionExists(code) {
-  const row = await queryOne(
-    'SELECT question_code FROM quiz_questions WHERE question_code = ? LIMIT 1',
-    [code],
-  );
-  return !!row;
+/** `statut` d'une question, ou `null` si elle n'existe pas. */
+async function questionStatut(code) {
+  const row = await queryOne('SELECT statut FROM quiz_questions WHERE question_code = ? LIMIT 1', [
+    code,
+  ]);
+  return row ? String(row.statut || '') : null;
 }
 
 /** GET /api/learning-links — liste filtree (resourceType, resourceRef, questionCode, status). */
@@ -86,7 +86,8 @@ router.post(
     if (!parsed.ok) return res.status(400).json({ error: parsed.error });
     const v = parsed.value;
     const provided = parsed.provided || {};
-    if (!(await questionExists(v.question_code))) {
+    const statut = await questionStatut(v.question_code);
+    if (statut == null) {
       return res.status(404).json({ error: 'Question introuvable' });
     }
     // Garde-fou : un lien BLOQUANT sur un type que ForetMap ne sait pas valider ne
@@ -132,7 +133,14 @@ router.post(
       [v.resource_type, v.resource_ref, v.question_code],
     );
     invalidateStrictCodesCache();
-    return res.status(201).json({ link: row });
+    // Question inactive : le lien est enregistré mais ne verrouillera rien tant qu'elle n'est
+    // pas réactivée — on le dit au professeur au lieu de le laisser croire le contraire
+    // (audit du 25/09/2026, § 1.5 ; A5 de docs/AUDIT_VALIDATION_QUIZ_2026-09.md).
+    const warning =
+      statut !== 'actif'
+        ? 'Question inactive : ce lien ne conditionnera rien tant qu’elle n’est pas réactivée.'
+        : undefined;
+    return res.status(201).json({ link: row, ...(warning ? { warning } : {}) });
   }),
 );
 
@@ -469,30 +477,44 @@ router.get(
     const src = SOURCES[type];
     if (!src) return res.status(400).json({ error: 'Type de ressource invalide' });
 
+    // `gating_count` ne compte que les liens vers une question **active** : c'est ce qui
+    // verrouille réellement. Les liens bloquants vers une question désactivée sont comptés à
+    // part (`inactive_gating_count`), pour que l'écran de couverture reste juste après une
+    // désactivation en masse (lot B : 72 questions ; audit du 25/09/2026, § 1.5).
     const rows = await queryAll(
       `${src.select},
               COUNT(l.id) AS links_count,
-              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1 THEN 1 ELSE 0 END) AS gating_count,
+              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1 AND lq.statut = 'actif'
+                       THEN 1 ELSE 0 END) AS gating_count,
+              SUM(CASE WHEN l.status = 'approved' AND l.is_gating = 1
+                        AND (lq.statut IS NULL OR lq.statut <> 'actif')
+                       THEN 1 ELSE 0 END) AS inactive_gating_count,
               SUM(CASE WHEN l.status = 'suggested' THEN 1 ELSE 0 END) AS suggested_count
          ${src.from}
          ${src.join}
+         LEFT JOIN quiz_questions lq ON lq.question_code = l.question_code
         ${src.group}
         ${src.order}`,
     );
+    const resources = rows.map((r) => ({
+      ref: String(r.ref),
+      label: r.label,
+      tutorial_type: r.kind,
+      is_active: Number(r.active) === 1,
+      links_count: Number(r.links_count) || 0,
+      gating_count: Number(r.gating_count) || 0,
+      inactive_gating_count: Number(r.inactive_gating_count) || 0,
+      suggested_count: Number(r.suggested_count) || 0,
+    }));
     return res.json({
       resource_type: type,
       // Un type non validable peut porter des liens documentaires, jamais de lien
       // bloquant : l'ecran le dit au lieu de laisser croire a un conditionnement.
       markable: linksBulk.isMarkableResourceType('fm', type),
-      resources: rows.map((r) => ({
-        ref: String(r.ref),
-        label: r.label,
-        tutorial_type: r.kind,
-        is_active: Number(r.active) === 1,
-        links_count: Number(r.links_count) || 0,
-        gating_count: Number(r.gating_count) || 0,
-        suggested_count: Number(r.suggested_count) || 0,
-      })),
+      // Ressources qui s'ouvrent librement faute de question active (décision du 25/09/2026 :
+      // l'ouverture est gardée, mais rendue visible).
+      without_active_gating_count: resources.filter((r) => r.gating_count === 0).length,
+      resources,
     });
   }),
 );
@@ -565,7 +587,7 @@ async function loadUnmirroredEditorialLinks(existing) {
     `SELECT qqt.tutorial_id, qqt.question_code, t.title
        FROM quiz_question_tutorials qqt
        JOIN tutorials t ON t.id = qqt.tutorial_id
-       JOIN quiz_questions q ON q.question_code = qqt.question_code`,
+       JOIN quiz_questions q ON q.question_code = qqt.question_code AND q.statut = 'actif'`,
   );
   const out = [];
   for (const row of rows) {

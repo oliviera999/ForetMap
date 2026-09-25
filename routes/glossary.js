@@ -14,6 +14,7 @@ const {
   FM_ACK_STORE,
 } = require('../lib/shared/learningAckCore');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
+const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
 
 const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
@@ -267,6 +268,7 @@ router.post(
         resourceRef: code,
         userId,
         skipGating: !!alreadyLearned,
+        learnerLevel: await loadLearnerLevel(userId),
       },
     );
     if (!gating.ok) {

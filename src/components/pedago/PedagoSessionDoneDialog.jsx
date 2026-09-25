@@ -44,10 +44,13 @@ export function buildPedagoSessionNote(session) {
 /**
  * Fin de séance : félicitation + note préremplie facultative dans le carnet
  * (réutilise la route d’articles du carnet ; rien n’est écrit sans clic).
+ * `showRewards` suit l'interrupteur `ui.modules.rewards_enabled` : éteint, la liste des
+ * nouveaux badges n'est pas rendue (le serveur n'en attribue d'ailleurs plus).
  */
 export function PedagoSessionDoneDialog({
   session,
   canAddToNotebook = false,
+  showRewards = true,
   onClose,
   onOpenNotebook = null,
 }) {
@@ -87,7 +90,7 @@ export function PedagoSessionDoneDialog({
           Bravo, tu as terminé « {session.title} ».
           {canAddToNotebook ? ' Tu peux garder une trace de ce que tu as vu dans ton carnet.' : ''}
         </p>
-        {Array.isArray(session.newRewards) && session.newRewards.length > 0 && (
+        {showRewards && Array.isArray(session.newRewards) && session.newRewards.length > 0 && (
           <ul
             className="pedago-rewards pedago-rewards--new"
             aria-label="Nouveaux badges"

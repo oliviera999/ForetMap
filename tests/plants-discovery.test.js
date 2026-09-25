@@ -165,3 +165,76 @@ test('Eleve: acknowledge-discovery et liste plant_ids', async () => {
     .expect(200);
   assert.ok(after.body.plant_ids.map(Number).includes(Number(testPlantId)));
 });
+
+// Piste D (audit du 25/09/2026, § 1.4.6 ; migration 296) : une observation renvoyée — réponse
+// perdue sur le terrain, file hors ligne rejouée — n'est comptée qu'une fois.
+test('acknowledge-discovery : la clé client_uuid rend l’envoi idempotent', async () => {
+  const register = async (suffix) =>
+    (
+      await request(app)
+        .post('/api/auth/register')
+        .send({
+          firstName: 'Bio',
+          lastName: `Idem${suffix}${Date.now()}`,
+          password: 'pass1234',
+          affiliation: 'foret',
+        })
+        .expect(201)
+    ).body.authToken;
+  const tokenA = await register('A');
+  const tokenB = await register('B');
+  const plant = await request(app)
+    .post('/api/plants')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ name: `Espece idempotence ${Date.now()}`, emoji: '🌿', description: 'Test' })
+    .expect(201);
+  const url = `/api/plants/${plant.body.id}/acknowledge-discovery`;
+  const send = (token, body) =>
+    request(app)
+      .post(url)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ confirm: true, ...body });
+
+  const uuid = `obs-${Date.now()}-a1b2c3`;
+  const first = await send(tokenA, { client_uuid: uuid }).expect(200);
+  assert.strictEqual(first.body.my_observation_count, 1);
+  assert.strictEqual(first.body.replayed, undefined);
+
+  const again = await send(tokenA, { client_uuid: uuid }).expect(200);
+  assert.strictEqual(again.body.replayed, true);
+  assert.strictEqual(again.body.my_observation_count, 1, 'le renvoi ne compte pas deux fois');
+  assert.strictEqual(
+    new Date(again.body.observed_at).getTime(),
+    new Date(first.body.observed_at).getTime(),
+  );
+
+  const other = await send(tokenA, { client_uuid: `${uuid}-2` }).expect(200);
+  assert.strictEqual(other.body.my_observation_count, 2);
+  const legacy = await send(tokenA, {}).expect(200);
+  assert.strictEqual(legacy.body.my_observation_count, 3, 'sans clé : comportement d’avant');
+
+  // La clé est propre à l'utilisateur : un autre élève n'est pas bloqué par elle.
+  const otherUser = await send(tokenB, { client_uuid: uuid }).expect(200);
+  assert.strictEqual(otherUser.body.my_observation_count, 1);
+  assert.strictEqual(otherUser.body.replayed, undefined);
+  assert.strictEqual(otherUser.body.site_observation_count, 4);
+
+  // Deux envois simultanés de la même clé (double appui, file rejouée pendant l'envoi) :
+  // une seule ligne, l'autre réponse est un rejeu.
+  const raceUuid = `race-${Date.now()}-d4e5f6`;
+  const [r1, r2] = await Promise.all([
+    send(tokenA, { client_uuid: raceUuid }),
+    send(tokenA, { client_uuid: raceUuid }),
+  ]);
+  assert.strictEqual(r1.status, 200);
+  assert.strictEqual(r2.status, 200);
+  assert.deepStrictEqual(
+    [r1.body.replayed === true, r2.body.replayed === true].filter(Boolean).length,
+    1,
+  );
+  const afterRace = await send(tokenA, { client_uuid: raceUuid }).expect(200);
+  assert.strictEqual(afterRace.body.my_observation_count, 4);
+
+  await send(tokenA, { client_uuid: 'x' }).expect(400);
+  await send(tokenA, { client_uuid: 'pas une clé !' }).expect(400);
+});

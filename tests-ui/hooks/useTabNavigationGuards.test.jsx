@@ -81,6 +81,54 @@ describe('useTabNavigationGuards', () => {
     expect(setTab).not.toHaveBeenCalled();
   });
 
+  it('replie les onglets des modules pédagogiques éteints vers map', () => {
+    expect(run({ tab: 'id-keys', modules: { id_keys_enabled: false } })).toHaveBeenCalledWith(
+      'map',
+    );
+    expect(
+      run({ tab: 'individuals', modules: { individuals_enabled: false } }),
+    ).toHaveBeenCalledWith('map');
+    expect(
+      run({ tab: 'sessions', modules: { pedago_sessions_enabled: false } }),
+    ).toHaveBeenCalledWith('map');
+    // Prof : même repli que les autres modules (carnet, stats…).
+    expect(
+      run({
+        tab: 'sessions',
+        effectiveIsTeacher: true,
+        modules: { pedago_sessions_enabled: false },
+      }),
+    ).toHaveBeenCalledWith('map');
+  });
+
+  it('un visiteur est replié vers la visite quand le module pédagogique est éteint', () => {
+    const setTab = run({
+      tab: 'id-keys',
+      isVisitor: true,
+      canAccessStudentMapTasks: false,
+      modules: { id_keys_enabled: false },
+    });
+    expect(setTab).toHaveBeenCalledWith('visit');
+  });
+
+  it('laisse Clés / Individus / Séances quand leur module est allumé ou non renseigné', () => {
+    for (const tab of ['id-keys', 'individuals', 'sessions']) {
+      expect(run({ tab })).not.toHaveBeenCalled();
+      expect(
+        run({
+          tab,
+          modules: {
+            id_keys_enabled: true,
+            individuals_enabled: true,
+            pedago_sessions_enabled: true,
+          },
+        }),
+      ).not.toHaveBeenCalled();
+    }
+    // Un module éteint ne déplace pas l'élève d'un autre onglet pédagogique.
+    expect(run({ tab: 'sessions', modules: { id_keys_enabled: false } })).not.toHaveBeenCalled();
+  });
+
   it('replie media_library vers about pour un non-prof', () => {
     const setTab = run({ tab: 'media_library', effectiveIsTeacher: false });
     expect(setTab).toHaveBeenCalledWith('about');

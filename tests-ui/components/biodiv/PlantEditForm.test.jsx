@@ -83,6 +83,53 @@ describe('PlantEditForm', () => {
     expect(applied.emoji).toBe(emojiBtn.textContent);
   });
 
+  test('chaque libellé nomme son champ (audit du 25/09/2026, § 1.4.7)', () => {
+    setup({
+      form: { ...EMPTY_PLANT_FORM, map_ids: ['m1'] },
+      maps: [{ id: 'm1', label: 'Forêt' }],
+    });
+    // Champs simples et listes : association `htmlFor`/`id`.
+    expect(screen.getByLabelText('Nom *')).toHaveAttribute('placeholder', 'Ex: Aubergine');
+    expect(screen.getByLabelText('Emoji')).toHaveAttribute('placeholder', 'ou colle un emoji');
+    expect(screen.getByLabelText('Nom scientifique').tagName).toBe('INPUT');
+    expect(screen.getByLabelText('Milieu').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Niveau de danger').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Remarque 3').tagName).toBe('INPUT');
+    expect(screen.getByLabelText('Photo espèce (URL directe)').tagName).toBe('INPUT');
+    // Éditeur riche : `role="textbox"` nommé par `aria-labelledby`.
+    for (const name of [
+      "Description d'identification",
+      'Quel danger, et quoi faire',
+      "Rôle dans l'écosystème",
+      'Sources',
+      'Notes de site — Forêt',
+    ]) {
+      expect(screen.getByRole('textbox', { name })).toBeInTheDocument();
+    }
+    // Groupes de cases : nommés par leur libellé.
+    for (const name of ['Présente sur ces cartes', 'Voies d’exposition', 'Risques identifiés']) {
+      expect(screen.getByRole('group', { name })).toBeInTheDocument();
+    }
+
+    // Balayage : aucun `<label>` orphelin, aucun champ visible sans nom.
+    const form = document.querySelector('.plant-edit-form');
+    const orphans = [...form.querySelectorAll('label')].filter((label) => {
+      if (label.querySelector('input, select, textarea')) return false;
+      const target = label.htmlFor && document.getElementById(label.htmlFor);
+      return !target;
+    });
+    expect(orphans.map((l) => l.textContent)).toEqual([]);
+    const unnamed = [...form.querySelectorAll('input, select, textarea, [role="textbox"]')]
+      .filter((control) => control.type !== 'file' && control.type !== 'hidden')
+      .filter(
+        (control) =>
+          !(control.labels && control.labels.length) &&
+          !control.getAttribute('aria-label') &&
+          !control.getAttribute('aria-labelledby'),
+      );
+    expect(unnamed.map((c) => c.outerHTML.slice(0, 80))).toEqual([]);
+  });
+
   test('boutons Enregistrer/Annuler câblés ; Enregistrer désactivé pendant saving', () => {
     const { onSave, onCancel } = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));

@@ -6,6 +6,7 @@ import {
 } from '../../utils/plantFilters';
 import { ORIGIN_STATUS_VALUES, ORIGIN_STATUS_LABELS } from '../../utils/plantOriginStatus.js';
 import { IUCN_STATUS_VALUES, IUCN_STATUS_LABELS } from '../../utils/plantIucnStatus.js';
+import { trophicRoleLabel } from '../../utils/plantTrophicRole.js';
 import { BIODIV_MAP_FILTER_ALL, BIODIV_SORT } from '../../utils/biodivCatalogLoad.js';
 
 /**
@@ -364,7 +365,7 @@ export function PlantCatalogFilterPanel({
                 <option value="">Tous</option>
                 {trophicOptions.map((a) => (
                   <option key={a} value={a}>
-                    {a}
+                    {trophicRoleLabel(a) || a}
                   </option>
                 ))}
               </select>

@@ -68,6 +68,8 @@ export function SessionsView({
   onOpenConfig = null,
   isAuthenticated = false,
   runsVersion = 0,
+  /** Interrupteur `ui.modules.rewards_enabled` : éteint → ni appel `/api/rewards`, ni « Mes badges ». */
+  rewardsEnabled = true,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,7 @@ export function SessionsView({
       return;
     }
     let cancelled = false;
+    if (!rewardsEnabled) setRewards({ rewards: [], catalogue: [] });
     api('/api/pedago-sessions/me/runs')
       .then((data) => {
         if (cancelled) return;
@@ -98,21 +101,23 @@ export function SessionsView({
       .catch(() => {
         if (!cancelled) setMyRuns({});
       });
-    api('/api/rewards/me')
-      .then((data) => {
-        if (cancelled) return;
-        setRewards({
-          rewards: Array.isArray(data?.rewards) ? data.rewards : [],
-          catalogue: Array.isArray(data?.catalogue) ? data.catalogue : [],
+    if (rewardsEnabled) {
+      api('/api/rewards/me')
+        .then((data) => {
+          if (cancelled) return;
+          setRewards({
+            rewards: Array.isArray(data?.rewards) ? data.rewards : [],
+            catalogue: Array.isArray(data?.catalogue) ? data.catalogue : [],
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setRewards({ rewards: [], catalogue: [] });
         });
-      })
-      .catch(() => {
-        if (!cancelled) setRewards({ rewards: [], catalogue: [] });
-      });
+    }
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, runsVersion]);
+  }, [isAuthenticated, runsVersion, rewardsEnabled]);
 
   useEffect(() => {
     if (!canManage) {
@@ -215,7 +220,7 @@ export function SessionsView({
         </p>
       </header>
 
-      {isAuthenticated && rewards.catalogue.length > 0 && (
+      {rewardsEnabled && isAuthenticated && rewards.catalogue.length > 0 && (
         <section className="pedago-rewards" aria-label="Mes badges" data-testid="pedago-rewards">
           <h2 className="pedago-sessions__panel-title">
             Mes badges ({earnedKeys.size}/{rewards.catalogue.length})

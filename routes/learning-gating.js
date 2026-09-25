@@ -13,6 +13,7 @@ const {
   FORETMAP_RESOURCE_TYPES,
 } = require('../lib/shared/resourceQuestionGatingCore');
 const { FM_MARKABLE } = require('../lib/learningGatingRuntime');
+const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
 
 const router = express.Router();
 const db = { queryAll, queryOne };
@@ -57,6 +58,7 @@ router.get(
       resourceType,
       resourceRef,
       userId,
+      learnerLevel: await loadLearnerLevel(userId),
     });
     if (!state.ok) {
       return res.status(state.status || 400).json({ error: state.error || 'Challenge invalide' });
@@ -91,6 +93,7 @@ router.get(
       rawRefs: req.query.resourceRefs,
       userId,
       isAlreadyDone: async (_type, ref) => done.has(String(ref)),
+      learnerLevel: await loadLearnerLevel(userId),
     });
     return res.json(summary);
   }),

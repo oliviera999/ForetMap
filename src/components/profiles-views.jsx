@@ -895,6 +895,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
         mode={roleForm?.mode || 'create'}
         role={roleForm?.role || null}
         drafts={roleForm?.drafts || {}}
+        roles={roles}
         onClose={() => setRoleForm(null)}
         onSubmit={submitRoleForm}
       />

@@ -47,11 +47,18 @@ const {
 const { evaluateSessionRewards } = require('../lib/rewards');
 const { getScopedStudentIds } = require('../lib/groupScope');
 const { resolveRouteBaseUrl } = require('../lib/mapRoutes');
+const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 // `qrcode` (MIT, https://github.com/soldair/node-qrcode) : déjà utilisé pour les parcours.
 const QRCode = require('qrcode');
 
 const router = express.Router();
 const manageSessions = requirePermission('plants.manage');
+
+// Module éteint (`ui.modules.pedago_sessions_enabled`) : tout le routeur répond 503 — catalogue,
+// démarrage / fin d'exécution élève, mais aussi gestion prof (création, suivi, partage), comme
+// le forum et le carnet ferment aussi leurs routes de modération. Les tâches déjà liées à une
+// séance gardent leur lien en base (`tasks.pedago_session_id`) : seul le bouton disparaît.
+router.use(requireModuleEnabled('foret', 'pedago_sessions', 'Séances pédagogiques désactivées'));
 
 const SELECT_COLS = `id, slug, title, description, level, template_key, map_id,
   config_json, steps_json, is_published, sort_order, created_at, updated_at`;

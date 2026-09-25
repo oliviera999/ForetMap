@@ -3,6 +3,8 @@
  * Partagé entre l'affichage (`PlantMetaSections`) et le formulaire d'édition (`PlantEditForm`).
  */
 
+import { TROPHIC_ROLE_LABELS } from '../utils/plantTrophicRole.js';
+
 export const PLANT_META_SECTIONS = [
   {
     title: 'Identité',
@@ -60,7 +62,13 @@ export const PLANT_META_SECTIONS = [
     items: [
       { key: 'habitat', label: 'Habitat (texte)' },
       { key: 'habitat_type', label: 'Milieu (terrestre/aquatique)', select: 'habitat_type' },
-      { key: 'trophic_role', label: 'Rôle trophique', select: 'trophic_role' },
+      {
+        key: 'trophic_role',
+        label: 'Rôle trophique',
+        select: 'trophic_role',
+        // « Détritivore » plutôt que la valeur brute `detritivore` (migration 295).
+        valueLabels: TROPHIC_ROLE_LABELS,
+      },
       { key: 'is_edible', label: 'Comestible (oui/non)', select: 'is_edible' },
       { key: 'harvest_part', label: 'Partie à récolter' },
       { key: 'planting_recommendations', label: 'Recommandations de plantation' },

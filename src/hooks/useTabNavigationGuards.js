@@ -11,7 +11,8 @@ import { useEffect } from 'react';
  * - élève sans accès carte/tâches → repli sur `plants` ;
  * - onglet split `maptasks` hors écran large → repli sur `map` ;
  * - modules désactivés (tuto, stats, visite, packs mascotte, carnet, forum,
- *   médiathèque) → repli sur `map` ou `about` selon le cas d'origine ;
+ *   médiathèque, clés d'identification, individus, séances) → repli sur `map`
+ *   (ou `visit` pour un visiteur) ou `about` selon le cas d'origine ;
  * - onglet `tuto` avec un focus lieu actif (fusion Tâches&tuto) → bascule sur
  *   `tasks`.
  *
@@ -49,6 +50,9 @@ export function useTabNavigationGuards({
   const visitEnabled = modules?.visit_enabled;
   const observationsEnabled = modules?.observations_enabled;
   const forumEnabled = modules?.forum_enabled;
+  const idKeysEnabled = modules?.id_keys_enabled;
+  const individualsEnabled = modules?.individuals_enabled;
+  const pedagoSessionsEnabled = modules?.pedago_sessions_enabled;
 
   useEffect(() => {
     if (effectiveIsTeacher) return;
@@ -84,6 +88,9 @@ export function useTabNavigationGuards({
     if (tab === 'visit' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
     if (tab === 'mascot_packs' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
     if (tab === 'notebook' && observationsEnabled === false) setTab(visitFallback);
+    if (tab === 'id-keys' && idKeysEnabled === false) setTab(visitFallback);
+    if (tab === 'individuals' && individualsEnabled === false) setTab(visitFallback);
+    if (tab === 'sessions' && pedagoSessionsEnabled === false) setTab(visitFallback);
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
   }, [
@@ -93,6 +100,9 @@ export function useTabNavigationGuards({
     visitEnabled,
     observationsEnabled,
     forumEnabled,
+    idKeysEnabled,
+    individualsEnabled,
+    pedagoSessionsEnabled,
     canAccessForum,
     canViewGeneralStats,
     canAccessProfiles,

@@ -32,6 +32,10 @@ const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default
  * visite, glossaire, quiz, réseau trophique, à propos. Un seul onglet est rendu
  * à la fois — iso-rendu avec les anciens blocs dupliqués.
  *
+ * Modules activables (`visitEnabled`, `idKeysEnabled`, `individualsEnabled`,
+ * `pedagoSessionsEnabled`) : un onglet de module éteint ne monte pas sa vue, même
+ * le temps que `useTabNavigationGuards` redirige — sa vue n'appellerait qu'une API en 503.
+ *
  * Différences historiques entre branches, préservées (voir cartographie D4) :
  * - visite : `onOpenMascotPackStudioTab` n'existe que côté prof (undefined côté
  *   élève, comme la prop absente d'avant) ;
@@ -73,6 +77,9 @@ export function PedagoTabs({
   canReadSiteIssues = false,
   sessionsProps = null,
   pedagoEntry = null,
+  idKeysEnabled = true,
+  individualsEnabled = true,
+  pedagoSessionsEnabled = true,
 }) {
   return (
     <>
@@ -152,7 +159,7 @@ export function PedagoTabs({
           />
         </TabSuspense>
       )}
-      {tab === 'id-keys' && (
+      {idKeysEnabled && tab === 'id-keys' && (
         <TabSuspense>
           <IdKeysViewLazy
             canManage={canManageIdKeys}
@@ -161,7 +168,7 @@ export function PedagoTabs({
           />
         </TabSuspense>
       )}
-      {tab === 'individuals' && (
+      {individualsEnabled && tab === 'individuals' && (
         <TabSuspense>
           <IndividualsViewLazy
             maps={maps}
@@ -173,7 +180,7 @@ export function PedagoTabs({
           />
         </TabSuspense>
       )}
-      {tab === 'sessions' && sessionsProps && (
+      {pedagoSessionsEnabled && tab === 'sessions' && sessionsProps && (
         <TabSuspense>
           <SessionsViewLazy {...sessionsProps} />
         </TabSuspense>

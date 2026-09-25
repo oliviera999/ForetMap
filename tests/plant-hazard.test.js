@@ -167,12 +167,12 @@ describe('intégration au payload plante', () => {
     assert.strictEqual(payload.hazard_reviewed, 0);
   });
 
-  test('les quatre colonnes sont dans la whitelist des champs plante', () => {
+  test('les trois colonnes de danger sont dans la whitelist ; le drapeau de relecture n’y est pas', () => {
+    // `hazard_reviewed` ne s'écrit que par `POST /:id/validate-hazard` (audit 25/09, § 1.3.6).
     assert.deepStrictEqual(PLANT_HAZARD_FIELDS, [
       'toxicity_level',
       'hazard_exposure',
       'hazard_notes',
-      'hazard_reviewed',
     ]);
   });
 });

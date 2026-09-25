@@ -1008,6 +1008,12 @@ function App() {
   const [pedagoEntry, setPedagoEntry] = useState(null);
   const [pedagoMapRouteRequest, setPedagoMapRouteRequest] = useState(null);
   const [pedagoRunsVersion, setPedagoRunsVersion] = useState(0);
+  // Modules pédagogiques activables (`ui.modules.*`, allumés par défaut — décision du 25/09).
+  // Déclarés ici, avant les callbacks de séance qui les lisent (zone morte temporelle).
+  const idKeysModuleEnabled = publicSettings?.modules?.id_keys_enabled !== false;
+  const individualsModuleEnabled = publicSettings?.modules?.individuals_enabled !== false;
+  const pedagoSessionsModuleEnabled = publicSettings?.modules?.pedago_sessions_enabled !== false;
+  const rewardsModuleEnabled = publicSettings?.modules?.rewards_enabled !== false;
   // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
   // onglets pour survivre à tout changement de vue — audit A1).
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
@@ -1073,6 +1079,12 @@ function App() {
         return;
       }
       if (type === 'open_id_key') {
+        // Module éteint : l'étape reste lisible dans le bandeau, sans ouvrir un onglet masqué
+        // que `useTabNavigationGuards` renverrait aussitôt vers la carte.
+        if (!idKeysModuleEnabled) {
+          navigateTab('sessions');
+          return;
+        }
         setPedagoIdKeysInitialKey(payload.keyIdOrSlug || null);
         navigateTab('id-keys');
         return;
@@ -1107,6 +1119,10 @@ function App() {
       }
       const map = payload.mapId ? String(payload.mapId).trim() : '';
       if (type === 'open_individual') {
+        if (!individualsModuleEnabled) {
+          navigateTab('sessions');
+          return;
+        }
         if (map) chooseMap(map);
         const iid = Number(payload.individualId);
         setPedagoEntry((prev) => ({
@@ -1141,6 +1157,8 @@ function App() {
       openPedagoFoodWeb,
       setPlantCatalogPreview,
       chooseMap,
+      idKeysModuleEnabled,
+      individualsModuleEnabled,
     ],
   );
 
@@ -1231,6 +1249,7 @@ function App() {
       onStartSession: startPedagoSession,
       isAuthenticated: pedagoAuthenticated,
       runsVersion: pedagoRunsVersion,
+      rewardsEnabled: rewardsModuleEnabled,
     }),
     [
       canManageFoodWeb,
@@ -1241,6 +1260,7 @@ function App() {
       startPedagoSession,
       pedagoAuthenticated,
       pedagoRunsVersion,
+      rewardsModuleEnabled,
     ],
   );
 
@@ -1649,21 +1669,24 @@ function App() {
                       showFullGlossaryLink={tab !== 'glossary'}
                     />
                   )}
-                  {activePedagoSession && pedagoSessionCurrentStep && (
-                    <PedagoSessionBanner
-                      sessionTitle={activePedagoSession.title}
-                      step={pedagoSessionCurrentStep}
-                      stepIndex={activePedagoSession.stepIndex}
-                      stepCount={activePedagoSession.steps.length}
-                      onPrev={() => goPedagoSessionStep(-1)}
-                      onNext={() => goPedagoSessionStep(1)}
-                      onExit={exitPedagoSession}
-                      onShowMessage={() => navigateTab('sessions')}
-                    />
-                  )}
+                  {pedagoSessionsModuleEnabled &&
+                    activePedagoSession &&
+                    pedagoSessionCurrentStep && (
+                      <PedagoSessionBanner
+                        sessionTitle={activePedagoSession.title}
+                        step={pedagoSessionCurrentStep}
+                        stepIndex={activePedagoSession.stepIndex}
+                        stepCount={activePedagoSession.steps.length}
+                        onPrev={() => goPedagoSessionStep(-1)}
+                        onNext={() => goPedagoSessionStep(1)}
+                        onExit={exitPedagoSession}
+                        onShowMessage={() => navigateTab('sessions')}
+                      />
+                    )}
                   {completedPedagoSession && (
                     <PedagoSessionDoneDialog
                       session={completedPedagoSession}
+                      showRewards={rewardsModuleEnabled}
                       canAddToNotebook={
                         pedagoAuthenticated &&
                         publicSettings?.modules?.observations_enabled !== false
@@ -1895,6 +1918,9 @@ function App() {
                         observationsEnabled={
                           publicSettings?.modules?.observations_enabled !== false
                         }
+                        idKeysEnabled={idKeysModuleEnabled}
+                        pedagoSessionsEnabled={pedagoSessionsModuleEnabled}
+                        individualsEnabled={individualsModuleEnabled}
                         canAccessForum={canAccessForum}
                         hasForumUnread={hasForumUnread}
                         isN3Affiliated={isN3Affiliated}
@@ -1912,7 +1938,9 @@ function App() {
                             onMapPlaceRequestHandled={consumeMapPlaceRequest}
                             tasksFocusRequest={tasksFocusRequest}
                             onTasksFocusRequestHandled={consumeTasksFocusRequest}
-                            onStartPedagoSession={launchPedagoSession}
+                            onStartPedagoSession={
+                              pedagoSessionsModuleEnabled ? launchPedagoSession : null
+                            }
                             isTeacher
                             student={currentUser}
                             maps={visibleMaps}
@@ -2107,6 +2135,9 @@ function App() {
                             onOpenSettingsLearning={handleOpenSettingsLearning}
                             sessionsProps={sessionsProps}
                             pedagoEntry={pedagoEntry}
+                            idKeysEnabled={idKeysModuleEnabled}
+                            individualsEnabled={individualsModuleEnabled}
+                            pedagoSessionsEnabled={pedagoSessionsModuleEnabled}
                           />
                         </>
                       )}
@@ -2127,7 +2158,9 @@ function App() {
                               onMapPlaceRequestHandled={consumeMapPlaceRequest}
                               tasksFocusRequest={tasksFocusRequest}
                               onTasksFocusRequestHandled={consumeTasksFocusRequest}
-                              onStartPedagoSession={launchPedagoSession}
+                              onStartPedagoSession={
+                                pedagoSessionsModuleEnabled ? launchPedagoSession : null
+                              }
                               isTeacher={false}
                               student={studentForUi}
                               maps={visibleMaps}
@@ -2237,6 +2270,9 @@ function App() {
                               appVersion={appVersion}
                               sessionsProps={sessionsProps}
                               pedagoEntry={pedagoEntry}
+                              idKeysEnabled={idKeysModuleEnabled}
+                              individualsEnabled={individualsModuleEnabled}
+                              pedagoSessionsEnabled={pedagoSessionsModuleEnabled}
                             />
                           </>
                         )}
@@ -2257,6 +2293,9 @@ function App() {
                           publicSettings?.modules?.observations_enabled !== false
                         }
                         visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                        idKeysEnabled={idKeysModuleEnabled}
+                        pedagoSessionsEnabled={pedagoSessionsModuleEnabled}
+                        individualsEnabled={individualsModuleEnabled}
                         canAccessForum={canAccessForum}
                         hasForumUnread={hasForumUnread}
                       />

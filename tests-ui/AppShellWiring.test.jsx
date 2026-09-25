@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 
 /**
  * Gardes de rendu et de câblage du shell `App` — les deux branches (authentifiée et
@@ -20,6 +20,8 @@ const probes = vi.hoisted(() => ({ mapTasks: [], pedago: [], unauthenticated: []
 const session = vi.hoisted(() => ({ stored: null, claims: null }));
 const dataSyncCalls = vi.hoisted(() => []);
 const tokenRenewalCalls = vi.hoisted(() => []);
+// Réglages publics servis par le bootstrap simulé : `modules` est remplacé par test.
+const bootstrap = vi.hoisted(() => ({ modules: {} }));
 
 vi.mock('../src/components/app/MapTasksArea.jsx', () => ({
   MapTasksArea: (props) => {
@@ -103,7 +105,7 @@ vi.mock('../src/hooks/useForetmapRealtime', () => ({ useForetmapRealtime: () => 
 vi.mock('../src/hooks/useAppBootstrap', () => ({
   useAppBootstrap: () => ({
     appVersion: '1.0.0',
-    publicSettings: { modules: {} },
+    publicSettings: { modules: bootstrap.modules },
     publicSettingsReady: true,
   }),
 }));
@@ -142,6 +144,7 @@ async function renderAppWith({ stored, claims }) {
 
 beforeEach(() => {
   window.localStorage.clear();
+  bootstrap.modules = {};
   probes.mapTasks.length = 0;
   probes.pedago.length = 0;
   probes.unauthenticated.length = 0;
@@ -368,5 +371,42 @@ describe('App — mémoire du dernier plan consulté', () => {
     // Ni mémoire ni réglage « plan par défaut (visite publique) » dans ce montage :
     // la carte active du shell fait office de repli.
     expect(shell.visitInitialMapId).toBe('m1');
+  });
+});
+
+/**
+ * Modules pédagogiques activables (`ui.modules.{id_keys,individuals,pedago_sessions,rewards}_enabled`,
+ * décision du 25/09/2026). Les onglets eux-mêmes sont testés dans `StudentBottomNav` /
+ * `TeacherTopTabs` ; ici, on vérifie que le shell transmet bien les interrupteurs aux zones qui
+ * montent les vues — un drapeau oublié laisserait une vue appeler une API en 503.
+ */
+describe('App — câblage des modules pédagogiques activables', () => {
+  test('par défaut (réglages absents) : tout est allumé', async () => {
+    const { mapTasks, pedago } = await renderAppWith(STUDENT_SESSION);
+    expect(pedago.idKeysEnabled).toBe(true);
+    expect(pedago.individualsEnabled).toBe(true);
+    expect(pedago.pedagoSessionsEnabled).toBe(true);
+    expect(pedago.sessionsProps.rewardsEnabled).toBe(true);
+    expect(typeof mapTasks.onStartPedagoSession).toBe('function');
+  });
+
+  test('modules éteints : vues non montées, bouton « Lancer la séance » retiré, badges masqués', async () => {
+    bootstrap.modules = {
+      id_keys_enabled: false,
+      individuals_enabled: false,
+      pedago_sessions_enabled: false,
+      rewards_enabled: false,
+    };
+    for (const sessionCase of [STUDENT_SESSION, TEACHER_SESSION]) {
+      probes.mapTasks.length = 0;
+      probes.pedago.length = 0;
+      const { mapTasks, pedago } = await renderAppWith(sessionCase);
+      expect(pedago.idKeysEnabled).toBe(false);
+      expect(pedago.individualsEnabled).toBe(false);
+      expect(pedago.pedagoSessionsEnabled).toBe(false);
+      expect(pedago.sessionsProps.rewardsEnabled).toBe(false);
+      expect(mapTasks.onStartPedagoSession).toBeNull();
+      cleanup();
+    }
   });
 });

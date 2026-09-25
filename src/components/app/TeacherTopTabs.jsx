@@ -90,6 +90,10 @@ export function TeacherTopTabs({
   statsEnabled,
   visitEnabled,
   observationsEnabled = true,
+  /* Modules pédagogiques activables (`ui.modules.*`) : allumés par défaut. */
+  idKeysEnabled = true,
+  pedagoSessionsEnabled = true,
+  individualsEnabled = true,
   canAccessForum,
   /** Point rouge sur l'onglet Forum (et son pôle) : message d'autrui non lu. */
   hasForumUnread = false,
@@ -165,21 +169,23 @@ export function TeacherTopTabs({
       pole: 'contents',
       Icon: IconSearch,
       label: 'Clés d’identification',
-      visible: canPlants || hasPermission('id_keys.manage'),
+      visible: idKeysEnabled && (canPlants || hasPermission('id_keys.manage')),
     },
     {
       id: 'sessions',
       pole: 'contents',
       Icon: IconSessions,
       label: 'Séances',
-      visible: canPlants,
+      visible: pedagoSessionsEnabled && canPlants,
     },
     {
       id: 'individuals',
       pole: 'tracking',
       Icon: IconBiodiv,
       label: 'Individus',
+      // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
       visible:
+        individualsEnabled &&
         (hasPermission('individuals.manage') ||
           hasPermission('individuals.measure') ||
           canPlants) &&

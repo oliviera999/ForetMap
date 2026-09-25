@@ -108,6 +108,25 @@ describe('SessionsView — lot 5', () => {
     await waitFor(() => expect(screen.getByTestId('pedago-rewards').textContent).toContain('1/2'));
   });
 
+  it('récompenses éteintes (`rewardsEnabled=false`) : ni appel /api/rewards, ni « Mes badges »', async () => {
+    mockApi({
+      rewards: [{ key: 'session_first', emoji: '🌱', title: 'Première séance' }],
+      catalogue: [
+        { key: 'session_first', emoji: '🌱', title: 'Première séance', description: 'x' },
+      ],
+    });
+    render(<SessionsView isAuthenticated rewardsEnabled={false} onStartSession={vi.fn()} />);
+    await screen.findByText('Séance A');
+    // Les exécutions restent chargées : seule la ludification est coupée.
+    await waitFor(() =>
+      expect(apiMock.mock.calls.some(([p]) => p.startsWith('/api/pedago-sessions/me/runs'))).toBe(
+        true,
+      ),
+    );
+    expect(apiMock.mock.calls.some(([p]) => p.startsWith('/api/rewards'))).toBe(false);
+    expect(screen.queryByTestId('pedago-rewards')).toBeNull();
+  });
+
   it('prof : partage (lien + QR) et suivi par élève', async () => {
     mockApi();
     render(<SessionsView canManage isAuthenticated onStartSession={vi.fn()} />);
@@ -188,5 +207,23 @@ describe('PedagoSessionDoneDialog — badges', () => {
     expect(screen.getByTestId('pedago-session-new-rewards').textContent).toContain(
       'Première séance',
     );
+  });
+
+  it('module récompenses éteint (`showRewards=false`) : aucun badge affiché', () => {
+    render(
+      <PedagoSessionDoneDialog
+        session={{
+          title: 'X',
+          steps: [],
+          newRewards: [
+            { key: 'session_first', emoji: '🌱', title: 'Première séance', description: 'd' },
+          ],
+        }}
+        showRewards={false}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Séance terminée')).toBeTruthy();
+    expect(screen.queryByTestId('pedago-session-new-rewards')).toBeNull();
   });
 });

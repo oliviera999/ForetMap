@@ -87,6 +87,12 @@ npm run db:backfill:users
 
 Contrôle lecture seule du corpus pédagogique : `npm run audit:pedago`.
 
+Contrôle lecture seule des textes montrés aux visiteurs (visite, fiches) : `npm run
+audit:visitor-texts`. Il liste les incitations à cueillir, goûter ou manipuler un être vivant
+et les zones grises (règle permanente du projet ; motifs dans `lib/visitorTextGuard.js`,
+exceptions arbitrées dans `lib/visitorTextCorpus.js`). Code de sortie 1 s'il reste une
+incitation non arbitrée.
+
 ### Gnomes & Licornes (XLSX dans `data/gl/`)
 
 Toujours **sans `--apply` d’abord**. Chaque commande affiche un rapport JSON.

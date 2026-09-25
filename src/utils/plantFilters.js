@@ -2,6 +2,8 @@
  * Filtres catalogue biodiversité (champs plants côté client).
  */
 
+import { trophicRoleLabel } from './plantTrophicRole.js';
+
 function nv(value) {
   if (value == null) return '';
   const s = String(value).trim();
@@ -166,6 +168,9 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
     plantTaxonomyValue(plant, 'family'),
     plantTaxonomyValue(plant, 'genus'),
     plant.trophic_role,
+    // Le libellé accentué (« détritivore », « décomposeur ») : la valeur stockée n'a pas
+    // d'accent, et c'est le mot que l'élève tape.
+    trophicRoleLabel(plant.trophic_role),
     plant.geographic_origin,
     plant.harvest_part,
   ];

@@ -384,6 +384,9 @@ app.get('/favicon.ico', (req, res) => {
 app.use(express.static(staticRoot, staticServeOptions));
 const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
 const uploadsStaticRoot = path.join(__dirname, 'uploads');
+/** Extensions servies en ligne sous `/uploads` : images raster, audio, vidéo, PDF, données. */
+const UPLOADS_INLINE_SAFE_RE =
+  /\.(jpe?g|png|gif|webp|avif|ico|bmp|mp3|ogg|oga|opus|wav|m4a|aac|flac|mp4|m4v|webm|ogv|mov|pdf|json|txt|csv|riv)$/i;
 // Familles privées (`observations/`, `task-logs/`) : refusées en accès direct pour que
 // l'autorisation portée par les routes API ne soit pas contournable (cf. lib/uploadsPrivatePaths.js).
 const { createPrivateUploadsGuard } = require('./lib/uploadsPrivatePaths');
@@ -406,6 +409,12 @@ app.use(
           'Content-Security-Policy',
           "default-src 'none'; style-src 'unsafe-inline'; sandbox",
         );
+        res.setHeader('Content-Disposition', 'attachment');
+      } else if (!UPLOADS_INLINE_SAFE_RE.test(lower)) {
+        // Tout ce qui n'est ni une image raster, ni un média, ni un document inerte est
+        // téléchargé, jamais rendu : un `.html` déposé par une route mal gardée ne doit pas
+        // s'exécuter avec l'origine de l'application (audit du 25/09/2026, N1).
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
         res.setHeader('Content-Disposition', 'attachment');
       }
     },

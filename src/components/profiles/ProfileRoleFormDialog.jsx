@@ -15,6 +15,8 @@ export function ProfileRoleFormDialog({
   mode, // 'create' | 'edit' | 'duplicate'
   role = null,
   drafts = {},
+  /** Profils existants : le rang d'un nouveau palier se déduit de son seuil. */
+  roles = [],
   onClose,
   onSubmit,
 }) {
@@ -71,13 +73,16 @@ export function ProfileRoleFormDialog({
     } else if (mode === 'duplicate') {
       result = buildDuplicateRoleProfile(role, { slug, display_name: displayName });
     } else {
-      result = buildNewRoleProfile({
-        slug,
-        display_name: displayName,
-        emoji,
-        min_done_tasks: minDone,
-        display_order: displayOrder,
-      });
+      result = buildNewRoleProfile(
+        {
+          slug,
+          display_name: displayName,
+          emoji,
+          min_done_tasks: minDone,
+          display_order: displayOrder,
+        },
+        { roles },
+      );
     }
     if (result?.error) {
       setLocalErr(result.error);

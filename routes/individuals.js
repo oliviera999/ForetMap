@@ -12,11 +12,16 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const { estimateBiomassCarbon, DISCLAIMER } = require('../lib/individualBiomass');
 
 const router = express.Router();
 const manageIndividuals = requirePermission('individuals.manage');
 const measureIndividuals = requirePermission('individuals.measure');
+
+// Module éteint (`ui.modules.individuals_enabled`) : tout le routeur répond 503, lecture
+// publique, fiches et mesures comprises — même convention que le forum et le carnet.
+router.use(requireModuleEnabled('foret', 'individuals', 'Suivi des individus désactivé'));
 
 function parsePositiveInt(raw) {
   const n = Number(raw);

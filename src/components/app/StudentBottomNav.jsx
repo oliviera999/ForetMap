@@ -88,6 +88,10 @@ export function buildStudentNavItems({
   canAccessForum,
   showNestedGroups = true,
   showIndividuals = true,
+  /* Modules pédagogiques activables (`ui.modules.*`) : allumés par défaut. */
+  idKeysEnabled = true,
+  pedagoSessionsEnabled = true,
+  individualsEnabled = true,
 }) {
   const assignedSuffix =
     studentActiveAssignedTasksCount > 0 ? ` (${studentActiveAssignedTasksCount})` : '';
@@ -118,9 +122,14 @@ export function buildStudentNavItems({
   if (showNestedGroups) {
     items.push({ id: 'nested-groups', label: 'Groupes', icon: <IconBiodiv size={20} /> });
   }
-  items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
-  items.push({ id: 'sessions', label: 'Séances', icon: <IconSessions size={20} /> });
-  if (showIndividuals) {
+  if (idKeysEnabled) {
+    items.push({ id: 'id-keys', label: 'Clés', icon: <IconSearch size={20} /> });
+  }
+  if (pedagoSessionsEnabled) {
+    items.push({ id: 'sessions', label: 'Séances', icon: <IconSessions size={20} /> });
+  }
+  // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
+  if (showIndividuals && individualsEnabled) {
     items.push({ id: 'individuals', label: 'Individus', icon: <IconBiodiv size={20} /> });
   }
   if (tutorialsModuleEnabled && canAccessTutorials) {
@@ -163,6 +172,10 @@ export function StudentBottomNav({
   observationsEnabled,
   visitEnabled,
   canAccessForum,
+  /** Interrupteurs `ui.modules.{id_keys,pedago_sessions,individuals}_enabled` (défaut : allumés). */
+  idKeysEnabled = true,
+  pedagoSessionsEnabled = true,
+  individualsEnabled = true,
   /** Point rouge sur l'onglet Forum : message d'autrui non lu. */
   hasForumUnread = false,
   /**
@@ -198,6 +211,9 @@ export function StudentBottomNav({
         canAccessForum,
         showNestedGroups,
         showIndividuals,
+        idKeysEnabled,
+        pedagoSessionsEnabled,
+        individualsEnabled,
       }),
     [
       canAccessStudentMapTasks,
@@ -214,6 +230,9 @@ export function StudentBottomNav({
       canAccessForum,
       showNestedGroups,
       showIndividuals,
+      idKeysEnabled,
+      pedagoSessionsEnabled,
+      individualsEnabled,
     ],
   );
 

@@ -62,7 +62,40 @@ Le catalogue contient aussi quelques **fiches-ressources** qui ne sont pas des �
 vivants : litière de feuilles, compost, bois mort, biofilm, fruits tombés, carton de
 lombricompost, crottes. Elles servent d’exemples de nourriture pour les vers, cloportes
 et autres recycleurs, afin que le réseau trophique montre clairement ce qu’ils
-décomposent.
+mangent.
+
+### Le rôle trophique
+
+Chaque fiche peut porter l’un de quatre **rôles trophiques**. La pastille de la fiche en
+donne le nom, et sa définition s’affiche quand on la survole :
+
+- **Producteur** — fabrique sa propre matière avec la lumière, l’eau, l’air et les sels
+  minéraux (plantes, algues) ;
+- **Consommateur** — se nourrit d’autres êtres vivants, plantes ou animaux ;
+- **Détritivore** — se nourrit de matière organique morte (feuilles, bois, cadavres)
+  qu’il fragmente (vers de terre, cloportes, collemboles, escargots d’eau, iules…) ;
+- **Décomposeur** — transforme la matière organique morte en sels minéraux utiles aux
+  plantes (bactéries, champignons).
+
+Le rôle **Détritivore** existe depuis le 25 septembre 2026. Avant, les vers de terre, les
+cloportes et les autres petits animaux du sol étaient rangés parmi les décomposeurs. Or
+ils **fragmentent** la matière morte sans la **transformer en sels minéraux** : c’est le
+travail des bactéries et des champignons. Les 14 fiches concernées ont été reclassées
+automatiquement ; bactéries et champignons sont restés décomposeurs. La distinction change
+aussi le réseau trophique : un oiseau qui mange des vers de terre y apparaît désormais
+comme consommateur secondaire, et non plus primaire (voir
+[Quiz, glossaire, réseau](pedagogie-quiz-glossaire-reseau.md)).
+
+Le professeur choisit le rôle dans le formulaire de la fiche ; l’élève peut filtrer le
+catalogue sur un rôle (filtres avancés, « Rôle trophique ») ou taper « détritivore » dans
+la recherche.
+
+> ⚠️ **Point d'attention** — Deux cas restent à trancher avec l’équipe de SVT. Les
+> bactéries **nitrifiantes** (Nitrosomonas, Nitrobacter, Nitrospira) sont encore classées
+> décomposeurs alors qu’elles fabriquent leur matière à partir de substances minérales. Et
+> une question du quiz (« Parmi ces êtres vivants, lequel est un décomposeur ? », réponse
+> attendue : le cloporte) contredit désormais la fiche du cloporte : elle est à
+> reformuler.
 
 ## Groupes emboîtés
 
@@ -187,7 +220,8 @@ même. La fiche porte donc, séparément, quatre champs de **danger** :
   l'œil, piqûre ou morsure, sève ou latex. Plusieurs cases peuvent être cochées.
 - **Quel danger, et quoi faire** — la partie dangereuse, les circonstances, la conduite à
   tenir. Ex. : « Graines très toxiques ; ne jamais manipuler les fruits épineux. »
-- **Danger relu et validé** — une case à cocher, décrite plus bas.
+- **Danger relu et validé** — une simple mention, qui n'est plus une case à cocher : la
+  validation se fait depuis la file « Dangers à valider », décrite plus bas.
 
 Tout niveau autre que « aucun danger connu » s'affiche en **encadré rouge ou ambre, en tête
 de fiche, avant même la description** — et, contrairement à la détermination, **cet encadré
@@ -202,8 +236,8 @@ bandeau rouge.
 
 Un premier remplissage a été posé sur **107 fiches** du catalogue à partir de sources
 bibliographiques : 6 potentiellement mortelles, 36 toxiques, 51 irritantes, 14 marquées sans
-danger. **Ce remplissage n'est pas une validation.** Chaque fiche arrive avec la case
-« Danger relu et validé » décochée, et l'encadré porte alors la mention **« à valider »**.
+danger. **Ce remplissage n'est pas une validation.** Chaque fiche arrive « à valider », et
+l'encadré porte alors cette mention.
 
 Le danger s'affiche quand même, décoché ou non — c'est délibéré. Masquer un avertissement de
 toxicité en attendant une relecture serait le seul choix vraiment dangereux des deux. La
@@ -224,9 +258,12 @@ risque sanitaire est renseigné sans avoir été relu, les plus graves en tête.
 porte un bouton **Valider** ; un clic sur le nom ouvre la fiche pour la lire d'abord.
 L'encadré disparaît quand la file est vide.
 
-Valider une fiche enregistre désormais **qui** a validé et **quand**. La case « Danger relu et
-validé » du formulaire ne disait rien de tout cela : une fiche cochée ne permettait ni de
-vérifier la relecture ni de la dater.
+Valider une fiche enregistre **qui** a validé et **quand**. C'est le **seul** moyen de valider :
+le formulaire de la fiche avait une case « Danger relu et validé » que tout éditeur de fiches
+pouvait cocher, sans que personne d'habilité n'ait relu ni que la date soit notée. Elle a été
+retirée (septembre 2026) ; le formulaire indique seulement si la fiche est validée ou « à
+valider ». Les fiches qui avaient été cochées ainsi, sans relecteur connu, sont repassées
+« à valider » et réapparaissent dans la file.
 
 Surtout : **modifier un champ de danger ou de risque sanitaire remet la fiche « à valider »**,
 et efface le nom du relecteur. Le cas n'est pas un abus, c'est l'ordinaire — une fiche validée,
@@ -328,6 +365,15 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
 Si le professeur a rattaché des **questions de quiz « verrou »** à une fiche, la
 **première** observation n'est acceptée qu'après avoir répondu correctement à ces
 questions (les observations suivantes de la même espèce ne redemandent rien).
+
+**Sans réseau sur le terrain** (depuis septembre 2026) : une observation confirmée alors que
+le réseau manque est **gardée sur l'appareil** et envoyée toute seule au retour du réseau ;
+l'élève voit « Pas de réseau : ton observation est gardée et partira toute seule. » et son
+compteur augmente tout de suite. C'est possible pour une ré-observation, ou pour une fiche
+sans questions « verrou » ; une première observation qui demande des questions attend le
+réseau. Une observation envoyée deux fois (réponse perdue, appareil qui renvoie) n'est
+comptée qu'**une** fois. Sur une tablette partagée, l'observation n'est envoyée que sous le
+compte de son auteur, à sa prochaine connexion.
 
 ## Comment ça se passe — côté professeur
 

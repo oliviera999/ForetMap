@@ -21,7 +21,7 @@ import {
   notionsForNiveauFilter,
   resolveNotionNiveaux,
 } from '../../utils/curriculumNotions.js';
-import { etapeForCurriculumNiveau } from '../../utils/pedagoScales.js';
+import { etapeForCurriculumNiveau, parseNotionNiveauFilter } from '../../utils/pedagoScales.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
 const THEME_OPTIONS = [
@@ -56,6 +56,21 @@ function defaultQuestionNiveau(curriculumNiveaux) {
   return curriculumNiveaux.every((n) => etapeForCurriculumNiveau(n) === 'college') ? 'college' : '';
 }
 
+/**
+ * Niveau de question au montage. **Une séance impose son niveau** (décision du 25/09/2026) :
+ * quand le quiz est ouvert depuis une séance (`initialNotionNiveau`), le défaut suit les
+ * niveaux de notion de la séance et non l'affichage de l'élève — une séance « lycée » ouverte
+ * par un élève en affichage Collège ne servait sinon aucune question de lycée.
+ */
+function initialQuestionNiveau(initialNotionNiveau, curriculumNiveaux) {
+  const raw = initialNotionNiveau != null ? String(initialNotionNiveau).trim() : '';
+  const parsed = raw ? parseNotionNiveauFilter(raw) : null;
+  if (parsed && !parsed.error && parsed.niveaux.length > 0) {
+    return defaultQuestionNiveau(parsed.niveaux);
+  }
+  return defaultQuestionNiveau(curriculumNiveaux);
+}
+
 /** Valeur du paramètre `notionNiveau` : le filtre choisi, resserré aux niveaux du public. */
 function notionNiveauParam(filter, curriculumNiveaux) {
   const niveaux = resolveNotionNiveaux(filter, curriculumNiveaux);
@@ -87,7 +102,9 @@ export function QuizView({
 }) {
   const { curriculumNiveaux } = useBiodivPedago();
   const [theme, setTheme] = useState('');
-  const [niveau, setNiveau] = useState(() => defaultQuestionNiveau(curriculumNiveaux));
+  const [niveau, setNiveau] = useState(() =>
+    initialQuestionNiveau(initialNotionNiveau, curriculumNiveaux),
+  );
   const [difficulte, setDifficulte] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
   // Notion du programme : le niveau scolaire restreint la liste des notions, la notion
@@ -185,7 +202,13 @@ export function QuizView({
   }, [initialQuestionCode]);
 
   useEffect(() => {
-    if (initialNotionNiveau != null) setNotionNiveau(String(initialNotionNiveau).trim());
+    if (initialNotionNiveau == null) return;
+    setNotionNiveau(String(initialNotionNiveau).trim());
+    // Nouvelle séance : son niveau s'impose aussi au filtre de niveau des questions.
+    setNiveau(initialQuestionNiveau(initialNotionNiveau, curriculumNiveaux));
+    // `curriculumNiveaux` volontairement hors dépendances : seul un changement de séance
+    // réinitialise le filtre, pas un rechargement du profil.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNotionNiveau]);
 
   useEffect(() => {
