@@ -157,6 +157,21 @@ test('foodWebTypesForPedagoLevel filtre au collège', () => {
   assert.deepEqual(foodWebTypesForPedagoLevel('lycee', all), all);
 });
 
+test('collège : la détritivorie est un type scolaire, miroir ESM compris (migration 295)', async () => {
+  // Sans elle, un élève de collège voyait la pastille « Détritivore » d'un ver de terre
+  // mais aucune flèche vers ce qu'il mange.
+  assert.ok(COLLEGE_FOODWEB_TYPES.includes('detritivorie'));
+  assert.deepEqual(foodWebTypesForPedagoLevel('college', ['detritivorie', 'frugivorie']), [
+    'detritivorie',
+  ]);
+  const path = require('node:path');
+  const { pathToFileURL } = require('node:url');
+  const esm = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'biodivPedagoLevel.js')).href
+  );
+  assert.deepEqual([...esm.COLLEGE_FOODWEB_TYPES], [...COLLEGE_FOODWEB_TYPES]);
+});
+
 test('curriculumNiveauxForPedagoLevel — collège = cycle3/cycle4', () => {
   assert.deepEqual(curriculumNiveauxForPedagoLevel('college'), ['cycle3', 'cycle4']);
   assert.equal(curriculumNiveauxForPedagoLevel('lycee'), null);

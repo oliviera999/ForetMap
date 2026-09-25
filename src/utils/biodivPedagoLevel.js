@@ -20,12 +20,14 @@ const PEDAGO_RANK = Object.freeze({
 
 export const DEFAULT_SITE_LEVEL = 'college';
 
+/** Miroir de lib/biodivPedagoLevel.js — `detritivorie` ajouté avec la migration 295. */
 export const COLLEGE_FOODWEB_TYPES = Object.freeze([
   'pollinisation',
   'herbivorie',
   'predation',
   'plante_hote',
   'decomposition',
+  'detritivorie',
   'parasitisme',
   'competition',
   'symbiose',

@@ -40,8 +40,10 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
 
 - Fiches : nom usuel, danger et risque sanitaire bien visibles, détermination simple.
 - Réseau trophique : types « scolaires » (prédation, herbivorie, pollinisation,
-  parasitisme, décomposition…). Pas de jargon sur la solidité du lien (hypothèse /
-  observé) ni d’efficacité du pollinisateur.
+  parasitisme, décomposition, détritivorie…). Pas de jargon sur la solidité du lien
+  (hypothèse / observé) ni d’efficacité du pollinisateur. La **détritivorie** — le ver de
+  terre qui mange la litière — y figure depuis le 25 septembre 2026 : ces animaux portent
+  la pastille « Détritivore » à tous les niveaux, et leur réseau montre ce qu’ils mangent.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
 - Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant — et seulement du
