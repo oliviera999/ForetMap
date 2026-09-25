@@ -10,6 +10,7 @@ const {
   buildFmQuizTemplateWorkbook,
   parseFmQuizWorkbook,
   applyFmQuizImport,
+  buildQuestionUpsertParams,
 } = require('../lib/fmQuizImport');
 
 test('buildCategoryPayload exige theme sciences ou jardinage', () => {
@@ -236,4 +237,95 @@ test('import quiz interrompu après le DELETE des liens : le rollback les restau
     initial,
     'après rollback, les rattachements glossaire origin=import doivent être restaurés',
   );
+});
+
+// Lot B (audit du 25/09/2026, § 1.5) : un fichier sans colonne `statut` ne doit plus réactiver
+// les questions désactivées. Une cellule vide garde le statut existant ; une question nouvelle
+// est `actif` ; un statut explicite l'emporte.
+test('applyFmQuizImport — une cellule statut vide conserve le statut existant', async () => {
+  const PER_ROW = buildQuestionUpsertParams({}).length;
+  const STATUT_INDEX = buildQuestionUpsertParams({ statut: '__statut__' }).indexOf('__statut__');
+  assert.ok(STATUT_INDEX >= 0);
+  const upserts = []; // une entrée par ligne (l'INSERT est multi-lignes)
+  const deps = {
+    queryAll: async (sql) => {
+      if (/SELECT question_code, statut FROM quiz_questions/i.test(sql)) {
+        return [
+          { question_code: 'QF9101', statut: 'inactif' },
+          { question_code: 'QF9103', statut: 'inactif' },
+        ];
+      }
+      if (/SELECT question_code FROM quiz_questions/i.test(sql)) {
+        return [{ question_code: 'QF9101' }, { question_code: 'QF9103' }];
+      }
+      return [];
+    },
+    execute: async (sql, params) => {
+      if (/INSERT INTO quiz_questions/i.test(sql)) {
+        for (let i = 0; i < params.length; i += PER_ROW) upserts.push(params.slice(i, i + PER_ROW));
+      }
+      return { insertId: 0, affectedRows: 1 };
+    },
+  };
+  const base = {
+    categorie_slug: 'vivant_classification',
+    question: 'Question ?',
+    choix_a: 'A',
+    choix_b: 'B',
+    choix_c: 'C',
+    reponse_correcte: 'A',
+  };
+  const report = await applyFmQuizImport(
+    deps,
+    [{ categorie_slug: 'vivant_classification', categorie_nom: 'Le vivant', theme: 'sciences' }],
+    [
+      { ...base, id: 9101, numero_dans_categorie: 1 }, // existante, désactivée, statut vide
+      { ...base, id: 9102, numero_dans_categorie: 2 }, // nouvelle, statut vide
+      { ...base, id: 9103, numero_dans_categorie: 3, statut: 'actif' }, // réactivation explicite
+    ],
+    { dryRun: false },
+  );
+  assert.strictEqual(report.totals.valid, 3);
+  const statutOf = (code) => upserts.find((params) => params[0] === code)?.[STATUT_INDEX];
+  assert.strictEqual(statutOf('QF9101'), 'inactif');
+  assert.strictEqual(statutOf('QF9102'), 'actif');
+  assert.strictEqual(statutOf('QF9103'), 'actif');
+});
+
+test('buildQuestionPayload — cellule statut vide : résolu plus tard (null)', () => {
+  const row = {
+    id: 1,
+    categorie_slug: 'x',
+    numero_dans_categorie: 1,
+    question: 'Q ?',
+    choix_a: 'A',
+    choix_b: 'B',
+    choix_c: 'C',
+    reponse_correcte: 'A',
+  };
+  assert.strictEqual(buildQuestionPayload(row).statut, null);
+  assert.strictEqual(buildQuestionPayload({ ...row, statut: 'inactif' }).statut, 'inactif');
+});
+
+test('validateQuestionPayload — statut inconnu refusé, casse normalisée', () => {
+  const row = {
+    id: 2,
+    categorie_slug: 'vivant_classification',
+    numero_dans_categorie: 1,
+    question: 'Q ?',
+    choix_a: 'A',
+    choix_b: 'B',
+    choix_c: 'C',
+    reponse_correcte: 'A',
+  };
+  const known = new Set(['vivant_classification']);
+  const upper = buildQuestionPayload({ ...row, statut: 'Inactif' });
+  assert.strictEqual(upper.statut, 'inactif');
+  assert.deepStrictEqual(validateQuestionPayload(upper, 2, known), []);
+  const errors = validateQuestionPayload(
+    buildQuestionPayload({ ...row, statut: 'brouillon' }),
+    3,
+    known,
+  );
+  assert.ok(errors.some((e) => e.field === 'statut'));
 });

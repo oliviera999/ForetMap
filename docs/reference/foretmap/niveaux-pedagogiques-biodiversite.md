@@ -104,9 +104,12 @@ Du plus fort au plus faible :
 2. **Aperçu professeur** « Affichage biodiversité — Collège / Lycée / Université » (session
    uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
-3. **Socle** = le **plus simple** parmi le niveau du **groupe** (s’il y en a plusieurs,
-   le plus simple l’emporte), le niveau de la **carte** active, et le **défaut de
-   l’établissement** (réglage admin ; **Collège** par défaut).
+3. **Socle** :
+   - si la **carte** active ou un **groupe** de l’élève a un niveau explicite, on
+     retient le **plus simple** parmi ces niveaux (plusieurs groupes : le plus simple
+     l’emporte ; un groupe ou une carte laissés sur « hériter » ne comptent pas) ;
+   - si **aucun** niveau n’est fixé sur la carte ni sur les groupes, on utilise le
+     **défaut de l’établissement** (réglage admin ; **Collège** par défaut).
 4. **Préférence personnelle** : par défaut elle ne peut que **simplifier** par rapport
    au socle. Un administrateur peut cocher l’option qui autorise à **relever** le niveau
    (projets ponctuels, club science…).

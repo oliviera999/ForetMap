@@ -9,6 +9,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — piste A de l'audit du 25/09 : niveaux, verrouillage, lot B
+
+- **Le verrouillage suit le niveau de l'élève** (décision Q1) : un élève de collège ne reçoit
+  plus les questions de lycée d'une fiche (84 fiches et 67 termes n'étaient gardés que par du
+  lycée). Nouveau résolveur serveur `lib/pedago/learnerLevel.js` (défaut établissement,
+  groupes, classe, carte → palier maximal) et filtre `lib/pedago/eligibility.js`, appliqués à
+  `challenge`, `summary` et aux trois accusés (tutoriel, fiche, glossaire). Repli signalé
+  (`level_fallback: "all_levels"`) quand aucune question n'est au niveau : la fiche n'est
+  jamais ouverte par le seul filtre. GL non concerné.
+- **Niveau biodiversité** (reprise de #546) : le défaut établissement n'est plus qu'un repli —
+  un groupe Lycée n'est plus ramené au collège par le minimum avec le défaut du site.
+- **Quiz** : une séance « lycée » ne garde plus le filtre Collège pré-rempli
+  (`QuizView`, `initialQuestionNiveau`).
+- **Lot B prêt** (questions désactivées) : l'import XLSX ne réactive plus les questions
+  désactivées quand la cellule `statut` est vide (statut existant conservé ; `actif`/`inactif`
+  seulement, autre valeur refusée par ligne) ; `GET /api/learning-links/resources` ne compte
+  comme verrou que les liens vers une question active (`inactive_gating_count`,
+  `without_active_gating_count`) ; `POST /api/learning-links` avertit (`warning`) si la question
+  est inactive ; la reprise des liens éditoriaux et `scripts/generate-linked-questions.js`
+  ignorent les questions inactives.
+- **Notions de collège** (décision Q6, migration `294`) : quatre notions (C3-MATORG,
+  C3-DEVREPRO, C3-ALIM, C4-RESS) rattachées aux catégories de quiz et familles du glossaire ;
+  les 47 questions de définition reçoivent les notions de la famille de leur terme (garde de
+  palier respectée). Sur le fixture : 107 questions de collège sans notion de collège → 0.
+- Tests : `pedago-learner-level`, `learning-gating-learner-level`,
+  `learning-links-inactive-question`, `curriculum-notions-college-migration`, cas ajoutés dans
+  `fm-quiz-import`, `biodiv-pedago-level`, `QuizLevelScales` ; contenu :
+  `tests/content/curriculum-notions-coverage.test.js`. Doc : `docs/API.md`,
+  `docs/reference/foretmap/` (niveaux, tâches-tutoriels-validation, quiz-glossaire).
+
 ### Corrigé — urgences P0 de l'audit du 25/09 (sécurité, pertes de données)
 
 - **XSS stocké par les packs de mascotte** (N1) : un fichier `.html` déposé dans un pack ou la

@@ -262,7 +262,8 @@ async function genFmGlossary(apply, limit) {
        FROM glossary_terms g
       WHERE g.statut='actif' AND g.definition_courte<>''
         AND NOT EXISTS (SELECT 1 FROM resource_question_links r
-                        WHERE r.resource_type='glossary' AND r.resource_ref=g.glossary_code AND r.status='approved')
+                        WHERE r.resource_type='glossary' AND r.resource_ref=g.glossary_code AND r.status='approved'
+                          AND EXISTS (SELECT 1 FROM quiz_questions q WHERE q.question_code=r.question_code AND q.statut='actif'))
       ORDER BY g.glossary_code` + (limit ? ` LIMIT ${limit}` : ''),
   );
   const pool = (
@@ -301,7 +302,8 @@ async function genFmPlants(apply, limit) {
        FROM plants p
       WHERE p.scientific_name<>''
         AND NOT EXISTS (SELECT 1 FROM resource_question_links r
-                        WHERE r.resource_type='plant' AND r.resource_ref=p.id AND r.status='approved')
+                        WHERE r.resource_type='plant' AND r.resource_ref=p.id AND r.status='approved'
+                          AND EXISTS (SELECT 1 FROM quiz_questions q WHERE q.question_code=r.question_code AND q.statut='actif'))
       ORDER BY p.id` + (limit ? ` LIMIT ${limit}` : ''),
   );
   const sciPool = (

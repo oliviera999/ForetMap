@@ -1153,7 +1153,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter). Résolution : visite invitée = collège ; aperçu prof prioritaire ; sinon le plus simple des niveaux **explicites** (groupes de l’utilisateur + carte active) ; le défaut établissement n’est le socle que si aucun de ces niveaux n’est fixé. La préférence ne peut que simplifier, sauf `pedago_pref_can_raise`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
 
 Aides contextuelles (public) :
 
@@ -2844,7 +2844,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
-| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`) |
+| POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). |
 | GET | `/api/food-web` | non | Réseau trophique (`?mapId=`, `?zoneId=` ; `zoneId` prime sur `mapId`) |
 | GET | `/api/food-web/interaction-types` | non | Vocabulaire de l'éditeur : `{ types, evidenceLevels, pollinationEfficacies }` — 19 types depuis la migration `272` |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
@@ -3174,7 +3174,7 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | Méthode | Route | Description |
 | ------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------- |
 | GET | `/api/learning-links` | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`). Réponse `{ links, total, max_rows: 1000, truncated }` (lot 6, B5 : le plafond n'est plus muet). |
-| POST | `/api/learning-links` | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas. **Depuis le lot 4** : `is_gating` vaut `false` par défaut, et sur un couple existant `is_gating` et `origin` ne sont réécrits que si le corps les fournit (B3). |
+| POST | `/api/learning-links` | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas. **Depuis le lot 4** : `is_gating` vaut `false` par défaut, et sur un couple existant `is_gating` et `origin` ne sont réécrits que si le corps les fournit (B3). Question **inactive** : le lien est enregistré (`201`) mais la réponse porte `warning` — il ne conditionnera rien tant qu'elle n'est pas réactivée (25/09/2026, lot B). |
 | PATCH | `/api/learning-links/:id` | Modifie `is_gating` / `weight` / `status` / `note`. |
 | DELETE | `/api/learning-links/:id` | Supprime un lien. |
 | GET | `/api/learning-links/policy?resourceType=&resourceRef=` | Politique brute + **effective** + **effectiveSources** (cascade site → type `resource_ref='*'` → ressource). Inclut `typePolicy` et `site`. |
@@ -3183,7 +3183,7 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | PUT | `/api/learning-links/type-policy` | Définit le préréglage par type (mêmes champs que `/policy`, sauf `resource_ref` implicite `*`). |
 | GET | `/api/learning-links/progress?resourceType=&resourceRef=` | Agrégats prof pour une ressource (`pending_count`, `satisfied_count`, `locked_count`) — **sans noms d'élèves**. Depuis le lot 6 : deux requêtes groupées pour toute la classe (plus une par élève), `max_students` (500) et `truncated` annoncés. |
 | GET | `/api/learning-links/config` | Réglages site effectifs (lecture seule ; écriture via `/api/settings`). |
-| GET | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `suggested_count`) et `markable` (le produit sait-il **valider** ce type ?). |
+| GET | `/api/learning-links/resources?type=tutorial\|plant\|glossary` | Ressources rattachables + compteurs (`links_count`, `gating_count`, `inactive_gating_count`, `suggested_count`), `markable` (le produit sait-il **valider** ce type ?) et `without_active_gating_count`. Depuis le 25/09/2026 (lot B), `gating_count` ne compte que les liens bloquants vers une question **active** — ce qui verrouille réellement ; les liens bloquants vers une question désactivée sont dans `inactive_gating_count`. `without_active_gating_count` = nombre de ressources qui s'ouvrent librement faute de question active. |
 | POST | `/api/learning-links/suggest` | Rattachement automatique tutoriel ↔ question **par le contenu** (voir ci-dessous). Simulation par défaut. Les propositions sont insérées **non bloquantes** (lot 4 ; migration 214 aligne les propositions en attente). |
 | GET | `/api/learning-links/locks?includeExpired=&resourceType=` | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
@@ -3243,6 +3243,14 @@ session appliqué) à côté de `pending_count` (ce qu'il reste au total pour va
 serveur : `announce_on_button` et `state_icons`. Ces réglages sont de portée prof, donc illisibles
 par un élève ; les routes les résolvent pour que le front les respecte sans accéder aux réglages.
 Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
+
+**Filtre de niveau (ForetMap, 25/09/2026).** Pour un **élève**, `challenge`, `summary` et les
+accusés (`acknowledge-read`, `acknowledge-discovery`, glossaire) ne posent que les questions au
+niveau de l'élève (`lib/pedago/learnerLevel.js` : défaut établissement, groupes, classe, carte —
+palier maximal 2 au collège, 5 au lycée, aucun plafond à l'université). Si **aucune** question de
+la ressource n'est à son niveau, toutes restent posées (décision du mainteneur : garder les
+questions plutôt qu'ouvrir la ressource) et la réponse porte `level_fallback: "all_levels"`
+(sinon `"none"`). Comptes non élèves : aucun filtre, pas de `level_fallback`.
 
 Audits du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md) (ForetMap, août),
 [AUDIT_GATING_QCM_FEUILLETS_2026-08.md](AUDIT_GATING_QCM_FEUILLETS_2026-08.md) (GL, août) et

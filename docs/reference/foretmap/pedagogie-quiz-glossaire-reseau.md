@@ -15,9 +15,15 @@ d'observation** pour l'écriture naturaliste libre.
 
 - **Chaque question de quiz et chaque terme de glossaire peut être relié aux notions des
   programmes officiels** : le cycle 3 et le cycle 4, la seconde, les spécialités SVT de
-  première et de terminale, l'enseignement scientifique de première et de terminale. Douze
+  première et de terminale, l'enseignement scientifique de première et de terminale. Seize
   notions sont livrées, de « Classer les organismes, exploiter les liens de parenté » à
-  « Le carbone et les écosystèmes face au changement climatique ».
+  « Le carbone et les écosystèmes face au changement climatique ». Quatre notions de collège
+  ont été ajoutées en septembre 2026 (matière organique et décomposition, développement et
+  reproduction, production des aliments, ressources naturelles et comportements responsables) :
+  auparavant, une soixantaine de questions de collège sur le potager, l'eau ou le compost ne
+  portaient que des notions de lycée, et un quiz « cycle 3 » ou « cycle 4 » ne les tirait jamais.
+  Les 47 questions de définition du glossaire, qui n'avaient aucune notion, reçoivent celles de
+  la famille de leur terme.
 - **Filtrer par notion.** Les onglets Quiz et Glossaire proposent deux menus
   supplémentaires : le niveau du programme, puis la notion. Choisir une notion restreint
   aussi la liste des catégories proposées, et le nombre entre parenthèses annonce combien
@@ -87,7 +93,10 @@ d'observation** pour l'écriture naturaliste libre.
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
   tableur est **tout ou rien** : s'il est interrompu, les questions et les
-  rattachements au glossaire déjà en place restent tels quels.
+  rattachements au glossaire déjà en place restent tels quels. Dans le fichier, la colonne
+  « statut » vaut `actif` ou `inactif` ; **laissée vide, elle ne change rien** : une question
+  désactivée le reste (jusqu'en septembre 2026, un fichier sans statut réactivait toutes les
+  questions désactivées). Une autre valeur est signalée comme erreur sur sa ligne.
 - **La fiche question** se remplit champ par champ, chacun nommé en clair : énoncé,
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
