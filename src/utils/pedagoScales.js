@@ -223,6 +223,64 @@ export function inheritanceExclusionsFor(entryMap) {
 }
 
 /**
+ * **Échelle unique de l'apprenant** (décision du mainteneur du 25/09/2026, question 4) : les
+ * niveaux du programme, plus `universite` au-delà du secondaire. C'est le domaine de
+ * `groups.curriculum_niveau` depuis la migration 301 (la colonne de niveau des groupes,
+ * question 5). Collège, lycée et université n'en sont que des **regroupements d'affichage**,
+ * déduits par `etapeForLearnerNiveau`. `curriculum_notions.niveau` garde son ENUM : aucune
+ * notion n'est propre à l'université.
+ */
+export const LEARNER_NIVEAU_VALUES = Object.freeze([...CURRICULUM_NIVEAU_VALUES, 'universite']);
+
+/**
+ * Palier de l'université : au-delà de la terminale. Il sert à **comparer** des niveaux (le
+ * plus haut l'emporte), jamais à borner un contenu — un élève d'université n'a pas de palier
+ * maximal.
+ */
+export const UNIVERSITE_PALIER = 6;
+
+/** Niveau canonique de l'échelle de l'apprenant (`cycle3` … `es_terminale`, `universite`), ou `null`. */
+export function normalizeLearnerNiveau(value) {
+  const key = normalizeKey(value);
+  return LEARNER_NIVEAU_VALUES.includes(key) ? key : null;
+}
+
+/** Palier d'un niveau de l'apprenant (1 = cycle 3 … 5 = terminale, 6 = université), ou `null`. */
+export function learnerNiveauPalier(niveau) {
+  const value = normalizeLearnerNiveau(niveau);
+  if (!value) return null;
+  return value === 'universite' ? UNIVERSITE_PALIER : CURRICULUM_PALIERS[value];
+}
+
+/** Regroupement d'affichage d'un niveau de l'apprenant : `college`, `lycee` ou `universite`. */
+export function etapeForLearnerNiveau(niveau) {
+  const value = normalizeLearnerNiveau(niveau);
+  if (!value) return null;
+  return value === 'universite' ? 'universite' : etapeForCurriculumNiveau(value);
+}
+
+/** Trie et dédoublonne des niveaux de l'apprenant dans l'ordre de l'ENUM des groupes. */
+export function sortLearnerNiveaux(niveaux) {
+  const set = new Set(
+    (Array.isArray(niveaux) ? niveaux : []).map(normalizeLearnerNiveau).filter(Boolean),
+  );
+  return LEARNER_NIVEAU_VALUES.filter((value) => set.has(value));
+}
+
+/**
+ * Le plus haut niveau d'une liste, ou `null`. Plusieurs classes : on ne retire pas à un élève
+ * ce qu'une de ses classes travaille. À palier égal (spécialité et enseignement scientifique),
+ * le premier dans l'ordre de l'ENUM — le choix ne change ni le palier ni l'affichage.
+ */
+export function highestLearnerNiveau(niveaux) {
+  let best = null;
+  for (const value of sortLearnerNiveaux(niveaux)) {
+    if (best == null || learnerNiveauPalier(value) > learnerNiveauPalier(best)) best = value;
+  }
+  return best;
+}
+
+/**
  * Niveaux scolaires proposés à un public, ou `null` pour « tous ».
  *
  * - l'étape d'affichage donne le plafond : `college` → cycles 3 et 4 ; lycée et

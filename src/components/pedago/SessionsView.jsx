@@ -6,8 +6,7 @@ import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx'
 import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
-
-const STORAGE_KEY = 'foretmap.pedagoSession.v1';
+import { PEDAGO_SESSION_STORAGE_KEY as STORAGE_KEY } from '../../utils/pedagoSessionScope.js';
 
 export const CREATABLE_TEMPLATES = Object.freeze([
   { key: 'lycee_arbre', label: 'Lycée · Un arbre qui grandit' },

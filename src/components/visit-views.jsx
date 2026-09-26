@@ -241,8 +241,16 @@ function VisitViewImpl({
    * de la fiche fonctionne aussi sans session.
    */
   const guestPlantPreviewData = useMemo(
-    () => ({ zones: content.zones || [], markers: content.markers || [], plants }),
-    [content.zones, content.markers, plants],
+    () => ({
+      zones: content.zones || [],
+      markers: content.markers || [],
+      plants,
+      // Espèces du site (définition commune : registre, zones, repères) : la fiche dit si
+      // l'espèce est présente sur cette carte, et par où, sans nouvelle requête.
+      activeMapId: content.map_id || mapId || null,
+      mapSpeciesPresence: Array.isArray(content.site_species) ? content.site_species : null,
+    }),
+    [content.zones, content.markers, content.map_id, content.site_species, mapId, plants],
   );
 
   /** Premier tutoriel « visite » ouvrable en modale (ordre API / sélection prof). */

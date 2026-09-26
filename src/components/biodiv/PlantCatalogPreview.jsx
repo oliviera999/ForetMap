@@ -15,6 +15,8 @@ import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
 import { normalizedPlantValue, isGenericPotagerLabel } from '../../utils/plantFormValues.js';
 import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../../utils/plantFilters';
+import { describePresenceSources, presenceEntryForPlant } from '../../utils/speciesPresence.js';
+import { useMapSpeciesPresence } from '../../hooks/useMapSpeciesPresence.js';
 import {
   PlantSummaryBadges,
   PlantEcosystemHumanLead,
@@ -63,6 +65,12 @@ export function PlantBiodiversityCatalogPreviewCard({
   onOpenGlossaryTerm = null,
   onOpenQuizQuestion = null,
   onNavigateToFoodWeb = null,
+  /**
+   * Présence sur la carte active selon le serveur (définition commune : registre, zones,
+   * repères). `presenceKnown` faux = pas encore connue : seuls les lieux sont affichés.
+   */
+  presenceKnown = false,
+  presenceEntry = null,
 }) {
   const { visibility, canShow } = useBiodivPedago();
   const latinVisibility = visibility('accepted_name_gbif_latin');
@@ -71,6 +79,8 @@ export function PlantBiodiversityCatalogPreviewCard({
   const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
   const pMarkers = markers.filter((m) => plantLinkedToMapMarker(plant, m));
   const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
+  const presenceLine = presenceKnown && presenceEntry ? describePresenceSources(presenceEntry) : '';
+  const showMapSection = hasMapLink || !!presenceLine;
   const dataAttr =
     dataBiodivPlantId != null && dataBiodivPlantId !== ''
       ? { 'data-biodiv-plant-id': dataBiodivPlantId }
@@ -174,7 +184,7 @@ export function PlantBiodiversityCatalogPreviewCard({
           onOpenQuizQuestion={onOpenQuizQuestion}
           onNavigateToFoodWeb={onNavigateToFoodWeb}
         />
-        {hasMapLink ? (
+        {showMapSection ? (
           <div>
             <div
               style={{
@@ -187,34 +197,45 @@ export function PlantBiodiversityCatalogPreviewCard({
             >
               Sur la carte
             </div>
-            <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
-            <div
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 'var(--fw-bold)',
-                color: '#aaa',
-                textTransform: 'uppercase',
-                margin: '10px 0 4px',
-              }}
-            >
-              Zones et repères
-            </div>
-            <div className="plant-zones">
-              {pZones.map((z) => (
-                <span key={`zone-${z.id}`} className="plant-zone-chip">
-                  <IconMarker size={12} /> {z.name}
-                </span>
-              ))}
-              {pMarkers.map((m) => (
-                <span key={`marker-${m.id}`} className="plant-zone-chip">
-                  <IconPin size={12} /> {m.label?.trim() ? m.label : 'Repère'}
-                </span>
-              ))}
-            </div>
+            {presenceLine ? (
+              <p className="plant-presence-line" data-testid="plant-presence-line">
+                Présente sur cette carte : {presenceLine}
+              </p>
+            ) : null}
+            {hasMapLink ? (
+              <>
+                <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
+                <div
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 'var(--fw-bold)',
+                    color: '#aaa',
+                    textTransform: 'uppercase',
+                    margin: '10px 0 4px',
+                  }}
+                >
+                  Zones et repères
+                </div>
+                <div className="plant-zones">
+                  {pZones.map((z) => (
+                    <span key={`zone-${z.id}`} className="plant-zone-chip">
+                      <IconMarker size={12} /> {z.name}
+                    </span>
+                  ))}
+                  {pMarkers.map((m) => (
+                    <span key={`marker-${m.id}`} className="plant-zone-chip">
+                      <IconPin size={12} /> {m.label?.trim() ? m.label : 'Repère'}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </div>
         ) : (
           <p style={{ fontSize: 'var(--text-sm)', color: '#bbb', fontStyle: 'italic' }}>
-            Pas encore associé à une zone ni à un repère sur la carte
+            {presenceKnown
+              ? 'Pas encore signalée sur cette carte'
+              : 'Pas encore associé à une zone ni à un repère sur la carte'}
           </p>
         )}
         <div
@@ -263,8 +284,24 @@ export function PlantCatalogPreviewModal({
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
-  const { zones = [], markers = [] } = useData();
+  const {
+    zones = [],
+    markers = [],
+    plants: dataPlants,
+    activeMapId = null,
+    // Présence déjà connue de l'écran appelant (contenu de visite, `site_species`).
+    mapSpeciesPresence = null,
+  } = useData();
   useOverlayHistoryBack(!!plant, onClose);
+  // Présence sur la carte active : même définition que le catalogue (serveur). Rafraîchie
+  // quand zones, repères ou fiches sont rechargés ; partagée avec le catalogue ouvert.
+  const presence = useMapSpeciesPresence(activeMapId, {
+    watch: [zones, markers, dataPlants],
+    enabled: !!plant,
+    species: Array.isArray(mapSpeciesPresence) ? mapSpeciesPresence : null,
+  });
+  const presenceKnown = presence.byPlantId instanceof Map;
+  const presenceEntry = presenceEntryForPlant(presence.byPlantId, plant);
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   /**
    * Commentaires de fiche : route authentifiée. La fiche est désormais ouvrable depuis la
@@ -326,6 +363,8 @@ export function PlantCatalogPreviewModal({
           zones={zones}
           markers={markers}
           maps={maps}
+          presenceKnown={presenceKnown}
+          presenceEntry={presenceEntry}
           gatingSummary={gatingSummaries.get(String(plant.id)) || null}
           myObservationCount={obs.my}
           siteObservationCount={obs.site}

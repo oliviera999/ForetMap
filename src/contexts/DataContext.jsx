@@ -14,6 +14,10 @@ import { createContext, useContext } from 'react';
  *  - `VisitView` — relie ces valeurs à d'autres noms de props (`mapZones`/`catalogTutorials`…) et
  *    son `initialMapId` n'est pas `activeMapId` en mode invité → reste en props.
  *
+ * Champ facultatif `mapSpeciesPresence` : liste des espèces présentes sur la carte
+ * (`site_species` du contenu de visite), posée par la visite invitée autour de la fiche espèce
+ * pour lui éviter une requête ; absent, la fiche demande `GET /api/maps/:mapId/species`.
+ *
  * `useData()` renvoie un objet vide gelé hors `Provider` (le retour invité d'`App` reste hors
  * Provider) : les consommateurs déstructurent avec `= []` / `= 'foret'`, identiques aux défauts de
  * props, ce qui préserve le rendu invité.

@@ -157,3 +157,113 @@ test('deux classes : les niveaux du programme s’additionnent, vidage = hérita
   const after = await loadUserGroupPedagoProfile(studentId);
   assert.deepEqual(after, { levels: ['lycee'], curriculumNiveaux: ['seconde'] });
 });
+
+// ---------------------------------------------------------------------------------------
+// Décision du mainteneur du 25/09/2026, question 5 : `curriculum_niveau` devient LA colonne
+// de niveau des groupes (échelle unique, `universite` compris, migration 301).
+// ---------------------------------------------------------------------------------------
+
+test('PATCH groupe : `universite` accepté, il l’emporte comme plus haut niveau', async () => {
+  const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+  await request(app)
+    .patch(`/api/groups/${lyceeId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ curriculum_niveau: 'Université' })
+    .expect(200);
+  const profile = await loadUserGroupPedagoProfile(studentId);
+  assert.deepEqual(profile, { levels: ['universite'], curriculumNiveaux: ['universite'] });
+  const level = await loadLearnerLevel(studentId);
+  assert.equal(level.niveau, 'universite');
+  assert.equal(level.maxPalier, null);
+
+  const bad = await request(app)
+    .patch(`/api/groups/${lyceeId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ curriculum_niveau: 'lycee' })
+    .expect(400);
+  assert.match(bad.body.error, /universite/);
+  await request(app)
+    .patch(`/api/groups/${lyceeId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ curriculum_niveau: 'seconde' })
+    .expect(200);
+});
+
+test('GET /api/groups : niveau effectif, hérité, manquant et proposition d’après le nom', async () => {
+  const missingId = `gcn-5b-${stamp}`.slice(0, 64);
+  await insertGroup(missingId, `5B ${stamp}`, 'class');
+  try {
+    await request(app)
+      .patch(`/api/groups/${unitId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ curriculum_niveau: 'cycle3' })
+      .expect(200);
+    const res = await request(app)
+      .get('/api/groups')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const byId = new Map((res.body.groups || []).map((g) => [g.id, g]));
+    const klass = byId.get(classId);
+    assert.equal(klass.curriculum_niveau, null);
+    assert.equal(klass.curriculum_niveau_effectif, 'cycle3');
+    assert.deepEqual(klass.curriculum_niveau_herite_de, {
+      id: unitId,
+      name: `Niveau 6e ${stamp}`,
+    });
+    assert.equal(klass.curriculum_niveau_manquant, false);
+    // « 601 … » : la proposition confirme ce qui est hérité.
+    assert.deepEqual(klass.curriculum_niveau_suggestion, { niveau: 'cycle3', raison: 'deduit' });
+    const unit = byId.get(unitId);
+    assert.equal(unit.curriculum_niveau_herite_de, null);
+    assert.equal(unit.curriculum_niveau_suggestion, null, 'niveau propre : rien à proposer');
+    const missing = byId.get(missingId);
+    assert.equal(missing.curriculum_niveau_manquant, true);
+    assert.deepEqual(missing.curriculum_niveau_suggestion, {
+      niveau: 'cycle4',
+      raison: 'deduit',
+    });
+  } finally {
+    await execute('DELETE FROM `groups` WHERE id = ?', [missingId]).catch(() => {});
+  }
+});
+
+test('POST groupe : niveau de la classe enregistré dès la création, validé', async () => {
+  const bad = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: `4A ${stamp}`, kind: 'class', curriculum_niveau: 'quatrieme' })
+    .expect(400);
+  assert.match(bad.body.error, /curriculum_niveau invalide/);
+
+  const res = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: `4A ${stamp}`, kind: 'class', curriculum_niveau: 'cycle4' })
+    .expect(201);
+  try {
+    assert.equal(res.body.curriculum_niveau, 'cycle4');
+  } finally {
+    await execute('DELETE FROM `groups` WHERE id = ?', [res.body.id]).catch(() => {});
+  }
+});
+
+test('describeGroupNiveau : héritage, parenté circulaire, types sans niveau attendu', () => {
+  const { describeGroupNiveau, groupNiveauAnnotations } = require('../lib/pedago/groupLevel');
+  const groups = new Map([
+    ['u', { id: 'u', name: 'Niveau 6e', kind: 'unit', curriculum_niveau: 'cycle3' }],
+    ['c', { id: 'c', name: '601', kind: 'class', parent_group_id: 'u' }],
+    ['t', { id: 't', name: 'Équipe A', kind: 'team', parent_group_id: 'c' }],
+    ['x', { id: 'x', name: 'Atelier', kind: 'class', parent_group_id: 'y' }],
+    ['y', { id: 'y', name: 'Boucle', kind: 'class', parent_group_id: 'x' }],
+    ['k', { id: 'k', name: 'Club', kind: 'club' }],
+  ]);
+  assert.deepEqual(describeGroupNiveau('t', groups), {
+    niveau: 'cycle3',
+    heriteDe: { id: 'u', name: 'Niveau 6e' },
+  });
+  assert.deepEqual(describeGroupNiveau('x', groups), { niveau: null, heriteDe: null });
+  assert.equal(groupNiveauAnnotations(groups.get('x'), groups).curriculum_niveau_manquant, true);
+  const club = groupNiveauAnnotations(groups.get('k'), groups);
+  assert.equal(club.curriculum_niveau_manquant, false);
+  assert.equal(club.curriculum_niveau_suggestion, null);
+});

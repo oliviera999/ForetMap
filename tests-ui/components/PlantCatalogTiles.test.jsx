@@ -7,10 +7,17 @@ import userEvent from '@testing-library/user-event';
  */
 
 const apiCalls = vi.hoisted(() => []);
+const plantsRef = vi.hoisted(() => ({ list: null }));
 const apiMock = vi.hoisted(() =>
   vi.fn(async (path) => {
     if (String(path).includes('/observation-counts')) return { counts: {} };
     if (String(path).includes('/gating/summary')) return { items: [] };
+    // Présence sur la carte (serveur, décision Q10) : toutes les fiches du jeu y sont.
+    if (/\/api\/maps\/[^/]+\/species/.test(String(path))) {
+      return {
+        species: (plantsRef.list || []).map((p) => ({ plant_id: p.id, sources: ['registre'] })),
+      };
+    }
     return {};
   }),
 );
@@ -43,7 +50,6 @@ function makePlants(n) {
   }));
 }
 
-const plantsRef = vi.hoisted(() => ({ list: null }));
 plantsRef.list = makePlants(12);
 
 vi.mock('../../src/contexts/DataContext.jsx', () => ({
@@ -98,7 +104,11 @@ describe('catalogue biodiversité — vignettes', () => {
     expect(perPlant, `appels par fiche : ${perPlant.join(', ')}`).toEqual([]);
     expect(comments, `appels commentaires : ${comments.join(', ')}`).toEqual([]);
     expect(publicSettings, `appels réglages : ${publicSettings.join(', ')}`).toEqual([]);
-    expect(apiCalls.length, `appels : ${apiCalls.join(', ')}`).toBeLessThanOrEqual(3);
+    // Une requête de présence **par carte** (pas par fiche) s'ajoute depuis la décision Q10 :
+    // le filtre « Présente sur cette carte » suit la réponse du serveur.
+    const presence = apiCalls.filter((p) => /\/api\/maps\/[^/]+\/species/.test(p));
+    expect(presence, `appels présence : ${presence.join(', ')}`).toHaveLength(1);
+    expect(apiCalls.length, `appels : ${apiCalls.join(', ')}`).toBeLessThanOrEqual(4);
   });
 
   test('les douze fiches sont listées et le clic ouvre la fiche complète', async () => {

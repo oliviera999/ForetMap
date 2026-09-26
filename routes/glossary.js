@@ -14,7 +14,8 @@ const {
   FM_ACK_STORE,
 } = require('../lib/shared/learningAckCore');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
-const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
+const learningLinks = require('../lib/pedago/learningLinks');
 
 const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
 
@@ -156,14 +157,10 @@ router.get(
       [code],
     );
 
-    const linkedQuizQuestions = await queryAll(
-      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte
-         FROM resource_question_links r
-         JOIN quiz_questions qq ON qq.question_code = r.question_code
-        WHERE r.resource_ref = ? AND r.resource_type = 'glossary'
-          AND r.status = 'approved' AND qq.statut = 'actif'
-        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
-      [code],
+    // Même lecture que la fiche espèce et le tutoriel : service unique des liens.
+    const linkedQuizQuestions = await learningLinks.listQuestionsForResource(
+      { queryAll },
+      { resourceType: 'glossary', resourceRef: code, audience: 'sheet' },
     );
 
     // Notions des programmes rattachées au terme (migrations 273 et 290 : héritées de sa
@@ -268,7 +265,7 @@ router.post(
         resourceRef: code,
         userId,
         skipGating: !!alreadyLearned,
-        learnerLevel: await loadLearnerLevel(userId),
+        learnerLevel: await loadLearnerLevelForRequest(req),
       },
     );
     if (!gating.ok) {

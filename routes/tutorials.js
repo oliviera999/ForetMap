@@ -4,7 +4,8 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
-const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
+const learningLinks = require('../lib/pedago/learningLinks');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
@@ -462,7 +463,7 @@ router.post(
         resourceRef: String(tid),
         userId,
         skipGating: !!existingRead,
-        learnerLevel: await loadLearnerLevel(userId),
+        learnerLevel: await loadLearnerLevelForRequest(req),
       },
     );
     if (!gating.ok) {
@@ -1013,13 +1014,11 @@ router.get(
       tutorialId,
     ]);
     if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
-    const questions = await queryAll(
-      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte
-         FROM quiz_question_tutorials qqt
-         JOIN quiz_questions qq ON qq.question_code = qqt.question_code
-        WHERE qqt.tutorial_id = ? AND qq.statut = 'actif'
-        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
-      [tutorialId],
+    // Source unique `resource_question_links` (migration 300) : liens approuvés du tutoriel.
+    // `quiz_question_tutorials` n'est plus lue (temps 1 du retrait, audit du 25/09/2026, § 3.5).
+    const questions = await learningLinks.listQuestionsForResource(
+      { queryAll },
+      { resourceType: 'tutorial', resourceRef: tutorialId, audience: 'sheet' },
     );
     return res.json({ tutorialId, questions });
   }),

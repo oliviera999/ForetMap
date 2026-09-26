@@ -5,6 +5,10 @@ import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover
 import { createFmGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';
 import { IconCheck } from '../../shared/icons.jsx';
 import { FmLearnAndImportSlot } from '../journal/FmLearnAndImportSlot.jsx';
+import { withPedagoSessionScope } from '../../utils/pedagoSessionScope.js';
+
+/** Épreuve et validation annoncent la séance en cours : elle impose son niveau. */
+const gatingApi = withPedagoSessionScope(api);
 
 /**
  * Bouton « J'ai appris ce terme » sur une fiche du glossaire ForetMap.
@@ -27,7 +31,7 @@ export function GlossaryTermLearnedAcknowledgeButton({
   gatingSummary = null,
 }) {
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
-  const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
+  const gatingHandlers = useMemo(() => createFmGatingHandlers(gatingApi), []);
   const gatingResource = useMemo(
     () => ({ resourceType: 'glossary', resourceRef: String(glossaryCode || '') }),
     [glossaryCode],
@@ -36,7 +40,7 @@ export function GlossaryTermLearnedAcknowledgeButton({
   const submit = useCallback(async () => {
     const code = String(glossaryCode || '').trim();
     if (!code) throw new Error('Terme invalide — recharge la page ou rouvre le glossaire.');
-    await api(`/api/glossary/terms/${encodeURIComponent(code)}/acknowledge`, 'POST', {
+    await gatingApi(`/api/glossary/terms/${encodeURIComponent(code)}/acknowledge`, 'POST', {
       confirm: true,
     });
     onAcknowledged?.(code);

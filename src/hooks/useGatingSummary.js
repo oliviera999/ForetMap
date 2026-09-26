@@ -1,5 +1,9 @@
 import { api, getAuthToken } from '../services/api';
 import { useLearningGatingSummary } from '../shared/hooks/useLearningGatingSummary';
+import { withPedagoSessionScope } from '../utils/pedagoSessionScope.js';
+
+/** Le résumé tient compte de la séance en cours : elle impose son niveau (25/09/2026). */
+const gatingApi = withPedagoSessionScope(api);
 
 /**
  * Résumé du contrôle de compréhension côté ForetMap.
@@ -16,7 +20,7 @@ import { useLearningGatingSummary } from '../shared/hooks/useLearningGatingSumma
 export function useGatingSummary(resourceType, refs = []) {
   const hasSession = typeof getAuthToken !== 'function' || !!getAuthToken();
   return useLearningGatingSummary({
-    request: api,
+    request: gatingApi,
     basePath: '/api/learning/gating/summary',
     resourceType,
     refs,

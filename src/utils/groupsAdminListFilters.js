@@ -12,6 +12,7 @@ export const GROUP_KINDS = ['class', 'team', 'unit', 'club'];
  *   query?: string,
  *   kind?: string|null,
  *   hideInactive?: boolean,
+ *   missingNiveauOnly?: boolean,  // classes et unités sans niveau, même hérité
  * }} filters
  */
 export function filterGroupsList(groups = [], filters = {}) {
@@ -22,9 +23,11 @@ export function filterGroupsList(groups = [], filters = {}) {
     .trim()
     .toLowerCase();
   const hideInactive = filters.hideInactive !== false;
+  const missingNiveauOnly = filters.missingNiveauOnly === true;
 
   return (Array.isArray(groups) ? groups : []).filter((g) => {
     if (hideInactive && Number(g?.is_active) === 0) return false;
+    if (missingNiveauOnly && !g?.curriculum_niveau_manquant) return false;
     if (kind && String(g?.kind || '').toLowerCase() !== kind) return false;
     if (query) {
       const hay = `${g?.name || ''} ${g?.slug || ''}`.toLowerCase();

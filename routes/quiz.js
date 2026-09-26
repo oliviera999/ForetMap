@@ -21,7 +21,7 @@ const {
   loadAdminQuestionDetail,
   allocateNextQuizQuestionCode,
   listAdminQuestions,
-  upsertQuizQuestion,
+  upsertQuizQuestionInTransaction,
 } = require('../lib/fmQuizCrud');
 const {
   resolveImportRows,
@@ -643,7 +643,8 @@ router.post(
   quizManagePermission,
   asyncHandler(async (req, res) => {
     try {
-      const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+      // Question et liens par mots-clés dans la même transaction (service des liens).
+      const result = await upsertQuizQuestionInTransaction(withTransaction, req.body || {}, {
         requireNew: true,
       });
       const code = result.question?.question_code || null;
@@ -668,7 +669,7 @@ router.put(
     const code = normalizeQuestionCode(req.params.code);
     if (!code) return res.status(400).json({ error: 'Code invalide' });
     try {
-      const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+      const result = await upsertQuizQuestionInTransaction(withTransaction, req.body || {}, {
         question_code: code,
         requireExisting: true,
       });
@@ -779,10 +780,10 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      // G4 (audit 2026-09) : même garde que les imports GL. L'import vide d'abord
-      // `resource_question_links` (origin=import) puis reconstruit. Sans transaction,
-      // une interruption (kill LVE, exception) laissait le catalogue de questions
-      // à jour et tous les rattachements glossaire auto-générés effacés.
+      // G4 (audit 2026-09) : même garde que les imports GL. L'import vide d'abord ses liens
+      // par mots-clés de `resource_question_links` (origin='keyword', service des liens) puis
+      // les reconstruit. Sans transaction, une interruption (kill LVE, exception) laissait le
+      // catalogue de questions à jour et ces rattachements glossaire effacés.
       const report = await withTransaction(async (tx) =>
         applyFmQuizImport(
           { queryAll: tx.queryAll, execute: tx.execute },

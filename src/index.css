@@ -4745,6 +4745,18 @@
     .biodiv-filters__sort {
       max-width:280px;
     }
+    /* Présence sur la carte indisponible (serveur injoignable) : note discrète sous le choix. */
+    .biodiv-filters__note {
+      margin:4px 0 0;
+      font-size:var(--text-xs);
+      color:var(--soil);
+    }
+    /* Provenance de la présence dans la fiche (« au registre du site · dans 2 zones »). */
+    .plant-presence-line {
+      margin:0 0 6px;
+      font-size:var(--text-sm);
+      color:var(--soil);
+    }
     .biodiv-show-more {
       display:flex;
       justify-content:center;

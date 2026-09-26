@@ -120,6 +120,7 @@ import {
   readStoredPedagoSession,
   writeStoredPedagoSession,
 } from './components/pedago/SessionsView.jsx';
+import { notifyLearningGatingChanged } from './shared/utils/learningGatingEvents.js';
 import {
   consumeSessionLinkFromLocation,
   clearPendingSessionLink,
@@ -136,7 +137,7 @@ import { DataProvider } from './contexts/DataContext.jsx';
 import { TourProvider } from './contexts/TourContext.jsx';
 import { readStoredTab } from './utils/appShellHelpers';
 import { normalizePedagoLevel } from './utils/biodivPedagoLevel.js';
-import { sortCurriculumNiveaux } from './utils/pedagoScales.js';
+import { sortLearnerNiveaux } from './utils/pedagoScales.js';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useAppDataSync } from './hooks/useAppDataSync';
 import { useAppDataPolling } from './hooks/useAppDataPolling';
@@ -418,7 +419,7 @@ function App() {
         );
       }
       if (Array.isArray(d.biodivGroupCurriculumNiveaux)) {
-        setBiodivGroupCurriculumNiveaux(sortCurriculumNiveaux(d.biodivGroupCurriculumNiveaux));
+        setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(d.biodivGroupCurriculumNiveaux));
       }
     },
     [mergeAuthMeResponseBase],
@@ -936,9 +937,7 @@ function App() {
         );
       }
       if (Array.isArray(session?.biodivGroupCurriculumNiveaux)) {
-        setBiodivGroupCurriculumNiveaux(
-          sortCurriculumNiveaux(session.biodivGroupCurriculumNiveaux),
-        );
+        setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(session.biodivGroupCurriculumNiveaux));
       }
       const roleSlug = String(claims?.roleSlug || '').toLowerCase();
       if (isVisitorLikeRole(roleSlug)) {
@@ -1172,8 +1171,12 @@ function App() {
   );
 
   const persistPedagoSession = useCallback((next) => {
+    const prevId = readStoredPedagoSession()?.id || null;
     setActivePedagoSession(next);
     writeStoredPedagoSession(next);
+    // Entrée ou sortie de séance : le niveau imposé change, donc aussi les questions qui
+    // verrouillent les fiches — les résumés affichés se rechargent.
+    if (prevId !== (next?.id || null)) notifyLearningGatingChanged({ kind: 'pedago_session' });
   }, []);
 
   const postPedagoRun = useCallback(
@@ -1205,6 +1208,10 @@ function App() {
         slug: session.slug,
         title: session.title,
         templateKey: session.templateKey,
+        // La séance impose son niveau (décision du 25/09/2026) : public visé et niveau de
+        // notion, relus par `BiodivPedagoProvider` ; le serveur, lui, reçoit l'identifiant.
+        level: session.level || null,
+        notionNiveau: session.config?.notionNiveau || null,
         steps: session.steps,
         stepIndex: 0,
       };
@@ -1647,6 +1654,10 @@ function App() {
         mapLevel={activeMapPedagoLevel}
         groupLevels={biodivGroupPedagoLevels}
         classCurriculumNiveaux={biodivGroupCurriculumNiveaux}
+        sessionLevel={pedagoSessionsAvailable ? activePedagoSession?.level || null : null}
+        sessionNotionNiveau={
+          pedagoSessionsAvailable ? activePedagoSession?.notionNiveau || null : null
+        }
         canTeacherPreview={
           effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
         }

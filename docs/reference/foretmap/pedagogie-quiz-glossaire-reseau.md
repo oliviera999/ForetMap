@@ -53,12 +53,13 @@ d'observation** pour l'écriture naturaliste libre.
   propose, en plus de chaque niveau, l'ensemble du collège (cycles 3 et 4) ou du lycée
   (seconde à terminale). Une séance lycée qui demande « Lycée » fonctionne désormais (elle
   était refusée).
-- **Le quiz suit la classe de l'élève.** Pour un élève en affichage Collège, le quiz
+- **Le quiz suit le niveau de l'élève.** Pour un élève en affichage Collège, le quiz
   propose d'emblée les questions « Collège » (le filtre reste modifiable). Si sa classe a un
-  niveau du programme (voir [Comptes, rôles et groupes](comptes-roles-et-groupes.md#les-groupes)),
-  les menus ne montrent que les notions jusqu'à ce niveau, et une demande « tout le
-  collège » faite par une séance est resserrée au cycle de la classe. Une séance qui vise
-  explicitement un autre cycle est respectée.
+  niveau (voir [Comptes, rôles et groupes](comptes-roles-et-groupes.md#les-groupes)), les
+  menus ne montrent que les notions jusqu'à ce niveau, et une demande « tout le collège »
+  faite par une séance est resserrée au cycle de la classe. Une séance **impose son
+  niveau** : une séance « Lycée » ouvre les notions et les questions de lycée à tous ceux
+  qui la suivent, et une séance qui vise explicitement un autre cycle est respectée.
 - **Les notions sont visibles de tous.** La fiche d'un terme de glossaire affiche, sous
   l'intitulé « Au programme », le niveau et la notion auxquels il se rattache : un élève sait
   à quoi le mot qu'il lit va servir dans l'année.
@@ -93,7 +94,10 @@ d'observation** pour l'écriture naturaliste libre.
   activation. Les questions peuvent être reliées aux termes du glossaire, ce qui aide
   l'élève à réviser le vocabulaire au passage. Un import du catalogue par fichier
   tableur est **tout ou rien** : s'il est interrompu, les questions et les
-  rattachements au glossaire déjà en place restent tels quels. Dans le fichier, la colonne
+  rattachements au glossaire déjà en place restent tels quels. L'enregistrement d'une
+  question depuis sa fiche l'est aussi : ses rattachements automatiques au glossaire sont
+  enregistrés avec elle, ou pas du tout. Ni l'un ni l'autre ne touche aux rattachements
+  choisis ou relus par un professeur. Dans le fichier, la colonne
   « statut » vaut `actif` ou `inactif` ; **laissée vide, elle ne change rien** : une question
   désactivée le reste (jusqu'en septembre 2026, un fichier sans statut réactivait toutes les
   questions désactivées). Une autre valeur est signalée comme erreur sur sa ligne.
@@ -136,6 +140,14 @@ d'observation** pour l'écriture naturaliste libre.
   tutoriel « Sol vivant »). L'écran « Rattacher des questions aux contenus », sous
   l'éditeur, relie les deux — à la main ou par rapprochement automatique des contenus :
   voir [Tâches, tutoriels et validation](taches-tutoriels-et-validation.md).
+- **Les questions affichées sous une fiche** — fiche espèce, tutoriel ou terme du
+  glossaire — sont exactement celles **approuvées** dans cet écran, qu'elles soient
+  bloquantes ou non ; une proposition en attente ou rejetée n'y apparaît jamais. Jusqu'en
+  septembre 2026, la fiche espèce lisait une autre liste que le contrôle de compréhension :
+  une question rattachée à la main dans l'écran n'y apparaissait pas, et sept questions y
+  étaient affichées sans compter pour la validation. Il n'y a plus qu'une liste. Ces sept
+  rattachements sont conservés comme questions liées **non bloquantes** : à rendre
+  bloquantes depuis l'écran si vous le souhaitez.
 
 ## Le Glossaire
 
@@ -199,9 +211,10 @@ d'observation** pour l'écriture naturaliste libre.
   l’exploration complète. Les filtres par type et le mode « isoler une espèce » restent
   disponibles dans chaque vue.
 
-> 🔧 **À implémenter :** adapter la densité du réseau (types avancés, niveau de preuve
-> des liens) au **niveau pédagogique** Collège / Lycée / Université — voir
-> [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
+- **La densité du réseau suit le niveau pédagogique** : en Collège, seuls les types
+  d’interaction scolaires sont proposés, sans le niveau de preuve des liens ni l’efficacité
+  de pollinisation ; en Lycée et Université, tout est visible — voir
+  [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md).
 
 - **Dix-neuf types d’interaction.** Onze ont été ajoutés pour cesser de ranger sous un
   mot des relations différentes. Quelques cas concrets :
@@ -266,8 +279,10 @@ d'observation** pour l'écriture naturaliste libre.
   interaction dans la carte ou la zone choisie, un message le dit au lieu de laisser
   croire à un bug.
 - **Ouvrir l'onglet Réseau trophique** (menu ou lien) part aussi sur la **carte active**,
-  pas sur le réseau global de toutes les cartes. Le filtre carte compte les espèces des
-  zones, des repères **et** celles rattachées directement à la carte (sans lieu précis).
+  pas sur le réseau global de toutes les cartes. Le filtre carte compte les espèces
+  **présentes sur la carte** — au registre du site, dans une zone ou sur un repère —, la
+  même liste que le catalogue, la fiche espèce, les Groupes emboîtés et la visite (voir
+  [Plantes et biodiversité](plantes-et-biodiversite.md), « Présente sur ce site »).
 - **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
   relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
   `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et

@@ -13,6 +13,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { mapPresenceSubquery } = require('../lib/biodiv/presenceService');
 const {
   indexClades,
   ancestorChain,
@@ -71,7 +72,8 @@ router.get(
 
 /**
  * POST /api/clades/activity/subtree — plus petit arbre contenant les espèces choisies.
- * Corps : `{ plantIds: number[] }` OU `{ mapId: string, count: number }` (tirage aléatoire).
+ * Corps : `{ plantIds: number[] }` OU `{ mapId: string, count: number }` (tirage aléatoire
+ * parmi les espèces présentes sur la carte et classées dans l'arbre).
  * Lecture publique (activité élève). Déclaré avant `/:id` pour éviter tout conflit.
  */
 router.post(
@@ -87,14 +89,19 @@ router.post(
     if (plantIds.length === 0 && mapId) {
       const countRaw = Number(req.body?.count ?? 6);
       const count = Math.min(20, Math.max(2, Number.isFinite(countRaw) ? Math.trunc(countRaw) : 6));
+      // Vivier : espèces présentes sur la carte selon la définition commune (registre,
+      // zones ou repères — `lib/biodiv/presenceService.js`), et classées dans l'arbre.
+      // Avant la décision Q10, seul le registre comptait : 27 espèces sur la forêt au lieu
+      // de 75 sur la base de référence.
+      const presence = mapPresenceSubquery(mapId);
       const sampled = await queryAll(
         `SELECT p.id, p.name, p.emoji, p.clade_id
            FROM plants p
-           INNER JOIN map_species ms ON ms.plant_id = p.id AND ms.map_id = ?
           WHERE p.clade_id IS NOT NULL
+            AND p.id IN ${presence.sql}
           ORDER BY RAND()
           LIMIT ?`,
-        [mapId, count],
+        [...presence.params, count],
       );
       plantIds = sampled.map((r) => Number(r.id));
       if (plantIds.length < 2) {
