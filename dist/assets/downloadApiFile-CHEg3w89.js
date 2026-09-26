@@ -1,0 +1,1 @@
+import{Sn as e,un as t}from"./AppDialogsProvider-CUmLvb03.js";import{t as n}from"./downloadAuthedFile-BRkwVwdZ.js";async function r(r,i){return n(r,i,{resolveUrl:e,getToken:t,messages:{unauthorized:`Session expirée — reconnectez-vous.`,forbidden:`Permission insuffisante pour cette action.`,notFound:`Route introuvable — déployez la dernière version du serveur.`}})}export{r as t};
