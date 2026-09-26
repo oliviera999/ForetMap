@@ -12,7 +12,13 @@ import {
   filterGroupDefaultRoles,
 } from '../utils/groupDefaultRoleOptions.js';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
-import { CURRICULUM_NIVEAUX } from '../utils/curriculumNotions.js';
+import { LEARNER_NIVEAUX } from '../utils/curriculumNotions.js';
+import {
+  countGroupsMissingNiveau,
+  groupNiveauHint,
+  groupNiveauStatus,
+  proposedGroupNiveau,
+} from '../utils/groupNiveauHints.js';
 import {
   buildGroupForest,
   filterGroupMemberCandidates,
@@ -35,10 +41,63 @@ import {
 const GROUPS_HIDE_INACTIVE_KEY = 'foretmap.groups.hideInactive';
 const GROUPS_PAGE_SIZE_KEY = 'foretmap.profiles.pageSize';
 
-const EMPTY_CREATE_DRAFT = { name: '', slug: '', kind: 'class' };
+const EMPTY_CREATE_DRAFT = { name: '', slug: '', kind: 'class', curriculum_niveau: '' };
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
+}
+
+const HINT_COLORS = {
+  proposition: 'var(--ink-warning)',
+  info: 'var(--ink-soft)',
+  ok: 'var(--ink-soft)',
+};
+
+/**
+ * Proposition tirée du nom du groupe, sous le choix du niveau (décision Q5 du 25/09/2026) :
+ * jamais appliquée seule — le professeur la confirme.
+ */
+function GroupNiveauHint({ name, kind, current, onApply, testId }) {
+  const hint = groupNiveauHint({ name, kind, current: current || null });
+  if (!hint) return null;
+  return (
+    <p
+      data-testid={testId}
+      style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: HINT_COLORS[hint.tone] }}
+    >
+      {hint.text}{' '}
+      {hint.tone === 'proposition' && onApply && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          style={{ minHeight: 44 }}
+          onClick={() => onApply(hint.proposedNiveau)}
+        >
+          Utiliser cette proposition
+        </button>
+      )}
+    </p>
+  );
+}
+
+/** Ce que vaut le niveau d'un groupe laissé vide. */
+function inheritedNiveauText(group) {
+  if (group?.curriculum_niveau_herite_de) {
+    return groupNiveauStatus({ ...group, curriculum_niveau: null }).text;
+  }
+  if (group?.parent_group_id) {
+    return 'Laissé vide, le groupe hérite du niveau de son groupe parent, s’il en a un.';
+  }
+  return 'Sans niveau, les élèves de ce groupe suivent les anciens réglages d’affichage ou, à défaut, le niveau par défaut de l’établissement.';
+}
+
+/** Options du choix du niveau de la classe (échelle unique de l'apprenant). */
+function LearnerNiveauOptions() {
+  return LEARNER_NIVEAUX.map((n) => (
+    <option key={n.value} value={n.value}>
+      {n.label}
+    </option>
+  ));
 }
 
 function GroupSettingsPanel({
@@ -155,34 +214,54 @@ function GroupSettingsPanel({
         </small>
       </div>
       <div className="field" data-testid="group-curriculum-niveau">
-        <label>Niveau du programme de la classe</label>
-        <select value={curriculumNiveau} onChange={(e) => setCurriculumNiveau(e.target.value)}>
-          <option value="">— Hériter (groupe parent) —</option>
-          {CURRICULUM_NIVEAUX.map((n) => (
-            <option key={n.value} value={n.value}>
-              {n.label}
-            </option>
-          ))}
+        <label htmlFor={`group-niveau-${group.id}`}>Niveau de la classe</label>
+        <select
+          id={`group-niveau-${group.id}`}
+          value={curriculumNiveau}
+          onChange={(e) => setCurriculumNiveau(e.target.value)}
+        >
+          <option value="">— Aucun : hériter du groupe parent —</option>
+          <LearnerNiveauOptions />
         </select>
+        <GroupNiveauHint
+          name={group.name}
+          kind={group.kind}
+          current={curriculumNiveau}
+          onApply={setCurriculumNiveau}
+          testId="group-curriculum-niveau-hint"
+        />
+        {!curriculumNiveau && (
+          <p
+            data-testid="group-curriculum-niveau-inherited"
+            style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+          >
+            {inheritedNiveauText(group)}
+          </p>
+        )}
         <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
-          Resserre les notions du quiz et du glossaire proposées aux élèves (une 6ᵉ ne voit que le
-          cycle 3). Réglé sur une unité (« Niveau 6ᵉ »), il vaut pour toutes ses classes.
+          C’est le niveau de référence des élèves du groupe : il règle l’affichage biodiversité
+          (Collège, Lycée ou Université), les notions proposées au quiz et au glossaire, et les
+          questions posées pour valider une fiche. Réglé sur une unité (« Niveau 6ᵉ »), il vaut pour
+          toutes ses classes. Un élève de plusieurs classes prend le plus haut niveau.
         </small>
       </div>
-      <div className="field" data-testid="group-pedago-level">
-        <label>Niveau pédagogique biodiversité</label>
-        <select value={pedagoLevel} onChange={(e) => setPedagoLevel(e.target.value)}>
-          <option value="">— Automatique (niveau du programme, groupe parent, site) —</option>
+      <details className="field" data-testid="group-pedago-level" open={!!pedagoLevel}>
+        <summary>Ancien réglage d’affichage biodiversité (repli)</summary>
+        <select
+          value={pedagoLevel}
+          onChange={(e) => setPedagoLevel(e.target.value)}
+          aria-label="Ancien réglage d’affichage biodiversité"
+        >
+          <option value="">— Aucun —</option>
           <option value="college">Collège</option>
           <option value="lycee">Lycée</option>
           <option value="universite">Université</option>
         </select>
         <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
-          Adapte l’affichage biodiversité pour les membres de ce groupe. En automatique, il découle
-          du niveau du programme (cycles 3 et 4 : Collège ; seconde et au-delà : Lycée). Si
-          plusieurs groupes fixent un niveau, le plus simple l’emporte.
+          Ne sert plus que si aucun niveau de classe n’est connu, ni ici ni sur un groupe parent.
+          Préférez le niveau de la classe ci-dessus : ce réglage disparaîtra.
         </small>
-      </div>
+      </details>
       <div className="field">
         <label>Profil conféré par le groupe</label>
         <select
@@ -516,6 +595,7 @@ function GroupTreeNode({
   const id = String(node.id);
   const hasChildren = Array.isArray(node.children) && node.children.length > 0;
   const collapsed = collapsedIds.has(id);
+  const niveauStatus = groupNiveauStatus(node);
   return (
     <div style={{ marginLeft: depth === 0 ? 0 : 16 }}>
       <div
@@ -605,6 +685,21 @@ function GroupTreeNode({
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginTop: 4 }}>
           {Array.isArray(node.members) ? `${node.members.length} membre(s)` : '0 membre'} ·{' '}
           {Array.isArray(node.scopes) ? `${node.scopes.length} scope(s)` : '0 scope'}
+          {niveauStatus.text && (
+            <span
+              data-testid={`group-niveau-${id}`}
+              style={niveauStatus.missing ? { color: 'var(--ink-warning)' } : undefined}
+              title={
+                niveauStatus.missing
+                  ? 'Classe sans niveau : ses élèves suivent les anciens réglages ou le niveau par défaut de l’établissement. Ouvrez « Réglages » pour le renseigner.'
+                  : undefined
+              }
+            >
+              {' '}
+              · {niveauStatus.missing ? '⚠ ' : ''}
+              {niveauStatus.text}
+            </span>
+          )}
         </div>
       </div>
       {hasChildren &&
@@ -653,10 +748,13 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     const raw = safeLocalStorageGetItem(GROUPS_HIDE_INACTIVE_KEY, '1');
     return raw !== '0';
   });
+  const [missingNiveauOnly, setMissingNiveauOnly] = useState(false);
   const [collapsedIds, setCollapsedIds] = useState(() => new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState(EMPTY_CREATE_DRAFT);
   const [slugTouched, setSlugTouched] = useState(false);
+  // Niveau choisi à la main : la proposition tirée du nom ne l'écrase plus.
+  const [niveauTouched, setNiveauTouched] = useState(false);
   const helpGroups = resolveHelpPanelSection('groups', publicSettings);
 
   const load = async () => {
@@ -760,15 +858,18 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
         query: groupQuery,
         kind: groupKind,
         hideInactive,
+        missingNiveauOnly,
       }),
-    [groups, groupQuery, groupKind, hideInactive],
+    [groups, groupQuery, groupKind, hideInactive, missingNiveauOnly],
   );
 
   const forest = useMemo(() => buildGroupForest(filteredGroups), [filteredGroups]);
+  const missingNiveauCount = useMemo(() => countGroupsMissingNiveau(groups), [groups]);
 
   const openCreateGroup = () => {
     setCreateDraft(EMPTY_CREATE_DRAFT);
     setSlugTouched(false);
+    setNiveauTouched(false);
     setCreateOpen(true);
   };
 
@@ -776,6 +877,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setCreateOpen(false);
     setCreateDraft(EMPTY_CREATE_DRAFT);
     setSlugTouched(false);
+    setNiveauTouched(false);
   };
 
   const updateCreateName = (name) => {
@@ -785,6 +887,20 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
       // slugify() translittère les accents : « 2nde A — Éco » → « 2nde-a-eco »
       // (audit docs/AUDIT_BDD_2026-08.md §5.5).
       slug: slugTouched ? prev.slug : slugify(name),
+      // Même logique pour le niveau : proposé d'après le nom tant qu'on n'y a pas touché.
+      curriculum_niveau: niveauTouched
+        ? prev.curriculum_niveau
+        : proposedGroupNiveau(name, prev.kind),
+    }));
+  };
+
+  const updateCreateKind = (kind) => {
+    setCreateDraft((prev) => ({
+      ...prev,
+      kind,
+      curriculum_niveau: niveauTouched
+        ? prev.curriculum_niveau
+        : proposedGroupNiveau(prev.name, kind),
     }));
   };
 
@@ -802,6 +918,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
         name,
         slug: String(createDraft.slug || '').trim() || undefined,
         kind: createDraft.kind || 'class',
+        curriculum_niveau: createDraft.curriculum_niveau || undefined,
       });
       setMsg('Groupe créé');
       closeCreateGroup();
@@ -1036,7 +1153,45 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
           />
           Masquer les inactifs
         </label>
+        <label
+          style={{
+            display: 'inline-flex',
+            gap: 6,
+            alignItems: 'center',
+            fontSize: 'var(--text-sm)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={missingNiveauOnly}
+            onChange={(e) => setMissingNiveauOnly(e.target.checked)}
+            data-testid="groups-missing-niveau-filter"
+          />
+          Seulement les classes sans niveau
+        </label>
       </div>
+      {missingNiveauCount > 0 && (
+        <div
+          role="status"
+          data-testid="groups-missing-niveau-banner"
+          style={{
+            marginBottom: 10,
+            padding: 8,
+            border: '1px solid var(--ink-warning)',
+            borderRadius: 8,
+            color: 'var(--ink-warning)',
+            fontSize: 'var(--text-sm)',
+          }}
+        >
+          <IconWarning size={14} />{' '}
+          {missingNiveauCount === 1
+            ? '1 classe ou unité active n’a pas de niveau, même hérité : '
+            : `${missingNiveauCount} classes ou unités actives n’ont pas de niveau, même hérité : `}
+          leurs élèves sont traités au niveau par défaut de l’établissement. Ouvrez « Réglages » sur
+          chacune : une proposition tirée de son nom vous est faite.
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <button className="btn btn-secondary btn-sm" onClick={openCreateGroup} disabled={loading}>
           + Nouveau groupe
@@ -1127,10 +1282,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
           </label>
           <label className="field">
             <span>Type</span>
-            <select
-              value={createDraft.kind}
-              onChange={(e) => setCreateDraft((prev) => ({ ...prev, kind: e.target.value }))}
-            >
+            <select value={createDraft.kind} onChange={(e) => updateCreateKind(e.target.value)}>
               {GROUP_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {GROUP_KIND_LABELS[k] || k}
@@ -1138,6 +1290,30 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
               ))}
             </select>
           </label>
+          <div className="field" data-testid="group-create-niveau">
+            <label htmlFor="group-create-niveau-select">Niveau de la classe</label>
+            <select
+              id="group-create-niveau-select"
+              value={createDraft.curriculum_niveau}
+              onChange={(e) => {
+                setNiveauTouched(true);
+                setCreateDraft((prev) => ({ ...prev, curriculum_niveau: e.target.value }));
+              }}
+            >
+              <option value="">— Aucun : hériter du groupe parent —</option>
+              <LearnerNiveauOptions />
+            </select>
+            <GroupNiveauHint
+              name={createDraft.name}
+              kind={createDraft.kind}
+              current={createDraft.curriculum_niveau}
+              onApply={(niveau) => {
+                setNiveauTouched(true);
+                setCreateDraft((prev) => ({ ...prev, curriculum_niveau: niveau }));
+              }}
+              testId="group-create-niveau-hint"
+            />
+          </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <button type="button" className="btn btn-secondary" onClick={closeCreateGroup}>
               Annuler

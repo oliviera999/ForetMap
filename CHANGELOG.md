@@ -9,6 +9,72 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
+
+- Le niveau d'un élève est un niveau du programme (cycle 3 → terminale) ou « Université » ;
+  Collège / Lycée / Université n'en sont que l'affichage. Un résolveur unique
+  (`lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) sert l'affichage
+  biodiversité, le verrouillage, le quiz et le glossaire : aperçu > séance en cours > niveau de
+  la classe > anciens réglages (groupe, carte) > défaut de l'établissement. La préférence de
+  l'élève ne règle plus que l'affichage.
+- **La séance impose son niveau, verrouillage compris** (`?pedagoSession=`, cru seulement pour
+  une exécution démarrée et non terminée). `GET /api/auth/me` expose `learnerLevel`.
+- Migration `301` : `groups.curriculum_niveau` accepte `universite` et reçoit le niveau déduit du
+  nom quand il est sans ambiguïté (fixture : 27 groupes sur 32, 428 élèves sur 463 au cycle 3).
+- Écran des groupes : niveau proposé d'après le nom (« Utiliser cette proposition »), niveau
+  hérité affiché, classes sans niveau signalées et filtrables. L'import Moodle pose le niveau
+  déduit à la création d'un groupe.
+
+### Refactorisation — adaptateurs de produit (piste B, décision Q18)
+
+- **Verrouillage** : le moteur commun (`lib/learningGating*.js`, `lib/gatingPolicyLoad.js`,
+  `lib/learningLinksBulk.js`) ne teste plus le produit ; il interroge un adaptateur, un objet par
+  produit (`lib/pedago/gatingProductCatalog.js`, `lib/pedago/gatingProducts.js`, seul fichier du
+  moteur qui importe du code Gnomes & Licornes). 50 lignes testant le produit, 22 noms de tables
+  GL et 9 imports GL retirés de dix fichiers.
+- **Moodle** : les accès de la synchronisation aux tables `gl_*` (30 lignes dans cinq fichiers)
+  passent par `lib/moodle/gameAdapter.js`.
+- Aucun changement de comportement : caractérisation par produit (référence figée), contrat et
+  gardes d'isolement (`tests/gating-products.test.js`, `tests/moodle-game-adapter-isolation.test.js`).
+  Aucun fichier GL modifié.
+
+### Modifié — une seule définition de « présente sur ce site » (décision Q10)
+
+- Nouveau service `lib/biodiv/presenceService.js` : une espèce est présente sur une carte si
+  elle est au registre du site, dans une zone ou sur un repère ; chaque réponse dit par quel
+  canal. Nouvelle route `GET /api/maps/:mapId/species` (provenance et lieux ; les lieux réservés
+  ne sont nommés qu'à qui peut les voir).
+- Tous les écrans s'appuient dessus : filtre et pastille « Sur la carte » du catalogue (élève
+  et professeur), fiche espèce (provenance affichée), tirage des Groupes emboîtés (registre seul
+  auparavant), réseau trophique, visite (`site_species` dans `GET /api/visit/content`).
+  Carte forêt de la base de référence : 27 / 61 / 75 espèces selon l'écran → 75 partout.
+- Le catalogue ne refait plus la réunion côté client ; les anciens noms mono-espèce
+  (`current_plant`, `plant_name`) ne comptent plus. `loadMapSpeciesMap` (sans appelant)
+  supprimé ; la vue `v_zone_inventory` n'est plus lue par l'application.
+- Tests : `tests/species-presence-screens.test.js`, `tests/presence-service.test.js`,
+  `tests/plant-filters-map-presence.test.js`, `useMapSpeciesPresence`, `PlantCatalogPreview`.
+
+### Modifié — liens question ↔ ressource : une seule source (piste C, tranche « liens »)
+
+- La fiche espèce, la fiche tutoriel et la fiche d'un terme du glossaire affichent les questions
+  **approuvées** dans l'écran « Rattacher des questions aux contenus »
+  (`resource_question_links`), celles que lit le contrôle de compréhension : une question
+  rattachée à la main apparaît enfin sur la fiche espèce, une proposition en attente ou rejetée
+  n'y apparaît jamais. Service unique `lib/pedago/learningLinks.js`, appelé par les routes
+  `plants`, `tutorials`, `glossary`, `learning-links`, l'import et l'édition QCM ; l'import par
+  mots-clés ne purge toujours que `origin='keyword'`. L'édition d'une question enregistre la
+  question et ses liens par mots-clés dans une même transaction. `POST /api/learning-links/suggest` :
+  `includeEditorial` est accepté mais sans effet (`stats.editorial_candidates` vaut 0).
+- Migration `300` : reprend dans `resource_question_links` les liens de `quiz_question_species` et
+  `quiz_question_tutorials` qui en étaient absents (7 sur le fixture, tous côté espèces) en
+  `origin='editorial'`, approuvés et **non bloquants** ; affichage et verrouillage inchangés.
+  Les deux tables historiques ne sont plus ni lues ni écrites (temps 1 et 2 du retrait) ; leur
+  suppression (temps 3) est planifiée dans le commentaire de la migration.
+- Garde `tests/migrations-numbering.test.js` : à partir de 252, la numérotation des migrations
+  est continue. Une PR qui saute un numéro ou passe devant une autre échoue en CI au lieu d'être
+  ignorée en production (le moteur saute sans rien dire tout numéro inférieur à la version
+  courante).
+
 ### Ajouté — terrain sans réseau (piste D, audit du 25/09/2026, § 1.4.6 et § 2.4)
 
 - « Marquer terminée » fonctionne sans réseau : le marquage et son commentaire sont gardés sur

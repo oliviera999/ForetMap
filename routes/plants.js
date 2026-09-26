@@ -16,7 +16,8 @@ const { requirePermission, requireAuth } = require('../middleware/requireTeacher
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
-const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
+const learningLinks = require('../lib/pedago/learningLinks');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
@@ -306,7 +307,7 @@ router.post(
           resourceRef: String(pid),
           userId,
           skipGating: priorCount > 0,
-          learnerLevel: await loadLearnerLevel(userId),
+          learnerLevel: await loadLearnerLevelForRequest(req),
         },
       );
       if (!gating.ok) {
@@ -596,15 +597,14 @@ router.get(
     const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
 
-    const questions = await queryAll(
-      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte,
-              qq.photo_url, qq.photo_legende
-         FROM quiz_question_species qqs
-         JOIN quiz_questions qq ON qq.question_code = qqs.question_code
-        WHERE qqs.plant_id = ? AND qq.statut = 'actif'
-        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
-      [plantId],
-    );
+    // Source unique `resource_question_links` (migration 300) : les liens approuvés de la
+    // fiche, bloquants ou non — ceux que l'écran des liens montre et que le verrouillage lit.
+    // `quiz_question_species` n'est plus lue (temps 1 du retrait, audit du 25/09/2026, § 3.5).
+    const questions = await learningLinks.listQuestionsForResource(dbApi, {
+      resourceType: 'plant',
+      resourceRef: plantId,
+      audience: 'sheet',
+    });
     return res.json({ plantId, questions });
   }),
 );

@@ -17,6 +17,7 @@ import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.js
 import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 import { IconCheck } from '../shared/icons.jsx';
 import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
+import { withPedagoSessionScope } from '../utils/pedagoSessionScope.js';
 import { chunkIds, normalizePlantIds } from '../utils/biodivCatalogLoad.js';
 import {
   enqueuePlantObservation,
@@ -25,6 +26,9 @@ import {
 } from '../utils/plantObservationQueue.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
+
+/** Épreuve et validation annoncent la séance en cours : elle impose son niveau. */
+const gatingApi = withPedagoSessionScope(api);
 
 function currentUserId() {
   const claims = typeof getAuthClaims === 'function' ? getAuthClaims() : null;
@@ -82,7 +86,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   offlineAllowedRef.current = hasObserved || (!!gatingSummary && gatingSummary.required === false);
 
   const gatingHandlers = useMemo(() => {
-    const base = createFmGatingHandlers(api);
+    const base = createFmGatingHandlers(gatingApi);
     return {
       ...base,
       fetchChallenge: async (...args) => {
@@ -140,7 +144,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     const clientUuid = newObservationClientUuid();
     let res;
     try {
-      res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', {
+      res = await gatingApi(`/api/plants/${pid}/acknowledge-discovery`, 'POST', {
         confirm: true,
         client_uuid: clientUuid,
       });

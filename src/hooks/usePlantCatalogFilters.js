@@ -9,11 +9,14 @@ import {
 /**
  * État partagé des filtres / tri / chips du catalogue biodiversité
  * (PlantManager / PlantViewer).
+ *
+ * @param {Array<object>} plants catalogue
+ * @param {Map<number, object>|null} presenceByPlantId présence sur la carte active, telle
+ *   que la renvoie le serveur (`useMapSpeciesPresence`) ; `null` tant qu'elle est inconnue
  */
 export function usePlantCatalogFilters(
   plants,
-  zones,
-  markers,
+  presenceByPlantId,
   {
     defaultZonePresence = ZONE_PRESENCE_FILTER.ALL,
     activeMapId = null,
@@ -59,12 +62,10 @@ export function usePlantCatalogFilters(
         plantMatchesAllFilters(
           p,
           { structured, queryTrimmedLower, zonePresence },
-          zones,
-          markers,
-          activeMapId,
+          presenceByPlantId,
         ),
       ),
-    [plants, structured, queryTrimmedLower, zonePresence, zones, markers, activeMapId],
+    [plants, structured, queryTrimmedLower, zonePresence, presenceByPlantId],
   );
 
   const chipFiltered = useMemo(() => {

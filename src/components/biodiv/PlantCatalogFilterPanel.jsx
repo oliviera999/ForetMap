@@ -54,6 +54,8 @@ export function PlantCatalogFilterPanel({
   setSortKey = null,
   enableObservationChips = false,
   countsReady = false,
+  /** État de la présence sur la carte (serveur) : `error` → le filtre est inopérant. */
+  presenceStatus = 'ready',
 }) {
   const subsetAfterG1 = useMemo(() => filterPlantsByTaxonomy(plants, { group1 }), [plants, group1]);
   const subsetAfterG2 = useMemo(
@@ -198,6 +200,12 @@ export function PlantCatalogFilterPanel({
               <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Présente sur cette carte</option>
               <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Absente de cette carte</option>
             </select>
+            {presenceStatus === 'error' && zonePresence !== ZONE_PRESENCE_FILTER.ALL ? (
+              <p className="biodiv-filters__note" role="status">
+                Présence sur la carte indisponible pour le moment : toutes les fiches sont
+                affichées.
+              </p>
+            ) : null}
           </div>
         ) : null}
 

@@ -283,13 +283,34 @@ Les groupes structurent la vie pédagogique :
   parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
   pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de
   son périmètre.
-- **Niveau du programme de la classe** : cycle 3, cycle 4, seconde, première ou terminale
-  (spécialité SVT ou enseignement scientifique). C'est lui qui distingue une 6ᵉ d'une 3ᵉ,
-  là où l'affichage biodiversité ne connaît que « Collège ». Il resserre les notions du quiz
-  et du glossaire proposées aux élèves (une classe de cycle 3 ne voit plus le cycle 4), et
-  il fixe l'affichage biodiversité quand celui-ci est laissé en automatique. Laissé vide, il
-  **hérite du groupe parent** : on le règle une fois sur l'unité « Niveau 6ᵉ » et toutes ses
-  classes en profitent. Voir [Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md#les-échelles-de-niveau-et-leurs-correspondances).
+- **Niveau de la classe** : cycle 3, cycle 4, seconde, première ou terminale (spécialité
+  SVT ou enseignement scientifique), ou **Université**. C'est **le niveau des élèves du
+  groupe** (depuis le 25 septembre 2026, la seule échelle de niveau d'un élève) : il fixe
+  leur affichage biodiversité (Collège, Lycée ou Université), resserre les notions du quiz
+  et du glossaire (une classe de cycle 3 ne voit plus le cycle 4) et règle les questions
+  posées pour valider une fiche. Laissé vide, il **hérite du groupe parent** : on le règle
+  une fois sur l'unité « Niveau 6ᵉ » et toutes ses classes en profitent. Un élève de
+  plusieurs classes prend le plus haut niveau ; une séance en cours impose le sien. Voir
+  [Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md#qui-règle-le-niveau-et-où).
+  - **Proposé d'après le nom.** À la création d'un groupe comme dans ses **Réglages**, le
+    formulaire propose le niveau tiré du nom (« 601 » → cycle 3, « 4B » → cycle 4,
+    « 2nde A » → seconde…). À la création, il est pré-rempli et reste modifiable ; dans les
+    réglages, le bouton **« Utiliser cette proposition »** le reporte dans le champ. Rien
+    n'est enregistré sans clic sur **Créer** ou **Enregistrer**. Pour une première ou une
+    terminale, le nom doit dire la voie (« spé SVT », « ens. sci. ») ; sinon le formulaire
+    demande de la choisir. Une équipe ou un club n'a pas de proposition : laissé vide,
+    chacun de ses élèves garde le niveau de sa classe.
+  - **Classes sans niveau signalées.** La liste des groupes affiche le niveau de chaque
+    groupe (« hérité de … » quand il vient du parent). Une classe ou une unité active sans
+    niveau, même hérité, porte la mention **« Niveau à renseigner »** ; un bandeau en donne le
+    nombre et la case **« Seulement les classes sans niveau »** permet de les retrouver.
+  - **Classes existantes et import Moodle.** Le 25 septembre 2026, les classes et unités
+    dont le nom ne laisse aucun doute ont reçu leur niveau automatiquement ; l'import des
+    cohortes Moodle pose de même le niveau d'un groupe qu'il crée. Dans le doute, le niveau
+    reste vide et la classe apparaît « à renseigner ».
+  - **Ancien réglage d'affichage** : le panneau garde, replié, l'ancien choix « Affichage
+    biodiversité — Collège / Lycée / Université » du groupe. Il ne sert plus que pour un
+    groupe sans niveau de classe, même hérité, et disparaîtra.
 - **Profil par défaut** : un groupe peut conférer un profil à ses membres (par exemple
   « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en élève dès son
   rattachement, selon la règle « le plus élevé l'emporte ». Changer ce profil réaligne

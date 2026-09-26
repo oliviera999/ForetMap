@@ -10,6 +10,12 @@
 > **Aperçu** de l’en-tête), et les masquages catalogue / réseau / groupes / individus / quiz-glossaire
 > sont **en place**. Deux **séances guidées** collège sont disponibles dans l’onglet
 > **Séances**, avec un suivi simple « démarrée / terminée » (section dédiée plus bas).
+>
+> **Depuis le 25 septembre 2026 : une seule échelle de niveau pour l’élève.** Le niveau d’un
+> élève est celui du **programme** — cycle 3, cycle 4, seconde, première, terminale — ou
+> **Université**. Il vient de la **séance en cours** s’il y en a une, sinon du **niveau de sa
+> classe**, réglé sur le groupe. Collège, Lycée et Université ne sont plus que la façon dont
+> ce niveau s’affiche. Détail dans [Qui règle le niveau, et où](#qui-règle-le-niveau-et-où).
 
 ## À quoi ça sert
 
@@ -21,8 +27,8 @@ biomasse, arbre de classification). Sans cadrage, un collégien se retrouve face
 Ce document fixe :
 
 1. **trois niveaux d’affichage** — Collège, Lycée, Université — pour rester **simple
-   au secondaire** ;
-2. **où régler** le niveau (préférence de l’utilisateur, carte, groupe) ;
+   au secondaire**, déduits du niveau de l’élève ;
+2. **où régler** le niveau (niveau de la classe sur le groupe, séance, et quelques replis) ;
 3. le comportement de la **visite invitée** ;
 4. des **séances types** (papier / projet de parcours) pour guider une classe sans tout
    ouvrir d’un coup.
@@ -47,7 +53,7 @@ Public typique : cycles 3 et 4, découverte et sortie de terrain.
 - Clés d’identification : **lecture** guidée (mode Questions, une fourche à la fois) ;
   le mode **Schéma** (arbre de la clé) reste disponible pour visualiser la structure.
 - Quiz et glossaire : notions de **cycle 3 et cycle 4** mises en avant — et seulement du
-  cycle 3 pour une classe dont le niveau du programme est « Cycle 3 » (voir
+  cycle 3 pour une classe dont le niveau est « Cycle 3 » (voir
   [plus bas](#les-échelles-de-niveau-et-leurs-correspondances)). Le quiz propose d'emblée
   les questions « Collège ».
 - Groupes emboîtés, suivi d’arbres avec formules, détails GBIF / classification latine :
@@ -85,42 +91,72 @@ Public typique : licence, formation d’enseignants, projets de recherche pédag
     Schéma particulièrement utile pour parcourir la structure).
 
 > **Rappel** — « Université » ne crée pas un nouveau rôle dans l’établissement : c’est
-> un **niveau d’affichage**. Les comptes élèves du lycée peuvent être placés en
-> « Université » pour un projet ponctuel (TIPE, club science, journée d’étude).
+> un **niveau**, le plus haut de l’échelle. Des élèves du lycée peuvent être placés en
+> « Université » pour un projet ponctuel (TIPE, club science, journée d’étude) en réglant
+> le niveau **Université** sur le groupe du projet : le plus haut niveau de leurs groupes
+> l’emporte.
 
 ## Qui règle le niveau, et où
 
-Trois endroits complémentaires :
+**Une seule échelle pour l’élève** : son niveau est un niveau du programme — cycle 3,
+cycle 4, seconde, première ou terminale (spécialité SVT ou enseignement scientifique) — ou
+**Université** au-delà du lycée. De ce niveau découlent à la fois l’**affichage**
+(cycles 3 et 4 → Collège ; seconde à terminale → Lycée ; Université → Université), les
+**notions** proposées au quiz et au glossaire, et les **questions** posées pour valider une
+fiche, un tutoriel ou un terme.
 
-| Où                              | Qui le règle                                            | À quoi ça sert                                                                            |
-| ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Préférence de l’utilisateur** | L’élève (ou le personnel) pour **son** compte           | « Je préfère la vue collège » même si la classe est en lycée — confort et accessibilité.  |
-| **Carte**                       | Professeur / admin sur une carte (forêt, daya, sortie…) | Une sortie terrain « collège » sur la daya, une carte « lycée » pour la forêt comestible. |
-| **Groupe**                      | Professeur / admin sur un groupe (classe, club…)        | Toute la 4ᵉ B en collège ; le club SVT Terminale en lycée ou université.                  |
+| Où                                    | Qui le règle                                              | À quoi ça sert                                                                                       |
+| ------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Niveau de la classe**               | Professeur / admin sur un groupe (classe, unité…)         | **La référence** : toute la 6ᵉ B en cycle 3, la classe de seconde en seconde, un club en Université. |
+| **Séance**                            | Professeur qui prépare la séance (public Collège, Lycée…) | Pendant la séance, elle **impose** son niveau à ceux qui la suivent.                                 |
+| **Préférence de l’utilisateur**       | L’élève (ou le personnel) pour **son** compte             | « Je préfère la vue collège » — confort et accessibilité, pour l’**affichage** seulement.            |
+| **Carte** (repli)                     | Professeur / admin sur une carte                          | Ancien réglage, lu seulement si l’élève n’a ni séance ni classe avec un niveau.                      |
+| **Groupe — ancien affichage** (repli) | Professeur / admin sur un groupe                          | Ancien réglage « Collège / Lycée / Université », même rôle de repli ; il disparaîtra.                |
 
 ### Ordre quand plusieurs réglages coexistent
 
-Du plus fort au plus faible :
+Du plus fort au plus faible — **le plus précis l’emporte** :
 
 1. **Visite invitée** → toujours **Collège** — non contournable.
 2. **Aperçu professeur** « Affichage biodiversité — Collège / Lycée / Université » (session
    uniquement) : pour vérifier ce que voit un élève, sans changer les réglages du site.
    Voir [Le menu Aperçu](#le-menu-aperçu) ci-dessous.
-3. **Socle** :
-   - si la **carte** active ou un **groupe** de l’élève a un niveau explicite, on
-     retient le **plus simple** parmi ces niveaux (plusieurs groupes : le plus simple
-     l’emporte ; un groupe ou une carte laissés sur « hériter » ne comptent pas) ;
-   - si **aucun** niveau n’est fixé sur la carte ni sur les groupes, on utilise le
-     **défaut de l’établissement** (réglage admin ; **Collège** par défaut).
-4. **Préférence personnelle** : par défaut elle ne peut que **simplifier** par rapport
-   au socle. Un administrateur peut cocher l’option qui autorise à **relever** le niveau
-   (projets ponctuels, club science…).
+3. **Séance en cours** : la séance **impose son niveau**, y compris pour les questions de
+   validation. Un élève de 6ᵉ dans une séance « Lycée » voit l’affichage Lycée et reçoit les
+   questions de lycée ; un élève de seconde dans une séance « Collège » est traité en
+   collège le temps de la séance. À l’intérieur de la plage de la séance, la classe précise :
+   dans une séance « tout le collège », une 6ᵉ reste au cycle 3. Dès que la séance est
+   terminée ou quittée, le niveau de la classe reprend la main.
+4. **Niveau de la classe** : celui du groupe de l’élève, ou hérité de son groupe parent
+   (réglé une fois sur l’unité « Niveau 6ᵉ », il vaut pour toutes ses classes). Un élève
+   membre de plusieurs classes prend le **plus haut** niveau : on ne lui retire pas ce
+   qu’une de ses classes travaille. Un club placé en **Université** relève donc ses membres
+   (projet ponctuel, TIPE, journée d’étude).
+5. **Replis**, seulement si l’élève n’a ni séance ni classe avec un niveau : l’ancien
+   réglage d’affichage des groupes et celui de la carte active (le **plus simple** des
+   deux l’emporte), puis le **défaut de l’établissement** (réglage admin ; **Collège** par
+   défaut). Le défaut de l’établissement n’est jamais un plafond.
+6. **Préférence personnelle** : elle ne règle que l’**affichage**. Par défaut elle ne peut
+   que le **simplifier** ; un administrateur peut cocher l’option qui l’autorise à le
+   **relever**. Elle ne change **jamais** les questions posées pour valider une fiche : un
+   élève de seconde qui préfère la vue Collège garde les questions de son niveau.
 
-Pour un public **lycée** ou un **club / TIPE**, on relève le niveau sur la **carte** ou
-le **groupe** concerné, plutôt que de changer le défaut de tout le site.
+Pour un public **lycée** ou un **club / TIPE**, on règle le **niveau de la classe** du
+groupe concerné (Seconde, Terminale, Université…), plutôt que de changer le défaut de tout
+le site.
 
 Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
-validation, administration), quel que soit le niveau fixé pour les élèves.
+validation, administration), quel que soit le niveau fixé pour les élèves ; ses propres
+groupes ne le restreignent jamais.
+
+> ⚠️ **Point d'attention** — La séance n’impose son niveau que tant qu’elle est **ouverte**
+> dans l’application de l’élève (bandeau de séance visible) et qu’elle a été **démarrée** par
+> un élève connecté. Un élève qui quitte la séance, ou la termine, retrouve le niveau de sa
+> classe. Une séance en brouillon, ou le module Séances éteint, n’impose rien.
+
+> ⚠️ **Point d'attention** — Un groupe qui porte à la fois un niveau de classe et l’ancien
+> réglage d’affichage : c’est le **niveau de la classe** qui compte. L’ancien réglage n’est
+> relu que pour les groupes qui n’ont aucun niveau, même hérité.
 
 ### Le menu Aperçu
 
@@ -143,16 +179,17 @@ fermeture du navigateur.
 
 Plusieurs « niveaux » coexistent dans l'application, chacun né d'un besoin différent. Ils
 sont désormais **reliés entre eux** par une seule table de correspondance, dont la
-référence commune est le **niveau du programme** (du cycle 3 à la terminale) :
+référence commune est le **niveau du programme** (du cycle 3 à la terminale, plus
+l'université pour l'élève) :
 
-| Échelle                               | Où on la trouve               | Valeurs                                                           | Correspondance                                                                      |
-| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Affichage biodiversité**            | compte, carte, groupe, séance | Collège, Lycée, Université                                        | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
-| **Niveau de la classe** (nouveau)     | groupe                        | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.) | c'est la référence elle-même                                                        |
-| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                    | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
-| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                   | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
-| **Difficulté d'une question**         | quiz                          | ★ à ★★★★★                                                         | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
-| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                               | c'est la référence elle-même                                                        |
+| Échelle                               | Où on la trouve               | Valeurs                                                                       | Correspondance                                                                      |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Niveau de l'élève**                 | classe (groupe), séance       | Cycle 3, Cycle 4, Seconde, Première, Terminale (SVT ou ens. sci.), Université | **la référence** : c'est la seule échelle de l'élève                                |
+| **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
+| **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
+| **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
+| **Difficulté d'une question**         | quiz                          | ★ à ★★★★★                                                                     | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
+| **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                        |
 
 Ce que ça change concrètement :
 
@@ -161,21 +198,31 @@ Ce que ça change concrètement :
   « cycle 4 » — celui des séances collège — sortait une question de lycée sur trois.
 - **Le glossaire est relié aux notions.** Le filtre par notion de l'onglet Glossaire
   fonctionne (il ne renvoyait rien), et la fiche d'un terme affiche « Au programme ».
-- **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau du programme de la
-  classe**. Réglé une fois sur l'unité « Niveau 6ᵉ », il vaut pour toutes ses classes
-  (un groupe laissé vide hérite de son parent). Il resserre les notions proposées à ses
-  élèves (une classe de cycle 3 ne voit plus le cycle 4) et, si l'affichage biodiversité
-  du groupe est laissé en automatique, il le fixe : cycles 3 et 4 → Collège, seconde et
-  au-delà → Lycée.
-- **Les séances suivent la classe.** Une séance qui demande « tout le collège » tire, pour
-  une 6ᵉ, dans le cycle 3 seulement. Une séance qui vise explicitement un cycle (« cycle 4 »)
-  est respectée telle quelle : c'est le choix du professeur. Les séances lycée, qui
-  demandaient « tout le lycée », fonctionnent (elles étaient refusées).
+- **On peut distinguer une 6ᵉ d'une 3ᵉ.** Le groupe porte un **niveau de la classe**.
+  Réglé une fois sur l'unité « Niveau 6ᵉ », il vaut pour toutes ses classes (un groupe
+  laissé vide hérite de son parent). Il fixe l'affichage (cycles 3 et 4 → Collège, seconde
+  et au-delà → Lycée, Université → Université), resserre les notions proposées à ses élèves
+  (une classe de cycle 3 ne voit plus le cycle 4) et règle les questions de validation.
+- **Le niveau des classes existantes a été posé d'après leur nom** (25 septembre 2026),
+  quand le nom ne laisse aucun doute : « 601 », « 26#601-602 », « 6ᵉ B » → cycle 3 ;
+  « 4B », « 302 » → cycle 4 ; « 2nde A », « 201 » → seconde. Les noms qui évoquent plusieurs
+  niveaux, qui ne disent rien (« test ») ou qui désignent une première ou une terminale sans
+  préciser la voie sont restés vides : l'écran des groupes les signale. Les équipes et les
+  clubs ne sont jamais réglés automatiquement.
+- **Les nouvelles classes aussi.** À la création d'un groupe, le formulaire propose le
+  niveau tiré du nom (à vérifier avant de créer) ; l'import des cohortes Moodle le pose
+  seul, avec la même prudence.
+- **La séance impose son niveau.** Une séance « Lycée » fait passer ceux qui la suivent au
+  lycée, questions de validation comprises. Une séance qui demande « tout le collège » tire,
+  pour une 6ᵉ, dans le cycle 3 seulement. Une séance qui vise explicitement un cycle
+  (« cycle 4 ») est respectée telle quelle : c'est le choix du professeur. Les séances lycée,
+  qui demandaient « tout le lycée », fonctionnent (elles étaient refusées).
 
-> ⚠️ **Point d'attention** — Tant qu'aucun groupe n'a de niveau du programme, rien ne
-> distingue le cycle 3 du cycle 4 : tout le monde est traité en « Collège » (cycles 3 et 4).
-> Pour une classe de 6ᵉ, régler **Cycle 3** sur l'unité ou la classe (Profils &
-> utilisateurs → Groupes → Réglages).
+> ⚠️ **Point d'attention** — Une classe sans niveau, même hérité, ne distingue pas le
+> cycle 3 du cycle 4 : ses élèves suivent les anciens réglages, ou le défaut de
+> l'établissement (« Collège », cycles 3 et 4). L'écran **Profils & utilisateurs → Groupes**
+> affiche un bandeau « classes sans niveau » et un filtre pour les retrouver ; dans
+> **Réglages**, une proposition tirée du nom est faite, à confirmer.
 
 ## Visite invitée
 
@@ -346,12 +393,12 @@ Disponible en brouillon : le professeur choisit les six espèces puis publie.
 > emboîtés libre, ou aux estimations d’arbres. Préférer les séances A et B, et le
 > commentaire oral du professeur.
 
-> ⚠️ **Point d'attention** — Le mot « niveau » existe déjà pour autre chose (niveau
-> d’une question de quiz collège/lycée, profondeur d’un terme de glossaire, niveau du
-> programme d'une classe). Ici il s’agit du **niveau pédagogique d’affichage** de la
-> biodiversité : l’interface le nomme toujours « Affichage biodiversité » ou « Affichage
-> Collège » pour rester distinct. Les correspondances entre toutes ces échelles sont
-> dans [le tableau ci-dessus](#les-échelles-de-niveau-et-leurs-correspondances).
+> ⚠️ **Point d'attention** — Le mot « niveau » désigne plusieurs choses (niveau d’une
+> question de quiz collège/lycée, profondeur d’un terme de glossaire, niveau de la classe).
+> Le **niveau de la classe** est celui de l’élève ; l’**affichage** Collège / Lycée /
+> Université en découle, et l’interface le nomme toujours « Affichage biodiversité » ou
+> « Affichage Collège » pour rester distinct. Les correspondances entre toutes ces échelles
+> sont dans [le tableau ci-dessus](#les-échelles-de-niveau-et-leurs-correspondances).
 
 > ⚠️ **Point d'attention** — L’éditeur de visite garde sa propre bascule « Aperçu comme
 > élève », qui ne concerne que le rendu de la visite et n’apparaît pas dans le menu

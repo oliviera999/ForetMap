@@ -11,7 +11,7 @@ const {
   POLLINATION_EFFICACIES,
   makeFoodWebStore,
 } = require('../lib/shared/foodWebCore');
-const { mapPresencePlantIdsSubquery } = require('../lib/speciesJunction');
+const { mapPresenceSubquery, zonePresenceSubquery } = require('../lib/biodiv/presenceService');
 const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
@@ -98,9 +98,12 @@ function scopedFoodWebQuery(inventorySubquery) {
            ORDER BY fw.interaction_type ASC, fw.from_name ASC, fw.to_name ASC`;
 }
 
-/** Inventaire zone (vue historique) — 1 placeholder répété 4 fois. */
-function zoneInventorySubquery() {
-  return `(SELECT plant_id FROM v_zone_inventory WHERE zone_id = ?)`;
+/**
+ * Requête de périmètre complète : la sous-requête de présence apparaît quatre fois, ses
+ * paramètres sont donc répétés quatre fois, dans l'ordre d'apparition.
+ */
+function scopedFoodWebParams(presence) {
+  return [...presence.params, ...presence.params, ...presence.params, ...presence.params];
 }
 
 /** GET /api/food-web?mapId=&zoneId= */
@@ -114,8 +117,10 @@ router.get(
       const zone = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zoneId]);
       if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
 
-      const inv = zoneInventorySubquery();
-      const items = await queryAll(scopedFoodWebQuery(inv), [zoneId, zoneId, zoneId, zoneId]);
+      // Espèces de la zone : même définition que le service de présence (jonction de zone),
+      // identique à la vue historique `v_zone_inventory`.
+      const inv = zonePresenceSubquery(zoneId);
+      const items = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
       return res.json({ zoneId, items });
     }
 
@@ -123,9 +128,10 @@ router.get(
       const map = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
       if (!map) return res.status(404).json({ error: 'Carte introuvable' });
 
-      // Zones + repères + rattachement direct à la carte (map_species).
-      const inv = mapPresencePlantIdsSubquery();
-      const items = await queryAll(scopedFoodWebQuery(inv), Array(12).fill(mapId));
+      // Espèces présentes sur la carte : définition commune (registre, zones, repères —
+      // `lib/biodiv/presenceService.js`), la même que le catalogue et les groupes emboîtés.
+      const inv = mapPresenceSubquery(mapId);
+      const items = await queryAll(scopedFoodWebQuery(inv.sql), scopedFoodWebParams(inv));
       return res.json({ mapId, items });
     }
 

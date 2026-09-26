@@ -1,0 +1,1483 @@
+{
+  "fm.challenge.P1.S1": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "player",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "FM_QA",
+        "already_correct": true,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "FM_QB",
+        "already_correct": false,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "fm.challenge.P1.S3": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "player",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "FM_QA",
+        "already_correct": true,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "FM_QB",
+        "already_correct": true,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 0,
+    "ask_count": 0,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": true,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "fm.challenge.P1.S1.college": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "player",
+    "required_correct": 1,
+    "gating_questions_count": 1,
+    "questions": [
+      {
+        "question_code": "FM_QA",
+        "already_correct": true,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 0,
+    "ask_count": 0,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": true,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    },
+    "level_fallback": "none"
+  },
+  "fm.challenge.P2.S1.college": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "all",
+    "granularity": "player",
+    "required_correct": 1,
+    "gating_questions_count": 1,
+    "questions": [
+      {
+        "question_code": "FM_QB",
+        "already_correct": false,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 0,
+    "max_questions_per_session": 3,
+    "allowed_wrong_attempts": 0,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 48,
+    "retry_cooldown_label": "2 jours",
+    "retry_cooldown_days": 2,
+    "lock_mode": "flow",
+    "effective_sources": {
+      "mode": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": true,
+      "locked_until": "<t>",
+      "retry_hours": 48,
+      "retry_label": "2 jours",
+      "retry_days": 2,
+      "remaining_ms": "<t>",
+      "remaining_hours": "<t>",
+      "remaining_days": "<t>",
+      "remaining_label": "<t>",
+      "wrong_attempts": 1,
+      "scope": "resource",
+      "locked_questions": []
+    },
+    "level_fallback": "all_levels"
+  },
+  "fm.challenge.P2.S2": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "all",
+    "granularity": "player",
+    "required_correct": 1,
+    "gating_questions_count": 1,
+    "questions": [
+      {
+        "question_code": "FM_QB",
+        "already_correct": false,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 3,
+    "allowed_wrong_attempts": 0,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 48,
+    "retry_cooldown_label": "2 jours",
+    "retry_cooldown_days": 2,
+    "lock_mode": "flow",
+    "effective_sources": {
+      "mode": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 48,
+      "retry_label": "2 jours",
+      "retry_days": 2,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "fm.challenge.P3.S1": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": false,
+    "mode": "any",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "fm.challenge.P4.S1": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": false,
+    "mode": "off",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "fm.challenge.P1.anonymous": {
+    "ok": false,
+    "status": 403,
+    "error": "Authentification requise"
+  },
+  "fm.challenge.P1.skip": {
+    "ok": true,
+    "gating_enabled": false,
+    "required": false,
+    "mode": "off",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "fm.challenge.badType": {
+    "ok": false,
+    "status": 400,
+    "error": "Paramètres de ressource invalides"
+  },
+  "fm.challenge.foretmapAlias": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "player",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "FM_QA",
+        "already_correct": true,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "FM_QB",
+        "already_correct": false,
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "fm_default"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "fm.challenge.unknownProduct": {
+    "ok": false,
+    "status": 400,
+    "error": "Paramètres de ressource invalides"
+  },
+  "fm.ack.P1.S1": {
+    "ok": false,
+    "status": 403,
+    "error": "Répondez correctement à 2 questions liées avant de valider.",
+    "missing_question_codes": ["FM_QB"]
+  },
+  "fm.ack.P1.S2": {
+    "ok": false,
+    "status": 403,
+    "error": "Répondez correctement à 2 questions liées avant de valider.",
+    "missing_question_codes": ["FM_QA", "FM_QB"]
+  },
+  "fm.ack.P1.S3": {
+    "ok": true
+  },
+  "fm.ack.P1.S1.college": {
+    "ok": true
+  },
+  "fm.ack.P2.S1": {
+    "ok": false,
+    "status": 403,
+    "error": "Une erreur a été commise : réessaie dans 1 j 16 h pour valider cette ressource.",
+    "missing_question_codes": [],
+    "cooldown": {
+      "locked": true,
+      "locked_until": "<t>",
+      "retry_hours": 48,
+      "retry_label": "2 jours",
+      "retry_days": 2,
+      "remaining_ms": "<t>",
+      "remaining_hours": "<t>",
+      "remaining_days": "<t>",
+      "remaining_label": "<t>",
+      "wrong_attempts": 1,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "fm.ack.P2.S2": {
+    "ok": false,
+    "status": 403,
+    "error": "Répondez correctement à toutes les questions liées avant de valider.",
+    "missing_question_codes": ["FM_QB"]
+  },
+  "fm.ack.P3.S2": {
+    "ok": true
+  },
+  "fm.ack.P1.anonymous": {
+    "ok": false,
+    "status": 403,
+    "error": "Authentification requise",
+    "missing_question_codes": []
+  },
+  "fm.summary.S1": {
+    "resource_type": "plant",
+    "items": [
+      {
+        "resource_ref": "P1",
+        "required": true,
+        "ask_count": 1,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "threshold",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "aucun délai",
+        "allowed_wrong_attempts": 1,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P2",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "all",
+        "locked": true,
+        "remaining_days": "<t>",
+        "remaining_hours": "<t>",
+        "remaining_label": "<t>",
+        "retry_days": 2,
+        "retry_hours": 48,
+        "retry_label": "2 jours",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 1,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "inconnue",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      }
+    ],
+    "announce_on_button": true,
+    "state_icons": false
+  },
+  "fm.summary.S1.college": {
+    "resource_type": "plant",
+    "items": [
+      {
+        "resource_ref": "P1",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "threshold",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "aucun délai",
+        "allowed_wrong_attempts": 1,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P2",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "all",
+        "locked": true,
+        "remaining_days": "<t>",
+        "remaining_hours": "<t>",
+        "remaining_label": "<t>",
+        "retry_days": 2,
+        "retry_hours": 48,
+        "retry_label": "2 jours",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 1,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "inconnue",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      }
+    ],
+    "announce_on_button": true,
+    "state_icons": false
+  },
+  "fm.summary.anonymous": {
+    "resource_type": "plant",
+    "items": [
+      {
+        "resource_ref": "P3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "P4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      },
+      {
+        "resource_ref": "inconnue",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": true,
+        "show_icon": false
+      }
+    ],
+    "announce_on_button": true,
+    "state_icons": false
+  },
+  "fm.progress.P1": {
+    "summary": {
+      "total_students": 3,
+      "read_count": 1,
+      "pending_count": 2,
+      "satisfied_count": 1,
+      "locked_count": 0,
+      "required_correct": 2,
+      "gating_questions": 2,
+      "max_students": 500,
+      "truncated": false
+    }
+  },
+  "fm.progress.P2": {
+    "summary": {
+      "total_students": 3,
+      "read_count": 0,
+      "pending_count": 1,
+      "satisfied_count": 1,
+      "locked_count": 1,
+      "required_correct": 1,
+      "gating_questions": 1,
+      "max_students": 500,
+      "truncated": false
+    }
+  },
+  "fm.progress.P3": {
+    "summary": {
+      "total_students": 3,
+      "read_count": 0,
+      "pending_count": 0,
+      "satisfied_count": 0,
+      "locked_count": 0
+    }
+  },
+  "fm.progress.P4": {
+    "summary": {
+      "total_students": 3,
+      "read_count": 0,
+      "pending_count": 0,
+      "satisfied_count": 0,
+      "locked_count": 0
+    }
+  },
+  "fm.cooldown.P1.first": null,
+  "fm.cooldown.P2.first": {
+    "locked": true,
+    "locked_until": "<t>",
+    "retry_hours": 48,
+    "retry_label": "2 jours",
+    "retry_days": 2,
+    "remaining_ms": "<t>",
+    "remaining_hours": "<t>",
+    "remaining_days": "<t>",
+    "remaining_label": "<t>",
+    "wrong_attempts": 1,
+    "allowed_wrong_attempts": 0,
+    "attempts_left": 0,
+    "scope": "resource",
+    "locked_question_code": null
+  },
+  "fm.cooldown.P2.notLinked": null,
+  "fm.cooldown.P2.correct": null,
+  "fm.cooldown.P2.noUser": null,
+  "fm.cooldown.rows": [
+    {
+      "resource_ref": "P2",
+      "question_code": "",
+      "wrong_question_code": "FM_QB",
+      "wrong_attempts": 1
+    }
+  ],
+  "gl.challenge.R1.team": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "team",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "GL_GA",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "GL_GB",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 0,
+    "ask_count": 0,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "resource"
+    },
+    "satisfied": true,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R1.college": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "team",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "GL_GA",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "GL_GB",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 0,
+    "ask_count": 0,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "resource"
+    },
+    "satisfied": true,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R1.noTeam": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "team",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "GL_GA",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "GL_GB",
+        "already_correct": false,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "resource"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R1.chapterPlayer": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "player",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "GL_GA",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "GL_GB",
+        "already_correct": false,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "chapter"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R1.mj": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "threshold",
+    "granularity": "team",
+    "required_correct": 2,
+    "gating_questions_count": 2,
+    "questions": [
+      {
+        "question_code": "GL_GA",
+        "already_correct": false,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      },
+      {
+        "question_code": "GL_GB",
+        "already_correct": true,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 1,
+    "max_questions_per_session": 1,
+    "allowed_wrong_attempts": 1,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 0,
+    "retry_cooldown_label": "aucun délai",
+    "retry_cooldown_days": 0,
+    "lock_mode": "advisory",
+    "effective_sources": {
+      "mode": "resource",
+      "requiredCorrect": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "resource"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": false,
+      "locked_until": null,
+      "retry_hours": 0,
+      "retry_label": "aucun délai",
+      "retry_days": 0,
+      "remaining_ms": 0,
+      "remaining_hours": 0,
+      "remaining_days": 0,
+      "remaining_label": "",
+      "wrong_attempts": 0,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R2": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": true,
+    "mode": "all",
+    "granularity": "player",
+    "required_correct": 1,
+    "gating_questions_count": 1,
+    "questions": [
+      {
+        "question_code": "GL_GB",
+        "already_correct": false,
+        "question_dataset": "qcm",
+        "locked": false,
+        "locked_until": null,
+        "remaining_label": "",
+        "wrong_attempts": 0
+      }
+    ],
+    "pending_count": 1,
+    "ask_count": 0,
+    "max_questions_per_session": 3,
+    "allowed_wrong_attempts": 0,
+    "cooldown_scope": "resource",
+    "retry_cooldown_hours": 48,
+    "retry_cooldown_label": "2 jours",
+    "retry_cooldown_days": 2,
+    "lock_mode": "flow",
+    "effective_sources": {
+      "mode": "resource",
+      "allowedWrongAttempts": "resource",
+      "maxQuestionsPerSession": "resource",
+      "retryCooldownHours": "resource",
+      "cooldownScope": "resource",
+      "lockMode": "resource",
+      "granularity": "resource"
+    },
+    "satisfied": false,
+    "cooldown": {
+      "locked": true,
+      "locked_until": "<t>",
+      "retry_hours": 48,
+      "retry_label": "2 jours",
+      "retry_days": 2,
+      "remaining_ms": "<t>",
+      "remaining_hours": "<t>",
+      "remaining_days": "<t>",
+      "remaining_label": "<t>",
+      "wrong_attempts": 1,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.challenge.R3": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": false,
+    "mode": "any",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "gl.challenge.R4": {
+    "ok": true,
+    "gating_enabled": true,
+    "required": false,
+    "mode": "off",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "gl.challenge.R1.noReader": {
+    "ok": false,
+    "status": 403,
+    "error": "Profil invalide"
+  },
+  "gl.challenge.badType": {
+    "ok": false,
+    "status": 400,
+    "error": "Paramètres de ressource invalides"
+  },
+  "gl.ack.R1.team": {
+    "ok": true
+  },
+  "gl.ack.R1.noTeam": {
+    "ok": false,
+    "status": 403,
+    "error": "Répondez correctement à 2 questions liées avant de valider.",
+    "missing_question_codes": ["GL_GB"]
+  },
+  "gl.ack.R1.college": {
+    "ok": true
+  },
+  "gl.ack.R2": {
+    "ok": false,
+    "status": 403,
+    "error": "Une erreur a été commise : réessaie dans 1 j 16 h pour valider cette ressource.",
+    "missing_question_codes": [],
+    "cooldown": {
+      "locked": true,
+      "locked_until": "<t>",
+      "retry_hours": 48,
+      "retry_label": "2 jours",
+      "retry_days": 2,
+      "remaining_ms": "<t>",
+      "remaining_hours": "<t>",
+      "remaining_days": "<t>",
+      "remaining_label": "<t>",
+      "wrong_attempts": 1,
+      "scope": "resource",
+      "locked_questions": []
+    }
+  },
+  "gl.ack.R2.mj": {
+    "ok": true
+  },
+  "gl.ack.R3": {
+    "ok": true
+  },
+  "gl.ack.R1.noReader": {
+    "ok": false,
+    "status": 403,
+    "error": "Profil invalide",
+    "missing_question_codes": []
+  },
+  "gl.summary.player": {
+    "resource_type": "content_page",
+    "items": [
+      {
+        "resource_ref": "R1",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "threshold",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "aucun délai",
+        "allowed_wrong_attempts": 1,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R2",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "all",
+        "locked": true,
+        "remaining_days": "<t>",
+        "remaining_hours": "<t>",
+        "remaining_label": "<t>",
+        "retry_days": 2,
+        "retry_hours": 48,
+        "retry_label": "2 jours",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 1,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      }
+    ],
+    "announce_on_button": false,
+    "state_icons": true
+  },
+  "gl.summary.noTeam": {
+    "resource_type": "content_page",
+    "items": [
+      {
+        "resource_ref": "R1",
+        "required": true,
+        "ask_count": 1,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "threshold",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "aucun délai",
+        "allowed_wrong_attempts": 1,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R2",
+        "required": true,
+        "ask_count": 0,
+        "pending_count": 1,
+        "satisfied": false,
+        "mode": "all",
+        "locked": true,
+        "remaining_days": "<t>",
+        "remaining_hours": "<t>",
+        "remaining_label": "<t>",
+        "retry_days": 2,
+        "retry_hours": 48,
+        "retry_label": "2 jours",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 1,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      }
+    ],
+    "announce_on_button": false,
+    "state_icons": true
+  },
+  "gl.summary.anonymous": {
+    "resource_type": "content_page",
+    "items": [
+      {
+        "resource_ref": "R3",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "any",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      },
+      {
+        "resource_ref": "R4",
+        "required": false,
+        "ask_count": 0,
+        "pending_count": 0,
+        "satisfied": true,
+        "mode": "off",
+        "locked": false,
+        "remaining_days": 0,
+        "remaining_hours": 0,
+        "remaining_label": "",
+        "retry_days": 0,
+        "retry_hours": 0,
+        "retry_label": "",
+        "allowed_wrong_attempts": 0,
+        "wrong_attempts": 0,
+        "announce": false,
+        "show_icon": true
+      }
+    ],
+    "announce_on_button": false,
+    "state_icons": true
+  },
+  "gl.cooldown.R1.first": null,
+  "gl.cooldown.R2.first": {
+    "locked": true,
+    "locked_until": "<t>",
+    "retry_hours": 48,
+    "retry_label": "2 jours",
+    "retry_days": 2,
+    "remaining_ms": "<t>",
+    "remaining_hours": "<t>",
+    "remaining_days": "<t>",
+    "remaining_label": "<t>",
+    "wrong_attempts": 1,
+    "allowed_wrong_attempts": 0,
+    "attempts_left": 0,
+    "scope": "resource",
+    "locked_question_code": null
+  },
+  "gl.cooldown.R2.notLinked": null,
+  "gl.cooldown.R2.noReader": null,
+  "gl.cooldown.rows": [
+    {
+      "resource_ref": "R2",
+      "question_code": "",
+      "wrong_question_code": "GL_GB",
+      "wrong_attempts": 1
+    }
+  ],
+  "off.fm": {
+    "ok": true,
+    "gating_enabled": false,
+    "required": false,
+    "mode": "off",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "off.gl": {
+    "ok": true,
+    "gating_enabled": false,
+    "required": false,
+    "mode": "off",
+    "questions": [],
+    "pending_count": 0,
+    "ask_count": 0,
+    "satisfied": true
+  },
+  "off.fm.cooldown": null
+}

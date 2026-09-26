@@ -473,11 +473,13 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
 
 **Les questions posées suivent le niveau de l'élève** (depuis septembre 2026). Un élève de
 collège ne reçoit que les questions de collège d'une fiche ; un élève de lycée, toutes. Le
-niveau vient de sa classe et de son groupe, à défaut du niveau par défaut de l'établissement
-(voir [Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md)). Si une fiche n'a
-**aucune** question à son niveau, elles restent toutes posées : la fiche n'est jamais ouverte
-par le seul effet du niveau. Le professeur ne voit pas ce filtre (il n'a pas de niveau
-d'élève).
+niveau vient de la **séance en cours** s'il en suit une (une séance « Lycée » pose les
+questions de lycée, même à un élève de 6ᵉ), sinon du **niveau de sa classe**, à défaut des
+anciens réglages et du niveau par défaut de l'établissement (voir
+[Niveaux pédagogiques](niveaux-pedagogiques-biodiversite.md#qui-règle-le-niveau-et-où)). La
+préférence d'affichage de l'élève n'y change rien. Si une fiche n'a **aucune** question à
+son niveau, elles restent toutes posées : la fiche n'est jamais ouverte par le seul effet du
+niveau. Le professeur ne voit pas ce filtre (il n'a pas de niveau d'élève).
 
 Les réglages qui accompagnent l'interrupteur (panneau dédié **Validation des lectures** dans
 **Paramètres administrateur → Pédagogie**, plus préréglages par type tutoriel / fiche espèce /
@@ -663,8 +665,10 @@ motivée**, pour juger d'un coup d'œil. Deux précautions :
   propositions, personne n'allait au bout des quarante changements, et le rattachement
   automatique ne débouchait sur rien.
 
-L'outil récupère aussi les **« questions liées »** que vous auriez déjà saisies sur une fiche
-question : elles ne remontaient pas d'elles-mêmes dans le contrôle de compréhension.
+Les **« questions liées »** saisies autrefois sur une fiche question ont été reprises une fois
+pour toutes dans l'écran (septembre 2026) : elles y figurent comme rattachements approuvés et
+non bloquants, et l'outil n'a plus à les proposer. Ce que montre l'écran est désormais
+exactement ce que montrent les fiches.
 
 Le rapprochement automatique reste une aide, pas un verdict : il propose, vous décidez.
 Relisez avant d'approuver — c'est ce qui déterminera si un élève peut valider sa lecture.

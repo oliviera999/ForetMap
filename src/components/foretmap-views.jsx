@@ -5,12 +5,7 @@ import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection, resolveTooltipKey } from '../utils/helpResolve';
-import {
-  plantLinkedToMapMarker,
-  plantLinkedToMapZone,
-  plantPresentOnActiveMap,
-  ZONE_PRESENCE_FILTER,
-} from '../utils/plantFilters';
+import { plantIdsMarkedOnMap, ZONE_PRESENCE_FILTER } from '../utils/plantFilters';
 import { useBiodivCatalogPage } from '../hooks/useBiodivCatalogPage';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
@@ -78,6 +73,7 @@ function PlantManager({
   const {
     filteredPlants,
     displayedPlants,
+    presenceByPlantId,
     filterPanelProps,
     plantObservationCounts,
     applyObservationAcknowledged,
@@ -100,16 +96,12 @@ function PlantManager({
     [editId, plants],
   );
 
-  const plantMapLinks = useMemo(() => {
-    const links = new Map();
-    for (const p of displayedPlants) {
-      links.set(p.id, {
-        zones: zones.filter((z) => plantLinkedToMapZone(p, z)),
-        markers: markers.filter((m) => plantLinkedToMapMarker(p, m)),
-      });
-    }
-    return links;
-  }, [displayedPlants, zones, markers]);
+  // Pastille « Sur la carte » : même définition que chez l'élève (présence du serveur :
+  // registre, zones ou repères). Elle ne comptait jusqu'ici que les zones et repères.
+  const plantMapLinkedIds = useMemo(
+    () => plantIdsMarkedOnMap(displayedPlants, presenceByPlantId, zones, markers),
+    [displayedPlants, presenceByPlantId, zones, markers],
+  );
 
   const startEdit = (p) => {
     setEditId(p.id);
@@ -273,13 +265,12 @@ function PlantManager({
 
       <div className="biodiv-grid biodiv-grid--tiles">
         {displayedPlants.map((p) => {
-          const { zones: pZones = [], markers: pMarkers = [] } = plantMapLinks.get(p.id) || {};
           return (
             <PlantCatalogTile
               key={p.id}
               plant={p}
               onOpen={onOpenPlant}
-              hasMapLink={pZones.length > 0 || pMarkers.length > 0}
+              hasMapLink={plantMapLinkedIds.has(p.id)}
               myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
               siteObservationCount={
                 plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
@@ -610,6 +601,7 @@ function PlantViewer({
   const {
     filteredPlants: filtered,
     displayedPlants,
+    presenceByPlantId,
     filterPanelProps,
     plantObservationCounts,
     applyObservationAcknowledged,
@@ -627,13 +619,10 @@ function PlantViewer({
     enableObservationChips: true,
   });
 
-  const plantMapLinkedIds = useMemo(() => {
-    const ids = new Set();
-    for (const p of displayedPlants) {
-      if (plantPresentOnActiveMap(p, zones, markers, activeMapId)) ids.add(p.id);
-    }
-    return ids;
-  }, [displayedPlants, zones, markers, activeMapId]);
+  const plantMapLinkedIds = useMemo(
+    () => plantIdsMarkedOnMap(displayedPlants, presenceByPlantId, zones, markers),
+    [displayedPlants, presenceByPlantId, zones, markers],
+  );
 
   return (
     <div className="fade-in">

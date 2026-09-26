@@ -19,6 +19,11 @@ const {
 } = require('../lib/locationCategories');
 const { loadLocationNotesMap, attachNotesToEntity } = require('../lib/locationNotes');
 const {
+  listSpeciesForMap,
+  summarizePresence,
+  serializePresenceEntry,
+} = require('../lib/biodiv/presenceService');
+const {
   nowIso,
   resolveVisitMapId,
   resolveVisitMapIdForViewer,
@@ -214,11 +219,19 @@ function projectVisitContentForViewer(payload, auth) {
       visibleKeys.has(`${String(step.target_type)}:${String(step.target_id)}`),
     ),
   }));
+  // Espèces du site : la présence est la même pour tous, mais un lieu que ce lecteur ne voit
+  // pas (réservé, masqué, absent de la visite) n'est pas nommé.
+  const siteSpecies = (payload.site_species || []).map((entry) => ({
+    ...entry,
+    zones: (entry.zones || []).filter((p) => visibleKeys.has(`zone:${p.id}`)),
+    markers: (entry.markers || []).filter((p) => visibleKeys.has(`marker:${p.id}`)),
+  }));
   return {
     ...payload,
     zones,
     markers,
     routes,
+    site_species: siteSpecies,
   };
 }
 
@@ -422,6 +435,15 @@ router.get(
       ),
     );
 
+    /**
+     * Espèces du site : définition commune de « présente sur ce site » (registre, zones,
+     * repères — `lib/biodiv/presenceService.js`, décision Q10), la même que le catalogue,
+     * le réseau trophique et les groupes emboîtés. Les lieux de la visite gardent leurs
+     * propres espèces pour l'affichage sur la carte ; cette liste-ci dit ce que le site
+     * abrite, avec la provenance de chaque espèce.
+     */
+    const siteSpeciesPromise = listSpeciesForMap({ queryAll }, mapId);
+
     const zoneCategoriesPromise = zonesPromise.then((rows) =>
       loadCategoriesMap(
         { queryAll },
@@ -455,6 +477,7 @@ router.get(
       markerCategoriesMap,
       zoneNotesMap,
       markerNotesMap,
+      siteSpecies,
     ] = await Promise.all([
       zonesPromise,
       markersPromise,
@@ -473,6 +496,7 @@ router.get(
       markerCategoriesPromise,
       zoneNotesPromise,
       markerNotesPromise,
+      siteSpeciesPromise,
     ]);
 
     const infrastructureZoneIds = new Set(
@@ -558,6 +582,8 @@ router.get(
       markers: publicMarkers,
       tutorials,
       routes: publicRoutes,
+      site_species: (siteSpecies || []).map(serializePresenceEntry),
+      site_species_summary: summarizePresence(siteSpecies || []),
     };
     visitContentCache.set(mapId, payload);
     res.json(projectVisitContentForViewer(payload, req.auth));

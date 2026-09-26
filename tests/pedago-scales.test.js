@@ -165,8 +165,37 @@ test('le miroir ESM reste identique au module serveur', async () => {
     ['inheritanceExclusionsFor', [GLOSSARY_NIVEAU_ENTRY]],
     ['etapeForCurriculumNiveau', ['terminale_spe']],
     ['contentMayInheritNotion', [3, 'cycle4']],
+    ['highestLearnerNiveau', [['es_premiere', 'universite', 'cycle4']]],
+    ['etapeForLearnerNiveau', ['universite']],
   ];
+  for (const name of ['LEARNER_NIVEAU_VALUES', 'UNIVERSITE_PALIER']) {
+    assert.deepEqual(ui[name], scales[name], `constante divergente : ${name}`);
+  }
   for (const [name, args] of samples) {
     assert.deepEqual(ui[name](...args), scales[name](...args), `résultat divergent : ${name}`);
   }
+});
+
+// Échelle unique de l'apprenant (décision du mainteneur du 25/09/2026, question 4) : les
+// niveaux du programme, plus l'université ; collège / lycée / université en sont déduits.
+test('échelle de l’apprenant : programme + université, étapes déduites', () => {
+  assert.deepEqual([...scales.LEARNER_NIVEAU_VALUES], [...CURRICULUM_NIVEAU_VALUES, 'universite']);
+  assert.equal(scales.normalizeLearnerNiveau('Université'), 'universite');
+  assert.equal(scales.normalizeLearnerNiveau('seconde'), 'seconde');
+  assert.equal(scales.normalizeLearnerNiveau('lycee'), null);
+  assert.equal(scales.learnerNiveauPalier('universite'), scales.UNIVERSITE_PALIER);
+  assert.ok(scales.UNIVERSITE_PALIER > curriculumPalier('es_terminale'));
+  assert.equal(scales.etapeForLearnerNiveau('cycle3'), 'college');
+  assert.equal(scales.etapeForLearnerNiveau('es_premiere'), 'lycee');
+  assert.equal(scales.etapeForLearnerNiveau('universite'), 'universite');
+  assert.equal(scales.etapeForLearnerNiveau('lycee'), null);
+  assert.deepEqual(scales.sortLearnerNiveaux(['universite', 'cycle3', 'x', 'cycle3']), [
+    'cycle3',
+    'universite',
+  ]);
+  // Plusieurs classes : le plus haut l'emporte ; à palier égal, l'ordre de l'ENUM.
+  assert.equal(scales.highestLearnerNiveau(['cycle3', 'seconde']), 'seconde');
+  assert.equal(scales.highestLearnerNiveau(['es_premiere', 'premiere_spe']), 'premiere_spe');
+  assert.equal(scales.highestLearnerNiveau(['terminale_spe', 'universite']), 'universite');
+  assert.equal(scales.highestLearnerNiveau([]), null);
 });

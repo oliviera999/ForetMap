@@ -379,9 +379,14 @@ router.get('/me', requireAuth, async (req, res) => {
       const profile = await loadUserGroupPedagoProfile(req.auth.userId);
       body.biodivGroupPedagoLevels = profile.levels;
       body.biodivGroupCurriculumNiveaux = profile.curriculumNiveaux;
+      // Niveau de l'apprenant résolu par le serveur (échelle unique, hors carte et hors
+      // séance, que le navigateur applique ensuite) ; `null` pour un compte non élève.
+      const { loadLearnerLevel } = require('../lib/pedago/learnerLevel');
+      body.learnerLevel = await loadLearnerLevel(req.auth.userId, { profile });
     } catch (_) {
       body.biodivGroupPedagoLevels = [];
       body.biodivGroupCurriculumNiveaux = [];
+      body.learnerLevel = null;
     }
   }
   res.json(body);

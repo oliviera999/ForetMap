@@ -101,3 +101,20 @@ test('kind invalide -> 400 "kind invalide (class|team|unit|club)" quand slug+nam
   assert.strictEqual(r.status, 400);
   assert.strictEqual(r.error, 'kind invalide (class|team|unit|club)');
 });
+
+// Niveau de la classe à la création (décision du mainteneur du 25/09/2026, question 5).
+test('curriculum_niveau : normalisé sur l’échelle unique, vide = hériter, hors liste -> 400', () => {
+  assert.strictEqual(
+    run({ name: '601', curriculum_niveau: ' Cycle3 ' }).body.curriculum_niveau,
+    'cycle3',
+  );
+  assert.strictEqual(
+    run({ name: 'Club', curriculum_niveau: 'universite' }).body.curriculum_niveau,
+    'universite',
+  );
+  assert.strictEqual(run({ name: '601', curriculum_niveau: '' }).body.curriculum_niveau, null);
+  const r = run({ name: '601', curriculum_niveau: 'sixieme' });
+  assert.strictEqual(r.nextCalled, false);
+  assert.strictEqual(r.status, 400);
+  assert.match(r.error, /^curriculum_niveau invalide \(cycle3\|.*\|universite\)$/);
+});

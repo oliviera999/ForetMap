@@ -5,6 +5,10 @@ import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeC
 import { LearningQuizPopover } from '../shared/components/LearningQuizPopover.jsx';
 import { IconCheck } from '../shared/icons.jsx';
 import { FmLearnAndImportSlot } from './journal/FmLearnAndImportSlot.jsx';
+import { withPedagoSessionScope } from '../utils/pedagoSessionScope.js';
+
+/** Épreuve et validation annoncent la séance en cours : elle impose son niveau. */
+const gatingApi = withPedagoSessionScope(api);
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -20,14 +24,14 @@ export function TutorialReadAcknowledgeButton({
   gatingSummary = null,
 }) {
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
-  const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
+  const gatingHandlers = useMemo(() => createFmGatingHandlers(gatingApi), []);
   const gatingResource = useMemo(
     () => ({ resourceType: 'tutorial', resourceRef: String(tutorialId) }),
     [tutorialId],
   );
 
   const submit = useCallback(async () => {
-    await api(`/api/tutorials/${tutorialId}/acknowledge-read`, 'POST', { confirm: true });
+    await gatingApi(`/api/tutorials/${tutorialId}/acknowledge-read`, 'POST', { confirm: true });
     onAcknowledged?.(Number(tutorialId));
   }, [tutorialId, onAcknowledged]);
 

@@ -30,6 +30,24 @@ export function curriculumNiveauLabel(value) {
 }
 
 /**
+ * Échelle unique de l'apprenant (décision du 25/09/2026, question 4) : niveaux du programme,
+ * plus l'université. C'est le choix proposé pour le **niveau d'une classe**
+ * (`groups.curriculum_niveau`) ; les notions, elles, n'existent que du cycle 3 à la terminale.
+ */
+export const LEARNER_NIVEAUX = Object.freeze([
+  ...CURRICULUM_NIVEAUX,
+  { value: 'universite', label: 'Université (au-delà du lycée)' },
+]);
+
+const LEARNER_LABEL_BY_VALUE = new Map(LEARNER_NIVEAUX.map((n) => [n.value, n.label]));
+
+/** Libellé d'un niveau de l'apprenant (`universite` compris). */
+export function learnerNiveauLabel(value) {
+  const key = String(value == null ? '' : value).trim();
+  return LEARNER_LABEL_BY_VALUE.get(key) || key;
+}
+
+/**
  * Choix d’un filtre « niveau de notion » : chaque étape d’abord (« tout le collège »), puis
  * ses niveaux. Mêmes valeurs que celles acceptées par `notionNiveau` côté API.
  */

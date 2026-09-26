@@ -289,7 +289,8 @@ const SYNC_DOMAIN_TABLES = {
     'glossary_terms',
     'glossary_term_tutorials',
     'quiz_questions',
-    'quiz_question_tutorials',
+    // `quiz_question_tutorials` retirée (temps 2, audit du 25/09/2026, § 3.5) : plus aucune
+    // écriture applicative ; les liens vivent dans `resource_question_links` (ignorée).
     'tasks',
     'task_tutorials',
     'task_markers',

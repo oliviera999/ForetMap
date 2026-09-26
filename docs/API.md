@@ -706,6 +706,59 @@ Réservé aux environnements de **développement / CI** ; ne pas utiliser en pro
 | ------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/maps` | Liste des cartes configurées, triées (`sort_order`, `id`). Retourne les champs `id`, `label`, `map_image_url`, `sort_order`, `is_active`, `updated_at`, `frame_padding_px`, **`georef`** (3 ancres de calage GPS `[{ xp, yp, lat, lng }]` ou `null`), **`gps_enabled`** (booléen ; vrai uniquement si le suivi est activé **et** le calage valide), **`heading_up_enabled`** et **`scale_compass_enabled`** (booléen ; vrai si calage valide **et** case admin activée — indépendant de `gps_enabled` ; défaut admin `1`). Utilisé par toutes les vues carte/tâches/visite ; `georef`/`gps_enabled` pilotent le suivi GPS de la mascotte (bouton « Me suivre ») ; `scale_compass_enabled` pilote l'échelle et la rose des vents. **Filtrée par le périmètre cartes du compte** (voir ci-dessous) : un élève borné ne reçoit que ses cartes ; la logique client réduit ensuite l’affichage selon le mode (élève, n3boss, visite). **Route publique (sans session)** : les ancres `georef` — donc les coordonnées GPS du site — sont lisibles par tout visiteur. Choix assumé pour un établissement dont l’adresse est publique ; à reconsidérer avant de géoréférencer un plan d’un lieu non public (audit géolocalisation 2026-09, C5). |
 
+### Présence des espèces sur une carte — `GET /api/maps/:mapId/species`
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/maps/:mapId/species` | session facultative | Espèces **présentes sur la carte**, chacune avec sa **provenance** et ses lieux. `?sources=registre,zone,repere` (facultatif) restreint explicitement les canaux ; valeur inconnue → **400**. |
+
+**Une seule définition de « présente sur ce site »** (décision Q10, `lib/biodiv/presenceService.js`) :
+une espèce est présente dès qu'**un** des trois canaux la rattache à la carte —
+
+- `registre` : rattachement direct fiche → carte (`map_species`, cases « cartes » de la fiche,
+  champ `map_ids` de `GET /api/plants`) ;
+- `zone` : l'espèce figure dans une zone de la carte (`zone_species`) ;
+- `repere` : l'espèce figure sur un repère de la carte (`marker_species`).
+
+Les anciens noms mono-espèce (`zones.current_plant`, `map_markers.plant_name`) **ne sont pas** un
+canal. Le filtre « Présente sur cette carte » du catalogue, la fiche espèce, l'activité « Groupes
+emboîtés » (`POST /api/clades/activity/subtree`), le réseau trophique (`GET /api/food-web?mapId=`)
+et la liste `site_species` de `GET /api/visit/content` s'appuient tous sur cette définition.
+
+Réponse :
+
+```json
+{
+  "map_id": "foret",
+  "sources": ["registre", "zone", "repere"],
+  "summary": { "total": 75, "registre": 27, "zone": 40, "repere": 32, "registre_seul": 14 },
+  "species": [
+    {
+      "plant_id": 12,
+      "name": "…",
+      "emoji": "🌿",
+      "sources": ["registre", "zone"],
+      "validation_status": "attendu",
+      "zones": [{ "id": "…", "name": "…" }],
+      "markers": []
+    }
+  ]
+}
+```
+
+- `species` est trié par nom (ordre français), puis identifiant. `sources` suit toujours l'ordre
+  `registre`, `zone`, `repere`. `validation_status` vient du registre (`null` hors registre).
+- `summary` : un compte par canal (une espèce peut compter dans plusieurs) et `registre_seul`
+  (au registre, placée ni dans une zone ni sur un repère).
+- **Gardes** — les mêmes que `GET /api/zones` : surface décidée par le serveur (laissez-passer des
+  surfaces gardées), carte déclarée sur la surface, périmètre de groupe du compte. Carte inconnue
+  ou hors surface → **404** « Carte introuvable » ; hors périmètre du compte → **403**
+  `MAP_OUT_OF_SCOPE`.
+- **Lieux filtrés, présence non** : la présence et ses canaux sont identiques pour tous les
+  lecteurs ; `zones` / `markers` ne citent que les lieux que **ce** lecteur voit (surfaces,
+  audience, héritage par catégorie). Une espèce présente seulement dans une zone réservée garde
+  `sources: ["zone"]` avec `zones: []`.
+
 Notes :
 
 - Le backend n’impose pas de plafond à 2 cartes : le contrat est compatible **N cartes**.
@@ -1184,7 +1237,7 @@ Mascottes de visite (public) :
 - **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
 - Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
 - **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
-- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter). Résolution : visite invitée = collège ; aperçu prof prioritaire ; sinon le plus simple des niveaux **explicites** (groupes de l’utilisateur + carte active) ; le défaut établissement n’est le socle que si aucun de ces niveaux n’est fixé. La préférence ne peut que simplifier, sauf `pedago_pref_can_raise`. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre).
+- **`biodiv_pedago_level`** (mêmes routes profil) : préférence d’affichage biodiversité (`college` \| `lycee` \| `universite` \| `null`). Réglages publics `ui.biodiv.pedago_level_default` (défaut **`college`**) et `ui.biodiv.pedago_pref_can_raise` (défaut **`false`**). Cartes / groupes : champ `pedago_level` (`null` = hériter), **repli** depuis la migration 301. Résolution (résolveur unique `lib/pedago/learnerLevel.js`, miroir `src/utils/learnerLevel.js`) : visite invitée = collège ; aperçu prof ; vue gestion complète = université ; **séance en cours** (elle impose son niveau) ; **classe** (`groups.curriculum_niveau`, échelle unique `cycle3` … `es_terminale`, `universite`, plus haut niveau des classes) ; à défaut, le plus simple des `pedago_level` **explicites** (groupes + carte active), puis le défaut établissement (repli, jamais plafond). L’affichage (Collège / Lycée / Université) se déduit du niveau. La préférence ne règle que l’affichage et ne peut que le simplifier, sauf `pedago_pref_can_raise` ; elle ne change pas les questions du verrouillage. `GET /api/auth/me` et login exposent `biodivGroupPedagoLevels` (niveaux des groupes dont l’utilisateur est membre) et `biodivGroupCurriculumNiveaux` (niveaux de ses classes, `universite` compris) ; **`GET /api/auth/me`** expose aussi **`learnerLevel`** — le niveau résolu par le serveur hors carte et hors séance, `null` pour un compte non élève : `{ niveau, contentEtape, etape, curriculumNiveaux, maxPalier, sources: { niveau, affichage } }` (`sources.niveau` ∈ `classe` \| `groupe` \| `carte` \| `site` ; `affichage` vaut `preference` quand la préférence a simplifié l’affichage).
 
 Aides contextuelles (public) :
 
@@ -1430,6 +1483,13 @@ Contraintes importantes :
   Les zones et repères dont **`is_active`** est **explicitement** désactivé (`0`, `false`,
   chaîne `'0'`) sont exclus ; les autres valeurs « actives » (y compris variantes driver)
   restent listées.
+- **Espèces du site** : `GET /api/visit/content` expose **`site_species`** — la liste des espèces
+  présentes sur la carte selon la définition commune (registre, zones, repères ; même forme que
+  `species` de `GET /api/maps/:mapId/species`) — et **`site_species_summary`** (comptes par canal).
+  Les lieux cités (`zones`, `markers`) sont filtrés par lecteur comme les zones et repères du
+  contenu : un lieu masqué, réservé ou absent de la visite n'est pas nommé. Les lieux de la visite
+  gardent leurs propres `species` pour l'affichage sur le plan ; `site_species` est la réponse à
+  « quelles espèces ce site abrite-t-il ? ».
 - **Biodiversité du lieu** : chaque zone et chaque repère de `GET /api/visit/content` expose **`species`** (`[{ id, name, emoji }]`, table de jonction `zone_species` / `marker_species`, tri par nom), **`species_ids`** et **`living_beings_list`** (noms, repli sur `zones.current_plant` / `map_markers.plant_name` quand la jonction est vide). Les zones portent en plus **`is_infrastructure`** (au moins une catégorie affectée porte le drapeau) : le client masque la biodiversité des lieux d'infrastructure, comme sur la carte. Les colonnes legacy mono-espèce ne sont **pas** republiées. C'est cette charge utile qui permet au **visiteur invité** (sans jeton) de consulter la biodiversité d'un lieu, les routes `/api/zones` et `/api/map/markers` étant authentifiées ; la fiche espèce elle-même est servie par la route publique **`GET /api/plants`**.
 - **Blocs éditoriaux (nouveau)** : `GET /api/visit/content` expose **`visit_editorial_blocks`** (tableau ordonné) pour chaque zone/repère. Si `visit_body_json` est présent en base, le serveur l’utilise en priorité ; sinon il génère un fallback compatible depuis `visit_short_description`, `visit_details_*` et `visit_media`.
 - **Écriture blocs** : `POST/PUT /api/visit/zones(:id)` et `POST/PUT /api/visit/markers(:id)` acceptent **`visit_editorial_blocks`** (alias **`body_json`**) ; le serveur normalise et persiste dans `visit_zones.body_json` / `visit_markers.body_json`.
@@ -1511,7 +1571,8 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 `sources`, `ideal_temperature_c`, `optimal_ph`, `ecosystem_role`, `geographic_origin`, `human_utility`,
 `harvest_part`, `planting_recommendations`, `preferred_nutrients`, `photo_species`, `photo_leaf`,
 `photo_flower`, `photo_fruit`, `photo_harvest_part`, ainsi que **`map_ids`** (tableaux d’identifiants
-de cartes au rattachement **direct**, table `map_species` — complète la présence via zones / repères).
+de cartes au rattachement **direct**, table `map_species` — le canal `registre` de la présence ;
+la présence complète d'une carte, avec zones et repères, est servie par `GET /api/maps/:mapId/species`).
 
 S’y ajoutent les trois champs de **détermination** (aide à l’identification rigoureuse, migration `243`) :
 
@@ -1713,7 +1774,7 @@ Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: B
 | GET     | `/api/groups/import/template`     | oui (`groups.manage`)                   | Modèle CSV/XLSX d’import groupes / sous-groupes (slug, nom, type, parent, description, **profil par défaut** en slug ou nom affiché)                                                                                                                                                                                                                                                                                                                                                                             |
 | POST    | `/api/groups/import`              | oui (`groups.manage`)                   | Import en lot (CSV/XLSX base64, `dryRun?`) : crée ou met à jour les groupes ; lignes en double fusionnées (`infos[]`) ; parent par slug ou nom ; l’importateur hors vue globale devient responsable des créations top-level                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/groups`                     | oui (`groups.manage`)                   | Créer un groupe (`name`, `slug?`, `kind`, `parent_group_id?`, `description?`, `default_role_id?`, `force_default_role?`). `default_role_id` : tout profil hors `gl_*` (400 sinon), **403** si l’acteur n’a pas la vue globale (rang < 400) ou, hors administrateur, si le profil est de rang supérieur au sien (`lib/groupDefaultRolePolicy.js`) ; **400** si `force_default_role` sans `default_role_id`                                                                                                        |
-| PATCH   | `/api/groups/:id`                 | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/**parent** (`parent_group_id`, `null` = détacher ; le parent doit être dans le périmètre de l’acteur)/activation, `default_role_id`, `force_default_role` (mêmes gardes qu’à la création) ; **400** si le nouveau parent crée une parenté circulaire ou si `force_default_role` est posé sans `default_role_id` ; tout changement de profil par défaut, d’imposition ou d’activation **recalcule aussitôt le profil effectif des membres** et ajoute `roles_recomputed` à la réponse. `pedago_level` (affichage biodiversité) et `curriculum_niveau` (niveau du programme de la classe : `cycle3` … `es_terminale`, `null` = hériter du groupe parent ; **400** si hors liste) — ce dernier fixe l'étape d'affichage quand `pedago_level` est vide et resserre les notions proposées aux élèves ; `GET /api/auth/me` et la connexion l'exposent sous `biodivGroupCurriculumNiveaux` (héritage des parents compris, comme `biodivGroupPedagoLevels`) |
+| PATCH   | `/api/groups/:id`                 | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/**parent** (`parent_group_id`, `null` = détacher ; le parent doit être dans le périmètre de l’acteur)/activation, `default_role_id`, `force_default_role` (mêmes gardes qu’à la création) ; **400** si le nouveau parent crée une parenté circulaire ou si `force_default_role` est posé sans `default_role_id` ; tout changement de profil par défaut, d’imposition ou d’activation **recalcule aussitôt le profil effectif des membres** et ajoute `roles_recomputed` à la réponse. `pedago_level` (ancien affichage biodiversité, repli) et `curriculum_niveau` (niveau de la classe, échelle unique : `cycle3` … `es_terminale`, `universite` ; `null` = hériter du groupe parent ; **400** si hors liste) — ce dernier fixe l'étape d'affichage quand `pedago_level` est vide et resserre les notions proposées aux élèves ; `GET /api/auth/me` et la connexion l'exposent sous `biodivGroupCurriculumNiveaux` (héritage des parents compris, comme `biodivGroupPedagoLevels`) |
 | DELETE  | `/api/groups/:id`                 | oui (`groups.manage`)                   | Supprimer un groupe (les enfants sont détachés) ; le profil effectif des ex-membres est recalculé immédiatement                                                                                                                                                                                                                                                                                                                                                                                                  |
 | GET     | `/api/groups/:id/members`         | oui (`groups.read` ou périmètre groupe) | Lire les membres d’un groupe : `{ user_id, user_type, user_label, is_active, role_slug, role_display_name }` (profil effectif)                                                                                                                                                                                                                                                                                                                                                                                   |
 | PUT     | `/api/groups/:id/members`         | oui (`groups.manage`)                   | Remplacer membres (`member_user_ids`, élèves et enseignants ; `manager_user_ids` accepté et fusionné pour compatibilité) et scopes (`scope_map_ids`, `scope_project_ids`) ; recalcule le profil effectif des anciens et nouveaux membres                                                                                                                                                                                                                                                                         |
@@ -1725,6 +1786,19 @@ Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: B
 
 Contrat principal :
 
+- **Niveau de la classe** (`curriculum_niveau`, migrations 290 et 301 ; décision du mainteneur
+  du 25/09/2026) : c'est **la** colonne de niveau des groupes, sur l'échelle unique de
+  l'apprenant (`cycle3`, `cycle4`, `seconde`, `premiere_spe`, `terminale_spe`, `es_premiere`,
+  `es_terminale`, `universite`), héritée par les sous-groupes ; elle prime sur `pedago_level`,
+  devenu un repli. `POST /api/groups` l'accepte aussi (`curriculum_niveau?`, **400** si hors
+  liste). `GET /api/groups` ajoute à chaque groupe : `curriculum_niveau_effectif` (le sien ou
+  celui du premier parent qui en a un, calculé sur tous les groupes), `curriculum_niveau_herite_de`
+  (`{ id, name }` du parent qui le transmet, sinon `null`), `curriculum_niveau_manquant` (classe
+  ou unité sans niveau, même hérité — les équipes et clubs ne sont jamais signalés) et
+  `curriculum_niveau_suggestion` (`{ niveau, raison }` tiré du nom, pour une classe ou une unité
+  sans niveau propre ; `raison` ∈ `deduit` \| `aucun_indice` \| `plusieurs_niveaux` \|
+  `voie_a_preciser` ; règle `lib/pedago/groupNiveauFromName.js`, jamais appliquée sans
+  confirmation).
 - `group_members` ne distingue plus « responsable » et « membre » (`role_in_group` supprimé,
   migration `267`) : un **enseignant membre** d’un groupe l’encadre (périmètre du prof de
   classe). `groups.grants_n3beur_access` est supprimé de même : un groupe confère un profil
@@ -2738,6 +2812,15 @@ décisions `link` / `create` sur un rapprochement, `keep_master` / `apply_other`
 miroirs poussés (`dryRun: false`, y compris `POST /api/gl/games/:id/teams/mirror`) — sinon
 **409** ; il ne provoque pas de 503. Simulations, lectures et `ignore` restent ouverts. `/check` et `/runs` sont soumis au limiteur strict (`authLimiter`).
 
+**Organisation du code — cible G&L (25/09/2026, décision Q18, sans changement de contrat).** Les
+lectures et écritures de la synchronisation sur les tables `gl_*` (classes, joueurs, parties,
+équipes) et ses imports de code GL passent tous par `lib/moodle/gameAdapter.js` : état local du
+plan, application (dans la transaction de la cohorte), annulation, miroir des équipes, rapport
+d'identités après exécution. Les autres fichiers de `lib/moodle/` n'en contiennent plus
+(`tests/moodle-game-adapter-isolation.test.js`). Restent dans le code Moodle, à dessein : la
+colonne `external_groups.gl_class_id`, la clé de politique `gl_class` et les genres d'action
+journalisés `gl_class.ensure`, `gl_player.ensure`, `gl_player.move` (valeurs stockées).
+
 | Méthode | URL                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/status`              | `{ configured, killSwitchOff, baseUrl, enabled, yearPrefix, lastCheck, lastRun, openConflicts, openPendingMatches }` — `configured` est un booléen (jamais le jeton) ; `enabled` reflète le réglage `integration.moodle.enabled` ; `lastCheck` est le dernier résultat de `/check` dans ce processus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -2767,6 +2850,17 @@ Réglages associés (portée `admin`, éditables dans _Paramètres administrateu
 `npm run moodle:sync -- --dry-run|--apply [--cohort 26#603] [--teams] [--force --reason …] [--json]`
 (codes de sortie 0 / 1 erreur / 2 non configuré / 3 à relire / 4 seuil ou verrou) ;
 cron de simulation quotidienne `scripts/moodle-sync-cron.sh` (`docs/CRONTAB.md`).
+
+**Niveau de la classe à la création d'un groupe** (décision du mainteneur du 25/09/2026,
+question 5) : l'action `group.ensure` d'un nouveau groupe porte `payload.curriculumNiveau`,
+posé dans `groups.curriculum_niveau` à l'application. Il est déduit **sans ambiguïté**
+(`lib/moodle/plan.js`, `cohortCurriculumNiveau`, règle de `lib/pedago/groupNiveauFromName.js`
+partagée avec la migration 301) : groupe de genre classe ou unité ; nom de la cohorte évoquant
+un seul niveau (`4e 2` → `cycle4`), l'identifiant (`26#402`, `26#4`) ne servant que si le nom
+n'en dit rien ; première et terminale seulement avec leur voie. Un nom qui évoque plusieurs
+niveaux, ou un désaccord entre nom et identifiant, laisse `null` (niveau à renseigner dans
+l'écran des groupes). Un groupe déjà lié n'est pas modifié ; annuler l'exécution retire le
+groupe comme avant.
 
 ## Entrée depuis le cours LTI 1.3 (`/api/lti`)
 
@@ -2890,8 +2984,8 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/admin/questions` | prof (`plants.manage`) | Liste complète (`theme`, `categorieSlug`, `niveau`, `q`, `statut`, `sort`) |
 | GET | `/api/quiz/admin/questions/next-code` | prof (`plants.manage`) | Prochain code libre (`QF0001`…) |
 | GET | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Fiche complète pour édition |
-| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question |
-| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante |
+| POST | `/api/quiz/admin/questions` | prof (`plants.manage`) | Création d’une question (question et liens glossaire par mots-clés `origin='keyword'` dans une même transaction) |
+| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage`) | Mise à jour d’une question existante (même transaction ; seuls ses liens `origin='keyword'` sont remplacés) |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage`) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage`) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage`) | Import XLSX (`dryRun` optionnel) — transaction unique (tout ou rien, y compris reconstruction des rattachements glossaire `origin=import`). Colonne `statut` : `actif` ou `inactif` (casse indifférente ; autre valeur → erreur de ligne). **Cellule vide** : une question existante **garde** son statut, une nouvelle est `actif` (avant le 25/09/2026, un fichier sans statut réactivait toutes les questions désactivées). |
@@ -2969,14 +3063,17 @@ et la parité entre les deux fichiers, sont tenues par `tests/food-web-matter-fl
 > réseau. Les réponses filtrées portent en plus `from_in_scope` et `to_in_scope` (`1`/`0`) :
 > l'interface marque l'espèce hors périmètre au lieu de la masquer. La liste non filtrée
 > (`GET /api/food-web` sans paramètre) ne porte pas ces colonnes — tout y est dans le périmètre.
-> Pour **`?mapId=`**, le périmètre unit les espèces des **zones**, des **repères** et celles
-> rattachées **directement** à la carte (`map_species`).
+> Pour **`?mapId=`**, le périmètre est la présence commune (`lib/biodiv/presenceService.js`) :
+> espèces des **zones**, des **repères** et celles rattachées **directement** à la carte
+> (`map_species`) — la même liste que `GET /api/maps/:mapId/species`. Pour **`?zoneId=`**, ce
+> sont les espèces de la zone (`zone_species`, même contenu que la vue `v_zone_inventory`, que la
+> route ne lit plus).
 
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
-| GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées |
+| GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées : liens **approuvés** de `resource_question_links` vers une question active, bloquants ou non, ordre (catégorie, numéro). Source unique depuis la migration 300 (voir « Source unique des liens » plus bas) |
 | GET | `/api/tutorials/:id/glossary-terms` | non | Termes glossaire liés au tutoriel |
-| GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel |
+| GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel (même règle que la fiche espèce ; `404` si le tutoriel est inactif) |
 
 Import local : `npm run db:import:biodiv` (après `npm run db:migrate`) — alimenté par
 `sql/biodiv_pedago_seed.sql`, extrait de contenu **sans données personnelles**
@@ -2992,7 +3089,7 @@ sont refusés à l'écriture.
 | ------- | --- | ---- | ----------- |
 | GET | `/api/clades` | non | Liste plate ordonnée (`items[]` : id, parent_id, name, shared_attribute, description, sort_order) |
 | GET | `/api/clades/:id/path` | non | Fil d'ancêtres racine → nœud (pour le fil de fiche). **400** / **404** si id invalide / inconnu |
-| POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }`. Réponse `{ tree, plants, cladeOptions }` |
+| POST | `/api/clades/activity/subtree` | non | Plus petit sous-arbre contenant les espèces : `{ plantIds: number[] }` **ou** `{ mapId, count }` (tirage de `count` espèces — 2 à 20 — parmi celles **présentes sur la carte** selon la définition commune, registre, zones ou repères, et classées dans l'arbre ; avant la décision Q10, le registre seul). Réponse `{ tree, plants, cladeOptions }` |
 | POST | `/api/clades/activity/check` | non | Correction : `{ placements: [{ plantId, cladeId }] }` → `{ results, correctCount, total, allCorrect }` |
 | POST | `/api/clades` | prof (`plants.manage`) | Créer un groupe (`id` slug, name, shared_attribute, parent_id?, sort_order?) |
 | PUT | `/api/clades/:id` | prof (`plants.manage`) | Modifier / déplacer. **400** si le déplacement créerait un cycle |
@@ -3237,6 +3334,22 @@ bonnes réponses des deux jeux.
 Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_correct`, `enabled`
 (résolue avec les défauts du site).
 
+**Organisation du code — adaptateur de produit (25/09/2026, décision Q18, sans changement de
+contrat).** Le moteur (`lib/learningGating*.js`, `lib/gatingPolicyLoad.js`, `lib/learningLinksBulk.js`)
+est commun aux deux produits et ne teste plus le produit lui-même : il interroge un adaptateur, un
+objet par produit (`GATING_PRODUCTS.fm`, `GATING_PRODUCTS.gl`). La partie statique
+(`lib/pedago/gatingProductCatalog.js`, sans dépendance) décrit les types validables, les trois
+tables (liens, politiques, verrous), la clé du lecteur dans les verrous (`user_id` ou couple
+`reader_user_type` / `reader_user_id`), la source des questions et de leur niveau, et les
+**capacités** : filtre de niveau de l'apprenant (ForetMap seulement), jeux de questions
+`qcm` / `qcm_lore`, réponses d'équipe et granularité de chapitre (GL seulement). Les hooks
+(`lib/pedago/gatingProducts.js`) lisent les réglages du site, identifient le lecteur (403
+« Authentification requise » / « Profil invalide »), chargent les bonnes réponses et celles de
+l'équipe ; c'est le **seul** fichier du moteur qui importe du code GL. Ajouter une règle propre à
+un produit = une capacité et un hook, pas un `if (product === 'gl')`. Contrat et garde
+d'isolement : `tests/gating-products.test.js` ; caractérisation par produit :
+`tests/learning-gating-products-characterization.test.js`.
+
 ### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
 
 | Méthode | Route | Description |
@@ -3256,6 +3369,32 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | GET | `/api/learning-links/locks?includeExpired=&resourceType=` | **Élèves bloqués** par le conditionnement : qui, quelle fiche, quelle question ratée, combien d'erreurs, jusqu'à quand. |
 | DELETE | `/api/learning-links/locks` | Lève un verrou (`user_id`, `resource_type`, `resource_ref`, `question_code` optionnel). `404` si absent. |
 | GET | `/api/quiz/admin/questions/stats?onlyGating=&minAttempts=` | Taux de réussite par question, les plus ratées d'abord ; `suspect` signale celles qui méritent relecture. Le caractère bloquant est lu par `EXISTS` : une question rattachée à trois fiches ne compte plus trois fois ses tentatives (lot 6, C3). |
+
+#### Source unique des liens question ↔ ressource (migration 300)
+
+Les liens vivent dans **une seule table**, `resource_question_links`, lue et écrite par le service
+`lib/pedago/learningLinks.js` (audit du 25/09/2026, § 3.2.3). Les tables historiques
+`quiz_question_species` et `quiz_question_tutorials` sont **figées** : plus aucune lecture ni
+écriture applicative (temps 1 et 2 du retrait) ; leur suppression est une migration future.
+
+| `origin`    | Qui l'écrit                                                                                 | Purgé par un traitement automatique ?        |
+| ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `manual`    | un professeur, dans l'écran des liens (`POST /api/learning-links`)                          | jamais                                       |
+| `import`    | migrations 144, 226, 227 (curation relue, souvent bloquante)                                | jamais                                       |
+| `generated` | scripts d'enrichissement                                                                    | jamais                                       |
+| `auto`      | `scripts/suggest-learning-links.js` (propositions)                                          | jamais                                       |
+| `keyword`   | import du catalogue QCM et édition d'une question : rapprochement des tags avec le glossaire | **oui, et seulement lui** (import, édition) |
+| `editorial` | migration 300 : reprise des liens des tables historiques absents de la source unique       | jamais                                       |
+
+Lecture « fiche » (`GET /api/plants/:id/quiz-questions`, `GET /api/tutorials/:id/quiz-questions`,
+`linkedQuizQuestions` de `GET /api/glossary/terms/:code`) : liens **`status = 'approved'`** vers une
+question **active**, bloquants ou non, dans l'ordre du catalogue. Conséquence visible (écart corrigé) :
+un lien approuvé dans l'écran des liens apparaît désormais sur la fiche espèce, et un lien proposé
+(`suggested`) ou rejeté n'y apparaît jamais. Les 7 liens de `quiz_question_species` absents de la
+source unique (fixture v297) sont repris en `editorial`, approuvés et **non bloquants** : ils restent
+affichés et ne changent rien au verrouillage. L'édition d'une question (`POST`/`PUT
+/api/quiz/admin/questions`) s'exécute dans une transaction, liens par mots-clés compris, comme
+l'import du catalogue.
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`),
@@ -3314,11 +3453,25 @@ Chaque ligne de `summary` les recopie sous `announce` et `show_icon`.
 
 **Filtre de niveau (ForetMap, 25/09/2026).** Pour un **élève**, `challenge`, `summary` et les
 accusés (`acknowledge-read`, `acknowledge-discovery`, glossaire) ne posent que les questions au
-niveau de l'élève (`lib/pedago/learnerLevel.js` : défaut établissement, groupes, classe, carte —
-palier maximal 2 au collège, 5 au lycée, aucun plafond à l'université). Si **aucune** question de
-la ressource n'est à son niveau, toutes restent posées (décision du mainteneur : garder les
-questions plutôt qu'ouvrir la ressource) et la réponse porte `level_fallback: "all_levels"`
-(sinon `"none"`). Comptes non élèves : aucun filtre, pas de `level_fallback`.
+niveau de l'élève, calculé par le **résolveur unique** `lib/pedago/learnerLevel.js` sur
+l'échelle unique (niveaux du programme + `universite`) : séance en cours, sinon classe
+(`groups.curriculum_niveau`, hérité, le plus haut), sinon replis (`groups.pedago_level`,
+carte, défaut établissement). Palier maximal = celui du niveau (cycle 3 → 1 … terminale → 5 ;
+université : aucun plafond ; niveau inconnu : 2 au collège, 5 au lycée). La préférence
+d'affichage de l'élève n'y entre pas. Si **aucune** question de la ressource n'est à son niveau,
+toutes restent posées (décision du mainteneur : garder les questions plutôt qu'ouvrir la
+ressource) et la réponse porte `level_fallback: "all_levels"` (sinon `"none"`). Comptes non
+élèves : aucun filtre, pas de `level_fallback`.
+
+**Séance en cours : `?pedagoSession=<id ou slug>`** (paramètre de requête facultatif, accepté
+aussi dans le corps des accusés). La séance impose son niveau, verrouillage compris : un élève de
+6ᵉ dans une séance « lycée » reçoit les questions de lycée. Le serveur ne sait pas quelle séance
+est ouverte dans l'onglet (quitter une séance n'est pas enregistré) : le client l'annonce, et le
+serveur ne la retient que si la séance est **publiée**, le module des séances **allumé**, et
+l'élève en a une exécution **démarrée et pas terminée depuis** (`pedago_session_runs`,
+`last_started_at` postérieur à `last_completed_at`). Sinon le paramètre est ignoré (pas
+d'erreur). Public retenu : `pedago_sessions.level`, précisé par `config.notionNiveau` s'il reste
+dans la même étape ; la classe de l'élève précise le niveau à l'intérieur de cette plage.
 
 Audits du dispositif : [AUDIT_GATING_2026-08.md](AUDIT_GATING_2026-08.md) (ForetMap, août),
 [AUDIT_GATING_QCM_FEUILLETS_2026-08.md](AUDIT_GATING_QCM_FEUILLETS_2026-08.md) (GL, août) et
@@ -3345,6 +3498,9 @@ sert pour annoncer les essais restants (« il te reste 1 erreur possible ») au 
 qu'une mauvaise réponse est sans conséquence.
 Les routes `challenge` et `summary` ne comptent que les liens dont la question est encore **active**
 (`statut = 'actif'`) : une question archivée cesse de conditionner sans qu'il faille toucher au lien.
+`challenge`, `summary` et les trois accusés (tutoriel, fiche, terme du glossaire) acceptent
+`?pedagoSession=<id ou slug>` : la séance en cours impose son niveau (voir « Filtre de niveau »
+plus haut) ; le client l'ajoute tant qu'une séance est ouverte dans l'onglet.
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
@@ -3446,7 +3602,7 @@ Principe du score, entre 0 et 1 :
 | `apply`            | `false` | `false` = simulation, **aucune écriture**. `true` insère les candidats.  |
 | `minConfidence`    | `0.5`   | Seuil de retenue, borné à `[0,1]`.                                       |
 | `maxPerQuestion`   | `3`     | Propositions maximales par question (plafonné à 10).                     |
-| `includeEditorial` | `true`  | Reprend aussi les liens `quiz_question_tutorials` non encore répercutés. |
+| `includeEditorial` | —       | **Historique**, accepté et ignoré depuis la migration 300.               |
 | `questionCodes[]`  | —       | Restreint l'analyse à ces questions.                                     |
 | `resourceRefs[]`   | —       | Restreint l'analyse à ces tutoriels.                                     |
 
@@ -3458,9 +3614,12 @@ Deux garanties : l'insertion se fait en **`status='suggested'`** — donc sans e
 qu'un professeur n'a pas approuvé — et l'opération est **idempotente** (un couple déjà lié, quel que
 soit son statut, n'est jamais re-proposé).
 
-`includeEditorial` couvre un angle mort : la migration 144 a copié `quiz_question_tutorials` vers
-`resource_question_links` **une seule fois**. Tout rattachement éditorial créé depuis restait invisible
-du conditionnement ; il remonte ici en `origin='import'`, confiance `1`.
+`includeEditorial` couvrait un angle mort : la migration 144 avait copié `quiz_question_tutorials`
+vers `resource_question_links` **une seule fois**, et les rattachements éditoriaux créés depuis
+remontaient ici en candidats (`origin='import'`, confiance `1`). Depuis la **migration 300**, cette
+reprise est faite une fois pour toutes (liens `origin='editorial'`, approuvés, non bloquants) et
+`quiz_question_tutorials` n'est plus lue : le paramètre est accepté mais sans effet, et
+`stats.editorial_candidates` vaut toujours `0` (champ conservé pour l'écran professeur).
 
 Écran professeur : `src/components/pedago/admin/FMLearningLinksPanel.jsx`, dans l'onglet Quiz côté prof.
 

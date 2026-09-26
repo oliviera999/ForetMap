@@ -2,12 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePlantCatalogFilters } from './usePlantCatalogFilters';
 import { usePlantObservationCounts } from './usePlantObservationCounts';
 import { useGatingSummary } from './useGatingSummary';
+import { useMapSpeciesPresence } from './useMapSpeciesPresence';
 import { BIODIV_PAGE_SIZE, normalizePlantIds } from '../utils/biodivCatalogLoad.js';
 import { ZONE_PRESENCE_FILTER } from '../utils/plantFilters';
 
 /**
  * Catalogue biodiversité paginé : filtres + Voir plus + compteurs/gating sur la fenêtre
  * (ou toute la liste si chip/tri d’observation).
+ *
+ * La présence sur la carte active vient du serveur (`GET /api/maps/:mapId/species`) ; elle
+ * est redemandée quand la carte change ou quand zones, repères ou fiches sont rechargés.
  */
 export function useBiodivCatalogPage({
   plants,
@@ -20,8 +24,10 @@ export function useBiodivCatalogPage({
   const [pageSize, setPageSize] = useState(BIODIV_PAGE_SIZE);
   const [obsCounts, setObsCounts] = useState({});
 
+  const presence = useMapSpeciesPresence(activeMapId, { watch: [zones, markers, plants] });
+
   const { filteredPlants, countScopePlants, needsFullCounts, filterResetKey, filterPanelProps } =
-    usePlantCatalogFilters(plants, zones, markers, {
+    usePlantCatalogFilters(plants, presence.byPlantId, {
       defaultZonePresence,
       activeMapId,
       countsById: obsCounts,
@@ -71,7 +77,9 @@ export function useBiodivCatalogPage({
   return {
     filteredPlants,
     displayedPlants,
-    filterPanelProps: { ...filterPanelProps, countsReady },
+    presenceByPlantId: presence.byPlantId,
+    presenceStatus: presence.status,
+    filterPanelProps: { ...filterPanelProps, countsReady, presenceStatus: presence.status },
     plantObservationCounts: obsCounts,
     applyObservationAcknowledged,
     plantGatingSummaries,
