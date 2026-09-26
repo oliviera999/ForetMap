@@ -171,8 +171,15 @@ function collectEntryFiles(viteManifest, entryKey) {
  * @param {string[]} precache
  * @param {{ apiStaleWhileRevalidate?: string[], apiNetworkFirst?: string[] }} [apiPolicy]
  */
+/**
+ * Schéma de la clé des réponses mémorisées au fil de l'eau. Le changer purge les caches
+ * déjà installés (le nom du cache en dépend) : sans cela, une réponse enregistrée avant
+ * le cloisonnement par compte — sous l'URL seule — resterait servie à la visite anonyme.
+ */
+const RUNTIME_CACHE_SCHEMA = 'auth-partition-v1';
+
 function precacheHash(product, precache, apiPolicy) {
-  const parts = [product, precache.join('\n')];
+  const parts = [product, precache.join('\n'), RUNTIME_CACHE_SCHEMA];
   if (apiPolicy) {
     parts.push(
       `swr:${[...(apiPolicy.apiStaleWhileRevalidate || [])].join(',')}`,

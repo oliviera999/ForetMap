@@ -1,6 +1,6 @@
 /* Service worker « gl » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-gl-3023e0cb";
+const CACHE_NAME = "foretmap-gl-b8a2f0f9";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -95,17 +95,57 @@ function isAuthRefusal(response) {
   return !!response && (response.status === 401 || response.status === 403);
 }
 
+/**
+ * Empreinte courte d'un jeton (FNV-1a, deux germes). Sert à séparer des comptes dans le
+ * cache, pas à protéger le jeton : la Cache API indexe par URL seule, les en-têtes
+ * (Authorization compris) n'en font pas partie
+ * (https://developer.mozilla.org/docs/Web/API/Cache/put).
+ */
+function authCachePartition(token) {
+  function fnv(seed) {
+    let h = seed >>> 0;
+    for (let i = 0; i < token.length; i += 1) {
+      h ^= token.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+  return fnv(0x811c9dc5) + fnv(0x811c9dc5 ^ 0x9e3779b9);
+}
+
+function authorizationOf(request) {
+  const headers = request && request.headers;
+  if (!headers || typeof headers.get !== 'function') return '';
+  return String(headers.get('Authorization') || headers.get('authorization') || '');
+}
+
+/**
+ * Clé de cache d'une lecture. Sans jeton (visite anonyme, coquille HTML, fichiers) : la
+ * requête telle quelle, partagée. Avec jeton : la même URL plus une empreinte du compte.
+ * Sans cela, le délai réseau et le « stale-while-revalidate » resservent sur une tablette
+ * partagée la réponse du compte précédent — y compris les lieux réservés de la visite,
+ * que la déconnexion laisse en cache parce qu'elle les croit publics.
+ */
+function cacheKeyFor(request) {
+  const auth = authorizationOf(request);
+  if (!auth) return request;
+  const url = new URL(request.url);
+  url.searchParams.set('__fm_sw_user', authCachePartition(auth));
+  return url.toString();
+}
+
 /** Retire une entrée du cache (révocation) — sans bruit si elle n'y était pas. */
 function evictFromCache(request) {
-  return caches.open(CACHE_NAME).then((cache) => cache.delete(request)).catch(() => undefined);
+  return caches.open(CACHE_NAME).then((cache) => cache.delete(cacheKeyFor(request))).catch(() => undefined);
 }
 
 function putInCache(request, response) {
   // Seules les réponses valides sont mémorisées. Auparavant une 401 ou une 500 devenait la
   // réponse servie hors ligne : l'erreur d'un instant se figeait pour la durée du cache.
+  const key = cacheKeyFor(request);
   if (response && response.ok) {
     const clone = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    caches.open(CACHE_NAME).then((cache) => cache.put(key, clone));
   } else if (isAuthRefusal(response)) {
     evictFromCache(request);
   }
@@ -131,18 +171,19 @@ function putInCache(request, response) {
  */
 function networkFirst(request, fallback, options = {}) {
   const timeoutMs = Number(options.timeoutMs) || 0;
+  const key = cacheKeyFor(request);
   const network = fetch(request).then((response) => putInCache(request, response));
   if (options.event && typeof options.event.waitUntil === 'function') {
     options.event.waitUntil(network.then(() => undefined, () => undefined));
   }
   const networkOrCache = network.catch(() =>
-    caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)),
+    caches.match(key).then((cached) => cached || (fallback ? fallback() : undefined)),
   );
   if (timeoutMs <= 0) return networkOrCache;
   let timer = null;
   const cacheAfterTimeout = new Promise((resolve) => {
     timer = setTimeout(() => {
-      caches.match(request).then(resolve, () => resolve(undefined));
+      caches.match(key).then(resolve, () => resolve(undefined));
     }, timeoutMs);
   });
   return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
@@ -153,7 +194,8 @@ function networkFirst(request, fallback, options = {}) {
 }
 
 function cacheFirst(request) {
-  return caches.match(request).then((cached) => {
+  const key = cacheKeyFor(request);
+  return caches.match(key).then((cached) => {
     if (cached) return cached;
     return fetch(request).then((response) => putInCache(request, response));
   });
@@ -171,13 +213,14 @@ function cacheFirst(request) {
  * raison d'être de cette stratégie.
  */
 function staleWhileRevalidate(request) {
-  return caches.open(CACHE_NAME).then((cache) => cache.match(request).then((cached) => {
+  const key = cacheKeyFor(request);
+  return caches.open(CACHE_NAME).then((cache) => cache.match(key).then((cached) => {
     const networkPromise = fetch(request)
       .then((response) => {
         if (response && response.ok) {
-          cache.put(request, response.clone());
+          cache.put(key, response.clone());
         } else if (isAuthRefusal(response)) {
-          cache.delete(request);
+          cache.delete(key);
         }
         return response;
       })
