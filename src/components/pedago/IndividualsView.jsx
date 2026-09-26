@@ -4,6 +4,7 @@ import { useData } from '../../contexts/DataContext.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete } from '../../shared/icons.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 
 function GrowthChart({ measurements }) {
   const points = (measurements || []).filter(
@@ -51,6 +52,8 @@ export function IndividualsView({
   canMeasure = false,
   onOpenPlant = null,
   initialIndividualId = null,
+  /** Module éteint pour les élèves, vue ouverte au gestionnaire : bandeau d'avertissement. */
+  moduleOffForLearners = false,
 }) {
   const { plants = [] } = useData() || {};
   const { visibility } = useBiodivPedago();
@@ -190,6 +193,7 @@ export function IndividualsView({
         </h2>
         <p>Arbres identifiés sur une carte : mesures, courbe de croissance, estimations.</p>
       </header>
+      {moduleOffForLearners ? <ModuleLearnerOffBanner moduleLabel="Individus suivis" /> : null}
 
       <div className="individuals-view__toolbar">
         <label>

@@ -303,6 +303,17 @@ export function getAuthClaims() {
   return token ? decodeJwtPayload(token) : null;
 }
 
+/**
+ * Identifiant du compte connecté, ou chaîne vide. C'est la clé des files hors ligne
+ * (`utils/offlineActionQueue.js`) : sur une tablette partagée, une écriture n'est rejouée que
+ * sous le compte de son auteur.
+ */
+export function getAuthUserId() {
+  const claims = getAuthClaims();
+  const id = claims?.canonicalUserId ?? claims?.userId;
+  return id == null ? '' : String(id);
+}
+
 /** Code porté par l'erreur (`err.code`) : distinguer la panne réseau sans lire le texte. */
 export const NETWORK_FAILURE_CODE = 'NETWORK_UNREACHABLE';
 

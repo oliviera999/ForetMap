@@ -182,21 +182,28 @@ actions sensibles.
 
 Les outils pédagogiques les plus récents sont aussi des **modules activables**, réglés dans
 **Paramètres → Accueil & modules** (section « Modules UI »). Ils sont **tous allumés par
-défaut**. Éteindre un module masque son onglet pour tout le monde — élèves comme
-professeurs — et ferme ses fonctions, **sans rien effacer** : le rallumer rend tout tel quel.
+défaut**. Éteindre un module l'éteint **pour les élèves** : son onglet disparaît de leur écran
+et ses fonctions leur sont fermées. Les professeurs qui gèrent ce module **gardent leur
+onglet** pour continuer à préparer ; un bandeau les prévient : « module désactivé pour les
+élèves — vous pouvez continuer à préparer ; rien n'est visible côté élève tant qu'il reste
+éteint ». Rien n'est effacé : le rallumer rend tout visible tel quel.
 
-- **Clés d'identification** — l'onglet « Clés » (clés à deux choix pour reconnaître une
-  espèce) disparaît, pour la consultation comme pour l'édition.
-- **Individus suivis** — l'onglet « Individus » (arbres suivis et leurs mesures)
-  disparaît. Même allumé, il reste masqué au niveau Collège : il faut les deux.
-- **Séances pédagogiques** — l'onglet « Séances » disparaît, ainsi que le bouton
-  « Lancer la séance » des tâches et le choix d'une séance liée dans le formulaire de
-  tâche ; une séance en cours est mise en pause (son bandeau disparaît). Les liens déjà
-  posés entre tâches et séances sont conservés.
-- **Récompenses** — plus aucun badge n'est gagné ni affiché (« Mes badges », fenêtre de fin
-  de séance). Les séances, elles, fonctionnent normalement ; les badges déjà gagnés sont
-  conservés et réapparaissent au rallumage, mais ceux qui auraient été mérités pendant la
-  coupure ne sont pas rattrapés.
+- **Clés d'identification** — les élèves ne voient plus l'onglet « Clés ». Les professeurs
+  qui gèrent les clés continuent de les écrire et de les modifier.
+- **Individus suivis** — les élèves ne voient plus l'onglet « Individus » et ne peuvent plus
+  saisir de mesures. Les professeurs qui gèrent les arbres suivis continuent. Même allumé,
+  l'onglet reste masqué au niveau Collège : il faut les deux.
+- **Séances pédagogiques** — les élèves ne voient plus l'onglet « Séances » ni le bouton
+  « Lancer la séance » des tâches, et un lien direct ou un QR code de séance ne s'ouvre plus
+  pour eux ; une séance en cours est mise en pause. Les professeurs qui gèrent la biodiversité
+  continuent de créer, régler, suivre et même lancer des séances pour les essayer ; le choix
+  d'une séance liée reste proposé dans le formulaire de tâche, avec un avertissement. Les liens
+  entre tâches et séances sont conservés.
+- **Récompenses** — les élèves ne voient plus aucun badge (« Mes badges », fenêtre de fin de
+  séance) et n'en sont pas avertis. Mais les badges mérités **continuent d'être comptés** :
+  au rallumage, chaque élève retrouve tous ses badges, y compris ceux gagnés pendant la coupure
+  (jamais en double). Les séances, elles, fonctionnent normalement ; le professeur voit un
+  bandeau qui le rappelle dans l'onglet « Séances ».
 
 ## Comment l'écran s'organise
 
@@ -389,6 +396,14 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
   à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
   reste disponible hors ligne (depuis septembre 2026).
+- **Réseau trop lent : on n'attend plus indéfiniment.** Sur le terrain, un réseau « présent
+  mais inutilisable » (une seule barre, Wi-Fi saturé par toute une classe) ne coupe pas la
+  connexion : l'appareil attendait parfois plus d'une minute. Désormais, au bout de
+  **4 secondes** sans réponse, l'application affiche la dernière version gardée sur
+  l'appareil (page, zones, fiches, repères, tâches) ; la réponse du serveur, si elle finit
+  par arriver, met cette copie à jour pour la fois suivante. S'il n'y a encore rien de
+  gardé, l'application continue d'attendre le serveur (depuis septembre 2026, pour les
+  quatre produits).
 - **Une classe entière ne se bloque plus elle-même.** Quand tout un groupe utilise le site
   depuis le même établissement, les appareils sortent sur Internet avec **une seule adresse
   visible** par le serveur, qui limite le nombre de requêtes par adresse. Les tentatives de

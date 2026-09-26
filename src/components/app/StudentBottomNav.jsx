@@ -88,7 +88,10 @@ export function buildStudentNavItems({
   canAccessForum,
   showNestedGroups = true,
   showIndividuals = true,
-  /* Modules pédagogiques activables (`ui.modules.*`) : allumés par défaut. */
+  /*
+   * Onglets des modules pédagogiques activables DISPONIBLES pour ce compte : module allumé,
+   * ou éteint mais compte gestionnaire (`resolvePedagoModuleAccess`, calculé dans `App`).
+   */
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,
@@ -172,7 +175,10 @@ export function StudentBottomNav({
   observationsEnabled,
   visitEnabled,
   canAccessForum,
-  /** Interrupteurs `ui.modules.{id_keys,pedago_sessions,individuals}_enabled` (défaut : allumés). */
+  /**
+   * Onglets Clés / Séances / Individus disponibles pour ce compte (`resolvePedagoModuleAccess`) :
+   * module allumé, ou éteint pour les élèves mais compte gestionnaire. Défaut : disponibles.
+   */
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,

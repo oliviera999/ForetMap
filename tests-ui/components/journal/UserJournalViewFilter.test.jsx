@@ -5,6 +5,9 @@ const apiMock = vi.fn();
 vi.mock('../../../src/services/api', () => ({
   api: (...args) => apiMock(...args),
   AccountDeletedError: class AccountDeletedError extends Error {},
+  // Carnet hors ligne (piste D) : compte connecté et détection de panne réseau.
+  getAuthUserId: () => 'u1',
+  isLikelyNetworkTransportFailure: (err) => err?.code === 'NETWORK_UNREACHABLE',
 }));
 vi.mock('../../../src/components/journal/UserJournalArticleCard.jsx', () => ({
   UserJournalArticleCard: ({ article }) => (

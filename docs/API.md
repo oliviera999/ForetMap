@@ -1125,30 +1125,35 @@ Réglage public de réactions :
 - Valeur par défaut : `👍 ❤️ 😂 😮 😢 😡 🔥 👏`.
 
 Modules pédagogiques activables (réglages publics booléens, défaut `true`, exposés au front
-sous `publicSettings.modules.*` et lus côté serveur par `lib/shared/moduleGate.js`) :
+sous `publicSettings.modules.*`). Convention (décision du 25/09/2026, révisée) : un module
+éteint l'est **pour les élèves**. Garde `lib/pedagoModuleGate.js` : l'appelant qui porte la
+**permission de gestion** du module passe sur toutes ses routes (préparation, brouillons,
+démonstration) ; tout autre appelant — élève, visiteur, anonyme — reçoit
+`503 { error: '… désactivé(e)s' }`, même avec la permission d'usage (`individuals.measure`).
+Le forum et le carnet gardent leur convention propre (module éteint → fermé à tous).
 
-- `ui.modules.id_keys_enabled` — clés d'identification. `false` : toutes les routes
-  `/api/id-keys` (lecture publique comprise) renvoient `503 { error: 'Clés d’identification désactivées' }` ;
-  onglet « Clés » masqué (élève et prof).
-- `ui.modules.individuals_enabled` — individus suivis. `false` : toutes les routes
-  `/api/individuals` (mesures comprises) renvoient `503 { error: 'Suivi des individus désactivé' }` ;
-  onglet « Individus » masqué. L'onglet reste **aussi** soumis au niveau pédagogique
-  (`individuals_tab`, masqué au collège) : il faut les deux pour qu'il apparaisse.
-- `ui.modules.pedago_sessions_enabled` — séances pédagogiques. `false` : toutes les routes
-  `/api/pedago-sessions` renvoient `503 { error: 'Séances pédagogiques désactivées' }` — catalogue,
-  `runs/start`, `runs/complete`, `me/runs`, **et** gestion prof (création, `stats`, suivi,
-  partage), comme le forum ferme aussi sa modération. Onglet « Séances » masqué, bandeau de
-  séance en cours retiré, bouton « Lancer la séance » des tâches et champ « Séance
-  pédagogique liée » du formulaire de tâche masqués. `tasks.pedago_session_id` n'est pas
-  effacé (le lien ressert au rallumage).
-- `ui.modules.rewards_enabled` — badges de fin de séance. `false` : `GET /api/rewards/me`
-  renvoie `503 { error: 'Récompenses désactivées' }` et `evaluateSessionRewards` n'attribue rien
-  (`runs/complete` répond `rewards: []`, aucune ligne `user_rewards`) ; « Mes badges » et les
-  badges de la fenêtre de fin de séance sont masqués. Les badges déjà gagnés restent en base ;
-  rien n'est rattrapé au rallumage (un badge se gagne à la fin de séance qui le mérite).
+| Module (réglage) | Gestionnaire (reste ouvert) | Usage élève fermé (503) | Gestion ouverte au gestionnaire |
+| --- | --- | --- | --- |
+| Clés d'identification (`ui.modules.id_keys_enabled`) — `503 'Clés d’identification désactivées'` | `id_keys.manage` | `GET /api/id-keys`, `GET /api/id-keys/:idOrSlug` | ces lectures (brouillons compris) ; `POST` / `PUT` / `DELETE` clé, couplets, leads |
+| Individus suivis (`ui.modules.individuals_enabled`) — `503 'Suivi des individus désactivé'` | `individuals.manage` | `GET /api/individuals`, `GET /api/individuals/:id`, `POST /api/individuals/:id/measurements` (paliers élève `individuals.measure`) | ces routes ; `POST` / `PUT` / `DELETE` individu, `DELETE` mesure |
+| Séances (`ui.modules.pedago_sessions_enabled`) — `503 'Séances pédagogiques désactivées'` | `plants.manage` | `GET /api/pedago-sessions`, `GET /api/pedago-sessions/:idOrSlug` (lien direct, QR), `GET /me/runs`, `POST /:idOrSlug/runs/start`, `POST /:idOrSlug/runs/complete` | ces routes (démonstration) ; `?all=1`, `POST`, `PUT`, `GET /stats`, `GET /:idOrSlug/runs`, `GET /:idOrSlug/share` |
+| Récompenses (`ui.modules.rewards_enabled`) — `503 'Récompenses désactivées'` | — (aucune route de gestion) | `GET /api/rewards/me` (pour tous) | — |
 
-Un onglet dont le module s'éteint pendant qu'il est ouvert est replié par
-`useTabNavigationGuards` (vers `map`, ou `visit` pour un visiteur), comme les autres modules.
+Front (`resolvePedagoModuleAccess`, `src/utils/appAccess.js`, miroir de la garde) : module
+éteint → onglet masqué, vue non montée et onglet ouvert replié (`useTabNavigationGuards`, vers
+`map` ou `visit` pour un visiteur) pour qui ne gère pas le module ; le gestionnaire garde onglet
+et vue, avec un bandeau « module désactivé pour les élèves ». L'onglet « Individus » reste
+**aussi** soumis au niveau pédagogique (`individuals_tab`, masqué au collège). Séances éteintes :
+bouton « Lancer la séance » des tâches et bandeau de séance en cours masqués pour les élèves ;
+le champ « Séance pédagogique liée » du formulaire de tâche reste proposé au prof, avec un
+avertissement, et `tasks.pedago_session_id` n'est jamais effacé.
+
+Récompenses éteintes : l'attribution **continue** — `evaluateSessionRewards` enregistre les
+badges mérités dans `user_rewards` — mais rien n'est annoncé (`runs/complete` répond
+`rewards: []`, via `announceableRewards`) ni affiché (« Mes badges », fenêtre de fin de séance ;
+le prof gestionnaire des séances voit un bandeau). Au rallumage, `GET /api/rewards/me` rend tous
+les badges, y compris ceux mérités pendant la coupure. Aucun doublon : clé primaire
+`(user_id, reward_key)` + `INSERT IGNORE`.
 
 Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL), réglages publics `ui.map.*` :
 
@@ -1755,7 +1760,7 @@ Contrat principal :
 | POST    | `/api/tasks/:id/assign`            | non                                                            | S’assigner (n3beur). Inscription par un n3boss (`studentId`) : **403** si le compte visé n’a pas de profil n3beur                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | POST    | `/api/tasks/:id/assign-group`      | oui (`tasks.assign.group`)                                     | Affecter en masse les n3beurs d’un groupe à une tâche. Les membres du groupe sans profil n3beur (visiteur, personnel, prof de classe, profil GL) sont ignorés ; `400` si le groupe n’en compte aucun                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | POST    | `/api/tasks/:id/unassign`          | non                                                            | Se désassigner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| POST    | `/api/tasks/:id/done`              | non                                                            | Marquer comme fait (commentaire/image)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| POST    | `/api/tasks/:id/done`              | non                                                            | Marquer comme fait (commentaire/image ; `client_uuid` facultatif = clé d'idempotence, voir plus bas)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | GET     | `/api/tasks/:id/logs`              | non (compte connecté **requis**, profil non visiteur)          | Logs de la tâche (PII : prénoms/noms, commentaires) — anonyme ou visiteur → **403**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | GET     | `/api/tasks/:id/logs/:logId/image` | non (compte connecté **requis**, profil non visiteur)          | Image d’un log (fichier disque) — **même politique que la liste ci-dessus** ; anonyme ou visiteur → **403**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/tasks/:id/validate`          | oui (`tasks.validate`)                                         | Valider la tâche (depuis n’importe quel statut sauf `validated`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -1821,6 +1826,7 @@ Contraintes principales :
   - en `single_done`, la tâche passe en `done` dès la déclaration de fin ;
   - en `all_assignees_done`, chaque assigné valide individuellement, puis la tâche passe en `done` uniquement quand tous les assignés ont terminé.
   - **N3boss / validation** : avec en-tête `Authorization: Bearer <token>` et un profil disposant de `tasks.manage` **ou** de `tasks.validate` (même sans `tasks.manage`, par ex. rôle RBAC personnalisé), le corps peut cibler un assigné via `studentId` (UUID n3beur) ou couple `firstName` / `lastName` (comme pour l’affectation) : cela enregistre `done_at` sur **son** inscription pour une tâche en `all_assignees_done` (validation manuelle de la part d’un élève), sans commentaire ni image obligatoires. Même logique que lorsque l’élève appelle la route pour lui-même.
+  - **Idempotence (migration `299`, file hors ligne du client)** : champ facultatif **`client_uuid`** (8 à 64 caractères `[A-Za-z0-9-]`, sinon **400** `client_uuid invalide`). Clé propre au n3beur : si un rapport (commentaire et/ou image) a déjà été enregistré sous cette clé pour cette tâche, la route **rejoue** la réponse — l'état courant de la tâche avec `"replayed": true` — sans nouveau rapport, sans notification ni journal d'audit ; deux envois simultanés de la même clé n'enregistrent qu'un rapport (index unique `(student_id, client_uuid)` sur `task_logs`). **Sans rapport**, le marquage est naturellement idempotent : le statut (ou le `done_at` de la part, en `all_assignees_done`) n'est posé qu'une fois, et la notification `task_done` ne part que sur la transition effectuée par l'appel — un renvoi ou deux envois simultanés ne notifient pas deux fois.
 - `POST /api/tasks/:id/validate` : possible sans que la tâche soit `done` ; **400** uniquement si elle est déjà `validated`. Les liaisons **zones / repères** sont retirées, comme pour un passage à `validated` via `PUT`. Pour une tâche avec récurrence `weekly`, `biweekly` ou `monthly`, un **snapshot** des identifiants de zones et de repères est enregistré au moment de la **première** transition vers `validated` (`recurrence_template_zone_ids` et `recurrence_template_marker_ids`, texte JSON côté BDD) afin que le job de duplication des tâches récurrentes recrée les clones avec la même localisation. Même logique lors d’un passage à `validated` via `PUT` (récurrence **effective** du body, dans la même transaction). Champs `recurrence` (whitelist), `start_date` / `due_date` (`AAAA-MM-JJ`), `parent_task_id`, `recurrence_series_id` exposés sur les payloads.
 - **Dates (`start_date`, `due_date`)** : format **`AAAA-MM-JJ`** strict sur `POST /api/tasks`, `PUT /api/tasks/:id` et `POST /api/tasks/proposals` — toute autre valeur (`15/09/2026`, `2026-9-15`, horodatage ISO complet…) renvoie **400** `« … invalide (format AAAA-MM-JJ attendu) »`. Champ omis, vide ou `null` → enregistrement **`null`**. Les colonnes sont des `DATE` depuis la migration `254` : sans ce contrôle applicatif, une valeur mal formée était laissée à l'arbitrage de MariaDB, dont le `sql_mode` n'est pas fixé par l'application — rejet brut (**500**) en mode strict, troncature silencieuse sinon. Le contrôle rend la réponse explicite et identique sur les trois routes.
 - **Cohérence du couple** : `due_date` antérieure à `start_date` → **400** `« La date d'échéance ne peut pas précéder la date de début »`. Sur `PUT`, le contrôle porte sur les valeurs **effectives** (corps + existant), pour qu'envoyer une seule des deux dates ne puisse pas inverser le couple ; il n'est appliqué **que si la requête touche à l'une des deux dates**, afin qu'une tâche héritée déjà incohérente reste modifiable sur ses autres champs.
@@ -2055,7 +2061,7 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | ------- | --------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------- |
 | GET     | `/api/user-journal/me`                              | propriétaire                          | `{ limits, articles[], imports[] }`                                              |
 | GET     | `/api/user-journal/me/imports/refs`                 | propriétaire                          | refs déjà importées                                                              |
-| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId? }`                                             |
+| POST    | `/api/user-journal/me/articles`                     | propriétaire                          | `{ title?, bodyMarkdown?, zoneId?, client_uuid? }` — voir idempotence ci-dessous |
 | PUT     | `/api/user-journal/me/articles/:id`                 | propriétaire                          | mise à jour                                                                      |
 | PUT     | `/api/user-journal/me/articles/:id/pin`             | propriétaire                          | `{ pinned }`                                                                     |
 | DELETE  | `/api/user-journal/me/articles/:id`                 | propriétaire                          |                                                                                  |
@@ -2069,6 +2075,13 @@ Module `ui.modules.observations_enabled` ; sinon **503**. Détail : `docs/FORETM
 | GET     | `/api/user-journal/embeds/search`                   | auth                                  | `?type=&q=` → `{ results: [{ type, ref, title }] }`                              |
 | GET     | `/api/user-journal/feed`                            | `observations.read.*`                 | articles récents (max 100)                                                       |
 | GET     | `/api/user-journal/users/:userId`                   | propriétaire ou `observations.read.*` | lecture staff                                                                    |
+
+**Idempotence de la création d'article (migration `299`, carnet hors ligne)** : `client_uuid`
+facultatif (8 à 64 caractères `[A-Za-z0-9-]`, sinon **400** `client_uuid invalide`), clé
+propre au compte. Un renvoi de la même clé ne crée pas de second article : la réponse est
+rejouée en **200** `{ article, replayed: true }` (au lieu de **201**), y compris pour deux
+envois simultanés (index unique `(user_id, client_uuid)`). C'est ainsi qu'un article écrit
+sans réseau part au retour du réseau, en un seul appel portant son titre, son texte et sa zone.
 
 ### Observations (legacy)
 
@@ -2994,8 +3007,9 @@ Migration `275`. Lecture des clés **publiées** sans auth ; brouillons et écri
 (`next_couplet_id` XOR `plant_id`) ; les cycles et les formulations invitant à manipuler
 sont refusés.
 
-Module `ui.modules.id_keys_enabled` ; sinon **503** `{ error: 'Clés d’identification désactivées' }`
-sur toutes les routes ci-dessous.
+Module `ui.modules.id_keys_enabled` éteint : **503** `{ error: 'Clés d’identification désactivées' }`
+sur toutes les routes ci-dessous, sauf pour un appelant `id_keys.manage` (voir « Modules
+pédagogiques activables »).
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3017,9 +3031,9 @@ boîtes emboîtées, parcours) — **distinct** des parcours géographiques (`/a
 libre). Pour un modèle, la structure des étapes est figée et le prof configure carte / clé /
 plantes / arbre suivi / quiz via `PUT` ; pour une séance `custom`, `steps` est éditable.
 
-Module `ui.modules.pedago_sessions_enabled` ; sinon **503**
-`{ error: 'Séances pédagogiques désactivées' }` sur toutes les routes ci-dessous, gestion prof
-comprise.
+Module `ui.modules.pedago_sessions_enabled` éteint : **503**
+`{ error: 'Séances pédagogiques désactivées' }` sur toutes les routes ci-dessous, sauf pour un
+appelant `plants.manage` (préparation, suivi, démonstration).
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3052,8 +3066,9 @@ Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une s
 règles sont côté serveur (`lib/rewards.js`) ; aujourd’hui alimentées par les fins de séance
 (`session_first`, `session_three`, `session_replay`, `session_lycee`).
 
-Module `ui.modules.rewards_enabled` ; sinon **503** `{ error: 'Récompenses désactivées' }` et
-aucune attribution en fin de séance (`rewards: []`).
+Module `ui.modules.rewards_enabled` éteint : **503** `{ error: 'Récompenses désactivées' }` pour
+tous ; les badges mérités sont tout de même enregistrés (sans annonce, `rewards: []`) et
+apparaissent au rallumage.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
@@ -3070,8 +3085,9 @@ Migration `276`. Lecture publique ; création/édition sous `individuals.manage`
 saisie de mesures sous `individuals.measure` (admin, prof, paliers élève). Chaque mesure
 peut porter une estimation pédagogique (Chave 2014) avec disclaimer « ordre de grandeur ».
 
-Module `ui.modules.individuals_enabled` ; sinon **503** `{ error: 'Suivi des individus désactivé' }`
-sur toutes les routes ci-dessous.
+Module `ui.modules.individuals_enabled` éteint : **503** `{ error: 'Suivi des individus désactivé' }`
+sur toutes les routes ci-dessous (saisie de mesure comprise), sauf pour un appelant
+`individuals.manage`.
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 
+import { resolvePedagoModuleAccess } from '../utils/appAccess.js';
+
 /**
  * Garde-fous de navigation par onglet (extrait de App.jsx, O5).
  *
@@ -11,8 +13,11 @@ import { useEffect } from 'react';
  * - élève sans accès carte/tâches → repli sur `plants` ;
  * - onglet split `maptasks` hors écran large → repli sur `map` ;
  * - modules désactivés (tuto, stats, visite, packs mascotte, carnet, forum,
- *   médiathèque, clés d'identification, individus, séances) → repli sur `map`
- *   (ou `visit` pour un visiteur) ou `about` selon le cas d'origine ;
+ *   médiathèque) → repli sur `map` (ou `visit` pour un visiteur) ou `about` selon
+ *   le cas d'origine ;
+ * - modules pédagogiques éteints (clés d'identification, individus, séances) : même
+ *   repli, **sauf** pour le compte qui porte la permission de gestion du module — il
+ *   garde l'onglet pour préparer (`resolvePedagoModuleAccess`, miroir du serveur) ;
  * - onglet `tuto` avec un focus lieu actif (fusion Tâches&tuto) → bascule sur
  *   `tasks`.
  *
@@ -31,6 +36,9 @@ import { useEffect } from 'react';
  * @param {boolean} [params.canAccessProfiles]
  * @param {boolean} [params.canAccessTutorials]
  * @param {object} [params.modules] - Drapeaux `publicSettings.modules`.
+ * @param {boolean} [params.canManageIdKeys] - `id_keys.manage`.
+ * @param {boolean} [params.canManageIndividuals] - `individuals.manage`.
+ * @param {boolean} [params.canManagePedagoSessions] - `plants.manage` (gestion des séances).
  */
 export function useTabNavigationGuards({
   tab,
@@ -44,15 +52,24 @@ export function useTabNavigationGuards({
   canAccessProfiles = false,
   canAccessTutorials = false,
   modules,
+  canManageIdKeys = false,
+  canManageIndividuals = false,
+  canManagePedagoSessions = false,
 }) {
   const tutorialsEnabled = modules?.tutorials_enabled;
   const statsEnabled = modules?.stats_enabled;
   const visitEnabled = modules?.visit_enabled;
   const observationsEnabled = modules?.observations_enabled;
   const forumEnabled = modules?.forum_enabled;
-  const idKeysEnabled = modules?.id_keys_enabled;
-  const individualsEnabled = modules?.individuals_enabled;
-  const pedagoSessionsEnabled = modules?.pedago_sessions_enabled;
+  const pedagoAccess = resolvePedagoModuleAccess({
+    modules,
+    canManageIdKeys,
+    canManageIndividuals,
+    canManagePedagoSessions,
+  });
+  const idKeysAvailable = pedagoAccess.idKeys.available;
+  const individualsAvailable = pedagoAccess.individuals.available;
+  const pedagoSessionsAvailable = pedagoAccess.pedagoSessions.available;
 
   useEffect(() => {
     if (effectiveIsTeacher) return;
@@ -88,9 +105,9 @@ export function useTabNavigationGuards({
     if (tab === 'visit' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
     if (tab === 'mascot_packs' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
     if (tab === 'notebook' && observationsEnabled === false) setTab(visitFallback);
-    if (tab === 'id-keys' && idKeysEnabled === false) setTab(visitFallback);
-    if (tab === 'individuals' && individualsEnabled === false) setTab(visitFallback);
-    if (tab === 'sessions' && pedagoSessionsEnabled === false) setTab(visitFallback);
+    if (tab === 'id-keys' && !idKeysAvailable) setTab(visitFallback);
+    if (tab === 'individuals' && !individualsAvailable) setTab(visitFallback);
+    if (tab === 'sessions' && !pedagoSessionsAvailable) setTab(visitFallback);
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
   }, [
@@ -100,9 +117,9 @@ export function useTabNavigationGuards({
     visitEnabled,
     observationsEnabled,
     forumEnabled,
-    idKeysEnabled,
-    individualsEnabled,
-    pedagoSessionsEnabled,
+    idKeysAvailable,
+    individualsAvailable,
+    pedagoSessionsAvailable,
     canAccessForum,
     canViewGeneralStats,
     canAccessProfiles,

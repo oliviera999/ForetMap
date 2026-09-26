@@ -202,6 +202,39 @@ describe('TaskTileCard — interactions (les handlers passés en props restent c
     fireEvent.click(screen.getByRole('button', { name: /Me retirer/ }));
     expect(unassign).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-1' }));
   });
+
+  test('côté n3beur : tâche notée faite sans réseau → état d’attente, plus de double envoi', () => {
+    // Piste D : tant que le « fait » gardé hors ligne n'est pas parti, la carte le dit et
+    // retire « Marquer terminée » / « Me retirer » (un second marquage ou un retrait
+    // contrediraient celui qui attend).
+    render(
+      <TaskTileCard
+        {...makeProps({
+          isTeacher: false,
+          student: { id: 's1', first_name: 'Léa', last_name: 'Martin' },
+          canSelfAssignTasks: true,
+          queuedDoneTaskIds: new Set(['task-1']),
+          t: {
+            id: 'task-1',
+            title: 'Arroser les tomates',
+            status: 'in_progress',
+            required_students: 2,
+            assignments: [
+              {
+                id: 'a1',
+                student_id: 's1',
+                student_first_name: 'Léa',
+                student_last_name: 'Martin',
+              },
+            ],
+          },
+        })}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(/partira au retour du réseau/);
+    expect(screen.queryByRole('button', { name: /Marquer termin/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Me retirer/ })).toBeNull();
+  });
 });
 
 describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent non lié change)', () => {

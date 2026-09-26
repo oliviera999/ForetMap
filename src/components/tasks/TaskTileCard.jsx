@@ -112,6 +112,8 @@ function TaskTileCardImpl({
   tooltipText,
   openTasksTutorialPreview,
   tutorialReadIds = null,
+  /** Tâches marquées faites sans réseau, en attente d'envoi (`utils/taskDoneQueue.js`). */
+  queuedDoneTaskIds = null,
   onOpenBiodiversityFromTaskName,
   enableTaskDrag = false,
   onTaskDragStart = null,
@@ -146,6 +148,7 @@ function TaskTileCardImpl({
   const totalCount = getAssignedCount(t);
   const mineAssignment = assignees.find((a) => assignmentMatchesStudent(a, student)) || null;
   const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
+  const isDoneQueued = !!(queuedDoneTaskIds && queuedDoneTaskIds.has(String(t.id)));
   const isQuickAssignOpen = quickAssignTaskId === t.id;
   const quickAssignDelta = isQuickAssignOpen
     ? teacherQuickAssignDelta(t, quickAssignStudentIds)
@@ -455,9 +458,15 @@ function TaskTileCardImpl({
                   )}
                 </button>
               )}
+            {!isTeacher && isMine && isDoneQueued && (
+              <span className="task-chip task-chip--queued" role="status">
+                <IconCheck size={14} /> Notée faite — partira au retour du réseau
+              </span>
+            )}
             {!isTeacher &&
               canSelfAssignTasks &&
               isMine &&
+              !isDoneQueued &&
               t.status !== 'done' &&
               t.status !== 'validated' &&
               !hasCompletedOwnAssignment && (

@@ -14,6 +14,13 @@ Produit isolé : tables `user_journal_*`, API `/api/user-journal`, pas de coupla
 - Recherche / filtre (« Éléments appris ») / tri côté client
 - Lecture staff + export `.md` + **vue livre** impression/PDF navigateur
 - Module `ui.modules.observations_enabled` ; limites chars/assets (0 = illimité)
+- **Hors ligne** (piste D, migration `299`) : sans réseau, « + Nouvel article » crée un
+  brouillon local (`utils/journalDraftQueue.js`, file par compte) que l'éditeur partagé
+  enregistre sans le savoir — l'adaptateur ForetMap `services/userJournalOfflineAdapter.js`
+  a la même interface que `userJournalAdapter` ; G&L n'est pas concerné. Au retour du réseau,
+  chaque brouillon part en un `POST /me/articles` portant `client_uuid` (réponse rejouée
+  `replayed: true` sur un renvoi). Images et épinglage attendent le réseau ; un refus
+  définitif garde le texte, marqué en échec.
 
 ## Public
 

@@ -330,6 +330,50 @@ describe('FMLearningLinksPanel', () => {
 
 // Lot 4 (docs/AUDIT_VALIDATION_QUIZ_2026-09.md) : approuver ne conditionne pas ; rendre
 // bloquant est un geste explicite, confirmé avec la politique effective sous les yeux.
+// Lot B (audit du 25/09/2026, question 3) : l'ouverture libre d'un contenu sans question
+// active est gardée, mais elle doit se voir ; un lien vers une question désactivée est signalé.
+describe('FMLearningLinksPanel — contenus sans question active', () => {
+  beforeEach(() => {
+    apiMock.mockReset();
+  });
+
+  test('annonce combien de contenus se valident sans question', async () => {
+    installApi({
+      handler: (path) =>
+        path.startsWith('/api/learning-links/resources')
+          ? {
+              ...RESOURCES,
+              without_active_gating_count: 1,
+              resources: [
+                RESOURCES.resources[0],
+                { ...RESOURCES.resources[1], inactive_gating_count: 2 },
+              ],
+            }
+          : undefined,
+    });
+    render(<FMLearningLinksPanel />);
+    expect(await screen.findByText(/se valide sans question/)).toBeInTheDocument();
+    expect(screen.getByText(/2 désactivée\(s\), sans effet/)).toBeInTheDocument();
+  });
+
+  test('affiche l’avertissement du serveur quand la question rattachée est désactivée', async () => {
+    installApi({
+      handler: (path, method) =>
+        path === '/api/learning-links' && method === 'POST'
+          ? { link: { id: 99 }, warning: 'Question inactive : ce lien ne conditionnera rien.' }
+          : undefined,
+    });
+    render(<FMLearningLinksPanel />);
+    const picker = await screen.findByLabelText('Question à rattacher');
+    await waitFor(() =>
+      expect([...picker.querySelectorAll('option')].map((o) => o.value)).toContain('QF0002'),
+    );
+    fireEvent.change(picker, { target: { value: 'QF0002' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rattacher' }));
+    expect(await screen.findByText(/Question inactive/)).toBeInTheDocument();
+  });
+});
+
 describe('FMLearningLinksPanel — rendre bloquantes les questions approuvées', () => {
   const approvedNotGating = {
     links: [

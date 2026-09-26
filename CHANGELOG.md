@@ -9,6 +9,62 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — terrain sans réseau (piste D, audit du 25/09/2026, § 1.4.6 et § 2.4)
+
+- « Marquer terminée » fonctionne sans réseau : le marquage et son commentaire sont gardés sur
+  l'appareil, par compte, et partent seuls au retour du réseau ; la carte affiche « Notée faite —
+  partira au retour du réseau ». La photo du rapport, l'inscription et le retrait attendent le
+  réseau, avec un message qui dit pourquoi.
+- Carnet : un article écrit sans réseau est gardé sur l'appareil (titre, texte, zone) et envoyé
+  tout seul ; un refus du serveur ne jette jamais le texte ; le carnet annonce l'absence de
+  réseau au lieu de se dire vide.
+- Migration `299` : clés d'idempotence `client_uuid` sur `task_logs` et `user_journal_articles` ;
+  `POST /api/tasks/:id/done` et `POST /api/user-journal/me/articles` rejouent la réponse
+  (`replayed: true`) au lieu de dupliquer, y compris pour deux envois simultanés.
+- Service worker (quatre produits) : délai d'attente du réseau de 4 s pour le HTML et les API
+  mises en cache (modèle `networkTimeoutSeconds` de Workbox), réglable, désactivable.
+
+### Corrigé — tâche faite notifiée deux fois
+
+- Deux envois simultanés de « tâche faite » ne notifient plus deux fois les valideurs ; la
+  notification ne part que si l'appel fait avancer l'état.
+
+### Modifié — modules pédagogiques éteints : fermés aux élèves, ouverts au gestionnaire
+
+- Un module éteint (`ui.modules.id_keys_enabled`, `individuals_enabled`,
+  `pedago_sessions_enabled`) l'est désormais pour les élèves : onglet masqué et routes en `503`,
+  mais le compte qui a la permission de gestion du module (`id_keys.manage`,
+  `individuals.manage`, `plants.manage`) garde onglet, écrans et API pour préparer, avec un
+  bandeau « module désactivé pour les élèves ». La saisie de mesure des élèves est fermée. Le
+  forum et le carnet ne changent pas.
+- Récompenses éteintes (`ui.modules.rewards_enabled`) : les badges mérités sont enregistrés
+  sans être annoncés ni affichés, puis apparaissent tous au rallumage (sans doublon) ;
+  `GET /api/rewards/me` reste en `503`.
+
+### Modifié — suites des décisions du 25/09 (questions 3, 9, 17 ; QF0212)
+
+- **Écran « Rattacher des questions aux contenus »** : il annonce combien de contenus se
+  valident sans question active, signale sur chaque contenu les liens vers des questions
+  désactivées (« sans effet ») et affiche l'avertissement du serveur quand on rattache une
+  question désactivée.
+- **Question désactivée** (question 9, règle conservée et écrite) : une bonne réponse déjà
+  donnée ne compte plus ; un contenu déjà validé le reste (doc de référence).
+- **QF0212 reformulée** (migration `298`) : « lequel participe à la décomposition en fragmentant
+  la matière morte ? » — cohérente avec la fiche du cloporte, désormais détritivore ; gardée par
+  l'ancien énoncé. Test de contenu `quiz-qf0212-detritivore`.
+- **Procédure de déploiement** : `docs/RUNBOOK_DEPLOIEMENT_AUDIT_2026-09.md` (migrations 292 à
+  301 dans l'ordre, sauvegarde vérifiée, contrôles après chaque migration, tâches
+  d'administration, bascule `dist-artifact`, retour arrière).
+- **Sauvegarde BDD** (`scripts/db-backup.sh`, audit § 1.1) : `mariadb-dump` en priorité,
+  `--default-character-set=utf8mb4`, clauses `DEFINER` retirées, dump vérifié avant d'être
+  gardé, échec explicite quand aucun outil de dump n'est installé (il sortait en succès sans
+  rien sauvegarder). Essai local : restauration identique à l'octet, vues en `SQL SECURITY
+  INVOKER` sans `DEFINER`.
+- **Outillage** (question 17) : `npm run check:cycles` (script maison, sans dépendance) et
+  `tests/import-cycles-guard.test.js` refusent tout cycle entre imports de premier niveau (0
+  aujourd'hui ; 5 groupes de cycles serveur, tous paresseux) ; `@vitest/coverage-v8` en
+  dépendance de développement (licence MIT) rend `npm run test:ui:coverage` utilisable.
+
 ### Corrigé — paliers de progression sur mesure (question 11, migration 297)
 
 - Entre deux paliers de l'échelle n3beur, l'avis de félicitations et le motif

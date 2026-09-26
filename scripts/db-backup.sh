@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Sauvegarde BDD ForetMap — dump mysqldump compressé + rotation.
-# Autonome (n'a besoin que de mysqldump + des variables DB_*), utilisable :
+# Sauvegarde BDD ForetMap — dump compressé + rotation.
+# Autonome (n'a besoin que de mariadb-dump ou mysqldump + des variables DB_*), utilisable :
 #   - en cron quotidien (ex. 0 3 * * * .../scripts/db-backup.sh) ;
 #   - en snapshot pré-migration depuis scripts/auto-deploy-cron.sh (--label pre-migrate).
 #
@@ -15,6 +15,13 @@ set -euo pipefail
 #
 # Usage : scripts/db-backup.sh [--label <texte>]
 # Sortie : $BACKUP_DIR/foretmap-AAAAmmjj-HHMMSS[.label].sql.gz
+#
+# Conforme aux contraintes de l'hébergement mutualisé (audit du 25/09/2026, § 1.1) :
+#   - `--default-character-set=utf8mb4` : sans lui, le client peut transcoder les accents ;
+#   - pas de `--databases` : le dump se restaure dans une base d'un autre nom ;
+#   - clauses `DEFINER=...` retirées : une restauration sous un compte sans droit SUPER
+#     échouait sur les vues (elles restent en `SQL SECURITY INVOKER`) ;
+#   - dump vérifié (archive lisible, marque de fin) avant d'être gardé.
 
 ts() { date '+%Y-%m-%d %H:%M:%S'; }
 log() { printf '[%s] [db-backup] %s\n' "$(ts)" "$*"; }
@@ -55,9 +62,18 @@ if [ -z "${DB_NAME:-}" ] || [ -z "${DB_USER:-}" ]; then
   exit 1
 fi
 
-if ! command -v mysqldump >/dev/null 2>&1; then
-  log "mysqldump introuvable — sauvegarde ignorée (non bloquant)."
-  exit 0
+# MariaDB 11 fournit `mariadb-dump` ; `mysqldump` n'y est parfois qu'un alias déprécié.
+DUMP_BIN=""
+for candidate in mariadb-dump mysqldump; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    DUMP_BIN="$candidate"
+    break
+  fi
+done
+if [ -z "$DUMP_BIN" ]; then
+  # Échec explicite : une sauvegarde qui ne fait rien doit se voir dans les journaux.
+  log "ni mariadb-dump ni mysqldump — sauvegarde impossible."
+  exit 1
 fi
 
 mkdir -p "$BACKUP_DIR"
@@ -67,14 +83,25 @@ suffix=""
 out="$BACKUP_DIR/foretmap-$(date '+%Y%m%d-%H%M%S')${suffix}.sql.gz"
 tmp="$out.partial"
 
-log "Dump de '$DB_NAME' ($DB_HOST:$DB_PORT) → $out"
+log "Dump de '$DB_NAME' ($DB_HOST:$DB_PORT) avec $DUMP_BIN → $out"
 
 # Mot de passe via variable d'env MYSQL_PWD (évite de l'exposer dans argv/ps).
 # --single-transaction : dump cohérent sans verrou long (InnoDB).
-if MYSQL_PWD="${DB_PASS:-}" mysqldump \
+# `sed` retire les clauses DEFINER (vues, déclencheurs, routines, événements).
+set -o pipefail
+if MYSQL_PWD="${DB_PASS:-}" "$DUMP_BIN" \
   --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" \
+  --default-character-set=utf8mb4 \
   --single-transaction --quick --routines --triggers --events \
-  --no-tablespaces "$DB_NAME" | gzip -c >"$tmp"; then
+  --no-tablespaces "$DB_NAME" |
+  sed -E 's/ DEFINER=`[^`]*`@`[^`]*`//g' |
+  gzip -c >"$tmp"; then
+  # Vérification : archive lisible et dump terminé (marque « Dump completed »).
+  if ! gzip -t "$tmp" 2>/dev/null || ! gzip -dc "$tmp" | tail -n 1 | grep -q 'Dump completed'; then
+    rm -f "$tmp"
+    log "ÉCHEC : dump incomplet ou archive illisible pour '$DB_NAME'."
+    exit 1
+  fi
   mv "$tmp" "$out"
   log "OK : $(du -h "$out" | cut -f1) — $out"
 else

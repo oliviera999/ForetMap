@@ -12,16 +12,18 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
-const { requireModuleEnabled } = require('../lib/shared/moduleGate');
+const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 const { estimateBiomassCarbon, DISCLAIMER } = require('../lib/individualBiomass');
 
 const router = express.Router();
 const manageIndividuals = requirePermission('individuals.manage');
 const measureIndividuals = requirePermission('individuals.measure');
 
-// Module éteint (`ui.modules.individuals_enabled`) : tout le routeur répond 503, lecture
-// publique, fiches et mesures comprises — même convention que le forum et le carnet.
-router.use(requireModuleEnabled('foret', 'individuals', 'Suivi des individus désactivé'));
+// Module éteint (`ui.modules.individuals_enabled`) : fermé aux élèves, ouvert à
+// `individuals.manage` (`lib/pedagoModuleGate.js`). Usage élève (fermé) : lectures GET `/` et
+// GET `/:id`, et saisie de mesure (`individuals.measure`, que portent aussi des paliers élève).
+// Gestion (ouverte au gestionnaire) : fiches, mesures et suppressions.
+router.use(requirePedagoModuleOrManager('individuals', 'Suivi des individus désactivé'));
 
 function parsePositiveInt(raw) {
   const n = Number(raw);

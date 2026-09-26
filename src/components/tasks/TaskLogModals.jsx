@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useId } from 'react';
-import { api, AccountDeletedError } from '../../services/api';
+import {
+  api,
+  AccountDeletedError,
+  getAuthUserId,
+  isLikelyNetworkTransportFailure,
+} from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
@@ -9,6 +14,11 @@ import {
 } from '../../shared/platform/overlayHistory';
 import { formatDateTimeFr } from '../../shared/platform/datetime-fr';
 import { readTaskLogCommentDraft, writeTaskLogCommentDraft } from '../../utils/taskLogDraft.js';
+import {
+  TASK_DONE_COMMENT_MAX,
+  enqueueTaskDone,
+  newTaskDoneClientUuid,
+} from '../../utils/taskDoneQueue.js';
 import { AuthedImage } from '../AuthedImage.jsx';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -30,7 +40,25 @@ function Lightbox({ src, caption, onClose }) {
   return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
 }
 
-function LogModal({ task, student, onClose, onDone, onForceLogout }) {
+/** Photo jointe sans réseau : elle n'entre pas dans la file (poids, tablette partagée). */
+export const TASK_DONE_OFFLINE_PHOTO_MESSAGE =
+  'Pas de réseau : la photo ne peut pas être gardée sur l’appareil. Retire-la pour que ta tâche parte toute seule, ou réessaie quand le réseau revient.';
+
+/**
+ * Rapport « tâche faite ».
+ * @param {boolean} [offlineAllowed] vrai si le serveur n'exigera rien de plus à l'arrivée
+ *   (tutoriels liés déjà lus) : le marquage peut alors être gardé sans réseau
+ * @param {(task: object) => void} [onQueued] le marquage a été mis en file (pas de réseau)
+ */
+function LogModal({
+  task,
+  student,
+  onClose,
+  onDone,
+  onForceLogout,
+  offlineAllowed = false,
+  onQueued = null,
+}) {
   const dialogRef = useDialogA11y(onClose);
   // Pas de useOverlayHistoryBack : même conflit popstate / caméra native que le formulaire tâche.
   const commentFieldId = useId();
@@ -41,6 +69,10 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
   const [err, setErr] = useState('');
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  // Une clé par ouverture du rapport : un nouvel essai après une réponse perdue réutilise la
+  // même, et le serveur ne publie pas le rapport deux fois (migration 299).
+  const clientUuidRef = useRef(null);
+  if (!clientUuidRef.current) clientUuidRef.current = newTaskDoneClientUuid();
 
   useEffect(() => {
     setComment(readTaskLogCommentDraft(task?.id));
@@ -75,8 +107,39 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
     }
   };
 
+  /**
+   * Sans réseau : garde le marquage (et son commentaire) sur l'appareil, s'il peut l'être.
+   * @returns {boolean} vrai si le marquage est en file — la modale peut se fermer
+   */
+  const keepOffline = () => {
+    if (imageData) {
+      setErr(TASK_DONE_OFFLINE_PHOTO_MESSAGE);
+      return false;
+    }
+    const userId = getAuthUserId();
+    if (!offlineAllowed || !userId || String(comment || '').length > TASK_DONE_COMMENT_MAX) {
+      return false;
+    }
+    const kept = enqueueTaskDone({
+      user_id: userId,
+      task_id: String(task.id),
+      task_title: task.title || '',
+      client_uuid: clientUuidRef.current,
+      comment: comment || '',
+      student_id: student?.id != null ? String(student.id) : '',
+      first_name: student?.first_name || '',
+      last_name: student?.last_name || '',
+    });
+    if (!kept) return false;
+    writeTaskLogCommentDraft(task.id, '');
+    onQueued?.(task);
+    onClose();
+    return true;
+  };
+
   const submit = async () => {
     setSaving(true);
+    setErr('');
     try {
       await api(`/api/tasks/${task.id}/done`, 'POST', {
         comment,
@@ -84,6 +147,7 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         firstName: student.first_name,
         lastName: student.last_name,
         studentId: student.id,
+        client_uuid: clientUuidRef.current,
       });
       writeTaskLogCommentDraft(task.id, '');
       await onDone?.();
@@ -92,6 +156,13 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
       if (e instanceof AccountDeletedError) {
         onForceLogout?.();
         return;
+      }
+      if (isLikelyNetworkTransportFailure(e)) {
+        if (keepOffline()) return;
+        if (imageData) {
+          setSaving(false);
+          return;
+        }
       }
       const missing = e?.body?.missing_tutorials;
       if (Array.isArray(missing) && missing.length > 0) {
@@ -128,7 +199,12 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
         <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
       </p>
       {err && (
-        <p style={{ color: 'var(--alert)', fontSize: 'var(--text-sm)', marginBottom: 8 }}>{err}</p>
+        <p
+          role="alert"
+          style={{ color: 'var(--ink-alert)', fontSize: 'var(--text-sm)', marginBottom: 8 }}
+        >
+          {err}
+        </p>
       )}
 
       <div className="field">

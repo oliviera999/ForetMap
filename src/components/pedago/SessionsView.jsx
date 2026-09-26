@@ -4,6 +4,7 @@ import { api } from '../../services/api.js';
 import { Button } from '../../shared/ui/Button.jsx';
 import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx';
 import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
+import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 
 const STORAGE_KEY = 'foretmap.pedagoSession.v1';
@@ -70,6 +71,8 @@ export function SessionsView({
   runsVersion = 0,
   /** Interrupteur `ui.modules.rewards_enabled` : éteint → ni appel `/api/rewards`, ni « Mes badges ». */
   rewardsEnabled = true,
+  /** Module séances éteint pour les élèves, vue ouverte au gestionnaire : bandeau. */
+  moduleOffForLearners = false,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -219,6 +222,14 @@ export function SessionsView({
           suivis, boîtes emboîtées, parcours).
         </p>
       </header>
+
+      {moduleOffForLearners ? <ModuleLearnerOffBanner moduleLabel="Séances pédagogiques" /> : null}
+      {canManage && !rewardsEnabled ? (
+        <ModuleLearnerOffBanner
+          moduleLabel="Récompenses"
+          detail="Les badges mérités en fin de séance continuent d’être enregistrés sans être montrés ; ils apparaîtront tous au rallumage."
+        />
+      ) : null}
 
       {rewardsEnabled && isAuthenticated && rewards.catalogue.length > 0 && (
         <section className="pedago-rewards" aria-label="Mes badges" data-testid="pedago-rewards">

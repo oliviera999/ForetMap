@@ -231,11 +231,14 @@ Les **parcours** sur la carte (Visite / Carte) restent un outil à part — des 
 visiter —, mais une étape de séance peut en lancer un directement sur la carte.
 
 Les séances, les clés d'identification, les individus suivis et les badges sont des
-**modules activables** : un administrateur peut éteindre chacun d'eux dans **Paramètres →
-Accueil & modules** (détail dans [presentation.md](presentation.md), section
-« L'administration »). Si les clés ou les individus sont éteints alors que les séances restent
-allumées, une étape qui devait ouvrir une clé ou un arbre suivi reste sur l'onglet
-**Séances** : l'élève lit la consigne dans le bandeau et passe à l'étape suivante.
+**modules activables** : un administrateur peut éteindre chacun d'eux **pour les élèves** dans
+**Paramètres → Accueil & modules** (détail dans [presentation.md](presentation.md), section
+« L'administration »). Le professeur qui gère le module garde son onglet, avec un bandeau
+d'avertissement, et peut donc préparer une séance avant de l'ouvrir aux élèves. Si les clés ou
+les individus sont éteints alors que les séances restent allumées, une étape qui devait ouvrir
+une clé ou un arbre suivi reste, pour l'élève, sur l'onglet **Séances** : il lit la consigne
+dans le bandeau et passe à l'étape suivante. Badges éteints : ils continuent d'être comptés en
+silence et apparaissent tous au rallumage.
 
 ### Partager une séance (lien direct et QR code)
 

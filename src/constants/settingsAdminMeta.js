@@ -294,29 +294,30 @@ export const KEY_META = {
     section: 'modules',
     order: 40.2,
   },
-  // Modules pédagogiques adoptés le 25/09/2026 : allumés par défaut, éteints → onglet masqué
-  // pour tous (élève et prof) et API du module fermée ; les contenus restent en base.
+  // Modules pédagogiques adoptés le 25/09/2026 : allumés par défaut. Éteint → fermé aux élèves
+  // (onglet masqué, API en 503) ; les comptes gestionnaires du module continuent de préparer,
+  // avec un bandeau. Les contenus restent en base.
   'ui.modules.id_keys_enabled': {
     label:
-      'Clés d’identification — onglet « Clés » (clés dichotomiques ; éteint : onglet masqué pour tous, clés conservées)',
+      'Clés d’identification — onglet « Clés » (éteint : masqué aux élèves ; les gestionnaires des clés continuent de préparer, avec un bandeau)',
     section: 'modules',
     order: 42,
   },
   'ui.modules.individuals_enabled': {
     label:
-      'Individus suivis — onglet « Individus » (arbres suivis et mesures ; reste masqué au niveau collège même allumé)',
+      'Individus suivis — onglet « Individus » (éteint : masqué aux élèves, mesures comprises ; gestionnaires avec bandeau ; reste aussi masqué au niveau collège)',
     section: 'modules',
     order: 42.1,
   },
   'ui.modules.pedago_sessions_enabled': {
     label:
-      'Séances pédagogiques — onglet « Séances » (séances guidées, suivi des élèves, bouton « Lancer la séance » des tâches)',
+      'Séances pédagogiques — onglet « Séances » et bouton « Lancer la séance » des tâches (éteint : masqués aux élèves ; les profs continuent de préparer, avec un bandeau)',
     section: 'modules',
     order: 42.2,
   },
   'ui.modules.rewards_enabled': {
     label:
-      'Récompenses — badges de fin de séance (éteint : plus aucun badge attribué ni affiché ; ceux déjà gagnés sont conservés)',
+      'Récompenses — badges de fin de séance (éteint : rien d’affiché aux élèves, mais les badges mérités sont enregistrés et apparaissent au rallumage)',
     section: 'modules',
     order: 42.3,
   },

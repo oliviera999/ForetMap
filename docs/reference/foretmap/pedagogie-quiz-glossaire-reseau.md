@@ -381,6 +381,17 @@ d'observation** pour l'écriture naturaliste libre.
 - L’affichage côté propriétaire charge l’ensemble du carnet ; la vue groupe des professeurs
   montre les **100 articles les plus récents** du périmètre (borne de lecture, pas une
   suppression).
+- **Sans réseau sur le terrain** (depuis septembre 2026) : le carnet l’annonce (« Pas de
+  réseau : ton carnet complet s’affichera au retour du réseau ») au lieu de se dire vide.
+  L’élève peut quand même écrire un **nouvel article** : titre, texte et zone sont **gardés
+  sur l’appareil** (« Gardé sur l’appareil — partira tout seul au retour du réseau ») et
+  l’article est envoyé tout seul quand le réseau revient ; un message le confirme. Un article
+  envoyé deux fois (réponse perdue) n’apparaît qu’**une** fois. Attendent le réseau : les
+  **images** (trop lourdes pour l’appareil — l’élève est prévenu, son texte reste) et
+  l’**épinglage**. Si le serveur refuse l’article à l’arrivée (zone supprimée entre-temps,
+  texte trop long), le texte n’est **jamais jeté** : l’article reste dans le carnet avec la
+  raison, pour être corrigé. Sur une tablette partagée, un article gardé n’est montré et
+  envoyé que sous le compte de son auteur.
 
 > ⚠️ **Point d'attention** — Ces modules sont **activables/désactivables** dans les
 > réglages (quiz, tutoriels, carnet, forum…). Si un onglet manque, vérifier d’abord les
