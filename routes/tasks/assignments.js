@@ -41,6 +41,27 @@ const { assertLinkedTutorialsRead } = require('../../lib/taskTutorialPrerequisit
 
 const router = express.Router();
 
+/**
+ * Clé d'idempotence d'un « tâche faite » (migration 299), même format que celle des
+ * observations d'espèce (migration 296) : un renvoi — réponse perdue sur le terrain, file
+ * hors ligne rejouée — ne publie pas deux fois le rapport.
+ */
+const DONE_CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
+
+/** Rapport déjà enregistré sous cette clé, pour ce n3beur et cette tâche. */
+async function findDoneLogByClientUuid(taskId, studentId, clientUuid) {
+  if (!clientUuid || !studentId) return null;
+  return queryOne(
+    'SELECT id FROM task_logs WHERE task_id = ? AND student_id = ? AND client_uuid = ? LIMIT 1',
+    [taskId, studentId, clientUuid],
+  );
+}
+
+/** Réponse d'un renvoi reconnu : l'état courant de la tâche, sans aucun effet de bord. */
+async function replayDoneResponse(taskId) {
+  return { ...(await getTaskWithAssignments(taskId)), replayed: true };
+}
+
 router.post(
   '/:id/assign',
   asyncHandler(async (req, res) => {
@@ -275,11 +296,26 @@ router.post(
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
     const { comment, imageData } = req.body || {};
+    const rawClientUuid = req.body?.client_uuid;
+    let clientUuid = null;
+    if (rawClientUuid != null && rawClientUuid !== '') {
+      if (typeof rawClientUuid !== 'string' || !DONE_CLIENT_UUID_RE.test(rawClientUuid)) {
+        return res.status(400).json({ error: 'client_uuid invalide' });
+      }
+      clientUuid = rawClientUuid;
+    }
     const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
     if (action.error) {
       return res
         .status(action.errorStatus || 400)
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+    }
+
+    // Renvoi d'un « fait » déjà enregistré (avec rapport) : on rejoue la réponse, sans
+    // nouveau rapport ni nouvelle notification. Sans rapport, le marquage est de toute façon
+    // idempotent (statut et `done_at` posés une seule fois, notification sur transition).
+    if (await findDoneLogByClientUuid(task.id, action.studentId, clientUuid)) {
+      return res.json(await replayDoneResponse(task.id));
     }
 
     // Une inscription qui porte un identifiant n'est reconnue que par lui : sans cela,
@@ -312,18 +348,27 @@ router.post(
     }
 
     if (comment || imageData) {
-      const result = await execute(
-        'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-          task.id,
-          action.studentId || null,
-          action.firstName,
-          action.lastName,
-          comment || '',
-          null,
-          nowDbTimestamp(),
-        ],
-      );
+      let result;
+      try {
+        result = await execute(
+          'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at, client_uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            task.id,
+            action.studentId || null,
+            action.firstName,
+            action.lastName,
+            comment || '',
+            null,
+            nowDbTimestamp(),
+            clientUuid,
+          ],
+        );
+      } catch (err) {
+        // Deux envois simultanés du même « fait » : l'index unique tranche, le second rejoue.
+        if (!clientUuid || !(err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062)) throw err;
+        if (!(await findDoneLogByClientUuid(task.id, action.studentId, clientUuid))) throw err;
+        return res.json(await replayDoneResponse(task.id));
+      }
       const logId = result.insertId;
       if (imageData) {
         const relativePath = `task-logs/${task.id}_${logId}.jpg`;
@@ -337,12 +382,17 @@ router.post(
       }
     }
 
+    // `changed` : CET appel a-t-il fait avancer l'état ? Un renvoi sans rapport (réponse
+    // perdue, file hors ligne rejouée, double appui) ne doit pas notifier deux fois — la garde
+    // de statut lue plus haut ne suffit pas quand deux envois partent ensemble.
+    let changed = false;
     if (completionMode === 'all_assignees_done') {
       if (!assignment.done_at) {
-        await execute('UPDATE task_assignments SET done_at = ? WHERE id = ?', [
-          nowDbTimestamp(),
-          assignment.id,
-        ]);
+        const marked = await execute(
+          'UPDATE task_assignments SET done_at = ? WHERE id = ? AND done_at IS NULL',
+          [nowDbTimestamp(), assignment.id],
+        );
+        changed = Number(marked?.affectedRows) > 0;
       }
       await recalculateTaskStatus({
         id: task.id,
@@ -352,10 +402,11 @@ router.post(
     } else {
       // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation).
       // Garde SQL : le statut lu plus haut peut être périmé si un n3boss valide entre-temps.
-      await execute(
-        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold')",
+      const marked = await execute(
+        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold', 'done')",
         [task.id],
       );
+      changed = Number(marked?.affectedRows) > 0;
     }
     const updated = await getTaskWithAssignments(task.id);
     logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
@@ -370,7 +421,7 @@ router.post(
       },
     });
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    if (normalizeTaskStatusForRead(task.status) !== 'done') {
+    if (changed && normalizeTaskStatusForRead(task.status) !== 'done') {
       fireAndForget(
         () =>
           notifyTaskDone({

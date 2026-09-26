@@ -101,6 +101,28 @@ describe('useTabNavigationGuards', () => {
     ).toHaveBeenCalledWith('map');
   });
 
+  it('le gestionnaire d’un module pédagogique éteint garde son onglet (préparation)', () => {
+    const off = {
+      id_keys_enabled: false,
+      individuals_enabled: false,
+      pedago_sessions_enabled: false,
+    };
+    const manager = {
+      effectiveIsTeacher: true,
+      modules: off,
+      canManageIdKeys: true,
+      canManageIndividuals: true,
+      canManagePedagoSessions: true,
+    };
+    for (const tab of ['id-keys', 'individuals', 'sessions']) {
+      expect(run({ ...manager, tab })).not.toHaveBeenCalled();
+    }
+    // Un droit ne vaut que pour son module : gérer les clés ne garde pas les séances.
+    expect(
+      run({ tab: 'sessions', effectiveIsTeacher: true, modules: off, canManageIdKeys: true }),
+    ).toHaveBeenCalledWith('map');
+  });
+
   it('un visiteur est replié vers la visite quand le module pédagogique est éteint', () => {
     const setTab = run({
       tab: 'id-keys',

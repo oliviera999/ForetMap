@@ -5,6 +5,9 @@ import { UserJournalView } from '../../src/components/journal/UserJournalView.js
 vi.mock('../../src/services/api', () => ({
   api: vi.fn(),
   AccountDeletedError: class AccountDeletedError extends Error {},
+  // Carnet hors ligne (piste D) : compte connecté et détection de panne réseau.
+  getAuthUserId: () => 'u1',
+  isLikelyNetworkTransportFailure: (err) => err?.code === 'NETWORK_UNREACHABLE',
 }));
 
 import { api } from '../../src/services/api';

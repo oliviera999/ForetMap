@@ -127,6 +127,37 @@ describe('SessionsView — lot 5', () => {
     expect(screen.queryByTestId('pedago-rewards')).toBeNull();
   });
 
+  it('séances éteintes pour les élèves : bandeau pour le prof gestionnaire, catalogue intact', async () => {
+    mockApi();
+    render(
+      <SessionsView canManage isAuthenticated moduleOffForLearners onStartSession={vi.fn()} />,
+    );
+    await screen.findByText('Séance A');
+    const banners = screen.getAllByTestId('pedago-module-off-banner');
+    expect(banners).toHaveLength(1);
+    expect(banners[0].textContent).toContain(
+      'Séances pédagogiques — module désactivé pour les élèves',
+    );
+    expect(banners[0].textContent).toContain('rien n’est visible côté élève');
+    expect(screen.getByTestId('pedago-session-create')).toBeTruthy();
+  });
+
+  it('récompenses éteintes : bandeau pour le prof seulement, rien pour l’élève', async () => {
+    mockApi();
+    const { unmount } = render(
+      <SessionsView canManage isAuthenticated rewardsEnabled={false} onStartSession={vi.fn()} />,
+    );
+    await screen.findByText('Séance A');
+    expect(screen.getByTestId('pedago-module-off-banner').textContent).toContain(
+      'apparaîtront tous au rallumage',
+    );
+    unmount();
+    render(<SessionsView isAuthenticated rewardsEnabled={false} onStartSession={vi.fn()} />);
+    await screen.findByText('Séance A');
+    expect(screen.queryByTestId('pedago-module-off-banner')).toBeNull();
+    expect(screen.queryByTestId('pedago-rewards')).toBeNull();
+  });
+
   it('prof : partage (lien + QR) et suivi par élève', async () => {
     mockApi();
     render(<SessionsView canManage isAuthenticated onStartSession={vi.fn()} />);

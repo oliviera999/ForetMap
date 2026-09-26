@@ -120,6 +120,15 @@ const TEACHER_SESSION = {
   stored: { user: { id: 'T1', userType: 'teacher', displayName: 'Prof Martin' } },
   claims: { roleSlug: 'prof', userId: 'T1', permissions: ['teacher.access'] },
 };
+/** Prof qui gère les trois modules pédagogiques activables (séances, clés, individus). */
+const MANAGER_TEACHER_SESSION = {
+  stored: { user: { id: 'T3', userType: 'teacher', displayName: 'Prof Gestionnaire' } },
+  claims: {
+    roleSlug: 'prof',
+    userId: 'T3',
+    permissions: ['teacher.access', 'plants.manage', 'id_keys.manage', 'individuals.manage'],
+  },
+};
 /**
  * Prof de classe dont un administrateur a décoché « Accès interface n3boss » dans
  * Profils & utilisateurs : session valide, jeton posé, mais plus de `teacher.access`.
@@ -390,13 +399,14 @@ describe('App — câblage des modules pédagogiques activables', () => {
     expect(typeof mapTasks.onStartPedagoSession).toBe('function');
   });
 
-  test('modules éteints : vues non montées, bouton « Lancer la séance » retiré, badges masqués', async () => {
+  test('modules éteints, compte sans droit de gestion : vues non montées, bouton retiré', async () => {
     bootstrap.modules = {
       id_keys_enabled: false,
       individuals_enabled: false,
       pedago_sessions_enabled: false,
       rewards_enabled: false,
     };
+    // Élève, et prof qui n'a que `teacher.access` : aucun des deux ne gère ces modules.
     for (const sessionCase of [STUDENT_SESSION, TEACHER_SESSION]) {
       probes.mapTasks.length = 0;
       probes.pedago.length = 0;
@@ -404,9 +414,40 @@ describe('App — câblage des modules pédagogiques activables', () => {
       expect(pedago.idKeysEnabled).toBe(false);
       expect(pedago.individualsEnabled).toBe(false);
       expect(pedago.pedagoSessionsEnabled).toBe(false);
+      expect(pedago.idKeysOffForLearners).toBe(false);
       expect(pedago.sessionsProps.rewardsEnabled).toBe(false);
       expect(mapTasks.onStartPedagoSession).toBeNull();
       cleanup();
     }
+  });
+
+  /**
+   * Décision du 25/09 révisée : un module éteint l'est pour les élèves. Le prof qui porte la
+   * permission de gestion garde onglets et vues (avec bandeau), et peut lancer une séance.
+   */
+  test('modules éteints, prof gestionnaire : vues montées avec bandeau, séance lançable', async () => {
+    bootstrap.modules = {
+      id_keys_enabled: false,
+      individuals_enabled: false,
+      pedago_sessions_enabled: false,
+      rewards_enabled: false,
+    };
+    const { mapTasks, pedago } = await renderAppWith(MANAGER_TEACHER_SESSION);
+    expect(pedago.idKeysEnabled).toBe(true);
+    expect(pedago.individualsEnabled).toBe(true);
+    expect(pedago.pedagoSessionsEnabled).toBe(true);
+    expect(pedago.idKeysOffForLearners).toBe(true);
+    expect(pedago.individualsOffForLearners).toBe(true);
+    expect(pedago.pedagoSessionsOffForLearners).toBe(true);
+    expect(pedago.sessionsProps.canManage).toBe(true);
+    expect(pedago.sessionsProps.rewardsEnabled).toBe(false);
+    expect(typeof mapTasks.onStartPedagoSession).toBe('function');
+  });
+
+  test('modules allumés, prof gestionnaire : aucun bandeau', async () => {
+    const { pedago } = await renderAppWith(MANAGER_TEACHER_SESSION);
+    expect(pedago.idKeysOffForLearners).toBe(false);
+    expect(pedago.individualsOffForLearners).toBe(false);
+    expect(pedago.pedagoSessionsOffForLearners).toBe(false);
   });
 });

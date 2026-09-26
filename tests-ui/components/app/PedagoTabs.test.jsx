@@ -131,6 +131,29 @@ describe('PedagoTabs', () => {
     expect(probes.sessions[0].rewardsEnabled).toBe(false);
   });
 
+  test('module éteint pour les élèves, gestionnaire : la vue monte et reçoit le bandeau', async () => {
+    const { unmount } = render(<PedagoTabs {...baseProps} tab="id-keys" idKeysOffForLearners />);
+    expect(await screen.findByTestId('id-keys-view')).toBeInTheDocument();
+    expect(probes.idKeys[0].moduleOffForLearners).toBe(true);
+    unmount();
+    const second = render(
+      <PedagoTabs {...baseProps} tab="individuals" individualsOffForLearners />,
+    );
+    expect(await screen.findByTestId('individuals-view')).toBeInTheDocument();
+    expect(probes.individuals[0].moduleOffForLearners).toBe(true);
+    second.unmount();
+    render(
+      <PedagoTabs
+        {...baseProps}
+        tab="sessions"
+        sessionsProps={{ canManage: true }}
+        pedagoSessionsOffForLearners
+      />,
+    );
+    expect(await screen.findByTestId('sessions-view')).toBeInTheDocument();
+    expect(probes.sessions[0]).toMatchObject({ canManage: true, moduleOffForLearners: true });
+  });
+
   test('module pédagogique éteint : la vue ne monte pas (aucun appel d’API en 503)', () => {
     const cases = [
       { tab: 'id-keys', idKeysEnabled: false },

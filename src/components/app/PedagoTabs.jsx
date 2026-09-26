@@ -33,8 +33,10 @@ const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default
  * à la fois — iso-rendu avec les anciens blocs dupliqués.
  *
  * Modules activables (`visitEnabled`, `idKeysEnabled`, `individualsEnabled`,
- * `pedagoSessionsEnabled`) : un onglet de module éteint ne monte pas sa vue, même
- * le temps que `useTabNavigationGuards` redirige — sa vue n'appellerait qu'une API en 503.
+ * `pedagoSessionsEnabled`) : un onglet indisponible ne monte pas sa vue, même le temps
+ * que `useTabNavigationGuards` redirige — sa vue n'appellerait qu'une API en 503. Pour
+ * les modules pédagogiques, « disponible » inclut le gestionnaire d'un module éteint :
+ * `*OffForLearners` fait alors afficher à la vue un bandeau « désactivé pour les élèves ».
  *
  * Différences historiques entre branches, préservées (voir cartographie D4) :
  * - visite : `onOpenMascotPackStudioTab` n'existe que côté prof (undefined côté
@@ -80,6 +82,9 @@ export function PedagoTabs({
   idKeysEnabled = true,
   individualsEnabled = true,
   pedagoSessionsEnabled = true,
+  idKeysOffForLearners = false,
+  individualsOffForLearners = false,
+  pedagoSessionsOffForLearners = false,
 }) {
   return (
     <>
@@ -165,6 +170,7 @@ export function PedagoTabs({
             canManage={canManageIdKeys}
             onOpenPlant={onOpenPlantCatalogPreview}
             initialKey={idKeysInitialKey}
+            moduleOffForLearners={idKeysOffForLearners}
           />
         </TabSuspense>
       )}
@@ -177,12 +183,16 @@ export function PedagoTabs({
             canMeasure={canMeasureIndividuals}
             onOpenPlant={onOpenPlantCatalogPreview}
             initialIndividualId={pedagoEntry?.individualId ?? null}
+            moduleOffForLearners={individualsOffForLearners}
           />
         </TabSuspense>
       )}
       {pedagoSessionsEnabled && tab === 'sessions' && sessionsProps && (
         <TabSuspense>
-          <SessionsViewLazy {...sessionsProps} />
+          <SessionsViewLazy
+            {...sessionsProps}
+            moduleOffForLearners={pedagoSessionsOffForLearners}
+          />
         </TabSuspense>
       )}
       {tab === 'about' && (

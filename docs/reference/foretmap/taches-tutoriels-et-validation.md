@@ -144,6 +144,31 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 4. **Attendre la validation** : la tâche apparaît chez le professeur dans « En attente
    de validation ».
 
+**Sans réseau sur le terrain** (depuis septembre 2026) : « Marquer terminée » fonctionne
+même quand le réseau manque. Le marquage — et son **commentaire** — est **gardé sur
+l'appareil** et envoyé tout seul au retour du réseau ; l'élève lit « Pas de réseau : ta tâche
+est notée faite et partira toute seule. », et la carte de la tâche affiche « Notée faite —
+partira au retour du réseau » à la place des boutons. Quand l'envoi réussit, un message le
+confirme ; si le serveur le refuse entre-temps (tâche archivée, inscription retirée…),
+l'élève en est prévenu et peut recommencer. Un marquage envoyé deux fois (réponse perdue,
+appareil qui renvoie) ne publie qu'**un** compte rendu et ne prévient le professeur qu'une
+fois. Sur une tablette partagée, le marquage n'est envoyé que sous le compte de son auteur,
+à sa prochaine connexion.
+
+Ce qui attend le réseau, et pourquoi :
+
+- **la photo** du compte rendu : trop lourde pour être gardée sur l'appareil (et lisible
+  par l'élève suivant sur une tablette partagée). L'élève est prévenu : « la photo ne peut
+  pas être gardée sur l'appareil » ; il peut la retirer pour que la tâche parte seule, ou
+  réessayer plus tard ;
+- **une tâche dont un tutoriel lié reste à lire** : le serveur refuserait le marquage ;
+- **« Je m'en occupe »** : les places sont comptées par le serveur, une inscription
+  différée pourrait être refusée alors que l'élève est déjà parti faire la tâche ;
+- **« Me retirer »** : libérer une place n'a de sens que si elle se libère tout de suite
+  pour les camarades.
+
+Dans ces cas, l'élève lit un message court qui dit que le réseau est nécessaire.
+
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves
@@ -441,6 +466,10 @@ Ce qu'il faut réunir pour qu'un tutoriel soit réellement soumis à questions :
    la compte plus comme un verrou (depuis septembre 2026) et indique combien de contenus
    s'ouvrent librement faute de question active. Rattacher une question désactivée reste
    possible, mais un avertissement le signale.
+
+   Une bonne réponse déjà donnée à une question **désactivée ne compte plus** : si le contenu
+   demande plusieurs bonnes réponses, l'élève peut devoir répondre à une autre question. Un
+   contenu **déjà validé le reste** : le contrôle n'a lieu qu'au moment de valider.
 
 **Les questions posées suivent le niveau de l'élève** (depuis septembre 2026). Un élève de
 collège ne reçoit que les questions de collège d'une fiche ; un élève de lycée, toutes. Le

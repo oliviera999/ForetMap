@@ -7,6 +7,7 @@ import {
   shouldUseTeacherChrome,
   canManagePedagoContent,
   resolveParticipationFlag,
+  resolvePedagoModuleAccess,
 } from '../../src/utils/appAccess';
 
 describe('isClassTeacherRole / isVisitorLikeRole / shouldUseTeacherChrome', () => {
@@ -144,5 +145,40 @@ describe('resolveParticipationFlag', () => {
 
   test('aucun des deux champs → autorisé', () => {
     expect(resolveParticipationFlag({ user: { id: 12 }, ...keys })).toBe(true);
+  });
+});
+
+describe('resolvePedagoModuleAccess (décision du 25/09 révisée)', () => {
+  test('réglages absents : tout est allumé et disponible, sans bandeau', () => {
+    const access = resolvePedagoModuleAccess({ modules: {} });
+    for (const key of ['idKeys', 'individuals', 'pedagoSessions']) {
+      expect(access[key]).toEqual({ enabled: true, available: true, learnerOff: false });
+    }
+    expect(access.rewards.enabled).toBe(true);
+    expect(resolvePedagoModuleAccess().idKeys.available).toBe(true);
+  });
+
+  test('module éteint : fermé à qui ne le gère pas', () => {
+    const access = resolvePedagoModuleAccess({
+      modules: { id_keys_enabled: false, rewards_enabled: false },
+    });
+    expect(access.idKeys).toEqual({ enabled: false, available: false, learnerOff: false });
+    expect(access.individuals.available).toBe(true);
+    expect(access.rewards.enabled).toBe(false);
+  });
+
+  test('module éteint : ouvert au gestionnaire, avec bandeau ; chaque droit pour son module', () => {
+    const access = resolvePedagoModuleAccess({
+      modules: {
+        id_keys_enabled: false,
+        individuals_enabled: false,
+        pedago_sessions_enabled: false,
+      },
+      canManageIdKeys: true,
+      canManagePedagoSessions: true,
+    });
+    expect(access.idKeys).toEqual({ enabled: false, available: true, learnerOff: true });
+    expect(access.pedagoSessions).toEqual({ enabled: false, available: true, learnerOff: true });
+    expect(access.individuals).toEqual({ enabled: false, available: false, learnerOff: false });
   });
 });

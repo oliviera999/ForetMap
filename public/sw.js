@@ -29,6 +29,36 @@ const API_CACHE_URLS = [
   '/api/tasks',
 ];
 
+// Délai d'attente du réseau des lectures network-first (HTML, API), comme le gabarit de
+// production (`src/shared/pwa/swTemplate.js`, modèle `networkTimeoutSeconds` de Workbox) :
+// passé ce délai, la copie en cache part si elle existe ; sinon on attend le réseau.
+const NETWORK_TIMEOUT_MS = 4000;
+
+function cacheResponse(request, response) {
+  const clone = response.clone();
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  return response;
+}
+
+function networkFirstWithTimeout(event, fallback) {
+  const request = event.request;
+  const network = fetch(request).then((response) => cacheResponse(request, response));
+  event.waitUntil(network.then(() => undefined, () => undefined));
+  const networkOrCache = network.catch(() =>
+    caches.match(request).then((r) => r || (fallback ? fallback() : undefined)),
+  );
+  let timer = null;
+  const cacheAfterTimeout = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      caches.match(request).then(resolve, () => resolve(undefined));
+    }, NETWORK_TIMEOUT_MS);
+  });
+  return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
+    clearTimeout(timer);
+    return response || networkOrCache;
+  });
+}
+
 /** GET lecture mode visite : stale-while-revalidate (réponse immédiate + rafraîchissement réseau). */
 function isVisitReadApiPath(pathname) {
   return pathname.endsWith('/api/maps')
@@ -91,15 +121,7 @@ self.addEventListener('fetch', (event) => {
     || url.pathname === '/index.html'
     || url.pathname.endsWith('/index.vite.html')
   ) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(event.request).then((r) => r || caches.match('/offline.html')))
-    );
+    event.respondWith(networkFirstWithTimeout(event, () => caches.match('/offline.html')));
     return;
   }
 
@@ -109,17 +131,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stratégie network-first pour les autres API cachées ; fallback silencieux
+  // Stratégie network-first (avec délai) pour les autres API cachées ; fallback silencieux
   if (API_CACHE_URLS.some((p) => url.pathname === p)) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
+    event.respondWith(networkFirstWithTimeout(event));
     return;
   }
 

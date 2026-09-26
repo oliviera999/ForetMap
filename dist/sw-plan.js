@@ -1,6 +1,6 @@
 /* Service worker « plan » — GÉNÉRÉ par scripts/build-pwa.js depuis
  * src/shared/pwa/swTemplate.js : ne pas éditer, modifier le gabarit puis relancer le build. */
-const CACHE_NAME = "foretmap-plan-60b860b3";
+const CACHE_NAME = "foretmap-plan-a595c682";
 const OFFLINE_PATH = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,21 +15,21 @@ const PRECACHE_URLS = [
   "/plan/apple-touch-icon.png",
   "/plan/favicon-32.png",
   "/plan/favicon-16.png",
-  "/assets/plan-B5Mf8_fx.js",
+  "/assets/plan-CQk2HfCT.js",
   "/assets/rolldown-runtime-hePW80VL.js",
-  "/assets/AppDialogsProvider-BEpYiz71.js",
+  "/assets/AppDialogsProvider-CUmLvb03.js",
   "/assets/react-vendor-Dcb_X5td.js",
   "/assets/icons-BNguv2wG.js",
-  "/assets/ErrorBoundary-Div7-Cnq.js",
+  "/assets/ErrorBoundary-DJUq7ldA.js",
   "/assets/ErrorBoundary-1Md48zKX.css",
-  "/assets/HelpDock-B8TdHxtR.js",
+  "/assets/HelpDock-B2KhYiH4.js",
   "/assets/HelpDock-ML7ofH8p.css",
-  "/assets/AppPlan-BEJNizpB.js",
+  "/assets/AppPlan-BODHWGZG.js",
   "/assets/AppPlan-C5aqB9eM.css",
-  "/assets/useBrandTheme-DsGOqnu3.js",
+  "/assets/useBrandTheme-0ZMmOHi1.js",
   "/assets/placeSearch-oEXvS_TX.js",
   "/assets/placeStatus-Q1NnX946.js",
-  "/assets/useMapGuidance-CUM6TSON.js",
+  "/assets/useMapGuidance-CIk0rN4I.js",
 ];
 
 // Entrées HTML servies en network-first (correspondance exacte du pathname).
@@ -46,6 +46,10 @@ const API_STALE_WHILE_REVALIDATE = [
 
 // API en lecture « network-first » (correspondance exacte du pathname).
 const API_NETWORK_FIRST = [];
+
+// Délai d'attente du réseau des lectures network-first (HTML, API), en millisecondes ;
+// 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
+const NETWORK_TIMEOUT_MS = 4000;
 
 const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
 
@@ -101,10 +105,44 @@ function putInCache(request, response) {
   return response;
 }
 
-function networkFirst(request, fallback) {
-  return fetch(request)
-    .then((response) => putInCache(request, response))
-    .catch(() => caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)));
+/**
+ * Réseau d'abord, avec délai d'attente facultatif — sur le modèle de l'option
+ * `networkTimeoutSeconds` de la stratégie `NetworkFirst` de Workbox (Google, licence MIT ;
+ * https://developer.chrome.com/docs/workbox/modules/workbox-strategies ,
+ * source : https://github.com/GoogleChrome/workbox/blob/v7/packages/workbox-strategies/src/NetworkFirst.ts ).
+ * Même contrat, réécrit ici sans la dépendance :
+ *   - le réseau répond avant le délai → sa réponse (mise en cache si valide) ;
+ *   - le délai expire → la copie en cache si elle existe ; SINON on continue d'attendre le
+ *     réseau (une page qui arrive tard vaut mieux qu'une page vide) ;
+ *   - le réseau échoue → la copie en cache, puis le repli (`offline.html` pour le HTML).
+ * La réponse réseau arrivée après le délai met quand même le cache à jour : `waitUntil`
+ * garde le service worker en vie le temps de l'écrire.
+ *
+ * @param {Request} request
+ * @param {() => Promise<Response|undefined>} [fallback]
+ * @param {{ event?: FetchEvent, timeoutMs?: number }} [options]
+ */
+function networkFirst(request, fallback, options = {}) {
+  const timeoutMs = Number(options.timeoutMs) || 0;
+  const network = fetch(request).then((response) => putInCache(request, response));
+  if (options.event && typeof options.event.waitUntil === 'function') {
+    options.event.waitUntil(network.then(() => undefined, () => undefined));
+  }
+  const networkOrCache = network.catch(() =>
+    caches.match(request).then((cached) => cached || (fallback ? fallback() : undefined)),
+  );
+  if (timeoutMs <= 0) return networkOrCache;
+  let timer = null;
+  const cacheAfterTimeout = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      caches.match(request).then(resolve, () => resolve(undefined));
+    }, timeoutMs);
+  });
+  return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
+    clearTimeout(timer);
+    // Délai écoulé sans copie en cache : on attend le réseau (ou son repli).
+    return response || networkOrCache;
+  });
 }
 
 function cacheFirst(request) {
@@ -179,7 +217,12 @@ self.addEventListener('fetch', (event) => {
 
   // HTML en network-first ; repli vers la page hors ligne.
   if (isHtmlEntry(url.pathname)) {
-    event.respondWith(networkFirst(event.request, () => caches.match(OFFLINE_PATH)));
+    event.respondWith(
+      networkFirst(event.request, () => caches.match(OFFLINE_PATH), {
+        event,
+        timeoutMs: NETWORK_TIMEOUT_MS,
+      }),
+    );
     return;
   }
 
@@ -189,9 +232,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Autres API cachées : network-first, repli cache silencieux.
+  // Autres API cachées : network-first (avec délai), repli cache silencieux.
   if (isNetworkFirstApi(url.pathname)) {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(networkFirst(event.request, null, { event, timeoutMs: NETWORK_TIMEOUT_MS }));
     return;
   }
 
@@ -201,7 +244,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // JS/CSS non hachés : network-first pour ne jamais servir une version obsolète.
+  // JS/CSS non hachés : network-first SANS délai — ne jamais servir une version obsolète.
   if (isScriptOrStyle(url.pathname)) {
     event.respondWith(networkFirst(event.request));
     return;

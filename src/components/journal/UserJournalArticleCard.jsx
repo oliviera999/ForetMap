@@ -13,9 +13,21 @@ import { FM_JOURNAL_UI } from './journalUi.js';
 
 const EMBED_OPTIONS = { variant: 'fm' };
 
+/** Brouillon écrit sans réseau (`utils/journalDraftQueue.js`) : ce que l'élève doit savoir. */
+function draftStatusLine(article) {
+  if (!article?.local) return null;
+  return article.offlineError
+    ? `Pas encore envoyé : ${article.offlineError}`
+    : 'Gardé sur l’appareil — partira tout seul au retour du réseau';
+}
+
 /**
  * Article du carnet ForetMap : lecture par défaut, édition sur demande.
- * Champ propre au produit — la zone.
+ * Champ propre au produit — la zone. Un brouillon écrit sans réseau (`article.local`) le dit,
+ * et n'est pas épinglable tant qu'il n'est pas envoyé.
+ *
+ * @param {import('../../shared/journal/journalAdapter.js').JournalAdapter} [adapter]
+ *   adaptateur du fil (celui de `UserJournalView` tolère l'absence de réseau)
  */
 export function UserJournalArticleCard({
   article,
@@ -27,18 +39,22 @@ export function UserJournalArticleCard({
   onDelete,
   onTogglePin,
   onForceLogout,
+  adapter = userJournalAdapter,
 }) {
+  const togglePin = article.local ? null : onTogglePin;
   if (!editing) {
-    const zoneName = article.zoneName || null;
+    const metaLine = [article.zoneName || null, draftStatusLine(article)]
+      .filter(Boolean)
+      .join(' · ');
     return (
       <JournalArticleReadCard
         article={article}
-        adapter={userJournalAdapter}
+        adapter={adapter}
         ui={FM_JOURNAL_UI}
         onEdit={onStartEdit}
         onDelete={onDelete}
-        onTogglePin={onTogglePin}
-        extraMetaLine={zoneName}
+        onTogglePin={togglePin}
+        extraMetaLine={metaLine || null}
       />
     );
   }
@@ -49,9 +65,10 @@ export function UserJournalArticleCard({
       limits={limits}
       zones={zones}
       onDelete={onDelete}
-      onTogglePin={onTogglePin}
+      onTogglePin={togglePin}
       onForceLogout={onForceLogout}
       onStopEdit={onStopEdit}
+      adapter={adapter}
     />
   );
 }
@@ -64,6 +81,7 @@ function UserJournalArticleEditor({
   onTogglePin,
   onForceLogout,
   onStopEdit = null,
+  adapter = userJournalAdapter,
 }) {
   const [zoneId, setZoneId] = useState(article.zoneId || '');
   const extraValue = useMemo(() => ({ zoneId: zoneId || null }), [zoneId]);
@@ -80,7 +98,7 @@ function UserJournalArticleEditor({
   const ed = useJournalArticleEditor({
     article,
     limits,
-    adapter: userJournalAdapter,
+    adapter,
     extraValue,
     onSaved,
     onApiError,
@@ -165,6 +183,12 @@ function UserJournalArticleEditor({
         {metaParts.length ? metaParts.join(' · ') : null}{' '}
         <AutoSaveStatus status={ed.saveStatus} className="fm-journal__saved" />
       </p>
+
+      {article.local ? (
+        <p className="hint fm-journal__draft-status" role="status">
+          {draftStatusLine(article)}
+        </p>
+      ) : null}
 
       {ed.saveError || ed.autoSaveError ? (
         <p className="auth-error">{ed.saveError || ed.autoSaveError}</p>

@@ -10,8 +10,9 @@ const { REWARD_CATALOGUE, listRewardsForUser } = require('../lib/rewards');
 
 const router = express.Router();
 
-// Module éteint (`ui.modules.rewards_enabled`) : lecture en 503 (convention des modules) ; les
-// badges déjà gagnés restent en base et réapparaissent si le module est rallumé.
+// Module éteint (`ui.modules.rewards_enabled`) : lecture en 503 pour tous — aucune route de
+// gestion ici. Les badges continuent d'être attribués en silence (`evaluateSessionRewards`) et
+// apparaissent tous au rallumage.
 router.use(requireModuleEnabled('foret', 'rewards', 'Récompenses désactivées'));
 
 router.get(

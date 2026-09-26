@@ -216,6 +216,14 @@ test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/ma
   ]);
   for (const name of names) assert.ok(fs.existsSync(path.join(distDir, name)), name);
 
+  // Délai d'attente du réseau (piste D) : le même pour les quatre produits, et le SW rendu
+  // reste du JavaScript valide pour chacun.
+  for (const name of names.filter((n) => n.endsWith('.js'))) {
+    const sw = fs.readFileSync(path.join(distDir, name), 'utf8');
+    assert.match(sw, /const NETWORK_TIMEOUT_MS = 4000;/, name);
+    assert.doesNotThrow(() => new Function(sw), name);
+  }
+
   // Le plan des personnels précache sa coquille mais **aucune** API : sa charge contient des
   // lieux internes et des consignes filtrées par rôle, qu'un service worker garderait sur
   // l'appareil après un changement de rôle ou un prêt de téléphone.

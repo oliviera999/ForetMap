@@ -101,3 +101,38 @@ export function resolveParticipationFlag({ isTeacher = false, user, camelKey, sn
   if (user[snakeKey] != null) return Number(user[snakeKey]) !== 0;
   return true;
 }
+
+/**
+ * Accès aux modules pédagogiques activables — clés d'identification, individus suivis,
+ * séances, récompenses (`ui.modules.*_enabled`, décision du 25/09/2026 révisée).
+ *
+ * Un interrupteur éteint ferme le module **aux élèves** ; le compte qui porte la permission de
+ * gestion du module garde l'onglet pour préparer, avec un bandeau d'avertissement. Miroir exact
+ * de `lib/pedagoModuleGate.js` côté serveur : un onglet affiché appelle une route ouverte.
+ *
+ * - `enabled` : l'interrupteur est allumé (réglage absent = allumé) ;
+ * - `available` : l'onglet et sa vue existent pour ce compte (allumé, ou gestionnaire) ;
+ * - `learnerOff` : le compte voit le module alors qu'il est éteint pour les élèves → bandeau.
+ *
+ * Les récompenses n'ont pas d'écran de gestion : seul `enabled` compte.
+ * @param {{ modules?: object|null, canManageIdKeys?: boolean, canManageIndividuals?: boolean,
+ *           canManagePedagoSessions?: boolean }} params
+ */
+export function resolvePedagoModuleAccess({
+  modules,
+  canManageIdKeys = false,
+  canManageIndividuals = false,
+  canManagePedagoSessions = false,
+} = {}) {
+  const entry = (flag, canManage) => {
+    const enabled = flag !== false;
+    const available = enabled || Boolean(canManage);
+    return { enabled, available, learnerOff: available && !enabled };
+  };
+  return {
+    idKeys: entry(modules?.id_keys_enabled, canManageIdKeys),
+    individuals: entry(modules?.individuals_enabled, canManageIndividuals),
+    pedagoSessions: entry(modules?.pedago_sessions_enabled, canManagePedagoSessions),
+    rewards: { enabled: modules?.rewards_enabled !== false },
+  };
+}
