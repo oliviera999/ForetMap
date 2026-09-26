@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — cache hors ligne : la visite d'un compte n'est plus servie à un autre
+
+- Le service worker mémorisait les lectures (zones, tâches, visite) sous l'adresse seule.
+  Sur une tablette partagée, la déconnexion gardait la visite, jugée publique, alors que
+  la réponse dépend du lecteur : les lieux réservés vus par un professeur partaient
+  immédiatement pour l'élève suivant, et un réseau lent resservait au bout de 4 secondes
+  la copie du compte précédent. Chaque jeton a désormais sa propre entrée ; les copies
+  d'avant ce correctif sont oubliées au prochain chargement.
+
 ### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
 
 - Le niveau d'un élève est un niveau du programme (cycle 3 → terminale) ou « Université » ;
