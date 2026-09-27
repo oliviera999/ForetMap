@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL,
-  -- Valeurs admises (migration 307) : celles du référentiel `src/shared/enums/taskEnums.js`,
+  -- Valeurs admises (migration 308) : celles du référentiel `src/shared/enums/taskEnums.js`,
   -- comparées aux contraintes par tests/enums-referential.test.js. NULL = non renseigné.
   CONSTRAINT chk_tasks_status CHECK (status IS NULL OR status IN ('available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold')),
   CONSTRAINT chk_tasks_danger_level CHECK (danger_level IS NULL OR danger_level IN ('safe', 'potential_danger', 'dangerous', 'very_dangerous')),

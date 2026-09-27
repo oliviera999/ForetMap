@@ -1,6 +1,6 @@
 'use strict';
 
-// Migration 307 (audit du 25/09/2026, piste C) : collations explicites de `schema_version`
+// Migration 308 (audit du 25/09/2026, piste C) : collations explicites de `schema_version`
 // et `rbac_seeded_permissions`, contraintes CHECK sur `tasks.status` et `tasks.*_level`.
 // Vérifie l'état final, le refus d'une valeur hors référentiel, l'idempotence (deux passages),
 // la normalisation sans effet visible et la garde qui ne pose pas une contrainte violée.
@@ -20,11 +20,11 @@ const {
   splitSqlStatements,
 } = require('../database');
 
-const MIGRATION_307 = path.join(
+const MIGRATION_308 = path.join(
   __dirname,
   '..',
   'migrations',
-  '307_enum_constraints_and_collations.sql',
+  '308_enum_constraints_and_collations.sql',
 );
 const CONSTRAINTS = [
   'chk_tasks_danger_level',
@@ -33,12 +33,12 @@ const CONSTRAINTS = [
   'chk_tasks_status',
 ];
 const stamp = Date.now().toString(36);
-const taskId = (suffix) => `mig307-${stamp}-${suffix}`;
+const taskId = (suffix) => `mig308-${stamp}-${suffix}`;
 const createdTaskIds = [];
 
 /** Rejoue le fichier sur UNE connexion, comme le runner (variables de session, PREPARE). */
-async function runMigration307() {
-  const statements = splitSqlStatements(fs.readFileSync(MIGRATION_307, 'utf8'));
+async function runMigration308() {
+  const statements = splitSqlStatements(fs.readFileSync(MIGRATION_308, 'utf8'));
   const conn = await pool.getConnection();
   try {
     for (const stmt of statements) await conn.query(stmt);
@@ -69,7 +69,7 @@ async function insertTask(suffix, fields = {}) {
   const id = taskId(suffix);
   createdTaskIds.push(id);
   const columns = ['id', 'title', ...Object.keys(fields)];
-  const values = [id, `Tâche migration 307 ${suffix}`, ...Object.values(fields)];
+  const values = [id, `Tâche migration 308 ${suffix}`, ...Object.values(fields)];
   await execute(
     `INSERT INTO tasks (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
     values,
@@ -95,7 +95,7 @@ after(async () => {
     );
   }
   // Quoi qu'il arrive plus haut : la base de test garde ses contraintes et ses collations.
-  await runMigration307();
+  await runMigration308();
 });
 
 test('état final : collations alignées, quatre contraintes CHECK sur tasks', async () => {
@@ -139,8 +139,8 @@ test('une valeur hors référentiel est refusée, NULL et les valeurs connues pa
 });
 
 test('idempotence : deux passages de plus, sans erreur ni contrainte en double', async () => {
-  await runMigration307();
-  await runMigration307();
+  await runMigration308();
+  await runMigration308();
   assert.deepEqual(await taskCheckConstraints(), CONSTRAINTS);
   assert.equal(await tableCollation('rbac_seeded_permissions'), 'utf8mb4_unicode_ci');
 });
@@ -163,7 +163,7 @@ test('base historique : normalisation sans effet visible, garde sur une valeur i
   const french = await insertTask('french', { status: 'terminée' });
   const unknown = await insertTask('unknown', { importance_level: 'urgentissime' });
 
-  await runMigration307();
+  await runMigration308();
 
   assert.equal(await tableCollation('rbac_seeded_permissions'), 'utf8mb4_unicode_ci');
   assert.equal(await tableCollation('schema_version'), 'utf8mb4_unicode_ci');
@@ -196,6 +196,6 @@ test('base historique : normalisation sans effet visible, garde sur une valeur i
 
   // Correction à la main, puis nouveau passage : la dernière contrainte est posée.
   await execute('UPDATE tasks SET importance_level = NULL WHERE id = ?', [unknown]);
-  await runMigration307();
+  await runMigration308();
   assert.deepEqual(await taskCheckConstraints(), CONSTRAINTS);
 });

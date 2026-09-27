@@ -39,15 +39,14 @@ export const EXTERNAL_IDENTITY_ORIGIN_ENUM = defineEnum('EXTERNAL_IDENTITY_ORIGI
 });
 
 /**
- * Nature d'un conflit de synchronisation. `both_changed` n'est jamais écrit (valeur morte,
- * audit du 25/09/2026, § 3.5) ; il reste tant que l'ENUM SQL le porte.
+ * Nature d'un conflit de synchronisation. `both_changed`, jamais écrit (valeur morte, audit
+ * du 25/09/2026, § 3.5), est retiré de l'ENUM SQL par la migration 302.
  */
 export const SYNC_CONFLICT_KIND_ENUM = defineEnum('SYNC_CONFLICT_KIND_ENUM', {
-  values: ['member_added_on_mirror', 'member_removed_on_mirror', 'both_changed', 'name_changed'],
+  values: ['member_added_on_mirror', 'member_removed_on_mirror', 'name_changed'],
   labels: {
     member_added_on_mirror: 'Ajouté côté application, absent de Moodle',
     member_removed_on_mirror: 'Retiré côté application, toujours dans Moodle',
-    both_changed: 'Modifié des deux côtés',
     name_changed: 'Nom du groupe modifié des deux côtés',
   },
   columns: ['sync_conflicts.kind'],

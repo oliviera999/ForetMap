@@ -10,7 +10,7 @@
 //   - qu'aucune colonne ENUM/SET n'échappe au référentiel (une colonne ajoutée sans
 //     définition fait échouer la CI) ;
 //   - que les `varchar` et `tinyint` énumérés ne portent que des valeurs connues ;
-//   - que les contraintes CHECK de `tasks` (migration 307) listent les valeurs du référentiel.
+//   - que les contraintes CHECK de `tasks` (migration 308) listent les valeurs du référentiel.
 // Patron d'origine : tests/plants-hazard-review.test.js (comparaison à information_schema).
 
 require('./helpers/setup');
@@ -185,7 +185,7 @@ test('les contraintes CHECK de tasks listent exactement les valeurs du référen
   const byName = new Map(rows.map((r) => [r.name, String(r.clause)]));
   for (const [constraint, [column, def]] of Object.entries(expected)) {
     const clause = byName.get(constraint);
-    assert.ok(clause, `contrainte ${constraint} absente (migration 307)`);
+    assert.ok(clause, `contrainte ${constraint} absente (migration 308)`);
     assert.match(clause, new RegExp(`\`?${column}\`? is null`, 'i'), `${constraint} : NULL admis`);
     const listed = [...clause.matchAll(/'([^']*)'/g)].map((m) => m[1]);
     assert.deepEqual(listed, [...def.values], `${constraint} diverge du référentiel`);

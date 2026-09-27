@@ -62,31 +62,31 @@
 
 -- 1) Collations -------------------------------------------------------------------------
 
-SET @fm307_sv_collation = (
+SET @fm308_sv_collation = (
   SELECT TABLE_COLLATION FROM information_schema.TABLES
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'schema_version'
 );
 SET @sql = IF(
-  @fm307_sv_collation IS NOT NULL AND @fm307_sv_collation <> 'utf8mb4_unicode_ci',
+  @fm308_sv_collation IS NOT NULL AND @fm308_sv_collation <> 'utf8mb4_unicode_ci',
   'ALTER TABLE schema_version CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
 
-SET @fm307_rsp_collation = (
+SET @fm308_rsp_collation = (
   SELECT TABLE_COLLATION FROM information_schema.TABLES
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'rbac_seeded_permissions'
 );
 SET @sql = IF(
-  @fm307_rsp_collation IS NOT NULL AND @fm307_rsp_collation <> 'utf8mb4_unicode_ci',
+  @fm308_rsp_collation IS NOT NULL AND @fm308_rsp_collation <> 'utf8mb4_unicode_ci',
   'ALTER TABLE rbac_seeded_permissions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
 
 -- 2a) Normalisation sans effet visible --------------------------------------------------
 
@@ -119,74 +119,74 @@ UPDATE tasks SET status = 'on_hold' WHERE status IN ('en_attente', 'en attente',
 
 -- 2b) Contraintes, posées seulement si aucune ligne ne les viole -----------------------
 
-SET @fm307_bad = (
+SET @fm308_bad = (
   SELECT COUNT(*) FROM tasks
    WHERE status NOT IN ('available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold')
 );
-SET @fm307_has = (
+SET @fm308_has = (
   SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
      AND CONSTRAINT_TYPE = 'CHECK' AND CONSTRAINT_NAME = 'chk_tasks_status'
 );
 SET @sql = IF(
-  @fm307_bad = 0 AND @fm307_has = 0,
+  @fm308_bad = 0 AND @fm308_has = 0,
   'ALTER TABLE tasks ADD CONSTRAINT chk_tasks_status CHECK (status IS NULL OR status IN (''available'', ''in_progress'', ''done'', ''validated'', ''proposed'', ''on_hold''))',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
 
-SET @fm307_bad = (
+SET @fm308_bad = (
   SELECT COUNT(*) FROM tasks
    WHERE danger_level NOT IN ('safe', 'potential_danger', 'dangerous', 'very_dangerous')
 );
-SET @fm307_has = (
+SET @fm308_has = (
   SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
      AND CONSTRAINT_TYPE = 'CHECK' AND CONSTRAINT_NAME = 'chk_tasks_danger_level'
 );
 SET @sql = IF(
-  @fm307_bad = 0 AND @fm307_has = 0,
+  @fm308_bad = 0 AND @fm308_has = 0,
   'ALTER TABLE tasks ADD CONSTRAINT chk_tasks_danger_level CHECK (danger_level IS NULL OR danger_level IN (''safe'', ''potential_danger'', ''dangerous'', ''very_dangerous''))',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
 
-SET @fm307_bad = (
+SET @fm308_bad = (
   SELECT COUNT(*) FROM tasks
    WHERE difficulty_level NOT IN ('easy', 'medium', 'hard', 'very_hard')
 );
-SET @fm307_has = (
+SET @fm308_has = (
   SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
      AND CONSTRAINT_TYPE = 'CHECK' AND CONSTRAINT_NAME = 'chk_tasks_difficulty_level'
 );
 SET @sql = IF(
-  @fm307_bad = 0 AND @fm307_has = 0,
+  @fm308_bad = 0 AND @fm308_has = 0,
   'ALTER TABLE tasks ADD CONSTRAINT chk_tasks_difficulty_level CHECK (difficulty_level IS NULL OR difficulty_level IN (''easy'', ''medium'', ''hard'', ''very_hard''))',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
 
-SET @fm307_bad = (
+SET @fm308_bad = (
   SELECT COUNT(*) FROM tasks
    WHERE importance_level NOT IN ('not_important', 'low', 'medium', 'high', 'absolute')
 );
-SET @fm307_has = (
+SET @fm308_has = (
   SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
      AND CONSTRAINT_TYPE = 'CHECK' AND CONSTRAINT_NAME = 'chk_tasks_importance_level'
 );
 SET @sql = IF(
-  @fm307_bad = 0 AND @fm307_has = 0,
+  @fm308_bad = 0 AND @fm308_has = 0,
   'ALTER TABLE tasks ADD CONSTRAINT chk_tasks_importance_level CHECK (importance_level IS NULL OR importance_level IN (''not_important'', ''low'', ''medium'', ''high'', ''absolute''))',
   'SELECT 1'
 );
-PREPARE fm307_stmt FROM @sql;
-EXECUTE fm307_stmt;
-DEALLOCATE PREPARE fm307_stmt;
+PREPARE fm308_stmt FROM @sql;
+EXECUTE fm308_stmt;
+DEALLOCATE PREPARE fm308_stmt;
