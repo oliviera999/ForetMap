@@ -291,3 +291,53 @@ test('summarizeBootJournal : fenêtre sans évènement -> recent vide, historiqu
   assert.strictEqual(s.entriesBeforeWindow, 1);
   assert.strictEqual(s.verdict, 'stable');
 });
+
+test('resolveStopReason : un signal qui suit un touch de tmp/restart.txt est un redémarrage voulu', () => {
+  // Roue de secours du cron sans DEPLOY_SECRET (scripts/auto-deploy-cron.sh, restart_app) :
+  // Passenger arrête l'app par un signal quand tmp/restart.txt change.
+  const file = path.join(tmpRoot, `restart-${Date.now()}.txt`);
+  const startedAtMs = Date.now() - 60 * 60 * 1000;
+  const now = Date.now();
+  // Pas de fichier : arrêt ordinaire.
+  assert.strictEqual(journal.resolveStopReason('SIGTERM', { file, now, startedAtMs }), 'SIGTERM');
+
+  fs.writeFileSync(file, '');
+  const touchedAt = new Date(now - 30 * 1000);
+  fs.utimesSync(file, touchedAt, touchedAt);
+  assert.strictEqual(
+    journal.resolveStopReason('SIGTERM', { file, now, startedAtMs }),
+    'restart-file',
+  );
+  assert.strictEqual(
+    journal.resolveStopReason('SIGINT', { file, now, startedAtMs }),
+    'restart-file',
+  );
+  // Motif déjà connu : rendu tel quel.
+  assert.strictEqual(journal.resolveStopReason('restart', { file, now, startedAtMs }), 'restart');
+
+  // Touché avant le démarrage de ce process : déjà consommé par un redémarrage précédent.
+  assert.strictEqual(
+    journal.resolveStopReason('SIGTERM', { file, now, startedAtMs: now - 10 * 1000 }),
+    'SIGTERM',
+  );
+  // Touché il y a trop longtemps : sans lien avec ce signal.
+  const old = new Date(now - 60 * 60 * 1000 + 1000);
+  fs.utimesSync(file, old, old);
+  assert.strictEqual(journal.resolveStopReason('SIGTERM', { file, now, startedAtMs }), 'SIGTERM');
+});
+
+test('summarizeBootJournal : un redémarrage par tmp/restart.txt n’est pas un arrêt hébergeur', () => {
+  const now = Date.now();
+  const iso = (secondsAgo) => new Date(now - secondsAgo * 1000).toISOString();
+  useTempJournal([
+    { event: 'stop', at: iso(600), reason: 'restart-file' },
+    { event: 'boot', at: iso(590), previousStop: 'graceful', previousStopReason: 'restart-file' },
+    { event: 'stop', at: iso(300), reason: 'restart-file' },
+    { event: 'boot', at: iso(290), previousStop: 'graceful', previousStopReason: 'restart-file' },
+    { event: 'stop', at: iso(120), reason: 'restart-file' },
+  ]);
+  const s = journal.summarizeBootJournal({ now });
+  assert.strictEqual(s.counts.deployRestarts, 3);
+  assert.strictEqual(s.counts.hostStops, 0);
+  assert.notStrictEqual(s.verdict, 'host_idle_stops');
+});

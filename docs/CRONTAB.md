@@ -23,7 +23,8 @@ a arrêté le déploiement le 27/09/2026 (« Permission denied » à chaque pass
 Vérifier que le `.env` serveur contient au minimum :
 
 ```ini
-DEPLOY_SECRET=…            # = secret de POST /api/admin/restart
+DEPLOY_SECRET=…            # = même valeur que l'application (POST /api/admin/restart)
+DEPLOY_AUTO_MIGRATE=1      # migrations passées par le cron (sauvegarde vérifiée avant)
 DB_HOST=… DB_PORT=3306 DB_NAME=… DB_USER=… DB_PASS=…
 # Alertes (optionnel mais recommandé) :
 SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-reply@…>"

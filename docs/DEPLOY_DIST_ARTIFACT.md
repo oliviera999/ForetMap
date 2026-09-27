@@ -319,7 +319,19 @@ Tout se fait dans le terminal, **sans node** (`APP` = dossier de l'application) 
 4. **Redémarrer** : cPanel → Setup Node.js App → **Restart**. Puis Run JS Script →
    `check:runtime`, et recharger le site.
 
-À ne pas faire : utiliser « Update from Remote » ou « Deploy HEAD Commit » dans l'outil Git de
-cPanel (ils contournent la pose du build et les migrations ; le message « The system cannot
-deploy … `.cpanel.yml` » est sans objet, ForêtMap ne s'en sert pas) ; faire `chmod +x` sur un
-script suivi par git.
+À ne pas faire :
+
+- **un second cron qui fait `git pull`** (ou `cd … && git pull origin main`). Il met à jour les
+  sources sans poser le build, sans migrer, sans redémarrer, et il masque les nouveaux commits au
+  cron de déploiement, qui ne voit plus rien à déployer. C'était la cause de l'incident du
+  27/09/2026 : **une seule ligne de déploiement**, celle de `auto-deploy-cron.sh` ;
+- utiliser « Update from Remote » ou « Deploy HEAD Commit » dans l'outil Git de cPanel (même
+  défaut ; le message « The system cannot deploy … `.cpanel.yml` » est sans objet, ForêtMap ne
+  s'en sert pas) ;
+- faire `chmod +x` sur un script suivi par git ;
+- pointer `DEPLOY_ENV_FILE` vers un fichier qui n'existe pas (le journal le signale désormais).
+
+Sans `DEPLOY_SECRET`, le cron redémarre l'application par `tmp/restart.txt` (mécanisme
+Passenger). Pour vérifier une fois que ce mécanisme fonctionne sur l'hébergement :
+`touch tmp/restart.txt`, recharger le site, puis `GET /api/admin/diagnostics` → `restarts`
+(ou `npm run prod:uptime-report`) doit montrer un arrêt `restart-file`.
