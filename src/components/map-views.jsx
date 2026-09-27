@@ -48,11 +48,7 @@ import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useZoneAlignMode from '../hooks/useZoneAlignMode.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
-import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
-import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
-import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
 import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
-import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
 import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
@@ -82,6 +78,7 @@ import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
 import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
 import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
+import { useMapViewPosition } from './map/useMapViewPosition.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
@@ -581,15 +578,24 @@ function MapViewImpl({
     onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
-  /**
-   * Position sur la carte de travail (lot 6) : le noyau partagé, le même que le Plan Lyautey.
-   * « Me suivre » n'est **plus lié à la mascotte** — un point de position s'affiche même
-   * quand la mascotte est masquée ; quand elle est affichée, elle suit en plus. La position
-   * reste 100 % côté client.
-   */
-  const mapPosition = useMapPosition({
-    georef: activeMap?.georef ?? null,
-    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
+  // Position du lecteur, carte orientée selon le cap, échelle et rose des vents.
+  const {
+    mapPosition,
+    headingUpAllowed,
+    headingUpPref,
+    headingUpEffective,
+    scaleCompassAllowed,
+    scaleCompassPref,
+    mapOrientationDeg,
+    mascotGps,
+  } = useMapViewPosition({
+    activeMap,
+    mode,
+    headingUpSiteEnabled: publicSettings?.map?.heading_up_enabled,
+    mapOrientation,
+    setMapOrientation,
+    showMapMascot,
+    moveMapMascotTo,
   });
   const routeDistanceLabel = useMemo(() => {
     const targetPct = routeEntryFocusPct(currentRouteEntry);
@@ -601,74 +607,6 @@ function MapViewImpl({
     );
     return meters != null ? formatDistanceFr(meters) : '';
   }, [currentRouteEntry, mapPosition.positionPct, mapPosition.planSize]);
-  const headingUpAllowed =
-    !!publicSettings?.map?.heading_up_enabled &&
-    !!activeMap?.heading_up_enabled &&
-    !!mapPosition.available &&
-    mode === 'view';
-  const headingUpPref = useHeadingUpPreference({
-    storageKey: 'foretmap:heading-up',
-    allowed: headingUpAllowed,
-  });
-  const headingUpEffective = headingUpPref.effective && mapPosition.active;
-  const scaleCompassAllowed =
-    !!activeMap?.georef && !!activeMap?.scale_compass_enabled && mode === 'view';
-  const scaleCompassPref = useScaleCompassPreference({
-    storageKey: 'foretmap:scale-compass',
-    allowed: scaleCompassAllowed,
-  });
-  // Angle **continu** : la transition CSS du calque d'orientation doit prendre le chemin le plus
-  // court (`unwrapHeadingDeg`), sinon la carte fait un tour complet au passage de 359° à 1°.
-  const headingForMapDeg =
-    mapPosition.screenHeadingUnwrappedDeg ??
-    mapPosition.smoothedScreenHeadingDeg ??
-    mapPosition.screenHeadingDeg ??
-    null;
-  const targetOrientationDeg = headingUpEffective ? headingUpOrientationDeg(headingForMapDeg) : 0;
-  // Angle **réellement appliqué** au calque : la rose des vents doit pointer le même cap que la
-  // carte pendant que celle-ci pivote, et non l'angle visé un rendu plus tôt.
-  const mapOrientationDeg = mapOrientation?.deg || 0;
-  useEffect(() => {
-    if (!headingUpEffective) {
-      setMapOrientation({ deg: 0, originPct: null });
-      return;
-    }
-    setMapOrientation({
-      deg: targetOrientationDeg,
-      originPct: mapPosition.displayPct || null,
-    });
-  }, [
-    headingUpEffective,
-    mapPosition.displayPct?.xp,
-    mapPosition.displayPct?.yp,
-    targetOrientationDeg,
-    setMapOrientation,
-  ]);
-  // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
-  useEffect(() => {
-    if (!showMapMascot || !mapPosition.positionPct) return;
-    if (mapPosition.feedback !== 'ok') return;
-    moveMapMascotTo(mapPosition.positionPct.xp, mapPosition.positionPct.yp);
-  }, [showMapMascot, mapPosition.positionPct, mapPosition.feedback, moveMapMascotTo]);
-  /** Forme attendue par la barre d'outils et la bannière d'état (contrat inchangé). */
-  const mascotGps = useMemo(
-    () => ({
-      supported: mapPosition.supported,
-      available: mapPosition.available,
-      active: mapPosition.active,
-      status: mapPosition.status,
-      feedback: mapPosition.feedback === 'acquiring' ? null : mapPosition.feedback,
-      accuracy: mapPosition.accuracyM,
-      error: mapPosition.error,
-      toggle: mapPosition.toggle,
-      headingAvailable: mapPosition.headingAvailable,
-      headingUpAllowed,
-      headingUpEffective,
-      headingUpUserEnabled: headingUpPref.userEnabled,
-      toggleHeadingUp: () => headingUpPref.setEnabled(!headingUpPref.userEnabled),
-    }),
-    [mapPosition, headingUpAllowed, headingUpEffective, headingUpPref],
-  );
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
     () => computeTaskVisualByLocation(tasks),
     [tasks],
