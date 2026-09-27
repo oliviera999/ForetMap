@@ -19,6 +19,7 @@ const probes = vi.hoisted(() => ({
   unauthenticated: [],
   header: [],
   biodiv: [],
+  context: [],
 }));
 const session = vi.hoisted(() => ({ stored: null, claims: null }));
 const bootstrap = vi.hoisted(() => ({ modules: {} }));
@@ -29,12 +30,18 @@ vi.mock('../src/components/app/MapTasksArea.jsx', () => ({
     return <div data-testid="map-tasks-area" />;
   },
 }));
-vi.mock('../src/components/app/PedagoTabs.jsx', () => ({
-  PedagoTabs: (props) => {
-    probes.pedago.push(props);
-    return <div data-testid="pedago-tabs" />;
-  },
-}));
+// La sonde des onglets pédagogiques relève aussi la séance lue dans le contexte partagé
+// (`PedagoSessionContext`), fourni par le shell depuis l'extraction.
+vi.mock('../src/components/app/PedagoTabs.jsx', async () => {
+  const { usePedagoSessionContext } = await import('../src/contexts/PedagoSessionContext.jsx');
+  return {
+    PedagoTabs: (props) => {
+      probes.pedago.push(props);
+      probes.context.push(usePedagoSessionContext());
+      return <div data-testid="pedago-tabs" />;
+    },
+  };
+});
 vi.mock('../src/components/app/AppHeader.jsx', () => ({
   AppHeader: (props) => {
     probes.header.push(props);
@@ -390,6 +397,18 @@ describe('App — séances pédagogiques', () => {
     expect(lastPedago().sessionsProps.currentStep).toEqual(SEANCE.steps[1]);
     expect(probes.biodiv.at(-1)).toMatchObject({ sessionLevel: 'lycee' });
     expect(apiMock).not.toHaveBeenCalledWith('/api/pedago-sessions/12/runs/start', 'POST');
+  });
+
+  test('la séance en cours est partagée par PedagoSessionContext', async () => {
+    await renderStudentApp();
+    expect(probes.context.at(-1)).toMatchObject({ available: true, activeSession: null });
+    await startFromSessionsView();
+    const ctx = probes.context.at(-1);
+    expect(ctx.activeSession).toBe(lastPedago().sessionsProps.activeSession);
+    expect(ctx.currentStep).toBe(SEANCE.steps[0]);
+    expect(ctx.startSession).toBe(lastPedago().sessionsProps.onStartSession);
+    expect(ctx.launchSession).toBe(probes.mapTasks.at(-1).onStartPedagoSession);
+    expect(ctx.imposedLevel).toBe('lycee');
   });
 
   test('module Séances éteint (élève) : ni bandeau, ni niveau imposé, ni lancement', async () => {
