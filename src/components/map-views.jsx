@@ -64,14 +64,8 @@ import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
 import { MapLocationFilterResults } from './map/MapLocationFilterResults.jsx';
 import { WorkMapStage } from './map/WorkMapStage.jsx';
-import {
-  MAP_LOCATION_FILTER_DEFAULTS,
-  applyMapLocationFilters,
-  collectMapSpeciesOptions,
-  isMapLocationFilterActive,
-} from '../utils/mapLocationFilters.js';
-import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
-import { collectMapCategoryOptions } from '../utils/locationCategories.js';
+import { isMapLocationFilterActive } from '../utils/mapLocationFilters.js';
+import { useMapViewLocationFilters } from './map/useMapViewLocationFilters.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
@@ -147,11 +141,6 @@ function MapViewImpl({
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
-  const [mapLocationFilters, setMapLocationFilters] = useState(() => ({
-    ...MAP_LOCATION_FILTER_DEFAULTS,
-  }));
-  const [mapCategoryDefaultsApplied, setMapCategoryDefaultsApplied] = useState(false);
-  const mapLocationSearchRef = useRef(null);
   const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
     useMapFullscreen({
       escapeBlocked: Boolean(
@@ -531,7 +520,6 @@ function MapViewImpl({
     setPendingZone(null);
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
-    setMapLocationFilters({ ...MAP_LOCATION_FILTER_DEFAULTS });
     discardEditPointsSession();
     clearAlignSession();
     resetMapMascotMotion?.();
@@ -663,20 +651,6 @@ function MapViewImpl({
     [mapCategoryCatalog],
   );
 
-  // Catégories cochées d'office (réglage admin `ui.map.default_category_ids`).
-  useEffect(() => {
-    if (mapCategoryDefaultsApplied || !(mapCategoryCatalog || []).length) return;
-    const raw =
-      publicSettings?.map?.default_category_ids ??
-      publicSettings?.ui?.map?.default_category_ids ??
-      '';
-    const ids = parseCategoryIdsSetting(raw).filter((id) => mapCategoriesById.has(id));
-    if (ids.length) {
-      setMapLocationFilters((prev) => ({ ...prev, categoryIds: ids }));
-    }
-    setMapCategoryDefaultsApplied(true);
-  }, [mapCategoryDefaultsApplied, mapCategoryCatalog, mapCategoriesById, publicSettings]);
-
   /**
    * Regroupement des repères au dézoom (lot 5, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.3) :
    * même module que le plan. Les repères dont les pastilles se recouvrent à l'écran sont
@@ -703,72 +677,37 @@ function MapViewImpl({
     ],
   );
 
-  const mapSpeciesOptions = useMemo(
-    () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
-    [zones, mapMarkersOnActiveMap],
-  );
-
-  // Options du filtre « Catégories » : celles réellement portées par les lieux affichés,
-  // complétées par le catalogue de la carte (une catégorie encore inutilisée reste visible).
-  const mapCategoryOptions = useMemo(
-    () => collectMapCategoryOptions(zones, mapMarkersOnActiveMap, mapCategoryCatalog),
-    [zones, mapMarkersOnActiveMap, mapCategoryCatalog],
-  );
-
-  const mapFilterContext = useMemo(
-    () => ({
-      zoneTaskVisualById,
-      markerTaskVisualById,
-      zoneTutorialCountById,
-      markerTutorialCountById,
-      emojiParsingList,
-      speciesOptions: mapSpeciesOptions,
-    }),
-    [
-      zoneTaskVisualById,
-      markerTaskVisualById,
-      zoneTutorialCountById,
-      markerTutorialCountById,
-      emojiParsingList,
-      mapSpeciesOptions,
-    ],
-  );
-
+  // Recherche et filtres de lieux : options, lieux retenus, lieux atténués, raccourci « / ».
   const {
+    mapLocationFilters,
+    setMapLocationFilters,
+    mapLocationSearchRef,
+    mapSpeciesOptions,
+    mapCategoryOptions,
     matchingZoneIds,
     matchingMarkerIds,
-    resultItems: mapFilterResultItems,
-    filterActive: mapFilterActive,
-  } = useMemo(
-    () =>
-      applyMapLocationFilters({
-        zones,
-        markers: mapMarkersOnActiveMap,
-        filters: mapLocationFilters,
-        context: mapFilterContext,
-      }),
-    [zones, mapMarkersOnActiveMap, mapLocationFilters, mapFilterContext],
-  );
-
-  const dimmedZoneIds = useMemo(() => {
-    if (!mapFilterActive) return null;
-    const set = new Set();
-    for (const parsed of parsedZones) {
-      const id = String(parsed.zone.id);
-      if (!matchingZoneIds.has(id)) set.add(id);
-    }
-    return set;
-  }, [mapFilterActive, parsedZones, matchingZoneIds]);
-
-  const dimmedMarkerIds = useMemo(() => {
-    if (!mapFilterActive) return null;
-    const set = new Set();
-    for (const m of mapMarkersOnActiveMap) {
-      const id = String(m.id);
-      if (!matchingMarkerIds.has(id)) set.add(id);
-    }
-    return set;
-  }, [mapFilterActive, mapMarkersOnActiveMap, matchingMarkerIds]);
+    mapFilterResultItems,
+    mapFilterActive,
+    dimmedZoneIds,
+    dimmedMarkerIds,
+    getFilterDimSeen,
+  } = useMapViewLocationFilters({
+    activeMapId,
+    mode,
+    publicSettings,
+    zones,
+    markersOnMap: mapMarkersOnActiveMap,
+    parsedZones,
+    categoryCatalog: mapCategoryCatalog,
+    categoriesById: mapCategoriesById,
+    badges: {
+      zoneTaskVisualById,
+      markerTaskVisualById,
+      zoneTutorialCountById,
+      markerTutorialCountById,
+      emojiParsingList,
+    },
+  });
 
   /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
   const focusMapOnLocation = useCallback((focusPct) => focusMapPct(focusPct), [focusMapPct]);
@@ -788,30 +727,6 @@ function MapViewImpl({
     },
     [showMapMascot, onMapMascotZoneClick, onMapMascotMarkerClick, focusMapOnLocation],
   );
-
-  useEffect(() => {
-    if (mode !== 'view') return undefined;
-    const onKeyDown = (e) => {
-      if (e.defaultPrevented) return;
-      const tag = String(e.target?.tagName || '').toLowerCase();
-      if (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        tag === 'select' ||
-        e.target?.isContentEditable
-      ) {
-        return;
-      }
-      const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
-      const ctrlK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
-      if (slash || ctrlK) {
-        e.preventDefault();
-        mapLocationSearchRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode]);
 
   const openZoneFromMap = useCallback(
     (z, e) => {
@@ -902,22 +817,6 @@ function MapViewImpl({
     const lead = Array.isArray(groupMarkers) && groupMarkers.length ? groupMarkers[0] : null;
     if (lead) setSelectedMarker(lead);
   }, []);
-
-  /** Atténuation filtre : `true` = vu/atténué, `false` = mis en avant, `null` = neutre. */
-  const getFilterDimSeen = useCallback(
-    (place) => {
-      if (!mapFilterActive || !place) return null;
-      const id = String(place.id);
-      const isMarker =
-        place.kind === 'marker' ||
-        (place.x_pct != null &&
-          place.y_pct != null &&
-          !(place.points && String(place.points).trim()));
-      if (isMarker) return matchingMarkerIds.has(id) ? false : true;
-      return matchingZoneIds.has(id) ? false : true;
-    },
-    [mapFilterActive, matchingZoneIds, matchingMarkerIds],
-  );
 
   /**
    * Pastilles d'état des lieux sur la scène partagée (consultation) : état des tâches, et

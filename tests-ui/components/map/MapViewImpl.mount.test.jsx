@@ -114,7 +114,10 @@ const MARKERS = [
   { id: 12, map_id: 'lyautey', label: 'CDI', x_pct: 60, y_pct: 70, category_ids: [] },
 ];
 
-function renderMapView(props = {}, { isTeacher = false } = {}) {
+function renderMapView(
+  props = {},
+  { isTeacher = false, settings = { modules: {}, ui: { map: {} } } } = {},
+) {
   const dataValue = {
     zones: ZONES,
     markers: MARKERS,
@@ -132,7 +135,7 @@ function renderMapView(props = {}, { isTeacher = false } = {}) {
     onPlaceRequestHandled: vi.fn(),
   };
   const view = render(
-    <PublicSettingsProvider value={{ modules: {}, ui: { map: {} } }}>
+    <PublicSettingsProvider value={settings}>
       <SessionProvider value={{ isN3Affiliated: false, canParticipateContextComments: true }}>
         <DataProvider value={dataValue}>
           <MapView
@@ -149,8 +152,14 @@ function renderMapView(props = {}, { isTeacher = false } = {}) {
   return { view, handlers };
 }
 
+/** Délai large : la suite UI complète tourne en parallèle, et ce montage est lourd. */
+const MOUNT_TIMEOUT = { timeout: 5000 };
+
 async function waitForToolbar(view) {
-  await waitFor(() => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull());
+  await waitFor(
+    () => expect(view.container.querySelector('.map-view-toolbar')).not.toBeNull(),
+    MOUNT_TIMEOUT,
+  );
   return view.container.querySelector('.map-view-toolbar');
 }
 
@@ -172,8 +181,14 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
     // Pas d'outils d'édition pour un élève.
     expect(within(toolbar).queryByRole('button', { name: /Zone/ })).toBeNull();
     expect(view.container.querySelector('[data-testid="map-view-routes-row"]')).not.toBeNull();
-    expect(view.container.querySelectorAll('.fm-pct-marker')).toHaveLength(1);
-    expect(apiMock).toHaveBeenCalledWith('/api/map-routes?map_id=foret&surface=map');
+    await waitFor(
+      () => expect(view.container.querySelectorAll('.fm-pct-marker')).toHaveLength(1),
+      MOUNT_TIMEOUT,
+    );
+    await waitFor(
+      () => expect(apiMock).toHaveBeenCalledWith('/api/map-routes?map_id=foret&surface=map'),
+      MOUNT_TIMEOUT,
+    );
   });
 
   test('élève : toucher une zone ouvre sa fiche ; la fermer la désélectionne', async () => {
@@ -241,6 +256,33 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
     // Retour à la navigation : scène partagée.
     fireEvent.click(within(toolbar).getByRole('button', { name: /Nav/ }));
     await waitFor(() => expect(view.container.querySelector('.map-view-stage')).not.toBeNull());
+  });
+
+  test('catégories cochées d’office : les lieux hors catégorie sont atténués', async () => {
+    const saved = stubs.categories;
+    stubs.categories = {
+      ...saved,
+      categories: [{ id: 'cat-verger', label: 'Verger', emoji: '🍎', applies_to: 'both' }],
+    };
+    try {
+      const { view } = renderMapView(
+        {},
+        {
+          settings: {
+            modules: {},
+            ui: { map: {} },
+            map: { default_category_ids: 'cat-verger' },
+          },
+        },
+      );
+      await waitForToolbar(view);
+      await waitFor(() =>
+        expect(view.container.querySelector('.fm-pct-zone.is-seen')).not.toBeNull(),
+      );
+      expect(view.container.querySelector('.fm-pct-marker.is-seen')).not.toBeNull();
+    } finally {
+      stubs.categories = saved;
+    }
   });
 
   test('prof : fiche de lieu éditable (onglet Modifier)', async () => {
