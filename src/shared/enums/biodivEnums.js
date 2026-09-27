@@ -257,7 +257,8 @@ export const DETECTION_MODE_ENUM = defineEnum('DETECTION_MODE_ENUM', {
     indice: 'Indice',
     nocturne: 'Nocturne',
   },
-  columns: ['map_species.detection_mode'],
+  // Même vocabulaire pour une observation d'élève (migration 307), en ENUM à une valeur.
+  columns: ['map_species.detection_mode', 'species_observations.detection_mode'],
 });
 
 /** Fréquence de contact attendue. */
@@ -272,7 +273,10 @@ export const SPECIES_FREQUENCY_ENUM = defineEnum('SPECIES_FREQUENCY_ENUM', {
   columns: ['map_species.frequency'],
 });
 
-/** Niveau de certitude de la présence sur le site (`confirme_site` n'a encore jamais servi). */
+/**
+ * Niveau de certitude de la présence sur le site. `confirme_site` est posé par la validation
+ * d'une observation d'élève (migration 307, `lib/terrain/observationService.js`).
+ */
 export const PRESENCE_VALIDATION_STATUS_ENUM = defineEnum('PRESENCE_VALIDATION_STATUS_ENUM', {
   values: ['confirme_site', 'attendu', 'a_confirmer', 'documentaire'],
   labels: {
@@ -282,4 +286,36 @@ export const PRESENCE_VALIDATION_STATUS_ENUM = defineEnum('PRESENCE_VALIDATION_S
     documentaire: 'Documentaire',
   },
   columns: ['map_species.validation_status'],
+});
+
+/** Rôle d'une photo de fiche (migration 303) : une valeur par ancienne colonne photo. */
+export const PLANT_PHOTO_KIND_ENUM = defineEnum('PLANT_PHOTO_KIND_ENUM', {
+  values: [
+    'photo',
+    'photo_species',
+    'photo_leaf',
+    'photo_flower',
+    'photo_fruit',
+    'photo_harvest_part',
+  ],
+  labels: {
+    photo: 'Photo',
+    photo_species: 'Photo espèce',
+    photo_leaf: 'Photo feuille',
+    photo_flower: 'Photo fleur',
+    photo_fruit: 'Photo fruit',
+    photo_harvest_part: 'Photo partie récoltée',
+  },
+  columns: ['plant_photos.kind'],
+});
+
+/** Nature d'un nom rattaché à une fiche (migration 304). */
+export const PLANT_NAME_ALIAS_KIND_ENUM = defineEnum('PLANT_NAME_ALIAS_KIND_ENUM', {
+  values: ['nom_secondaire', 'variante', 'synonyme'],
+  labels: {
+    nom_secondaire: 'Autre nom',
+    variante: 'Variante',
+    synonyme: 'Synonyme',
+  },
+  columns: ['plant_name_aliases.kind'],
 });

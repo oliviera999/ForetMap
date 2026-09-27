@@ -229,8 +229,6 @@ const WRITE_ROUTES = Object.freeze({
   'DELETE /api/notifications/:id': 'auth',
   'POST /api/notifications/:id/read': 'auth',
   'POST /api/notifications/read-all': 'auth',
-  'POST /api/observations': 'auth',
-  'DELETE /api/observations/:id': 'auth',
   'POST /api/pedago-sessions': 'permission:plants.manage',
   'PUT /api/pedago-sessions/:idOrSlug': 'permission:plants.manage',
   'POST /api/pedago-sessions/:idOrSlug/runs/complete': 'auth',
@@ -280,6 +278,14 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/settings/admin/system/restart': 'permission:admin.settings.secrets.write',
   'PUT /api/settings/admin/tour-content': 'permission:tours.manage',
   'POST /api/settings/admin/tour-content/reset': 'permission:tours.manage',
+  'POST /api/species-observations': 'auth',
+  'DELETE /api/species-observations/:id': 'auth',
+  'POST /api/species-observations/:id/decision': 'permission:observations.validate',
+  'POST /api/species-observations/:id/interaction-evidence': 'permission:observations.validate',
+  'DELETE /api/species-observations/:id/interaction-evidence/:interactionId':
+    'permission:observations.validate',
+  'POST /api/species-observations/:id/photos': 'auth',
+  'DELETE /api/species-observations/:id/photos/:photoId': 'auth',
   'POST /api/staff-plan/access':
     'publique : entrée par code du plan des personnels (limiteur authLimiter)',
   'POST /api/staff-plan/logout':

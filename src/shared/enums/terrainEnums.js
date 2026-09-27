@@ -39,3 +39,14 @@ export const SURFACE_ENUM = defineEnum('SURFACE_ENUM', {
     'zones.hidden_surfaces',
   ],
 });
+
+/** Statut d'une observation d'espèce signalée par un élève (migration 307). */
+export const SPECIES_OBSERVATION_STATUS_ENUM = defineEnum('SPECIES_OBSERVATION_STATUS_ENUM', {
+  values: ['soumise', 'validee', 'refusee'],
+  labels: {
+    soumise: 'En attente de validation',
+    validee: 'Validée',
+    refusee: 'Non retenue',
+  },
+  columns: ['species_observations.status'],
+});
