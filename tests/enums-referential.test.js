@@ -192,6 +192,31 @@ test('les contraintes CHECK de tasks listent exactement les valeurs du référen
   }
 });
 
+test('les modules consommateurs lisent le référentiel au lieu d’une copie', () => {
+  const pedago = require('../lib/shared/pedagoEnums');
+  const scales = require('../lib/pedagoScales');
+  const biodivLevel = require('../lib/biodivPedagoLevel');
+  const sessions = require('../lib/pedagoSessions');
+  const { COLLEGE_INTERACTION_TYPE_ENUM } = require('../lib/shared/biodivEnums');
+  const { LINK_STATUSES, LINK_ORIGINS } = require('../lib/pedago/learningLinks');
+
+  assert.strictEqual(scales.ETAPES, pedago.PEDAGO_ETAPE_ENUM.values);
+  assert.strictEqual(scales.CURRICULUM_NIVEAU_VALUES, pedago.CURRICULUM_NIVEAU_ENUM.values);
+  assert.strictEqual(scales.LEARNER_NIVEAU_VALUES, pedago.LEARNER_NIVEAU_ENUM.values);
+  assert.strictEqual(biodivLevel.PEDAGO_LEVELS, pedago.PEDAGO_ETAPE_ENUM.values);
+  assert.strictEqual(biodivLevel.PEDAGO_LEVEL_LABELS, pedago.PEDAGO_ETAPE_ENUM.labels);
+  assert.strictEqual(biodivLevel.COLLEGE_FOODWEB_TYPES, COLLEGE_INTERACTION_TYPE_ENUM.values);
+  assert.deepEqual([...sessions.LEVELS], [...pedago.PEDAGO_ETAPE_ENUM.values]);
+  assert.deepEqual(
+    Object.values(LINK_STATUSES).sort(),
+    [...pedago.RESOURCE_LINK_STATUS_ENUM.values].sort(),
+  );
+  assert.deepEqual(
+    Object.values(LINK_ORIGINS).sort(),
+    [...pedago.RESOURCE_LINK_ORIGIN_ENUM.values].sort(),
+  );
+});
+
 test('le libellé de difficulté se dérive de la difficulté (1 à 3)', () => {
   const { quizDifficulteLabel, QUIZ_DIFFICULTE_ENUM } = require('../lib/shared/pedagoEnums');
   assert.deepEqual([...QUIZ_DIFFICULTE_ENUM.values], [1, 2, 3]);
