@@ -4,7 +4,6 @@ import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { routeEntryFocusPct } from '../shared/map-routes/mapRouteSteps.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
-import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
 import {
   clusterStatusDots,
@@ -12,7 +11,6 @@ import {
   computeTutorialCountByLocation,
   locationStatusDots,
 } from '../utils/mapLocationBadges.js';
-import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
 import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
@@ -59,6 +57,11 @@ import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
 import { useMapViewPosition } from './map/useMapViewPosition.js';
 import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { useMapViewTypography } from './map/useMapViewTypography.js';
+import {
+  useMapViewActiveMap,
+  useMapViewData,
+  useMapViewSettings,
+} from './map/useMapViewContext.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
@@ -70,10 +73,7 @@ import { useMapCategories } from '../hooks/useMapCategories.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
-import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
-import { useSession } from '../contexts/SessionContext.jsx';
-import { useData } from '../contexts/DataContext.jsx';
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -106,16 +106,34 @@ function MapViewImpl({
   placeRequest = null,
   onPlaceRequestHandled = null,
 }) {
-  const publicSettings = usePublicSettings();
-  const { canParticipateContextComments = true } = useSession();
   const {
-    zones = [],
-    markers = [],
-    tasks = [],
-    tutorials = [],
-    plants = [],
-    activeMapId = '',
-  } = useData();
+    canParticipateContextComments,
+    zones,
+    markers,
+    tasks,
+    tutorials,
+    plants,
+    activeMapId,
+    markersOnActiveMap: mapMarkersOnActiveMap,
+    zonesOnActiveMap: mapZonesOnActiveMap,
+  } = useMapViewData();
+  const {
+    publicSettings,
+    markerEmojis,
+    emojiParsingList,
+    visitMascotDefaultId,
+    mascotDialogSettings,
+    contextCommentsEnabled,
+    headingUpSiteEnabled,
+  } = useMapViewSettings();
+  const {
+    activeMap,
+    activeMapLabel,
+    activeMapGeoref,
+    mapImageSrc,
+    onMapImageError,
+    mapFramePaddingPx,
+  } = useMapViewActiveMap(maps, activeMapId);
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -147,48 +165,11 @@ function MapViewImpl({
         selectedZone || selectedMarker || pendingZone || pendingMarker || mapTutorialPreview,
       ),
     });
-  const configuredLocationEmojis = String(
-    publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
-  );
-  const markerEmojis = useMemo(
-    () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
-    [configuredLocationEmojis],
-  );
-  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
   // Registre global des mascottes proposées → la mascotte peut être un pack importé (srv-…),
   // le choix du visiteur vaut sur toutes les cartes, et `offeredIds` borne la liste à ce que
   // le studio propose (sinon le catalogue livré revenait en entier, dépublication ignorée).
   const { extras: visitMascotCatalogExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry({ enabled: mode === 'view' });
-  const mapMarkersOnActiveMap = useMemo(
-    () => (markers || []).filter((m) => m.map_id === activeMapId),
-    [markers, activeMapId],
-  );
-  const mapZonesOnActiveMap = useMemo(
-    () => (zones || []).filter((z) => z.map_id === activeMapId),
-    [zones, activeMapId],
-  );
-  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
-  const emojiParsingList = useMemo(
-    () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
-    [markerEmojis],
-  );
-  const activeMap = maps.find((m) => m.id === activeMapId);
-  const mapImageCandidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
-  const [mapImageIdx, setMapImageIdx] = useState(0);
-  const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
-  /** Image de fond introuvable : on passe à la candidate suivante (s'il en reste une). */
-  const onMapImageError = useCallback(
-    () => setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx)),
-    [mapImageCandidates.length],
-  );
-  const activeMapLabel = activeMap?.label;
-  const activeMapGeoref = activeMap?.georef;
-  const mapFramePaddingPx = useMemo(() => {
-    const custom = Number(activeMap?.frame_padding_px);
-    if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
-    return 8;
-  }, [activeMap?.frame_padding_px]);
   const mapLayoutOuterRef = useRef(null);
   const {
     containerRef,
@@ -421,7 +402,7 @@ function MapViewImpl({
     allowedMascotIds: visitMascotOfferedIds,
     defaultMascotId: visitMascotDefaultId,
     onPersistPreferredMascotId: onPersistVisitMascotId,
-    mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
+    mascotDialogSettings,
   });
   // Position du lecteur, carte orientée selon le cap, échelle et rose des vents.
   const {
@@ -436,7 +417,7 @@ function MapViewImpl({
   } = useMapViewPosition({
     activeMap,
     mode,
-    headingUpSiteEnabled: publicSettings?.map?.heading_up_enabled,
+    headingUpSiteEnabled,
     mapOrientation,
     setMapOrientation,
     showMapMascot,
@@ -494,10 +475,6 @@ function MapViewImpl({
     }
     hadZoneOrMarkerSelectionRef.current = hasSelection;
   }, [selectedZone, selectedMarker, onLocationTasksFocus]);
-
-  useEffect(() => {
-    setMapImageIdx(0);
-  }, [mapImageCandidates]);
 
   useLayoutEffect(() => {
     if (!mapFullscreen) return undefined;
@@ -1108,9 +1085,9 @@ function MapViewImpl({
                 map={{
                   id: activeMapId,
                   map_image_url: mapImageSrc,
-                  label: activeMap?.label,
-                  georef: activeMap?.georef,
-                  geo_anchors: activeMap?.georef,
+                  label: activeMapLabel,
+                  georef: activeMapGeoref,
+                  geo_anchors: activeMapGeoref,
                 }}
                 zones={mapZonesOnActiveMap}
                 markers={mapMarkersOnActiveMap}
