@@ -9,6 +9,7 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
+import { LocationObservationSlot } from '../observations/LocationObservationSlot.jsx';
 import {
   MarkerCommonFormFields,
   MarkerEmojiField,
@@ -369,6 +370,7 @@ function MarkerModal({
             !showVisitAsideBlock && (
               <LocationEmptyInfo>Aucune information pour l’instant.</LocationEmptyInfo>
             )}
+          <LocationObservationSlot kind="marker" location={marker} />
           <LocationCommentsSection
             enabled={contextCommentsEnabled}
             commentsRef={commentsRef}

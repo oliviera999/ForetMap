@@ -43,6 +43,7 @@ import {
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
+import { LocationObservationSlot } from '../observations/LocationObservationSlot.jsx';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
@@ -384,6 +385,7 @@ function ZoneInfoModal({
             !showVisitAsideBlock && (
               <LocationEmptyInfo>Zone vide — aucune information pour l'instant.</LocationEmptyInfo>
             )}
+          <LocationObservationSlot kind="zone" location={zone} />
           <LocationCommentsSection
             enabled={contextCommentsEnabled}
             commentsRef={commentsRef}

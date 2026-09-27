@@ -1,12 +1,13 @@
 import {
   armNativeFilePickerGuard,
   disarmNativeFilePickerGuard,
-} from '../shared/platform/overlayHistory';
-import { IconCamera, IconClose, IconFolder } from '../shared/icons.jsx';
+} from '../../shared/platform/overlayHistory';
+import { IconCamera, IconClose, IconFolder } from '../../shared/icons.jsx';
 
 /**
- * Champ photo (présentation) du formulaire « Nouvelle observation » — extrait de
- * `ObservationNotebook` (O6). Sans aperçu : propose deux boutons (galerie /
+ * Champ photo (présentation) du formulaire « Signaler une observation » (observations
+ * d'espèces, migration 306) — repris de l'ancien carnet `ObservationNotebook` (O6), retiré.
+ * Sans aperçu : propose deux boutons (galerie /
  * appareil photo) reliés à des inputs `type=file` cachés ; avec aperçu : affiche
  * l'image et un bouton de suppression. Le garde du sélecteur de fichier natif est
  * armé/désarmé ici ; le reste (compression, état) reste géré par le parent.
@@ -84,8 +85,9 @@ export function ObservationPhotoField({
     </div>
   ) : (
     <div className="img-preview-wrap">
-      <img src={preview} className="img-preview" alt="preview" />
+      <img src={preview} className="img-preview" alt="Aperçu avant envoi" />
       <button
+        type="button"
         className="img-remove"
         aria-label="Retirer la photo"
         title="Retirer la photo"

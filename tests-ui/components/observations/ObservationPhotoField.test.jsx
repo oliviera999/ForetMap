@@ -4,12 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 
 const armNativeFilePickerGuard = vi.fn();
 const disarmNativeFilePickerGuard = vi.fn();
-vi.mock('../../src/shared/platform/overlayHistory', () => ({
+vi.mock('../../../src/shared/platform/overlayHistory', () => ({
   armNativeFilePickerGuard: (...args) => armNativeFilePickerGuard(...args),
   disarmNativeFilePickerGuard: (...args) => disarmNativeFilePickerGuard(...args),
 }));
 
-import { ObservationPhotoField } from '../../src/components/ObservationPhotoField.jsx';
+import { ObservationPhotoField } from '../../../src/components/observations/ObservationPhotoField.jsx';
 
 function renderField(overrides = {}) {
   const galleryFileRef = React.createRef();
@@ -58,7 +58,7 @@ describe('ObservationPhotoField', () => {
   test('avec aperçu → rend l’image et le bouton de suppression', () => {
     const { container, props } = renderField({ preview: 'data:image/png;base64,xxx' });
     expect(container.querySelector('.img-preview-wrap')).toBeTruthy();
-    expect(screen.getByAltText('preview')).toBeTruthy();
+    expect(screen.getByAltText('Aperçu avant envoi')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la photo' }));
     expect(props.onRemove).toHaveBeenCalledTimes(1);
   });
