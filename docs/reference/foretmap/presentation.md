@@ -90,7 +90,10 @@ cycle de vie, comestibilité, rôle dans l'écosystème, besoins (température, 
 photos (plante, feuille, fleur, fruit…), conseils de plantation, sources.
 
 - **L'élève** explore le catalogue avec des filtres et peut marquer des espèces comme
-  **observées** dans le jardin.
+  **observées** dans le jardin. Il peut aussi **signaler une observation** de terrain
+  (espèce, lieu, date, photo) depuis une fiche espèce ou un lieu de la carte : un professeur
+  la vérifie, et une observation validée fait apparaître l'espèce « **Confirmée sur le
+  site** ».
 - **Le professeur** crée et enrichit les fiches, avec deux aides précieuses : le
   **pré-remplissage automatique** (l'application va chercher les informations dans des
   bases naturalistes de référence) et l'**identification par photo** (on photographie
