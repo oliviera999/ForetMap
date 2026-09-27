@@ -7,13 +7,6 @@ import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/po
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
 import {
-  resolveMapOverlayTypography,
-  resolveMapOverlayCssVariables,
-} from '../utils/mapOverlayTypography';
-import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
-import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
-
-import {
   clusterStatusDots,
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
@@ -65,6 +58,7 @@ import { MarkerModal } from './map/MarkerModal.jsx';
 import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
 import { useMapViewPosition } from './map/useMapViewPosition.js';
 import { useMapViewRoutes } from './map/useMapViewRoutes.js';
+import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
@@ -629,21 +623,19 @@ function MapViewImpl({
   };
 
   const mapMascotFitScale = resolveMapViewMascotFitScale(cs);
-  // Hauteur affichée du plan AU REPOS (ajusté), indépendante du zoom : dimensionne les étiquettes
-  // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
-  const safeFitScale = fitScale > 0 ? fitScale : 1;
-  const mapFitHeightPx = ih * safeFitScale;
-  const mapFitWidthPx = iw * safeFitScale;
-  const mapZoomRatio = cs / safeFitScale;
+  // Typographie des étiquettes (emoji, nom) et variables CSS du calque d'étiquettes.
   const {
-    percent: mapTextSizePercent,
-    label: mapTextSizeLabel,
-    cycle: cycleMapTextSize,
-  } = useMapOverlayTextSizePreference();
-  const mapSettings =
-    publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
-  /** Pastilles violettes tutoriel : OFF par défaut (`ui.map.show_tutorial_dots`). */
-  const showTutorialDots = !!mapSettings?.show_tutorial_dots;
+    showTutorialDots,
+    mapTextSizeLabel,
+    cycleMapTextSize,
+    mapEmojiLabelCenterGap,
+    mapEmojiFontPx,
+    mapLabelFontPx,
+    markerLabelMarginTop,
+    mapOverlayLabelLayout,
+    mapOverlayCssVars,
+    workFitExtraStyle,
+  } = useMapViewTypography({ publicSettings, iw, ih, fitScale, cs, inv, isCoarsePointer });
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -657,39 +649,6 @@ function MapViewImpl({
     }),
     [publicSettings, drawPoints.length],
   );
-  const { mapEmojiLabelCenterGap, mapEmojiFontPx, mapLabelFontPx, markerLabelMarginTop } =
-    resolveMapOverlayTypography(mapSettings, mapFitHeightPx, {
-      worldScale: cs,
-      zoomRatio: mapZoomRatio,
-      fitWidthPx: mapFitWidthPx,
-      isCoarsePointer,
-      userTextSizePercent: mapTextSizePercent,
-    });
-  const mapOverlayLabelLayout = useMemo(
-    () => resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer }),
-    [mapSettings, inv, isCoarsePointer],
-  );
-  const mapOverlayCssVars = useMemo(
-    () =>
-      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
-        fitWidthPx: mapFitWidthPx,
-        isCoarsePointer,
-        userTextSizePercent: mapTextSizePercent,
-      }),
-    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
-  );
-  /** SharedMapStage : plateau dans la taille de police, pas via `scale(--map-overlay-scale)`. */
-  const workFitExtraStyle = useMemo(
-    () =>
-      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
-        fitWidthPx: mapFitWidthPx,
-        isCoarsePointer,
-        userTextSizePercent: mapTextSizePercent,
-        plateauAsTransform: false,
-      }),
-    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
-  );
-
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
   const parsedZones = useMemo(
