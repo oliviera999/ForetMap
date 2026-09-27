@@ -563,6 +563,10 @@ sous-onglet consulté qui est rouvert.
 - L'accès à l'interface professeur ne suffit **pas** à vider la médiathèque ni à
   verrouiller le forum : ces actions exigent des droits dédiés (`media.manage`,
   modération forum), avec périmètre de groupe quand il s'applique.
+- **Valider les observations d'espèces** des élèves (confirmer une espèce sur le site) est
+  un droit dédié, « Validation des observations d'espèces », accordé d'office à
+  l'administrateur et au n3boss — pas au prof de classe. Un compte « Visiteur » ne peut
+  pas signaler d'observation.
 - Les **suppressions** de zones, plantes, tutoriels, groupes, repères et contenus de
   visite sont **journalisées** dans l'onglet Audit.
 - Un profil chargé de gérer les rôles **ne peut pas** s'attribuer des pouvoirs qu'il

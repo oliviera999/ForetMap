@@ -246,6 +246,10 @@ d'observation** pour l'écriture naturaliste libre.
   atténué, une observation de terrain d’un trait plus appuyé. Un réseau pédagogique mêle
   forcément les trois, et tout afficher avec la même autorité apprenait aux élèves à ne
   pas faire la différence. Cliquer une relation affiche le niveau de preuve et la source.
+  Depuis septembre 2026, « Observé sur le site » peut aussi venir d'une **observation
+  d'élève validée** : le professeur rattache l'observation à la relation dans « Observations
+  à valider » (onglet Biodiversité), et la relation passe à « Observé sur le site » dès que
+  l'observation est validée. Ce niveau ne redescend jamais tout seul.
 - **Pour la pollinisation, l’efficacité du visiteur peut être précisée** :
   « Pollinisateur efficace », « Pollinisateur accessoire », « Simple visiteur » ou
   « Voleur de nectar » — tous les insectes qui viennent sur une fleur ne la pollinisent

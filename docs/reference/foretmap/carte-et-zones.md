@@ -127,7 +127,12 @@ qu'on veut). Sa fiche rassemble :
 - des **alias de recherche** (autres noms séparés par `;`) et un choix de **surfaces
   d'affichage** : voir « Où apparaît un lieu » plus bas ;
 - des **commentaires** contextuels (observations des élèves et du professeur), si le
-  module est activé.
+  module est activé ;
+- un bouton **« Signaler une observation ici »** (compte connecté) : l'élève signale une
+  espèce vue dans ce lieu, que le professeur validera — le lieu est déjà choisi dans le
+  formulaire. Un bouton voisin, **« Mes observations »**, montre les siennes et leur statut.
+  Même chose sur la fiche d'un repère. Détail : « Signaler une observation » dans
+  [Plantes et biodiversité](plantes-et-biodiversite.md).
 
 ## Les repères
 

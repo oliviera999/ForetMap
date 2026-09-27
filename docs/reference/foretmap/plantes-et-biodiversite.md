@@ -18,7 +18,8 @@ celles qu'ils ont **observées** sur le terrain.
 - **Tout le monde** (y compris les simples visiteurs) peut consulter le catalogue. Les fiches
   s'ouvrent aussi depuis la **visite** : chaque lieu du plan affiche ses espèces en vignettes
   (voir [Visite et mascottes](visite-et-mascottes.md)).
-- **L'élève connecté** filtre, lit les fiches et enregistre ses observations.
+- **L'élève connecté** filtre, lit les fiches, enregistre ses observations et peut
+  **signaler une observation** de terrain, qu'un professeur vérifie.
 - **Le professeur** crée et enrichit les fiches, avec des aides puissantes :
   pré-remplissage automatique, identification par photo, import en masse.
 
@@ -87,6 +88,14 @@ La fiche dit **d'où vient la présence**, sobrement, sous « Sur la carte » : 
 espèce seulement au registre n'a pas de mini-carte : elle est connue sur le site sans lieu
 précis. Une espèce absente de la carte ouverte porte la mention « Pas encore signalée sur
 cette carte ».
+
+**« Confirmée sur le site »** (depuis septembre 2026) : quand un professeur **valide** une
+observation signalée par un élève (voir « Signaler une observation » plus bas), l'espèce est
+inscrite au registre de la carte si elle n'y était pas, et la fiche affiche la pastille
+**« Confirmée sur le site »** sous les boutons d'observation. La date de l'observation et son
+auteur sont gardés comme **première mention** sur le site, sauf si une première mention
+était déjà connue : elle n'est jamais remplacée. Une confirmation ne se perd pas quand une
+autre observation de la même espèce n'est pas retenue.
 
 Deux précisions :
 
@@ -444,7 +453,62 @@ réseau. Une observation envoyée deux fois (réponse perdue, appareil qui renvo
 comptée qu'**une** fois. Sur une tablette partagée, l'observation n'est envoyée que sous le
 compte de son auteur, à sa prochaine connexion.
 
+### Signaler une observation (espèce vue sur le terrain)
+
+« Espèce observée » ci-dessus est un **acquis d'apprentissage** : l'élève dit qu'il a vu et
+lu. **Signaler une observation** est autre chose : c'est une **donnée de terrain**, qu'un
+professeur vérifie avant qu'elle compte pour le site.
+
+1. Depuis la **fiche d'une espèce** (bouton **« Signaler une observation »**) ou depuis la
+   fiche d'une **zone** ou d'un **repère** de la carte (bouton **« Signaler une observation
+   ici »**), l'élève ouvre un court formulaire : l'espèce (déjà choisie depuis une fiche ;
+   « Je ne sais pas » est possible), le lieu (déjà choisi depuis la carte), la date (celle du
+   jour par défaut), la façon dont il l'a repérée (vue, chant ou cri, trace, indice, de nuit),
+   ce qu'il a vu, et une **photo** facultative. Le formulaire rappelle la règle : **on observe
+   sans toucher ni prélever** — on regarde, on écoute, on photographie.
+2. L'observation part **« En attente de validation »**. L'élève retrouve toutes les siennes
+   dans **« Mes observations »** (même bouton, à côté), avec leur statut — **Validée** ou
+   **Non retenue** — et la note éventuelle du professeur. Il peut supprimer une observation
+   tant qu'elle n'est pas validée ; il peut ajouter ou retirer sa photo tant qu'elle attend.
+3. **Sans réseau sur le terrain**, l'observation est **gardée sur l'appareil** et part toute
+   seule au retour du réseau (« Pas de réseau : ton observation est gardée sur l'appareil et
+   partira toute seule »). La **photo**, trop lourde pour l'appareil, ne peut pas attendre :
+   l'élève en est prévenu, son texte part seul. Une observation renvoyée deux fois n'est
+   enregistrée qu'**une** fois ; sur une tablette partagée, elle ne part que sous le compte
+   de son auteur. Dans « Mes observations », elle apparaît « En attente de réseau » jusqu'à
+   son envoi.
+
+Les photos d'observation sont **privées** : seuls leur auteur et les professeurs habilités
+les voient ; les informations cachées dans la photo (lieu GPS, appareil) sont effacées à
+l'envoi. Un compte « Visiteur » ne peut pas signaler d'observation.
+
 ## Comment ça se passe — côté professeur
+
+### Valider les observations des élèves
+
+Dans l'onglet **Biodiversité** du professeur, l'encadré repliable **« Observations à
+valider »** (avec leur nombre) liste les observations signalées sur la carte active — ou sur
+toutes les cartes, et par statut : à valider (les plus anciennes d'abord), validées, non
+retenues. Chaque observation montre l'élève, la date, le lieu, la façon dont l'espèce a été
+repérée, le texte et les photos.
+
+- Le professeur choisit l'**espèce retenue** (celle proposée par l'élève, ou une autre s'il
+  s'est trompé ou ne savait pas), écrit s'il le souhaite une **note pour l'élève**, puis
+  **Valider** ou **Ne pas retenir**. On ne peut pas valider sans espèce.
+- **Valider** confirme la présence de l'espèce sur la carte : la fiche affiche « Confirmée sur
+  le site » (voir « Présente sur ce site » plus haut), et l'espèce compte partout où la
+  présence est utilisée.
+- La décision est **définitive** : une observation validée ne peut plus être refusée ni
+  supprimée (elle sert de preuve), une observation non retenue ne peut plus être validée.
+  Chaque décision est inscrite au **journal d'audit**.
+- **Preuve d'une relation du réseau trophique** : sous une observation, le professeur peut la
+  rattacher à une relation où figure l'espèce (« la coccinelle mange le puceron »). Dès que
+  l'observation est validée, la relation passe à **« Observé sur le site »** dans le réseau
+  trophique ; ce niveau de preuve ne redescend jamais tout seul.
+
+Le droit de valider est une permission dédiée, **« Validation des observations
+d'espèces »**, accordée d'office à l'administrateur et au n3boss, pas au prof de classe (valider
+écrit dans le registre de biodiversité du site).
 
 ### Créer et modifier une fiche
 
@@ -546,6 +610,17 @@ automatiquement la bonne fiche, et la recherche le trouve aussi.
 
 > ⚠️ **Point d'attention** — La **suppression** d'une fiche est immédiate et sans
 > corbeille. Les zones et repères qui référençaient l'espèce perdent ce lien.
+
+> ⚠️ **Point d'attention** — **Décocher une carte** dans le formulaire d'une fiche retire
+> l'espèce du registre de cette carte, **confirmation comprise** : la pastille « Confirmée
+> sur le site » disparaît alors, même si des observations validées existent (elles restent
+> dans « Observations à valider », filtre « Validées »). Recocher la carte ne rétablit pas la
+> confirmation. Ne décocher une carte que pour une vraie erreur de saisie.
+
+> ⚠️ **Point d'attention** — Deux gestes voisins cohabitent sur la fiche : **« Espèce
+> observée »** (compteur personnel d'apprentissage, sans vérification) et **« Signaler une
+> observation »** (donnée de terrain validée par un professeur). Seul le second peut
+> confirmer une espèce sur le site.
 
 L’affichage du catalogue et des outils associés suit le **niveau pédagogique** : en
 Collège, le nom accepté, le lien GBIF et la classification latine sont masqués, ainsi que
