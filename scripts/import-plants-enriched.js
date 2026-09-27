@@ -3,40 +3,11 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 const { initDatabase, pool } = require('../database');
+const { findInsertStatements } = require('./lib/sqlDumpInserts');
 
 // Jeu de données de contenu, sans données personnelles (voir
 // scripts/extract-biodiv-pedago-seed.js pour le régénérer depuis un export local).
 const DUMP = path.join(__dirname, '..', 'sql', 'biodiv_pedago_seed.sql');
-
-function extractInsert(sql, table) {
-  const marker = 'INSERT INTO `' + table + '` VALUES';
-  const start = sql.indexOf(marker);
-  if (start < 0) return null;
-  let i = start;
-  let inString = false;
-  let escape = false;
-  while (i < sql.length) {
-    const c = sql[i];
-    if (escape) {
-      escape = false;
-      i++;
-      continue;
-    }
-    if (inString && c === '\\') {
-      escape = true;
-      i++;
-      continue;
-    }
-    if (c === "'") {
-      inString = !inString;
-      i++;
-      continue;
-    }
-    if (!inString && c === ';') return sql.slice(start, i + 1);
-    i++;
-  }
-  return null;
-}
 
 function parseInsertRows(insertSql) {
   const valuesIdx = insertSql.indexOf('VALUES');
@@ -103,6 +74,11 @@ function parseInsertRows(insertSql) {
   return rows;
 }
 
+/**
+ * Position des colonnes enrichies dans une graine **ancienne**, sans liste de colonnes. La graine
+ * régénérée par scripts/extract-biodiv-pedago-seed.js nomme ses colonnes : on s'y fie alors, ce
+ * qui rend l'import indépendant de l'ordre des colonnes de l'export.
+ */
 const ENRICH_IDX = {
   taxon_kingdom: 6,
   taxon_group: 7,
@@ -120,13 +96,31 @@ const ENRICH_IDX = {
   is_edible: 38,
 };
 
+/**
+ * Index de chaque colonne enrichie (et de `id`) : d'après la liste de colonnes de la graine si
+ * elle en a une, sinon `ENRICH_IDX`. Une colonne attendue absente de la liste est une erreur.
+ * @param {string[] | null} columns
+ */
+function resolveEnrichIndex(columns) {
+  if (!columns) return { ...ENRICH_IDX };
+  const index = {};
+  for (const name of Object.keys(ENRICH_IDX)) {
+    const at = columns.indexOf(name);
+    if (at < 0) throw new Error(`Colonne ${name} absente de l'INSERT plants de la graine.`);
+    index[name] = at;
+  }
+  if (columns.indexOf('id') !== 0) throw new Error('La colonne id doit être la première.');
+  return index;
+}
+
 async function run() {
   console.log('Mise à jour plants enrichies depuis dump…');
   await initDatabase();
   const sql = fs.readFileSync(DUMP, 'utf8');
-  const insert = extractInsert(sql, 'plants');
-  if (!insert) throw new Error('INSERT plants introuvable');
-  const rows = parseInsertRows(insert);
+  const statements = findInsertStatements(sql, 'plants');
+  if (!statements.length) throw new Error('INSERT plants introuvable');
+  const enrichIndex = resolveEnrichIndex(statements[0].columns);
+  const rows = statements.flatMap((stmt) => parseInsertRows(stmt.text));
   const conn = await pool.getConnection();
   let updated = 0;
   try {
@@ -137,7 +131,7 @@ async function run() {
     for (const row of rows) {
       const id = row[0];
       if (!id) continue;
-      const vals = Object.keys(ENRICH_IDX).map((k) => row[ENRICH_IDX[k]] ?? null);
+      const vals = Object.keys(ENRICH_IDX).map((k) => row[enrichIndex[k]] ?? null);
       vals.push(id);
       const [res] = await conn.query(sqlUpd, vals);
       if (res.affectedRows) updated += res.affectedRows;
@@ -151,7 +145,11 @@ async function run() {
   }
   await pool.end();
 }
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+module.exports = { ENRICH_IDX, parseInsertRows, resolveEnrichIndex };

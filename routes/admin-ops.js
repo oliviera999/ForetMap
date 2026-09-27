@@ -10,7 +10,8 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { ping: dbPing, queryAll } = require('../database');
+const { ping: dbPing, queryAll, queryOne } = require('../database');
+const { getMigrationStatus } = require('../lib/migrationStatus');
 const logger = require('../lib/logger');
 const logMetrics = require('../lib/logMetrics');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
@@ -105,6 +106,25 @@ function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => n
       database = { ok: false, error: 'Database unavailable' };
     }
     const pkgVersion = startupVersion;
+    // Base en retard sur les fichiers de migrations/ : le code déployé peut écrire des colonnes
+    // qui n'existent pas encore (cas de la migration 296). Voir lib/migrationStatus.js.
+    let schema = { ok: false, error: null };
+    if (database.ok) {
+      try {
+        const status = await getMigrationStatus({ queryOne });
+        schema = {
+          ok: status.upToDate,
+          current: status.current,
+          latest: status.latest,
+          pending: status.pending,
+        };
+      } catch (err) {
+        logger.warn({ err }, 'Diagnostics admin : lecture schema_version');
+        schema = { ok: false, error: 'schema_version_unavailable' };
+      }
+    } else {
+      schema = { ok: false, error: 'database_unavailable' };
+    }
     let visitMascotHint = { maps: [], error: null };
     try {
       visitMascotHint = await getVisitMascotHintSnapshot(queryAll);
@@ -152,6 +172,8 @@ function createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState = () => n
         heapTotalMb: toMb(mem.heapTotal),
       },
       database,
+      /** Version du schéma en base vs dernier fichier de migrations/ (`pending` : numéros en attente). */
+      schema,
       logBuffer: {
         linesCount: getBufferedLineCount(),
         maxLines: getMaxLines(),

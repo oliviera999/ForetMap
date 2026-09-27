@@ -13,6 +13,11 @@
  * Usage :
  *   node scripts/extract-biodiv-pedago-seed.js <chemin-du-dump.sql> [--out=sql/biodiv_pedago_seed.sql]
  *
+ * L'export attendu : `mariadb-dump` (ou `mysqldump`) des seules tables de `TABLES`, avec leur
+ * structure (pas de `--no-create-info`). Plusieurs `INSERT` par table sont fusionnés ; les
+ * colonnes sont nommées dans la sortie ; `plants.hazard_reviewed_by` est vidé (voir
+ * `NEUTRALIZED_COLUMNS`).
+ *
  * Le parseur reproduit exactement celui des scripts consommateurs
  * (`import-biodiv-pedago.js`, `import-plants-enriched.js`) : découpe sur le `;` de fin
  * d'instruction en respectant les chaînes SQL et leurs échappements.
@@ -20,6 +25,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const {
+  findInsertStatements,
+  parseCreateTableColumns,
+  splitValueTuples,
+  buildInsert,
+} = require('./lib/sqlDumpInserts');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUT = path.join(ROOT, 'sql', 'biodiv_pedago_seed.sql');
@@ -45,6 +56,25 @@ const PII_PATTERNS = [
   { label: 'adresse email', re: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/ },
 ];
 
+/**
+ * Adresses e-mail **dans le contenu** (ex. crédit photo Wikimedia « mail me (x@y.z) if you want
+ * to use… ») : ce sont des données personnelles de tiers, retirées plutôt que bloquantes — la
+ * liste `TABLES` ne contient aucune table de comptes, donc une adresse ne peut venir que d'un
+ * texte. Le garde-fou `PII_PATTERNS` reste appliqué après ce retrait.
+ */
+const CONTENT_EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const EMAIL_PLACEHOLDER = '[adresse retirée]';
+
+/** @returns {{ text: string, count: number }} */
+function redactContentEmails(text) {
+  let count = 0;
+  const redacted = text.replace(CONTENT_EMAIL_RE, () => {
+    count += 1;
+    return EMAIL_PLACEHOLDER;
+  });
+  return { text: redacted, count };
+}
+
 const HEADER = [
   '-- Jeu de données biodiversité / pédagogie ForetMap.',
   '--',
@@ -60,34 +90,55 @@ const HEADER = [
   '',
 ];
 
-function extractInsert(sql, table) {
-  const marker = 'INSERT INTO `' + table + '` VALUES';
-  const start = sql.indexOf(marker);
-  if (start < 0) return null;
-  let i = start;
-  let inString = false;
-  let escape = false;
-  while (i < sql.length) {
-    const c = sql[i];
-    if (escape) {
-      escape = false;
-      i++;
-      continue;
+/**
+ * Colonnes vidées (`NULL`) à l'extraction : elles désignent une personne. `plants.hazard_reviewed_by`
+ * porte l'identifiant du compte enseignant qui a validé la section « danger » (migration 271) ;
+ * c'est en plus une clé étrangère vers `users`, qu'aucune base neuve ne contient.
+ */
+const NEUTRALIZED_COLUMNS = Object.freeze({ plants: ['hazard_reviewed_by'] });
+
+/**
+ * Instruction d'insertion de la table, reconstruite depuis l'export :
+ *   - tous les `INSERT` de la table (un gros export en contient plusieurs) fusionnés en un ;
+ *   - colonnes nommées (d'après le `CREATE TABLE` de l'export) : l'import ne dépend plus de
+ *     l'ordre des colonnes de la base cible ;
+ *   - colonnes de `NEUTRALIZED_COLUMNS` remises à `NULL`.
+ * @returns {{ statement: string, rows: number } | null}
+ */
+function extractTable(sql, table) {
+  const statements = findInsertStatements(sql, table);
+  if (!statements.length) return null;
+  const columns = statements[0].columns || parseCreateTableColumns(sql, table);
+  const rows = [];
+  for (const stmt of statements) {
+    if ((stmt.columns || null) !== null && columns && stmt.columns.join() !== columns.join()) {
+      throw new Error(`${table} : listes de colonnes différentes d'un INSERT à l'autre.`);
     }
-    if (inString && c === '\\') {
-      escape = true;
-      i++;
-      continue;
-    }
-    if (c === "'") {
-      inString = !inString;
-      i++;
-      continue;
-    }
-    if (!inString && c === ';') return sql.slice(start, i + 1);
-    i++;
+    rows.push(...splitValueTuples(stmt.valuesText));
   }
-  return null;
+  const neutralized = NEUTRALIZED_COLUMNS[table] || [];
+  if (neutralized.length) {
+    if (!columns) {
+      throw new Error(
+        `${table} : structure absente de l'export (CREATE TABLE) — impossible de vider ` +
+          `${neutralized.join(', ')}. Refaire l'export sans --no-create-info.`,
+      );
+    }
+    for (const name of neutralized) {
+      const index = columns.indexOf(name);
+      if (index < 0) continue; // export antérieur à la colonne : rien à vider
+      for (const row of rows) row[index] = 'NULL';
+    }
+  }
+  if (columns) {
+    const bad = rows.find((row) => row.length !== columns.length);
+    if (bad) {
+      throw new Error(
+        `${table} : ${bad.length} valeurs pour ${columns.length} colonnes — export illisible.`,
+      );
+    }
+  }
+  return { statement: buildInsert(table, columns, rows), rows: rows.length };
 }
 
 function parseArgs(argv) {
@@ -114,16 +165,30 @@ function main() {
   const sql = fs.readFileSync(source, 'utf8');
   const parts = [...HEADER];
   const missing = [];
+  const counts = [];
   for (const table of TABLES) {
-    const insert = extractInsert(sql, table);
-    if (!insert) {
+    let extracted;
+    try {
+      extracted = extractTable(sql, table);
+    } catch (err) {
+      console.error(`[extract-biodiv-pedago-seed] ÉCHEC — ${err.message}`);
+      console.error('Aucun fichier écrit.');
+      process.exit(1);
+    }
+    if (!extracted) {
       missing.push(table);
       continue;
     }
-    parts.push(`-- ${table}`, insert, '');
+    counts.push(`${table} ${extracted.rows}`);
+    parts.push(`-- ${table}`, extracted.statement, '');
   }
 
-  const content = parts.join('\n');
+  const { text: content, count: redactedEmails } = redactContentEmails(parts.join('\n'));
+  if (redactedEmails) {
+    console.log(
+      `[extract-biodiv-pedago-seed] ${redactedEmails} adresse(s) e-mail retirée(s) du contenu.`,
+    );
+  }
 
   // Garde-fou : on refuse d'écrire un fichier qui porterait encore des données personnelles.
   for (const { label, re } of PII_PATTERNS) {
@@ -140,9 +205,12 @@ function main() {
   fs.writeFileSync(out, content);
   const sizeKo = (fs.statSync(out).size / 1024).toFixed(0);
   console.log(`[extract-biodiv-pedago-seed] ${out} écrit (${sizeKo} Ko).`);
+  console.log(`[extract-biodiv-pedago-seed] lignes : ${counts.join(', ')}.`);
   if (missing.length) {
     console.warn(`[extract-biodiv-pedago-seed] Tables absentes du dump : ${missing.join(', ')}`);
   }
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { TABLES, NEUTRALIZED_COLUMNS, PII_PATTERNS, extractTable, redactContentEmails };
