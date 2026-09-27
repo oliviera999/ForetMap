@@ -3,23 +3,10 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallba
 import { routeEntryFocusPct } from '../shared/map-routes/mapRouteSteps.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 
-import {
-  clusterStatusDots,
-  computeTaskVisualByLocation,
-  computeTutorialCountByLocation,
-  locationStatusDots,
-} from '../utils/mapLocationBadges.js';
-
 import { TutorialPreviewModal } from './TutorialPreviewModal';
-import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
-import {
-  clusterCenterPct,
-  clusterMarkers,
-  clusterSeparatesOnZoom,
-  clusterZoomTargetScale,
-} from '../shared/pct-map/clusterMarkers.js';
+import { clusterMarkers } from '../shared/pct-map/clusterMarkers.js';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { resolveMapViewMascotFitScale } from '../utils/mapViewMascotMotion.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
@@ -40,8 +27,7 @@ import {
 
 import { parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
 import { MapViewEditCanvas } from './map/MapViewEditCanvas.jsx';
-import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
-import { EDGE_SNAP_DEFAULTS, sensitivityToMinStrength } from '../utils/edgeSnap.js';
+import { sensitivityToMinStrength } from '../utils/edgeSnap.js';
 import {
   NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
   normalizeNeighborZones,
@@ -55,6 +41,10 @@ import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
 import { useMapViewPosition } from './map/useMapViewPosition.js';
 import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { useMapViewTypography } from './map/useMapViewTypography.js';
+import { useMapViewBadges } from './map/useMapViewBadges.js';
+import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
+import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
+import { useTutorialReadIds } from './map/useTutorialReadIds.js';
 import {
   MapViewLocationSearch,
   MapViewRouteControls,
@@ -159,7 +149,6 @@ function MapViewImpl({
     });
   const [toast, setToast] = useState(null);
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
-  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
   const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
     useMapFullscreen({
@@ -296,16 +285,17 @@ function MapViewImpl({
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
   // Aimant de contour (lot « ancrage magnétique ») : analyse de l'image de fond à la demande.
-  const [snapEnabled, setSnapEnabled] = useState(false);
-  const [snapRadiusPx, setSnapRadiusPx] = useState(EDGE_SNAP_DEFAULTS.radiusScreenPx);
-  const [snapSensitivity, setSnapSensitivity] = useState(EDGE_SNAP_DEFAULTS.sensitivity);
-  const edgeSnap = useMapImageEdgeSnap({
-    src: mapImageSrc,
-    active: snapEnabled && mode === 'edit-points',
-  });
-  // Rayons exprimés à l'écran → convertis en % d'image (constants visuellement au zoom).
-  const snapRadiusPct = iw > 0 ? Math.max(0.05, ((snapRadiusPx * inv) / iw) * 100) : 1;
-  const edgeTolerancePct = iw > 0 ? Math.min(8, Math.max(0.3, ((28 * inv) / iw) * 100)) : 3;
+  const {
+    snapEnabled,
+    setSnapEnabled,
+    snapRadiusPx,
+    setSnapRadiusPx,
+    snapSensitivity,
+    setSnapSensitivity,
+    edgeSnap,
+    snapRadiusPct,
+    edgeTolerancePct,
+  } = useMapViewEdgeSnap({ mapImageSrc, mode, iw, inv });
 
   // Édition du contour d'une zone (mode edit-points) : session, historique Ctrl+Z, translation.
   const {
@@ -435,34 +425,7 @@ function MapViewImpl({
     );
     return meters != null ? formatDistanceFr(meters) : '';
   }, [currentRouteEntry, mapPosition.positionPct, mapPosition.planSize]);
-  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
-    () => computeTaskVisualByLocation(tasks),
-    [tasks],
-  );
-
-  const { zoneTutorialCountById, markerTutorialCountById } = useMemo(
-    () => computeTutorialCountByLocation({ tutorials, tasks, zones, markers, activeMapId }),
-    [tutorials, zones, markers, activeMapId, tasks],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchTutorialReadIds();
-      if (!cancelled) setTutorialReadIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [tutorials]);
+  const [tutorialReadIds, setTutorialReadIds] = useTutorialReadIds(tutorials);
 
   const hadZoneOrMarkerSelectionRef = useRef(false);
   useEffect(() => {
@@ -603,6 +566,16 @@ function MapViewImpl({
     mapOverlayCssVars,
     workFitExtraStyle,
   } = useMapViewTypography({ publicSettings, iw, ih, fitScale, cs, inv, isCoarsePointer });
+  // Pastilles d'état des lieux (tâches, tutoriels liés).
+  const {
+    zoneTaskVisualById,
+    markerTaskVisualById,
+    zoneTutorialCountById,
+    markerTutorialCountById,
+    getStageZoneStatusDots,
+    getStageMarkerStatusDots,
+    getStageClusterStatusDots,
+  } = useMapViewBadges({ tasks, tutorials, zones, markers, activeMapId, showTutorialDots });
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -688,172 +661,36 @@ function MapViewImpl({
     },
   });
 
-  /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
-  const focusMapOnLocation = useCallback((focusPct) => focusMapPct(focusPct), [focusMapPct]);
-
-  const onSelectMapFilterResult = useCallback(
-    (row) => {
-      if (!row?.item) return;
-      if (row.kind === 'zone') {
-        if (showMapMascot) onMapMascotZoneClick(row.item, setSelectedZone);
-        else setSelectedZone(row.item);
-        focusMapOnLocation(zoneFocusPctFromPoints(row.item.points));
-      } else {
-        if (showMapMascot) onMapMascotMarkerClick(row.item, setSelectedMarker);
-        else setSelectedMarker(row.item);
-        focusMapOnLocation(markerFocusPct(row.item));
-      }
-    },
-    [showMapMascot, onMapMascotZoneClick, onMapMascotMarkerClick, focusMapOnLocation],
-  );
-
-  const openZoneFromMap = useCallback(
-    (z, e) => {
-      if (moved.current) return;
-      if (mode === 'align-zones') {
-        e.stopPropagation();
-        toggleAlignZoneId(z.id);
-        return;
-      }
-      if (mode === 'view') {
-        e.stopPropagation();
-        if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
-        else setSelectedZone(z);
-      }
-    },
-    [mode, moved, showMapMascot, onMapMascotZoneClick, toggleAlignZoneId],
-  );
-
-  const openMarkerFromMap = useCallback(
-    (m, e) => {
-      e.stopPropagation();
-      if (!moved.current) {
-        if (mode === 'view' && showMapMascot) onMapMascotMarkerClick(m, setSelectedMarker);
-        else setSelectedMarker(m);
-      }
-    },
-    [mode, moved, showMapMascot, onMapMascotMarkerClick],
-  );
-
-  /**
-   * Tap sur un groupe de repères : zoom animé sur son enveloppe si le groupe se sépare,
-   * sinon ouverture du repère représentatif (sur la carte de travail, la fiche est le geste
-   * attendu ; le plan, lui, montre la liste du groupe dans sa feuille basse).
-   */
-  const openClusterFromMap = useCallback(
-    (cluster, e) => {
-      e.stopPropagation();
-      if (moved.current) return;
-      if (clusterSeparatesOnZoom(cluster)) {
-        focusMapPct(clusterCenterPct(cluster), {
-          targetScale: clusterZoomTargetScale(cluster, {
-            stageWidthPx: containerRef.current?.clientWidth || 0,
-            stageHeightPx: containerRef.current?.clientHeight || 0,
-            contentWidthPx: imgSize.w,
-            contentHeightPx: imgSize.h,
-          }),
-        });
-        return;
-      }
-      setSelectedMarker(cluster.lead);
-    },
-    [moved, focusMapPct, containerRef, imgSize.w, imgSize.h],
-  );
-
-  /**
-   * Ouverture lieu depuis SharedMapStage (calques Pct*). Ignore les lieux atténués par filtre.
-   */
-  const onSelectPlaceFromStage = useCallback(
-    (place) => {
-      if (!place) return;
-      if (mapFilterActive) {
-        const id = String(place.id);
-        if (place.kind === 'zone' && !matchingZoneIds.has(id)) return;
-        if (place.kind === 'marker' && !matchingMarkerIds.has(id)) return;
-      }
-      if (place.kind === 'zone') {
-        setSelectedMarker(null);
-        if (showMapMascot) onMapMascotZoneClick(place, setSelectedZone);
-        else setSelectedZone(place);
-        return;
-      }
-      setSelectedZone(null);
-      if (showMapMascot) onMapMascotMarkerClick(place, setSelectedMarker);
-      else setSelectedMarker(place);
-    },
-    [
-      mapFilterActive,
-      matchingZoneIds,
-      matchingMarkerIds,
-      showMapMascot,
-      onMapMascotZoneClick,
-      onMapMascotMarkerClick,
-    ],
-  );
-
-  /** Groupe de repères qui ne se sépare pas au zoom : ouvrir le repère représentatif. */
-  const onOpenGroupFromStage = useCallback((groupMarkers) => {
-    const lead = Array.isArray(groupMarkers) && groupMarkers.length ? groupMarkers[0] : null;
-    if (lead) setSelectedMarker(lead);
-  }, []);
-
-  /**
-   * Pastilles d'état des lieux sur la scène partagée (consultation) : état des tâches, et
-   * tutoriels liés si l'admin les affiche. Ce sont les pastilles historiques de la carte de
-   * travail, rendues par `PctStatusDotsLayer` depuis l'unification sur `SharedMapStage` —
-   * sans ce branchement, la scène n'en affichait plus aucune.
-   */
-  const getStageZoneStatusDots = useCallback(
-    (zone) =>
-      locationStatusDots({
-        kind: 'zone',
-        taskVisual: zoneTaskVisualById.get(zone?.id),
-        tutorialCount: showTutorialDots ? zoneTutorialCountById.get(zone?.id) || 0 : 0,
-      }),
-    [zoneTaskVisualById, zoneTutorialCountById, showTutorialDots],
-  );
-
-  const getStageMarkerStatusDots = useCallback(
-    (marker) =>
-      locationStatusDots({
-        kind: 'marker',
-        taskVisual: markerTaskVisualById.get(marker?.id),
-        tutorialCount: showTutorialDots ? markerTutorialCountById.get(marker?.id) || 0 : 0,
-      }),
-    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
-  );
-
-  /**
-   * Pastilles d'un **groupe** de repères : l'état le plus actionnable du groupe. Sans elles,
-   * les repères regroupés au dézoom (l'état d'arrivée sur la carte) n'affichaient plus rien.
-   */
-  const getStageClusterStatusDots = useCallback(
-    (markersOfCluster) =>
-      clusterStatusDots(markersOfCluster, {
-        taskVisualById: markerTaskVisualById,
-        tutorialCountById: markerTutorialCountById,
-        withTutorials: showTutorialDots,
-      }),
-    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
-  );
-
-  const onWorkBackgroundClick = useCallback(
-    (event) => {
-      if (!showMapMascot) return;
-      /* Clic fond libre (hors zone/repère) : même destination que le point cliqué. */
-      const pct = workViewportApiRef.current.toImagePct?.(event.clientX, event.clientY, {
-        clamp: true,
-      });
-      if (pct) moveMapMascotTo(pct.xp, pct.yp);
-    },
-    [showMapMascot, moveMapMascotTo],
-  );
-
-  const selectedPlaceForStage = useMemo(() => {
-    if (selectedZone) return { ...selectedZone, kind: 'zone' };
-    if (selectedMarker) return { ...selectedMarker, kind: 'marker' };
-    return null;
-  }, [selectedZone, selectedMarker]);
+  // Ouverture d'un lieu : toucher (scène, canevas, groupe), résultat de recherche, fond.
+  const {
+    onSelectMapFilterResult,
+    openZoneFromMap,
+    openMarkerFromMap,
+    openClusterFromMap,
+    onSelectPlaceFromStage,
+    onOpenGroupFromStage,
+    onWorkBackgroundClick,
+    selectedPlaceForStage,
+  } = useMapViewPlaceHandlers({
+    mode,
+    moved,
+    selectedZone,
+    selectedMarker,
+    setSelectedZone,
+    setSelectedMarker,
+    showMapMascot,
+    onMapMascotZoneClick,
+    onMapMascotMarkerClick,
+    moveMapMascotTo,
+    toggleAlignZoneId,
+    focusMapPct,
+    containerRef,
+    imgSize,
+    workViewportApiRef,
+    mapFilterActive,
+    matchingZoneIds,
+    matchingMarkerIds,
+  });
 
   const workTargetPct = useMemo(
     () => (activeRoute ? routeEntryFocusPct(currentRouteEntry) : null),
