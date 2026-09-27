@@ -25,7 +25,15 @@
   </p>
   <p>
     Si le serveur tourne en production (<code>NODE_ENV=production</code>) et que vous voyez cette page,
-    vérifiez que le build frontend est présent dans <code>dist/</code>, puis redémarrez Node.
+    <code>dist/</code> manquait au démarrage de Node : le serveur ne choisit qu’au démarrage de servir
+    le build. <code>dist/</code> n’est plus dans le dépôt : le cron de déploiement le pose depuis la
+    branche <code>dist-artifact/main</code>, puis redémarre l’application.
+  </p>
+  <p>
+    Si cette page reste affichée : lire <code>logs/foretmap-auto-deploy.log</code>, puis suivre la
+    section « Dépannage » de <code>docs/DEPLOY_DIST_ARTIFACT.md</code> (sans <code>node</code> :
+    <code>git archive</code> de l’artefact dans <code>dist/</code>), et redémarrer l’application.
+    Ne pas utiliser « Update from Remote » de cPanel, qui ne pose pas le build.
   </p>
   <p>
     En développement : lancez le backend (ex. <code>npm run dev</code> sur le port 3000) et le client Vite

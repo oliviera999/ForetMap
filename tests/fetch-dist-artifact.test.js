@@ -10,6 +10,7 @@ const { execFileSync } = require('node:child_process');
 
 const {
   EXIT_DEFER,
+  EXIT_REPAIRED,
   parseBuildInfo,
   decideAction,
   findDistGaps,
@@ -124,6 +125,19 @@ test('EXIT_DEFER reste 75 (EX_TEMPFAIL) : le cron s’appuie sur cette valeur', 
   assert.equal(EXIT_DEFER, 75);
 });
 
+test('EXIT_REPAIRED vaut 10 : le cron redémarre l’app sur cette valeur', () => {
+  // scripts/auto-deploy-cron.sh teste littéralement `-eq 10` : un `dist/` reposé n'est servi
+  // qu'après redémarrage (le serveur ne décide qu'au démarrage, incident du 27/09/2026).
+  assert.equal(EXIT_REPAIRED, 10);
+  assert.notEqual(EXIT_REPAIRED, EXIT_DEFER);
+  const cron = fs.readFileSync(
+    path.join(__dirname, '..', 'scripts', 'auto-deploy-cron.sh'),
+    'utf8',
+  );
+  assert.match(cron, /"\$rc" -eq 10/);
+  assert.match(cron, /"\$rc" -eq 75/);
+});
+
 test('findDistGaps signale un build sans assets/ ou sans entrée produit', () => {
   const app = tmpApp();
   try {
@@ -218,6 +232,47 @@ test('--mode repair laisse la main à git quand dist/ est encore versionné', ()
     assert.equal(main(['--mode', 'repair', '--dir', app]), 0);
   } finally {
     fs.rmSync(app, { recursive: true, force: true });
+  }
+});
+
+test('--mode repair repose un dist/ absent depuis l’artefact, sort en 10, puis 0', () => {
+  // Cas du 27/09/2026 : un `git pull` fait hors du cron a retiré `dist/`. La réparation doit
+  // le reposer ET le signaler (code 10), pour que le cron redémarre l'application.
+  const root = tmpApp();
+  const app = path.join(root, 'app');
+  const origin = path.join(root, 'origin');
+  const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', env: gitEnv() });
+  try {
+    fs.mkdirSync(app);
+    fs.mkdirSync(origin);
+    git(app, 'init', '--quiet');
+    fs.writeFileSync(path.join(app, '.gitignore'), 'dist/\ndist.new/\ndist.prev/\n');
+    git(app, 'add', '.gitignore');
+    git(app, 'commit', '--quiet', '-m', 'sources sans dist/');
+    const source = git(app, 'rev-parse', 'HEAD').trim();
+
+    // Dépôt « origin » portant la branche d'artefacts (un commit : dist/ + BUILD_INFO.json).
+    git(origin, 'init', '--quiet');
+    git(origin, 'symbolic-ref', 'HEAD', 'refs/heads/dist-artifact/main');
+    makeDist(path.join(origin, 'dist'));
+    fs.writeFileSync(
+      path.join(origin, 'BUILD_INFO.json'),
+      JSON.stringify({ sourceCommit: source, version: '0.0.0', builtAt: '2026-09-27T14:27:53Z' }),
+    );
+    git(origin, 'add', '-A');
+    git(origin, 'commit', '--quiet', '-m', 'build');
+    git(app, 'remote', 'add', 'origin', origin);
+
+    assert.equal(
+      main(['--mode', 'repair', '--dir', app, '--expect-source', source]),
+      EXIT_REPAIRED,
+    );
+    assert.deepEqual(findDistGaps(path.join(app, 'dist')), []);
+    assert.equal(git(app, 'status', '--porcelain'), '', 'dist/ posé sans salir l’arbre');
+    // Passage suivant : dist/ complet, rien à faire, aucun redémarrage demandé.
+    assert.equal(main(['--mode', 'repair', '--dir', app, '--expect-source', source]), 0);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

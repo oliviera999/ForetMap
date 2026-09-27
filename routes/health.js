@@ -14,9 +14,12 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
-// Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
+// Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger).
+// `frontend` (`dist` | `missing` | `dev`, lib/spaFallback.js `resolveFrontendMode`) : le cron de
+// déploiement y repère un serveur démarré sans `dist/`, resté sur la page d'aide.
 router.get('/api/health', (req, res) => {
-  res.type('application/json').status(200).json({ ok: true });
+  const frontend = req.app?.locals?.frontendMode || 'dev';
+  res.type('application/json').status(200).json({ ok: true, frontend });
 });
 router.get('/health', (req, res) => {
   res.type('application/json').status(200).json({ ok: true });

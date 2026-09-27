@@ -9,7 +9,7 @@ set -euo pipefail
 # ou quand elle échoue / est arrêtée par un seuil.
 #
 # Usage recommandé (crontab, voir docs/CRONTAB.md) :
-#   APP_DIR=/home/USER/foretmap /home/USER/foretmap/scripts/moodle-sync-cron.sh
+#   APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/moodle-sync-cron.sh
 #
 # Variables optionnelles :
 # - APP_DIR              : racine du dépôt (défaut : parent du script)
