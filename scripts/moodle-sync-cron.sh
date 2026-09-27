@@ -38,6 +38,16 @@ trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 cd "$APP_DIR"
 
+# node hors du PATH du cron sur o2switch : celui de l'application (scripts/lib/app-node.sh).
+if [[ -f scripts/lib/app-node.sh ]]; then
+  # shellcheck source=lib/app-node.sh
+  source scripts/lib/app-node.sh
+  if ! use_app_node; then
+    log "ÉCHEC : node et npm introuvables : simulation non lancée (DEPLOY_NODE_BIN_DIR, docs/CRONTAB.md)."
+    exit 1
+  fi
+fi
+
 alert() {
   local subject="$1"
   local body="$2"

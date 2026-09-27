@@ -34,13 +34,17 @@ set -euo pipefail
 # - DEPLOY_STAMP_DIR : dossier des horodatages anti-répétition (alertes espacées, redémarrage
 #   « front non servi » au plus une fois par 30 min) ; défaut /tmp.
 # - OPS_ALERT_TO / SMTP_* : alerte email sur échec/rollback (voir scripts/ops-alert.js).
+# - DEPLOY_NODE_BIN_DIR : dossier qui contient le `node` et le `npm` de l'application. Rarement
+#   utile : le script les trouve seul (PassengerNodejs du `.htaccess` cPanel, PATH, puis
+#   ~/nodevenv/…, voir scripts/lib/app-node.sh).
 #
 # Prérequis:
 # - DEPLOY_SECRET recommandé (même valeur que celle de l'application) — chargé depuis
 #   DEPLOY_ENV_FILE. Il sert au redémarrage piloté (`POST /api/admin/restart`). Sans lui, ou
 #   s'il est refusé (401/403), le cron redémarre par `tmp/restart.txt` (mécanisme Passenger,
 #   roue de secours) au lieu d'abandonner le déploiement.
-# - curl, git, node disponibles sur le serveur
+# - curl et git dans le PATH ; node et npm de l'application trouvés par scripts/lib/app-node.sh
+#   (sur o2switch / CloudLinux, ils ne sont dans aucun PATH système, ni dans celui du cron).
 
 ts() {
   date '+%Y-%m-%d %H:%M:%S'
@@ -283,7 +287,27 @@ else
     "$DEPLOY_ENV_FILE n'existe pas : le cron tourne sans DEPLOY_SECRET ni DEPLOY_AUTO_MIGRATE. Corriger DEPLOY_ENV_FILE dans la crontab (défaut : \$APP_DIR/.env)."
 fi
 
-DIRTY_TREE="$(git status --porcelain)"
+# `node` et `npm` de l'application : sans eux, rien ne peut être contrôlé, posé ni migré, et
+# aucune alerte ne peut partir (ops-alert.js). On s'arrête avant de toucher aux sources.
+if [[ -f "$APP_DIR/scripts/lib/app-node.sh" ]]; then
+  # shellcheck source=lib/app-node.sh
+  source "$APP_DIR/scripts/lib/app-node.sh"
+  if ! use_app_node; then
+    log "ÉCHEC : node et npm introuvables (ni PassengerNodejs dans .htaccess, ni PATH, ni ~/nodevenv/) : rien n'est déployé."
+    log "Poser DEPLOY_NODE_BIN_DIR dans la ligne de crontab : dossier bin/ du virtualenv affiché par Setup Node.js App (docs/CRONTAB.md)."
+    exit 1
+  fi
+  if [[ -n "$APP_NODE_BIN_DIR" ]]; then
+    log "Node de l'application : $APP_NODE_BIN_DIR"
+  fi
+fi
+
+# Seuls les fichiers SUIVIS comptent (`--untracked-files=no`). Les fichiers non suivis que
+# l'hébergement pose à la racine — `.htaccess` généré par cPanel, `node_modules` remplacé par un
+# lien symbolique vers le virtualenv, sauvegardes `.env.bak-*` — bloquaient tout déploiement
+# (27/09/2026). Un `git pull` ne les écrase jamais : si le commit apporte un fichier du même nom,
+# git refuse la fusion entière et ne touche à rien (traité au moment du pull, plus bas).
+DIRTY_TREE="$(git status --porcelain --untracked-files=no)"
 if [[ -n "$DIRTY_TREE" ]]; then
   # Un `git pull` sur un arbre modifié écraserait ou mélangerait des changements locaux : on ne
   # déploie pas. Mais on dit lesquels (avant : une ligne muette, répétée toutes les deux minutes),
@@ -294,7 +318,7 @@ if [[ -n "$DIRTY_TREE" ]]; then
   printf '%s\n' "$DIRTY_TREE" | sed -n '1,10s/^/    /p'
   log "Fichiers suivis supprimés ou modifiés par erreur : git checkout -- <chemin> (docs/DEPLOY_DIST_ARTIFACT.md, Dépannage)."
   alert_throttled dirty-tree 360 "Déploiement bloqué (arbre non propre)" \
-    "git status --porcelain n'est pas vide sur $APP_DIR ($(printf '%s\n' "$DIRTY_TREE" | wc -l) ligne(s)) : aucun déploiement tant que ce n'est pas réglé. Premières lignes : $(printf '%s\n' "$DIRTY_TREE" | sed -n '1,5p' | tr '\n' ' ')"
+    "des fichiers suivis sont modifiés ou supprimés sur $APP_DIR ($(printf '%s\n' "$DIRTY_TREE" | wc -l) ligne(s)) : aucun déploiement tant que ce n'est pas réglé. Premières lignes : $(printf '%s\n' "$DIRTY_TREE" | sed -n '1,5p' | tr '\n' ' ')"
   ensure_frontend_served
   exit 1
 fi
@@ -416,7 +440,16 @@ if grep -Eq '(^|/)src/utils/visitMascotState\.js$' <<<"$CHANGED_FILES"; then
 fi
 
 log "git pull --ff-only origin $DEPLOY_BRANCH"
-git pull --ff-only origin "$DEPLOY_BRANCH"
+if ! git pull --ff-only origin "$DEPLOY_BRANCH"; then
+  # git refuse la fusion en entier, avant d'écrire quoi que ce soit : sources et build restent
+  # ceux de $PREV_SHA, il n'y a rien à annuler. Cas attendu : un fichier non suivi du serveur
+  # porte le nom d'un fichier qu'apporte le commit (« untracked working tree files would be
+  # overwritten by merge ») — le message de git, juste au-dessus, le nomme.
+  log "ÉCHEC du git pull : sources inchangées (HEAD=$(git rev-parse HEAD)). Voir le message de git ci-dessus."
+  alert_throttled pull-refused 360 "Déploiement bloqué (git pull refusé)" \
+    "git pull --ff-only vers $REMOTE_SHA refusé sur $APP_DIR, sources inchangées. Cause habituelle : un fichier non suivi du serveur porte le nom d'un fichier du commit — le déplacer ; le cron repasse seul."
+  exit 1
+fi
 
 # Mode `branch` : poser le build juste après les sources, avant tout redémarrage. L'échec ici
 # est traité comme un échec de déploiement (rollback), pas ignoré : servir un `dist/` périmé

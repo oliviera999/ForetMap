@@ -9,6 +9,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — déploiement : fichiers non suivis du serveur et `node` hors du `PATH` du cron
+
+- **Les fichiers non suivis ne bloquent plus le déploiement.** Le cron exigeait un
+  `git status --porcelain` vide : le `.htaccess` généré par cPanel, `node_modules` (un lien
+  symbolique vers le virtualenv sur CloudLinux, que la règle `node_modules/` ne couvrait pas) et
+  une sauvegarde `.env.bak-*` ont suffi à bloquer tous les déploiements le 27/09/2026. Seuls les
+  fichiers suivis comptent désormais. Un `git pull` refusé parce qu'un de ces fichiers porte le
+  nom d'un fichier du commit laisse sources et build intacts, et alerte.
+- **`.gitignore`** : `node_modules` (lien compris), `/.htaccess`, `.env.bak*`.
+- **`node` et `npm` trouvés sans terminal activé.** Sur o2switch, ils ne sont dans aucun `PATH`,
+  pas plus dans celui du cron : chaque `node …` du script aurait échoué (contrôle de l'artefact,
+  migrations, alertes). `scripts/lib/app-node.sh` prend ceux de l'application — ligne
+  `PassengerNodejs` du `.htaccess`, sinon le `PATH`, sinon `~/nodevenv/…` ; `DEPLOY_NODE_BIN_DIR`
+  force un dossier. Introuvables : arrêt avant tout contrôle, sources inchangées, consigne dans le
+  journal. Même recherche pour `moodle-sync-cron.sh` et `uptime-check.sh`.
+- **Ligne 5 de la crontab (purge RGPD des journaux)** : `npm run logs:purge` passe par le nouveau
+  `scripts/with-app-node.sh` ; écrite `cd … && npm run …`, elle échouait en « command not found ».
+- Tests : `tests/deploy-cron-server-env.test.js` exécute le cron dans un bac à sable (fichiers
+  non suivis, fichier suivi modifié, `git pull` refusé, `node` hors du `PATH`, `node`
+  introuvable) ; bac à sable partagé `tests/helpers/deployCronSandbox.js`.
+
 ### Tests — attentes des tests d'interface adaptées à une CI chargée
 
 - `tests-ui/setup.js` : délai des attentes de Testing Library (`findBy*`, `waitFor`) porté de
