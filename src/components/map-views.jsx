@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 
-import { api } from '../services/api';
 import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
 import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
-import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
-import {
-  mapRouteResumeStorageKey,
-  placesFromZonesAndMarkers,
-  routeEntryFocusPct,
-} from '../shared/map-routes/mapRouteSteps.js';
+import { routeEntryFocusPct } from '../shared/map-routes/mapRouteSteps.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
@@ -70,6 +64,7 @@ import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
 import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
 import { useMapViewPosition } from './map/useMapViewPosition.js';
+import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
@@ -190,29 +185,6 @@ function MapViewImpl({
     () => (zones || []).filter((z) => z.map_id === activeMapId),
     [zones, activeMapId],
   );
-  const [mapRoutes, setMapRoutes] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    const mid = String(activeMapId || '').trim();
-    if (!mid) {
-      setMapRoutes([]);
-      return undefined;
-    }
-    api(`/api/map-routes?map_id=${encodeURIComponent(mid)}&surface=map`)
-      .then((rows) => {
-        if (!cancelled) setMapRoutes(Array.isArray(rows) ? rows : []);
-      })
-      .catch(() => {
-        if (!cancelled) setMapRoutes([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeMapId]);
-  const routePlaces = useMemo(
-    () => placesFromZonesAndMarkers(mapZonesOnActiveMap, mapMarkersOnActiveMap),
-    [mapZonesOnActiveMap, mapMarkersOnActiveMap],
-  );
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
     () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
@@ -323,39 +295,11 @@ function MapViewImpl({
     [useSharedViewStage, focusOnPct],
   );
 
-  /**
-   * Hauteur réellement occupée par la barre d'étape (elle se mesure elle-même) : la carte
-   * recadre **au-dessus** d'elle, sans quoi le lieu de l'étape courante était centré dans la
-   * scène entière, donc sous la barre (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.7).
-   */
-  const [routeBarHeight, setRouteBarHeight] = useState(0);
-  const routeFocusInsets = useMemo(
-    () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
-    [routeBarHeight],
-  );
-  const onRouteStepPlace = useCallback(
-    (entry) => {
-      if (!entry?.place) return;
-      const place = entry.place;
-      const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
-      if (place.kind === 'zone') {
-        setSelectedMarker(null);
-        setSelectedZone(place);
-        const pct = zoneFocusPctFromPoints(place.points);
-        if (pct) focusMapPct(pct, focusOptions);
-      } else {
-        setSelectedZone(null);
-        setSelectedMarker(place);
-        focusMapPct(markerFocusPct(place), focusOptions);
-      }
-    },
-    [focusMapPct, routeFocusInsets],
-  );
-  const onRouteExitExtra = useCallback(() => {
-    setSelectedZone(null);
-    setSelectedMarker(null);
-  }, []);
+  // Parcours de la carte : chargement, étape courante, reprise, demande de séance.
   const {
+    mapRoutes,
+    routePlaces,
+    setRouteBarHeight,
     activeRoute,
     routeSteps,
     routeIndex,
@@ -367,37 +311,21 @@ function MapViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
-    resetForMapChange,
-  } = useMapRouteMode({
-    routes: mapRoutes,
-    places: routePlaces,
-    onStepPlace: onRouteStepPlace,
-    onExitExtra: onRouteExitExtra,
-    // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
-    // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
-    storageKey: mapRouteResumeStorageKey('map', activeMapId),
+  } = useMapViewRoutes({
+    activeMapId,
+    zonesOnMap: mapZonesOnActiveMap,
+    markersOnMap: mapMarkersOnActiveMap,
+    mode,
+    focusMapPct,
+    setSelectedZone,
+    setSelectedMarker,
+    routeRequest,
+    onRouteRequestHandled,
   });
-  useEffect(() => {
-    resetForMapChange();
-  }, [activeMapId, resetForMapChange]);
-  // Séance pédagogique : « ouvrir le parcours X » — attend que les parcours de la carte
-  // soient chargés, puis démarre une seule fois par demande (nonce).
-  const handledRouteRequestRef = useRef(null);
-  useEffect(() => {
-    if (!routeRequest?.slug || handledRouteRequestRef.current === routeRequest.nonce) return;
-    const route = mapRoutes.find((r) => r.slug === routeRequest.slug);
-    if (!route) return;
-    handledRouteRequestRef.current = routeRequest.nonce;
-    startRoute(route);
-    onRouteRequestHandled?.(routeRequest.nonce);
-  }, [routeRequest, mapRoutes, startRoute, onRouteRequestHandled]);
   const [commentsFocusKey, setCommentsFocusKey] = useState(null);
   useEffect(() => {
     if (!selectedZone && !selectedMarker) setCommentsFocusKey(null);
   }, [selectedZone, selectedMarker]);
-  useEffect(() => {
-    if (mode !== 'view' && activeRoute) exitRoute();
-  }, [mode, activeRoute, exitRoute]);
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
