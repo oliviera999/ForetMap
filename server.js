@@ -319,6 +319,7 @@ app.use((req, res, next) => {
 
 app.use(createHttpRequestLogMiddleware());
 
+const { resolveFrontendMode } = require('./lib/spaFallback');
 const distDir = path.join(__dirname, 'dist');
 const distSpaIndex = fs.existsSync(path.join(distDir, 'index.vite.html'))
   ? path.join(distDir, 'index.vite.html')
@@ -329,6 +330,18 @@ const distIndexByProduct = Object.fromEntries(
   PRODUCT_IDS.map((id) => [id, path.join(distDir, getProduct(id).htmlEntry)]),
 );
 const serveDist = process.env.NODE_ENV === 'production' && fs.existsSync(distSpaIndex);
+// Décision prise une fois pour toutes au démarrage : exposée par `GET /api/health` (`frontend`)
+// pour que le cron redémarre un serveur resté sur la page d'aide (lib/spaFallback.js).
+app.locals.frontendMode = resolveFrontendMode({
+  nodeEnv: process.env.NODE_ENV,
+  distIndexPresent: fs.existsSync(distSpaIndex),
+});
+if (app.locals.frontendMode === 'missing') {
+  logger.error(
+    { distDir },
+    'dist/ absent au démarrage en production : la page d’aide au déploiement remplace le site jusqu’au prochain redémarrage',
+  );
+}
 const staticRoot = serveDist ? distDir : path.join(__dirname, 'public');
 // Service worker et manifest PWA par produit (lot 1) : `/sw.js` et `/manifest.json` servent
 // `dist/sw-<produit>.js` / `dist/manifest-<produit>.webmanifest` selon le host (générés par

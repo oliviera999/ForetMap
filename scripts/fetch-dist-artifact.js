@@ -35,6 +35,9 @@
  *   - `repair`           : comme `apply`, mais ne fait rien si `dist/` est déjà complet. Appelé
  *                          par le cron même sans nouveau commit : sans `dist/` versionné, un
  *                          dossier effacé ou un clone serveur neuf ne serait jamais rattrapé.
+ *                          Sort avec `EXIT_REPAIRED` (10) quand il a réellement reposé `dist/` :
+ *                          le serveur ne décide qu'au démarrage s'il sert `dist/` (`serveDist`,
+ *                          server.js), le cron doit donc le redémarrer.
  *   - `verify`           : extrait dans `dist.candidate/` sans rien remplacer (contrôle à blanc
  *                          avant bascule, cf. docs/DEPLOY_DIST_ARTIFACT.md).
  *   - `restore-previous` : remet `dist.prev/` en place (utilisé par le rollback du cron).
@@ -46,7 +49,8 @@
  *               repassera au prochain tick. Ce n'est PAS une erreur.
  *   - `stale` : l'artefact est étranger à l'historique déployé → refus explicite.
  *
- * Codes de sortie : 0 succès · 75 report (EX_TEMPFAIL) · 1 échec.
+ * Codes de sortie : 0 succès · 10 `repair` a reposé `dist/` (redémarrage requis) · 75 report
+ * (EX_TEMPFAIL) · 1 échec.
  */
 
 const fs = require('fs');
@@ -62,6 +66,12 @@ const TAG = '[fetch-dist]';
 const DEFAULT_BRANCH = 'dist-artifact/main';
 /** Code de sortie « rien à faire pour l'instant, repasse plus tard » (sysexits EX_TEMPFAIL). */
 const EXIT_DEFER = 75;
+/**
+ * Code de sortie de `repair` quand `dist/` a été reposé. Distinct de 0 (« rien à réparer ») :
+ * un serveur démarré sans `dist/` sert la page d'aide au déploiement jusqu'à son prochain
+ * démarrage, même une fois `dist/` revenu (incident du 27/09/2026).
+ */
+const EXIT_REPAIRED = 10;
 /** Modes acceptés par `--mode`. */
 const MODES = ['check', 'apply', 'repair', 'verify', 'restore-previous'];
 
@@ -409,6 +419,10 @@ function main(argv) {
   }
   fs.renameSync(stagingDir, distDir);
   log(`dist/ mis à jour depuis ${ref} (version précédente conservée dans dist.prev/).`);
+  if (mode === 'repair') {
+    log('dist/ réparé : redémarrage de l’application requis pour qu’il soit servi.');
+    return EXIT_REPAIRED;
+  }
   return 0;
 }
 
@@ -424,6 +438,7 @@ if (require.main === module) {
 module.exports = {
   DEFAULT_BRANCH,
   EXIT_DEFER,
+  EXIT_REPAIRED,
   MODES,
   isDistTracked,
   parseBuildInfo,

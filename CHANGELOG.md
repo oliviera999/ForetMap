@@ -9,6 +9,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — déploiement : le cron ne s'arrête plus sur un droit d'exécution, un site sans build se rétablit seul
+
+Incident du 27/09/2026 : le site a affiché la page d'aide au déploiement au lieu de l'application.
+La ligne de crontab appelait `scripts/auto-deploy-cron.sh` sans `bash`, alors que git le suivait
+sans droit d'exécution. Le `git pull` de #554 l'a réécrit : chaque passage a ensuite échoué sur
+« Permission denied », sans alerte. Les mises à jour suivantes, faites hors du cron (bouton
+« Update from Remote » de cPanel), ont retiré `dist/` sans poser le build.
+
+- **Scripts du cron suivis exécutables** (`auto-deploy-cron.sh`, `moodle-sync-cron.sh`), et
+  toutes les lignes de crontab documentées passent par **`bash`** (`docs/CRONTAB.md`,
+  `docs/EXPLOITATION.md`). Un test vérifie les deux.
+- **Front vérifié à chaque passage sans déploiement**, y compris quand l'arbre de travail n'est pas
+  propre :
+  - `dist/` absent : il est reposé depuis l'artefact (`fetch-dist-artifact.js --mode repair`, qui
+    sort désormais en **10** quand il a reposé le build), puis l'application est **redémarrée** ;
+  - serveur démarré sans `dist/`, resté sur la page d'aide alors que `dist/` est là (il ne décide
+    qu'au démarrage) : il est redémarré. Au plus un redémarrage de ce type par 30 minutes.
+- **`GET /api/health`** publie `frontend` (`dist`, `missing`, `dev`) ; le serveur journalise une
+  erreur quand il démarre en production sans `dist/`.
+- **Arbre non propre** : le journal du cron liste les premiers fichiers en cause et une alerte part
+  (une toutes les 6 h au plus), au lieu d'une ligne muette toutes les deux minutes.
+- **Dépannage sans node** : `docs/DEPLOY_DIST_ARTIFACT.md`, § 5 (poser le build par
+  `git archive`, migrations, redémarrage ; ne pas utiliser « Update from Remote »). La page d'aide
+  au déploiement y renvoie.
+
 ### Pistes B et C de l'audit (#555) — code réorganisé par domaine, fiches espèces, observations validées
 
 Migrations **302 à 308**, toutes idempotentes ; aucune ne supprime de donnée (302 ne retire

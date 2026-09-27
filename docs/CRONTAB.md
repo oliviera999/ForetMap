@@ -11,9 +11,14 @@ Détail et comportement : [`docs/EXPLOITATION.md`](EXPLOITATION.md).
 
 ```bash
 cd /home/USER/foretmap
-chmod +x scripts/auto-deploy-cron.sh scripts/db-backup.sh scripts/uptime-check.sh
 mkdir -p logs backups
 ```
+
+Les lignes ci-dessous appellent chaque script **par `bash`** : aucun `chmod +x` n'est
+nécessaire, et il ne faut pas en faire sur un fichier suivi par git (git peut le compter comme
+une modification locale, et le cron refuse alors de déployer). Appeler le chemin seul dépend du
+droit d'exécution du fichier, qu'un `git pull` peut faire sauter en le réécrivant : c'est ce qui
+a arrêté le déploiement le 27/09/2026 (« Permission denied » à chaque passage).
 
 Vérifier que le `.env` serveur contient au minimum :
 
@@ -29,13 +34,13 @@ OPS_ALERT_TO=admin@…
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
-*/2 * * * * mkdir -p /home/USER/foretmap/logs && APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info DEPLOY_AUTO_MIGRATE=1 /home/USER/foretmap/scripts/auto-deploy-cron.sh >> /home/USER/foretmap/logs/foretmap-auto-deploy.log 2>&1
+*/2 * * * * mkdir -p /home/USER/foretmap/logs && APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info DEPLOY_AUTO_MIGRATE=1 bash /home/USER/foretmap/scripts/auto-deploy-cron.sh >> /home/USER/foretmap/logs/foretmap-auto-deploy.log 2>&1
 
 # 2) Sauvegarde BDD quotidienne (mysqldump compressé + rotation) — 03:00
-0 3 * * * APP_DIR=/home/USER/foretmap /home/USER/foretmap/scripts/db-backup.sh >> /home/USER/foretmap/logs/db-backup.log 2>&1
+0 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup.sh >> /home/USER/foretmap/logs/db-backup.log 2>&1
 
 # 3) Sonde de disponibilité /api/ready (alerte email au changement d'état) — toutes les 5 min
-*/5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
+*/5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info bash /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
 
 # 4) Keepalive : empêche l'arrêt d'inactivité Passenger aux heures d'usage — toutes les 3 min, 7h-22h
 */3 7-22 * * * curl -fsS --max-time 20 https://foretmap.olution.info/api/health >/dev/null 2>&1
@@ -98,7 +103,7 @@ lecture du rapport (spécification : `docs/AUDIT_MOODLE_IDENTITES_2026-09.md`, s
 
 ```cron
 # 6) Simulation Moodle (jamais --apply) — du lundi au vendredi à 06:30
-30 6 * * 1-5 APP_DIR=/home/USER/foretmap /home/USER/foretmap/scripts/moodle-sync-cron.sh >> /home/USER/foretmap/logs/moodle-sync.log 2>&1
+30 6 * * 1-5 APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/moodle-sync-cron.sh >> /home/USER/foretmap/logs/moodle-sync.log 2>&1
 ```
 
 Le script pose un verrou `mkdir` (`MOODLE_CRON_LOCK_DIR`, défaut `/tmp/foretmap-moodle-sync.lock`),

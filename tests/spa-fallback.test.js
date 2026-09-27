@@ -11,6 +11,7 @@ const {
   registerSpaFallbackRoutes,
   createSpaFallbackHandler,
   resolveSpaIndexPath,
+  resolveFrontendMode,
 } = require('../lib/spaFallback');
 const { resolveProductFromRequest } = require('../lib/productResolver');
 
@@ -124,4 +125,32 @@ test('un chemin hors /api retombe toujours sur la SPA', async () => {
   const res = await request(miniAppWithFallback()).get('/apiculture');
   assert.strictEqual(res.status, 200);
   assert.match(String(res.headers['content-type'] || ''), /html/i);
+});
+
+test('resolveFrontendMode : dist servi, dist manquant en production, développement', () => {
+  assert.strictEqual(
+    resolveFrontendMode({ nodeEnv: 'production', distIndexPresent: true }),
+    'dist',
+  );
+  // Production démarrée sans dist/ : la page d'aide remplace le site jusqu'au redémarrage.
+  assert.strictEqual(
+    resolveFrontendMode({ nodeEnv: 'production', distIndexPresent: false }),
+    'missing',
+  );
+  assert.strictEqual(resolveFrontendMode({ nodeEnv: 'test', distIndexPresent: true }), 'dev');
+  assert.strictEqual(resolveFrontendMode({ nodeEnv: undefined, distIndexPresent: false }), 'dev');
+});
+
+test('GET /api/health publie l’état du front décidé au démarrage', async () => {
+  const healthRouter = require('../routes/health');
+  const mini = express();
+  mini.locals.frontendMode = 'missing';
+  mini.use(healthRouter);
+  const res = await request(mini).get('/api/health').expect(200);
+  assert.deepStrictEqual(res.body, { ok: true, frontend: 'missing' });
+
+  const bare = express();
+  bare.use(healthRouter);
+  const def = await request(bare).get('/api/health').expect(200);
+  assert.strictEqual(def.body.frontend, 'dev');
 });
