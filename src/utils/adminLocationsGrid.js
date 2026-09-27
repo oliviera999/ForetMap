@@ -64,12 +64,12 @@ export function zoneNameEmojiPatch(cleanName, emoji) {
   return name ? { name, emoji: '' } : null;
 }
 
-/** Liste ordonnée des êtres vivants d'un lieu (junction, JSON legacy, colonne legacy). */
+/**
+ * Liste ordonnée des êtres vivants d'un lieu (jonction, JSON legacy). L'ancien nom
+ * mono-espèce (`plant_name` / `current_plant`) n'est plus lu (piste C, audit du 25/09/2026).
+ */
 export function locationLivingBeings(item) {
-  return orderedLivingBeingsForForm(
-    item?.living_beings_list || item?.living_beings,
-    item?.plant_name || item?.current_plant,
-  );
+  return orderedLivingBeingsForForm(item?.living_beings_list || item?.living_beings);
 }
 
 /**

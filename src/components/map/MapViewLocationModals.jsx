@@ -195,7 +195,6 @@ export function MapViewLocationModals({
             label: '',
             note: '',
             emoji: markerEmojis[0] || '🌱',
-            plant_name: '',
             map_id: activeMapId,
           }}
           plants={plants}

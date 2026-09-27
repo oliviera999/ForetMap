@@ -373,10 +373,12 @@ for (const kind of Object.keys(KINDS)) {
 }
 
 describe('ZoneInfoModal — spécificités', () => {
-  test('historique des cultures affiché dans l’onglet Info', () => {
+  test('l’historique des cultures n’est plus affiché (piste C, retrait de zone_history)', () => {
+    // Avant : section « Historique cultures » dans l'onglet Info. La zone en cache peut encore
+    // porter un `history` : il n'est plus lu.
     renderModal('zone', { tasks: [], tutorials: [] });
-    expect(screen.getByText('Historique cultures')).toBeInTheDocument();
-    expect(screen.getByText('Radis')).toBeInTheDocument();
+    expect(screen.queryByText('Historique cultures')).toBeNull();
+    expect(screen.queryByText('Radis')).toBeNull();
   });
 });
 

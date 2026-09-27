@@ -135,15 +135,11 @@ function useMapCrudActions({
       if (!pts || pts.length < 3) throw new Error('Contour invalide');
       const shifted = offsetDuplicateZonePoints(pts);
       if (!shifted) throw new Error('Contour invalide');
-      const living = orderedLivingBeingsForForm(
-        z.living_beings_list || z.living_beings,
-        z.current_plant,
-      );
+      const living = orderedLivingBeingsForForm(z.living_beings_list || z.living_beings);
       const created = await api('/api/zones', 'POST', {
         name: `${z.name || 'Zone'} (copie)`,
         points: shifted,
         color: z.color || '#86efac80',
-        current_plant: '',
         living_beings: living,
         category_ids: locationCategoryIds(z),
         map_id: z.map_id || activeMapId,
@@ -162,10 +158,7 @@ function useMapCrudActions({
       const dy = 1.5;
       const nx = Math.min(100, Math.max(0, Number(m.x_pct) + dx));
       const ny = Math.min(100, Math.max(0, Number(m.y_pct) + dy));
-      const living = orderedLivingBeingsForForm(
-        m.living_beings_list || m.living_beings,
-        m.plant_name,
-      );
+      const living = orderedLivingBeingsForForm(m.living_beings_list || m.living_beings);
       const baseLabel = String(m.label || 'Repère')
         .replace(/\s*\(copie\)\s*$/i, '')
         .trim();
@@ -174,7 +167,6 @@ function useMapCrudActions({
         x_pct: nx,
         y_pct: ny,
         label: `${baseLabel} (copie)`,
-        plant_name: '',
         living_beings: living,
         note: m.note || '',
         emoji: String(m.emoji ?? '').trim(),

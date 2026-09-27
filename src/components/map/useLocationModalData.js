@@ -78,12 +78,9 @@ export function useLocationModalData(
       !tutorialLocationIds(tu)[idsKey].some((id) => String(id) === String(entityId)),
   );
 
-  // Êtres vivants du lieu (champ « plante » historique : plant_name côté repère,
-  // current_plant côté zone) + ceux uniquement portés par les missions sur ce lieu.
-  const livingNames = orderedLivingBeingsForForm(
-    entity.living_beings_list || entity.living_beings,
-    kind === 'zone' ? entity.current_plant : entity.plant_name,
-  );
+  // Êtres vivants du lieu (jonction d'espèces ; l'ancien nom mono-espèce n'est plus lu,
+  // piste C de l'audit du 25/09/2026) + ceux uniquement portés par les missions sur ce lieu.
+  const livingNames = orderedLivingBeingsForForm(entity.living_beings_list || entity.living_beings);
   const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation(kind, entityId, tasks);
   const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter((n) => !livingNames.includes(n));
 

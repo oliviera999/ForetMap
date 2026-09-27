@@ -105,13 +105,13 @@ function ZoneInfoModal({
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
 
-  // Liste zones allégée : corps visite / historique complet via GET /api/zones/:id.
+  // Liste zones allégée : corps visite complet via GET /api/zones/:id. (L'historique de
+  // cultures n'est plus servi : piste C de l'audit du 25/09/2026, § 3.5.)
   const [zoneDetail, setZoneDetail] = useState(zone);
   useEffect(() => {
     setZoneDetail((prev) => mergeZoneListIntoDetail(prev, zone));
     const needsDetail =
-      (!!zone.has_visit_body && (zone.visit_body_json == null || zone.visit_body_json === '')) ||
-      !!zone.history_truncated;
+      !!zone.has_visit_body && (zone.visit_body_json == null || zone.visit_body_json === '');
     if (!needsDetail || !zone?.id) return undefined;
     let cancelled = false;
     api(`/api/zones/${encodeURIComponent(zone.id)}`)
@@ -134,7 +134,7 @@ function ZoneInfoModal({
     () => zoneEmojiOf(zone, emojiParsingList) || markerEmojis[0] || '📍',
   );
   const [livingBeings, setLivingBeings] = useState(() =>
-    orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
+    orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings),
   );
   const [categoryIds, setCategoryIds] = useState(() => locationCategoryIds(zone));
   // Clé stable des catégories de la zone : l'effet de resynchronisation ci-dessous ne doit
@@ -179,10 +179,7 @@ function ZoneInfoModal({
     onToast: setToast,
   });
 
-  const zoneLivingNames = orderedLivingBeingsForForm(
-    zone.living_beings_list || zone.living_beings,
-    zone.current_plant,
-  );
+  const zoneLivingNames = orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings);
   const zoneTitleDisplay = isInfrastructureLocation(zone)
     ? zone.name || ''
     : stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '';
@@ -232,9 +229,7 @@ function ZoneInfoModal({
   useEffect(() => {
     setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
     setZoneEmoji(zoneEmojiOf(zone, emojiParsingList) || markerEmojis[0] || '📍');
-    setLivingBeings(
-      orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
-    );
+    setLivingBeings(orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings));
     setCategoryIds(zoneCategoryIdsKey ? zoneCategoryIdsKey.split('|') : []);
     setZoneColor(zone.color || ZONE_COLORS[0]);
     setDesc(zone.description || '');
@@ -254,7 +249,6 @@ function ZoneInfoModal({
     zone.emoji,
     zone.living_beings,
     zone.living_beings_list,
-    zone.current_plant,
     zoneCategoryIdsKey,
     zone.color,
     zone.description,
@@ -381,32 +375,12 @@ function ZoneInfoModal({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
             />
           )}
-          {(zoneDetail.history || zone.history)?.length > 0 && (
-            <div className="history-list">
-              <h4>Historique cultures</h4>
-              {(zoneDetail.history || zone.history).map((h, i) => (
-                <div
-                  key={`${h?.harvested_at ?? ''}-${h?.plant ?? ''}-${i}`}
-                  className="history-item"
-                >
-                  <span>{h.plant}</span>
-                  <span style={{ color: '#aaa', fontSize: 'var(--text-xs)' }}>
-                    {h.harvested_at}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
           {!isInfrastructureLocation(zone) &&
-            orderedLivingBeingsForForm(
-              zone.living_beings_list || zone.living_beings,
-              zone.current_plant,
-            ).length === 0 &&
+            zoneLivingNames.length === 0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !zone.description &&
             !zone.notes?.length &&
             !zone.links?.length &&
-            !(zoneDetail.history || zone.history)?.length &&
             !showVisitAsideBlock && (
               <LocationEmptyInfo>Zone vide — aucune information pour l'instant.</LocationEmptyInfo>
             )}
@@ -448,8 +422,7 @@ function ZoneInfoModal({
               }}
             >
               Maintenez Ctrl (Windows) ou Cmd (Mac) pour en choisir plusieurs. L’ordre de la liste
-              est conservé pour l’affichage. Retirer un être vivant de la liste peut l’enregistrer
-              dans l’historique des cultures.
+              est conservé pour l’affichage.
             </p>
             <select
               multiple

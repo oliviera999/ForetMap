@@ -152,7 +152,6 @@ function MarkerModal({
     marker.label,
     marker.note,
     marker.emoji,
-    marker.plant_name,
     marker.living_beings,
     marker.living_beings_list,
     marker.visit_subtitle,
@@ -361,10 +360,8 @@ function MarkerModal({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
             />
           )}
-          {orderedLivingBeingsForForm(
-            marker.living_beings_list || marker.living_beings,
-            marker.plant_name,
-          ).length === 0 &&
+          {orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings).length ===
+            0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !marker.note &&
             !marker.links?.length &&
