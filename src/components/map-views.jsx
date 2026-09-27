@@ -81,6 +81,7 @@ import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
 import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
+import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
@@ -801,36 +802,22 @@ function MapViewImpl({
   };
 
   // Actions CRUD carte (API + refresh) ; les effets d'UI (fermeture/sélection/toast)
-  // restent portés par les wrappers ci-dessous et les call sites des modales.
-  const {
-    saveMarker,
-    updateMarker,
-    linkTaskToLocation,
-    unlinkTaskFromLocation,
-    linkTutorialToLocation,
-    unlinkTutorialFromLocation,
-    deleteMarker,
-    deleteZone,
-    duplicateZone,
-    duplicateMarker,
-    assignTasksToStudent,
-  } = useMapCrudActions({ activeMapId, tasks, tutorials, onRefresh, student, canEnrollNewTasks });
+  // restent portés par les fenêtres de lieu (`MapViewLocationModals`).
+  const crud = useMapCrudActions({
+    activeMapId,
+    tasks,
+    tutorials,
+    onRefresh,
+    student,
+    canEnrollNewTasks,
+  });
 
-  const updateMarkerAndClose = async (id, data) => {
-    await updateMarker(id, data);
-    setSelectedMarker(null);
-  };
-
-  const duplicateZoneAndSelect = async (z) => {
-    const created = await duplicateZone(z);
-    setSelectedZone(created);
-    setToast('Zone dupliquée ✓');
-  };
-
-  const duplicateMarkerAndSelect = async (m) => {
-    const created = await duplicateMarker(m);
-    setSelectedMarker(created);
-    setToast('Repère dupliqué ✓');
+  /** « Ajuster la position » depuis la fiche d'un repère : déverrouille le glisser. */
+  const requestAdjustMarkerPosition = () => {
+    setMarkerPositionUnlocked(true);
+    setToast(
+      'Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.',
+    );
   };
 
   const toggleMarkerPositionLock = () => {
@@ -1266,149 +1253,40 @@ function MapViewImpl({
         />
       )}
 
-      {selectedZone && (
-        <ZoneInfoModal
-          zone={selectedZone}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          tasks={tasks}
-          tutorials={tutorials}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollNewTasks}
-          markerEmojis={markerEmojis}
-          emojiParsingList={emojiParsingList}
-          contextCommentsEnabled={contextCommentsEnabled}
-          canParticipateContextComments={canParticipateContextComments}
-          focusComments={commentsFocusKey === `zone:${selectedZone.id}`}
-          onClose={() => {
-            clearMapMascotDetailAfterMove();
-            setSelectedZone(null);
-          }}
-          onUpdate={async (id, data) => {
-            await onZoneUpdate(id, data);
-            setSelectedZone(null);
-            await onRefresh();
-          }}
-          onDelete={async (id) => {
-            await deleteZone(id);
-            setSelectedZone(null);
-          }}
-          onDuplicate={isTeacher ? duplicateZoneAndSelect : undefined}
-          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'zone', selectedZone.id)}
-          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'zone', selectedZone.id)}
-          onAssignTasks={assignTasksToStudent}
-          onLinkTutorial={async (tutorialId) =>
-            linkTutorialToLocation(tutorialId, 'zone', selectedZone.id)
-          }
-          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'zone', selectedZone.id)}
-          onEditPoints={
-            isTeacher
-              ? (z) => {
-                  startEditPoints(z);
-                  setSelectedZone(null);
-                }
-              : null
-          }
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={
-            onOpenPlantCatalogPreview
-              ? (id) => {
-                  onOpenPlantCatalogPreview(id);
-                  setSelectedZone(null);
-                }
-              : null
-          }
-        />
-      )}
-      {selectedMarker && (
-        <MarkerModal
-          marker={selectedMarker}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          tasks={tasks}
-          tutorials={tutorials}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollNewTasks}
-          markerEmojis={markerEmojis}
-          contextCommentsEnabled={contextCommentsEnabled}
-          canParticipateContextComments={canParticipateContextComments}
-          focusComments={commentsFocusKey === `marker:${selectedMarker.id}`}
-          onClose={() => {
-            clearMapMascotDetailAfterMove();
-            setSelectedMarker(null);
-          }}
-          onUpdate={updateMarkerAndClose}
-          onDelete={deleteMarker}
-          onDuplicate={isTeacher ? duplicateMarkerAndSelect : undefined}
-          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'marker', selectedMarker.id)}
-          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'marker', selectedMarker.id)}
-          onLinkTutorial={async (tutorialId) =>
-            linkTutorialToLocation(tutorialId, 'marker', selectedMarker.id)
-          }
-          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'marker', selectedMarker.id)}
-          onAssignTasks={assignTasksToStudent}
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={
-            onOpenPlantCatalogPreview
-              ? (id) => {
-                  onOpenPlantCatalogPreview(id);
-                  setSelectedMarker(null);
-                }
-              : null
-          }
-          onRequestAdjustMarkerPosition={
-            isTeacher
-              ? () => {
-                  setMarkerPositionUnlocked(true);
-                  setToast(
-                    'Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.',
-                  );
-                }
-              : undefined
-          }
-        />
-      )}
-      {pendingZone && (
-        <ZoneDrawModal
-          points_pct={pendingZone}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          markerEmojis={markerEmojis}
-          emojiParsingList={emojiParsingList}
-          onClose={() => setPendingZone(null)}
-          onSave={async (data) => {
-            await api('/api/zones', 'POST', { ...data, map_id: activeMapId });
-            setPendingZone(null);
-            await onRefresh();
-          }}
-        />
-      )}
-      {pendingMarker && (
-        <MarkerModal
-          marker={{
-            x_pct: pendingMarker.xp,
-            y_pct: pendingMarker.yp,
-            label: '',
-            note: '',
-            emoji: markerEmojis[0] || '🌱',
-            plant_name: '',
-            map_id: activeMapId,
-          }}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          isTeacher={isTeacher}
-          markerEmojis={markerEmojis}
-          onClose={() => setPendingMarker(null)}
-          onSave={saveMarker}
-          onDelete={() => setPendingMarker(null)}
-        />
-      )}
+      <MapViewLocationModals
+        activeMapId={activeMapId}
+        isTeacher={isTeacher}
+        student={student}
+        canSelfAssignTasks={canSelfAssignTasks}
+        canEnrollOnTasks={canEnrollNewTasks}
+        plants={plants}
+        tasks={tasks}
+        tutorials={tutorials}
+        categoryCatalog={mapCategoryCatalog}
+        markerEmojis={markerEmojis}
+        emojiParsingList={emojiParsingList}
+        contextCommentsEnabled={contextCommentsEnabled}
+        canParticipateContextComments={canParticipateContextComments}
+        commentsFocusKey={commentsFocusKey}
+        selectedZone={selectedZone}
+        setSelectedZone={setSelectedZone}
+        selectedMarker={selectedMarker}
+        setSelectedMarker={setSelectedMarker}
+        pendingZone={pendingZone}
+        setPendingZone={setPendingZone}
+        pendingMarker={pendingMarker}
+        setPendingMarker={setPendingMarker}
+        crud={crud}
+        onZoneUpdate={onZoneUpdate}
+        onRefresh={onRefresh}
+        onNavigateToTasksForLocation={onNavigateToTasksForLocation}
+        onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+        onOpenTutorialPreview={setMapTutorialPreview}
+        onCloseDetail={clearMapMascotDetailAfterMove}
+        onEditZonePoints={startEditPoints}
+        onRequestAdjustMarkerPosition={requestAdjustMarkerPosition}
+        setToast={setToast}
+      />
 
       {!mapFullscreen ? (
         <MapViewToolbar
