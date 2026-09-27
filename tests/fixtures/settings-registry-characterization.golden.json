@@ -817,6 +817,11 @@
       "type": "boolean",
       "default": true
     },
+    "ui.modules.species_observations_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
     "ui.modules.stats_enabled": {
       "scope": "public",
       "type": "boolean",
@@ -1031,7 +1036,8 @@
           "id_keys_enabled": true,
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
-          "rewards_enabled": true
+          "rewards_enabled": true,
+          "species_observations_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,
@@ -3570,6 +3576,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "ui.modules.species_observations_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "ui.modules.stats_enabled",
       "scope": "public",
       "type": "boolean",
@@ -4240,7 +4262,8 @@
           "id_keys_enabled": true,
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
-          "rewards_enabled": true
+          "rewards_enabled": true,
+          "species_observations_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,

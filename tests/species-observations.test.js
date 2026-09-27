@@ -773,6 +773,44 @@ test('ancien carnet : /api/observations répond 410 Gone (retrait, temps 1 et 2)
   }
 });
 
+test('interrupteur ui.modules.species_observations_enabled : fermé aux élèves, ouvert au validateur', async () => {
+  const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot');
+  const key = 'ui.modules.species_observations_enabled';
+  const snapshot = await snapshotSetting(key);
+  const setModule = (value) =>
+    request(app)
+      .put(`/api/settings/admin/${key}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ value })
+      .expect(200);
+  const student = await createAccount();
+  try {
+    await setModule(false);
+    for (const [method, path] of [
+      ['get', '/api/species-observations/me'],
+      ['post', '/api/species-observations'],
+      ['get', '/api/species-observations/review'],
+    ]) {
+      const res = await request(app)[method](path).set('Authorization', `Bearer ${student.token}`);
+      assert.equal(res.status, 503, `${method.toUpperCase()} ${path}`);
+      assert.match(String(res.body.error || ''), /désactivées/);
+    }
+    // Le validateur garde sa file d'examen.
+    await request(app)
+      .get('/api/species-observations/review')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    await setModule(true);
+    await request(app)
+      .get('/api/species-observations/me')
+      .set('Authorization', `Bearer ${student.token}`)
+      .expect(200);
+  } finally {
+    await restoreSetting(snapshot);
+  }
+});
+
 test('permission observations.validate : catalogue et rôles professeurs par défaut', () => {
   const { PERMISSIONS, ROLE_PERMISSION_MATRIX } = require('../lib/rbac');
   assert.ok(PERMISSIONS.some((row) => row[0] === 'observations.validate'));

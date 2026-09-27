@@ -29,10 +29,17 @@ const { emitObservationsChanged } = require('../lib/realtime');
 const { logAudit } = require('../lib/auditLog');
 const repo = require('../lib/terrain/observationRepository');
 const service = require('../lib/terrain/observationService');
+const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 
 const router = express.Router();
 const VALIDATE_PERMISSION = 'observations.validate';
 const requireValidator = requirePermission(VALIDATE_PERMISSION);
+
+// Interrupteur `ui.modules.species_observations_enabled` (décision 19 de l'audit) : éteint →
+// 503 pour tous, sauf le validateur, qui garde sa file d'examen.
+router.use(
+  requirePedagoModuleOrManager('species_observations', 'Observations d’espèces désactivées'),
+);
 
 /** Erreur métier → réponse JSON `{ error }` ; le reste part au gestionnaire central (500). */
 function handle(fn) {

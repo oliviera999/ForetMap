@@ -20,6 +20,7 @@ vi.mock('../../../src/services/observationsApi', () => ({
 }));
 
 const { DataProvider } = await import('../../../src/contexts/DataContext.jsx');
+const { PublicSettingsProvider } = await import('../../../src/contexts/PublicSettingsContext.jsx');
 const { SpeciesObservationReviewPanel } =
   await import('../../../src/components/observations/SpeciesObservationReviewPanel.jsx');
 
@@ -50,12 +51,14 @@ const PENDING = {
   photos: [],
 };
 
-function renderPanel(props = {}) {
+function renderPanel(props = {}, { publicSettings = null } = {}) {
   const onToast = vi.fn();
   render(
-    <DataProvider value={DATA}>
-      <SpeciesObservationReviewPanel maps={MAPS} onToast={onToast} {...props} />
-    </DataProvider>,
+    <PublicSettingsProvider value={publicSettings}>
+      <DataProvider value={DATA}>
+        <SpeciesObservationReviewPanel maps={MAPS} onToast={onToast} {...props} />
+      </DataProvider>
+    </PublicSettingsProvider>,
   );
   return { onToast };
 }
@@ -75,6 +78,22 @@ describe('SpeciesObservationReviewPanel', () => {
     renderPanel();
     await waitFor(() => expect(reviewMock).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByTestId('species-obs-review')).toBeNull());
+  });
+
+  it('module éteint : 503 pour un non-validateur → panneau masqué', async () => {
+    const err = new Error('Observations d’espèces désactivées');
+    err.status = 503;
+    reviewMock.mockRejectedValue(err);
+    renderPanel({}, { publicSettings: { modules: { species_observations_enabled: false } } });
+    await waitFor(() => expect(reviewMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByTestId('species-obs-review')).toBeNull());
+  });
+
+  it('module éteint : le validateur garde la file, avec un bandeau', async () => {
+    reviewMock.mockResolvedValue({ items: [], counts: { soumise: 0, validee: 0, refusee: 0 } });
+    renderPanel({}, { publicSettings: { modules: { species_observations_enabled: false } } });
+    await waitFor(() => expect(reviewMock).toHaveBeenCalled());
+    expect(screen.getByTestId('species-obs-module-off').textContent).toMatch(/Module éteint/);
   });
 
   it('file d’examen de la carte active : compteur, observation, validation avec espèce choisie', async () => {

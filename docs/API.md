@@ -2262,7 +2262,15 @@ rétrogradation (un refus ou une suppression ne touchent pas au registre). Chaqu
 réseau trophique dont l’observation est la preuve passe à `evidence_level = 'observe_site'`.
 Une entrée d’audit (`validate_species_observation` / `refuse_species_observation`) est écrite.
 La présence de la carte (`GET /api/maps/:mapId/species`) renvoie alors
-`validation_status: "confirme_site"` pour l’espèce.
+`validation_status: "confirme_site"` pour l’espèce, et la réédition de la fiche ne retire plus
+cette ligne (une présence confirmée n'est pas une présence déclarée).
+
+**Interrupteur** `ui.modules.species_observations_enabled` (public, allumé par défaut) : éteint,
+toutes les routes ci-dessous répondent **503** `{ error: "Observations d’espèces désactivées" }`,
+sauf au compte qui porte `observations.validate` (file d'examen conservée,
+`lib/pedagoModuleGate.js`). Les photos (`POST …/:id/photos`) relèvent de la limite JSON
+« contenu illustré » (`lib/jsonBodyLimit.js`). À la suppression d'un compte, ses observations
+partent en cascade et leurs fichiers photo sont effacés après validation de la transaction.
 
 | Méthode | URL                                                                 | Accès                                   | Description                                                                                                                                                                                                                                                                                                                                                                                             |
 | ------- | ------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -24,6 +24,7 @@ vi.mock('../../../src/services/observationsApi', () => ({
 
 const { DataProvider } = await import('../../../src/contexts/DataContext.jsx');
 const { SessionProvider } = await import('../../../src/contexts/SessionContext.jsx');
+const { PublicSettingsProvider } = await import('../../../src/contexts/PublicSettingsContext.jsx');
 const { SpeciesObservationSlot, isConfirmedOnSite } =
   await import('../../../src/components/observations/SpeciesObservationSlot.jsx');
 const { LocationObservationSlot } =
@@ -38,13 +39,20 @@ const DATA = {
   markers: [{ id: 'm1', label: 'Nichoir', map_id: 'foret' }],
 };
 
-function renderWith(ui, { session = { canParticipateContextComments: true } } = {}) {
+function renderWith(
+  ui,
+  { session = { canParticipateContextComments: true }, publicSettings = null } = {},
+) {
   return render(
-    <DataProvider value={DATA}>
-      <SessionProvider value={session}>{ui}</SessionProvider>
-    </DataProvider>,
+    <PublicSettingsProvider value={publicSettings}>
+      <DataProvider value={DATA}>
+        <SessionProvider value={session}>{ui}</SessionProvider>
+      </DataProvider>
+    </PublicSettingsProvider>,
   );
 }
+
+const MODULE_OFF = { modules: { species_observations_enabled: false } };
 
 beforeEach(() => {
   token = 'jeton-de-test';
@@ -144,6 +152,26 @@ describe('SpeciesObservationSlot (fiche espèce)', () => {
     // Validée = preuve : pas de suppression proposée.
     const item = within(dialog).getByTestId('species-obs-item');
     expect(within(item).queryByRole('button', { name: 'Supprimer' })).toBeNull();
+  });
+});
+
+describe('interrupteur ui.modules.species_observations_enabled', () => {
+  it('éteint : ni signalement ni liste pour un élève', () => {
+    renderWith(<SpeciesObservationSlot plant={{ id: 5, name: 'Mésange' }} mapId="foret" />, {
+      publicSettings: MODULE_OFF,
+    });
+    expect(screen.queryByTestId('species-obs-actions')).toBeNull();
+  });
+
+  it('éteint : le validateur garde les boutons', () => {
+    renderWith(<SpeciesObservationSlot plant={{ id: 5, name: 'Mésange' }} mapId="foret" />, {
+      publicSettings: MODULE_OFF,
+      session: {
+        canParticipateContextComments: true,
+        hasPermission: (key) => key === 'observations.validate',
+      },
+    });
+    expect(screen.getByRole('button', { name: /Signaler une observation/ })).toBeTruthy();
   });
 });
 

@@ -207,6 +207,11 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
   au rallumage, chaque élève retrouve tous ses badges, y compris ceux gagnés pendant la coupure
   (jamais en double). Les séances, elles, fonctionnent normalement ; le professeur voit un
   bandeau qui le rappelle dans l'onglet « Séances ».
+- **Observations d'espèces** — les élèves ne voient plus les boutons « Signaler une
+  observation » et « Mes observations » (fiches espèces, zones et repères). Les professeurs
+  qui valident les observations gardent l'encadré « Observations à valider », avec un bandeau
+  qui le rappelle, et peuvent finir d'examiner ce qui a été envoyé. Les observations déjà
+  validées restent : l'espèce reste « Confirmée sur le site ».
 
 ## Comment l'écran s'organise
 

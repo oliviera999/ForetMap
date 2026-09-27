@@ -24,8 +24,12 @@ Produit isolé : tables `user_journal_*`, API `/api/user-journal`, pas de coupla
 
 ## Public
 
-Tout compte ForetMap connecté tient **son** carnet personnel. Les routes `/api/observations`
-restent pour compatibilité historique ; l’UI et le panneau Stats utilisent le carnet unifié.
+Tout compte ForetMap connecté tient **son** carnet personnel. L’ancien carnet
+`observation_logs` est retiré (audit du 25/09/2026, § 3.5) : ses routes `/api/observations`
+répondent **410 Gone** (`OBSERVATIONS_LEGACY_GONE`) et plus rien n’y est écrit ; la table reste en
+lecture jusqu’au temps 3 (`docs/RUNBOOK_RETRAITS_T3.md`). Les signalements d’espèces validés par
+un enseignant sont un module distinct : `/api/species-observations` (migration 307, interrupteur
+`ui.modules.species_observations_enabled`).
 
 ## Fichiers
 

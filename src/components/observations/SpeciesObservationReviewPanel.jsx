@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '../../contexts/DataContext.jsx';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import {
   attachObservationEvidence,
   decideSpeciesObservation,
@@ -253,8 +254,9 @@ function ReviewCard({ observation: o, plantOptions, onDecided, onOpenPlant, onTo
 /**
  * Panneau enseignant « Observations à valider » (gestion de la biodiversité).
  *
- * Réservé à `observations.validate` : le serveur est l'autorité — un refus (403) masque le
- * panneau, sans prop à faire transiter depuis le shell. Filtres carte (défaut : carte active)
+ * Réservé à `observations.validate` : le serveur est l'autorité — un refus (403, ou 503 quand
+ * le module est éteint) masque le panneau, sans prop à faire transiter depuis le shell. Module
+ * éteint, le validateur garde la file, avec un bandeau. Filtres carte (défaut : carte active)
  * et statut ; rechargé quand une observation change (temps réel).
  *
  * @param {object} props
@@ -264,6 +266,8 @@ function ReviewCard({ observation: o, plantOptions, onDecided, onOpenPlant, onTo
  */
 export function SpeciesObservationReviewPanel({ maps = [], onOpenPlant = null, onToast = null }) {
   const { activeMapId = null, plants = [] } = useData();
+  const publicSettings = usePublicSettings();
+  const moduleOff = publicSettings?.modules?.species_observations_enabled === false;
   const [mapFilter, setMapFilter] = useState(activeMapId || '');
   const [status, setStatus] = useState('soumise');
   const [data, setData] = useState({ items: [], counts: { soumise: 0, validee: 0, refusee: 0 } });
@@ -292,7 +296,8 @@ export function SpeciesObservationReviewPanel({ maps = [], onOpenPlant = null, o
       setError('');
     } catch (err) {
       if (seq !== seqRef.current) return;
-      if (Number(err?.status) === 403 || Number(err?.status) === 401) {
+      // 403/401 : pas validateur ; 503 : module éteint et pas validateur.
+      if ([401, 403, 503].includes(Number(err?.status))) {
         setForbidden(true);
         return;
       }
@@ -321,6 +326,11 @@ export function SpeciesObservationReviewPanel({ maps = [], onOpenPlant = null, o
         <IconEye size={14} /> {T.reviewTitle} ({pendingCount})
       </summary>
       <p className="species-obs-intro">{T.reviewIntro}</p>
+      {moduleOff ? (
+        <p className="species-obs-intro" role="note" data-testid="species-obs-module-off">
+          {T.moduleOffBanner}
+        </p>
+      ) : null}
       <div className="species-obs-review__filters">
         <select aria-label="Carte" value={mapFilter} onChange={(e) => setMapFilter(e.target.value)}>
           <option value="">Toutes les cartes</option>

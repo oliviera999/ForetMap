@@ -612,10 +612,9 @@ automatiquement la bonne fiche, et la recherche le trouve aussi.
 > corbeille. Les zones et repères qui référençaient l'espèce perdent ce lien.
 
 > ⚠️ **Point d'attention** — **Décocher une carte** dans le formulaire d'une fiche retire
-> l'espèce du registre de cette carte, **confirmation comprise** : la pastille « Confirmée
-> sur le site » disparaît alors, même si des observations validées existent (elles restent
-> dans « Observations à valider », filtre « Validées »). Recocher la carte ne rétablit pas la
-> confirmation. Ne décocher une carte que pour une vraie erreur de saisie.
+> l'espèce du registre de cette carte, **sauf si sa présence y a été confirmée** par une
+> observation validée : dans ce cas la carte reste cochée à l'enregistrement et la pastille
+> « Confirmée sur le site » demeure. Une confirmation ne se défait pas depuis la fiche.
 
 > ⚠️ **Point d'attention** — Deux gestes voisins cohabitent sur la fiche : **« Espèce
 > observée »** (compteur personnel d'apprentissage, sans vérification) et **« Signaler une

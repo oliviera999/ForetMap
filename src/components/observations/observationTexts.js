@@ -8,12 +8,10 @@
  * vérifié par `tests/species-observations-texts.test.js`).
  */
 
-/** Statuts du serveur → libellés affichés. */
-export const OBSERVATION_STATUS_LABELS = Object.freeze({
-  soumise: 'En attente de validation',
-  validee: 'Validée',
-  refusee: 'Non retenue',
-});
+import { SPECIES_OBSERVATION_STATUS_ENUM } from '../../shared/enums/terrainEnums.js';
+
+/** Statuts du serveur → libellés affichés (référentiel partagé, `terrainEnums.js`). */
+export const OBSERVATION_STATUS_LABELS = SPECIES_OBSERVATION_STATUS_ENUM.labels;
 
 /** Pastille courte (liste compacte). */
 export const OBSERVATION_STATUS_SHORT = Object.freeze({
@@ -74,6 +72,8 @@ export const OBSERVATION_TEXTS = Object.freeze({
   reviewIntro:
     'Observations signalées par les élèves. Valider confirme la présence de l’espèce sur la carte (« confirmée sur le site ») ; la décision est définitive.',
   reviewEmpty: 'Aucune observation dans cette liste.',
+  moduleOffBanner:
+    'Module éteint pour les élèves (Paramètres → Modules) : ils ne voient plus « Signaler une observation ». La file reste ouverte ici.',
   validate: 'Valider',
   refuse: 'Ne pas retenir',
   notePlaceholder: 'Note pour l’élève (facultatif)',

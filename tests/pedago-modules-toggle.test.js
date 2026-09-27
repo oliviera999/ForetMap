@@ -113,6 +113,9 @@ test('registre : quatre interrupteurs publics, allumés par défaut, lus par mod
     id_keys: 'id_keys.manage',
     individuals: 'individuals.manage',
     pedago_sessions: 'plants.manage',
+    // Observations d'espèces (migration 307) : même garde, testée dans
+    // `tests/species-observations.test.js`.
+    species_observations: 'observations.validate',
   });
 
   const res = await request(app).get('/api/settings/public').expect(200);

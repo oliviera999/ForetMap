@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getAuthToken } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { IconCamera, IconNotebook } from '../../shared/icons.jsx';
@@ -13,8 +14,9 @@ import './speciesObservations.css';
 
 /**
  * Boutons « Signaler une observation » et « Mes observations », avec leurs fenêtres.
- * Rien sans session (visite publique) ; le signalement est masqué aux profils privés de
- * participation (« Visiteur »), que le serveur refuse de toute façon.
+ * Rien sans session (visite publique), ni module éteint (sauf pour le validateur) ; le
+ * signalement est masqué aux profils privés de participation (« Visiteur »), que le serveur
+ * refuse de toute façon.
  *
  * @param {object} props
  * @param {string|null} props.mapId carte de l'observation (rien sans carte)
@@ -33,7 +35,8 @@ export function SpeciesObservationActions({
   onForceLogout = null,
 }) {
   const { plants = [], zones = [], markers = [] } = useData();
-  const { canParticipateContextComments = true } = useSession();
+  const { canParticipateContextComments = true, hasPermission = null } = useSession();
+  const publicSettings = usePublicSettings();
   const [formOpen, setFormOpen] = useState(false);
   const [mineOpen, setMineOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -44,6 +47,12 @@ export function SpeciesObservationActions({
 
   const hasSession = typeof getAuthToken === 'function' && !!getAuthToken();
   if (!hasSession || !mapId) return null;
+  // Interrupteur `ui.modules.species_observations_enabled` : éteint, seul le validateur garde
+  // les boutons (le serveur répond 503 aux autres).
+  const moduleOn = publicSettings?.modules?.species_observations_enabled !== false;
+  const isValidator =
+    typeof hasPermission === 'function' && Boolean(hasPermission('observations.validate'));
+  if (!moduleOn && !isValidator) return null;
   const canReport = canParticipateContextComments !== false;
   const titleSuffix = plant?.name ? ` — ${plant.name}` : place?.label ? ` — ${place.label}` : '';
 
