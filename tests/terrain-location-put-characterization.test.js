@@ -72,20 +72,22 @@ const KINDS = {
 /**
  * Clés exactes de la réponse d'un PUT. La zone relit `zones.*` + l'éditorial visite ; le
  * repère, `map_markers.*` + l'éditorial visite. Toute clé ajoutée ou retirée doit être un
- * choix explicite (un retrait de colonne de la piste C fait basculer cette liste).
+ * choix explicite.
+ *
+ * Bascule explicite de la piste C (audit du 25/09/2026, § 3.5, temps T1/T2) : `current_plant`,
+ * `stage` et `history` (zone), `plant_name` (repère) ne sortent plus — leur suppression au
+ * temps T3 ne changera donc plus rien pour les clients.
  */
 const PUT_RESPONSE_KEYS = {
   zone: [
     'categories',
     'category_ids',
     'color',
-    'current_plant',
     'description',
     'emoji',
     'has_visit_body',
     'height',
     'hidden_surfaces',
-    'history',
     'id',
     'is_infrastructure',
     'links',
@@ -99,7 +101,6 @@ const PUT_RESPONSE_KEYS = {
     'special',
     'species',
     'species_ids',
-    'stage',
     'visible_group_ids',
     'visible_role_slugs',
     'visit_body_json',
@@ -125,7 +126,6 @@ const PUT_RESPONSE_KEYS = {
     'map_id',
     'note',
     'notes',
-    'plant_name',
     'search_aliases',
     'species',
     'species_ids',
@@ -263,13 +263,9 @@ for (const kind of Object.keys(KINDS)) {
     assert.equal(res.body.map_id, 'foret');
     if (kind === 'zone') {
       assert.equal(res.body.color, '#123456');
-      assert.deepEqual(res.body.history, []);
       assert.equal(res.body.has_visit_body, 0);
-      assert.equal(res.body.current_plant, '');
-      assert.equal(res.body.stage, 'empty');
       assert.equal(res.body.special, false);
     } else {
-      assert.equal(res.body.plant_name, '');
       assert.equal(res.body.x_pct, 12);
       assert.equal(res.body.y_pct, 34);
     }
@@ -330,22 +326,54 @@ for (const kind of Object.keys(KINDS)) {
     assert.equal(rows.length, 0);
   });
 
-  test(`${kind} — nom mono-espèce hérité (colonne legacy) : comportement actuel`, async () => {
+  test(`${kind} — nom mono-espèce hérité : ni lu, ni écrit (piste C, T1/T2)`, async () => {
     const loc = await createLocation(kind);
     const legacyField = kind === 'zone' ? 'current_plant' : 'plant_name';
     const table = kind === 'zone' ? 'zones' : 'map_markers';
-    // Sans espèce rattachée, le nom hérité est écrit tel quel et relu en repli.
+    // Avant la piste C : écrit tel quel, puis relu en repli (« Nom hérité » dans la liste).
+    // Désormais : le champ du corps est ignoré, la colonne n'est pas touchée.
     const res = await put(kind, loc.id, { [legacyField]: 'Nom hérité' }).expect(200);
-    assert.equal(res.body[legacyField], 'Nom hérité');
-    assert.deepEqual(res.body.living_beings_list, ['Nom hérité']);
+    assert.ok(!(legacyField in res.body), `${legacyField} ne sort plus`);
+    assert.deepEqual(res.body.living_beings_list, []);
     assert.deepEqual(res.body.species_ids, []);
     const row = await queryOne(`SELECT ${legacyField} AS v FROM ${table} WHERE id = ?`, [loc.id]);
-    assert.equal(row.v, 'Nom hérité');
-    // Une liste d'êtres vivants vide le champ hérité.
-    const replaced = await put(kind, loc.id, { living_beings: [plantA.name] }).expect(200);
-    assert.equal(replaced.body[legacyField], '');
-    assert.deepEqual(replaced.body.living_beings_list, [plantA.name]);
+    assert.equal(row.v, '');
+    // Une valeur restée en base (données anciennes) n'est plus relue en repli.
+    await execute(`UPDATE ${table} SET ${legacyField} = ? WHERE id = ?`, ['Resté en base', loc.id]);
+    const reread = await put(kind, loc.id, {}).expect(200);
+    assert.deepEqual(reread.body.living_beings_list, []);
+    const list = await asTeacher(request(app).get(`${K.base}?map_id=foret`)).expect(200);
+    const listed = list.body.find((item) => item.id === loc.id);
+    assert.deepEqual(listed.living_beings_list, []);
+    // …ni réécrite : elle attend le temps T3 telle quelle.
+    await put(kind, loc.id, { living_beings: [plantA.name] }).expect(200);
+    const kept = await queryOne(`SELECT ${legacyField} AS v FROM ${table} WHERE id = ?`, [loc.id]);
+    assert.equal(kept.v, 'Resté en base');
   });
+
+  if (kind === 'zone') {
+    test('zone — historique de cultures (zone_history) : ni écrit, ni relu (piste C, T1/T2)', async () => {
+      const loc = await createLocation('zone');
+      await execute('UPDATE zones SET current_plant = ? WHERE id = ?', [
+        'Ancienne culture',
+        loc.id,
+      ]);
+      await put('zone', loc.id, { living_beings: [plantA.name] }).expect(200);
+      const written = await queryAll('SELECT id FROM zone_history WHERE zone_id = ?', [loc.id]);
+      assert.equal(written.length, 0, 'plus d’archivage dans zone_history');
+      await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
+        loc.id,
+        'Radis',
+        '2025-01-20',
+      ]);
+      const detail = await asTeacher(request(app).get(`/api/zones/${loc.id}`)).expect(200);
+      assert.ok(!('history' in detail.body) && !('history_truncated' in detail.body));
+      // La suppression de la zone laisse la clé étrangère (ON DELETE CASCADE) nettoyer.
+      await asTeacher(request(app).delete(`/api/zones/${loc.id}`)).expect(200);
+      const left = await queryAll('SELECT id FROM zone_history WHERE zone_id = ?', [loc.id]);
+      assert.equal(left.length, 0);
+    });
+  }
 
   test(`${kind} — catégories : posées, conservées si omises, retirées par []`, async () => {
     const loc = await createLocation(kind);
@@ -480,10 +508,7 @@ const POST_RESPONSE_KEYS = {
 
 /** Clés d'un lieu dans la liste (`GET /api/zones`, `GET /api/map/markers`). */
 const LIST_ITEM_KEYS = {
-  zone: [
-    ...PUT_RESPONSE_KEYS.zone.filter((key) => key !== 'visit_body_json'),
-    'history_truncated',
-  ].sort(),
+  zone: PUT_RESPONSE_KEYS.zone.filter((key) => key !== 'visit_body_json'),
   marker: PUT_RESPONSE_KEYS.marker,
 };
 
@@ -501,7 +526,6 @@ for (const kind of Object.keys(KINDS)) {
     assert.deepEqual(loc.hidden_surfaces, []);
     assert.equal(loc.emoji, '');
     if (kind === 'zone') {
-      assert.deepEqual(loc.history, []);
       assert.equal(loc.color, '#86efac80');
       assert.equal(loc.description, '');
     } else {
@@ -548,9 +572,5 @@ for (const kind of Object.keys(KINDS)) {
 test('zone — GET /api/zones/:id : clés du détail', async () => {
   const loc = await createLocation('zone');
   const detail = await asTeacher(request(app).get(`/api/zones/${loc.id}`)).expect(200);
-  assert.deepEqual(
-    Object.keys(detail.body).sort(),
-    [...PUT_RESPONSE_KEYS.zone, 'history_truncated'].sort(),
-  );
-  assert.equal(detail.body.history_truncated, false);
+  assert.deepEqual(Object.keys(detail.body).sort(), PUT_RESPONSE_KEYS.zone);
 });

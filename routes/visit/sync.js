@@ -237,8 +237,10 @@ router.post(
         });
       } else {
         importedZones = await insertInBatches(tx, {
+          // `current_plant` et `stage` ne sont plus écrites (piste C, T2) : leurs valeurs par
+          // défaut du schéma ('' et 'empty') étaient celles qu'on posait ici.
           head: `INSERT INTO zones
-          (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)`,
+          (id, map_id, name, x, y, width, height, special, shape, points, color, description)`,
           tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            name = VALUES(name),
@@ -254,8 +256,6 @@ router.post(
               0,
               0,
               0,
-              '',
-              'empty',
               0,
               'polygon',
               z.points || '[]',
@@ -265,8 +265,9 @@ router.post(
           }),
         });
         importedMarkers = await insertInBatches(tx, {
+          // `plant_name` n'est plus écrite (piste C, T2) : défaut du schéma ''.
           head: `INSERT INTO map_markers
-          (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at)`,
+          (id, map_id, x_pct, y_pct, label, note, emoji, created_at)`,
           tail: `ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            x_pct = VALUES(x_pct),
@@ -281,7 +282,6 @@ router.post(
               m.x_pct,
               m.y_pct,
               m.label,
-              '',
               '',
               normalizeMarkerEmoji(m.emoji, { allowEmpty: true, fallback: '' }),
               now,

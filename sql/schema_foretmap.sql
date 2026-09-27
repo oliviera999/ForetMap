@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS zones (
   y DOUBLE DEFAULT NULL,
   width DOUBLE DEFAULT NULL,
   height DOUBLE DEFAULT NULL,
+  -- `current_plant` et `stage` : plus lues ni écrites par l'application (piste C de l'audit du
+  -- 25/09/2026, § 3.5, temps T1/T2) ; DROP au temps T3.
   current_plant VARCHAR(255) DEFAULT '',
   stage VARCHAR(64) DEFAULT 'empty',
   special TINYINT(1) DEFAULT 0,
@@ -62,7 +64,8 @@ CREATE TABLE IF NOT EXISTS zones (
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- zone_history (historique récoltes par zone)
+-- zone_history (historique récoltes par zone) : plus lue ni écrite par l'application (piste C,
+-- audit du 25/09/2026, § 3.5, temps T1/T2) ; DROP au temps T3, après export des lignes restantes.
 CREATE TABLE IF NOT EXISTS zone_history (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   zone_id VARCHAR(64) NOT NULL,
@@ -893,6 +896,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   x_pct DOUBLE NOT NULL,
   y_pct DOUBLE NOT NULL,
   label VARCHAR(255) NOT NULL,
+  -- `plant_name` : plus lue ni écrite (piste C, T1/T2 ; reprise dans `marker_species` :
+  -- migration 306) ; DROP au temps T3.
   plant_name VARCHAR(255) DEFAULT '',
   note TEXT DEFAULT NULL,
   emoji VARCHAR(16) DEFAULT '🌱',

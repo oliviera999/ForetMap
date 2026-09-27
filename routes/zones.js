@@ -28,7 +28,6 @@ const {
   notifyLocationChange,
   loadLocationRelations,
   serializeLocation,
-  loadZoneHistory,
 } = require('../lib/terrain/locationService');
 
 /**
@@ -80,17 +79,11 @@ router.get(
     // rouvrait une à une les zones que la liste vient de fermer.
     const detailScope = intersectSurfaceMapScope(req.locationSurface, null, zone.map_id);
     if (detailScope.notFound) return res.status(404).json({ error: 'Zone introuvable' });
-    const history = await loadZoneHistory(req.params.id);
     const relations = await loadLocationRelations(ZONE, [zone.id]);
     const payload = projectLocationAudienceForViewer(
       serializeLocation(
         ZONE,
-        {
-          ...zone,
-          has_visit_body: !!Number(zone.has_visit_body),
-          history,
-          history_truncated: false,
-        },
+        { ...zone, has_visit_body: !!Number(zone.has_visit_body) },
         relations,
       ),
       viewerAuth,

@@ -188,20 +188,15 @@ router.get(
 /**
  * Espèces d'une zone / d'un repère pour le contenu **public** de visite :
  * `species` (id, nom, emoji — de quoi ouvrir la fiche catalogue), `species_ids` et
- * `living_beings_list`. Le nom legacy mono-espèce (`zones.current_plant`,
- * `map_markers.plant_name`) ne sert que de repli et n'est pas republié.
+ * `living_beings_list`, lus dans la jonction seule. L'ancien nom mono-espèce
+ * (`zones.current_plant`, `map_markers.plant_name`) n'est plus lu (piste C de l'audit du
+ * 25/09/2026, § 3.5, temps T1 ; reprise des noms : migration 306).
  *
  * @param {object} row ligne de `visit_zones` / `visit_markers` déjà sérialisée
  * @param {Array<{id: number, name: string, emoji: string}>|undefined} speciesRows jonction
- * @param {string|null} legacySingleName nom mono-espèce historique
  */
-function withVisitLocationSpecies(row, speciesRows, legacySingleName) {
-  const next = attachSpeciesToEntity(row, speciesRows || [], {
-    legacySingleName: legacySingleName || '',
-  });
-  delete next.current_plant;
-  delete next.plant_name;
-  return next;
+function withVisitLocationSpecies(row, speciesRows) {
+  return attachSpeciesToEntity(row, speciesRows || []);
 }
 
 /** Filtre audience par rôle après cache (le cache conserve les champs bruts). */
@@ -261,7 +256,6 @@ router.get(
        zm.description AS description,
        zm.color AS color,
        zm.emoji AS emoji,
-       zm.current_plant AS current_plant,
        COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(z.visible_group_ids, zm.visible_group_ids) AS visible_group_ids,
        z.subtitle AS visit_subtitle,
@@ -282,7 +276,6 @@ router.get(
       `SELECT
        m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
        mm.note AS note,
-       mm.plant_name AS plant_name,
        COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(m.visible_group_ids, mm.visible_group_ids) AS visible_group_ids,
        m.subtitle AS visit_subtitle,
@@ -532,7 +525,7 @@ router.get(
           zoneNotesMap.get(String(z.id)) || [],
         );
         return {
-          ...withVisitLocationSpecies(withCats, zoneSpeciesMap.get(String(z.id)), z.current_plant),
+          ...withVisitLocationSpecies(withCats, zoneSpeciesMap.get(String(z.id))),
           // Source de vérité infra déjà lue plus haut ; on la conserve si la jonction
           // catégories est encore vide sur une zone miroir.
           is_infrastructure: withCats.is_infrastructure || infrastructureZoneIds.has(String(z.id)),
@@ -551,7 +544,7 @@ router.get(
           markerNotesMap.get(String(m.id)) || [],
         );
         return {
-          ...withVisitLocationSpecies(withCats, markerSpeciesMap.get(String(m.id)), m.plant_name),
+          ...withVisitLocationSpecies(withCats, markerSpeciesMap.get(String(m.id))),
           map_lead_photo: serializeMapLeadPhoto(
             'marker',
             m.id,
