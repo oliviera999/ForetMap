@@ -31,6 +31,7 @@ Imports WordPress GL : [GL_IMPORT_FROM_YO.md](GL_IMPORT_FROM_YO.md).
 | Juste (re)créer le schéma et le seed sur `foretmap_local`   | `npm run db:init`                                                      |
 | Uniquement les migrations, sans re-semer                    | `npm run db:migrate`                                                   |
 | La base est-elle en retard sur les migrations ?             | `npm run db:status` (lecture seule ; code 3 = en attente)              |
+| Peut-on supprimer une ancienne colonne (retrait, temps 3) ? | `npm run db:t3-status` (lecture seule ; `docs/RUNBOOK_RETRAITS_T3.md`) |
 | Contrôle de l'installation serveur (schéma, modules, build) | `npm run check:runtime` (aussi via « Run JS Script » de cPanel)        |
 | Vérifier Node / `.env` / MariaDB                            | `npm run check:local`                                                  |
 | Attendre que MySQL réponde (déjà dans `local:setup`)        | `node scripts/wait-mysql-ready.js`                                     |
