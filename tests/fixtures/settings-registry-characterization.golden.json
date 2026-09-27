@@ -1,0 +1,4867 @@
+{
+  "registry": {
+    "content.about.docs_title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 60,
+      "default": "Documentation"
+    },
+    "content.about.help_body": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici."
+    },
+    "content.about.help_reenable_cta": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 70,
+      "default": "Reactiver toutes les aides"
+    },
+    "content.about.help_reset_metrics_cta": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 90,
+      "default": "Reinitialiser les compteurs d aide"
+    },
+    "content.about.help_title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 60,
+      "default": "Aide contextuelle"
+    },
+    "content.about.purpose_body": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 500,
+      "default": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations."
+    },
+    "content.about.purpose_title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "Objet de l'application"
+    },
+    "content.about.site_issues_title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Audit interne (réservé aux administrateurs)"
+    },
+    "content.about.subtitle": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Informations du projet ForetMap"
+    },
+    "content.about.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "ℹ️ À propos"
+    },
+    "content.app.footer_version_prefix": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 20,
+      "default": "Version"
+    },
+    "content.app.loader": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 90,
+      "default": "Chargement de la forêt…"
+    },
+    "content.app.retry_now": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 50,
+      "default": "Réessayer maintenant"
+    },
+    "content.app.server_down_notice": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 180,
+      "default": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes."
+    },
+    "content.auth.guest_visit_cta": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 70,
+      "default": "🧭 Visiter sans compte"
+    },
+    "content.auth.login_tab": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 40,
+      "default": "Connexion"
+    },
+    "content.auth.register_tab": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 50,
+      "default": "Créer un compte"
+    },
+    "content.auth.subtitle": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 180,
+      "default": "{app} — Le terrain d’apprentissage vivant du lycée"
+    },
+    "content.auth.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "{app}"
+    },
+    "content.brand.app_name": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "{app}"
+    },
+    "content.brand.org_name": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "{org}"
+    },
+    "content.help.hint_prefix": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 40,
+      "default": "Astuce : "
+    },
+    "content.help.map_quick_tip": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 180,
+      "default": "Clique une zone ou un repère puis ouvre ? pour les actions guidées."
+    },
+    "content.help.panel_close_cta": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 40,
+      "default": "Fermer"
+    },
+    "content.help.panel_dismiss_cta": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 70,
+      "default": "Ne plus afficher"
+    },
+    "content.help.panel_title_prefix": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 8,
+      "default": "💡"
+    },
+    "content.help.tasks_quick_tip": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 180,
+      "default": "Filtre d abord par carte ou groupe, puis traite les retours en attente."
+    },
+    "content.help.visit_quick_tip": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 180,
+      "default": ""
+    },
+    "content.visit.empty_selection": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 160,
+      "default": "Sélectionne une zone ou un repère pour afficher les détails."
+    },
+    "content.visit.mascot_dialog.catalog_overrides": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 24000,
+      "default": "{}"
+    },
+    "content.visit.mascot_dialog.defaults": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 12000,
+      "default": "{}"
+    },
+    "content.visit.subtitle": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 200,
+      "default": "Explore les zones et repères, puis marque ce que tu as déjà vu."
+    },
+    "content.visit.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": "🧭 Visite de la carte"
+    },
+    "content.visit.tutorials_empty": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Aucun tutoriel sélectionné pour le moment."
+    },
+    "content.visit.tutorials_title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 100,
+      "default": "📘 Tutoriels de la visite"
+    },
+    "integration.google.enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "integration.lti.enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": false
+    },
+    "integration.lti.instructor_targets": {
+      "scope": "admin",
+      "type": "json",
+      "shape": "array",
+      "default": ["fm", "gl"]
+    },
+    "integration.lti.landing_options": {
+      "scope": "admin",
+      "type": "json",
+      "shape": "array",
+      "default": ["aiguillage", "gl_game", "gl_home", "fm_map", "fm_tasks"]
+    },
+    "integration.lti.launch_bindings": {
+      "scope": "admin",
+      "type": "json",
+      "shape": "array",
+      "default": [
+        {
+          "moodle_course_id": 564,
+          "product": "gl",
+          "gl_chapter_id": 1,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 565,
+          "product": "gl",
+          "gl_chapter_id": 2,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 566,
+          "product": "gl",
+          "gl_chapter_id": 3,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 567,
+          "product": "gl",
+          "gl_chapter_id": 4,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 595,
+          "product": "gl",
+          "gl_chapter_id": 5,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 570,
+          "product": "gl",
+          "gl_chapter_id": 6,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 511,
+          "product": "fm",
+          "gl_chapter_id": null,
+          "landing": "aiguillage",
+          "label": ""
+        }
+      ]
+    },
+    "integration.lti.public_origin": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 255,
+      "default": ""
+    },
+    "integration.lti.unknown_user": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["refuse"],
+      "default": "refuse"
+    },
+    "integration.moodle.chapter_courses": {
+      "scope": "admin",
+      "type": "json",
+      "shape": "object",
+      "default": {}
+    },
+    "integration.moodle.email_domains": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "integration.moodle.enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": false
+    },
+    "integration.moodle.policies": {
+      "scope": "admin",
+      "type": "json",
+      "shape": "array",
+      "default": [
+        {
+          "key": "niveau",
+          "pattern": "^{year}#\\d$",
+          "group_kind": "unit",
+          "role": null,
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": false,
+          "push_membership": false
+        },
+        {
+          "key": "n3",
+          "pattern": "n3",
+          "group_kind": "class",
+          "role": "eleve_novice",
+          "n3beur": true,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": true
+        },
+        {
+          "key": "classe6",
+          "pattern": "^{year}#6\\d{2}(-6\\d{2})?$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": true,
+          "create_accounts": true,
+          "push_membership": false
+        },
+        {
+          "key": "classe",
+          "pattern": "^{year}#[2-5]\\d{2}$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": false
+        }
+      ]
+    },
+    "integration.moodle.threshold_create_pct": {
+      "scope": "admin",
+      "type": "number",
+      "min": 0,
+      "max": 1000,
+      "default": 30
+    },
+    "integration.moodle.threshold_deactivate_abs": {
+      "scope": "admin",
+      "type": "number",
+      "min": 0,
+      "max": 100000,
+      "default": 50
+    },
+    "integration.moodle.threshold_deactivate_pct": {
+      "scope": "admin",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 10
+    },
+    "integration.moodle.threshold_namematch_pct": {
+      "scope": "admin",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 20
+    },
+    "integration.moodle.threshold_outbound_remove_abs": {
+      "scope": "admin",
+      "type": "number",
+      "min": 0,
+      "max": 100000,
+      "default": 50
+    },
+    "integration.moodle.year_prefix": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 8,
+      "default": "26"
+    },
+    "learning.gating.allowed_wrong_attempts": {
+      "scope": "teacher",
+      "type": "number",
+      "default": 0,
+      "min": 0,
+      "max": 10
+    },
+    "learning.gating.announce_on_button": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
+    "learning.gating.cooldown_scope": {
+      "scope": "teacher",
+      "type": "enum",
+      "default": "resource",
+      "values": ["resource", "question"]
+    },
+    "learning.gating.default_mode": {
+      "scope": "teacher",
+      "type": "enum",
+      "default": "any",
+      "values": ["off", "any", "all", "threshold"]
+    },
+    "learning.gating.default_required_correct": {
+      "scope": "teacher",
+      "type": "number",
+      "default": 1,
+      "min": 1,
+      "max": 50
+    },
+    "learning.gating.enabled": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": false
+    },
+    "learning.gating.lock_mode": {
+      "scope": "teacher",
+      "type": "enum",
+      "default": "flow",
+      "values": ["advisory", "flow", "strict"]
+    },
+    "learning.gating.max_questions_per_session": {
+      "scope": "teacher",
+      "type": "number",
+      "default": 3,
+      "min": 1,
+      "max": 10
+    },
+    "learning.gating.require_linked_tutorials_before_task_done": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": false
+    },
+    "learning.gating.retry_cooldown_hours": {
+      "scope": "teacher",
+      "type": "number",
+      "default": 1,
+      "min": 0,
+      "max": 8760
+    },
+    "learning.gating.state_icons": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
+    "observations.journal_max_assets": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 200,
+      "default": 0
+    },
+    "observations.journal_max_chars": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 200000,
+      "default": 0
+    },
+    "ops.allow_remote_logs": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "ops.allow_remote_restart": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "ops.visit_mascot_unrenderable_aligned_at": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 40,
+      "default": "",
+      "adminHidden": true
+    },
+    "rbac.progression_by_validated_tasks": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
+    "runtime.realtime_signals_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "runtime.rest_poll_background_floor_ms": {
+      "scope": "public",
+      "type": "number",
+      "min": 90000,
+      "max": 600000,
+      "default": 120000
+    },
+    "runtime.rest_poll_floor_ms": {
+      "scope": "public",
+      "type": "number",
+      "min": 60000,
+      "max": 300000,
+      "default": 90000
+    },
+    "runtime.socket_presence_emit_coalesce_ms": {
+      "scope": "public",
+      "type": "number",
+      "min": 0,
+      "max": 5000,
+      "default": 500
+    },
+    "runtime.sync_state_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "security.jwt_sliding_max_seconds": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 900,
+      "max": 2592000,
+      "default": 43200
+    },
+    "security.jwt_ttl_base_seconds": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 900,
+      "max": 604800,
+      "default": 5400
+    },
+    "security.password_min_length": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 4,
+      "max": 32,
+      "default": 4
+    },
+    "security.plan_access_code_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
+    },
+    "security.staff_plan_access_code_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
+    },
+    "students.import.allow_weak_passwords": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": false
+    },
+    "students.import.existing_strategy": {
+      "scope": "teacher",
+      "type": "enum",
+      "values": ["update", "fill", "skip"],
+      "default": "update"
+    },
+    "system.maintenance_message": {
+      "scope": "teacher",
+      "type": "string",
+      "maxLength": 240,
+      "default": ""
+    },
+    "system.maintenance_mode": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": false
+    },
+    "tasks.auto_archive_after_days": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 7,
+      "max": 3650,
+      "default": 120
+    },
+    "tasks.auto_archive_enabled": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
+    "tasks.recurring_automation_enabled": {
+      "scope": "teacher",
+      "type": "boolean",
+      "default": true
+    },
+    "tasks.student_max_active_assignments": {
+      "scope": "teacher",
+      "type": "number",
+      "min": 0,
+      "max": 99,
+      "default": 0
+    },
+    "ui.auth.allow_google_auto_register": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.auth.allow_google_student": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.auth.allow_google_teacher": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.auth.allow_guest_visit": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.auth.allow_register": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.auth.default_mode": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["login", "register"],
+      "default": "login"
+    },
+    "ui.auth.welcome_message": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 160,
+      "default": ""
+    },
+    "ui.biodiv.determination_always_open": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.biodiv.pedago_level_default": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["college", "lycee", "universite"],
+      "default": "college"
+    },
+    "ui.biodiv.pedago_pref_can_raise": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.foret.brand": {
+      "scope": "public",
+      "type": "json",
+      "shape": "object",
+      "default": {}
+    },
+    "ui.help.pulse_unseen_panels": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.help.show_context_hints": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.map.default_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.map.default_map_student": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 32,
+      "default": "foret"
+    },
+    "ui.map.default_map_teacher": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 32,
+      "default": "foret"
+    },
+    "ui.map.default_map_visit": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 32,
+      "default": "foret"
+    },
+    "ui.map.emoji_label_center_gap": {
+      "scope": "public",
+      "type": "number",
+      "min": 6,
+      "max": 32,
+      "default": 14
+    },
+    "ui.map.heading_up_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.map.location_emojis": {
+      "scope": "public",
+      "type": "string",
+      "default": ""
+    },
+    "ui.map.overlay_emoji_size_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 50,
+      "max": 200,
+      "default": 100
+    },
+    "ui.map.overlay_label_size_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 50,
+      "max": 200,
+      "default": 100
+    },
+    "ui.map.overlay_zoom_growth_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 35
+    },
+    "ui.map.plateau_marker_size_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 50,
+      "max": 200,
+      "default": 100
+    },
+    "ui.map.show_tutorial_dots": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.map.zone_label_min_side_factor": {
+      "scope": "public",
+      "type": "number",
+      "min": 1,
+      "max": 6,
+      "default": 2.5
+    },
+    "ui.modules.context_comments_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.forum_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.help_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.id_keys_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.individuals_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.observations_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.pedago_sessions_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.presence_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.reports_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.rewards_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.stats_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.tutorials_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.modules.visit_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.plan.access_mode": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["public", "code"],
+      "default": "public"
+    },
+    "ui.plan.attribution": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": ""
+    },
+    "ui.plan.brand": {
+      "scope": "public",
+      "type": "json",
+      "shape": "object",
+      "default": {}
+    },
+    "ui.plan.default_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.plan.heading_up_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.plan.hidden_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.plan.map_id": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 32,
+      "default": "lyautey"
+    },
+    "ui.plan.public_base_url": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 200,
+      "default": ""
+    },
+    "ui.plan.selectable_map_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.plan.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Plan {orgShort}"
+    },
+    "ui.plan.welcome_hint": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": "Touchez un lieu, ou cherchez-le."
+    },
+    "ui.reactions.allowed_emojis": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 160,
+      "default": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
+    },
+    "ui.staff_plan.access_mode": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["disabled", "code"],
+      "default": "disabled"
+    },
+    "ui.staff_plan.allowed_role_slugs": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 512,
+      "default": "admin;prof;prof_classe;personnel"
+    },
+    "ui.staff_plan.attribution": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": ""
+    },
+    "ui.staff_plan.code_role_slug": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 40,
+      "default": "personnel"
+    },
+    "ui.staff_plan.default_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.staff_plan.hidden_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.staff_plan.selectable_map_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.staff_plan.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Plan personnels — {orgShort}"
+    },
+    "ui.staff_plan.welcome_hint": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 400,
+      "default": "Les lieux et consignes réservés aux personnels du lycée."
+    },
+    "ui.visit.default_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.visit.heading_up_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.visit.mascot.default_id": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "ui.visit.selectable_map_ids": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    }
+  },
+  "defaults.public.foret": {
+    "settings": {
+      "ui": {
+        "auth": {
+          "allow_register": true,
+          "allow_google_student": true,
+          "allow_google_teacher": true,
+          "allow_google_auto_register": false,
+          "allow_guest_visit": true,
+          "default_mode": "login",
+          "welcome_message": ""
+        },
+        "map": {
+          "default_map_student": "foret",
+          "default_map_teacher": "foret",
+          "default_map_visit": "foret",
+          "location_emojis": "",
+          "default_category_ids": "",
+          "emoji_label_center_gap": 14,
+          "overlay_emoji_size_percent": 100,
+          "overlay_label_size_percent": 100,
+          "overlay_zoom_growth_percent": 35,
+          "zone_label_min_side_factor": 2.5,
+          "plateau_marker_size_percent": 100,
+          "heading_up_enabled": false,
+          "show_tutorial_dots": false
+        },
+        "foret": {
+          "brand": {}
+        },
+        "visit": {
+          "default_category_ids": "",
+          "mascot": {
+            "default_id": ""
+          },
+          "heading_up_enabled": false
+        },
+        "modules": {
+          "tutorials_enabled": true,
+          "visit_enabled": true,
+          "stats_enabled": true,
+          "observations_enabled": true,
+          "help_enabled": true,
+          "forum_enabled": true,
+          "context_comments_enabled": true,
+          "reports_enabled": true,
+          "presence_enabled": true,
+          "id_keys_enabled": true,
+          "individuals_enabled": true,
+          "pedago_sessions_enabled": true,
+          "rewards_enabled": true
+        },
+        "biodiv": {
+          "determination_always_open": false,
+          "pedago_level_default": "college",
+          "pedago_pref_can_raise": false
+        },
+        "help": {
+          "show_context_hints": true,
+          "pulse_unseen_panels": true
+        },
+        "reactions": {
+          "allowed_emojis": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": "{org}"
+        },
+        "auth": {
+          "title": "{app}",
+          "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
+          "login_tab": "Connexion",
+          "register_tab": "Créer un compte",
+          "guest_visit_cta": "🧭 Visiter sans compte"
+        },
+        "app": {
+          "loader": "Chargement de la forêt…",
+          "server_down_notice": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.",
+          "retry_now": "Réessayer maintenant",
+          "footer_version_prefix": "Version"
+        },
+        "visit": {
+          "title": "🧭 Visite de la carte",
+          "subtitle": "Explore les zones et repères, puis marque ce que tu as déjà vu.",
+          "empty_selection": "Sélectionne une zone ou un repère pour afficher les détails.",
+          "tutorials_title": "📘 Tutoriels de la visite",
+          "tutorials_empty": "Aucun tutoriel sélectionné pour le moment.",
+          "mascot_dialog": {
+            "defaults": "{}",
+            "catalog_overrides": "{}"
+          }
+        },
+        "about": {
+          "title": "ℹ️ À propos",
+          "subtitle": "Informations du projet ForetMap",
+          "purpose_title": "Objet de l'application",
+          "purpose_body": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
+          "site_issues_title": "Audit interne (réservé aux administrateurs)",
+          "docs_title": "Documentation",
+          "help_title": "Aide contextuelle",
+          "help_body": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",
+          "help_reenable_cta": "Reactiver toutes les aides",
+          "help_reset_metrics_cta": "Reinitialiser les compteurs d aide"
+        },
+        "help": {
+          "hint_prefix": "Astuce : ",
+          "panel_title_prefix": "💡",
+          "panel_close_cta": "Fermer",
+          "panel_dismiss_cta": "Ne plus afficher",
+          "map_quick_tip": "Clique une zone ou un repère puis ouvre ? pour les actions guidées.",
+          "tasks_quick_tip": "Filtre d abord par carte ou groupe, puis traite les retours en attente.",
+          "visit_quick_tip": "",
+          "registry": {
+            "tooltips": {
+              "header.userBadge": {
+                "text": "Voir ta progression et tes stats — petit bilan perso.",
+                "textTeacher": "Voir où en sont les n3beurs (stats collectives)."
+              },
+              "header.profileEdit": {
+                "text": "Ajuster ton profil (pseudo, avatar, etc.)."
+              },
+              "header.preview": {
+                "textTeacher": "Aperçu : voir l’app comme un n3beur ou un n3boss, et choisir le niveau d’affichage biodiversité."
+              },
+              "header.teacherLogin": {
+                "text": "Se connecter avec un compte n3boss (professeur).",
+                "textTeacher": "Se connecter avec un compte n3boss (professeur)."
+              },
+              "header.logout": {
+                "text": "Quitter ForetMap proprement."
+              },
+              "header.notifications": {
+                "text": "Nouvelles infos, rappels et petites alertes utiles."
+              },
+              "header.impersonationStop": {
+                "text": "Fin de la prise de contrôle : tu retrouves ton compte admin et tes droits (diagnostic ou support terminé).",
+                "textTeacher": "Fin de la prise de contrôle : tu retrouves ton compte admin. À utiliser quand le diagnostic ou le support est terminé."
+              },
+              "map.toggleGestures": {
+                "text": "Autoriser ou figer les gestes sur la carte (pratique si ça bouge trop)."
+              },
+              "map.toggleLabels": {
+                "text": "Afficher ou masquer les noms sur la carte."
+              },
+              "map.zoomIn": {
+                "text": "Zoomer pour voir le détail."
+              },
+              "map.zoomOut": {
+                "text": "Dézoomer pour voir plus large."
+              },
+              "map.zoomReset": {
+                "text": "Revenir à la vue complète d'un coup."
+              },
+              "tasks.edit": {
+                "textTeacher": "Modifier cette tâche."
+              },
+              "tasks.duplicate": {
+                "textTeacher": "Dupliquer cette tâche (copie rapide)."
+              },
+              "tasks.delete": {
+                "textTeacher": "Supprimer définitivement cette tâche."
+              },
+              "plants.edit": {
+                "textTeacher": "Modifier cette fiche biodiversité."
+              },
+              "plants.delete": {
+                "textTeacher": "Supprimer cette fiche biodiversité."
+              },
+              "visit.mediaDelete": {
+                "textTeacher": "Retirer cette photo de la visite."
+              },
+              "profiles.impersonateUser": {
+                "textTeacher": "Ouvre une session réelle comme cet utilisateur (identité effective côté serveur). Un bandeau orange permet de revenir au compte admin. Réservé à la permission admin.impersonate."
+              }
+            },
+            "panels": {
+              "map": {
+                "title": "Aide carte",
+                "items": [
+                  {
+                    "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là."
+                  },
+                  {
+                    "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Ce dernier bouton rattrape à peu près toutes les situations."
+                  },
+                  {
+                    "text": "Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle."
+                  },
+                  {
+                    "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est le meilleur moyen de semer des points partout — j’ai déjà vu une carte finir en ciel étoilé."
+                  }
+                ]
+              },
+              "tasks": {
+                "title": "Aide tâches",
+                "items": [
+                  {
+                    "text": "Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas."
+                  },
+                  {
+                    "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi et pour les vers de terre."
+                  },
+                  {
+                    "textTeacher": "Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée."
+                  },
+                  {
+                    "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Garde ton énergie pour le terrain, il en réclame déjà pas mal."
+                  }
+                ]
+              },
+              "plants": {
+                "title": "Aide biodiversité",
+                "items": [
+                  {
+                    "text": "Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit."
+                  },
+                  {
+                    "text": "Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder une fois sur place, pas ce qu’il faut réciter."
+                  },
+                  {
+                    "textTeacher": "C’est toi qui enrichis et corriges les fiches. Moi je m’en sers dehors, et je repère vite celles qui manquent."
+                  }
+                ]
+              },
+              "visit": {
+                "title": "Aide visite",
+                "items": [
+                  {
+                    "text": "Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux."
+                  },
+                  {
+                    "text": "Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches — c’est ma contribution à l’effort."
+                  },
+                  {
+                    "textTeacher": "« Aperçu comme élève » montre le rendu réel côté n3beur. À regarder avant la sortie : sur le terrain, il est trop tard pour corriger un texte."
+                  },
+                  {
+                    "textTeacher": "Sélectionne les tutoriels utiles à la visite. Trois bien choisis valent mieux que douze qu’on survole."
+                  }
+                ]
+              },
+              "profiles": {
+                "title": "Aide profils et comptes",
+                "items": [
+                  {
+                    "textTeacher": "Les profils RBAC règlent les permissions, le forum et les commentaires contextuels ; chaque compte porte un profil principal. C’est la page qui décide qui peut quoi — relis avant d’enregistrer."
+                  },
+                  {
+                    "textTeacher": "« Voir comme cet utilisateur », depuis « Modifier » un compte, ouvre l’application avec ses droits réels — pas une imitation. Le bandeau orange est ta porte de sortie ; tant qu’il est là, tu n’es pas chez toi."
+                  }
+                ]
+              },
+              "groups": {
+                "title": "Aide groupes et sous-groupes",
+                "items": [
+                  {
+                    "textTeacher": "Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent."
+                  },
+                  {
+                    "textTeacher": "« Membres » désigne qui appartient au groupe — élèves comme enseignants. Le profil par défaut du groupe s’applique à ses membres élèves quand il est plus élevé que le leur ; « imposé » le fait toujours prévaloir."
+                  },
+                  {
+                    "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix."
+                  },
+                  {
+                    "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi."
+                  },
+                  {
+                    "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus."
+                  }
+                ]
+              },
+              "groupFilters": {
+                "title": "Aide filtre groupe",
+                "items": [
+                  {
+                    "textTeacher": "Ce filtre limite la vue au groupe choisi, et selon le contexte à ses sous-groupes. Rien n’est supprimé, seulement mis de côté."
+                  },
+                  {
+                    "textTeacher": "Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de se rappeler quel filtre est actif."
+                  },
+                  {
+                    "textTeacher": "Dans les Stats, il cible les n3beurs du groupe. Comparer deux groupes est utile ; en conclure quelque chose sur les personnes, beaucoup moins."
+                  }
+                ]
+              },
+              "journal": {
+                "title": "Aide carnet",
+                "items": [
+                  {
+                    "text": "Un article, c’est ce que tu veux garder : du texte, des photos, ou les deux. Ça s’enregistre tout seul pendant que tu écris — je veille."
+                  },
+                  {
+                    "text": "Sur une fiche espèce, un terme du glossaire ou un tutoriel, marque-le comme appris puis « Ajouter au carnet » : il rejoint le fil, avec un lien pour le rouvrir."
+                  },
+                  {
+                    "text": "Épingle ce qui compte, cherche et filtre le reste. Un carnet qu’on relit vaut mieux qu’un carnet qu’on remplit."
+                  },
+                  {
+                    "textTeacher": "Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit."
+                  }
+                ]
+              }
+            },
+            "quickTips": {
+              "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
+              "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : il y a quelqu’un derrière.",
+              "visit": ""
+            },
+            "chrome": {
+              "hintPrefix": "Astuce : ",
+              "panelTitlePrefix": "💡",
+              "panelCloseCta": "Fermer",
+              "panelDismissCta": "Ne plus afficher"
+            },
+            "mapCanvasHints": {
+              "drawZoneMin": "🖊️ Touche la carte (min. 3 pts)",
+              "drawZoneReady": "✅ {count} pts — Terminer",
+              "addMarker": "📍 Touche la carte pour placer",
+              "editPoints": "✋ Glisse un sommet ou l'intérieur · poignée pointillée = nouveau sommet · Maj+clic ou lasso = sélection · Suppr retire · Ctrl+Z annule",
+              "pageScroll": "📱 1 doigt: page · 2 doigts: zoom carte",
+              "gesturesActive": "✋ Gestes carte actifs"
+            },
+            "realtime": {
+              "live": "Temps réel actif — les listes se mettent à jour tout de suite.",
+              "polling": "Synchronisation par rafraîchissement automatique (mode secours).",
+              "connecting": "Connexion au temps réel…",
+              "offline": "Temps réel coupé — reconnexion automatique ou rafraîchissement environ toutes les 30 s.",
+              "noClient": "Module temps réel indisponible — mises à jour par rafraîchissement seulement."
+            }
+          },
+          "narrator": {
+            "enabled": true,
+            "speakerName": "OLU",
+            "fallbackSilhouette": "olu",
+            "portraits": {}
+          }
+        },
+        "tour": {
+          "registry": {}
+        }
+      },
+      "runtime": {
+        "realtime_signals_enabled": true,
+        "rest_poll_floor_ms": 90000,
+        "rest_poll_background_floor_ms": 120000,
+        "sync_state_enabled": true,
+        "socket_presence_emit_coalesce_ms": 500
+      },
+      "visit": {
+        "mascot": {
+          "dialog": {
+            "defaults": {},
+            "catalogOverrides": {}
+          }
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "defaults.public.gl": {
+    "settings": {
+      "ui": {
+        "map": {
+          "default_map_student": "foret",
+          "default_map_teacher": "foret",
+          "default_map_visit": "foret",
+          "location_emojis": "",
+          "default_category_ids": "",
+          "emoji_label_center_gap": 14,
+          "overlay_emoji_size_percent": 100,
+          "overlay_label_size_percent": 100,
+          "overlay_zoom_growth_percent": 35,
+          "zone_label_min_side_factor": 2.5,
+          "plateau_marker_size_percent": 100,
+          "heading_up_enabled": false,
+          "show_tutorial_dots": false
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": "{org}"
+        }
+      },
+      "runtime": {
+        "realtime_signals_enabled": true,
+        "rest_poll_floor_ms": 90000,
+        "rest_poll_background_floor_ms": 120000,
+        "sync_state_enabled": true,
+        "socket_presence_emit_coalesce_ms": 500
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "defaults.public.plan": {
+    "settings": {
+      "ui": {
+        "plan": {
+          "map_id": "lyautey",
+          "title": "Plan {orgShort}",
+          "welcome_hint": "Touchez un lieu, ou cherchez-le.",
+          "access_mode": "public",
+          "attribution": "",
+          "public_base_url": "",
+          "brand": {},
+          "selectable_map_ids": "",
+          "default_category_ids": "",
+          "hidden_category_ids": "",
+          "heading_up_enabled": false
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": "{org}"
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "defaults.public.staff": {
+    "settings": {
+      "ui": {
+        "staff_plan": {
+          "title": "Plan personnels — {orgShort}",
+          "welcome_hint": "Les lieux et consignes réservés aux personnels du lycée.",
+          "access_mode": "disabled",
+          "attribution": "",
+          "selectable_map_ids": "",
+          "default_category_ids": "",
+          "hidden_category_ids": ""
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": "{org}"
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "defaults.admin": [
+    {
+      "key": "content.about.docs_title",
+      "scope": "public",
+      "type": "string",
+      "value": "Documentation",
+      "default_value": "Documentation",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 60,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.help_body",
+      "scope": "public",
+      "type": "string",
+      "value": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",
+      "default_value": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.help_reenable_cta",
+      "scope": "public",
+      "type": "string",
+      "value": "Reactiver toutes les aides",
+      "default_value": "Reactiver toutes les aides",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 70,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.help_reset_metrics_cta",
+      "scope": "public",
+      "type": "string",
+      "value": "Reinitialiser les compteurs d aide",
+      "default_value": "Reinitialiser les compteurs d aide",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 90,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.help_title",
+      "scope": "public",
+      "type": "string",
+      "value": "Aide contextuelle",
+      "default_value": "Aide contextuelle",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 60,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.purpose_body",
+      "scope": "public",
+      "type": "string",
+      "value": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
+      "default_value": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 500,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.purpose_title",
+      "scope": "public",
+      "type": "string",
+      "value": "Objet de l'application",
+      "default_value": "Objet de l'application",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.site_issues_title",
+      "scope": "public",
+      "type": "string",
+      "value": "Audit interne (réservé aux administrateurs)",
+      "default_value": "Audit interne (réservé aux administrateurs)",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.subtitle",
+      "scope": "public",
+      "type": "string",
+      "value": "Informations du projet ForetMap",
+      "default_value": "Informations du projet ForetMap",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.about.title",
+      "scope": "public",
+      "type": "string",
+      "value": "ℹ️ À propos",
+      "default_value": "ℹ️ À propos",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.app.footer_version_prefix",
+      "scope": "public",
+      "type": "string",
+      "value": "Version",
+      "default_value": "Version",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 20,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.app.loader",
+      "scope": "public",
+      "type": "string",
+      "value": "Chargement de la forêt…",
+      "default_value": "Chargement de la forêt…",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 90,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.app.retry_now",
+      "scope": "public",
+      "type": "string",
+      "value": "Réessayer maintenant",
+      "default_value": "Réessayer maintenant",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 50,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.app.server_down_notice",
+      "scope": "public",
+      "type": "string",
+      "value": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.",
+      "default_value": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.guest_visit_cta",
+      "scope": "public",
+      "type": "string",
+      "value": "🧭 Visiter sans compte",
+      "default_value": "🧭 Visiter sans compte",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 70,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.login_tab",
+      "scope": "public",
+      "type": "string",
+      "value": "Connexion",
+      "default_value": "Connexion",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.register_tab",
+      "scope": "public",
+      "type": "string",
+      "value": "Créer un compte",
+      "default_value": "Créer un compte",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 50,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.subtitle",
+      "scope": "public",
+      "type": "string",
+      "value": "{app} — Le terrain d’apprentissage vivant du lycée",
+      "default_value": "{app} — Le terrain d’apprentissage vivant du lycée",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.title",
+      "scope": "public",
+      "type": "string",
+      "value": "{app}",
+      "default_value": "{app}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.brand.app_name",
+      "scope": "public",
+      "type": "string",
+      "value": "{app}",
+      "default_value": "{app}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.brand.org_name",
+      "scope": "public",
+      "type": "string",
+      "value": "{org}",
+      "default_value": "{org}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.hint_prefix",
+      "scope": "public",
+      "type": "string",
+      "value": "Astuce : ",
+      "default_value": "Astuce : ",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.map_quick_tip",
+      "scope": "public",
+      "type": "string",
+      "value": "Clique une zone ou un repère puis ouvre ? pour les actions guidées.",
+      "default_value": "Clique une zone ou un repère puis ouvre ? pour les actions guidées.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.panel_close_cta",
+      "scope": "public",
+      "type": "string",
+      "value": "Fermer",
+      "default_value": "Fermer",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.panel_dismiss_cta",
+      "scope": "public",
+      "type": "string",
+      "value": "Ne plus afficher",
+      "default_value": "Ne plus afficher",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 70,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.panel_title_prefix",
+      "scope": "public",
+      "type": "string",
+      "value": "💡",
+      "default_value": "💡",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.tasks_quick_tip",
+      "scope": "public",
+      "type": "string",
+      "value": "Filtre d abord par carte ou groupe, puis traite les retours en attente.",
+      "default_value": "Filtre d abord par carte ou groupe, puis traite les retours en attente.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.help.visit_quick_tip",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.empty_selection",
+      "scope": "public",
+      "type": "string",
+      "value": "Sélectionne une zone ou un repère pour afficher les détails.",
+      "default_value": "Sélectionne une zone ou un repère pour afficher les détails.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 160,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.mascot_dialog.catalog_overrides",
+      "scope": "public",
+      "type": "string",
+      "value": "{}",
+      "default_value": "{}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 24000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.mascot_dialog.defaults",
+      "scope": "public",
+      "type": "string",
+      "value": "{}",
+      "default_value": "{}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 12000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.subtitle",
+      "scope": "public",
+      "type": "string",
+      "value": "Explore les zones et repères, puis marque ce que tu as déjà vu.",
+      "default_value": "Explore les zones et repères, puis marque ce que tu as déjà vu.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 200,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.title",
+      "scope": "public",
+      "type": "string",
+      "value": "🧭 Visite de la carte",
+      "default_value": "🧭 Visite de la carte",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.tutorials_empty",
+      "scope": "public",
+      "type": "string",
+      "value": "Aucun tutoriel sélectionné pour le moment.",
+      "default_value": "Aucun tutoriel sélectionné pour le moment.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.visit.tutorials_title",
+      "scope": "public",
+      "type": "string",
+      "value": "📘 Tutoriels de la visite",
+      "default_value": "📘 Tutoriels de la visite",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 100,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.google.enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.instructor_targets",
+      "scope": "admin",
+      "type": "json",
+      "value": ["fm", "gl"],
+      "default_value": ["fm", "gl"],
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.landing_options",
+      "scope": "admin",
+      "type": "json",
+      "value": ["aiguillage", "gl_game", "gl_home", "fm_map", "fm_tasks"],
+      "default_value": ["aiguillage", "gl_game", "gl_home", "fm_map", "fm_tasks"],
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.launch_bindings",
+      "scope": "admin",
+      "type": "json",
+      "value": [
+        {
+          "moodle_course_id": 564,
+          "product": "gl",
+          "gl_chapter_id": 1,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 565,
+          "product": "gl",
+          "gl_chapter_id": 2,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 566,
+          "product": "gl",
+          "gl_chapter_id": 3,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 567,
+          "product": "gl",
+          "gl_chapter_id": 4,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 595,
+          "product": "gl",
+          "gl_chapter_id": 5,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 570,
+          "product": "gl",
+          "gl_chapter_id": 6,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 511,
+          "product": "fm",
+          "gl_chapter_id": null,
+          "landing": "aiguillage",
+          "label": ""
+        }
+      ],
+      "default_value": [
+        {
+          "moodle_course_id": 564,
+          "product": "gl",
+          "gl_chapter_id": 1,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 565,
+          "product": "gl",
+          "gl_chapter_id": 2,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 566,
+          "product": "gl",
+          "gl_chapter_id": 3,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 567,
+          "product": "gl",
+          "gl_chapter_id": 4,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 595,
+          "product": "gl",
+          "gl_chapter_id": 5,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 570,
+          "product": "gl",
+          "gl_chapter_id": 6,
+          "landing": "aiguillage",
+          "label": ""
+        },
+        {
+          "moodle_course_id": 511,
+          "product": "fm",
+          "gl_chapter_id": null,
+          "landing": "aiguillage",
+          "label": ""
+        }
+      ],
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.public_origin",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 255,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.lti.unknown_user",
+      "scope": "admin",
+      "type": "enum",
+      "value": "refuse",
+      "default_value": "refuse",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["refuse"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.chapter_courses",
+      "scope": "admin",
+      "type": "json",
+      "value": {},
+      "default_value": {},
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.email_domains",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.policies",
+      "scope": "admin",
+      "type": "json",
+      "value": [
+        {
+          "key": "niveau",
+          "pattern": "^{year}#\\d$",
+          "group_kind": "unit",
+          "role": null,
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": false,
+          "push_membership": false
+        },
+        {
+          "key": "n3",
+          "pattern": "n3",
+          "group_kind": "class",
+          "role": "eleve_novice",
+          "n3beur": true,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": true
+        },
+        {
+          "key": "classe6",
+          "pattern": "^{year}#6\\d{2}(-6\\d{2})?$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": true,
+          "create_accounts": true,
+          "push_membership": false
+        },
+        {
+          "key": "classe",
+          "pattern": "^{year}#[2-5]\\d{2}$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": false
+        }
+      ],
+      "default_value": [
+        {
+          "key": "niveau",
+          "pattern": "^{year}#\\d$",
+          "group_kind": "unit",
+          "role": null,
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": false,
+          "push_membership": false
+        },
+        {
+          "key": "n3",
+          "pattern": "n3",
+          "group_kind": "class",
+          "role": "eleve_novice",
+          "n3beur": true,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": true
+        },
+        {
+          "key": "classe6",
+          "pattern": "^{year}#6\\d{2}(-6\\d{2})?$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": true,
+          "create_accounts": true,
+          "push_membership": false
+        },
+        {
+          "key": "classe",
+          "pattern": "^{year}#[2-5]\\d{2}$",
+          "group_kind": "class",
+          "role": "visiteur",
+          "n3beur": false,
+          "gl_class": false,
+          "create_accounts": true,
+          "push_membership": false
+        }
+      ],
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.threshold_create_pct",
+      "scope": "admin",
+      "type": "number",
+      "value": 30,
+      "default_value": 30,
+      "constraints": {
+        "min": 0,
+        "max": 1000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.threshold_deactivate_abs",
+      "scope": "admin",
+      "type": "number",
+      "value": 50,
+      "default_value": 50,
+      "constraints": {
+        "min": 0,
+        "max": 100000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.threshold_deactivate_pct",
+      "scope": "admin",
+      "type": "number",
+      "value": 10,
+      "default_value": 10,
+      "constraints": {
+        "min": 0,
+        "max": 100,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.threshold_namematch_pct",
+      "scope": "admin",
+      "type": "number",
+      "value": 20,
+      "default_value": 20,
+      "constraints": {
+        "min": 0,
+        "max": 100,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.threshold_outbound_remove_abs",
+      "scope": "admin",
+      "type": "number",
+      "value": 50,
+      "default_value": 50,
+      "constraints": {
+        "min": 0,
+        "max": 100000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "integration.moodle.year_prefix",
+      "scope": "admin",
+      "type": "string",
+      "value": "26",
+      "default_value": "26",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.allowed_wrong_attempts",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 10,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.announce_on_button",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.cooldown_scope",
+      "scope": "teacher",
+      "type": "enum",
+      "value": "resource",
+      "default_value": "resource",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["resource", "question"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.default_mode",
+      "scope": "teacher",
+      "type": "enum",
+      "value": "any",
+      "default_value": "any",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["off", "any", "all", "threshold"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.default_required_correct",
+      "scope": "teacher",
+      "type": "number",
+      "value": 1,
+      "default_value": 1,
+      "constraints": {
+        "min": 1,
+        "max": 50,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.enabled",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.lock_mode",
+      "scope": "teacher",
+      "type": "enum",
+      "value": "flow",
+      "default_value": "flow",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["advisory", "flow", "strict"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.max_questions_per_session",
+      "scope": "teacher",
+      "type": "number",
+      "value": 3,
+      "default_value": 3,
+      "constraints": {
+        "min": 1,
+        "max": 10,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.require_linked_tutorials_before_task_done",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.retry_cooldown_hours",
+      "scope": "teacher",
+      "type": "number",
+      "value": 1,
+      "default_value": 1,
+      "constraints": {
+        "min": 0,
+        "max": 8760,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "learning.gating.state_icons",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "observations.journal_max_assets",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 200,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "observations.journal_max_chars",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 200000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ops.allow_remote_logs",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ops.allow_remote_restart",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "rbac.progression_by_validated_tasks",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "runtime.realtime_signals_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "runtime.rest_poll_background_floor_ms",
+      "scope": "public",
+      "type": "number",
+      "value": 120000,
+      "default_value": 120000,
+      "constraints": {
+        "min": 90000,
+        "max": 600000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "runtime.rest_poll_floor_ms",
+      "scope": "public",
+      "type": "number",
+      "value": 90000,
+      "default_value": 90000,
+      "constraints": {
+        "min": 60000,
+        "max": 300000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "runtime.socket_presence_emit_coalesce_ms",
+      "scope": "public",
+      "type": "number",
+      "value": 500,
+      "default_value": 500,
+      "constraints": {
+        "min": 0,
+        "max": 5000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "runtime.sync_state_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.jwt_sliding_max_seconds",
+      "scope": "teacher",
+      "type": "number",
+      "value": 43200,
+      "default_value": 43200,
+      "constraints": {
+        "min": 900,
+        "max": 2592000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.jwt_ttl_base_seconds",
+      "scope": "teacher",
+      "type": "number",
+      "value": 5400,
+      "default_value": 5400,
+      "constraints": {
+        "min": 900,
+        "max": 604800,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.password_min_length",
+      "scope": "teacher",
+      "type": "number",
+      "value": 4,
+      "default_value": 4,
+      "constraints": {
+        "min": 4,
+        "max": 32,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.plan_access_code_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.staff_plan_access_code_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "students.import.allow_weak_passwords",
+      "scope": "admin",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "students.import.existing_strategy",
+      "scope": "teacher",
+      "type": "enum",
+      "value": "update",
+      "default_value": "update",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["update", "fill", "skip"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "system.maintenance_message",
+      "scope": "teacher",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "system.maintenance_mode",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.auto_archive_after_days",
+      "scope": "teacher",
+      "type": "number",
+      "value": 120,
+      "default_value": 120,
+      "constraints": {
+        "min": 7,
+        "max": 3650,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.auto_archive_enabled",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.recurring_automation_enabled",
+      "scope": "teacher",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.student_max_active_assignments",
+      "scope": "teacher",
+      "type": "number",
+      "value": 0,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 99,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.allow_google_auto_register",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.allow_google_student",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.allow_google_teacher",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.allow_guest_visit",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.allow_register",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.default_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "login",
+      "default_value": "login",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["login", "register"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.auth.welcome_message",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 160,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.biodiv.determination_always_open",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.biodiv.pedago_level_default",
+      "scope": "public",
+      "type": "enum",
+      "value": "college",
+      "default_value": "college",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["college", "lycee", "universite"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.biodiv.pedago_pref_can_raise",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.foret.brand",
+      "scope": "public",
+      "type": "json",
+      "value": {},
+      "default_value": {},
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.help.pulse_unseen_panels",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.help.show_context_hints",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.default_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.default_map_student",
+      "scope": "public",
+      "type": "string",
+      "value": "foret",
+      "default_value": "foret",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 32,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.default_map_teacher",
+      "scope": "public",
+      "type": "string",
+      "value": "foret",
+      "default_value": "foret",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 32,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.default_map_visit",
+      "scope": "public",
+      "type": "string",
+      "value": "foret",
+      "default_value": "foret",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 32,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.emoji_label_center_gap",
+      "scope": "public",
+      "type": "number",
+      "value": 14,
+      "default_value": 14,
+      "constraints": {
+        "min": 6,
+        "max": 32,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.heading_up_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.location_emojis",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.overlay_emoji_size_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 100,
+      "default_value": 100,
+      "constraints": {
+        "min": 50,
+        "max": 200,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.overlay_label_size_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 100,
+      "default_value": 100,
+      "constraints": {
+        "min": 50,
+        "max": 200,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.overlay_zoom_growth_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 35,
+      "default_value": 35,
+      "constraints": {
+        "min": 0,
+        "max": 100,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.plateau_marker_size_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 100,
+      "default_value": 100,
+      "constraints": {
+        "min": 50,
+        "max": 200,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.show_tutorial_dots",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.map.zone_label_min_side_factor",
+      "scope": "public",
+      "type": "number",
+      "value": 2.5,
+      "default_value": 2.5,
+      "constraints": {
+        "min": 1,
+        "max": 6,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.context_comments_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.forum_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.help_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.id_keys_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.individuals_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.observations_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.pedago_sessions_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.presence_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.reports_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.rewards_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.stats_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.tutorials_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.visit_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.access_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "public",
+      "default_value": "public",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["public", "code"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.attribution",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.brand",
+      "scope": "public",
+      "type": "json",
+      "value": {},
+      "default_value": {},
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.default_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.heading_up_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.hidden_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.map_id",
+      "scope": "public",
+      "type": "string",
+      "value": "lyautey",
+      "default_value": "lyautey",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 32,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.public_base_url",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 200,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.selectable_map_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.title",
+      "scope": "public",
+      "type": "string",
+      "value": "Plan {orgShort}",
+      "default_value": "Plan {orgShort}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.plan.welcome_hint",
+      "scope": "public",
+      "type": "string",
+      "value": "Touchez un lieu, ou cherchez-le.",
+      "default_value": "Touchez un lieu, ou cherchez-le.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.reactions.allowed_emojis",
+      "scope": "public",
+      "type": "string",
+      "value": "👍 ❤️ 😂 😮 😢 😡 🔥 👏",
+      "default_value": "👍 ❤️ 😂 😮 😢 😡 🔥 👏",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 160,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.access_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "disabled",
+      "default_value": "disabled",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["disabled", "code"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.allowed_role_slugs",
+      "scope": "admin",
+      "type": "string",
+      "value": "admin;prof;prof_classe;personnel",
+      "default_value": "admin;prof;prof_classe;personnel",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.attribution",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.code_role_slug",
+      "scope": "admin",
+      "type": "string",
+      "value": "personnel",
+      "default_value": "personnel",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.default_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.hidden_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.selectable_map_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.title",
+      "scope": "public",
+      "type": "string",
+      "value": "Plan personnels — {orgShort}",
+      "default_value": "Plan personnels — {orgShort}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.staff_plan.welcome_hint",
+      "scope": "public",
+      "type": "string",
+      "value": "Les lieux et consignes réservés aux personnels du lycée.",
+      "default_value": "Les lieux et consignes réservés aux personnels du lycée.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 400,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.visit.default_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.visit.heading_up_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.visit.mascot.default_id",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.visit.selectable_map_ids",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    }
+  ],
+  "defaults.lib": {
+    "allowRegister": true,
+    "unknown": "repli",
+    "jwt": {
+      "baseSeconds": 5400,
+      "slidingMaxSeconds": 43200
+    },
+    "mascot": {
+      "defaultId": ""
+    }
+  },
+  "modified.puts": [
+    {
+      "key": "ui.auth.allow_register",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.auth.allow_register",
+        "value": false
+      }
+    },
+    {
+      "key": "ui.auth.default_mode",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.auth.default_mode",
+        "value": "register"
+      }
+    },
+    {
+      "key": "ui.auth.default_mode",
+      "status": 400,
+      "body": {
+        "error": "Valeur invalide: inconnu"
+      }
+    },
+    {
+      "key": "content.auth.title",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "content.auth.title",
+        "value": "Titre de caractérisation"
+      }
+    },
+    {
+      "key": "content.auth.title",
+      "status": 400,
+      "body": {
+        "error": "Texte trop long (max 80 caractères)"
+      }
+    },
+    {
+      "key": "content.brand.org_name",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "content.brand.org_name",
+        "value": ""
+      }
+    },
+    {
+      "key": "ui.map.overlay_emoji_size_percent",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.map.overlay_emoji_size_percent",
+        "value": 130
+      }
+    },
+    {
+      "key": "ui.modules.forum_enabled",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.modules.forum_enabled",
+        "value": false
+      }
+    },
+    {
+      "key": "runtime.rest_poll_floor_ms",
+      "status": 400,
+      "body": {
+        "error": "Valeur trop petite (min 60000)"
+      }
+    },
+    {
+      "key": "tasks.student_max_active_assignments",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "tasks.student_max_active_assignments",
+        "value": 3
+      }
+    },
+    {
+      "key": "tasks.student_max_active_assignments",
+      "status": 400,
+      "body": {
+        "error": "Valeur trop grande (max 99)"
+      }
+    },
+    {
+      "key": "ui.plan.title",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.plan.title",
+        "value": "Plan de caractérisation"
+      }
+    },
+    {
+      "key": "ui.staff_plan.access_mode",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.staff_plan.access_mode",
+        "value": "code"
+      }
+    },
+    {
+      "key": "security.jwt_ttl_base_seconds",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "security.jwt_ttl_base_seconds",
+        "value": 7200
+      }
+    },
+    {
+      "key": "learning.gating.retry_cooldown_hours",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "learning.gating.retry_cooldown_hours",
+        "value": 2
+      }
+    },
+    {
+      "key": "ui.visit.mascot.default_id",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "ui.visit.mascot.default_id",
+        "value": "mascotte-carac"
+      }
+    },
+    {
+      "key": "integration.google.enabled",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "key": "integration.google.enabled",
+        "value": false
+      }
+    },
+    {
+      "key": "cle.inconnue",
+      "status": 400,
+      "body": {
+        "error": "Clé de réglage inconnue"
+      }
+    },
+    {
+      "key": "security.plan_access_code_hash",
+      "status": 400,
+      "body": {
+        "error": "Utilisez POST /api/settings/admin/plan-access-code pour définir le code d’accès du plan"
+      }
+    }
+  ],
+  "modified.public.foret": {
+    "settings": {
+      "ui": {
+        "auth": {
+          "allow_register": false,
+          "allow_google_student": true,
+          "allow_google_teacher": true,
+          "allow_google_auto_register": false,
+          "allow_guest_visit": true,
+          "default_mode": "register",
+          "welcome_message": ""
+        },
+        "map": {
+          "default_map_student": "foret",
+          "default_map_teacher": "foret",
+          "default_map_visit": "foret",
+          "location_emojis": "",
+          "default_category_ids": "",
+          "emoji_label_center_gap": 14,
+          "overlay_emoji_size_percent": 130,
+          "overlay_label_size_percent": 100,
+          "overlay_zoom_growth_percent": 35,
+          "zone_label_min_side_factor": 2.5,
+          "plateau_marker_size_percent": 100,
+          "heading_up_enabled": false,
+          "show_tutorial_dots": false
+        },
+        "foret": {
+          "brand": {}
+        },
+        "visit": {
+          "default_category_ids": "",
+          "mascot": {
+            "default_id": "mascotte-carac"
+          },
+          "heading_up_enabled": false
+        },
+        "modules": {
+          "tutorials_enabled": true,
+          "visit_enabled": true,
+          "stats_enabled": true,
+          "observations_enabled": true,
+          "help_enabled": true,
+          "forum_enabled": false,
+          "context_comments_enabled": true,
+          "reports_enabled": true,
+          "presence_enabled": true,
+          "id_keys_enabled": true,
+          "individuals_enabled": true,
+          "pedago_sessions_enabled": true,
+          "rewards_enabled": true
+        },
+        "biodiv": {
+          "determination_always_open": false,
+          "pedago_level_default": "college",
+          "pedago_pref_can_raise": false
+        },
+        "help": {
+          "show_context_hints": true,
+          "pulse_unseen_panels": true
+        },
+        "reactions": {
+          "allowed_emojis": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": ""
+        },
+        "auth": {
+          "title": "Titre de caractérisation",
+          "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
+          "login_tab": "Connexion",
+          "register_tab": "Créer un compte",
+          "guest_visit_cta": "🧭 Visiter sans compte"
+        },
+        "app": {
+          "loader": "Chargement de la forêt…",
+          "server_down_notice": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes.",
+          "retry_now": "Réessayer maintenant",
+          "footer_version_prefix": "Version"
+        },
+        "visit": {
+          "title": "🧭 Visite de la carte",
+          "subtitle": "Explore les zones et repères, puis marque ce que tu as déjà vu.",
+          "empty_selection": "Sélectionne une zone ou un repère pour afficher les détails.",
+          "tutorials_title": "📘 Tutoriels de la visite",
+          "tutorials_empty": "Aucun tutoriel sélectionné pour le moment.",
+          "mascot_dialog": {
+            "defaults": "{}",
+            "catalog_overrides": "{}"
+          }
+        },
+        "about": {
+          "title": "ℹ️ À propos",
+          "subtitle": "Informations du projet ForetMap",
+          "purpose_title": "Objet de l'application",
+          "purpose_body": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
+          "site_issues_title": "Audit interne (réservé aux administrateurs)",
+          "docs_title": "Documentation",
+          "help_title": "Aide contextuelle",
+          "help_body": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",
+          "help_reenable_cta": "Reactiver toutes les aides",
+          "help_reset_metrics_cta": "Reinitialiser les compteurs d aide"
+        },
+        "help": {
+          "hint_prefix": "Astuce : ",
+          "panel_title_prefix": "💡",
+          "panel_close_cta": "Fermer",
+          "panel_dismiss_cta": "Ne plus afficher",
+          "map_quick_tip": "Clique une zone ou un repère puis ouvre ? pour les actions guidées.",
+          "tasks_quick_tip": "Filtre d abord par carte ou groupe, puis traite les retours en attente.",
+          "visit_quick_tip": "",
+          "registry": {
+            "tooltips": {
+              "header.userBadge": {
+                "text": "Voir ta progression et tes stats — petit bilan perso.",
+                "textTeacher": "Voir où en sont les n3beurs (stats collectives)."
+              },
+              "header.profileEdit": {
+                "text": "Ajuster ton profil (pseudo, avatar, etc.)."
+              },
+              "header.preview": {
+                "textTeacher": "Aperçu : voir l’app comme un n3beur ou un n3boss, et choisir le niveau d’affichage biodiversité."
+              },
+              "header.teacherLogin": {
+                "text": "Se connecter avec un compte n3boss (professeur).",
+                "textTeacher": "Se connecter avec un compte n3boss (professeur)."
+              },
+              "header.logout": {
+                "text": "Quitter ForetMap proprement."
+              },
+              "header.notifications": {
+                "text": "Nouvelles infos, rappels et petites alertes utiles."
+              },
+              "header.impersonationStop": {
+                "text": "Fin de la prise de contrôle : tu retrouves ton compte admin et tes droits (diagnostic ou support terminé).",
+                "textTeacher": "Fin de la prise de contrôle : tu retrouves ton compte admin. À utiliser quand le diagnostic ou le support est terminé."
+              },
+              "map.toggleGestures": {
+                "text": "Autoriser ou figer les gestes sur la carte (pratique si ça bouge trop)."
+              },
+              "map.toggleLabels": {
+                "text": "Afficher ou masquer les noms sur la carte."
+              },
+              "map.zoomIn": {
+                "text": "Zoomer pour voir le détail."
+              },
+              "map.zoomOut": {
+                "text": "Dézoomer pour voir plus large."
+              },
+              "map.zoomReset": {
+                "text": "Revenir à la vue complète d'un coup."
+              },
+              "tasks.edit": {
+                "textTeacher": "Modifier cette tâche."
+              },
+              "tasks.duplicate": {
+                "textTeacher": "Dupliquer cette tâche (copie rapide)."
+              },
+              "tasks.delete": {
+                "textTeacher": "Supprimer définitivement cette tâche."
+              },
+              "plants.edit": {
+                "textTeacher": "Modifier cette fiche biodiversité."
+              },
+              "plants.delete": {
+                "textTeacher": "Supprimer cette fiche biodiversité."
+              },
+              "visit.mediaDelete": {
+                "textTeacher": "Retirer cette photo de la visite."
+              },
+              "profiles.impersonateUser": {
+                "textTeacher": "Ouvre une session réelle comme cet utilisateur (identité effective côté serveur). Un bandeau orange permet de revenir au compte admin. Réservé à la permission admin.impersonate."
+              }
+            },
+            "panels": {
+              "map": {
+                "title": "Aide carte",
+                "items": [
+                  {
+                    "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là."
+                  },
+                  {
+                    "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Ce dernier bouton rattrape à peu près toutes les situations."
+                  },
+                  {
+                    "text": "Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle."
+                  },
+                  {
+                    "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est le meilleur moyen de semer des points partout — j’ai déjà vu une carte finir en ciel étoilé."
+                  }
+                ]
+              },
+              "tasks": {
+                "title": "Aide tâches",
+                "items": [
+                  {
+                    "text": "Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas."
+                  },
+                  {
+                    "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi et pour les vers de terre."
+                  },
+                  {
+                    "textTeacher": "Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée."
+                  },
+                  {
+                    "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Garde ton énergie pour le terrain, il en réclame déjà pas mal."
+                  }
+                ]
+              },
+              "plants": {
+                "title": "Aide biodiversité",
+                "items": [
+                  {
+                    "text": "Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit."
+                  },
+                  {
+                    "text": "Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder une fois sur place, pas ce qu’il faut réciter."
+                  },
+                  {
+                    "textTeacher": "C’est toi qui enrichis et corriges les fiches. Moi je m’en sers dehors, et je repère vite celles qui manquent."
+                  }
+                ]
+              },
+              "visit": {
+                "title": "Aide visite",
+                "items": [
+                  {
+                    "text": "Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux."
+                  },
+                  {
+                    "text": "Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches — c’est ma contribution à l’effort."
+                  },
+                  {
+                    "textTeacher": "« Aperçu comme élève » montre le rendu réel côté n3beur. À regarder avant la sortie : sur le terrain, il est trop tard pour corriger un texte."
+                  },
+                  {
+                    "textTeacher": "Sélectionne les tutoriels utiles à la visite. Trois bien choisis valent mieux que douze qu’on survole."
+                  }
+                ]
+              },
+              "profiles": {
+                "title": "Aide profils et comptes",
+                "items": [
+                  {
+                    "textTeacher": "Les profils RBAC règlent les permissions, le forum et les commentaires contextuels ; chaque compte porte un profil principal. C’est la page qui décide qui peut quoi — relis avant d’enregistrer."
+                  },
+                  {
+                    "textTeacher": "« Voir comme cet utilisateur », depuis « Modifier » un compte, ouvre l’application avec ses droits réels — pas une imitation. Le bandeau orange est ta porte de sortie ; tant qu’il est là, tu n’es pas chez toi."
+                  }
+                ]
+              },
+              "groups": {
+                "title": "Aide groupes et sous-groupes",
+                "items": [
+                  {
+                    "textTeacher": "Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent."
+                  },
+                  {
+                    "textTeacher": "« Membres » désigne qui appartient au groupe — élèves comme enseignants. Le profil par défaut du groupe s’applique à ses membres élèves quand il est plus élevé que le leur ; « imposé » le fait toujours prévaloir."
+                  },
+                  {
+                    "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix."
+                  },
+                  {
+                    "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi."
+                  },
+                  {
+                    "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus."
+                  }
+                ]
+              },
+              "groupFilters": {
+                "title": "Aide filtre groupe",
+                "items": [
+                  {
+                    "textTeacher": "Ce filtre limite la vue au groupe choisi, et selon le contexte à ses sous-groupes. Rien n’est supprimé, seulement mis de côté."
+                  },
+                  {
+                    "textTeacher": "Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de se rappeler quel filtre est actif."
+                  },
+                  {
+                    "textTeacher": "Dans les Stats, il cible les n3beurs du groupe. Comparer deux groupes est utile ; en conclure quelque chose sur les personnes, beaucoup moins."
+                  }
+                ]
+              },
+              "journal": {
+                "title": "Aide carnet",
+                "items": [
+                  {
+                    "text": "Un article, c’est ce que tu veux garder : du texte, des photos, ou les deux. Ça s’enregistre tout seul pendant que tu écris — je veille."
+                  },
+                  {
+                    "text": "Sur une fiche espèce, un terme du glossaire ou un tutoriel, marque-le comme appris puis « Ajouter au carnet » : il rejoint le fil, avec un lien pour le rouvrir."
+                  },
+                  {
+                    "text": "Épingle ce qui compte, cherche et filtre le reste. Un carnet qu’on relit vaut mieux qu’un carnet qu’on remplit."
+                  },
+                  {
+                    "textTeacher": "Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit."
+                  }
+                ]
+              }
+            },
+            "quickTips": {
+              "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
+              "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : il y a quelqu’un derrière.",
+              "visit": ""
+            },
+            "chrome": {
+              "hintPrefix": "Astuce : ",
+              "panelTitlePrefix": "💡",
+              "panelCloseCta": "Fermer",
+              "panelDismissCta": "Ne plus afficher"
+            },
+            "mapCanvasHints": {
+              "drawZoneMin": "🖊️ Touche la carte (min. 3 pts)",
+              "drawZoneReady": "✅ {count} pts — Terminer",
+              "addMarker": "📍 Touche la carte pour placer",
+              "editPoints": "✋ Glisse un sommet ou l'intérieur · poignée pointillée = nouveau sommet · Maj+clic ou lasso = sélection · Suppr retire · Ctrl+Z annule",
+              "pageScroll": "📱 1 doigt: page · 2 doigts: zoom carte",
+              "gesturesActive": "✋ Gestes carte actifs"
+            },
+            "realtime": {
+              "live": "Temps réel actif — les listes se mettent à jour tout de suite.",
+              "polling": "Synchronisation par rafraîchissement automatique (mode secours).",
+              "connecting": "Connexion au temps réel…",
+              "offline": "Temps réel coupé — reconnexion automatique ou rafraîchissement environ toutes les 30 s.",
+              "noClient": "Module temps réel indisponible — mises à jour par rafraîchissement seulement."
+            }
+          },
+          "narrator": {
+            "enabled": true,
+            "speakerName": "OLU",
+            "fallbackSilhouette": "olu",
+            "portraits": {}
+          }
+        },
+        "tour": {
+          "registry": {}
+        }
+      },
+      "runtime": {
+        "realtime_signals_enabled": true,
+        "rest_poll_floor_ms": 90000,
+        "rest_poll_background_floor_ms": 120000,
+        "sync_state_enabled": true,
+        "socket_presence_emit_coalesce_ms": 500
+      },
+      "visit": {
+        "mascot": {
+          "dialog": {
+            "defaults": {},
+            "catalogOverrides": {}
+          }
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "modified.public.gl": {
+    "settings": {
+      "ui": {
+        "map": {
+          "default_map_student": "foret",
+          "default_map_teacher": "foret",
+          "default_map_visit": "foret",
+          "location_emojis": "",
+          "default_category_ids": "",
+          "emoji_label_center_gap": 14,
+          "overlay_emoji_size_percent": 130,
+          "overlay_label_size_percent": 100,
+          "overlay_zoom_growth_percent": 35,
+          "zone_label_min_side_factor": 2.5,
+          "plateau_marker_size_percent": 100,
+          "heading_up_enabled": false,
+          "show_tutorial_dots": false
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": ""
+        }
+      },
+      "runtime": {
+        "realtime_signals_enabled": true,
+        "rest_poll_floor_ms": 90000,
+        "rest_poll_background_floor_ms": 120000,
+        "sync_state_enabled": true,
+        "socket_presence_emit_coalesce_ms": 500
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "modified.public.plan": {
+    "settings": {
+      "ui": {
+        "plan": {
+          "map_id": "lyautey",
+          "title": "Plan de caractérisation",
+          "welcome_hint": "Touchez un lieu, ou cherchez-le.",
+          "access_mode": "public",
+          "attribution": "",
+          "public_base_url": "",
+          "brand": {},
+          "selectable_map_ids": "",
+          "default_category_ids": "",
+          "hidden_category_ids": "",
+          "heading_up_enabled": false
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": ""
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "modified.public.staff": {
+    "settings": {
+      "ui": {
+        "staff_plan": {
+          "title": "Plan personnels — {orgShort}",
+          "welcome_hint": "Les lieux et consignes réservés aux personnels du lycée.",
+          "access_mode": "code",
+          "attribution": "",
+          "selectable_map_ids": "",
+          "default_category_ids": "",
+          "hidden_category_ids": ""
+        }
+      },
+      "content": {
+        "brand": {
+          "app_name": "{app}",
+          "org_name": ""
+        }
+      },
+      "realtime": {
+        "allow_websocket": false
+      }
+    }
+  },
+  "modified.admin.changed": [
+    {
+      "key": "content.auth.title",
+      "scope": "public",
+      "type": "string",
+      "value": "Titre de caractérisation",
+      "default_value": "{app}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "content.brand.org_name",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "{org}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "integration.google.enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": false,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "learning.gating.retry_cooldown_hours",
+      "scope": "teacher",
+      "type": "number",
+      "value": 2,
+      "default_value": 1,
+      "constraints": {
+        "min": 0,
+        "max": 8760,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "security.jwt_ttl_base_seconds",
+      "scope": "teacher",
+      "type": "number",
+      "value": 7200,
+      "default_value": 5400,
+      "constraints": {
+        "min": 900,
+        "max": 604800,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "tasks.student_max_active_assignments",
+      "scope": "teacher",
+      "type": "number",
+      "value": 3,
+      "default_value": 0,
+      "constraints": {
+        "min": 0,
+        "max": 99,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.auth.allow_register",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.auth.default_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "register",
+      "default_value": "login",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["login", "register"]
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.map.overlay_emoji_size_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 130,
+      "default_value": 100,
+      "constraints": {
+        "min": 50,
+        "max": 200,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.modules.forum_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.plan.title",
+      "scope": "public",
+      "type": "string",
+      "value": "Plan de caractérisation",
+      "default_value": "Plan {orgShort}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.staff_plan.access_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "code",
+      "default_value": "disabled",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["disabled", "code"]
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    },
+    {
+      "key": "ui.visit.mascot.default_id",
+      "scope": "public",
+      "type": "string",
+      "value": "mascotte-carac",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 80,
+        "values": null
+      },
+      "updated_at": "<date>",
+      "updated_by_user_type": "teacher",
+      "updated_by_user_id": "<admin>"
+    }
+  ],
+  "modified.lib": {
+    "allowRegister": false,
+    "unknown": "repli",
+    "jwt": {
+      "baseSeconds": 7200,
+      "slidingMaxSeconds": 43200
+    },
+    "mascot": {
+      "defaultId": "mascotte-carac"
+    }
+  }
+}
