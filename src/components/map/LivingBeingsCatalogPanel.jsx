@@ -53,7 +53,7 @@ export function CatalogRemarksSection({ plant }) {
           key={`remark-${idx}`}
           style={{
             fontSize: 'var(--text-sm)',
-            color: '#555',
+            color: 'var(--ink-soft)',
             lineHeight: 'var(--lh-normal)',
             margin: idx === 0 ? '0 0 4px' : '4px 0 0',
             whiteSpace: 'pre-wrap',

@@ -12,10 +12,11 @@
 -- multiples, TOUS séparés par « , » (aucun « ; », « / », « ou » ni retour à la ligne) ; 3
 -- précisions finales entre parenthèses (« Gommier bleu (usage courant) », « rose d’Inde
 -- (usage courant) », « Vittina turrita (nom aujourd’hui accepté) ») ; 144 noms reconnus pour
--- 113 fiches. Après découpage : 178 noms distincts (4 doublons dans une même valeur), dont 8
--- égaux au nom de la fiche elle-même, 68 déjà présents comme nom reconnu de la même fiche,
--- 1 égal au nom d'une AUTRE fiche (« Abeille charpentière », nom de la fiche 557, dans
--- les autres noms du Xylocope violet) : 101 noms nouveaux.
+-- 113 fiches. Après découpage : ≈ 178 noms distincts (4 doublons dans une même valeur), dont
+-- 8 égaux au nom de la fiche elle-même et 1 égal au nom d'une AUTRE fiche (« Abeille
+-- charpentière », nom de la fiche 557, dans les autres noms du Xylocope violet). Résultat de
+-- la migration sur le fixture : 66 noms reconnus promus, 103 ajoutés, soit 169 autres noms
+-- pour 143 fiches (78 variantes restent) ; contrôle de passage au T3 : 1.
 --
 -- LES SORTES (`kind`)
 --   nom_secondaire : autre nom courant, affiché sur la fiche (« Autres noms ») et saisi dans
@@ -30,8 +31,8 @@
 -- `second_name` est découpé comme le fait le code (`lib/biodiv/plantNames.js`) : virgule,
 -- point-virgule ou retour à la ligne ; espaces retirés ; précision finale entre parenthèses
 -- retirée (le nom reconnu est le nom, pas sa précision) ; ordre conservé (`sort_order`).
---   1. un nom déjà reconnu pour LA MÊME fiche devient `nom_secondaire` (68 sur le fixture) ;
---   2. les autres noms sont ajoutés en `nom_secondaire` (101), SAUF : le nom de la fiche
+--   1. un nom déjà reconnu pour LA MÊME fiche devient `nom_secondaire` (66 sur le fixture) ;
+--   2. les autres noms sont ajoutés en `nom_secondaire` (103), SAUF : le nom de la fiche
 --      elle-même (inutile : c'est son nom), le nom d'une AUTRE fiche (il détournerait la
 --      résolution des noms historiques vers la mauvaise fiche) et un nom déjà reconnu pour
 --      une autre fiche (clé primaire, `INSERT IGNORE`). Ces cas restent lisibles sur la fiche
@@ -68,7 +69,7 @@
 --   DELETE FROM plant_name_aliases WHERE kind = 'nom_secondaire' AND <nom absent avant> ;
 --   (à défaut d'un export préalable : UPDATE plant_name_aliases SET kind = 'variante';
 --   puis ALTER TABLE plant_name_aliases DROP COLUMN kind, DROP COLUMN sort_order;) — les
---   101 noms ajoutés restent alors des noms reconnus, sans effet de bord.
+--   noms ajoutés restent alors des noms reconnus, sans effet de bord.
 -- =====================================================================
 
 ALTER TABLE plant_name_aliases
