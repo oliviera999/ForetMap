@@ -15,6 +15,8 @@ const {
   hasPermission,
 } = require('../../middleware/requireTeacher');
 const { logRouteError } = require('../../lib/routeLog');
+const asyncHandler = require('../../lib/asyncHandler');
+const { z, validate, formatZodError } = require('../../lib/validate');
 const { writeBufferToDisk, getAbsolutePath, deleteFile } = require('../../lib/uploads');
 const {
   getMascotPackValidatorCandidates,
@@ -176,26 +178,18 @@ async function removeVisitMascotPackUploadDir(packId) {
  * Sert un PNG de la bibliothèque si une ligne existe pour ce nom de fichier.
  * Partagé par l'URL canonique et par l'URL historique par carte.
  */
-async function serveVisitMascotSpriteLibraryFile(req, res, rawFilename) {
-  try {
-    const filename = sanitizeMascotPackImageFilename(rawFilename);
-    if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
-    const row = await queryOne(
-      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
-      [filename],
-    );
-    if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
-    const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
-    if (!rel) return res.status(404).json({ error: 'Fichier introuvable' });
-    return res.type('image/png').sendFile(getAbsolutePath(rel), { dotfiles: 'allow' }, (err) => {
-      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-    });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotSpriteLibSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
+async function serveVisitMascotSpriteLibraryFile(req, res) {
+  const { filename } = req.validatedParams;
+  const row = await queryOne(
+    'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+    [filename],
+  );
+  if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
+  const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
+  if (!rel) return res.status(404).json({ error: 'Fichier introuvable' });
+  return res.type('image/png').sendFile(getAbsolutePath(rel), { dotfiles: 'allow' }, (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+  });
 }
 
 function listPublicMascotStaticAssets() {
@@ -309,13 +303,163 @@ function canReadVisitMascotPackAsset(req, packId, filename, published) {
   return !!(req.auth && hasPermission(req.auth, 'visit.manage', true));
 }
 
-router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, res) => {
-  try {
-    const packId = String(req.params.packId || '').trim();
-    const filename = sanitizeMascotPackImageFilename(req.params.filename);
-    if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename) {
-      return res.status(400).json({ error: 'Paramètres invalides' });
-    }
+// --- O8 : une seule gestion d'erreurs pour les routes du studio ---------------------------------
+//
+// Chaque route s'écrit `mascotRoute(politique, handler)` : `asyncHandler` capte toute exception
+// (synchrone ou asynchrone), puis `sendMascotRouteError` rend EXACTEMENT la réponse des anciens
+// blocs try/catch recopiés sur vingt-sept routes (tests/visit-mascot-routes-characterization.test.js).
+// Le gestionnaire central de server.js ne convient pas tel quel : il ne renvoie ni le
+// `requestId` ni les messages des tables absentes, que le studio affiche.
+
+/**
+ * Politiques d'erreur :
+ * - `sqlMappers` : traducteurs d'erreur SQL essayés dans l'ordre (table ou colonne absente,
+ *   référence invalide) → statut et corps explicites ;
+ * - `honorStatus` : une erreur métier qui porte un `.status` (archives ZIP) est renvoyée telle
+ *   quelle, avant les traducteurs ;
+ * - sinon 500 « Erreur serveur ». Toujours avec le `requestId`.
+ */
+const ERRORS_PLAIN = Object.freeze({ honorStatus: false, sqlMappers: [] });
+const ERRORS_PACK = Object.freeze({ honorStatus: false, sqlMappers: [mapVisitMascotPackSqlError] });
+const ERRORS_PACK_ARCHIVE = Object.freeze({
+  honorStatus: true,
+  sqlMappers: [mapVisitMascotPackSqlError],
+});
+const ERRORS_ARCHIVE = Object.freeze({ honorStatus: true, sqlMappers: [] });
+const ERRORS_SPRITE = Object.freeze({
+  honorStatus: false,
+  sqlMappers: [mapVisitMascotSpriteLibSqlError],
+});
+// Liste complète des images : la famille « packs » est essayée d'abord — y compris pour une
+// table de sprites absente, dont le message cite alors les packs (défaut hérité, figé en test).
+const ERRORS_ALL_ASSETS = Object.freeze({
+  honorStatus: false,
+  sqlMappers: [mapVisitMascotPackSqlError, mapVisitMascotSpriteLibSqlError],
+});
+
+function sendMascotRouteError(err, req, res, policy) {
+  logRouteError(err, req);
+  if (policy.honorStatus && Number.isFinite(err?.status)) {
+    return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
+  }
+  for (const mapSqlError of policy.sqlMappers) {
+    const mapped = mapSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+  }
+  return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+}
+
+/** Handler de route du studio mascotte : `asyncHandler` + politique d'erreur de la route. */
+function mascotRoute(policy, handler) {
+  const run = asyncHandler(handler);
+  return function mascotRouteHandler(req, res, next) {
+    return run(req, res, (...args) => {
+      // `next()` / `next('route')` explicites : chaînage Express normal ; sinon, une erreur.
+      if (args.length === 0 || args[0] === 'route' || args[0] === 'router') return next(...args);
+      return sendMascotRouteError(args[0], req, res, policy);
+    });
+  };
+}
+
+// --- O7 : schémas d'entrée (validate()) -------------------------------------------------------
+//
+// Chaque schéma reprend un contrôle manuel qui se faisait EN TÊTE de handler, avec le même
+// message : `formatZodError` rend le message seul pour un problème posé à la racine. Les
+// contrôles qui suivaient une lecture en base (« Pack introuvable » avant « filename et
+// image_data requis ») restent dans le handler, pour garder l'ordre des réponses.
+
+const PACK_UUID_RE = /^[0-9a-f-]{36}$/i;
+
+function rootIssue(ctx, message) {
+  ctx.addIssue({ code: 'custom', message, path: [] });
+  return z.NEVER;
+}
+
+/** `:id` d'un pack (UUID) ; `message` : texte 400 historique propre à la route. */
+function packIdParamsSchema(message) {
+  return z.unknown().transform((params, ctx) => {
+    const id = String(params?.id || '').trim();
+    if (!PACK_UUID_RE.test(id)) return rootIssue(ctx, message);
+    return { id };
+  });
+}
+
+/** `:<idKey>` d'un pack + `:filename` d'image (extension d'image exigée, N1). */
+function packAssetParamsSchema(idKey) {
+  return z.unknown().transform((params, ctx) => {
+    const packId = String(params?.[idKey] || '').trim();
+    const filename = sanitizeMascotPackImageFilename(params?.filename);
+    if (!PACK_UUID_RE.test(packId) || !filename) return rootIssue(ctx, 'Paramètres invalides');
+    return { packId, filename };
+  });
+}
+
+/** `:filename` d'image de la bibliothèque de sprites. */
+const spriteFilenameParamsSchema = z.unknown().transform((params, ctx) => {
+  const filename = sanitizeMascotPackImageFilename(params?.filename);
+  if (!filename) return rootIssue(ctx, 'Paramètres invalides');
+  return { filename };
+});
+
+/**
+ * Renommage : nouveau nom d'image. Même message que les paramètres — l'ancien contrôle
+ * regroupait identifiant, nom actuel et nouveau nom en une seule condition.
+ */
+const renameBodySchema = z.unknown().transform((body, ctx) => {
+  const newFilename = sanitizeMascotPackImageFilename(body?.new_filename);
+  if (!newFilename) return rootIssue(ctx, 'Paramètres invalides');
+  return { new_filename: newFilename };
+});
+
+/**
+ * Dépôt d'une image (pack ou bibliothèque) — faille N1 fermée à l'entrée : nom à extension
+ * d'image ET contenu à signature d'image (PNG, JPEG, WebP, GIF). Rend `{ filename, buffer }`.
+ * Un corps absent (requête sans JSON) n'est pas jugé ici : il reste `undefined`, et le handler
+ * répond comme avant (500, comportement figé par les tests de caractérisation).
+ */
+const mascotImageUploadBodySchema = z.unknown().transform((body, ctx) => {
+  if (body === undefined) return undefined;
+  const filename = sanitizeMascotPackImageFilename(body?.filename);
+  const raw = body?.image_data;
+  const imageData = raw !== undefined && raw !== null ? String(raw).trim() : '';
+  if (!filename || !imageData) return rootIssue(ctx, 'filename et image_data requis');
+  const decoded = decodeMascotAssetImageData(imageData);
+  if (decoded.error) return rootIssue(ctx, decoded.error);
+  return { filename, buffer: decoded.buffer };
+});
+
+/** Suppression d'un fichier du catalogue statique : URL sous `/assets/mascots/`, extension connue. */
+const publicAssetDeleteBodySchema = z.unknown().transform((body, ctx) => {
+  const rel = resolvePublicMascotAssetRelativePath(body?.url);
+  if (!rel) return rootIssue(ctx, 'URL invalide pour un asset catalogue statique');
+  return { rel };
+});
+
+function visitArchiveImportMode(body) {
+  return String(body?.mode || 'create').trim();
+}
+
+/** Import d'archive : `mode` create | replace. Le corps (multipart ou JSON) est conservé tel quel. */
+const archiveImportBodySchema = z.unknown().superRefine((body, ctx) => {
+  const mode = visitArchiveImportMode(body);
+  if (mode !== 'create' && mode !== 'replace') rootIssue(ctx, 'mode invalide (create ou replace)');
+});
+
+/** Export ZIP : `?unified=1|true|states|unified` → pack aux états unifiés. */
+const packExportQuerySchema = z.unknown().transform((query) => ({
+  unified: ['1', 'true', 'states', 'unified'].includes(
+    String(query?.unified || '')
+      .trim()
+      .toLowerCase(),
+  ),
+}));
+
+router.get(
+  '/mascot-packs/:packId/assets/:filename',
+  authenticate,
+  validate({ params: packAssetParamsSchema('packId') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const { packId, filename } = req.validatedParams;
     const row = await queryOne(
       'SELECT id, is_published FROM visit_mascot_packs WHERE id = ? LIMIT 1',
       [packId],
@@ -331,13 +475,8 @@ router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, r
     return res.type('image/png').sendFile(abs, { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * Registre public des mascottes de visite : catalogue livré + packs publiés
@@ -345,8 +484,9 @@ router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, r
  * profil et le catalogue du plan — une seule liste, deux origines traitées à égalité.
  * Public (aucun jeton) : les assets des packs publiés le sont déjà.
  */
-router.get('/mascots', async (req, res) => {
-  try {
+router.get(
+  '/mascots',
+  mascotRoute(ERRORS_PLAIN, async (req, res) => {
     const mascots = await listVisitMascotRegistry();
     res.json({
       mascots: mascots.map((entry) => ({
@@ -356,11 +496,8 @@ router.get('/mascots', async (req, res) => {
         catalog_id: entry.id,
       })),
     });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * Préférence mascotte de l'utilisateur connecté — route **étroite** : elle n'écrit que
@@ -372,8 +509,12 @@ router.get('/mascots', async (req, res) => {
  * vit dans son compte. Corps `{ visit_mascot_catalog_id }` ; vide ou `null` efface la
  * préférence (retour à la mascotte par défaut de l'application).
  */
-router.put('/mascot-preference', authenticate, async (req, res) => {
-  try {
+// Pas de schéma validate() ici : le 401 « Authentification requise » est rendu AVANT tout
+// contrôle du corps, et un middleware de validation passerait devant lui.
+router.put(
+  '/mascot-preference',
+  authenticate,
+  mascotRoute(ERRORS_PLAIN, async (req, res) => {
     const auth = req.auth;
     if (!auth || !auth.userId) {
       return res.status(401).json({ error: 'Authentification requise' });
@@ -398,19 +539,18 @@ router.put('/mascot-preference', authenticate, async (req, res) => {
       String(auth.userId),
     ]);
     res.json({ ok: true, visit_mascot_catalog_id: stored });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * Liste **complète** des packs mascotte (brouillons compris) — une seule liste, sans
  * notion de carte : un pack est un objet global de la visite (cf. migration
  * `176_visit_mascot_packs_drop_map.sql`). Un éventuel `?map_id=` est ignoré.
  */
-router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) => {
-  try {
+router.get(
+  '/mascot-packs',
+  requirePermission('visit.manage'),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
     const rows = await queryAll(
       `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
        FROM visit_mascot_packs
@@ -420,20 +560,15 @@ router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) 
       packs: rows.map(serializeVisitMascotPackListRow),
       allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
     });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.get('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) {
-      return res.status(400).json({ error: 'Identifiant de pack invalide' });
-    }
+router.get(
+  '/mascot-packs/:id',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Identifiant de pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne(
       `SELECT id, catalog_id, label, pack_json, is_published, origin, created_at, updated_at, created_by
        FROM visit_mascot_packs WHERE id = ? LIMIT 1`,
@@ -441,16 +576,15 @@ router.get('/mascot-packs/:id', requirePermission('visit.manage'), async (req, r
     );
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     res.json(serializeVisitMascotPackRow(row));
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.post('/mascot-packs', requirePermission('visit.manage'), async (req, res) => {
-  try {
+// Pas de schéma de corps : `pack`, `label`, `is_published` et les sources de clonage sont lus
+// tels quels (le pack est validé par `validateMascotPackForDb`, module ESM partagé).
+router.post(
+  '/mascot-packs',
+  requirePermission('visit.manage'),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
     const cloneFromPackId = String(req.body.clone_from_pack_id || '').trim();
     const cloneFromCatalogId = String(req.body.clone_from_catalog_id || '').trim();
     const packUuid = crypto.randomUUID();
@@ -544,18 +678,15 @@ router.post('/mascot-packs', requirePermission('visit.manage'), async (req, res)
       payload: { catalog_id: catalogId, is_published: isPublished },
     });
     res.status(201).json(serializeVisitMascotPackRow(row));
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.put('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+router.put(
+  '/mascot-packs/:id',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const exists = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
       packId,
     ]);
@@ -607,18 +738,15 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage'), async (req, r
       payload: { is_published: isPublished },
     });
     res.json(serializeVisitMascotPackRow(row));
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+router.get(
+  '/mascot-packs/:id/export.zip',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide'), query: packExportQuerySchema }),
+  mascotRoute(ERRORS_PACK_ARCHIVE, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     let packJson = {};
@@ -627,15 +755,10 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
     } catch (_) {
       packJson = {};
     }
-    const unified = ['1', 'true', 'states', 'unified'].includes(
-      String(req.query.unified || '')
-        .trim()
-        .toLowerCase(),
-    );
     const built = buildVisitExportArchive({
       packRow: row,
       packJson,
-      unified,
+      unified: req.validatedQuery.unified,
     });
     const zipBuffer = buildMascotPackZipBuffer({
       manifest: built.manifest,
@@ -646,16 +769,8 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(zipBuffer);
-  } catch (err) {
-    logRouteError(err, req);
-    if (Number.isFinite(err?.status)) {
-      return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
-    }
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * Fiches des **modèles catalogue** proposés au studio comme point de départ.
@@ -669,8 +784,10 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
  * (`ui.visit.mascot.allowed_ids`) : proposer une mascotte aux visiteurs, c'est la publier, et
  * publier relève de `visit.manage` comme le reste du studio. Plus deux permissions pour un geste.
  */
-router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (req, res) => {
-  try {
+router.get(
+  '/mascot-catalog/models',
+  requirePermission('visit.manage'),
+  mascotRoute(ERRORS_PLAIN, async (req, res) => {
     return res.json({
       models: listVisitMascotCatalogModels().map((m) => ({
         catalog_id: m.id,
@@ -680,11 +797,8 @@ router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (r
         has_real_animation: m.hasRealAnimation,
       })),
     });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * Archive ZIP d'un modèle catalogue, **sans passer par un pack serveur**.
@@ -695,235 +809,203 @@ router.get('/mascot-catalog/models', requirePermission('visit.manage'), async (r
 router.get(
   '/mascot-catalog/:catalogId/export.zip',
   requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const catalogId = String(req.params.catalogId || '').trim();
-      const modelInfo = visitMascotCatalogModelInfo(catalogId);
-      if (!modelInfo) {
-        return res.status(404).json({
-          error: 'Modèle catalogue inconnu',
-          allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
-          requestId: req.requestId || null,
-        });
-      }
-      const pack = buildVisitCatalogPackTemplate(catalogId, catalogId);
-      const built = buildCatalogExportArchive({ catalogId, pack, modelInfo });
-      const zipBuffer = buildMascotPackZipBuffer({
-        manifest: built.manifest,
-        pack: built.pack,
-        assetFiles: built.assetFiles,
+  mascotRoute(ERRORS_ARCHIVE, async (req, res) => {
+    const catalogId = String(req.params.catalogId || '').trim();
+    const modelInfo = visitMascotCatalogModelInfo(catalogId);
+    if (!modelInfo) {
+      return res.status(404).json({
+        error: 'Modèle catalogue inconnu',
+        allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
+        requestId: req.requestId || null,
       });
-      const filename = `mascot-pack-${slugifyArchiveFilename(modelInfo.label)}.zip`;
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      return res.send(zipBuffer);
-    } catch (err) {
-      logRouteError(err, req);
-      if (Number.isFinite(err?.status)) {
-        return res
-          .status(err.status)
-          .json({ error: err.message, requestId: req.requestId || null });
-      }
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
-  },
+    const pack = buildVisitCatalogPackTemplate(catalogId, catalogId);
+    const built = buildCatalogExportArchive({ catalogId, pack, modelInfo });
+    const zipBuffer = buildMascotPackZipBuffer({
+      manifest: built.manifest,
+      pack: built.pack,
+      assetFiles: built.assetFiles,
+    });
+    const filename = `mascot-pack-${slugifyArchiveFilename(modelInfo.label)}.zip`;
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(zipBuffer);
+  }),
 );
 
 router.post(
   '/mascot-packs/import/analyze',
   requirePermission('visit.manage'),
   contentLibraryUploadMiddleware,
-  async (req, res) => {
-    try {
-      let buffer = readVisitArchiveBufferFromRequest(req);
-      if (!buffer) {
-        const payload = readAnalyzeUploadPayload(req);
-        if (payload.archive?.buffer) buffer = payload.archive.buffer;
-      }
-      if (!buffer)
-        return res.status(400).json({ error: 'Archive ZIP requise (archive ou fileDataBase64)' });
-      const parsed = parseMascotPackZipBuffer(buffer);
-      if (parsed.manifest.variant !== 'visit') {
-        return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
-      }
-      const validated = await validateMascotPackForDb(parsed.pack, {
-        relaxAssetPrefix: true,
-        // Import souple : les comportements personnalisés non déclarés à la source sont créés.
-        autoDeclareCustomStates: true,
-      });
-      if (validated.moduleError) {
-        return jsonVisitMascotPackError(
-          res,
-          req,
-          503,
-          buildMascotPackModuleUnavailableBody(validated.moduleError),
-        );
-      }
-      const analysis = analyzeVisitArchive(parsed);
-      if (!validated.ok) {
-        return res.json({
-          ...analysis,
-          ok: false,
-          validationError: validated.error?.format
-            ? validated.error.format()
-            : String(validated.error || 'Pack invalide'),
-        });
-      }
-      const autoDeclared = Array.isArray(validated.autoDeclaredStates)
-        ? validated.autoDeclaredStates
-        : [];
-      if (autoDeclared.length) {
-        analysis.autoDeclaredStates = autoDeclared;
-        analysis.warnings = [
-          ...analysis.warnings,
-          `${autoDeclared.length} comportement(s) personnalisé(s) seront créés à l'import : ${autoDeclared
-            .map((s) => s.key)
-            .join(', ')}.`,
-        ];
-      }
-      return res.json(analysis);
-    } catch (err) {
-      logRouteError(err, req);
-      if (Number.isFinite(err?.status)) {
-        return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
-      }
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  mascotRoute(ERRORS_ARCHIVE, async (req, res) => {
+    let buffer = readVisitArchiveBufferFromRequest(req);
+    if (!buffer) {
+      const payload = readAnalyzeUploadPayload(req);
+      if (payload.archive?.buffer) buffer = payload.archive.buffer;
     }
-  },
+    if (!buffer)
+      return res.status(400).json({ error: 'Archive ZIP requise (archive ou fileDataBase64)' });
+    const parsed = parseMascotPackZipBuffer(buffer);
+    if (parsed.manifest.variant !== 'visit') {
+      return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
+    }
+    const validated = await validateMascotPackForDb(parsed.pack, {
+      relaxAssetPrefix: true,
+      // Import souple : les comportements personnalisés non déclarés à la source sont créés.
+      autoDeclareCustomStates: true,
+    });
+    if (validated.moduleError) {
+      return jsonVisitMascotPackError(
+        res,
+        req,
+        503,
+        buildMascotPackModuleUnavailableBody(validated.moduleError),
+      );
+    }
+    const analysis = analyzeVisitArchive(parsed);
+    if (!validated.ok) {
+      return res.json({
+        ...analysis,
+        ok: false,
+        validationError: validated.error?.format
+          ? validated.error.format()
+          : String(validated.error || 'Pack invalide'),
+      });
+    }
+    const autoDeclared = Array.isArray(validated.autoDeclaredStates)
+      ? validated.autoDeclaredStates
+      : [];
+    if (autoDeclared.length) {
+      analysis.autoDeclaredStates = autoDeclared;
+      analysis.warnings = [
+        ...analysis.warnings,
+        `${autoDeclared.length} comportement(s) personnalisé(s) seront créés à l'import : ${autoDeclared
+          .map((s) => s.key)
+          .join(', ')}.`,
+      ];
+    }
+    return res.json(analysis);
+  }),
 );
 
 router.post(
   '/mascot-packs/import',
   requirePermission('visit.manage'),
   contentLibraryUploadMiddleware,
-  async (req, res) => {
-    try {
-      const mode = String(req.body?.mode || 'create').trim();
-      const targetPackId = String(req.body?.target_pack_id || '').trim();
-      if (mode !== 'create' && mode !== 'replace') {
-        return res.status(400).json({ error: 'mode invalide (create ou replace)' });
-      }
-      let buffer = readVisitArchiveBufferFromRequest(req);
-      if (!buffer) {
-        const payload = readAnalyzeUploadPayload(req);
-        if (payload.archive?.buffer) buffer = payload.archive.buffer;
-      }
-      if (!buffer) return res.status(400).json({ error: 'Archive ZIP requise' });
-
-      const parsed = parseMascotPackZipBuffer(buffer);
-      if (parsed.manifest.variant !== 'visit') {
-        return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
-      }
-
-      let packUuid;
-      let catalogId;
-      let existingRow = null;
-      if (mode === 'replace') {
-        if (!/^[0-9a-f-]{36}$/i.test(targetPackId)) {
-          return res.status(400).json({ error: 'target_pack_id requis en mode replace' });
-        }
-        existingRow = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
-          targetPackId,
-        ]);
-        if (!existingRow) return res.status(404).json({ error: 'Pack cible introuvable' });
-        packUuid = targetPackId;
-        catalogId = existingRow.catalog_id;
-      } else {
-        packUuid = crypto.randomUUID();
-        catalogId = `srv-${packUuid}`;
-      }
-
-      const serverPack = rewriteVisitPackForServerImport(parsed.pack, packUuid);
-      serverPack.id = catalogId;
-      const validated = await validateMascotPackForDb(serverPack, {
-        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixes(packUuid),
-        // Import souple : crée les comportements personnalisés implicites (états non déclarés).
-        autoDeclareCustomStates: true,
-      });
-      if (validated.moduleError) {
-        return jsonVisitMascotPackError(
-          res,
-          req,
-          503,
-          buildMascotPackModuleUnavailableBody(validated.moduleError),
-        );
-      }
-      if (!validated.ok) {
-        return res.status(400).json({
-          error: 'Pack JSON invalide',
-          details: validated.error?.format ? validated.error.format() : String(validated.error),
-          requestId: req.requestId || null,
-        });
-      }
-
-      const label = String(
-        req.body?.label || parsed.pack?.label || parsed.manifest?.source?.label || 'Pack importé',
-      )
-        .trim()
-        .slice(0, 120);
-      // Import publié par défaut (create) → le pack est immédiatement visible en visite ;
-      // replace conserve l'état du pack cible. Override : `is_published` du corps de requête.
-      const isPublished = resolveVisitMascotImportPublishState({
-        mode,
-        existingPublished: existingRow ? Number(existingRow.is_published) : null,
-        requested: req.body?.is_published,
-      });
-      const now = nowIso();
-      const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
-
-      await writeVisitArchiveAssetsFromMap(packUuid, parsed.assets);
-
-      if (mode === 'replace') {
-        await execute(
-          `UPDATE visit_mascot_packs SET label = ?, pack_json = ?, updated_at = ? WHERE id = ?`,
-          [label, JSON.stringify(validated.pack), now, packUuid],
-        );
-      } else {
-        await execute(
-          `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            packUuid,
-            catalogId,
-            label,
-            JSON.stringify(validated.pack),
-            isPublished,
-            now,
-            now,
-            createdBy,
-          ],
-        );
-      }
-
-      const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
-        packUuid,
-      ]);
-      const autoDeclared = Array.isArray(validated.autoDeclaredStates)
-        ? validated.autoDeclaredStates
-        : [];
-      const warnings = [...analyzeVisitArchive(parsed).warnings];
-      if (autoDeclared.length) {
-        warnings.push(
-          `${autoDeclared.length} comportement(s) personnalisé(s) créé(s) à l'import : ${autoDeclared
-            .map((s) => s.key)
-            .join(', ')}.`,
-        );
-      }
-      return res.status(mode === 'replace' ? 200 : 201).json({
-        ...serializeVisitMascotPackRow(row),
-        warnings,
-        autoDeclaredStates: autoDeclared,
-      });
-    } catch (err) {
-      logRouteError(err, req);
-      if (Number.isFinite(err?.status)) {
-        return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
-      }
-      const mapped = mapVisitMascotPackSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  validate({ body: archiveImportBodySchema }),
+  mascotRoute(ERRORS_PACK_ARCHIVE, async (req, res) => {
+    const mode = visitArchiveImportMode(req.body);
+    const targetPackId = String(req.body?.target_pack_id || '').trim();
+    let buffer = readVisitArchiveBufferFromRequest(req);
+    if (!buffer) {
+      const payload = readAnalyzeUploadPayload(req);
+      if (payload.archive?.buffer) buffer = payload.archive.buffer;
     }
-  },
+    if (!buffer) return res.status(400).json({ error: 'Archive ZIP requise' });
+
+    const parsed = parseMascotPackZipBuffer(buffer);
+    if (parsed.manifest.variant !== 'visit') {
+      return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
+    }
+
+    let packUuid;
+    let catalogId;
+    let existingRow = null;
+    if (mode === 'replace') {
+      if (!/^[0-9a-f-]{36}$/i.test(targetPackId)) {
+        return res.status(400).json({ error: 'target_pack_id requis en mode replace' });
+      }
+      existingRow = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+        targetPackId,
+      ]);
+      if (!existingRow) return res.status(404).json({ error: 'Pack cible introuvable' });
+      packUuid = targetPackId;
+      catalogId = existingRow.catalog_id;
+    } else {
+      packUuid = crypto.randomUUID();
+      catalogId = `srv-${packUuid}`;
+    }
+
+    const serverPack = rewriteVisitPackForServerImport(parsed.pack, packUuid);
+    serverPack.id = catalogId;
+    const validated = await validateMascotPackForDb(serverPack, {
+      allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixes(packUuid),
+      // Import souple : crée les comportements personnalisés implicites (états non déclarés).
+      autoDeclareCustomStates: true,
+    });
+    if (validated.moduleError) {
+      return jsonVisitMascotPackError(
+        res,
+        req,
+        503,
+        buildMascotPackModuleUnavailableBody(validated.moduleError),
+      );
+    }
+    if (!validated.ok) {
+      return res.status(400).json({
+        error: 'Pack JSON invalide',
+        details: validated.error?.format ? validated.error.format() : String(validated.error),
+        requestId: req.requestId || null,
+      });
+    }
+
+    const label = String(
+      req.body?.label || parsed.pack?.label || parsed.manifest?.source?.label || 'Pack importé',
+    )
+      .trim()
+      .slice(0, 120);
+    // Import publié par défaut (create) → le pack est immédiatement visible en visite ;
+    // replace conserve l'état du pack cible. Override : `is_published` du corps de requête.
+    const isPublished = resolveVisitMascotImportPublishState({
+      mode,
+      existingPublished: existingRow ? Number(existingRow.is_published) : null,
+      requested: req.body?.is_published,
+    });
+    const now = nowIso();
+    const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
+
+    await writeVisitArchiveAssetsFromMap(packUuid, parsed.assets);
+
+    if (mode === 'replace') {
+      await execute(
+        `UPDATE visit_mascot_packs SET label = ?, pack_json = ?, updated_at = ? WHERE id = ?`,
+        [label, JSON.stringify(validated.pack), now, packUuid],
+      );
+    } else {
+      await execute(
+        `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          packUuid,
+          catalogId,
+          label,
+          JSON.stringify(validated.pack),
+          isPublished,
+          now,
+          now,
+          createdBy,
+        ],
+      );
+    }
+
+    const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
+    const autoDeclared = Array.isArray(validated.autoDeclaredStates)
+      ? validated.autoDeclaredStates
+      : [];
+    const warnings = [...analyzeVisitArchive(parsed).warnings];
+    if (autoDeclared.length) {
+      warnings.push(
+        `${autoDeclared.length} comportement(s) personnalisé(s) créé(s) à l'import : ${autoDeclared
+          .map((s) => s.key)
+          .join(', ')}.`,
+      );
+    }
+    return res.status(mode === 'replace' ? 200 : 201).json({
+      ...serializeVisitMascotPackRow(row),
+      warnings,
+      autoDeclaredStates: autoDeclared,
+    });
+  }),
 );
 
 /**
@@ -942,10 +1024,12 @@ router.post(
  * `npm run visit:mascots:restore` rend les mascottes livrées effacées — leur apparence d'origine,
  * pas les modifications qu'on leur avait apportées.
  */
-router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+router.delete(
+  '/mascot-packs/:id',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne(
       'SELECT id, origin, catalog_id FROM visit_mascot_packs WHERE id = ? LIMIT 1',
       [packId],
@@ -989,13 +1073,8 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req
       },
     );
     res.json({ ok: true, origin: estLivree ? 'builtin' : 'custom' });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * **Réinitialiser une mascotte livrée depuis son origine.**
@@ -1009,10 +1088,12 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage'), async (req
  * masquée) n'est pas réactivé dans le dos de l'administrateur. Réinitialiser rend l'apparence
  * d'origine, pas la visibilité d'origine — ce sont deux décisions distinctes.
  */
-router.post('/mascot-packs/:id/reset', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+router.post(
+  '/mascot-packs/:id/reset',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     if (String(row.origin || 'custom') !== 'builtin') {
@@ -1046,18 +1127,15 @@ router.post('/mascot-packs/:id/reset', requirePermission('visit.manage'), async 
     );
     const fresh = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     return res.json(serializeVisitMascotPackRow(fresh));
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.get('/mascot-packs/:id/assets', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+router.get(
+  '/mascot-packs/:id/assets',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     const filenames = listVisitMascotPackAssetFilenames(packId);
@@ -1070,32 +1148,29 @@ router.get('/mascot-packs/:id/assets', requirePermission('visit.manage'), async 
       };
     });
     res.json({ pack_id: packId, assets });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.post('/mascot-packs/:id/assets', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const packId = String(req.params.id || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+/**
+ * Dépôt d'une image dans un pack. Le corps passe par le MÊME schéma que la bibliothèque de
+ * sprites (`mascotImageUploadBodySchema`, N1), mais APRÈS la lecture du pack : un pack inconnu
+ * répond 404 même quand le corps est invalide, comme avant l'alignement.
+ */
+router.post(
+  '/mascot-packs/:id/assets',
+  requirePermission('visit.manage'),
+  validate({ params: packIdParamsSchema('Pack invalide') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const packId = req.validatedParams.id;
     const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
-    const filename = sanitizeMascotPackImageFilename(req.body.filename);
-    const imageDataRaw = req.body.image_data;
-    const imageData =
-      imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
-    if (!filename || !imageData) {
-      return res.status(400).json({ error: 'filename et image_data requis' });
-    }
-    const decoded = decodeMascotAssetImageData(imageData);
-    if (decoded.error) return res.status(400).json({ error: decoded.error });
+    const parsed = mascotImageUploadBodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: formatZodError(parsed.error) });
+    // Corps absent : `parsed.data` vaut `undefined` et la déstructuration lève (500 historique).
+    const { filename, buffer } = parsed.data;
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     try {
-      await writeBufferToDisk(rel, decoded.buffer);
+      await writeBufferToDisk(rel, buffer);
     } catch (fileErr) {
       logRouteError(fileErr, req);
       return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
@@ -1107,97 +1182,69 @@ router.post('/mascot-packs/:id/assets', requirePermission('visit.manage'), async
       preview_url: appendPreviewTokenToAssetUrl(publicUrl, packId, filename),
       filename,
     });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 router.delete(
   '/mascot-packs/:id/assets/:filename',
   requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const packId = String(req.params.id || '').trim();
-      const filename = sanitizeMascotPackImageFilename(req.params.filename);
-      if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename) {
-        return res.status(400).json({ error: 'Paramètres invalides' });
-      }
-      const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
-        packId,
-      ]);
-      if (!row) return res.status(404).json({ error: 'Pack introuvable' });
-      const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
-      deleteFile(rel);
-      res.json({ ok: true });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotPackSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-    }
-  },
+  validate({ params: packAssetParamsSchema('id') }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const { packId, filename } = req.validatedParams;
+    const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+    const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
+    deleteFile(rel);
+    res.json({ ok: true });
+  }),
 );
 
 router.patch(
   '/mascot-packs/:id/assets/:filename',
   requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const packId = String(req.params.id || '').trim();
-      const filename = sanitizeMascotPackImageFilename(req.params.filename);
-      const newFilename = sanitizeMascotPackImageFilename(req.body?.new_filename);
-      if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename || !newFilename) {
-        return res.status(400).json({ error: 'Paramètres invalides' });
-      }
-      if (filename === newFilename) {
-        return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
-      }
-      const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
-        packId,
-      ]);
-      if (!row) return res.status(404).json({ error: 'Pack introuvable' });
-      const relDir = visitMascotPackAssetRelativeDir(packId);
-      const relFrom = `${relDir}/${filename}`;
-      const relTo = `${relDir}/${newFilename}`;
-      const absFrom = getAbsolutePath(relFrom);
-      const absTo = getAbsolutePath(relTo);
-      if (!fs.existsSync(absFrom)) {
-        return res.status(404).json({ error: 'Fichier introuvable' });
-      }
-      if (fs.existsSync(absTo)) {
-        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
-      }
-      await fs.promises.rename(absFrom, absTo);
-      const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(newFilename)}`;
-      res.json({
-        ok: true,
-        filename: newFilename,
-        url: publicUrl,
-        preview_url: appendPreviewTokenToAssetUrl(publicUrl, packId, newFilename),
-        previous_filename: filename,
-      });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotPackSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  validate({ params: packAssetParamsSchema('id'), body: renameBodySchema }),
+  mascotRoute(ERRORS_PACK, async (req, res) => {
+    const { packId, filename } = req.validatedParams;
+    const newFilename = req.body.new_filename;
+    if (filename === newFilename) {
+      return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
     }
-  },
+    const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+    if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+    const relDir = visitMascotPackAssetRelativeDir(packId);
+    const relFrom = `${relDir}/${filename}`;
+    const relTo = `${relDir}/${newFilename}`;
+    const absFrom = getAbsolutePath(relFrom);
+    const absTo = getAbsolutePath(relTo);
+    if (!fs.existsSync(absFrom)) {
+      return res.status(404).json({ error: 'Fichier introuvable' });
+    }
+    if (fs.existsSync(absTo)) {
+      return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+    }
+    await fs.promises.rename(absFrom, absTo);
+    const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(newFilename)}`;
+    res.json({
+      ok: true,
+      filename: newFilename,
+      url: publicUrl,
+      preview_url: appendPreviewTokenToAssetUrl(publicUrl, packId, newFilename),
+      previous_filename: filename,
+    });
+  }),
 );
 
 /** PNG bibliothèque sprites (public si la ligne existe — utilisé par les packs publiés). */
-router.get('/mascot-assets', requirePermission('visit.manage'), async (req, res) => {
-  try {
+router.get(
+  '/mascot-assets',
+  requirePermission('visit.manage'),
+  mascotRoute(ERRORS_ALL_ASSETS, async (req, res) => {
     const publicAssets = listPublicMascotStaticAssets().map((url, idx) => ({
       id: `public:${idx}:${url}`,
       source: 'public',
       filename: String(url).split('/').pop() || '',
       url,
     }));
-
     const packRows = await queryAll(
       `SELECT id, catalog_id, label
          FROM visit_mascot_packs
@@ -1241,20 +1288,15 @@ router.get('/mascot-assets', requirePermission('visit.manage'), async (req, res)
         library: libraryAssets.length,
       },
     });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotPackSqlError(err) || mapVisitMascotSpriteLibSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
-router.delete('/mascot-assets/public', requirePermission('visit.manage'), async (req, res) => {
-  try {
-    const rel = resolvePublicMascotAssetRelativePath(req.body?.url);
-    if (!rel) {
-      return res.status(400).json({ error: 'URL invalide pour un asset catalogue statique' });
-    }
+router.delete(
+  '/mascot-assets/public',
+  requirePermission('visit.manage'),
+  validate({ body: publicAssetDeleteBodySchema }),
+  mascotRoute(ERRORS_PLAIN, async (req, res) => {
+    const { rel } = req.body;
     const publicRoot = path.join(__dirname, '..', '..', 'public');
     const abs = path.resolve(publicRoot, rel);
     if (!fs.existsSync(abs)) {
@@ -1262,20 +1304,19 @@ router.delete('/mascot-assets/public', requirePermission('visit.manage'), async 
     }
     await fs.promises.unlink(abs);
     return res.json({ ok: true, url: `/${rel.replace(/^\/+/, '')}` });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 /**
  * PNG de la bibliothèque partagée — **public si la ligne existe** (les packs publiés
  * référencent ces URLs). Aucun contrôle de rôle : seuls les profs peuvent créer une
  * entrée, la protection tient à cela et à la discrétion des URLs.
  */
-router.get('/mascot-sprite-library/assets/:filename', async (req, res) => {
-  return serveVisitMascotSpriteLibraryFile(req, res, req.params.filename);
-});
+router.get(
+  '/mascot-sprite-library/assets/:filename',
+  validate({ params: spriteFilenameParamsSchema }),
+  mascotRoute(ERRORS_SPRITE, serveVisitMascotSpriteLibraryFile),
+);
 
 /**
  * Compatibilité : URL historique par carte
@@ -1283,12 +1324,16 @@ router.get('/mascot-sprite-library/assets/:filename', async (req, res) => {
  * `framesBase` des packs créés avant la migration `176_visit_mascot_packs_drop_map.sql`.
  * Le segment carte est ignoré : seul le nom de fichier compte désormais.
  */
-router.get('/mascot-sprite-library/:legacyMapId/assets/:filename', async (req, res) => {
-  return serveVisitMascotSpriteLibraryFile(req, res, req.params.filename);
-});
+router.get(
+  '/mascot-sprite-library/:legacyMapId/assets/:filename',
+  validate({ params: spriteFilenameParamsSchema }),
+  mascotRoute(ERRORS_SPRITE, serveVisitMascotSpriteLibraryFile),
+);
 
-router.get('/mascot-sprite-library/assets', requirePermission('visit.manage'), async (req, res) => {
-  try {
+router.get(
+  '/mascot-sprite-library/assets',
+  requirePermission('visit.manage'),
+  mascotRoute(ERRORS_SPRITE, async (req, res) => {
     const rows = await queryAll(
       `SELECT id, filename, created_at
          FROM visit_mascot_sprite_library
@@ -1301,145 +1346,111 @@ router.get('/mascot-sprite-library/assets', requirePermission('visit.manage'), a
       created_at: r.created_at,
     }));
     res.json({ assets });
-  } catch (err) {
-    logRouteError(err, req);
-    const mapped = mapVisitMascotSpriteLibSqlError(err);
-    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+  }),
+);
 
 router.post(
   '/mascot-sprite-library/assets',
   requirePermission('visit.manage'),
-  async (req, res) => {
+  validate({ body: mascotImageUploadBodySchema }),
+  mascotRoute(ERRORS_SPRITE, async (req, res) => {
+    // Corps absent : laissé `undefined` par le schéma, la déstructuration lève (500 historique).
+    const { filename, buffer } = req.body;
+    // Réécriture en place d'un fichier historique (sous-dossier carte) plutôt que
+    // création d'un doublon à plat : l'URL déjà référencée par les packs reste valide.
+    const rel =
+      resolveVisitMascotSpriteLibraryRelPath(filename) ||
+      `${visitMascotSpriteLibraryRelativeDir()}/${filename}`;
     try {
-      const filename = sanitizeMascotPackImageFilename(req.body.filename);
-      const imageDataRaw = req.body.image_data;
-      const imageData =
-        imageDataRaw !== undefined && imageDataRaw !== null ? String(imageDataRaw).trim() : '';
-      if (!filename || !imageData) {
-        return res.status(400).json({ error: 'filename et image_data requis' });
-      }
-      // Réécriture en place d'un fichier historique (sous-dossier carte) plutôt que
-      // création d'un doublon à plat : l'URL déjà référencée par les packs reste valide.
-      const decoded = decodeMascotAssetImageData(imageData);
-      if (decoded.error) return res.status(400).json({ error: decoded.error });
-      const rel =
-        resolveVisitMascotSpriteLibraryRelPath(filename) ||
-        `${visitMascotSpriteLibraryRelativeDir()}/${filename}`;
-      try {
-        await writeBufferToDisk(rel, decoded.buffer);
-      } catch (fileErr) {
-        logRouteError(fileErr, req);
-        return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
-      }
-      const now = nowIso();
-      const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
-      const existing = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
-        [filename],
-      );
-      if (existing) {
-        await execute(
-          'UPDATE visit_mascot_sprite_library SET created_at = ?, created_by = ? WHERE id = ?',
-          [now, createdBy, existing.id],
-        );
-      } else {
-        const rowId = crypto.randomUUID();
-        await execute(
-          `INSERT INTO visit_mascot_sprite_library (id, filename, created_at, created_by)
-           VALUES (?, ?, ?, ?)`,
-          [rowId, filename, now, createdBy],
-        );
-      }
-      res.status(201).json({ ok: true, url: visitMascotSpriteLibraryAssetUrl(filename), filename });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotSpriteLibSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      await writeBufferToDisk(rel, buffer);
+    } catch (fileErr) {
+      logRouteError(fileErr, req);
+      return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
     }
-  },
+    const now = nowIso();
+    const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
+    const existing = await queryOne(
+      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+      [filename],
+    );
+    if (existing) {
+      await execute(
+        'UPDATE visit_mascot_sprite_library SET created_at = ?, created_by = ? WHERE id = ?',
+        [now, createdBy, existing.id],
+      );
+    } else {
+      const rowId = crypto.randomUUID();
+      await execute(
+        `INSERT INTO visit_mascot_sprite_library (id, filename, created_at, created_by)
+           VALUES (?, ?, ?, ?)`,
+        [rowId, filename, now, createdBy],
+      );
+    }
+    res.status(201).json({ ok: true, url: visitMascotSpriteLibraryAssetUrl(filename), filename });
+  }),
 );
 
 router.delete(
   '/mascot-sprite-library/assets/:filename',
   requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const filename = sanitizeMascotPackImageFilename(req.params.filename);
-      if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
-      const row = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
-        [filename],
-      );
-      if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
-      const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
-      if (rel) deleteFile(rel);
-      await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
-      res.json({ ok: true });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotSpriteLibSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-    }
-  },
+  validate({ params: spriteFilenameParamsSchema }),
+  mascotRoute(ERRORS_SPRITE, async (req, res) => {
+    const { filename } = req.validatedParams;
+    const row = await queryOne(
+      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+      [filename],
+    );
+    if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
+    const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
+    if (rel) deleteFile(rel);
+    await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
+    res.json({ ok: true });
+  }),
 );
 
 router.patch(
   '/mascot-sprite-library/assets/:filename',
   requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const filename = sanitizeMascotPackImageFilename(req.params.filename);
-      const newFilename = sanitizeMascotPackImageFilename(req.body?.new_filename);
-      if (!filename || !newFilename) {
-        return res.status(400).json({ error: 'Paramètres invalides' });
-      }
-      if (filename === newFilename) {
-        return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
-      }
-      const row = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
-        [filename],
-      );
-      if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
-      const collision = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
-        [newFilename],
-      );
-      if (collision) {
-        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
-      }
-      const relFrom = resolveVisitMascotSpriteLibraryRelPath(filename);
-      if (!relFrom) return res.status(404).json({ error: 'Fichier introuvable' });
-      // Renommage **dans le dossier d'origine** (à plat, ou sous-dossier historique).
-      const relTo = `${relFrom.slice(0, relFrom.lastIndexOf('/'))}/${newFilename}`;
-      const absFrom = getAbsolutePath(relFrom);
-      const absTo = getAbsolutePath(relTo);
-      if (fs.existsSync(absTo)) {
-        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
-      }
-      await fs.promises.rename(absFrom, absTo);
-      await execute('UPDATE visit_mascot_sprite_library SET filename = ? WHERE id = ?', [
-        newFilename,
-        row.id,
-      ]);
-      res.json({
-        ok: true,
-        filename: newFilename,
-        url: visitMascotSpriteLibraryAssetUrl(newFilename),
-        previous_filename: filename,
-      });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotSpriteLibSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  validate({ params: spriteFilenameParamsSchema, body: renameBodySchema }),
+  mascotRoute(ERRORS_SPRITE, async (req, res) => {
+    const { filename } = req.validatedParams;
+    const newFilename = req.body.new_filename;
+    if (filename === newFilename) {
+      return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
     }
-  },
+    const row = await queryOne(
+      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+      [filename],
+    );
+    if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
+    const collision = await queryOne(
+      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+      [newFilename],
+    );
+    if (collision) {
+      return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+    }
+    const relFrom = resolveVisitMascotSpriteLibraryRelPath(filename);
+    if (!relFrom) return res.status(404).json({ error: 'Fichier introuvable' });
+    // Renommage **dans le dossier d'origine** (à plat, ou sous-dossier historique).
+    const relTo = `${relFrom.slice(0, relFrom.lastIndexOf('/'))}/${newFilename}`;
+    const absFrom = getAbsolutePath(relFrom);
+    const absTo = getAbsolutePath(relTo);
+    if (fs.existsSync(absTo)) {
+      return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+    }
+    await fs.promises.rename(absFrom, absTo);
+    await execute('UPDATE visit_mascot_sprite_library SET filename = ? WHERE id = ?', [
+      newFilename,
+      row.id,
+    ]);
+    res.json({
+      ok: true,
+      filename: newFilename,
+      url: visitMascotSpriteLibraryAssetUrl(newFilename),
+      previous_filename: filename,
+    });
+  }),
 );
 
 module.exports = router;
