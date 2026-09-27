@@ -1,5 +1,10 @@
 import { getRoleTerms } from './n3-terminology';
 import { normalizeDateOnly } from './taskListHelpers.js';
+import {
+  TASK_DANGER_LEVEL_ENUM,
+  TASK_DIFFICULTY_LEVEL_ENUM,
+  TASK_IMPORTANCE_LEVEL_ENUM,
+} from '../shared/enums/taskEnums.js';
 
 function taskStatusAria(status, isN3Affiliated) {
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -93,9 +98,10 @@ export function dueDateChip(date) {
   return <span className={`task-chip ${d <= 1 ? 'urgent' : ''}`}>📅 {label}</span>;
 }
 
-const TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
-const TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
-const TASK_IMPORTANCE_LEVELS = new Set(['not_important', 'low', 'medium', 'high', 'absolute']);
+// Valeurs admises : référentiel partagé des ENUM (src/shared/enums/taskEnums.js).
+const TASK_DIFFICULTY_LEVELS = new Set(TASK_DIFFICULTY_LEVEL_ENUM.values);
+const TASK_DANGER_LEVELS = new Set(TASK_DANGER_LEVEL_ENUM.values);
+const TASK_IMPORTANCE_LEVELS = new Set(TASK_IMPORTANCE_LEVEL_ENUM.values);
 
 /** Niveau renseigné explicitement (sinon null — pas d’affichage). */
 export function getDefinedTaskDifficultyLevel(task) {
@@ -119,39 +125,37 @@ export function getDefinedTaskImportanceLevel(task) {
   return TASK_IMPORTANCE_LEVELS.has(raw) ? raw : null;
 }
 
-const TASK_DIFFICULTY_DISPLAY = {
-  easy: { emoji: '🌱', label: 'Facile', title: 'Difficulté : facile' },
-  medium: { emoji: '🪜', label: 'Moyen', title: 'Difficulté : moyenne' },
-  hard: { emoji: '🧗', label: 'Compliqué', title: 'Difficulté : compliquée' },
-  very_hard: { emoji: '⛰️', label: 'Super compliqué', title: 'Difficulté : très élevée' },
-};
+/**
+ * Pastille de chaque valeur : emoji et info-bulle propres à l'affichage, libellé repris du
+ * référentiel (le même que dans le formulaire de tâche).
+ */
+function withEnumLabels(def, display) {
+  return Object.fromEntries(
+    def.values.map((value) => [value, { ...display[value], label: def.labels[value] }]),
+  );
+}
 
-const TASK_IMPORTANCE_DISPLAY = {
-  not_important: { emoji: '○', label: 'Pas important', title: 'Importance : pas important' },
-  low: { emoji: '◔', label: 'Peu important', title: 'Importance : peu important' },
-  medium: { emoji: '◕', label: 'Modéré', title: 'Importance : modéré' },
-  high: { emoji: '⏫', label: 'Important', title: 'Importance : important' },
-  absolute: { emoji: '🚨', label: 'Urgent !', title: 'Importance : urgent' },
-};
+const TASK_DIFFICULTY_DISPLAY = withEnumLabels(TASK_DIFFICULTY_LEVEL_ENUM, {
+  easy: { emoji: '🌱', title: 'Difficulté : facile' },
+  medium: { emoji: '🪜', title: 'Difficulté : moyenne' },
+  hard: { emoji: '🧗', title: 'Difficulté : compliquée' },
+  very_hard: { emoji: '⛰️', title: 'Difficulté : très élevée' },
+});
 
-const TASK_DANGER_DISPLAY = {
-  safe: { emoji: '🛡️', label: 'Sans danger', title: 'Danger : sans danger' },
-  potential_danger: {
-    emoji: '🔸',
-    label: 'Danger potentiel',
-    title: 'Danger : potentiel — vigilance recommandée',
-  },
-  dangerous: {
-    emoji: '⚠️',
-    label: 'Dangereux',
-    title: 'Danger : dangereux — précautions requises',
-  },
-  very_dangerous: {
-    emoji: '🚨',
-    label: 'Très dangereux',
-    title: 'Danger : très dangereux — accord adulte requis',
-  },
-};
+const TASK_IMPORTANCE_DISPLAY = withEnumLabels(TASK_IMPORTANCE_LEVEL_ENUM, {
+  not_important: { emoji: '○', title: 'Importance : pas important' },
+  low: { emoji: '◔', title: 'Importance : peu important' },
+  medium: { emoji: '◕', title: 'Importance : modéré' },
+  high: { emoji: '⏫', title: 'Importance : important' },
+  absolute: { emoji: '🚨', title: 'Importance : urgent' },
+});
+
+const TASK_DANGER_DISPLAY = withEnumLabels(TASK_DANGER_LEVEL_ENUM, {
+  safe: { emoji: '🛡️', title: 'Danger : sans danger' },
+  potential_danger: { emoji: '🔸', title: 'Danger : potentiel — vigilance recommandée' },
+  dangerous: { emoji: '⚠️', title: 'Danger : dangereux — précautions requises' },
+  very_dangerous: { emoji: '🚨', title: 'Danger : très dangereux — accord adulte requis' },
+});
 
 /** Tâche à traiter avec les référents avant toute action (difficulté élevée ou risque). */
 export function taskRequiresReferentBriefingBeforeStart(task) {

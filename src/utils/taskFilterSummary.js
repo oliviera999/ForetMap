@@ -1,4 +1,5 @@
 import { TASK_STATUS_FILTER_OPTIONS } from '../components/tasks/taskViewHelpers.js';
+import { TASK_RECURRENCE_ENUM } from '../shared/enums/taskEnums.js';
 
 /**
  * Résumé des filtres actifs de la vue Tâches (barre compacte mobile) : liste de
@@ -16,9 +17,8 @@ export const TASK_URGENT_CATEGORY_LABELS = {
 /** Libellés du filtre récurrence (n3boss / admin). */
 export const TASK_RECURRENCE_FILTER_LABELS = {
   recurring: 'Récurrentes seulement',
-  weekly: 'Hebdomadaire',
-  biweekly: 'Toutes les 2 semaines',
-  monthly: 'Mensuelle',
+  // Récurrences en base : référentiel partagé des ENUM (weekly, biweekly, monthly).
+  ...TASK_RECURRENCE_ENUM.labels,
   none: 'Sans récurrence',
 };
 

@@ -4,6 +4,7 @@ import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { TASK_STATUS_FILTER_OPTIONS } from './taskViewHelpers.js';
 import { filterProjectsByMapChoice } from '../../utils/taskSectioning.js';
 import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelpers.js';
+import { TASK_RECURRENCE_ENUM } from '../../shared/enums/taskEnums.js';
 
 /**
  * Champs de filtrage de la vue Tâches : carte, lieu (zones + repères utilisés),
@@ -192,9 +193,11 @@ export function TaskFiltersFields({
         >
           <option value="">Toute récurrence</option>
           <option value="recurring">Récurrentes seulement</option>
-          <option value="weekly">Hebdomadaire</option>
-          <option value="biweekly">Toutes les 2 semaines</option>
-          <option value="monthly">Mensuelle</option>
+          {TASK_RECURRENCE_ENUM.values.map((value) => (
+            <option key={value} value={value}>
+              {TASK_RECURRENCE_ENUM.labels[value]}
+            </option>
+          ))}
           <option value="none">Sans récurrence</option>
         </select>
       )}
