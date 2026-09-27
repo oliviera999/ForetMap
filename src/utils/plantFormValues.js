@@ -96,7 +96,7 @@ export const EMPTY_PLANT_FORM = {
   hazard_reviewed: '',
   health_risk: '',
   health_notes: '',
-  // Photos (migration 302) : une liste `{ kind, url, credit, licence, source, source_url }`,
+  // Photos (migration 303) : une liste `{ kind, url, credit, licence, source, source_url }`,
   // qui remplace les 6 anciens champs de liens et le couple crédit / licence de la photo
   // principale — le serveur en tient encore les colonnes en miroir.
   photos: [],

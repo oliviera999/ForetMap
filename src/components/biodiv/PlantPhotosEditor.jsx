@@ -7,7 +7,7 @@ import { IconCamera, IconGallery } from '../../shared/icons.jsx';
 const TOUCH = { minHeight: 44 };
 
 /**
- * Photos du formulaire de fiche — une ligne par photo : lien, auteur, licence (migration 302,
+ * Photos du formulaire de fiche — une ligne par photo : lien, auteur, licence (migration 303,
  * piste C de l'audit du 25/09/2026, § 1.3.6).
  *
  * L'attribution se saisit photo par photo : ≈ 90 % des licences du catalogue (CC BY,

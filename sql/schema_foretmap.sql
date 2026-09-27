@@ -1351,7 +1351,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Photos des fiches espèces (migration 302) : une ligne par photo, attribution comprise.
+-- Photos des fiches espèces (migration 303) : une ligne par photo, attribution comprise.
 -- Source de vérité des photos ; les colonnes photo de `plants` en sont le miroir jusqu'au
 -- retrait (temps 3, audit du 25/09/2026, § 3.5).
 CREATE TABLE IF NOT EXISTS plant_photos (

@@ -171,7 +171,7 @@ export function PlantnetIdentifyPanel({
         });
         const newUrl = result?.url;
         if (!newUrl) continue;
-        // Liste de photos du formulaire (migration 302) : la photo téléversée s'y ajoute,
+        // Liste de photos du formulaire (migration 303) : la photo téléversée s'y ajoute,
         // sans auteur ni licence — à compléter dans la section « Photos ».
         setForm((prev) => ({
           ...prev,

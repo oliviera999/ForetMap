@@ -62,7 +62,7 @@ describe('findFirstBiodivHeroPhotoCandidate', () => {
       categoryUrl: url,
     });
   });
-  test('lien et emplacement d’origine exposés (attribution de la photo, migration 302)', () => {
+  test('lien et emplacement d’origine exposés (attribution de la photo, migration 303)', () => {
     const url = 'https://commons.wikimedia.org/wiki/File:Rosa_canina';
     expect(findFirstBiodivHeroPhotoCandidate({ photo_species: url })).toEqual({
       kind: 'direct',

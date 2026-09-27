@@ -8,7 +8,7 @@ import {
   formatPhotoAttribution,
 } from '../../src/utils/plantPhotos.js';
 
-// Photos d'une fiche côté client (migration 302, `plant_photos`).
+// Photos d'une fiche côté client (migration 303, `plant_photos`).
 
 describe('plantPhotoList', () => {
   test('liste du serveur : triée par emplacement, entrées invalides écartées', () => {

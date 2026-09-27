@@ -66,7 +66,7 @@ describe('PlantMetaSections', () => {
   });
 });
 
-describe('PlantMetaSections — attribution par photo (migration 302)', () => {
+describe('PlantMetaSections — attribution par photo (migration 303)', () => {
   test('chaque vignette de la galerie porte son auteur et sa licence', async () => {
     render(
       <PlantMetaSections

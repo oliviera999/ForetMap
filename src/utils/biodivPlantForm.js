@@ -49,7 +49,7 @@ export function findFirstBiodivHeroPhotoCandidate(plant) {
     );
     for (const entry of entries) {
       // `entry` / `field` : lien et emplacement d'origine, pour retrouver l'attribution de la
-      // photo affichée (migration 302).
+      // photo affichée (migration 303).
       if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry, entry, field: key };
       const fileSrc = commonsFilePageToDisplaySrc(entry);
       if (fileSrc) return { kind: 'direct', src: fileSrc, entry, field: key };

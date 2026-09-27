@@ -74,7 +74,7 @@ describe('EMPTY_PLANT_FORM', () => {
   test('couvre les colonnes attendues du modèle', () => {
     expect(EMPTY_PLANT_FORM).toHaveProperty('name');
     expect(EMPTY_PLANT_FORM).toHaveProperty('scientific_name');
-    // Photos : une liste (migration 302), plus les 6 anciens champs de liens.
+    // Photos : une liste (migration 303), plus les 6 anciens champs de liens.
     expect(EMPTY_PLANT_FORM.photos).toEqual([]);
     expect(EMPTY_PLANT_FORM).not.toHaveProperty('photo_harvest_part');
     expect(EMPTY_PLANT_FORM).not.toHaveProperty('photo_credit');

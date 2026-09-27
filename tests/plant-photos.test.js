@@ -1,6 +1,6 @@
 'use strict';
 
-// Photos des fiches espèces — table `plant_photos` (migration 302), piste C de l'audit du
+// Photos des fiches espèces — table `plant_photos` (migration 303), piste C de l'audit du
 // 25/09/2026 (§ 1.3.6, § 2.3, § 3.5). Temps 1 : la fiche lit la table, avec repli sur les
 // colonnes ; temps 2 : formulaire, téléversement et import écrivent la table (crédit et
 // licence compris) et tiennent les anciennes colonnes en miroir.
@@ -12,6 +12,7 @@ const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const {
+  pool,
   initSchema,
   queryAll,
   queryOne,
@@ -180,7 +181,7 @@ describe('plant_photos — base et API', () => {
     return res.body.find((p) => Number(p.id) === Number(id));
   }
 
-  test('migration 302 — table, reprise des colonnes, idempotence, contrôle T3', async () => {
+  test('migration 303 — table, reprise des colonnes, idempotence, contrôle T3', async () => {
     const table = await queryOne(
       `SELECT COUNT(*) AS c FROM information_schema.tables
         WHERE table_schema = DATABASE() AND table_name = 'plant_photos'`,
@@ -190,18 +191,18 @@ describe('plant_photos — base et API', () => {
     // Fiche « d'avant la migration » : colonnes remplies, aucune ligne.
     const legacy = await execute(
       `INSERT INTO plants (name, emoji, photo, photo_species, photo_leaf, photo_credit, photo_licence)
-       VALUES (?, '🌿', ?, ?, ?, 'Auteur M302', 'CC BY-SA 4.0')`,
+       VALUES (?, '🌿', ?, ?, ?, 'Auteur M303', 'CC BY-SA 4.0')`,
       [
-        `M302 fiche ${STAMP}`,
-        U('M302'),
-        `${U('M302')}\r\n${U('M302b')},${U('M302c')}`,
+        `M303 fiche ${STAMP}`,
+        U('M303'),
+        `${U('M303')}\r\n${U('M303b')},${U('M303c')}`,
         '/uploads/plants/0/photo_leaf-1.jpg',
       ],
     );
     ids.push(legacy.insertId);
     // Fiche déjà gérée par la table : jamais complétée par ses colonnes.
     const managed = await execute(`INSERT INTO plants (name, emoji, photo) VALUES (?, '🌿', ?)`, [
-      `M302 gérée ${STAMP}`,
+      `M303 gérée ${STAMP}`,
       U('Col'),
     ]);
     ids.push(managed.insertId);
@@ -211,11 +212,13 @@ describe('plant_photos — base et API', () => {
     );
 
     const sql = fs.readFileSync(
-      path.join(__dirname, '..', 'migrations', '302_plant_photos.sql'),
+      path.join(__dirname, '..', 'migrations', '303_plant_photos.sql'),
       'utf8',
     );
+    // Protocole texte (`pool.query`), comme le moteur de migrations : le protocole préparé
+    // (`execute`) refuse certains énoncés.
     const runMigration = async () => {
-      for (const stmt of splitSqlStatements(sql)) await execute(stmt);
+      for (const stmt of splitSqlStatements(sql)) await pool.query(stmt);
     };
     await runMigration();
     await runMigration();
@@ -227,10 +230,10 @@ describe('plant_photos — base et API', () => {
     assert.deepEqual(
       rows.map((r) => [r.kind, r.url, r.credit, r.licence, r.source, Number(r.sort_order)]),
       [
-        ['photo', U('M302'), 'Auteur M302', 'CC BY-SA 4.0', 'wikimedia_commons', 0],
-        ['photo_species', U('M302'), 'Auteur M302', 'CC BY-SA 4.0', 'wikimedia_commons', 0],
-        ['photo_species', U('M302b'), null, null, 'wikimedia_commons', 1],
-        ['photo_species', U('M302c'), null, null, 'wikimedia_commons', 2],
+        ['photo', U('M303'), 'Auteur M303', 'CC BY-SA 4.0', 'wikimedia_commons', 0],
+        ['photo_species', U('M303'), 'Auteur M303', 'CC BY-SA 4.0', 'wikimedia_commons', 0],
+        ['photo_species', U('M303b'), null, null, 'wikimedia_commons', 1],
+        ['photo_species', U('M303c'), null, null, 'wikimedia_commons', 2],
         ['photo_leaf', '/uploads/plants/0/photo_leaf-1.jpg', null, null, 'televersement', 0],
       ],
     );

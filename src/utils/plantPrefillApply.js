@@ -72,7 +72,7 @@ export function applyPrefillToForm(prev, opts = {}) {
     if (!byTarget.has(row.assignTo)) byTarget.set(row.assignTo, []);
     byTarget.get(row.assignTo).push(row);
   }
-  // Photos (migration 302) : chaque photo retenue entre dans la liste du formulaire AVEC
+  // Photos (migration 303) : chaque photo retenue entre dans la liste du formulaire AVEC
   // son auteur, sa licence et sa page source — la pré-saisie les récupérait, mais ils
   // étaient jetés au moment d'appliquer (audit du 25/09/2026, § 1.3.6).
   let photos = Array.isArray(next.photos) ? next.photos : [];

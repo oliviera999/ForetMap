@@ -1,6 +1,6 @@
 /**
  * Photos d'une fiche espèce côté client — une photo = un lien, un emplacement (`kind`), un
- * auteur (`credit`), une licence, une provenance (migration 302, `plant_photos` ; piste C de
+ * auteur (`credit`), une licence, une provenance (migration 303, `plant_photos` ; piste C de
  * l'audit du 25/09/2026, § 1.3.6).
  *
  * Le serveur expose `plant.photos` ; les anciens champs (`photo`, `photo_species`…,

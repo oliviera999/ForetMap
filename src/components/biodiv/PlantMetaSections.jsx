@@ -76,7 +76,7 @@ export function PlantBiodivHeroPhoto({ plant }) {
   if (!src || broken) return null;
 
   const name = normalizedPlantValue(plant.name) || 'Espèce';
-  // Attribution de LA photo affichée (migration 302 : une attribution par photo), et non plus
+  // Attribution de LA photo affichée (migration 303 : une attribution par photo), et non plus
   // le crédit de la photo principale quand la vignette vient d'un autre emplacement.
   const attribution = photoAttributionFor(plant, candidate.entry, candidate.field);
   const credit = normalizedPlantValue(attribution?.credit);
