@@ -4,6 +4,7 @@ import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
 import { IdKeySchemaView } from './IdKeySchemaView.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
+import { QUESTION_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
 
 const READER_MODE_KEY = 'foretmap.id-keys.readerMode';
 
@@ -273,8 +274,11 @@ function EditorPanel({ keyBundle, onReload, plants }) {
             value={meta.niveau}
             onChange={(e) => setMeta((m) => ({ ...m, niveau: e.target.value }))}
           >
-            <option value="college">Collège</option>
-            <option value="lycee">Lycée</option>
+            {QUESTION_NIVEAU_ENUM.values.map((value) => (
+              <option key={value} value={value}>
+                {QUESTION_NIVEAU_ENUM.labels[value]}
+              </option>
+            ))}
           </select>
         </label>
         <label className="id-key-editor__check">

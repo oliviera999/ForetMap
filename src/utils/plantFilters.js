@@ -147,11 +147,26 @@ export function plantMatchesStructuredFilters(plant, f) {
   return true;
 }
 
-/** Recherche texte alignée élève / prof (champs courts + taxonomie). */
+/**
+ * Noms cherchables d'une fiche en plus de son nom : autres noms affichés
+ * (`secondary_names`) et noms reconnus (`name_aliases` : variantes, synonymes) — table
+ * `plant_name_aliases`, migration 304. Un élève qui tape un autre nom trouve la fiche
+ * (audit du 25/09/2026, § 1.3.6).
+ */
+export function plantSearchNames(plant) {
+  const names = Array.isArray(plant?.secondary_names) ? [...plant.secondary_names] : [];
+  if (Array.isArray(plant?.name_aliases)) {
+    for (const row of plant.name_aliases) if (row?.alias) names.push(row.alias);
+  }
+  return names;
+}
+
+/** Recherche texte alignée élève / prof (champs courts + taxonomie + autres noms). */
 export function plantTextMatchesQuery(plant, queryTrimmedLower) {
   if (!queryTrimmedLower) return true;
   const fields = [
     plant.name,
+    ...plantSearchNames(plant),
     plant.description,
     plant.scientific_name,
     plant.accepted_scientific_name,

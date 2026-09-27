@@ -1,7 +1,6 @@
 const express = require('express');
-const path = require('path');
 const bcrypt = require('bcryptjs');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryOne } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
@@ -9,7 +8,7 @@ const { z, validate } = require('../lib/validate');
 const { logAudit } = require('../lib/auditLog');
 const { scopePublicSettings } = require('../lib/publicSettingsScope');
 const { resolveSecureProductId } = require('../lib/surfaceAccess');
-const { invalidateMapsListCache } = require('./maps');
+const { listMapsForAdmin } = require('../lib/terrain/mapService');
 
 // `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.
 const settingsMediaQuerySchema = z.object({ limit: z.coerce.number().optional().catch(undefined) });
@@ -18,7 +17,6 @@ const settingsLogsQuerySchema = z.object({
   lines: z.preprocess((v) => parseInt(v, 10), z.number().finite().catch(200)),
 });
 const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logBuffer');
-const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
@@ -48,62 +46,10 @@ const {
   tourRegistrySchema,
 } = require('../lib/tourContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
-const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
-const {
-  withMapGeoref,
-  isValidAnchors,
-  sanitizeAnchors,
-  parseAnchors,
-  assessAnchorsGeoPlausibility,
-} = require('../lib/mapGeoref');
-/** Identifiant de carte : lettres minuscules, chiffres, `_` et `-` (VARCHAR(32) de `maps`). */
-const MAP_SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,30}$/;
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
 
-const { normalizePedagoLevel } = require('../lib/biodivPedagoLevel');
-
 const router = express.Router();
-
-function parseBoolean(value, fallback) {
-  if (typeof value === 'boolean') return value;
-  if (value === 1 || value === '1' || value === 'true') return true;
-  if (value === 0 || value === '0' || value === 'false') return false;
-  return fallback;
-}
-
-const MAP_SELECT_FULL =
-  'id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled, heading_up_enabled, scale_compass_enabled, pedago_level';
-const MAP_SELECT_LEGACY =
-  'id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled, 0 AS heading_up_enabled, 1 AS scale_compass_enabled, NULL AS pedago_level';
-
-async function getMapById(id) {
-  try {
-    return await queryOne(`SELECT ${MAP_SELECT_FULL} FROM maps WHERE id = ? LIMIT 1`, [id]);
-  } catch (e) {
-    if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-    return queryOne(`SELECT ${MAP_SELECT_LEGACY} FROM maps WHERE id = ? LIMIT 1`, [id]);
-  }
-}
-
-async function listMaps() {
-  try {
-    return await queryAll(`SELECT ${MAP_SELECT_FULL} FROM maps ORDER BY sort_order ASC, label ASC`);
-  } catch (e) {
-    if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-    return queryAll(`SELECT ${MAP_SELECT_LEGACY} FROM maps ORDER BY sort_order ASC, label ASC`);
-  }
-}
-
-/** Sérialise une ligne `maps` pour l'API (URL image normalisée, booléens, géoréférencement). */
-function serializeMap(row) {
-  return withMapGeoref({
-    ...row,
-    map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
-    is_active: !!row.is_active,
-    pedago_level: normalizePedagoLevel(row.pedago_level),
-  });
-}
 
 router.get(
   '/public',
@@ -129,10 +75,10 @@ router.get(
   '/admin',
   requirePermission('admin.settings.read'),
   asyncHandler(async (req, res) => {
-    const [settingsRows, maps] = await Promise.all([listAdminSettings(), listMaps()]);
+    const [settingsRows, maps] = await Promise.all([listAdminSettings(), listMapsForAdmin()]);
     res.json({
       settings: settingsRows,
-      maps: maps.map(serializeMap),
+      maps,
     });
   }),
 );
@@ -402,222 +348,9 @@ router.put(
   }),
 );
 
-router.post(
-  '/admin/maps',
-  requirePermission('admin.settings.write'),
-  asyncHandler(async (req, res) => {
-    const id = String(req.body?.id || '')
-      .trim()
-      .toLowerCase();
-    const label = String(req.body?.label || '').trim();
-    if (!id || !MAP_SLUG_RE.test(id)) {
-      return res.status(400).json({
-        error: 'Identifiant carte invalide (minuscules, chiffres, tirets ; 1 à 31 caractères)',
-      });
-    }
-    if (id === 'both') {
-      return res.status(400).json({ error: 'Identifiant réservé (both)' });
-    }
-    const dup = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [id]);
-    if (dup) return res.status(409).json({ error: 'Une carte avec cet identifiant existe déjà' });
-    if (!label) return res.status(400).json({ error: 'Label requis' });
-    const sortOrderRaw = parseInt(req.body?.sort_order, 10);
-    const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, sortOrderRaw) : 999;
-    const mapImageUrl = normalizeMapImageUrl(id, String(req.body?.map_image_url || '').trim());
-    const isActive = parseBoolean(req.body?.is_active, true);
-    try {
-      await execute(
-        `INSERT INTO maps (id, label, map_image_url, sort_order, frame_padding_px, is_active)
-         VALUES (?, ?, ?, ?, NULL, ?)`,
-        [id, label, mapImageUrl, sortOrder, isActive ? 1 : 0],
-      );
-    } catch (e) {
-      if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-      await execute('INSERT INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?)', [
-        id,
-        label,
-        mapImageUrl,
-        sortOrder,
-      ]);
-    }
-    invalidateMapsListCache();
-    const created = await getMapById(id);
-    await logAudit('settings_map_create', 'map', id, 'Carte créée', {
-      req,
-      payload: { id, label, map_image_url: mapImageUrl, sort_order: sortOrder },
-    });
-    res.status(201).json(serializeMap(created));
-  }),
-);
-
-router.put(
-  '/admin/maps/:id',
-  requirePermission('admin.settings.write'),
-  asyncHandler(async (req, res) => {
-    const map = await getMapById(req.params.id);
-    if (!map) return res.status(404).json({ error: 'Carte introuvable' });
-    const label = String(req.body?.label ?? map.label).trim();
-    const mapImageUrl = normalizeMapImageUrl(
-      map.id,
-      String(req.body?.map_image_url ?? map.map_image_url).trim(),
-    );
-    const sortOrderRaw = parseInt(req.body?.sort_order, 10);
-    const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, sortOrderRaw) : map.sort_order;
-    const framePaddingRaw = req.body?.frame_padding_px;
-    const framePadding =
-      framePaddingRaw === null || framePaddingRaw === ''
-        ? null
-        : (() => {
-            const n = parseInt(framePaddingRaw, 10);
-            if (!Number.isFinite(n)) return map.frame_padding_px;
-            return Math.min(Math.max(n, 0), 32);
-          })();
-    const isActive = parseBoolean(req.body?.is_active, !!map.is_active);
-    const pedagoLevel =
-      req.body?.pedago_level !== undefined
-        ? normalizePedagoLevel(req.body.pedago_level)
-        : normalizePedagoLevel(map.pedago_level);
-    if (
-      req.body?.pedago_level !== undefined &&
-      req.body.pedago_level != null &&
-      String(req.body.pedago_level).trim() !== '' &&
-      pedagoLevel == null
-    ) {
-      return res.status(400).json({ error: 'pedago_level invalide (college|lycee|universite)' });
-    }
-    if (!label) return res.status(400).json({ error: 'Label requis' });
-    try {
-      await execute(
-        `UPDATE maps
-            SET label = ?, map_image_url = ?, sort_order = ?, frame_padding_px = ?, is_active = ?,
-                pedago_level = ?
-          WHERE id = ?`,
-        [label, mapImageUrl, sortOrder, framePadding, isActive ? 1 : 0, pedagoLevel, map.id],
-      );
-    } catch (e) {
-      if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-      await execute('UPDATE maps SET label = ?, map_image_url = ?, sort_order = ? WHERE id = ?', [
-        label,
-        mapImageUrl,
-        sortOrder,
-        map.id,
-      ]);
-    }
-    const updated = await getMapById(map.id);
-    invalidateMapsListCache();
-    await logAudit('settings_map_update', 'map', map.id, 'Carte mise à jour', {
-      req,
-      payload: {
-        label: updated.label,
-        map_image_url: updated.map_image_url,
-        sort_order: updated.sort_order,
-        frame_padding_px: updated.frame_padding_px,
-        is_active: !!updated.is_active,
-        pedago_level: normalizePedagoLevel(updated.pedago_level),
-      },
-    });
-    res.json(serializeMap(updated));
-  }),
-);
-
-router.post(
-  '/admin/maps/:id/image',
-  requirePermission('admin.settings.write'),
-  asyncHandler(async (req, res) => {
-    const map = await getMapById(req.params.id);
-    if (!map) return res.status(404).json({ error: 'Carte introuvable' });
-    const imageData = String(req.body?.image_data || '').trim();
-    if (!imageData) return res.status(400).json({ error: 'image_data requis' });
-    const filename = `${map.id}-${Date.now()}.jpg`;
-    const relativePath = path.join('maps', filename).replace(/\\/g, '/');
-    await saveBase64ToDisk(relativePath, imageData);
-    const nextUrl = `/uploads/${relativePath}`;
-    const oldUrl = String(map.map_image_url || '').trim();
-    await execute('UPDATE maps SET map_image_url = ? WHERE id = ?', [nextUrl, map.id]);
-    if (oldUrl.startsWith('/uploads/maps/')) {
-      deleteFile(oldUrl.replace('/uploads/', ''));
-    }
-    invalidateMapsListCache();
-    await logAudit('settings_map_image_update', 'map', map.id, 'Image de plan changée', {
-      req,
-      payload: { map_id: map.id, map_image_url: nextUrl },
-    });
-    const updated = await getMapById(map.id);
-    res.json(serializeMap(updated));
-  }),
-);
-
-router.put(
-  '/admin/maps/:id/georef',
-  requirePermission('admin.settings.write'),
-  asyncHandler(async (req, res) => {
-    const map = await getMapById(req.params.id);
-    if (!map) return res.status(404).json({ error: 'Carte introuvable' });
-
-    const body = req.body || {};
-    const hasAnchorsField = Object.prototype.hasOwnProperty.call(body, 'anchors');
-    const rawAnchors = body.anchors;
-    let anchorsJson = map.geo_anchors_json || null;
-    let hasValidAnchors = !!parseAnchors(anchorsJson);
-
-    if (hasAnchorsField) {
-      const hasAnchors =
-        rawAnchors != null && !(Array.isArray(rawAnchors) && rawAnchors.length === 0);
-      anchorsJson = null;
-      hasValidAnchors = false;
-      if (hasAnchors) {
-        if (!isValidAnchors(rawAnchors)) {
-          return res.status(400).json({
-            error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
-          });
-        }
-        const sanitized = sanitizeAnchors(rawAnchors);
-        const plausibility = assessAnchorsGeoPlausibility(sanitized);
-        if (!plausibility.ok) {
-          return res.status(400).json({
-            error:
-              plausibility.reason === 'geo_collinear'
-                ? 'Calage GPS incohérent : les trois points GPS sont alignés ou confondus — choisissez des repères formant un vrai triangle sur le terrain.'
-                : `Calage GPS incohérent : les distances GPS ne correspondent pas aux distances sur le plan (échelles incompatibles, facteur ${Math.round(plausibility.scaleRatio)}). Vérifiez les coordonnées de chaque point.`,
-          });
-        }
-        anchorsJson = JSON.stringify(sanitized);
-        hasValidAnchors = true;
-      }
-    }
-    const gpsEnabled = parseBoolean(body.gps_enabled, !!map.gps_enabled) && hasValidAnchors;
-    const headingUpEnabled =
-      gpsEnabled && parseBoolean(body.heading_up_enabled, !!map.heading_up_enabled);
-    const scaleCompassDefault =
-      map.scale_compass_enabled == null ? true : !!Number(map.scale_compass_enabled);
-    const scaleCompassEnabled =
-      hasValidAnchors && parseBoolean(body.scale_compass_enabled, scaleCompassDefault);
-
-    await execute(
-      'UPDATE maps SET geo_anchors_json = ?, gps_enabled = ?, heading_up_enabled = ?, scale_compass_enabled = ? WHERE id = ?',
-      [
-        anchorsJson,
-        gpsEnabled ? 1 : 0,
-        headingUpEnabled ? 1 : 0,
-        scaleCompassEnabled ? 1 : 0,
-        map.id,
-      ],
-    );
-    invalidateMapsListCache();
-    const updated = await getMapById(map.id);
-    await logAudit('settings_map_georef', 'map', map.id, 'Calage GPS du plan mis à jour', {
-      req,
-      payload: {
-        map_id: map.id,
-        gps_enabled: gpsEnabled,
-        heading_up_enabled: headingUpEnabled,
-        scale_compass_enabled: scaleCompassEnabled,
-        has_anchors: !!anchorsJson,
-      },
-    });
-    res.json(serializeMap(updated));
-  }),
-);
+// CRUD des cartes (création, modification, image de fond, calage GPS) : sorti vers
+// `lib/terrain/mapService.js` (étape B4 de l'audit du 25/09/2026, § 3.1), mêmes URL.
+router.use('/admin/maps', require('./maps-admin'));
 
 router.get(
   '/admin/media-library',

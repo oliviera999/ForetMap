@@ -65,7 +65,7 @@ d'observation** pour l'écriture naturaliste libre.
   à quoi le mot qu'il lit va servir dans l'année.
 
 > ⚠️ **Point d'attention** — Le mot « niveau » désigne plusieurs choses dans
-> l'application : le niveau d'une question (collège / lycée), sa difficulté (★ à ★★★★★), la
+> l'application : le niveau d'une question (collège / lycée), sa difficulté (⭐ à ⭐⭐⭐), la
 > profondeur d'un terme de glossaire (base / approfondissement / avancé), le niveau scolaire
 > d'une notion de programme et l'affichage biodiversité (collège / lycée / université). Les
 > menus les nomment distinctement (« Niveau » / « Niveau du programme »), et leurs
@@ -101,6 +101,13 @@ d'observation** pour l'écriture naturaliste libre.
   « statut » vaut `actif` ou `inactif` ; **laissée vide, elle ne change rien** : une question
   désactivée le reste (jusqu'en septembre 2026, un fichier sans statut réactivait toutes les
   questions désactivées). Une autre valeur est signalée comme erreur sur sa ligne.
+- **La difficulté d'une question** va de 1 à 3 : « ⭐ Facile », « ⭐⭐ Moyen »,
+  « ⭐⭐⭐ Difficile ». Le libellé suit **toujours** le chiffre : à l'import comme dans la
+  fiche, il est recalculé à l'enregistrement, et ce qui est écrit dans la colonne ou le champ
+  « Libellé de difficulté » n'est plus pris en compte (auparavant, un libellé tapé à la main
+  pouvait contredire le chiffre). Une difficulté laissée vide, ou hors de 1 à 3, n'a pas de
+  libellé. Le filtre « Difficulté » du quiz élève propose les mêmes trois valeurs (il en
+  proposait cinq, dont deux ne trouvaient jamais de question).
 - **La fiche question** se remplit champ par champ, chacun nommé en clair : énoncé,
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
@@ -246,6 +253,10 @@ d'observation** pour l'écriture naturaliste libre.
   atténué, une observation de terrain d’un trait plus appuyé. Un réseau pédagogique mêle
   forcément les trois, et tout afficher avec la même autorité apprenait aux élèves à ne
   pas faire la différence. Cliquer une relation affiche le niveau de preuve et la source.
+  Depuis septembre 2026, « Observé sur le site » peut aussi venir d'une **observation
+  d'élève validée** : le professeur rattache l'observation à la relation dans « Observations
+  à valider » (onglet Biodiversité), et la relation passe à « Observé sur le site » dès que
+  l'observation est validée. Ce niveau ne redescend jamais tout seul.
 - **Pour la pollinisation, l’efficacité du visiteur peut être précisée** :
   « Pollinisateur efficace », « Pollinisateur accessoire », « Simple visiteur » ou
   « Voleur de nectar » — tous les insectes qui viennent sur une fleur ne la pollinisent

@@ -85,13 +85,14 @@ describe('computeVisitLocationAside', () => {
     expect(prof.tutorialListForPreview.map((t) => t.id)).toEqual([10, 11]);
   });
 
-  test('repère : biodiversité depuis le repère carte (plant_name en repli) + missions', () => {
+  test('repère : biodiversité depuis le repère carte (plant_name plus lu) + missions', () => {
     const ctx = baseCtx({
-      mapMarkers: [{ id: 3, map_id: MAP_ID, living_beings_list: [], plant_name: 'Bouleau' }],
+      mapMarkers: [{ id: 3, map_id: MAP_ID, living_beings_list: ['Bouleau'], plant_name: 'Hêtre' }],
       tasks: [{ id: 1, marker_ids: [3], living_beings_list: ['Geai'] }],
     });
     const out = computeVisitLocationAside({ id: 3 }, 'marker', ctx);
     expect(out.locationKind).toBe('marker');
+    // Piste C (audit du 25/09/2026, § 3.5), temps T1 : l'ancien nom n'est plus un repli.
     expect(out.primaryLivingNames).toEqual(['Bouleau']);
     expect(out.livingBeingsOnlyOnTasks).toEqual(['Geai']);
     expect(out.showBiodiversity).toBe(true);

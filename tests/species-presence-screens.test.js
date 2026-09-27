@@ -263,11 +263,12 @@ test('visite : lieux inchangés, liste « espèces du site » = présence commun
   // n'est pas servie à un anonyme).
   assert.deepEqual(placeIds, idsOf(['B', 'C', 'D', 'F']));
   assert.deepEqual(siteIds, idsOf(COMMON));
-  // L'ancien nom mono-espèce reste un libellé de repère, sans être une présence.
+  // L'ancien nom mono-espèce n'est ni une présence, ni plus un libellé de repère : la colonne
+  // n'est plus lue (piste C, audit du 25/09/2026, § 3.5, temps T1 ; reprise : migration 306).
   const legacy = (body.markers || []).find((m) => m.id === LEGACY_MARKER_ID);
   assert.ok(legacy, 'repère ancien publié');
   assert.deepEqual(legacy.species_ids, []);
-  assert.deepEqual(legacy.living_beings_list, [plants.G.name]);
+  assert.deepEqual(legacy.living_beings_list, []);
   // Provenance, et lieu réservé jamais nommé à un anonyme.
   assert.deepEqual(entryOf(body.site_species, 'A').sources, ['registre']);
   assert.deepEqual(entryOf(body.site_species, 'D').sources, ['registre', 'zone']);

@@ -34,15 +34,11 @@ function biodiversitySourceForLocation(mapLocation, visitLocation) {
   if (!mapLocation) return visitLocation || null;
   const mapNames = orderedLivingBeingsForForm(
     mapLocation.living_beings_list || mapLocation.living_beings,
-    mapLocation.current_plant || mapLocation.plant_name,
   );
   if (mapNames.length > 0) return mapLocation;
   // Zone de carte connue mais sans espèce : le contenu de visite peut en porter (cache
   // client de la carte plus ancien que le contenu public, par exemple).
-  const visitNames = orderedLivingBeingsForForm(
-    visitLocation?.living_beings_list,
-    visitLocation?.current_plant || visitLocation?.plant_name,
-  );
+  const visitNames = orderedLivingBeingsForForm(visitLocation?.living_beings_list);
   return visitNames.length > 0 ? visitLocation : mapLocation;
 }
 
@@ -91,10 +87,7 @@ export function computeVisitLocationAside(
     const zoneSource = biodiversitySourceForLocation(mapZone, selected);
     const zoneIsInfrastructure = isInfrastructureLocation(zoneSource);
     const primaryLivingNames = zoneSource
-      ? orderedLivingBeingsForForm(
-          zoneSource.living_beings_list || zoneSource.living_beings,
-          zoneSource.current_plant,
-        )
+      ? orderedLivingBeingsForForm(zoneSource.living_beings_list || zoneSource.living_beings)
       : [];
     const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
     const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
@@ -133,10 +126,7 @@ export function computeVisitLocationAside(
   );
   const markerSource = biodiversitySourceForLocation(mapMarker, selected);
   const primaryLivingNames = markerSource
-    ? orderedLivingBeingsForForm(
-        markerSource.living_beings_list || markerSource.living_beings,
-        markerSource.plant_name,
-      )
+    ? orderedLivingBeingsForForm(markerSource.living_beings_list || markerSource.living_beings)
     : [];
   const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
   const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));

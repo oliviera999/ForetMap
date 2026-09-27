@@ -75,13 +75,13 @@ de jeu pour les sixièmes) depuis les **cohortes Moodle**, sans ressaisir les é
 
 Le cœur de l'application : un ou plusieurs **plans** du jardin (avec image de fond, et
 géolocalisation optionnelle), découpés en **zones** de toutes formes. Chaque zone porte
-sa plante en cours, son stade (en pousse, prête à récolter, vide…), sa description, ses
-photos, son historique de récoltes et ses espèces associées. Des **repères** ponctuels
-(avec emoji, note, photos) complètent les zones.
+ses espèces (êtres vivants choisis dans le catalogue), ses catégories, sa description et
+ses photos. Des **repères** ponctuels (avec emoji, note, photos, espèces) complètent les
+zones.
 
 - **L'élève** consulte : il ouvre une zone ou un repère et découvre sa fiche, ses
   photos et les tâches qui s'y rattachent.
-- **Le professeur** édite tout : dessin des zones, repères, photos, historique.
+- **Le professeur** édite tout : dessin des zones, repères, espèces, photos.
 
 ### La biodiversité (le catalogue de plantes)
 
@@ -90,7 +90,10 @@ cycle de vie, comestibilité, rôle dans l'écosystème, besoins (température, 
 photos (plante, feuille, fleur, fruit…), conseils de plantation, sources.
 
 - **L'élève** explore le catalogue avec des filtres et peut marquer des espèces comme
-  **observées** dans le jardin.
+  **observées** dans le jardin. Il peut aussi **signaler une observation** de terrain
+  (espèce, lieu, date, photo) depuis une fiche espèce ou un lieu de la carte : un professeur
+  la vérifie, et une observation validée fait apparaître l'espèce « **Confirmée sur le
+  site** ».
 - **Le professeur** crée et enrichit les fiches, avec deux aides précieuses : le
   **pré-remplissage automatique** (l'application va chercher les informations dans des
   bases naturalistes de référence) et l'**identification par photo** (on photographie
@@ -204,6 +207,11 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
   au rallumage, chaque élève retrouve tous ses badges, y compris ceux gagnés pendant la coupure
   (jamais en double). Les séances, elles, fonctionnent normalement ; le professeur voit un
   bandeau qui le rappelle dans l'onglet « Séances ».
+- **Observations d'espèces** — les élèves ne voient plus les boutons « Signaler une
+  observation » et « Mes observations » (fiches espèces, zones et repères). Les professeurs
+  qui valident les observations gardent l'encadré « Observations à valider », avec un bandeau
+  qui le rappelle, et peuvent finir d'examiner ce qui a été envoyé. Les observations déjà
+  validées restent : l'espèce reste « Confirmée sur le site ».
 
 ## Comment l'écran s'organise
 

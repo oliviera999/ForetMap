@@ -26,10 +26,8 @@ const {
 } = require('../lib/taskStatusRecalc');
 const { getScopedStudentIds, getUserAccessibleGroupIds } = require('../lib/groupScope');
 const { listN3beurStudents, filterN3beurStudentIds } = require('../lib/n3beurStudents');
-const { normalizeImportTaskStatus } = require('../lib/tasks/taskImport');
 const {
   parseOptionalAuth,
-  recalculateTaskStatus,
   mapExists,
   validateTaskLocations,
   setTaskZones,
@@ -43,7 +41,20 @@ const {
   fetchTutorialsForTasks,
   fetchReferentsForTasks,
   getTaskWithAssignments,
+  getTaskProject,
+  getTaskZoneIds,
+  getTaskMarkerIds,
+  persistDetachedLocationsSnapshot,
 } = require('../lib/tasks/taskQueries');
+const {
+  TaskRuleError,
+  updateTask,
+  normalizeTaskRecurrenceInput,
+  validateTaskProject,
+  validateReferentUserIds,
+  validateTutorialIds,
+  validatePedagoSessionId,
+} = require('../lib/tasks/taskService');
 const {
   resolveTaskMapId,
   parseTaskDangerLevelFromClient,
@@ -68,165 +79,15 @@ const {
   normalizeTaskDateInput,
   validateTaskDateRange,
 } = require('../lib/taskRouteHelpers');
-const {
-  canReadAllAssignments,
-  canManageTasks,
-  canValidateTasks,
-  assertCanTeacherSetTaskStatus,
-  isVisitorRole,
-} = require('../lib/taskAuthzHelpers');
+const { canReadAllAssignments, canManageTasks, isVisitorRole } = require('../lib/taskAuthzHelpers');
 const {
   getRecurrenceToday,
   resolveRecurrenceAnchor,
   computeNextOccurrenceWindow,
   createOpenDayResolver,
-  parseTemplateIdArray,
 } = require('../lib/recurringTasks');
 
 const router = express.Router();
-const MAX_TASK_REFERENTS = 15;
-
-async function getTaskProject(projectId) {
-  if (!projectId) return null;
-  return queryOne('SELECT id, map_id, title, status FROM task_projects WHERE id = ?', [projectId]);
-}
-
-async function validateTaskProject(projectId, resolvedMapId) {
-  if (!projectId) return { projectId: null, mapId: resolvedMapId || null };
-  const project = await getTaskProject(projectId);
-  if (!project) return { error: 'Projet introuvable' };
-  if (resolvedMapId && project.map_id !== resolvedMapId) {
-    return { error: 'Le projet doit appartenir à la même carte que la tâche' };
-  }
-  return { projectId: project.id, mapId: resolvedMapId || project.map_id };
-}
-
-async function getTaskZoneIds(taskId) {
-  const rows = await queryAll('SELECT zone_id FROM task_zones WHERE task_id = ? ORDER BY zone_id', [
-    taskId,
-  ]);
-  return rows.map((r) => r.zone_id);
-}
-
-async function getTaskMarkerIds(taskId) {
-  const rows = await queryAll(
-    'SELECT marker_id FROM task_markers WHERE task_id = ? ORDER BY marker_id',
-    [taskId],
-  );
-  return rows.map((r) => r.marker_id);
-}
-
-/** Récurrences acceptées par l'API (et seules à engendrer une occurrence suivante). */
-const RECURRENCE_WITH_TEMPLATE_LOCS = new Set(['weekly', 'biweekly', 'monthly']);
-
-/**
- * Normalise recurrence pour POST/PUT JSON (whitelist).
- * @returns {{ value: string|null } | { error: string }}
- */
-function normalizeTaskRecurrenceInput(raw, { requiredPresent = false } = {}) {
-  if (raw === undefined || raw === null || raw === '') {
-    if (requiredPresent) return { value: null };
-    return { value: null };
-  }
-  const r = String(raw).trim().toLowerCase();
-  if (!r) return { value: null };
-  if (!RECURRENCE_WITH_TEMPLATE_LOCS.has(r)) {
-    return { error: 'Récurrence invalide (weekly, biweekly ou monthly)' };
-  }
-  return { value: r };
-}
-
-let recurrenceTemplateColumnsReady = null;
-
-async function hasRecurrenceTemplateColumns() {
-  if (recurrenceTemplateColumnsReady !== null) return recurrenceTemplateColumnsReady;
-  try {
-    const row = await queryOne(
-      `SELECT COUNT(*) AS c
-         FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'tasks'
-          AND COLUMN_NAME = 'recurrence_template_zone_ids'`,
-    );
-    recurrenceTemplateColumnsReady = Number(row?.c) > 0;
-  } catch (err) {
-    logger.warn({ err }, 'Vérification colonnes recurrence_template_* en échec');
-    recurrenceTemplateColumnsReady = false;
-  }
-  return recurrenceTemplateColumnsReady;
-}
-
-/**
- * Lieux à rendre à une tâche qui quitte l'état « validée », lus dans la mémoire posée au
- * moment du détachement.
- *
- * Prudence volontaire : un lieu supprimé depuis la validation, ou qui a changé de carte,
- * est simplement laissé de côté, et une mémoire inexploitable ne rend rien. Rendre un lieu
- * est un **confort de reprise**, jamais une raison de refuser le changement de statut que le
- * professeur a demandé.
- *
- * @returns {Promise<{ zoneIds: string[], markerIds: string[] }>} vide si rien à rendre.
- */
-async function restoreDetachedLocations(task, explicitMapId) {
-  const vide = { zoneIds: [], markerIds: [] };
-  if (!(await hasRecurrenceTemplateColumns())) return vide;
-  const zoneIds = parseTemplateIdArray(task.recurrence_template_zone_ids);
-  const markerIds = parseTemplateIdArray(task.recurrence_template_marker_ids);
-  if (!zoneIds.length && !markerIds.length) return vide;
-  const check = await validateTaskLocations(zoneIds, markerIds, explicitMapId);
-  if (check.error) {
-    logger.warn(
-      { taskId: task.id, reason: check.error },
-      'Lieux mémorisés inexploitables — tâche remise à un statut actif sans lieu',
-    );
-    return vide;
-  }
-  return { zoneIds, markerIds };
-}
-
-/**
- * Mémorise les zones/repères d'une tâche **avant** qu'une validation ne l'en détache.
- *
- * Deux usages, un seul enregistrement (colonnes `recurrence_template_*`, migration 051) :
- * - le job de récurrence y reprend les lieux de l'occurrence suivante ;
- * - une tâche remise à un statut actif y retrouve les siens (`restoreDetachedLocations`).
- *
- * Ce second usage vaut pour **toute** tâche, récurrente ou non : sans lui, repasser une tâche
- * validée en « à faire » la laissait sans lieu — donc sans pastille et introuvable sur la
- * carte, alors que rien à l'écran ne le signalait.
- */
-async function persistDetachedLocationsSnapshot(taskId, zoneIds, markerIds, dbx) {
-  if (!(await hasRecurrenceTemplateColumns())) {
-    logger.warn(
-      { taskId },
-      'Colonnes recurrence_template_* absentes — mémoire des lieux ignorée (migration 051 ?)',
-    );
-    return;
-  }
-  const z = Array.isArray(zoneIds) ? zoneIds : [];
-  const m = Array.isArray(markerIds) ? markerIds : [];
-  try {
-    await (dbx || { execute }).execute(
-      'UPDATE tasks SET recurrence_template_zone_ids = ?, recurrence_template_marker_ids = ? WHERE id = ?',
-      [JSON.stringify(z), JSON.stringify(m), taskId],
-    );
-  } catch (err) {
-    if (err && (err.errno === 1054 || err.code === 'ER_BAD_FIELD_ERROR')) {
-      recurrenceTemplateColumnsReady = false;
-      logger.warn({ err, taskId }, 'Snapshot récurrence ignoré — colonnes manquantes');
-      return;
-    }
-    throw err;
-  }
-}
-
-async function getTaskTutorialIds(taskId) {
-  const rows = await queryAll(
-    'SELECT tutorial_id FROM task_tutorials WHERE task_id = ? ORDER BY tutorial_id',
-    [taskId],
-  );
-  return rows.map((r) => Number(r.tutorial_id));
-}
 
 async function fetchTaskProposerMap(taskIds) {
   if (!taskIds.length) return new Map();
@@ -341,50 +202,6 @@ async function fetchTaskAssignmentAggregates(taskIds) {
       GROUP BY task_id`,
     taskIds,
   );
-}
-
-async function validateReferentUserIds(userIds) {
-  if (!userIds.length) return { userIds };
-  if (userIds.length > MAX_TASK_REFERENTS) {
-    return { error: `Au plus ${MAX_TASK_REFERENTS} référents par tâche` };
-  }
-  const placeholders = userIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT id, user_type FROM users
-      WHERE id IN (${placeholders}) AND is_active = 1 AND user_type IN ('teacher','student')`,
-    userIds,
-  );
-  const existing = new Map(rows.map((r) => [String(r.id), r.user_type]));
-  for (const uid of userIds) {
-    if (!existing.has(String(uid))) return { error: 'Référent introuvable ou compte inactif' };
-  }
-  return { userIds };
-}
-
-async function validateTutorialIds(tutorialIds) {
-  if (!tutorialIds.length) return { tutorialIds };
-  const placeholders = tutorialIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT id FROM tutorials WHERE id IN (${placeholders}) AND is_active = 1`,
-    tutorialIds,
-  );
-  const existing = new Set(rows.map((r) => Number(r.id)));
-  for (const tid of tutorialIds) {
-    if (!existing.has(Number(tid))) return { error: 'Tutoriel introuvable' };
-  }
-  return { tutorialIds };
-}
-
-/** Séance pédagogique liée (optionnelle) : vide → null ; sinon doit exister. */
-async function validatePedagoSessionId(raw) {
-  const key = raw == null ? '' : String(raw).trim();
-  if (!key) return { sessionId: null };
-  const row = await queryOne('SELECT id FROM pedago_sessions WHERE id = ? OR slug = ? LIMIT 1', [
-    key,
-    key,
-  ]);
-  if (!row) return { error: 'Séance pédagogique introuvable' };
-  return { sessionId: String(row.id) };
 }
 
 router.get(
@@ -936,463 +753,25 @@ router.post(
   }),
 );
 
+// Mise à jour d'une tâche : règles métier dans `lib/tasks/taskService.js` (B5). La route
+// garde son propre try/catch (et non asyncHandler) pour le mode diagnostic
+// FORETMAP_DEBUG_TASK_PUT_CLIENT, qui expose le détail d'une panne à la gestion.
 router.put('/:id', async (req, res) => {
+  let auth = null;
   try {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.archived_at != null) {
-      return res.status(409).json({ error: 'Désarchivez la tâche avant de la modifier' });
-    }
-    const previousProjectId =
-      task.project_id != null && String(task.project_id).trim()
-        ? String(task.project_id).trim()
-        : null;
-    const auth = await parseOptionalAuth(req);
-    const isTeacherManageAction = canManageTasks(auth);
-    const isTeacherValidateAction = canValidateTasks(auth);
-    const isTeacherPut = isTeacherManageAction || isTeacherValidateAction;
-    const isStudentSession = auth?.userType === 'student' && !!auth?.userId;
-    const proposerStudentId = await getTaskProposerStudentId(task.id);
-    const isProposerAction =
-      isStudentSession &&
-      String(task.status || '') === 'proposed' &&
-      !!proposerStudentId &&
-      String(proposerStudentId) === String(auth.userId);
-
-    if (!isTeacherPut && !isProposerAction) {
-      return res.status(403).json({ error: 'Accès refusé' });
-    }
-
-    if (isTeacherValidateAction && !isTeacherManageAction) {
-      const bodyKeys = Object.keys(req.body || {}).filter((k) =>
-        Object.prototype.hasOwnProperty.call(req.body, k),
-      );
-      const disallowed = bodyKeys.filter((k) => k !== 'status');
-      if (disallowed.length) {
-        return res.status(403).json({
-          error:
-            'Ce profil ne peut modifier que la validation des tâches (bouton Validée ou POST /validate).',
-        });
-      }
-      if (!Object.prototype.hasOwnProperty.call(req.body || {}, 'status')) {
-        return res.status(403).json({ error: 'Accès refusé' });
-      }
-    }
-
-    if (isProposerAction) {
-      const forbiddenForProposer = [
-        'status',
-        'project_id',
-        'tutorial_ids',
-        'referent_user_ids',
-        'recurrence',
-        'completion_mode',
-        'pedago_session_id',
-      ];
-      const attempted = forbiddenForProposer.find((key) =>
-        Object.prototype.hasOwnProperty.call(req.body || {}, key),
-      );
-      if (attempted) {
-        return res.status(403).json({ error: 'Champ non modifiable sur une proposition n3beur' });
-      }
-    }
-    const {
-      title,
-      description,
-      zone_id,
-      marker_id,
-      zone_ids,
-      marker_ids,
-      tutorial_ids,
-      referent_user_ids,
-      map_id,
-      start_date,
-      due_date,
-      required_students,
-      status,
-      recurrence,
-      project_id,
-      group_id,
-      completion_mode,
-      danger_level,
-      difficulty_level,
-      importance_level,
-      living_beings,
-    } = req.body;
-
-    // Aligné sur le POST (« Titre requis ») : un PUT ne doit pas pouvoir vider le titre.
-    if (title !== undefined && !String(title ?? '').trim()) {
-      return res.status(400).json({ error: 'Titre requis' });
-    }
-
-    let nextZoneIds;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
-      nextZoneIds = normalizeIdArray(zone_ids);
-    } else if (Object.prototype.hasOwnProperty.call(req.body, 'zone_id')) {
-      nextZoneIds = zone_id ? [String(zone_id).trim()] : [];
-    } else {
-      nextZoneIds = await getTaskZoneIds(task.id);
-    }
-
-    let nextMarkerIds;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
-      nextMarkerIds = normalizeIdArray(marker_ids);
-    } else if (Object.prototype.hasOwnProperty.call(req.body, 'marker_id')) {
-      nextMarkerIds = marker_id ? [String(marker_id).trim()] : [];
-    } else {
-      nextMarkerIds = await getTaskMarkerIds(task.id);
-    }
-
-    let explicitMap;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'map_id')) {
-      explicitMap = map_id;
-    } else {
-      explicitMap = task.map_id;
-    }
-
-    const loc = await validateTaskLocations(nextZoneIds, nextMarkerIds, explicitMap);
-    if (loc.error) return res.status(400).json({ error: loc.error });
-    const nextProjectId =
-      isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'project_id')
-        ? normalizeOptionalId(project_id)
-        : task.project_id || null;
-    const projectValidation = await validateTaskProject(nextProjectId, loc.mapId);
-    if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
-    const nextGroupId =
-      isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'group_id')
-        ? normalizeOptionalId(group_id)
-        : normalizeOptionalId(task.group_id);
-
-    let nextTutorialIds;
-    if (isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
-      nextTutorialIds = normalizeTutorialIdArray(tutorial_ids);
-    } else {
-      nextTutorialIds = await getTaskTutorialIds(task.id);
-    }
-    const tutorialValidation = await validateTutorialIds(nextTutorialIds);
-    if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
-
-    let nextReferentIds;
-    if (
-      isTeacherManageAction &&
-      Object.prototype.hasOwnProperty.call(req.body, 'referent_user_ids')
-    ) {
-      nextReferentIds = normalizeIdArray(referent_user_ids);
-    } else {
-      const refRows = await queryAll(
-        'SELECT user_id FROM task_referents WHERE task_id = ? ORDER BY user_id',
-        [task.id],
-      );
-      nextReferentIds = refRows.map((r) => String(r.user_id));
-    }
-    const referentValidation = await validateReferentUserIds(nextReferentIds);
-    if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
-
-    let nextPedagoSessionId = task.pedago_session_id || null;
-    if (
-      isTeacherManageAction &&
-      Object.prototype.hasOwnProperty.call(req.body, 'pedago_session_id')
-    ) {
-      const sessionValidation = await validatePedagoSessionId(req.body.pedago_session_id);
-      if (sessionValidation.error) {
-        return res.status(400).json({ error: sessionValidation.error });
-      }
-      nextPedagoSessionId = sessionValidation.sessionId;
-    }
-
-    const reqStudents =
-      required_students != null
-        ? sanitizeRequiredStudents(required_students)
-        : task.required_students;
-    const teacherSetsStatus =
-      (isTeacherManageAction || isTeacherValidateAction) &&
-      Object.prototype.hasOwnProperty.call(req.body, 'status');
-    let nextStatus = teacherSetsStatus
-      ? normalizeImportTaskStatus(status)
-      : normalizeTaskStatusForRead(task.status);
-    if (!nextStatus) return res.status(400).json({ error: 'Statut invalide' });
-    if (teacherSetsStatus) {
-      const statusAuth = assertCanTeacherSetTaskStatus(auth, nextStatus);
-      if (!statusAuth.ok) {
-        return res.status(statusAuth.status).json({ error: statusAuth.error });
-      }
-    }
-    const nextCompletionMode =
-      isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
-        ? normalizeTaskCompletionMode(completion_mode)
-        : normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
-    if (!nextCompletionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
-
-    let nextDangerLevel;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'danger_level')) {
-      const p = parseTaskDangerLevelFromClient(danger_level);
-      if (p.error) return res.status(400).json({ error: p.error });
-      nextDangerLevel = p.level;
-    } else {
-      nextDangerLevel = task.danger_level;
-    }
-
-    let nextDifficultyLevel;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'difficulty_level')) {
-      const p = parseTaskDifficultyLevelFromClient(difficulty_level);
-      if (p.error) return res.status(400).json({ error: p.error });
-      nextDifficultyLevel = p.level;
-    } else {
-      nextDifficultyLevel = task.difficulty_level;
-    }
-
-    let nextImportanceLevel;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'importance_level')) {
-      const p = parseTaskImportanceLevelFromClient(importance_level);
-      if (p.error) return res.status(400).json({ error: p.error });
-      nextImportanceLevel = p.level;
-    } else {
-      nextImportanceLevel = task.importance_level;
-    }
-
-    let nextRecurrence = task.recurrence || null;
-    if (isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'recurrence')) {
-      const pRec = normalizeTaskRecurrenceInput(recurrence);
-      if (pRec.error) return res.status(400).json({ error: pRec.error });
-      nextRecurrence = pRec.value;
-    }
-
-    let nextStartDate = task.start_date || null;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'start_date')) {
-      const pStart = normalizeTaskDateInput(start_date, 'Date de début');
-      if (pStart.error) return res.status(400).json({ error: pStart.error });
-      nextStartDate = pStart.value;
-    }
-    let nextDueDate = task.due_date || null;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'due_date')) {
-      const pDue = normalizeTaskDateInput(due_date, "Date d'échéance");
-      if (pDue.error) return res.status(400).json({ error: pDue.error });
-      nextDueDate = pDue.value;
-    }
-    // Contrôle sur les valeurs EFFECTIVES : n'envoyer qu'une des deux dates ne doit pas
-    // permettre d'inverser le couple déjà en base. Mais seulement si ce PUT touche aux
-    // dates : une tâche héritée déjà incohérente (aucun contrôle avant ce lot) doit rester
-    // modifiable sur ses autres champs, sinon elle devient impossible à corriger.
-    const putTouchesDates =
-      Object.prototype.hasOwnProperty.call(req.body, 'start_date') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'due_date');
-    if (putTouchesDates) {
-      const putRangeError = validateTaskDateRange(nextStartDate, nextDueDate);
-      if (putRangeError) return res.status(400).json({ error: putRangeError.error });
-    }
-
-    const currentStatus = normalizeTaskStatusForRead(task.status);
-    const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
-    const leftValidated = currentStatus === 'validated' && nextStatus !== 'validated';
-    const currentZoneIds = await getTaskZoneIds(task.id);
-    const currentMarkerIds = await getTaskMarkerIds(task.id);
-
-    const zonesForSnapshot = nextZoneIds.length ? nextZoneIds : currentZoneIds;
-    const markersForSnapshot = nextMarkerIds.length ? nextMarkerIds : currentMarkerIds;
-
-    // Règle métier: une tâche validée ne doit pas être liée à des zones/repères.
-    // Le snapshot des lieux est posé DANS la transaction ci-dessous.
-    if (nextStatus === 'validated') {
-      nextZoneIds = [];
-      nextMarkerIds = [];
-    } else if (leftValidated) {
-      // Retour à un statut actif : la tâche retrouve les lieux que la validation lui avait
-      // retirés. Sans cette reprise, elle redevenait « à faire » **sans lieu** — donc sans
-      // pastille et invisible sur la carte, alors que rien à l'écran ne le laissait voir.
-      // Des lieux explicitement soumis dans le même PUT restent prioritaires : c'est une
-      // décision du professeur, pas un état hérité.
-      const submitsLocations =
-        Object.prototype.hasOwnProperty.call(req.body, 'zone_ids') ||
-        Object.prototype.hasOwnProperty.call(req.body, 'zone_id') ||
-        Object.prototype.hasOwnProperty.call(req.body, 'marker_ids') ||
-        Object.prototype.hasOwnProperty.call(req.body, 'marker_id');
-      if (!submitsLocations && !nextZoneIds.length && !nextMarkerIds.length) {
-        const restored = await restoreDetachedLocations(task, explicitMap);
-        nextZoneIds = restored.zoneIds;
-        nextMarkerIds = restored.markerIds;
-      }
-    }
-    // Il n'y a pas de quatrième cas : une tâche qui **reste** validée repasse par la branche
-    // ci-dessus (ses lieux sont remis à vide), et celle qui cesse de l'être est traitée par la
-    // reprise. Le refus « Impossible de lier une tâche validée à des zones ou repères » n'avait
-    // plus de chemin pour se produire et a été retiré plutôt que laissé en garde morte.
-
-    // Décodage de l'image AVANT toute écriture : un payload invalide doit répondre 400
-    // sans avoir modifié la tâche.
-    const bodyPut = req.body || {};
-    const hasNewImage =
-      Object.prototype.hasOwnProperty.call(bodyPut, 'imageData') &&
-      bodyPut.imageData != null &&
-      String(bodyPut.imageData).trim();
-    let decodedImage = null;
-    if (hasNewImage) {
-      const dec = decodeTaskImageBuffer(bodyPut.imageData);
-      if (dec.error) return res.status(400).json({ error: dec.error });
-      decodedImage = dec;
-    }
-    const removeImage =
-      !hasNewImage &&
-      Object.prototype.hasOwnProperty.call(bodyPut, 'remove_task_image') &&
-      bodyPut.remove_task_image === true;
-
-    const nextSeriesId =
-      nextRecurrence && !task.recurrence_series_id
-        ? crypto.randomUUID()
-        : task.recurrence_series_id || null;
-
-    // Écritures atomiques (même garantie que le POST, audit §2.5) : UPDATE tasks + jointures
-    // + colonnes legacy + espèces + image dans UNE transaction — un échec au milieu ne doit
-    // pas laisser statut/map_id désynchronisés des jonctions.
-    let obsoleteImagePath = null;
-    await withTransaction(async (tx) => {
-      if (becameValidated) {
-        await persistDetachedLocationsSnapshot(task.id, zonesForSnapshot, markersForSnapshot, tx);
-      }
-      // Reprise en main du rythme : déplacer la date de départ d'une tâche récurrente
-      // redéfinit l'ancre de sa série (migration 258). C'est la seule façon de déplacer le
-      // rythme — le calendrier scolaire, lui, décale une occurrence sans jamais toucher à
-      // l'ancre. Sans date de départ, l'ancre est effacée : elle sera reprise de la date de
-      // création au prochain passage du job.
-      const recurrenceAfterPut = String(nextRecurrence || '').trim();
-      const startDateChanged = String(task.start_date || '') !== String(nextStartDate || '');
-      if (recurrenceAfterPut && startDateChanged) {
-        await tx.execute('UPDATE tasks SET recurrence_anchor_date = ? WHERE id = ?', [
-          nextStartDate || null,
-          task.id,
-        ]);
-      }
-      await tx.execute(
-        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=?, recurrence_series_id=COALESCE(?, recurrence_series_id), pedago_session_id=? WHERE id=?',
-        [
-          title ?? task.title,
-          description ?? task.description,
-          projectValidation.mapId,
-          projectValidation.projectId,
-          nextGroupId,
-          nextZoneIds[0] || null,
-          nextMarkerIds[0] || null,
-          nextStartDate,
-          nextDueDate,
-          reqStudents,
-          nextStatus,
-          nextCompletionMode,
-          nextDangerLevel,
-          nextDifficultyLevel,
-          nextImportanceLevel,
-          nextRecurrence,
-          nextSeriesId,
-          nextPedagoSessionId,
-          task.id,
-        ],
-      );
-      // Horodatage de validation (référence pour l'archivage automatique). Posé à chaque
-      // entrée dans le statut `validated` (une revalidation rafraîchit la date).
-      if (becameValidated) {
-        await tx.execute('UPDATE tasks SET validated_at = NOW() WHERE id = ?', [task.id]);
-      }
-      if (
-        isTeacherManageAction &&
-        Object.prototype.hasOwnProperty.call(req.body, 'completion_mode') &&
-        !Object.prototype.hasOwnProperty.call(req.body, 'status')
-      ) {
-        const recalculated = await recalculateTaskStatus(
-          {
-            id: task.id,
-            status: nextStatus,
-            completion_mode: nextCompletionMode,
-          },
-          tx,
-        );
-        nextStatus = recalculated?.status || nextStatus;
-      }
-      await setTaskZones(task.id, nextZoneIds, tx);
-      await setTaskMarkers(task.id, nextMarkerIds, tx);
-      await setTaskTutorials(task.id, nextTutorialIds, tx);
-      await setTaskReferents(task.id, referentValidation.userIds, tx);
-      if (
-        Object.prototype.hasOwnProperty.call(req.body, 'living_beings') ||
-        Object.prototype.hasOwnProperty.call(req.body, 'species_ids')
-      ) {
-        await syncTaskSpecies(tx, task.id, req.body.species_ids, living_beings);
-      }
-      await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds, tx);
-
-      if (decodedImage) {
-        const oldPath = task.image_path || null;
-        const rel = `tasks/${task.id}.${decodedImage.ext}`;
-        try {
-          await writeBufferToDisk(rel, decodedImage.buffer);
-          await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
-          if (oldPath && oldPath !== rel) obsoleteImagePath = oldPath;
-        } catch (imgErr) {
-          try {
-            deleteFile(rel);
-          } catch (_) {
-            /* ignore */
-          }
-          // Le rollback de la transaction annule l'UPDATE et les jointures.
-          throw imgErr;
-        }
-      } else if (removeImage && task.image_path) {
-        await tx.execute('UPDATE tasks SET image_path = NULL WHERE id = ?', [task.id]);
-        obsoleteImagePath = task.image_path;
-      }
+    auth = await parseOptionalAuth(req);
+    const updated = await updateTask({
+      taskId: req.params.id,
+      body: req.body,
+      auth,
+      auditReq: req,
     });
-    // Suppression du fichier obsolète APRÈS commit : un rollback ne doit pas perdre l'image.
-    if (obsoleteImagePath) {
-      try {
-        deleteFile(obsoleteImagePath);
-      } catch (_) {
-        /* ignore */
-      }
-    }
-
-    const updated = await getTaskWithAssignments(task.id);
-    logAudit('update_task', 'task', task.id, updated.title, {
-      req,
-      actorUserType: isProposerAction ? 'student' : undefined,
-      actorUserId: isProposerAction ? String(auth.userId) : undefined,
-      payload: {
-        status: updated.status,
-        completion_mode: updated.completion_mode,
-        required_students: updated.required_students,
-        project_id: updated.project_id || null,
-        proposer_edit: isProposerAction,
-      },
-    });
-    emitTasksChanged({
-      reason: 'update_task',
-      taskId: task.id,
-      projectId: projectValidation.projectId || null,
-      mapId: resolveTaskMapId(updated),
-    });
-    await syncTaskProjectCompletionForProjects([previousProjectId, projectValidation.projectId]);
-    if (becameValidated) {
-      await syncProgressionForValidatedTask(task.id);
-    }
-    if (!isProposerAction) {
-      const putActor = getActor(auth);
-      fireAndForget(
-        () =>
-          notifyTaskStatusChange({
-            task: updated,
-            previousStatus: currentStatus,
-            actorUserId: putActor?.userId || null,
-          }),
-        { taskId: task.id },
-      );
-    }
-    res.json(updated);
+    return res.json(updated);
   } catch (e) {
-    let exposeDetail = false;
-    try {
-      const authCatch = await parseOptionalAuth(req);
-      exposeDetail =
-        String(process.env.FORETMAP_DEBUG_TASK_PUT_CLIENT || '').trim() === '1' &&
-        canManageTasks(authCatch);
-    } catch (_) {
-      /* ignore */
-    }
+    if (e instanceof TaskRuleError) return res.status(e.status).json({ error: e.message });
+    const exposeDetail =
+      String(process.env.FORETMAP_DEBUG_TASK_PUT_CLIENT || '').trim() === '1' &&
+      canManageTasks(auth);
     return respondInternalError(res, req, e, 'Erreur serveur', { exposeDetail });
   }
 });

@@ -318,7 +318,9 @@ describe('MoodleAdminPanel', () => {
         'Table chapitre → cours enregistrée',
       ),
     );
-  });
+    // Budget du test au-dessus de l'attente de 5 s qu'il contient : avec le délai par défaut
+    // (5 s aussi), le job `quality` l'interrompait deux fois de suite sur exécuteur chargé.
+  }, 15000);
 
   it('éditeur de politiques : refuse une regex invalide, enregistre la liste normalisée', async () => {
     mockApi();

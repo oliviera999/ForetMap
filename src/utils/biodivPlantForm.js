@@ -48,10 +48,14 @@ export function findFirstBiodivHeroPhotoCandidate(plant) {
       (e) => isHttpLink(e) || isLocalUploadsPath(e),
     );
     for (const entry of entries) {
-      if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
+      // `entry` / `field` : lien et emplacement d'origine, pour retrouver l'attribution de la
+      // photo affichée (migration 303).
+      if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry, entry, field: key };
       const fileSrc = commonsFilePageToDisplaySrc(entry);
-      if (fileSrc) return { kind: 'direct', src: fileSrc };
-      if (parseCommonsCategoryFromUrl(entry)) return { kind: 'category', categoryUrl: entry };
+      if (fileSrc) return { kind: 'direct', src: fileSrc, entry, field: key };
+      if (parseCommonsCategoryFromUrl(entry)) {
+        return { kind: 'category', categoryUrl: entry, entry, field: key };
+      }
     }
   }
   return null;

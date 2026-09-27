@@ -34,6 +34,14 @@ const PAIRS = Object.freeze([
   ['src/shared/glMarkerEventConfigCore.js', 'glMarkerEventConfigCore.js'],
   ['src/shared/n3beurRolesCore.js', 'n3beurRolesCore.js'],
   ['src/shared/image-frame/glImageFrameCore.js', 'glImageFrameCore.js'],
+  // Référentiel des valeurs énumérées (audit du 25/09/2026, § 3.2.5, étape B1).
+  ['src/shared/enums/enumCore.js', 'enumCore.js'],
+  ['src/shared/enums/pedagoEnums.js', 'pedagoEnums.js'],
+  ['src/shared/enums/taskEnums.js', 'taskEnums.js'],
+  ['src/shared/enums/biodivEnums.js', 'biodivEnums.js'],
+  ['src/shared/enums/terrainEnums.js', 'terrainEnums.js'],
+  ['src/shared/enums/moodleSyncEnums.js', 'moodleSyncEnums.js'],
+  ['src/shared/enums/platformEnums.js', 'platformEnums.js'],
 ]);
 
 function banner(relSrc) {

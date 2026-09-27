@@ -1,5 +1,4 @@
 const express = require('express');
-const { queryAll, queryOne } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -9,6 +8,18 @@ const { getOnlineUserIdSet } = require('../lib/realtime');
 const { attachPresenceStatus } = require('../lib/shared/presenceCore');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
 const { getAccountN3beurStatus } = require('../lib/n3beurStudents');
+const {
+  EMPTY_ASSIGNMENT_COUNTS,
+  summarizeAssignments,
+  fetchAssignmentStatusCountsByStudent,
+  fetchEngagementByUserId,
+  engagementStatsForUser,
+  fetchSiteEngagementTotals,
+  fetchUserEngagementStats,
+  getStatsUserRow,
+  listStudentTaskAssignments,
+  listScopedStudents,
+} = require('../lib/stats/statsReadModel');
 
 const router = express.Router();
 
@@ -28,48 +39,6 @@ const statsScopeQuerySchema = z
     mapId: q.map_id || null,
     projectId: q.project_id || null,
   }));
-
-/**
- * Agrège en UNE requête les compteurs d'assignments par élève et par statut
- * (remplace le « un SELECT task_assignments par élève » du tableau de bord prof).
- * Le matching id OU (prénom, nom) reste fait en SQL pour conserver la collation
- * _ci (casse/accents) du matching legacy par nom.
- * @returns {Promise<Map<string, { total:number, done:number, pending:number, submitted:number }>>}
- */
-async function fetchAssignmentStatusCountsByStudent(scope) {
-  const where = ["u.user_type = 'student'"];
-  const params = [];
-  if (!scope.all) {
-    if (!scope.studentIds.length) return new Map();
-    where.push(`u.id IN (${scope.studentIds.map(() => '?').join(',')})`);
-    params.push(...scope.studentIds);
-  }
-  const rows = await queryAll(
-    `SELECT u.id AS student_id, t.status, COUNT(*) AS n
-       FROM users u
-       JOIN task_assignments ta
-         ON ta.student_id = u.id
-         OR (ta.student_first_name = u.first_name AND ta.student_last_name = u.last_name)
-       JOIN tasks t ON t.id = ta.task_id
-      WHERE ${where.join(' AND ')}
-      GROUP BY u.id, t.status`,
-    params,
-  );
-  const byStudent = new Map();
-  for (const row of rows) {
-    const key = String(row.student_id);
-    if (!byStudent.has(key)) {
-      byStudent.set(key, { total: 0, done: 0, pending: 0, submitted: 0 });
-    }
-    const agg = byStudent.get(key);
-    const n = Number(row.n) || 0;
-    agg.total += n;
-    if (row.status === 'validated') agg.done += n;
-    else if (row.status === 'available' || row.status === 'in_progress') agg.pending += n;
-    else if (row.status === 'done') agg.submitted += n;
-  }
-  return byStudent;
-}
 
 /** Concurrence max pour agrégations « un SELECT par élève » (évite ER_CON_COUNT_ERROR ; > séquentiel pour l’UI prof). */
 const STATS_STUDENT_AGG_CONCURRENCY = (() => {
@@ -103,82 +72,8 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results;
 }
 
-/** Agrégats biodiversité + tutoriels par user_id (clés chaîne). */
-async function fetchEngagementByUserId() {
-  const [plantRows, tutRows] = await Promise.all([
-    queryAll(
-      `SELECT user_id, COUNT(DISTINCT plant_id) AS species, COUNT(*) AS events
-       FROM user_plant_observation_events GROUP BY user_id`,
-    ),
-    queryAll(
-      `SELECT user_id, COUNT(*) AS tutorials_read FROM user_tutorial_reads GROUP BY user_id`,
-    ),
-  ]);
-  const plantMap = new Map();
-  for (const r of plantRows) {
-    plantMap.set(String(r.user_id), {
-      species: Number(r.species) || 0,
-      events: Number(r.events) || 0,
-    });
-  }
-  const tutMap = new Map();
-  for (const r of tutRows) {
-    tutMap.set(String(r.user_id), Number(r.tutorials_read) || 0);
-  }
-  return { plantMap, tutMap };
-}
-
-function engagementStatsForUser(userId, plantMap, tutMap) {
-  const uid = String(userId);
-  const p = plantMap.get(uid) || { species: 0, events: 0 };
-  return {
-    plant_species_observed: p.species,
-    plant_observation_events: p.events,
-    tutorials_read: tutMap.get(uid) || 0,
-  };
-}
-
-/** Totaux site (distinct espèces observées, événements, lectures tutoriel). */
-async function fetchSiteEngagementTotals() {
-  const [plants, tutorials] = await Promise.all([
-    queryOne(
-      `SELECT COUNT(DISTINCT plant_id) AS plant_species_observed, COUNT(*) AS plant_observation_events
-       FROM user_plant_observation_events`,
-    ),
-    queryOne(`SELECT COUNT(*) AS tutorials_read FROM user_tutorial_reads`),
-  ]);
-  return {
-    plant_species_observed: Number(plants?.plant_species_observed) || 0,
-    plant_observation_events: Number(plants?.plant_observation_events) || 0,
-    tutorials_read: Number(tutorials?.tutorials_read) || 0,
-  };
-}
-
-async function fetchUserEngagementStats(userId) {
-  const uid = String(userId);
-  const [plantRow, tutRow] = await Promise.all([
-    queryOne(
-      `SELECT COUNT(DISTINCT plant_id) AS species, COUNT(*) AS events
-       FROM user_plant_observation_events WHERE user_id = ?`,
-      [uid],
-    ),
-    queryOne(`SELECT COUNT(*) AS tutorials_read FROM user_tutorial_reads WHERE user_id = ?`, [uid]),
-  ]);
-  return {
-    plant_species_observed: Number(plantRow?.species) || 0,
-    plant_observation_events: Number(plantRow?.events) || 0,
-    tutorials_read: Number(tutRow?.tutorials_read) || 0,
-  };
-}
-
 async function userStats(userId, options = {}) {
-  // Projection explicite (audit §2.4/§3.7) : champs consommés par la réponse et la requête assignments — jamais password_hash.
-  const s = await queryOne(
-    `SELECT id, user_type, first_name, last_name, display_name, email,
-            pseudo, description, avatar_path, last_seen
-       FROM users WHERE id = ? LIMIT 1`,
-    [userId],
-  );
+  const s = await getStatsUserRow(userId);
   if (!s) return null;
   // Progression n3beur et tâches ne concernent que les comptes n3beurs (profil effectif de
   // palier, ou compte encore promotible membre d'un groupe n3beur). Un visiteur, un membre du
@@ -188,24 +83,8 @@ async function userStats(userId, options = {}) {
   const isN3beur = n3beurStatus.isN3beur;
   const tracksTasks = String(s.user_type || '').toLowerCase() === 'student' && isN3beur;
   const progressionConfig = tracksTasks ? await getStudentProgressionConfig() : null;
-  let assignments = [];
-  if (tracksTasks) {
-    assignments = await queryAll(
-      `SELECT ta.*, t.status, t.title, t.due_date, t.zone_id, z.name as zone_name
-       FROM task_assignments ta
-       JOIN tasks t ON ta.task_id = t.id
-       LEFT JOIN zones z ON t.zone_id = z.id
-       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)
-       ORDER BY ta.assigned_at DESC`,
-      [s.id, s.first_name, s.last_name],
-    );
-  }
-  const done = assignments.filter((a) => a.status === 'validated').length;
-  const pending = assignments.filter(
-    (a) => a.status === 'available' || a.status === 'in_progress',
-  ).length;
-  const submitted = assignments.filter((a) => a.status === 'done').length;
-  const total = assignments.length;
+  const assignments = tracksTasks ? await listStudentTaskAssignments(s) : [];
+  const { done, pending, submitted, total } = summarizeAssignments(assignments);
   const engagement = await fetchUserEngagementStats(s.id);
   let progression = null;
   if (tracksTasks) {
@@ -303,28 +182,14 @@ router.get(
     }
     const [students, progressionConfig, { plantMap, tutMap }, site, assignmentCounts] =
       await Promise.all([
-        scope.all
-          ? queryAll(
-              `SELECT id, first_name, last_name, pseudo, description, avatar_path, last_seen
-                 FROM users WHERE user_type = 'student'`,
-            )
-          : scope.studentIds.length > 0
-            ? queryAll(
-                `SELECT id, first_name, last_name, pseudo, description, avatar_path, last_seen
-                   FROM users
-            WHERE user_type = 'student'
-              AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-                scope.studentIds,
-              )
-            : Promise.resolve([]),
+        listScopedStudents(scope, 'dashboard'),
         getStudentProgressionConfig(),
         fetchEngagementByUserId(),
         fetchSiteEngagementTotals(),
         fetchAssignmentStatusCountsByStudent(scope),
       ]);
-    const EMPTY_AGG = { total: 0, done: 0, pending: 0, submitted: 0 };
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
-      const agg = assignmentCounts.get(String(s.id)) || EMPTY_AGG;
+      const agg = assignmentCounts.get(String(s.id)) || EMPTY_ASSIGNMENT_COUNTS;
       const done = agg.done;
       const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
       const currentStep = (sync.steps || []).find(
@@ -391,26 +256,12 @@ router.get(
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
     const [students, { plantMap, tutMap }, assignmentCounts] = await Promise.all([
-      scope.all
-        ? queryAll(
-            `SELECT id, first_name, last_name, last_seen
-               FROM users WHERE user_type = 'student'`,
-          )
-        : scope.studentIds.length > 0
-          ? queryAll(
-              `SELECT id, first_name, last_name, last_seen
-                 FROM users
-            WHERE user_type = 'student'
-              AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-              scope.studentIds,
-            )
-          : Promise.resolve([]),
+      listScopedStudents(scope, 'export'),
       fetchEngagementByUserId(),
       fetchAssignmentStatusCountsByStudent(scope),
     ]);
-    const EMPTY_AGG = { total: 0, done: 0, pending: 0, submitted: 0 };
     const result = students.map((s) => {
-      const agg = assignmentCounts.get(String(s.id)) || EMPTY_AGG;
+      const agg = assignmentCounts.get(String(s.id)) || EMPTY_ASSIGNMENT_COUNTS;
       const extra = engagementStatsForUser(s.id, plantMap, tutMap);
       return {
         first_name: s.first_name,

@@ -69,3 +69,21 @@ test('computeOrphanPaths calcule uniquement les non référencés', () => {
   const orphans = computeOrphanPaths(disk, refs);
   assert.deepStrictEqual(orphans, ['zones/z1/2.jpg']);
 });
+
+test('les sources de référence couvrent les photos d’observation et les pièces du carnet', async () => {
+  require('./helpers/setup');
+  const { initSchema } = require('../database');
+  await initSchema();
+  const {
+    REFERENCE_SOURCES,
+    loadReferencedImagePaths,
+  } = require('../scripts/reconcile-orphan-uploads');
+  const names = REFERENCE_SOURCES.map((s) => s.name);
+  // Sans ces deux sources, `--apply` supprimerait les photos des observations d'espèces
+  // (préfixe `observations/species/`) et les fichiers de l'ancien carnet recopiés au carnet.
+  assert.ok(names.includes('species_observation_photos'));
+  assert.ok(names.includes('user_journal_article_assets'));
+  // Chaque requête s'exécute sur le schéma courant (colonne ou table renommée = échec ici).
+  const refs = await loadReferencedImagePaths('all');
+  assert.ok(Array.isArray(refs));
+});

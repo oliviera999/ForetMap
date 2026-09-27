@@ -321,6 +321,12 @@ export const KEY_META = {
     section: 'modules',
     order: 42.3,
   },
+  'ui.modules.species_observations_enabled': {
+    label:
+      'Observations d’espèces — « Signaler une observation » et « Mes observations » (éteint : masqués aux élèves ; les validateurs gardent la file « Observations à valider », avec un bandeau)',
+    section: 'modules',
+    order: 42.4,
+  },
   'ui.modules.help_enabled': {
     label: 'Aide contextuelle (tooltips + panneau ?)',
     section: 'modules',

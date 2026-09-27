@@ -171,8 +171,9 @@ const IMPORT_ROUTE_WIRING = [
   ['routes/gl/spells.js', 'applySpellsImport'],
   ['routes/gl/glossary.js', 'applyGlossaryImport'],
   ['routes/gl/species.js', 'applySpeciesImport'],
-  // ForetMap : même motif DELETE-then-rebuild des liens glossaire, oublié du lot G4.
-  ['routes/quiz.js', 'applyFmQuizImport'],
+  // ForetMap : même motif DELETE-then-rebuild des liens glossaire, oublié du lot G4. L'import
+  // vit dans le service quiz depuis l'étape B2 (la route ne fait plus que HTTP).
+  ['lib/pedago/quizService.js', 'applyFmQuizImport'],
 ];
 
 for (const [routeFile, applyFn] of IMPORT_ROUTE_WIRING) {

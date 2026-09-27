@@ -623,36 +623,16 @@ test('GET /api/audit sans token renvoie 401', async () => {
 });
 
 // ─── Observations ────────────────────────────────────────────────────────────
-test('POST /api/observations crée une observation', async () => {
+// L'ancien carnet (`observation_logs`) est retiré (temps 1 et 2, migration 307) : les routes
+// répondent 410 Gone. Les observations d'espèces sont couvertes par
+// `tests/species-observations.test.js`.
+test('POST /api/observations : ancien carnet retiré (410)', async () => {
   const res = await request(app)
     .post('/api/observations')
     .set('Authorization', 'Bearer ' + studentData.authToken)
     .send({ studentId: studentData.id, content: 'Les tomates poussent bien', zone_id: null })
-    .expect(201);
-  assert.ok(res.body.id);
-  assert.strictEqual(res.body.content, 'Les tomates poussent bien');
-});
-
-test('GET /api/observations/student/:id retourne les observations', async () => {
-  const res = await request(app)
-    .get(`/api/observations/student/${studentData.id}`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
-    .expect(200);
-  assert.ok(Array.isArray(res.body));
-  assert.ok(res.body.length > 0);
-});
-
-test('DELETE /api/observations/:id supprime une observation', async () => {
-  const obs = await request(app)
-    .post('/api/observations')
-    .set('Authorization', 'Bearer ' + studentData.authToken)
-    .send({ studentId: studentData.id, content: 'À supprimer' })
-    .expect(201);
-
-  await request(app)
-    .delete(`/api/observations/${obs.body.id}`)
-    .set('Authorization', 'Bearer ' + studentData.authToken)
-    .expect(200);
+    .expect(410);
+  assert.strictEqual(res.body.code, 'OBSERVATIONS_LEGACY_GONE');
 });
 
 // ─── Profil élève enrichi ────────────────────────────────────────────────────

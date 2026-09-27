@@ -1,4 +1,5 @@
 import { api } from '../../../services/api.js';
+import { quizApiPaths } from '../../../services/quizApi.js';
 import { QuestionEditorPanel } from '../../../shared/qcm/QuestionEditorPanel.jsx';
 import {
   EMPTY_FORM,
@@ -67,7 +68,7 @@ const NIVEAU_OPTIONS = [
 const FM_QUIZ_EDITOR_CONFIG = {
   api,
   title: 'Édition des questions',
-  questionsBase: '/api/quiz/admin/questions',
+  questionsBase: quizApiPaths.adminQuestions,
   formModule: { EMPTY_FORM, FORM_FIELDS, TEXTAREA_FIELDS, questionToForm, formToPayload },
   clientFilter: (items, f) =>
     filterQuizItems(items, {
@@ -80,7 +81,7 @@ const FM_QUIZ_EDITOR_CONFIG = {
     {
       key: 'categories',
       load: async (apiClient) => {
-        const data = await apiClient('/api/quiz/categories');
+        const data = await apiClient(quizApiPaths.categories());
         return data?.categories;
       },
     },

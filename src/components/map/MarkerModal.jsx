@@ -2,16 +2,14 @@ import { useEffect, useState } from 'react';
 import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
-import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModalForm.js';
-import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
-import { ContextComments } from '../context-comments';
+import { LocationObservationSlot } from '../observations/LocationObservationSlot.jsx';
 import {
   MarkerCommonFormFields,
   MarkerEmojiField,
@@ -21,24 +19,27 @@ import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
 import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
-import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
-import { ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationVisitAside, useScrollIntoViewOnMount } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 import {
-  IconAbout,
-  IconCamera,
-  IconCheck,
-  IconClose,
-  IconDelete,
-  IconDuplicate,
-  IconEdit,
-  IconMarker,
-  IconSave,
-  IconTasks,
-  IconTuto,
-} from '../../shared/icons.jsx';
+  LocationCommentsSection,
+  LocationEmptyInfo,
+  LocationHeaderActions,
+  LocationModalShell,
+  LocationSaveButton,
+  LocationTasksShortcut,
+  LocationTasksTab,
+  LocationTextBox,
+  LocationTutorialsTeacherTab,
+  buildLocationModalTabs,
+} from './LocationModalParts.jsx';
+import {
+  useLocationLinkActions,
+  useLocationModalTab,
+  useLocationTaskAssignment,
+} from './useLocationModalState.js';
+import { IconMarker, IconSave } from '../../shared/icons.jsx';
 
 function MarkerModal({
   marker,
@@ -74,14 +75,9 @@ function MarkerModal({
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
-  const [tab, setTab] = useState(focusComments && !isNew ? 'info' : 'tasks');
   const commentsRef = useScrollIntoViewOnMount(focusComments && !isNew);
   const [form, setForm] = useState(() => markerFormFromMarker(marker));
   const [saving, setSaving] = useState(false);
-  const [linkTaskId, setLinkTaskId] = useState('');
-  const [linkTutorialId, setLinkTutorialId] = useState('');
-  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
-  const [assigning, setAssigning] = useState(false);
   const [toast, setToast] = useState(null);
   const [duplicating, setDuplicating] = useState(false);
   const {
@@ -127,25 +123,25 @@ function MarkerModal({
   // Groupes proposables dans les réglages d'audience (migration 262) : seulement pour un
   // compte qui édite — inutile de charger la liste pour un élève qui consulte une fiche.
   const audienceGroupOptions = useAudienceGroupOptions(isTeacher);
-
-  useEffect(() => {
-    if (isNew) return;
-    if (!showTasksTab && tab === 'tasks') setTab('info');
-  }, [isNew, showTasksTab, tab]);
-
-  useEffect(() => {
-    if (isNew) return;
-    if (!showTutorialsTab && tab === 'tutorials') setTab('info');
-  }, [isNew, showTutorialsTab, tab]);
-
-  useEffect(() => {
-    // Garde la référence quand rien ne change : un nouveau tableau systématique
-    // relancerait un rendu à chaque passage (boucle « Maximum update depth exceeded »).
-    setSelectedTaskIds((prev) => {
-      const next = prev.filter((id) => studentAssignableTasks.some((t) => t.id === id));
-      return next.length === prev.length ? prev : next;
-    });
-  }, [studentAssignableTasks]);
+  const [tab, setTab] = useLocationModalTab(focusComments && !isNew ? 'info' : 'tasks', {
+    showTasksTab,
+    showTutorialsTab,
+    disabled: isNew,
+  });
+  const assignment = useLocationTaskAssignment({
+    studentAssignableTasks,
+    onAssignTasks,
+    setToast,
+  });
+  const linkActions = useLocationLinkActions({
+    onLinkTask,
+    onUnlinkTask,
+    onLinkTutorial,
+    onUnlinkTutorial,
+    setToast,
+    taskLinkedMessage: 'Tâche liée au repère ✓',
+    tutorialLinkedMessage: 'Tutoriel lié au repère ✓',
+  });
 
   useEffect(() => {
     setForm(markerFormFromMarker(marker, { defaultEmoji: '🌱' }));
@@ -157,7 +153,6 @@ function MarkerModal({
     marker.label,
     marker.note,
     marker.emoji,
-    marker.plant_name,
     marker.living_beings,
     marker.living_beings_list,
     marker.visit_subtitle,
@@ -194,76 +189,17 @@ function MarkerModal({
     setSaving(false);
   };
 
-  const TABS_EXISTING = [
-    ...(showTasksTab
-      ? [
-          {
-            id: 'tasks',
-            label: (
-              <>
-                <IconTasks size={14} /> Tâches
-              </>
-            ),
-          },
-        ]
-      : []),
-    ...(showTutorialsTab
-      ? [
-          {
-            id: 'tutorials',
-            label: (
-              <>
-                <IconTuto size={14} /> Tutoriels
-              </>
-            ),
-          },
-        ]
-      : []),
-    {
-      id: 'info',
-      label: (
-        <>
-          <IconAbout size={14} /> Info
-        </>
-      ),
-    },
-    {
-      id: 'photos',
-      label: (
-        <>
-          <IconCamera size={14} /> Photos
-        </>
-      ),
-    },
-    ...(isTeacher
-      ? [
-          {
-            id: 'edit',
-            label: (
-              <>
-                <IconEdit size={14} /> Modifier
-              </>
-            ),
-          },
-        ]
-      : []),
-  ];
+  const TABS_EXISTING = buildLocationModalTabs({ showTasksTab, showTutorialsTab, isTeacher });
 
   if (isNew) {
     return (
-      <DialogShell
-        open
-        onClose={onClose}
-        overlayClassName="modal-overlay"
-        dialogClassName="log-modal fade-in"
+      <LocationModalShell
         ariaLabel="Nouveau repère"
-        closeOnOverlay
+        onClose={onClose}
         dialogRef={dialogRef}
+        toast={toast}
+        onToastDone={() => setToast(null)}
       >
-        {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-        <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-          <IconClose size={16} />
-        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <h3 style={{ margin: 0 }}>Nouveau repère</h3>
         </div>
@@ -283,46 +219,32 @@ function MarkerModal({
               setForm={setForm}
               markerEmojis={markerEmojis}
             />
-            <button
-              className="btn btn-primary btn-full"
-              style={{ marginTop: 8 }}
+            <LocationSaveButton
+              saving={saving}
               onClick={saveNew}
-              disabled={saving}
-            >
-              {saving ? (
-                '…'
-              ) : (
-                <>
-                  <IconMarker size={15} /> Placer
-                </>
-              )}
-            </button>
+              icon={<IconMarker size={15} />}
+              label="Placer"
+              style={{ marginTop: 8 }}
+            />
           </>
         ) : (
           <p style={{ color: 'var(--ink-soft)', fontSize: 'var(--text-base)' }}>
             Création de repère réservée au professeur.
           </p>
         )}
-      </DialogShell>
+      </LocationModalShell>
     );
   }
 
   return (
-    <DialogShell
-      open
-      onClose={onClose}
-      overlayClassName="modal-overlay"
-      dialogClassName="log-modal fade-in"
-      dialogStyle={{ paddingTop: 16 }}
+    <LocationModalShell
       ariaLabel={`Repère ${marker.label || ''}`}
-      closeOnOverlay
+      onClose={onClose}
       dialogRef={dialogRef}
+      dialogStyle={{ paddingTop: 16 }}
+      toast={toast}
+      onToastDone={() => setToast(null)}
     >
-      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-        <IconClose size={16} />
-      </button>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: 'var(--text-md)' }}>{marker.label}</h3>
@@ -343,148 +265,67 @@ function MarkerModal({
           )}
         </div>
         {isTeacher && (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            {onDuplicate && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={duplicating}
-                title="Créer une copie sur la même carte (position légèrement décalée)"
-                onClick={async () => {
-                  setDuplicating(true);
-                  try {
-                    await onDuplicate(marker);
-                  } catch (_) {
-                    setToast('Duplication impossible');
+          <LocationHeaderActions
+            duplicating={duplicating}
+            duplicateTitle="Créer une copie sur la même carte (position légèrement décalée)"
+            onDuplicateClick={
+              onDuplicate
+                ? async () => {
+                    setDuplicating(true);
+                    try {
+                      await onDuplicate(marker);
+                    } catch (_) {
+                      setToast('Duplication impossible');
+                    }
+                    setDuplicating(false);
                   }
-                  setDuplicating(false);
-                }}
-              >
-                {duplicating ? (
-                  '…'
-                ) : (
-                  <>
-                    <IconDuplicate size={15} /> Copie
-                  </>
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              aria-label="Supprimer le repère"
-              onClick={async () => {
-                if (
-                  await confirm({
-                    message: `Supprimer le repère « ${marker.label} » ?`,
-                    danger: true,
-                  })
-                ) {
-                  onDelete(marker.id);
-                  onClose();
-                }
-              }}
-            >
-              <IconDelete />
-            </button>
-          </div>
+                : null
+            }
+            deleteAriaLabel="Supprimer le repère"
+            onDeleteClick={async () => {
+              if (
+                await confirm({
+                  message: `Supprimer le repère « ${marker.label} » ?`,
+                  danger: true,
+                })
+              ) {
+                onDelete(marker.id);
+                onClose();
+              }
+            }}
+          />
         )}
       </div>
 
       <LocationModalTabBar tabs={TABS_EXISTING} activeTab={tab} onSelect={setTab} />
 
-      {onNavigateToTasksForLocation && marker.id && (
-        <div style={{ marginBottom: 12 }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-full"
-            onClick={() => {
-              onNavigateToTasksForLocation({ kind: 'marker', id: String(marker.id) });
-              onClose();
-            }}
-          >
-            <IconCheck size={15} /> Ouvrir l’onglet Tâches filtré sur ce repère
-          </button>
-          <p
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--ink-soft)',
-              margin: '6px 0 0',
-              lineHeight: 'var(--lh-normal)',
-            }}
-          >
-            Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
-          </p>
-        </div>
-      )}
+      <LocationTasksShortcut
+        kind="marker"
+        entityId={marker.id}
+        onNavigate={onNavigateToTasksForLocation}
+        onClose={onClose}
+      />
 
-      {tab === 'tasks' && isTeacher && (
-        <ZoneTasksTeacherPanel
-          locationKind="marker"
+      {tab === 'tasks' && (
+        <LocationTasksTab
+          kind="marker"
+          isTeacher={isTeacher}
           linkedTasks={linkedTasks}
           assignableTasks={assignableTasks}
-          linkTaskId={linkTaskId}
-          onChangeLinkTaskId={setLinkTaskId}
-          onUnlinkTask={async (t) => {
-            await onUnlinkTask?.(t);
-            setToast('Tâche dissociée');
-          }}
-          onLinkTask={async (id) => {
-            await onLinkTask?.(id);
-            setLinkTaskId('');
-            setToast('Tâche liée au repère ✓');
-          }}
-        />
-      )}
-      {tab === 'tasks' && !isTeacher && (
-        <ZoneTasksStudentPanel
-          locationKind="marker"
-          linkedTasks={linkedTasks}
           student={student}
           canSelfAssignTasks={canSelfAssignTasks}
           canEnroll={canEnroll}
-          selectedTaskIds={selectedTaskIds}
-          assigning={assigning}
-          onToggleTask={(id) =>
-            setSelectedTaskIds((prev) =>
-              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-            )
-          }
-          onAssign={async () => {
-            if (!onAssignTasks || selectedTaskIds.length === 0) return;
-            setAssigning(true);
-            const result = await onAssignTasks(selectedTaskIds);
-            if (result.failedCount > 0) {
-              const ok =
-                result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
-              setToast(
-                `${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`,
-              );
-            } else {
-              setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
-            }
-            setSelectedTaskIds([]);
-            setAssigning(false);
-          }}
+          links={linkActions}
+          assignment={assignment}
         />
       )}
       {tab === 'tutorials' && isTeacher && (
-        <ZoneTutorialsTeacherPanel
-          locationKind="marker"
+        <LocationTutorialsTeacherTab
+          kind="marker"
           linkedTutorialsDirect={linkedTutorialsDirect}
           tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
           assignableTutorials={assignableTutorials}
-          linkTutorialId={linkTutorialId}
-          onChangeLinkTutorialId={setLinkTutorialId}
-          onUnlinkTutorial={async (tu) => {
-            await onUnlinkTutorial?.(tu);
-            setToast('Tutoriel dissocié');
-          }}
-          onLinkTutorial={async (id) => {
-            await onLinkTutorial?.(id);
-            setLinkTutorialId('');
-            setToast('Tutoriel lié au repère ✓');
-          }}
+          links={linkActions}
         />
       )}
       {tab === 'tutorials' && !isTeacher && (
@@ -499,20 +340,9 @@ function MarkerModal({
       {tab === 'info' && (
         <div className="fade-in">
           {marker.note && (
-            <div
-              style={{
-                background: 'var(--tint-success)',
-                borderRadius: 10,
-                padding: '10px 14px',
-                marginBottom: 12,
-                border: '1px solid var(--mint)',
-                fontSize: 'var(--text-sm)',
-                color: '#333',
-                lineHeight: 'var(--lh-relaxed)',
-              }}
-            >
+            <LocationTextBox>
               <MarkdownContent>{marker.note}</MarkdownContent>
-            </div>
+            </LocationTextBox>
           )}
           <LocationNotesBlock notes={marker.notes} />
           <LocationLinksBlock links={marker.links} />
@@ -531,39 +361,24 @@ function MarkerModal({
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
             />
           )}
-          {orderedLivingBeingsForForm(
-            marker.living_beings_list || marker.living_beings,
-            marker.plant_name,
-          ).length === 0 &&
+          {orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings).length ===
+            0 &&
             livingBeingsOnlyOnTasks.length === 0 &&
             !marker.note &&
             !marker.links?.length &&
             !marker.notes?.length &&
             !showVisitAsideBlock && (
-              <p
-                style={{
-                  color: '#bbb',
-                  fontSize: 'var(--text-sm)',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  padding: '20px 0',
-                }}
-              >
-                Aucune information pour l’instant.
-              </p>
+              <LocationEmptyInfo>Aucune information pour l’instant.</LocationEmptyInfo>
             )}
-          {contextCommentsEnabled && (
-            <div ref={commentsRef}>
-              <ContextComments
-                contextType="marker"
-                contextId={marker.id}
-                title="Commentaires du repère"
-                placeholder="Ajouter une observation sur ce repère…"
-                defaultOpen={focusComments}
-                canParticipateContextComments={canParticipateContextComments}
-              />
-            </div>
-          )}
+          <LocationObservationSlot kind="marker" location={marker} />
+          <LocationCommentsSection
+            enabled={contextCommentsEnabled}
+            commentsRef={commentsRef}
+            kind="marker"
+            entityId={marker.id}
+            focusComments={focusComments}
+            canParticipateContextComments={canParticipateContextComments}
+          />
         </div>
       )}
       {tab === 'photos' && (
@@ -596,15 +411,12 @@ function MarkerModal({
             setForm={setForm}
             markerEmojis={markerEmojis}
           />
-          <button className="btn btn-primary btn-full" onClick={saveEdit} disabled={saving}>
-            {saving ? (
-              '…'
-            ) : (
-              <>
-                <IconSave size={15} /> Sauvegarder
-              </>
-            )}
-          </button>
+          <LocationSaveButton
+            saving={saving}
+            onClick={saveEdit}
+            icon={<IconSave size={15} />}
+            label="Sauvegarder"
+          />
           {onRequestAdjustMarkerPosition && (
             <button
               type="button"
@@ -620,7 +432,7 @@ function MarkerModal({
           )}
         </div>
       )}
-    </DialogShell>
+    </LocationModalShell>
   );
 }
 

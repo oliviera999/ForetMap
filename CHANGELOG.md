@@ -9,6 +9,82 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Pistes B et C de l'audit (#555) — code réorganisé par domaine, fiches espèces, observations validées
+
+Migrations **302 à 308**, toutes idempotentes ; aucune ne supprime de donnée (302 ne retire
+qu'une vue jamais lue et une valeur d'ENUM inutilisée). Les anciennes
+colonnes restent en place, tenues en miroir, jusqu'au temps 3 (`docs/RUNBOOK_RETRAITS_T3.md`).
+Procédure de mise en production : `docs/RUNBOOK_DEPLOIEMENT_AUDIT_2026-09.md`, § 9.
+
+**Ajouté — fiches espèces (piste C)**
+
+- **Photos** : une ligne par photo dans `plant_photos` (migration 303), **auteur et licence par
+  photo** dans le formulaire et sur la fiche (avant : une seule attribution, celle de la photo
+  principale). Reprise des 6 anciennes colonnes, attribution recopiée sur les photos identiques.
+- **Autres noms** : `plant_name_aliases.kind` (`nom_secondaire`, `variante`, `synonyme`,
+  migration 304) ; `second_name` éclaté en autres noms, affichés sur la fiche et **trouvés par la
+  recherche du catalogue** (avant : jamais cherchés).
+- **Sosies** : table `plant_lookalikes` (paire de fiches + critère qui les distingue, affichée
+  sur les deux fiches) ; **remarques** en une seule zone de texte (`plants.remarks`, migration
+  305) au lieu de trois champs.
+
+**Ajouté — observations d'espèces validées par un enseignant (piste C)**
+
+- « **Signaler une observation** » depuis une fiche espèce, une zone ou un repère (espèce,
+  lieu, date, mode de repérage, texte, photo privée sans métadonnées GPS), « **Mes
+  observations** » avec statut et note, envoi différé sans réseau (une seule fois). Tables
+  `species_observations` et `species_observation_photos` (migration 307), routes
+  `/api/species-observations`.
+- File « **Observations à valider** » (onglet Biodiversité, permission `observations.validate`,
+  admin et prof par défaut) : valider confirme l'espèce sur la carte (`confirme_site`), sans
+  rétrogradation possible ; une observation peut prouver une relation du réseau trophique
+  (`observe_site`).
+- Interrupteur `ui.modules.species_observations_enabled` (décision 19), allumé par défaut :
+  éteint, fermé aux élèves, ouvert au validateur avec un bandeau.
+- Une présence confirmée n'est plus retirée quand on réédite la fiche (carte décochée ou
+  formulaire ouvert avant la validation).
+- Suppression d'un compte : ses photos d'observation sont effacées du disque après validation
+  de la transaction ; la réconciliation des fichiers orphelins connaît les nouvelles tables.
+
+**Modifié — retraits en trois temps (T1 et T2)**
+
+- L'ancien carnet `observation_logs` : `/api/observations` répond **410 Gone**, plus aucune
+  écriture.
+- `zones.current_plant`, `map_markers.plant_name` : plus lus ni écrits, les noms
+  identifiables rattachés aux jonctions d'espèces (migration 306) ; `zones.stage` et
+  `zone_history` : plus lus ni écrits.
+- `quiz_questions.difficulte_label` : plus lu, dérivé de la difficulté ; le filtre de difficulté
+  du quiz va de **1 à 3** (les choix 4 et 5 ne trouvaient rien).
+- Retirés tout de suite (migration 302, aucune dépendance) : vue `v_visit_coverage`, valeur
+  `both_changed` de `sync_conflicts.kind` (si aucune ligne ne la porte).
+- `npm run db:t3-status` (lecture seule, aussi par « Run JS Script ») : contrôles de passage au
+  temps 3, candidat par candidat.
+
+**Modifié — schéma (migration 308)**
+
+- Collation écrite en toutes lettres pour `schema_version` et `rbac_seeded_permissions` ;
+  contraintes `CHECK` sur le statut et les trois niveaux des tâches, posées seulement si aucune
+  ligne ne les viole (valeurs d'abord normalisées sans effet visible).
+
+**Refactorisation — piste B (aucun changement de comportement, caractérisation avant/après)**
+
+- **Référentiel partagé des ENUM** (`src/shared/enums/`, miroirs `lib/shared/*Enums.js`) : une
+  définition par colonne énumérée, comparée à `information_schema` par
+  `tests/enums-referential.test.js` ; menus, libellés et échelles lus dedans.
+- **Quiz et séances** : `lib/pedago/quizService.js` et `quizRepository.js`, client `quizApi` et
+  hook `useQuizSession` ; séances sorties d'`App.jsx` (`usePedagoSession`).
+- **Espèces** : `routes/plants.js` délègue à `lib/biodiv/speciesService.js`,
+  `speciesRepository.js`, `speciesReadModel.js`.
+- **Terrain** : zones et repères par `lib/terrain/locationService.js`, CRUD des cartes par
+  `lib/terrain/mapService.js`, `MapViewImpl` découpé en hooks et panneaux.
+- **Tâches et statistiques** : `lib/tasks/taskService.js` sur `taskQueries.js` ;
+  `lib/stats/statsReadModel.js`.
+- **Identité** : rappel Google (`lib/auth/googleAuthService.js`), import des comptes
+  (`lib/students/studentImportService.js`), **registre de nettoyeurs de compte** déclarés par
+  domaine (`lib/accounts/cleanerRegistry.js`), réglages déclarés par domaine (`lib/settings/`).
+- **Mascotte et clients** : routes mascotte sur `asyncHandler` et `validate()`, clients
+  `profilesApi` et `groupsApi`.
+
 ### Exploitation — `dist/` retiré du dépôt, migrations rattrapées, contrôles sans terminal
 
 - **`dist/` n'est plus versionné** (bascule `dist-artifact`, étape 3 ; `DEPLOY_DIST_SOURCE=branch`

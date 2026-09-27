@@ -1,0 +1,1107 @@
+{
+  "delete_student.result": {
+    "ok": true,
+    "studentId": "eleve",
+    "displayName": "Suppr <U> Cible",
+    "affectedTaskIds": ["tache1"],
+    "affectedMapIds": ["foret"],
+    "glPlayerId": null
+  },
+  "delete_student.journal": [
+    {
+      "table": "forum_post_reactions",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM forum_post_reactions WHERE reactor_user_type = 'student' AND reactor_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "forum_reports",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM forum_reports WHERE reporter_user_type = 'student' AND reporter_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "forum_posts",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM forum_posts WHERE author_user_type = 'student' AND author_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "forum_threads",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM forum_threads WHERE author_user_type = 'student' AND author_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "context_comment_reactions",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM context_comment_reactions WHERE reactor_user_type = 'student' AND reactor_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "context_comment_reports",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM context_comment_reports WHERE reporter_user_type = 'student' AND reporter_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "context_comments",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM context_comments WHERE author_user_type = 'student' AND author_user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "user_roles",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM user_roles WHERE user_type = 'student' AND user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "password_reset_tokens",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM password_reset_tokens WHERE user_type = 'student' AND user_id = ?",
+      "params": ["eleve"]
+    },
+    {
+      "table": "task_assignments",
+      "tx": true,
+      "affected": 2,
+      "sql": "DELETE FROM task_assignments WHERE ((? IS NOT NULL AND student_id = ?) OR (student_id IS NULL AND student_first_name = ? AND student_last_name = ?))",
+      "params": ["eleve", "eleve", "Suppr <U>", "Cible"]
+    },
+    {
+      "table": "task_logs",
+      "tx": true,
+      "affected": 2,
+      "sql": "DELETE FROM task_logs WHERE ((? IS NOT NULL AND student_id = ?) OR (student_id IS NULL AND student_first_name = ? AND student_last_name = ?))",
+      "params": ["eleve", "eleve", "Suppr <U>", "Cible"]
+    },
+    {
+      "table": "tasks",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE tasks SET status = ? WHERE id = ? AND status <=> ?",
+      "params": ["available", "tache1", "in_progress"]
+    },
+    {
+      "table": "users",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM users WHERE id = ? AND user_type = 'student'",
+      "params": ["eleve"]
+    }
+  ],
+  "delete_student.state": {
+    "users": [
+      {
+        "id": "homonyme",
+        "user_type": "student",
+        "first_name": "Suppr <U>",
+        "last_name": "Cible",
+        "email": "homonyme.homonyme@example.com",
+        "has_password": 1
+      },
+      {
+        "id": "prof",
+        "user_type": "teacher",
+        "first_name": "Prof <U>",
+        "last_name": "Temoin",
+        "email": "prof.prof@example.com",
+        "has_password": 1
+      }
+    ],
+    "user_roles": [
+      {
+        "user_type": "student",
+        "user_id": "homonyme",
+        "slug": "eleve_novice",
+        "is_primary": 1
+      },
+      {
+        "user_type": "teacher",
+        "user_id": "prof",
+        "slug": "prof",
+        "is_primary": 1
+      }
+    ],
+    "password_reset_tokens": [
+      {
+        "id": "jeton-prof",
+        "user_type": "teacher",
+        "user_id": "prof"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "tache1",
+        "status": "available",
+        "group_id": null,
+        "project_id": "projet"
+      },
+      {
+        "id": "tache2",
+        "status": "in_progress",
+        "group_id": null,
+        "project_id": null
+      }
+    ],
+    "task_projects": [
+      {
+        "id": "projet",
+        "status": "active",
+        "finished": 0
+      }
+    ],
+    "task_assignments": [
+      {
+        "task_id": "tache2",
+        "student_id": "homonyme",
+        "student_first_name": "Suppr <U>",
+        "student_last_name": "Cible"
+      }
+    ],
+    "task_logs": [
+      {
+        "task_id": "tache2",
+        "student_id": "homonyme",
+        "student_first_name": "Suppr <U>",
+        "student_last_name": "Cible"
+      }
+    ],
+    "forum_threads": [
+      {
+        "id": "fil-prof",
+        "group_id": null,
+        "author_user_type": "teacher",
+        "author_user_id": "prof"
+      }
+    ],
+    "forum_posts": [
+      {
+        "id": "msg-prof",
+        "thread_id": "fil-prof",
+        "author_user_type": "teacher",
+        "author_user_id": "prof"
+      }
+    ],
+    "forum_reports": [],
+    "forum_post_reactions": [],
+    "context_comments": [
+      {
+        "id": "com-prof",
+        "author_user_type": "teacher",
+        "author_user_id": "prof"
+      }
+    ],
+    "context_comment_reports": [],
+    "context_comment_reactions": [],
+    "observation_logs": [
+      {
+        "student_id": "homonyme",
+        "group_id": null,
+        "content": "observation homonyme <U>"
+      }
+    ],
+    "groups": [],
+    "group_members": []
+  },
+  "merge.result": {
+    "ok": true,
+    "dryRun": false,
+    "runId": "<run>",
+    "from": {
+      "userId": "absorbe",
+      "userType": "student",
+      "displayName": "Absorbe <U> Fusion",
+      "email": "absorbe.absorbe@example.com",
+      "pseudo": null,
+      "authProvider": "local",
+      "isActive": true,
+      "hasPassword": true,
+      "hasGoogle": false,
+      "createdAt": "<date>"
+    },
+    "into": {
+      "userId": "cible",
+      "userType": "student",
+      "displayName": "Cible <U> Fusion",
+      "email": null,
+      "pseudo": null,
+      "authProvider": "local",
+      "isActive": true,
+      "hasPassword": false,
+      "hasGoogle": false,
+      "createdAt": "<date>"
+    },
+    "tables": [
+      {
+        "table": "group_members",
+        "column": "user_id",
+        "moved": 2,
+        "dropped": 1
+      },
+      {
+        "table": "observation_logs",
+        "column": "student_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "task_assignments",
+        "column": "student_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "task_logs",
+        "column": "student_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "user_roles",
+        "column": "user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "forum_threads",
+        "column": "author_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "forum_posts",
+        "column": "author_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "forum_reports",
+        "column": "reporter_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "forum_post_reactions",
+        "column": "reactor_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "context_comments",
+        "column": "author_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "context_comment_reports",
+        "column": "reporter_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "context_comment_reactions",
+        "column": "reactor_user_id",
+        "moved": 1,
+        "dropped": 0
+      },
+      {
+        "table": "password_reset_tokens",
+        "column": "user_id",
+        "moved": 0,
+        "dropped": 1
+      }
+    ],
+    "fills": {
+      "email": "absorbe.absorbe@example.com",
+      "passwordHash": true
+    },
+    "warnings": []
+  },
+  "merge.journal": [
+    {
+      "table": "sync_runs",
+      "tx": false,
+      "affected": 1,
+      "sql": "INSERT INTO sync_runs (provider, mode, scope_json, status, actor_user_id, started_at) VALUES (?, 'apply', ?, 'running', ?, NOW())",
+      "params": [
+        "moodle",
+        "{\"kind\":\"account_merge\",\"fromUserId\":\"absorbe\",\"intoUserId\":\"cible\"}",
+        null
+      ]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        1,
+        "account.merge",
+        "user",
+        "cible",
+        "{\"from\":{\"userId\":\"absorbe\",\"userType\":\"student\",\"displayName\":\"Absorbe <U> Fusion\",\"email\":\"absorbe.absorbe@example.com\",\"pseudo\":null,\"authProvider\":\"local\",\"isActive\":true,\"hasPassword\":true,\"hasGoogle\":false,\"createdAt\":\"<date>\"},\"into\":{\"userId\":\"cible\",\"userType\":\"student\",\"displayName\":\"Cible <U> Fusion\",\"email\":null,\"pseudo\":null,\"authProvider\":\"local\",\"isActive\":true,\"hasPassword\":false,\"hasGoogle\":false,\"createdAt\":\"<date>\"}}",
+        "{\"fills\":{\"email\":\"absorbe.absorbe@example.com\",\"passwordHash\":true}}"
+      ]
+    },
+    {
+      "table": "group_members",
+      "tx": true,
+      "affected": 2,
+      "sql": "UPDATE IGNORE `group_members` SET `user_id` = ? WHERE `user_id` = ?",
+      "params": ["cible", "absorbe"]
+    },
+    {
+      "table": "group_members",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM `group_members` WHERE `user_id` = ?",
+      "params": ["absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        2,
+        "account.merge.table",
+        "table",
+        "group_members.user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":2,\"dropped\":1}"
+      ]
+    },
+    {
+      "table": "observation_logs",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `observation_logs` SET `student_id` = ? WHERE `student_id` = ?",
+      "params": ["cible", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        3,
+        "account.merge.table",
+        "table",
+        "observation_logs.student_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "task_assignments",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `task_assignments` SET `student_id` = ? WHERE `student_id` = ?",
+      "params": ["cible", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        4,
+        "account.merge.table",
+        "table",
+        "task_assignments.student_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "task_logs",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `task_logs` SET `student_id` = ? WHERE `student_id` = ?",
+      "params": ["cible", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        5,
+        "account.merge.table",
+        "table",
+        "task_logs.student_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "user_roles",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `user_roles` SET `user_id` = ? WHERE `user_id` = ?",
+      "params": ["cible", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        6,
+        "account.merge.table",
+        "table",
+        "user_roles.user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "forum_threads",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `forum_threads` SET `author_user_id` = ? WHERE `author_user_type` = ? AND `author_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        7,
+        "account.merge.table",
+        "table",
+        "forum_threads.author_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "forum_posts",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `forum_posts` SET `author_user_id` = ? WHERE `author_user_type` = ? AND `author_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        8,
+        "account.merge.table",
+        "table",
+        "forum_posts.author_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "forum_reports",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `forum_reports` SET `reporter_user_id` = ? WHERE `reporter_user_type` = ? AND `reporter_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        9,
+        "account.merge.table",
+        "table",
+        "forum_reports.reporter_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "forum_post_reactions",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `forum_post_reactions` SET `reactor_user_id` = ? WHERE `reactor_user_type` = ? AND `reactor_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        10,
+        "account.merge.table",
+        "table",
+        "forum_post_reactions.reactor_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "context_comments",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `context_comments` SET `author_user_id` = ? WHERE `author_user_type` = ? AND `author_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        11,
+        "account.merge.table",
+        "table",
+        "context_comments.author_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "context_comment_reports",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `context_comment_reports` SET `reporter_user_id` = ? WHERE `reporter_user_type` = ? AND `reporter_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        12,
+        "account.merge.table",
+        "table",
+        "context_comment_reports.reporter_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "context_comment_reactions",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE IGNORE `context_comment_reactions` SET `reactor_user_id` = ? WHERE `reactor_user_type` = ? AND `reactor_user_id` = ?",
+      "params": ["cible", "student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        13,
+        "account.merge.table",
+        "table",
+        "context_comment_reactions.reactor_user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"userId\":\"cible\",\"moved\":1,\"dropped\":0}"
+      ]
+    },
+    {
+      "table": "password_reset_tokens",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM `password_reset_tokens` WHERE `user_type` = ? AND `user_id` = ?",
+      "params": ["student", "absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        14,
+        "account.merge.table",
+        "table",
+        "password_reset_tokens.user_id",
+        "{\"userId\":\"absorbe\"}",
+        "{\"dropped\":1}"
+      ]
+    },
+    {
+      "table": "users",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE users SET email = NULL WHERE id = ?",
+      "params": ["absorbe"]
+    },
+    {
+      "table": "users",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE users SET email = ?, password_hash = ?, updated_at = NOW() WHERE id = ?",
+      "params": ["absorbe.absorbe@example.com", "x", "cible"]
+    },
+    {
+      "table": "users",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM users WHERE id = ?",
+      "params": ["absorbe"]
+    },
+    {
+      "table": "sync_actions",
+      "tx": true,
+      "affected": 1,
+      "sql": "INSERT INTO sync_actions (run_id, seq, kind, target_type, target_id, before_json, after_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "params": [
+        "<run>",
+        15,
+        "account.merge.delete",
+        "user",
+        "absorbe",
+        "{\"userId\":\"absorbe\",\"userType\":\"student\",\"displayName\":\"Absorbe <U> Fusion\",\"email\":\"absorbe.absorbe@example.com\",\"pseudo\":null,\"authProvider\":\"local\",\"isActive\":true,\"hasPassword\":true,\"hasGoogle\":false,\"createdAt\":\"<date>\"}",
+        "null"
+      ]
+    },
+    {
+      "table": "sync_runs",
+      "tx": false,
+      "affected": 1,
+      "sql": "UPDATE sync_runs SET status = 'succeeded', finished_at = NOW(), totals_json = ? WHERE id = ?",
+      "params": ["{\"tables\":13,\"moved\":13,\"dropped\":2}", "<run>"]
+    }
+  ],
+  "merge.state": {
+    "users": [
+      {
+        "id": "cible",
+        "user_type": "student",
+        "first_name": "Cible <U>",
+        "last_name": "Fusion",
+        "email": "absorbe.absorbe@example.com",
+        "has_password": 1
+      },
+      {
+        "id": "prof",
+        "user_type": "teacher",
+        "first_name": "Prof <U>",
+        "last_name": "Fusion",
+        "email": "prof.prof@example.com",
+        "has_password": 1
+      }
+    ],
+    "user_roles": [
+      {
+        "user_type": "student",
+        "user_id": "cible",
+        "slug": "eleve_avance",
+        "is_primary": 1
+      },
+      {
+        "user_type": "student",
+        "user_id": "cible",
+        "slug": "eleve_novice",
+        "is_primary": 1
+      },
+      {
+        "user_type": "teacher",
+        "user_id": "prof",
+        "slug": "prof",
+        "is_primary": 1
+      }
+    ],
+    "password_reset_tokens": [],
+    "tasks": [
+      {
+        "id": "tache1",
+        "status": "in_progress",
+        "group_id": null,
+        "project_id": null
+      }
+    ],
+    "task_projects": [],
+    "task_assignments": [
+      {
+        "task_id": "tache1",
+        "student_id": "cible",
+        "student_first_name": "Absorbe <U>",
+        "student_last_name": "Fusion"
+      }
+    ],
+    "task_logs": [
+      {
+        "task_id": "tache1",
+        "student_id": "cible",
+        "student_first_name": "Absorbe <U>",
+        "student_last_name": "Fusion"
+      }
+    ],
+    "forum_threads": [
+      {
+        "id": "fil-absorbe",
+        "group_id": null,
+        "author_user_type": "student",
+        "author_user_id": "cible"
+      }
+    ],
+    "forum_posts": [
+      {
+        "id": "msg-absorbe",
+        "thread_id": "fil-absorbe",
+        "author_user_type": "student",
+        "author_user_id": "cible"
+      },
+      {
+        "id": "msg-prof",
+        "thread_id": "fil-absorbe",
+        "author_user_type": "teacher",
+        "author_user_id": "prof"
+      }
+    ],
+    "forum_reports": [
+      {
+        "post_id": "msg-prof",
+        "reporter_user_type": "student",
+        "reporter_user_id": "cible"
+      }
+    ],
+    "forum_post_reactions": [
+      {
+        "post_id": "msg-prof",
+        "reactor_user_type": "student",
+        "reactor_user_id": "cible"
+      }
+    ],
+    "context_comments": [
+      {
+        "id": "com-absorbe",
+        "author_user_type": "student",
+        "author_user_id": "cible"
+      },
+      {
+        "id": "com-prof",
+        "author_user_type": "teacher",
+        "author_user_id": "prof"
+      }
+    ],
+    "context_comment_reports": [
+      {
+        "comment_id": "com-prof",
+        "reporter_user_type": "student",
+        "reporter_user_id": "cible"
+      }
+    ],
+    "context_comment_reactions": [
+      {
+        "comment_id": "com-prof",
+        "reactor_user_type": "student",
+        "reactor_user_id": "cible"
+      }
+    ],
+    "observation_logs": [
+      {
+        "student_id": "cible",
+        "group_id": null,
+        "content": "observation absorbe <U>"
+      }
+    ],
+    "groups": [
+      {
+        "id": "groupe1",
+        "parent_group_id": null,
+        "is_active": 1
+      },
+      {
+        "id": "groupe2",
+        "parent_group_id": null,
+        "is_active": 1
+      }
+    ],
+    "group_members": [
+      {
+        "group_id": "groupe1",
+        "user_id": "cible",
+        "user_type": "student"
+      },
+      {
+        "group_id": "groupe2",
+        "user_id": "cible",
+        "user_type": "student"
+      }
+    ]
+  },
+  "delete_group.response": {
+    "status": 200,
+    "body": {
+      "ok": true
+    }
+  },
+  "delete_group.journal": [
+    {
+      "table": "tasks",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE tasks SET group_id = NULL WHERE group_id = ?",
+      "params": ["groupe"]
+    },
+    {
+      "table": "forum_threads",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE forum_threads SET group_id = NULL WHERE group_id = ?",
+      "params": ["groupe"]
+    },
+    {
+      "table": "groups",
+      "tx": true,
+      "affected": 1,
+      "sql": "UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?",
+      "params": ["groupe"]
+    },
+    {
+      "table": "groups",
+      "tx": true,
+      "affected": 1,
+      "sql": "DELETE FROM `groups` WHERE id = ?",
+      "params": ["groupe"]
+    },
+    {
+      "table": "audit_log",
+      "tx": false,
+      "affected": 1,
+      "sql": "INSERT INTO audit_log (action, target_type, target_id, details, actor_user_type, actor_user_id, result, created_at, occurred_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)",
+      "params": [
+        "delete_group",
+        "group",
+        "groupe",
+        "Suppression groupe Groupe groupe <U>",
+        "teacher",
+        "<admin>",
+        "success",
+        "<date>",
+        "{\"name\":\"Groupe groupe <U>\",\"student_members\":1}"
+      ]
+    }
+  ],
+  "delete_group.state": {
+    "users": [
+      {
+        "id": "membre",
+        "user_type": "student",
+        "first_name": "Membre <U>",
+        "last_name": "Groupe",
+        "email": "membre.membre@example.com",
+        "has_password": 1
+      }
+    ],
+    "user_roles": [
+      {
+        "user_type": "student",
+        "user_id": "membre",
+        "slug": "eleve_novice",
+        "is_primary": 1
+      }
+    ],
+    "password_reset_tokens": [],
+    "tasks": [
+      {
+        "id": "tache-autre",
+        "status": "available",
+        "group_id": "autre-groupe",
+        "project_id": null
+      },
+      {
+        "id": "tache-groupe",
+        "status": "available",
+        "group_id": null,
+        "project_id": null
+      }
+    ],
+    "task_projects": [],
+    "task_assignments": [],
+    "task_logs": [],
+    "forum_threads": [
+      {
+        "id": "fil-groupe",
+        "group_id": null,
+        "author_user_type": "student",
+        "author_user_id": "membre"
+      }
+    ],
+    "forum_posts": [],
+    "forum_reports": [],
+    "forum_post_reactions": [],
+    "context_comments": [],
+    "context_comment_reports": [],
+    "context_comment_reactions": [],
+    "observation_logs": [
+      {
+        "student_id": "membre",
+        "group_id": null,
+        "content": "observation groupe <U>"
+      }
+    ],
+    "groups": [
+      {
+        "id": "autre-groupe",
+        "parent_group_id": null,
+        "is_active": 1
+      },
+      {
+        "id": "sous-groupe",
+        "parent_group_id": null,
+        "is_active": 1
+      }
+    ],
+    "group_members": []
+  },
+  "rename_student.journal": [
+    {
+      "table": "users",
+      "tx": false,
+      "affected": 1,
+      "sql": "UPDATE users SET first_name = ?, last_name = ?, display_name = ?, pseudo = ?, email = ?, description = ?, password_hash = ?, is_active = ?, updated_at = NOW() WHERE id = ? AND user_type = ?",
+      "params": [
+        "Apres <U>",
+        "Renomme",
+        "Apres <U> Renomme",
+        null,
+        "eleve.eleve@example.com",
+        null,
+        "x",
+        1,
+        "eleve",
+        "student"
+      ]
+    },
+    {
+      "table": "task_assignments",
+      "tx": false,
+      "affected": 1,
+      "sql": "UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?",
+      "params": ["Apres <U>", "Renomme", "eleve"]
+    },
+    {
+      "table": "task_logs",
+      "tx": false,
+      "affected": 1,
+      "sql": "UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?",
+      "params": ["Apres <U>", "Renomme", "eleve"]
+    }
+  ],
+  "rename_student.state": {
+    "users": [
+      {
+        "id": "eleve",
+        "user_type": "student",
+        "first_name": "Apres <U>",
+        "last_name": "Renomme",
+        "email": "eleve.eleve@example.com",
+        "has_password": 1
+      },
+      {
+        "id": "homonyme",
+        "user_type": "student",
+        "first_name": "Avant <U>",
+        "last_name": "Nom",
+        "email": "homonyme.homonyme@example.com",
+        "has_password": 1
+      }
+    ],
+    "user_roles": [
+      {
+        "user_type": "student",
+        "user_id": "eleve",
+        "slug": "eleve_novice",
+        "is_primary": 1
+      },
+      {
+        "user_type": "student",
+        "user_id": "homonyme",
+        "slug": "eleve_novice",
+        "is_primary": 1
+      }
+    ],
+    "password_reset_tokens": [],
+    "tasks": [
+      {
+        "id": "tache",
+        "status": "in_progress",
+        "group_id": null,
+        "project_id": null
+      }
+    ],
+    "task_projects": [],
+    "task_assignments": [
+      {
+        "task_id": "tache",
+        "student_id": "eleve",
+        "student_first_name": "Apres <U>",
+        "student_last_name": "Renomme"
+      },
+      {
+        "task_id": "tache",
+        "student_id": "homonyme",
+        "student_first_name": "Avant <U>",
+        "student_last_name": "Nom"
+      },
+      {
+        "task_id": "tache",
+        "student_id": null,
+        "student_first_name": "Avant <U>",
+        "student_last_name": "Nom"
+      }
+    ],
+    "task_logs": [
+      {
+        "task_id": "tache",
+        "student_id": "eleve",
+        "student_first_name": "Apres <U>",
+        "student_last_name": "Renomme"
+      },
+      {
+        "task_id": "tache",
+        "student_id": "homonyme",
+        "student_first_name": "Avant <U>",
+        "student_last_name": "Nom"
+      },
+      {
+        "task_id": "tache",
+        "student_id": null,
+        "student_first_name": "Avant <U>",
+        "student_last_name": "Nom"
+      }
+    ],
+    "forum_threads": [],
+    "forum_posts": [],
+    "forum_reports": [],
+    "forum_post_reactions": [],
+    "context_comments": [],
+    "context_comment_reports": [],
+    "context_comment_reactions": [],
+    "observation_logs": [],
+    "groups": [],
+    "group_members": []
+  }
+}

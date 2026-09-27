@@ -9,7 +9,9 @@ export const PLANT_META_SECTIONS = [
   {
     title: 'Identité',
     items: [
-      { key: 'second_name', label: 'Deuxième nom' },
+      // Autres noms courants (table des noms, migration 304) ; le serveur dérive ce champ
+      // de la table, avec repli sur l'ancienne colonne.
+      { key: 'second_name', label: 'Autres noms' },
       { key: 'scientific_name', label: 'Nom scientifique (usage)' },
       { key: 'accepted_scientific_name', label: 'Nom accepté (GBIF)' },
       { key: 'taxon_kingdom', label: 'Règne (taxon)' },

@@ -7,6 +7,7 @@ import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 import { PEDAGO_SESSION_STORAGE_KEY as STORAGE_KEY } from '../../utils/pedagoSessionScope.js';
+import { PEDAGO_ETAPE_ENUM } from '../../shared/enums/pedagoEnums.js';
 
 export const CREATABLE_TEMPLATES = Object.freeze([
   { key: 'lycee_arbre', label: 'Lycée · Un arbre qui grandit' },
@@ -16,7 +17,8 @@ export const CREATABLE_TEMPLATES = Object.freeze([
   { key: 'custom', label: 'Séance libre (étapes à composer)' },
 ]);
 
-const LEVEL_LABELS = { college: 'Collège', lycee: 'Lycée', universite: 'Université' };
+/** Public visé d'une séance (`pedago_sessions.level`) : référentiel partagé des ENUM. */
+const LEVEL_LABELS = PEDAGO_ETAPE_ENUM.labels;
 
 export function readStoredPedagoSession() {
   try {

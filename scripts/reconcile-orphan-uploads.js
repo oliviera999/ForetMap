@@ -96,26 +96,45 @@ function computeOrphanPaths(diskPaths, referencedPaths) {
     .sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Tables qui référencent un fichier sous `uploads/` : un fichier géré absent de toutes ces
+ * sources est orphelin. Toute nouvelle table de fichiers doit être ajoutée ici, sinon
+ * `--apply` supprimerait ses fichiers (test : tests/uploads-reconcile-script.test.js).
+ */
+const REFERENCE_SOURCES = Object.freeze([
+  {
+    name: 'zone_photos',
+    sql: "SELECT image_path AS p FROM zone_photos WHERE image_path IS NOT NULL AND image_path <> ''",
+  },
+  {
+    name: 'task_logs',
+    sql: "SELECT image_path AS p FROM task_logs WHERE image_path IS NOT NULL AND image_path <> ''",
+  },
+  {
+    name: 'observation_logs',
+    sql: "SELECT image_path AS p FROM observation_logs WHERE image_path IS NOT NULL AND image_path <> ''",
+  },
+  {
+    name: 'students',
+    sql: "SELECT avatar_path AS p FROM users WHERE user_type = 'student' AND avatar_path IS NOT NULL AND avatar_path <> ''",
+  },
+  // Photos des observations d'espèces (migration 307), sous `observations/species/` : sans
+  // cette source, `--apply` les prendrait pour des orphelines du préfixe `observations/`.
+  {
+    name: 'species_observation_photos',
+    sql: "SELECT file_path AS p FROM species_observation_photos WHERE file_path IS NOT NULL AND file_path <> ''",
+  },
+  // Pièces jointes du carnet : les observations de l'ancien carnet y ont été recopiées avec
+  // leur fichier `observations/…`, qui doit survivre au retrait d'`observation_logs`.
+  {
+    name: 'user_journal_article_assets',
+    sql: "SELECT asset_path AS p FROM user_journal_article_assets WHERE asset_path IS NOT NULL AND asset_path <> ''",
+  },
+]);
+
 async function loadReferencedImagePaths(scope = 'managed') {
   const references = [];
-  const sources = [
-    {
-      name: 'zone_photos',
-      sql: "SELECT image_path AS p FROM zone_photos WHERE image_path IS NOT NULL AND image_path <> ''",
-    },
-    {
-      name: 'task_logs',
-      sql: "SELECT image_path AS p FROM task_logs WHERE image_path IS NOT NULL AND image_path <> ''",
-    },
-    {
-      name: 'observation_logs',
-      sql: "SELECT image_path AS p FROM observation_logs WHERE image_path IS NOT NULL AND image_path <> ''",
-    },
-    {
-      name: 'students',
-      sql: "SELECT avatar_path AS p FROM users WHERE user_type = 'student' AND avatar_path IS NOT NULL AND avatar_path <> ''",
-    },
-  ];
+  const sources = REFERENCE_SOURCES;
 
   for (const src of sources) {
     const rows = await queryAll(src.sql);
@@ -194,6 +213,8 @@ if (require.main === module) {
 
 module.exports = {
   MANAGED_PREFIXES,
+  REFERENCE_SOURCES,
+  loadReferencedImagePaths,
   parseFlags,
   normalizeRelativePath,
   isManagedPath,

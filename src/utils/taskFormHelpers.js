@@ -183,7 +183,7 @@ export function buildTaskSavePayload({
 /** Libellé d'une zone dans un sélecteur (nom + êtres vivants éventuels). */
 export function zonePickDisplayName(z) {
   const line = formatLivingBeingsListLine(
-    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
+    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings),
   );
   return line ? `${z.name} — ${line}` : z.name;
 }

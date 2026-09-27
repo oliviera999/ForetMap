@@ -1,136 +1,69 @@
 'use strict';
 
+/**
+ * API du quiz ForetMap (`/api/quiz`) — HTTP seulement : `validate()` → service → JSON
+ * (étape B2 de la piste B, audit du 25/09/2026). Les règles vivent dans
+ * `lib/pedago/quizService.js`, le SQL dans `lib/pedago/quizRepository.js`.
+ */
+
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const {
   requireAuth,
   requirePermission,
-  hasPermission,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
-const {
-  presentQuestion,
-  verifyPresentationAnswer,
-  resolveQcmAnswerFeedback,
-} = require('../lib/qcmChoices');
-const { consumePresentationJti } = require('../lib/qcmPresentationUse');
-const {
-  loadAdminQuestionDetail,
-  allocateNextQuizQuestionCode,
-  listAdminQuestions,
-  upsertQuizQuestionInTransaction,
-} = require('../lib/fmQuizCrud');
-const {
-  resolveImportRows,
-  applyFmQuizImport,
-  MAX_IMPORT_ROWS,
-  buildFmQuizTemplateWorkbook,
-  buildFmQuizExportWorkbook,
-  loadFmQuizExportRows,
-  combineKeywords,
-} = require('../lib/fmQuizImport');
-const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glossaryMatch');
-const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
-const { registerFmCooldownOnWrongIfGating } = require('../lib/learningGatingRuntime');
 const { logAudit } = require('../lib/auditLog');
-const {
-  resolvePresentContext,
-  assertPresentAllowed,
-  resolveAnswerContext,
-  assertQuestionOpen,
-  listStrictGatingQuestionCodes,
-} = require('../lib/learningGatingLockMode');
-const {
-  listFmQuestionStats,
-  MIN_ATTEMPTS_FOR_FLAG,
-  SUSPECT_SUCCESS_RATE,
-} = require('../lib/quizQuestionStats');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
-const { normalizeOptionalString: normalizeOptionalFilter } = require('../lib/shared/httpHelpers');
-const {
-  buildQuizQuestionNotionFilter,
-  buildQuizCategoryNotionFilter,
-  parseNotionNiveauFilter,
-  normalizeNotionId,
-} = require('../lib/curriculumNotions');
+const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
+const quizService = require('../lib/pedago/quizService');
 
 const router = express.Router();
-const FM_QCM_JWT_KIND = 'fm_quiz_present';
-const QCM_OPTIONS = { jwtKind: FM_QCM_JWT_KIND };
 
-const questionCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
+const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/** Paramètre `:code` → `req.validatedParams.code` (normalisé, jamais vide). */
+const questionCodeParamsSchema = z.unknown().transform((p, ctx) => {
   const code = normalizeQuestionCode(p == null ? '' : p.code);
-  if (!code) ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
+  if (!code) {
+    ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
+    return z.NEVER;
+  }
+  return { code };
 });
-
-const QUESTION_SELECT = `
-  SELECT question_code, categorie_slug, numero_dans_categorie, question,
-         choix_a, choix_b, choix_c, choix_d, choix_e,
-         reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
-         tags,
-         feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e,
-         photo_url, photo_credit, photo_licence, photo_legende, statut
-    FROM quiz_questions
-`;
-
-async function loadActiveQuestion(code) {
-  return queryOne(`${QUESTION_SELECT} WHERE question_code = ? AND statut = 'actif' LIMIT 1`, [
-    code,
-  ]);
-}
-
-const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
-
-const glossaryLookupCache = getNamedMemoryTtlCache('fm-glossary-lookup', {
-  ttlMs: 60_000,
-  maxEntries: 4,
-});
-
-// Affichage des termes glossaire RECALCULÉ à la volée via le matcher (zéro lecture de la table de
-// liens, iso-comportement avec l'écriture import/CRUD) — même patron que routes/gl/qcm.js.
-async function loadGlossaryLookup() {
-  const cached = glossaryLookupCache.get('actif');
-  if (cached) return cached;
-  const rows = await queryAll(
-    `SELECT glossary_code, terme, variantes, categorie, definition_courte
-       FROM glossary_terms WHERE statut = 'actif'`,
-  );
-  const map = buildGlossaryLookupMap(rows);
-  glossaryLookupCache.set('actif', map);
-  return map;
-}
-
-function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
-  if (!questionRow) return [];
-  return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
-}
 
 /**
- * Filtre « notion du programme » d'une requête de questions (migration 273).
- *
- * `niveau` est déjà pris : il désigne le niveau propre à la question (`college` / `lycee`).
- * Le niveau **scolaire** d'une notion (`cycle4`, `seconde`, `terminale_spe`…) est une autre
- * échelle, d'où le paramètre distinct `notionNiveau`. Il accepte aussi une étape (`college`,
- * `lycee`) ou une liste séparée par des virgules (lib/pedagoScales.js) : c'est ce qu'envoient
- * les séances lycée. Les deux graphies sont acceptées (`notionId` / `notion_id`) : la
- * première suit les autres filtres de cette route, la seconde le nommage des colonnes
- * renvoyées par l'API.
- *
- * @returns {{ error: string }|{ filter: { sql: string, params: unknown[] }|null }}
+ * Schéma de requête bâti sur une lecture du service (`parse(query) → { error } | { filters }`) :
+ * la requête invalide est refusée en 400 avec le message du service, la valide arrive
+ * parsée dans `req.validatedQuery`.
  */
-function resolveNotionFilter(query, alias, build = buildQuizQuestionNotionFilter) {
-  const notionId = normalizeOptionalFilter(query?.notionId ?? query?.notion_id);
-  const notionNiveau = normalizeOptionalFilter(query?.notionNiveau ?? query?.notion_niveau);
-  if (notionId && !normalizeNotionId(notionId)) return { error: 'notionId invalide' };
-  const parsedNiveau = parseNotionNiveauFilter(notionNiveau);
-  if (parsedNiveau?.error) return { error: parsedNiveau.error };
-  return { filter: build({ notionId, niveau: parsedNiveau?.niveaux || null, alias }) };
+function filtersQuerySchema(parse) {
+  return z.unknown().transform((query, ctx) => {
+    const parsed = parse(query);
+    if (parsed.error) {
+      ctx.addIssue({ code: 'custom', message: parsed.error, path: [] });
+      return z.NEVER;
+    }
+    return parsed.filters;
+  });
 }
 
+/** Handler dont les erreurs attendues du service sont renvoyées telles quelles. */
+function quizHandler(fn) {
+  return asyncHandler(async (req, res) => {
+    try {
+      return await fn(req, res);
+    } catch (err) {
+      if (!quizService.isQuizError(err)) throw err;
+      return res.status(err.status).json(err.responseBody);
+    }
+  });
+}
+
+/** Authentification facultative (routes publiques) : `null` si absente ou invalide. */
 async function tryHydrateAuth(req) {
   if (!JWT_SECRET) return null;
   const token = parseBearerToken(req);
@@ -142,222 +75,33 @@ async function tryHydrateAuth(req) {
   }
 }
 
-/**
- * Verrou de re-tentative ForetMap : ne s'active que dans le flux de validation « Marquer comme
- * acquis », c'est-à-dire avec un contexte ressource. Ce contexte vient du JETON de présentation
- * (gravé par `GET …/present?resourceType=&resourceRef=`) ; le corps de la requête n'est honoré
- * que si la sévérité effective de la ressource est `advisory` (lib/learningGatingLockMode.js).
- */
-async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect, result }) {
-  const db = { queryAll, queryOne, execute };
-  const context = await resolveAnswerContext(db, {
-    product: 'fm',
-    tokenResource: result?.resource || null,
-    bodyResource: req.body || null,
-  });
-  if (!context) return null;
-  return registerFmCooldownOnWrongIfGating(db, {
-    userId,
-    resourceType: context.type,
-    resourceRef: context.ref,
-    questionCode,
-    isCorrect,
-  });
+function sendXlsx(res, filename, buffer) {
+  res.setHeader('Content-Type', XLSX_CONTENT_TYPE);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  return res.send(buffer);
 }
 
-/** GET /api/quiz/categories?theme=&niveau= */
+/** GET /api/quiz/categories?theme=&niveau=&notionId=&notionNiveau= */
 router.get(
   '/categories',
-  asyncHandler(async (req, res) => {
-    const theme = normalizeOptionalFilter(req.query?.theme);
-    const niveau = normalizeOptionalFilter(req.query?.niveau);
-
-    const params = [];
-    let sql = `SELECT slug, nom, emoji, theme, description, order_index
-                 FROM quiz_categories
-                WHERE 1=1`;
-    if (theme) {
-      sql += ' AND theme = ?';
-      params.push(theme);
-    }
-    // Notion du programme choisie : seules les catégories qui la traitent sont proposées.
-    // Sans ce filtre, le menu gardait ses 17 entrées dont la plupart ne tireraient rien.
-    const notionCategories = resolveNotionFilter(
-      req.query,
-      'quiz_categories',
-      buildQuizCategoryNotionFilter,
-    );
-    if (notionCategories.error) return res.status(400).json({ error: notionCategories.error });
-    if (notionCategories.filter) {
-      sql += notionCategories.filter.sql;
-      params.push(...notionCategories.filter.params);
-    }
-    sql += ' ORDER BY order_index ASC, nom ASC';
-
-    const categories = await queryAll(sql, params);
-    if (niveau) {
-      const countParams = [niveau];
-      let countSql = `SELECT categorie_slug, COUNT(*) AS total
-                        FROM quiz_questions
-                       WHERE statut = 'actif' AND niveau = ?`;
-      const notionCounts = resolveNotionFilter(req.query, 'quiz_questions');
-      if (notionCounts.filter) {
-        countSql += notionCounts.filter.sql;
-        countParams.push(...notionCounts.filter.params);
-      }
-      countSql += ' GROUP BY categorie_slug';
-      const counts = await queryAll(countSql, countParams);
-      const countBySlug = new Map(
-        counts.map((row) => [row.categorie_slug, Number(row.total || 0)]),
-      );
-      return res.json({
-        categories: categories.map((cat) => ({
-          ...cat,
-          questionCount: countBySlug.get(cat.slug) || 0,
-        })),
-      });
-    }
-    return res.json({ categories });
-  }),
+  validate({ query: filtersQuerySchema(quizService.parseCategoriesQuery) }),
+  quizHandler(async (req, res) => res.json(await quizService.listCategories(req.validatedQuery))),
 );
 
-/** GET /api/quiz/draw?categorieSlug=&niveau=&difficulte= */
+/** GET /api/quiz/draw?categorieSlug=&niveau=&difficulte=&illustrated=&notionId=&notionNiveau= */
 router.get(
   '/draw',
-  asyncHandler(async (req, res) => {
-    const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
-    const niveau = normalizeOptionalFilter(req.query?.niveau);
-    const difficulteRaw = normalizeOptionalFilter(req.query?.difficulte);
-    const illustratedOnly =
-      String(req.query?.illustrated || '').trim() === '1' ||
-      String(req.query?.illustrated || '').toLowerCase() === 'true';
-
-    const params = [];
-    // Clause de filtrage construite une fois, réutilisée par le compte et par le tirage.
-    let whereSql = `WHERE statut = 'actif'`;
-    if (categorieSlug) {
-      whereSql += ' AND categorie_slug = ?';
-      params.push(categorieSlug);
-    }
-    if (niveau) {
-      whereSql += ' AND niveau = ?';
-      params.push(niveau);
-    }
-    if (difficulteRaw != null) {
-      const difficulte = Number(difficulteRaw);
-      if (!Number.isInteger(difficulte) || difficulte < 1) {
-        return res.status(400).json({ error: 'difficulte invalide' });
-      }
-      whereSql += ' AND difficulte = ?';
-      params.push(difficulte);
-    }
-    if (illustratedOnly) {
-      whereSql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
-    }
-    // Tirage « par notion du programme » : c'est ce qui permet à un professeur de lancer un
-    // quiz sur « Biodiversité, résultat et étape de l'évolution » sans deviner quelles
-    // catégories la traitent. L'héritage de catégorie est appliqué par le fragment.
-    const notionDraw = resolveNotionFilter(req.query, 'quiz_questions');
-    if (notionDraw.error) return res.status(400).json({ error: notionDraw.error });
-    if (notionDraw.filter) {
-      whereSql += notionDraw.filter.sql;
-      params.push(...notionDraw.filter.params);
-    }
-    // Questions réservées à la validation d'une fiche (sévérité `strict`) : jamais dans le
-    // tirage libre, sinon l'élève y verrait la bonne réponse sans enjeu.
-    const strictCodes = await listStrictGatingQuestionCodes({ queryAll, queryOne }, 'fm');
-    if (strictCodes.length > 0) {
-      whereSql += ` AND question_code NOT IN (${strictCodes.map(() => '?').join(', ')})`;
-      params.push(...strictCodes);
-    }
-    // Tirage uniforme SANS `ORDER BY RAND()` : celui-ci matérialise et trie la sélection
-    // entière à chaque clic, et le coût croît avec le catalogue — une classe qui enchaîne
-    // les tirages paie un tri complet par question (audit charge biodiversité 2026-09, P5).
-    // Deux requêtes bornées à la place : le compte, puis un décalage aléatoire sur la clé
-    // primaire. La distribution est la même.
-    const countRow = await queryOne(`SELECT COUNT(*) AS c FROM quiz_questions ${whereSql}`, params);
-    const total = Number(countRow?.c) || 0;
-    if (total === 0) return res.status(404).json({ error: 'Aucune question disponible' });
-    const offset = Math.floor(Math.random() * total);
-    // `question_code` est la clé primaire : l'ordre est stable et l'accès indexé.
-    // Valeurs LIMIT/OFFSET en chaîne (mysql2 encoderait un nombre JS en DOUBLE).
-    const picked = await queryOne(
-      `SELECT question_code FROM quiz_questions ${whereSql} ORDER BY question_code ASC LIMIT ? OFFSET ?`,
-      [...params, '1', String(offset)],
-    );
-    if (!picked) return res.status(404).json({ error: 'Aucune question disponible' });
-    return res.json({ question_code: picked.question_code });
-  }),
+  validate({ query: filtersQuerySchema(quizService.parseDrawQuery) }),
+  quizHandler(async (req, res) => res.json(await quizService.drawQuestionCode(req.validatedQuery))),
 );
 
-/** GET /api/quiz/questions — liste filtrée (catalogue admin / aperçu). */
+/** GET /api/quiz/questions — liste filtrée (catalogue public ; réponses pour les gestionnaires). */
 router.get(
   '/questions',
-  asyncHandler(async (req, res) => {
-    const theme = normalizeOptionalFilter(req.query?.theme);
-    const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
-    const niveau = normalizeOptionalFilter(req.query?.niveau);
-    const q = normalizeOptionalFilter(req.query?.q);
-
-    const params = [];
-    let sql = `
-      SELECT q.question_code, q.categorie_slug, q.numero_dans_categorie, q.question,
-             q.niveau, q.difficulte, q.difficulte_label, q.reponse_correcte, q.tags,
-             c.theme
-        FROM quiz_questions q
-        JOIN quiz_categories c ON c.slug = q.categorie_slug
-       WHERE q.statut = 'actif'`;
-    if (theme) {
-      sql += ' AND c.theme = ?';
-      params.push(theme);
-    }
-    if (categorieSlug) {
-      sql += ' AND q.categorie_slug = ?';
-      params.push(categorieSlug);
-    }
-    if (niveau) {
-      sql += ' AND q.niveau = ?';
-      params.push(niveau);
-    }
-    const notionList = resolveNotionFilter(req.query, 'q');
-    if (notionList.error) return res.status(400).json({ error: notionList.error });
-    if (notionList.filter) {
-      sql += notionList.filter.sql;
-      params.push(...notionList.filter.params);
-    }
-    sql += ' ORDER BY c.theme ASC, q.categorie_slug ASC, q.numero_dans_categorie ASC';
-
-    // La bonne réponse n'est exposée qu'à qui gère le catalogue. Cette route est
-    // **publique** : sans ce filtre, `GET /api/quiz/questions` livrait `reponse_correcte`
-    // pour toutes les questions actives, à n'importe qui. Le mélange des choix et
-    // l'empreinte HMAC du jeton de présentation ne protègent alors plus rien — la
-    // solution s'obtient sans même ouvrir le QCM. Même règle que le catalogue GL
-    // (`routes/gl/qcm.js`, permission `gl.content.manage`).
-    const auth = await tryHydrateAuth(req);
-    const canSeeAnswers = hasPermission(auth, 'plants.manage');
-
-    let rows = await queryAll(sql, params);
-    if (q) {
-      const needle = q.toLowerCase();
-      rows = rows.filter((row) => {
-        const hay = `${row.question} ${row.tags || ''}`.toLowerCase();
-        return hay.includes(needle);
-      });
-    }
-
-    const items = rows.map((row) => ({
-      question_code: row.question_code,
-      theme: row.theme,
-      categorie_slug: row.categorie_slug,
-      numero_dans_categorie: row.numero_dans_categorie,
-      question: row.question,
-      niveau: row.niveau,
-      difficulte: row.difficulte,
-      difficulte_label: row.difficulte_label,
-      ...(canSeeAnswers ? { reponse_correcte: row.reponse_correcte } : {}),
-    }));
-
-    return res.json({ items });
+  validate({ query: filtersQuerySchema(quizService.parseCatalogQuery) }),
+  quizHandler(async (req, res) => {
+    const canSeeAnswers = quizService.canSeeCatalogAnswers(await tryHydrateAuth(req));
+    return res.json(await quizService.listCatalogQuestions(req.validatedQuery, { canSeeAnswers }));
   }),
 );
 
@@ -365,177 +109,40 @@ router.get(
 router.get(
   '/questions/:code/present',
   validate({ params: questionCodeParamsSchema }),
-  asyncHandler(async (req, res) => {
-    const code = normalizeQuestionCode(req.params.code);
-    if (!code) return res.status(400).json({ error: 'Code invalide' });
-
-    const row = await loadActiveQuestion(code);
-    if (!row) return res.status(404).json({ error: 'Question introuvable' });
-
-    // Contexte de validation (`?resourceType=&resourceRef=`) : gravé dans le jeton. Sans
-    // contexte, une question réservée (sévérité `strict`) est refusée.
-    const db = { queryAll, queryOne };
-    const context = await resolvePresentContext(db, {
-      product: 'fm',
-      query: req.query,
-      questionCode: code,
-    });
-    if (context.error) return res.status(context.status || 400).json({ error: context.error });
-    const allowed = await assertPresentAllowed(db, {
-      product: 'fm',
-      questionCode: code,
-      resource: context.resource,
-    });
-    if (!allowed.ok) {
-      return res
-        .status(allowed.status || 403)
-        .json({ error: allowed.error, reserved_for: allowed.reserved_for });
-    }
-    // Dans le flux de validation, une question verrouillée pour cet élève (portée ressource ou
-    // « question seule ») n'est pas présentée : 403 + état du verrou.
-    if (context.resource) {
-      const auth = await tryHydrateAuth(req);
-      const open = await assertQuestionOpen(db, {
-        product: 'fm',
-        userId: auth?.userId || null,
-        resource: context.resource,
-        questionCode: code,
-      });
-      if (!open.ok)
-        return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
-    }
-
-    const glossaryByKey = await loadGlossaryLookup();
-    const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
-    try {
-      const presentation = presentQuestion(row, glossaryTerms, {
-        ...QCM_OPTIONS,
-        resource: context.resource,
-      });
-      return res.json(presentation);
-    } catch (err) {
-      return res.status(400).json({ error: err.message || 'Présentation impossible' });
-    }
-  }),
+  quizHandler(async (req, res) =>
+    res.json(
+      await quizService.presentQuizQuestion({
+        code: req.validatedParams.code,
+        query: req.query,
+        getAuth: () => tryHydrateAuth(req),
+      }),
+    ),
+  ),
 );
 
 /** POST /api/quiz/questions/:code/answer */
 router.post(
   '/questions/:code/answer',
   validate({ params: questionCodeParamsSchema }),
-  asyncHandler(async (req, res) => {
-    const code = normalizeQuestionCode(req.params.code);
-    if (!code) return res.status(400).json({ error: 'Code invalide' });
-
-    const row = await loadActiveQuestion(code);
-    if (!row) return res.status(404).json({ error: 'Question introuvable' });
-
-    try {
-      const result = verifyPresentationAnswer(
-        req.body?.presentationToken,
-        code,
-        req.body?.choiceId,
-        QCM_OPTIONS,
-      );
-      const auth = await tryHydrateAuth(req);
-      // Question verrouillée entre-temps (autre onglet, tolérance épuisée) : refus AVANT de
-      // consommer le jeton et d'enregistrer la tentative.
-      if (result.resource && auth?.userId) {
-        const open = await assertQuestionOpen(
-          { queryAll, queryOne },
-          { product: 'fm', userId: auth.userId, resource: result.resource, questionCode: code },
-        );
-        if (!open.ok) {
-          return res.status(open.status).json({ error: open.error, cooldown: open.cooldown });
-        }
-      }
-      // Usage unique du jeton : sans cela, le même `presentationToken` permettait
-      // d'essayer tous les `choiceId` jusqu'à trouver la bonne réponse — y compris
-      // pour débloquer un conditionnement (fiche / tutoriel) sans l'avoir apprise.
-      const consumption = await consumePresentationJti(
-        { execute },
-        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
-      );
-      if (consumption === 'already_used') {
-        return res.status(409).json({ error: 'Présentation déjà utilisée' });
-      }
-      const glossaryByKey = await loadGlossaryLookup();
-      const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
-
-      if (auth?.userId) {
-        await execute(
-          `INSERT INTO user_quiz_attempts (user_id, question_code, categorie_slug, is_correct)
-           VALUES (?, ?, ?, ?)`,
-          [auth.userId, code, row.categorie_slug || null, result.correct ? 1 : 0],
-        );
-      }
-
-      // Contexte ressource (present uniquement depuis le flux « Marquer comme acquis ») : sur une
-      // mauvaise reponse a une question bloquante, pose le verrou de re-tentative (cf. cooldown).
-      const cooldown = auth?.userId
-        ? await maybeRegisterCooldownForFmAnswer(req, {
-            userId: auth.userId,
-            questionCode: code,
-            isCorrect: result.correct,
-            result,
-          })
-        : null;
-
-      return res.json({
-        correct: result.correct,
-        feedback: resolveQcmAnswerFeedback(row, result),
-        correctChoiceId: result.correct ? result.correctChoiceId : undefined,
-        glossaryTerms: result.correct ? glossaryTerms : undefined,
-        cooldown: cooldown || undefined,
-      });
-    } catch (err) {
-      return res.status(400).json({ error: err.message || 'Réponse invalide' });
-    }
-  }),
+  quizHandler(async (req, res) =>
+    res.json(
+      await quizService.answerQuizQuestion({
+        code: req.validatedParams.code,
+        body: req.body,
+        getAuth: () => tryHydrateAuth(req),
+      }),
+    ),
+  ),
 );
 
 /** GET /api/quiz/me/progress */
 router.get(
   '/me/progress',
   requireAuth,
-  asyncHandler(async (req, res) => {
+  quizHandler(async (req, res) => {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ error: 'Authentification requise' });
-
-    const summary = await queryOne(
-      `SELECT COUNT(*) AS attempts,
-              SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
-         FROM user_quiz_attempts
-        WHERE user_id = ?`,
-      [userId],
-    );
-
-    const byCategory = await queryAll(
-      `SELECT categorie_slug,
-              COUNT(*) AS attempts,
-              SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
-         FROM user_quiz_attempts
-        WHERE user_id = ?
-        GROUP BY categorie_slug
-        ORDER BY categorie_slug ASC`,
-      [userId],
-    );
-
-    const recent = await queryAll(
-      `SELECT question_code, categorie_slug, is_correct, answered_at
-         FROM user_quiz_attempts
-        WHERE user_id = ?
-        ORDER BY answered_at DESC
-        LIMIT 20`,
-      [userId],
-    );
-
-    return res.json({
-      attempts: Number(summary?.attempts || 0),
-      correct: Number(summary?.correct || 0),
-      byCategory,
-      recent,
-    });
+    return res.json(await quizService.getLearnerProgress(userId));
   }),
 );
 
@@ -543,84 +150,48 @@ router.get(
 router.get(
   '/stats',
   requirePermission('stats.read.all'),
-  asyncHandler(async (_req, res) => {
-    const byStudent = await queryAll(
-      `SELECT u.id AS user_id, u.first_name, u.last_name, u.pseudo,
-              COUNT(*) AS attempts,
-              SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END) AS correct
-         FROM user_quiz_attempts uqa
-         JOIN users u ON u.id = uqa.user_id
-        GROUP BY u.id, u.first_name, u.last_name, u.pseudo
-        ORDER BY attempts DESC, u.last_name ASC`,
-    );
-    const byCategory = await queryAll(
-      `SELECT categorie_slug,
-              COUNT(*) AS attempts,
-              SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
-         FROM user_quiz_attempts
-        WHERE categorie_slug IS NOT NULL AND categorie_slug <> ''
-        GROUP BY categorie_slug
-        ORDER BY categorie_slug ASC`,
-    );
-    return res.json({ byStudent, byCategory });
-  }),
+  quizHandler(async (_req, res) => res.json(await quizService.getAttemptStats())),
 );
 
-const quizManagePermission = requirePermission('plants.manage');
+const quizManagePermission = requirePermission(quizService.QUIZ_MANAGE_PERMISSION);
 
-/**
- * GET /api/quiz/admin/questions/stats?onlyGating=1&minAttempts=5
- * Taux de reussite par question, les plus ratees d'abord. Une question que tout le
- * monde rate est plus souvent mal formulee que difficile — et si elle est bloquante,
- * elle bloque toute une classe sans raison.
- */
+/** GET /api/quiz/admin/questions/stats?onlyGating=1&minAttempts=5 */
 router.get(
   '/admin/questions/stats',
   quizManagePermission,
-  asyncHandler(async (req, res) => {
-    const stats = await listFmQuestionStats(
-      { queryAll },
-      {
+  quizHandler(async (req, res) =>
+    res.json(
+      await quizService.getQuestionSuccessStats({
         onlyGating: String(req.query.onlyGating || '') === '1',
         minAttempts: req.query.minAttempts,
-      },
-    );
-    return res.json({
-      stats,
-      min_attempts_for_flag: MIN_ATTEMPTS_FOR_FLAG,
-      suspect_success_rate: SUSPECT_SUCCESS_RATE,
-    });
-  }),
+      }),
+    ),
+  ),
 );
 
 /** GET /api/quiz/admin/questions — liste complète (catalogue admin). */
 router.get(
   '/admin/questions',
   quizManagePermission,
-  asyncHandler(async (req, res) => {
-    const items = await listAdminQuestions(
-      { queryAll },
-      {
+  quizHandler(async (req, res) =>
+    res.json(
+      await quizService.listAdminQuestions({
         theme: req.query?.theme,
         categorieSlug: req.query?.categorieSlug,
         niveau: req.query?.niveau,
         q: req.query?.q,
         statut: req.query?.statut,
         sort: req.query?.sort,
-      },
-    );
-    return res.json({ items, total: items.length });
-  }),
+      }),
+    ),
+  ),
 );
 
 /** GET /api/quiz/admin/questions/next-code */
 router.get(
   '/admin/questions/next-code',
   quizManagePermission,
-  asyncHandler(async (_req, res) => {
-    const question_code = await allocateNextQuizQuestionCode({ queryOne });
-    return res.json({ question_code });
-  }),
+  quizHandler(async (_req, res) => res.json(await quizService.allocateQuestionCode())),
 );
 
 /** GET /api/quiz/admin/questions/:code */
@@ -628,35 +199,23 @@ router.get(
   '/admin/questions/:code',
   quizManagePermission,
   validate({ params: questionCodeParamsSchema }),
-  asyncHandler(async (req, res) => {
-    const code = normalizeQuestionCode(req.params.code);
-    if (!code) return res.status(400).json({ error: 'Code invalide' });
-    const question = await loadAdminQuestionDetail({ queryOne }, code);
-    if (!question) return res.status(404).json({ error: 'Question introuvable' });
-    return res.json({ question });
-  }),
+  quizHandler(async (req, res) =>
+    res.json(await quizService.getAdminQuestion(req.validatedParams.code)),
+  ),
 );
 
 /** POST /api/quiz/admin/questions */
 router.post(
   '/admin/questions',
   quizManagePermission,
-  asyncHandler(async (req, res) => {
-    try {
-      // Question et liens par mots-clés dans la même transaction (service des liens).
-      const result = await upsertQuizQuestionInTransaction(withTransaction, req.body || {}, {
-        requireNew: true,
-      });
-      const code = result.question?.question_code || null;
-      await logAudit('create_quiz', 'quiz_question', code, code || 'Question QCM créée', {
-        req,
-        payload: { question_code: code },
-      });
-      return res.status(201).json({ ok: true, created: true, question: result.question });
-    } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Création impossible' });
-    }
+  quizHandler(async (req, res) => {
+    const question = await quizService.saveQuestion(req.body);
+    const code = question?.question_code || null;
+    await logAudit('create_quiz', 'quiz_question', code, code || 'Question QCM créée', {
+      req,
+      payload: { question_code: code },
+    });
+    return res.status(201).json({ ok: true, created: true, question });
   }),
 );
 
@@ -665,23 +224,14 @@ router.put(
   '/admin/questions/:code',
   quizManagePermission,
   validate({ params: questionCodeParamsSchema }),
-  asyncHandler(async (req, res) => {
-    const code = normalizeQuestionCode(req.params.code);
-    if (!code) return res.status(400).json({ error: 'Code invalide' });
-    try {
-      const result = await upsertQuizQuestionInTransaction(withTransaction, req.body || {}, {
-        question_code: code,
-        requireExisting: true,
-      });
-      await logAudit('update_quiz', 'quiz_question', code, code, {
-        req,
-        payload: { question_code: code },
-      });
-      return res.json({ ok: true, created: false, question: result.question });
-    } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
-    }
+  quizHandler(async (req, res) => {
+    const { code } = req.validatedParams;
+    const question = await quizService.saveQuestion(req.body, { code });
+    await logAudit('update_quiz', 'quiz_question', code, code, {
+      req,
+      payload: { question_code: code },
+    });
+    return res.json({ ok: true, created: false, question });
   }),
 );
 
@@ -689,116 +239,34 @@ router.put(
 router.get(
   '/admin/stats',
   quizManagePermission,
-  asyncHandler(async (_req, res) => {
-    const total = await queryOne(
-      `SELECT COUNT(*) AS total FROM quiz_questions WHERE statut = 'actif'`,
-    );
-    const byTheme = await queryAll(
-      `SELECT c.theme, COUNT(*) AS effectif
-         FROM quiz_questions q
-         JOIN quiz_categories c ON c.slug = q.categorie_slug
-        WHERE q.statut = 'actif'
-        GROUP BY c.theme
-        ORDER BY effectif DESC`,
-    );
-    const byCategory = await queryAll(
-      `SELECT categorie_slug, COUNT(*) AS effectif
-         FROM quiz_questions WHERE statut = 'actif'
-        GROUP BY categorie_slug ORDER BY effectif DESC`,
-    );
-    const byDifficulte = await queryAll(
-      `SELECT difficulte, COUNT(*) AS effectif
-         FROM quiz_questions WHERE statut = 'actif'
-        GROUP BY difficulte ORDER BY difficulte ASC`,
-    );
-    const glossaryLinks = await queryOne(
-      `SELECT COUNT(*) AS total FROM resource_question_links
-        WHERE resource_type = 'glossary' AND status = 'approved'`,
-    );
-    return res.json({
-      total: Number(total?.total || 0),
-      glossaryLinks: Number(glossaryLinks?.total || 0),
-      byTheme,
-      byCategory,
-      byDifficulte,
-    });
-  }),
+  quizHandler(async (_req, res) => res.json(await quizService.getCatalogStats())),
 );
 
 /** GET /api/quiz/admin/import/template */
 router.get(
   '/admin/import/template',
   quizManagePermission,
-  asyncHandler(async (_req, res) => {
-    const buffer = await buildFmQuizTemplateWorkbook();
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-qcm.xlsx"');
-    return res.send(buffer);
-  }),
+  quizHandler(async (_req, res) =>
+    sendXlsx(res, 'foretmap-modele-qcm.xlsx', await quizService.buildTemplateWorkbook()),
+  ),
 );
 
-/** GET /api/quiz/admin/export */
+/** GET /api/quiz/admin/export?statut=actif|all&theme=&categorieSlug= */
 router.get(
   '/admin/export',
   quizManagePermission,
-  asyncHandler(async (req, res) => {
-    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
-    const statut = statutRaw === 'all' ? 'all' : 'actif';
-    const theme = normalizeOptionalFilter(req.query?.theme);
-    const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
-    const data = await loadFmQuizExportRows({ queryAll }, { statut, theme, categorieSlug });
-    const buffer = await buildFmQuizExportWorkbook(data);
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-export-qcm.xlsx"');
-    return res.send(buffer);
-  }),
+  quizHandler(async (req, res) =>
+    sendXlsx(res, 'foretmap-export-qcm.xlsx', await quizService.buildExportWorkbook(req.query)),
+  ),
 );
 
 /** POST /api/quiz/admin/import */
 router.post(
   '/admin/import',
   quizManagePermission,
-  asyncHandler(async (req, res) => {
-    const dryRun = !!req.body?.dryRun;
-    let parsed;
-    try {
-      parsed = await resolveImportRows(req.body || {});
-    } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
-    }
-    const { categoryRows, questionRows } = parsed;
-    if (!Array.isArray(questionRows) || questionRows.length === 0) {
-      return res.status(400).json({ error: 'Feuille questions vide ou absente' });
-    }
-    if (questionRows.length > MAX_IMPORT_ROWS) {
-      return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
-    }
-    try {
-      // G4 (audit 2026-09) : même garde que les imports GL. L'import vide d'abord ses liens
-      // par mots-clés de `resource_question_links` (origin='keyword', service des liens) puis
-      // les reconstruit. Sans transaction, une interruption (kill LVE, exception) laissait le
-      // catalogue de questions à jour et ces rattachements glossaire effacés.
-      const report = await withTransaction(async (tx) =>
-        applyFmQuizImport(
-          { queryAll: tx.queryAll, execute: tx.execute },
-          categoryRows || [],
-          questionRows,
-          {
-            dryRun,
-          },
-        ),
-      );
-      return res.json({ report });
-    } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
-    }
-  }),
+  quizHandler(async (req, res) =>
+    res.json({ report: await quizService.importQuestions(req.body) }),
+  ),
 );
 
 module.exports = router;

@@ -1,3 +1,23 @@
+import {
+  TASK_DANGER_LEVEL_ENUM,
+  TASK_DIFFICULTY_LEVEL_ENUM,
+  TASK_IMPORTANCE_LEVEL_ENUM,
+} from '../../shared/enums/taskEnums.js';
+
+/** Options d'un niveau : « Non renseigné » (valeur vide), puis celles du référentiel. */
+function LevelOptions({ def }) {
+  return (
+    <>
+      <option value="">Non renseigné</option>
+      {def.values.map((value) => (
+        <option key={value} value={value}>
+          {def.labels[value]}
+        </option>
+      ))}
+    </>
+  );
+}
+
 /**
  * Ligne « Niveaux » du formulaire de tâche (feuille prop-driven).
  *
@@ -5,7 +25,8 @@
  * « Niveau de difficulté » et « Degré d'importance ». Les valeurs courantes
  * (`dangerLevel`/`difficultyLevel`/`importanceLevel`) et les handlers
  * (`onDangerChange`/`onDifficultyChange`/`onImportanceChange`) restent détenus
- * par le parent.
+ * par le parent. Valeurs et libellés : référentiel partagé des ENUM
+ * (`src/shared/enums/taskEnums.js`), les mêmes que les contraintes de la base.
  */
 export function TaskFormLevelsField({
   dangerLevel = '',
@@ -20,32 +41,19 @@ export function TaskFormLevelsField({
       <div className="field">
         <label>Niveau de danger</label>
         <select value={dangerLevel} onChange={onDangerChange}>
-          <option value="">Non renseigné</option>
-          <option value="safe">Sans danger</option>
-          <option value="potential_danger">Danger potentiel</option>
-          <option value="dangerous">Dangereux</option>
-          <option value="very_dangerous">Très dangereux</option>
+          <LevelOptions def={TASK_DANGER_LEVEL_ENUM} />
         </select>
       </div>
       <div className="field">
         <label>Niveau de difficulté</label>
         <select value={difficultyLevel} onChange={onDifficultyChange}>
-          <option value="">Non renseigné</option>
-          <option value="easy">Facile</option>
-          <option value="medium">Moyen</option>
-          <option value="hard">Compliqué</option>
-          <option value="very_hard">Super compliqué</option>
+          <LevelOptions def={TASK_DIFFICULTY_LEVEL_ENUM} />
         </select>
       </div>
       <div className="field">
         <label>Degré d&apos;importance</label>
         <select value={importanceLevel} onChange={onImportanceChange}>
-          <option value="">Non renseigné</option>
-          <option value="not_important">Pas important</option>
-          <option value="low">Peu important</option>
-          <option value="medium">Modéré</option>
-          <option value="high">Important</option>
-          <option value="absolute">Urgent !</option>
+          <LevelOptions def={TASK_IMPORTANCE_LEVEL_ENUM} />
         </select>
       </div>
     </div>

@@ -33,6 +33,7 @@ import {
 } from '../../utils/taskFormHelpers.js';
 import { projectStatusLabel } from '../../utils/taskListHelpers.js';
 import { IconClose, IconUser } from '../../shared/icons.jsx';
+import { TASK_RECURRENCE_ENUM } from '../../shared/enums/taskEnums.js';
 
 const var_alert = 'var(--alert)';
 
@@ -698,9 +699,11 @@ function TaskFormModal({
             <label>Récurrence</label>
             <select value={form.recurrence || ''} onChange={set('recurrence')}>
               <option value="">Aucune (unique)</option>
-              <option value="weekly">Hebdomadaire</option>
-              <option value="biweekly">Toutes les 2 semaines</option>
-              <option value="monthly">Mensuelle</option>
+              {TASK_RECURRENCE_ENUM.values.map((value) => (
+                <option key={value} value={value}>
+                  {TASK_RECURRENCE_ENUM.labels[value]}
+                </option>
+              ))}
             </select>
           </div>
         </div>

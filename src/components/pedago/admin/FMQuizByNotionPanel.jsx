@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { api } from '../../../services/api.js';
+import { drawQuizQuestion } from '../../../services/quizApi.js';
 import { useCurriculumNotions } from '../../../hooks/useCurriculumNotions.js';
 import { groupNotionsByNiveau } from '../../../utils/curriculumNotions.js';
 
@@ -23,7 +23,7 @@ export function FMQuizByNotionPanel({ onQuestionDrawn = null }) {
     setPendingNotionId(notionId);
     setError('');
     try {
-      const draw = await api(`/api/quiz/draw?notionId=${encodeURIComponent(notionId)}`);
+      const draw = await drawQuizQuestion({ notionId });
       const code = draw?.question_code;
       if (!code) throw new Error('Aucune question disponible pour cette notion');
       onQuestionDrawn?.(code);

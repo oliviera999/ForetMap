@@ -88,3 +88,48 @@ test('syncPlantMaps préserve site_notes', async () => {
   await exec('DELETE FROM map_species WHERE plant_id = ?', [plantId]);
   await exec('DELETE FROM plants WHERE id = ?', [plantId]);
 });
+
+test('syncPlantMaps garde une présence confirmée par une observation validée', async () => {
+  await initSchema();
+  const { syncPlantMaps } = require('../lib/speciesJunction');
+  const { queryAll, execute: exec, withTransaction } = require('../database');
+  const db = { queryAll, queryOne, execute: exec, withTransaction };
+
+  const stamp = Date.now();
+  const plantId = (
+    await exec(`INSERT INTO plants (name, emoji, description) VALUES (?, '🌱', 'x')`, [
+      `Présence confirmée ${stamp}`,
+    ])
+  ).insertId;
+  const mapA = `confirma${stamp}`.slice(0, 32);
+  const mapB = `confirmb${stamp}`.slice(0, 32);
+  for (const [id, order] of [
+    [mapA, 991],
+    [mapB, 992],
+  ]) {
+    await exec('INSERT INTO maps (id, label, sort_order) VALUES (?, ?, ?)', [id, id, order]);
+  }
+  try {
+    await syncPlantMaps(db, plantId, [mapA, mapB]);
+    await exec(
+      "UPDATE map_species SET validation_status = 'confirme_site' WHERE plant_id = ? AND map_id = ?",
+      [plantId, mapA],
+    );
+    // Formulaire enregistré sans les deux cartes (décochées, ou ouvert avant la validation).
+    const out = await syncPlantMaps(db, plantId, []);
+    const rows = await queryAll(
+      'SELECT map_id, validation_status FROM map_species WHERE plant_id = ? ORDER BY map_id',
+      [plantId],
+    );
+    assert.deepStrictEqual(
+      rows.map((r) => [String(r.map_id), r.validation_status]),
+      [[mapA, 'confirme_site']],
+      'la carte confirmée reste, la carte simplement cochée part',
+    );
+    assert.deepStrictEqual(out.mapIds, [mapA]);
+  } finally {
+    await exec('DELETE FROM map_species WHERE plant_id = ?', [plantId]);
+    await exec('DELETE FROM plants WHERE id = ?', [plantId]);
+    await exec('DELETE FROM maps WHERE id IN (?, ?)', [mapA, mapB]);
+  }
+});

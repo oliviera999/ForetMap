@@ -1,7 +1,7 @@
 import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
-import { IconDelete, IconDuplicate } from '../../shared/icons.jsx';
+import { LocationHeaderActions } from './LocationModalParts.jsx';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
@@ -41,44 +41,28 @@ function ZoneInfoModalHeader({
         </div>
       </div>
       {showTeacherActions && (
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          {onDuplicate && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              disabled={duplicating}
-              title="Créer une copie sur la même carte (contour légèrement décalé)"
-              onClick={async () => {
-                try {
-                  await onDuplicate(zone);
-                } catch (_) {
-                  onDuplicateError?.();
+        <LocationHeaderActions
+          duplicating={duplicating}
+          duplicateTitle="Créer une copie sur la même carte (contour légèrement décalé)"
+          onDuplicateClick={
+            onDuplicate
+              ? async () => {
+                  try {
+                    await onDuplicate(zone);
+                  } catch (_) {
+                    onDuplicateError?.();
+                  }
                 }
-              }}
-            >
-              {duplicating ? (
-                '…'
-              ) : (
-                <>
-                  <IconDuplicate size={15} /> Copie
-                </>
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            aria-label="Supprimer la zone"
-            onClick={async () => {
-              if (await confirm({ message: `Supprimer "${zone.name}" ?`, danger: true })) {
-                onDelete(zone.id);
-                onClose();
-              }
-            }}
-          >
-            <IconDelete />
-          </button>
-        </div>
+              : null
+          }
+          deleteAriaLabel="Supprimer la zone"
+          onDeleteClick={async () => {
+            if (await confirm({ message: `Supprimer "${zone.name}" ?`, danger: true })) {
+              onDelete(zone.id);
+              onClose();
+            }
+          }}
+        />
       )}
     </div>
   );

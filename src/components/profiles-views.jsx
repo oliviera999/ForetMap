@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../services/api';
+import { profilesApi } from '../services/profilesApi';
+import { groupsApi } from '../services/groupsApi';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
@@ -89,7 +90,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
    */
   const load = async () => {
     setErr('');
-    const auth = await api('/api/auth/me').catch(() => null);
+    const auth = await profilesApi.me().catch(() => null);
     const perms = Array.isArray(auth?.auth?.permissions) ? auth.auth.permissions : [];
     const roleSlug = String(auth?.auth?.roleSlug || '').toLowerCase();
     setAuthPerms(perms);
@@ -104,7 +105,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
 
     if (canLoadProfiles) {
       try {
-        const profilePayload = await api('/api/rbac/profiles');
+        const profilePayload = await profilesApi.listProfiles();
         const normalized = Array.isArray(profilePayload)
           ? profilePayload
           : Array.isArray(profilePayload?.roles)
@@ -141,7 +142,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
 
     if (canLoadUsers) {
       try {
-        const userRows = await api('/api/rbac/users');
+        const userRows = await profilesApi.listUsers();
         setUsers(Array.isArray(userRows) ? userRows : []);
       } catch (e) {
         failures.push(e?.message || 'Comptes non chargés');
@@ -153,7 +154,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
 
     if (canLoadStudents) {
       try {
-        const payload = await api('/api/stats/all');
+        const payload = await profilesApi.accountStats();
         const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
         setStudents(Array.isArray(rows) ? rows : []);
       } catch (e) {
@@ -176,7 +177,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const opts = await api('/api/groups/options').catch(() => ({ groups: [] }));
+      const opts = await groupsApi.options().catch(() => ({ groups: [] }));
       if (cancelled) return;
       setGroupOptions(Array.isArray(opts?.groups) ? opts.groups : []);
     })();
@@ -265,7 +266,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setErr('');
     try {
       for (const { id, display_order } of patches) {
-        await api(`/api/rbac/profiles/${id}`, 'PATCH', { display_order });
+        await profilesApi.updateProfile(id, { display_order });
       }
       setMsg('Ordre des profils mis à jour');
       await load();
@@ -298,7 +299,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api('/api/rbac/progression-by-validated-tasks', 'PATCH', { enabled: !!enabled });
+      await profilesApi.setProgressionByValidatedTasks(enabled);
       setProgressionByTasksEnabled(!!enabled);
       setMsg(
         enabled
@@ -321,7 +322,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', {
+      await profilesApi.updateProfile(selectedRole.id, {
         max_concurrent_tasks: parsed.value,
       });
       setMsg(parsed.message);
@@ -343,7 +344,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed.value });
+      await profilesApi.updateProfile(selectedRole.id, { min_done_tasks: parsed.value });
       setMsg('Nombre de tâches validées requis pour ce niveau enregistré');
       await load();
     } catch (e) {
@@ -363,7 +364,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', {
+      await profilesApi.updateProfile(selectedRole.id, {
         emoji: trimmed || null,
       });
       setMsg('Emoji du profil enregistré');
@@ -391,18 +392,18 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setErr('');
     try {
       if (mode === 'edit') {
-        await api(`/api/rbac/profiles/${role.id}`, 'PATCH', payload);
+        await profilesApi.updateProfile(role.id, payload);
         setMsg('Profil mis à jour');
         setRoleForm(null);
         await load();
       } else if (mode === 'duplicate') {
-        const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', payload);
+        const created = await profilesApi.duplicateProfile(role.id, payload);
         setMsg(`Profil dupliqué : ${created.display_name || payload.slug}`);
         setRoleForm(null);
         await load();
         if (created?.id != null) setSelectedRoleId(created.id);
       } else {
-        const created = await api('/api/rbac/profiles', 'POST', payload);
+        const created = await profilesApi.createProfile(payload);
         setMsg('Profil créé');
         setRoleForm(null);
         await load();
@@ -430,7 +431,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
       const next = checked
         ? [...current, { key: permissionKey }]
         : current.filter((p) => p.key !== permissionKey);
-      await api(`/api/rbac/profiles/${selectedRole.id}/permissions`, 'PUT', { permissions: next });
+      await profilesApi.setProfilePermissions(selectedRole.id, next);
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur permissions');
@@ -444,7 +445,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setEditModalOpen(true);
     setEditUserLoadState('loading');
     const ut = String(u.user_type ?? pickUserField(u, 'user_type', 'userType') ?? '').toLowerCase();
-    const uid = encodeURIComponent(String(u.id ?? pickUserField(u, 'id') ?? ''));
+    const rawUserId = String(u.id ?? pickUserField(u, 'id') ?? '');
+    const uid = encodeURIComponent(rawUserId);
     if (!ut || !uid || uid === 'undefined' || uid === 'null') {
       setEditModalOpen(false);
       setEditUserLoadState('idle');
@@ -454,7 +456,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     try {
       let detail = null;
       try {
-        detail = await api(`/api/rbac/users/${ut}/${uid}`);
+        detail = await profilesApi.userDetail(ut, rawUserId);
       } catch (_) {
         detail = null;
       }
@@ -496,10 +498,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     try {
       const ut = String(editingUser.user_type || '').toLowerCase();
       const uid = editingUser.id ?? pickUserField(editingUser, 'id');
-      const data = await api('/api/auth/admin/impersonate', 'POST', {
-        userType: ut,
-        userId: uid,
-      });
+      const data = await profilesApi.impersonate({ userType: ut, userId: uid });
       if (!data?.authToken) {
         setErr('Réponse serveur invalide');
         return;
@@ -546,9 +545,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
         email,
         description,
       });
-      await api(
-        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
-        'PATCH',
+      await profilesApi.updateUser(
+        String(editingUser.user_type || '').toLowerCase(),
+        editingUser.id,
         payload,
       );
       setMsg(`Compte mis à jour : ${firstName.trim()} ${lastName.trim()}`);
@@ -579,9 +578,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setPasswordSaving(true);
     setErr('');
     try {
-      await api(
-        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
-        'PATCH',
+      await profilesApi.updateUser(
+        String(editingUser.user_type || '').toLowerCase(),
+        editingUser.id,
         { password: value },
       );
       setMsg(`Mot de passe réinitialisé : ${editingUser.display_name}`);
@@ -600,8 +599,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   const refreshEditingUserGroups = async () => {
     if (!editingUser) return;
     const ut = String(editingUser.user_type || '').toLowerCase();
-    const uid = encodeURIComponent(String(editingUser.id));
-    const detail = await api(`/api/rbac/users/${ut}/${uid}`).catch(() => null);
+    const detail = await profilesApi.userDetail(ut, editingUser.id).catch(() => null);
     if (isLikelyApiUserPayload(detail)) {
       setEditingUser((prev) => (prev ? mergeRbacUserRowsForEdit(prev, detail) : prev));
     }
@@ -618,9 +616,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setActiveSaving(true);
     setErr('');
     try {
-      await api(
-        `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
-        'PATCH',
+      await profilesApi.updateUser(
+        String(editingUser.user_type || '').toLowerCase(),
+        editingUser.id,
         { is_active: !!nextActive },
       );
       setMsg(
@@ -643,7 +641,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setDeleteSaving(true);
     setErr('');
     try {
-      await api(`/api/rbac/users/teacher/${encodeURIComponent(String(editingUser.id))}`, 'DELETE');
+      await profilesApi.deleteTeacher(editingUser.id);
       setMsg(`Compte enseignant supprimé : ${editingUser.display_name}`);
       closeEditUser();
       await load().catch((loadErr) =>
@@ -658,20 +656,13 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
 
   const attachEditingUserToGroup = async (groupId) => {
     if (!editingUser || !groupId) return;
-    await api(
-      `/api/groups/${encodeURIComponent(String(groupId))}/members/${encodeURIComponent(String(editingUser.id))}`,
-      'POST',
-      {},
-    );
+    await groupsApi.addMember(groupId, editingUser.id, {});
     await refreshEditingUserGroups();
   };
 
   const detachEditingUserFromGroup = async (groupId) => {
     if (!editingUser || !groupId) return;
-    await api(
-      `/api/groups/${encodeURIComponent(String(groupId))}/members/${encodeURIComponent(String(editingUser.id))}`,
-      'DELETE',
-    );
+    await groupsApi.removeMember(groupId, editingUser.id);
     await refreshEditingUserGroups();
   };
 
@@ -684,11 +675,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     if (target == null || !Number.isFinite(target)) {
       throw new Error('Retirer un profil n’est pas possible depuis la liste');
     }
-    await api(
-      `/api/rbac/users/${user.user_type}/${encodeURIComponent(String(user.id))}/role`,
-      'PUT',
-      { role_id: target },
-    );
+    await profilesApi.setUserRole(user.user_type, user.id, target);
     await load();
   };
 
@@ -700,7 +687,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
         role_id: parseInt(roleId, 10),
         users: targets.map((u) => ({ user_type: u.user_type, id: u.id })),
       };
-      const res = await api('/api/rbac/users/bulk-role', 'POST', payload);
+      const res = await profilesApi.bulkSetRole(payload);
       const failed = Number(res?.failed || 0);
       setMsg(
         failed === 0
@@ -721,10 +708,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   const bulkAddToGroup = async (targets, groupId) => {
     setErr('');
     try {
-      const res = await api(
-        `/api/groups/${encodeURIComponent(String(groupId))}/members/bulk`,
-        'POST',
-        { user_ids: targets.map((u) => u.id) },
+      const res = await groupsApi.addMembersBulk(
+        groupId,
+        targets.map((u) => u.id),
       );
       const failed = Number(res?.failed || 0);
       setMsg(
@@ -742,7 +728,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', {
+      await profilesApi.updateProfile(roleId, {
         forum_participate: forumParticipate ? 1 : 0,
       });
       setRoles((prev) =>
@@ -773,7 +759,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', {
+      await profilesApi.updateProfile(roleId, {
         context_comment_participate: contextCommentParticipate ? 1 : 0,
       });
       setRoles((prev) =>
@@ -817,7 +803,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
     setConfirmStudent(null);
     setErr('');
     try {
-      await api(`/api/students/${target.id}`, 'DELETE');
+      await profilesApi.deleteStudent(target.id);
       setMsg(`${target.display_name || `${target.first_name} ${target.last_name}`} supprimé`);
       await load();
     } catch (e) {
@@ -829,7 +815,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   const duplicateStudent = async (studentRow) => {
     if (!studentRow?.id) return;
     setErr('');
-    await api(`/api/students/${studentRow.id}/duplicate`, 'POST', {});
+    await profilesApi.duplicateStudent(studentRow.id);
     await load();
   };
 

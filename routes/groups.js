@@ -682,15 +682,14 @@ router.delete(
       `SELECT DISTINCT gm.user_id FROM group_members gm WHERE gm.group_id = ?`,
       [id],
     );
-    // Suppression atomique + détachement des références sans FK. `tasks.group_id`,
-    // `forum_threads.group_id` et `observation_logs.group_id` ne portent aucune contrainte
-    // vers `groups` : sans ce NULLage, ils restaient rattachés à un groupe fantôme après la
-    // suppression (effets de filtrage/visibilité). Le tout dans une transaction : le
-    // détachement des sous-groupes et la suppression ne peuvent plus diverger.
+    // Suppression atomique + détachement des références sans FK (tâches, fils de forum,
+    // observations), déclaré par chaque domaine au registre `lib/accounts/cleanerRegistry.js` :
+    // sans ce NULLage, elles restaient rattachées à un groupe fantôme après la suppression
+    // (effets de filtrage/visibilité). Le tout dans une transaction : le détachement des
+    // sous-groupes et la suppression ne peuvent plus diverger.
+    const { runGroupDetachCleaners } = require('../lib/accounts/cleanerRegistry');
     await withTransaction(async (tx) => {
-      await tx.execute('UPDATE tasks SET group_id = NULL WHERE group_id = ?', [id]);
-      await tx.execute('UPDATE forum_threads SET group_id = NULL WHERE group_id = ?', [id]);
-      await tx.execute('UPDATE observation_logs SET group_id = NULL WHERE group_id = ?', [id]);
+      await runGroupDetachCleaners(tx, id);
       await tx.execute('UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?', [
         id,
       ]);

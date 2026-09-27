@@ -35,10 +35,7 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
   const emoji = defaultEmoji ? m.emoji || defaultEmoji : String(m.emoji ?? '').trim();
   return {
     label: m.label || '',
-    living_beings: orderedLivingBeingsForForm(
-      m.living_beings_list || m.living_beings,
-      m.plant_name,
-    ),
+    living_beings: orderedLivingBeingsForForm(m.living_beings_list || m.living_beings),
     note: m.note || '',
     emoji,
     category_ids: locationCategoryIds(m),
@@ -61,16 +58,20 @@ export function markerTaskMapId(t) {
   return t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
 }
 
-/** Payload de sauvegarde du repère (fusion marker + form + blocs éditoriaux normalisés). */
+/**
+ * Payload de sauvegarde du repère (fusion marker + form + blocs éditoriaux normalisés).
+ * L'ancien nom mono-espèce `plant_name` n'est plus renvoyé au serveur, même s'il traîne dans
+ * un repère en cache (piste C de l'audit du 25/09/2026, § 3.5, temps T2).
+ */
 export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
   const emojiVal = clampEmojiInput((form.emoji || '').trim(), MAP_MARKER_EMOJI_MAX_CHARS);
+  const { plant_name: _retiredPlantName, ...markerFields } = marker || {};
   return {
-    ...marker,
+    ...markerFields,
     ...form,
     emoji: emojiVal,
     living_beings: form.living_beings,
     category_ids: form.category_ids || [],
-    plant_name: '',
     visit_subtitle: form.visit_subtitle,
     visit_short_description: form.visit_short_description,
     visit_details_title: form.visit_details_title,

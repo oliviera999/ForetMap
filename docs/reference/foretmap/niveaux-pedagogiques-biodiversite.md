@@ -188,7 +188,7 @@ l'université pour l'élève) :
 | **Affichage biodiversité**            | déduit ; préférence du compte | Collège, Lycée, Université                                                    | Collège = cycles 3 et 4 ; Lycée = seconde → terminale ; Université = au-delà (tout) |
 | **Niveau d'une question** / d'une clé | quiz, clés d'identification   | Collège, Lycée                                                                | une question « Collège » vaut dès le cycle 3, une question « Lycée » dès la seconde |
 | **Profondeur d'un terme**             | glossaire                     | Base, Approfondissement, Avancé                                               | Base dès le cycle 3, Approfondissement dès le cycle 4, Avancé dès la seconde        |
-| **Difficulté d'une question**         | quiz                          | ★ à ★★★★★                                                                     | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
+| **Difficulté d'une question**         | quiz                          | ⭐ Facile, ⭐⭐ Moyen, ⭐⭐⭐ Difficile                                       | indépendante : elle classe les questions **à l'intérieur** de leur niveau           |
 | **Niveau d'une notion**               | notions des programmes        | Cycle 3 → Terminale                                                           | c'est la référence elle-même                                                        |
 
 Ce que ça change concrètement :

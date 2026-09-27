@@ -1,4 +1,4 @@
-import { api } from '../../services/api';
+import { groupsApi } from '../../services/groupsApi';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../shared/platform/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
@@ -22,7 +22,7 @@ function GroupsImportPanel({ canImport, setErr, setMsg, onImported }) {
   const importGroups = async ({ file, dryRun, setReport }) => {
     try {
       const base64 = await fileToDataUrl(file);
-      const result = await api('/api/groups/import', 'POST', {
+      const result = await groupsApi.importGroups({
         fileName: file.name,
         fileDataBase64: base64,
         dryRun,

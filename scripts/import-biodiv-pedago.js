@@ -30,6 +30,8 @@ const TABLES = [
  */
 const EXPLICIT_COLUMNS = {
   species_interactions: '(id, from_plant_id, to_plant_id, interaction_type, description)',
+  // Migration 304 : `kind` et `sort_order` s'ajoutent aux deux colonnes de la graine d'août.
+  plant_name_aliases: '(alias, plant_id)',
 };
 
 /**

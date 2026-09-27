@@ -25,6 +25,8 @@ import { IconClock, IconSearch, IconWarning } from '../../shared/icons.jsx';
 export function PlantDeterminationSection({
   plant,
   onOpenGlossaryTerm = undefined,
+  /** Ouvre la fiche d'un sosie (lien « Ne pas confondre avec… »). */
+  onOpenPlant = null,
   /** Force l'état d'ouverture (tests, aperçu) ; sinon réglage de site puis replié. */
   defaultOpen = undefined,
 }) {
@@ -32,7 +34,11 @@ export function PlantDeterminationSection({
   const criteria = normalizedPlantValue(plant?.identification_criteria);
   const lookalikes = normalizedPlantValue(plant?.lookalike_species);
   const period = normalizedPlantValue(plant?.identification_period);
-  const hasContent = Boolean(criteria || lookalikes || period);
+  // Sosies du catalogue (migration 305) : la paire vaut dans les deux sens.
+  const sosies = Array.isArray(plant?.lookalikes)
+    ? plant.lookalikes.filter((l) => l && l.plant_id != null && l.name)
+    : [];
+  const hasContent = Boolean(criteria || lookalikes || period || sosies.length);
   const autolinkEnabled = typeof onOpenGlossaryTerm === 'function' && hasContent;
   // Hooks avant tout retour anticipé : l'ordre des hooks doit rester stable entre deux rendus.
   const glossaryItems = useGlossaryLinkIndex({ enabled: autolinkEnabled });
@@ -59,6 +65,37 @@ export function PlantDeterminationSection({
             <Text className="plant-meta-value" {...textProps}>
               {criteria}
             </Text>
+          </div>
+        ) : null}
+        {sosies.length > 0 ? (
+          <div className="plant-determination__alert" role="note">
+            <div className="plant-determination__alert-label">
+              <IconWarning size={13} /> Sosies
+            </div>
+            <ul className="plant-determination__lookalikes" style={{ margin: 0, paddingLeft: 18 }}>
+              {sosies.map((sosie) => {
+                const label = `${sosie.emoji ? `${sosie.emoji} ` : ''}${sosie.name}`;
+                return (
+                  <li key={sosie.plant_id}>
+                    Ne pas confondre avec{' '}
+                    {typeof onOpenPlant === 'function' ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ minHeight: 44 }}
+                        onClick={() => onOpenPlant(sosie.plant_id)}
+                        aria-label={`Ouvrir la fiche ${sosie.name}`}
+                      >
+                        {label}
+                      </button>
+                    ) : (
+                      <strong>{label}</strong>
+                    )}
+                    {sosie.note ? <span> — {sosie.note}</span> : null}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         ) : null}
         {lookalikes ? (

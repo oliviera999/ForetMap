@@ -17,6 +17,7 @@ const {
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { QUESTION_NIVEAU_ENUM } = require('../lib/shared/pedagoEnums');
 const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 const {
   validateLeadOutcome,
@@ -44,7 +45,8 @@ async function tryResolveAuth(req) {
   }
 }
 const SLUG_RE = /^[a-z0-9][a-z0-9_-]{1,118}$/i;
-const NIVEAUX = new Set(['college', 'lycee']);
+/** Niveau d'une clé (`id_keys.niveau`) : référentiel partagé, sans l'université. */
+const NIVEAUX = new Set(QUESTION_NIVEAU_ENUM.values);
 
 function normalizeSlug(raw) {
   const s = normalizeOptionalString(raw);

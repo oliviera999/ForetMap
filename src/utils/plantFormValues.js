@@ -1,3 +1,5 @@
+import { formPhotosFromPlant } from './plantPhotos.js';
+
 /**
  * Helpers purs de valeurs de formulaire « fiche plante » — extraits de `foretmap-views.jsx` (O6).
  *
@@ -38,12 +40,17 @@ export function mergePlantPhotoFieldValue(prevValue, newUrl, position) {
   return [...existing, url].join('\n');
 }
 
+/** Champs du formulaire qui ne sont pas du texte (listes, objets) : copiés à part. */
+const LIST_FORM_KEYS = new Set(['map_ids', 'map_site_notes', 'photos', 'lookalikes']);
+
 /** Formulaire « fiche plante » vierge (toutes les colonnes du modèle, valeurs vides). */
 export const EMPTY_PLANT_FORM = {
   name: '',
   emoji: '🌱',
   description: '',
-  second_name: '',
+  // Autres noms (migration 304) : texte « nom 1, nom 2 », envoyé tel quel ; le serveur les
+  // range dans la table des noms et tient `second_name` en miroir.
+  secondary_names: '',
   scientific_name: '',
   accepted_scientific_name: '',
   taxon_kingdom: '',
@@ -68,11 +75,10 @@ export const EMPTY_PLANT_FORM = {
   ph_min: '',
   ph_max: '',
   habitat: '',
-  photo: '',
   nutrition: '',
-  remark_1: '',
-  remark_2: '',
-  remark_3: '',
+  // Remarques (migration 305) : une seule zone de texte ; le serveur tient `remark_1..3` en
+  // miroir jusqu'au retrait.
+  remarks: '',
   reproduction: '',
   size: '',
   sources: '',
@@ -92,13 +98,12 @@ export const EMPTY_PLANT_FORM = {
   hazard_reviewed: '',
   health_risk: '',
   health_notes: '',
-  photo_credit: '',
-  photo_licence: '',
-  photo_species: '',
-  photo_leaf: '',
-  photo_flower: '',
-  photo_fruit: '',
-  photo_harvest_part: '',
+  // Photos (migration 303) : une liste `{ kind, url, credit, licence, source, source_url }`,
+  // qui remplace les 6 anciens champs de liens et le couple crédit / licence de la photo
+  // principale — le serveur en tient encore les colonnes en miroir.
+  photos: [],
+  // Sosies (migration 305) : `{ plant_id, note }` — « ne pas confondre avec… ».
+  lookalikes: [],
   map_ids: [],
   map_site_notes: {},
 };
@@ -110,9 +115,30 @@ export const EMPTY_PLANT_FORM = {
 export function extractPlantForm(plant = {}) {
   const form = { ...EMPTY_PLANT_FORM };
   Object.keys(form).forEach((k) => {
-    if (k === 'map_ids' || k === 'map_site_notes') return;
+    if (LIST_FORM_KEYS.has(k)) return;
     form[k] = normalizedPlantValue(plant[k]);
   });
+  form.photos = formPhotosFromPlant(plant);
+  // Remarques : champ unique du serveur (déjà résolu, repli compris) ; à défaut, les trois
+  // anciens champs mis bout à bout.
+  form.remarks =
+    plant.remarks != null
+      ? normalizedPlantValue(plant.remarks)
+      : ['remark_1', 'remark_2', 'remark_3']
+          .map((k) => normalizedPlantValue(plant[k]))
+          .filter(Boolean)
+          .join('\n\n');
+  form.lookalikes = Array.isArray(plant.lookalikes)
+    ? plant.lookalikes
+        .filter((l) => l && l.plant_id != null)
+        .map((l) => ({ plant_id: l.plant_id, name: l.name || '', note: l.note || '' }))
+    : [];
+  form.secondary_names = Array.isArray(plant.secondary_names)
+    ? plant.secondary_names
+        .map((n) => normalizedPlantValue(n))
+        .filter(Boolean)
+        .join(', ')
+    : normalizedPlantValue(plant.second_name);
   if (!form.emoji) form.emoji = '🌱';
   form.map_ids = Array.isArray(plant.map_ids)
     ? [...new Set(plant.map_ids.map((id) => String(id || '').trim()).filter(Boolean))]

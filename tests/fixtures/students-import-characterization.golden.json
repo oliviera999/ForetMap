@@ -1,0 +1,561 @@
+{
+  "admin_dry_run": {
+    "report": {
+      "dryRun": true,
+      "options": {
+        "existingStrategy": "update",
+        "allowWeakPasswords": false
+      },
+      "totals": {
+        "received": 14,
+        "valid": 7,
+        "created": 0,
+        "updated": 0,
+        "skipped_existing": 0,
+        "skipped_invalid": 6,
+        "merged_duplicates": 1,
+        "groups_created": 0,
+        "groups_attached": 0,
+        "groups_to_create": 3
+      },
+      "preview": [
+        {
+          "row": 3,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Nouveau <U>",
+          "last_name": "Alpha",
+          "groups": "Classe <U> > Atelier <U> | Club <U>"
+        },
+        {
+          "row": 7,
+          "action": "create",
+          "role_slug": "prof",
+          "user_type": "teacher",
+          "first_name": "Prof <U>",
+          "last_name": "Nouveau",
+          "groups": null
+        },
+        {
+          "row": 8,
+          "action": "update",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Exist <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["email", "description"],
+          "role_kept": false
+        },
+        {
+          "row": 10,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Homo <U>",
+          "last_name": "Nyme",
+          "groups": null
+        },
+        {
+          "row": 11,
+          "action": "update",
+          "role_slug": "eleve_chevronne",
+          "user_type": "student",
+          "first_name": "Haut <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": [],
+          "role_kept": true
+        },
+        {
+          "row": 14,
+          "action": "update",
+          "role_slug": "eleve_avance",
+          "user_type": "student",
+          "first_name": "Montee <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["password"],
+          "role_kept": false
+        },
+        {
+          "row": 15,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Groupe <U>",
+          "last_name": "Existant",
+          "groups": "Groupe Existant <U>"
+        }
+      ],
+      "errors": [
+        {
+          "row": 4,
+          "field": "firstName",
+          "error": "Prénom requis"
+        },
+        {
+          "row": 5,
+          "field": "role",
+          "error": "Rôle « sorcier » inconnu (attendu : visiteur / Visiteur, personnel / Personnel, eleve_novice / n3beur novice, eleve_avance / n3beur avancé, eleve_chevronne / n3beur chevronné, prof_classe / Prof de classe, prof / n3boss, admin / Admin, ou le nom affiché du profil)"
+        },
+        {
+          "row": 6,
+          "field": "password",
+          "error": "Mot de passe trop court (min 4 caractères)"
+        },
+        {
+          "row": 13,
+          "field": "pseudo",
+          "error": "Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)"
+        },
+        {
+          "row": 9,
+          "field": "email",
+          "error": "Email déjà utilisé"
+        },
+        {
+          "row": 12,
+          "field": "password",
+          "error": "Mot de passe requis"
+        }
+      ],
+      "infos": [
+        {
+          "code": "role_defaulted",
+          "rows": [8],
+          "message": "Ligne 8 : colonne Rôle vide → profil « n3beur novice » (eleve_novice) par défaut."
+        },
+        {
+          "code": "duplicate_rows_merged",
+          "rows": [2, 3],
+          "message": "Lignes 2, 3 : Nouveau <U> Alpha — fusionnées (groupes cumulés ; dernière ligne pour le reste)."
+        },
+        {
+          "code": "role_kept_higher",
+          "rows": [11],
+          "message": "Ligne 11 : le compte a déjà un profil de niveau supérieur ou égal à celui du fichier — son profil actuel est conservé."
+        },
+        {
+          "code": "cross_type_homonym",
+          "rows": [10],
+          "message": "Ligne 10 : un compte du même prénom et nom existe déjà sous l’autre type de compte. L’import va créer un compte séparé. S’il s’agit de la même personne, corrigez la colonne Rôle du fichier (le type de compte en découle) plutôt que de créer un doublon."
+        },
+        {
+          "code": "groups_to_create",
+          "message": "Groupes qui seraient créés : Classe <U>, Classe <U> > Atelier <U>, Club <U>."
+        }
+      ],
+      "emailDomainRestrictionsApplied": false
+    }
+  },
+  "admin_import": {
+    "report": {
+      "dryRun": false,
+      "options": {
+        "existingStrategy": "update",
+        "allowWeakPasswords": false
+      },
+      "totals": {
+        "received": 14,
+        "valid": 7,
+        "created": 4,
+        "updated": 3,
+        "skipped_existing": 0,
+        "skipped_invalid": 6,
+        "merged_duplicates": 1,
+        "groups_created": 3,
+        "groups_attached": 3
+      },
+      "preview": [
+        {
+          "row": 3,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Nouveau <U>",
+          "last_name": "Alpha",
+          "groups": "Classe <U> > Atelier <U> | Club <U>"
+        },
+        {
+          "row": 7,
+          "action": "create",
+          "role_slug": "prof",
+          "user_type": "teacher",
+          "first_name": "Prof <U>",
+          "last_name": "Nouveau",
+          "groups": null
+        },
+        {
+          "row": 8,
+          "action": "update",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Exist <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["email", "description"],
+          "role_kept": false
+        },
+        {
+          "row": 10,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Homo <U>",
+          "last_name": "Nyme",
+          "groups": null
+        },
+        {
+          "row": 11,
+          "action": "update",
+          "role_slug": "eleve_chevronne",
+          "user_type": "student",
+          "first_name": "Haut <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": [],
+          "role_kept": true
+        },
+        {
+          "row": 14,
+          "action": "update",
+          "role_slug": "eleve_avance",
+          "user_type": "student",
+          "first_name": "Montee <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["password"],
+          "role_kept": false
+        },
+        {
+          "row": 15,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Groupe <U>",
+          "last_name": "Existant",
+          "groups": "Groupe Existant <U>"
+        }
+      ],
+      "errors": [
+        {
+          "row": 4,
+          "field": "firstName",
+          "error": "Prénom requis"
+        },
+        {
+          "row": 5,
+          "field": "role",
+          "error": "Rôle « sorcier » inconnu (attendu : visiteur / Visiteur, personnel / Personnel, eleve_novice / n3beur novice, eleve_avance / n3beur avancé, eleve_chevronne / n3beur chevronné, prof_classe / Prof de classe, prof / n3boss, admin / Admin, ou le nom affiché du profil)"
+        },
+        {
+          "row": 6,
+          "field": "password",
+          "error": "Mot de passe trop court (min 4 caractères)"
+        },
+        {
+          "row": 13,
+          "field": "pseudo",
+          "error": "Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)"
+        },
+        {
+          "row": 9,
+          "field": "email",
+          "error": "Email déjà utilisé"
+        },
+        {
+          "row": 12,
+          "field": "password",
+          "error": "Mot de passe requis"
+        }
+      ],
+      "infos": [
+        {
+          "code": "role_defaulted",
+          "rows": [8],
+          "message": "Ligne 8 : colonne Rôle vide → profil « n3beur novice » (eleve_novice) par défaut."
+        },
+        {
+          "code": "duplicate_rows_merged",
+          "rows": [2, 3],
+          "message": "Lignes 2, 3 : Nouveau <U> Alpha — fusionnées (groupes cumulés ; dernière ligne pour le reste)."
+        },
+        {
+          "code": "role_kept_higher",
+          "rows": [11],
+          "message": "Ligne 11 : le compte a déjà un profil de niveau supérieur ou égal à celui du fichier — son profil actuel est conservé."
+        },
+        {
+          "code": "cross_type_homonym",
+          "rows": [10],
+          "message": "Ligne 10 : un compte du même prénom et nom existe déjà sous l’autre type de compte. L’import va créer un compte séparé. S’il s’agit de la même personne, corrigez la colonne Rôle du fichier (le type de compte en découle) plutôt que de créer un doublon."
+        }
+      ],
+      "emailDomainRestrictionsApplied": false
+    }
+  },
+  "admin_reimport_skip": {
+    "report": {
+      "dryRun": false,
+      "options": {
+        "existingStrategy": "skip",
+        "allowWeakPasswords": false
+      },
+      "totals": {
+        "received": 14,
+        "valid": 0,
+        "created": 0,
+        "updated": 0,
+        "skipped_existing": 7,
+        "skipped_invalid": 6,
+        "merged_duplicates": 1,
+        "groups_created": 0,
+        "groups_attached": 0
+      },
+      "preview": [],
+      "errors": [
+        {
+          "row": 4,
+          "field": "firstName",
+          "error": "Prénom requis"
+        },
+        {
+          "row": 5,
+          "field": "role",
+          "error": "Rôle « sorcier » inconnu (attendu : visiteur / Visiteur, personnel / Personnel, eleve_novice / n3beur novice, eleve_avance / n3beur avancé, eleve_chevronne / n3beur chevronné, prof_classe / Prof de classe, prof / n3boss, admin / Admin, ou le nom affiché du profil)"
+        },
+        {
+          "row": 6,
+          "field": "password",
+          "error": "Mot de passe trop court (min 4 caractères)"
+        },
+        {
+          "row": 13,
+          "field": "pseudo",
+          "error": "Pseudo invalide (3-50 caractères : lettres — y compris accentuées —, chiffres, . _ - +)"
+        },
+        {
+          "row": 3,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 7,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 8,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 9,
+          "field": "email",
+          "error": "Email déjà utilisé"
+        },
+        {
+          "row": 10,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 11,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 12,
+          "field": "password",
+          "error": "Mot de passe requis"
+        },
+        {
+          "row": 14,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        },
+        {
+          "row": 15,
+          "field": "name",
+          "error": "Utilisateur déjà existant (type de compte + prénom + nom)"
+        }
+      ],
+      "infos": [
+        {
+          "code": "role_defaulted",
+          "rows": [8],
+          "message": "Ligne 8 : colonne Rôle vide → profil « n3beur novice » (eleve_novice) par défaut."
+        },
+        {
+          "code": "duplicate_rows_merged",
+          "rows": [2, 3],
+          "message": "Lignes 2, 3 : Nouveau <U> Alpha — fusionnées (groupes cumulés ; dernière ligne pour le reste)."
+        }
+      ],
+      "emailDomainRestrictionsApplied": false
+    }
+  },
+  "scoped_dry_run": {
+    "report": {
+      "dryRun": true,
+      "options": {
+        "existingStrategy": "update",
+        "allowWeakPasswords": false
+      },
+      "totals": {
+        "received": 7,
+        "valid": 3,
+        "created": 0,
+        "updated": 0,
+        "skipped_existing": 0,
+        "skipped_invalid": 4,
+        "merged_duplicates": 0,
+        "groups_created": 0,
+        "groups_attached": 0,
+        "groups_to_create": 0
+      },
+      "preview": [
+        {
+          "row": 2,
+          "action": "update",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "InScope <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["description"],
+          "role_kept": true
+        },
+        {
+          "row": 7,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Nouveau Scope <U>",
+          "last_name": "Eleve",
+          "groups": "Ma Classe <U>"
+        },
+        {
+          "row": 8,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Hors Groupe <U>",
+          "last_name": "Eleve",
+          "groups": "Autre Classe <U>"
+        }
+      ],
+      "errors": [
+        {
+          "row": 4,
+          "field": "role",
+          "error": "Vous ne pouvez pas attribuer un profil de rang supérieur au vôtre"
+        },
+        {
+          "row": 6,
+          "field": "role",
+          "error": "Seul un administrateur peut créer un admin"
+        },
+        {
+          "row": 3,
+          "field": "name",
+          "error": "Compte hors de votre périmètre (élève d’une autre classe)"
+        },
+        {
+          "row": 5,
+          "field": "name",
+          "error": "Seul un administrateur peut modifier un compte enseignant existant"
+        },
+        {
+          "row": 8,
+          "field": "groups",
+          "error": "Groupe hors périmètre : Autre Classe <U>"
+        }
+      ],
+      "infos": [],
+      "emailDomainRestrictionsApplied": false
+    }
+  },
+  "scoped_import": {
+    "report": {
+      "dryRun": false,
+      "options": {
+        "existingStrategy": "update",
+        "allowWeakPasswords": false
+      },
+      "totals": {
+        "received": 7,
+        "valid": 3,
+        "created": 2,
+        "updated": 1,
+        "skipped_existing": 0,
+        "skipped_invalid": 4,
+        "merged_duplicates": 0,
+        "groups_created": 0,
+        "groups_attached": 1
+      },
+      "preview": [
+        {
+          "row": 2,
+          "action": "update",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "InScope <U>",
+          "last_name": "Eleve",
+          "groups": null,
+          "fields": ["description"],
+          "role_kept": true
+        },
+        {
+          "row": 7,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Nouveau Scope <U>",
+          "last_name": "Eleve",
+          "groups": "Ma Classe <U>"
+        },
+        {
+          "row": 8,
+          "action": "create",
+          "role_slug": "eleve_novice",
+          "user_type": "student",
+          "first_name": "Hors Groupe <U>",
+          "last_name": "Eleve",
+          "groups": "Autre Classe <U>"
+        }
+      ],
+      "errors": [
+        {
+          "row": 4,
+          "field": "role",
+          "error": "Vous ne pouvez pas attribuer un profil de rang supérieur au vôtre"
+        },
+        {
+          "row": 6,
+          "field": "role",
+          "error": "Seul un administrateur peut créer un admin"
+        },
+        {
+          "row": 3,
+          "field": "name",
+          "error": "Compte hors de votre périmètre (élève d’une autre classe)"
+        },
+        {
+          "row": 5,
+          "field": "name",
+          "error": "Seul un administrateur peut modifier un compte enseignant existant"
+        },
+        {
+          "row": 8,
+          "field": "groups",
+          "error": "Groupe hors périmètre : Autre Classe <U>"
+        }
+      ],
+      "infos": [],
+      "emailDomainRestrictionsApplied": false
+    }
+  }
+}

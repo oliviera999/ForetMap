@@ -32,7 +32,7 @@ describe('buildZoneName', () => {
 });
 
 describe('buildZonePayload', () => {
-  test('mappe les champs de formulaire, force current_plant vide et normalise les blocs', () => {
+  test('mappe les champs de formulaire, n’envoie plus current_plant et normalise les blocs', () => {
     const form = {
       livingBeings: ['Tomate'],
       categoryIds: ['cat-verger'],
@@ -45,7 +45,8 @@ describe('buildZonePayload', () => {
     };
     const payload = buildZonePayload('🌱 Potager', form, []);
     expect(payload.name).toBe('🌱 Potager');
-    expect(payload.current_plant).toBe('');
+    // Piste C (audit du 25/09/2026, § 3.5), temps T2 : plus de `current_plant` envoyé.
+    expect('current_plant' in payload).toBe(false);
     expect(payload.living_beings).toEqual(['Tomate']);
     expect(payload.category_ids).toEqual(['cat-verger']);
     expect(payload.color).toBe('#abc');

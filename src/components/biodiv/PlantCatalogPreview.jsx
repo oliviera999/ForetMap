@@ -32,6 +32,7 @@ import { PlantCladeBreadcrumb } from './PlantCladeBreadcrumb.jsx';
 import { PlantHazardSection, PlantHealthRiskSection } from './PlantHazardSection.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { SpeciesObservationSlot } from '../observations/SpeciesObservationSlot.jsx';
 import {
   IconBiodiv,
   IconClose,
@@ -154,7 +155,11 @@ export function PlantBiodiversityCatalogPreviewCard({
             de la rage pour un animal toxique. */}
         <PlantHealthRiskSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
-        <PlantDeterminationSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
+        <PlantDeterminationSection
+          plant={plant}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenPlant={onOpenPlant}
+        />
         {showClade ? <PlantCladeBreadcrumb plant={plant} /> : null}
         <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         <PlantTaxonomyLine plant={plant} />
@@ -257,6 +262,12 @@ export function PlantBiodiversityCatalogPreviewCard({
             onForceLogout={onForceLogout}
           />
         </div>
+        <SpeciesObservationSlot
+          plant={plant}
+          presenceEntry={presenceKnown ? presenceEntry : null}
+          mapId={previewMapId}
+          onForceLogout={onForceLogout}
+        />
         {showContextComments && contextCommentsEnabled && (
           <ContextComments
             contextType="plant"

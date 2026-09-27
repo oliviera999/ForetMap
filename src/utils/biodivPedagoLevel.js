@@ -3,35 +3,23 @@
  */
 
 import { visibleCurriculumNiveaux } from './pedagoScales.js';
+import { PEDAGO_ETAPE_ENUM } from '../shared/enums/pedagoEnums.js';
+import { COLLEGE_INTERACTION_TYPE_ENUM } from '../shared/enums/biodivEnums.js';
 
-export const PEDAGO_LEVELS = Object.freeze(['college', 'lycee', 'universite']);
+/** Étapes d'affichage et libellés : référentiel partagé (`src/shared/enums/pedagoEnums.js`). */
+export const PEDAGO_LEVELS = PEDAGO_ETAPE_ENUM.values;
 
-export const PEDAGO_LEVEL_LABELS = Object.freeze({
-  college: 'Collège',
-  lycee: 'Lycée',
-  universite: 'Université',
-});
+export const PEDAGO_LEVEL_LABELS = PEDAGO_ETAPE_ENUM.labels;
 
-const PEDAGO_RANK = Object.freeze({
-  college: 0,
-  lycee: 1,
-  universite: 2,
-});
+/** Rang d'une étape : sa position dans l'ENUM (`college` = 0 … `universite` = 2). */
+const PEDAGO_RANK = Object.freeze(
+  Object.fromEntries(PEDAGO_LEVELS.map((level, index) => [level, index])),
+);
 
 export const DEFAULT_SITE_LEVEL = 'college';
 
 /** Miroir de lib/biodivPedagoLevel.js — `detritivorie` ajouté avec la migration 295. */
-export const COLLEGE_FOODWEB_TYPES = Object.freeze([
-  'pollinisation',
-  'herbivorie',
-  'predation',
-  'plante_hote',
-  'decomposition',
-  'detritivorie',
-  'parasitisme',
-  'competition',
-  'symbiose',
-]);
+export const COLLEGE_FOODWEB_TYPES = COLLEGE_INTERACTION_TYPE_ENUM.values;
 
 export function normalizePedagoLevel(value) {
   if (value == null || value === '') return null;
@@ -40,8 +28,7 @@ export function normalizePedagoLevel(value) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  if (key === 'college' || key === 'lycee' || key === 'universite') return key;
-  return null;
+  return PEDAGO_LEVELS.includes(key) ? key : null;
 }
 
 export function pedagoLevelLabel(value) {

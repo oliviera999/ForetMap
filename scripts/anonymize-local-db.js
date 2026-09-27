@@ -180,6 +180,8 @@ const TEXT_PLAN = [
   { table: 'user_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'gl_player_journal_articles', columns: ['title', 'body_markdown'] },
   { table: 'observation_logs', columns: ['content'] },
+  // Observations d'espèces (migration 307) : texte de l'élève et note de l'enseignant.
+  { table: 'species_observations', columns: ['body', 'decision_note'] },
   // Compléments réservés saisis par un prof sur une zone ou un repère : texte libre, donc
   // susceptible de nommer un élève ou de porter un contact. Depuis la migration 263 ils
   // vivent dans `location_notes` (les colonnes `restricted_note` sont retirées au démarrage

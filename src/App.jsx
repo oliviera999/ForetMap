@@ -116,15 +116,8 @@ import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { PedagoSessionBanner } from './components/pedago/PedagoSessionBanner.jsx';
 import { PedagoSessionDoneDialog } from './components/pedago/PedagoSessionDoneDialog.jsx';
-import {
-  readStoredPedagoSession,
-  writeStoredPedagoSession,
-} from './components/pedago/SessionsView.jsx';
-import { notifyLearningGatingChanged } from './shared/utils/learningGatingEvents.js';
-import {
-  consumeSessionLinkFromLocation,
-  clearPendingSessionLink,
-} from './utils/pedagoSessionLink.js';
+import { usePedagoSession } from './hooks/usePedagoSession.js';
+import { PedagoSessionProvider } from './contexts/PedagoSessionContext.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
@@ -999,15 +992,9 @@ function App() {
   const [pedagoQuizNotionNiveau, setPedagoQuizNotionNiveau] = useState(null);
   const [pedagoIdKeysInitialKey, setPedagoIdKeysInitialKey] = useState(null);
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
-  const [activePedagoSession, setActivePedagoSession] = useState(() => readStoredPedagoSession());
-  const [completedPedagoSession, setCompletedPedagoSession] = useState(null);
-  const [pendingSessionSlug, setPendingSessionSlug] = useState(() =>
-    consumeSessionLinkFromLocation(),
-  );
   const pedagoAuthenticated = !!(student || isTeacherAccount);
   const [pedagoEntry, setPedagoEntry] = useState(null);
   const [pedagoMapRouteRequest, setPedagoMapRouteRequest] = useState(null);
-  const [pedagoRunsVersion, setPedagoRunsVersion] = useState(0);
   // Modules pédagogiques activables (`ui.modules.*`, allumés par défaut — décision du 25/09,
   // révisée) : éteint = fermé aux élèves, ouvert avec bandeau à qui porte la permission de
   // gestion (miroir de `lib/pedagoModuleGate.js`). Déclarés ici, avant les callbacks de séance
@@ -1077,183 +1064,41 @@ function App() {
     [setPlantCatalogPreview, navigateTab, chooseMap],
   );
 
-  const dispatchPedagoSessionStep = useCallback(
-    (step) => {
-      if (!step?.action) return;
-      const { type, payload = {} } = step.action;
-      setPlantCatalogPreview(null);
-      if (type === 'message') {
-        navigateTab('sessions');
-        return;
-      }
-      if (type === 'open_id_key') {
-        // Module éteint : l'étape reste lisible dans le bandeau, sans ouvrir un onglet masqué
-        // que `useTabNavigationGuards` renverrait aussitôt vers la carte.
-        if (!idKeysAvailable) {
-          navigateTab('sessions');
-          return;
-        }
-        setPedagoIdKeysInitialKey(payload.keyIdOrSlug || null);
-        navigateTab('id-keys');
-        return;
-      }
-      if (type === 'open_plant') {
-        const pid = payload.plantId != null ? Number(payload.plantId) : null;
-        if (Number.isFinite(pid) && pid > 0) openPlantCatalogPreviewById(pid);
-        else navigateTab('plants');
-        return;
-      }
-      if (type === 'open_foodweb') {
-        openPedagoFoodWeb(payload.highlightPlantId ?? null, payload.mapId ?? null);
-        return;
-      }
-      if (type === 'open_quiz') {
-        const code = payload.questionCode
-          ? String(payload.questionCode).trim().toUpperCase()
-          : null;
-        setPedagoQuizQuestionCode(code || null);
-        setPedagoQuizNotionId(payload.notionId ? String(payload.notionId).trim() : null);
-        setPedagoQuizNotionNiveau(
-          payload.notionNiveau ? String(payload.notionNiveau).trim() : null,
-        );
-        navigateTab('quiz');
-        return;
-      }
-      if (type === 'open_glossary') {
-        const c = payload.termCode ? String(payload.termCode).trim() : '';
-        if (c) setPedagoGlossaryCode(c);
-        navigateTab('glossary');
-        return;
-      }
-      const map = payload.mapId ? String(payload.mapId).trim() : '';
-      if (type === 'open_individual') {
-        if (!individualsAvailable) {
-          navigateTab('sessions');
-          return;
-        }
-        if (map) chooseMap(map);
-        const iid = Number(payload.individualId);
-        setPedagoEntry((prev) => ({
-          ...prev,
-          individualId: Number.isInteger(iid) && iid > 0 ? iid : null,
-        }));
-        navigateTab('individuals');
-        return;
-      }
-      if (type === 'open_nested_groups') {
-        if (map) chooseMap(map);
-        const plantIds = (Array.isArray(payload.plantIds) ? payload.plantIds : [])
-          .map(Number)
-          .filter((n) => Number.isInteger(n) && n > 0);
-        setPedagoEntry((prev) => ({
-          ...prev,
-          nestedGroups: { plantIds, mapId: map || null, nonce: Date.now() },
-        }));
-        navigateTab('nested-groups');
-        return;
-      }
-      if (type === 'open_map_route') {
-        if (map) chooseMap(map);
-        const slug = payload.routeSlug ? String(payload.routeSlug).trim() : '';
-        if (slug) setPedagoMapRouteRequest({ slug, nonce: Date.now() });
-        navigateTab('map');
-      }
-    },
-    [
+  // Séance pédagogique en cours (état, exécution, étapes, fin, lien `?seance=`) : hook
+  // dédié, partagé avec l'arbre par `PedagoSessionProvider`. Le shell ne fournit que les
+  // cibles de navigation des étapes.
+  const pedagoSession = usePedagoSession({
+    available: pedagoSessionsAvailable,
+    authenticated: pedagoAuthenticated,
+    onToast: setToast,
+    navigation: {
       navigateTab,
+      setPlantCatalogPreview,
       openPlantCatalogPreviewById,
       openPedagoFoodWeb,
-      setPlantCatalogPreview,
       chooseMap,
       idKeysAvailable,
       individualsAvailable,
-    ],
-  );
-
-  const persistPedagoSession = useCallback((next) => {
-    const prevId = readStoredPedagoSession()?.id || null;
-    setActivePedagoSession(next);
-    writeStoredPedagoSession(next);
-    // Entrée ou sortie de séance : le niveau imposé change, donc aussi les questions qui
-    // verrouillent les fiches — les résumés affichés se rechargent.
-    if (prevId !== (next?.id || null)) notifyLearningGatingChanged({ kind: 'pedago_session' });
-  }, []);
-
-  const postPedagoRun = useCallback(
-    (sessionId, kind) => {
-      if (!pedagoAuthenticated || !sessionId) return Promise.resolve(null);
-      return api(
-        `/api/pedago-sessions/${encodeURIComponent(sessionId)}/runs/${kind}`,
-        'POST',
-      ).catch(() => null);
+      setPedagoIdKeysInitialKey,
+      setPedagoQuizQuestionCode,
+      setPedagoQuizNotionId,
+      setPedagoQuizNotionNiveau,
+      setPedagoGlossaryCode,
+      setPedagoEntry,
+      setPedagoMapRouteRequest,
     },
-    [pedagoAuthenticated],
-  );
-
-  const startPedagoSession = useCallback(
-    async (session) => {
-      if (!session?.steps?.length) return false;
-      if (pedagoAuthenticated && session.id) {
-        try {
-          await api(`/api/pedago-sessions/${encodeURIComponent(session.id)}/runs/start`, 'POST');
-        } catch (err) {
-          if (err?.body?.locked) {
-            setToast(err.body.error || 'Cette séance est encore verrouillée.');
-            return false;
-          }
-        }
-      }
-      const next = {
-        id: session.id,
-        slug: session.slug,
-        title: session.title,
-        templateKey: session.templateKey,
-        // La séance impose son niveau (décision du 25/09/2026) : public visé et niveau de
-        // notion, relus par `BiodivPedagoProvider` ; le serveur, lui, reçoit l'identifiant.
-        level: session.level || null,
-        notionNiveau: session.config?.notionNiveau || null,
-        steps: session.steps,
-        stepIndex: 0,
-      };
-      persistPedagoSession(next);
-      dispatchPedagoSessionStep(next.steps[0]);
-      return true;
-    },
-    [pedagoAuthenticated, persistPedagoSession, dispatchPedagoSessionStep],
-  );
-
-  const exitPedagoSession = useCallback(() => {
-    persistPedagoSession(null);
-  }, [persistPedagoSession]);
-
-  const goPedagoSessionStep = useCallback(
-    (delta) => {
-      const prev = activePedagoSession;
-      if (!prev?.steps?.length) return;
-      const nextIndex = prev.stepIndex + delta;
-      if (nextIndex < 0) return;
-      if (nextIndex >= prev.steps.length) {
-        persistPedagoSession(null);
-        setCompletedPedagoSession(prev);
-        postPedagoRun(prev.id, 'complete').then((res) => {
-          setPedagoRunsVersion((v) => v + 1);
-          if (Array.isArray(res?.rewards) && res.rewards.length) {
-            setCompletedPedagoSession((cur) =>
-              cur && cur.id === prev.id ? { ...cur, newRewards: res.rewards } : cur,
-            );
-          }
-        });
-        return;
-      }
-      const next = { ...prev, stepIndex: nextIndex };
-      persistPedagoSession(next);
-      dispatchPedagoSessionStep(next.steps[nextIndex]);
-    },
-    [activePedagoSession, persistPedagoSession, dispatchPedagoSessionStep, postPedagoRun],
-  );
-
-  const pedagoSessionCurrentStep =
-    activePedagoSession?.steps?.[activePedagoSession.stepIndex] || null;
+  });
+  const {
+    activeSession: activePedagoSession,
+    currentStep: pedagoSessionCurrentStep,
+    completedSession: completedPedagoSession,
+    setCompletedSession: setCompletedPedagoSession,
+    runsVersion: pedagoRunsVersion,
+    startSession: startPedagoSession,
+    launchSession: launchPedagoSession,
+    exitSession: exitPedagoSession,
+    goStep: goPedagoSessionStep,
+  } = pedagoSession;
 
   const sessionsProps = useMemo(
     () => ({
@@ -1279,31 +1124,6 @@ function App() {
       rewardsModuleEnabled,
     ],
   );
-
-  const launchPedagoSession = useCallback(
-    async (idOrSlug) => {
-      const key = String(idOrSlug || '').trim();
-      if (!key) return false;
-      let session = null;
-      try {
-        session = await api(`/api/pedago-sessions/${encodeURIComponent(key)}`);
-        if (!session?.steps?.length) throw new Error('empty');
-      } catch {
-        setToast('Cette séance n’est plus disponible.');
-        return false;
-      }
-      return startPedagoSession(session);
-    },
-    [startPedagoSession],
-  );
-
-  useEffect(() => {
-    if (!pendingSessionSlug || !pedagoAuthenticated) return;
-    const slug = pendingSessionSlug;
-    setPendingSessionSlug(null);
-    clearPendingSessionLink();
-    launchPedagoSession(slug);
-  }, [pendingSessionSlug, pedagoAuthenticated, launchPedagoSession]);
 
   // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
   // s'il vient de notre origine (audit A10 — un tutoriel `type = 'link'` affiche un site
@@ -1646,7 +1466,7 @@ function App() {
     student?.biodiv_pedago_level ?? sessionUser?.biodiv_pedago_level,
   );
 
-  return (
+  const appTree = (
     <PublicSettingsProvider value={publicSettings}>
       <BiodivPedagoProvider
         isGuestVisit={false}
@@ -1654,10 +1474,8 @@ function App() {
         mapLevel={activeMapPedagoLevel}
         groupLevels={biodivGroupPedagoLevels}
         classCurriculumNiveaux={biodivGroupCurriculumNiveaux}
-        sessionLevel={pedagoSessionsAvailable ? activePedagoSession?.level || null : null}
-        sessionNotionNiveau={
-          pedagoSessionsAvailable ? activePedagoSession?.notionNiveau || null : null
-        }
+        sessionLevel={pedagoSession.imposedLevel}
+        sessionNotionNiveau={pedagoSession.imposedNotionNiveau}
         canTeacherPreview={
           effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
         }
@@ -2341,6 +2159,9 @@ function App() {
       </BiodivPedagoProvider>
     </PublicSettingsProvider>
   );
+
+  // Séance en cours accessible à tout l'arbre (fournisseur posé en enveloppe du rendu).
+  return <PedagoSessionProvider value={pedagoSession}>{appTree}</PedagoSessionProvider>;
 }
 
 export { App };

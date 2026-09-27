@@ -122,15 +122,17 @@ qu'on veut). Sa fiche rassemble :
 - une **description** libre (avec mise en forme) ;
 - un réglage **« Qui peut voir ce lieu »** et des **compléments réservés** (voir plus bas) ;
 - des **photos** avec légende, que le professeur peut réordonner et supprimer ;
-- un **historique des cultures** : quand une espèce est retirée de la zone, elle est
-  automatiquement archivée avec la date du jour — la fiche garde ainsi la mémoire de
-  ce qui y a poussé ;
 - des **textes publics** (sous-titre, accroche, bloc dépliable, images) : ce que le grand
   public lira au même endroit, pendant une visite **comme sur le Plan Lyautey** ;
 - des **alias de recherche** (autres noms séparés par `;`) et un choix de **surfaces
   d'affichage** : voir « Où apparaît un lieu » plus bas ;
 - des **commentaires** contextuels (observations des élèves et du professeur), si le
-  module est activé.
+  module est activé ;
+- un bouton **« Signaler une observation ici »** (compte connecté) : l'élève signale une
+  espèce vue dans ce lieu, que le professeur validera — le lieu est déjà choisi dans le
+  formulaire. Un bouton voisin, **« Mes observations »**, montre les siennes et leur statut.
+  Même chose sur la fiche d'un repère. Détail : « Signaler une observation » dans
+  [Plantes et biodiversité](plantes-et-biodiversite.md).
 
 ## Les repères
 
@@ -214,8 +216,7 @@ Cartographie.
 4. Un bouton permet aussi d'**ouvrir l'onglet Tâches de l'application filtré sur ce
    lieu**, pour voir tout ce qui s'y rattache.
 5. Dans l'onglet **Info**, il lit la description, les espèces présentes (avec renvoi
-   vers leurs fiches biodiversité), l'historique des cultures, et peut laisser un
-   commentaire d'observation. Quand l'**accroche de visite** reprend mot pour mot la
+   vers leurs fiches biodiversité), et peut laisser un commentaire d'observation. Quand l'**accroche de visite** reprend mot pour mot la
    description du lieu — ce que fait la recopie « carte → visite » —, elle n'est
    affichée qu'**une seule fois** : plus de paragraphe en double dans l'onglet Info.
 
@@ -769,12 +770,18 @@ tâches qui défile pour elle seule : plus l'écran est haut, plus le plan est g
 
 ## ⚠️ Points d'attention sur l'existant
 
-> ⚠️ **Point d'attention** — L'**historique des cultures** s'alimente tout seul : dès
-> qu'une espèce est retirée de la liste d'une zone, elle y est archivée avec **la date
-> du jour de la modification**, présentée comme une date de récolte. Si l'on met à
-> jour la fiche longtemps après la récolte réelle, ou si l'on retire une espèce saisie
-> par erreur, l'historique enregistre quand même une « récolte » à la mauvaise date —
-> et il n'existe pas d'écran pour corriger ou supprimer une ligne d'historique.
+> ℹ️ **Changement (septembre 2026)** — L'**historique des cultures** a été retiré de la
+> fiche des zones. Il ne s'alimentait plus depuis que les espèces d'une zone se choisissent
+> dans une liste (il ne retenait que l'ancien champ « plante actuelle », vide partout), et
+> il présentait comme une date de récolte la simple date d'une modification. La section
+> « Historique cultures » a donc disparu de l'onglet **Info**, et retirer une espèce d'une
+> zone n'archive plus rien. Les rares lignes anciennes sont conservées à part, le temps de
+> leur export, avant la suppression définitive.
+>
+> De même, l'ancien champ **« plante actuelle »** d'une zone (ou d'un repère) n'est plus
+> affiché : seules comptent les espèces choisies dans la liste « Êtres vivants ». Les
+> repères qui portaient encore un nom dans ce champ ont été rattachés à la fiche
+> correspondante quand elle existait sans ambiguïté.
 
 > ⚠️ **Point d'attention** — Les fiches des zones et repères mélangent deux usages :
 > les informations de travail (état, espèces, description) et les **textes du mode
