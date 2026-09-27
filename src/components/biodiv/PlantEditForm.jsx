@@ -3,7 +3,6 @@ import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
 import { PLANT_EMOJIS } from '../../constants/emojis';
 import { compressImageWithPreset } from '../../shared/platform/image';
-import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistory';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
   HAZARD_EXPOSURE_OPTIONS,
@@ -24,7 +23,9 @@ import {
 } from '../../utils/plantTrophicRole.js';
 import { PlantnetIdentifyPanel } from './PlantnetIdentifyPanel.jsx';
 import { PlantPrefillPanel } from './PlantPrefillPanel.jsx';
-import { IconCamera, IconGallery, IconSave } from '../../shared/icons.jsx';
+import { PlantPhotosEditor } from './PlantPhotosEditor.jsx';
+import { addFormPhoto } from '../../utils/plantPhotos.js';
+import { IconSave } from '../../shared/icons.jsx';
 
 /**
  * Formulaire d'édition d'une fiche biodiversité — extrait de `foretmap-views.jsx` (O6).
@@ -115,6 +116,15 @@ function PlantEditForm({
     onToast?.('Proposition GBIF appliquée — enregistre la fiche pour confirmer.');
   };
 
+  /** Photo téléversée : ajoutée à la liste du formulaire (le serveur l'a déjà enregistrée). */
+  const addUploadedPhoto = (kind, url, position) => {
+    if (!url) return;
+    setForm((prev) => ({
+      ...prev,
+      photos: addFormPhoto(prev.photos, { kind, url, source: 'televersement' }, position),
+    }));
+  };
+
   const uploadPhoto = async (field, file) => {
     if (!file) return;
     let targetId = plantId;
@@ -134,11 +144,8 @@ function PlantEditForm({
         imageData,
         position,
       });
-      setForm((prev) => ({
-        ...prev,
-        [field]: result?.plant?.[field] || result?.url || prev[field],
-      }));
-      onToast?.('Photo importée ✓');
+      addUploadedPhoto(field, result?.url, position);
+      onToast?.('Photo importée ✓ — pense à indiquer son auteur et sa licence.');
     } catch (e) {
       onToast?.('Erreur import photo : ' + e.message);
     } finally {
@@ -173,10 +180,7 @@ function PlantEditForm({
             imageData,
             position: 'append',
           });
-          setForm((prev) => ({
-            ...prev,
-            [fieldKey]: result?.plant?.[fieldKey] || result?.url || prev[fieldKey],
-          }));
+          addUploadedPhoto(fieldKey, result?.url, 'append');
           ok += 1;
         } catch (e) {
           onToast?.(`Erreur import (${label}) : ${e.message}`);
@@ -954,68 +958,18 @@ function PlantEditForm({
         <summary>Photos</summary>
         <div className="plant-meta-grid">
           <p className="section-sub" style={{ margin: 0 }}>
-            Photos : utiliser uniquement des liens directs vers image (`.jpg`, `.png`, `.webp`,
-            etc.) ou `…/wiki/Special:FilePath/…`.
+            Une ligne par photo : lien direct vers l’image (`.jpg`, `.png`, `.webp`… ou
+            `…/wiki/Special:FilePath/…`), son <strong>auteur</strong> et sa <strong>licence</strong>
+            . Les licences CC BY et CC BY-SA obligent à nommer l’auteur de chaque image affichée.
           </p>
-          <div className="plant-form-grid">
-            {photoFields.map((field) => (
-              <div className="field" key={field.key}>
-                <label htmlFor={fieldId(field.key)}>{field.label} (URL directe)</label>
-                <input
-                  id={fieldId(field.key)}
-                  value={form[field.key]}
-                  onChange={set(field.key)}
-                  placeholder="https://.../image.jpg ou /uploads/..."
-                />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                  <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                    {uploadingField === field.key ? (
-                      'Envoi…'
-                    ) : (
-                      <>
-                        <IconGallery size={15} /> Galerie
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      style={{ display: 'none' }}
-                      disabled={saving || uploadingField === field.key}
-                      onChange={(e) => {
-                        disarmNativeFilePickerGuard();
-                        const list = e.target.files;
-                        e.target.value = '';
-                        void uploadPhotosFromGallery(field.key, list);
-                      }}
-                    />
-                  </label>
-                  <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                    {uploadingField === field.key ? (
-                      'Envoi…'
-                    ) : (
-                      <>
-                        <IconCamera size={15} /> Appareil photo
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      style={{ display: 'none' }}
-                      disabled={saving || uploadingField === field.key}
-                      onChange={(e) => {
-                        disarmNativeFilePickerGuard();
-                        const file = e.target.files?.[0];
-                        e.target.value = '';
-                        uploadPhoto(field.key, file);
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
+          <PlantPhotosEditor
+            photos={form.photos}
+            onChange={(next) => setForm((f) => ({ ...f, photos: next }))}
+            uploadingField={uploadingField}
+            saving={saving}
+            onCapture={(kind, file) => uploadPhoto(kind, file)}
+            onGallery={(kind, files) => void uploadPhotosFromGallery(kind, files)}
+          />
         </div>
       </details>
       <details className="plant-more">

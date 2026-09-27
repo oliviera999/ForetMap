@@ -33,36 +33,48 @@ describe('prefillPhotoSlotKey', () => {
 
 describe('findFirstBiodivHeroPhotoCandidate', () => {
   test('photo directe (http) prioritaire', () => {
-    expect(findFirstBiodivHeroPhotoCandidate({ photo: 'https://x.fr/a.jpg' })).toEqual({
+    expect(findFirstBiodivHeroPhotoCandidate({ photo: 'https://x.fr/a.jpg' })).toMatchObject({
       kind: 'direct',
       src: 'https://x.fr/a.jpg',
     });
   });
   test('page fichier Commons en .jpg → direct (URL brute, extension image détectée avant)', () => {
     const url = 'https://commons.wikimedia.org/wiki/File:Rosa.jpg';
-    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toEqual({ kind: 'direct', src: url });
+    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toMatchObject({
+      kind: 'direct',
+      src: url,
+    });
   });
   test('page fichier Commons sans extension image → conversion Special:FilePath', () => {
     expect(
       findFirstBiodivHeroPhotoCandidate({
         photo: 'https://commons.wikimedia.org/wiki/File:Rosa_canina',
       }),
-    ).toEqual({
+    ).toMatchObject({
       kind: 'direct',
       src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rosa_canina',
     });
   });
   test('catégorie Commons → categoryUrl', () => {
     const url = 'https://commons.wikimedia.org/wiki/Category:Rosa';
-    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toEqual({
+    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toMatchObject({
       kind: 'category',
       categoryUrl: url,
+    });
+  });
+  test('lien et emplacement d’origine exposés (attribution de la photo, migration 302)', () => {
+    const url = 'https://commons.wikimedia.org/wiki/File:Rosa_canina';
+    expect(findFirstBiodivHeroPhotoCandidate({ photo_species: url })).toEqual({
+      kind: 'direct',
+      src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rosa_canina',
+      entry: url,
+      field: 'photo_species',
     });
   });
   test('priorité photo puis photo_species ; null si rien d’exploitable', () => {
     expect(
       findFirstBiodivHeroPhotoCandidate({ photo: 'pas une url', photo_species: '/uploads/x.png' }),
-    ).toEqual({ kind: 'direct', src: '/uploads/x.png' });
+    ).toMatchObject({ kind: 'direct', src: '/uploads/x.png' });
     expect(findFirstBiodivHeroPhotoCandidate({ photo: 'texte', photo_species: '' })).toBe(null);
   });
 });

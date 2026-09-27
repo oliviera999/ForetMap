@@ -65,37 +65,59 @@ describe('applyPrefillToForm — champs texte', () => {
 describe('applyPrefillToForm — photos', () => {
   const grouped = {
     photo_species: [
-      { url: 'https://x/a.jpg', source_url: 'https://src/a' },
+      {
+        url: 'https://x/a.jpg',
+        source_url: 'https://src/a',
+        credit: 'Anne',
+        license: 'CC BY-SA 4.0',
+        source: 'wikipedia',
+      },
       { url: 'https://x/b.jpg', source_url: 'https://src/b' },
     ],
   };
+  const urlsOf = (out, kind) => out.photos.filter((p) => p.kind === kind).map((p) => p.url);
 
-  test('photo cochée → écrite dans le champ cible (assignTo valide) + source_url dans sources', () => {
+  test('photo cochée → liste de photos, emplacement cible, AVEC auteur et licence ; source_url dans sources', () => {
     const out = applyPrefillToForm(
-      { photo_leaf: '', sources: '' },
+      { photos: [], sources: '' },
       base({
         groupedPrefillPhotos: grouped,
         prefillPhotoSelections: { 'photo_species:0': { checked: true, assignTo: 'photo_leaf' } },
       }),
     );
-    expect(out.photo_leaf).toBe('https://x/a.jpg');
+    expect(out.photos).toEqual([
+      {
+        kind: 'photo_leaf',
+        url: 'https://x/a.jpg',
+        credit: 'Anne',
+        licence: 'CC BY-SA 4.0',
+        source: 'wikipedia',
+        source_url: 'https://src/a',
+      },
+    ]);
     expect(out.sources).toBe('https://src/a');
   });
 
   test('assignTo hors PHOTO_FIELD_KEYS → repli sur le champ source', () => {
     const out = applyPrefillToForm(
-      { photo_species: '', sources: '' },
+      { photos: [], sources: '' },
       base({
         groupedPrefillPhotos: grouped,
         prefillPhotoSelections: { 'photo_species:1': { checked: true, assignTo: 'inconnu' } },
       }),
     );
-    expect(out.photo_species).toBe('https://x/b.jpg');
+    expect(urlsOf(out, 'photo_species')).toEqual(['https://x/b.jpg']);
   });
 
-  test('champ cible déjà rempli + !overwrite → fusion sans doublon', () => {
+  test('emplacement déjà rempli + !overwrite → fusion sans doublon', () => {
     const out = applyPrefillToForm(
-      { photo_species: 'https://x/a.jpg\nhttps://x/z.jpg', sources: '' },
+      {
+        photos: [
+          { kind: 'photo_species', url: 'https://x/a.jpg', credit: 'Déjà' },
+          { kind: 'photo_species', url: 'https://x/z.jpg' },
+        ],
+        sources: '',
+      },
       base({
         groupedPrefillPhotos: grouped,
         prefillPhotoSelections: {
@@ -104,25 +126,37 @@ describe('applyPrefillToForm — photos', () => {
         },
       }),
     );
-    // a.jpg déjà présent (pas de doublon), b.jpg ajouté
-    expect(out.photo_species).toBe('https://x/a.jpg\nhttps://x/z.jpg\nhttps://x/b.jpg');
+    // a.jpg déjà présent (pas de doublon, attribution existante gardée), b.jpg ajouté
+    expect(urlsOf(out, 'photo_species')).toEqual([
+      'https://x/a.jpg',
+      'https://x/z.jpg',
+      'https://x/b.jpg',
+    ]);
+    expect(out.photos[0].credit).toBe('Déjà');
   });
 
-  test('overwriteFilled → remplace le champ cible', () => {
+  test('overwriteFilled → remplace l’emplacement cible', () => {
     const out = applyPrefillToForm(
-      { photo_species: 'https://x/old.jpg', sources: '' },
+      {
+        photos: [
+          { kind: 'photo_species', url: 'https://x/old.jpg' },
+          { kind: 'photo', url: 'https://x/main.jpg' },
+        ],
+        sources: '',
+      },
       base({
         overwriteFilled: true,
         groupedPrefillPhotos: grouped,
         prefillPhotoSelections: { 'photo_species:0': { checked: true, assignTo: 'photo_species' } },
       }),
     );
-    expect(out.photo_species).toBe('https://x/a.jpg');
+    expect(urlsOf(out, 'photo_species')).toEqual(['https://x/a.jpg']);
+    expect(urlsOf(out, 'photo')).toEqual(['https://x/main.jpg']);
   });
 
   test('sélection non cochée / index invalide / url absente → ignorées', () => {
     const out = applyPrefillToForm(
-      { photo_species: '', sources: '' },
+      { photos: [], sources: '' },
       base({
         groupedPrefillPhotos: grouped,
         prefillPhotoSelections: {
@@ -132,18 +166,18 @@ describe('applyPrefillToForm — photos', () => {
         },
       }),
     );
-    expect(out.photo_species).toBe('');
+    expect(out.photos).toEqual([]);
     expect(out.sources).toBe('');
   });
 });
 
 describe('applyPrefillToForm — pureté', () => {
   test('ne mute pas le formulaire d’origine', () => {
-    const prev = { name: '', photo_species: '' };
+    const prev = { name: '', photos: [] };
     applyPrefillToForm(
       prev,
       base({ prefillResult: { fields: { name: 'X' } }, selectedFields: { name: true } }),
     );
-    expect(prev).toEqual({ name: '', photo_species: '' });
+    expect(prev).toEqual({ name: '', photos: [] });
   });
 });

@@ -4,13 +4,16 @@
  */
 
 import { parseLinkCandidates } from './plantFormValues.js';
+import { addFormPhoto } from './plantPhotos.js';
 
 /**
  * Construit le prochain état du formulaire en appliquant la pré-saisie :
  * - champs texte sélectionnés (`selectedFields`) → écrits si vides, ou si `overwriteFilled` ;
- * - photos cochées (`prefillPhotoSelections`, clé `champ:index`) → réparties par champ cible
- *   (`assignTo` validé contre `photoFieldKeys`, sinon le champ source), fusionnées (dédup) avec
- *   l'existant (ou remplacées si `overwriteFilled`) ; les `source_url` alimentent `sources`.
+ * - photos cochées (`prefillPhotoSelections`, clé `champ:index`) → ajoutées à la liste
+ *   `photos` du formulaire dans leur emplacement cible (`assignTo` validé contre
+ *   `photoFieldKeys`, sinon le champ source), avec auteur, licence, provenance et page
+ *   source ; sans doublon (ou en remplacement de l'emplacement si `overwriteFilled`) ; les
+ *   `source_url` alimentent aussi `sources`.
  * Transformation pure : ne mute pas `prev`.
  *
  * @param {object} prev formulaire courant
@@ -52,7 +55,14 @@ export function applyPrefillToForm(prev, opts = {}) {
     const selected = options[idx];
     if (!selected?.url) continue;
     const assignTo = photoFieldKeys.has(sel.assignTo) ? sel.assignTo : sourceField;
-    picked.push({ assignTo, url: selected.url, source_url: selected.source_url });
+    picked.push({
+      assignTo,
+      url: selected.url,
+      source_url: selected.source_url,
+      credit: selected.credit,
+      licence: selected.license ?? selected.licence,
+      source: selected.source,
+    });
   }
   picked.sort(
     (a, b) => a.assignTo.localeCompare(b.assignTo) || String(a.url).localeCompare(String(b.url)),
@@ -62,18 +72,27 @@ export function applyPrefillToForm(prev, opts = {}) {
     if (!byTarget.has(row.assignTo)) byTarget.set(row.assignTo, []);
     byTarget.get(row.assignTo).push(row);
   }
+  // Photos (migration 302) : chaque photo retenue entre dans la liste du formulaire AVEC
+  // son auteur, sa licence et sa page source — la pré-saisie les récupérait, mais ils
+  // étaient jetés au moment d'appliquer (audit du 25/09/2026, § 1.3.6).
+  let photos = Array.isArray(next.photos) ? next.photos : [];
   for (const [targetField, rows] of byTarget) {
-    const urls = [...new Set(rows.map((r) => r.url).filter(Boolean))];
-    if (urls.length === 0) continue;
-    const existing = parseLinkCandidates(next[targetField]);
-    if (existing.length === 0 || overwriteFilled) {
-      next[targetField] = urls.join('\n');
-    } else {
-      const merged = [...existing];
-      for (const u of urls) {
-        if (!merged.includes(u)) merged.push(u);
-      }
-      next[targetField] = merged.join('\n');
+    const withUrl = rows.filter((r) => r.url);
+    if (withUrl.length === 0) continue;
+    if (overwriteFilled) photos = photos.filter((p) => p.kind !== targetField);
+    for (const row of withUrl) {
+      photos = addFormPhoto(
+        photos,
+        {
+          kind: targetField,
+          url: row.url,
+          credit: row.credit,
+          licence: row.licence,
+          source: row.source,
+          source_url: row.source_url,
+        },
+        'append',
+      );
     }
     for (const row of rows) {
       if (row.source_url && !mergedSources.includes(row.source_url)) {
@@ -81,6 +100,7 @@ export function applyPrefillToForm(prev, opts = {}) {
       }
     }
   }
+  if (byTarget.size > 0) next.photos = photos;
   if (mergedSources.length > 0) {
     next.sources = mergedSources.join('\n');
   }

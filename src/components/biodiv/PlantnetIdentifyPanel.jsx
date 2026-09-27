@@ -10,7 +10,7 @@ import {
   filterNonEmptyIdentifySlots,
   derivePlantnetNameUpdate,
 } from '../../utils/plantnetIdentify.js';
-import { mergePlantPhotoFieldValue } from '../../utils/plantFormValues.js';
+import { addFormPhoto } from '../../utils/plantPhotos.js';
 import { PlantnetPredictionsList } from './PlantnetPredictionsList.jsx';
 import { IconCamera, IconFolder } from '../../shared/icons.jsx';
 
@@ -171,12 +171,15 @@ export function PlantnetIdentifyPanel({
         });
         const newUrl = result?.url;
         if (!newUrl) continue;
+        // Liste de photos du formulaire (migration 302) : la photo téléversée s'y ajoute,
+        // sans auteur ni licence — à compléter dans la section « Photos ».
         setForm((prev) => ({
           ...prev,
-          [field]:
-            result?.value ||
-            result?.plant?.[field] ||
-            mergePlantPhotoFieldValue(prev[field], newUrl, position),
+          photos: addFormPhoto(
+            prev.photos,
+            { kind: field, url: newUrl, source: 'televersement' },
+            position,
+          ),
         }));
       }
       onToast?.('Proposition appliquée : noms et photos d’identification importés ✓');

@@ -12,6 +12,7 @@ import {
 } from '../../utils/plantSourceLinks.js';
 import { normalizedPlantValue, parseLinkCandidates } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
+import { photoAttributionFor, formatPhotoAttribution } from '../../utils/plantPhotos.js';
 import { PLANT_META_SECTIONS, PHOTO_FIELD_KEYS } from '../../constants/plantMetaSections.js';
 import { IconSearch } from '../../shared/icons.jsx';
 
@@ -75,11 +76,13 @@ export function PlantBiodivHeroPhoto({ plant }) {
   if (!src || broken) return null;
 
   const name = normalizedPlantValue(plant.name) || 'Espèce';
-  const credit = normalizedPlantValue(plant.photo_credit);
-  const licence = normalizedPlantValue(plant.photo_licence);
+  // Attribution de LA photo affichée (migration 302 : une attribution par photo), et non plus
+  // le crédit de la photo principale quand la vignette vient d'un autre emplacement.
+  const attribution = photoAttributionFor(plant, candidate.entry, candidate.field);
+  const credit = normalizedPlantValue(attribution?.credit);
+  const licence = normalizedPlantValue(attribution?.licence);
   // Lien d'attribution : les licences CC acceptent de renvoyer vers la page source, qui
-  // porte auteur, licence et historique. Il complète le crédit stocké, et le remplace pour
-  // les photos de la galerie, dont l'attribution n'est pas stockée en base.
+  // porte auteur, licence et historique. Il complète le crédit stocké.
   const filePage = commonsFilePageFromPhotoUrl(src);
 
   return (
@@ -123,6 +126,22 @@ export function PlantBiodivHeroPhoto({ plant }) {
     </>
   );
 }
+
+/** Vignette + attribution : la figure prend la place de la vignette dans la bande défilante. */
+const FIGURE_STYLE = {
+  margin: 0,
+  flex: '0 0 clamp(96px, 30vw, 140px)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 2,
+};
+const THUMB_IN_FIGURE_STYLE = { flex: 'none', width: '100%' };
+const CREDIT_STYLE = {
+  fontSize: 'var(--text-xs)',
+  color: 'var(--ink-soft)',
+  lineHeight: 1.3,
+  overflowWrap: 'anywhere',
+};
 
 export function PlantMetaSections({ plant }) {
   const [bigPhoto, setBigPhoto] = useState(null);
@@ -170,21 +189,49 @@ export function PlantMetaSections({ plant }) {
     };
   }, [plantPhotoLinks, commonsPreviewByUrl]);
 
+  // Chaque vignette porte son attribution (auteur — licence) et, pour un fichier Commons, le
+  // lien vers sa page : la galerie des photos secondaires n'en affichait aucune (audit du
+  // 25/09/2026, § 1.3.6 — CC BY / BY-SA imposent de nommer l'auteur).
   const renderPhotoLinks = (item, entries) => (
     <div className="plant-photo-grid">
-      {entries.map((entry, idx) => (
-        <button
-          key={`${item.key}-${idx}`}
-          type="button"
-          className="plant-photo-thumb"
-          onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}
-        >
-          <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
-          <span className="plant-photo-overlay">
-            <IconSearch size={14} /> Voir
-          </span>
-        </button>
-      ))}
+      {entries.map((entry, idx) => {
+        const attribution = photoAttributionFor(plant, entry.source, item.key);
+        const attributionText = formatPhotoAttribution(attribution);
+        const filePage = commonsFilePageFromPhotoUrl(entry.source) || attribution?.source_url;
+        return (
+          <figure key={`${item.key}-${idx}`} className="plant-photo-figure" style={FIGURE_STYLE}>
+            <button
+              type="button"
+              className="plant-photo-thumb"
+              style={THUMB_IN_FIGURE_STYLE}
+              onClick={() =>
+                setBigPhoto({
+                  src: entry.src,
+                  caption: attributionText ? `${item.label} — ${attributionText}` : item.label,
+                })
+              }
+            >
+              <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
+              <span className="plant-photo-overlay">
+                <IconSearch size={14} /> Voir
+              </span>
+            </button>
+            {attributionText || filePage ? (
+              <figcaption className="plant-photo-credit" style={CREDIT_STYLE}>
+                {attributionText ? <span>{attributionText}</span> : null}
+                {filePage ? (
+                  <>
+                    {attributionText ? ' · ' : null}
+                    <a href={filePage} target="_blank" rel="noopener noreferrer">
+                      Source
+                    </a>
+                  </>
+                ) : null}
+              </figcaption>
+            ) : null}
+          </figure>
+        );
+      })}
     </div>
   );
 

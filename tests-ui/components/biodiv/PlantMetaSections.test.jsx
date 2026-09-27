@@ -66,7 +66,62 @@ describe('PlantMetaSections', () => {
   });
 });
 
+describe('PlantMetaSections — attribution par photo (migration 302)', () => {
+  test('chaque vignette de la galerie porte son auteur et sa licence', async () => {
+    render(
+      <PlantMetaSections
+        plant={{
+          photo_leaf: 'https://exemple.org/feuille.jpg\nhttps://exemple.org/feuille2.jpg',
+          photos: [
+            {
+              kind: 'photo_leaf',
+              url: 'https://exemple.org/feuille.jpg',
+              credit: 'Anne Martin',
+              licence: 'CC BY-SA 4.0',
+              source_url: 'https://exemple.org/page-feuille',
+            },
+            { kind: 'photo_leaf', url: 'https://exemple.org/feuille2.jpg' },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Anne Martin — CC BY-SA 4.0')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Source' })).toHaveAttribute(
+      'href',
+      'https://exemple.org/page-feuille',
+    );
+    fireEvent.click(screen.getAllByRole('button')[0]);
+    await waitFor(() => expect(screen.getByTestId('lightbox')).toBeInTheDocument());
+    expect(screen.getByTestId('lightbox').textContent).toContain(
+      'Photo feuille — Anne Martin — CC BY-SA 4.0',
+    );
+  });
+});
+
 describe('PlantBiodivHeroPhoto', () => {
+  test('photo héro prise dans « espèce » → attribution de CETTE photo', () => {
+    render(
+      <PlantBiodivHeroPhoto
+        plant={{
+          name: 'Pommier',
+          photo_species: 'https://exemple.org/espece.jpg',
+          photo_credit: 'Crédit de la photo principale',
+          photos: [
+            {
+              kind: 'photo_species',
+              url: 'https://exemple.org/espece.jpg',
+              credit: 'Bob',
+              licence: 'CC0',
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('CC0')).toBeInTheDocument();
+    expect(screen.queryByText('Crédit de la photo principale')).not.toBeInTheDocument();
+  });
+
   test('aucune photo exploitable → ne rend rien', () => {
     const { container } = render(<PlantBiodivHeroPhoto plant={{}} />);
     expect(container).toBeEmptyDOMElement();

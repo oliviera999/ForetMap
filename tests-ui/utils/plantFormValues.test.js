@@ -67,14 +67,17 @@ describe('EMPTY_PLANT_FORM', () => {
     expect(EMPTY_PLANT_FORM.map_ids).toEqual([]);
     expect(EMPTY_PLANT_FORM.map_site_notes).toEqual({});
     const others = Object.entries(EMPTY_PLANT_FORM).filter(
-      ([k]) => k !== 'emoji' && k !== 'map_ids' && k !== 'map_site_notes',
+      ([k]) => !['emoji', 'map_ids', 'map_site_notes', 'photos'].includes(k),
     );
     expect(others.every(([, v]) => v === '')).toBe(true);
   });
   test('couvre les colonnes attendues du modèle', () => {
     expect(EMPTY_PLANT_FORM).toHaveProperty('name');
     expect(EMPTY_PLANT_FORM).toHaveProperty('scientific_name');
-    expect(EMPTY_PLANT_FORM).toHaveProperty('photo_harvest_part');
+    // Photos : une liste (migration 302), plus les 6 anciens champs de liens.
+    expect(EMPTY_PLANT_FORM.photos).toEqual([]);
+    expect(EMPTY_PLANT_FORM).not.toHaveProperty('photo_harvest_part');
+    expect(EMPTY_PLANT_FORM).not.toHaveProperty('photo_credit');
   });
 });
 
@@ -93,6 +96,34 @@ describe('extractPlantForm', () => {
     expect(extractPlantForm({ emoji: '' }).emoji).toBe('🌱');
     expect(extractPlantForm({ emoji: '-' }).emoji).toBe('🌱');
     expect(extractPlantForm({ emoji: '🍎' }).emoji).toBe('🍎');
+  });
+  test('photos : liste de la fiche (texte vide plutôt que null), repli sur les anciens champs', () => {
+    const fromList = extractPlantForm({
+      photos: [
+        { id: 3, kind: 'photo_leaf', url: 'https://x.fr/l.jpg', credit: 'Anne', licence: null },
+      ],
+    });
+    expect(fromList.photos).toEqual([
+      {
+        kind: 'photo_leaf',
+        url: 'https://x.fr/l.jpg',
+        credit: 'Anne',
+        licence: '',
+        source: '',
+        source_url: '',
+      },
+    ]);
+    const fromColumns = extractPlantForm({
+      photo: 'https://x.fr/a.jpg',
+      photo_species: 'https://x.fr/a.jpg\nhttps://x.fr/b.jpg',
+      photo_credit: 'Bob',
+      photo_licence: 'CC0',
+    });
+    expect(fromColumns.photos.map((p) => [p.kind, p.url, p.credit])).toEqual([
+      ['photo', 'https://x.fr/a.jpg', 'Bob'],
+      ['photo_species', 'https://x.fr/a.jpg', 'Bob'],
+      ['photo_species', 'https://x.fr/b.jpg', ''],
+    ]);
   });
   test('ignore les champs hors modèle', () => {
     const out = extractPlantForm({ name: 'X', inexistant: 'zzz' });
