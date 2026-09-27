@@ -353,6 +353,10 @@ for (const kind of Object.keys(KINDS)) {
     test('prof : onglet Modifier → enregistrement', async () => {
       const { handlers } = renderModal(kind, { isTeacher: true });
       clickTab('Modifier');
+      // Le formulaire reprend les liens documentaires du lieu (et non les actions de
+      // liaison de tâches, homonymes dans la modale).
+      expect(screen.getByDisplayValue(K.entity.links[0].url)).toBeInTheDocument();
+      expect(screen.getByDisplayValue(K.entity.links[0].label)).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: K.saveLabel }));
       await waitFor(() => expect(handlers.onUpdate).toHaveBeenCalledTimes(1));
       const [id, payload] = handlers.onUpdate.mock.calls[0];

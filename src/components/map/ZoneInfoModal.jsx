@@ -18,7 +18,6 @@ import { ZONE_COLORS } from '../../constants/garden';
 import { ColorPaletteField } from '../ColorPaletteField.jsx';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
-import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import {
   nextLivingBeingsFromMultiSelect,
   orderedLivingBeingsForForm,
@@ -31,7 +30,6 @@ import {
 } from '../../utils/zoneModalForm.js';
 import { isInfrastructureLocation, locationCategoryIds } from '../../utils/locationCategories.js';
 import { zoneEmojiOf } from '../../utils/zoneDisplay.js';
-import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
@@ -45,7 +43,6 @@ import {
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
-import { ContextComments } from '../context-comments';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
@@ -53,22 +50,27 @@ import { ZoneInfoModalHeader } from './ZoneInfoModalHeader.jsx';
 import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { LocationCategoryPicker } from './LocationCategoryPicker.jsx';
-import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
-import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
+import { ZoneTutorialsStudentPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationVisitAside, useScrollIntoViewOnMount } from './mapModalShared.jsx';
 import { useLocationModalData } from './useLocationModalData.js';
 import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 import {
-  IconAbout,
-  IconCamera,
-  IconCheck,
-  IconClose,
-  IconDrawZone,
-  IconEdit,
-  IconSave,
-  IconTasks,
-  IconTuto,
-} from '../../shared/icons.jsx';
+  LocationCommentsSection,
+  LocationEmptyInfo,
+  LocationModalShell,
+  LocationSaveButton,
+  LocationTasksShortcut,
+  LocationTasksTab,
+  LocationTextBox,
+  LocationTutorialsTeacherTab,
+  buildLocationModalTabs,
+} from './LocationModalParts.jsx';
+import {
+  useLocationLinkActions,
+  useLocationModalTab,
+  useLocationTaskAssignment,
+} from './useLocationModalState.js';
+import { IconDrawZone, IconSave } from '../../shared/icons.jsx';
 
 function ZoneInfoModal({
   zone,
@@ -122,7 +124,6 @@ function ZoneInfoModal({
     };
   }, [zone]);
 
-  const [tab, setTab] = useState(focusComments ? 'info' : 'tasks');
   const commentsRef = useScrollIntoViewOnMount(focusComments);
   const [zoneName, setZoneName] = useState(
     stripLeadingMarkerEmoji(zone.name || '', emojiParsingList),
@@ -158,10 +159,6 @@ function ZoneInfoModal({
   const [visibleGroupIds, setVisibleGroupIds] = useState(() =>
     normalizeAudienceGroupList(zone.visible_group_ids),
   );
-  const [linkTaskId, setLinkTaskId] = useState('');
-  const [linkTutorialId, setLinkTutorialId] = useState('');
-  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
-  const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [toast, setToast] = useState(null);
@@ -212,18 +209,25 @@ function ZoneInfoModal({
   // Groupes proposables dans les réglages d'audience (migration 262) : chargés seulement
   // pour un compte qui édite.
   const audienceGroupOptions = useAudienceGroupOptions(isTeacher);
-
-  useEffect(() => {
-    if (!showTasksTab && tab === 'tasks') {
-      setTab('info');
-    }
-  }, [showTasksTab, tab]);
-
-  useEffect(() => {
-    if (!showTutorialsTab && tab === 'tutorials') {
-      setTab('info');
-    }
-  }, [showTutorialsTab, tab]);
+  const [tab, setTab] = useLocationModalTab(focusComments ? 'info' : 'tasks', {
+    showTasksTab,
+    showTutorialsTab,
+    disabled: false,
+  });
+  const assignment = useLocationTaskAssignment({
+    studentAssignableTasks,
+    onAssignTasks,
+    setToast,
+  });
+  const linkActions = useLocationLinkActions({
+    onLinkTask,
+    onUnlinkTask,
+    onLinkTutorial,
+    onUnlinkTutorial,
+    setToast,
+    taskLinkedMessage: 'Tâche liée à la zone ✓',
+    tutorialLinkedMessage: 'Tutoriel lié à la zone ✓',
+  });
 
   useEffect(() => {
     setZoneName(stripLeadingMarkerEmoji(zone.name || '', emojiParsingList));
@@ -269,15 +273,6 @@ function ZoneInfoModal({
     markerEmojis,
   ]);
 
-  useEffect(() => {
-    // Garde la référence quand rien ne change : un nouveau tableau systématique
-    // relancerait un rendu à chaque passage (boucle « Maximum update depth exceeded »).
-    setSelectedTaskIds((prev) => {
-      const next = prev.filter((id) => studentAssignableTasks.some((t) => t.id === id));
-      return next.length === prev.length ? prev : next;
-    });
-  }, [studentAssignableTasks]);
-
   const save = async () => {
     const name = buildZoneName(zoneName, zoneEmoji, { markerEmojis, emojiParsingList });
     if (!name) {
@@ -321,77 +316,17 @@ function ZoneInfoModal({
     setSaving(false);
   };
 
-  const TABS = [
-    ...(showTasksTab
-      ? [
-          {
-            id: 'tasks',
-            label: (
-              <>
-                <IconTasks size={14} /> Tâches
-              </>
-            ),
-          },
-        ]
-      : []),
-    ...(showTutorialsTab
-      ? [
-          {
-            id: 'tutorials',
-            label: (
-              <>
-                <IconTuto size={14} /> Tutoriels
-              </>
-            ),
-          },
-        ]
-      : []),
-    {
-      id: 'info',
-      label: (
-        <>
-          <IconAbout size={14} /> Info
-        </>
-      ),
-    },
-    {
-      id: 'photos',
-      label: (
-        <>
-          <IconCamera size={14} /> Photos
-        </>
-      ),
-    },
-    ...(isTeacher
-      ? [
-          {
-            id: 'edit',
-            label: (
-              <>
-                <IconEdit size={14} /> Modifier
-              </>
-            ),
-          },
-        ]
-      : []),
-  ];
+  const TABS = buildLocationModalTabs({ showTasksTab, showTutorialsTab, isTeacher });
 
   return (
-    <DialogShell
-      open
-      onClose={onClose}
-      overlayClassName="modal-overlay"
-      dialogClassName="log-modal fade-in"
-      dialogStyle={{ paddingTop: 16 }}
+    <LocationModalShell
       ariaLabel={`Zone ${zoneTitleDisplay}`}
-      closeOnOverlay
+      onClose={onClose}
       dialogRef={dialogRef}
+      dialogStyle={{ paddingTop: 16 }}
+      toast={toast}
+      onToastDone={() => setToast(null)}
     >
-      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
-        <IconClose size={16} />
-      </button>
-
       <ZoneInfoModalHeader
         zone={zone}
         isTeacher={isTeacher}
@@ -415,48 +350,19 @@ function ZoneInfoModal({
 
       <LocationModalTabBar tabs={TABS} activeTab={tab} onSelect={setTab} />
 
-      {onNavigateToTasksForLocation && (
-        <div style={{ marginBottom: 12 }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-full"
-            onClick={() => {
-              onNavigateToTasksForLocation({ kind: 'zone', id: String(zone.id) });
-              onClose();
-            }}
-          >
-            <IconCheck size={15} /> Ouvrir l’onglet Tâches filtré sur cette zone
-          </button>
-          <p
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--ink-soft)',
-              margin: '6px 0 0',
-              lineHeight: 'var(--lh-normal)',
-            }}
-          >
-            Affiche les tâches et tutoriels rattachés à ce lieu dans la liste des tâches.
-          </p>
-        </div>
-      )}
+      <LocationTasksShortcut
+        kind="zone"
+        entityId={zone.id}
+        onNavigate={onNavigateToTasksForLocation}
+        onClose={onClose}
+      />
 
       {tab === 'info' && (
         <div className="fade-in">
           {zone.description && (
-            <div
-              style={{
-                background: 'var(--tint-success)',
-                borderRadius: 10,
-                padding: '10px 14px',
-                marginBottom: 12,
-                border: '1px solid var(--mint)',
-                fontSize: 'var(--text-sm)',
-                color: '#333',
-                lineHeight: 'var(--lh-relaxed)',
-              }}
-            >
+            <LocationTextBox>
               <MarkdownContent>{zone.description}</MarkdownContent>
-            </div>
+            </LocationTextBox>
           )}
           <LocationNotesBlock notes={zone.notes} />
           <LocationLinksBlock links={zone.links} />
@@ -502,30 +408,16 @@ function ZoneInfoModal({
             !zone.links?.length &&
             !(zoneDetail.history || zone.history)?.length &&
             !showVisitAsideBlock && (
-              <p
-                style={{
-                  color: '#bbb',
-                  fontSize: 'var(--text-sm)',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  padding: '20px 0',
-                }}
-              >
-                Zone vide — aucune information pour l'instant.
-              </p>
+              <LocationEmptyInfo>Zone vide — aucune information pour l'instant.</LocationEmptyInfo>
             )}
-          {contextCommentsEnabled && (
-            <div ref={commentsRef}>
-              <ContextComments
-                contextType="zone"
-                contextId={zone.id}
-                title="Commentaires de la zone"
-                placeholder="Ajouter une observation sur cette zone…"
-                defaultOpen={focusComments}
-                canParticipateContextComments={canParticipateContextComments}
-              />
-            </div>
-          )}
+          <LocationCommentsSection
+            enabled={contextCommentsEnabled}
+            commentsRef={commentsRef}
+            kind="zone"
+            entityId={zone.id}
+            focusComments={focusComments}
+            canParticipateContextComments={canParticipateContextComments}
+          />
         </div>
       )}
 
@@ -720,15 +612,12 @@ function ZoneInfoModal({
               ))}
             </div>
           </div>
-          <button className="btn btn-primary btn-full" onClick={save} disabled={saving}>
-            {saving ? (
-              '…'
-            ) : (
-              <>
-                <IconSave size={15} /> Enregistrer
-              </>
-            )}
-          </button>
+          <LocationSaveButton
+            saving={saving}
+            onClick={save}
+            icon={<IconSave size={15} />}
+            label="Enregistrer"
+          />
           {onEditPoints && (
             <button
               className="btn btn-ghost btn-full"
@@ -743,70 +632,26 @@ function ZoneInfoModal({
           )}
         </div>
       )}
-      {tab === 'tasks' && isTeacher && (
-        <ZoneTasksTeacherPanel
+      {tab === 'tasks' && (
+        <LocationTasksTab
+          kind="zone"
+          isTeacher={isTeacher}
           linkedTasks={linkedTasks}
           assignableTasks={assignableTasks}
-          linkTaskId={linkTaskId}
-          onChangeLinkTaskId={setLinkTaskId}
-          onUnlinkTask={async (t) => {
-            await onUnlinkTask?.(t);
-            setToast('Tâche dissociée');
-          }}
-          onLinkTask={async (id) => {
-            await onLinkTask?.(id);
-            setLinkTaskId('');
-            setToast('Tâche liée à la zone ✓');
-          }}
-        />
-      )}
-      {tab === 'tasks' && !isTeacher && (
-        <ZoneTasksStudentPanel
-          linkedTasks={linkedTasks}
           student={student}
           canSelfAssignTasks={canSelfAssignTasks}
           canEnroll={canEnroll}
-          selectedTaskIds={selectedTaskIds}
-          assigning={assigning}
-          onToggleTask={(id) =>
-            setSelectedTaskIds((prev) =>
-              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-            )
-          }
-          onAssign={async () => {
-            if (!onAssignTasks || selectedTaskIds.length === 0) return;
-            setAssigning(true);
-            const result = await onAssignTasks(selectedTaskIds);
-            if (result.failedCount > 0) {
-              const ok =
-                result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
-              setToast(
-                `${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`,
-              );
-            } else {
-              setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
-            }
-            setSelectedTaskIds([]);
-            setAssigning(false);
-          }}
+          links={linkActions}
+          assignment={assignment}
         />
       )}
       {tab === 'tutorials' && isTeacher && (
-        <ZoneTutorialsTeacherPanel
+        <LocationTutorialsTeacherTab
+          kind="zone"
           linkedTutorialsDirect={linkedTutorialsDirect}
           tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
           assignableTutorials={assignableTutorials}
-          linkTutorialId={linkTutorialId}
-          onChangeLinkTutorialId={setLinkTutorialId}
-          onUnlinkTutorial={async (tu) => {
-            await onUnlinkTutorial?.(tu);
-            setToast('Tutoriel dissocié');
-          }}
-          onLinkTutorial={async (id) => {
-            await onLinkTutorial?.(id);
-            setLinkTutorialId('');
-            setToast('Tutoriel lié à la zone ✓');
-          }}
+          links={linkActions}
         />
       )}
       {tab === 'tutorials' && !isTeacher && (
@@ -816,7 +661,7 @@ function ZoneInfoModal({
           onOpenTutorialPreview={onOpenTutorialPreview}
         />
       )}
-    </DialogShell>
+    </LocationModalShell>
   );
 }
 
