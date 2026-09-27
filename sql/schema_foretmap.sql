@@ -124,11 +124,18 @@ CREATE TABLE IF NOT EXISTS plants (
   INDEX idx_plants_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Noms des fiches. `kind` et `sort_order` : migration 304 (autres noms affichés,
+-- `nom_secondaire`, repris de `plants.second_name`, qui en est le miroir jusqu'au retrait).
 CREATE TABLE IF NOT EXISTS plant_name_aliases (
   alias VARCHAR(255) NOT NULL,
   plant_id INT UNSIGNED NOT NULL,
+  kind ENUM('nom_secondaire','variante','synonyme') NOT NULL DEFAULT 'variante'
+    COMMENT 'nom_secondaire : autre nom affiché ; variante : forme reconnue ; synonyme : scientifique',
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0
+    COMMENT 'Ordre éditorial des autres noms de la fiche',
   PRIMARY KEY (alias),
   KEY idx_alias_plant (plant_id),
+  KEY idx_alias_plant_kind (plant_id, kind, sort_order),
   CONSTRAINT fk_alias_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

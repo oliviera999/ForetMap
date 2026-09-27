@@ -23,6 +23,7 @@ const { invalidateStrictCodesCache } = require('../lib/learningGatingLockMode');
 const policyHelpers = require('../lib/gatingPolicyRouteHelpers');
 const layers = require('../lib/shared/gatingPolicyLayersCore');
 const learningLinks = require('../lib/pedago/learningLinks');
+const { loadSecondaryNamesByPlantId } = require('../lib/biodiv/speciesRelations');
 
 const router = express.Router();
 const managePermission = requirePermission('plants.manage');
@@ -426,14 +427,17 @@ async function loadLabelledResources(types, refs) {
     refs.length ? `AND ${col} IN (${refs.map(() => '?').join(', ')})` : '';
   if (types.includes('plant')) {
     const rows = await queryAll(
-      `SELECT id, name, second_name, scientific_name FROM plants WHERE 1=1 ${refFilter('id')}`,
+      `SELECT id, name, scientific_name FROM plants WHERE 1=1 ${refFilter('id')}`,
       refs.length ? refs : [],
     );
+    // Autres noms : table des noms (migration 304), plus `plants.second_name` (audit du
+    // 25/09/2026, § 3.5 — temps 1 ; repli éventuel fait par le domaine biodiversité).
+    const secondaryNames = await loadSecondaryNamesByPlantId(rows.map((r) => r.id));
     out.push(
       ...rows.map((r) => ({
         type: 'plant',
         ref: String(r.id),
-        labels: [r.name, r.second_name, r.scientific_name],
+        labels: [r.name, ...(secondaryNames.get(Number(r.id)) || []), r.scientific_name],
       })),
     );
   }

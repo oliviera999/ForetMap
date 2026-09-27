@@ -14,7 +14,8 @@
 //     jamais écrit par la fiche ;
 //   - préremplissage GBIF : l'ORDRE latin est proposé comme « grand groupe » et la FAMILLE
 //     comme « genre » (défaut connu, § 1.3.6 — figé, pas corrigé ici) ;
-//   - recherche du catalogue : un nom secondaire n'est PAS trouvé (défaut connu, § 1.3.6).
+//   - recherche du catalogue : un nom secondaire n'était PAS trouvé (défaut connu, § 1.3.6) ;
+//     BASCULÉ par la migration 304 (piste C, noms) : il l'est désormais.
 //
 // Il a été écrit AVANT l'extraction de `lib/biodiv/speciesService.js` et
 // `lib/biodiv/speciesRepository.js` et doit rester vert après : c'est la preuve qu'elle ne
@@ -405,15 +406,18 @@ test(
   },
 );
 
-test('recherche du catalogue — un nom secondaire n’est pas trouvé (défaut figé)', async () => {
+test('recherche du catalogue — un nom secondaire est trouvé (défaut corrigé, migration 304)', async () => {
   const mod = await import(
     pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'plantFilters.js')).href
   );
   const row = await listRow(idA);
   assert.equal(mod.plantTextMatchesQuery(row, 'pelouse'), true);
   assert.equal(mod.plantTextMatchesQuery(row, 'taraxacum'), true);
-  // `second_name` (« Dent-de-lion caractérisation, Salade de taupe ») n'est pas lu.
-  assert.equal(mod.plantTextMatchesQuery(row, 'salade de taupe'), false);
+  // Avant la migration 304, `second_name` (« Dent-de-lion caractérisation, Salade de taupe »)
+  // n'était pas lu : ce test attendait `false`. Les autres noms vivent désormais dans la table
+  // des noms et la recherche les lit (`secondary_names`, `name_aliases`).
+  assert.equal(mod.plantTextMatchesQuery(row, 'salade de taupe'), true);
+  assert.deepEqual(row.secondary_names, ['Dent-de-lion caractérisation', 'Salade de taupe']);
 });
 
 test('suppression — 200 puis 404 ; la fiche quitte la liste', async () => {

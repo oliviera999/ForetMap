@@ -36,9 +36,11 @@ export function applyPrefillToForm(prev, opts = {}) {
     if (!selectedFields[key]) continue;
     const value = String(prefillResult?.fields?.[key] || '').trim();
     if (!value) continue;
-    const hasCurrentValue = String(prev?.[key] || '').trim().length > 0;
+    // Le « deuxième nom » des sources remplit les autres noms du formulaire (migration 304).
+    const formKey = key === 'second_name' && 'secondary_names' in next ? 'secondary_names' : key;
+    const hasCurrentValue = String(prev?.[formKey] || '').trim().length > 0;
     if (!hasCurrentValue || overwriteFilled) {
-      next[key] = value;
+      next[formKey] = value;
     }
   }
 

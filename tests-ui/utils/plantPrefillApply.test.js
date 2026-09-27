@@ -62,6 +62,21 @@ describe('applyPrefillToForm — champs texte', () => {
   });
 });
 
+describe('applyPrefillToForm — autres noms (migration 304)', () => {
+  test('le « deuxième nom » proposé remplit les autres noms du formulaire', () => {
+    const out = applyPrefillToForm(
+      { secondary_names: '' },
+      base({
+        speciesPrefillFields: ['second_name'],
+        prefillResult: { fields: { second_name: 'Dent-de-lion' } },
+        selectedFields: { second_name: true },
+      }),
+    );
+    expect(out.secondary_names).toBe('Dent-de-lion');
+    expect(out).not.toHaveProperty('second_name');
+  });
+});
+
 describe('applyPrefillToForm — photos', () => {
   const grouped = {
     photo_species: [

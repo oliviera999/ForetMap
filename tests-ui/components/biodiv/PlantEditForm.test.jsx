@@ -56,7 +56,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe('PlantEditForm', () => {
+// Formulaire complet (≈ 300 champs et boutons) : les requêtes par rôle y coûtent 2 à 3 s
+// seules, davantage quand toute la suite tourne en parallèle — délai relevé en conséquence.
+describe('PlantEditForm', { timeout: 20000 }, () => {
   test('rend le titre, les champs principaux, les panneaux et les actions', () => {
     setup();
     expect(screen.getByText('Modifier — Pommier')).toBeInTheDocument();

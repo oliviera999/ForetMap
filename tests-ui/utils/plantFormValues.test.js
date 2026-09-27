@@ -125,6 +125,13 @@ describe('extractPlantForm', () => {
       ['photo_species', 'https://x.fr/b.jpg', ''],
     ]);
   });
+  test('autres noms : liste du serveur jointe par « , », repli sur second_name', () => {
+    expect(
+      extractPlantForm({ secondary_names: ['Dent-de-lion', ' Salade de taupe '] }),
+    ).toMatchObject({ secondary_names: 'Dent-de-lion, Salade de taupe' });
+    expect(extractPlantForm({ second_name: 'Nopal' }).secondary_names).toBe('Nopal');
+    expect(EMPTY_PLANT_FORM).not.toHaveProperty('second_name');
+  });
   test('ignore les champs hors modèle', () => {
     const out = extractPlantForm({ name: 'X', inexistant: 'zzz' });
     expect(out).not.toHaveProperty('inexistant');

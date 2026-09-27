@@ -48,7 +48,9 @@ export const EMPTY_PLANT_FORM = {
   name: '',
   emoji: '🌱',
   description: '',
-  second_name: '',
+  // Autres noms (migration 304) : texte « nom 1, nom 2 », envoyé tel quel ; le serveur les
+  // range dans la table des noms et tient `second_name` en miroir.
+  secondary_names: '',
   scientific_name: '',
   accepted_scientific_name: '',
   taxon_kingdom: '',
@@ -115,6 +117,12 @@ export function extractPlantForm(plant = {}) {
     form[k] = normalizedPlantValue(plant[k]);
   });
   form.photos = formPhotosFromPlant(plant);
+  form.secondary_names = Array.isArray(plant.secondary_names)
+    ? plant.secondary_names
+        .map((n) => normalizedPlantValue(n))
+        .filter(Boolean)
+        .join(', ')
+    : normalizedPlantValue(plant.second_name);
   if (!form.emoji) form.emoji = '🌱';
   form.map_ids = Array.isArray(plant.map_ids)
     ? [...new Set(plant.map_ids.map((id) => String(id || '').trim()).filter(Boolean))]

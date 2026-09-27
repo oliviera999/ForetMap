@@ -557,13 +557,17 @@ function PlantEditForm({
               />
             </div>
             <div className="field">
-              <label htmlFor={fieldId('second_name')}>Deuxième nom</label>
+              <label htmlFor={fieldId('secondary_names')}>Autres noms</label>
               <input
-                id={fieldId('second_name')}
-                value={form.second_name}
-                onChange={set('second_name')}
-                placeholder="Nom alternatif"
+                id={fieldId('secondary_names')}
+                value={form.secondary_names}
+                onChange={set('secondary_names')}
+                placeholder="Séparés par des virgules : Dent-de-lion, Salade de taupe"
+                aria-describedby={fieldId('secondary_names-help')}
               />
+              <span id={fieldId('secondary_names-help')} className="section-sub">
+                Retrouvés par la recherche du catalogue.
+              </span>
             </div>
             <div className="field">
               <label htmlFor={fieldId('habitat')}>Habitat</label>
