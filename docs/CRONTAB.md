@@ -20,6 +20,16 @@ une modification locale, et le cron refuse alors de déployer). Appeler le chemi
 droit d'exécution du fichier, qu'un `git pull` peut faire sauter en le réécrivant : c'est ce qui
 a arrêté le déploiement le 27/09/2026 (« Permission denied » à chaque passage).
 
+`node` et `npm` : sur o2switch, ils ne sont dans **aucun** `PATH` du serveur, ni dans celui du
+cron — seul le terminal « activé » les connaît ([`docs/EXPLOITATION.md`](EXPLOITATION.md), § 1
+bis). Les scripts ci-dessous prennent **seuls** ceux de l'application
+([`scripts/lib/app-node.sh`](../scripts/lib/app-node.sh)) : la ligne `PassengerNodejs` du
+`.htaccess` que cPanel génère, sinon le `PATH`, sinon `~/nodevenv/<dossier>/<version>/bin`.
+Les lignes qui lancent `npm run …` directement passent par `scripts/with-app-node.sh` (ligne 5).
+Si le journal annonce « node et npm introuvables », ajouter à la ligne de crontab
+`DEPLOY_NODE_BIN_DIR=/home/USER/nodevenv/<dossier>/<version>/bin` (le chemin qu'affiche
+**Setup Node.js App** dans « Enter to the virtual environment », sans le `activate` final).
+
 Vérifier que le `.env` serveur contient au minimum :
 
 ```ini
@@ -81,14 +91,18 @@ le volume et les durées retenues, puis l'ajouter au crontab.
 
 ```bash
 cd /home/USER/foretmap
-npm run logs:purge -- --days=365 --history-days=365            # à blanc : compte, ne supprime rien
-npm run logs:purge -- --days=365 --history-days=365 --apply    # applique
+bash scripts/with-app-node.sh npm run logs:purge -- --days=365 --history-days=365          # à blanc : compte, ne supprime rien
+bash scripts/with-app-node.sh npm run logs:purge -- --days=365 --history-days=365 --apply  # applique
 ```
 
 ```cron
 # 5) Purge des journaux (sécurité 365 j, historiques de jeu 365 j) — le 1er de chaque mois à 04:00
-0 4 1 * * cd /home/USER/foretmap && npm run logs:purge -- --days=365 --history-days=365 --apply >> /home/USER/foretmap/logs/purge-logs.log 2>&1
+0 4 1 * * bash /home/USER/foretmap/scripts/with-app-node.sh npm run logs:purge -- --days=365 --history-days=365 --apply >> /home/USER/foretmap/logs/purge-logs.log 2>&1
 ```
+
+Avant le 27/09/2026, cette ligne s'écrivait `cd … && npm run logs:purge …` : sur o2switch, `npm`
+n'étant pas dans le `PATH` du cron, elle échouait chaque mois en « command not found », sans
+alerte. La remplacer par celle ci-dessus, puis vérifier `logs/purge-logs.log` après son passage.
 
 Le minimum accepté est 30 jours (pour chacune des deux rétentions) : en deçà, le script
 refuse — une purge trop agressive effacerait des traces encore utiles à une investigation.
@@ -124,6 +138,7 @@ accepte des arguments supplémentaires via `MOODLE_CRON_ARGS` (ex. `--cohort 26#
 | `DEPLOY_QUIET_SECONDS`             | `180`                            | n'applique un commit qu'après N s d'accalmie : une rafale de merges devient **un** redémarrage au lieu d'un par commit (`0` désactive) |
 | `FORETMAP_BOOT_JOURNAL`            | _(activé)_                       | `0` pour couper le journal de cycle de vie (`logs/boot-journal.ndjson`)                                                                |
 | `APP_DIR`                          | _(requis)_                       | Racine de l'application pour les scripts cron (`/home/USER/foretmap`)                                                                  |
+| `DEPLOY_NODE_BIN_DIR`              | _(trouvé seul)_                  | dossier `bin/` qui contient le `node` et le `npm` de l'application, si la recherche automatique échoue (`scripts/lib/app-node.sh`)     |
 | `MOODLE_CRON_LOCK_DIR`             | `/tmp/foretmap-moodle-sync.lock` | Verrou `mkdir` de la simulation Moodle (ligne 6)                                                                                       |
 | `MOODLE_CRON_ARGS`                 | _(vide)_                         | Arguments supplémentaires passés à `moodle:sync` (ex. `--cohort 26#603`) — jamais `--apply`                                            |
 | `MOODLE_CRON_NO_ALERT`             | _(vide)_                         | `1` pour couper l'e-mail `ops-alert` après une simulation Moodle                                                                       |

@@ -18,6 +18,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -49,6 +50,7 @@ test('la documentation liste bien des lignes de crontab (le contrôle porte sur 
     'db-backup.sh',
     'moodle-sync-cron.sh',
     'uptime-check.sh',
+    'with-app-node.sh',
   ]);
 });
 
@@ -79,7 +81,9 @@ test('auto-deploy-cron.sh : syntaxe bash valide', () => {
 test('auto-deploy-cron.sh : front vérifié sans déploiement, y compris arbre non propre', () => {
   const cron = fs.readFileSync(path.join(ROOT, 'scripts', 'auto-deploy-cron.sh'), 'utf8');
   // Les deux chemins qui sortaient tôt vérifient maintenant que le front est posé ET servi.
-  const dirty = cron.slice(cron.indexOf('DIRTY_TREE="$(git status --porcelain)"'));
+  const dirty = cron.slice(
+    cron.indexOf('DIRTY_TREE="$(git status --porcelain --untracked-files=no)"'),
+  );
   assert.match(dirty.slice(0, dirty.indexOf('exit 1')), /ensure_frontend_served/);
   const noCommit = cron.slice(cron.indexOf('if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then'));
   assert.match(noCommit.slice(0, noCommit.indexOf('exit 0')), /ensure_frontend_served/);
@@ -103,4 +107,51 @@ test('auto-deploy-cron.sh : sans DEPLOY_SECRET, le déploiement n’est plus aba
   // Tous les redémarrages passent par restart_app (API, sinon tmp/restart.txt).
   assert.equal((cron.match(/\/api\/admin\/restart" \\/g) || []).length, 1);
   assert.match(cron, /touch "\$APP_DIR\/tmp\/restart\.txt"/);
+});
+
+test('scripts de la crontab qui lancent node : ils prennent celui de l’application (app-node.sh)', () => {
+  // Sur o2switch, node et npm ne sont pas dans le PATH du cron (docs/EXPLOITATION.md, § 1 bis).
+  for (const name of ['auto-deploy-cron.sh', 'moodle-sync-cron.sh', 'uptime-check.sh']) {
+    const text = fs.readFileSync(path.join(ROOT, 'scripts', name), 'utf8');
+    assert.match(text, /scripts\/lib\/app-node\.sh/, name);
+    assert.match(text, /use_app_node/, name);
+  }
+  for (const doc of CRONTAB_DOCS) {
+    for (const line of crontabScriptLines(doc).concat(
+      fs
+        .readFileSync(path.join(ROOT, doc), 'utf8')
+        .split('\n')
+        .filter((l) => /^\s*(?:[\d*/,-]+\s+){5}\S/.test(l)),
+    )) {
+      // Une ligne qui appelle npm ou node sans passer par un script du dépôt échouerait en
+      // « command not found » sur le serveur.
+      if (/\/scripts\/[\w-]+\.sh\b/.test(line)) continue;
+      assert.doesNotMatch(line, /(?:^|[\s;&|])(?:npm|node)\s/, `${doc} :\n${line}`);
+    }
+  }
+});
+
+test('.gitignore : les fichiers que l’hébergement pose à la racine ne salissent pas git status', () => {
+  // Incident du 27/09/2026 : `node_modules` en lien symbolique (CloudLinux), `.htaccess` généré
+  // par cPanel et une sauvegarde `.env.bak-*` apparaissaient en fichiers non suivis.
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'foretmap-gitignore-'));
+  try {
+    const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+    git('init', '--quiet');
+    fs.copyFileSync(path.join(ROOT, '.gitignore'), path.join(repo, '.gitignore'));
+    git('add', '.gitignore');
+    fs.mkdirSync(path.join(repo, 'venv-modules'));
+    fs.symlinkSync(path.join(repo, 'venv-modules'), path.join(repo, 'node_modules'));
+    fs.writeFileSync(path.join(repo, '.htaccess'), 'PassengerAppType node\n');
+    fs.writeFileSync(path.join(repo, '.env.bak-20260927'), 'X=1\n');
+    fs.writeFileSync(path.join(repo, '.env'), 'X=1\n');
+    // `venv-modules/` est vide : git ne le liste pas. Seul le .gitignore indexé reste.
+    assert.equal(git('status', '--porcelain', '--untracked-files=all'), 'A  .gitignore\n');
+    // `public/.htaccess` resterait suivi : seule la racine est ignorée.
+    fs.mkdirSync(path.join(repo, 'public'));
+    fs.writeFileSync(path.join(repo, 'public', '.htaccess'), 'x\n');
+    assert.match(git('status', '--porcelain', '--untracked-files=all'), /\?\? public\/\.htaccess/);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
 });

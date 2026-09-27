@@ -1,5 +1,11 @@
-# Dépendances
-node_modules/
+# Dépendances. Sans barre finale : sur o2switch (CloudLinux), `node_modules` est un LIEN
+# symbolique vers le virtualenv de l'application, que `node_modules/` (dossiers seulement)
+# ne couvrait pas — il apparaissait en fichier non suivi sur le serveur.
+node_modules
+
+# Fichiers que l'hébergement pose à la racine de l'application : configuration Passenger
+# générée par cPanel (« Setup Node.js App »). Ancré à la racine : `public/` n'en a pas.
+/.htaccess
 
 # Worktrees d'agents Claude Code (éphémères)
 .claude/worktrees/
@@ -14,17 +20,18 @@ deploy/
 /dist/
 
 # Dossiers de travail du build frontend récupéré depuis la branche d'artefacts
-# (scripts/fetch-dist-artifact.js). Ils doivent rester hors du dépôt ET hors de
-# `git status --porcelain`, que le cron de déploiement exige vide avant de pull.
+# (scripts/fetch-dist-artifact.js). Ils doivent rester hors du dépôt (le cron de déploiement
+# ne regarde que les fichiers suivis, mais un `git status` lisible aide au dépannage).
 dist.new/
 dist.prev/
 dist.candidate/
 dist.discarded/
 
-# Fichiers d'environnement (secrets)
+# Fichiers d'environnement (secrets), sauvegardes comprises (`cp .env .env.bak-AAAAMMJJ`)
 .env
 .env.local
 .env.*.local
+.env.bak*
 
 # Base de données SQLite (optionnel : décommenter si vous ne voulez pas versionner la DB)
 # *.db
