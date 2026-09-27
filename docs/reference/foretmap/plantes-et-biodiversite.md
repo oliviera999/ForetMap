@@ -18,7 +18,8 @@ celles qu'ils ont **observées** sur le terrain.
 - **Tout le monde** (y compris les simples visiteurs) peut consulter le catalogue. Les fiches
   s'ouvrent aussi depuis la **visite** : chaque lieu du plan affiche ses espèces en vignettes
   (voir [Visite et mascottes](visite-et-mascottes.md)).
-- **L'élève connecté** filtre, lit les fiches et enregistre ses observations.
+- **L'élève connecté** filtre, lit les fiches, enregistre ses observations et peut
+  **signaler une observation** de terrain, qu'un professeur vérifie.
 - **Le professeur** crée et enrichit les fiches, avec des aides puissantes :
   pré-remplissage automatique, identification par photo, import en masse.
 
@@ -26,7 +27,8 @@ celles qu'ils ont **observées** sur le terrain.
 
 Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
 
-- les **noms** : nom usuel, deuxième nom, nom scientifique d’usage, et un **emoji** ;
+- les **noms** : nom usuel, **autres noms** courants, nom scientifique d’usage, et un
+  **emoji** ;
   si le **nom accepté** (référentiel GBIF) diffère, il s’affiche sous le nom d’usage, avec
   un lien vers la fiche GBIF quand une clé est connue ;
 - la **classification** : règne, grand groupe, famille, genre ; une **classification
@@ -43,14 +45,16 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
   préférée, nutriments préférés ;
-- la **détermination** : critères d'identification, confusions possibles, période
-  d'observation (voir ci-dessous) ;
+- la **détermination** : critères d'identification, **sosies** (autres fiches du catalogue
+  avec lesquelles l'espèce se confond), confusions possibles, période d'observation (voir
+  ci-dessous) ;
 - le **danger** (ce que l'espèce fait à qui la touche ou la mange) et le **risque
   sanitaire** (ce qu'elle peut transmettre), en deux blocs distincts ;
-- des **remarques** libres (trois champs) et une description générale ;
+- des **remarques** libres (une seule zone de texte ; une ligne vide sépare deux
+  remarques) et une description générale ;
 - des **photos multiples**, rangées en six cases : illustration principale, espèce,
   feuille, fleur, fruit, partie récoltée — chaque case peut contenir plusieurs images
-  (téléversées ou par lien) ;
+  (téléversées ou par lien), et **chaque photo porte son auteur et sa licence** ;
 - les **sources** des informations (liens et références).
 
 La fiche affiche aussi automatiquement ses liens avec le reste de l'application : sa
@@ -84,6 +88,14 @@ La fiche dit **d'où vient la présence**, sobrement, sous « Sur la carte » : 
 espèce seulement au registre n'a pas de mini-carte : elle est connue sur le site sans lieu
 précis. Une espèce absente de la carte ouverte porte la mention « Pas encore signalée sur
 cette carte ».
+
+**« Confirmée sur le site »** (depuis septembre 2026) : quand un professeur **valide** une
+observation signalée par un élève (voir « Signaler une observation » plus bas), l'espèce est
+inscrite au registre de la carte si elle n'y était pas, et la fiche affiche la pastille
+**« Confirmée sur le site »** sous les boutons d'observation. La date de l'observation et son
+auteur sont gardés comme **première mention** sur le site, sauf si une première mention
+était déjà connue : elle n'est jamais remplacée. Une confirmation ne se perd pas quand une
+autre observation de la même espèce n'est pas retenue.
 
 Deux précisions :
 
@@ -217,12 +229,17 @@ la fiche restent affichés à part, en pastilles.
 ## La section « Détermination »
 
 Une description générale ne suffit pas à affirmer qu'on a bien affaire à telle espèce.
-La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse,
-avec trois champs :
+La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse :
 
 - **Critères de détermination** — ce qu'il faut observer pour être sûr : silhouette,
   taille, couleurs, nervures, nombre de pattes, lames, odeur, traces…
-- **Confusions possibles** — les espèces ressemblantes et le critère qui tranche.
+- **Sosies** — les autres fiches du catalogue avec lesquelles l'espèce se confond, chacune
+  avec le critère qui permet de les distinguer. Sur la fiche, chaque sosie s'affiche
+  « **Ne pas confondre avec** … », et un clic sur son nom ouvre sa fiche. Un sosie vaut
+  dans les deux sens : ajouté sur la fiche de la laitue, la laitue vireuse affiche à son
+  tour « Ne pas confondre avec la laitue ».
+- **Confusions possibles** — texte libre : les espèces ressemblantes et le critère qui
+  tranche, en particulier celles qui n'ont **pas** de fiche au catalogue.
 - **Quand l'observer** — saison, moment de la journée, stade (floraison, fructification,
   mue…), c'est-à-dire la période où la détermination est réellement possible.
 
@@ -231,7 +248,7 @@ plantes : le catalogue mêle végétaux, animaux, champignons, micro-organismes 
 fiches-ressources. On parle donc de « caractères observables » et de « stade », jamais de
 feuille ni de fleur.
 
-Les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
+Les **sosies** et les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
 distinct du reste de la fiche. C'est voulu : la forêt est comestible et les élèves
 récoltent. Une ressemblance avec une espèce toxique ou piquante ne doit pas se lire comme
 une ligne de métadonnée parmi d'autres.
@@ -241,11 +258,18 @@ juste après la photo : devant l'être vivant, on cherche d'abord à savoir ce q
 site peut la faire afficher **dépliée d'office** pour tout le monde : Réglages → Modules
 UI → « Fiches espèces — section « Détermination » toujours dépliée ».
 
-La section n'apparaît que si le professeur a renseigné au moins un des trois champs. Elle
+La section n'apparaît que si le professeur a renseigné au moins un de ces éléments. Elle
 reste donc invisible sur les fiches non documentées, plutôt que d'ajouter un bandeau vide
-sur tout le catalogue. Ces trois champs ne sont **pas** remplis par le pré-remplissage
+sur tout le catalogue. Ces champs ne sont **pas** remplis par le pré-remplissage
 automatique : les bases naturalistes interrogées ne fournissent pas de critères de
-détermination. Ils se saisissent à la main, ou par l'import en masse.
+détermination. Ils se saisissent à la main (les sosies depuis le formulaire, section
+« Détermination » → « Sosies dans le catalogue »), ou par l'import en masse pour les textes.
+
+> ⚠️ **Point d'attention — les sosies sont à renseigner.** Au passage à cette version,
+> aucun sosie n'existe encore : une vingtaine de fiches parlent de ressemblance dans leurs
+> **remarques** (« ressemble à… », « se distingue de… »). Les transformer en sosies — et
+> déplacer les mises en garde vers l'encadré « Danger » — est un travail de relecture,
+> fiche par fiche, que l'application ne fait pas à la place d'une personne.
 
 ## L'encadré « Danger »
 
@@ -340,14 +364,25 @@ l'olivier, l'oléastre et la pariétaire (pollen allergisant). Ces fiches arrive
 
 ## Crédit et licence des photos
 
-Les photos venues de Wikimedia Commons portent désormais le **nom de leur auteur** et leur
-**licence**, affichés sous la photo principale de la fiche, avec un lien vers la page du
-fichier. Ce n'est pas une politesse : les licences en présence au catalogue — CC BY-SA 3.0,
-CC BY-SA 4.0, CC BY — imposent toutes de nommer l'auteur.
+**Chaque photo** de la fiche porte le **nom de son auteur** et sa **licence** : sous la
+photo principale, et sous chaque vignette de la galerie (« Auteur — Licence », avec un lien
+« Source » vers la page d'origine quand il est connu). Ce n'est pas une politesse : les
+licences en présence au catalogue — CC BY-SA 3.0, CC BY-SA 4.0, CC BY — imposent toutes de
+nommer l'auteur de chaque image affichée.
 
-L'attribution de **195 fiches** a été récupérée automatiquement depuis Wikimedia Commons.
-Les photos ajoutées ensuite sont à créditer à la main, dans la section « Ressources » du
-formulaire.
+L'attribution de la photo principale de **195 fiches** a été récupérée automatiquement
+depuis Wikimedia Commons ; elle vaut aussi pour les copies de cette même photo rangées dans
+une autre case (souvent « espèce »). Les autres photos se créditent à la main, dans la
+section « Photos » du formulaire : chaque photo y a sa ligne — lien, **auteur**,
+**licence**. Le pré-remplissage garde désormais l'auteur et la licence des photos qu'il
+propose. Une photo téléversée arrive **sans** auteur ni licence : le formulaire le rappelle,
+et une nouvelle photo principale n'hérite plus du crédit de l'ancienne.
+
+> ⚠️ **Point d'attention — photos encore sans attribution.** Sur la copie de travail du
+> catalogue, environ **120 photos** (sur ≈ 490) n'ont ni auteur ni licence enregistrés —
+> surtout des photos secondaires (feuille, fleur, fruit, partie récoltée). Elles restent
+> affichées, avec le lien vers leur page Wikimedia quand l'adresse le permet ; les créditer
+> dans le formulaire met l'établissement en règle.
 
 Au passage, **30 fiches pointaient une image supprimée de Wikimedia** (le merle, la figue,
 l'escargot petit-gris, la coccinelle à sept points…). Elles affichaient une image cassée ;
@@ -384,8 +419,9 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
    absentes ; ou toutes les fiches). Les vignettes des espèces présentes portent la
    pastille **« Sur la carte »**. Pendant le bref chargement de la présence, ou si le
    serveur ne répond pas, le filtre ne retire rien (une note le signale en cas de panne)
-   plutôt que d'afficher un catalogue vide. Une **recherche** et un filtre par **règne**
-   complètent la surface. Des pastilles rapides permettent de
+   plutôt que d'afficher un catalogue vide. Une **recherche** (qui trouve aussi les
+   **autres noms** d'une espèce : « dent-de-lion » trouve le pissenlit) et un filtre par
+   **règne** complètent la surface. Des pastilles rapides permettent de
    ne garder que les espèces **comestibles**, **UICN menacées**, déjà **observées**
    ou **pas encore**. Un tri par nom (A→Z / Z→A) ou par observations personnelles
    complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
@@ -417,7 +453,62 @@ réseau. Une observation envoyée deux fois (réponse perdue, appareil qui renvo
 comptée qu'**une** fois. Sur une tablette partagée, l'observation n'est envoyée que sous le
 compte de son auteur, à sa prochaine connexion.
 
+### Signaler une observation (espèce vue sur le terrain)
+
+« Espèce observée » ci-dessus est un **acquis d'apprentissage** : l'élève dit qu'il a vu et
+lu. **Signaler une observation** est autre chose : c'est une **donnée de terrain**, qu'un
+professeur vérifie avant qu'elle compte pour le site.
+
+1. Depuis la **fiche d'une espèce** (bouton **« Signaler une observation »**) ou depuis la
+   fiche d'une **zone** ou d'un **repère** de la carte (bouton **« Signaler une observation
+   ici »**), l'élève ouvre un court formulaire : l'espèce (déjà choisie depuis une fiche ;
+   « Je ne sais pas » est possible), le lieu (déjà choisi depuis la carte), la date (celle du
+   jour par défaut), la façon dont il l'a repérée (vue, chant ou cri, trace, indice, de nuit),
+   ce qu'il a vu, et une **photo** facultative. Le formulaire rappelle la règle : **on observe
+   sans toucher ni prélever** — on regarde, on écoute, on photographie.
+2. L'observation part **« En attente de validation »**. L'élève retrouve toutes les siennes
+   dans **« Mes observations »** (même bouton, à côté), avec leur statut — **Validée** ou
+   **Non retenue** — et la note éventuelle du professeur. Il peut supprimer une observation
+   tant qu'elle n'est pas validée ; il peut ajouter ou retirer sa photo tant qu'elle attend.
+3. **Sans réseau sur le terrain**, l'observation est **gardée sur l'appareil** et part toute
+   seule au retour du réseau (« Pas de réseau : ton observation est gardée sur l'appareil et
+   partira toute seule »). La **photo**, trop lourde pour l'appareil, ne peut pas attendre :
+   l'élève en est prévenu, son texte part seul. Une observation renvoyée deux fois n'est
+   enregistrée qu'**une** fois ; sur une tablette partagée, elle ne part que sous le compte
+   de son auteur. Dans « Mes observations », elle apparaît « En attente de réseau » jusqu'à
+   son envoi.
+
+Les photos d'observation sont **privées** : seuls leur auteur et les professeurs habilités
+les voient ; les informations cachées dans la photo (lieu GPS, appareil) sont effacées à
+l'envoi. Un compte « Visiteur » ne peut pas signaler d'observation.
+
 ## Comment ça se passe — côté professeur
+
+### Valider les observations des élèves
+
+Dans l'onglet **Biodiversité** du professeur, l'encadré repliable **« Observations à
+valider »** (avec leur nombre) liste les observations signalées sur la carte active — ou sur
+toutes les cartes, et par statut : à valider (les plus anciennes d'abord), validées, non
+retenues. Chaque observation montre l'élève, la date, le lieu, la façon dont l'espèce a été
+repérée, le texte et les photos.
+
+- Le professeur choisit l'**espèce retenue** (celle proposée par l'élève, ou une autre s'il
+  s'est trompé ou ne savait pas), écrit s'il le souhaite une **note pour l'élève**, puis
+  **Valider** ou **Ne pas retenir**. On ne peut pas valider sans espèce.
+- **Valider** confirme la présence de l'espèce sur la carte : la fiche affiche « Confirmée sur
+  le site » (voir « Présente sur ce site » plus haut), et l'espèce compte partout où la
+  présence est utilisée.
+- La décision est **définitive** : une observation validée ne peut plus être refusée ni
+  supprimée (elle sert de preuve), une observation non retenue ne peut plus être validée.
+  Chaque décision est inscrite au **journal d'audit**.
+- **Preuve d'une relation du réseau trophique** : sous une observation, le professeur peut la
+  rattacher à une relation où figure l'espèce (« la coccinelle mange le puceron »). Dès que
+  l'observation est validée, la relation passe à **« Observé sur le site »** dans le réseau
+  trophique ; ce niveau de preuve ne redescend jamais tout seul.
+
+Le droit de valider est une permission dédiée, **« Validation des observations
+d'espèces »**, accordée d'office à l'administrateur et au n3boss, pas au prof de classe (valider
+écrit dans le registre de biodiversité du site).
 
 ### Créer et modifier une fiche
 
@@ -476,21 +567,33 @@ sans rien enregistrer ; on lance l'import réel ensuite.
 Les champs de détermination s'importent comme les autres : les colonnes « Critères de
 détermination », « Confusions possibles » et « Période d'observation » sont reconnues,
 avec quelques variantes courantes (« Critères d'identification », « Espèces
-ressemblantes », « Risques de confusion », « Quand l'observer »).
+ressemblantes », « Risques de confusion », « Quand l'observer »). Les remarques
+s'importent dans une colonne « remarques » (les trois anciennes colonnes restent
+acceptées) ; le crédit et la licence de la photo principale ont leurs colonnes dans le
+modèle complet. Les sosies ne s'importent pas : ils se choisissent dans le formulaire.
 
-### Les alias de noms
+### Les autres noms et les alias de noms
 
 Une même espèce peut être désignée par plusieurs noms (« pomme de terre » /
-« patate »). L'application gère des **alias** : quand un nom alternatif est associé à
-une fiche, l'utiliser — par exemple dans la liste des êtres vivants d'une zone —
-retrouve automatiquement la bonne fiche.
+« patate »). Le formulaire a un champ **Autres noms** (séparés par des virgules) :
+ils s'affichent sur la fiche et la **recherche du catalogue** les trouve. Un nom ne peut
+désigner qu'**une** fiche : si un autre nom est déjà celui d'une autre fiche (ou son nom
+tout court), il n'est pas rattaché — il reste écrit et affiché, mais il faudra trancher
+(fiches en double ? nom à retirer ?).
+
+L'application connaît aussi des **variantes** de noms, apportées avec le contenu
+(pluriels, formes courtes, anciens noms) : quand un nom alternatif est associé à une
+fiche, l'utiliser — par exemple dans la liste des êtres vivants d'une zone — retrouve
+automatiquement la bonne fiche, et la recherche le trouve aussi.
 
 ## ⚠️ Points d'attention sur l'existant
 
-> ⚠️ **Point d'attention** — Les **alias de noms** n'ont **aucun écran de gestion**
-> dans l'application : ils ne peuvent être créés ou consultés que par une opération
-> technique menée hors application (import préparé par un administrateur). Un
-> professeur ne peut donc ni voir ni corriger les alias existants depuis l'interface.
+> ⚠️ **Point d'attention** — Les **variantes de noms** n'ont **aucun écran de gestion**
+> dans l'application : elles ne peuvent être créées ou consultées que par une opération
+> technique menée hors application (import préparé par un administrateur). Seuls les
+> **autres noms** se gèrent depuis le formulaire de la fiche. Sur la copie de travail du
+> catalogue, un seul autre nom attend une décision : « Abeille charpentière », écrit dans
+> les autres noms du Xylocope violet alors qu'une fiche porte déjà ce nom.
 
 > ⚠️ **Point d'attention** — Le pré-remplissage dépend de services externes : selon la
 > disponibilité de ces services et l'espèce demandée, certains champs peuvent revenir
@@ -507,6 +610,16 @@ retrouve automatiquement la bonne fiche.
 
 > ⚠️ **Point d'attention** — La **suppression** d'une fiche est immédiate et sans
 > corbeille. Les zones et repères qui référençaient l'espèce perdent ce lien.
+
+> ⚠️ **Point d'attention** — **Décocher une carte** dans le formulaire d'une fiche retire
+> l'espèce du registre de cette carte, **sauf si sa présence y a été confirmée** par une
+> observation validée : dans ce cas la carte reste cochée à l'enregistrement et la pastille
+> « Confirmée sur le site » demeure. Une confirmation ne se défait pas depuis la fiche.
+
+> ⚠️ **Point d'attention** — Deux gestes voisins cohabitent sur la fiche : **« Espèce
+> observée »** (compteur personnel d'apprentissage, sans vérification) et **« Signaler une
+> observation »** (donnée de terrain validée par un professeur). Seul le second peut
+> confirmer une espèce sur le site.
 
 L’affichage du catalogue et des outils associés suit le **niveau pédagogique** : en
 Collège, le nom accepté, le lien GBIF et la classification latine sont masqués, ainsi que

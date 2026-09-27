@@ -54,7 +54,6 @@ function ZoneDrawModal({
         // Colonne dédiée `zones.emoji` (audit C4) — le nom garde son préfixe pour compat.
         emoji: prefixEmoji,
         points: points_pct,
-        current_plant: '',
         living_beings: living,
       });
       onClose();

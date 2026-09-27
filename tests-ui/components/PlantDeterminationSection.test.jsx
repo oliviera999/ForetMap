@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PlantDeterminationSection } from '../../src/components/biodiv/PlantDeterminationSection.jsx';
 import { PublicSettingsProvider } from '../../src/contexts/PublicSettingsContext.jsx';
 
@@ -94,5 +94,35 @@ describe('PlantDeterminationSection', () => {
       defaultOpen: false,
     });
     expect(container.querySelector('details').open).toBe(false);
+  });
+
+  test('sosies du catalogue : « Ne pas confondre avec … » et lien vers la fiche', () => {
+    const onOpenPlant = vi.fn();
+    renderSection(
+      {
+        name: 'Laitue',
+        lookalikes: [
+          { plant_id: 9, name: 'Laitue vireuse', emoji: '⚠️', note: 'latex blanc amer' },
+          { plant_id: 12, name: '', note: 'ignoré sans nom' },
+        ],
+      },
+      { onOpenPlant, defaultOpen: true },
+    );
+    expect(screen.getByText('Sosies')).toBeInTheDocument();
+    expect(screen.getByText(/Ne pas confondre avec/)).toBeInTheDocument();
+    expect(screen.getByText(/latex blanc amer/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la fiche Laitue vireuse' }));
+    expect(onOpenPlant).toHaveBeenCalledWith(9);
+    expect(screen.queryByText(/ignoré sans nom/)).not.toBeInTheDocument();
+  });
+
+  test('sosies sans lien d’ouverture : nom en texte, section rendue même sans autre champ', () => {
+    const { container } = renderSection(
+      { name: 'Ail', lookalikes: [{ plant_id: 3, name: 'Muguet', note: null }] },
+      { defaultOpen: true },
+    );
+    expect(container.querySelector('.plant-determination')).not.toBeNull();
+    expect(screen.getByText('Muguet')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

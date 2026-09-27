@@ -30,14 +30,21 @@ const SCRIPT = path.join(ROOT, 'scripts', 'sync-shared-cores.js');
 // (donc sans miroir CJS régénéré) doit échouer ici plutôt qu'au démarrage de l'API.
 test('la liste des paires couvre bien les noyaux attendus', () => {
   assert.deepStrictEqual(PAIRS.map(([, outName]) => outName).sort(), [
+    'biodivEnums.js',
     'emojiMojibakeCore.js',
+    'enumCore.js',
     'glBiomesRegistryCore.js',
     'glBoardPathCore.js',
     'glImageFrameCore.js',
     'glMarkerAppearanceCore.js',
     'glMarkerBackgroundsCore.js',
     'glMarkerEventConfigCore.js',
+    'moodleSyncEnums.js',
     'n3beurRolesCore.js',
+    'pedagoEnums.js',
+    'platformEnums.js',
+    'taskEnums.js',
+    'terrainEnums.js',
   ]);
 });
 

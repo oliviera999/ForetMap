@@ -144,8 +144,8 @@ test('GET /api/visit/content — zone d’infrastructure signalée (volet biodiv
 });
 
 test('GET /api/visit/content — aucun champ legacy mono-espèce republié', async () => {
-  // `zones.current_plant` / `map_markers.plant_name` ne servent que de repli : la charge
-  // publique n'expose que la liste normalisée.
+  // `zones.current_plant` / `map_markers.plant_name` ne sont plus lus (piste C, T1) : la
+  // charge publique n'expose que la liste normalisée.
   await execute('UPDATE zones SET current_plant = ? WHERE id = ?', ['Nom legacy', ZONE_ID]);
   const res = await request(app).get(`/api/visit/content?map_id=${MAP_ID}`).expect(200);
   const zone = (res.body.zones || []).find((z) => z.id === ZONE_ID);
@@ -156,12 +156,15 @@ test('GET /api/visit/content — aucun champ legacy mono-espèce republié', asy
   assert.ok(!('plant_name' in marker), 'plant_name ne doit pas être republié');
 });
 
-test('GET /api/visit/content — repli sur le nom legacy quand la jonction est vide', async () => {
+test('GET /api/visit/content — plus de repli sur le nom legacy quand la jonction est vide', async () => {
+  // Piste C (audit du 25/09/2026, § 3.5), temps T1 : avant, le nom de `current_plant` était
+  // repris comme seul être vivant de la zone ; les noms hérités ont été rattachés aux
+  // jonctions par la migration 306, et la colonne n'est plus lue.
   await execute('DELETE FROM zone_species WHERE zone_id = ?', [ZONE_ID]);
   await execute('UPDATE zones SET current_plant = ? WHERE id = ?', [PLANT_NAME, ZONE_ID]);
   const res = await request(app).get(`/api/visit/content?map_id=${MAP_ID}`).expect(200);
   const zone = (res.body.zones || []).find((z) => z.id === ZONE_ID);
-  assert.deepStrictEqual(zone.living_beings_list, [PLANT_NAME]);
+  assert.deepStrictEqual(zone.living_beings_list, []);
   assert.deepStrictEqual(zone.species, []);
   // Remise en état pour les autres fichiers de test (la zone est supprimée en after).
   const stillThere = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [ZONE_ID]);

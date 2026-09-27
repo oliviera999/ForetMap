@@ -80,12 +80,13 @@ describe('applyFindReplace', () => {
 });
 
 describe('locationLivingBeings', () => {
-  test('junction prioritaire, replis JSON puis colonne legacy', () => {
+  test('junction prioritaire, repli JSON ; la colonne legacy n’est plus lue', () => {
     expect(locationLivingBeings({ living_beings_list: ['Pommier', 'Sauge'] })).toEqual([
       'Pommier',
       'Sauge',
     ]);
-    expect(locationLivingBeings({ current_plant: 'Tomate' })).toEqual(['Tomate']);
+    // Piste C (audit du 25/09/2026, § 3.5), temps T1.
+    expect(locationLivingBeings({ current_plant: 'Tomate' })).toEqual([]);
   });
 });
 

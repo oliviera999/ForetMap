@@ -40,7 +40,7 @@ test('le contenu illustré garde une limite intermédiaire', () => {
   for (const p of [
     '/api/forum/threads',
     '/api/context-comments',
-    '/api/observations',
+    '/api/species-observations/12/photos',
     '/api/zones/z1/photos',
     '/api/map/markers/m1/photos',
     '/api/plants/12/photo',

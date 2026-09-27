@@ -244,7 +244,9 @@ function isSqlWrite(sql) {
 // (GL hors gl_classes, forum, commentaires contextuels) bumpe TOUS les domaines.
 const SYNC_DOMAIN_TABLES = {
   maps: ['maps'],
-  zones: ['zones', 'zone_photos', 'zone_history', 'visit_zones', 'maps', 'location_links'],
+  // `zone_history` retirée (temps T2, audit du 25/09/2026, § 3.5) : plus aucune écriture
+  // applicative ; la table attend son DROP (temps T3).
+  zones: ['zones', 'zone_photos', 'visit_zones', 'maps', 'location_links'],
   // Couvre /api/tasks ET /api/task-projects (routes/tasks.js + routes/task-projects.js).
   tasks: [
     'tasks',
@@ -279,7 +281,16 @@ const SYNC_DOMAIN_TABLES = {
   //   - `glossary_terms`, `quiz_questions` et leurs tables de liaison espèces : lues par
   //     les routes **par fiche** (`/:id/glossary-terms`, `/:id/quiz-questions`), jamais par
   //     la liste. Elles restent suivies par le domaine `tutorials`.
-  plants: ['plants'],
+  // Tables liées de la piste C (audit du 25/09/2026, § 2.3) : photos (migration 303), noms
+  // (`plant_name_aliases`, lus par la liste depuis la 304 — hors domaine jusque-là, chaque
+  // écriture retombait sur le repli « tout périmer ») et sosies (305). Toutes changent la
+  // réponse de `GET /api/plants`.
+  // `map_species` y entre aussi (migration 307) : `GET /api/plants` renvoie les cartes de
+  // chaque fiche (`map_ids`), et la validation d'une observation d'espèce peut créer une ligne
+  // du registre. Hors de tout domaine, cette écriture retombait sur le repli `bumpAll`.
+  // Les tables d'observations elles-mêmes ne sont lues par aucun endpoint du cycle : elles
+  // figurent dans `SYNC_IGNORED_TABLES_RE` ci-dessous.
+  plants: ['plants', 'plant_photos', 'plant_name_aliases', 'plant_lookalikes', 'map_species'],
   markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps', 'location_links'],
   tutorials: [
     'tutorials',
@@ -323,8 +334,12 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // chaque verrou, chaque accusé glossaire et chaque lien créé par un prof retombait sur le
 // repli `bumpAll` : tous les domaines invalidés, le catalogue complet rechargé chez toute la
 // classe — le symptôme B6, sur les tables voisines.
+//
+// Les trois tables des observations d'espèces (migration 307) ne sont lues que par
+// `/api/species-observations` (listes de l'élève et de l'enseignant), hors cycle : une
+// observation soumise par un élève ne doit pas faire recharger le catalogue de toute la classe.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );
@@ -972,49 +987,40 @@ async function seedData() {
   const zoneCount = await queryOne('SELECT COUNT(*) AS c FROM zones').then((r) => r?.c ?? 0);
   if (zoneCount > 0) return;
 
-  const iz = `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  // `current_plant`, `stage` et `zone_history` ne sont plus écrits (piste C de l'audit du
+  // 25/09/2026, § 3.5, temps T2) : l'espèce de chaque potager de démonstration est rattachée
+  // par la jonction `zone_species`, plus bas, une fois les fiches créées.
+  const iz = `INSERT INTO zones (id, map_id, name, x, y, width, height, special, shape) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   const zones = [
-    ['pg', 'foret', 'Plantes Grasses', 183, 88, 56, 38, 'Cactus', 'growing', 0, 'rect'],
-    ['aromatiques', 'foret', 'Aromatiques (A)', 572, 258, 50, 46, 'Menthe', 'growing', 0, 'rect'],
-    ['potager-n', 'foret', 'Potager Nord', 478, 262, 88, 88, 'Tomate', 'growing', 0, 'rect'],
-    ['potager-s', 'foret', 'Potager Sud', 478, 356, 88, 88, 'Laitue', 'ready', 0, 'rect'],
-    ['potager-ne', 'foret', 'Potager Nord-Est', 572, 262, 88, 88, 'Carotte', 'growing', 0, 'rect'],
-    ['potager-se', 'foret', 'Potager Sud-Est', 572, 356, 88, 88, 'Basilic', 'growing', 0, 'rect'],
-    ['butte-fleurie', 'foret', 'Butte fleurie', 295, 108, 100, 100, '', 'special', 1, 'circle'],
-    ['sa', 'foret', 'Spirale Arom.', 430, 174, 36, 36, '', 'special', 1, 'circle'],
-    ['compostage', 'foret', 'Compostage', 472, 116, 42, 36, '', 'special', 1, 'rect'],
-    ['cuve', 'foret', 'Cuve à eau', 536, 95, 44, 33, '', 'special', 1, 'rect'],
-    ['pergola', 'foret', 'Pergola', 293, 205, 90, 68, '', 'special', 1, 'rect'],
-    ['fumier', 'foret', 'Fumier', 382, 262, 50, 55, '', 'special', 1, 'rect'],
-    ['mare-g', 'foret', 'Mare', 220, 258, 76, 104, '', 'special', 1, 'ellipse'],
-    ['mare-b', 'foret', 'Mare (bas)', 444, 470, 72, 44, '', 'special', 1, 'ellipse'],
-    ['butte-b', 'foret', 'Butte', 392, 444, 60, 36, '', 'special', 1, 'ellipse'],
-    ['ruches', 'foret', 'Ruches', 520, 447, 52, 50, '', 'special', 1, 'rect'],
+    ['pg', 'foret', 'Plantes Grasses', 183, 88, 56, 38, 0, 'rect'],
+    ['aromatiques', 'foret', 'Aromatiques (A)', 572, 258, 50, 46, 0, 'rect'],
+    ['potager-n', 'foret', 'Potager Nord', 478, 262, 88, 88, 0, 'rect'],
+    ['potager-s', 'foret', 'Potager Sud', 478, 356, 88, 88, 0, 'rect'],
+    ['potager-ne', 'foret', 'Potager Nord-Est', 572, 262, 88, 88, 0, 'rect'],
+    ['potager-se', 'foret', 'Potager Sud-Est', 572, 356, 88, 88, 0, 'rect'],
+    ['butte-fleurie', 'foret', 'Butte fleurie', 295, 108, 100, 100, 1, 'circle'],
+    ['sa', 'foret', 'Spirale Arom.', 430, 174, 36, 36, 1, 'circle'],
+    ['compostage', 'foret', 'Compostage', 472, 116, 42, 36, 1, 'rect'],
+    ['cuve', 'foret', 'Cuve à eau', 536, 95, 44, 33, 1, 'rect'],
+    ['pergola', 'foret', 'Pergola', 293, 205, 90, 68, 1, 'rect'],
+    ['fumier', 'foret', 'Fumier', 382, 262, 50, 55, 1, 'rect'],
+    ['mare-g', 'foret', 'Mare', 220, 258, 76, 104, 1, 'ellipse'],
+    ['mare-b', 'foret', 'Mare (bas)', 444, 470, 72, 44, 1, 'ellipse'],
+    ['butte-b', 'foret', 'Butte', 392, 444, 60, 36, 1, 'ellipse'],
+    ['ruches', 'foret', 'Ruches', 520, 447, 52, 50, 1, 'rect'],
   ];
   for (const z of zones) {
     await execute(iz, z);
   }
-
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
-    'potager-n',
-    'Poivron',
-    '2024-11-15',
-  ]);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
-    'potager-s',
-    'Radis',
-    '2025-01-20',
-  ]);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
-    'potager-ne',
-    'Persil',
-    '2024-12-10',
-  ]);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
-    'aromatiques',
-    'Basilic',
-    '2025-02-10',
-  ]);
+  /** Espèce cultivée dans chaque zone de démonstration (jonction `zone_species`). */
+  const seedZoneSpecies = [
+    ['pg', 'Cactus'],
+    ['aromatiques', 'Menthe'],
+    ['potager-n', 'Tomate'],
+    ['potager-s', 'Laitue'],
+    ['potager-ne', 'Carotte'],
+    ['potager-se', 'Basilic'],
+  ];
 
   const plantsCount = await queryOne('SELECT COUNT(*) AS c FROM plants').then((r) => r?.c ?? 0);
   if (plantsCount === 0) {
@@ -1083,6 +1089,13 @@ async function seedData() {
         null,
       ]);
     }
+  }
+  for (const [zoneId, plantName] of seedZoneSpecies) {
+    await execute(
+      `INSERT IGNORE INTO zone_species (zone_id, plant_id)
+       SELECT ?, id FROM plants WHERE name = ? ORDER BY id LIMIT 1`,
+      [zoneId, plantName],
+    );
   }
 
   const fmt = (n) => {

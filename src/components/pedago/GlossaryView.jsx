@@ -18,13 +18,11 @@ import {
   resolveNotionNiveaux,
 } from '../../utils/curriculumNotions.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
+import { enumOptions } from '../../shared/enums/enumCore.js';
+import { GLOSSARY_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
 
-const NIVEAU_OPTIONS = [
-  { value: '', label: 'Tous niveaux' },
-  { value: 'base', label: 'Base' },
-  { value: 'approfondissement', label: 'Approfondissement' },
-  { value: 'avance', label: 'Avancé' },
-];
+/** Profondeur d'un terme : référentiel partagé des ENUM (`glossary_terms.niveau`). */
+const NIVEAU_OPTIONS = [{ value: '', label: 'Tous niveaux' }, ...enumOptions(GLOSSARY_NIVEAU_ENUM)];
 
 export function GlossaryView({
   onOpenPlant,

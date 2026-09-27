@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS zones (
   y DOUBLE DEFAULT NULL,
   width DOUBLE DEFAULT NULL,
   height DOUBLE DEFAULT NULL,
+  -- `current_plant` et `stage` : plus lues ni écrites par l'application (piste C de l'audit du
+  -- 25/09/2026, § 3.5, temps T1/T2) ; DROP au temps T3.
   current_plant VARCHAR(255) DEFAULT '',
   stage VARCHAR(64) DEFAULT 'empty',
   special TINYINT(1) DEFAULT 0,
@@ -62,7 +64,8 @@ CREATE TABLE IF NOT EXISTS zones (
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- zone_history (historique récoltes par zone)
+-- zone_history (historique récoltes par zone) : plus lue ni écrite par l'application (piste C,
+-- audit du 25/09/2026, § 3.5, temps T1/T2) ; DROP au temps T3, après export des lignes restantes.
 CREATE TABLE IF NOT EXISTS zone_history (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   zone_id VARCHAR(64) NOT NULL,
@@ -104,6 +107,8 @@ CREATE TABLE IF NOT EXISTS plants (
   remark_1 TEXT DEFAULT NULL,
   remark_2 TEXT DEFAULT NULL,
   remark_3 TEXT DEFAULT NULL,
+  -- Migration 305 : une seule zone de texte ; `remark_1..3` en miroir jusqu'au retrait.
+  remarks TEXT DEFAULT NULL COMMENT 'Remarques (une seule zone de texte ; remark_1..3 en miroir jusqu''au retrait)',
   reproduction VARCHAR(255) DEFAULT NULL,
   size VARCHAR(255) DEFAULT NULL,
   sources TEXT DEFAULT NULL,
@@ -124,11 +129,18 @@ CREATE TABLE IF NOT EXISTS plants (
   INDEX idx_plants_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Noms des fiches. `kind` et `sort_order` : migration 304 (autres noms affichés,
+-- `nom_secondaire`, repris de `plants.second_name`, qui en est le miroir jusqu'au retrait).
 CREATE TABLE IF NOT EXISTS plant_name_aliases (
   alias VARCHAR(255) NOT NULL,
   plant_id INT UNSIGNED NOT NULL,
+  kind ENUM('nom_secondaire','variante','synonyme') NOT NULL DEFAULT 'variante'
+    COMMENT 'nom_secondaire : autre nom affiché ; variante : forme reconnue ; synonyme : scientifique',
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0
+    COMMENT 'Ordre éditorial des autres noms de la fiche',
   PRIMARY KEY (alias),
   KEY idx_alias_plant (plant_id),
+  KEY idx_alias_plant_kind (plant_id, kind, sort_order),
   CONSTRAINT fk_alias_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -209,7 +221,13 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
-  CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL
+  CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL,
+  -- Valeurs admises (migration 308) : celles du référentiel `src/shared/enums/taskEnums.js`,
+  -- comparées aux contraintes par tests/enums-referential.test.js. NULL = non renseigné.
+  CONSTRAINT chk_tasks_status CHECK (status IS NULL OR status IN ('available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold')),
+  CONSTRAINT chk_tasks_danger_level CHECK (danger_level IS NULL OR danger_level IN ('safe', 'potential_danger', 'dangerous', 'very_dangerous')),
+  CONSTRAINT chk_tasks_difficulty_level CHECK (difficulty_level IS NULL OR difficulty_level IN ('easy', 'medium', 'hard', 'very_hard')),
+  CONSTRAINT chk_tasks_importance_level CHECK (importance_level IS NULL OR importance_level IN ('not_important', 'low', 'medium', 'high', 'absolute'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS task_species (
@@ -708,7 +726,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- observation_logs (carnet d'observation élève, hors tâches)
+-- observation_logs (ancien carnet d'observation élève, hors tâches). Retrait en trois temps
+-- (audit du 25/09/2026, § 3.5) : temps 1 et 2 menés avec la migration 307 — plus de route
+-- `/api/observations` ni d'écran ; seuls restent la reprise vers le carnet
+-- (`lib/fmUserJournal.js`) et la remise à NULL du groupe à la suppression d'une classe
+-- (`routes/groups.js`). Le `DROP` (temps 3) attend ses contrôles de passage.
 CREATE TABLE IF NOT EXISTS observation_logs (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   student_id VARCHAR(64) NOT NULL,
@@ -773,6 +795,59 @@ CREATE TABLE IF NOT EXISTS user_journal_observation_map (
   article_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_ujom_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Observations d'espèces soumises puis validées par un enseignant (migration 307). La
+-- validation confirme la présence sur la carte (`lib/terrain/observationService.js`).
+-- `observation_logs` (plus haut) est l'ancien carnet, retiré en deux temps : plus lu ni écrit
+-- par l'application, tables conservées. La table `interaction_evidence` ne vit que dans la
+-- migration 307, comme `species_interactions` qu'elle référence.
+CREATE TABLE IF NOT EXISTS species_observations (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  observer_user_id VARCHAR(64) NOT NULL COMMENT 'users.id de l''observateur',
+  map_id VARCHAR(32) NOT NULL,
+  zone_id VARCHAR(64) DEFAULT NULL,
+  marker_id VARCHAR(64) DEFAULT NULL,
+  plant_id INT UNSIGNED DEFAULT NULL COMMENT 'Espèce observée (facultative à la soumission, exigée à la validation)',
+  observed_at DATE NOT NULL,
+  detection_mode ENUM('vue','chant','trace','indice','nocturne') DEFAULT NULL,
+  body TEXT DEFAULT NULL COMMENT 'Texte libre de l''observateur',
+  status ENUM('soumise','validee','refusee') NOT NULL DEFAULT 'soumise',
+  decision_note VARCHAR(1000) DEFAULT NULL COMMENT 'Note de l''enseignant à la décision',
+  validated_by VARCHAR(64) DEFAULT NULL COMMENT 'users.id de l''enseignant qui a décidé',
+  decided_at DATETIME DEFAULT NULL,
+  journal_article_id INT UNSIGNED DEFAULT NULL COMMENT 'Article de carnet associé (facultatif)',
+  client_uuid VARCHAR(64) DEFAULT NULL COMMENT 'Clé d''idempotence tirée par le client (file hors ligne)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_species_obs_observer_client (observer_user_id, client_uuid),
+  INDEX idx_species_obs_map_status (map_id, status, created_at),
+  INDEX idx_species_obs_observer_created (observer_user_id, created_at),
+  INDEX idx_species_obs_plant (plant_id),
+  INDEX idx_species_obs_zone (zone_id),
+  INDEX idx_species_obs_marker (marker_id),
+  INDEX idx_species_obs_validator (validated_by),
+  INDEX idx_species_obs_journal (journal_article_id),
+  CONSTRAINT fk_species_obs_observer FOREIGN KEY (observer_user_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_species_obs_map FOREIGN KEY (map_id) REFERENCES maps (id) ON DELETE CASCADE,
+  CONSTRAINT fk_species_obs_zone FOREIGN KEY (zone_id) REFERENCES zones (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_marker FOREIGN KEY (marker_id) REFERENCES map_markers (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_validator FOREIGN KEY (validated_by) REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_journal FOREIGN KEY (journal_article_id) REFERENCES user_journal_articles (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Photos d'observation (migration 307) : fichier sous `uploads/observations/species/…` (famille
+-- privée) et ligne, supprimés ensemble par le service ; EXIF retiré à l'écriture.
+CREATE TABLE IF NOT EXISTS species_observation_photos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  observation_id INT UNSIGNED NOT NULL,
+  file_path VARCHAR(512) NOT NULL COMMENT 'Chemin relatif sous uploads/',
+  mime_type VARCHAR(64) DEFAULT NULL,
+  byte_size INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_species_obs_photos_obs (observation_id),
+  CONSTRAINT fk_species_obs_photos_obs FOREIGN KEY (observation_id) REFERENCES species_observations (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- groups (groupes pédagogiques + sous-groupes)
@@ -884,6 +959,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   x_pct DOUBLE NOT NULL,
   y_pct DOUBLE NOT NULL,
   label VARCHAR(255) NOT NULL,
+  -- `plant_name` : plus lue ni écrite (piste C, T1/T2 ; reprise dans `marker_species` :
+  -- migration 306) ; DROP au temps T3.
   plant_name VARCHAR(255) DEFAULT '',
   note TEXT DEFAULT NULL,
   emoji VARCHAR(16) DEFAULT '🌱',
@@ -1349,6 +1426,42 @@ CREATE TABLE IF NOT EXISTS notifications (
   UNIQUE KEY uq_notifications_user_dedupe (user_id, dedupe_key),
   CONSTRAINT fk_notifications_user FOREIGN KEY (user_id)
     REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Photos des fiches espèces (migration 303) : une ligne par photo, attribution comprise.
+-- Source de vérité des photos ; les colonnes photo de `plants` en sont le miroir jusqu'au
+-- retrait (temps 3, audit du 25/09/2026, § 3.5).
+CREATE TABLE IF NOT EXISTS plant_photos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  plant_id INT UNSIGNED NOT NULL,
+  kind ENUM('photo','photo_species','photo_leaf','photo_flower','photo_fruit','photo_harvest_part') NOT NULL
+    COMMENT 'Emplacement sur la fiche (nom de l''ancienne colonne photo)',
+  url TEXT NOT NULL COMMENT 'Lien direct vers l''image (HTTPS) ou fichier téléversé (/uploads/…)',
+  credit VARCHAR(255) DEFAULT NULL COMMENT 'Auteur / attribution',
+  licence VARCHAR(64) DEFAULT NULL COMMENT 'Licence (ex. CC BY-SA 4.0, Public domain, CC0)',
+  source VARCHAR(32) DEFAULT NULL COMMENT 'Provenance : televersement, wikimedia_commons, inaturalist…',
+  source_url VARCHAR(1024) DEFAULT NULL COMMENT 'Page source de l''image (lien d''attribution)',
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Ordre dans l''emplacement (0 = premier)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_plant_photos_plant (plant_id, kind, sort_order),
+  CONSTRAINT fk_plant_photos_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sosies des fiches espèces (migration 305) : une ligne par paire non orientée, dans l'ordre
+-- canonique plant_id < lookalike_plant_id (tenu par le service), avec le critère qui tranche.
+CREATE TABLE IF NOT EXISTS plant_lookalikes (
+  plant_id INT UNSIGNED NOT NULL COMMENT 'Plus petit identifiant de la paire',
+  lookalike_plant_id INT UNSIGNED NOT NULL COMMENT 'Plus grand identifiant de la paire',
+  note VARCHAR(500) DEFAULT NULL COMMENT 'Critère qui permet de les distinguer',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (plant_id, lookalike_plant_id),
+  KEY idx_plant_lookalikes_other (lookalike_plant_id),
+  CONSTRAINT fk_plant_lookalikes_plant FOREIGN KEY (plant_id)
+    REFERENCES plants (id) ON DELETE CASCADE,
+  CONSTRAINT fk_plant_lookalikes_other FOREIGN KEY (lookalike_plant_id)
+    REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

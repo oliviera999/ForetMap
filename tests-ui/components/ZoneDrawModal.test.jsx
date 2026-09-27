@@ -67,7 +67,8 @@ describe('ZoneDrawModal', () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.name).toContain('Potager Est');
     expect(payload.points).toHaveLength(3);
-    expect(payload.current_plant).toBe('');
+    // Piste C, temps T2 : plus de `current_plant` envoyé.
+    expect('current_plant' in payload).toBe(false);
   });
 
   test('les catégories cochées partent dans le payload', async () => {

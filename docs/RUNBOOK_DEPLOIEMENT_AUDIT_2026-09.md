@@ -137,8 +137,7 @@ où l'environnement Node n'est pas activé.
   Puis `node scripts/extract-biodiv-pedago-seed.js ~/biodiv-contenu.sql` (sur un poste ou dans
   l'environnement Node activé) et commiter le seul fichier régénéré.
 
-- **Lot BCDEG** : ses migrations doivent être renumérotées **à partir de 302** (292 à 301 sont
-  pris, et la numérotation doit rester continue).
+- **Lots B et C** : fusionnés dans #555, migrations **302 à 308** (section 9).
 
 ## 7. Bascule `dist-artifact` (question 16) — faite
 
@@ -154,3 +153,36 @@ Le retour arrière du cron annule le **code**, pas la base. En cas de problème 
 migrations : restaurer la sauvegarde de l'étape 1
 (`gunzip -c backups/foretmap-avant-audit.sql.gz | mysql --default-character-set=utf8mb4 -u "$DB_USER" -p "$DB_NAME"`),
 puis redéployer le commit précédent.
+
+## 9. PR #555 (lots B et C) — migrations 302 à 308
+
+Même procédure qu'aux étapes 1 à 3 : sauvegarde vérifiée, puis `db:migrate` (ou le cron avec
+`DEPLOY_AUTO_MIGRATE=1`), puis `check:runtime`. Aucune migration ne supprime de donnée (302 ne
+retire qu'une vue jamais lue et une valeur d'ENUM inutilisée) : les anciennes colonnes restent en
+place, tenues en miroir, jusqu'au temps 3
+(`docs/RUNBOOK_RETRAITS_T3.md`). Aucune table `gl_*` n'est touchée.
+
+| Migration | Effet                                                                                          | Contrôle après passage                                                                                 |
+| --------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 302       | vue `v_visit_coverage` supprimée ; `both_changed` retiré de `sync_conflicts.kind` si inutilisé | `SHOW FULL TABLES LIKE 'v_visit_coverage'` → vide                                                      |
+| 303       | table `plant_photos` (une ligne par photo, auteur et licence), reprise des 6 colonnes          | `SELECT COUNT(*) FROM plant_photos` (493 sur le fixture)                                               |
+| 304       | sortes de noms (`plant_name_aliases.kind`), `second_name` éclaté en autres noms                | `SELECT kind, COUNT(*) FROM plant_name_aliases GROUP BY kind` (169 `nom_secondaire` sur le fixture)    |
+| 305       | table `plant_lookalikes` (sosies) ; `plants.remarks` = les trois anciennes remarques           | `SELECT COUNT(*) FROM plants WHERE NULLIF(TRIM(remarks),'') IS NOT NULL` (330 sur le fixture)          |
+| 306       | anciens noms mono-espèce des lieux rattachés aux jonctions                                     | `npm run db:t3-status`, ligne « zones.current_plant et map_markers.plant_name »                        |
+| 307       | tables `species_observations` et photos, permission `observations.validate`                    | `SHOW TABLES LIKE 'species_observation%'` → 2 tables                                                   |
+| 308       | collations explicites ; contraintes `CHECK` sur le statut et les niveaux des tâches            | requêtes de contrôle en tête de `migrations/308_*.sql` (une contrainte absente = une ligne à corriger) |
+
+**Après le déploiement** :
+
+- **Photos sans attribution** : `npm run db:t3-status` les compte (119 sur le fixture). Les
+  compléter depuis le formulaire de la fiche (auteur et licence par photo) ; c'est une condition
+  du retrait des anciennes colonnes.
+- **Fiche 325** (sur le fixture) : son autre nom « Abeille charpentière » est le nom de la fiche 557. Doublon à fusionner, ou nom à retirer : à trancher (détail dans le runbook T3).
+- **Observations d'espèces** : nouveau module, **allumé par défaut** (interrupteur « Observations
+  d'espèces » dans Paramètres → Modules). Les élèves signalent depuis les fiches et la carte ; la
+  file « Observations à valider » (onglet Biodiversité) est ouverte aux comptes qui ont
+  `observations.validate` (admin et prof par défaut, pas le prof de classe).
+- **Ancien carnet** : `/api/observations` répond **410 Gone** ; plus rien n'y est écrit.
+- **Quiz** : le filtre de difficulté va de 1 à 3 (les valeurs 4 et 5 ne trouvaient rien).
+- **Temps 3** : pas avant un cycle de production sans retour arrière ; ensuite, suivre
+  `docs/RUNBOOK_RETRAITS_T3.md`, à commencer par `npm run db:t3-status`.

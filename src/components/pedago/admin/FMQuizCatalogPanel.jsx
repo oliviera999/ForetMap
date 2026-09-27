@@ -1,4 +1,5 @@
 import { api } from '../../../services/api.js';
+import { quizApiPaths } from '../../../services/quizApi.js';
 import { downloadApiFile } from '../../../utils/downloadApiFile.js';
 import { PedagoQcmFeedbackBlock } from '../PedagoQcmFeedbackBlock.jsx';
 import { QcmCatalogPanel } from '../../../shared/qcm/QcmCatalogPanel.jsx';
@@ -74,10 +75,10 @@ export function FMQuizCatalogPanel({ showQuestionList = true, onEditQuestion = n
       scopePlaceholder="sciences"
       exportFilterHint="L’export utilise les filtres thème / catégorie ci-dessous s’ils sont renseignés."
       listMeta={(item) => `(${item.theme || '—'} / ${item.categorie_slug})`}
-      adminBasePath="/api/quiz/admin"
-      questionsListPath="/api/quiz/admin/questions"
-      presentPath={(code) => `/api/quiz/questions/${encodeURIComponent(code)}/present`}
-      answerPath={(code) => `/api/quiz/questions/${encodeURIComponent(code)}/answer`}
+      adminBasePath={quizApiPaths.adminBase}
+      questionsListPath={quizApiPaths.adminQuestions}
+      presentPath={quizApiPaths.present}
+      answerPath={quizApiPaths.answer}
       templateFilename="foretmap-modele-qcm.xlsx"
       exportFilename="foretmap-export-qcm.xlsx"
       showQuestionList={showQuestionList}

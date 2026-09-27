@@ -1,7 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { OAuth2Client } = require('google-auth-library');
 const { queryOne, execute } = require('../database');
 const {
   JWT_SECRET,
@@ -41,10 +40,7 @@ const {
 } = require('../lib/rbac');
 const { recomputeUserRole } = require('../lib/effectiveRole');
 const { getSettingValue, getAuthJwtTtls } = require('../lib/settings');
-const {
-  isRegistrationAllowed,
-  isGoogleAutoRegistrationAllowed,
-} = require('../lib/registrationPolicy');
+const { isRegistrationAllowed } = require('../lib/registrationPolicy');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -70,7 +66,6 @@ const {
   originOfUrl,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
-const { resolveAccountStaffPlanAccess } = require('../lib/staffPlanAccess');
 
 /**
  * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
@@ -100,11 +95,8 @@ const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
  */
 const OAUTH_ORIGIN_COOKIE = 'foretmap_oauth_origin';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-const googleOidcClient = new OAuth2Client();
-const googleOAuthHooks = {
-  exchangeCode: null,
-  verifyIdToken: null,
-};
+const googleAuthService = require('../lib/auth/googleAuthService');
+const { buildSessionPayload } = require('../lib/auth/sessionPayload');
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
@@ -115,8 +107,6 @@ const {
   parseCsvLowercaseSet,
   normalizeOAuthMode,
   googleOauthConfigured,
-  splitDisplayName,
-  isGoogleEmailAllowed,
   buildOAuthFrontendRedirect,
   buildOAuthFrontendErrorRedirect,
   validateProfileInput,
@@ -159,34 +149,6 @@ function getGoogleOauthConfig(req) {
   return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };
 }
 
-async function exchangeGoogleCode({ code, clientId, clientSecret, redirectUri }) {
-  if (googleOAuthHooks.exchangeCode) {
-    return googleOAuthHooks.exchangeCode({ code, clientId, clientSecret, redirectUri });
-  }
-  const params = new URLSearchParams({
-    code,
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: redirectUri,
-    grant_type: 'authorization_code',
-  });
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-  });
-  if (!tokenRes.ok) throw new Error('Échange OAuth Google échoué');
-  return tokenRes.json();
-}
-
-async function verifyGoogleIdToken({ idToken, audience }) {
-  if (googleOAuthHooks.verifyIdToken) {
-    return googleOAuthHooks.verifyIdToken({ idToken, audience });
-  }
-  const ticket = await googleOidcClient.verifyIdToken({ idToken, audience });
-  return ticket.getPayload() || null;
-}
-
 const { ensureTeacherAdminFromEnv } = require('../lib/teacherAdminSeed');
 
 let seedTeacherChecked = false;
@@ -195,56 +157,6 @@ async function ensureTeacherSeedFromEnv() {
   seedTeacherChecked = true;
   // Plancher enseignant (12) : le compte administrateur initial ne fait pas exception (CDG-41).
   await ensureTeacherAdminFromEnv({ minPasswordLength: PRIVILEGED_PASSWORD_MIN_LEN });
-}
-
-async function buildSessionPayload(userType, userId) {
-  const authz = await buildAuthzPayload(userType, userId);
-  if (!authz) return null;
-  // Époque de jeton : un changement de mot de passe l'incrémente et invalide les sessions.
-  const tokenEpoch = await getUserTokenEpoch(userId);
-  // Nom du compte (jamais le nom du profil) pour l'en-tête et les bandeaux (CDG-30).
-  const named = await queryOne(
-    'SELECT display_name, first_name, last_name, pseudo, email FROM users WHERE id = ? LIMIT 1',
-    [String(userId)],
-  );
-  const displayName =
-    normalizeOptionalString(named?.display_name) ||
-    `${named?.first_name || ''} ${named?.last_name || ''}`.trim() ||
-    normalizeOptionalString(named?.pseudo) ||
-    normalizeOptionalString(named?.email) ||
-    null;
-  return {
-    tokenPayload: {
-      userType,
-      userId,
-      tokenEpoch,
-      displayName,
-      roleId: authz.roleId,
-      roleSlug: authz.roleSlug,
-      roleDisplayName: authz.roleDisplayName,
-      permissions: authz.permissions,
-      nativePrivileged: !!authz.nativePrivileged,
-    },
-    authz,
-  };
-}
-
-/**
- * Ce compte peut-il ouvrir le plan des personnels ? Même règle que la garde de
- * `/api/staff-plan/*` (`lib/staffPlanAccess.js`) : permission RBAC `staff_plan.access`, ou
- * profil coché dans **Réglages → Plan Lyautey → Plan des personnels**. Vérifiée ici pour que
- * l'échec soit dit à la connexion, plutôt qu'au premier appel refusé derrière un jeton valide.
- *
- * Le profil **attribué** compte autant que le profil effectif : un groupe confère le sien dès
- * qu'il est de rang supérieur, et « Personnel » est le plus bas du catalogue — sans cela, un
- * personnel rattaché à une classe était refusé à sa propre porte
- * (`resolveAccountStaffPlanAccess`).
- *
- * @param {{ roleSlug?: string, permissions?: string[], userId?: string, userType?: string }} tokenPayload
- * @returns {Promise<{ ok: boolean, roleSlug: string, via?: string }>}
- */
-async function mayOpenStaffPlan(tokenPayload) {
-  return resolveAccountStaffPlanAccess(tokenPayload);
 }
 
 async function resolveLoginUserType(user) {
@@ -933,435 +845,69 @@ router.get('/google/start', async (req, res) => {
   return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 });
 
-router.get('/google/callback', async (req, res) => {
-  const googleEnabled = await getSettingValue('integration.google.enabled', true);
-  if (!googleEnabled) {
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(
-        normalizeOptionalString(process.env.FRONTEND_ORIGIN) ||
-          `${req.protocol}://${req.get('host')}`,
-        'oauth_not_configured',
-        normalizeOAuthMode(req.query?.mode),
-      ),
-    );
-  }
-  const baseCfg = getGoogleOauthConfig(req);
-  const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
-  const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
-  const mode = normalizeOAuthMode(modeCookie || req.query?.mode);
-  // Renvoi vers le produit d'où l'utilisateur est parti, si et seulement si cette origine est
-  // celle d'un produit du registre sur le même domaine parent que le rappel.
-  const cfg = {
-    ...baseCfg,
-    frontendOrigin: resolveProductReturnOrigin(readCookie(req, OAUTH_ORIGIN_COOKIE), {
-      requestHost: req.get('host'),
-      fallbackOrigin: baseCfg.frontendOrigin,
-      productHostPrefixes: listProductHostPrefixes(),
-    }),
-  };
-  res.clearCookie(OAUTH_STATE_COOKIE, { path: '/api/auth/google' });
-  res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
-  res.clearCookie(OAUTH_ORIGIN_COOKIE, { path: '/api/auth/google' });
-
-  if (!googleOauthConfigured(cfg)) {
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured', mode),
-    );
-  }
-  if (normalizeOptionalString(req.query?.error)) {
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused', mode),
-    );
-  }
-  const state = normalizeOptionalString(req.query?.state);
-  if (!state || !stateCookie || state !== stateCookie) {
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state', mode),
-    );
-  }
-  const code = normalizeOptionalString(req.query?.code);
-  if (!code) {
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code', mode),
-    );
-  }
-
-  try {
-    const tokenData = await exchangeGoogleCode({
-      code,
-      clientId: cfg.clientId,
-      clientSecret: cfg.clientSecret,
-      redirectUri: cfg.redirectUri,
-    });
-    const idToken = normalizeOptionalString(tokenData?.id_token);
-    if (!idToken) {
+/**
+ * Rappel Google : HTTP seulement (cookies de la poignée de main, `state`, `code`, origine de
+ * retour, redirections). Les règles de connexion vivent dans `lib/auth/googleAuthService.js`.
+ */
+router.get(
+  '/google/callback',
+  asyncHandler(async (req, res) => {
+    if (!(await googleAuthService.isGoogleLoginEnabled())) {
       return res.redirect(
-        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token', mode),
+        buildOAuthFrontendErrorRedirect(
+          normalizeOptionalString(process.env.FRONTEND_ORIGIN) ||
+            `${req.protocol}://${req.get('host')}`,
+          'oauth_not_configured',
+          normalizeOAuthMode(req.query?.mode),
+        ),
       );
     }
-    const payload = await verifyGoogleIdToken({ idToken, audience: cfg.clientId });
-    if (!payload) {
-      return res.redirect(
-        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_token', mode),
-      );
-    }
-    const email = normalizeEmail(payload.email);
-    const issuer = String(payload.iss || '');
-    const emailVerified =
-      payload.email_verified === true || String(payload.email_verified) === 'true';
-    const audience = String(payload.aud || '');
-    if (
-      !email ||
-      !emailVerified ||
-      audience !== cfg.clientId ||
-      !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)
-    ) {
-      return res.redirect(
-        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid', mode),
-      );
-    }
-    if (!isGoogleEmailAllowed(email, payload.hd, cfg.allowedDomains, cfg.allowedEmails)) {
-      return res.redirect(
-        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed', mode),
-      );
-    }
-
-    const googleSub = normalizeOptionalString(payload.sub);
-    // Le compte déjà lié à cette identité Google (`users.google_sub`) fait foi avant l'e-mail :
-    // un changement d'adresse côté Google ne détourne pas la liaison (CDG-15).
-    const bySub = googleSub
-      ? await queryOne(
-          "SELECT id, user_type, email, is_active, google_sub FROM users WHERE google_sub = ? AND user_type IN ('teacher', 'student') LIMIT 1",
-          [googleSub],
-        )
-      : null;
-    const teacher =
-      bySub && bySub.user_type === 'teacher'
-        ? bySub
-        : await queryOne(
-            "SELECT id, email, is_active, google_sub FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-            [email],
-          );
-    if (teacher) {
-      // Le réglage « connexion Google enseignant » se relit ici, quel que soit le `mode` :
-      // `/google/start?mode=student` ne le contournait pas moins (CDG-14).
-      const allowTeacher = await getSettingValue('ui.auth.allow_google_teacher', true);
-      if (!allowTeacher) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(
-            cfg.frontendOrigin,
-            'oauth_teacher_google_disabled',
-            mode,
-          ),
-        );
-      }
-      if (googleSub && teacher.google_sub && teacher.google_sub !== googleSub) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
-        );
-      }
-      if (!teacher.is_active) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode),
-        );
-      }
-      await recomputeUserRole(teacher.id);
-      const now = nowDbTimestamp();
-      await execute(
-        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?), updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
-        [now, googleSub, teacher.id],
-      );
-      const session = await buildSessionPayload('teacher', teacher.id);
-      if (!session) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode),
-        );
-      }
-      if (mode === 'staff') {
-        const staffAccess = await mayOpenStaffPlan(session.tokenPayload);
-        if (!staffAccess.ok) {
-          await logSecurityEvent('auth.login.staff_plan.oauth_google', {
-            req,
-            result: 'failure',
-            reason: 'oauth_staff_no_access',
-            actorUserType: 'teacher',
-            actorUserId: teacher.id,
-            payload: { role_slug: staffAccess.roleSlug || null },
-          });
-          return res.redirect(
-            buildOAuthFrontendErrorRedirect(
-              cfg.frontendOrigin,
-              'oauth_staff_no_access',
-              mode,
-              session.tokenPayload.roleDisplayName || staffAccess.roleSlug,
-            ),
-          );
-        }
-      }
-      const token = await signAuthToken(session.tokenPayload);
-      await logSecurityEvent('auth.login.teacher.oauth_google', {
-        req,
-        actorUserType: 'teacher',
-        actorUserId: teacher.id,
-        targetType: 'teacher',
-        targetId: teacher.id,
-      });
-      try {
-        const { recordAuthenticatedTouch } = require('../lib/userTracking');
-        void recordAuthenticatedTouch({
-          product: 'foret',
-          userType: 'teacher',
-          userId: teacher.id,
-          action: 'login',
-        });
-      } catch (_) {
-        /* ignore */
-      }
-      return res.redirect(
-        buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-          // En mode `staff`, le produit de retour est le plan des personnels : il attend un
-          // jeton, pas une session de console. Le type le dit, et le front n'a pas à deviner
-          // le type de compte qui se cache derrière un personnel autorisé.
-          type: mode === 'staff' ? 'staff' : 'teacher',
-          token,
-          auth: exposeAuth(session.tokenPayload),
-        }),
-      );
-    }
-
-    /**
-     * Plan des personnels : un compte **non enseignant** autorisé (profil « Personnel »,
-     * ou tout profil coché dans `ui.staff_plan.allowed_role_slugs`) entre ici.
-     *
-     * Régression corrigée : la porte de proflyautey lançait `mode=teacher`, et tout compte de
-     * type `student` — ce qu'est un « Personnel » par construction, ainsi que tout compte
-     * promu « Prof de classe » depuis un compte élève (l'attribution d'un profil ne change
-     * pas `users.user_type`) — repartait avec `oauth_teacher_account_not_found`, affiché
-     * « La connexion n'a pas abouti ». Seuls les comptes enseignants (admin, n3boss) entraient.
-     *
-     * Aucune création de compte ici, comme en mode enseignant : un plan de personnels ne
-     * s'ouvre pas à qui n'a pas déjà de compte — c'est le rôle du code partagé.
-     */
-    if (mode === 'staff') {
-      const staffUser =
-        bySub && bySub.user_type === 'student'
-          ? bySub
-          : await queryOne(
-              "SELECT id, email, is_active, google_sub FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
-              [email],
-            );
-      if (!staffUser) {
-        await logSecurityEvent('auth.login.staff_plan.oauth_google', {
-          req,
-          result: 'failure',
-          reason: 'oauth_staff_account_not_found',
-          payload: { email },
-        });
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(
-            cfg.frontendOrigin,
-            'oauth_staff_account_not_found',
-            mode,
-          ),
-        );
-      }
-      // Le jeton délivré est un jeton ForetMap ordinaire : le réglage qui ferme la connexion
-      // Google des élèves vaut donc ici aussi (même raison que CDG-14 côté enseignant).
-      const allowStudentGoogle = await getSettingValue('ui.auth.allow_google_student', true);
-      if (!allowStudentGoogle) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(
-            cfg.frontendOrigin,
-            'oauth_student_google_disabled',
-            mode,
-          ),
-        );
-      }
-      if (googleSub && staffUser.google_sub && staffUser.google_sub !== googleSub) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
-        );
-      }
-      if (!Number(staffUser.is_active)) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_inactive', mode),
-        );
-      }
-      await execute(
-        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?), updated_at = NOW() WHERE id = ? AND user_type = 'student'",
-        [nowDbTimestamp(), googleSub, staffUser.id],
-      );
-      await recomputeUserRole(staffUser.id);
-      const session = await buildSessionPayload('student', staffUser.id);
-      const staffAccess = session
-        ? await mayOpenStaffPlan(session.tokenPayload)
-        : { ok: false, roleSlug: '' };
-      if (!staffAccess.ok) {
-        await logSecurityEvent('auth.login.staff_plan.oauth_google', {
-          req,
-          result: 'failure',
-          reason: 'oauth_staff_no_access',
-          actorUserType: 'student',
-          actorUserId: staffUser.id,
-          payload: { role_slug: staffAccess.roleSlug || null },
-        });
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(
-            cfg.frontendOrigin,
-            'oauth_staff_no_access',
-            mode,
-            session?.tokenPayload?.roleDisplayName || staffAccess.roleSlug,
-          ),
-        );
-      }
-      const token = await signAuthToken(session.tokenPayload);
-      await logSecurityEvent('auth.login.staff_plan.oauth_google', {
-        req,
-        actorUserType: 'student',
-        actorUserId: staffUser.id,
-        targetType: 'student',
-        targetId: staffUser.id,
-      });
-      try {
-        const { recordAuthenticatedTouch } = require('../lib/userTracking');
-        void recordAuthenticatedTouch({
-          product: 'foret',
-          userType: 'student',
-          userId: staffUser.id,
-          action: 'login',
-        });
-      } catch (_) {
-        /* ignore */
-      }
-      return res.redirect(
-        buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-          type: 'staff',
-          token,
-          auth: exposeAuth(session.tokenPayload),
-        }),
-      );
-    }
-
-    // Mode enseignant : ne jamais créer / connecter un élève par repli — message d'échec explicite.
-    if (mode === 'teacher') {
-      const studentSameEmail = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
-        [email],
-      );
-      const errorCode = studentSameEmail
-        ? 'oauth_teacher_email_is_student'
-        : 'oauth_teacher_account_not_found';
-      await logSecurityEvent('auth.login.teacher.oauth_google', {
-        req,
-        result: 'failure',
-        reason: errorCode,
-        payload: { email },
-      });
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, errorCode, mode));
-    }
-
-    let student =
-      bySub && bySub.user_type === 'student'
-        ? await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [bySub.id])
-        : await queryOne(
-            "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email) = LOWER(?) LIMIT 1",
-            [email],
-          );
-    // Liaison par e-mail (compte non encore lié) : une adresse saisie par l'élève lui-même
-    // n'ouvre pas un compte déjà rattaché à une **autre** identité Google (CDG-15).
-    if (student && googleSub && student.google_sub && student.google_sub !== googleSub) {
-      return res.redirect(
-        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_mismatch', mode),
-      );
-    }
-    let accountJustCreated = false;
-    if (!student) {
-      // Subordonné à `ui.auth.allow_register` depuis le lot I (constat S11) : fermer les
-      // inscriptions ferme aussi ce chemin-ci.
-      if (!(await isGoogleAutoRegistrationAllowed())) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_not_found', mode),
-        );
-      }
-      const id = crypto.randomUUID();
-      const now = nowDbTimestamp();
-      const splitName = splitDisplayName(payload.name);
-      const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;
-      const lastName = normalizeOptionalString(payload.family_name) || splitName.lastName;
-      await execute(
-        `INSERT INTO users
-          (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
-         VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, NULL, 'google', 1, ?, NOW(), NOW())`,
-        [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now],
-      );
-      if (googleSub) {
-        await execute("UPDATE users SET google_sub = ? WHERE id = ? AND user_type = 'student'", [
-          googleSub,
-          id,
-        ]);
-      }
-      await recomputeUserRole(id);
-      emitStudentsChanged({ reason: 'register_google', studentId: id });
-      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
-      accountJustCreated = true;
-    } else {
-      // Même règle que la connexion par mot de passe : un compte désactivé n'obtient pas de
-      // jeton (il tombait sinon en 401 à la première requête, CDG-47).
-      if (!Number(student.is_active)) {
-        return res.redirect(
-          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_account_inactive', mode),
-        );
-      }
-      await execute(
-        "UPDATE users SET last_seen = ?, google_sub = COALESCE(google_sub, ?) WHERE id = ? AND user_type = 'student'",
-        [nowDbTimestamp(), googleSub, student.id],
-      );
-      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
-        student.id,
-      ]);
-      await recomputeUserRole(student.id);
-    }
-
-    const session = await buildSessionPayload('student', student.id);
-    const token = session ? await signAuthToken(session.tokenPayload) : null;
-    await logSecurityEvent('auth.login.student.oauth_google', {
-      req,
-      actorUserType: 'student',
-      actorUserId: student.id,
-      targetType: 'student',
-      targetId: student.id,
-      payload: accountJustCreated ? { account_created: true } : undefined,
-    });
-    try {
-      const { recordAuthenticatedTouch } = require('../lib/userTracking');
-      void recordAuthenticatedTouch({
-        product: 'foret',
-        userType: 'student',
-        userId: student.id,
-        action: 'login',
-      });
-    } catch (_) {
-      /* ignore */
-    }
-    return res.redirect(
-      buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-        type: 'student',
-        accountCreated: accountJustCreated,
-        student: {
-          ...toPublicUserRow(student),
-          discoveryTourSeen: parseDiscoveryTourSeen(student?.discovery_tour_seen_json),
-          authToken: token,
-          auth: session ? exposeAuth(session.tokenPayload) : null,
-        },
+    const baseCfg = getGoogleOauthConfig(req);
+    const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
+    const modeCookie = normalizeOAuthMode(readCookie(req, OAUTH_MODE_COOKIE));
+    const mode = normalizeOAuthMode(modeCookie || req.query?.mode);
+    // Renvoi vers le produit d'où l'utilisateur est parti, si et seulement si cette origine est
+    // celle d'un produit du registre sur le même domaine parent que le rappel.
+    const cfg = {
+      ...baseCfg,
+      frontendOrigin: resolveProductReturnOrigin(readCookie(req, OAUTH_ORIGIN_COOKIE), {
+        requestHost: req.get('host'),
+        fallbackOrigin: baseCfg.frontendOrigin,
+        productHostPrefixes: listProductHostPrefixes(),
       }),
-    );
-  } catch (e) {
-    logRouteError(e, req);
-    return res.redirect(
-      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode),
-    );
-  }
-});
+    };
+    res.clearCookie(OAUTH_STATE_COOKIE, { path: '/api/auth/google' });
+    res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
+    res.clearCookie(OAUTH_ORIGIN_COOKIE, { path: '/api/auth/google' });
+    const redirectError = (code, roleLabel) =>
+      res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, code, mode, roleLabel));
+
+    if (!googleOauthConfigured(cfg)) return redirectError('oauth_not_configured');
+    if (normalizeOptionalString(req.query?.error)) return redirectError('oauth_google_refused');
+    const state = normalizeOptionalString(req.query?.state);
+    if (!state || !stateCookie || state !== stateCookie) {
+      return redirectError('oauth_invalid_state');
+    }
+    const code = normalizeOptionalString(req.query?.code);
+    if (!code) return redirectError('oauth_missing_code');
+
+    // Construction de la redirection comprise dans le `try`, comme avant l'extraction : une
+    // exception à ce stade donne aussi `oauth_server_error`.
+    try {
+      const outcome = await googleAuthService.completeGoogleLogin({
+        code,
+        mode,
+        cfg,
+        auditReq: req,
+      });
+      if (!outcome.ok) return redirectError(outcome.error, outcome.roleLabel);
+      return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, outcome.payload));
+    } catch (e) {
+      logRouteError(e, req);
+      return redirectError('oauth_server_error');
+    }
+  }),
+);
 
 /**
  * Changement de mot de passe authentifié (CDG-42) : tout compte connecté, élève ou
@@ -1709,9 +1255,7 @@ router.post(
   }),
 );
 
-router.__setGoogleOAuthHooks = function setGoogleOAuthHooks({ exchangeCode, verifyIdToken } = {}) {
-  googleOAuthHooks.exchangeCode = typeof exchangeCode === 'function' ? exchangeCode : null;
-  googleOAuthHooks.verifyIdToken = typeof verifyIdToken === 'function' ? verifyIdToken : null;
-};
+// Crochets de test (échange du code, vérification du jeton) : portés par le service Google.
+router.__setGoogleOAuthHooks = googleAuthService.setGoogleOAuthHooks;
 
 module.exports = router;

@@ -63,6 +63,7 @@
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "db:status": "node scripts/db-migration-status.js",
+    "db:t3-status": "node scripts/db-t3-status.js",
     "check:runtime": "node scripts/check-runtime.js",
     "learning:suggest-links": "node scripts/suggest-learning-links.js",
     "learning:generate-questions": "node scripts/generate-linked-questions.js",

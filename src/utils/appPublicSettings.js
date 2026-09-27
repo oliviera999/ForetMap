@@ -42,6 +42,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     individuals_enabled: true,
     pedago_sessions_enabled: true,
     rewards_enabled: true,
+    species_observations_enabled: true,
   },
   help: {
     show_context_hints: true,

@@ -37,18 +37,25 @@ describe('legacyZoneShapeConvert', () => {
     assert.equal(out, raw);
   });
 
-  it('mappe cultures vers living_beings', () => {
+  it('mappe cultures vers living_beings (l’état de culture n’est plus lu)', () => {
     const cultures = parseCulturesJson(
       '[{"plant":"Choux","stage":"growing"},{"plant":"Fèves","stage":"ready"}]',
     );
-    assert.equal(cultures.length, 2);
+    assert.deepEqual(cultures, [{ plant: 'Choux' }, { plant: 'Fèves' }]);
     const mapped = mapZoneLivingFields({
       cultures: JSON.stringify(cultures),
       stage: 'empty',
     });
-    assert.equal(mapped.stage, 'ready');
+    // Piste C (audit du 25/09/2026, § 3.5) : ni `stage` ni `current_plant` en sortie.
+    assert.deepEqual(Object.keys(mapped), ['living_beings']);
     assert.deepEqual(JSON.parse(mapped.living_beings), ['Choux', 'Fèves']);
-    assert.equal(mapped.current_plant, '');
+  });
+
+  it('nom mono-espèce du fork → être vivant ; zone vide → aucun', () => {
+    assert.deepEqual(mapZoneLivingFields({ current_plant: ' Cactus ' }), {
+      living_beings: JSON.stringify(['Cactus']),
+    });
+    assert.deepEqual(mapZoneLivingFields({ current_plant: '' }), { living_beings: null });
   });
 
   it('normalise une zone legacy rect', () => {
@@ -72,6 +79,7 @@ describe('legacyZoneShapeConvert', () => {
     const pts = JSON.parse(row.points);
     assert.equal(pts.length, 4);
     assert.equal(JSON.parse(row.living_beings)[0], 'Cactus');
+    assert.ok(!('current_plant' in row) && !('stage' in row), 'colonnes retirées absentes');
   });
 
   it('normalise un repère SQLite', () => {
@@ -88,6 +96,7 @@ describe('legacyZoneShapeConvert', () => {
     assert.ok(row);
     assert.equal(row.map_id, 'foret');
     assert.deepEqual(JSON.parse(row.living_beings), ['Abeille']);
+    assert.ok(!('plant_name' in row), 'colonne retirée absente');
   });
 });
 
@@ -144,5 +153,7 @@ describe('sqliteGardenSqlExport', () => {
     assert.match(sql, /INSERT INTO zones/);
     assert.match(sql, /INSERT INTO map_markers/);
     assert.match(sql, /COMMIT;/);
+    // Piste C, T2 : plus d'écriture des colonnes et de la table retirées.
+    assert.doesNotMatch(sql, /current_plant|plant_name|\bstage\b|zone_history/);
   });
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '../../services/api';
+import { profilesApi } from '../../services/profilesApi';
 import {
   buildUserGroupIdsFromUsers,
   filterProfilesUsers,
@@ -153,9 +153,7 @@ export function ProfilesAccountsPanel({
     setMsg('');
     setRecomputingUserId(user.id);
     try {
-      const payload = await api(
-        '/api/rbac/progression/recompute',
-        'POST',
+      const payload = await profilesApi.recomputeProgression(
         buildRecomputeBody({ scope: 'user', userId: user.id }),
       );
       const row = Array.isArray(payload?.results) ? payload.results[0] : null;

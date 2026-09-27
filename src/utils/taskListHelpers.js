@@ -7,15 +7,13 @@
  */
 
 import { isArchived } from './taskArchive.js';
+import { TASK_IMPORTANCE_LEVEL_ENUM } from '../shared/enums/taskEnums.js';
 
 // ── Tri par importance puis date limite ──────────────────────────────────────
-export const TASK_IMPORTANCE_SORT_WEIGHT = {
-  not_important: 1,
-  low: 2,
-  medium: 3,
-  high: 4,
-  absolute: 5,
-};
+/** Poids d'une importance : sa position dans le référentiel + 1 (`not_important` = 1 … 5). */
+export const TASK_IMPORTANCE_SORT_WEIGHT = Object.fromEntries(
+  TASK_IMPORTANCE_LEVEL_ENUM.values.map((level, index) => [level, index + 1]),
+);
 
 /** Même logique que GET /api/tasks : importance explicite d’abord (poids décroissant), puis sans importance, puis date limite. */
 export function compareTasksByImportanceThenDueDate(a, b) {

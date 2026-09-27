@@ -1,46 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 
-import { api } from '../services/api';
-import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
-import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
-import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
-import {
-  mapRouteResumeStorageKey,
-  placesFromZonesAndMarkers,
-  routeEntryFocusPct,
-} from '../shared/map-routes/mapRouteSteps.js';
+import { routeEntryFocusPct } from '../shared/map-routes/mapRouteSteps.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
-import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
-
-import {
-  resolveMapOverlayTypography,
-  resolveMapOverlayCssVariables,
-} from '../utils/mapOverlayTypography';
-import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
-import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
-
-import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
-import {
-  clusterStatusDots,
-  computeTaskVisualByLocation,
-  computeTutorialCountByLocation,
-  locationStatusDots,
-} from '../utils/mapLocationBadges.js';
-import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
 import { TutorialPreviewModal } from './TutorialPreviewModal';
-import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
-import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
-import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
-import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
-import {
-  clusterCenterPct,
-  clusterMarkers,
-  clusterSeparatesOnZoom,
-  clusterZoomTargetScale,
-} from '../shared/pct-map/clusterMarkers.js';
+import { clusterMarkers } from '../shared/pct-map/clusterMarkers.js';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { resolveMapViewMascotFitScale } from '../utils/mapViewMascotMotion.js';
 import useZoneDrawing from '../hooks/useZoneDrawing.js';
@@ -48,13 +14,6 @@ import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useZoneAlignMode from '../hooks/useZoneAlignMode.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
-import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
-import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
-import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
-import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
-import { headingUpOrientationDeg } from '../shared/pct-map/pctMapOrientation.js';
-import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
-import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -66,12 +25,9 @@ import {
   BiodiversitySpeciesOpenLinks,
 } from './map/LivingBeingsCatalogPanel.jsx';
 
-import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
-import { DrawingLayer } from './map/DrawingLayer.jsx';
-import { EditPointsLayer } from './map/EditPointsLayer.jsx';
-import { AlignZonesPreviewLayer } from './map/AlignZonesPreviewLayer.jsx';
-import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
-import { EDGE_SNAP_DEFAULTS, sensitivityToMinStrength } from '../utils/edgeSnap.js';
+import { parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
+import { MapViewEditCanvas } from './map/MapViewEditCanvas.jsx';
+import { sensitivityToMinStrength } from '../utils/edgeSnap.js';
 import {
   NEIGHBOR_SNAP_DEFAULT_RADIUS_PCT,
   normalizeNeighborZones,
@@ -81,91 +37,35 @@ import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
 import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
+import { MapViewLocationModals } from './map/MapViewLocationModals.jsx';
+import { useMapViewPosition } from './map/useMapViewPosition.js';
+import { useMapViewRoutes } from './map/useMapViewRoutes.js';
+import { useMapViewTypography } from './map/useMapViewTypography.js';
+import { useMapViewBadges } from './map/useMapViewBadges.js';
+import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
+import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
+import { useTutorialReadIds } from './map/useTutorialReadIds.js';
+import {
+  MapViewLocationSearch,
+  MapViewRouteControls,
+  MapViewRoutePickerRow,
+  mapCanvasOuterStyle,
+  mapCursorForMode,
+} from './map/MapViewPanels.jsx';
+import {
+  useMapViewActiveMap,
+  useMapViewData,
+  useMapViewSettings,
+} from './map/useMapViewContext.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
-import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
-import { MapLocationFilterResults } from './map/MapLocationFilterResults.jsx';
 import { WorkMapStage } from './map/WorkMapStage.jsx';
-import {
-  MAP_LOCATION_FILTER_DEFAULTS,
-  applyMapLocationFilters,
-  collectMapSpeciesOptions,
-  isMapLocationFilterActive,
-} from '../utils/mapLocationFilters.js';
-import { parseCategoryIdsSetting } from '../utils/categoryIdsSetting.js';
-import { collectMapCategoryOptions } from '../utils/locationCategories.js';
+import { useMapViewLocationFilters } from './map/useMapViewLocationFilters.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
-import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
-import { useSession } from '../contexts/SessionContext.jsx';
-import { useData } from '../contexts/DataContext.jsx';
-
-/** Carte vide stable : pastilles tutoriel désactivées sans recréer un `Map` à chaque rendu. */
-const EMPTY_TUTORIAL_COUNT_BY_ID = new Map();
-
-/**
- * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
- * Le repère est passé par la bulle aux handlers (`onOpenMarker(marker, e)`,
- * `onBeginMarkerDrag(marker.id, …)`) pour que le parent fournisse des fonctions stables.
- */
-const MapViewMarkerBubbleMemo = React.memo(function MapViewMarkerBubbleMemo({
-  marker,
-  draggable,
-  onOpenMarker,
-  onBeginMarkerDrag,
-  ...bubbleProps
-}) {
-  const onOpen = useCallback((e) => onOpenMarker(marker, e), [marker, onOpenMarker]);
-  const onPointerDown = useMemo(
-    () =>
-      draggable
-        ? (e) => {
-            e.stopPropagation();
-            onBeginMarkerDrag(marker.id, e.currentTarget, e.pointerId);
-          }
-        : undefined,
-    [draggable, marker.id, onBeginMarkerDrag],
-  );
-  return (
-    <MapViewMarkerBubble
-      marker={marker}
-      draggable={draggable}
-      onOpen={onOpen}
-      onPointerDown={onPointerDown}
-      {...bubbleProps}
-    />
-  );
-});
-
-/**
- * Pastille d'un **groupe** de repères sur la carte de travail (désencombrement, lot 5) :
- * compteur et emoji du repère représentatif, positionnée en % comme une bulle de repère.
- */
-const MapViewMarkerClusterMemo = React.memo(function MapViewMarkerClusterMemo({
-  cluster,
-  emojiFontSize,
-  onOpenCluster,
-}) {
-  const onOpen = useCallback((e) => onOpenCluster(cluster, e), [cluster, onOpenCluster]);
-  const leadLabel = String(cluster.lead?.label || '').trim();
-  return (
-    <button
-      type="button"
-      className="map-marker-cluster"
-      style={{ left: `${cluster.x_pct}%`, top: `${cluster.y_pct}%`, fontSize: emojiFontSize }}
-      aria-label={`${cluster.count} repères regroupés${leadLabel ? `, dont ${leadLabel}` : ''}`}
-      onClick={onOpen}
-    >
-      <span className="map-marker-cluster__emoji" aria-hidden>
-        {String(cluster.lead?.emoji || '').trim() || '📍'}
-      </span>
-      <span className="map-marker-cluster__count">{cluster.count}</span>
-    </button>
-  );
-});
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -198,16 +98,34 @@ function MapViewImpl({
   placeRequest = null,
   onPlaceRequestHandled = null,
 }) {
-  const publicSettings = usePublicSettings();
-  const { canParticipateContextComments = true } = useSession();
   const {
-    zones = [],
-    markers = [],
-    tasks = [],
-    tutorials = [],
-    plants = [],
-    activeMapId = '',
-  } = useData();
+    canParticipateContextComments,
+    zones,
+    markers,
+    tasks,
+    tutorials,
+    plants,
+    activeMapId,
+    markersOnActiveMap: mapMarkersOnActiveMap,
+    zonesOnActiveMap: mapZonesOnActiveMap,
+  } = useMapViewData();
+  const {
+    publicSettings,
+    markerEmojis,
+    emojiParsingList,
+    visitMascotDefaultId,
+    mascotDialogSettings,
+    contextCommentsEnabled,
+    headingUpSiteEnabled,
+  } = useMapViewSettings();
+  const {
+    activeMap,
+    activeMapLabel,
+    activeMapGeoref,
+    mapImageSrc,
+    onMapImageError,
+    mapFramePaddingPx,
+  } = useMapViewActiveMap(maps, activeMapId);
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -231,77 +149,18 @@ function MapViewImpl({
     });
   const [toast, setToast] = useState(null);
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
-  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
-  const [mapLocationFilters, setMapLocationFilters] = useState(() => ({
-    ...MAP_LOCATION_FILTER_DEFAULTS,
-  }));
-  const [mapCategoryDefaultsApplied, setMapCategoryDefaultsApplied] = useState(false);
-  const mapLocationSearchRef = useRef(null);
   const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
     useMapFullscreen({
       escapeBlocked: Boolean(
         selectedZone || selectedMarker || pendingZone || pendingMarker || mapTutorialPreview,
       ),
     });
-  const configuredLocationEmojis = String(
-    publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
-  );
-  const markerEmojis = useMemo(
-    () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
-    [configuredLocationEmojis],
-  );
-  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
   // Registre global des mascottes proposées → la mascotte peut être un pack importé (srv-…),
   // le choix du visiteur vaut sur toutes les cartes, et `offeredIds` borne la liste à ce que
   // le studio propose (sinon le catalogue livré revenait en entier, dépublication ignorée).
   const { extras: visitMascotCatalogExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry({ enabled: mode === 'view' });
-  const mapMarkersOnActiveMap = useMemo(
-    () => (markers || []).filter((m) => m.map_id === activeMapId),
-    [markers, activeMapId],
-  );
-  const mapZonesOnActiveMap = useMemo(
-    () => (zones || []).filter((z) => z.map_id === activeMapId),
-    [zones, activeMapId],
-  );
-  const [mapRoutes, setMapRoutes] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    const mid = String(activeMapId || '').trim();
-    if (!mid) {
-      setMapRoutes([]);
-      return undefined;
-    }
-    api(`/api/map-routes?map_id=${encodeURIComponent(mid)}&surface=map`)
-      .then((rows) => {
-        if (!cancelled) setMapRoutes(Array.isArray(rows) ? rows : []);
-      })
-      .catch(() => {
-        if (!cancelled) setMapRoutes([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeMapId]);
-  const routePlaces = useMemo(
-    () => placesFromZonesAndMarkers(mapZonesOnActiveMap, mapMarkersOnActiveMap),
-    [mapZonesOnActiveMap, mapMarkersOnActiveMap],
-  );
-  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
-  const emojiParsingList = useMemo(
-    () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
-    [markerEmojis],
-  );
-  const activeMap = maps.find((m) => m.id === activeMapId);
-  const mapImageCandidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
-  const [mapImageIdx, setMapImageIdx] = useState(0);
-  const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
-  const mapFramePaddingPx = useMemo(() => {
-    const custom = Number(activeMap?.frame_padding_px);
-    if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
-    return 8;
-  }, [activeMap?.frame_padding_px]);
   const mapLayoutOuterRef = useRef(null);
   const {
     containerRef,
@@ -391,39 +250,11 @@ function MapViewImpl({
     [useSharedViewStage, focusOnPct],
   );
 
-  /**
-   * Hauteur réellement occupée par la barre d'étape (elle se mesure elle-même) : la carte
-   * recadre **au-dessus** d'elle, sans quoi le lieu de l'étape courante était centré dans la
-   * scène entière, donc sous la barre (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.7).
-   */
-  const [routeBarHeight, setRouteBarHeight] = useState(0);
-  const routeFocusInsets = useMemo(
-    () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
-    [routeBarHeight],
-  );
-  const onRouteStepPlace = useCallback(
-    (entry) => {
-      if (!entry?.place) return;
-      const place = entry.place;
-      const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
-      if (place.kind === 'zone') {
-        setSelectedMarker(null);
-        setSelectedZone(place);
-        const pct = zoneFocusPctFromPoints(place.points);
-        if (pct) focusMapPct(pct, focusOptions);
-      } else {
-        setSelectedZone(null);
-        setSelectedMarker(place);
-        focusMapPct(markerFocusPct(place), focusOptions);
-      }
-    },
-    [focusMapPct, routeFocusInsets],
-  );
-  const onRouteExitExtra = useCallback(() => {
-    setSelectedZone(null);
-    setSelectedMarker(null);
-  }, []);
+  // Parcours de la carte : chargement, étape courante, reprise, demande de séance.
   const {
+    mapRoutes,
+    routePlaces,
+    setRouteBarHeight,
     activeRoute,
     routeSteps,
     routeIndex,
@@ -435,51 +266,36 @@ function MapViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
-    resetForMapChange,
-  } = useMapRouteMode({
-    routes: mapRoutes,
-    places: routePlaces,
-    onStepPlace: onRouteStepPlace,
-    onExitExtra: onRouteExitExtra,
-    // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
-    // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
-    storageKey: mapRouteResumeStorageKey('map', activeMapId),
+  } = useMapViewRoutes({
+    activeMapId,
+    zonesOnMap: mapZonesOnActiveMap,
+    markersOnMap: mapMarkersOnActiveMap,
+    mode,
+    focusMapPct,
+    setSelectedZone,
+    setSelectedMarker,
+    routeRequest,
+    onRouteRequestHandled,
   });
-  useEffect(() => {
-    resetForMapChange();
-  }, [activeMapId, resetForMapChange]);
-  // Séance pédagogique : « ouvrir le parcours X » — attend que les parcours de la carte
-  // soient chargés, puis démarre une seule fois par demande (nonce).
-  const handledRouteRequestRef = useRef(null);
-  useEffect(() => {
-    if (!routeRequest?.slug || handledRouteRequestRef.current === routeRequest.nonce) return;
-    const route = mapRoutes.find((r) => r.slug === routeRequest.slug);
-    if (!route) return;
-    handledRouteRequestRef.current = routeRequest.nonce;
-    startRoute(route);
-    onRouteRequestHandled?.(routeRequest.nonce);
-  }, [routeRequest, mapRoutes, startRoute, onRouteRequestHandled]);
   const [commentsFocusKey, setCommentsFocusKey] = useState(null);
   useEffect(() => {
     if (!selectedZone && !selectedMarker) setCommentsFocusKey(null);
   }, [selectedZone, selectedMarker]);
-  useEffect(() => {
-    if (mode !== 'view' && activeRoute) exitRoute();
-  }, [mode, activeRoute, exitRoute]);
   const { s: cs } = committed;
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
   // Aimant de contour (lot « ancrage magnétique ») : analyse de l'image de fond à la demande.
-  const [snapEnabled, setSnapEnabled] = useState(false);
-  const [snapRadiusPx, setSnapRadiusPx] = useState(EDGE_SNAP_DEFAULTS.radiusScreenPx);
-  const [snapSensitivity, setSnapSensitivity] = useState(EDGE_SNAP_DEFAULTS.sensitivity);
-  const edgeSnap = useMapImageEdgeSnap({
-    src: mapImageSrc,
-    active: snapEnabled && mode === 'edit-points',
-  });
-  // Rayons exprimés à l'écran → convertis en % d'image (constants visuellement au zoom).
-  const snapRadiusPct = iw > 0 ? Math.max(0.05, ((snapRadiusPx * inv) / iw) * 100) : 1;
-  const edgeTolerancePct = iw > 0 ? Math.min(8, Math.max(0.3, ((28 * inv) / iw) * 100)) : 3;
+  const {
+    snapEnabled,
+    setSnapEnabled,
+    snapRadiusPx,
+    setSnapRadiusPx,
+    snapSensitivity,
+    setSnapSensitivity,
+    edgeSnap,
+    snapRadiusPct,
+    edgeTolerancePct,
+  } = useMapViewEdgeSnap({ mapImageSrc, mode, iw, inv });
 
   // Édition du contour d'une zone (mode edit-points) : session, historique Ctrl+Z, translation.
   const {
@@ -578,17 +394,26 @@ function MapViewImpl({
     allowedMascotIds: visitMascotOfferedIds,
     defaultMascotId: visitMascotDefaultId,
     onPersistPreferredMascotId: onPersistVisitMascotId,
-    mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
+    mascotDialogSettings,
   });
-  /**
-   * Position sur la carte de travail (lot 6) : le noyau partagé, le même que le Plan Lyautey.
-   * « Me suivre » n'est **plus lié à la mascotte** — un point de position s'affiche même
-   * quand la mascotte est masquée ; quand elle est affichée, elle suit en plus. La position
-   * reste 100 % côté client.
-   */
-  const mapPosition = useMapPosition({
-    georef: activeMap?.georef ?? null,
-    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view',
+  // Position du lecteur, carte orientée selon le cap, échelle et rose des vents.
+  const {
+    mapPosition,
+    headingUpAllowed,
+    headingUpPref,
+    headingUpEffective,
+    scaleCompassAllowed,
+    scaleCompassPref,
+    mapOrientationDeg,
+    mascotGps,
+  } = useMapViewPosition({
+    activeMap,
+    mode,
+    headingUpSiteEnabled,
+    mapOrientation,
+    setMapOrientation,
+    showMapMascot,
+    moveMapMascotTo,
   });
   const routeDistanceLabel = useMemo(() => {
     const targetPct = routeEntryFocusPct(currentRouteEntry);
@@ -600,102 +425,7 @@ function MapViewImpl({
     );
     return meters != null ? formatDistanceFr(meters) : '';
   }, [currentRouteEntry, mapPosition.positionPct, mapPosition.planSize]);
-  const headingUpAllowed =
-    !!publicSettings?.map?.heading_up_enabled &&
-    !!activeMap?.heading_up_enabled &&
-    !!mapPosition.available &&
-    mode === 'view';
-  const headingUpPref = useHeadingUpPreference({
-    storageKey: 'foretmap:heading-up',
-    allowed: headingUpAllowed,
-  });
-  const headingUpEffective = headingUpPref.effective && mapPosition.active;
-  const scaleCompassAllowed =
-    !!activeMap?.georef && !!activeMap?.scale_compass_enabled && mode === 'view';
-  const scaleCompassPref = useScaleCompassPreference({
-    storageKey: 'foretmap:scale-compass',
-    allowed: scaleCompassAllowed,
-  });
-  // Angle **continu** : la transition CSS du calque d'orientation doit prendre le chemin le plus
-  // court (`unwrapHeadingDeg`), sinon la carte fait un tour complet au passage de 359° à 1°.
-  const headingForMapDeg =
-    mapPosition.screenHeadingUnwrappedDeg ??
-    mapPosition.smoothedScreenHeadingDeg ??
-    mapPosition.screenHeadingDeg ??
-    null;
-  const targetOrientationDeg = headingUpEffective ? headingUpOrientationDeg(headingForMapDeg) : 0;
-  // Angle **réellement appliqué** au calque : la rose des vents doit pointer le même cap que la
-  // carte pendant que celle-ci pivote, et non l'angle visé un rendu plus tôt.
-  const mapOrientationDeg = mapOrientation?.deg || 0;
-  useEffect(() => {
-    if (!headingUpEffective) {
-      setMapOrientation({ deg: 0, originPct: null });
-      return;
-    }
-    setMapOrientation({
-      deg: targetOrientationDeg,
-      originPct: mapPosition.displayPct || null,
-    });
-  }, [
-    headingUpEffective,
-    mapPosition.displayPct?.xp,
-    mapPosition.displayPct?.yp,
-    targetOrientationDeg,
-    setMapOrientation,
-  ]);
-  // La mascotte suit la position quand elle est à l'écran (comportement d'origine).
-  useEffect(() => {
-    if (!showMapMascot || !mapPosition.positionPct) return;
-    if (mapPosition.feedback !== 'ok') return;
-    moveMapMascotTo(mapPosition.positionPct.xp, mapPosition.positionPct.yp);
-  }, [showMapMascot, mapPosition.positionPct, mapPosition.feedback, moveMapMascotTo]);
-  /** Forme attendue par la barre d'outils et la bannière d'état (contrat inchangé). */
-  const mascotGps = useMemo(
-    () => ({
-      supported: mapPosition.supported,
-      available: mapPosition.available,
-      active: mapPosition.active,
-      status: mapPosition.status,
-      feedback: mapPosition.feedback === 'acquiring' ? null : mapPosition.feedback,
-      accuracy: mapPosition.accuracyM,
-      error: mapPosition.error,
-      toggle: mapPosition.toggle,
-      headingAvailable: mapPosition.headingAvailable,
-      headingUpAllowed,
-      headingUpEffective,
-      headingUpUserEnabled: headingUpPref.userEnabled,
-      toggleHeadingUp: () => headingUpPref.setEnabled(!headingUpPref.userEnabled),
-    }),
-    [mapPosition, headingUpAllowed, headingUpEffective, headingUpPref],
-  );
-  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
-    () => computeTaskVisualByLocation(tasks),
-    [tasks],
-  );
-
-  const { zoneTutorialCountById, markerTutorialCountById } = useMemo(
-    () => computeTutorialCountByLocation({ tutorials, tasks, zones, markers, activeMapId }),
-    [tutorials, zones, markers, activeMapId, tasks],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchTutorialReadIds();
-      if (!cancelled) setTutorialReadIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [tutorials]);
+  const [tutorialReadIds, setTutorialReadIds] = useTutorialReadIds(tutorials);
 
   const hadZoneOrMarkerSelectionRef = useRef(false);
   useEffect(() => {
@@ -710,10 +440,6 @@ function MapViewImpl({
     }
     hadZoneOrMarkerSelectionRef.current = hasSelection;
   }, [selectedZone, selectedMarker, onLocationTasksFocus]);
-
-  useEffect(() => {
-    setMapImageIdx(0);
-  }, [mapImageCandidates]);
 
   useLayoutEffect(() => {
     if (!mapFullscreen) return undefined;
@@ -736,7 +462,6 @@ function MapViewImpl({
     setPendingZone(null);
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
-    setMapLocationFilters({ ...MAP_LOCATION_FILTER_DEFAULTS });
     discardEditPointsSession();
     clearAlignSession();
     resetMapMascotMotion?.();
@@ -801,36 +526,22 @@ function MapViewImpl({
   };
 
   // Actions CRUD carte (API + refresh) ; les effets d'UI (fermeture/sélection/toast)
-  // restent portés par les wrappers ci-dessous et les call sites des modales.
-  const {
-    saveMarker,
-    updateMarker,
-    linkTaskToLocation,
-    unlinkTaskFromLocation,
-    linkTutorialToLocation,
-    unlinkTutorialFromLocation,
-    deleteMarker,
-    deleteZone,
-    duplicateZone,
-    duplicateMarker,
-    assignTasksToStudent,
-  } = useMapCrudActions({ activeMapId, tasks, tutorials, onRefresh, student, canEnrollNewTasks });
+  // restent portés par les fenêtres de lieu (`MapViewLocationModals`).
+  const crud = useMapCrudActions({
+    activeMapId,
+    tasks,
+    tutorials,
+    onRefresh,
+    student,
+    canEnrollNewTasks,
+  });
 
-  const updateMarkerAndClose = async (id, data) => {
-    await updateMarker(id, data);
-    setSelectedMarker(null);
-  };
-
-  const duplicateZoneAndSelect = async (z) => {
-    const created = await duplicateZone(z);
-    setSelectedZone(created);
-    setToast('Zone dupliquée ✓');
-  };
-
-  const duplicateMarkerAndSelect = async (m) => {
-    const created = await duplicateMarker(m);
-    setSelectedMarker(created);
-    setToast('Repère dupliqué ✓');
+  /** « Ajuster la position » depuis la fiche d'un repère : déverrouille le glisser. */
+  const requestAdjustMarkerPosition = () => {
+    setMarkerPositionUnlocked(true);
+    setToast(
+      'Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.',
+    );
   };
 
   const toggleMarkerPositionLock = () => {
@@ -842,21 +553,29 @@ function MapViewImpl({
   };
 
   const mapMascotFitScale = resolveMapViewMascotFitScale(cs);
-  // Hauteur affichée du plan AU REPOS (ajusté), indépendante du zoom : dimensionne les étiquettes
-  // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
-  const safeFitScale = fitScale > 0 ? fitScale : 1;
-  const mapFitHeightPx = ih * safeFitScale;
-  const mapFitWidthPx = iw * safeFitScale;
-  const mapZoomRatio = cs / safeFitScale;
+  // Typographie des étiquettes (emoji, nom) et variables CSS du calque d'étiquettes.
   const {
-    percent: mapTextSizePercent,
-    label: mapTextSizeLabel,
-    cycle: cycleMapTextSize,
-  } = useMapOverlayTextSizePreference();
-  const mapSettings =
-    publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
-  /** Pastilles violettes tutoriel : OFF par défaut (`ui.map.show_tutorial_dots`). */
-  const showTutorialDots = !!mapSettings?.show_tutorial_dots;
+    showTutorialDots,
+    mapTextSizeLabel,
+    cycleMapTextSize,
+    mapEmojiLabelCenterGap,
+    mapEmojiFontPx,
+    mapLabelFontPx,
+    markerLabelMarginTop,
+    mapOverlayLabelLayout,
+    mapOverlayCssVars,
+    workFitExtraStyle,
+  } = useMapViewTypography({ publicSettings, iw, ih, fitScale, cs, inv, isCoarsePointer });
+  // Pastilles d'état des lieux (tâches, tutoriels liés).
+  const {
+    zoneTaskVisualById,
+    markerTaskVisualById,
+    zoneTutorialCountById,
+    markerTutorialCountById,
+    getStageZoneStatusDots,
+    getStageMarkerStatusDots,
+    getStageClusterStatusDots,
+  } = useMapViewBadges({ tasks, tutorials, zones, markers, activeMapId, showTutorialDots });
   const mapCanvasHintTexts = useMemo(
     () => ({
       drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
@@ -870,39 +589,6 @@ function MapViewImpl({
     }),
     [publicSettings, drawPoints.length],
   );
-  const { mapEmojiLabelCenterGap, mapEmojiFontPx, mapLabelFontPx, markerLabelMarginTop } =
-    resolveMapOverlayTypography(mapSettings, mapFitHeightPx, {
-      worldScale: cs,
-      zoomRatio: mapZoomRatio,
-      fitWidthPx: mapFitWidthPx,
-      isCoarsePointer,
-      userTextSizePercent: mapTextSizePercent,
-    });
-  const mapOverlayLabelLayout = useMemo(
-    () => resolveMapOverlayLabelLayout(mapSettings, { inv, isCoarsePointer }),
-    [mapSettings, inv, isCoarsePointer],
-  );
-  const mapOverlayCssVars = useMemo(
-    () =>
-      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
-        fitWidthPx: mapFitWidthPx,
-        isCoarsePointer,
-        userTextSizePercent: mapTextSizePercent,
-      }),
-    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
-  );
-  /** SharedMapStage : plateau dans la taille de police, pas via `scale(--map-overlay-scale)`. */
-  const workFitExtraStyle = useMemo(
-    () =>
-      resolveMapOverlayCssVariables(mapSettings, mapFitHeightPx, {
-        fitWidthPx: mapFitWidthPx,
-        isCoarsePointer,
-        userTextSizePercent: mapTextSizePercent,
-        plateauAsTransform: false,
-      }),
-    [mapSettings, mapFitHeightPx, mapFitWidthPx, isCoarsePointer, mapTextSizePercent],
-  );
-
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
   const parsedZones = useMemo(
@@ -916,20 +602,6 @@ function MapViewImpl({
     () => new Map((mapCategoryCatalog || []).map((c) => [String(c.id), c])),
     [mapCategoryCatalog],
   );
-
-  // Catégories cochées d'office (réglage admin `ui.map.default_category_ids`).
-  useEffect(() => {
-    if (mapCategoryDefaultsApplied || !(mapCategoryCatalog || []).length) return;
-    const raw =
-      publicSettings?.map?.default_category_ids ??
-      publicSettings?.ui?.map?.default_category_ids ??
-      '';
-    const ids = parseCategoryIdsSetting(raw).filter((id) => mapCategoriesById.has(id));
-    if (ids.length) {
-      setMapLocationFilters((prev) => ({ ...prev, categoryIds: ids }));
-    }
-    setMapCategoryDefaultsApplied(true);
-  }, [mapCategoryDefaultsApplied, mapCategoryCatalog, mapCategoriesById, publicSettings]);
 
   /**
    * Regroupement des repères au dézoom (lot 5, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.3) :
@@ -957,295 +629,75 @@ function MapViewImpl({
     ],
   );
 
-  const mapSpeciesOptions = useMemo(
-    () => collectMapSpeciesOptions(zones, mapMarkersOnActiveMap),
-    [zones, mapMarkersOnActiveMap],
-  );
-
-  // Options du filtre « Catégories » : celles réellement portées par les lieux affichés,
-  // complétées par le catalogue de la carte (une catégorie encore inutilisée reste visible).
-  const mapCategoryOptions = useMemo(
-    () => collectMapCategoryOptions(zones, mapMarkersOnActiveMap, mapCategoryCatalog),
-    [zones, mapMarkersOnActiveMap, mapCategoryCatalog],
-  );
-
-  const mapFilterContext = useMemo(
-    () => ({
-      zoneTaskVisualById,
-      markerTaskVisualById,
-      zoneTutorialCountById,
-      markerTutorialCountById,
-      emojiParsingList,
-      speciesOptions: mapSpeciesOptions,
-    }),
-    [
-      zoneTaskVisualById,
-      markerTaskVisualById,
-      zoneTutorialCountById,
-      markerTutorialCountById,
-      emojiParsingList,
-      mapSpeciesOptions,
-    ],
-  );
-
+  // Recherche et filtres de lieux : options, lieux retenus, lieux atténués, raccourci « / ».
   const {
+    mapLocationFilters,
+    setMapLocationFilters,
+    mapLocationSearchRef,
+    mapSpeciesOptions,
+    mapCategoryOptions,
     matchingZoneIds,
     matchingMarkerIds,
-    resultItems: mapFilterResultItems,
-    filterActive: mapFilterActive,
-  } = useMemo(
-    () =>
-      applyMapLocationFilters({
-        zones,
-        markers: mapMarkersOnActiveMap,
-        filters: mapLocationFilters,
-        context: mapFilterContext,
-      }),
-    [zones, mapMarkersOnActiveMap, mapLocationFilters, mapFilterContext],
-  );
-
-  const dimmedZoneIds = useMemo(() => {
-    if (!mapFilterActive) return null;
-    const set = new Set();
-    for (const parsed of parsedZones) {
-      const id = String(parsed.zone.id);
-      if (!matchingZoneIds.has(id)) set.add(id);
-    }
-    return set;
-  }, [mapFilterActive, parsedZones, matchingZoneIds]);
-
-  const dimmedMarkerIds = useMemo(() => {
-    if (!mapFilterActive) return null;
-    const set = new Set();
-    for (const m of mapMarkersOnActiveMap) {
-      const id = String(m.id);
-      if (!matchingMarkerIds.has(id)) set.add(id);
-    }
-    return set;
-  }, [mapFilterActive, mapMarkersOnActiveMap, matchingMarkerIds]);
-
-  /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
-  const focusMapOnLocation = useCallback((focusPct) => focusMapPct(focusPct), [focusMapPct]);
-
-  const onSelectMapFilterResult = useCallback(
-    (row) => {
-      if (!row?.item) return;
-      if (row.kind === 'zone') {
-        if (showMapMascot) onMapMascotZoneClick(row.item, setSelectedZone);
-        else setSelectedZone(row.item);
-        focusMapOnLocation(zoneFocusPctFromPoints(row.item.points));
-      } else {
-        if (showMapMascot) onMapMascotMarkerClick(row.item, setSelectedMarker);
-        else setSelectedMarker(row.item);
-        focusMapOnLocation(markerFocusPct(row.item));
-      }
+    mapFilterResultItems,
+    mapFilterActive,
+    dimmedZoneIds,
+    dimmedMarkerIds,
+    getFilterDimSeen,
+  } = useMapViewLocationFilters({
+    activeMapId,
+    mode,
+    publicSettings,
+    zones,
+    markersOnMap: mapMarkersOnActiveMap,
+    parsedZones,
+    categoryCatalog: mapCategoryCatalog,
+    categoriesById: mapCategoriesById,
+    badges: {
+      zoneTaskVisualById,
+      markerTaskVisualById,
+      zoneTutorialCountById,
+      markerTutorialCountById,
+      emojiParsingList,
     },
-    [showMapMascot, onMapMascotZoneClick, onMapMascotMarkerClick, focusMapOnLocation],
-  );
+  });
 
-  useEffect(() => {
-    if (mode !== 'view') return undefined;
-    const onKeyDown = (e) => {
-      if (e.defaultPrevented) return;
-      const tag = String(e.target?.tagName || '').toLowerCase();
-      if (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        tag === 'select' ||
-        e.target?.isContentEditable
-      ) {
-        return;
-      }
-      const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey;
-      const ctrlK = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
-      if (slash || ctrlK) {
-        e.preventDefault();
-        mapLocationSearchRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode]);
-
-  const openZoneFromMap = useCallback(
-    (z, e) => {
-      if (moved.current) return;
-      if (mode === 'align-zones') {
-        e.stopPropagation();
-        toggleAlignZoneId(z.id);
-        return;
-      }
-      if (mode === 'view') {
-        e.stopPropagation();
-        if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
-        else setSelectedZone(z);
-      }
-    },
-    [mode, moved, showMapMascot, onMapMascotZoneClick, toggleAlignZoneId],
-  );
-
-  const openMarkerFromMap = useCallback(
-    (m, e) => {
-      e.stopPropagation();
-      if (!moved.current) {
-        if (mode === 'view' && showMapMascot) onMapMascotMarkerClick(m, setSelectedMarker);
-        else setSelectedMarker(m);
-      }
-    },
-    [mode, moved, showMapMascot, onMapMascotMarkerClick],
-  );
-
-  /**
-   * Tap sur un groupe de repères : zoom animé sur son enveloppe si le groupe se sépare,
-   * sinon ouverture du repère représentatif (sur la carte de travail, la fiche est le geste
-   * attendu ; le plan, lui, montre la liste du groupe dans sa feuille basse).
-   */
-  const openClusterFromMap = useCallback(
-    (cluster, e) => {
-      e.stopPropagation();
-      if (moved.current) return;
-      if (clusterSeparatesOnZoom(cluster)) {
-        focusMapPct(clusterCenterPct(cluster), {
-          targetScale: clusterZoomTargetScale(cluster, {
-            stageWidthPx: containerRef.current?.clientWidth || 0,
-            stageHeightPx: containerRef.current?.clientHeight || 0,
-            contentWidthPx: imgSize.w,
-            contentHeightPx: imgSize.h,
-          }),
-        });
-        return;
-      }
-      setSelectedMarker(cluster.lead);
-    },
-    [moved, focusMapPct, containerRef, imgSize.w, imgSize.h],
-  );
-
-  /**
-   * Ouverture lieu depuis SharedMapStage (calques Pct*). Ignore les lieux atténués par filtre.
-   */
-  const onSelectPlaceFromStage = useCallback(
-    (place) => {
-      if (!place) return;
-      if (mapFilterActive) {
-        const id = String(place.id);
-        if (place.kind === 'zone' && !matchingZoneIds.has(id)) return;
-        if (place.kind === 'marker' && !matchingMarkerIds.has(id)) return;
-      }
-      if (place.kind === 'zone') {
-        setSelectedMarker(null);
-        if (showMapMascot) onMapMascotZoneClick(place, setSelectedZone);
-        else setSelectedZone(place);
-        return;
-      }
-      setSelectedZone(null);
-      if (showMapMascot) onMapMascotMarkerClick(place, setSelectedMarker);
-      else setSelectedMarker(place);
-    },
-    [
-      mapFilterActive,
-      matchingZoneIds,
-      matchingMarkerIds,
-      showMapMascot,
-      onMapMascotZoneClick,
-      onMapMascotMarkerClick,
-    ],
-  );
-
-  /** Groupe de repères qui ne se sépare pas au zoom : ouvrir le repère représentatif. */
-  const onOpenGroupFromStage = useCallback((groupMarkers) => {
-    const lead = Array.isArray(groupMarkers) && groupMarkers.length ? groupMarkers[0] : null;
-    if (lead) setSelectedMarker(lead);
-  }, []);
-
-  /** Atténuation filtre : `true` = vu/atténué, `false` = mis en avant, `null` = neutre. */
-  const getFilterDimSeen = useCallback(
-    (place) => {
-      if (!mapFilterActive || !place) return null;
-      const id = String(place.id);
-      const isMarker =
-        place.kind === 'marker' ||
-        (place.x_pct != null &&
-          place.y_pct != null &&
-          !(place.points && String(place.points).trim()));
-      if (isMarker) return matchingMarkerIds.has(id) ? false : true;
-      return matchingZoneIds.has(id) ? false : true;
-    },
-    [mapFilterActive, matchingZoneIds, matchingMarkerIds],
-  );
-
-  /**
-   * Pastilles d'état des lieux sur la scène partagée (consultation) : état des tâches, et
-   * tutoriels liés si l'admin les affiche. Ce sont les pastilles historiques de la carte de
-   * travail, rendues par `PctStatusDotsLayer` depuis l'unification sur `SharedMapStage` —
-   * sans ce branchement, la scène n'en affichait plus aucune.
-   */
-  const getStageZoneStatusDots = useCallback(
-    (zone) =>
-      locationStatusDots({
-        kind: 'zone',
-        taskVisual: zoneTaskVisualById.get(zone?.id),
-        tutorialCount: showTutorialDots ? zoneTutorialCountById.get(zone?.id) || 0 : 0,
-      }),
-    [zoneTaskVisualById, zoneTutorialCountById, showTutorialDots],
-  );
-
-  const getStageMarkerStatusDots = useCallback(
-    (marker) =>
-      locationStatusDots({
-        kind: 'marker',
-        taskVisual: markerTaskVisualById.get(marker?.id),
-        tutorialCount: showTutorialDots ? markerTutorialCountById.get(marker?.id) || 0 : 0,
-      }),
-    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
-  );
-
-  /**
-   * Pastilles d'un **groupe** de repères : l'état le plus actionnable du groupe. Sans elles,
-   * les repères regroupés au dézoom (l'état d'arrivée sur la carte) n'affichaient plus rien.
-   */
-  const getStageClusterStatusDots = useCallback(
-    (markersOfCluster) =>
-      clusterStatusDots(markersOfCluster, {
-        taskVisualById: markerTaskVisualById,
-        tutorialCountById: markerTutorialCountById,
-        withTutorials: showTutorialDots,
-      }),
-    [markerTaskVisualById, markerTutorialCountById, showTutorialDots],
-  );
-
-  const onWorkBackgroundClick = useCallback(
-    (event) => {
-      if (!showMapMascot) return;
-      /* Clic fond libre (hors zone/repère) : même destination que le point cliqué. */
-      const pct = workViewportApiRef.current.toImagePct?.(event.clientX, event.clientY, {
-        clamp: true,
-      });
-      if (pct) moveMapMascotTo(pct.xp, pct.yp);
-    },
-    [showMapMascot, moveMapMascotTo],
-  );
-
-  const selectedPlaceForStage = useMemo(() => {
-    if (selectedZone) return { ...selectedZone, kind: 'zone' };
-    if (selectedMarker) return { ...selectedMarker, kind: 'marker' };
-    return null;
-  }, [selectedZone, selectedMarker]);
+  // Ouverture d'un lieu : toucher (scène, canevas, groupe), résultat de recherche, fond.
+  const {
+    onSelectMapFilterResult,
+    openZoneFromMap,
+    openMarkerFromMap,
+    openClusterFromMap,
+    onSelectPlaceFromStage,
+    onOpenGroupFromStage,
+    onWorkBackgroundClick,
+    selectedPlaceForStage,
+  } = useMapViewPlaceHandlers({
+    mode,
+    moved,
+    selectedZone,
+    selectedMarker,
+    setSelectedZone,
+    setSelectedMarker,
+    showMapMascot,
+    onMapMascotZoneClick,
+    onMapMascotMarkerClick,
+    moveMapMascotTo,
+    toggleAlignZoneId,
+    focusMapPct,
+    containerRef,
+    imgSize,
+    workViewportApiRef,
+    mapFilterActive,
+    matchingZoneIds,
+    matchingMarkerIds,
+  });
 
   const workTargetPct = useMemo(
     () => (activeRoute ? routeEntryFocusPct(currentRouteEntry) : null),
     [activeRoute, currentRouteEntry],
   );
 
-  const cursor =
-    mode === 'view'
-      ? 'grab'
-      : mode === 'draw-zone'
-        ? 'crosshair'
-        : mode === 'edit-points'
-          ? 'default'
-          : mode === 'align-zones'
-            ? 'pointer'
-            : 'cell';
+  const cursor = mapCursorForMode(mode);
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
 
@@ -1266,149 +718,40 @@ function MapViewImpl({
         />
       )}
 
-      {selectedZone && (
-        <ZoneInfoModal
-          zone={selectedZone}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          tasks={tasks}
-          tutorials={tutorials}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollNewTasks}
-          markerEmojis={markerEmojis}
-          emojiParsingList={emojiParsingList}
-          contextCommentsEnabled={contextCommentsEnabled}
-          canParticipateContextComments={canParticipateContextComments}
-          focusComments={commentsFocusKey === `zone:${selectedZone.id}`}
-          onClose={() => {
-            clearMapMascotDetailAfterMove();
-            setSelectedZone(null);
-          }}
-          onUpdate={async (id, data) => {
-            await onZoneUpdate(id, data);
-            setSelectedZone(null);
-            await onRefresh();
-          }}
-          onDelete={async (id) => {
-            await deleteZone(id);
-            setSelectedZone(null);
-          }}
-          onDuplicate={isTeacher ? duplicateZoneAndSelect : undefined}
-          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'zone', selectedZone.id)}
-          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'zone', selectedZone.id)}
-          onAssignTasks={assignTasksToStudent}
-          onLinkTutorial={async (tutorialId) =>
-            linkTutorialToLocation(tutorialId, 'zone', selectedZone.id)
-          }
-          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'zone', selectedZone.id)}
-          onEditPoints={
-            isTeacher
-              ? (z) => {
-                  startEditPoints(z);
-                  setSelectedZone(null);
-                }
-              : null
-          }
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={
-            onOpenPlantCatalogPreview
-              ? (id) => {
-                  onOpenPlantCatalogPreview(id);
-                  setSelectedZone(null);
-                }
-              : null
-          }
-        />
-      )}
-      {selectedMarker && (
-        <MarkerModal
-          marker={selectedMarker}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          tasks={tasks}
-          tutorials={tutorials}
-          isTeacher={isTeacher}
-          student={student}
-          canSelfAssignTasks={canSelfAssignTasks}
-          canEnrollOnTasks={canEnrollNewTasks}
-          markerEmojis={markerEmojis}
-          contextCommentsEnabled={contextCommentsEnabled}
-          canParticipateContextComments={canParticipateContextComments}
-          focusComments={commentsFocusKey === `marker:${selectedMarker.id}`}
-          onClose={() => {
-            clearMapMascotDetailAfterMove();
-            setSelectedMarker(null);
-          }}
-          onUpdate={updateMarkerAndClose}
-          onDelete={deleteMarker}
-          onDuplicate={isTeacher ? duplicateMarkerAndSelect : undefined}
-          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'marker', selectedMarker.id)}
-          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'marker', selectedMarker.id)}
-          onLinkTutorial={async (tutorialId) =>
-            linkTutorialToLocation(tutorialId, 'marker', selectedMarker.id)
-          }
-          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'marker', selectedMarker.id)}
-          onAssignTasks={assignTasksToStudent}
-          onNavigateToTasksForLocation={onNavigateToTasksForLocation}
-          onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={
-            onOpenPlantCatalogPreview
-              ? (id) => {
-                  onOpenPlantCatalogPreview(id);
-                  setSelectedMarker(null);
-                }
-              : null
-          }
-          onRequestAdjustMarkerPosition={
-            isTeacher
-              ? () => {
-                  setMarkerPositionUnlocked(true);
-                  setToast(
-                    'Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.',
-                  );
-                }
-              : undefined
-          }
-        />
-      )}
-      {pendingZone && (
-        <ZoneDrawModal
-          points_pct={pendingZone}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          markerEmojis={markerEmojis}
-          emojiParsingList={emojiParsingList}
-          onClose={() => setPendingZone(null)}
-          onSave={async (data) => {
-            await api('/api/zones', 'POST', { ...data, map_id: activeMapId });
-            setPendingZone(null);
-            await onRefresh();
-          }}
-        />
-      )}
-      {pendingMarker && (
-        <MarkerModal
-          marker={{
-            x_pct: pendingMarker.xp,
-            y_pct: pendingMarker.yp,
-            label: '',
-            note: '',
-            emoji: markerEmojis[0] || '🌱',
-            plant_name: '',
-            map_id: activeMapId,
-          }}
-          plants={plants}
-          categoryCatalog={mapCategoryCatalog}
-          isTeacher={isTeacher}
-          markerEmojis={markerEmojis}
-          onClose={() => setPendingMarker(null)}
-          onSave={saveMarker}
-          onDelete={() => setPendingMarker(null)}
-        />
-      )}
+      <MapViewLocationModals
+        activeMapId={activeMapId}
+        isTeacher={isTeacher}
+        student={student}
+        canSelfAssignTasks={canSelfAssignTasks}
+        canEnrollOnTasks={canEnrollNewTasks}
+        plants={plants}
+        tasks={tasks}
+        tutorials={tutorials}
+        categoryCatalog={mapCategoryCatalog}
+        markerEmojis={markerEmojis}
+        emojiParsingList={emojiParsingList}
+        contextCommentsEnabled={contextCommentsEnabled}
+        canParticipateContextComments={canParticipateContextComments}
+        commentsFocusKey={commentsFocusKey}
+        selectedZone={selectedZone}
+        setSelectedZone={setSelectedZone}
+        selectedMarker={selectedMarker}
+        setSelectedMarker={setSelectedMarker}
+        pendingZone={pendingZone}
+        setPendingZone={setPendingZone}
+        pendingMarker={pendingMarker}
+        setPendingMarker={setPendingMarker}
+        crud={crud}
+        onZoneUpdate={onZoneUpdate}
+        onRefresh={onRefresh}
+        onNavigateToTasksForLocation={onNavigateToTasksForLocation}
+        onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+        onOpenTutorialPreview={setMapTutorialPreview}
+        onCloseDetail={clearMapMascotDetailAfterMove}
+        onEditZonePoints={startEditPoints}
+        onRequestAdjustMarkerPosition={requestAdjustMarkerPosition}
+        setToast={setToast}
+      />
 
       {!mapFullscreen ? (
         <MapViewToolbar
@@ -1504,22 +847,14 @@ function MapViewImpl({
         />
       ) : null}
 
-      {mode === 'view' && !mapFullscreen ? (
-        <div className="map-view-routes-row" data-testid="map-view-routes-row">
-          {/*
-            Hors de la barre d'outils (`overflow-x: auto` + `overflow-y: hidden`) : même
-            motif que `.plan-filters` — sinon la liste Parcours est coupée / passée sous la
-            carte, et la puce disparaît dans le défilement horizontal des commandes.
-          */}
-          <MapRoutePicker
-            routes={mapRoutes}
-            places={routePlaces}
-            open={routePickerOpen}
-            onToggle={setRoutePickerOpen}
-            onStart={startRoute}
-          />
-        </div>
-      ) : null}
+      <MapViewRoutePickerRow
+        visible={mode === 'view' && !mapFullscreen}
+        routes={mapRoutes}
+        places={routePlaces}
+        open={routePickerOpen}
+        onToggle={setRoutePickerOpen}
+        onStart={startRoute}
+      />
 
       <MascotGpsStatusBanner gps={mascotGps} />
 
@@ -1531,50 +866,29 @@ function MapViewImpl({
         <div
           ref={mapLayoutOuterRef}
           className={`map-view-canvas-outer${mapFullscreen ? ' map-view-canvas-outer--fullscreen' : ''}`}
-          style={{
-            minHeight: 0,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            boxSizing: 'border-box',
-            ...(embedded
-              ? {
-                  paddingTop: 0,
-                  paddingLeft: mapFramePaddingPx,
-                  paddingRight: mapFramePaddingPx,
-                  paddingBottom: mapFramePaddingPx,
-                }
-              : { padding: mapFramePaddingPx }),
-          }}
+          style={mapCanvasOuterStyle({ embedded, framePaddingPx: mapFramePaddingPx })}
         >
-          {mode === 'view' && (
-            <>
-              <MapLocationFiltersBar
-                filters={mapLocationFilters}
-                setFilters={setMapLocationFilters}
-                speciesOptions={mapSpeciesOptions}
-                categoryOptions={mapCategoryOptions}
-                zoneMatchCount={matchingZoneIds.size}
-                markerMatchCount={matchingMarkerIds.size}
-                searchInputRef={mapLocationSearchRef}
-              />
-              {isMapLocationFilterActive(mapLocationFilters) && mapFilterResultItems.length > 0 ? (
-                <MapLocationFilterResults
-                  items={mapFilterResultItems}
-                  onSelectItem={onSelectMapFilterResult}
-                />
-              ) : null}
-            </>
-          )}
+          <MapViewLocationSearch
+            visible={mode === 'view'}
+            filters={mapLocationFilters}
+            setFilters={setMapLocationFilters}
+            speciesOptions={mapSpeciesOptions}
+            categoryOptions={mapCategoryOptions}
+            zoneMatchCount={matchingZoneIds.size}
+            markerMatchCount={matchingMarkerIds.size}
+            searchInputRef={mapLocationSearchRef}
+            resultItems={mapFilterResultItems}
+            onSelectItem={onSelectMapFilterResult}
+          />
           <div className="map-view-canvas-slot">
             {useSharedViewStage ? (
               <WorkMapStage
                 map={{
                   id: activeMapId,
                   map_image_url: mapImageSrc,
-                  label: activeMap?.label,
-                  georef: activeMap?.georef,
-                  geo_anchors: activeMap?.georef,
+                  label: activeMapLabel,
+                  georef: activeMapGeoref,
+                  geo_anchors: activeMapGeoref,
                 }}
                 zones={mapZonesOnActiveMap}
                 markers={mapMarkersOnActiveMap}
@@ -1603,9 +917,7 @@ function MapViewImpl({
                 targetPct={workTargetPct}
                 onViewportChange={onWorkViewportChange}
                 onBackgroundClick={onWorkBackgroundClick}
-                onMapImageError={() =>
-                  setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
-                }
+                onMapImageError={onMapImageError}
                 overlaySlot={
                   <MapViewMascotOverlay
                     show={showMapMascot}
@@ -1623,213 +935,87 @@ function MapViewImpl({
                 }
               />
             ) : (
-              <div
-                ref={containerRef}
-                className="map-view-canvas map-viewport"
-                style={{
-                  cursor,
-                  touchAction,
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  ...mapOverlayCssVars,
-                }}
-                onClick={onMapClick}
-              >
-                <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
-                  <div
-                    className="map-view-orient"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      ...(orientStyle || {}),
-                    }}
-                  >
-                    <MapViewBackgroundImage
-                      imgRef={imgRef}
-                      src={mapImageSrc}
-                      alt={`Plan ${activeMap?.label || 'du jardin'}`}
-                      width={iw}
-                      height={ih}
-                      onError={() =>
-                        setMapImageIdx((idx) =>
-                          idx < mapImageCandidates.length - 1 ? idx + 1 : idx,
-                        )
-                      }
-                    />
-
-                    <svg
-                      className="map-zone-svg-layer"
-                      style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        width: iw,
-                        height: ih,
-                        overflow: 'visible',
-                        pointerEvents: 'none',
-                        textRendering: 'optimizeLegibility',
-                      }}
-                    >
-                      <g style={{ pointerEvents: 'all' }}>
-                        {/* Édition (tracé / sommets / alignement / glisser repères) :
-                            ZonePolygonsLayer + calques d'édition. La consultation utilise
-                            WorkMapStage (SharedMapStage). */}
-                        <ZonePolygonsLayer
-                          parsedZones={parsedZones}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                          mode={mode}
-                          showLabels={showLabels}
-                          editZoneId={editZone?.id ?? null}
-                          selectedZoneId={selectedZone?.id ?? null}
-                          alignSelectedIds={mode === 'align-zones' ? alignSelectedIds : null}
-                          dimmedZoneIds={dimmedZoneIds}
-                          zoneTaskVisualById={zoneTaskVisualById}
-                          zoneTutorialCountById={
-                            showTutorialDots ? zoneTutorialCountById : EMPTY_TUTORIAL_COUNT_BY_ID
-                          }
-                          emojiFontPx={mapEmojiFontPx}
-                          labelFontPx={mapLabelFontPx}
-                          emojiLabelCenterGap={mapEmojiLabelCenterGap}
-                          minSideFactor={mapOverlayLabelLayout.minSideFactor}
-                          labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
-                          onZoneOpen={openZoneFromMap}
-                        />
-                        <AlignZonesPreviewLayer
-                          aligned={alignPreview?.aligned}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                        />
-                        <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
-                        <EditPointsLayer
-                          mode={mode}
-                          editPoints={editPoints}
-                          draggingPtIdx={draggingPtIdx}
-                          selectedPtIdxs={selectedPtIdxs}
-                          insertVertexMode={insertVertexMode}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                          toImagePct={toImagePct}
-                          onInsertPointFromPct={insertPointFromPct}
-                          onInsertPointAtMidpoint={insertPointAtMidpoint}
-                          onBackgroundPointerDown={onBackgroundPointerDown}
-                          onBackgroundPointerMove={onBackgroundPointerMove}
-                          onBackgroundPointerUp={onBackgroundPointerUp}
-                          onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
-                          onTranslatePointerDown={onTranslatePointerDown}
-                          onTranslatePointerMove={onTranslatePointerMove}
-                          endEditZoneTranslate={endEditZoneTranslate}
-                          onTranslateLostPointerCapture={onTranslateLostPointerCapture}
-                          onEditPointPointerDown={onEditPointPointerDown}
-                          onEditPointPointerMove={onEditPointPointerMove}
-                          onEditPointPointerUp={onEditPointPointerUp}
-                        />
-                      </g>
-                    </svg>
-
-                    <MapViewMascotOverlay
-                      show={showMapMascot}
-                      mascotClassName={mapMascotClassName}
-                      embedded={embedded}
-                      renderPct={mapMascotRenderPct}
-                      fitScale={mapMascotFitScale}
-                      faceRight={mapMascotFaceRight}
-                      animationState={mapMascotAnimationState}
-                      mascotId={mapMascotId}
-                      extraCatalogEntries={visitMascotCatalogExtras}
-                      dialogVisible={mapMascotDialogVisible}
-                      dialog={mapMascotDialog}
-                    />
-
-                    {mapPosition.displayPct ? (
-                      <PctPositionLayer
-                        position={mapPosition.displayPct}
-                        haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
-                        headingDeg={
-                          mapPosition.screenHeadingUnwrappedDeg ?? mapPosition.screenHeadingDeg
-                        }
-                        headingSource={mapPosition.headingSource}
-                        accuracyM={mapPosition.accuracyM}
-                      />
-                    ) : null}
-
-                    {markerClusters.map((cluster) => {
-                      if (cluster.count > 1) {
-                        return (
-                          <MapViewMarkerClusterMemo
-                            key={cluster.id}
-                            cluster={cluster}
-                            emojiFontSize={`${mapEmojiFontPx}px`}
-                            onOpenCluster={openClusterFromMap}
-                          />
-                        );
-                      }
-                      const m = cluster.lead;
-                      const markerTaskVisual = markerTaskVisualById.get(m.id);
-                      const markerTaskLabel = markerTaskVisual
-                        ? TASK_VISUAL_LABEL[markerTaskVisual]
-                        : '';
-                      const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
-                      const markerTutorialLabel =
-                        markerTutorialCount === 0
-                          ? ''
-                          : markerTutorialCount === 1
-                            ? '1 tutoriel lié'
-                            : `${markerTutorialCount} tutoriels liés`;
-                      const markerAriaLabel = [
-                        m.label || 'Repère',
-                        markerTaskLabel,
-                        markerTutorialLabel,
-                      ]
-                        .filter(Boolean)
-                        .join(' — ');
-                      const markerDraggable = isTeacher && markerPositionUnlocked;
-                      return (
-                        <MapViewMarkerBubbleMemo
-                          key={m.id}
-                          marker={m}
-                          dimmed={dimmedMarkerIds?.has(String(m.id))}
-                          ariaLabel={markerAriaLabel}
-                          showLabels={showLabels}
-                          isCoarsePointer={isCoarsePointer}
-                          draggable={markerDraggable}
-                          emojiFontSize={`${mapEmojiFontPx}px`}
-                          labelFontSize={`${mapLabelFontPx}px`}
-                          labelMarginTop={markerLabelMarginTop}
-                          labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
-                          taskVisual={markerTaskVisual}
-                          taskLabel={markerTaskLabel}
-                          tutorialCount={showTutorialDots ? markerTutorialCount : 0}
-                          tutorialLabel={markerTutorialLabel}
-                          onOpenMarker={openMarkerFromMap}
-                          onBeginMarkerDrag={beginMarkerDrag}
-                        />
-                      );
-                    })}
-                  </div>
-                </MapViewWorldLayer>
-
-                <MapScaleCompassOverlay
-                  visible={scaleCompassPref.effective}
-                  georef={activeMap?.georef}
-                  contentWidthPx={iw}
-                  scale={cs}
-                  orientationDeg={mapOrientationDeg}
-                />
-
-                <MapCanvasHints
-                  mode={mode}
-                  drawPointsCount={drawPoints.length}
-                  prefersPageScroll={prefersPageScroll}
-                  isCoarsePointer={isCoarsePointer}
-                  hintTexts={mapCanvasHintTexts}
-                />
-              </div>
+              <MapViewEditCanvas
+                containerRef={containerRef}
+                worldRef={worldRef}
+                imgRef={imgRef}
+                cursor={cursor}
+                touchAction={touchAction}
+                mapOverlayCssVars={mapOverlayCssVars}
+                onMapClick={onMapClick}
+                iw={iw}
+                ih={ih}
+                inv={inv}
+                cs={cs}
+                imgSize={imgSize}
+                orientStyle={orientStyle}
+                mapImageSrc={mapImageSrc}
+                activeMapLabel={activeMapLabel}
+                activeMapGeoref={activeMapGeoref}
+                onMapImageError={onMapImageError}
+                toImagePct={toImagePct}
+                isCoarsePointer={isCoarsePointer}
+                prefersPageScroll={prefersPageScroll}
+                mode={mode}
+                showLabels={showLabels}
+                isTeacher={isTeacher}
+                markerPositionUnlocked={markerPositionUnlocked}
+                embedded={embedded}
+                parsedZones={parsedZones}
+                editZone={editZone}
+                selectedZone={selectedZone}
+                alignSelectedIds={alignSelectedIds}
+                alignPreview={alignPreview}
+                dimmedZoneIds={dimmedZoneIds}
+                dimmedMarkerIds={dimmedMarkerIds}
+                zoneTaskVisualById={zoneTaskVisualById}
+                markerTaskVisualById={markerTaskVisualById}
+                zoneTutorialCountById={zoneTutorialCountById}
+                markerTutorialCountById={markerTutorialCountById}
+                showTutorialDots={showTutorialDots}
+                mapEmojiFontPx={mapEmojiFontPx}
+                mapLabelFontPx={mapLabelFontPx}
+                mapEmojiLabelCenterGap={mapEmojiLabelCenterGap}
+                markerLabelMarginTop={markerLabelMarginTop}
+                mapOverlayLabelLayout={mapOverlayLabelLayout}
+                openZoneFromMap={openZoneFromMap}
+                openMarkerFromMap={openMarkerFromMap}
+                openClusterFromMap={openClusterFromMap}
+                beginMarkerDrag={beginMarkerDrag}
+                markerClusters={markerClusters}
+                drawPoints={drawPoints}
+                editPoints={editPoints}
+                draggingPtIdx={draggingPtIdx}
+                selectedPtIdxs={selectedPtIdxs}
+                insertVertexMode={insertVertexMode}
+                insertPointFromPct={insertPointFromPct}
+                insertPointAtMidpoint={insertPointAtMidpoint}
+                onBackgroundPointerDown={onBackgroundPointerDown}
+                onBackgroundPointerMove={onBackgroundPointerMove}
+                onBackgroundPointerUp={onBackgroundPointerUp}
+                onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
+                onTranslatePointerDown={onTranslatePointerDown}
+                onTranslatePointerMove={onTranslatePointerMove}
+                endEditZoneTranslate={endEditZoneTranslate}
+                onTranslateLostPointerCapture={onTranslateLostPointerCapture}
+                onEditPointPointerDown={onEditPointPointerDown}
+                onEditPointPointerMove={onEditPointPointerMove}
+                onEditPointPointerUp={onEditPointPointerUp}
+                showMapMascot={showMapMascot}
+                mapMascotClassName={mapMascotClassName}
+                mapMascotRenderPct={mapMascotRenderPct}
+                mapMascotFitScale={mapMascotFitScale}
+                mapMascotFaceRight={mapMascotFaceRight}
+                mapMascotAnimationState={mapMascotAnimationState}
+                mapMascotId={mapMascotId}
+                visitMascotCatalogExtras={visitMascotCatalogExtras}
+                mapMascotDialogVisible={mapMascotDialogVisible}
+                mapMascotDialog={mapMascotDialog}
+                mapPosition={mapPosition}
+                scaleCompassPref={scaleCompassPref}
+                mapOrientationDeg={mapOrientationDeg}
+                mapCanvasHintTexts={mapCanvasHintTexts}
+              />
             )}
             {useSharedViewStage ? (
               <MapCanvasHints
@@ -1841,31 +1027,19 @@ function MapViewImpl({
               />
             ) : null}
           </div>
-          {!activeRoute && resumableRouteSlug && mode === 'view' ? (
-            <div className="map-route-resume">
-              <button
-                type="button"
-                className="btn btn-sm btn-primary map-route-resume__btn"
-                onClick={resumeRoute}
-              >
-                Reprendre le parcours
-              </button>
-            </div>
-          ) : null}
-          {activeRoute && mode === 'view' ? (
-            <MapRouteBar
-              route={activeRoute}
-              steps={routeSteps}
-              index={routeIndex}
-              onGoToIndex={goToRouteIndex}
-              onExit={exitRoute}
-              onHeight={setRouteBarHeight}
-              canLocate={!!mapPosition?.available}
-              distanceLabel={routeDistanceLabel}
-              hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me suivre » puis avancez."
-              hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
-            />
-          ) : null}
+          <MapViewRouteControls
+            visible={mode === 'view'}
+            activeRoute={activeRoute}
+            resumableRouteSlug={resumableRouteSlug}
+            onResume={resumeRoute}
+            steps={routeSteps}
+            index={routeIndex}
+            onGoToIndex={goToRouteIndex}
+            onExit={exitRoute}
+            onHeight={setRouteBarHeight}
+            canLocate={!!mapPosition?.available}
+            distanceLabel={routeDistanceLabel}
+          />
         </div>
       </MapFullscreenShell>
     </div>

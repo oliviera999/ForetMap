@@ -1,16 +1,11 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { api, AccountDeletedError } from '../services/api';
-import { compressImage } from '../shared/platform/image';
+import { useState, useMemo, useCallback } from 'react';
+import { api } from '../services/api';
 import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection, resolveTooltipKey } from '../utils/helpResolve';
 import { plantIdsMarkedOnMap, ZONE_PRESENCE_FILTER } from '../utils/plantFilters';
 import { useBiodivCatalogPage } from '../hooks/useBiodivCatalogPage';
-import { MarkdownTextarea } from './MarkdownTextarea.jsx';
-import { ObservationCard } from './ObservationCard.jsx';
-import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
-import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
@@ -28,16 +23,9 @@ import { PlantCatalogTile } from './biodiv/PlantCatalogTile.jsx';
 import { PlantImportPanel } from './biodiv/PlantImportPanel.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
 import { PlantHazardReviewPanel } from './biodiv/PlantHazardReviewPanel.jsx';
+import { SpeciesObservationReviewPanel } from './observations/SpeciesObservationReviewPanel.jsx';
 import { PlantCatalogPreviewModal } from './biodiv/PlantCatalogPreview.jsx';
-import {
-  IconBiodiv,
-  IconClose,
-  IconDelete,
-  IconEdit,
-  IconLeaf,
-  IconNotebook,
-  IconSave,
-} from '../shared/icons.jsx';
+import { IconBiodiv, IconClose, IconDelete, IconEdit, IconLeaf } from '../shared/icons.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
@@ -227,6 +215,8 @@ function PlantManager({
         onToast={setToast}
       />
 
+      <SpeciesObservationReviewPanel maps={maps} onOpenPlant={onOpenPlant} onToast={setToast} />
+
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
 
       {showAdd && (
@@ -365,221 +355,6 @@ function PlantManager({
   );
 }
 
-function ObservationNotebook({ student, onForceLogout = null }) {
-  const { zones = [] } = useData();
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [content, setContent] = useState('');
-  const [zoneId, setZoneId] = useState('');
-  const [imageData, setImageData] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-  const galleryFileRef = useRef(null);
-  const cameraFileRef = useRef(null);
-  // Numéro de requête courant : invalide les setState d'un chargement obsolète
-  // (démontage ou changement d'élève), comme le flag `cancelled` de l'ancien effet.
-  const loadSeqRef = useRef(0);
-
-  const load = useCallback(
-    async ({ withLoading = false } = {}) => {
-      const seq = ++loadSeqRef.current;
-      if (withLoading) setLoading(true);
-      setLoadError('');
-      try {
-        const data = await api(
-          `/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`,
-        );
-        if (seq !== loadSeqRef.current) return;
-        setEntries(data);
-      } catch (e) {
-        if (seq !== loadSeqRef.current) return;
-        if (e instanceof AccountDeletedError) {
-          onForceLogout?.();
-          return;
-        }
-        console.error('[ForetMap] observations', e);
-        setEntries([]);
-        setLoadError(e?.message || 'Impossible de charger ton carnet.');
-      } finally {
-        if (withLoading && seq === loadSeqRef.current) setLoading(false);
-      }
-    },
-    [student.id, onForceLogout],
-  );
-
-  useEffect(() => {
-    load({ withLoading: true });
-    return () => {
-      loadSeqRef.current += 1;
-    };
-  }, [load]);
-
-  useEffect(() => {
-    const onRealtime = (e) => {
-      if (e.detail && e.detail.domain === 'observations') load();
-    };
-    window.addEventListener('foretmap_realtime', onRealtime);
-    return () => window.removeEventListener('foretmap_realtime', onRealtime);
-  }, [load]);
-
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
-    compressImage(file)
-      .then((d) => {
-        setImageData(d);
-        setPreview(d);
-      })
-      .catch(() => {});
-  };
-
-  const submit = async () => {
-    if (!content.trim()) return;
-    setSaving(true);
-    try {
-      await api('/api/observations', 'POST', {
-        studentId: student.id,
-        zone_id: zoneId || null,
-        content: content.trim(),
-        imageData,
-      });
-      setContent('');
-      setZoneId('');
-      setImageData(null);
-      setPreview(null);
-      setShowForm(false);
-      setToast('Observation enregistrée ✓');
-      await load();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) {
-        onForceLogout?.();
-        return;
-      }
-      setToast('Erreur : ' + e.message);
-    }
-    setSaving(false);
-  };
-
-  const deleteObs = async (id) => {
-    try {
-      await api(`/api/observations/${id}`, 'DELETE', { studentId: student.id });
-      setToast('Observation supprimée');
-      await load();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) {
-        onForceLogout?.();
-        return;
-      }
-      setToast('Erreur : ' + e.message);
-    }
-  };
-
-  return (
-    <div className="fade-in">
-      {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 4,
-        }}
-      >
-        <h2 className="section-title">
-          <IconNotebook size={20} /> Mon carnet
-        </h2>
-        {!showForm && (
-          <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
-            + Observation
-          </button>
-        )}
-      </div>
-      <p className="section-sub">Tes observations sur la forêt comestible</p>
-
-      {showForm && (
-        <div className="plant-edit-form fade-in" style={{ marginBottom: 16 }}>
-          <h4>Nouvelle observation</h4>
-          <div className="field">
-            <label>Zone (optionnel)</label>
-            <select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-              <option value="">— Aucune zone —</option>
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Observation *</label>
-            <MarkdownTextarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={3}
-              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles…"
-              autoFocus
-            />
-          </div>
-          <div className="field">
-            <label>Photo (optionnel)</label>
-            <ObservationPhotoField
-              preview={preview}
-              galleryFileRef={galleryFileRef}
-              cameraFileRef={cameraFileRef}
-              onFile={handleFile}
-              onRemove={() => {
-                setImageData(null);
-                setPreview(null);
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={submit}
-              disabled={saving || !content.trim()}
-            >
-              {saving ? (
-                '…'
-              ) : (
-                <>
-                  <IconSave size={14} /> Enregistrer
-                </>
-              )}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setShowForm(false);
-                setContent('');
-                setImageData(null);
-                setPreview(null);
-              }}
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading || loadError || entries.length === 0 ? (
-        <ObservationNotebookStatus
-          loading={loading}
-          loadError={loadError}
-          entryCount={entries.length}
-          onRetry={() => load({ withLoading: true })}
-        />
-      ) : (
-        entries.map((e) => <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />)
-      )}
-    </div>
-  );
-}
-
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
 // La fiche complète n'est plus rendue ici : le clic sur une vignette ouvre la modale
 // d'aperçu montée par `App` (`onOpenPlant`), qui reçoit elle-même `maps`, le glossaire
@@ -712,4 +487,4 @@ function PlantViewer({
 
 // Ré-exports morts supprimés (Lightbox, MapView, TasksView… n'étaient importés
 // par personne et tiraient tasks-views + map-views dans ce chunk lazy).
-export { PlantEditForm, PlantManager, ObservationNotebook, PlantViewer, PlantCatalogPreviewModal };
+export { PlantEditForm, PlantManager, PlantViewer, PlantCatalogPreviewModal };

@@ -10,7 +10,7 @@ import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from './living
 /** Libellé d'une zone pour les sélecteurs de tutoriel : « Nom — espèces » (ou « Nom » si aucune). */
 export function tutorialZonePickLabel(z) {
   const line = formatLivingBeingsListLine(
-    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
+    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings),
   );
   return line ? `${z.name} — ${line}` : z.name;
 }

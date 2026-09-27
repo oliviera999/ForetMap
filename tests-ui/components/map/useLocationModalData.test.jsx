@@ -65,19 +65,20 @@ describe('useLocationModalData', () => {
     expect(result.current.assignableTutorials.map((t) => t.id).sort()).toEqual([12, 13]);
   });
 
-  test('livingNames : repli sur le champ plante legacy du type de lieu (current_plant vs plant_name)', () => {
+  test('livingNames : plus de repli sur l’ancien nom mono-espèce (current_plant / plant_name)', () => {
+    // Piste C (audit du 25/09/2026, § 3.5), temps T1 : seule la jonction compte.
     const zone = renderData(
       'zone',
       { id: 'z1', map_id: 'map1', current_plant: 'Sauge' },
       { isTeacher: true },
     );
-    expect(zone.result.current.livingNames).toEqual(['Sauge']);
+    expect(zone.result.current.livingNames).toEqual([]);
     const marker = renderData(
       'marker',
-      { id: 'm1', map_id: 'map1', plant_name: 'Thym' },
+      { id: 'm1', map_id: 'map1', plant_name: 'Thym', living_beings_list: ['Menthe'] },
       { isTeacher: true },
     );
-    expect(marker.result.current.livingNames).toEqual(['Thym']);
+    expect(marker.result.current.livingNames).toEqual(['Menthe']);
   });
 
   test('zone spéciale : pas de section Biodiversité (visitAsideSpecies false)', () => {

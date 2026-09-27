@@ -37,10 +37,14 @@ function setup(overrides = {}) {
   return props;
 }
 
-/** Input file caché du bouton (`Galerie` ou `Appareil photo`, icônes lucide) du champ photo `label`. */
+/** Emplacement photo (`fieldset`) dont la légende est `label`. */
+function photoKindGroup(fieldLabel) {
+  return screen.getByText(fieldLabel, { selector: 'legend' }).closest('fieldset');
+}
+
+/** Input file caché du bouton (`Galerie` ou `Appareil photo`, icônes lucide) de l'emplacement `label`. */
 function photoFileInput(buttonText, fieldLabel) {
-  const field = screen.getByText(`${fieldLabel} (URL directe)`).closest('.field');
-  const btn = Array.from(field.querySelectorAll('label.btn')).find((l) =>
+  const btn = Array.from(photoKindGroup(fieldLabel).querySelectorAll('label.btn')).find((l) =>
     l.textContent.includes(buttonText),
   );
   return btn.querySelector('input[type=file]');
@@ -52,7 +56,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe('PlantEditForm', () => {
+// Formulaire complet (≈ 300 champs et boutons) : les requêtes par rôle y coûtent 2 à 3 s
+// seules, davantage quand toute la suite tourne en parallèle — délai relevé en conséquence.
+describe('PlantEditForm', { timeout: 20000 }, () => {
   test('rend le titre, les champs principaux, les panneaux et les actions', () => {
     setup();
     expect(screen.getByText('Modifier — Pommier')).toBeInTheDocument();
@@ -60,7 +66,7 @@ describe('PlantEditForm', () => {
     expect(screen.getByText('Nom scientifique')).toBeInTheDocument();
     expect(screen.getByTestId('plantnet-panel')).toBeInTheDocument();
     expect(screen.getByTestId('prefill-panel')).toBeInTheDocument();
-    expect(screen.getByText('Photo espèce (URL directe)')).toBeInTheDocument();
+    expect(screen.getByText('Photo espèce', { selector: 'legend' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument();
     expect(screen.getByText('Annuler')).toBeInTheDocument();
   });
@@ -85,7 +91,11 @@ describe('PlantEditForm', () => {
 
   test('chaque libellé nomme son champ (audit du 25/09/2026, § 1.4.7)', () => {
     setup({
-      form: { ...EMPTY_PLANT_FORM, map_ids: ['m1'] },
+      form: {
+        ...EMPTY_PLANT_FORM,
+        map_ids: ['m1'],
+        photos: [{ kind: 'photo_species', url: 'https://x.fr/a.jpg', credit: '', licence: '' }],
+      },
       maps: [{ id: 'm1', label: 'Forêt' }],
     });
     // Champs simples et listes : association `htmlFor`/`id`.
@@ -94,8 +104,13 @@ describe('PlantEditForm', () => {
     expect(screen.getByLabelText('Nom scientifique').tagName).toBe('INPUT');
     expect(screen.getByLabelText('Milieu').tagName).toBe('SELECT');
     expect(screen.getByLabelText('Niveau de danger').tagName).toBe('SELECT');
-    expect(screen.getByLabelText('Remarque 3').tagName).toBe('INPUT');
-    expect(screen.getByLabelText('Photo espèce (URL directe)').tagName).toBe('INPUT');
+    // Remarques : une seule zone de texte (migration 305).
+    expect(screen.getByLabelText('Remarques').tagName).toBe('TEXTAREA');
+    expect(screen.queryByLabelText('Remarque 3')).not.toBeInTheDocument();
+    // Photos : une ligne par photo, lien + auteur + licence, chacun nommé avec sa position.
+    expect(screen.getByLabelText('Lien de l’image — Photo espèce, photo 1').tagName).toBe('INPUT');
+    expect(screen.getByLabelText('Auteur (crédit) — Photo espèce, photo 1').tagName).toBe('INPUT');
+    expect(screen.getByLabelText('Licence — Photo espèce, photo 1').tagName).toBe('INPUT');
     // Éditeur riche : `role="textbox"` nommé par `aria-labelledby`.
     for (const name of [
       "Description d'identification",
@@ -140,7 +155,14 @@ describe('PlantEditForm', () => {
 
   test('appareil photo sur « Photo (générale) » → POST photo-upload en prepend + toast', async () => {
     api.mockResolvedValueOnce({ url: '/uploads/p.jpg' });
-    const { onToast, setForm } = setup();
+    let applied = null;
+    const setForm = vi.fn((updater) => {
+      applied = updater({
+        ...EMPTY_PLANT_FORM,
+        photos: [{ kind: 'photo', url: 'https://x.fr/old.jpg', credit: 'Anne', licence: 'CC0' }],
+      });
+    });
+    const { onToast } = setup({ setForm });
     const input = photoFileInput('Appareil photo', 'Photo (générale)');
     fireEvent.change(input, {
       target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
@@ -152,8 +174,53 @@ describe('PlantEditForm', () => {
         position: 'prepend',
       });
     });
-    expect(onToast).toHaveBeenCalledWith('Photo importée ✓');
+    expect(onToast).toHaveBeenCalledWith(
+      'Photo importée ✓ — pense à indiquer son auteur et sa licence.',
+    );
     expect(setForm).toHaveBeenCalled();
+    // La photo téléversée passe en tête de la liste « photo », sans attribution.
+    expect(applied.photos.map((p) => [p.kind, p.url, p.credit])).toEqual([
+      ['photo', '/uploads/p.jpg', ''],
+      ['photo', 'https://x.fr/old.jpg', 'Anne'],
+    ]);
+  });
+
+  test('photos : saisie de l’auteur, ajout d’un lien et retrait → liste mise à jour', () => {
+    let applied = null;
+    const photos = [
+      { kind: 'photo_leaf', url: 'https://x.fr/l.jpg', credit: '', licence: '' },
+      { kind: 'photo_fruit', url: 'https://x.fr/f.jpg', credit: 'Bob', licence: 'CC0' },
+    ];
+    const setForm = vi.fn((updater) => {
+      applied = updater({ ...EMPTY_PLANT_FORM, photos });
+    });
+    setup({ setForm, form: { ...EMPTY_PLANT_FORM, photos } });
+    fireEvent.change(screen.getByLabelText('Auteur (crédit) — Photo feuille, photo 1'), {
+      target: { value: 'Anne' },
+    });
+    expect(applied.photos[0]).toMatchObject({ kind: 'photo_leaf', credit: 'Anne' });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un lien — Photo fleur' }));
+    expect(applied.photos).toHaveLength(3);
+    expect(applied.photos[2]).toMatchObject({ kind: 'photo_flower', url: '' });
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer — Photo fruit, photo 1' }));
+    expect(applied.photos.map((p) => p.kind)).toEqual(['photo_leaf']);
+  });
+
+  test('sosies : ajout d’une ligne, choix de la fiche et note → liste mise à jour', () => {
+    let applied = null;
+    const base = { ...EMPTY_PLANT_FORM, lookalikes: [{ plant_id: '', note: '' }] };
+    const setForm = vi.fn((updater) => {
+      applied = updater(base);
+    });
+    setup({ setForm, form: base });
+    fireEvent.change(screen.getByLabelText('Ce qui permet de les distinguer — sosie 1'), {
+      target: { value: 'Latex amer' },
+    });
+    expect(applied.lookalikes[0]).toMatchObject({ note: 'Latex amer' });
+    fireEvent.click(screen.getByRole('button', { name: '+ Ajouter un sosie' }));
+    expect(applied.lookalikes).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer — sosie 1' }));
+    expect(applied.lookalikes).toEqual([]);
   });
 
   test('upload sans plantId ni onEnsurePlantId → toast de garde, aucun appel serveur', async () => {

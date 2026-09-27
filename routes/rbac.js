@@ -1217,14 +1217,10 @@ router.patch(
     }
 
     if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
-      await execute(
-        'UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-        [firstName, lastName, resolvedUserId],
-      );
-      await execute(
-        'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-        [firstName, lastName, resolvedUserId],
-      );
+      // Noms dénormalisés (inscriptions et journaux de tâches) : déclarés par chaque domaine
+      // au registre `lib/accounts/cleanerRegistry.js`.
+      const { runStudentRenameCleaners } = require('../lib/accounts/cleanerRegistry');
+      await runStudentRenameCleaners({ studentId: resolvedUserId, firstName, lastName });
     }
 
     logAudit(

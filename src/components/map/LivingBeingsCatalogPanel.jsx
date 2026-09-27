@@ -21,32 +21,45 @@ const CATALOG_PANEL_LABEL_STYLE = {
 };
 
 /**
- * Bloc « Remarques » (3 champs catalogue) — même présentation partout (mission, zone, fiche biodiversité).
+ * Texte des remarques d'une fiche : le champ unique `remarks` (migration 305, déjà résolu par
+ * le serveur, repli compris) ; à défaut (réponse d'un serveur antérieur), les trois anciens
+ * champs mis bout à bout.
+ */
+export function plantRemarksText(plant) {
+  if (!plant) return null;
+  if (plant.remarks != null) return livingBeingCatalogText(plant.remarks);
+  const parts = [plant.remark_1, plant.remark_2, plant.remark_3]
+    .map(livingBeingCatalogText)
+    .filter(Boolean);
+  return parts.length ? parts.join('\n\n') : null;
+}
+
+/**
+ * Bloc « Remarques » — même présentation partout (mission, zone, fiche biodiversité). Une
+ * ligne vide sépare deux remarques (un paragraphe chacune).
  */
 export function CatalogRemarksSection({ plant }) {
-  if (!plant) return null;
-  const remark1 = livingBeingCatalogText(plant.remark_1);
-  const remark2 = livingBeingCatalogText(plant.remark_2);
-  const remark3 = livingBeingCatalogText(plant.remark_3);
-  const remarkLines = [remark1, remark2, remark3];
-  const hasAnyRemark = remarkLines.some(Boolean);
-  if (!hasAnyRemark) return null;
+  const text = plantRemarksText(plant);
+  if (!text) return null;
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   return (
     <div>
       <div style={CATALOG_PANEL_LABEL_STYLE}>Remarques</div>
-      {remarkLines.map((text, idx) => (
+      {paragraphs.map((paragraph, idx) => (
         <p
           key={`remark-${idx}`}
           style={{
             fontSize: 'var(--text-sm)',
-            color: text ? '#555' : 'var(--ink-dim)',
+            color: 'var(--ink-soft)',
             lineHeight: 'var(--lh-normal)',
             margin: idx === 0 ? '0 0 4px' : '4px 0 0',
             whiteSpace: 'pre-wrap',
-            fontStyle: text ? 'normal' : 'italic',
           }}
         >
-          {text || '—'}
+          {paragraph}
         </p>
       ))}
     </div>

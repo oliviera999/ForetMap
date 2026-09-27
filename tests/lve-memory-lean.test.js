@@ -100,7 +100,9 @@ describe('Anti-LVE — zones liste sans body_json', () => {
 
     const detail = await request(app).get(`/api/zones/${zoneId}`).expect(200);
     assert.ok(detail.body.visit_body_json != null);
-    assert.equal(detail.body.history_truncated, false);
+    // L'historique de cultures (`zone_history`) n'est plus servi (piste C, audit du
+    // 25/09/2026, § 3.5) : ni liste, ni drapeau de troncature.
+    assert.equal(detail.body.history_truncated, undefined);
   });
 
   it('PUT sans visit_editorial_blocks conserve le corps visite', async () => {

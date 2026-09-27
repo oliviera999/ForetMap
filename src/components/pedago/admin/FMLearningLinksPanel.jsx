@@ -7,6 +7,10 @@ import {
 import { GatingPolicyEditor } from '../../../shared/components/GatingPolicyEditor.jsx';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
 import { IconCheck, IconPause, IconWarning } from '../../../shared/icons.jsx';
+import {
+  QUESTION_NIVEAU_ENUM,
+  RESOURCE_LINK_STATUS_ENUM,
+} from '../../../shared/enums/pedagoEnums.js';
 
 // Écran de rattachement « ressource ↔ questions » (professeur, permission plants.manage).
 //
@@ -29,9 +33,10 @@ const RESOURCE_TABS = [
   { type: 'glossary', label: 'Glossaire', one: 'terme' },
 ];
 
-const STATUS_LABELS = { approved: 'Approuvé', suggested: 'Proposé', rejected: 'Rejeté' };
+// Statut d'un lien et niveau d'une question : référentiel partagé des ENUM.
+const STATUS_LABELS = RESOURCE_LINK_STATUS_ENUM.labels;
 
-const NIVEAU_LABELS = { college: 'Collège', lycee: 'Lycée' };
+const NIVEAU_LABELS = QUESTION_NIVEAU_ENUM.labels;
 
 /** Confiance en pourcentage, pour un tableau lisible. */
 function formatConfidence(value) {

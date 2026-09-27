@@ -88,12 +88,13 @@ describe('markerFormFromMarker', () => {
     expect(markerFormFromMarker({ emoji: '' }, { defaultEmoji: '🌱' }).emoji).toBe('🌱');
   });
 
-  test('living_beings : ordre conservé depuis living_beings_list, sinon plant_name', () => {
+  test('living_beings : ordre conservé depuis living_beings_list ; plant_name n’est plus lu', () => {
     expect(markerFormFromMarker({ living_beings_list: ['B', 'A'] }).living_beings).toEqual([
       'B',
       'A',
     ]);
-    expect(markerFormFromMarker({ plant_name: 'Tomate' }).living_beings).toEqual(['Tomate']);
+    // Piste C (audit du 25/09/2026, § 3.5), temps T1 : plus de repli sur l'ancien nom.
+    expect(markerFormFromMarker({ plant_name: 'Tomate' }).living_beings).toEqual([]);
   });
 });
 
@@ -111,7 +112,7 @@ describe('markerTaskMapId', () => {
 });
 
 describe('buildMarkerPayload', () => {
-  test('fusionne marker + form, force plant_name vide, normalise emoji et blocs', () => {
+  test('fusionne marker + form, n’envoie plus plant_name, normalise emoji et blocs', () => {
     const marker = { id: 9, map_id: 'm1', x_pct: 10, plant_name: 'ancien' };
     const form = {
       label: 'Pin',
@@ -128,7 +129,7 @@ describe('buildMarkerPayload', () => {
     expect(payload.map_id).toBe('m1');
     expect(payload.x_pct).toBe(10);
     expect(payload.label).toBe('Pin');
-    expect(payload.plant_name).toBe('');
+    expect('plant_name' in payload).toBe(false);
     expect(payload.living_beings).toEqual(['Pin']);
     expect(payload.emoji).toBe('🌲');
     expect(Array.isArray(payload.visit_editorial_blocks)).toBe(true);
