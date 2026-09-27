@@ -74,6 +74,10 @@ function parseInsertRows(insertSql) {
   return rows;
 }
 
+// Colonnes mises à jour : taxonomie et écologie seulement. Ce script n'écrit ni photos, ni
+// autres noms, ni remarques : rien à reporter dans `plant_photos`, `plant_name_aliases` ou
+// `plants.remarks` (piste C de l'audit du 25/09/2026, migrations 303 à 305), et aucune
+// colonne tenue en miroir n'est touchée.
 /**
  * Position des colonnes enrichies dans une graine **ancienne**, sans liste de colonnes. La graine
  * régénérée par scripts/extract-biodiv-pedago-seed.js nomme ses colonnes : on s'y fie alors, ce
