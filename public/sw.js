@@ -3,7 +3,9 @@
 // générés par `scripts/build-pwa.js` depuis le gabarit `src/shared/pwa/swTemplate.js`, avec la
 // liste exacte des bundles hachés de chaque produit. Toute évolution de stratégie de cache se
 // fait dans le gabarit (et se reflète ici seulement si le mode dev en a besoin).
-const CACHE_NAME = 'foretmap-offline-v8';
+// v9 : les réponses authentifiées ne partagent plus la clé d'URL (cloisonnement par compte).
+// Le changement de nom purge les copies d'avant, qui mélangeaient les lecteurs.
+const CACHE_NAME = 'foretmap-offline-v9';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -34,23 +36,53 @@ const API_CACHE_URLS = [
 // passé ce délai, la copie en cache part si elle existe ; sinon on attend le réseau.
 const NETWORK_TIMEOUT_MS = 4000;
 
+/**
+ * Même cloisonnement que le gabarit de production (src/shared/pwa/swTemplate.js,
+ * cacheKeyFor) : la Cache API indexe par URL, pas par le jeton
+ * (https://developer.mozilla.org/docs/Web/API/Cache/put).
+ */
+function authCachePartition(token) {
+  function fnv(seed) {
+    let h = seed >>> 0;
+    for (let i = 0; i < token.length; i += 1) {
+      h ^= token.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+  return fnv(0x811c9dc5) + fnv(0x811c9dc5 ^ 0x9e3779b9);
+}
+
+function cacheKeyFor(request) {
+  const headers = request && request.headers;
+  const auth =
+    headers && typeof headers.get === 'function'
+      ? String(headers.get('Authorization') || headers.get('authorization') || '')
+      : '';
+  if (!auth) return request;
+  const url = new URL(request.url);
+  url.searchParams.set('__fm_sw_user', authCachePartition(auth));
+  return url.toString();
+}
+
 function cacheResponse(request, response) {
   const clone = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+  caches.open(CACHE_NAME).then((cache) => cache.put(cacheKeyFor(request), clone));
   return response;
 }
 
 function networkFirstWithTimeout(event, fallback) {
   const request = event.request;
+  const key = cacheKeyFor(request);
   const network = fetch(request).then((response) => cacheResponse(request, response));
   event.waitUntil(network.then(() => undefined, () => undefined));
   const networkOrCache = network.catch(() =>
-    caches.match(request).then((r) => r || (fallback ? fallback() : undefined)),
+    caches.match(key).then((r) => r || (fallback ? fallback() : undefined)),
   );
   let timer = null;
   const cacheAfterTimeout = new Promise((resolve) => {
     timer = setTimeout(() => {
-      caches.match(request).then(resolve, () => resolve(undefined));
+      caches.match(key).then(resolve, () => resolve(undefined));
     }, NETWORK_TIMEOUT_MS);
   });
   return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
@@ -66,11 +98,12 @@ function isVisitReadApiPath(pathname) {
 }
 
 function staleWhileRevalidate(request) {
-  return caches.open(CACHE_NAME).then((cache) => cache.match(request).then((cached) => {
+  const key = cacheKeyFor(request);
+  return caches.open(CACHE_NAME).then((cache) => cache.match(key).then((cached) => {
     const networkPromise = fetch(request)
       .then((response) => {
         if (response && response.ok) {
-          cache.put(request, response.clone());
+          cache.put(key, response.clone());
         }
         return response;
       })

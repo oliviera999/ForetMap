@@ -362,17 +362,30 @@ function deferredFetch(context) {
 
 const flushMicrotasks = () => new Promise((resolve) => setImmediate(resolve));
 
-function dispatchFetch(listeners, url) {
+function dispatchFetch(listeners, url, authorization) {
   let responded;
   const waited = [];
+  const request = { method: 'GET', url };
+  if (authorization) {
+    request.headers = {
+      get(name) {
+        return String(name).toLowerCase() === 'authorization' ? authorization : null;
+      },
+    };
+  }
   listeners.fetch({
-    request: { method: 'GET', url },
+    request,
     respondWith: (promise) => {
       responded = promise;
     },
     waitUntil: (promise) => waited.push(promise),
   });
   return { responded, waited };
+}
+
+/** Clés du bac à sable qui portent l'empreinte d'un compte. */
+function partitionedKeys(store) {
+  return [...store.keys()].filter((key) => String(key).includes('__fm_sw_user'));
 }
 
 test('délai réseau : passé 4 s, la copie en cache est servie (API network-first)', async () => {
@@ -480,12 +493,83 @@ test('délai réseau : réglable, désactivable (0) et validé', () => {
   }
 });
 
+test('délai réseau : le cache d’un compte n’est pas servi à un autre', async () => {
+  const timers = fakeTimers();
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS), { timers });
+  const store = cacheSandbox(context);
+  const teacher = { ok: true, status: 200, clone: () => ({ body: 'zones du professeur' }) };
+  context.fetch = () => Promise.resolve(teacher);
+
+  const first = dispatchFetch(listeners, 'https://foretmap.test/api/zones', 'Bearer prof');
+  assert.strictEqual(await first.responded, teacher);
+  await flushMicrotasks();
+  assert.strictEqual(partitionedKeys(store).length, 1);
+
+  // L'élève, réseau lent : la copie du professeur ne doit pas partir.
+  const network = deferredFetch(context);
+  const second = dispatchFetch(listeners, 'https://foretmap.test/api/zones', 'Bearer eleve');
+  timers.fire();
+  let settled = false;
+  second.responded.then(() => {
+    settled = true;
+  });
+  await flushMicrotasks();
+  assert.strictEqual(settled, false, 'le cache du professeur ne doit pas répondre à l’élève');
+
+  const student = { ok: true, status: 200, clone: () => ({ body: 'zones de l’élève' }) };
+  network.resolve(student);
+  assert.strictEqual(await second.responded, student);
+  await flushMicrotasks();
+  assert.strictEqual(partitionedKeys(store).length, 2);
+
+  // Le professeur, à son tour, retrouve SA copie quand le réseau tarde.
+  deferredFetch(context);
+  const third = dispatchFetch(listeners, 'https://foretmap.test/api/zones', 'Bearer prof');
+  timers.fire();
+  assert.deepStrictEqual(await third.responded, { body: 'zones du professeur' });
+});
+
+test('visite : la réponse mémorisée d’un compte n’est pas servie tout de suite à un autre', async () => {
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  const store = cacheSandbox(context);
+  const teacher = {
+    ok: true,
+    status: 200,
+    clone: () => ({ body: 'lieux réservés du professeur' }),
+  };
+  context.fetch = () => Promise.resolve(teacher);
+
+  const first = dispatchFetch(listeners, 'https://foretmap.test/api/visit/content', 'Bearer prof');
+  assert.strictEqual(await first.responded, teacher);
+  await flushMicrotasks();
+
+  let settled = false;
+  const network = deferredFetch(context);
+  const second = dispatchFetch(
+    listeners,
+    'https://foretmap.test/api/visit/content',
+    'Bearer eleve',
+  );
+  second.responded.then(() => {
+    settled = true;
+  });
+  await flushMicrotasks();
+  assert.strictEqual(settled, false, 'la visite du professeur ne doit pas s’afficher pour l’élève');
+  assert.strictEqual(store.size, 1, 'la copie du professeur reste, sous sa clé');
+
+  const student = { ok: true, status: 200, clone: () => ({ body: 'visite de l’élève' }) };
+  network.resolve(student);
+  assert.strictEqual(await second.responded, student);
+});
+
 test('SW du mode dev (public/sw.js) : même délai réseau que le gabarit', async () => {
   const source = require('node:fs').readFileSync(
     require('node:path').join(__dirname, '..', 'public', 'sw.js'),
     'utf8',
   );
   assert.match(source, /const NETWORK_TIMEOUT_MS = 4000;/);
+  assert.match(source, /__fm_sw_user/);
+  assert.match(source, /foretmap-offline-v9/);
   const timers = fakeTimers();
   const { listeners, context } = loadServiceWorker(source, { timers });
   cacheSandbox(context, [['/api/zones', { ok: true, body: 'zones en cache' }]]);
