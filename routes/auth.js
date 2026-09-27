@@ -891,15 +891,21 @@ router.get(
     const code = normalizeOptionalString(req.query?.code);
     if (!code) return redirectError('oauth_missing_code');
 
-    let outcome;
+    // Construction de la redirection comprise dans le `try`, comme avant l'extraction : une
+    // exception à ce stade donne aussi `oauth_server_error`.
     try {
-      outcome = await googleAuthService.completeGoogleLogin({ code, mode, cfg, auditReq: req });
+      const outcome = await googleAuthService.completeGoogleLogin({
+        code,
+        mode,
+        cfg,
+        auditReq: req,
+      });
+      if (!outcome.ok) return redirectError(outcome.error, outcome.roleLabel);
+      return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, outcome.payload));
     } catch (e) {
       logRouteError(e, req);
       return redirectError('oauth_server_error');
     }
-    if (!outcome.ok) return redirectError(outcome.error, outcome.roleLabel);
-    return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, outcome.payload));
   }),
 );
 
