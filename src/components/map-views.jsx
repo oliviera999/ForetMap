@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 
-import { MapRoutePicker } from '../shared/map-routes/MapRoutePicker.jsx';
-import { MapRouteBar } from '../shared/map-routes/MapRouteBar.jsx';
 import { routeEntryFocusPct } from '../shared/map-routes/mapRouteSteps.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 
@@ -58,16 +56,20 @@ import { useMapViewPosition } from './map/useMapViewPosition.js';
 import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { useMapViewTypography } from './map/useMapViewTypography.js';
 import {
+  MapViewLocationSearch,
+  MapViewRouteControls,
+  MapViewRoutePickerRow,
+  mapCanvasOuterStyle,
+  mapCursorForMode,
+} from './map/MapViewPanels.jsx';
+import {
   useMapViewActiveMap,
   useMapViewData,
   useMapViewSettings,
 } from './map/useMapViewContext.js';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
-import { MapLocationFiltersBar } from './map/MapLocationFiltersBar.jsx';
-import { MapLocationFilterResults } from './map/MapLocationFilterResults.jsx';
 import { WorkMapStage } from './map/WorkMapStage.jsx';
-import { isMapLocationFilterActive } from '../utils/mapLocationFilters.js';
 import { useMapViewLocationFilters } from './map/useMapViewLocationFilters.js';
 import { useMapCategories } from '../hooks/useMapCategories.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocation.js';
@@ -858,16 +860,7 @@ function MapViewImpl({
     [activeRoute, currentRouteEntry],
   );
 
-  const cursor =
-    mode === 'view'
-      ? 'grab'
-      : mode === 'draw-zone'
-        ? 'crosshair'
-        : mode === 'edit-points'
-          ? 'default'
-          : mode === 'align-zones'
-            ? 'pointer'
-            : 'cell';
+  const cursor = mapCursorForMode(mode);
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
 
@@ -1017,22 +1010,14 @@ function MapViewImpl({
         />
       ) : null}
 
-      {mode === 'view' && !mapFullscreen ? (
-        <div className="map-view-routes-row" data-testid="map-view-routes-row">
-          {/*
-            Hors de la barre d'outils (`overflow-x: auto` + `overflow-y: hidden`) : même
-            motif que `.plan-filters` — sinon la liste Parcours est coupée / passée sous la
-            carte, et la puce disparaît dans le défilement horizontal des commandes.
-          */}
-          <MapRoutePicker
-            routes={mapRoutes}
-            places={routePlaces}
-            open={routePickerOpen}
-            onToggle={setRoutePickerOpen}
-            onStart={startRoute}
-          />
-        </div>
-      ) : null}
+      <MapViewRoutePickerRow
+        visible={mode === 'view' && !mapFullscreen}
+        routes={mapRoutes}
+        places={routePlaces}
+        open={routePickerOpen}
+        onToggle={setRoutePickerOpen}
+        onStart={startRoute}
+      />
 
       <MascotGpsStatusBanner gps={mascotGps} />
 
@@ -1044,41 +1029,20 @@ function MapViewImpl({
         <div
           ref={mapLayoutOuterRef}
           className={`map-view-canvas-outer${mapFullscreen ? ' map-view-canvas-outer--fullscreen' : ''}`}
-          style={{
-            minHeight: 0,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            boxSizing: 'border-box',
-            ...(embedded
-              ? {
-                  paddingTop: 0,
-                  paddingLeft: mapFramePaddingPx,
-                  paddingRight: mapFramePaddingPx,
-                  paddingBottom: mapFramePaddingPx,
-                }
-              : { padding: mapFramePaddingPx }),
-          }}
+          style={mapCanvasOuterStyle({ embedded, framePaddingPx: mapFramePaddingPx })}
         >
-          {mode === 'view' && (
-            <>
-              <MapLocationFiltersBar
-                filters={mapLocationFilters}
-                setFilters={setMapLocationFilters}
-                speciesOptions={mapSpeciesOptions}
-                categoryOptions={mapCategoryOptions}
-                zoneMatchCount={matchingZoneIds.size}
-                markerMatchCount={matchingMarkerIds.size}
-                searchInputRef={mapLocationSearchRef}
-              />
-              {isMapLocationFilterActive(mapLocationFilters) && mapFilterResultItems.length > 0 ? (
-                <MapLocationFilterResults
-                  items={mapFilterResultItems}
-                  onSelectItem={onSelectMapFilterResult}
-                />
-              ) : null}
-            </>
-          )}
+          <MapViewLocationSearch
+            visible={mode === 'view'}
+            filters={mapLocationFilters}
+            setFilters={setMapLocationFilters}
+            speciesOptions={mapSpeciesOptions}
+            categoryOptions={mapCategoryOptions}
+            zoneMatchCount={matchingZoneIds.size}
+            markerMatchCount={matchingMarkerIds.size}
+            searchInputRef={mapLocationSearchRef}
+            resultItems={mapFilterResultItems}
+            onSelectItem={onSelectMapFilterResult}
+          />
           <div className="map-view-canvas-slot">
             {useSharedViewStage ? (
               <WorkMapStage
@@ -1226,31 +1190,19 @@ function MapViewImpl({
               />
             ) : null}
           </div>
-          {!activeRoute && resumableRouteSlug && mode === 'view' ? (
-            <div className="map-route-resume">
-              <button
-                type="button"
-                className="btn btn-sm btn-primary map-route-resume__btn"
-                onClick={resumeRoute}
-              >
-                Reprendre le parcours
-              </button>
-            </div>
-          ) : null}
-          {activeRoute && mode === 'view' ? (
-            <MapRouteBar
-              route={activeRoute}
-              steps={routeSteps}
-              index={routeIndex}
-              onGoToIndex={goToRouteIndex}
-              onExit={exitRoute}
-              onHeight={setRouteBarHeight}
-              canLocate={!!mapPosition?.available}
-              distanceLabel={routeDistanceLabel}
-              hintLocate="Le lieu est mis en avant sur la carte. Utilisez « Me suivre » puis avancez."
-              hintManual="Le lieu est mis en avant sur la carte. Avance puis Suivant."
-            />
-          ) : null}
+          <MapViewRouteControls
+            visible={mode === 'view'}
+            activeRoute={activeRoute}
+            resumableRouteSlug={resumableRouteSlug}
+            onResume={resumeRoute}
+            steps={routeSteps}
+            index={routeIndex}
+            onGoToIndex={goToRouteIndex}
+            onExit={exitRoute}
+            onHeight={setRouteBarHeight}
+            canLocate={!!mapPosition?.available}
+            distanceLabel={routeDistanceLabel}
+          />
         </div>
       </MapFullscreenShell>
     </div>

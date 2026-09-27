@@ -285,6 +285,47 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
     }
   });
 
+  test('parcours demandé par une séance : barre d’étape, puis reprise après sortie', async () => {
+    const ROUTES = [
+      {
+        id: 1,
+        slug: 'tour',
+        title: 'Tour du verger',
+        steps: [
+          { target_type: 'zone', target_id: 1, step_title: 'Le verger' },
+          { target_type: 'marker', target_id: 11 },
+        ],
+      },
+    ];
+    apiMock.mockImplementation(async (url) =>
+      String(url).startsWith('/api/map-routes') ? ROUTES : [],
+    );
+    try {
+      const onRouteRequestHandled = vi.fn();
+      const { view } = renderMapView({
+        routeRequest: { slug: 'tour', nonce: 5 },
+        onRouteRequestHandled,
+      });
+      await waitForToolbar(view);
+      const bar = await screen.findByRole(
+        'complementary',
+        { name: 'Parcours Tour du verger' },
+        MOUNT_TIMEOUT,
+      );
+      expect(onRouteRequestHandled).toHaveBeenCalledWith(5);
+      expect(within(bar).getByText('Le verger')).toBeInTheDocument();
+      // Première étape : la fiche de la zone est ouverte.
+      expect(await screen.findByRole('dialog', { name: 'Zone Verger' })).toBeInTheDocument();
+      fireEvent.click(within(bar).getByRole('button', { name: /Quitter/ }));
+      await waitFor(() =>
+        expect(screen.queryByRole('complementary', { name: 'Parcours Tour du verger' })).toBeNull(),
+      );
+      expect(screen.getByRole('button', { name: 'Reprendre le parcours' })).toBeInTheDocument();
+    } finally {
+      apiMock.mockImplementation(async () => []);
+    }
+  });
+
   test('prof : fiche de lieu éditable (onglet Modifier)', async () => {
     const { view } = renderMapView({}, { isTeacher: true });
     await waitForToolbar(view);
