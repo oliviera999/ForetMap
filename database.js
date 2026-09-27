@@ -279,7 +279,11 @@ const SYNC_DOMAIN_TABLES = {
   //   - `glossary_terms`, `quiz_questions` et leurs tables de liaison espèces : lues par
   //     les routes **par fiche** (`/:id/glossary-terms`, `/:id/quiz-questions`), jamais par
   //     la liste. Elles restent suivies par le domaine `tutorials`.
-  plants: ['plants'],
+  // Tables liées de la piste C (audit du 25/09/2026, § 2.3) : photos (migration 302), noms
+  // (`plant_name_aliases`, lus par la liste depuis la 303 — hors domaine jusque-là, chaque
+  // écriture retombait sur le repli « tout périmer ») et sosies (304). Toutes changent la
+  // réponse de `GET /api/plants`.
+  plants: ['plants', 'plant_photos', 'plant_name_aliases', 'plant_lookalikes'],
   markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps', 'location_links'],
   tutorials: [
     'tutorials',

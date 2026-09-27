@@ -48,6 +48,49 @@
     "photo_leaf": null,
     "photo_licence": "CC BY-SA 4.0",
     "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": null,
+        "sort_order": 1,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_flower",
+        "licence": null,
+        "sort_order": 0,
+        "source": "televersement",
+        "source_url": null,
+        "url": "/uploads/plants/0/photo_flower-1.jpg"
+      }
+    ],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",
@@ -137,6 +180,8 @@
     "photo_leaf": null,
     "photo_licence": null,
     "photo_species": null,
+    "photos": [],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": null,
@@ -226,6 +271,49 @@
     "photo_leaf": null,
     "photo_licence": "CC BY-SA 4.0",
     "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": null,
+        "sort_order": 1,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_flower",
+        "licence": null,
+        "sort_order": 0,
+        "source": "televersement",
+        "source_url": null,
+        "url": "/uploads/plants/0/photo_flower-1.jpg"
+      }
+    ],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",
@@ -315,6 +403,8 @@
     "photo_leaf": null,
     "photo_licence": null,
     "photo_species": null,
+    "photos": [],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": null,
@@ -403,6 +493,49 @@
     "photo_leaf": null,
     "photo_licence": "CC BY-SA 4.0",
     "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": null,
+        "sort_order": 1,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_flower",
+        "licence": null,
+        "sort_order": 0,
+        "source": "televersement",
+        "source_url": null,
+        "url": "/uploads/plants/0/photo_flower-1.jpg"
+      }
+    ],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",
@@ -496,6 +629,49 @@
     "photo_leaf": null,
     "photo_licence": "CC BY-SA 4.0",
     "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": null,
+        "sort_order": 1,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_flower",
+        "licence": null,
+        "sort_order": 0,
+        "source": "televersement",
+        "source_url": null,
+        "url": "/uploads/plants/0/photo_flower-1.jpg"
+      }
+    ],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",
@@ -622,6 +798,49 @@
     "photo_leaf": null,
     "photo_licence": "CC BY-SA 4.0",
     "photo_species": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg\nhttps://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg",
+    "photos": [
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": "Auteur caractérisation",
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": "CC BY-SA 4.0",
+        "sort_order": 0,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Caracterisation_A.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_species",
+        "licence": null,
+        "sort_order": 1,
+        "source": "wikimedia_commons",
+        "source_url": null,
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Caracterisation_A2.jpg"
+      },
+      {
+        "credit": null,
+        "id": "<id>",
+        "kind": "photo_flower",
+        "licence": null,
+        "sort_order": 0,
+        "source": "televersement",
+        "source_url": null,
+        "url": "/uploads/plants/0/photo_flower-1.jpg"
+      }
+    ],
+    "photos_origin": "table",
     "planting_recommendations": null,
     "preferred_nutrients": null,
     "remark_1": "Première remarque.",

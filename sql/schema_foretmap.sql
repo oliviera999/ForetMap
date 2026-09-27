@@ -1351,4 +1351,24 @@ CREATE TABLE IF NOT EXISTS notifications (
     REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Photos des fiches espèces (migration 302) : une ligne par photo, attribution comprise.
+-- Source de vérité des photos ; les colonnes photo de `plants` en sont le miroir jusqu'au
+-- retrait (temps 3, audit du 25/09/2026, § 3.5).
+CREATE TABLE IF NOT EXISTS plant_photos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  plant_id INT UNSIGNED NOT NULL,
+  kind ENUM('photo','photo_species','photo_leaf','photo_flower','photo_fruit','photo_harvest_part') NOT NULL
+    COMMENT 'Emplacement sur la fiche (nom de l''ancienne colonne photo)',
+  url TEXT NOT NULL COMMENT 'Lien direct vers l''image (HTTPS) ou fichier téléversé (/uploads/…)',
+  credit VARCHAR(255) DEFAULT NULL COMMENT 'Auteur / attribution',
+  licence VARCHAR(64) DEFAULT NULL COMMENT 'Licence (ex. CC BY-SA 4.0, Public domain, CC0)',
+  source VARCHAR(32) DEFAULT NULL COMMENT 'Provenance : televersement, wikimedia_commons, inaturalist…',
+  source_url VARCHAR(1024) DEFAULT NULL COMMENT 'Page source de l''image (lien d''attribution)',
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Ordre dans l''emplacement (0 = premier)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_plant_photos_plant (plant_id, kind, sort_order),
+  CONSTRAINT fk_plant_photos_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

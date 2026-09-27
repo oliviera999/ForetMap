@@ -57,8 +57,17 @@ const NAME_B = `Caractérisation minimale ${STAMP}`;
 const aliases = new Map();
 const TIME_KEYS = new Set(['hazard_reviewed_at', 'gbif_checked_at', 'created_at', 'updated_at']);
 const ID_KEYS = new Set(['id', 'plant_id', 'plantId', 'lookalike_plant_id']);
+const RELATED_LIST_KEYS = new Set(['photos']);
 
 function canon(value, key = '') {
+  // Identifiants des lignes liées (photos…) : attribués par la base, remplacés par un repère.
+  if (Array.isArray(value) && RELATED_LIST_KEYS.has(key)) {
+    return value.map((entry) =>
+      entry && typeof entry === 'object' && entry.id != null
+        ? canon({ ...entry, id: '<id>' })
+        : canon(entry),
+    );
+  }
   if (Array.isArray(value)) return value.map((entry) => canon(entry));
   if (value && typeof value === 'object') {
     const out = {};
