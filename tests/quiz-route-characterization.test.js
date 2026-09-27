@@ -367,6 +367,28 @@ test('questions — la bonne réponse : gestionnaire seulement ; jeton invalide 
   assert.ok(garbage.body.items.every((i) => !('reponse_correcte' in i)));
 });
 
+// Bascule T1 du retrait de `quiz_questions.difficulte_label` (audit du 25/09/2026, § 3.5) :
+// le catalogue public ne lit plus la colonne, il dérive le libellé de `difficulte`. Pour des
+// données cohérentes (contrôle SQL du § 3.5 = 0), la réponse est identique — cf. « forme
+// exacte » ci-dessus. Ce cas, volontairement incohérent, échouait sur l'ancienne route :
+// c'est la preuve que la colonne n'est plus lue.
+test('questions — difficulte_label dérivé de difficulte, plus lu en base (T1)', async () => {
+  await execute('UPDATE quiz_questions SET difficulte_label = ? WHERE question_code = ?', [
+    'Libellé divergent',
+    Q.lyceeMedium.code,
+  ]);
+  try {
+    const res = await request(app).get(`/api/quiz/questions?categorieSlug=${CAT}`).expect(200);
+    const item = res.body.items.find((i) => i.question_code === Q.lyceeMedium.code);
+    assert.equal(item.difficulte_label, Q.lyceeMedium.label);
+  } finally {
+    await execute('UPDATE quiz_questions SET difficulte_label = ? WHERE question_code = ?', [
+      Q.lyceeMedium.label,
+      Q.lyceeMedium.code,
+    ]);
+  }
+});
+
 test('questions — notion invalide : 400', async () => {
   const res = await request(app).get('/api/quiz/questions?notionNiveau=quatrieme').expect(400);
   assert.deepEqual(res.body, { error: parseNotionNiveauFilter('quatrieme').error });

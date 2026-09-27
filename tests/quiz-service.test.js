@@ -200,3 +200,21 @@ test('garde statique — la route ne contient plus de SQL', () => {
   assert.doesNotMatch(route, /\b(SELECT|INSERT|UPDATE|DELETE)\b\s/);
   assert.doesNotMatch(route, /require\('\.\.\/database'\)/);
 });
+
+// Retrait de `quiz_questions.difficulte_label` (audit du 25/09/2026, § 3.5, T1) : le quiz
+// ne lit plus la colonne, il dérive le libellé de `difficulte`.
+test('difficultyLabel — mêmes libellés que les migrations, null hors 1 à 3', () => {
+  assert.equal(quizService.difficultyLabel(1), '⭐ Facile');
+  assert.equal(quizService.difficultyLabel(2), '⭐⭐ Moyen');
+  assert.equal(quizService.difficultyLabel('3'), '⭐⭐⭐ Difficile');
+  // Octets exacts des migrations : U+2B50 sans sélecteur de variante (U+FE0F).
+  assert.equal(Buffer.from(quizService.difficultyLabel(1)).toString('hex'), 'e2ad9020466163696c65');
+  for (const other of [null, undefined, '', 0, 4, 5, 'x']) {
+    assert.equal(quizService.difficultyLabel(other), null, String(other));
+  }
+});
+
+test('garde statique — ni le dépôt ni la route du quiz ne lisent difficulte_label (T1)', () => {
+  assert.doesNotMatch(withoutComments(read('lib/pedago/quizRepository.js')), /difficulte_label/);
+  assert.doesNotMatch(withoutComments(read('routes/quiz.js')), /difficulte_label/);
+});
