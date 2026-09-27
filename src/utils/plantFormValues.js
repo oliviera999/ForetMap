@@ -41,7 +41,7 @@ export function mergePlantPhotoFieldValue(prevValue, newUrl, position) {
 }
 
 /** Champs du formulaire qui ne sont pas du texte (listes, objets) : copiés à part. */
-const LIST_FORM_KEYS = new Set(['map_ids', 'map_site_notes', 'photos']);
+const LIST_FORM_KEYS = new Set(['map_ids', 'map_site_notes', 'photos', 'lookalikes']);
 
 /** Formulaire « fiche plante » vierge (toutes les colonnes du modèle, valeurs vides). */
 export const EMPTY_PLANT_FORM = {
@@ -76,9 +76,9 @@ export const EMPTY_PLANT_FORM = {
   ph_max: '',
   habitat: '',
   nutrition: '',
-  remark_1: '',
-  remark_2: '',
-  remark_3: '',
+  // Remarques (migration 305) : une seule zone de texte ; le serveur tient `remark_1..3` en
+  // miroir jusqu'au retrait.
+  remarks: '',
   reproduction: '',
   size: '',
   sources: '',
@@ -102,6 +102,8 @@ export const EMPTY_PLANT_FORM = {
   // qui remplace les 6 anciens champs de liens et le couple crédit / licence de la photo
   // principale — le serveur en tient encore les colonnes en miroir.
   photos: [],
+  // Sosies (migration 305) : `{ plant_id, note }` — « ne pas confondre avec… ».
+  lookalikes: [],
   map_ids: [],
   map_site_notes: {},
 };
@@ -117,6 +119,20 @@ export function extractPlantForm(plant = {}) {
     form[k] = normalizedPlantValue(plant[k]);
   });
   form.photos = formPhotosFromPlant(plant);
+  // Remarques : champ unique du serveur (déjà résolu, repli compris) ; à défaut, les trois
+  // anciens champs mis bout à bout.
+  form.remarks =
+    plant.remarks != null
+      ? normalizedPlantValue(plant.remarks)
+      : ['remark_1', 'remark_2', 'remark_3']
+          .map((k) => normalizedPlantValue(plant[k]))
+          .filter(Boolean)
+          .join('\n\n');
+  form.lookalikes = Array.isArray(plant.lookalikes)
+    ? plant.lookalikes
+        .filter((l) => l && l.plant_id != null)
+        .map((l) => ({ plant_id: l.plant_id, name: l.name || '', note: l.note || '' }))
+    : [];
   form.secondary_names = Array.isArray(plant.secondary_names)
     ? plant.secondary_names
         .map((n) => normalizedPlantValue(n))

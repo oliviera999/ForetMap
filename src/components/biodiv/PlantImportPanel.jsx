@@ -24,12 +24,14 @@ const PLANTS_IMPORT_TEMPLATE_HEADERS_FULL = [
   'group_4',
   'habitat',
   'photo',
+  // Attribution de la photo principale (et de ses copies) : obligatoire en CC BY / BY-SA.
+  'photo_credit',
+  'photo_licence',
   'nutrition',
   'agroecosystem_category',
   'longevity',
-  'remark_1',
-  'remark_2',
-  'remark_3',
+  // Remarques en une seule colonne (migration 305) ; remark_1..3 restent acceptées.
+  'remarks',
   'reproduction',
   'size',
   'sources',

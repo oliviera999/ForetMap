@@ -67,7 +67,7 @@ describe('EMPTY_PLANT_FORM', () => {
     expect(EMPTY_PLANT_FORM.map_ids).toEqual([]);
     expect(EMPTY_PLANT_FORM.map_site_notes).toEqual({});
     const others = Object.entries(EMPTY_PLANT_FORM).filter(
-      ([k]) => !['emoji', 'map_ids', 'map_site_notes', 'photos'].includes(k),
+      ([k]) => !['emoji', 'map_ids', 'map_site_notes', 'photos', 'lookalikes'].includes(k),
     );
     expect(others.every(([, v]) => v === '')).toBe(true);
   });
@@ -131,6 +131,16 @@ describe('extractPlantForm', () => {
     ).toMatchObject({ secondary_names: 'Dent-de-lion, Salade de taupe' });
     expect(extractPlantForm({ second_name: 'Nopal' }).secondary_names).toBe('Nopal');
     expect(EMPTY_PLANT_FORM).not.toHaveProperty('second_name');
+  });
+  test('remarques (champ unique, repli) et sosies (migration 305)', () => {
+    expect(extractPlantForm({ remarks: 'A\n\nB', remark_1: 'x' }).remarks).toBe('A\n\nB');
+    expect(extractPlantForm({ remark_1: 'A', remark_3: 'C' }).remarks).toBe('A\n\nC');
+    expect(EMPTY_PLANT_FORM).not.toHaveProperty('remark_1');
+    expect(
+      extractPlantForm({
+        lookalikes: [{ plant_id: 4, name: 'Laitue vireuse', emoji: '⚠️', note: null }],
+      }).lookalikes,
+    ).toEqual([{ plant_id: 4, name: 'Laitue vireuse', note: '' }]);
   });
   test('ignore les champs hors modèle', () => {
     const out = extractPlantForm({ name: 'X', inexistant: 'zzz' });

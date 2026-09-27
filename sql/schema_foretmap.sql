@@ -104,6 +104,8 @@ CREATE TABLE IF NOT EXISTS plants (
   remark_1 TEXT DEFAULT NULL,
   remark_2 TEXT DEFAULT NULL,
   remark_3 TEXT DEFAULT NULL,
+  -- Migration 305 : une seule zone de texte ; `remark_1..3` en miroir jusqu'au retrait.
+  remarks TEXT DEFAULT NULL COMMENT 'Remarques (une seule zone de texte ; remark_1..3 en miroir jusqu''au retrait)',
   reproduction VARCHAR(255) DEFAULT NULL,
   size VARCHAR(255) DEFAULT NULL,
   sources TEXT DEFAULT NULL,
@@ -1376,6 +1378,22 @@ CREATE TABLE IF NOT EXISTS plant_photos (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_plant_photos_plant (plant_id, kind, sort_order),
   CONSTRAINT fk_plant_photos_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sosies des fiches espèces (migration 305) : une ligne par paire non orientée, dans l'ordre
+-- canonique plant_id < lookalike_plant_id (tenu par le service), avec le critère qui tranche.
+CREATE TABLE IF NOT EXISTS plant_lookalikes (
+  plant_id INT UNSIGNED NOT NULL COMMENT 'Plus petit identifiant de la paire',
+  lookalike_plant_id INT UNSIGNED NOT NULL COMMENT 'Plus grand identifiant de la paire',
+  note VARCHAR(500) DEFAULT NULL COMMENT 'Critère qui permet de les distinguer',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (plant_id, lookalike_plant_id),
+  KEY idx_plant_lookalikes_other (lookalike_plant_id),
+  CONSTRAINT fk_plant_lookalikes_plant FOREIGN KEY (plant_id)
+    REFERENCES plants (id) ON DELETE CASCADE,
+  CONSTRAINT fk_plant_lookalikes_other FOREIGN KEY (lookalike_plant_id)
+    REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

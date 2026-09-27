@@ -104,7 +104,9 @@ describe('PlantEditForm', { timeout: 20000 }, () => {
     expect(screen.getByLabelText('Nom scientifique').tagName).toBe('INPUT');
     expect(screen.getByLabelText('Milieu').tagName).toBe('SELECT');
     expect(screen.getByLabelText('Niveau de danger').tagName).toBe('SELECT');
-    expect(screen.getByLabelText('Remarque 3').tagName).toBe('INPUT');
+    // Remarques : une seule zone de texte (migration 305).
+    expect(screen.getByLabelText('Remarques').tagName).toBe('TEXTAREA');
+    expect(screen.queryByLabelText('Remarque 3')).not.toBeInTheDocument();
     // Photos : une ligne par photo, lien + auteur + licence, chacun nommé avec sa position.
     expect(screen.getByLabelText('Lien de l’image — Photo espèce, photo 1').tagName).toBe('INPUT');
     expect(screen.getByLabelText('Auteur (crédit) — Photo espèce, photo 1').tagName).toBe('INPUT');
@@ -202,6 +204,23 @@ describe('PlantEditForm', { timeout: 20000 }, () => {
     expect(applied.photos[2]).toMatchObject({ kind: 'photo_flower', url: '' });
     fireEvent.click(screen.getByRole('button', { name: 'Retirer — Photo fruit, photo 1' }));
     expect(applied.photos.map((p) => p.kind)).toEqual(['photo_leaf']);
+  });
+
+  test('sosies : ajout d’une ligne, choix de la fiche et note → liste mise à jour', () => {
+    let applied = null;
+    const base = { ...EMPTY_PLANT_FORM, lookalikes: [{ plant_id: '', note: '' }] };
+    const setForm = vi.fn((updater) => {
+      applied = updater(base);
+    });
+    setup({ setForm, form: base });
+    fireEvent.change(screen.getByLabelText('Ce qui permet de les distinguer — sosie 1'), {
+      target: { value: 'Latex amer' },
+    });
+    expect(applied.lookalikes[0]).toMatchObject({ note: 'Latex amer' });
+    fireEvent.click(screen.getByRole('button', { name: '+ Ajouter un sosie' }));
+    expect(applied.lookalikes).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer — sosie 1' }));
+    expect(applied.lookalikes).toEqual([]);
   });
 
   test('upload sans plantId ni onEnsurePlantId → toast de garde, aucun appel serveur', async () => {

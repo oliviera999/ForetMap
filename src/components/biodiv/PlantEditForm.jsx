@@ -24,6 +24,7 @@ import {
 import { PlantnetIdentifyPanel } from './PlantnetIdentifyPanel.jsx';
 import { PlantPrefillPanel } from './PlantPrefillPanel.jsx';
 import { PlantPhotosEditor } from './PlantPhotosEditor.jsx';
+import { PlantLookalikesEditor } from './PlantLookalikesEditor.jsx';
 import { addFormPhoto } from '../../utils/plantPhotos.js';
 import { IconSave } from '../../shared/icons.jsx';
 
@@ -363,9 +364,22 @@ function PlantEditForm({
         <summary>Détermination</summary>
         <div className="plant-meta-grid">
           <p className="section-sub" style={{ margin: 0 }}>
-            Ce qui permet à un élève d’affirmer que c’est bien cette espèce. Les confusions
-            renseignées ici s’affichent en encadré d’alerte sur la fiche.
+            Ce qui permet à un élève d’affirmer que c’est bien cette espèce. Les sosies et les
+            confusions renseignés ici s’affichent en encadré d’alerte sur la fiche ; un sosie choisi
+            dans le catalogue apparaît aussi sur sa propre fiche.
           </p>
+          <div className="field">
+            <span className="fm-label" id={fieldId('lookalikes-label')}>
+              Sosies dans le catalogue
+            </span>
+            <div role="group" aria-labelledby={fieldId('lookalikes-label')}>
+              <PlantLookalikesEditor
+                lookalikes={form.lookalikes}
+                plantId={plantId}
+                onChange={(next) => setForm((f) => ({ ...f, lookalikes: next }))}
+              />
+            </div>
+          </div>
           {PLANT_DETERMINATION_FIELDS.map((fieldDef) => (
             <div key={fieldDef.key} className="field">
               <label htmlFor={fieldId(fieldDef.key)} id={fieldId(`${fieldDef.key}-label`)}>
@@ -979,34 +993,15 @@ function PlantEditForm({
       <details className="plant-more">
         <summary>Remarques</summary>
         <div className="plant-meta-grid">
-          <div className="plant-form-grid">
-            <div className="field">
-              <label htmlFor={fieldId('remark_1')}>Remarque 1</label>
-              <input
-                id={fieldId('remark_1')}
-                value={form.remark_1}
-                onChange={set('remark_1')}
-                placeholder="Optionnel"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor={fieldId('remark_2')}>Remarque 2</label>
-              <input
-                id={fieldId('remark_2')}
-                value={form.remark_2}
-                onChange={set('remark_2')}
-                placeholder="Optionnel"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor={fieldId('remark_3')}>Remarque 3</label>
-              <input
-                id={fieldId('remark_3')}
-                value={form.remark_3}
-                onChange={set('remark_3')}
-                placeholder="Optionnel"
-              />
-            </div>
+          <div className="field">
+            <label htmlFor={fieldId('remarks')}>Remarques</label>
+            <textarea
+              id={fieldId('remarks')}
+              value={form.remarks}
+              onChange={set('remarks')}
+              rows={4}
+              placeholder="Optionnel. Une ligne vide sépare deux remarques."
+            />
           </div>
         </div>
       </details>
