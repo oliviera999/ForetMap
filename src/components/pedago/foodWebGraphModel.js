@@ -7,6 +7,7 @@
  */
 
 import { interactionMatterFlow, orientInteraction } from '../../shared/foodWebTypes.js';
+import { TROPHIC_ROLE_ENUM } from '../../shared/enums/biodivEnums.js';
 
 /** Ancre visuelle des extrémités « environnement » (cible/source nulle). */
 export const ENV_NODE_ID = '__env__';
@@ -19,13 +20,9 @@ export const ENV_NODE_EMOJI = '🌍';
  * Ordre des colonnes pour la disposition par rôle trophique — la chaîne de la matière :
  * producteurs, consommateurs, puis ceux qui recyclent la matière morte. `detritivore`
  * (migration 295) se place avant `decomposeur` : il fragmente, le décomposeur minéralise.
+ * C'est l'ordre de l'ENUM `plants.trophic_role`, lu dans le référentiel partagé.
  */
-export const TROPHIC_ORDER = Object.freeze([
-  'producteur',
-  'consommateur',
-  'detritivore',
-  'decomposeur',
-]);
+export const TROPHIC_ORDER = TROPHIC_ROLE_ENUM.values;
 
 /** Libellé de colonne de chaque rôle, et de la colonne des rôles inconnus. */
 export const TROPHIC_ROLE_COLUMN_LABELS = Object.freeze({

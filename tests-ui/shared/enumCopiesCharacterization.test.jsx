@@ -44,6 +44,9 @@ const scales = await import('../../src/utils/pedagoScales.js');
 const { IdKeysView } = await import('../../src/components/pedago/IdKeysView.jsx');
 const { GlossaryView } = await import('../../src/components/pedago/GlossaryView.jsx');
 const { BiodivPedagoProvider } = await import('../../src/contexts/BiodivPedagoContext.jsx');
+const { TROPHIC_ORDER, GRAPH_PRESETS } =
+  await import('../../src/components/pedago/foodWebGraphModel.js');
+const { INTERACTION_TYPE_ENUM } = await import('../../src/shared/enums/biodivEnums.js');
 
 /** Paires [valeur, texte] des options d'un <select>. */
 function optionPairs(select) {
@@ -214,6 +217,25 @@ describe('niveaux pédagogiques (miroirs ESM)', () => {
     ]);
     expect(Object.isFrozen(scales.ETAPES)).toBe(true);
     expect(Object.isFrozen(scales.LEARNER_NIVEAU_VALUES)).toBe(true);
+  });
+});
+
+describe('réseau trophique', () => {
+  test('ordre des colonnes par rôle trophique', () => {
+    expect([...TROPHIC_ORDER]).toEqual([
+      'producteur',
+      'consommateur',
+      'detritivore',
+      'decomposeur',
+    ]);
+    expect(Object.isFrozen(TROPHIC_ORDER)).toBe(true);
+  });
+
+  test('les deux présélections du graphe partagent tous les types d’interaction, sans doublon', () => {
+    // Garde du référentiel : un type ajouté à l'ENUM doit être rangé dans une présélection.
+    const all = [...GRAPH_PRESETS.alimentaire, ...GRAPH_PRESETS.relations];
+    expect(new Set(all).size).toBe(all.length);
+    expect([...all].sort()).toEqual([...INTERACTION_TYPE_ENUM.values].sort());
   });
 });
 
