@@ -4,11 +4,9 @@ import {
   glossaryPropsWhileAnswering,
   showLinkedGlossaryTerms,
 } from '../../shared/qcm/quizGlossaryReveal.js';
-import { api } from '../../services/api';
-import {
-  PedagoQcmFeedbackBlock,
-  shouldShowPedagoQcmAnswerPhase,
-} from './PedagoQcmFeedbackBlock.jsx';
+import { fetchQuizCategories } from '../../services/quizApi';
+import { useQuizSession } from '../../hooks/useQuizSession.js';
+import { PedagoQcmFeedbackBlock } from './PedagoQcmFeedbackBlock.jsx';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
 import { useGlossaryLinkIndex } from '../../hooks/useGlossaryLinkIndex.js';
 import { mergeGlossaryLinkItems } from '../../utils/foretmapGlossaryAutolink.js';
@@ -77,20 +75,10 @@ function notionNiveauParam(filter, curriculumNiveaux) {
   return niveaux ? niveaux.join(',') : '';
 }
 
-async function fetchLinkedPlantsForTerms(terms) {
-  const codes = (terms || []).map((t) => t.glossary_code).filter(Boolean);
-  if (codes.length === 0) return [];
-  const results = await Promise.allSettled(
-    codes.map((code) => api(`/api/glossary/terms/${encodeURIComponent(code)}`)),
-  );
-  const byId = new Map();
-  for (const res of results) {
-    if (res.status !== 'fulfilled') continue;
-    for (const plant of res.value?.linkedPlants || []) {
-      if (plant?.id != null) byId.set(Number(plant.id), plant);
-    }
-  }
-  return [...byId.values()];
+/** Filtre de notion d'une requête : la notion choisie, sinon le niveau du programme. */
+function notionQueryParams(notionId, notionNiveau, curriculumNiveaux) {
+  if (notionId) return { notionId };
+  return { notionNiveau: notionNiveauParam(notionNiveau, curriculumNiveaux) };
 }
 
 export function QuizView({
@@ -120,16 +108,6 @@ export function QuizView({
   const [illustratedOnly, setIllustratedOnly] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  const [progress, setProgress] = useState(null);
-
-  const [drawing, setDrawing] = useState(false);
-  const [questionCode, setQuestionCode] = useState('');
-  const [presentation, setPresentation] = useState(null);
-  const [selectedChoiceId, setSelectedChoiceId] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [answerResult, setAnswerResult] = useState(null);
-  const [remediationPlants, setRemediationPlants] = useState([]);
-  const [error, setError] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
   /** Invalide une réponse de catégories périmée (changement de thème/niveau pendant le fetch). */
   const loadCategoriesSeqRef = useRef(0);
@@ -138,14 +116,11 @@ export function QuizView({
     const seq = ++loadCategoriesSeqRef.current;
     setLoadingCategories(true);
     try {
-      const params = new URLSearchParams();
-      if (theme) params.set('theme', theme);
-      if (niveau) params.set('niveau', niveau);
-      const niveauParam = notionNiveauParam(notionNiveau, curriculumNiveaux);
-      if (notionId) params.set('notionId', notionId);
-      else if (niveauParam) params.set('notionNiveau', niveauParam);
-      const qs = params.toString();
-      const data = await api(`/api/quiz/categories${qs ? `?${qs}` : ''}`);
+      const data = await fetchQuizCategories({
+        theme,
+        niveau,
+        ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+      });
       if (seq !== loadCategoriesSeqRef.current) return;
       setCategories(Array.isArray(data?.categories) ? data.categories : []);
     } catch (_) {
@@ -163,43 +138,25 @@ export function QuizView({
     };
   }, [loadCategories]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await api('/api/quiz/me/progress');
-        if (!cancelled) setProgress(data);
-      } catch (_) {
-        if (!cancelled) setProgress(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [answerResult]);
-
-  useEffect(() => {
-    if (!initialQuestionCode) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const code = String(initialQuestionCode).trim().toUpperCase();
-        if (!code) return;
-        setQuestionCode(code);
-        const present = await api(`/api/quiz/questions/${encodeURIComponent(code)}/present`);
-        if (!cancelled) {
-          setPresentation(present);
-          setAnswerResult(null);
-          setSelectedChoiceId(null);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message || 'Question introuvable');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [initialQuestionCode]);
+  // Cycle de vie de la question (tirage, présentation, réponse, remédiation, progression).
+  const {
+    progress,
+    drawing,
+    questionCode,
+    presentation,
+    selectedChoiceId,
+    setSelectedChoiceId,
+    submitting,
+    answerResult,
+    remediationTerms,
+    remediationPlants,
+    error,
+    showAnswer,
+    showChoices,
+    drawQuestion: drawWithParams,
+    submitAnswer,
+    resetQuestion,
+  } = useQuizSession({ initialQuestionCode });
 
   useEffect(() => {
     if (initialNotionNiveau == null) return;
@@ -254,19 +211,6 @@ export function QuizView({
     [categories],
   );
 
-  const showAnswer = shouldShowPedagoQcmAnswerPhase(answerResult);
-  const showChoices = !drawing && !showAnswer && presentation;
-
-  const remediationTerms = useMemo(() => {
-    const fromAnswer = answerResult?.glossaryTerms || [];
-    const fromPresentation = presentation?.glossaryTerms || [];
-    const byCode = new Map();
-    for (const term of [...fromPresentation, ...fromAnswer]) {
-      if (term?.glossary_code) byCode.set(term.glossary_code, term);
-    }
-    return [...byCode.values()];
-  }, [answerResult, presentation]);
-
   // Auto-liens : index partagé, complété par les termes déjà liés à la question
   // (comme `QcmPreviewModal` côté GL) — ces termes-là ne sont pas forcément
   // « actifs » dans l'index général.
@@ -283,73 +227,14 @@ export function QuizView({
     [autolinkItems, onOpenGlossaryTerm, showAnswer],
   );
 
-  useEffect(() => {
-    if (!showAnswer) return;
-    let cancelled = false;
-    (async () => {
-      const plants = await fetchLinkedPlantsForTerms(remediationTerms);
-      if (!cancelled) setRemediationPlants(plants);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [showAnswer, remediationTerms]);
-
-  async function drawQuestion() {
-    setDrawing(true);
-    setError('');
-    setPresentation(null);
-    setAnswerResult(null);
-    setSelectedChoiceId(null);
-    setQuestionCode('');
-    setRemediationPlants([]);
-    try {
-      const params = new URLSearchParams();
-      if (categorieSlug) params.set('categorieSlug', categorieSlug);
-      if (niveau) params.set('niveau', niveau);
-      if (difficulte) params.set('difficulte', difficulte);
-      if (illustratedOnly) params.set('illustrated', '1');
-      const niveauParam = notionNiveauParam(notionNiveau, curriculumNiveaux);
-      if (notionId) params.set('notionId', notionId);
-      else if (niveauParam) params.set('notionNiveau', niveauParam);
-      const draw = await api(`/api/quiz/draw?${params.toString()}`);
-      const code = draw?.question_code;
-      if (!code) throw new Error('Aucune question disponible');
-      setQuestionCode(code);
-      const present = await api(`/api/quiz/questions/${encodeURIComponent(code)}/present`);
-      setPresentation(present);
-    } catch (err) {
-      setError(err.message || 'Tirage impossible');
-    } finally {
-      setDrawing(false);
-    }
-  }
-
-  async function submitAnswer() {
-    if (!questionCode || !presentation?.presentationToken || selectedChoiceId == null) return;
-    setSubmitting(true);
-    setError('');
-    try {
-      const data = await api(
-        `/api/quiz/questions/${encodeURIComponent(questionCode)}/answer`,
-        'POST',
-        { presentationToken: presentation.presentationToken, choiceId: selectedChoiceId },
-      );
-      setAnswerResult(data);
-    } catch (err) {
-      setError(err.message || 'Envoi impossible');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function resetQuestion() {
-    setPresentation(null);
-    setAnswerResult(null);
-    setSelectedChoiceId(null);
-    setQuestionCode('');
-    setRemediationPlants([]);
-    setError('');
+  function drawQuestion() {
+    return drawWithParams({
+      categorieSlug,
+      niveau,
+      difficulte,
+      illustrated: illustratedOnly ? '1' : '',
+      ...notionQueryParams(notionId, notionNiveau, curriculumNiveaux),
+    });
   }
 
   const renderQuizBody = (surface) => (
