@@ -71,7 +71,7 @@ test('B7 / P4 — les agrégats partagés passent par un cache mémoire', () => 
 
 test('P7 — les listes d’observations sont bornées', () => {
   // L'ancien carnet (`GET /api/observations/student/:id`, borné à 500) est retiré : ses routes
-  // répondent 410 sans lire `observation_logs` (temps 1, migration 306). La borne passe aux
+  // répondent 410 sans lire `observation_logs` (temps 1, migration 307). La borne passe aux
   // listes des observations d'espèces (auteur et file d'examen), au dépôt comme au service.
   assert.ok(
     !/observation_logs/.test(

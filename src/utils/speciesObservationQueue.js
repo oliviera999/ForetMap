@@ -1,5 +1,5 @@
 /**
- * Observations d'espèces signalées sans réseau (migration 306 ; piste D de l'audit du
+ * Observations d'espèces signalées sans réseau (migration 307 ; piste D de l'audit du
  * 25/09/2026, § 1.4.6 et § 2.4), sur le modèle de `journalDraftQueue.js` et de
  * `plantObservationQueue.js` : file dans le stockage local, **propre à chaque compte**, rejouée
  * au retour du réseau. Chaque observation porte sa clé `client_uuid` : renvoyée, elle n'est

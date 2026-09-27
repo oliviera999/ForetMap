@@ -2,7 +2,7 @@
 
 /**
  * Photos de l'ancien carnet (`observation_logs`) après le retrait des routes
- * `/api/observations` (temps 1 et 2, migration 306).
+ * `/api/observations` (temps 1 et 2, migration 307).
  *
  * Ce qui doit rester vrai jusqu'au `DROP` (temps 3) :
  * - la famille `uploads/observations/` reste privée (audit B2 : le nom de fichier

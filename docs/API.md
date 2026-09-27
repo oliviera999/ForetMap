@@ -1054,7 +1054,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `audit.security.read`          | Lecture journal de sécurité     | Consulter IP et User-Agent des événements de sécurité (profil **admin** uniquement)                             |
 | `observations.read.all`        | Lecture observations globales   | Consulter toutes les observations                                                                               |
 | `observations.read.group`      | Lecture observations par groupe | Consulter les observations du périmètre de groupe                                                               |
-| `observations.validate`        | Validation des observations d’espèces | Valider ou refuser les observations d’espèces des élèves (confirme la présence sur le site, migration 306) |
+| `observations.validate`        | Validation des observations d’espèces | Valider ou refuser les observations d’espèces des élèves (confirme la présence sur le site, migration 307) |
 | `forum.group.moderate`         | Modération forum par groupe     | Modérer les fils/messages dans les groupes accessibles                                                          |
 
 ### Profils système (droits par défaut)
@@ -2239,7 +2239,7 @@ sans réseau part au retour du réseau, en un seul appel portant son titre, son 
 ### Ancien carnet (`/api/observations`) — retiré, **410 Gone**
 
 L’ancien carnet d’observations (`observation_logs`) est retiré en trois temps (audit du
-25/09/2026, § 3.5). **Temps 1 et 2 (migration 306)** : plus aucune route ne lit ni n’écrit la
+25/09/2026, § 3.5). **Temps 1 et 2 (migration 307)** : plus aucune route ne lit ni n’écrit la
 table ; toute requête sous `/api/observations` — `GET /api/observations/student/:studentId`,
 `GET /api/observations/all`, `POST /api/observations`, `GET /api/observations/:id/image`,
 `DELETE /api/observations/:id` — répond **410** `{ error, code: "OBSERVATIONS_LEGACY_GONE" }`.
@@ -2249,7 +2249,7 @@ comprises, servies par `GET /api/user-journal/assets/:assetId/file`). Les tables
 
 ### Observations d’espèces (`/api/species-observations`)
 
-Migration **306**. Une observation est **soumise** par son auteur (compte connecté, hors profil
+Migration **307**. Une observation est **soumise** par son auteur (compte connecté, hors profil
 « Visiteur »), puis **validée** ou **refusée** par un enseignant portant
 `observations.validate` (admin et n3boss par défaut). La décision est **définitive** : redire la
 même décision répond `already_decided: true` sans rien écrire, la contredire répond **409**

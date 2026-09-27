@@ -2,7 +2,7 @@
 
 /**
  * Règle permanente du projet : aucun texte affiché n'invite à cueillir, goûter ou manipuler un
- * être vivant. Les observations d'espèces (migration 306) se font en regardant, en écoutant et
+ * être vivant. Les observations d'espèces (migration 307) se font en regardant, en écoutant et
  * en photographiant, sans toucher ni prélever : leurs libellés passent par le même détecteur que
  * le corpus des visiteurs (`lib/visitorTextGuard.js`).
  */

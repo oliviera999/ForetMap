@@ -579,9 +579,9 @@ app.use('/api/plan', planRouter);
 app.use('/api/staff-plan', staffPlanRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
-// Ancien carnet (`observation_logs`) : 410 Gone depuis la migration 306 (retrait, temps 1 et 2).
+// Ancien carnet (`observation_logs`) : 410 Gone depuis la migration 307 (retrait, temps 1 et 2).
 app.use('/api/observations', observationsRouter);
-// Observations d'espèces validées par un enseignant (migration 306).
+// Observations d'espèces validées par un enseignant (migration 307).
 app.use('/api/species-observations', speciesObservationsRouter);
 app.use('/api/user-journal', userJournalRouter);
 app.use('/api/audit', auditRouter);

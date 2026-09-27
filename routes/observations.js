@@ -10,10 +10,10 @@
  *   - T2, cesser d'écrire : `POST /api/observations` et `DELETE /api/observations/:id` n'ont
  *     plus d'appelant. La suppression effaçait en outre le fichier photo, que l'article de
  *     carnet recopié référence encore (`user_journal_article_assets`) ;
- *   - T3 (`DROP TABLE`) : pas ici — il attend ses contrôles de passage (rapport du lot 306).
+ *   - T3 (`DROP TABLE`) : pas ici — il attend ses contrôles de passage (rapport du lot 307).
  *
  * Les observations d'espèces validées par un enseignant vivent désormais sous
- * `/api/species-observations` (`routes/species-observations.js`, migration 306). Ce routeur
+ * `/api/species-observations` (`routes/species-observations.js`, migration 307). Ce routeur
  * répond 410 Gone à toute requête, comme les anciennes routes d'élévation par PIN : un client
  * resté en cache apprend explicitement la disparition au lieu d'un 404 ambigu.
  *

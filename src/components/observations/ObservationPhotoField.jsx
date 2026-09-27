@@ -6,7 +6,7 @@ import { IconCamera, IconClose, IconFolder } from '../../shared/icons.jsx';
 
 /**
  * Champ photo (présentation) du formulaire « Signaler une observation » (observations
- * d'espèces, migration 306) — repris de l'ancien carnet `ObservationNotebook` (O6), retiré.
+ * d'espèces, migration 307) — repris de l'ancien carnet `ObservationNotebook` (O6), retiré.
  * Sans aperçu : propose deux boutons (galerie /
  * appareil photo) reliés à des inputs `type=file` cachés ; avec aperçu : affiche
  * l'image et un bouton de suppression. Le garde du sélecteur de fichier natif est

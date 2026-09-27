@@ -335,7 +335,7 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // repli `bumpAll` : tous les domaines invalidés, le catalogue complet rechargé chez toute la
 // classe — le symptôme B6, sur les tables voisines.
 //
-// Les trois tables des observations d'espèces (migration 306) ne sont lues que par
+// Les trois tables des observations d'espèces (migration 307) ne sont lues que par
 // `/api/species-observations` (listes de l'élève et de l'enseignant), hors cycle : une
 // observation soumise par un élève ne doit pas faire recharger le catalogue de toute la classe.
 const SYNC_IGNORED_TABLES_RE =

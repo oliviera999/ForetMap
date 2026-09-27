@@ -1,5 +1,5 @@
 /**
- * Libellés et textes des observations d'espèces (migration 306).
+ * Libellés et textes des observations d'espèces (migration 307).
  *
  * Réunis ici pour deux raisons : une seule orthographe des statuts et des modes de détection
  * dans tous les écrans, et un contrôle automatique de la règle permanente du projet — **aucun

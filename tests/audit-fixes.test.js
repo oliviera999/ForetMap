@@ -118,7 +118,7 @@ test('POST /api/zones : points non tableau (chaîne) → 400 ; polygone valide �
 });
 
 test('POST /api/species-observations : zone_id inconnu → 400 « Zone introuvable » (pas 500)', async () => {
-  // L'ancien `POST /api/observations` est retiré (410, migration 306) ; la garde « vérifier la
+  // L'ancien `POST /api/observations` est retiré (410, migration 307) ; la garde « vérifier la
   // zone AVANT l'INSERT » est reprise par le signalement d'espèce.
   const reg = await request(app)
     .post('/api/auth/register')

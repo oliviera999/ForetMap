@@ -1,7 +1,7 @@
 import { api } from './api';
 
 /**
- * Client API des observations d'espèces (migration 306, `routes/species-observations.js`).
+ * Client API des observations d'espèces (migration 307, `routes/species-observations.js`).
  *
  * Une observation est **soumise** par son auteur, puis **validée** ou **refusée** par un
  * enseignant (`observations.validate`). La validation confirme la présence de l'espèce sur la

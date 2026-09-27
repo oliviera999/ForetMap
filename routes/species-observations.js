@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Observations d'espèces validées par un enseignant (migration 306, audit du 25/09/2026 § 3.2.4).
+ * Observations d'espèces validées par un enseignant (migration 307, audit du 25/09/2026 § 3.2.4).
  *
  * HTTP seulement : validation de forme (zod), droits et périmètres, puis
  * `lib/terrain/observationService.js`, qui tient les règles métier et les invariants.

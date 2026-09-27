@@ -721,7 +721,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- observation_logs (ancien carnet d'observation élève, hors tâches). Retrait en trois temps
--- (audit du 25/09/2026, § 3.5) : temps 1 et 2 menés avec la migration 306 — plus de route
+-- (audit du 25/09/2026, § 3.5) : temps 1 et 2 menés avec la migration 307 — plus de route
 -- `/api/observations` ni d'écran ; seuls restent la reprise vers le carnet
 -- (`lib/fmUserJournal.js`) et la remise à NULL du groupe à la suppression d'une classe
 -- (`routes/groups.js`). Le `DROP` (temps 3) attend ses contrôles de passage.
@@ -791,11 +791,11 @@ CREATE TABLE IF NOT EXISTS user_journal_observation_map (
   CONSTRAINT fk_ujom_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Observations d'espèces soumises puis validées par un enseignant (migration 306). La
+-- Observations d'espèces soumises puis validées par un enseignant (migration 307). La
 -- validation confirme la présence sur la carte (`lib/terrain/observationService.js`).
 -- `observation_logs` (plus haut) est l'ancien carnet, retiré en deux temps : plus lu ni écrit
 -- par l'application, tables conservées. La table `interaction_evidence` ne vit que dans la
--- migration 306, comme `species_interactions` qu'elle référence.
+-- migration 307, comme `species_interactions` qu'elle référence.
 CREATE TABLE IF NOT EXISTS species_observations (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   observer_user_id VARCHAR(64) NOT NULL COMMENT 'users.id de l''observateur',
@@ -831,7 +831,7 @@ CREATE TABLE IF NOT EXISTS species_observations (
   CONSTRAINT fk_species_obs_journal FOREIGN KEY (journal_article_id) REFERENCES user_journal_articles (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Photos d'observation (migration 306) : fichier sous `uploads/observations/species/…` (famille
+-- Photos d'observation (migration 307) : fichier sous `uploads/observations/species/…` (famille
 -- privée) et ligne, supprimés ensemble par le service ; EXIF retiré à l'écriture.
 CREATE TABLE IF NOT EXISTS species_observation_photos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

@@ -623,7 +623,7 @@ test('GET /api/audit sans token renvoie 401', async () => {
 });
 
 // ─── Observations ────────────────────────────────────────────────────────────
-// L'ancien carnet (`observation_logs`) est retiré (temps 1 et 2, migration 306) : les routes
+// L'ancien carnet (`observation_logs`) est retiré (temps 1 et 2, migration 307) : les routes
 // répondent 410 Gone. Les observations d'espèces sont couvertes par
 // `tests/species-observations.test.js`.
 test('POST /api/observations : ancien carnet retiré (410)', async () => {

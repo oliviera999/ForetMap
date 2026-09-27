@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Observations d'espèces validées par un enseignant (migration 306, audit du 25/09/2026
+ * Observations d'espèces validées par un enseignant (migration 307, audit du 25/09/2026
  * § 3.2.4) — invariants du service et contrat HTTP.
  *
  * Ce que chaque groupe de cas garantit :
