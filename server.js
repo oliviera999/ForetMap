@@ -27,7 +27,7 @@ const { purgeOldNotifications } = require('./lib/notifications');
 const { runTaskDeadlineRemindersJob } = require('./lib/taskDeadlineReminders');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
-const { recordBoot, recordStop, recordCrash } = require('./lib/bootJournal');
+const { recordBoot, recordStop, recordCrash, resolveStopReason } = require('./lib/bootJournal');
 const { createDatabaseInitRetry } = require('./lib/databaseInitRetry');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
@@ -730,8 +730,9 @@ function gracefulShutdown(reason) {
   shutdownInProgress = true;
   const signal = typeof reason === 'string' ? reason : 'shutdown';
   // Trace persistante AVANT toute fermeture : c'est elle qui distingue plus tard un
-  // redémarrage de déploiement d'un arrêt subi (voir lib/bootJournal.js).
-  recordStop(signal);
+  // redémarrage de déploiement d'un arrêt subi (voir lib/bootJournal.js). Un signal qui suit
+  // un `touch tmp/restart.txt` du cron est journalisé `restart-file`.
+  recordStop(resolveStopReason(signal));
   logger.info({ signal, msg: 'graceful_shutdown_start' }, 'Arrêt gracieux');
 
   const forceTimer = setTimeout(() => {

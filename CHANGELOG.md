@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — déploiement : redémarrage par `tmp/restart.txt` quand le secret manque
+
+- **Le cron ne renonce plus à déployer sans `DEPLOY_SECRET`.** Avant, il sortait avant le
+  `git pull` dès qu'un redémarrage était prévu : sans secret (fichier d'environnement absent),
+  plus aucune mise à jour ne passait par lui. Sans secret, ou si l'application le **refuse**
+  (401/403 : valeur différente), il redémarre désormais par **`tmp/restart.txt`**, le mécanisme
+  de Passenger, puis déclenche une requête pour que le redémarrage s'applique aussitôt. Un secret
+  refusé déclenche une alerte. Réponse passerelle ou coupure pendant l'arrêt : pas de second
+  redémarrage.
+- Un seul chemin de redémarrage (`restart_app`) pour le déploiement, le rollback et la
+  réparation du front.
+- **Journal de démarrages** : un arrêt qui suit un `touch tmp/restart.txt` est noté
+  `restart-file` et compté comme redémarrage de déploiement, pas comme arrêt de l'hébergeur (qui
+  conduisait au conseil « keepalive »).
+- **Fichier d'environnement absent** (`DEPLOY_ENV_FILE`) : signalé dans le journal du cron et par
+  une alerte quotidienne, au lieu d'être ignoré sans un mot.
+- Test qui exécute réellement le cron dans un bac à sable (sans secret, secret refusé, secret
+  accepté, front servi) ; doc : `docs/EXPLOITATION.md`, `docs/CRONTAB.md`,
+  `docs/DEPLOY_DIST_ARTIFACT.md` § 5 (un seul cron de déploiement, jamais de `git pull` à part).
+
 ### Corrigé — déploiement : le cron ne s'arrête plus sur un droit d'exécution, un site sans build se rétablit seul
 
 Incident du 27/09/2026 : le site a affiché la page d'aide au déploiement au lieu de l'application.
