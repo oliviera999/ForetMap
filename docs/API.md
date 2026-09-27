@@ -1548,6 +1548,11 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 
 ## Biodiversité (`/api/plants`)
 
+Organisation du code (étape B3, audit du 25/09/2026) : `routes/plants.js` ne fait que le HTTP ;
+la logique vit dans `lib/biodiv/speciesService.js` (validation, revue des dangers, pré-saisie,
+import en transaction) et le SQL dans `lib/biodiv/speciesRepository.js`. Il n'existe **pas** de
+`GET /api/plants/:id` (`404 { "error": "Route introuvable" }`) : la fiche est lue dans la liste.
+
 | Méthode | URL                                                                        | n3boss          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------- | -------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/plants`                                                              | non             | Liste des entrées biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -1557,8 +1562,8 @@ Pour une mascotte spritesheet (ex. OLU), vérifier aussi l’asset statique serv
 | GET     | `/api/plants/me/discovered-ids`                                            | JWT obligatoire | `{ "plant_ids": number[] }` — identifiants des fiches catalogue pour lesquelles l’utilisateur a au moins une **observation** enregistrée (engagement explicite)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | GET     | `/api/plants/me/observation-counts`                                        | JWT obligatoire | Query **`plant_ids`** : liste d’IDs séparés par des virgules (ou espaces), entiers positifs, **max 200 par requête** (troncature silencieuse au-delà). Le client catalogue découpe en **lots de 200** et fusionne. Réponse `{ "counts": { "<id>": { "my_observation_count": number, "site_observation_count": number }, ... } }` — totaux pour l’utilisateur connecté et pour **tous** les utilisateurs sur chaque fiche demandée ; fiches sans ligne renvoient `0` / `0`. Le volet **site** (identique pour tous les appelants) est servi par un **cache mémoire de 15 s** ; le volet personnel est toujours relu                                  |
 | PUT     | `/api/plants/:id/map-species/:mapId`                                       | oui             | Met à jour `site_notes` (observations propres à la carte) pour le couple plante×carte ; crée la ligne `map_species` si absente. Corps : `{ "site_notes": "…" }` (`null`/vide efface).                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| POST    | `/api/plants`                                                              | oui             | Créer une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| PUT     | `/api/plants/:id`                                                          | oui             | Modifier une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| POST    | `/api/plants`                                                              | oui             | Créer une entrée biodiversité (champs, `photos`, `secondary_names`, `lookalikes`, `remarks` : voir « Photos, noms, sosies et remarques » plus bas). `201` : la fiche complète                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| PUT     | `/api/plants/:id`                                                          | oui             | Modifier une entrée biodiversité (les champs absents gardent leur valeur ; mêmes structures que la création). `200` : la fiche complète, plus `secondary_name_conflicts` si un autre nom a été écarté                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | DELETE  | `/api/plants/:id`                                                          | oui             | Supprimer une entrée biodiversité                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). **`client_uuid`** facultatif (8 à 64 caractères `[A-Za-z0-9-]`, migration 296) : clé d'idempotence propre à l'utilisateur — un renvoi de la même clé ne crée pas de ligne et rejoue la réponse avec `"replayed": true` (file hors ligne du client, réponse perdue). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count", "replayed"? }` ; `400` si la clé est mal formée ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/:id/validate-hazard`                                          | `plants.hazards.validate` | Confirme la relecture des dangers et du risque sanitaire : `hazard_reviewed = 1`, `hazard_reviewed_by` = compte appelant, `hazard_reviewed_at` = maintenant. Corps optionnel `{ "reviewed": false }` pour **retirer** la validation (les trois colonnes retombent à `0` / `null`). Réponse : la fiche complète ; `400` identifiant invalide, `404` fiche inconnue                                                                                                                                                                                                                                                       |
@@ -1676,10 +1681,77 @@ mêmes noms que sur `quiz_questions` :
 | `photo_credit`  | `VARCHAR(255)` | Auteur de la photo principale                 |
 | `photo_licence` | `VARCHAR(64)`  | Licence (ex. `CC BY-SA 4.0`, `Public domain`) |
 
-Ils ne concernent que la colonne `photo`. Pour les cinq autres colonnes photo, l’affichage
-reconstruit le lien vers la page du fichier Wikimedia Commons à partir de l’URL, ce que les
-licences CC acceptent comme attribution. Alias d’import : `credit_photo` / `auteur_photo` →
+Ils ne concernent que la première photo de `photo`. Depuis la migration `303`, **chaque photo
+porte sa propre attribution** (`photos[].credit` / `photos[].licence`, voir « Photos, noms,
+sosies et remarques » plus bas) : ces deux champs en sont le miroir pour la photo principale.
+Pour une photo sans attribution stockée, l’affichage reconstruit le lien vers la page du fichier
+Wikimedia Commons à partir de l’URL, ce que les licences CC acceptent comme attribution. Alias d’import : `credit_photo` / `auteur_photo` →
 `photo_credit` ; `licence_photo` / `photo_license` → `photo_licence`.
+
+### Photos, noms, sosies et remarques (piste C, migrations `303` à `305`)
+
+Audit du 25/09/2026, § 1.3.6, § 2.3 et § 3.5. Chaque tranche suit le plan en trois temps : ce lot
+livre le **temps 1** (la fiche lit la nouvelle structure, avec repli sur l'ancienne) et le
+**temps 2** (les écritures alimentent la nouvelle structure, source de vérité, et **tiennent
+encore les anciennes colonnes en miroir** pour qu'un retour arrière du code retrouve des colonnes
+à jour). Le retrait des colonnes (temps 3) viendra dans une PR ultérieure. Code :
+`lib/biodiv/plantPhotos.js`, `plantNames.js`, `plantLookalikes.js`, `plantRemarks.js`,
+`speciesRelations.js`, `speciesReadModel.js`.
+
+**Repli de lecture.** Une fiche est lue depuis ses anciennes colonnes quand la nouvelle structure
+est vide pour elle, ou quand les colonnes ne correspondent plus au miroir de la nouvelle
+structure (écriture par une version antérieure du code, une migration de contenu ou un script).
+Les champs `*_origin` (`table` | `colonnes`) disent laquelle a été lue.
+
+Champs ajoutés à chaque fiche de `GET /api/plants` (et aux réponses de `POST`, `PUT`,
+`validate-hazard`) :
+
+| Champ               | Contenu                                                                                                                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `photos`            | `[{ id, kind, url, credit, licence, source, source_url, sort_order }]` — une entrée par photo (`plant_photos`, migration 303) ; `kind` = `photo` \| `photo_species` \| `photo_leaf` \| `photo_flower` \| `photo_fruit` \| `photo_harvest_part` |
+| `photos_origin`     | `table` \| `colonnes`                                                                                                                                                                         |
+| `secondary_names`   | autres noms affichés sur la fiche (`plant_name_aliases.kind = 'nom_secondaire'`, migration 304), dans l'ordre éditorial                                                                      |
+| `name_aliases`      | `[{ alias, kind }]` — tous les noms reconnus (`nom_secondaire`, `variante`, `synonyme`), lus par la recherche du catalogue                                                                   |
+| `names_origin`      | `table` \| `colonnes`                                                                                                                                                                         |
+| `remarks`           | remarques en un seul texte (`plants.remarks`, migration 305), une ligne vide entre deux remarques                                                                                            |
+| `remarks_origin`    | `table` \| `colonnes`                                                                                                                                                                         |
+| `lookalikes`        | `[{ plant_id, name, emoji, note }]` — sosies de la fiche (`plant_lookalikes`, migration 305), vus depuis elle                                                                                |
+
+Les champs historiques restent présents et **dérivés** de la nouvelle structure : `photo` …
+`photo_harvest_part` (liens séparés par des retours à la ligne), `photo_credit` / `photo_licence`
+(attribution de la première photo de `photo`), `second_name` (autres noms séparés par « , »).
+`remark_1..3` restent les colonnes brutes (miroir).
+
+Écriture (`POST`, `PUT`) :
+
+- **`photos`** (liste) : remplace toutes les photos de la fiche. Par entrée : `kind`, `url`
+  (image HTTPS directe ou `/uploads/…`, **sans virgule ni retour à la ligne** tant que le miroir
+  existe — encoder la virgule en `%2C`), `credit` (≤ 255), `licence` (≤ 64, `license` accepté),
+  `source` (identifiant court : `wikimedia_commons`, `inaturalist`, `televersement`… ; déduit du
+  lien si absent), `source_url` (page source HTTPS, ≤ 1024). 60 photos au plus ; doublon
+  emplacement + lien retiré ; `400` sur un lien refusé. Une photo déjà connue (même emplacement et
+  même lien) garde sa ligne. Sans `photos`, les anciennes colonnes (`photo`…, `photo_credit`,
+  `photo_licence`) restent acceptées (client historique, import) : la table en est recalculée en
+  gardant l'attribution connue d'une même photo. Sans l'un ni l'autre, les photos ne changent pas.
+- **`secondary_names`** (texte « a, b » ou liste) : autres noms de la fiche (virgule,
+  point-virgule ou retour à la ligne ; précision finale entre parenthèses retirée ; doublons et
+  nom de la fiche retirés ; 30 au plus, 255 caractères au total tant que le miroir existe).
+  L'ancien `second_name` reste accepté (même découpage). Un nom déjà porté par une autre fiche,
+  ou égal au nom d'une autre fiche, n'entre pas dans la table (un nom désigne une seule fiche) :
+  il reste dans `second_name` (la fiche l'affiche en repli) et la réponse le signale :
+  `secondary_name_conflicts: [{ name, reason: "nom_deja_utilise" | "nom_d_une_autre_fiche", plant_id, plant_name }]`.
+- **`lookalikes`** (liste `{ plant_id, note }`) : remplace les sosies de la fiche. La paire vaut
+  dans les deux sens (une ligne par paire) ; la fiche elle-même est ignorée ; `note` ≤ 500 ;
+  20 au plus ; `400` si une fiche est introuvable. Suppression d'une fiche : ses paires partent
+  avec elle.
+- **`remarks`** (texte) : remarques. Miroir : si le texte est la concaténation exacte des trois
+  anciens champs, ceux-ci restent intacts ; sinon `remark_1` reçoit le texte entier et
+  `remark_2` / `remark_3` sont vidés. Sans `remarks`, les anciens champs restent acceptés et
+  `remarks` en est la concaténation.
+
+Import (`POST /api/plants/import`) : les colonnes historiques alimentent les nouvelles
+structures (photos, autres noms, remarques ; nouvelle colonne `remarks`, alias `remarques`).
+`replace_all` recalcule photos et autres noms de toutes les fiches importées.
 
 `POST /api/plants` et `PUT /api/plants/:id` acceptent ces mêmes champs en JSON. Les champs texte vides
 des métadonnées biodiversité sont normalisés en `null`. Le champ optionnel **`map_ids`** remplace le
@@ -1693,7 +1765,8 @@ seuls les `map_id` encore présents dans `maps` sont réécrits, dans une transa
 - `field` doit être l'un des champs photo (`photo`, `photo_species`, `photo_leaf`, `photo_flower`, `photo_fruit`, `photo_harvest_part`)
 - `imageData` doit être une Data URL image (png/jpg/webp/gif/bmp/avif)
 - `position` optionnel (`"prepend"` ou `"append"`) fusionne l'URL uploadée avec les liens déjà présents dans le champ au lieu de les remplacer (utilisé par le flux Pl@ntNet)
-- Réponse: `{ field, url, value, plant }`
+- La photo devient une ligne de `plant_photos` (emplacement `field`, provenance `televersement`, **sans** auteur ni licence — à compléter par `PUT /api/plants/:id`) ; les colonnes photo sont recalculées en miroir. Une nouvelle photo principale (`prepend` sur `photo`) n'hérite **pas** du crédit de l'ancienne : `photo_credit` / `photo_licence` retombent à `null`.
+- Réponse: `{ field, url, value, plant, photos }` (`value` : colonne miroir du champ ; `plant` : ligne brute ; `photos` : photos de la fiche après l'ajout)
 
 `POST /api/plants/import` (n3boss):
 

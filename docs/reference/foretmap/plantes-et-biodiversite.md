@@ -26,7 +26,8 @@ celles qu'ils ont **observées** sur le terrain.
 
 Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
 
-- les **noms** : nom usuel, deuxième nom, nom scientifique d’usage, et un **emoji** ;
+- les **noms** : nom usuel, **autres noms** courants, nom scientifique d’usage, et un
+  **emoji** ;
   si le **nom accepté** (référentiel GBIF) diffère, il s’affiche sous le nom d’usage, avec
   un lien vers la fiche GBIF quand une clé est connue ;
 - la **classification** : règne, grand groupe, famille, genre ; une **classification
@@ -43,14 +44,16 @@ Chaque fiche peut porter (tous les champs sont facultatifs sauf le nom) :
   partie récoltée, valeur nutritive, plante ornementale ou non ;
 - la **culture** : conseils de plantation, températures supportées, acidité du sol
   préférée, nutriments préférés ;
-- la **détermination** : critères d'identification, confusions possibles, période
-  d'observation (voir ci-dessous) ;
+- la **détermination** : critères d'identification, **sosies** (autres fiches du catalogue
+  avec lesquelles l'espèce se confond), confusions possibles, période d'observation (voir
+  ci-dessous) ;
 - le **danger** (ce que l'espèce fait à qui la touche ou la mange) et le **risque
   sanitaire** (ce qu'elle peut transmettre), en deux blocs distincts ;
-- des **remarques** libres (trois champs) et une description générale ;
+- des **remarques** libres (une seule zone de texte ; une ligne vide sépare deux
+  remarques) et une description générale ;
 - des **photos multiples**, rangées en six cases : illustration principale, espèce,
   feuille, fleur, fruit, partie récoltée — chaque case peut contenir plusieurs images
-  (téléversées ou par lien) ;
+  (téléversées ou par lien), et **chaque photo porte son auteur et sa licence** ;
 - les **sources** des informations (liens et références).
 
 La fiche affiche aussi automatiquement ses liens avec le reste de l'application : sa
@@ -217,12 +220,17 @@ la fiche restent affichés à part, en pastilles.
 ## La section « Détermination »
 
 Une description générale ne suffit pas à affirmer qu'on a bien affaire à telle espèce.
-La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse,
-avec trois champs :
+La fiche porte donc une section **Détermination**, dédiée à l'identification rigoureuse :
 
 - **Critères de détermination** — ce qu'il faut observer pour être sûr : silhouette,
   taille, couleurs, nervures, nombre de pattes, lames, odeur, traces…
-- **Confusions possibles** — les espèces ressemblantes et le critère qui tranche.
+- **Sosies** — les autres fiches du catalogue avec lesquelles l'espèce se confond, chacune
+  avec le critère qui permet de les distinguer. Sur la fiche, chaque sosie s'affiche
+  « **Ne pas confondre avec** … », et un clic sur son nom ouvre sa fiche. Un sosie vaut
+  dans les deux sens : ajouté sur la fiche de la laitue, la laitue vireuse affiche à son
+  tour « Ne pas confondre avec la laitue ».
+- **Confusions possibles** — texte libre : les espèces ressemblantes et le critère qui
+  tranche, en particulier celles qui n'ont **pas** de fiche au catalogue.
 - **Quand l'observer** — saison, moment de la journée, stade (floraison, fructification,
   mue…), c'est-à-dire la période où la détermination est réellement possible.
 
@@ -231,7 +239,7 @@ plantes : le catalogue mêle végétaux, animaux, champignons, micro-organismes 
 fiches-ressources. On parle donc de « caractères observables » et de « stade », jamais de
 feuille ni de fleur.
 
-Les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
+Les **sosies** et les **confusions possibles** s'affichent dans un **encadré d'alerte**, visuellement
 distinct du reste de la fiche. C'est voulu : la forêt est comestible et les élèves
 récoltent. Une ressemblance avec une espèce toxique ou piquante ne doit pas se lire comme
 une ligne de métadonnée parmi d'autres.
@@ -241,11 +249,18 @@ juste après la photo : devant l'être vivant, on cherche d'abord à savoir ce q
 site peut la faire afficher **dépliée d'office** pour tout le monde : Réglages → Modules
 UI → « Fiches espèces — section « Détermination » toujours dépliée ».
 
-La section n'apparaît que si le professeur a renseigné au moins un des trois champs. Elle
+La section n'apparaît que si le professeur a renseigné au moins un de ces éléments. Elle
 reste donc invisible sur les fiches non documentées, plutôt que d'ajouter un bandeau vide
-sur tout le catalogue. Ces trois champs ne sont **pas** remplis par le pré-remplissage
+sur tout le catalogue. Ces champs ne sont **pas** remplis par le pré-remplissage
 automatique : les bases naturalistes interrogées ne fournissent pas de critères de
-détermination. Ils se saisissent à la main, ou par l'import en masse.
+détermination. Ils se saisissent à la main (les sosies depuis le formulaire, section
+« Détermination » → « Sosies dans le catalogue »), ou par l'import en masse pour les textes.
+
+> ⚠️ **Point d'attention — les sosies sont à renseigner.** Au passage à cette version,
+> aucun sosie n'existe encore : une vingtaine de fiches parlent de ressemblance dans leurs
+> **remarques** (« ressemble à… », « se distingue de… »). Les transformer en sosies — et
+> déplacer les mises en garde vers l'encadré « Danger » — est un travail de relecture,
+> fiche par fiche, que l'application ne fait pas à la place d'une personne.
 
 ## L'encadré « Danger »
 
@@ -340,14 +355,25 @@ l'olivier, l'oléastre et la pariétaire (pollen allergisant). Ces fiches arrive
 
 ## Crédit et licence des photos
 
-Les photos venues de Wikimedia Commons portent désormais le **nom de leur auteur** et leur
-**licence**, affichés sous la photo principale de la fiche, avec un lien vers la page du
-fichier. Ce n'est pas une politesse : les licences en présence au catalogue — CC BY-SA 3.0,
-CC BY-SA 4.0, CC BY — imposent toutes de nommer l'auteur.
+**Chaque photo** de la fiche porte le **nom de son auteur** et sa **licence** : sous la
+photo principale, et sous chaque vignette de la galerie (« Auteur — Licence », avec un lien
+« Source » vers la page d'origine quand il est connu). Ce n'est pas une politesse : les
+licences en présence au catalogue — CC BY-SA 3.0, CC BY-SA 4.0, CC BY — imposent toutes de
+nommer l'auteur de chaque image affichée.
 
-L'attribution de **195 fiches** a été récupérée automatiquement depuis Wikimedia Commons.
-Les photos ajoutées ensuite sont à créditer à la main, dans la section « Ressources » du
-formulaire.
+L'attribution de la photo principale de **195 fiches** a été récupérée automatiquement
+depuis Wikimedia Commons ; elle vaut aussi pour les copies de cette même photo rangées dans
+une autre case (souvent « espèce »). Les autres photos se créditent à la main, dans la
+section « Photos » du formulaire : chaque photo y a sa ligne — lien, **auteur**,
+**licence**. Le pré-remplissage garde désormais l'auteur et la licence des photos qu'il
+propose. Une photo téléversée arrive **sans** auteur ni licence : le formulaire le rappelle,
+et une nouvelle photo principale n'hérite plus du crédit de l'ancienne.
+
+> ⚠️ **Point d'attention — photos encore sans attribution.** Sur la copie de travail du
+> catalogue, environ **120 photos** (sur ≈ 490) n'ont ni auteur ni licence enregistrés —
+> surtout des photos secondaires (feuille, fleur, fruit, partie récoltée). Elles restent
+> affichées, avec le lien vers leur page Wikimedia quand l'adresse le permet ; les créditer
+> dans le formulaire met l'établissement en règle.
 
 Au passage, **30 fiches pointaient une image supprimée de Wikimedia** (le merle, la figue,
 l'escargot petit-gris, la coccinelle à sept points…). Elles affichaient une image cassée ;
@@ -384,8 +410,9 @@ la confusion est désormais signalée dans les « confusions possibles » de la 
    absentes ; ou toutes les fiches). Les vignettes des espèces présentes portent la
    pastille **« Sur la carte »**. Pendant le bref chargement de la présence, ou si le
    serveur ne répond pas, le filtre ne retire rien (une note le signale en cas de panne)
-   plutôt que d'afficher un catalogue vide. Une **recherche** et un filtre par **règne**
-   complètent la surface. Des pastilles rapides permettent de
+   plutôt que d'afficher un catalogue vide. Une **recherche** (qui trouve aussi les
+   **autres noms** d'une espèce : « dent-de-lion » trouve le pissenlit) et un filtre par
+   **règne** complètent la surface. Des pastilles rapides permettent de
    ne garder que les espèces **comestibles**, **UICN menacées**, déjà **observées**
    ou **pas encore**. Un tri par nom (A→Z / Z→A) ou par observations personnelles
    complète le panneau ; les filtres avancés (grand groupe, famille, habitat, rôle,
@@ -476,21 +503,33 @@ sans rien enregistrer ; on lance l'import réel ensuite.
 Les champs de détermination s'importent comme les autres : les colonnes « Critères de
 détermination », « Confusions possibles » et « Période d'observation » sont reconnues,
 avec quelques variantes courantes (« Critères d'identification », « Espèces
-ressemblantes », « Risques de confusion », « Quand l'observer »).
+ressemblantes », « Risques de confusion », « Quand l'observer »). Les remarques
+s'importent dans une colonne « remarques » (les trois anciennes colonnes restent
+acceptées) ; le crédit et la licence de la photo principale ont leurs colonnes dans le
+modèle complet. Les sosies ne s'importent pas : ils se choisissent dans le formulaire.
 
-### Les alias de noms
+### Les autres noms et les alias de noms
 
 Une même espèce peut être désignée par plusieurs noms (« pomme de terre » /
-« patate »). L'application gère des **alias** : quand un nom alternatif est associé à
-une fiche, l'utiliser — par exemple dans la liste des êtres vivants d'une zone —
-retrouve automatiquement la bonne fiche.
+« patate »). Le formulaire a un champ **Autres noms** (séparés par des virgules) :
+ils s'affichent sur la fiche et la **recherche du catalogue** les trouve. Un nom ne peut
+désigner qu'**une** fiche : si un autre nom est déjà celui d'une autre fiche (ou son nom
+tout court), il n'est pas rattaché — il reste écrit et affiché, mais il faudra trancher
+(fiches en double ? nom à retirer ?).
+
+L'application connaît aussi des **variantes** de noms, apportées avec le contenu
+(pluriels, formes courtes, anciens noms) : quand un nom alternatif est associé à une
+fiche, l'utiliser — par exemple dans la liste des êtres vivants d'une zone — retrouve
+automatiquement la bonne fiche, et la recherche le trouve aussi.
 
 ## ⚠️ Points d'attention sur l'existant
 
-> ⚠️ **Point d'attention** — Les **alias de noms** n'ont **aucun écran de gestion**
-> dans l'application : ils ne peuvent être créés ou consultés que par une opération
-> technique menée hors application (import préparé par un administrateur). Un
-> professeur ne peut donc ni voir ni corriger les alias existants depuis l'interface.
+> ⚠️ **Point d'attention** — Les **variantes de noms** n'ont **aucun écran de gestion**
+> dans l'application : elles ne peuvent être créées ou consultées que par une opération
+> technique menée hors application (import préparé par un administrateur). Seuls les
+> **autres noms** se gèrent depuis le formulaire de la fiche. Sur la copie de travail du
+> catalogue, un seul autre nom attend une décision : « Abeille charpentière », écrit dans
+> les autres noms du Xylocope violet alors qu'une fiche porte déjà ce nom.
 
 > ⚠️ **Point d'attention** — Le pré-remplissage dépend de services externes : selon la
 > disponibilité de ces services et l'espèce demandée, certains champs peuvent revenir
