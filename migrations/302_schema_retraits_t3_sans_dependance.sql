@@ -28,7 +28,7 @@
 
 DROP VIEW IF EXISTS v_visit_coverage;
 
-SET @fm308_enum_has_both_changed = (
+SET @fm302_enum_has_both_changed = (
   SELECT COUNT(*) FROM information_schema.columns
    WHERE table_schema = DATABASE()
      AND table_name = 'sync_conflicts'
@@ -36,14 +36,14 @@ SET @fm308_enum_has_both_changed = (
      AND column_type LIKE '%''both\_changed''%'
 );
 SET @sql = IF(
-  @fm308_enum_has_both_changed > 0,
-  'SELECT COUNT(*) INTO @fm308_both_changed_rows FROM sync_conflicts WHERE kind = ''both_changed''',
-  'SET @fm308_both_changed_rows = 0'
+  @fm302_enum_has_both_changed > 0,
+  'SELECT COUNT(*) INTO @fm302_both_changed_rows FROM sync_conflicts WHERE kind = ''both_changed''',
+  'SET @fm302_both_changed_rows = 0'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql = IF(
-  @fm308_enum_has_both_changed > 0 AND @fm308_both_changed_rows = 0,
+  @fm302_enum_has_both_changed > 0 AND @fm302_both_changed_rows = 0,
   'ALTER TABLE sync_conflicts MODIFY kind ENUM(''member_added_on_mirror'',''member_removed_on_mirror'',''name_changed'') NOT NULL',
   'SELECT 1'
 );
