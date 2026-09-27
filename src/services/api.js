@@ -260,10 +260,18 @@ export function saveStoredSession(next) {
 const PUBLIC_CACHED_API_RE = /\/api\/(?:maps|visit\/content)$/;
 
 /**
+ * Paramètre que le service worker ajoute à la clé d'une réponse lue AVEC un jeton
+ * (`cacheKeyFor`, src/shared/pwa/swTemplate.js) : la copie appartient à un compte, même
+ * pour la visite ou les cartes, dont la réponse dépend du lecteur (lieux réservés).
+ */
+const SW_ACCOUNT_PARTITION_PARAM = '__fm_sw_user';
+
+/**
  * Retire du cache du service worker les réponses d'API liées à une session (tâches, fiches,
  * repères…). Sur une tablette partagée, elles restaient lisibles hors ligne par l'élève
  * suivant (audit du 25/09/2026, piste D). Les lectures publiques de la visite et les fichiers
- * statiques sont conservés. Meilleur effort : ne rejette jamais.
+ * statiques sont conservés — sauf leurs copies propres à un compte (`__fm_sw_user`, #553).
+ * Meilleur effort : ne rejette jamais.
  * @returns {Promise<number>} nombre de réponses retirées
  */
 export async function purgeCachedApiResponses() {
@@ -273,13 +281,15 @@ export async function purgeCachedApiResponses() {
     for (const name of await caches.keys()) {
       const cache = await caches.open(name);
       for (const request of await cache.keys()) {
-        let pathname = '';
+        let url;
         try {
-          pathname = new URL(request.url).pathname;
+          url = new URL(request.url);
         } catch {
           continue;
         }
-        if (!pathname.includes('/api/') || PUBLIC_CACHED_API_RE.test(pathname)) continue;
+        if (!url.pathname.includes('/api/')) continue;
+        const perAccount = url.searchParams.has(SW_ACCOUNT_PARTITION_PARAM);
+        if (PUBLIC_CACHED_API_RE.test(url.pathname) && !perAccount) continue;
         if (await cache.delete(request)) removed += 1;
       }
     }

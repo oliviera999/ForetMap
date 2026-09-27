@@ -13,7 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryAll } = require('../database');
+const { initSchema, queryAll, execute } = require('../database');
 const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 const { ensureAdminTeacherAuthToken, getAdminTeacherUserId } = require('./helpers/adminAuth');
 
@@ -125,6 +125,68 @@ test('avec rapport : deux envois simultanés de la même clé ne font qu’un ra
   assert.strictEqual([r1.body.replayed, r2.body.replayed].filter((v) => v === true).length, 1);
   assert.strictEqual((await logsOf(task.id)).length, 1);
   assert.strictEqual((await doneNotificationsFor(task.id)).length, 1);
+});
+
+test('avec rapport : un renvoi rattrape un marquage qui n’avait pas abouti', async () => {
+  const student = await registerStudent('Rattrapage');
+  const task = await assignedTask(student);
+  const uuid = `recover-${Date.now()}-a1b2c3`;
+  // Coupure après l'INSERT du rapport (déploiement, photo, erreur) : la tâche est encore ouverte.
+  await execute(
+    `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at, client_uuid)
+     VALUES (?, ?, 'Rattrapage', 'Test', 'Déjà écrit', NOW(), ?)`,
+    [task.id, student.id, uuid],
+  );
+  const [before] = await queryAll('SELECT status FROM tasks WHERE id = ?', [task.id]);
+  assert.notStrictEqual(before.status, 'done');
+
+  const again = await sendDone(student, task.id, {
+    comment: 'Déjà écrit',
+    client_uuid: uuid,
+  }).expect(200);
+  assert.strictEqual(again.body.status, 'done');
+  assert.strictEqual(again.body.replayed, true);
+  assert.strictEqual((await logsOf(task.id)).length, 1, 'pas de second rapport');
+  assert.strictEqual((await doneNotificationsFor(task.id)).length, 1);
+
+  const third = await sendDone(student, task.id, {
+    comment: 'Déjà écrit',
+    client_uuid: uuid,
+  }).expect(200);
+  assert.strictEqual(third.body.replayed, true);
+  assert.strictEqual(third.body.status, 'done');
+  assert.strictEqual((await doneNotificationsFor(task.id)).length, 1);
+});
+
+test('mode collectif : un renvoi rattrape une part dont le rapport seul avait été écrit', async () => {
+  const student = await registerStudent('Partiel');
+  const task = await assignedTask(student, {
+    required_students: 2,
+    completion_mode: 'all_assignees_done',
+  });
+  const uuid = `recover-part-${Date.now()}-d4e5f6`;
+  await execute(
+    `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at, client_uuid)
+     VALUES (?, ?, 'Partiel', 'Test', 'Ma part', NOW(), ?)`,
+    [task.id, student.id, uuid],
+  );
+  const [open] = await queryAll(
+    'SELECT done_at FROM task_assignments WHERE task_id = ? AND student_id = ?',
+    [task.id, student.id],
+  );
+  assert.strictEqual(open?.done_at ?? null, null);
+
+  const again = await sendDone(student, task.id, {
+    comment: 'Ma part',
+    client_uuid: uuid,
+  }).expect(200);
+  assert.strictEqual(again.body.replayed, true);
+  const [done] = await queryAll(
+    'SELECT done_at FROM task_assignments WHERE task_id = ? AND student_id = ?',
+    [task.id, student.id],
+  );
+  assert.ok(done?.done_at, 'la part est marquée faite au renvoi');
+  assert.strictEqual((await logsOf(task.id)).length, 1);
 });
 
 test('sans rapport : le marquage est naturellement idempotent (une notification)', async () => {
