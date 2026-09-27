@@ -75,13 +75,13 @@ de jeu pour les sixièmes) depuis les **cohortes Moodle**, sans ressaisir les é
 
 Le cœur de l'application : un ou plusieurs **plans** du jardin (avec image de fond, et
 géolocalisation optionnelle), découpés en **zones** de toutes formes. Chaque zone porte
-sa plante en cours, son stade (en pousse, prête à récolter, vide…), sa description, ses
-photos, son historique de récoltes et ses espèces associées. Des **repères** ponctuels
-(avec emoji, note, photos) complètent les zones.
+ses espèces (êtres vivants choisis dans le catalogue), ses catégories, sa description et
+ses photos. Des **repères** ponctuels (avec emoji, note, photos, espèces) complètent les
+zones.
 
 - **L'élève** consulte : il ouvre une zone ou un repère et découvre sa fiche, ses
   photos et les tâches qui s'y rattachent.
-- **Le professeur** édite tout : dessin des zones, repères, photos, historique.
+- **Le professeur** édite tout : dessin des zones, repères, espèces, photos.
 
 ### La biodiversité (le catalogue de plantes)
 
