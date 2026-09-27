@@ -5,6 +5,12 @@ import {
   showLinkedGlossaryTerms,
 } from '../../shared/qcm/quizGlossaryReveal.js';
 import { fetchQuizCategories } from '../../services/quizApi';
+import { enumOptions } from '../../shared/enums/enumCore.js';
+import {
+  QUESTION_NIVEAU_ENUM,
+  QUIZ_DIFFICULTE_ENUM,
+  QUIZ_THEME_ENUM,
+} from '../../shared/enums/pedagoEnums.js';
 import { useQuizSession } from '../../hooks/useQuizSession.js';
 import { PedagoQcmFeedbackBlock } from './PedagoQcmFeedbackBlock.jsx';
 import { GlossaryInlineText } from '../GlossaryMarkdown.jsx';
@@ -22,25 +28,16 @@ import {
 import { etapeForCurriculumNiveau, parseNotionNiveauFilter } from '../../utils/pedagoScales.js';
 import { useBiodivPedago } from '../../contexts/BiodivPedagoContext.jsx';
 
-const THEME_OPTIONS = [
-  { value: '', label: 'Tous thèmes' },
-  { value: 'sciences', label: 'Sciences du vivant' },
-  { value: 'jardinage', label: 'Jardinage' },
-];
+// Menus lus dans le référentiel partagé (audit du 25/09/2026, § 3.2.5). La difficulté va de
+// 1 à 3, comme le corpus : l'ancien menu proposait 1 à 5, et les filtres 4 et 5 ne trouvaient
+// rien.
+const THEME_OPTIONS = [{ value: '', label: 'Tous thèmes' }, ...enumOptions(QUIZ_THEME_ENUM)];
 
-const NIVEAU_OPTIONS = [
-  { value: '', label: 'Tous niveaux' },
-  { value: 'college', label: 'Collège' },
-  { value: 'lycee', label: 'Lycée' },
-];
+const NIVEAU_OPTIONS = [{ value: '', label: 'Tous niveaux' }, ...enumOptions(QUESTION_NIVEAU_ENUM)];
 
 const DIFFICULTE_OPTIONS = [
   { value: '', label: 'Toute difficulté' },
-  { value: '1', label: '★ Facile' },
-  { value: '2', label: '★★' },
-  { value: '3', label: '★★★' },
-  { value: '4', label: '★★★★' },
-  { value: '5', label: '★★★★★ Difficile' },
+  ...enumOptions(QUIZ_DIFFICULTE_ENUM).map((opt) => ({ ...opt, value: String(opt.value) })),
 ];
 
 /**

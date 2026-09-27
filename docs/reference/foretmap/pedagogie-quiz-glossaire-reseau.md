@@ -106,7 +106,8 @@ d'observation** pour l'écriture naturaliste libre.
   fiche, il est recalculé à l'enregistrement, et ce qui est écrit dans la colonne ou le champ
   « Libellé de difficulté » n'est plus pris en compte (auparavant, un libellé tapé à la main
   pouvait contredire le chiffre). Une difficulté laissée vide, ou hors de 1 à 3, n'a pas de
-  libellé.
+  libellé. Le filtre « Difficulté » du quiz élève propose les mêmes trois valeurs (il en
+  proposait cinq, dont deux ne trouvaient jamais de question).
 - **La fiche question** se remplit champ par champ, chacun nommé en clair : énoncé,
   choix A à E, bonne réponse, et une explication propre à **chaque** choix possible
   (« Explication si l'élève choisit B »), plus l'explication affichée après une bonne
