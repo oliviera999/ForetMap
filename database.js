@@ -285,7 +285,12 @@ const SYNC_DOMAIN_TABLES = {
   // (`plant_name_aliases`, lus par la liste depuis la 304 — hors domaine jusque-là, chaque
   // écriture retombait sur le repli « tout périmer ») et sosies (305). Toutes changent la
   // réponse de `GET /api/plants`.
-  plants: ['plants', 'plant_photos', 'plant_name_aliases', 'plant_lookalikes'],
+  // `map_species` y entre aussi (migration 307) : `GET /api/plants` renvoie les cartes de
+  // chaque fiche (`map_ids`), et la validation d'une observation d'espèce peut créer une ligne
+  // du registre. Hors de tout domaine, cette écriture retombait sur le repli `bumpAll`.
+  // Les tables d'observations elles-mêmes ne sont lues par aucun endpoint du cycle : elles
+  // figurent dans `SYNC_IGNORED_TABLES_RE` ci-dessous.
+  plants: ['plants', 'plant_photos', 'plant_name_aliases', 'plant_lookalikes', 'map_species'],
   markers: ['map_markers', 'marker_photos', 'visit_markers', 'maps', 'location_links'],
   tutorials: [
     'tutorials',
@@ -329,8 +334,12 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // chaque verrou, chaque accusé glossaire et chaque lien créé par un prof retombait sur le
 // repli `bumpAll` : tous les domaines invalidés, le catalogue complet rechargé chez toute la
 // classe — le symptôme B6, sur les tables voisines.
+//
+// Les trois tables des observations d'espèces (migration 306) ne sont lues que par
+// `/api/species-observations` (listes de l'élève et de l'enseignant), hors cycle : une
+// observation soumise par un élève ne doit pas faire recharger le catalogue de toute la classe.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );

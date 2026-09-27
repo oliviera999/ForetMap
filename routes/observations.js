@@ -1,265 +1,37 @@
+'use strict';
+
+/**
+ * Ancien carnet d'observations (`observation_logs`) — retiré de l'application.
+ *
+ * Plan de retrait en trois temps (audit du 25/09/2026, § 3.5, ligne `observation_logs`) :
+ *   - T1, cesser de lire : `GET /api/observations/student/:id`, `/all` et `/:id/image` ne
+ *     servaient que l'écran `ObservationNotebook`, démonté depuis que l'onglet « Carnet »
+ *     ouvre le carnet unifié (`/api/user-journal`), qui a recopié chaque observation ;
+ *   - T2, cesser d'écrire : `POST /api/observations` et `DELETE /api/observations/:id` n'ont
+ *     plus d'appelant. La suppression effaçait en outre le fichier photo, que l'article de
+ *     carnet recopié référence encore (`user_journal_article_assets`) ;
+ *   - T3 (`DROP TABLE`) : pas ici — il attend ses contrôles de passage (rapport du lot 306).
+ *
+ * Les observations d'espèces validées par un enseignant vivent désormais sous
+ * `/api/species-observations` (`routes/species-observations.js`, migration 306). Ce routeur
+ * répond 410 Gone à toute requête, comme les anciennes routes d'élévation par PIN : un client
+ * resté en cache apprend explicitement la disparition au lieu d'un 404 ambigu.
+ *
+ * Les tables `observation_logs` et `user_journal_observation_map` restent en place : la reprise
+ * vers le carnet (`lib/fmUserJournal.js`, `migrateObservationLogsOnce`) les lit encore.
+ */
+
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../database');
-const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
-const { requireAuth } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
-const { emitObservationsChanged } = require('../lib/realtime');
-const asyncHandler = require('../lib/asyncHandler');
-const { z, validate } = require('../lib/validate');
-const { canAccessStudentId, getScopedStudentIds } = require('../lib/groupScope');
-const { logAudit } = require('../lib/auditLog');
 
 const router = express.Router();
 
-// O7 — `group_id` de la liste prof (`/all`) : coercition permissive (jamais de 400 pour une
-// query invalide) reproduisant exactement `String(req.query?.group_id || '').trim()`.
-const observationsAllQuerySchema = z
-  .object({ group_id: z.unknown().optional() })
-  .transform((q) => ({ groupId: String(q.group_id || '').trim() }));
+const GONE_BODY = Object.freeze({
+  error:
+    'L’ancien carnet d’observations est retiré : les observations sont dans le carnet, les signalements d’espèces sous /api/species-observations.',
+  code: 'OBSERVATIONS_LEGACY_GONE',
+});
 
-function isTeacherRequest(req) {
-  const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
-  return perms.includes('observations.read.all') || perms.includes('observations.read.group');
-}
-
-/** Plafond de lecture du carnet d'un élève (cf. `GET /api/observations/student/:id`). */
-const STUDENT_NOTEBOOK_MAX_ROWS = 500;
-
-// Observations d'un élève
-router.get(
-  '/student/:studentId',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const askedStudentId = String(req.params.studentId || '').trim();
-    const teacherRequest = isTeacherRequest(req);
-    const auth = req.auth || null;
-    const canReadAll =
-      Array.isArray(auth?.permissions) && auth.permissions.includes('observations.read.all');
-    const canReadGroup =
-      Array.isArray(auth?.permissions) && auth.permissions.includes('observations.read.group');
-    const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
-    if (!teacherRequest && !isOwner) {
-      return res.status(403).json({ error: 'Accès refusé à ce carnet' });
-    }
-    if (!isOwner && !canReadAll && canReadGroup) {
-      const allowed = await canAccessStudentId(auth, askedStudentId);
-      if (!allowed) return res.status(403).json({ error: 'Accès refusé à ce carnet' });
-    }
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [
-      askedStudentId,
-    ]);
-    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-
-    // Borne de lecture : le carnet renvoyait TOUTES les observations d'un élève, texte libre
-    // et images comprises, sans plafond — la seule requête de la famille à ne pas en avoir
-    // (la vue prof `/all` plafonne à 100). Un carnet dépasse rarement quelques dizaines
-    // d'entrées sur une année ; 500 laisse une marge confortable tout en bornant la réponse
-    // (audit charge biodiversité 2026-09, P7). Valeur en chaîne : mysql2 encoderait un
-    // nombre JS en DOUBLE, refusé par MySQL pour LIMIT.
-    const rows = await queryAll(
-      `SELECT o.*, z.name as zone_name
-     FROM observation_logs o
-     LEFT JOIN zones z ON o.zone_id = z.id
-     WHERE o.student_id = ?
-     ORDER BY o.created_at DESC
-     LIMIT ?`,
-      [askedStudentId, String(STUDENT_NOTEBOOK_MAX_ROWS)],
-    );
-    res.json(
-      rows.map((r) => ({
-        ...r,
-        image_url: r.image_path ? `/api/observations/${r.id}/image` : null,
-      })),
-    );
-  }),
-);
-
-// Toutes les observations (prof)
-router.get(
-  '/all',
-  requireAuth,
-  validate({ query: observationsAllQuerySchema }),
-  asyncHandler(async (req, res) => {
-    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
-    const canReadAll = perms.includes('observations.read.all');
-    const canReadGroup = perms.includes('observations.read.group');
-    if (!canReadAll && !canReadGroup)
-      return res.status(403).json({ error: 'Permission insuffisante' });
-    const requestedGroupId = req.validatedQuery.groupId;
-    const scope = await getScopedStudentIds(req.auth, { groupId: requestedGroupId || null });
-    if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
-    const rows = await queryAll(
-      `SELECT o.*, z.name as zone_name, s.first_name, s.last_name
-     FROM observation_logs o
-     LEFT JOIN zones z ON o.zone_id = z.id
-     LEFT JOIN users s ON o.student_id = s.id AND s.user_type = 'student'
-     ${scope.all ? '' : scope.studentIds.length > 0 ? `WHERE o.student_id IN (${scope.studentIds.map(() => '?').join(',')})` : 'WHERE 1 = 0'}
-     ORDER BY o.created_at DESC
-     LIMIT 100`,
-      scope.all ? [] : scope.studentIds,
-    );
-    res.json(
-      rows.map((r) => ({
-        ...r,
-        image_url: r.image_path ? `/api/observations/${r.id}/image` : null,
-      })),
-    );
-  }),
-);
-
-// Créer une observation
-router.post(
-  '/',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const { studentId, zone_id, content, imageData } = req.body;
-    const auth = req.auth || null;
-    const teacherRequest = isTeacherRequest(req);
-    const resolvedStudentId = teacherRequest
-      ? String(studentId || '').trim()
-      : String(auth?.userType === 'student' ? auth.userId : '').trim();
-    if (!resolvedStudentId || !content?.trim()) {
-      return res.status(400).json({ error: 'Contenu et identifiant n3beur requis' });
-    }
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [
-      resolvedStudentId,
-    ]);
-    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    if (teacherRequest) {
-      const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-      const canReadAll = perms.includes('observations.read.all');
-      if (!canReadAll) {
-        const allowed = await canAccessStudentId(auth, resolvedStudentId);
-        if (!allowed) return res.status(403).json({ error: 'n3beur hors périmètre de groupe' });
-      }
-    }
-
-    // Vérifier la zone AVANT l'INSERT : un zone_id inconnu violerait la FK → 500
-    // au lieu d'un 400 explicite.
-    if (zone_id) {
-      const zone = await queryOne('SELECT id FROM zones WHERE id = ?', [String(zone_id)]);
-      if (!zone) return res.status(400).json({ error: 'Zone introuvable' });
-    }
-
-    const result = await execute(
-      'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-      [resolvedStudentId, zone_id || null, content.trim(), null, nowDbTimestamp()],
-    );
-    const logId = result.insertId;
-
-    if (imageData) {
-      const relativePath = `observations/${resolvedStudentId}_${logId}.jpg`;
-      try {
-        await saveBase64ToDisk(relativePath, imageData);
-        await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [
-          relativePath,
-          logId,
-        ]);
-      } catch (err) {
-        try {
-          deleteFile(relativePath);
-        } catch (_) {
-          /* ignore */
-        }
-        await execute('DELETE FROM observation_logs WHERE id = ?', [logId]);
-        throw err;
-      }
-    }
-
-    const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [logId]);
-    emitObservationsChanged({
-      reason: 'observation_created',
-      observationId: logId,
-      studentId: resolvedStudentId,
-    });
-    res.status(201).json(obs);
-  }),
-);
-
-// Image d'une observation
-router.get(
-  '/:id/image',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const obs = await queryOne('SELECT student_id, image_path FROM observation_logs WHERE id = ?', [
-      req.params.id,
-    ]);
-    if (!obs || !obs.image_path) return res.status(404).json({ error: 'Image introuvable' });
-    const teacherRequest = isTeacherRequest(req);
-    const auth = req.auth || null;
-    const canReadAll =
-      Array.isArray(auth?.permissions) && auth.permissions.includes('observations.read.all');
-    const isOwner =
-      auth?.userType === 'student' && String(auth?.userId || '') === String(obs.student_id || '');
-    if (!teacherRequest && !isOwner) {
-      return res.status(403).json({ error: 'Accès refusé à cette image' });
-    }
-    if (teacherRequest && !isOwner && !canReadAll) {
-      const allowed = await canAccessStudentId(auth, obs.student_id);
-      if (!allowed) return res.status(403).json({ error: 'Accès refusé à cette image' });
-    }
-    const absolutePath = getAbsolutePath(obs.image_path);
-    res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
-      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-    });
-  }),
-);
-
-// Supprimer une observation (prof ou élève propriétaire)
-router.delete(
-  '/:id',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const obs = await queryOne('SELECT * FROM observation_logs WHERE id = ?', [req.params.id]);
-    if (!obs) return res.status(404).json({ error: 'Observation introuvable' });
-    const teacherRequest = isTeacherRequest(req);
-    if (!teacherRequest) {
-      const auth = req.auth || null;
-      const studentId = String(auth?.userType === 'student' ? auth.userId : '').trim();
-      if (!studentId || studentId !== String(obs.student_id)) {
-        return res.status(403).json({ error: 'Suppression non autorisée' });
-      }
-      const student = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND id = ?",
-        [studentId],
-      );
-      if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    } else {
-      const auth = req.auth || null;
-      const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-      // Suppression = droit d'écriture dédié (séparation lecture/écriture) : un rôle en
-      // lecture seule (observations.read.*) ne doit pas pouvoir supprimer les carnets d'autrui.
-      const canManageAll = perms.includes('observations.manage.all');
-      const canManageGroup = perms.includes('observations.manage.group');
-      if (!canManageAll && !canManageGroup) {
-        return res.status(403).json({ error: 'Suppression non autorisée' });
-      }
-      if (!canManageAll) {
-        const allowed = await canAccessStudentId(auth, obs.student_id);
-        if (!allowed) return res.status(403).json({ error: 'Suppression non autorisée' });
-      }
-    }
-
-    if (obs.image_path) deleteFile(obs.image_path);
-    await execute('DELETE FROM observation_logs WHERE id = ?', [req.params.id]);
-    emitObservationsChanged({
-      reason: 'observation_deleted',
-      observationId: obs.id,
-      studentId: obs.student_id,
-    });
-    await logAudit(
-      'delete_observation',
-      'observation',
-      obs.id,
-      `Suppression observation ${obs.id}`,
-      {
-        req,
-        payload: { student_id: obs.student_id || null },
-      },
-    );
-    res.json({ success: true });
-  }),
-);
+router.use((req, res) => res.status(410).json(GONE_BODY));
 
 module.exports = router;
-module.exports.observationsAllQuerySchema = observationsAllQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.GONE_BODY = GONE_BODY;

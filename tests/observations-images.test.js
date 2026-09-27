@@ -1,131 +1,86 @@
 'use strict';
 
+/**
+ * Photos de l'ancien carnet (`observation_logs`) après le retrait des routes
+ * `/api/observations` (temps 1 et 2, migration 306).
+ *
+ * Ce qui doit rester vrai jusqu'au `DROP` (temps 3) :
+ * - la famille `uploads/observations/` reste privée (audit B2 : le nom de fichier
+ *   `<élève>_<observation>.jpg` est prédictible) ;
+ * - la photo d'une ancienne observation reste lisible par son auteur **via le carnet**, qui l'a
+ *   recopiée (`user_journal_article_assets` pointe sur le même fichier) ;
+ * - l'ancienne route d'image répond 410 Gone, sans lire la table.
+ */
+
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute } = require('../database');
-const { saveBase64ToDisk } = require('../lib/uploads');
-const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const { initSchema, execute, queryOne } = require('../database');
+const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 
 const SAMPLE_IMAGE_DATA =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
 
+let student;
+let obsId;
+let relativePath;
+
 test.before(async () => {
   await initSchema();
-});
-
-test('GET /api/observations/:id/image retourne le fichier image', async () => {
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Obs', lastName: `Image${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  const studentId = reg.body.id;
+  student = reg.body;
+  // Observation héritée posée AVANT toute lecture du carnet : la reprise est mémoïsée par
+  // processus (`migrateObservationLogsOnce`).
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-    [studentId, null, 'Observation image', null, new Date()],
+    [student.id, null, 'Observation image', null, new Date()],
   );
-  const obsId = created.insertId;
-  const relativePath = `observations/${studentId}_${obsId}.jpg`;
+  obsId = created.insertId;
+  relativePath = `observations/${student.id}_${obsId}.jpg`;
   await saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE observation_logs SET image_path = ? WHERE id = ?', [relativePath, obsId]);
+});
 
-  const res = await request(app)
-    .get(`/api/observations/${obsId}/image`)
-    .set('Authorization', `Bearer ${reg.body.authToken}`)
-    .expect(200);
-  assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
+test.after(() => {
+  deleteFile(relativePath);
+});
 
-  // Audit B2 : le montage statique /uploads ne doit PAS court-circuiter l'autorisation
-  // ci-dessus (le nom de fichier `<studentId>_<obsId>.jpg` est prédictible).
+test('la famille uploads/observations/ reste privée', async () => {
   const direct = await request(app).get(`/uploads/${relativePath}`).expect(403);
   assert.strictEqual(direct.body.code, 'PRIVATE_UPLOAD');
 });
 
-test('GET /api/observations/student/:id refuse un autre élève (IDOR)', async () => {
-  const owner = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Owner', lastName: `Obs${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-  const intruder = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Intruder', lastName: `Obs${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-
-  await request(app)
-    .post('/api/observations')
-    .set('Authorization', `Bearer ${owner.body.authToken}`)
-    .send({ studentId: owner.body.id, content: 'Observation privée' })
-    .expect(201);
-
-  await request(app)
-    .get(`/api/observations/student/${owner.body.id}`)
-    .set('Authorization', `Bearer ${intruder.body.authToken}`)
-    .expect(403);
-});
-
-test('DELETE /api/observations/:id refuse la suppression par un autre élève', async () => {
-  const owner = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Delete', lastName: `Owner${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-  const intruder = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Delete', lastName: `Intruder${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-
-  const obs = await request(app)
-    .post('/api/observations')
-    .set('Authorization', `Bearer ${owner.body.authToken}`)
-    .send({ studentId: owner.body.id, content: 'À ne pas supprimer' })
-    .expect(201);
-
-  await request(app)
-    .delete(`/api/observations/${obs.body.id}`)
-    .set('Authorization', `Bearer ${intruder.body.authToken}`)
-    .expect(403);
-});
-
-test('DELETE /api/observations/:id : un admin peut supprimer le carnet d’un élève (permission manage)', async () => {
-  const owner = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Manage', lastName: `Owner${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-
-  const obs = await request(app)
-    .post('/api/observations')
-    .set('Authorization', `Bearer ${owner.body.authToken}`)
-    .send({ studentId: owner.body.id, content: 'Supprimable par le staff' })
-    .expect(201);
-
-  const adminToken = await ensureAdminTeacherAuthToken();
-  await request(app)
-    .delete(`/api/observations/${obs.body.id}`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .expect(200);
-});
-
-test('GET /api/observations/:id/image retourne 404 si fichier absent', async () => {
-  const reg = await request(app)
-    .post('/api/auth/register')
-    .send({ firstName: 'Obs', lastName: `Missing${Date.now()}`, password: 'pass1234' })
-    .expect(201);
-  const studentId = reg.body.id;
-  const created = await execute(
-    'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-    [
-      studentId,
-      null,
-      'Observation missing',
-      `observations/${studentId}_${Date.now()}_missing.jpg`,
-      new Date(),
-    ],
-  );
-
+test('l’ancienne route d’image répond 410 Gone', async () => {
   const res = await request(app)
-    .get(`/api/observations/${created.insertId}/image`)
-    .set('Authorization', `Bearer ${reg.body.authToken}`)
-    .expect(404);
-  assert.ok((res.body.error || '').toLowerCase().includes('fichier'));
+    .get(`/api/observations/${obsId}/image`)
+    .set('Authorization', `Bearer ${student.authToken}`)
+    .expect(410);
+  assert.strictEqual(res.body.code, 'OBSERVATIONS_LEGACY_GONE');
+});
+
+test('la photo héritée reste lisible par son auteur via le carnet (recopie)', async () => {
+  await request(app)
+    .get('/api/user-journal/me')
+    .set('Authorization', `Bearer ${student.authToken}`)
+    .expect(200);
+  const mapped = await queryOne(
+    'SELECT article_id FROM user_journal_observation_map WHERE observation_id = ?',
+    [obsId],
+  );
+  assert.ok(mapped?.article_id, 'l’observation est recopiée dans le carnet');
+  const asset = await queryOne(
+    'SELECT id FROM user_journal_article_assets WHERE article_id = ? AND asset_path = ?',
+    [mapped.article_id, relativePath],
+  );
+  assert.ok(asset?.id, 'la pièce jointe pointe sur le même fichier');
+  const res = await request(app)
+    .get(`/api/user-journal/assets/${asset.id}/file`)
+    .set('Authorization', `Bearer ${student.authToken}`)
+    .expect(200);
+  assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
 });

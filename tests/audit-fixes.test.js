@@ -10,6 +10,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 
 let teacherToken;
 
@@ -116,21 +117,25 @@ test('POST /api/zones : points non tableau (chaîne) → 400 ; polygone valide �
   assert.strictEqual(putBad.status, 400);
 });
 
-test('POST /api/observations : zone_id inconnu → 400 « Zone introuvable » (pas 500)', async () => {
+test('POST /api/species-observations : zone_id inconnu → 400 « Zone introuvable » (pas 500)', async () => {
+  // L'ancien `POST /api/observations` est retiré (410, migration 306) ; la garde « vérifier la
+  // zone AVANT l'INSERT » est reprise par le signalement d'espèce.
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Audit', lastName: `Obs${Date.now()}`, password: 'pass1234' })
     .expect(201);
+  // Un compte auto-inscrit démarre « Visiteur », profil sans droit de signalement.
+  await setStudentPrimaryRole(reg.body.id, 'eleve_novice');
   const res = await request(app)
-    .post('/api/observations')
+    .post('/api/species-observations')
     .set('Authorization', `Bearer ${reg.body.authToken}`)
     .send({
-      studentId: reg.body.id,
-      content: 'Observation zone fantôme',
+      map_id: 'foret',
+      text: 'Observation zone fantôme',
       zone_id: 'zone-fantome-audit',
     });
   assert.strictEqual(res.status, 400);
-  assert.strictEqual(res.body.error, 'Zone introuvable');
+  assert.match(res.body.error, /Zone introuvable/);
 });
 
 test('PUT /api/task-projects/:id : changement de carte refusé si des tâches restent sur l’ancienne', async () => {

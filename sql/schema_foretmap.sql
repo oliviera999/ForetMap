@@ -720,7 +720,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
   INDEX idx_audit_action (action, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- observation_logs (carnet d'observation élève, hors tâches)
+-- observation_logs (ancien carnet d'observation élève, hors tâches). Retrait en trois temps
+-- (audit du 25/09/2026, § 3.5) : temps 1 et 2 menés avec la migration 306 — plus de route
+-- `/api/observations` ni d'écran ; seuls restent la reprise vers le carnet
+-- (`lib/fmUserJournal.js`) et la remise à NULL du groupe à la suppression d'une classe
+-- (`routes/groups.js`). Le `DROP` (temps 3) attend ses contrôles de passage.
 CREATE TABLE IF NOT EXISTS observation_logs (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   student_id VARCHAR(64) NOT NULL,
@@ -785,6 +789,59 @@ CREATE TABLE IF NOT EXISTS user_journal_observation_map (
   article_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_ujom_article FOREIGN KEY (article_id) REFERENCES user_journal_articles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Observations d'espèces soumises puis validées par un enseignant (migration 306). La
+-- validation confirme la présence sur la carte (`lib/terrain/observationService.js`).
+-- `observation_logs` (plus haut) est l'ancien carnet, retiré en deux temps : plus lu ni écrit
+-- par l'application, tables conservées. La table `interaction_evidence` ne vit que dans la
+-- migration 306, comme `species_interactions` qu'elle référence.
+CREATE TABLE IF NOT EXISTS species_observations (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  observer_user_id VARCHAR(64) NOT NULL COMMENT 'users.id de l''observateur',
+  map_id VARCHAR(32) NOT NULL,
+  zone_id VARCHAR(64) DEFAULT NULL,
+  marker_id VARCHAR(64) DEFAULT NULL,
+  plant_id INT UNSIGNED DEFAULT NULL COMMENT 'Espèce observée (facultative à la soumission, exigée à la validation)',
+  observed_at DATE NOT NULL,
+  detection_mode ENUM('vue','chant','trace','indice','nocturne') DEFAULT NULL,
+  body TEXT DEFAULT NULL COMMENT 'Texte libre de l''observateur',
+  status ENUM('soumise','validee','refusee') NOT NULL DEFAULT 'soumise',
+  decision_note VARCHAR(1000) DEFAULT NULL COMMENT 'Note de l''enseignant à la décision',
+  validated_by VARCHAR(64) DEFAULT NULL COMMENT 'users.id de l''enseignant qui a décidé',
+  decided_at DATETIME DEFAULT NULL,
+  journal_article_id INT UNSIGNED DEFAULT NULL COMMENT 'Article de carnet associé (facultatif)',
+  client_uuid VARCHAR(64) DEFAULT NULL COMMENT 'Clé d''idempotence tirée par le client (file hors ligne)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_species_obs_observer_client (observer_user_id, client_uuid),
+  INDEX idx_species_obs_map_status (map_id, status, created_at),
+  INDEX idx_species_obs_observer_created (observer_user_id, created_at),
+  INDEX idx_species_obs_plant (plant_id),
+  INDEX idx_species_obs_zone (zone_id),
+  INDEX idx_species_obs_marker (marker_id),
+  INDEX idx_species_obs_validator (validated_by),
+  INDEX idx_species_obs_journal (journal_article_id),
+  CONSTRAINT fk_species_obs_observer FOREIGN KEY (observer_user_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_species_obs_map FOREIGN KEY (map_id) REFERENCES maps (id) ON DELETE CASCADE,
+  CONSTRAINT fk_species_obs_zone FOREIGN KEY (zone_id) REFERENCES zones (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_marker FOREIGN KEY (marker_id) REFERENCES map_markers (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_validator FOREIGN KEY (validated_by) REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_species_obs_journal FOREIGN KEY (journal_article_id) REFERENCES user_journal_articles (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Photos d'observation (migration 306) : fichier sous `uploads/observations/species/…` (famille
+-- privée) et ligne, supprimés ensemble par le service ; EXIF retiré à l'écriture.
+CREATE TABLE IF NOT EXISTS species_observation_photos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  observation_id INT UNSIGNED NOT NULL,
+  file_path VARCHAR(512) NOT NULL COMMENT 'Chemin relatif sous uploads/',
+  mime_type VARCHAR(64) DEFAULT NULL,
+  byte_size INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_species_obs_photos_obs (observation_id),
+  CONSTRAINT fk_species_obs_photos_obs FOREIGN KEY (observation_id) REFERENCES species_observations (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- groups (groupes pédagogiques + sous-groupes)

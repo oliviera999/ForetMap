@@ -62,6 +62,7 @@ const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
 const observationsRouter = require('./routes/observations');
+const speciesObservationsRouter = require('./routes/species-observations');
 const userJournalRouter = require('./routes/user-journal');
 const auditRouter = require('./routes/audit');
 const rbacRouter = require('./routes/rbac');
@@ -578,7 +579,10 @@ app.use('/api/plan', planRouter);
 app.use('/api/staff-plan', staffPlanRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
+// Ancien carnet (`observation_logs`) : 410 Gone depuis la migration 306 (retrait, temps 1 et 2).
 app.use('/api/observations', observationsRouter);
+// Observations d'espèces validées par un enseignant (migration 306).
+app.use('/api/species-observations', speciesObservationsRouter);
 app.use('/api/user-journal', userJournalRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);

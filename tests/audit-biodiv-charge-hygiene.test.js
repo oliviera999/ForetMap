@@ -69,16 +69,27 @@ test('B7 / P4 — les agrégats partagés passent par un cache mémoire', () => 
   );
 });
 
-test('P7 — le carnet d’observations d’un élève est borné', () => {
-  const src = read('routes/observations.js');
+test('P7 — les listes d’observations sont bornées', () => {
+  // L'ancien carnet (`GET /api/observations/student/:id`, borné à 500) est retiré : ses routes
+  // répondent 410 sans lire `observation_logs` (temps 1, migration 306). La borne passe aux
+  // listes des observations d'espèces (auteur et file d'examen), au dépôt comme au service.
   assert.ok(
-    /FROM observation_logs o[\s\S]*?WHERE o\.student_id = \?[\s\S]*?LIMIT \?/.test(src),
-    'la lecture du carnet doit porter une borne',
+    !/observation_logs/.test(
+      read('routes/observations.js')
+        .split('\n')
+        .filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
+        .join('\n'),
+    ),
+    'les routes de l’ancien carnet ne lisent plus la table',
   );
+  const repo = read('lib/terrain/observationRepository.js');
   assert.ok(
-    /STUDENT_NOTEBOOK_MAX_ROWS = \d+/.test(src),
-    'la borne doit être une constante nommée, pas un nombre perdu dans la requête',
+    /WHERE o\.observer_user_id = \? ORDER BY [^`]*LIMIT \?/.test(repo),
+    'la liste de l’auteur doit porter une borne paramétrée',
   );
+  const svc = read('lib/terrain/observationService.js');
+  assert.ok(/OBSERVER_LIST_MAX = \d+/.test(svc), 'borne nommée pour l’auteur');
+  assert.ok(/REVIEW_LIST_MAX = \d+/.test(svc), 'borne nommée pour la file d’examen');
 });
 
 test('P8 — plus aucun LIMIT/OFFSET interpolé depuis une valeur de requête', () => {
