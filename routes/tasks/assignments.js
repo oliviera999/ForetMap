@@ -311,12 +311,12 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    // Renvoi d'un « fait » déjà enregistré (avec rapport) : on rejoue la réponse, sans
-    // nouveau rapport ni nouvelle notification. Sans rapport, le marquage est de toute façon
-    // idempotent (statut et `done_at` posés une seule fois, notification sur transition).
-    if (await findDoneLogByClientUuid(task.id, action.studentId, clientUuid)) {
-      return res.json(await replayDoneResponse(task.id));
-    }
+    // Rapport déjà écrit sous cette clé (réponse perdue, file rejouée, ou coupure entre
+    // l'INSERT du rapport et le marquage). On ne le republie pas. Le marquage, lui, est
+    // refait plus bas s'il n'a pas abouti : un renvoi ne doit pas répondre succès en
+    // laissant la tâche ouverte. Sans rapport, le marquage est de toute façon idempotent
+    // (statut et `done_at` posés une seule fois, notification sur transition).
+    let reportStored = !!(await findDoneLogByClientUuid(task.id, action.studentId, clientUuid));
 
     // Une inscription qui porte un identifiant n'est reconnue que par lui : sans cela,
     // marquer sa part « faite » pouvait cocher la ligne d'un homonyme.
@@ -331,54 +331,63 @@ router.post(
       [task.id, ...identity.params(action.studentId, action.firstName, action.lastName)],
     );
     if (!assignment) {
+      if (reportStored) return res.json(await replayDoneResponse(task.id));
       return res
         .status(400)
         .json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
     }
 
-    const tutorialsGate = await assertLinkedTutorialsRead(
-      { queryAll, queryOne, execute },
-      { taskId: task.id, userId: action.studentId },
-    );
-    if (!tutorialsGate.ok) {
-      return res.status(403).json({
-        error: 'Lis d’abord les tutoriels liés à cette tâche avant de la marquer comme faite.',
-        missing_tutorials: tutorialsGate.missing,
-      });
-    }
-
-    if (comment || imageData) {
-      let result;
-      try {
-        result = await execute(
-          'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at, client_uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            task.id,
-            action.studentId || null,
-            action.firstName,
-            action.lastName,
-            comment || '',
-            null,
-            nowDbTimestamp(),
-            clientUuid,
-          ],
-        );
-      } catch (err) {
-        // Deux envois simultanés du même « fait » : l'index unique tranche, le second rejoue.
-        if (!clientUuid || !(err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062)) throw err;
-        if (!(await findDoneLogByClientUuid(task.id, action.studentId, clientUuid))) throw err;
-        return res.json(await replayDoneResponse(task.id));
+    if (!reportStored) {
+      const tutorialsGate = await assertLinkedTutorialsRead(
+        { queryAll, queryOne, execute },
+        { taskId: task.id, userId: action.studentId },
+      );
+      if (!tutorialsGate.ok) {
+        return res.status(403).json({
+          error: 'Lis d’abord les tutoriels liés à cette tâche avant de la marquer comme faite.',
+          missing_tutorials: tutorialsGate.missing,
+        });
       }
-      const logId = result.insertId;
-      if (imageData) {
-        const relativePath = `task-logs/${task.id}_${logId}.jpg`;
+
+      if (comment || imageData) {
+        let result;
         try {
-          await saveBase64ToDisk(relativePath, imageData);
-        } catch (fileErr) {
-          await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
-          throw fileErr;
+          result = await execute(
+            'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at, client_uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              task.id,
+              action.studentId || null,
+              action.firstName,
+              action.lastName,
+              comment || '',
+              null,
+              nowDbTimestamp(),
+              clientUuid,
+            ],
+          );
+        } catch (err) {
+          // Deux envois simultanés du même « fait » : l'index unique tranche. Le second
+          // ne republie pas le rapport, mais poursuit le marquage s'il manque encore.
+          if (!clientUuid || !(err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062)) throw err;
+          if (!(await findDoneLogByClientUuid(task.id, action.studentId, clientUuid))) throw err;
+          reportStored = true;
         }
-        await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
+        if (!reportStored) {
+          const logId = result.insertId;
+          if (imageData) {
+            const relativePath = `task-logs/${task.id}_${logId}.jpg`;
+            try {
+              await saveBase64ToDisk(relativePath, imageData);
+            } catch (fileErr) {
+              await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
+              throw fileErr;
+            }
+            await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [
+              relativePath,
+              logId,
+            ]);
+          }
+        }
       }
     }
 
@@ -409,32 +418,36 @@ router.post(
       changed = Number(marked?.affectedRows) > 0;
     }
     const updated = await getTaskWithAssignments(task.id);
-    logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
-      req,
-      actorUserType: action.actorUserType,
-      actorUserId: action.actorUserId,
-      payload: {
-        student_id: action.studentId || null,
-        with_comment: !!comment,
-        with_image: !!imageData,
-        completion_mode: completionMode,
-      },
-    });
-    emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    if (changed && normalizeTaskStatusForRead(task.status) !== 'done') {
-      fireAndForget(
-        () =>
-          notifyTaskDone({
-            task: updated,
-            firstName: action.firstName,
-            lastName: action.lastName,
-            actorUserId: action.actorUserId,
-          }),
-        { taskId: task.id },
-      );
+    // Renvoi d'un marquage déjà effectif : l'état courant, sans second audit ni notification.
+    // Si le rapport existait mais que le marquage manquait encore, on notifie cette transition.
+    if (!(reportStored && !changed)) {
+      logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
+        req,
+        actorUserType: action.actorUserType,
+        actorUserId: action.actorUserId,
+        payload: {
+          student_id: action.studentId || null,
+          with_comment: !!comment,
+          with_image: !!imageData,
+          completion_mode: completionMode,
+        },
+      });
+      emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
+      if (changed && normalizeTaskStatusForRead(task.status) !== 'done') {
+        fireAndForget(
+          () =>
+            notifyTaskDone({
+              task: updated,
+              firstName: action.firstName,
+              lastName: action.lastName,
+              actorUserId: action.actorUserId,
+            }),
+          { taskId: task.id },
+        );
+      }
+      await syncTaskProjectCompletionForProjects([updated.project_id]);
     }
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
+    res.json(reportStored ? { ...updated, replayed: true } : updated);
   }),
 );
 

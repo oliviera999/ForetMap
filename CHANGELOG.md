@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — « tâche faite » : un renvoi termine le marquage si seul le rapport avait été enregistré
+
+- `POST /api/tasks/:id/done` avec `client_uuid` ne s'arrêtait plus au rapport déjà écrit :
+  si la coupure survenait après l'INSERT du commentaire (photo, redémarrage) et avant le
+  passage en fait, le renvoi répondait succès et laissait la tâche ouverte. Le renvoi pose
+  désormais le statut (ou la part, en mode collectif) sans publier un second rapport.
+
 ### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
 
 - Le niveau d'un élève est un niveau du programme (cycle 3 → terminale) ou « Université » ;
