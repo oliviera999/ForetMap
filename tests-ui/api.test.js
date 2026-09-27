@@ -341,6 +341,30 @@ describe('déconnexion : purge du cache d’API (audit du 25/09/2026, piste D)',
     }
   });
 
+  test('retire aussi les copies de la visite et des cartes propres à un compte (#553)', async () => {
+    // Le service worker range une lecture faite avec un jeton sous l'URL + `__fm_sw_user` :
+    // la visite d'un professeur (lieux réservés) ne doit pas survivre à sa déconnexion.
+    const store = new Map(
+      [
+        'https://foret.example/api/visit/content',
+        'https://foret.example/api/visit/content?__fm_sw_user=0a1b2c3d4e5f6a7b',
+        'https://foret.example/api/maps?__fm_sw_user=0a1b2c3d4e5f6a7b',
+        'https://foret.example/api/tasks?map_id=foret&__fm_sw_user=0a1b2c3d4e5f6a7b',
+      ].map((url) => [url, { url }]),
+    );
+    const cache = {
+      keys: async () => [...store.values()],
+      delete: async (req) => store.delete(req.url),
+    };
+    vi.stubGlobal('caches', { keys: async () => ['foretmap-offline-v9'], open: async () => cache });
+    try {
+      expect(await purgeCachedApiResponses()).toBe(3);
+      expect([...store.keys()]).toEqual(['https://foret.example/api/visit/content']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test('sans Cache Storage : aucune erreur', async () => {
     vi.stubGlobal('caches', undefined);
     try {

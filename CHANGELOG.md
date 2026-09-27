@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — « tâche faite » : un renvoi termine le marquage si seul le rapport avait été enregistré
+
+- `POST /api/tasks/:id/done` avec `client_uuid` ne s'arrêtait plus au rapport déjà écrit :
+  si la coupure survenait après l'INSERT du commentaire (photo, redémarrage) et avant le
+  passage en fait, le renvoi répondait succès et laissait la tâche ouverte. Le renvoi pose
+  désormais le statut (ou la part, en mode collectif) sans publier un second rapport.
+  Reprise de #556.
+
+### Corrigé — cache hors ligne : la visite d'un compte n'est plus servie à un autre
+
+- Le service worker mémorisait les lectures (zones, tâches, visite) sous l'adresse seule.
+  Sur une tablette partagée, la déconnexion gardait la visite, jugée publique, alors que
+  la réponse dépend du lecteur : les lieux réservés vus par un professeur partaient
+  immédiatement pour l'élève suivant, et un réseau lent resservait au bout de 4 secondes
+  la copie du compte précédent. Chaque jeton a désormais sa propre entrée ; les copies
+  d'avant ce correctif sont oubliées au prochain chargement.
+- Complément : à la déconnexion, la purge retire aussi ces copies propres au compte de la
+  visite et des cartes (`?__fm_sw_user=…`), qu'elle gardait en les prenant pour les lectures
+  publiques. Reprise de #553.
+
 ### Corrigé — déploiement : fichiers non suivis du serveur et `node` hors du `PATH` du cron
 
 - **Les fichiers non suivis ne bloquent plus le déploiement.** Le cron exigeait un
