@@ -184,6 +184,12 @@ Procédure de mise en production : `docs/RUNBOOK_DEPLOIEMENT_AUDIT_2026-09.md`, 
   e-mail des textes (crédits photo) retirées. Les deux scripts d'import lisent les deux formats.
 - Test `tests/service-worker-cache.test.js` : le service worker généré est reconstruit en
   mémoire au lieu d'être lu dans `dist/`.
+### Corrigé — « tâche faite » : un renvoi termine le marquage si seul le rapport avait été enregistré
+
+- `POST /api/tasks/:id/done` avec `client_uuid` ne s'arrêtait plus au rapport déjà écrit :
+  si la coupure survenait après l'INSERT du commentaire (photo, redémarrage) et avant le
+  passage en fait, le renvoi répondait succès et laissait la tâche ouverte. Le renvoi pose
+  désormais le statut (ou la part, en mode collectif) sans publier un second rapport.
 
 ### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
 
