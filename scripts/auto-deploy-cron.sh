@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # Déploiement automatique ForetMap via cron.
-# Usage recommandé:
+# Usage recommandé (toujours par `bash` : le droit d'exécution du fichier peut sauter quand un
+# `git pull` le réécrit — incident du 27/09/2026, « Permission denied » à chaque passage) :
 #   APP_DIR=/home/USER/foretmap \
 #   DEPLOY_BASE_URL=https://foretmap.olution.info \
-#   /home/USER/foretmap/scripts/auto-deploy-cron.sh
+#   bash /home/USER/foretmap/scripts/auto-deploy-cron.sh
 #
 # Variables optionnelles:
 # - APP_DIR             : chemin absolu du repo sur le serveur (défaut: racine du script)
@@ -30,6 +31,8 @@ set -euo pipefail
 #   0 pour désactiver. NB : le rollback annule le CODE, pas une migration BDD déjà
 #   appliquée (schéma forward-only) — d'où le snapshot pré-migration (scripts/db-backup.sh).
 # - DEPLOY_DB_PRE_MIGRATE_BACKUP : 1 (défaut) pour un dump BDD juste avant db:migrate.
+# - DEPLOY_STAMP_DIR : dossier des horodatages anti-répétition (alertes espacées, redémarrage
+#   « front non servi » au plus une fois par 30 min) ; défaut /tmp.
 # - OPS_ALERT_TO / SMTP_* : alerte email sur échec/rollback (voir scripts/ops-alert.js).
 #
 # Prérequis:
@@ -50,6 +53,8 @@ APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 DEPLOY_BASE_URL="${DEPLOY_BASE_URL:-https://foretmap.olution.info}"
 DEPLOY_LOCK_DIR="${DEPLOY_LOCK_DIR:-/tmp/foretmap-auto-deploy.lock}"
+# Horodatages des alertes et redémarrages espacés (alert_throttled, restart_for_frontend).
+DEPLOY_STAMP_DIR="${DEPLOY_STAMP_DIR:-/tmp}"
 DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-$APP_DIR/.env}"
 DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
 DEPLOY_QUIET_SECONDS="${DEPLOY_QUIET_SECONDS:-180}"
@@ -138,6 +143,85 @@ run_db_migrations() {
   npm run db:migrate
 }
 
+# Alerte au plus une fois par fenêtre de N minutes pour une même clé : le cron passe toutes les
+# deux minutes, une panne qui dure ne doit pas produire un email à chaque passage.
+alert_throttled() {
+  local key="$1" minutes="$2" subject="$3"
+  shift 3
+  local stamp="${DEPLOY_STAMP_DIR}/foretmap-alert-${key}.stamp"
+  if [[ -f "$stamp" ]] && [[ -n "$(find "$stamp" -mmin "-$minutes" 2>/dev/null)" ]]; then
+    return 0
+  fi
+  touch "$stamp" 2>/dev/null || true
+  alert "$subject" "$*"
+}
+
+# État du front annoncé par le serveur (`GET /api/health`, champ `frontend`) : `dist`, `missing`
+# ou `dev` ; vide si le serveur ne répond pas ou si sa version ne publie pas encore ce champ.
+frontend_mode() {
+  curl -fsS --max-time 10 "$DEPLOY_BASE_URL/api/health" 2>/dev/null |
+    sed -n 's/.*"frontend":"\([a-z]*\)".*/\1/p' || true
+}
+
+# Le serveur ne décide qu'au DÉMARRAGE s'il sert `dist/` (`serveDist`, server.js) : démarré
+# pendant que `dist/` manquait (pull sans artefact, réveil de Passenger au mauvais moment), il
+# sert la page d'aide au déploiement à la place du site, même une fois `dist/` revenu. Seul un
+# redémarrage le rétablit (incident du 27/09/2026). Anti-boucle : un redémarrage de ce type par
+# fenêtre de 30 minutes au plus.
+restart_for_frontend() {
+  local reason="$1"
+  local stamp="${DEPLOY_STAMP_DIR}/foretmap-frontend-restart.stamp"
+  if [[ -f "$stamp" ]] && [[ -n "$(find "$stamp" -mmin -30 2>/dev/null)" ]]; then
+    log "Redémarrage pour le front déjà demandé il y a moins de 30 min ($reason) : attente."
+    return 0
+  fi
+  if [[ -z "${DEPLOY_SECRET:-}" ]]; then
+    log "DEPLOY_SECRET manquant : redémarrer l'application à la main ($reason)."
+    alert_throttled frontend-no-secret 360 "Site non servi" \
+      "$reason — DEPLOY_SECRET absent : redémarrer l'application (Setup Node.js App → Restart)."
+    return 0
+  fi
+  touch "$stamp" 2>/dev/null || true
+  log "Redémarrage applicatif : $reason"
+  if ! curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
+    -H "X-Deploy-Secret: $DEPLOY_SECRET" \
+    -H "Content-Type: application/json" >/dev/null 2>&1; then
+    log "Appel /api/admin/restart non confirmé ($reason)."
+    alert "Restart non confirmé" "$reason — POST /api/admin/restart sans réponse 2xx."
+  fi
+}
+
+# Le front est-il posé ET servi ? Appelé à chaque passage sans déploiement (aucun commit, ou
+# arbre de travail non propre) : ces chemins sortaient tôt sans jamais le vérifier.
+#  1. mode `branch` : `dist/` n'est plus versionné ; un dossier effacé, un clone neuf ou un
+#     `git pull` fait hors du cron (bouton « Update from Remote » de cPanel) le laisse absent.
+#     `--mode repair` ne fait rien quand il est complet (aucun accès réseau), le repose sinon ;
+#  2. un serveur démarré sans `dist/` reste sur la page d'aide : redémarrage (ci-dessus).
+ensure_frontend_served() {
+  local head_sha
+  head_sha="$(git rev-parse HEAD)"
+  if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
+    local rc=0
+    DEPLOY_DIST_BRANCH="$DEPLOY_DIST_BRANCH" node scripts/fetch-dist-artifact.js \
+      --mode repair --expect-source "$head_sha" || rc=$?
+    if [[ "$rc" -eq 10 ]]; then
+      restart_for_frontend "dist/ reposé depuis l'artefact (HEAD=$head_sha)"
+      return 0
+    elif [[ "$rc" -eq 75 ]]; then
+      log "Build frontend à réparer mais artefact pas encore publié : nouvelle tentative au prochain passage."
+      return 0
+    elif [[ "$rc" -ne 0 ]]; then
+      log "Réparation du build frontend en échec."
+      alert_throttled dist-repair 60 "Réparation dist ÉCHEC" \
+        "dist/ absent ou incomplet sur $APP_DIR et l'artefact n'a pas pu être posé (HEAD=$head_sha)."
+      return 0
+    fi
+  fi
+  if [[ -f "$APP_DIR/dist/index.vite.html" ]] && [[ "$(frontend_mode)" == "missing" ]]; then
+    restart_for_frontend "serveur démarré sans dist/, resté sur la page d'aide au déploiement"
+  fi
+}
+
 # Lock simple anti-cron concurrent
 if ! mkdir "$DEPLOY_LOCK_DIR" 2>/dev/null; then
   log "Un déploiement est déjà en cours, sortie."
@@ -160,8 +244,19 @@ if [[ -f "$DEPLOY_ENV_FILE" ]]; then
   set +a
 fi
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  log "Arbre de travail non propre sur serveur, déploiement auto ignoré."
+DIRTY_TREE="$(git status --porcelain)"
+if [[ -n "$DIRTY_TREE" ]]; then
+  # Un `git pull` sur un arbre modifié écraserait ou mélangerait des changements locaux : on ne
+  # déploie pas. Mais on dit lesquels (avant : une ligne muette, répétée toutes les deux minutes),
+  # on alerte, et on garde le site servi — `dist/` est ignoré par git, le reposer ne touche à
+  # aucun fichier suivi.
+  log "Arbre de travail non propre sur serveur, déploiement auto ignoré. Premiers écarts :"
+  # `sed -n` lit tout (pas de SIGPIPE sous pipefail, même avec des milliers de lignes).
+  printf '%s\n' "$DIRTY_TREE" | sed -n '1,10s/^/    /p'
+  log "Fichiers suivis supprimés ou modifiés par erreur : git checkout -- <chemin> (docs/DEPLOY_DIST_ARTIFACT.md, Dépannage)."
+  alert_throttled dirty-tree 360 "Déploiement bloqué (arbre non propre)" \
+    "git status --porcelain n'est pas vide sur $APP_DIR ($(printf '%s\n' "$DIRTY_TREE" | wc -l) ligne(s)) : aucun déploiement tant que ce n'est pas réglé. Premières lignes : $(printf '%s\n' "$DIRTY_TREE" | sed -n '1,5p' | tr '\n' ' ')"
+  ensure_frontend_served
   exit 1
 fi
 
@@ -172,22 +267,10 @@ LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse "origin/$DEPLOY_BRANCH")"
 
 if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then
-  # En mode `branch`, `dist/` n'est plus versionné : un dossier effacé (nettoyage d'hébergeur,
-  # disque plein) ou un clone serveur tout neuf laisserait le site sans front, et ce chemin
-  # « aucun commit » ne le rattraperait jamais. `--mode repair` ne fait rien quand `dist/` est
-  # complet, donc ce contrôle est gratuit dans le cas courant. Aucun redémarrage nécessaire :
-  # les fichiers statiques et l'entrée SPA sont lus sur le disque à chaque requête.
-  if [[ "$DEPLOY_DIST_SOURCE" == "branch" ]]; then
-    DIST_REPAIR_RC=0
-    DEPLOY_DIST_BRANCH="$DEPLOY_DIST_BRANCH" node scripts/fetch-dist-artifact.js \
-      --mode repair --expect-source "$LOCAL_SHA" || DIST_REPAIR_RC=$?
-    if [[ "$DIST_REPAIR_RC" -eq 75 ]]; then
-      log "Build frontend à réparer mais artefact pas encore publié : nouvelle tentative au prochain passage."
-    elif [[ "$DIST_REPAIR_RC" -ne 0 ]]; then
-      log "Réparation du build frontend en échec."
-      alert "Réparation dist ÉCHEC" "dist/ absent ou incomplet sur $APP_DIR et l'artefact n'a pas pu être posé (HEAD=$LOCAL_SHA)."
-    fi
-  fi
+  # Aucun commit : on vérifie tout de même que le front est posé et servi (dossier effacé,
+  # clone neuf, pull fait hors du cron, serveur démarré sans dist/) — gratuit dans le cas
+  # courant, où dist/ est complet et le serveur annonce `frontend: "dist"`.
+  ensure_frontend_served
   # Rattrapage : une base restée en retard sur le code déjà déployé (migration oubliée,
   # `DEPLOY_AUTO_MIGRATE` activé après coup) est migrée sans attendre un nouveau commit.
   # Pas de redémarrage : le code tourne déjà, il attendait justement ce schéma.

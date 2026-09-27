@@ -95,9 +95,23 @@ sort trop tôt pour le rattraper.
 
 Le cron appelle donc `--mode repair` **à chaque passage**, y compris sans nouveau commit. Ce mode
 court-circuite avant tout accès réseau quand `dist/` est complet — il ne coûte donc rien dans le
-cas courant — et récupère l'artefact sinon. Aucun redémarrage n'est nécessaire : les fichiers
-statiques et l'entrée SPA sont lus sur le disque à chaque requête (`res.sendFile`, cf.
-`lib/spaFallback.js`).
+cas courant — et récupère l'artefact sinon.
+
+**Un `dist/` reposé exige un redémarrage.** Le serveur ne décide qu'**au démarrage** s'il sert
+`dist/` (`serveDist` et la racine statique, `server.js`) : démarré pendant que `dist/` manquait,
+il sert la page d'aide au déploiement (« L'interface utilisateur est désormais livrée par le
+build Vite… ») à la place du site, même une fois `dist/` revenu. (Cette section affirmait le
+contraire jusqu'à l'incident du 27/09/2026.) D'où :
+
+- `--mode repair` sort avec le code **10** quand il a reposé `dist/`, et le cron redémarre alors
+  l'application ;
+- `GET /api/health` publie `frontend` (`dist`, `missing` ou `dev`) : à chaque passage sans
+  déploiement, le cron redémarre un serveur qui annonce `missing` alors que `dist/` est en place
+  (réveil de Passenger au mauvais moment, pull fait hors du cron). Au plus un redémarrage de ce
+  type par 30 minutes.
+
+Ces vérifications tournent aussi quand l'arbre de travail n'est pas propre (déploiement bloqué) :
+`dist/` est ignoré par git, le reposer ne touche à aucun fichier suivi.
 
 ### Rollback
 
@@ -255,3 +269,57 @@ de le garder en PR séparée et facilement révocable.
   `src/` en production, et leur contenu est déterministe — ils ne provoquent pas de conflit
   rename/delete. Ils continuent d'être synchronisés par `npm run build` et contrôlés par le
   garde-fou pack mascotte du cron.
+
+## 5. Dépannage : le site affiche la page d'aide au déploiement
+
+Symptôme : au lieu du site, une page « L'interface utilisateur est désormais livrée par le build
+Vite (dossier dist/) ». Le serveur tourne en production **sans** `dist/`, ou a démarré sans lui.
+
+Incident du 27/09/2026, pour mémoire : la ligne de crontab appelait le script sans `bash`, le
+`git pull` de #554 a réécrit le script sans droit d'exécution, et chaque passage échouait sur
+« Permission denied ». Les mises à jour suivantes sont passées par le bouton **« Update from
+Remote »** de cPanel — un simple `git pull`, qui a retiré `dist/` sans poser le build ni lancer
+les migrations.
+
+Tout se fait dans le terminal, **sans node** (`APP` = dossier de l'application) :
+
+1. **État** — rien n'est modifié :
+
+   ```bash
+   cd "$APP"
+   git rev-parse HEAD
+   git status --short | head -20
+   ls -la dist/index.vite.html dist/gl.html
+   tail -n 30 logs/foretmap-auto-deploy.log
+   ```
+
+   « Permission denied » dans le journal : corriger la ligne de crontab (`bash /…/scripts/auto-deploy-cron.sh`,
+   [`docs/CRONTAB.md`](CRONTAB.md)). « Arbre de travail non propre » : `git status` liste les
+   fichiers en cause ; des fichiers suivis supprimés par erreur se remettent avec
+   `git checkout -- <chemin>`.
+
+2. **Poser le build à la main** si `dist/index.vite.html` manque. Vérifier d'abord que
+   `sourceCommit` est bien le `HEAD` du serveur ; sinon, ne rien poser et attendre la
+   publication de la CI (ou redéployer le bon commit) :
+
+   ```bash
+   git fetch origin dist-artifact/main
+   git show FETCH_HEAD:BUILD_INFO.json          # sourceCommit = git rev-parse HEAD ?
+   rm -rf dist.new && mkdir dist.new
+   git archive --format=tar FETCH_HEAD dist | tar -x -C dist.new --strip-components=1
+   ls dist.new/index.vite.html dist.new/gl.html  # les deux doivent exister
+   [ -d dist ] && mv dist dist.broken
+   mv dist.new dist
+   ```
+
+3. **Migrations** si le code a été mis à jour hors du cron : sauvegarde
+   (`bash scripts/db-backup.sh --label avant-migration`, ligne finale « OK »), puis cPanel →
+   Setup Node.js App → Run JS Script → `db:status`, et `db:migrate` s'il en attend.
+
+4. **Redémarrer** : cPanel → Setup Node.js App → **Restart**. Puis Run JS Script →
+   `check:runtime`, et recharger le site.
+
+À ne pas faire : utiliser « Update from Remote » ou « Deploy HEAD Commit » dans l'outil Git de
+cPanel (ils contournent la pose du build et les migrations ; le message « The system cannot
+deploy … `.cpanel.yml` » est sans objet, ForêtMap ne s'en sert pas) ; faire `chmod +x` sur un
+script suivi par git.
