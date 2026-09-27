@@ -87,3 +87,20 @@ test('auto-deploy-cron.sh : front vérifié sans déploiement, y compris arbre n
   assert.match(cron, /"\$\(frontend_mode\)" == "missing"/);
   assert.match(cron, /\/api\/health/);
 });
+
+test('roue de secours : tmp/restart.txt est ignoré par git (sinon l’arbre deviendrait sale)', () => {
+  // Le cron refuse de déployer sur un arbre non propre : un tmp/restart.txt suivi ou non
+  // ignoré bloquerait tous les déploiements suivants.
+  execFileSync('git', ['check-ignore', '--quiet', 'tmp/restart.txt'], { cwd: ROOT });
+});
+
+test('auto-deploy-cron.sh : sans DEPLOY_SECRET, le déploiement n’est plus abandonné', () => {
+  const cron = fs.readFileSync(path.join(ROOT, 'scripts', 'auto-deploy-cron.sh'), 'utf8');
+  const guard = cron.slice(
+    cron.indexOf('if [[ "$DO_DEPLOY_RESTART" == "1" ]] && [[ -z "${DEPLOY_SECRET:-}" ]]; then'),
+  );
+  assert.doesNotMatch(guard.slice(0, guard.indexOf('\nfi\n')), /exit 1/);
+  // Tous les redémarrages passent par restart_app (API, sinon tmp/restart.txt).
+  assert.equal((cron.match(/\/api\/admin\/restart" \\/g) || []).length, 1);
+  assert.match(cron, /touch "\$APP_DIR\/tmp\/restart\.txt"/);
+});

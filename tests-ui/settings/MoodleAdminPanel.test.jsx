@@ -327,17 +327,25 @@ describe('MoodleAdminPanel', () => {
     const { saveSetting } = renderPanel();
     await screen.findByTestId('moodle-policies');
     const pattern = screen.getByLabelText('Motif ({year} = préfixe d’année) — classe6');
+    const save = screen.getByRole('button', { name: 'Enregistrer les politiques' });
+    // Chaque état est ATTENDU, pas lu aussitôt après la saisie : sur un exécuteur CI chargé,
+    // React n'a pas toujours repeint quand la ligne suivante s'exécute (le job `quality` est
+    // tombé ici le 27/09/2026 : message introuvable). Cliquer un bouton encore désactivé ne
+    // ferait rien, d'où l'attente explicite de sa réactivation.
     fireEvent.change(pattern, { target: { value: '^{year}#(' } });
-    expect(screen.getByText(/expression régulière invalide/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Enregistrer les politiques' })).toBeDisabled();
+    expect(
+      await screen.findByText(/expression régulière invalide/, {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(save).toBeDisabled(), { timeout: 5000 });
     fireEvent.change(pattern, { target: { value: '^{year}#6\\d{2}(-6\\d{2})?$' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer les politiques' }));
-    await waitFor(() => expect(saveSetting).toHaveBeenCalled());
+    await waitFor(() => expect(save).not.toBeDisabled(), { timeout: 5000 });
+    fireEvent.click(save);
+    await waitFor(() => expect(saveSetting).toHaveBeenCalled(), { timeout: 5000 });
     const [key, value] = saveSetting.mock.calls[0];
     expect(key).toBe('integration.moodle.policies');
     expect(value[0].pattern).toBe('^{year}#6\\d{2}(-6\\d{2})?$');
     expect(value[0].role).toBe('visiteur');
-  });
+  }, 15000);
 
   it('contrôle : site_info absente du service → conseil affiché, aucune fonction dite « manquante »', async () => {
     const check = vi.fn(async () => ({

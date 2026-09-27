@@ -36,8 +36,10 @@ set -euo pipefail
 # - OPS_ALERT_TO / SMTP_* : alerte email sur échec/rollback (voir scripts/ops-alert.js).
 #
 # Prérequis:
-# - DEPLOY_SECRET requis uniquement si un redémarrage est prévu (défaut ou après
-#   analyse du diff avec DEPLOY_SKIP_RESTART_IF_SOFT_ONLY=1) — charger via DEPLOY_ENV_FILE
+# - DEPLOY_SECRET recommandé (même valeur que celle de l'application) — chargé depuis
+#   DEPLOY_ENV_FILE. Il sert au redémarrage piloté (`POST /api/admin/restart`). Sans lui, ou
+#   s'il est refusé (401/403), le cron redémarre par `tmp/restart.txt` (mécanisme Passenger,
+#   roue de secours) au lieu d'abandonner le déploiement.
 # - curl, git, node disponibles sur le serveur
 
 ts() {
@@ -83,6 +85,50 @@ alert() {
   node "$APP_DIR/scripts/ops-alert.js" "$subject" "$*" >/dev/null 2>&1 || true
 }
 
+# Redémarre l'application. Renvoie 0 si une demande est partie, 1 sinon.
+#  - Voie normale : `POST /api/admin/restart` — arrêt piloté par l'application, journalisé
+#    `restart` (lib/bootJournal.js). Exige `DEPLOY_SECRET`.
+#  - Roue de secours : `touch tmp/restart.txt`, que Passenger surveille (`tmp/` est ignoré par
+#    git : l'arbre reste propre). Utilisée sans secret, ou quand le secret est REFUSÉ (401/403 :
+#    valeur différente de celle de l'application). Passenger applique le redémarrage à la
+#    requête suivante : on la déclenche aussitôt. L'application journalise `restart-file`.
+#  - Réponse passerelle ou coupure pendant l'arrêt (5xx, pas de réponse) : on ne double pas le
+#    redémarrage — la vérification post-déploiement tranche, comme avant.
+restart_app() {
+  local reason="$1"
+  if [[ -n "${DEPLOY_SECRET:-}" ]]; then
+    local code
+    code="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
+      -H "X-Deploy-Secret: $DEPLOY_SECRET" \
+      -H "Content-Type: application/json" 2>/dev/null || true)"
+    case "$code" in
+      2??)
+        log "Redémarrage demandé via /api/admin/restart ($reason)."
+        return 0
+        ;;
+      401 | 403)
+        log "DEPLOY_SECRET refusé par l'application (HTTP $code) : roue de secours tmp/restart.txt ($reason)."
+        alert_throttled restart-secret-refused 360 "DEPLOY_SECRET refusé" \
+          "POST /api/admin/restart répond $code : le secret du cron diffère de celui de l'application. Redémarrage fait par tmp/restart.txt."
+        ;;
+      *)
+        log "Appel /api/admin/restart non confirmé (HTTP ${code:-aucune réponse}, $reason)."
+        alert "Restart non confirmé" "$reason — POST /api/admin/restart sans réponse 2xx (HTTP ${code:-aucune réponse})."
+        return 1
+        ;;
+    esac
+  else
+    log "DEPLOY_SECRET absent : redémarrage par tmp/restart.txt ($reason)."
+  fi
+  if mkdir -p "$APP_DIR/tmp" && touch "$APP_DIR/tmp/restart.txt"; then
+    curl -fsS --max-time 60 "$DEPLOY_BASE_URL/api/health" >/dev/null 2>&1 || true
+    return 0
+  fi
+  log "Impossible de toucher $APP_DIR/tmp/restart.txt ($reason) : redémarrer l'application à la main."
+  alert "Restart impossible" "$reason — ni secret valide ni tmp/restart.txt : Setup Node.js App → Restart."
+  return 1
+}
+
 # Retour au commit précédent puis re-vérification. Utilise les globales
 # PREV_SHA / CHANGED_FILES / DEPLOY_* au moment de l'appel. Termine le script.
 rollback_to() {
@@ -106,10 +152,7 @@ rollback_to() {
   if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
     npm ci --omit=dev --no-audit --no-fund || true
   fi
-  if [[ -n "${DEPLOY_SECRET:-}" ]]; then
-    curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
-      -H "X-Deploy-Secret: $DEPLOY_SECRET" -H "Content-Type: application/json" >/dev/null 2>&1 || true
-  fi
+  restart_app "rollback vers $PREV_SHA" || true
 
   log "Re-vérification après rollback"
   if node scripts/post-deploy-check.js --base-url "$DEPLOY_BASE_URL"; then
@@ -175,20 +218,9 @@ restart_for_frontend() {
     log "Redémarrage pour le front déjà demandé il y a moins de 30 min ($reason) : attente."
     return 0
   fi
-  if [[ -z "${DEPLOY_SECRET:-}" ]]; then
-    log "DEPLOY_SECRET manquant : redémarrer l'application à la main ($reason)."
-    alert_throttled frontend-no-secret 360 "Site non servi" \
-      "$reason — DEPLOY_SECRET absent : redémarrer l'application (Setup Node.js App → Restart)."
-    return 0
-  fi
   touch "$stamp" 2>/dev/null || true
   log "Redémarrage applicatif : $reason"
-  if ! curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
-    -H "X-Deploy-Secret: $DEPLOY_SECRET" \
-    -H "Content-Type: application/json" >/dev/null 2>&1; then
-    log "Appel /api/admin/restart non confirmé ($reason)."
-    alert "Restart non confirmé" "$reason — POST /api/admin/restart sans réponse 2xx."
-  fi
+  restart_app "$reason" || true
 }
 
 # Le front est-il posé ET servi ? Appelé à chaque passage sans déploiement (aucun commit, ou
@@ -242,6 +274,13 @@ if [[ -f "$DEPLOY_ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$DEPLOY_ENV_FILE"
   set +a
+else
+  # Un fichier absent était ignoré sans un mot : DEPLOY_SECRET, DEPLOY_AUTO_MIGRATE… restaient
+  # vides, et plus rien n'était redémarré ni migré (crontab pointant un `.env.deploy` inexistant,
+  # 27/09/2026).
+  log "ATTENTION : fichier d'environnement absent ($DEPLOY_ENV_FILE) — DEPLOY_SECRET, DEPLOY_AUTO_MIGRATE… non chargés."
+  alert_throttled env-file-missing 1440 "Fichier d'environnement du cron absent" \
+    "$DEPLOY_ENV_FILE n'existe pas : le cron tourne sans DEPLOY_SECRET ni DEPLOY_AUTO_MIGRATE. Corriger DEPLOY_ENV_FILE dans la crontab (défaut : \$APP_DIR/.env)."
 fi
 
 DIRTY_TREE="$(git status --porcelain)"
@@ -322,8 +361,9 @@ if [[ "$DEPLOY_SKIP_RESTART_IF_SOFT_ONLY" == "1" ]]; then
 fi
 
 if [[ "$DO_DEPLOY_RESTART" == "1" ]] && [[ -z "${DEPLOY_SECRET:-}" ]]; then
-  log "DEPLOY_SECRET manquant: impossible d'appeler /api/admin/restart"
-  exit 1
+  # Avant : le déploiement était abandonné ici, avant le pull — sans secret, plus aucune mise à
+  # jour ne passait par le cron. La roue de secours (tmp/restart.txt, restart_app) le remplace.
+  log "DEPLOY_SECRET absent : le redémarrage se fera par tmp/restart.txt."
 fi
 
 # Garde-fou: en mode "build local" (`dist/` versionné), toute modif frontend doit inclure une
@@ -426,15 +466,10 @@ if [[ -n "$MIGRATE_REASON" ]]; then
 fi
 
 if [[ "$DO_DEPLOY_RESTART" == "1" ]]; then
-  log "Redémarrage applicatif via /api/admin/restart"
+  log "Redémarrage applicatif"
   # Tolérant : une réponse passerelle pendant l'arrêt gracieux n'est pas fatale ;
-  # post-deploy-check ci-dessous est l'arbitre. On alerte seulement.
-  if ! curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
-    -H "X-Deploy-Secret: $DEPLOY_SECRET" \
-    -H "Content-Type: application/json" >/dev/null 2>&1; then
-    log "Appel /api/admin/restart non confirmé (le check post-déploiement tranchera)."
-    alert "Restart non confirmé" "POST /api/admin/restart sans réponse 2xx ($PREV_SHA -> $REMOTE_SHA)."
-  fi
+  # post-deploy-check ci-dessous est l'arbitre (restart_app alerte seulement).
+  restart_app "déploiement $PREV_SHA -> $REMOTE_SHA" || true
 else
   log "Aucun redémarrage applicatif (déploiement sans impact processus Node)."
 fi
