@@ -296,7 +296,10 @@ Tout se fait dans le terminal, **sans node** (`APP` = dossier de l'application) 
    « Permission denied » dans le journal : corriger la ligne de crontab (`bash /…/scripts/auto-deploy-cron.sh`,
    [`docs/CRONTAB.md`](CRONTAB.md)). « Arbre de travail non propre » : `git status` liste les
    fichiers en cause ; des fichiers suivis supprimés par erreur se remettent avec
-   `git checkout -- <chemin>`.
+   `git checkout -- <chemin>` (les fichiers non suivis — `??` — ne bloquent plus le
+   déploiement). « node et npm introuvables » : poser `DEPLOY_NODE_BIN_DIR` dans la ligne de
+   crontab ([`docs/CRONTAB.md`](CRONTAB.md), pré-requis). « ÉCHEC du git pull » : le message
+   de git juste au-dessus nomme le fichier non suivi à déplacer.
 
 2. **Poser le build à la main** si `dist/index.vite.html` manque. Vérifier d'abord que
    `sourceCommit` est bien le `HEAD` du serveur ; sinon, ne rien poser et attendre la

@@ -7,7 +7,7 @@ set -uo pipefail
 #
 # Usage cron (ex. toutes les 5 min) :
 #   */5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info \
-#     /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
+#     bash /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
 #
 # Variables :
 #   DEPLOY_BASE_URL  base publique (def https://foretmap.olution.info)
@@ -46,6 +46,12 @@ alert() {
     # shellcheck disable=SC1090
     . "$DEPLOY_ENV_FILE"
     set +a
+  fi
+  # node hors du PATH du cron sur o2switch : celui de l'application (scripts/lib/app-node.sh).
+  if [ -f "$APP_DIR/scripts/lib/app-node.sh" ]; then
+    # shellcheck source=lib/app-node.sh
+    . "$APP_DIR/scripts/lib/app-node.sh"
+    use_app_node || log "node introuvable : alerte « $1 » non envoyée (DEPLOY_NODE_BIN_DIR, docs/CRONTAB.md)."
   fi
   node "$APP_DIR/scripts/ops-alert.js" "$1" "$2" || true
 }
