@@ -68,7 +68,7 @@ test('chaque domaine déclare ses nettoyeurs, le produit G&L à part', () => {
     {
       domain: 'Observations',
       product: 'foret',
-      hooks: ['groupDetach'],
+      hooks: ['studentDelete', 'afterStudentDelete'],
       mergeSpecialForeignKeys: [],
     },
   ]);
@@ -117,7 +117,10 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
     { id: 'eleve-1', first_name: 'Ada', last_name: 'L' },
     { skipProducts: ['gl'] },
   );
-  assert.deepEqual(out, { ok: true, contributions: { affectedTaskIds: [], affectedMapIds: [] } });
+  assert.deepEqual(out, {
+    ok: true,
+    contributions: { affectedTaskIds: [], affectedMapIds: [], speciesObservationPhotoPaths: [] },
+  });
   const tables = tx.calls.map((c) => /(?:FROM|INTO|UPDATE)\s+(\w+)/i.exec(c.sql)[1]);
   assert.deepEqual(tables, [
     'forum_post_reactions',
@@ -132,6 +135,8 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
     'task_assignments',
     'task_assignments',
     'task_logs',
+    // Observations d'espèces : lecture des chemins de photos, supprimées après validation.
+    'species_observation_photos',
   ]);
   assert.ok(
     tx.calls.every((c) => !/gl_/.test(c.sql)),
@@ -166,7 +171,7 @@ test('suppression d’un groupe et renommage : ordre des domaines', async () => 
     [
       ['UPDATE tasks SET group_id = NULL WHERE group_id = ?', ['groupe-1']],
       ['UPDATE forum_threads SET group_id = NULL WHERE group_id = ?', ['groupe-1']],
-      ['UPDATE observation_logs SET group_id = NULL WHERE group_id = ?', ['groupe-1']],
+      // `observation_logs` : plus d'écriture (temps 2) ; la clé étrangère détache le groupe.
     ],
   );
 

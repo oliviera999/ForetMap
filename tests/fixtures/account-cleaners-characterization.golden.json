@@ -873,13 +873,6 @@
       "params": ["groupe"]
     },
     {
-      "table": "observation_logs",
-      "tx": true,
-      "affected": 1,
-      "sql": "UPDATE observation_logs SET group_id = NULL WHERE group_id = ?",
-      "params": ["groupe"]
-    },
-    {
       "table": "groups",
       "tx": true,
       "affected": 1,
