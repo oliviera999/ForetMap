@@ -11,8 +11,10 @@
  *   5. git push                   (avec retry/backoff réseau).
  *
  * Objectif : le serveur n'a plus AUCUNE manip à faire. Le cron
- * scripts/auto-deploy-cron.sh tire le commit (dist/ déjà buildé et versionné),
- * synchronise les miroirs, (npm ci --omit=dev si besoin), redémarre et vérifie.
+ * scripts/auto-deploy-cron.sh tire le commit, pose le build du front publié par la CI
+ * (`dist/` n'est plus versionné depuis le 26/09/2026 : le build local sert de contrôle et
+ * régénère les miroirs CJS versionnés), synchronise les miroirs, (npm ci --omit=dev si
+ * besoin), migre si besoin, redémarre et vérifie.
  * Le back ne se « build » pas : c'est du Node exécuté tel quel.
  *
  * Usage :

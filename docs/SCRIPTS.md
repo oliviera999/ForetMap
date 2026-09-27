@@ -25,15 +25,17 @@ Imports WordPress GL : [GL_IMPORT_FROM_YO.md](GL_IMPORT_FROM_YO.md).
 
 ## 1. Je démarre (ou je reprends) en local
 
-| Je veux…                                                   | Lancer                                                                 |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Tout installer d’un coup (Docker + `.env` + schéma + seed) | `npm run local:setup`                                                  |
-| Juste (re)créer le schéma et le seed sur `foretmap_local`  | `npm run db:init`                                                      |
-| Uniquement les migrations, sans re-semer                   | `npm run db:migrate`                                                   |
-| Vérifier Node / `.env` / MariaDB                           | `npm run check:local`                                                  |
-| Attendre que MySQL réponde (déjà dans `local:setup`)       | `node scripts/wait-mysql-ready.js`                                     |
-| Créer ou reset le compte prof admin                        | `npm run db:seed:teacher`                                              |
-| Lancer l’app                                               | `npm run dev` (API + watch) et, si besoin, `npm run dev:client` (Vite) |
+| Je veux…                                                    | Lancer                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Tout installer d’un coup (Docker + `.env` + schéma + seed)  | `npm run local:setup`                                                  |
+| Juste (re)créer le schéma et le seed sur `foretmap_local`   | `npm run db:init`                                                      |
+| Uniquement les migrations, sans re-semer                    | `npm run db:migrate`                                                   |
+| La base est-elle en retard sur les migrations ?             | `npm run db:status` (lecture seule ; code 3 = en attente)              |
+| Contrôle de l'installation serveur (schéma, modules, build) | `npm run check:runtime` (aussi via « Run JS Script » de cPanel)        |
+| Vérifier Node / `.env` / MariaDB                            | `npm run check:local`                                                  |
+| Attendre que MySQL réponde (déjà dans `local:setup`)        | `node scripts/wait-mysql-ready.js`                                     |
+| Créer ou reset le compte prof admin                         | `npm run db:seed:teacher`                                              |
+| Lancer l’app                                                | `npm run dev` (API + watch) et, si besoin, `npm run dev:client` (Vite) |
 
 **Après un `git pull` qui touche le front :** `npm run build` si tu sers `dist/`
 (`NODE_ENV=production`), sinon `npm run dev` suffit.
@@ -161,7 +163,9 @@ Nettoyer les rapports locaux : `npm run clean:local`.
 
 ### Cas A — cron auto-deploy (le plus courant)
 
-Le serveur fait `git pull` : il faut un `dist/` **commité** et à jour.
+Le serveur fait `git pull`, puis récupère le build du front que la CI a publié sur la branche
+`dist-artifact/main` : `dist/` n'est plus versionné (depuis le 26/09/2026), rien à construire
+avant de pousser ([DEPLOY_DIST_ARTIFACT.md](DEPLOY_DIST_ARTIFACT.md)).
 
 ```bash
 npm run ship -- -m "feat(…): titre du lot"
@@ -170,7 +174,8 @@ npm run ship -- -m "feat(…): titre du lot"
 Enchaîne build (Vite + miroirs CJS) → lint/format/tests → entrée CHANGELOG →
 commit → push. Variantes : `--minor`, `--dry-run` (rien poussé), `--skip-tests`.
 
-À la main (même idée) : `npm run build` puis commit/push. Ne **pas** bumper
+À la main : commit/push (lancer `npm run build` si `lib/visit-pack/` ou `lib/gl-pack/` doivent
+être régénérés : ces miroirs restent versionnés). Ne **pas** bumper
 `package.json` : le workflow de fusion s’en charge
 ([VERSIONING.md](VERSIONING.md)).
 

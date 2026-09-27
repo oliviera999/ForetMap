@@ -11,9 +11,23 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { buildProductPwa } = require('../scripts/build-pwa');
+const { PRODUCTS } = require('../lib/products');
 
 function readServiceWorker(relativePath) {
   return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+}
+
+/**
+ * `dist/sw.js` tel que `scripts/build-pwa.js` l'écrit, généré en mémoire : `dist/` n'est plus
+ * versionné (build livré par la CI, docs/DEPLOY_DIST_ARTIFACT.md), le test ne peut donc plus
+ * le lire sur le disque. Même fonction, même gabarit ; seul le manifeste Vite est factice.
+ */
+function generatedForetServiceWorker() {
+  const viteManifest = {
+    'index.vite.html': { file: 'assets/main-AbCd1234.js', isEntry: true, css: [] },
+  };
+  return buildProductPwa(PRODUCTS.foret, { viteManifest, exists: () => true }).serviceWorker;
 }
 
 /** Matcher historique de `public/sw.js` (fonction écrite à la main). */
@@ -38,17 +52,17 @@ describe('Service Worker cache visite', () => {
     assert.ok(!matcher.includes('/api/visit/progress'));
   });
 
-  it('dist/sw.js (généré) ne met pas en cache la progression liée au compte', () => {
-    const source = readServiceWorker('dist/sw.js');
-    assert.match(source, /GÉNÉRÉ par scripts\/build-pwa\.js/, 'dist/sw.js doit venir du gabarit');
+  it('le service worker généré ne met pas en cache la progression liée au compte', () => {
+    const source = generatedForetServiceWorker();
+    assert.match(source, /GÉNÉRÉ par scripts\/build-pwa\.js/, 'le SW doit venir du gabarit');
     const list = extractStaleWhileRevalidateList(source);
     assert.ok(list.includes('/api/maps'));
     assert.ok(list.includes('/api/visit/content'));
     assert.ok(!list.includes('/api/visit/progress'));
   });
 
-  it('dist/sw.js est le service worker du produit ForetMap, au nom de cache versionné', () => {
-    const distSw = readServiceWorker('dist/sw.js');
+  it('le service worker généré est celui du produit ForetMap, au nom de cache versionné', () => {
+    const distSw = generatedForetServiceWorker();
     assert.match(distSw, /Service worker « foret »/);
     const distVersion = /const CACHE_NAME = "([^"]+)"/.exec(distSw)?.[1];
     assert.ok(distVersion, 'CACHE_NAME absent du service worker généré');

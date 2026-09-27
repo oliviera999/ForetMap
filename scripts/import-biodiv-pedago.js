@@ -3,6 +3,7 @@ require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 const { initDatabase, pool } = require('../database');
+const { findInsertStatements } = require('./lib/sqlDumpInserts');
 
 // Jeu de données de contenu, sans données personnelles (voir
 // scripts/extract-biodiv-pedago-seed.js pour le régénérer depuis un export local).
@@ -31,38 +32,17 @@ const EXPLICIT_COLUMNS = {
   species_interactions: '(id, from_plant_id, to_plant_id, interaction_type, description)',
 };
 
-function extractInsert(sql, table) {
-  const marker = 'INSERT INTO `' + table + '` VALUES';
-  const start = sql.indexOf(marker);
-  if (start < 0) return null;
-  let i = start;
-  let inString = false;
-  let escape = false;
-  while (i < sql.length) {
-    const c = sql[i];
-    if (escape) {
-      escape = false;
-      i++;
-      continue;
-    }
-    if (inString && c === '\\') {
-      escape = true;
-      i++;
-      continue;
-    }
-    if (c === "'") {
-      inString = !inString;
-      i++;
-      continue;
-    }
-    if (!inString && c === ';') {
-      const stmt = sql.slice(start, i + 1).replace(/^INSERT INTO/i, 'INSERT IGNORE INTO');
-      const columns = EXPLICIT_COLUMNS[table];
-      return columns ? stmt.replace(/`\s+VALUES/, '` ' + columns + ' VALUES') : stmt;
-    }
-    i++;
-  }
-  return null;
+/**
+ * Instructions d'insertion de la table, prêtes à exécuter (`INSERT IGNORE`). La graine régénérée
+ * nomme ses colonnes ; une graine ancienne (sans liste) reçoit `EXPLICIT_COLUMNS` si défini.
+ * @returns {string[]}
+ */
+function insertStatementsFor(sql, table) {
+  return findInsertStatements(sql, table).map((stmt) => {
+    const text = stmt.text.replace(/^INSERT INTO/i, 'INSERT IGNORE INTO');
+    const columns = EXPLICIT_COLUMNS[table];
+    return !stmt.columns && columns ? text.replace(/`\s+VALUES/, '` ' + columns + ' VALUES') : text;
+  });
 }
 
 async function run() {
@@ -74,13 +54,13 @@ async function run() {
     await conn.query('SET NAMES utf8mb4');
     await conn.query('SET FOREIGN_KEY_CHECKS=0');
     for (const table of TABLES) {
-      const stmt = extractInsert(sql, table);
-      if (!stmt) {
+      const statements = insertStatementsFor(sql, table);
+      if (!statements.length) {
         console.warn('Pas de INSERT pour', table);
         continue;
       }
       await conn.query('DELETE FROM `' + table + '`').catch(() => {});
-      await conn.query(stmt);
+      for (const stmt of statements) await conn.query(stmt);
       const [[{ c }]] = await conn.query('SELECT COUNT(*) AS c FROM `' + table + '`');
       console.log(table + ': ' + c + ' lignes');
     }
@@ -91,7 +71,11 @@ async function run() {
   await pool.end();
   console.log('Import terminé.');
 }
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+module.exports = { TABLES, EXPLICIT_COLUMNS, insertStatementsFor };
