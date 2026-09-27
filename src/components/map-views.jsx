@@ -19,7 +19,6 @@ import {
 import { resolveMapOverlayLabelLayout } from '../utils/mapOverlayZoneLabels.js';
 import { useMapOverlayTextSizePreference } from '../hooks/useMapOverlayTextSizePreference.js';
 
-import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
 import {
   clusterStatusDots,
   computeTaskVisualByLocation,
@@ -32,9 +31,6 @@ import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
-import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
-import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
-import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import {
   clusterCenterPct,
   clusterMarkers,
@@ -48,9 +44,6 @@ import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
 import useZoneAlignMode from '../hooks/useZoneAlignMode.js';
 import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
-import { MapScaleCompassOverlay } from '../shared/pct-map/MapScaleCompassOverlay.jsx';
-import { PctPositionLayer } from '../shared/pct-map/PctPositionLayer.jsx';
-import { accuracyHaloDiameterPx } from '../shared/pct-map/positionGeometry.js';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -62,10 +55,8 @@ import {
   BiodiversitySpeciesOpenLinks,
 } from './map/LivingBeingsCatalogPanel.jsx';
 
-import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
-import { DrawingLayer } from './map/DrawingLayer.jsx';
-import { EditPointsLayer } from './map/EditPointsLayer.jsx';
-import { AlignZonesPreviewLayer } from './map/AlignZonesPreviewLayer.jsx';
+import { parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
+import { MapViewEditCanvas } from './map/MapViewEditCanvas.jsx';
 import useMapImageEdgeSnap from '../hooks/useMapImageEdgeSnap.js';
 import { EDGE_SNAP_DEFAULTS, sensitivityToMinStrength } from '../utils/edgeSnap.js';
 import {
@@ -100,70 +91,6 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
-
-/** Carte vide stable : pastilles tutoriel désactivées sans recréer un `Map` à chaque rendu. */
-const EMPTY_TUTORIAL_COUNT_BY_ID = new Map();
-
-/**
- * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
- * Le repère est passé par la bulle aux handlers (`onOpenMarker(marker, e)`,
- * `onBeginMarkerDrag(marker.id, …)`) pour que le parent fournisse des fonctions stables.
- */
-const MapViewMarkerBubbleMemo = React.memo(function MapViewMarkerBubbleMemo({
-  marker,
-  draggable,
-  onOpenMarker,
-  onBeginMarkerDrag,
-  ...bubbleProps
-}) {
-  const onOpen = useCallback((e) => onOpenMarker(marker, e), [marker, onOpenMarker]);
-  const onPointerDown = useMemo(
-    () =>
-      draggable
-        ? (e) => {
-            e.stopPropagation();
-            onBeginMarkerDrag(marker.id, e.currentTarget, e.pointerId);
-          }
-        : undefined,
-    [draggable, marker.id, onBeginMarkerDrag],
-  );
-  return (
-    <MapViewMarkerBubble
-      marker={marker}
-      draggable={draggable}
-      onOpen={onOpen}
-      onPointerDown={onPointerDown}
-      {...bubbleProps}
-    />
-  );
-});
-
-/**
- * Pastille d'un **groupe** de repères sur la carte de travail (désencombrement, lot 5) :
- * compteur et emoji du repère représentatif, positionnée en % comme une bulle de repère.
- */
-const MapViewMarkerClusterMemo = React.memo(function MapViewMarkerClusterMemo({
-  cluster,
-  emojiFontSize,
-  onOpenCluster,
-}) {
-  const onOpen = useCallback((e) => onOpenCluster(cluster, e), [cluster, onOpenCluster]);
-  const leadLabel = String(cluster.lead?.label || '').trim();
-  return (
-    <button
-      type="button"
-      className="map-marker-cluster"
-      style={{ left: `${cluster.x_pct}%`, top: `${cluster.y_pct}%`, fontSize: emojiFontSize }}
-      aria-label={`${cluster.count} repères regroupés${leadLabel ? `, dont ${leadLabel}` : ''}`}
-      onClick={onOpen}
-    >
-      <span className="map-marker-cluster__emoji" aria-hidden>
-        {String(cluster.lead?.emoji || '').trim() || '📍'}
-      </span>
-      <span className="map-marker-cluster__count">{cluster.count}</span>
-    </button>
-  );
-});
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -295,6 +222,13 @@ function MapViewImpl({
   const mapImageCandidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
   const [mapImageIdx, setMapImageIdx] = useState(0);
   const mapImageSrc = mapImageCandidates[Math.min(mapImageIdx, mapImageCandidates.length - 1)];
+  /** Image de fond introuvable : on passe à la candidate suivante (s'il en reste une). */
+  const onMapImageError = useCallback(
+    () => setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx)),
+    [mapImageCandidates.length],
+  );
+  const activeMapLabel = activeMap?.label;
+  const activeMapGeoref = activeMap?.georef;
   const mapFramePaddingPx = useMemo(() => {
     const custom = Number(activeMap?.frame_padding_px);
     if (Number.isFinite(custom) && custom >= 0) return Math.min(custom, 32);
@@ -1419,9 +1353,7 @@ function MapViewImpl({
                 targetPct={workTargetPct}
                 onViewportChange={onWorkViewportChange}
                 onBackgroundClick={onWorkBackgroundClick}
-                onMapImageError={() =>
-                  setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
-                }
+                onMapImageError={onMapImageError}
                 overlaySlot={
                   <MapViewMascotOverlay
                     show={showMapMascot}
@@ -1439,213 +1371,87 @@ function MapViewImpl({
                 }
               />
             ) : (
-              <div
-                ref={containerRef}
-                className="map-view-canvas map-viewport"
-                style={{
-                  cursor,
-                  touchAction,
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  ...mapOverlayCssVars,
-                }}
-                onClick={onMapClick}
-              >
-                <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
-                  <div
-                    className="map-view-orient"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      ...(orientStyle || {}),
-                    }}
-                  >
-                    <MapViewBackgroundImage
-                      imgRef={imgRef}
-                      src={mapImageSrc}
-                      alt={`Plan ${activeMap?.label || 'du jardin'}`}
-                      width={iw}
-                      height={ih}
-                      onError={() =>
-                        setMapImageIdx((idx) =>
-                          idx < mapImageCandidates.length - 1 ? idx + 1 : idx,
-                        )
-                      }
-                    />
-
-                    <svg
-                      className="map-zone-svg-layer"
-                      style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        width: iw,
-                        height: ih,
-                        overflow: 'visible',
-                        pointerEvents: 'none',
-                        textRendering: 'optimizeLegibility',
-                      }}
-                    >
-                      <g style={{ pointerEvents: 'all' }}>
-                        {/* Édition (tracé / sommets / alignement / glisser repères) :
-                            ZonePolygonsLayer + calques d'édition. La consultation utilise
-                            WorkMapStage (SharedMapStage). */}
-                        <ZonePolygonsLayer
-                          parsedZones={parsedZones}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                          mode={mode}
-                          showLabels={showLabels}
-                          editZoneId={editZone?.id ?? null}
-                          selectedZoneId={selectedZone?.id ?? null}
-                          alignSelectedIds={mode === 'align-zones' ? alignSelectedIds : null}
-                          dimmedZoneIds={dimmedZoneIds}
-                          zoneTaskVisualById={zoneTaskVisualById}
-                          zoneTutorialCountById={
-                            showTutorialDots ? zoneTutorialCountById : EMPTY_TUTORIAL_COUNT_BY_ID
-                          }
-                          emojiFontPx={mapEmojiFontPx}
-                          labelFontPx={mapLabelFontPx}
-                          emojiLabelCenterGap={mapEmojiLabelCenterGap}
-                          minSideFactor={mapOverlayLabelLayout.minSideFactor}
-                          labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
-                          onZoneOpen={openZoneFromMap}
-                        />
-                        <AlignZonesPreviewLayer
-                          aligned={alignPreview?.aligned}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                        />
-                        <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
-                        <EditPointsLayer
-                          mode={mode}
-                          editPoints={editPoints}
-                          draggingPtIdx={draggingPtIdx}
-                          selectedPtIdxs={selectedPtIdxs}
-                          insertVertexMode={insertVertexMode}
-                          iw={iw}
-                          ih={ih}
-                          inv={inv}
-                          toImagePct={toImagePct}
-                          onInsertPointFromPct={insertPointFromPct}
-                          onInsertPointAtMidpoint={insertPointAtMidpoint}
-                          onBackgroundPointerDown={onBackgroundPointerDown}
-                          onBackgroundPointerMove={onBackgroundPointerMove}
-                          onBackgroundPointerUp={onBackgroundPointerUp}
-                          onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
-                          onTranslatePointerDown={onTranslatePointerDown}
-                          onTranslatePointerMove={onTranslatePointerMove}
-                          endEditZoneTranslate={endEditZoneTranslate}
-                          onTranslateLostPointerCapture={onTranslateLostPointerCapture}
-                          onEditPointPointerDown={onEditPointPointerDown}
-                          onEditPointPointerMove={onEditPointPointerMove}
-                          onEditPointPointerUp={onEditPointPointerUp}
-                        />
-                      </g>
-                    </svg>
-
-                    <MapViewMascotOverlay
-                      show={showMapMascot}
-                      mascotClassName={mapMascotClassName}
-                      embedded={embedded}
-                      renderPct={mapMascotRenderPct}
-                      fitScale={mapMascotFitScale}
-                      faceRight={mapMascotFaceRight}
-                      animationState={mapMascotAnimationState}
-                      mascotId={mapMascotId}
-                      extraCatalogEntries={visitMascotCatalogExtras}
-                      dialogVisible={mapMascotDialogVisible}
-                      dialog={mapMascotDialog}
-                    />
-
-                    {mapPosition.displayPct ? (
-                      <PctPositionLayer
-                        position={mapPosition.displayPct}
-                        haloPx={accuracyHaloDiameterPx(mapPosition.haloPct, imgSize.w)}
-                        headingDeg={
-                          mapPosition.screenHeadingUnwrappedDeg ?? mapPosition.screenHeadingDeg
-                        }
-                        headingSource={mapPosition.headingSource}
-                        accuracyM={mapPosition.accuracyM}
-                      />
-                    ) : null}
-
-                    {markerClusters.map((cluster) => {
-                      if (cluster.count > 1) {
-                        return (
-                          <MapViewMarkerClusterMemo
-                            key={cluster.id}
-                            cluster={cluster}
-                            emojiFontSize={`${mapEmojiFontPx}px`}
-                            onOpenCluster={openClusterFromMap}
-                          />
-                        );
-                      }
-                      const m = cluster.lead;
-                      const markerTaskVisual = markerTaskVisualById.get(m.id);
-                      const markerTaskLabel = markerTaskVisual
-                        ? TASK_VISUAL_LABEL[markerTaskVisual]
-                        : '';
-                      const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
-                      const markerTutorialLabel =
-                        markerTutorialCount === 0
-                          ? ''
-                          : markerTutorialCount === 1
-                            ? '1 tutoriel lié'
-                            : `${markerTutorialCount} tutoriels liés`;
-                      const markerAriaLabel = [
-                        m.label || 'Repère',
-                        markerTaskLabel,
-                        markerTutorialLabel,
-                      ]
-                        .filter(Boolean)
-                        .join(' — ');
-                      const markerDraggable = isTeacher && markerPositionUnlocked;
-                      return (
-                        <MapViewMarkerBubbleMemo
-                          key={m.id}
-                          marker={m}
-                          dimmed={dimmedMarkerIds?.has(String(m.id))}
-                          ariaLabel={markerAriaLabel}
-                          showLabels={showLabels}
-                          isCoarsePointer={isCoarsePointer}
-                          draggable={markerDraggable}
-                          emojiFontSize={`${mapEmojiFontPx}px`}
-                          labelFontSize={`${mapLabelFontPx}px`}
-                          labelMarginTop={markerLabelMarginTop}
-                          labelMaxWidthPx={mapOverlayLabelLayout.maxScreenPx}
-                          taskVisual={markerTaskVisual}
-                          taskLabel={markerTaskLabel}
-                          tutorialCount={showTutorialDots ? markerTutorialCount : 0}
-                          tutorialLabel={markerTutorialLabel}
-                          onOpenMarker={openMarkerFromMap}
-                          onBeginMarkerDrag={beginMarkerDrag}
-                        />
-                      );
-                    })}
-                  </div>
-                </MapViewWorldLayer>
-
-                <MapScaleCompassOverlay
-                  visible={scaleCompassPref.effective}
-                  georef={activeMap?.georef}
-                  contentWidthPx={iw}
-                  scale={cs}
-                  orientationDeg={mapOrientationDeg}
-                />
-
-                <MapCanvasHints
-                  mode={mode}
-                  drawPointsCount={drawPoints.length}
-                  prefersPageScroll={prefersPageScroll}
-                  isCoarsePointer={isCoarsePointer}
-                  hintTexts={mapCanvasHintTexts}
-                />
-              </div>
+              <MapViewEditCanvas
+                containerRef={containerRef}
+                worldRef={worldRef}
+                imgRef={imgRef}
+                cursor={cursor}
+                touchAction={touchAction}
+                mapOverlayCssVars={mapOverlayCssVars}
+                onMapClick={onMapClick}
+                iw={iw}
+                ih={ih}
+                inv={inv}
+                cs={cs}
+                imgSize={imgSize}
+                orientStyle={orientStyle}
+                mapImageSrc={mapImageSrc}
+                activeMapLabel={activeMapLabel}
+                activeMapGeoref={activeMapGeoref}
+                onMapImageError={onMapImageError}
+                toImagePct={toImagePct}
+                isCoarsePointer={isCoarsePointer}
+                prefersPageScroll={prefersPageScroll}
+                mode={mode}
+                showLabels={showLabels}
+                isTeacher={isTeacher}
+                markerPositionUnlocked={markerPositionUnlocked}
+                embedded={embedded}
+                parsedZones={parsedZones}
+                editZone={editZone}
+                selectedZone={selectedZone}
+                alignSelectedIds={alignSelectedIds}
+                alignPreview={alignPreview}
+                dimmedZoneIds={dimmedZoneIds}
+                dimmedMarkerIds={dimmedMarkerIds}
+                zoneTaskVisualById={zoneTaskVisualById}
+                markerTaskVisualById={markerTaskVisualById}
+                zoneTutorialCountById={zoneTutorialCountById}
+                markerTutorialCountById={markerTutorialCountById}
+                showTutorialDots={showTutorialDots}
+                mapEmojiFontPx={mapEmojiFontPx}
+                mapLabelFontPx={mapLabelFontPx}
+                mapEmojiLabelCenterGap={mapEmojiLabelCenterGap}
+                markerLabelMarginTop={markerLabelMarginTop}
+                mapOverlayLabelLayout={mapOverlayLabelLayout}
+                openZoneFromMap={openZoneFromMap}
+                openMarkerFromMap={openMarkerFromMap}
+                openClusterFromMap={openClusterFromMap}
+                beginMarkerDrag={beginMarkerDrag}
+                markerClusters={markerClusters}
+                drawPoints={drawPoints}
+                editPoints={editPoints}
+                draggingPtIdx={draggingPtIdx}
+                selectedPtIdxs={selectedPtIdxs}
+                insertVertexMode={insertVertexMode}
+                insertPointFromPct={insertPointFromPct}
+                insertPointAtMidpoint={insertPointAtMidpoint}
+                onBackgroundPointerDown={onBackgroundPointerDown}
+                onBackgroundPointerMove={onBackgroundPointerMove}
+                onBackgroundPointerUp={onBackgroundPointerUp}
+                onBackgroundLostPointerCapture={onBackgroundLostPointerCapture}
+                onTranslatePointerDown={onTranslatePointerDown}
+                onTranslatePointerMove={onTranslatePointerMove}
+                endEditZoneTranslate={endEditZoneTranslate}
+                onTranslateLostPointerCapture={onTranslateLostPointerCapture}
+                onEditPointPointerDown={onEditPointPointerDown}
+                onEditPointPointerMove={onEditPointPointerMove}
+                onEditPointPointerUp={onEditPointPointerUp}
+                showMapMascot={showMapMascot}
+                mapMascotClassName={mapMascotClassName}
+                mapMascotRenderPct={mapMascotRenderPct}
+                mapMascotFitScale={mapMascotFitScale}
+                mapMascotFaceRight={mapMascotFaceRight}
+                mapMascotAnimationState={mapMascotAnimationState}
+                mapMascotId={mapMascotId}
+                visitMascotCatalogExtras={visitMascotCatalogExtras}
+                mapMascotDialogVisible={mapMascotDialogVisible}
+                mapMascotDialog={mapMascotDialog}
+                mapPosition={mapPosition}
+                scaleCompassPref={scaleCompassPref}
+                mapOrientationDeg={mapOrientationDeg}
+                mapCanvasHintTexts={mapCanvasHintTexts}
+              />
             )}
             {useSharedViewStage ? (
               <MapCanvasHints
