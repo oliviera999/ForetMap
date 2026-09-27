@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+/*
+ * Délai des attentes asynchrones (`findBy*`, `waitFor`) : 1 s par défaut dans Testing Library,
+ * trop court pour le job `quality` sur un exécuteur GitHub saturé. Trois tests sans rapport
+ * entre eux y sont tombés le même jour (27/09/2026 : MoodleAdminPanel deux fois,
+ * AppPlanMount) alors qu'ils passent en ~200 ms en local. Un délai plus long ne ralentit
+ * aucun test qui réussit (l'attente s'arrête dès que la condition est vraie) ; il ne pèse que
+ * sur un test qui échoue. Le délai par test (`testTimeout`, vitest.config.js) reste au-dessus.
+ */
+configure({ asyncUtilTimeout: 5000 });
 
 /** Node ≥22 peut exposer un localStorage natif incomplet (--localstorage-file) qui casse jsdom. */
 function installLocalStoragePolyfill() {

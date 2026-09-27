@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tests — attentes des tests d'interface adaptées à une CI chargée
+
+- `tests-ui/setup.js` : délai des attentes de Testing Library (`findBy*`, `waitFor`) porté de
+  1 s à 5 s ; `vitest.config.js` : délai par test porté à 20 s. Trois tests sans rapport entre
+  eux (`MoodleAdminPanel` deux fois, `AppPlanMount`) ont fait échouer le job `quality` le
+  27/09/2026 alors qu'ils passent en ~200 ms en local. Un test qui réussit n'attend pas plus
+  longtemps.
+
 ### Corrigé — déploiement : redémarrage par `tmp/restart.txt` quand le secret manque
 
 - **Le cron ne renonce plus à déployer sans `DEPLOY_SECRET`.** Avant, il sortait avant le
