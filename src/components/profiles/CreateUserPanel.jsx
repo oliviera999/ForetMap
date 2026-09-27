@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { api } from '../../services/api';
+import { profilesApi } from '../../services/profilesApi';
 import { validateUserIdentityFields } from '../../utils/profilesUserFields.js';
 import {
   buildUnitaryCreateRoleOptions,
@@ -86,7 +86,7 @@ function CreateUserPanel({
       if (isStudentRole && createGroupId) {
         body.group_id = createGroupId;
       }
-      const result = await api('/api/rbac/users', 'POST', body);
+      const result = await profilesApi.createUser(body);
       setMsg(
         `Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`,
       );

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
+import { groupsApi } from '../services/groupsApi';
+import { profilesApi } from '../services/profilesApi';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -135,9 +137,7 @@ function GroupSettingsPanel({
     setErr('');
     setMsg('');
     try {
-      const result = await api(`/api/groups/${encodeURIComponent(group.id)}/class-code`, 'POST', {
-        action,
-      });
+      const result = await groupsApi.classCode(group.id, action);
       setClassCode(result?.class_code || null);
       setMsg(action === 'clear' ? 'Code de classe supprimé' : 'Nouveau code de classe généré');
       await onSaved();
@@ -165,7 +165,7 @@ function GroupSettingsPanel({
         // déjà, on ne renvoie donc jamais la combinaison impossible.
         body.force_default_role = defaultRoleId ? forceDefaultRole : false;
       }
-      const saved = await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', body);
+      const saved = await groupsApi.update(group.id, body);
       const applied = Number(saved?.roles_recomputed ?? 0);
       setMsg(
         applied > 0
@@ -407,7 +407,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
     setSaving(true);
     setErr('');
     try {
-      await api(`/api/groups/${encodeURIComponent(group.id)}/members`, 'PUT', {
+      await groupsApi.setMembers(group.id, {
         member_user_ids: normalizeIds(memberIds),
         scope_map_ids: normalizeIds(scopeMapIds),
         scope_project_ids: normalizeIds(scopeProjectIds),
@@ -761,12 +761,14 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setErr('');
     const [groupPayload, userRows, mapsRows, projectRows, roleRows, pendingRows] =
       await Promise.all([
-        api('/api/groups'),
-        api('/api/rbac/users').catch(() => []),
+        groupsApi.list(),
+        profilesApi.listUsers().catch(() => []),
+        // Cartes et projets (périmètre d'un groupe) : domaines terrain et tâches, sans client
+        // dédié à ce jour.
         api('/api/maps'),
         api('/api/task-projects').catch(() => []),
-        api('/api/rbac/profiles').catch(() => null),
-        api('/api/groups/pending-visitors').catch(() => []),
+        profilesApi.listProfiles().catch(() => null),
+        groupsApi.pendingVisitors().catch(() => []),
       ]);
     setGroups(Array.isArray(groupPayload?.groups) ? groupPayload.groups : []);
     setCanManageDefaultRole(!!groupPayload?.can_manage_default_role);
@@ -793,10 +795,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setLoading(true);
     setErr('');
     try {
-      await api(
-        `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/${encodeURIComponent(student.id)}`,
-        'POST',
-      );
+      await groupsApi.addMember(pendingTargetGroup, student.id);
       setMsg(`${student.first_name} ${student.last_name} rattaché(e) au groupe.`);
       await load();
     } catch (e) {
@@ -821,10 +820,9 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     const errors = [];
     try {
       // Même appel que la barre d'actions groupées de l'onglet Comptes : un seul aller-retour.
-      const result = await api(
-        `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/bulk`,
-        'POST',
-        { user_ids: selected.map((v) => String(v.id)) },
+      const result = await groupsApi.addMembersBulk(
+        pendingTargetGroup,
+        selected.map((v) => String(v.id)),
       );
       ok = Number(result?.added || 0);
       const byId = new Map(selected.map((v) => [String(v.id), v]));
@@ -914,7 +912,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setLoading(true);
     setErr('');
     try {
-      await api('/api/groups', 'POST', {
+      await groupsApi.create({
         name,
         slug: String(createDraft.slug || '').trim() || undefined,
         kind: createDraft.kind || 'class',
@@ -933,7 +931,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/groups/${encodeURIComponent(g.id)}`, 'PATCH', {
+      await groupsApi.update(g.id, {
         is_active: !g.is_active,
       });
       await load();
@@ -950,7 +948,7 @@ export function GroupsAdminView({ onPendingCountChange } = {}) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/groups/${encodeURIComponent(g.id)}`, 'DELETE');
+      await groupsApi.remove(g.id);
       setMsg('Groupe supprimé');
       if (editingGroup && String(editingGroup.id) === String(g.id)) {
         setEditingGroup(null);

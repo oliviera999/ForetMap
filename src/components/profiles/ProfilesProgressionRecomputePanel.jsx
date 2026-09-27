@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../services/api';
+import { profilesApi } from '../../services/profilesApi';
 import {
   buildRecomputeBody,
   changedRows,
@@ -43,9 +43,7 @@ export function ProfilesProgressionRecomputePanel({
     setError('');
     setBusy(true);
     try {
-      const payload = await api(
-        '/api/rbac/progression/recompute',
-        'POST',
+      const payload = await profilesApi.recomputeProgression(
         buildRecomputeBody({ scope, groupId, allowDemotion, dryRun }),
       );
       if (dryRun) {

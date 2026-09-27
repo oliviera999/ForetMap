@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../services/api';
+import { profilesApi } from '../../services/profilesApi';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../shared/platform/fileToDataUrl.js';
 import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
@@ -37,7 +37,7 @@ function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }
   const importStudents = async ({ file, dryRun, setReport }) => {
     try {
       const base64 = await fileToDataUrl(file);
-      const result = await api('/api/students/import', 'POST', {
+      const result = await profilesApi.importStudents({
         fileName: file.name,
         fileDataBase64: base64,
         dryRun,
