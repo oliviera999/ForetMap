@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Exploitation — `dist/` retiré du dépôt, migrations rattrapées, contrôles sans terminal
+
+- **`dist/` n'est plus versionné** (bascule `dist-artifact`, étape 3 ; `DEPLOY_DIST_SOURCE=branch`
+  était déjà actif sur le serveur). La CI construit le front et le publie sur
+  `dist-artifact/main`, le cron le pose après le `git pull`. `.gitignore` ignore `/dist/` ; le
+  hook `pre-push` ne bloque plus rien ; `frontend-dist.yml` garde son job `dist` (attendu par la
+  protection de branche) mais ne recommite plus `dist/` : il vérifie le build de production et
+  les miroirs CJS (`lib/visit-pack/`, `lib/gl-pack/`, `lib/term-autolink/`). Défaut de
+  `DEPLOY_DIST_SOURCE` dans le cron : `branch`.
+- **Rattrapage des migrations** : avec `DEPLOY_AUTO_MIGRATE=1`, le cron migre aussi quand la
+  base est **en retard** sur les fichiers de `migrations/`, y compris sans nouveau commit
+  (sauvegarde pré-migration comprise). Avant, il ne migrait que si le lot déployé apportait une
+  migration : une base oubliée le restait (cas de la migration 296).
+- **`npm run db:status`** (état du schéma, code 3 si des migrations attendent) et
+  **`npm run check:runtime`** (Node, schéma, `isomorphic-dompurify`, `sharp`, build du front,
+  miroir `lib/visit-pack/`), lançables sans terminal par « Run JS Script » de cPanel ; ils
+  remplacent les `node -e "require('…')"` du runbook, inutilisables tant que l'environnement
+  Node n'est pas activé. `GET /api/admin/diagnostics` expose `schema`
+  (`{ ok, current, latest, pending }`). Doc : `docs/EXPLOITATION.md`, § 1 bis.
+- **Graine biodiversité** : `scripts/extract-biodiv-pedago-seed.js` accepte un export récent des
+  seules tables de contenu : `INSERT` multiples fusionnés, colonnes nommées (l'import ne dépend
+  plus de leur ordre), `plants.hazard_reviewed_by` vidé (identifiant du relecteur), adresses
+  e-mail des textes (crédits photo) retirées. Les deux scripts d'import lisent les deux formats.
+- Test `tests/service-worker-cache.test.js` : le service worker généré est reconstruit en
+  mémoire au lieu d'être lu dans `dist/`.
+
 ### Modifié — niveaux : une seule échelle pour l'élève, le niveau de la classe comme référence (Q4, Q5)
 
 - Le niveau d'un élève est un niveau du programme (cycle 3 → terminale) ou « Université » ;

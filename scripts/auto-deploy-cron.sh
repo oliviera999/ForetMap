@@ -13,7 +13,9 @@ set -euo pipefail
 # - DEPLOY_BASE_URL     : base URL publique (défaut: https://foretmap.olution.info)
 # - DEPLOY_LOCK_DIR     : dossier lock anti-concurrence
 # - DEPLOY_ENV_FILE     : fichier env à charger (défaut: $APP_DIR/.env)
-# - DEPLOY_AUTO_MIGRATE : 1 pour lancer npm run db:migrate après pull
+# - DEPLOY_AUTO_MIGRATE : 1 pour lancer npm run db:migrate après pull quand le lot apporte
+#   une migration OU que la base est en retard sur les fichiers de migrations/ (rattrapage,
+#   y compris sans nouveau commit ; scripts/db-migration-status.js)
 # - DEPLOY_QUIET_SECONDS : n'applique un commit distant qu'après N secondes d'accalmie
 #   (défaut 180). Une rafale de merges sur main (cas courant quand plusieurs PR sont
 #   fusionnées d'affilée) est ainsi déployée en UN seul redémarrage au lieu d'un par
@@ -60,12 +62,13 @@ DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
 DEPLOY_AUTO_ROLLBACK="${DEPLOY_AUTO_ROLLBACK:-1}"
 DEPLOY_DB_PRE_MIGRATE_BACKUP="${DEPLOY_DB_PRE_MIGRATE_BACKUP:-1}"
 # Provenance du build frontend :
-# - `repo`   : `dist/` est versionné et arrive avec le `git pull` (mode historique, défaut) ;
 # - `branch` : `dist/` n'est plus dans le dépôt, il est récupéré sur la branche d'artefacts
-#              publiée par la CI (scripts/fetch-dist-artifact.js).
-# La bascule est décrite pas à pas dans docs/DEPLOY_DIST_ARTIFACT.md — elle doit se faire
-# APRÈS que le serveur ait déjà pris cette version du script, jamais dans le même passage.
-DEPLOY_DIST_SOURCE="${DEPLOY_DIST_SOURCE:-repo}"
+#              publiée par la CI (scripts/fetch-dist-artifact.js). Défaut depuis le retrait
+#              de `dist/` du dépôt (26/09/2026) ;
+# - `repo`   : mode historique, `dist/` arrive avec le `git pull`. Il ne sert plus qu'au
+#              retour arrière décrit dans docs/DEPLOY_DIST_ARTIFACT.md (il faut alors aussi
+#              revenir sur le commit qui a retiré `dist/`).
+DEPLOY_DIST_SOURCE="${DEPLOY_DIST_SOURCE:-branch}"
 DEPLOY_DIST_BRANCH="${DEPLOY_DIST_BRANCH:-dist-artifact/main}"
 
 # Alerte d'exploitation par email (best-effort, ne casse jamais le flux).
@@ -112,6 +115,27 @@ rollback_to() {
     alert "Rollback EN ÉCHEC" "Service toujours KO après retour sur $PREV_SHA — intervention manuelle requise."
   fi
   exit 1
+}
+
+# Base en retard sur les fichiers de migrations/ ? (scripts/db-migration-status.js : 0 = à
+# jour, 3 = en attente, 1 = base injoignable). Renvoie 0 seulement si des migrations
+# attendent : une base injoignable n'est pas une raison de migrer à l'aveugle.
+db_migrations_pending() {
+  local rc=0
+  node scripts/db-migration-status.js --quiet || rc=$?
+  [[ "$rc" -eq 3 ]]
+}
+
+# Sauvegarde vérifiée (si activée) puis `npm run db:migrate`. Renvoie le code de db:migrate.
+run_db_migrations() {
+  local reason="$1"
+  if [[ "$DEPLOY_DB_PRE_MIGRATE_BACKUP" == "1" ]] && [[ -f "$APP_DIR/scripts/db-backup.sh" ]]; then
+    log "Snapshot BDD pré-migration"
+    APP_DIR="$APP_DIR" DEPLOY_ENV_FILE="$DEPLOY_ENV_FILE" bash "$APP_DIR/scripts/db-backup.sh" --label pre-migrate ||
+      log "Snapshot pré-migration en échec (non bloquant)."
+  fi
+  log "$reason : npm run db:migrate"
+  npm run db:migrate
 }
 
 # Lock simple anti-cron concurrent
@@ -162,6 +186,18 @@ if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then
     elif [[ "$DIST_REPAIR_RC" -ne 0 ]]; then
       log "Réparation du build frontend en échec."
       alert "Réparation dist ÉCHEC" "dist/ absent ou incomplet sur $APP_DIR et l'artefact n'a pas pu être posé (HEAD=$LOCAL_SHA)."
+    fi
+  fi
+  # Rattrapage : une base restée en retard sur le code déjà déployé (migration oubliée,
+  # `DEPLOY_AUTO_MIGRATE` activé après coup) est migrée sans attendre un nouveau commit.
+  # Pas de redémarrage : le code tourne déjà, il attendait justement ce schéma.
+  if [[ "$DEPLOY_AUTO_MIGRATE" == "1" ]] && db_migrations_pending; then
+    if run_db_migrations "Base en retard sur le code déployé"; then
+      log "Rattrapage des migrations terminé (HEAD=$LOCAL_SHA)."
+    else
+      log "ÉCHEC du rattrapage des migrations."
+      alert "Migration BDD ÉCHEC" "Rattrapage npm run db:migrate en échec sur $LOCAL_SHA (aucun nouveau commit). Snapshot pré-migration dans backups/."
+      exit 1
     fi
   fi
   log "Aucune mise à jour (HEAD=$LOCAL_SHA)."
@@ -285,14 +321,18 @@ if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
   npm ci --omit=dev --no-audit --no-fund
 fi
 
-if [[ "$DEPLOY_AUTO_MIGRATE" == "1" ]] && grep -Eq '^migrations/' <<<"$CHANGED_FILES"; then
-  if [[ "$DEPLOY_DB_PRE_MIGRATE_BACKUP" == "1" ]] && [[ -f "$APP_DIR/scripts/db-backup.sh" ]]; then
-    log "Snapshot BDD pré-migration"
-    APP_DIR="$APP_DIR" DEPLOY_ENV_FILE="$DEPLOY_ENV_FILE" bash "$APP_DIR/scripts/db-backup.sh" --label pre-migrate ||
-      log "Snapshot pré-migration en échec (non bloquant)."
+# Migrations : celles qu'apporte le lot, ou une base déjà en retard sur le code (le lot n'en
+# apporte pas mais une migration précédente n'a jamais été passée).
+MIGRATE_REASON=""
+if [[ "$DEPLOY_AUTO_MIGRATE" == "1" ]]; then
+  if grep -Eq '^migrations/' <<<"$CHANGED_FILES"; then
+    MIGRATE_REASON="Migrations détectées"
+  elif db_migrations_pending; then
+    MIGRATE_REASON="Base en retard sur le code"
   fi
-  log "Migrations détectées: npm run db:migrate"
-  if ! npm run db:migrate; then
+fi
+if [[ -n "$MIGRATE_REASON" ]]; then
+  if ! run_db_migrations "$MIGRATE_REASON"; then
     log "ÉCHEC de db:migrate."
     alert "Migration BDD ÉCHEC" "npm run db:migrate a échoué ($PREV_SHA -> $REMOTE_SHA). Snapshot pré-migration disponible dans backups/."
     if [[ "$DEPLOY_AUTO_ROLLBACK" == "1" ]]; then

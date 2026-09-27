@@ -1,9 +1,17 @@
 # Déploiement des suites de l'audit du 25/09/2026 — ce qu'il faut faire côté serveur
 
-Procédure pour mettre en production #550 (fusionnée), #551 et #552 : migrations **292 à 301**.
+Procédure pour mettre en production #550, #551 et #552 (fusionnées) : migrations **292 à 301**.
 Toutes les commandes se lancent **sur le serveur**, dans le dossier de l'application (celui qui
 contient `package.json`), avec le `.env` de production. Chaque appel au client MariaDB porte
 `--default-character-set=utf8mb4`.
+
+> **`node` ou `npm` « introuvable » dans le terminal cPanel ?** C'est normal : il faut d'abord
+> activer l'environnement Node de l'application, avec la commande affichée en tête de la fiche
+> **Setup Node.js App** (« Enter to the virtual environment »), par exemple
+> `source ~/nodevenv/foretmap.olution.info/22/bin/activate && cd ~/foretmap.olution.info`.
+> Sans terminal : **Setup Node.js App → Run JS Script**, avec un nom de script npm
+> (`db:status`, `check:runtime`, `db:migrate`). Détail : `docs/EXPLOITATION.md`, § 1 bis.
+> `mysql`, `mariadb-dump` et `bash scripts/db-backup.sh` fonctionnent sans cette activation.
 
 > ⚠️ **Urgent si le cron a déjà déployé `main`.** #550 est dans `main` depuis le 25/09 à 21 h 25
 > (UTC). Le cron déploie `main` automatiquement, mais **ne lance pas les migrations** tant que
@@ -21,6 +29,9 @@ mysql --default-character-set=utf8mb4 -u "$DB_USER" -p "$DB_NAME" \
   -e "SELECT version FROM schema_version"    # version du schéma (attendu avant : 291)
 grep -E '^DEPLOY_AUTO_MIGRATE|^DEPLOY_DB_PRE_MIGRATE_BACKUP' .env
 ```
+
+Même information sans terminal : **Run JS Script** → `db:status` (« schéma à jour » ou la liste
+des migrations en attente).
 
 ## 1. Sauvegarde vérifiée (avant toute migration)
 
@@ -63,12 +74,14 @@ Les migrations **doivent passer dans l'ordre** : le moteur saute sans rien dire 
 inférieur à la version courante. Ne jamais déployer une branche qui apporte 300 ou 301 avant
 298-299 (la garde `tests/migrations-numbering.test.js` l'empêche désormais en CI).
 
-**Pour les prochains déploiements**, deux options :
+Sans terminal : **Run JS Script** → `db:migrate` (après la sauvegarde de l'étape 1).
 
-- mettre `DEPLOY_AUTO_MIGRATE=1` dans le `.env` : le cron fait alors sauvegarde + migration +
-  redémarrage dans le même passage (la sauvegarde pré-migration est active par défaut) ;
-- ou garder `0` et lancer `npm run db:migrate` juste après chaque fusion qui apporte une
-  migration.
+**Pour les prochains déploiements (recommandé) : `DEPLOY_AUTO_MIGRATE=1` dans le `.env`.** Le
+cron fait alors sauvegarde + migration + redémarrage dans le même passage (la sauvegarde
+pré-migration est active par défaut). Depuis la PR d'exploitation du 26/09, il **rattrape aussi
+une base en retard** : si le code déployé attend des migrations qui n'ont jamais été passées, le
+cron les applique au passage suivant, **même sans nouveau commit**. Mettre la variable à `1`
+suffit donc à régulariser une base restée à 291 : rien d'autre à lancer à la main.
 
 ## 3. Redémarrage et contrôle
 
@@ -76,9 +89,12 @@ Redémarrer l'application (Setup Node.js App) si le cron ne l'a pas fait, puis :
 
 ```bash
 npm run deploy:check:prod
-node -e "require('isomorphic-dompurify'); console.log('dompurify ok')"   # vue des tutoriels (P0)
-node -e "require('sharp'); console.log('sharp ok')"                       # question 14, dernier contrôle
+npm run check:runtime    # schéma, isomorphic-dompurify (tutoriels), sharp (question 14), build du front
 ```
+
+Sans terminal : **Run JS Script** → `check:runtime`, puis `deploy:check:prod`. `check:runtime`
+remplace les anciennes commandes `node -e "require('…')"`, qui ne marchent pas dans un terminal
+où l'environnement Node n'est pas activé.
 
 ## 4. Contrôles fonctionnels rapides
 
@@ -102,22 +118,35 @@ node -e "require('sharp'); console.log('sharp ok')"                       # ques
 
 ## 6. Hors serveur (sur votre poste)
 
-- **Graine biodiversité** : après la migration 295, régénérer `sql/biodiv_pedago_seed.sql` à
-  partir d'un dump de production **gardé sur votre poste** (il contient des données
-  personnelles) : `node scripts/extract-biodiv-pedago-seed.js <dump.sql>` (le script refuse
-  d'écrire s'il trouve un e-mail ou un hachage), puis commiter le seul fichier régénéré.
+- **Graine biodiversité** : après la migration 295, régénérer `sql/biodiv_pedago_seed.sql`. Il
+  suffit d'un export des **11 tables de contenu**, sans les tables de comptes (commande
+  ci-dessous, sans `node`) ; le script d'extraction vide `plants.hazard_reviewed_by`
+  (identifiant du professeur relecteur), retire les adresses e-mail trouvées dans les textes
+  (crédits photo) et refuse d'écrire s'il reste un e-mail ou un hachage :
+
+  ```bash
+  set -a; . ./.env; set +a
+  MYSQL_PWD="$DB_PASS" mariadb-dump --default-character-set=utf8mb4 --single-transaction \
+    --no-tablespaces --skip-triggers -h "${DB_HOST:-localhost}" -u "$DB_USER" "$DB_NAME" \
+    plants plant_name_aliases zone_species marker_species task_species species_interactions \
+    glossary_terms glossary_term_relations glossary_term_species glossary_term_tutorials \
+    glossary_term_interactions > ~/biodiv-contenu.sql
+  tail -n 1 ~/biodiv-contenu.sql     # « -- Dump completed … »
+  ```
+
+  Puis `node scripts/extract-biodiv-pedago-seed.js ~/biodiv-contenu.sql` (sur un poste ou dans
+  l'environnement Node activé) et commiter le seul fichier régénéré.
+
 - **Lot BCDEG** : ses migrations doivent être renumérotées **à partir de 302** (292 à 301 sont
   pris, et la numérotation doit rester continue).
 
-## 7. Bascule `dist-artifact` (question 16), quand vous voulez
+## 7. Bascule `dist-artifact` (question 16) — faite
 
-Runbook complet : `docs/DEPLOY_DIST_ARTIFACT.md`, § 3.
-
-1. Contrôle à blanc : `npm run deploy:dist:verify` → « artefact complet (N fichiers) », N égal
-   au nombre de fichiers de `dist/` ; puis `rm -rf dist.candidate`.
-2. `DEPLOY_DIST_SOURCE=branch` dans le `.env` ; laisser passer un ou deux déploiements.
-3. Me le signaler : je prépare alors la PR courte qui retire `dist/` du dépôt.
-   Retour arrière : `DEPLOY_DIST_SOURCE=repo`.
+`DEPLOY_DIST_SOURCE=branch` est actif sur le serveur, et la PR d'exploitation du 26/09 retire
+`dist/` du dépôt. Au premier déploiement qui la contient, le `git pull` supprime `dist/` et le
+cron le repose aussitôt depuis l'artefact publié par la CI, avant tout redémarrage. Rien à faire
+côté serveur ; vérifier ensuite que le site s'affiche (`check:runtime` contrôle aussi la
+présence du build). Retour arrière : `docs/DEPLOY_DIST_ARTIFACT.md`, § « Retour en arrière ».
 
 ## 8. Retour arrière
 

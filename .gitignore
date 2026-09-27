@@ -7,6 +7,12 @@ node_modules/
 # Build frontend Vite
 deploy/
 
+# Build de production : plus versionné depuis la bascule `dist-artifact` (26/09/2026).
+# La CI le construit et le publie sur la branche `dist-artifact/main`, le cron le récupère
+# (scripts/fetch-dist-artifact.js, docs/DEPLOY_DIST_ARTIFACT.md). `npm run build` en local
+# produit un dist/ ignoré, utile pour l'e2e en mode production.
+/dist/
+
 # Dossiers de travail du build frontend récupéré depuis la branche d'artefacts
 # (scripts/fetch-dist-artifact.js). Ils doivent rester hors du dépôt ET hors de
 # `git status --porcelain`, que le cron de déploiement exige vide avant de pull.

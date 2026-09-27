@@ -185,6 +185,13 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
 
 ### Étape 3 — basculer, puis retirer `dist/` du dépôt
 
+> **Fait le 26/09/2026.** `DEPLOY_DIST_SOURCE=branch` a été activé sur le serveur, puis la PR
+> d'exploitation a retiré `dist/` du dépôt. Écart assumé avec le point 2 ci-dessous :
+> `frontend-dist.yml` n'est pas supprimé mais **réduit** (build de contrôle + miroirs CJS, plus
+> aucun recommit de `dist/`), parce que son job `dist` est attendu par la protection de branche
+> et qu'il est le seul à contrôler les miroirs `lib/visit-pack/`, `lib/gl-pack/`,
+> `lib/term-autolink/`. Le défaut de `DEPLOY_DIST_SOURCE` dans le cron passe à `branch`.
+
 **Dans cet ordre, sans inverser.**
 
 1. **Sur le serveur**, activer le nouveau mode dans le `.env` (ou l'environnement du cron) :

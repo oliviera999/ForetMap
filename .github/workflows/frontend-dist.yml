@@ -1,13 +1,18 @@
 name: Frontend dist
 
-# Garantit que le `dist/` (et les miroirs CJS `lib/visit-pack/`, `lib/gl-pack/` & `lib/term-autolink/`)
-# commités correspondent bien aux sources — l'invariant sur lequel repose le
-# déploiement par `git pull` du cron (scripts/auto-deploy-cron.sh).
+# Depuis la bascule `dist-artifact` (26/09/2026), `dist/` n'est plus versionné : la CI le
+# construit et le publie sur la branche `dist-artifact/main` (`dist-publish.yml`), le cron le
+# récupère (docs/DEPLOY_DIST_ARTIFACT.md). Ce workflow ne recommite donc plus `dist/`.
 #
-# - Sur une PR du dépôt (non-fork) : si le rebuild produit une dérive, le job
-#   recommite automatiquement les artefacts régénérés sur la branche de PR (C).
-# - Sur une PR de fork (push impossible) ou sur push `main` : le job ÉCHOUE si
-#   une dérive subsiste, en garde-fou bloquant (A).
+# Il garde deux rôles :
+#   - vérifier que le build de production passe sur chaque PR (un build cassé bloquerait la
+#     publication de l'artefact, donc le déploiement) ;
+#   - garantir que les miroirs CJS encore versionnés (`lib/visit-pack/`, `lib/gl-pack/`,
+#     `lib/term-autolink/`), requis au runtime par l'API qui tourne sans `src/`, correspondent
+#     aux sources. Sur une PR du dépôt, une dérive est recommitée automatiquement ; sur une PR
+#     de fork ou un push `main`, elle fait échouer le job.
+#
+# Le job garde le nom `dist` : c'est celui que la protection de branche attend.
 
 on:
   pull_request:
@@ -42,22 +47,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Rebuild front + miroirs (npm run build)
+      - name: Build de production + miroirs (npm run build)
         run: npm run build
 
-      - name: Détecter une dérive dist/ + miroirs
+      - name: Détecter une dérive des miroirs CJS
         id: drift
         run: |
-          if git diff --quiet -- dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/; then
+          if git diff --quiet -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/; then
             echo "drift=false" >> "$GITHUB_OUTPUT"
-            echo "dist/ et miroirs à jour."
+            echo "Miroirs CJS à jour."
           else
             echo "drift=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
+            git --no-pager diff --stat -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
           fi
 
-      # --- C : PR du dépôt → recommit automatique du dist/ régénéré ---
-      - name: Auto-commit dist (PR du dépôt)
+      # --- PR du dépôt → recommit automatique des miroirs régénérés ---
+      - name: Auto-commit des miroirs (PR du dépôt)
         if: >-
           steps.drift.outputs.drift == 'true' &&
           github.event_name == 'pull_request' &&
@@ -65,17 +70,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/ lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
-          git commit -m "chore(build): régénère dist/ + miroirs (auto) [skip ci]"
+          git add lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
+          git commit -m "chore(build): régénère les miroirs CJS (auto) [skip ci]"
           # Le push avec GITHUB_TOKEN ne re-déclenche pas de workflow (anti-boucle).
           git push origin "HEAD:${{ github.head_ref }}"
 
-      # --- A : garde-fou bloquant (push main, ou PR de fork sans auto-commit possible) ---
-      - name: Garde-fou dist à jour
+      # --- Garde-fou bloquant (push main, ou PR de fork sans auto-commit possible) ---
+      - name: Garde-fou miroirs à jour
         if: >-
           steps.drift.outputs.drift == 'true' &&
           (github.event_name == 'push' ||
            github.event.pull_request.head.repo.full_name != github.repository)
         run: |
-          echo "::error::dist/ ou miroirs CJS périmés. Lance 'npm run build' (ou 'npm run ship') puis recommite dist/ + lib/visit-pack/ + lib/gl-pack/ + lib/term-autolink/."
+          echo "::error::Miroirs CJS périmés. Lance 'npm run build' (ou 'npm run sync:visit-pack-lib', 'npm run sync:gl-pack-lib') puis recommite lib/visit-pack/ + lib/gl-pack/ + lib/term-autolink/."
           exit 1

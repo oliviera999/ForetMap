@@ -51,7 +51,7 @@ Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MariaDB 11.4 (
 **Quoi lancer dans quel cas** : **[docs/SCRIPTS.md](docs/SCRIPTS.md)**.
 Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images). Diagnostic à distance depuis Cursor (MCP) : **[docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md)** (fichier **`.cursor/mcp.json`**, secret deploy dans **`.env`** ou variable d’environnement).
 Déploiement entièrement automatisé (push -> cron -> mise à jour): voir la section dédiée dans `docs/EXPLOITATION.md`.
-Le script auto-deploy bloque volontairement un pull si `src/` change sans artefacts `dist/` mis à jour (build local requis avant push).
+`dist/` n'est plus versionné (26/09/2026) : la CI construit le front et le publie sur la branche `dist-artifact/main`, que le script auto-deploy récupère après le `git pull` (`docs/DEPLOY_DIST_ARTIFACT.md`). Aucun build à pousser.
 
 ### Dépendances npm (mises à jour prudentes)
 
@@ -238,7 +238,7 @@ Cette variante évite les pannes observées côté hébergeur (`vite` absent, lo
 
 ### Workflow conseillé (résumé)
 
-- **Si auto-deploy cron est actif sur le serveur**: build local + `dist/` à jour, commit/push, attendre le run cron, puis vérifier avec `npm run deploy:check:prod`.
+- **Si auto-deploy cron est actif sur le serveur**: commit/push (le build du front est publié par la CI), attendre le run cron, puis vérifier avec `npm run deploy:check:prod`.
 - **Si l'hébergement est instable avec npm côté serveur** : utiliser `npm run deploy:prepare:runtime`, uploader le dossier `deploy/runtime/foretmap-runtime-*` **ou** extraire le ZIP sur le serveur, redémarrer, puis `npm run deploy:check:prod`.
 - En cas de `429` ponctuel au check post-déploiement, relancer la vérification après quelques secondes puis confirmer `GET /api/version`.
 
@@ -326,7 +326,7 @@ ForetMap/
 ├── .cursor/
 │   ├── rules/          # Règles Cursor (conventions du projet)
 │   └── skills/         # Skills Cursor (contexte ForetMap)
-├── dist/               # Sortie `npm run build` (servi en prod, non versionné si absent)
+├── dist/               # Sortie `npm run build` (servi en prod ; non versionné, publié par la CI)
 └── public/
     ├── index.html      # Message si build absent ; assets copiés dans dist/ au build
     └── sw.js           # Service worker (PWA légère)

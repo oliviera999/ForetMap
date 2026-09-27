@@ -48,6 +48,7 @@ npm run test:ui          # tests React (Vitest, tests-ui/**)
 npm run test:e2e         # Playwright (libère le port puis start:e2e)
 npm run lint             # ESLint            | npm run format:check  # Prettier (vérif)
 npm run db:init          # schéma + seed     | npm run db:migrate    # migrations seules
+npm run db:status        # base en retard ?  | npm run check:runtime # contrôle serveur (schéma, modules, build)
 npm run deploy:check:prod  # check post-déploiement prod
 npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 ```

@@ -13,7 +13,7 @@ try {
 
 try {
   execFileSync('git', ['config', 'core.hooksPath', '.githooks'], { stdio: 'ignore' });
-  console.log('[hooks] core.hooksPath = .githooks (pre-commit lint+format, pre-push garde dist/)');
+  console.log('[hooks] core.hooksPath = .githooks (pre-commit lint+format)');
 } catch (_) {
   // git absent ou config en échec : ne pas casser l'installation
 }
