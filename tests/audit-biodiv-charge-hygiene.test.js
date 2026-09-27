@@ -44,9 +44,10 @@ test('B6 — une écriture sur le catalogue bumpe toujours le domaine plants', a
 });
 
 test('B5 — la liste des plantes n’est pas ré-enrichie à chaque hit de cache', () => {
-  const src = read('routes/plants.js');
+  // Depuis l'étape B3 (audit du 25/09/2026), le cache du catalogue vit dans le service.
+  const src = read('lib/biodiv/speciesService.js');
   assert.ok(
-    /if \(cached\) return res\.json\(cached\);/.test(src),
+    /if \(cached\) return cached;/.test(src),
     'le hit de cache doit renvoyer la valeur cachée telle quelle',
   );
   assert.ok(
@@ -57,7 +58,9 @@ test('B5 — la liste des plantes n’est pas ré-enrichie à chaque hit de cach
 
 test('B7 / P4 — les agrégats partagés passent par un cache mémoire', () => {
   assert.ok(
-    read('routes/plants.js').includes("getNamedMemoryTtlCache('plants:site-observations:v1'"),
+    read('lib/biodiv/speciesService.js').includes(
+      "getNamedMemoryTtlCache('plants:site-observations:v1'",
+    ),
     'compteurs « tout le site » : agrégat identique pour tous, à ne pas recalculer par élève',
   );
   assert.ok(
