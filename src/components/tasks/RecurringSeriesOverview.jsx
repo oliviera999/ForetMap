@@ -1,11 +1,25 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { api } from '../../services/api.js';
+import { TASK_STATUS_ENUM } from '../../shared/enums/taskEnums.js';
 
 const RECURRENCE_LABELS = {
   weekly: 'Hebdo',
   biweekly: 'Bi-hebdo',
   monthly: 'Mensuelle',
 };
+
+/** « 04/06/2026 » : l'échéance courante peut être ancienne, l'année compte. */
+function formatDueDate(value) {
+  const raw = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [y, m, d] = raw.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+/** Les abréviations de mois se terminent par un point : pas de second point final. */
+function sentence(text) {
+  return text.endsWith('.') ? text : `${text}.`;
+}
 
 /** « mar. 22 sept. » — le jour de semaine est l'information utile ici : c'est lui qui dérivait. */
 export function formatOccurrenceDate(value) {
@@ -25,7 +39,7 @@ export function formatOccurrenceDate(value) {
  * Renvoie `null` quand le serveur n'a rien pu calculer (série sans échéance exploitable).
  */
 export function previewLine(preview) {
-  if (!preview) return null;
+  if (!preview || preview.already_spawned) return null;
   const next = formatOccurrenceDate(preview.next_start);
   const due = formatOccurrenceDate(preview.next_due);
   if (!next) return null;
@@ -36,7 +50,7 @@ export function previewLine(preview) {
   if (preview.pending === 'due_date') {
     return `Prochaine occurrence ${fenetre}, une fois l’échéance atteinte.`;
   }
-  return `Prochaine occurrence ${fenetre}.`;
+  return sentence(`Prochaine occurrence ${fenetre}`);
 }
 
 /**
@@ -45,6 +59,9 @@ export function previewLine(preview) {
  */
 export function spawnLine(preview, today = null) {
   if (!preview) return null;
+  if (preview.already_spawned) {
+    return 'Déjà dupliquée pour cette échéance, mais la copie n’existe plus (supprimée ou archivée) : la série est à l’arrêt. Changez l’échéance de cette tâche pour la relancer.';
+  }
   const raw = String(preview.spawn_date || '').trim();
   const spawn = formatOccurrenceDate(raw);
   if (!spawn) return null;
@@ -52,7 +69,7 @@ export function spawnLine(preview, today = null) {
   if (preview.pending === 'validation') {
     return `Duplication ${quand} au plus tôt, si elle est validée d’ici là.`;
   }
-  return `Duplication prévue ${quand}.`;
+  return sentence(`Duplication prévue ${quand}`);
 }
 
 /**
@@ -159,8 +176,9 @@ export function RecurringSeriesOverview({
         title: head.title,
         recurrence: head.recurrence,
         count: list.length,
-        latestDue: head.due_date || '—',
-        status: head.status,
+        hasDue: Boolean(formatDueDate(head.due_date)),
+        latestDue: formatDueDate(head.due_date) || '—',
+        status: TASK_STATUS_ENUM.labels[head.status] || head.status,
         archived: Boolean(head.archived_at),
         preview: previews?.get(String(seriesId)) || null,
       };
@@ -214,7 +232,10 @@ export function RecurringSeriesOverview({
             {rows.map((row) => {
               const prevision = previewLine(row.preview);
               const ancre = formatOccurrenceDate(row.preview?.anchor_date);
-              const duplication = automationEnabled ? spawnLine(row.preview, previewToday) : null;
+              const duplication =
+                automationEnabled || row.preview?.already_spawned
+                  ? spawnLine(row.preview, previewToday)
+                  : null;
               return (
                 <li key={row.seriesId}>
                   <span className="recurring-series-title">{row.title}</span>
@@ -235,13 +256,25 @@ export function RecurringSeriesOverview({
                     </span>
                   )}
                   {!row.archived && duplication && (
-                    <span className="recurring-series-next recurring-series-spawn">
+                    <span
+                      className={`recurring-series-next recurring-series-spawn${
+                        row.preview?.already_spawned ? ' recurring-series-next--stopped' : ''
+                      }`}
+                    >
                       {duplication}
+                    </span>
+                  )}
+                  {/* Le job ne duplique qu'une tâche dont l'échéance est atteinte : sans
+                      échéance, la série ne repart jamais. */}
+                  {!row.archived && !row.hasDue && (
+                    <span className="recurring-series-next recurring-series-next--stopped">
+                      Sans échéance : jamais dupliquée automatiquement. Ajoutez une échéance à cette
+                      tâche pour lancer la série.
                     </span>
                   )}
                   {/* Sans ce repère, une série hors de la fenêtre de calcul s'affichait
                       exactement comme une série sans prochaine occurrence. */}
-                  {!row.archived && !prevision && previewTruncated && (
+                  {!row.archived && row.hasDue && !row.preview && previewTruncated && (
                     <span className="recurring-series-next recurring-series-next--unknown">
                       Prévision non calculée : trop de séries à traiter d’un coup.
                     </span>

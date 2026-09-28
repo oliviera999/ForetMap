@@ -529,11 +529,11 @@ router.get(
     const PREVIEW_LIMIT = 200;
     const rows = await queryAll(
       `SELECT t.id, t.title, t.recurrence, t.recurrence_series_id, t.recurrence_anchor_date,
-              t.start_date, t.due_date, t.status, t.created_at
+              t.start_date, t.due_date, t.status, t.created_at, t.recurrence_spawned_for_due_date
          FROM tasks t
         WHERE t.recurrence IN ('weekly','biweekly','monthly')
           AND t.archived_at IS NULL
-          AND t.due_date IS NOT NULL
+          AND t.due_date IS NOT NULL AND TRIM(t.due_date) <> ''
           AND NOT EXISTS (
             SELECT 1 FROM tasks p
              WHERE p.recurrence_series_id = t.recurrence_series_id
@@ -565,6 +565,12 @@ router.get(
       );
       const validated = String(row.status || '').trim() === 'validated';
       const dueReached = String(row.due_date || '') <= today;
+      // Le job marque la source une fois dupliquée pour son échéance et ne la reprend plus
+      // jamais pour celle-ci : si la copie a été supprimée ou archivée, la série est à
+      // l'arrêt tant que l'échéance n'est pas changée.
+      const alreadySpawned =
+        String(row.recurrence_spawned_for_due_date || '').trim() !== '' &&
+        String(row.recurrence_spawned_for_due_date).trim() === String(row.due_date).trim();
       series.push({
         series_id: row.recurrence_series_id || row.id,
         task_id: row.id,
@@ -577,7 +583,8 @@ router.get(
         current_due: row.due_date || null,
         next_start: window?.startDate || null,
         next_due: window?.dueDate || null,
-        spawn_date: spawnDate || null,
+        spawn_date: alreadySpawned ? null : spawnDate || null,
+        already_spawned: alreadySpawned,
       });
     }
     const automationEnabled = Boolean(

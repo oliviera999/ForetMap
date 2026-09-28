@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — panneau « Séries récurrentes » : séries bloquées signalées, affichage lisible
+
+- Une série **sans échéance** (jamais dupliquée par le job) est désormais annoncée comme
+  telle au lieu d'afficher seulement « échéance — ».
+- Une série **déjà dupliquée pour son échéance** mais dont la copie a été supprimée ou
+  archivée n'annonce plus une « Duplication prévue aujourd'hui » trompeuse : elle est
+  signalée « à l'arrêt » (nouveau champ `already_spawned` de
+  `GET /api/tasks/recurring-preview`).
+- Statut affiché en français (« Validée », « En cours »…), échéance au format jj/mm/aaaa,
+  plus de double point après une abréviation de mois (« 08 oct.. »).
+
 ### Ajouté — réglages : calendrier scolaire modifiable (congés, jours ouvrables, années)
 
 - Nouveau cadre **« Calendrier scolaire »** dans Réglages → Pédagogie : cases des **jours

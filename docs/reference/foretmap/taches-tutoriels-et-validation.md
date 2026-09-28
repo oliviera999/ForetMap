@@ -355,6 +355,18 @@ dans les réglages (voir « Modifier le calendrier scolaire » ci-dessous).
   dupliquée le premier jour d'école qui suit sa validation. Si la duplication
   automatique est suspendue dans les réglages, le panneau le signale et n'annonce
   aucune date.
+
+> ⚠️ **Points d'attention — séries qui ne repartent jamais seules**
+>
+> - **Une tâche récurrente sans échéance n'est jamais dupliquée** : c'est l'échéance qui
+>   déclenche la duplication. Le panneau l'écrit en rouge (« Sans échéance : jamais
+>   dupliquée automatiquement ») ; il suffit d'ajouter une échéance à la tâche pour lancer
+>   la série.
+> - **Une série dont la copie a été supprimée ou archivée s'arrête** : l'application
+>   retient qu'elle a déjà dupliqué la tâche pour cette échéance et ne recommence pas. Le
+>   panneau l'annonce (« la série est à l'arrêt ») ; pour la relancer, changer l'échéance
+>   de la tâche restante.
+
 - **Les séries qui attendent quelque chose passent en tête** de ce panneau : celles qui
   réclament une validation d'abord, puis les échéances les plus anciennes. Le calcul
   étant limité à 200 séries, ce sont les séries « qui roulent toutes seules » qui

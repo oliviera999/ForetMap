@@ -3899,6 +3899,10 @@
     .recurring-series-anchor {
       color: var(--muted, #5a6b5d);
     }
+    /* Série qui ne repartira pas seule : action du professeur requise. */
+    .recurring-series-next--stopped {
+      color: var(--alert);
+    }
     .recurring-series-overview-more {
       margin: 8px 0 0;
       font-size: var(--text-sm);

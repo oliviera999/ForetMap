@@ -147,6 +147,44 @@ test('recurring-preview : annonce le jour de duplication', async () => {
   );
 });
 
+/**
+ * Série déjà dupliquée pour son échéance (marqueur posé) mais dont la copie a disparu : le
+ * job ne la relancera jamais. La prévision doit le dire au lieu d'annoncer une duplication.
+ */
+test('recurring-preview : signale une série déjà dupliquée (à l’arrêt)', async () => {
+  const token = await getAdminAuthToken();
+  const taskId = await createRecurringTask(token, `RecPreview arrêt ${Date.now()}`, {
+    start_date: '2099-12-28',
+    due_date: '2099-12-31',
+  });
+  await execute(
+    "UPDATE tasks SET status = 'validated', recurrence_spawned_for_due_date = due_date WHERE id = ?",
+    [taskId],
+  );
+
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  const ligne = findSeries(res.body, taskId);
+  assert.ok(ligne, 'la série figure dans la prévision');
+  assert.strictEqual(ligne.already_spawned, true);
+  assert.strictEqual(ligne.spawn_date, null, 'aucune duplication à annoncer');
+});
+
+test('recurring-preview : une série sans échéance n’est pas prévue', async () => {
+  const token = await getAdminAuthToken();
+  const taskId = await createRecurringTask(token, `RecPreview sans échéance ${Date.now()}`);
+  await execute('UPDATE tasks SET due_date = NULL WHERE id = ?', [taskId]);
+
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(findSeries(res.body, taskId), null);
+});
+
 test('recurring-preview : une série n’apparaît qu’une fois, par sa tête d’échéance', async () => {
   const token = await getAdminAuthToken();
   const seriesId = `srv-${Date.now()}`;

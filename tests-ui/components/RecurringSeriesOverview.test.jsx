@@ -101,6 +101,27 @@ describe('spawnLine', () => {
     expect(spawnLine(null)).toBeNull();
     expect(spawnLine({ spawn_date: null, pending: null })).toBeNull();
   });
+
+  test('pas de double point après une abréviation de mois', () => {
+    expect(spawnLine({ spawn_date: '2026-10-08', pending: 'due_date' }, '2026-09-28')).toMatch(
+      /oct\.$/,
+    );
+    expect(
+      previewLine({ next_start: '2026-10-08', next_due: '2026-10-08', pending: null }),
+    ).toMatch(/oct\.$/);
+  });
+
+  test('série déjà dupliquée dont la copie a disparu : annoncée à l’arrêt', () => {
+    const preview = {
+      already_spawned: true,
+      spawn_date: null,
+      pending: null,
+      next_start: '2026-10-08',
+      next_due: '2026-10-08',
+    };
+    expect(spawnLine(preview, '2026-09-28')).toMatch(/la série est à l’arrêt/);
+    expect(previewLine(preview)).toBeNull();
+  });
 });
 
 const TASKS = [
@@ -339,6 +360,30 @@ describe('RecurringSeriesOverview', () => {
       expect(screen.getByText('Arroser la serre')).toBeInTheDocument();
     });
     expect(screen.queryByText(/Prévision non calculée/)).not.toBeInTheDocument();
+  });
+
+  test('série sans échéance : signalée comme jamais dupliquée, statut en français', async () => {
+    const user = userEvent.setup();
+    render(
+      <RecurringSeriesOverview
+        isTeacher
+        tasks={[
+          {
+            id: 7,
+            title: 'Arrosage des cactus',
+            recurrence: 'weekly',
+            recurrence_series_id: 'S7',
+            due_date: null,
+            status: 'validated',
+          },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/Sans échéance : jamais dupliquée/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/échéance — · Validée/)).toBeInTheDocument();
   });
 
   test('ne demande rien et n’affiche rien hors profil prof', () => {
