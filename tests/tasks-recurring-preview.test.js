@@ -173,16 +173,23 @@ test('recurring-preview : signale une série déjà dupliquée (à l’arrêt)',
   assert.strictEqual(ligne.spawn_date, null, 'aucune duplication à annoncer');
 });
 
-test('recurring-preview : une série sans échéance n’est pas prévue', async () => {
+test('recurring-preview : une série sans échéance est dupliquée dès sa validation', async () => {
   const token = await getAdminAuthToken();
   const taskId = await createRecurringTask(token, `RecPreview sans échéance ${Date.now()}`);
-  await execute('UPDATE tasks SET due_date = NULL WHERE id = ?', [taskId]);
+  await execute("UPDATE tasks SET due_date = NULL, status = 'validated' WHERE id = ?", [taskId]);
 
   const res = await request(app)
     .get('/api/tasks/recurring-preview')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
-  assert.strictEqual(findSeries(res.body, taskId), null);
+  const ligne = findSeries(res.body, taskId);
+  assert.ok(ligne, 'la série sans échéance figure dans la prévision');
+  assert.strictEqual(ligne.without_due, true);
+  assert.strictEqual(ligne.pending, null, 'validée : plus rien à attendre');
+  assert.strictEqual(ligne.already_spawned, false);
+  assert.ok(ligne.spawn_date >= res.body.today);
+  assert.strictEqual(ligne.next_due, null, 'la copie reste sans échéance');
+  assert.ok(ligne.next_start >= res.body.today);
 });
 
 test('recurring-preview : une série n’apparaît qu’une fois, par sa tête d’échéance', async () => {

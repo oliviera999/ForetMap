@@ -122,6 +122,19 @@ describe('spawnLine', () => {
     expect(spawnLine(preview, '2026-09-28')).toMatch(/la série est à l’arrêt/);
     expect(previewLine(preview)).toBeNull();
   });
+
+  test('série sans échéance : dupliquée dès sa validation', () => {
+    expect(
+      spawnLine(
+        { without_due: true, pending: 'validation', spawn_date: '2026-09-28' },
+        '2026-09-28',
+      ),
+    ).toMatch(/dès sa validation/);
+    expect(
+      spawnLine({ without_due: true, pending: null, spawn_date: '2026-09-28' }, '2026-09-28'),
+    ).toBe('Duplication prévue aujourd’hui.');
+    expect(spawnLine({ without_due: true, already_spawned: true })).toMatch(/Donnez une échéance/);
+  });
 });
 
 const TASKS = [
@@ -362,7 +375,7 @@ describe('RecurringSeriesOverview', () => {
     expect(screen.queryByText(/Prévision non calculée/)).not.toBeInTheDocument();
   });
 
-  test('série sans échéance : signalée comme jamais dupliquée, statut en français', async () => {
+  test('série sans échéance : libellé « sans échéance », statut en français', async () => {
     const user = userEvent.setup();
     render(
       <RecurringSeriesOverview
@@ -380,10 +393,7 @@ describe('RecurringSeriesOverview', () => {
       />,
     );
     await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
-    await waitFor(() => {
-      expect(screen.getByText(/Sans échéance : jamais dupliquée/)).toBeInTheDocument();
-    });
-    expect(screen.getByText(/échéance — · Validée/)).toBeInTheDocument();
+    expect(screen.getByText(/sans échéance · Validée/)).toBeInTheDocument();
   });
 
   test('ne demande rien et n’affiche rien hors profil prof', () => {

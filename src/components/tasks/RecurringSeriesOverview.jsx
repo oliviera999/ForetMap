@@ -36,7 +36,7 @@ export function formatOccurrenceDate(value) {
 
 /**
  * Phrase de prévision d'une série : ce que le job posera, et ce qu'il attend pour le faire.
- * Renvoie `null` quand le serveur n'a rien pu calculer (série sans échéance exploitable).
+ * Renvoie `null` quand le serveur n'a rien pu calculer ou que la série est à l'arrêt.
  */
 export function previewLine(preview) {
   if (!preview || preview.already_spawned) return null;
@@ -60,7 +60,12 @@ export function previewLine(preview) {
 export function spawnLine(preview, today = null) {
   if (!preview) return null;
   if (preview.already_spawned) {
-    return 'Déjà dupliquée pour cette échéance, mais la copie n’existe plus (supprimée ou archivée) : la série est à l’arrêt. Changez l’échéance de cette tâche pour la relancer.';
+    return preview.without_due
+      ? 'Déjà dupliquée, mais la copie n’existe plus (supprimée ou archivée) : la série est à l’arrêt. Donnez une échéance à cette tâche pour la relancer.'
+      : 'Déjà dupliquée pour cette échéance, mais la copie n’existe plus (supprimée ou archivée) : la série est à l’arrêt. Changez l’échéance de cette tâche pour la relancer.';
+  }
+  if (preview.without_due && preview.pending === 'validation') {
+    return 'Duplication dès sa validation (un jour d’école).';
   }
   const raw = String(preview.spawn_date || '').trim();
   const spawn = formatOccurrenceDate(raw);
@@ -167,17 +172,21 @@ export function RecurringSeriesOverview({
 
   const rows = [...bySeries.entries()]
     .map(([seriesId, list]) => {
+      // Tête = échéance la plus récente ; sans échéance, la dernière créée.
       const sorted = list
         .slice()
-        .sort((a, b) => String(b.due_date || '').localeCompare(String(a.due_date || '')));
+        .sort(
+          (a, b) =>
+            String(b.due_date || '').localeCompare(String(a.due_date || '')) ||
+            String(b.created_at || '').localeCompare(String(a.created_at || '')),
+        );
       const head = sorted[0];
       return {
         seriesId,
         title: head.title,
         recurrence: head.recurrence,
         count: list.length,
-        hasDue: Boolean(formatDueDate(head.due_date)),
-        latestDue: formatDueDate(head.due_date) || '—',
+        latestDue: formatDueDate(head.due_date),
         status: TASK_STATUS_ENUM.labels[head.status] || head.status,
         archived: Boolean(head.archived_at),
         preview: previews?.get(String(seriesId)) || null,
@@ -240,8 +249,8 @@ export function RecurringSeriesOverview({
                 <li key={row.seriesId}>
                   <span className="recurring-series-title">{row.title}</span>
                   <span className="recurring-series-meta">
-                    {RECURRENCE_LABELS[row.recurrence] || row.recurrence} · {row.count} occ. ·
-                    échéance {row.latestDue}
+                    {RECURRENCE_LABELS[row.recurrence] || row.recurrence} · {row.count} occ. ·{' '}
+                    {row.latestDue ? `échéance ${row.latestDue}` : 'sans échéance'}
                     {row.archived ? ' · archivée' : ` · ${row.status}`}
                   </span>
                   {!row.archived && prevision && (
@@ -264,17 +273,9 @@ export function RecurringSeriesOverview({
                       {duplication}
                     </span>
                   )}
-                  {/* Le job ne duplique qu'une tâche dont l'échéance est atteinte : sans
-                      échéance, la série ne repart jamais. */}
-                  {!row.archived && !row.hasDue && (
-                    <span className="recurring-series-next recurring-series-next--stopped">
-                      Sans échéance : jamais dupliquée automatiquement. Ajoutez une échéance à cette
-                      tâche pour lancer la série.
-                    </span>
-                  )}
                   {/* Sans ce repère, une série hors de la fenêtre de calcul s'affichait
                       exactement comme une série sans prochaine occurrence. */}
-                  {!row.archived && row.hasDue && !row.preview && previewTruncated && (
+                  {!row.archived && !row.preview && previewTruncated && (
                     <span className="recurring-series-next recurring-series-next--unknown">
                       Prévision non calculée : trop de séries à traiter d’un coup.
                     </span>

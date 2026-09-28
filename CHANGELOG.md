@@ -9,10 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — tâches récurrentes sans échéance dupliquées dès leur validation
+
+- Jusqu'ici, une tâche récurrente sans échéance n'était **jamais** dupliquée (le job
+  attendait une échéance atteinte). Elle l'est désormais **dès sa validation**
+  (`POST /api/tasks/:id/validate` ou `PUT` vers `validated`), si la duplication
+  automatique est active et que le jour est ouvert au calendrier scolaire ; sinon le job
+  quotidien la reprend au premier jour ouvert.
+- La copie démarre à la prochaine date du rythme (ancre de la série) et reste sans
+  échéance ; la source reçoit le jour de duplication comme marqueur anti-doublon. Seule
+  la dernière occurrence active d'une série est candidate.
+- `GET /api/tasks/recurring-preview` inclut ces séries (champ `without_due`) ; le panneau
+  « Séries récurrentes » affiche « sans échéance » et « Duplication dès sa validation ».
+- À la mise en service, les séries sans échéance déjà validées sont dupliquées une fois.
+
 ### Corrigé — panneau « Séries récurrentes » : séries bloquées signalées, affichage lisible
 
-- Une série **sans échéance** (jamais dupliquée par le job) est désormais annoncée comme
-  telle au lieu d'afficher seulement « échéance — ».
+- Une série **sans échéance** affiche « sans échéance » au lieu de « échéance — ».
 - Une série **déjà dupliquée pour son échéance** mais dont la copie a été supprimée ou
   archivée n'annonce plus une « Duplication prévue aujourd'hui » trompeuse : elle est
   signalée « à l'arrêt » (nouveau champ `already_spawned` de

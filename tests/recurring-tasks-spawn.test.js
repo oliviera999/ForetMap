@@ -7,7 +7,10 @@ const { app } = require('../server');
 const request = require('supertest');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
-const { runRecurringTaskSpawnJob } = require('../lib/recurringTasks');
+const {
+  runRecurringTaskSpawnJob,
+  spawnRecurringTaskOnValidation,
+} = require('../lib/recurringTasks');
 const { setSetting } = require('../lib/settings');
 
 test.before(async () => {
@@ -230,6 +233,77 @@ test('PUT validate + récurrence : snapshot lieux avec récurrence effective', a
   const tmpl = JSON.parse(row.recurrence_template_zone_ids);
   assert.ok(Array.isArray(tmpl) && tmpl.includes(zoneId));
   assert.ok(row.recurrence_series_id);
+});
+
+test('Sans échéance : dupliquée à la validation, au rythme de la série, une seule fois', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const zones = await request(app).get('/api/zones').expect(200);
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      title: `RecSansEcheance ${Date.now()}`,
+      zone_id: zones.body[0]?.id || 'pg',
+      required_students: 1,
+      recurrence: 'weekly',
+      start_date: '2020-01-07',
+    })
+    .expect(201);
+  const taskId = created.body.id;
+  await request(app)
+    .post(`/api/tasks/${taskId}/validate`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .expect(200);
+
+  // En test, la duplication immédiate est coupée comme le job : on la déclenche à la main.
+  const today = '2026-09-28';
+  const childId = await spawnRecurringTaskOnValidation(taskId, { force: true, today });
+  assert.ok(childId, 'une copie est créée dès la validation');
+  const child = await queryOne('SELECT * FROM tasks WHERE id = ?', [childId]);
+  assert.strictEqual(child.status, 'available');
+  assert.strictEqual(child.due_date, null, 'la copie reste sans échéance');
+  assert.ok(String(child.start_date) >= today);
+  assert.strictEqual(
+    new Date(`${child.start_date}T00:00:00Z`).getUTCDay(),
+    new Date('2020-01-07T00:00:00Z').getUTCDay(),
+    'départ calé sur le jour de la semaine de la série',
+  );
+  const source = await queryOne('SELECT recurrence_spawned_for_due_date FROM tasks WHERE id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(String(source.recurrence_spawned_for_due_date), today);
+
+  // Ni une seconde validation, ni le job ne recréent de copie pour cette tâche.
+  assert.strictEqual(await spawnRecurringTaskOnValidation(taskId, { force: true, today }), null);
+  await runRecurringTaskSpawnJob({ force: true });
+  const children = await queryAll('SELECT id FROM tasks WHERE parent_task_id = ?', [taskId]);
+  assert.strictEqual(children.length, 1);
+});
+
+test('Sans échéance : le job reprend une tâche validée jamais dupliquée', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const zones = await request(app).get('/api/zones').expect(200);
+  const created = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      title: `RecSansEcheanceJob ${Date.now()}`,
+      zone_id: zones.body[0]?.id || 'pg',
+      required_students: 1,
+      recurrence: 'biweekly',
+      start_date: '2020-01-07',
+    })
+    .expect(201);
+  const taskId = created.body.id;
+  await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [taskId]);
+
+  const run = await runRecurringTaskSpawnJob({ force: true });
+  assert.strictEqual(run.skipped, false);
+  const children = await queryAll('SELECT id, due_date FROM tasks WHERE parent_task_id = ?', [
+    taskId,
+  ]);
+  assert.strictEqual(children.length, 1);
+  assert.strictEqual(children[0].due_date, null);
 });
 
 test('Utilitaires dates : +1 mois fin de mois', async () => {

@@ -3,6 +3,9 @@ const test = require('node:test');
 const assert = require('node:assert');
 const {
   computeNextOccurrenceWindow,
+  computeNextStartWithoutDue,
+  computeSpawnDate,
+  hasNoDueDate,
   occurrenceDate,
   estimateOccurrenceIndex,
   resolveRecurrenceAnchor,
@@ -51,6 +54,45 @@ test('resolveRecurrenceAnchor : ancre stockée, puis départ, puis création', (
     '2026-08-01',
   );
   assert.strictEqual(resolveRecurrenceAnchor({}), null);
+});
+
+test('computeNextStartWithoutDue : prochain départ au rythme, sans échéance', async () => {
+  const identite = async (d) => d;
+  // Mardi 15/09 validé le lundi 28/09 : prochain mardi à partir d'aujourd'hui.
+  const next = await computeNextStartWithoutDue(
+    { start_date: '2026-09-15' },
+    'weekly',
+    '2026-09-28',
+    { nextOpenDay: identite },
+  );
+  assert.deepStrictEqual(next, { startDate: '2026-09-29', dueDate: null, index: 2 });
+  // Validée avant son propre départ : l'occurrence suivante vient après ce départ.
+  const avance = await computeNextStartWithoutDue(
+    { start_date: '2026-10-06' },
+    'biweekly',
+    '2026-09-28',
+    { nextOpenDay: identite },
+  );
+  assert.strictEqual(avance.startDate, '2026-10-20');
+  // Aujourd'hui tombe pile sur le rythme : la copie démarre aujourd'hui.
+  const pile = await computeNextStartWithoutDue(
+    { start_date: '2026-09-15' },
+    'weekly',
+    '2026-09-22',
+    { nextOpenDay: identite },
+  );
+  assert.strictEqual(pile.startDate, '2026-09-22');
+});
+
+test('computeSpawnDate : sans échéance, le premier jour ouvré à partir d’aujourd’hui', async () => {
+  const lundiSuivant = async (d) => (d === '2026-10-03' ? '2026-10-05' : d);
+  assert.strictEqual(
+    await computeSpawnDate({ due_date: null }, '2026-10-03', { nextOpenDay: lundiSuivant }),
+    '2026-10-05',
+  );
+  assert.strictEqual(hasNoDueDate({ due_date: null }), true);
+  assert.strictEqual(hasNoDueDate({ due_date: '' }), true);
+  assert.strictEqual(hasNoDueDate({ due_date: '2026-10-03' }), false);
 });
 
 test('fallbackIsOpen : week-end fermé', () => {

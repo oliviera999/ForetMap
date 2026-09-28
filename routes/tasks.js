@@ -85,9 +85,16 @@ const {
   resolveRecurrenceAnchor,
   computeNextOccurrenceWindow,
   computeSpawnDate,
+  computeNextStartWithoutDue,
+  hasNoDueDate,
   createOpenDayResolver,
+  spawnRecurringTaskOnValidation,
 } = require('../lib/recurringTasks');
 const { getSettingValue } = require('../lib/settings');
+const {
+  filterAssignmentsForViewer,
+  sanitizeTaskForViewer,
+} = require('../lib/tasks/assignmentVisibility');
 
 const router = express.Router();
 
@@ -533,13 +540,16 @@ router.get(
          FROM tasks t
         WHERE t.recurrence IN ('weekly','biweekly','monthly')
           AND t.archived_at IS NULL
-          AND t.due_date IS NOT NULL AND TRIM(t.due_date) <> ''
           AND NOT EXISTS (
             SELECT 1 FROM tasks p
              WHERE p.recurrence_series_id = t.recurrence_series_id
                AND p.recurrence_series_id IS NOT NULL
+               AND p.id <> t.id
                AND p.archived_at IS NULL
-               AND p.due_date > t.due_date
+               AND (
+                 (t.due_date IS NOT NULL AND p.due_date > t.due_date)
+                 OR ((t.due_date IS NULL OR p.due_date IS NULL) AND p.created_at > t.created_at)
+               )
           )
         ORDER BY (t.status = 'validated') ASC, t.due_date ASC
         LIMIT ?`,
@@ -554,23 +564,22 @@ router.get(
     const series = [];
     for (const row of rows) {
       const anchor = resolveRecurrenceAnchor(row);
+      const withoutDue = hasNoDueDate(row);
       const spawnDate = await computeSpawnDate(row, today, { nextOpenDay });
       // La fenêtre est calculée depuis le jour de duplication, comme le fera le job ce
       // jour-là : vue d'aujourd'hui, elle pourrait viser une échéance déjà passée alors.
-      const window = await computeNextOccurrenceWindow(
-        row,
-        String(row.recurrence || ''),
-        spawnDate || today,
-        { nextOpenDay },
-      );
+      const computeWindow = withoutDue ? computeNextStartWithoutDue : computeNextOccurrenceWindow;
+      const window = await computeWindow(row, String(row.recurrence || ''), spawnDate || today, {
+        nextOpenDay,
+      });
       const validated = String(row.status || '').trim() === 'validated';
-      const dueReached = String(row.due_date || '') <= today;
-      // Le job marque la source une fois dupliquée pour son échéance et ne la reprend plus
-      // jamais pour celle-ci : si la copie a été supprimée ou archivée, la série est à
-      // l'arrêt tant que l'échéance n'est pas changée.
+      const dueReached = withoutDue || String(row.due_date || '') <= today;
+      // Le job marque la source une fois dupliquée (pour son échéance, ou sans échéance pour
+      // de bon) et ne la reprend plus : si la copie a été supprimée ou archivée, la série est
+      // à l'arrêt tant que l'échéance n'est pas changée.
+      const marker = String(row.recurrence_spawned_for_due_date || '').trim();
       const alreadySpawned =
-        String(row.recurrence_spawned_for_due_date || '').trim() !== '' &&
-        String(row.recurrence_spawned_for_due_date).trim() === String(row.due_date).trim();
+        marker !== '' && (withoutDue || marker === String(row.due_date).trim());
       series.push({
         series_id: row.recurrence_series_id || row.id,
         task_id: row.id,
@@ -585,6 +594,7 @@ router.get(
         next_due: window?.dueDate || null,
         spawn_date: alreadySpawned ? null : spawnDate || null,
         already_spawned: alreadySpawned,
+        without_due: withoutDue,
       });
     }
     const automationEnabled = Boolean(
@@ -608,19 +618,7 @@ router.get(
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     const authOne = await parseOptionalAuth(req);
-    if (authOne?.userType === 'student' && isVisitorRole(authOne)) {
-      const mine = (task.assignments || []).filter(
-        (a) => String(a.student_id || '') === String(authOne.userId),
-      );
-      task.assignments = mine;
-      if (
-        task.proposed_by_student_id &&
-        String(task.proposed_by_student_id) !== String(authOne.userId)
-      ) {
-        task.proposed_by_student_id = null;
-      }
-    }
-    res.json(task);
+    res.json(await sanitizeTaskForViewer(authOne, task));
   }),
 );
 
@@ -791,7 +789,7 @@ router.put('/:id', async (req, res) => {
       auth,
       auditReq: req,
     });
-    return res.json(updated);
+    return res.json(await sanitizeTaskForViewer(auth, updated));
   } catch (e) {
     if (e instanceof TaskRuleError) return res.status(e.status).json({ error: e.message });
     const exposeDetail =
@@ -944,6 +942,7 @@ router.post(
       { taskId: task.id },
     );
     await syncTaskProjectCompletionForProjects([task.project_id]);
+    fireAndForget(() => spawnRecurringTaskOnValidation(task.id), { taskId: task.id });
     res.json(updated);
   }),
 );
