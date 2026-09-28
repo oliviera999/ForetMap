@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Vérifié — chaîne PR → fusion → déploiement après le passage du dépôt en privé
+
+- PR témoin, bump de version inclus (v1.193.1) : CI, publication de l'artefact
+  `dist-artifact/main` et récupération par le cron du serveur via la clé de déploiement SSH.
+  Aucun changement de code.
+
 ### Modifié — exploitation : dépôt privé sur le plan GitHub Free
 
 - `dist-publish.yml` : le filet de sécurité programmé passe de toutes les heures à **toutes les
