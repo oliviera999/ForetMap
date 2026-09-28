@@ -504,7 +504,8 @@ soit le mot employé.
 
 ### Retoucher le contour d'une zone
 
-Depuis la fiche d'une zone, le bouton « Modifier le contour » ouvre un mode d'édition
+Depuis la fiche d'une zone, le bouton « Contour », placé en haut de la fiche juste à
+côté du bouton « Copie », ouvre un mode d'édition
 sur la carte. Le contour apparaît alors avec **une poignée par sommet** (les coins du
 tracé), et une petite **poignée pointillée au milieu de chaque côté**. Tout se fait
 directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « Sauver ».

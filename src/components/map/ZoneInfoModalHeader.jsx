@@ -2,11 +2,12 @@ import { LocationCategoryBadges } from './LocationCategoryPicker.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
 import { LocationHeaderActions } from './LocationModalParts.jsx';
+import { IconDrawZone } from '../../shared/icons.jsx';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
- * catégories, et (pour les profs) les actions Copie / Supprimer — y compris sur
- * les zones d'infrastructure, éditables. Composant sans état : la logique métier
+ * catégories, et (pour les profs) les actions Contour / Copie / Supprimer — y compris
+ * sur les zones d'infrastructure, éditables. Composant sans état : la logique métier
  * reste dans ZoneInfoModal.
  */
 function ZoneInfoModalHeader({
@@ -14,6 +15,7 @@ function ZoneInfoModalHeader({
   isTeacher,
   duplicating = false,
   onDuplicate = null,
+  onEditPoints = null,
   onDelete,
   onClose,
   onDuplicateError,
@@ -42,6 +44,22 @@ function ZoneInfoModalHeader({
       </div>
       {showTeacherActions && (
         <LocationHeaderActions
+          leadingAction={
+            onEditPoints ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                aria-label="Modifier le contour de la zone"
+                title="Modifier le contour de la zone sur la carte"
+                onClick={() => {
+                  onEditPoints(zone);
+                  onClose();
+                }}
+              >
+                <IconDrawZone size={15} /> Contour
+              </button>
+            ) : null
+          }
           duplicating={duplicating}
           duplicateTitle="Créer une copie sur la même carte (contour légèrement décalé)"
           onDuplicateClick={

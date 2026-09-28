@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — fiche de zone : bouton « Contour » à côté de « Copie »
+
+- Le bouton qui ouvre l'édition du contour d'une zone quitte le bas de l'onglet Modifier et
+  rejoint l'en-tête de la fiche, juste avant « Copie » (libellé court « Contour », nom
+  accessible « Modifier le contour de la zone »). Scénario e2e et doc de référence alignés.
+
 ### Documentation — audit RGPD (28 septembre 2026)
 
 - Nouvel audit daté [`docs/AUDIT_RGPD_2026-09-28.md`](docs/AUDIT_RGPD_2026-09-28.md) :

@@ -71,7 +71,7 @@ import {
   useLocationModalTab,
   useLocationTaskAssignment,
 } from './useLocationModalState.js';
-import { IconDrawZone, IconSave } from '../../shared/icons.jsx';
+import { IconSave } from '../../shared/icons.jsx';
 
 function ZoneInfoModal({
   zone,
@@ -338,6 +338,7 @@ function ZoneInfoModal({
               }
             : null
         }
+        onEditPoints={onEditPoints}
         onDuplicateError={() => setToast('Duplication impossible')}
         onDelete={onDelete}
         onClose={onClose}
@@ -593,18 +594,6 @@ function ZoneInfoModal({
             icon={<IconSave size={15} />}
             label="Enregistrer"
           />
-          {onEditPoints && (
-            <button
-              className="btn btn-ghost btn-full"
-              style={{ marginTop: 8 }}
-              onClick={() => {
-                onEditPoints(zone);
-                onClose();
-              }}
-            >
-              <IconDrawZone size={14} /> Modifier le contour de la zone
-            </button>
-          )}
         </div>
       )}
       {tab === 'tasks' && (

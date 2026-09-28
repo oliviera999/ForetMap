@@ -211,8 +211,12 @@ export function LocationCommentsSection({
   );
 }
 
-/** Actions prof de l'en-tête : copie (facultative) et suppression. */
+/**
+ * Actions prof de l'en-tête : action propre au lieu (facultative, ex. contour de zone),
+ * copie (facultative) et suppression.
+ */
 export function LocationHeaderActions({
+  leadingAction = null,
   duplicating,
   onDuplicateClick,
   duplicateTitle,
@@ -221,6 +225,7 @@ export function LocationHeaderActions({
 }) {
   return (
     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+      {leadingAction}
       {onDuplicateClick && (
         <button
           type="button"

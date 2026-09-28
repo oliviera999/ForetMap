@@ -61,7 +61,6 @@ test('parcours prof : ajouter puis retirer un sommet du contour d’une zone', a
     const dialog = await openZoneModalByName(page, zoneName);
     await expect(dialog).toBeVisible();
 
-    await dialog.getByRole('button', { name: 'Modifier', exact: true }).click();
     await dialog.getByRole('button', { name: /Modifier le contour de la zone/ }).click();
 
     // Mode d'édition : une poignée par sommet + une poignée fantôme par côté.
