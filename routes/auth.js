@@ -66,6 +66,8 @@ const {
   originOfUrl,
 } = require('../lib/oauthPublicUrl');
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
+const { exportLimiter } = require('../lib/rateLimit');
+const { buildForetUserExport, sendExportArchive } = require('../lib/accounts/personalDataExport');
 
 /**
  * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
@@ -1252,6 +1254,39 @@ router.post(
     });
 
     res.json({ authToken: token, auth: exposeAuth(hydrated) });
+  }),
+);
+
+/**
+ * Export des données personnelles du compte connecté (RGPD art. 15 et 20). Refusé pendant
+ * une prise de contrôle : l'administrateur passe par l'export admin, journalisé à son nom.
+ */
+router.get(
+  '/me/export',
+  exportLimiter,
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (req.auth?.impersonating) {
+      return res.status(403).json({
+        error:
+          'Export indisponible pendant une prise de contrôle : utilisez l’export administrateur.',
+      });
+    }
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Non authentifié' });
+    const archive = await buildForetUserExport(userId);
+    if (!archive) return res.status(404).json({ error: 'Compte introuvable' });
+    await logAudit(
+      'personal_data_export',
+      'user',
+      String(userId),
+      'Export de ses données personnelles',
+      {
+        req,
+        payload: { bytes: archive.buffer.length, files: archive.payload.fichiers.joints.length },
+      },
+    );
+    return sendExportArchive(res, archive);
   }),
 );
 

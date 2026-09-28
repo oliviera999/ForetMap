@@ -179,6 +179,19 @@ là aussi sans être déconnecté.
 > ℹ️ Le staff voit sur la fiche de chaque joueur s'il joue avec un **compte élève** (rattaché)
 > ou avec le compte **miroir** créé par le jeu.
 
+### Télécharger ses données (côté joueur)
+
+Dans son profil, le joueur trouve un encadré **Mes données** avec le bouton **Télécharger
+mes données**. Il obtient une archive de tout ce que le jeu garde sur lui : sa fiche de
+joueur et son identité, ses équipes, son journal, ses feuillets, ses échanges et messages
+du marché, ses messages de forum, ses réponses aux QCM et les images qu'il a déposées.
+Les mots de passe n'y figurent jamais, et une notice explique le contenu de l'archive.
+
+Le bouton n'existe pas pour les invités (ils n'ont pas de compte), ni pour le MJ et
+l'administrateur, qui passent par leur profil ForetMap. Il est refusé pendant un « Voir
+comme » ; pour une demande faite par écrit, l'administrateur produit l'archive depuis la
+fiche du compte dans ForetMap. On ne peut pas produire plus de dix archives par heure.
+
 ### Importer des joueurs en masse
 
 Le staff peut créer les comptes d'une classe entière d'un coup : télécharger le

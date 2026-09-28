@@ -12,6 +12,7 @@ const { emitTasksChanged } = require('../../lib/realtime');
 const { resolveTaskMapId } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
 const { parseOptionalForetAuth } = require('../../lib/auth/jwtPipeline');
+const { filterLogsForViewer } = require('../../lib/tasks/assignmentVisibility');
 
 const router = express.Router();
 
@@ -23,15 +24,17 @@ router.get(
   '/:id/logs',
   asyncHandler(async (req, res) => {
     const auth = await parseOptionalAuth(req);
-    // Journaux = PII (prénoms/noms, commentaires) : réservés à un compte connecté non visiteur.
-    // Un anonyme (auth null) ne doit pas y accéder (l'app authentifiée envoie le jeton via api()).
+    // Journaux = PII (prénoms/noms, commentaires) : jamais pour un anonyme ni un visiteur ;
+    // pour un n3beur, selon `tasks.logs_visibility` (cf. lib/tasks/assignmentVisibility.js).
     if (!auth || isVisitorRole(auth)) {
       return res.status(403).json({ error: 'Accès refusé aux journaux de tâche' });
     }
-    const logs = await queryAll(
+    const allLogs = await queryAll(
       'SELECT id, task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at FROM task_logs WHERE task_id = ? ORDER BY created_at DESC',
       [req.params.id],
     );
+    const { allowed, rows: logs } = await filterLogsForViewer(auth, req.params.id, allLogs);
+    if (!allowed) return res.status(403).json({ error: 'Accès refusé aux journaux de tâche' });
     const taskId = req.params.id;
     const baseUrl = `/api/tasks/${taskId}/logs`;
     res.json(
@@ -44,8 +47,8 @@ router.get(
 );
 
 // Photo d'un journal de tâche : MÊME politique que la route liste ci-dessus (compte connecté,
-// profil non visiteur). L'image était servie sans aucun contrôle alors que la liste qui la
-// référence est gardée — et les identifiants étant séquentiels, les photos de n3beurs étaient
+// profil non visiteur, puis `tasks.logs_visibility` appliqué à l'entrée). L'image était
+// servie sans aucun contrôle alors que la liste qui la référence est gardée — et les identifiants étant séquentiels, les photos de n3beurs étaient
 // énumérables sans jeton (cf. audit B3, docs/AUDIT_BUGS_2026-07.md).
 //
 // Volontairement aligné sur la liste, et non sur la politique plus stricte des observations
@@ -58,11 +61,15 @@ router.get(
     if (!auth || isVisitorRole(auth)) {
       return res.status(403).json({ error: 'Accès refusé à cette image' });
     }
-    const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [
-      req.params.logId,
-      req.params.id,
-    ]);
+    const log = await queryOne(
+      'SELECT image_path, student_id, student_first_name, student_last_name FROM task_logs WHERE id = ? AND task_id = ?',
+      [req.params.logId, req.params.id],
+    );
     if (!log) return res.status(404).json({ error: 'Log introuvable' });
+    const { allowed, rows } = await filterLogsForViewer(auth, req.params.id, [log]);
+    if (!allowed || rows.length === 0) {
+      return res.status(403).json({ error: 'Accès refusé à cette image' });
+    }
     if (log.image_path) {
       const absolutePath = getAbsolutePath(log.image_path);
       return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {

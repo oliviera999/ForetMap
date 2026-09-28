@@ -5,6 +5,7 @@ import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js
 import { GLProfileAvatar } from './GLProfileAvatar.jsx';
 import { GLPasswordChangeForm } from './GLPasswordChangeForm.jsx';
 import { GLForetmapLinkPanel } from './GLForetmapLinkPanel.jsx';
+import { GLPersonalDataExportPanel } from './GLPersonalDataExportPanel.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLTextarea } from './ui/GLTextarea.jsx';
@@ -194,6 +195,8 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
           onReload={onReloadProfile}
         />
       ) : null}
+
+      {!isAdmin ? <GLPersonalDataExportPanel /> : null}
     </div>
   );
 }

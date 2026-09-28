@@ -593,6 +593,12 @@
       "type": "boolean",
       "default": false
     },
+    "tasks.assignees_visibility": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["all", "group", "self"],
+      "default": "group"
+    },
     "tasks.auto_archive_after_days": {
       "scope": "teacher",
       "type": "number",
@@ -604,6 +610,12 @@
       "scope": "teacher",
       "type": "boolean",
       "default": true
+    },
+    "tasks.logs_visibility": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["all", "assignees", "group"],
+      "default": "group"
     },
     "tasks.recurring_automation_enabled": {
       "scope": "teacher",
@@ -2942,6 +2954,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "tasks.assignees_visibility",
+      "scope": "admin",
+      "type": "enum",
+      "value": "group",
+      "default_value": "group",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["all", "group", "self"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "tasks.auto_archive_after_days",
       "scope": "teacher",
       "type": "number",
@@ -2968,6 +2996,22 @@
         "max": null,
         "maxLength": null,
         "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "tasks.logs_visibility",
+      "scope": "admin",
+      "type": "enum",
+      "value": "group",
+      "default_value": "group",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["all", "assignees", "group"]
       },
       "updated_at": null,
       "updated_by_user_type": null,

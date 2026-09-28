@@ -9,6 +9,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — export des données personnelles (RGPD, droit d'accès et portabilité)
+
+- Bouton **Télécharger mes données** dans le profil ForetMap et dans le profil joueur G&L :
+  archive ZIP avec `donnees.json` (une section par domaine), les fichiers déposés et un
+  `LISEZMOI.txt`. Jamais de hachage ni de jeton.
+- Export administrateur depuis la fiche d'un compte (nouvelle permission
+  `admin.users.export`, admin seul par défaut), inscrit au journal d'audit.
+- Routes `GET /api/auth/me/export`, `GET /api/gl/auth/me/export`,
+  `GET /api/rbac/users/:userType/:userId/export` ; limiteur dédié (10 archives / heure).
+- Registre déclaratif `lib/accounts/exportRegistry.js` (sur le modèle du registre de
+  nettoyage des comptes) ; audit [RGPD du 28/09](docs/AUDIT_RGPD_2026-09-28.md) §5.
+
+### Modifié — noms des inscrits et journaux de tâche filtrés par groupe (réglable)
+
+- Un n3beur ne voit plus les noms de **tous** les inscrits ni le journal de **n'importe
+  quelle** tâche : par défaut, seulement lui-même et les élèves de ses groupes
+  (constats S-2 et S-3 de l'[audit RGPD du 28/09](docs/AUDIT_RGPD_2026-09-28.md)).
+- Deux réglages admin (section Tâches) : `tasks.assignees_visibility` (`group` par défaut,
+  `self`, `all` = ancien comportement) et `tasks.logs_visibility` (`group` par défaut,
+  `assignees` = seulement les inscrits de la tâche, `all`). Les compteurs de places restent
+  complets ; le personnel voit toujours tout ; les photos des journaux suivent le même filtre.
+
 ### Modifié — tâches récurrentes sans échéance dupliquées dès leur validation
 
 - Jusqu'ici, une tâche récurrente sans échéance n'était **jamais** dupliquée (le job

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLatestRequest } from '../shared/hooks/useLatestRequest.js';
 import { api } from '../services/api';
+import { downloadApiFile } from '../utils/downloadApiFile.js';
+import { personalDataExportFilename } from '../shared/personalDataExport.js';
 import { statusBadge } from '../utils/badges';
 import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
@@ -359,6 +361,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordErr, setPasswordErr] = useState('');
   const [passwordOk, setPasswordOk] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportErr, setExportErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [avatarProcessing, setAvatarProcessing] = useState(false);
   const [err, setErr] = useState('');
@@ -451,6 +455,17 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setPasswordErr(e.message || 'Impossible de changer le mot de passe');
     }
     setPasswordLoading(false);
+  };
+
+  const exportMyData = async () => {
+    setExportErr('');
+    setExportLoading(true);
+    try {
+      await downloadApiFile('/api/auth/me/export', personalDataExportFilename('mes-donnees'));
+    } catch (e) {
+      setExportErr(e.message || 'Export impossible');
+    }
+    setExportLoading(false);
   };
 
   return (
@@ -681,6 +696,28 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
         disabled={passwordLoading || !newPassword}
       >
         {passwordLoading ? 'Changement…' : 'Changer le mot de passe'}
+      </button>
+
+      <h3 className="section-title" style={{ marginTop: 18 }}>
+        Mes données
+      </h3>
+      <p className="section-sub">
+        Télécharge une archive avec tout ce que l’application garde sur toi : profil, tâches,
+        observations, carnet, messages et photos.
+      </p>
+      {exportErr && (
+        <div className="auth-error">
+          <IconWarning size={14} /> {exportErr}
+        </div>
+      )}
+      <button
+        type="button"
+        className="btn btn-secondary"
+        onClick={exportMyData}
+        disabled={exportLoading}
+        data-testid="profile-export-data"
+      >
+        {exportLoading ? 'Préparation de l’archive…' : 'Télécharger mes données'}
       </button>
     </div>
   );

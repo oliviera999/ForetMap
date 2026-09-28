@@ -188,13 +188,20 @@ async function fetchTaskListAssignments(auth, taskIds) {
         [...taskIds, auth.userId],
       );
     }
-    return queryAll(
-      `SELECT id, task_id, student_first_name, student_last_name, done_at, assigned_at
+    const rows = await queryAll(
+      `SELECT id, task_id, student_id, student_first_name, student_last_name, done_at, assigned_at
          FROM task_assignments
         WHERE task_id IN (${ph})
         ORDER BY assigned_at`,
       taskIds,
     );
+    const visible = await filterAssignmentsForViewer(auth, rows);
+    // La liste n'a jamais exposé l'identifiant des autres inscrits : seul le sien reste.
+    return visible.map((row) => {
+      if (String(row.student_id || '') === String(auth.userId)) return row;
+      const { student_id: _hidden, ...rest } = row;
+      return rest;
+    });
   }
   return [];
 }

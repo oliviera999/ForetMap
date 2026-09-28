@@ -6,6 +6,8 @@ import { resolveTooltipKey } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildUserEditInitialFields } from '../../utils/profilesUserFields.js';
 import { IconWarning } from '../../shared/icons.jsx';
+import { downloadApiFile } from '../../utils/downloadApiFile.js';
+import { personalDataExportFilename } from '../../shared/personalDataExport.js';
 import { UserIdentitySummary } from './UserIdentitySummary.jsx';
 
 const EMPTY_FIELDS = {
@@ -72,6 +74,8 @@ function UserEditModal({
   const [passwordOpen, setPasswordOpen] = useState(false);
   /** Action sensible en attente de confirmation : 'deactivate' | 'reactivate' | 'delete'. */
   const [pendingAction, setPendingAction] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportErr, setExportErr] = useState('');
 
   const busy = saving || passwordSaving || activeSaving || deleteSaving;
   const isActive = user ? user.is_active !== false : true;
@@ -87,6 +91,23 @@ function UserEditModal({
       email: editEmail,
       description: editDescription,
     });
+  };
+
+  const exportUserData = async () => {
+    setExportErr('');
+    setExportLoading(true);
+    try {
+      const type = encodeURIComponent(String(user.user_type || 'student'));
+      const id = encodeURIComponent(String(user.id));
+      const label = [user.first_name, user.last_name].filter(Boolean).join('-') || user.id;
+      await downloadApiFile(
+        `/api/rbac/users/${type}/${id}/export`,
+        personalDataExportFilename(`donnees-${label}`),
+      );
+    } catch (e) {
+      setExportErr(e.message || 'Export impossible');
+    }
+    setExportLoading(false);
   };
 
   const submitPassword = async () => {
@@ -335,6 +356,36 @@ function UserEditModal({
                   L’interface reflète le compte choisi (support ou diagnostic). Utilise le bandeau
                   orange en haut pour retrouver ta session administrateur.
                 </p>
+              </div>
+            )}
+
+            {authPerms.includes('admin.users.export') && user?.id && (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={busy || exportLoading}
+                  onClick={exportUserData}
+                  data-testid="user-export-data"
+                >
+                  {exportLoading ? 'Préparation…' : 'Exporter les données du compte'}
+                </button>
+                <p
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--ink-soft)',
+                    margin: '8px 0 0',
+                    lineHeight: 'var(--lh-normal)',
+                  }}
+                >
+                  Archive de toutes les données de la personne, pour répondre à une demande d’accès.
+                  L’export est inscrit au journal d’audit.
+                </p>
+                {exportErr && (
+                  <div className="auth-error" style={{ marginTop: 8 }}>
+                    <IconWarning size={14} /> {exportErr}
+                  </div>
+                )}
               </div>
             )}
 

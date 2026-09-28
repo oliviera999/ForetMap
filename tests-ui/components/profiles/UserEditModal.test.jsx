@@ -2,6 +2,11 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within, cleanup } from '@testing-library/react';
 import { UserEditModal } from '../../../src/components/profiles/UserEditModal.jsx';
 
+const { downloadApiFile } = vi.hoisted(() => ({
+  downloadApiFile: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../../../src/utils/downloadApiFile.js', () => ({ downloadApiFile }));
+
 function renderModal(overrides = {}) {
   const handlers = {
     onClose: vi.fn(),
@@ -67,6 +72,21 @@ describe('UserEditModal', () => {
     const chips = screen.getByTestId('user-groups-chips');
     expect(chips.textContent).toContain('2nde B');
     expect(chips.textContent).toContain('Club jardin');
+  });
+
+  test('export RGPD : bouton absent sans la permission admin.users.export', () => {
+    renderModal();
+    expect(screen.queryByTestId('user-export-data')).toBeNull();
+  });
+
+  test('export RGPD : avec la permission, télécharge l’archive du compte', async () => {
+    downloadApiFile.mockClear();
+    renderModal({ authPerms: ['admin.users.export'] });
+    fireEvent.click(screen.getByTestId('user-export-data'));
+    await waitFor(() => expect(downloadApiFile).toHaveBeenCalledTimes(1));
+    const [path, filename] = downloadApiFile.mock.calls[0];
+    expect(path).toBe('/api/rbac/users/student/7/export');
+    expect(filename).toMatch(/^donnees-Lea-Martin-\d{4}-\d{2}-\d{2}\.zip$/);
   });
 
   test('compte sans profil ni groupe : états vides explicites', () => {

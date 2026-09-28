@@ -7,6 +7,12 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { saveBase64ToDisk } = require('../lib/uploads');
+const { setSetting } = require('../lib/settings');
+const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot');
+
+// Ces tests portent sur le service des fichiers, pas sur le filtre de groupe des journaux
+// (couvert par tests/tasks-group-visibility.test.js) : journaux ouverts à tous les n3beurs.
+let logsVisibilitySnapshot = null;
 
 const SAMPLE_IMAGE_DATA =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
@@ -33,6 +39,12 @@ test.before(async () => {
   );
   await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, reg.body.id]);
   studentToken = reg.body.authToken;
+  logsVisibilitySnapshot = await snapshotSetting('tasks.logs_visibility');
+  await setSetting('tasks.logs_visibility', 'all', {});
+});
+
+test.after(async () => {
+  if (logsVisibilitySnapshot) await restoreSetting(logsVisibilitySnapshot);
 });
 
 test('Route prof sans token -> 401', async () => {

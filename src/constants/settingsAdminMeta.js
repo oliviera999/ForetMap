@@ -469,6 +469,28 @@ export const KEY_META = {
     section: 'tasks',
     order: 40,
   },
+  'tasks.assignees_visibility': {
+    label:
+      'Noms des inscrits visibles par un n3beur (le personnel voit toujours selon ses droits ; chacun voit toujours sa propre inscription et le nombre de places prises).',
+    section: 'tasks',
+    order: 50,
+    optionLabels: {
+      all: 'Tous les inscrits',
+      group: 'Ses camarades de groupe seulement',
+      self: 'Sa propre inscription seulement',
+    },
+  },
+  'tasks.logs_visibility': {
+    label:
+      'Journal d’une tâche (comptes rendus, commentaires, photos) lisible par un n3beur. Le personnel voit toujours selon ses droits.',
+    section: 'tasks',
+    order: 60,
+    optionLabels: {
+      all: 'Tout compte connecté (hors visiteur)',
+      assignees: 'Les inscrits de la tâche seulement',
+      group: 'Les entrées de ses camarades de groupe et les siennes',
+    },
+  },
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',

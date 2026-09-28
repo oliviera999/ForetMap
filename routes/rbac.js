@@ -42,6 +42,8 @@ const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
 const { rethrowSlugConflict } = require('../lib/slugConflict');
 const { logAudit } = require('../lib/auditLog');
+const { exportLimiter } = require('../lib/rateLimit');
+const { buildForetUserExport, sendExportArchive } = require('../lib/accounts/personalDataExport');
 const {
   MAX_DESCRIPTION_LEN,
   PSEUDO_RE,
@@ -881,6 +883,33 @@ router.get(
         groups: groupsByUserId.get(String(u.id)) || [],
       })),
     );
+  }),
+);
+
+/**
+ * Archive des données personnelles d'un compte, pour une demande d'accès RGPD traitée par
+ * l'administrateur. Journalisée à son nom (`admin_personal_data_export`).
+ */
+router.get(
+  '/users/:userType/:userId/export',
+  exportLimiter,
+  requirePermission('admin.users.export'),
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const archive = await buildForetUserExport(resolved.resolvedUserId);
+    if (!archive) return res.status(404).json({ error: 'Compte introuvable' });
+    await logAudit(
+      'admin_personal_data_export',
+      'user',
+      String(resolved.resolvedUserId),
+      'Export administrateur des données personnelles d’un compte',
+      {
+        req,
+        payload: { bytes: archive.buffer.length, files: archive.payload.fichiers.joints.length },
+      },
+    );
+    return sendExportArchive(res, archive);
   }),
 );
 

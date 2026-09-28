@@ -169,6 +169,24 @@ Ce qui attend le réseau, et pourquoi :
 
 Dans ces cas, l'élève lit un message court qui dit que le réseau est nécessaire.
 
+### Qui voit les noms des inscrits et le journal d'une tâche
+
+Depuis septembre 2026 (mise en conformité RGPD), un élève ne voit plus forcément les noms
+de tous les inscrits ni tout le journal d'une tâche. Deux réglages de l'administrateur
+(onglet des réglages, section des tâches) décident de ce qu'un élève peut lire :
+
+- **Noms des inscrits** : ses camarades de groupe seulement (réglage par défaut), sa propre
+  inscription seulement, ou tous les inscrits (ancien comportement).
+- **Journal de la tâche** (comptes rendus, commentaires, photos) : les entrées écrites par
+  ses camarades de groupe et les siennes (réglage par défaut), le journal complet mais
+  seulement pour les inscrits de la tâche, ou le journal complet pour tout élève connecté
+  (ancien comportement).
+
+Dans tous les cas, l'élève voit **sa propre inscription** et le **nombre de places
+prises** reste exact : seuls les noms des autres sont masqués. Les professeurs et le
+personnel qui gèrent ou valident les tâches voient tout, selon leurs droits habituels.
+Un visiteur ne voit ni les noms des autres ni le journal.
+
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves

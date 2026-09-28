@@ -29,7 +29,12 @@ const {
 const { getScopedStudentIds } = require('../../lib/groupScope');
 const { isN3beurStudentId, listN3beurStudents } = require('../../lib/n3beurStudents');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
-const { recalculateTaskStatus, getTaskWithAssignments } = require('../../lib/tasks/taskQueries');
+const {
+  recalculateTaskStatus,
+  getTaskWithAssignments,
+  parseOptionalAuth,
+} = require('../../lib/tasks/taskQueries');
+const { sanitizeTaskForViewer } = require('../../lib/tasks/assignmentVisibility');
 const {
   resolveTaskMapId,
   isTaskBeforeStartDate,
@@ -57,9 +62,14 @@ async function findDoneLogByClientUuid(taskId, studentId, clientUuid) {
   );
 }
 
+/** Tâche renvoyée à l'acteur : inscriptions filtrées selon `tasks.assignees_visibility`. */
+async function taskForRequester(req, task) {
+  return sanitizeTaskForViewer(await parseOptionalAuth(req), task);
+}
+
 /** Réponse d'un renvoi reconnu : l'état courant de la tâche, sans aucun effet de bord. */
-async function replayDoneResponse(taskId) {
-  return { ...(await getTaskWithAssignments(taskId)), replayed: true };
+async function replayDoneResponse(req, taskId) {
+  return { ...(await taskForRequester(req, await getTaskWithAssignments(taskId))), replayed: true };
 }
 
 router.post(
@@ -181,7 +191,7 @@ router.post(
       { taskId: task.id },
     );
     await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
+    res.json(await taskForRequester(req, updated));
   }),
 );
 
@@ -331,7 +341,7 @@ router.post(
       [task.id, ...identity.params(action.studentId, action.firstName, action.lastName)],
     );
     if (!assignment) {
-      if (reportStored) return res.json(await replayDoneResponse(task.id));
+      if (reportStored) return res.json(await replayDoneResponse(req, task.id));
       return res
         .status(400)
         .json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
@@ -447,7 +457,8 @@ router.post(
       }
       await syncTaskProjectCompletionForProjects([updated.project_id]);
     }
-    res.json(reportStored ? { ...updated, replayed: true } : updated);
+    const visible = await taskForRequester(req, updated);
+    res.json(reportStored ? { ...visible, replayed: true } : visible);
   }),
 );
 
@@ -496,7 +507,7 @@ router.post(
     });
     emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
+    res.json(await taskForRequester(req, updated));
   }),
 );
 

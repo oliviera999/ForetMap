@@ -384,6 +384,28 @@ et l'état du compte.
 - Un élève peut, depuis son profil de jeu, **rattacher** son vrai compte élève à son
   joueur (le compte miroir est alors supprimé) ou le **détacher**.
 
+## Télécharger ses données
+
+Chacun peut récupérer tout ce que l'application garde sur lui, comme la loi le prévoit
+(droit d'accès et droit à la portabilité du RGPD).
+
+- Depuis **Mon profil**, le bouton **Télécharger mes données** produit une archive : la
+  fiche du compte, les profils et groupes, les inscriptions aux tâches et les comptes
+  rendus, les observations et mesures, le carnet, les messages du forum et les
+  commentaires, les réponses aux quiz, les notifications, l'historique des connexions — et
+  les photos et pièces jointes déposées. Si l'élève joue aussi à Gnomes & Licornes, la
+  partie jeu est incluse.
+- L'archive contient un fichier lisible avec un simple éditeur de texte, les fichiers
+  déposés, et une notice qui explique son contenu. Les mots de passe n'y figurent jamais.
+- Pour une personne qui ne peut pas se connecter (compte désactivé, demande écrite d'un
+  parent), l'**administrateur** ouvre la fiche du compte et clique sur **Exporter les
+  données du compte**, dans la section Actions. Ce bouton est réservé à l'administrateur
+  (droit « Export des données d'un compte ») et chaque export est inscrit au journal
+  d'audit.
+- Pour éviter les abus, on ne peut pas produire plus de dix archives par heure.
+- Pendant un « Voir comme cet utilisateur », le bouton du profil est refusé :
+  l'administrateur passe par l'export de la fiche, qui est tracé à son nom.
+
 ## La gestion des utilisateurs
 
 L'onglet **Profils & utilisateurs** est découpé en **sous-onglets** pour rester lisible

@@ -72,6 +72,8 @@ const {
 } = require('../../lib/auth/tokenEpoch');
 const { loginThrottle, sendLoginThrottled } = require('../../lib/loginThrottle');
 const { nowDbTimestamp } = require('../../lib/shared/isoTimestamp');
+const { exportLimiter } = require('../../lib/rateLimit');
+const { buildGlPlayerExport, sendExportArchive } = require('../../lib/accounts/personalDataExport');
 const { resolveGlPlayerActiveMembership } = require('../../lib/glPlayerMembership');
 
 const router = express.Router();
@@ -1481,6 +1483,39 @@ router.delete(
     });
     const unlinked = await issueGlPlayerSession(await findGlPlayerById(player.id));
     return res.json({ ok: true, authToken: unlinked.authToken, auth: unlinked.auth });
+  }),
+);
+
+/**
+ * GET /api/gl/auth/me/export — archive ZIP des données personnelles du joueur connecté
+ * (RGPD art. 15 et 20). Invités refusés par `requireGlAuth` ; MJ/admin : export ForetMap.
+ */
+router.get(
+  '/me/export',
+  exportLimiter,
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    if (req.glAuth.userType !== 'gl_player') {
+      return res.status(403).json({ error: 'Action réservée aux joueurs GL' });
+    }
+    if (req.glAuth.impersonating) {
+      return res.status(403).json({ error: 'Export indisponible pendant une prise de contrôle' });
+    }
+    const archive = await buildGlPlayerExport(req.glAuth.userId);
+    if (!archive) return res.status(404).json({ error: 'Joueur introuvable' });
+    await logAudit(
+      'gl_personal_data_export',
+      'gl_player',
+      String(req.glAuth.userId),
+      'Export de ses données personnelles',
+      {
+        req,
+        actorUserType: 'gl_player',
+        actorUserId: String(req.glAuth.userId),
+        payload: { bytes: archive.buffer.length, files: archive.payload.fichiers.joints.length },
+      },
+    );
+    return sendExportArchive(res, archive);
   }),
 );
 
