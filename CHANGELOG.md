@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit RGPD (28 septembre 2026)
+
+- Nouvel audit daté [`docs/AUDIT_RGPD_2026-09-28.md`](docs/AUDIT_RGPD_2026-09-28.md) :
+  inventaire des données personnelles, information des personnes, durées de conservation,
+  droits, sécurité, sous-traitants et traceurs. Points critiques : dump de production
+  toujours présent dans l'historique Git, aucune notice d'information pour un public mineur.
+  Plan de lots RGPD-A à H. Référencé dans `docs/audits/README.md`.
+
 ### Corrigé — « tâche faite » : un renvoi termine le marquage si seul le rapport avait été enregistré
 
 - `POST /api/tasks/:id/done` avec `client_uuid` ne s'arrêtait plus au rapport déjà écrit :
