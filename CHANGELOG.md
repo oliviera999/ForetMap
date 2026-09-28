@@ -139,6 +139,14 @@ Les listes de catégories cochées par défaut ou masquées (plan, plan des pers
   `dist-artifact/main` et récupération par le cron du serveur via la clé de déploiement SSH.
   Aucun changement de code.
 
+### Documentation — cache PWA hors ligne et tablette partagée
+
+- `docs/EXPLOITATION.md` décrit le build du service worker par produit, les stratégies de cache,
+  le cloisonnement des réponses authentifiées par `__fm_sw_user`, la purge à la déconnexion
+  (réglage `privacy.clear_local_data_on_logout`) et les tests qui couvrent ce contrat.
+- `docs/LOCAL_DEV.md` ajoute une recette de vérification locale du mode PWA production
+  (`NODE_ENV=production` + `dist/`) et du scénario tablette partagée.
+
 ### Modifié — exploitation : dépôt privé sur le plan GitHub Free
 
 - `dist-publish.yml` : le filet de sécurité programmé passe de toutes les heures à **toutes les

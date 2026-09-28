@@ -214,10 +214,47 @@ Connexion prof : identifiant (e-mail ou pseudo) + mot de passe d’un compte ens
 
 ```bash
 npm run build
-npm run dev
+NODE_ENV=production npm run dev
 ```
 
 Ouvrir **http://localhost:3000** : Express sert le contenu de **`dist/`** (SPA compilée).
+
+Sans `NODE_ENV=production`, le serveur de développement sert `public/` et le service worker
+ForetMap manuel (`public/sw.js`) : pratique pour coder vite, mais insuffisant pour vérifier le
+service worker **généré** de production.
+
+### Recette ciblée — PWA hors ligne et tablette partagée
+
+À utiliser après une modification du service worker, du build PWA ou de la déconnexion :
+
+1. Préparer un bundle proche production :
+
+   ```bash
+   npm run build
+   NODE_ENV=production npm run dev
+   ```
+
+2. Ouvrir `http://localhost:3000`, puis dans les DevTools navigateur :
+   - onglet **Application → Service Workers** : vérifier que `/sw.js` est actif ;
+   - onglet **Application → Cache storage** : repérer le cache `foretmap-foret-...`.
+3. Se connecter avec un compte, ouvrir carte / tâches / visite, puis passer le navigateur en
+   **Offline** : les dernières lectures doivent rester consultables.
+4. Toujours dans **Cache storage**, les réponses lues avec session portent une clé contenant le
+   paramètre interne `__fm_sw_user`. Les copies publiques de `/api/maps` et `/api/visit/content`
+   peuvent exister sans ce paramètre.
+5. Cliquer **Déconnexion** : les réponses d'API liées au compte doivent disparaître du cache,
+   y compris les copies de visite/cartes portant `__fm_sw_user`, ainsi que les photos `/uploads/`
+   (réglage `privacy.clear_local_data_on_logout`, actif par défaut). Les bundles, icônes, fontes
+   et copies publiques de visite restent en cache.
+6. Se reconnecter avec un autre compte et revenir hors ligne : aucune tâche, fiche ou repère
+   réservé au compte précédent ne doit réapparaître.
+
+Contrôles automatisés utiles :
+
+```bash
+node --test tests/pwa-sw-template.test.js tests/service-worker-cache.test.js
+npm run test:ui -- tests-ui/api.test.js
+```
 
 ### Jobs quotidiens en local
 
