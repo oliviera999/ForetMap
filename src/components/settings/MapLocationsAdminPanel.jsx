@@ -26,6 +26,7 @@ import {
   countLocationsBySurface,
   visibleSurfacesOfLocation,
 } from '../../utils/locationSurfaceVisibility.js';
+import { formatSurface, zoneSurfaceM2 } from '../../utils/zoneSurface.js';
 
 const KIND_OPTIONS = [
   { value: 'both', label: 'Zones et repères' },
@@ -263,6 +264,28 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
 
   const zoneCount = resultItems.filter((r) => r.kind === 'zone').length;
   const markerCount = resultItems.length - zoneCount;
+
+  const georefByMapId = useMemo(() => {
+    const out = new Map();
+    for (const m of maps) if (Array.isArray(m.georef)) out.set(String(m.id), m.georef);
+    return out;
+  }, [maps]);
+
+  /** Surface estimée par clé de ligne zone — seulement pour les zones d'une carte calée GPS. */
+  const surfaceByKey = useMemo(() => {
+    const out = new Map();
+    for (const r of resultItems) {
+      if (r.kind !== 'zone') continue;
+      const m2 = zoneSurfaceM2(r.item, georefByMapId.get(String(r.item.map_id || '')));
+      if (m2 != null) out.set(`zone:${r.id}`, m2);
+    }
+    return out;
+  }, [resultItems, georefByMapId]);
+
+  const totalSurfaceLabel =
+    surfaceByKey.size > 0
+      ? formatSurface([...surfaceByKey.values()].reduce((sum, v) => sum + v, 0))
+      : null;
 
   const applyUpdated = (kind, updated) => {
     if (!updated?.id) return;
@@ -609,7 +632,9 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
         <span style={HINT_STYLE}>
           {loading
             ? 'Chargement des zones et repères…'
-            : `${zoneCount} zone(s) · ${markerCount} repère(s)`}
+            : `${zoneCount} zone(s) · ${markerCount} repère(s)${
+                totalSurfaceLabel ? ` (${totalSurfaceLabel} sur les cartes calées)` : ''
+              }`}
         </span>
       </div>
 
@@ -724,6 +749,15 @@ export function MapLocationsAdminPanel({ maps = [], onError, onMessage }) {
                 )}
               </select>
               <span style={HINT_STYLE}>{isZone ? 'Zone' : 'Repère'}</span>
+              {isZone && surfaceByKey.has(key) ? (
+                <span
+                  style={HINT_STYLE}
+                  title="Surface estimée à partir du calage GPS de la carte"
+                  aria-label={`Surface de ${title} : ${formatSurface(surfaceByKey.get(key))}`}
+                >
+                  📐 {formatSurface(surfaceByKey.get(key))}
+                </span>
+              ) : null}
               {/* Surfaces où ce lieu sort réellement (masquage **et** catégories pris en
                   compte) : sans ce repère, rien ne distingue à l'œil un lieu publié sur le
                   plan public d'un lieu réservé aux personnels. */}

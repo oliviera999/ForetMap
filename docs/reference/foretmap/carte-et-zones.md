@@ -134,6 +134,14 @@ qu'on veut). Sa fiche rassemble :
   Même chose sur la fiche d'un repère. Détail : « Signaler une observation » dans
   [Plantes et biodiversité](plantes-et-biodiversite.md).
 
+**Surface de la zone (plans calés GPS).** Sur un plan qui a été calé sur trois points
+GPS, les professeurs et administrateurs voient, sous le nom de la zone sélectionnée, une
+ligne **« Surface : ≈ 1 234 m² »** (en hectares au-delà de 10 000 m², par exemple
+« ≈ 1,23 ha »). C'est une **estimation** tirée du calage du plan. Les élèves ne la voient
+pas, et elle n'apparaît pas sur un plan non calé. La même surface s'affiche **en direct**
+dans le bandeau du bas pendant le tracé d'une nouvelle zone (dès le troisième point) et
+pendant la retouche du contour.
+
 ## Les repères
 
 Un repère est un **point** posé sur le plan, complémentaire des zones. Il porte un
@@ -509,6 +517,8 @@ côté du bouton « Copie », ouvre un mode d'édition
 sur la carte. Le contour apparaît alors avec **une poignée par sommet** (les coins du
 tracé), et une petite **poignée pointillée au milieu de chaque côté**. Tout se fait
 directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « Sauver ».
+Sur un plan calé GPS, le bandeau du bas indique la **surface estimée** du contour
+(« 📐 ≈ 1 234 m² »), mise à jour à chaque déplacement de sommet.
 
 - **Déplacer un sommet** : le faire glisser. **Déplacer la zone entière** : glisser
   l'intérieur du contour.
@@ -654,6 +664,10 @@ repères voient cet onglet Cartographie (sans les réglages généraux).
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).
 - **Filtres** : type (zones seules / repères seuls) et carte.
+- **Surface des zones** : pour chaque zone d'un plan calé GPS, la ligne affiche sa
+  surface estimée (« 📐 ≈ 1 234 m² »). Le compteur en tête de liste additionne la
+  surface des zones affichées qui se trouvent sur un plan calé (« ≈ 3 400 m² sur les
+  cartes calées »). Les zones des plans non calés n'ont pas de surface.
 
 ### Édition directe, sans bouton « Modifier »
 
@@ -794,6 +808,11 @@ tâches qui défile pour elle seule : plus l'écran est haut, plus le plan est g
 > administrateur a calé le plan sur trois points GPS **et** activé la géolocalisation
 > pour ce plan. Sans ce calage, rien ne signale que la fonction existe — pensez à le
 > faire pour les plans utilisés sur le terrain.
+
+> ⚠️ **Point d'attention** — La **surface des zones** n'est qu'une estimation : sa
+> justesse dépend entièrement de la qualité du calage GPS du plan (trois points bien
+> écartés, coordonnées précises). Un calage approximatif donne des surfaces fausses sans
+> que rien ne le signale. Sur un plan non calé, aucune surface n'est affichée.
 
 Pendant le suivi, une bannière sous la barre d'outils indique l'état : suivi actif (avec
 la précision en mètres), localisation refusée, **position indisponible ou délai dépassé**

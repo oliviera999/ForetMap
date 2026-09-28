@@ -101,6 +101,7 @@ function ZoneInfoModal({
   onOpenTutorialPreview = null,
   onOpenPlantCatalogPreview = null,
   focusComments = false,
+  georef = null,
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
@@ -325,6 +326,7 @@ function ZoneInfoModal({
       <ZoneInfoModalHeader
         zone={zone}
         isTeacher={isTeacher}
+        georef={georef}
         duplicating={duplicating}
         onDuplicate={
           onDuplicate

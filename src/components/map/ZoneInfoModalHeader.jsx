@@ -3,6 +3,7 @@ import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { zoneEmojiOf, zoneTitleOf } from '../../utils/zoneDisplay.js';
 import { LocationHeaderActions } from './LocationModalParts.jsx';
 import { IconDrawZone } from '../../shared/icons.jsx';
+import { formatSurface, zoneSurfaceM2 } from '../../utils/zoneSurface.js';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastilles de
@@ -13,6 +14,7 @@ import { IconDrawZone } from '../../shared/icons.jsx';
 function ZoneInfoModalHeader({
   zone,
   isTeacher,
+  georef = null,
   duplicating = false,
   onDuplicate = null,
   onEditPoints = null,
@@ -22,6 +24,7 @@ function ZoneInfoModalHeader({
 }) {
   const { confirm } = useAppDialogs();
   const showTeacherActions = isTeacher;
+  const surfaceLabel = isTeacher ? formatSurface(zoneSurfaceM2(zone, georef)) : null;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -38,6 +41,15 @@ function ZoneInfoModalHeader({
           ) : null}
           {zoneEmojiOf(zone) ? zoneTitleOf(zone) : zone.name}
         </h3>
+        {surfaceLabel ? (
+          <div
+            className="zone-info-surface"
+            title="Estimation calculée à partir du calage GPS de la carte"
+            style={{ marginTop: 2, fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}
+          >
+            Surface : {surfaceLabel}
+          </div>
+        ) : null}
         <div style={{ marginTop: 3 }}>
           <LocationCategoryBadges item={zone} />
         </div>

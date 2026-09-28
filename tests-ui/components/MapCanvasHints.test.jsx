@@ -25,6 +25,22 @@ describe('MapCanvasHints', () => {
     expect(screen.getByText(/Glisse un sommet ou l'intérieur/)).toBeTruthy();
   });
 
+  test('surface en direct : ajoutée au tracé prêt et à la retouche du contour', () => {
+    const { rerender, container } = render(
+      <MapCanvasHints mode="draw-zone" drawPointsCount={2} surfaceLabel="≈ 400 m²" />,
+    );
+    expect(container.textContent).not.toContain('m²');
+    rerender(<MapCanvasHints mode="draw-zone" drawPointsCount={3} surfaceLabel="≈ 400 m²" />);
+    expect(container.textContent).toContain('✅ 3 pts — Terminer · 📐 ≈ 400 m²');
+    rerender(<MapCanvasHints mode="edit-points" surfaceLabel="≈ 1,23 ha" />);
+    expect(container.textContent).toContain('📐 ≈ 1,23 ha');
+  });
+
+  test('sans surface fournie : bandeaux inchangés', () => {
+    const { container } = render(<MapCanvasHints mode="edit-points" />);
+    expect(container.textContent).not.toContain('📐');
+  });
+
   test('défilement page préféré : rappel 1 doigt / 2 doigts (prioritaire sur gestes actifs)', () => {
     render(<MapCanvasHints mode="view" prefersPageScroll isCoarsePointer />);
     expect(screen.getByText('📱 1 doigt: page · 2 doigts: zoom carte')).toBeTruthy();

@@ -213,4 +213,30 @@ describe('MapLocationsAdminPanel (grille à édition directe)', () => {
       }),
     );
   });
+
+  test('surface estimée : zones des cartes calées GPS seulement, avec total', async () => {
+    const LAT = 48.85;
+    const COS = Math.cos((LAT * Math.PI) / 180);
+    const georef = [
+      { xp: 0, yp: 0, lat: LAT, lng: 2.3 },
+      { xp: 100, yp: 0, lat: LAT, lng: 2.3 + 200 / (111320 * COS) },
+      { xp: 0, yp: 100, lat: LAT - 100 / 111320, lng: 2.3 },
+    ];
+    const square = JSON.stringify([
+      { xp: 10, yp: 10 },
+      { xp: 20, yp: 10 },
+      { xp: 20, yp: 30 },
+      { xp: 10, yp: 30 },
+    ]);
+    mockApiData({
+      zones: ZONES.map((z) => ({ ...z, points: square })),
+    });
+    const maps = [{ id: 'foret', label: 'Forêt', georef }, MAPS[1]];
+    const { container } = render(<MapLocationsAdminPanel maps={maps} />);
+    expect(
+      await screen.findByText('2 zone(s) · 1 repère(s) (≈ 400 m² sur les cartes calées)'),
+    ).toBeTruthy();
+    const badges = container.textContent.match(/📐 ≈ 400 m²/g) || [];
+    expect(badges).toHaveLength(1);
+  });
 });

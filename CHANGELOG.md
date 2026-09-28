@@ -18,6 +18,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   perte de la protection de branche en privé sur Free et parades, vérification de la clé de
   déploiement du serveur (SSH, port 443 de repli, cPanel). `docs/DEPLOY_DIST_ARTIFACT.md` aligné.
 
+### Ajouté — surface estimée des zones sur les plans calés GPS
+
+- Sur un plan calé sur trois points GPS, les profs et admins voient la **surface estimée**
+  (m², ou ha au-delà de 10 000 m²) de la zone sélectionnée, sous son nom dans la fiche.
+- Surface affichée **en direct** dans le bandeau du bas pendant le tracé d'une zone (dès le
+  3ᵉ point) et pendant la retouche du contour.
+- **Réglages → Cartographie → Zones & repères** : surface par zone (plans calés seulement) et
+  total des zones filtrées dans le compteur.
+- Calcul côté front : `polygonAreaM2` (`src/shared/pct-map/pctGeoTransform.js`, projection
+  locale en mètres + formule du lacet) et `src/utils/zoneSurface.js` ; tests
+  `tests/zone-surface.test.js` et tests UI associés. Aucune route modifiée.
+
 ### Modifié — polices et images Wikimedia servies par l'application (RGPD, transferts hors UE)
 
 - Par défaut, plus aucun appel à Google Fonts ni à Wikimedia depuis le navigateur des élèves

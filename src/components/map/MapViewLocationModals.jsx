@@ -13,6 +13,7 @@ import { ZoneDrawModal } from './ZoneDrawModal.jsx';
  */
 export function MapViewLocationModals({
   activeMapId,
+  activeMapGeoref = null,
   isTeacher,
   student,
   canSelfAssignTasks,
@@ -103,6 +104,7 @@ export function MapViewLocationModals({
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
           focusComments={commentsFocusKey === `zone:${selectedZone.id}`}
+          georef={activeMapGeoref}
           onClose={() => {
             onCloseDetail();
             setSelectedZone(null);

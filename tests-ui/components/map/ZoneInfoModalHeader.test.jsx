@@ -94,6 +94,41 @@ describe('ZoneInfoModalHeader', () => {
     expect(screen.getByRole('button', { name: 'Supprimer la zone' })).toBeTruthy();
   });
 
+  describe('surface estimée (carte calée GPS)', () => {
+    const LAT = 48.85;
+    const COS = Math.cos((LAT * Math.PI) / 180);
+    // Plan de 200 m × 100 m : le carré 10 %→20 % × 10 %→30 % mesure 20 m × 20 m.
+    const GEOREF = [
+      { xp: 0, yp: 0, lat: LAT, lng: 2.3 },
+      { xp: 100, yp: 0, lat: LAT, lng: 2.3 + 200 / (111320 * COS) },
+      { xp: 0, yp: 100, lat: LAT - 100 / 111320, lng: 2.3 },
+    ];
+    const ZONE_WITH_POINTS = {
+      ...ZONE,
+      points: JSON.stringify([
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 20, yp: 30 },
+        { xp: 10, yp: 30 },
+      ]),
+    };
+
+    test('prof sur carte calée : surface affichée', () => {
+      renderHeader({ zone: ZONE_WITH_POINTS, georef: GEOREF });
+      expect(screen.getByText(/Surface : ≈ 400 m²/)).toBeTruthy();
+    });
+
+    test('élève : surface masquée', () => {
+      renderHeader({ zone: ZONE_WITH_POINTS, georef: GEOREF, isTeacher: false });
+      expect(screen.queryByText(/Surface :/)).toBeNull();
+    });
+
+    test('carte non calée : surface masquée', () => {
+      renderHeader({ zone: ZONE_WITH_POINTS, georef: null });
+      expect(screen.queryByText(/Surface :/)).toBeNull();
+    });
+  });
+
   test('état duplicating : bouton désactivé et libellé de chargement', () => {
     renderHeader({ duplicating: true });
     const btn = screen.getByRole('button', { name: '…' });

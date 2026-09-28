@@ -236,6 +236,44 @@ export function planSizeMeters(anchors) {
 }
 
 /**
+ * Surface réelle approximative (m²) d'un polygone exprimé en % du plan, déduite du calage.
+ * Les sommets sont convertis en GPS puis projetés dans un plan local en mètres (facteur
+ * cos(lat)) avant la formule du lacet — suffisant à l'échelle d'un site.
+ * @param {{ xp: number, yp: number }[]} points
+ * @param {GeoAnchor[]} anchors
+ * @returns {number | null} null si calage invalide ou moins de 3 sommets exploitables
+ */
+export function polygonAreaM2(points, anchors) {
+  if (!Array.isArray(points) || points.length < 3 || !isValidAnchors(anchors)) return null;
+  const t = solveAffine2D(
+    anchors.map((p) => ({ u: p.xp, v: p.yp })),
+    anchors.map((p) => ({ x: p.lng, y: p.lat })),
+  );
+  if (!t) return null;
+  const geo = [];
+  for (const p of points) {
+    if (!p || !isFiniteNumber(p.xp) || !isFiniteNumber(p.yp)) continue;
+    geo.push({ lng: t.a * p.xp + t.b * p.yp + t.c, lat: t.d * p.xp + t.e * p.yp + t.f });
+  }
+  if (geo.length < 3) return null;
+  const lat0 = geo.reduce((s, g) => s + g.lat, 0) / geo.length;
+  const lng0 = geo.reduce((s, g) => s + g.lng, 0) / geo.length;
+  const cosLat = Math.cos((lat0 * Math.PI) / 180);
+  const pts = geo.map((g) => ({
+    x: (g.lng - lng0) * cosLat * METERS_PER_DEGREE,
+    y: (g.lat - lat0) * METERS_PER_DEGREE,
+  }));
+  let twice = 0;
+  for (let i = 0; i < pts.length; i += 1) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    twice += a.x * b.y - b.x * a.y;
+  }
+  const area = Math.abs(twice) / 2;
+  return Number.isFinite(area) ? area : null;
+}
+
+/**
  * Vrai si la position % est dans les limites du plan (avec marge de tolérance).
  * @param {{ xp: number, yp: number } | null} pct
  * @param {number} [margin] marge en % au-delà des bords (défaut 0)

@@ -167,6 +167,7 @@ export function MapViewEditCanvas({
   scaleCompassPref,
   mapOrientationDeg,
   mapCanvasHintTexts,
+  liveSurfaceLabel = null,
 }) {
   return (
     <div
@@ -357,6 +358,7 @@ export function MapViewEditCanvas({
         prefersPageScroll={prefersPageScroll}
         isCoarsePointer={isCoarsePointer}
         hintTexts={mapCanvasHintTexts}
+        surfaceLabel={liveSurfaceLabel}
       />
     </div>
   );

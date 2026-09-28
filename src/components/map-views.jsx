@@ -66,6 +66,7 @@ import { markerFocusPct, zoneFocusPctFromPoints } from '../utils/mapFocusLocatio
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
+import { pointsSurfaceLabel } from '../utils/zoneSurface.js';
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -589,6 +590,14 @@ function MapViewImpl({
     }),
     [publicSettings, drawPoints.length],
   );
+  const liveSurfaceLabel = useMemo(() => {
+    if (!isTeacher || !activeMapGeoref) return null;
+    if (mode === 'draw-zone' && drawPoints.length >= 3) {
+      return pointsSurfaceLabel(drawPoints, activeMapGeoref);
+    }
+    if (mode === 'edit-points') return pointsSurfaceLabel(editPoints, activeMapGeoref);
+    return null;
+  }, [isTeacher, activeMapGeoref, mode, drawPoints, editPoints]);
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
   const parsedZones = useMemo(
@@ -720,6 +729,7 @@ function MapViewImpl({
 
       <MapViewLocationModals
         activeMapId={activeMapId}
+        activeMapGeoref={activeMapGeoref}
         isTeacher={isTeacher}
         student={student}
         canSelfAssignTasks={canSelfAssignTasks}
@@ -1015,6 +1025,7 @@ function MapViewImpl({
                 scaleCompassPref={scaleCompassPref}
                 mapOrientationDeg={mapOrientationDeg}
                 mapCanvasHintTexts={mapCanvasHintTexts}
+                liveSurfaceLabel={liveSurfaceLabel}
               />
             )}
             {useSharedViewStage ? (
@@ -1024,6 +1035,7 @@ function MapViewImpl({
                 prefersPageScroll={prefersPageScroll}
                 isCoarsePointer={isCoarsePointer}
                 hintTexts={mapCanvasHintTexts}
+                surfaceLabel={liveSurfaceLabel}
               />
             ) : null}
           </div>

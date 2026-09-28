@@ -16,5 +16,6 @@ export {
   pctToGeo,
   assessAnchorsGeoPlausibility,
   planSizeMeters,
+  polygonAreaM2,
   isPctWithinMap,
 } from '../shared/pct-map/pctGeoTransform.js';

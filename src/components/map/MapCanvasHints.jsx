@@ -18,7 +18,13 @@ export function MapCanvasHints({
   isCoarsePointer,
 
   hintTexts = {},
+
+  surfaceLabel = null,
 }) {
+  const surfaceSuffix = surfaceLabel ? (
+    <span className="map-canvas-hint__surface"> · 📐 {surfaceLabel}</span>
+  ) : null;
+
   const {
     drawZoneMin = '🖊️ Touche la carte (min. 3 pts)',
 
@@ -39,7 +45,12 @@ export function MapCanvasHints({
         <div className="map-canvas-hint map-canvas-hint--mode map-canvas-hint--bottom">
           {mode === 'draw-zone' && drawPointsCount < 3 && drawZoneMin}
 
-          {mode === 'draw-zone' && drawPointsCount >= 3 && drawZoneReady}
+          {mode === 'draw-zone' && drawPointsCount >= 3 && (
+            <>
+              {drawZoneReady}
+              {surfaceSuffix}
+            </>
+          )}
 
           {mode === 'add-marker' && addMarker}
         </div>
@@ -48,6 +59,7 @@ export function MapCanvasHints({
       {mode === 'edit-points' && (
         <div className="map-canvas-hint map-canvas-hint--edit map-canvas-hint--bottom">
           {editPoints}
+          {surfaceSuffix}
         </div>
       )}
 
