@@ -12,7 +12,15 @@ Détail et comportement : [`docs/EXPLOITATION.md`](EXPLOITATION.md).
 ```bash
 cd /home/USER/foretmap
 mkdir -p logs backups
+# Clé de chiffrement des sauvegardes (hors du dossier de l'application) :
+openssl rand -base64 48 > /home/USER/.foretmap-backup.key
+chmod 600 /home/USER/.foretmap-backup.key
 ```
+
+> ⚠️ **Copier aussitôt cette clé hors du serveur** (gestionnaire de mots de passe de
+> l'établissement) : sans elle, aucune sauvegarde ne peut être restaurée. Les anciens dumps en
+> clair se chiffrent avec `bash scripts/encrypt-existing-backups.sh`
+> ([`docs/EXPLOITATION.md`](EXPLOITATION.md), « Chiffrement des sauvegardes »).
 
 Les lignes ci-dessous appellent chaque script **par `bash`** : aucun `chmod +x` n'est
 nécessaire, et il ne faut pas en faire sur un fichier suivi par git (git peut le compter comme
@@ -36,6 +44,8 @@ Vérifier que le `.env` serveur contient au minimum :
 DEPLOY_SECRET=…            # = même valeur que l'application (POST /api/admin/restart)
 DEPLOY_AUTO_MIGRATE=1      # migrations passées par le cron (sauvegarde vérifiée avant)
 DB_HOST=… DB_PORT=3306 DB_NAME=… DB_USER=… DB_PASS=…
+BACKUP_ENCRYPT_KEY_FILE=/home/USER/.foretmap-backup.key   # sauvegardes chiffrées (.sql.gz.enc)
+BACKUP_ENCRYPT_REQUIRED=1  # jamais de sauvegarde en clair si la clé manque
 # Alertes (optionnel mais recommandé) :
 SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-reply@…>"
 OPS_ALERT_TO=admin@…
@@ -47,7 +57,7 @@ OPS_ALERT_TO=admin@…
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
 */2 * * * * mkdir -p /home/USER/foretmap/logs && APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info DEPLOY_AUTO_MIGRATE=1 bash /home/USER/foretmap/scripts/auto-deploy-cron.sh >> /home/USER/foretmap/logs/foretmap-auto-deploy.log 2>&1
 
-# 2) Sauvegarde BDD quotidienne (mysqldump compressé + rotation) — 03:00
+# 2) Sauvegarde BDD quotidienne (dump compressé, chiffré si BACKUP_ENCRYPT_KEY_FILE est dans .env, + rotation) — 03:00
 0 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup.sh >> /home/USER/foretmap/logs/db-backup.log 2>&1
 
 # 3) Sonde de disponibilité /api/ready (alerte email au changement d'état) — toutes les 5 min

@@ -36,6 +36,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   locale en mètres + formule du lacet) et `src/utils/zoneSurface.js` ; tests
   `tests/zone-surface.test.js` et tests UI associés. Aucune route modifiée.
 
+### Sécurité — sauvegardes BDD chiffrées (RGPD)
+
+- `scripts/db-backup.sh` chiffre chaque dump en flux (`openssl enc -aes-256-cbc -pbkdf2 -iter
+  200000 -salt`, fichier `.sql.gz.enc`) dès que `BACKUP_ENCRYPT_KEY_FILE` est défini ; contrôle
+  par déchiffrement + marque « Dump completed » ; `BACKUP_ENCRYPT_REQUIRED=1` refuse toute
+  sauvegarde en clair ; rotation sur les deux extensions ; fichiers en `umask 077` (constat S-7
+  de l'[audit RGPD du 28/09](docs/AUDIT_RGPD_2026-09-28.md)).
+- Nouveaux `scripts/db-restore.sh` (`--check`, `--to-file`, restauration confirmée, vérification
+  complète avant écriture) et `scripts/encrypt-existing-backups.sh` (chiffre les anciens dumps,
+  vérifie octet pour octet, conserve la date, supprime le clair). Fonctions communes :
+  `scripts/lib/backup-crypto.sh`.
+- Mise en place (clé `openssl rand -base64 48`, `chmod 600`, **copie hors serveur**) :
+  `docs/EXPLOITATION.md`, `docs/CRONTAB.md`, `.env.example`. Test :
+  `tests/backup-encryption.test.js` (faux `mariadb-dump`, ignoré sans bash/openssl).
+
 ### Sécurité — CSP imposée, clé de session unique, nettoyage à la déconnexion (RGPD)
 
 - La politique CSP complète est désormais **imposée** (`Content-Security-Policy`) au lieu de
