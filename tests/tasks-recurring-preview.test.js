@@ -108,6 +108,45 @@ test('recurring-preview : une ligne par série, ancrée sur la date de départ',
   assert.strictEqual(ligne.pending, 'validation');
 });
 
+/**
+ * `spawn_date` : le jour où le job dupliquera la tâche. Le job n'agit qu'une fois
+ * l'échéance atteinte et jamais un jour fermé — premier jour ouvré ≥ max(échéance, today).
+ */
+test('recurring-preview : annonce le jour de duplication', async () => {
+  const token = await getAdminAuthToken();
+  const marqueur = Date.now();
+  // Échéance future (un jeudi, hors calendrier préchargé : repli jours de semaine ouverts).
+  const futureId = await createRecurringTask(token, `RecPreview spawn futur ${marqueur}`, {
+    start_date: '2099-12-28',
+    due_date: '2099-12-31',
+  });
+  await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [futureId]);
+  // Échéance passée, jamais validée : la duplication ne peut venir qu'à partir d'aujourd'hui.
+  const passeeId = await createRecurringTask(token, `RecPreview spawn passé ${marqueur}`);
+
+  const res = await request(app)
+    .get('/api/tasks/recurring-preview')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+
+  assert.strictEqual(typeof res.body.automation_enabled, 'boolean');
+  const future = findSeries(res.body, futureId);
+  assert.ok(future, 'la série future figure dans la prévision');
+  assert.strictEqual(future.pending, 'due_date');
+  assert.strictEqual(future.spawn_date, '2099-12-31', 'dupliquée le jour de son échéance');
+  assert.ok(future.next_due > future.spawn_date, 'la copie vise une échéance postérieure');
+
+  const passee = findSeries(res.body, passeeId);
+  assert.ok(passee, 'la série en retard figure dans la prévision');
+  assert.strictEqual(passee.pending, 'validation');
+  assert.match(passee.spawn_date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(passee.spawn_date >= res.body.today, 'jamais une date de duplication passée');
+  assert.ok(
+    passee.next_due >= passee.spawn_date,
+    'la copie n’a pas une échéance déjà dépassée le jour de sa création',
+  );
+});
+
 test('recurring-preview : une série n’apparaît qu’une fois, par sa tête d’échéance', async () => {
   const token = await getAdminAuthToken();
   const seriesId = `srv-${Date.now()}`;

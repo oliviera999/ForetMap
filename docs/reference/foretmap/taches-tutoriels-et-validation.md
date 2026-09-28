@@ -347,6 +347,13 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
   affiche, pour chaque série, la **prochaine occurrence prévue** (« Prochaine occurrence
   mar. 22 sept. → ven. 25 sept. »), le **jour sur lequel le rythme est calé**, et ce qui
   manque encore pour qu'elle arrive — une validation, ou l'échéance à atteindre.
+- Le panneau indique aussi la **date à laquelle la tâche validée sera dupliquée**
+  (« Duplication prévue le ven. 18 sept. », ou « aujourd'hui ») : c'est le premier jour
+  d'école ouvert à partir de l'échéance. Pour une tâche **pas encore validée**, la date
+  est donnée « au plus tôt, si elle est validée d'ici là » : validée plus tard, elle sera
+  dupliquée le premier jour d'école qui suit sa validation. Si la duplication
+  automatique est suspendue dans les réglages, le panneau le signale et n'annonce
+  aucune date.
 - **Les séries qui attendent quelque chose passent en tête** de ce panneau : celles qui
   réclament une validation d'abord, puis les échéances les plus anciennes. Le calcul
   étant limité à 200 séries, ce sont les séries « qui roulent toutes seules » qui

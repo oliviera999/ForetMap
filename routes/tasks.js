@@ -84,8 +84,10 @@ const {
   getRecurrenceToday,
   resolveRecurrenceAnchor,
   computeNextOccurrenceWindow,
+  computeSpawnDate,
   createOpenDayResolver,
 } = require('../lib/recurringTasks');
+const { getSettingValue } = require('../lib/settings');
 
 const router = express.Router();
 
@@ -552,9 +554,15 @@ router.get(
     const series = [];
     for (const row of rows) {
       const anchor = resolveRecurrenceAnchor(row);
-      const window = await computeNextOccurrenceWindow(row, String(row.recurrence || ''), today, {
-        nextOpenDay,
-      });
+      const spawnDate = await computeSpawnDate(row, today, { nextOpenDay });
+      // La fenêtre est calculée depuis le jour de duplication, comme le fera le job ce
+      // jour-là : vue d'aujourd'hui, elle pourrait viser une échéance déjà passée alors.
+      const window = await computeNextOccurrenceWindow(
+        row,
+        String(row.recurrence || ''),
+        spawnDate || today,
+        { nextOpenDay },
+      );
       const validated = String(row.status || '').trim() === 'validated';
       const dueReached = String(row.due_date || '') <= today;
       series.push({
@@ -569,11 +577,21 @@ router.get(
         current_due: row.due_date || null,
         next_start: window?.startDate || null,
         next_due: window?.dueDate || null,
+        spawn_date: spawnDate || null,
       });
     }
+    const automationEnabled = Boolean(
+      await getSettingValue('tasks.recurring_automation_enabled', true),
+    );
     // `truncated` permet au panneau de dire « prévision non calculée pour ces séries-là »
     // au lieu de laisser croire qu'elles n'en ont pas.
-    res.json({ today, series, truncated, limit: PREVIEW_LIMIT });
+    res.json({
+      today,
+      series,
+      truncated,
+      limit: PREVIEW_LIMIT,
+      automation_enabled: automationEnabled,
+    });
   }),
 );
 

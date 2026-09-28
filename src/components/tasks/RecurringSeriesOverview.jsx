@@ -40,6 +40,22 @@ export function previewLine(preview) {
 }
 
 /**
+ * Jour où le job dupliquera la tâche. Le job ne passe qu'une fois par jour : pour une
+ * tâche encore à valider, la date n'est tenue que si la validation arrive avant.
+ */
+export function spawnLine(preview, today = null) {
+  if (!preview) return null;
+  const raw = String(preview.spawn_date || '').trim();
+  const spawn = formatOccurrenceDate(raw);
+  if (!spawn) return null;
+  const quand = today && raw === today ? 'aujourd’hui' : `le ${spawn}`;
+  if (preview.pending === 'validation') {
+    return `Duplication ${quand} au plus tôt, si elle est validée d’ici là.`;
+  }
+  return `Duplication prévue ${quand}.`;
+}
+
+/**
  * Panneau n3boss/admin : aperçu des tâches récurrentes + statut calendrier du jour.
  *
  * Le cadre arrive **replié** (on n'affiche que le titre et le compte de séries) et se
@@ -60,6 +76,8 @@ export function RecurringSeriesOverview({
   // Le serveur borne sa liste : quand il le signale, une série sans prévision n'est pas une
   // série sans prochaine occurrence — c'est une série que le calcul n'a pas atteinte.
   const [previewTruncated, setPreviewTruncated] = useState(false);
+  const [previewToday, setPreviewToday] = useState(null);
+  const [automationEnabled, setAutomationEnabled] = useState(true);
 
   // Le calendrier scolaire n'est lu qu'au premier dépliage : replié, le cadre n'a
   // rien à en afficher, inutile de payer la requête à chaque visite de l'onglet.
@@ -95,11 +113,15 @@ export function RecurringSeriesOverview({
         }
         setPreviews(bySeries);
         setPreviewTruncated(Boolean(data?.truncated));
+        setPreviewToday(data?.today || null);
+        setAutomationEnabled(data?.automation_enabled !== false);
       } catch {
         // Prévision indisponible : le panneau reste utile sans elle.
         if (!cancelled) {
           setPreviews(null);
           setPreviewTruncated(false);
+          setPreviewToday(null);
+          setAutomationEnabled(true);
         }
       }
     })();
@@ -183,10 +205,16 @@ export function RecurringSeriesOverview({
             </button>
           )}
           {calendarLine && <p className="recurring-series-overview-calendar">{calendarLine}</p>}
+          {!automationEnabled && (
+            <p className="recurring-series-overview-calendar">
+              Duplication automatique suspendue dans les réglages : aucune copie ne sera créée.
+            </p>
+          )}
           <ul className="recurring-series-overview-list">
             {rows.map((row) => {
               const prevision = previewLine(row.preview);
               const ancre = formatOccurrenceDate(row.preview?.anchor_date);
+              const duplication = automationEnabled ? spawnLine(row.preview, previewToday) : null;
               return (
                 <li key={row.seriesId}>
                   <span className="recurring-series-title">{row.title}</span>
@@ -204,6 +232,11 @@ export function RecurringSeriesOverview({
                           Rythme calé sur le {ancre.split(' ')[0]}
                         </span>
                       )}
+                    </span>
+                  )}
+                  {!row.archived && prevision && duplication && (
+                    <span className="recurring-series-next recurring-series-spawn">
+                      {duplication}
                     </span>
                   )}
                   {/* Sans ce repère, une série hors de la fenêtre de calcul s'affichait

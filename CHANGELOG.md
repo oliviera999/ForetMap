@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — séries récurrentes : date de duplication affichée
+
+- Le cadre « Séries récurrentes » annonce, pour chaque série, **le jour où la tâche validée
+  sera dupliquée** (« Duplication prévue le ven. 18 sept. » / « aujourd'hui ») : premier jour
+  d'école ouvert à partir de l'échéance. Tâche pas encore validée : date « au plus tôt, si
+  elle est validée d'ici là ». Duplication automatique suspendue : le cadre le dit et
+  n'annonce aucune date.
+- `GET /api/tasks/recurring-preview` renvoie `spawn_date` par série et `automation_enabled` ;
+  la prochaine fenêtre (`next_start` / `next_due`) est désormais calculée depuis ce jour de
+  duplication, comme le fera le job.
+
 ### Modifié — fiche de zone : bouton « Contour » à côté de « Copie »
 
 - Le bouton qui ouvre l'édition du contour d'une zone quitte le bas de l'onglet Modifier et

@@ -5,6 +5,7 @@ import {
   RecurringSeriesOverview,
   formatOccurrenceDate,
   previewLine,
+  spawnLine,
 } from '../../src/components/tasks/RecurringSeriesOverview.jsx';
 
 vi.mock('../../src/services/api.js', () => ({ api: vi.fn() }));
@@ -12,14 +13,25 @@ vi.mock('../../src/services/api.js', () => ({ api: vi.fn() }));
 import { api } from '../../src/services/api.js';
 
 /** Le cadre interroge deux routes au dépliage : le statut du jour et la prévision des séries. */
-function repondre({ preview = null, previewFails = false, truncated = false } = {}) {
+function repondre({
+  preview = null,
+  previewFails = false,
+  truncated = false,
+  automationEnabled = true,
+} = {}) {
   api.mockImplementation(async (url) => {
     if (url === '/api/school-calendar') {
       return { today: { today: '2026-09-16', isOpen: true } };
     }
     if (url === '/api/tasks/recurring-preview') {
       if (previewFails) throw new Error('indisponible');
-      return { today: '2026-09-16', series: preview ? [preview] : [], truncated, limit: 200 };
+      return {
+        today: '2026-09-16',
+        series: preview ? [preview] : [],
+        truncated,
+        limit: 200,
+        automation_enabled: automationEnabled,
+      };
     }
     throw new Error(`url inattendue : ${url}`);
   });
@@ -63,6 +75,31 @@ describe('previewLine', () => {
   test('rend null sans prévision exploitable', () => {
     expect(previewLine(null)).toBeNull();
     expect(previewLine({ next_start: null, next_due: null })).toBeNull();
+  });
+});
+
+describe('spawnLine', () => {
+  test('annonce le jour de duplication d’une tâche validée', () => {
+    expect(spawnLine({ spawn_date: '2026-09-22', pending: 'due_date' }, '2026-09-16')).toMatch(
+      /^Duplication prévue le mar\./,
+    );
+  });
+
+  test('dit « aujourd’hui » quand la duplication tombe le jour même', () => {
+    expect(spawnLine({ spawn_date: '2026-09-16', pending: null }, '2026-09-16')).toBe(
+      'Duplication prévue aujourd’hui.',
+    );
+  });
+
+  test('conditionne la date à la validation quand elle manque', () => {
+    expect(spawnLine({ spawn_date: '2026-09-22', pending: 'validation' }, '2026-09-16')).toMatch(
+      /au plus tôt, si elle est validée d’ici là/,
+    );
+  });
+
+  test('rend null sans date exploitable', () => {
+    expect(spawnLine(null)).toBeNull();
+    expect(spawnLine({ spawn_date: null, pending: null })).toBeNull();
   });
 });
 
@@ -176,6 +213,51 @@ describe('RecurringSeriesOverview', () => {
       expect(screen.getByText(/Prochaine occurrence/)).toBeInTheDocument();
     });
     expect(screen.getByText(/Rythme calé sur le mar\./)).toBeInTheDocument();
+  });
+
+  test('déplié, chaque série annonce aussi son jour de duplication', async () => {
+    const user = userEvent.setup();
+    repondre({
+      preview: {
+        series_id: 'S1',
+        task_id: 1,
+        recurrence: 'weekly',
+        anchor_date: '2026-09-15',
+        pending: 'due_date',
+        next_start: '2026-09-22',
+        next_due: '2026-09-25',
+        spawn_date: '2026-09-18',
+      },
+    });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/Duplication prévue le ven\./)).toBeInTheDocument();
+    });
+  });
+
+  test('automatisation suspendue : pas de date de duplication promise', async () => {
+    const user = userEvent.setup();
+    repondre({
+      automationEnabled: false,
+      preview: {
+        series_id: 'S1',
+        task_id: 1,
+        recurrence: 'weekly',
+        pending: null,
+        next_start: '2026-09-22',
+        next_due: '2026-09-25',
+        spawn_date: '2026-09-16',
+      },
+    });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/Duplication automatique suspendue/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Duplication prévue/)).not.toBeInTheDocument();
   });
 
   test('reste utilisable si la prévision échoue', async () => {
