@@ -20,7 +20,7 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 | `lib/httpRequestLog.js` | Fin de requête ; `FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS`                          |
 | `lib/logMetrics.js`     | Compteurs + `recentHttp5xx`, `http429` + `recentHttp429` pour `/api/admin/diagnostics` |
 | `lib/routeLog.js`       | `logRouteError` (+ `requestId`, incrément métriques)                                   |
-| `lib/cspReport.js`      | Signalements CSP `Report-Only` regroupés (1 ligne `csp_report_window` / 60 s)          |
+| `lib/cspReport.js`      | Signalements CSP (politique imposée) regroupés (1 ligne `csp_report_window` / 60 s)    |
 
 ## Checks rapides (local → prod)
 
@@ -54,7 +54,7 @@ Helper partagé : `scripts/lib/deploy-secret-from-env.js`.
 
 ## Signalements CSP
 
-Politique **imposée** = `img-src` historique (inchangée) ; politique **candidate** complète servie en `Content-Security-Policy-Report-Only` avec `report-uri /api/csp-report` (`lib/csp.js`, chaque directive justifiée en commentaire).
+Politique complète **imposée** (`Content-Security-Policy`, plus de `Report-Only` depuis l'audit RGPD du 28/09/2026) avec `report-uri /api/csp-report` (`lib/csp.js`, chaque directive justifiée en commentaire ; variantes fiche tutoriel et intro GL). Une ligne `csp_report_window` = une ressource **réellement bloquée**.
 
 ```bash
 curl -sI https://<domaine>/api/health | grep -i content-security-policy

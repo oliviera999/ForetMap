@@ -1,3 +1,4 @@
+import './shared/zodJitless.js';
 import ReactDOM from 'react-dom/client';
 import './shared/fonts/foretmapFonts.js';
 import './shared/styles/tooltip.css';

@@ -36,6 +36,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   locale en mètres + formule du lacet) et `src/utils/zoneSurface.js` ; tests
   `tests/zone-surface.test.js` et tests UI associés. Aucune route modifiée.
 
+### Sécurité — CSP imposée, clé de session unique, nettoyage à la déconnexion (RGPD)
+
+- La politique CSP complète est désormais **imposée** (`Content-Security-Policy`) au lieu de
+  `Report-Only` : `script-src 'self' 'wasm-unsafe-eval'`, empreinte sha256 pour les deux scripts
+  de la vue tutoriel, variante dédiée à l'intro G&L (constat S-5 de l'[audit RGPD du
+  28/09](docs/AUDIT_RGPD_2026-09-28.md)).
+- Plus aucun script inline dans le build : la marque passe par la constante
+  `__FORETMAP_BUILD_BRAND__` ; page hors ligne sans `onclick` ; le service worker ignore les
+  requêtes d'un autre domaine. Zod configuré en mode `jitless` (évite sa sonde `Function('')`
+  bloquée par la CSP — [doc Zod](https://zod.dev/api#jitless), MIT).
+- Jeton ForetMap rangé sous la seule clé `foretmap_session` : les anciennes clés
+  (`foretmap_auth_token`, `foretmap_teacher_token`, `foretmap_student`) sont migrées puis effacées.
+- Nouveau réglage **Confidentialité (RGPD)** → `privacy.clear_local_data_on_logout` (activé par
+  défaut) : la déconnexion efface les files hors ligne du compte, la progression de visite et
+  les photos gardées par le service worker, avec confirmation s'il reste des actions non
+  envoyées (constat S-8).
+- Tests : `tests/csp.test.js`, `tests-ui/api.test.js`, `tests-ui/utils/localDataCleanup.test.js`,
+  e2e `e2e/rgpd-session-csp.spec.js` (aucune violation CSP sur ForetMap, G&L, plan et intro G&L).
+
 ### Modifié — polices et images Wikimedia servies par l'application (RGPD, transferts hors UE)
 
 - Par défaut, plus aucun appel à Google Fonts ni à Wikimedia depuis le navigateur des élèves

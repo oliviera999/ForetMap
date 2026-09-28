@@ -1,3 +1,4 @@
+import './shared/zodJitless.js';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import MascotPackToolView from './components/MascotPackToolView.jsx';

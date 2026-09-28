@@ -7,14 +7,14 @@ description: Observabilité ForetMap — logger Pino, X-Request-Id, logs HTTP, m
 
 ## Modules backend
 
-| Fichier                 | Rôle                                                                             |
-| ----------------------- | -------------------------------------------------------------------------------- |
-| `lib/logger.js`         | Pino + `redact` (tokens, mots de passe) — **toujours** préférer au `console`     |
-| `lib/requestId.js`      | En-tête `X-Request-Id` sur chaque réponse                                        |
-| `lib/httpRequestLog.js` | Log fin de requête (`FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS`)                |
-| `lib/logMetrics.js`     | Compteurs + `recentHttp5xx`, `http429`/`recentHttp429` pour les diagnostics      |
-| `lib/routeLog.js`       | `logRouteError` (erreurs 500 + `requestId`, incrément métriques)                 |
-| `lib/cspReport.js`      | Signalements CSP `Report-Only` : **regroupés**, 1 ligne `csp_report_window`/60 s |
+| Fichier                 | Rôle                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `lib/logger.js`         | Pino + `redact` (tokens, mots de passe) — **toujours** préférer au `console` |
+| `lib/requestId.js`      | En-tête `X-Request-Id` sur chaque réponse                                    |
+| `lib/httpRequestLog.js` | Log fin de requête (`FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS`)            |
+| `lib/logMetrics.js`     | Compteurs + `recentHttp5xx`, `http429`/`recentHttp429` pour les diagnostics  |
+| `lib/routeLog.js`       | `logRouteError` (erreurs 500 + `requestId`, incrément métriques)             |
+| `lib/cspReport.js`      | Signalements CSP (imposée) : **regroupés**, 1 ligne `csp_report_window`/60 s |
 
 ## Checks prod (local → prod)
 
@@ -30,17 +30,17 @@ npm run prod:remote-debug        # check puis tail
 
 ## Signalements CSP
 
-La politique **imposée** reste le `img-src` historique ; une politique candidate complète part en
-`Content-Security-Policy-Report-Only` avec `report-uri /api/csp-report` (`lib/csp.js`).
+La politique complète est **imposée** (`Content-Security-Policy`, plus de `Report-Only` depuis
+l'audit RGPD du 28/09/2026) avec `report-uri /api/csp-report` (`lib/csp.js`).
 
 ```bash
-curl -sI https://<domaine>/api/health | grep -i content-security-policy   # les deux en-têtes
+curl -sI https://<domaine>/api/health | grep -i content-security-policy   # un seul en-tête
 grep csp_report_window logs/*.log | tail -20                              # 1 ligne / 60 s
 ```
 
 Rien n'est journalisé par signalement : regroupement par (directive, origine bloquée), plafond de
-40 signatures (`droppedSignatures` compte le surplus). Silence prolongé en usage réel = la
-politique candidate peut être **promue** en imposée ; sinon les lignes nomment ce qui manque.
+40 signatures (`droppedSignatures` compte le surplus). Une ligne = une ressource **réellement
+bloquée** chez un utilisateur : l'autoriser dans `lib/csp.js` si elle est légitime.
 Détail : `docs/EXPLOITATION.md` (§5) et `docs/API.md` (§ Sécurité du contenu).
 
 ## Corrélation support

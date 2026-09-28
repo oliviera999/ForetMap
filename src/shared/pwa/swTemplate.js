@@ -304,6 +304,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) return;
   const url = new URL(event.request.url);
+  // Le fetch() du worker relève de connect-src 'self' (CSP imposée) : une image tierce
+  // interceptée ici serait bloquée, on la laisse au navigateur.
+  if (url.origin !== self.location.origin) return;
 
   // HTML en network-first ; repli vers la page hors ligne.
   if (isHtmlEntry(url.pathname)) {

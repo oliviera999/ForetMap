@@ -5,6 +5,7 @@ import { withAppBase } from '../../services/api';
 import { resolveRealtimeTooltip } from '../../utils/helpResolve';
 import { IconDownload, IconEdit, IconKey, IconLogout } from '../../shared/icons.jsx';
 import { AppPreviewMenu } from './AppPreviewMenu.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 // Pastille `.app-version-badge` : feuille partagée avec G&L (voir `GLAppVersionBadge`).
 import '../../shared/styles/version-badge.css';
 
@@ -62,6 +63,9 @@ export function AppHeader({
   // Aide contextuelle
   helpText,
 }) {
+  // `App` rend le fournisseur de dialogues sous lui : la confirmation de déconnexion (actions
+  // hors ligne non envoyées) est donc demandée d'ici et passée au gestionnaire.
+  const { confirm } = useAppDialogs();
   return (
     <header className="app-header">
       <div className="logo">
@@ -185,7 +189,11 @@ export function AppHeader({
           </button>
         </Tooltip>
         <Tooltip text={helpText('header.logout')}>
-          <button className="lock-btn" aria-label="Déconnexion" onClick={onLogout}>
+          <button
+            className="lock-btn"
+            aria-label="Déconnexion"
+            onClick={() => onLogout?.({ confirm })}
+          >
             <IconLogout />
           </button>
         </Tooltip>

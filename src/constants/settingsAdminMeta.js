@@ -502,6 +502,12 @@ export const KEY_META = {
       external: 'Chargées chez Google et Wikimedia (ancien comportement)',
     },
   },
+  'privacy.clear_local_data_on_logout': {
+    label:
+      'Effacer de l’appareil, à la déconnexion, les actions en attente d’envoi et les photos gardées hors ligne (recommandé sur les tablettes partagées).',
+    section: 'privacy',
+    order: 20,
+  },
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',

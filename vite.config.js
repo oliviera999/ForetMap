@@ -46,11 +46,14 @@ function shareMetaForProduct(product) {
 /**
  * Marque et métadonnées de partage injectées dans les entrées HTML, en dev comme au build.
  *
- * Trois effets :
+ * Deux effets :
  *  1. substitution des jetons `%BRAND_*%` (titres, `application-name`, descriptions) ;
- *  2. exposition de `window.__FORETMAP_BRAND__` pour les composants front qui affichent le
- *     nom de l'établissement sans passer par l'API (le carnet, notamment) ;
- *  3. injection des métadonnées de partage, comme avant, mais dérivées du registre produits.
+ *  2. injection des métadonnées de partage, comme avant, mais dérivées du registre produits.
+ *
+ * Les noms affichés par les composants (le carnet, notamment) ne passent plus par un script
+ * inline `window.__FORETMAP_BRAND__` : ils sont compilés dans les bundles via la constante
+ * `__FORETMAP_BUILD_BRAND__` (`define`, plus bas). Aucun script inline ne reste dans les
+ * entrées HTML, ce qui permet d'imposer `script-src 'self'` (audit RGPD du 28/09/2026, S-5).
  *
  * Le nom du logiciel et celui de l'établissement viennent de `lib/brand.js` : rebrander une
  * installation, c'est poser des variables d'environnement avant `npm run build`, pas éditer
@@ -65,19 +68,7 @@ function brandHtmlPlugin() {
       // Jetons communs, plus `%BRAND_PRODUCT_*%` de l'entrée (registre `lib/products.js`).
       const rendered = renderBrandHtml(html, brandHtmlTokens(product));
 
-      const tags = [
-        {
-          tag: 'script',
-          injectTo: 'head-prepend',
-          // `<` échappé : une marque contenant `</script>` ne doit pas pouvoir fermer la balise.
-          children: `window.__FORETMAP_BRAND__=${JSON.stringify({
-            appName: brand.appName,
-            appShortName: brand.appShortName,
-            orgName: brand.orgName,
-            orgShortName: brand.orgShortName,
-          }).replace(/</g, '\\u003c')};`,
-        },
-      ];
+      const tags = [];
 
       const share = shareMetaForProduct(product);
       if (share) {
@@ -102,6 +93,14 @@ function brandHtmlPlugin() {
 
 export default defineConfig({
   plugins: [react(), brandHtmlPlugin()],
+  define: {
+    __FORETMAP_BUILD_BRAND__: JSON.stringify({
+      appName: brand.appName,
+      appShortName: brand.appShortName,
+      orgName: brand.orgName,
+      orgShortName: brand.orgShortName,
+    }),
+  },
   root: '.',
   optimizeDeps: {
     // lucide-react expose ~1500 modules ESM : pré-bundlé en dev pour éviter l'avalanche

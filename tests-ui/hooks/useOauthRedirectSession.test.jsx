@@ -6,13 +6,11 @@ import { useOauthRedirectSession } from '../../src/hooks/useOauthRedirectSession
 const apiMocks = {
   getAuthClaims: vi.fn(() => ({ permissions: ['teacher.access'] })),
   getStoredSession: vi.fn(() => ({ user: { id: 'u1' }, token: 't0' })),
-  saveLegacyStudentSnapshot: vi.fn(),
   saveStoredSession: vi.fn(),
 };
 vi.mock('../../src/services/api', () => ({
   getAuthClaims: () => apiMocks.getAuthClaims(),
   getStoredSession: () => apiMocks.getStoredSession(),
-  saveLegacyStudentSnapshot: (...a) => apiMocks.saveLegacyStudentSnapshot(...a),
   saveStoredSession: (...a) => apiMocks.saveStoredSession(...a),
 }));
 
@@ -39,7 +37,6 @@ const renderWithHash = (hash, extraHandlers = {}) => {
 describe('useOauthRedirectSession', () => {
   beforeEach(() => {
     apiMocks.saveStoredSession.mockClear();
-    apiMocks.saveLegacyStudentSnapshot.mockClear();
     localStorage.clear();
   });
 
@@ -82,7 +79,7 @@ describe('useOauthRedirectSession', () => {
     const saved = apiMocks.saveStoredSession.mock.calls[0][0];
     expect(saved.token).toBe('jwt-teacher');
     expect(saved.user.userType).toBe('teacher');
-    expect(localStorage.getItem('foretmap_auth_token')).toBe('jwt-teacher');
+    expect(localStorage.getItem('foretmap_auth_token')).toBeNull();
     expect(h.setIsTeacher).toHaveBeenCalledWith(true);
     expect(h.setAuthClaims).toHaveBeenCalled();
     expect(window.location.hash).toBe('');
@@ -94,8 +91,8 @@ describe('useOauthRedirectSession', () => {
       student: { id: 'S1', authToken: 'jwt-student', first_name: 'Léa', last_name: 'B' },
     })}`;
     const h = renderWithHash(hash);
-    expect(apiMocks.saveLegacyStudentSnapshot).toHaveBeenCalledTimes(1);
     expect(apiMocks.saveStoredSession).toHaveBeenCalledTimes(1);
+    expect(apiMocks.saveStoredSession.mock.calls[0][0].token).toBe('jwt-student');
     expect(h.setStudent).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'S1', authToken: 'jwt-student' }),
     );

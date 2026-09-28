@@ -15,7 +15,7 @@ const {
   resetRemoteMediaStateForTests,
   cachePaths,
 } = require('../lib/remoteMedia');
-const { buildReportOnlyPolicy } = require('../lib/csp');
+const { buildEnforcedPolicy } = require('../lib/csp');
 const { localizeTutorialExternalAssets } = require('../lib/tutorialViewExternalAssets');
 const { resolveLocalFontFile } = require('../lib/localFonts');
 
@@ -245,14 +245,14 @@ describe('CSP candidate selon le réglage privacy.external_assets_mode', () => {
   });
 
   it('mode local : aucun domaine Google Fonts', () => {
-    const policy = buildReportOnlyPolicy({ externalAssetsMode: 'local' });
+    const policy = buildEnforcedPolicy({ externalAssetsMode: 'local' });
     assert.ok(!policy.includes('fonts.googleapis.com'));
     assert.ok(!policy.includes('fonts.gstatic.com'));
-    assert.ok(buildReportOnlyPolicy().includes("font-src 'self' data:"), 'local par défaut');
+    assert.ok(buildEnforcedPolicy().includes("font-src 'self' data:"), 'local par défaut');
   });
 
   it('mode external : Google Fonts autorisé pour les styles et les polices', () => {
-    const policy = buildReportOnlyPolicy({ externalAssetsMode: 'external' });
+    const policy = buildEnforcedPolicy({ externalAssetsMode: 'external' });
     assert.ok(policy.includes("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"));
     assert.ok(policy.includes("font-src 'self' https://fonts.gstatic.com data:"));
   });
@@ -260,10 +260,10 @@ describe('CSP candidate selon le réglage privacy.external_assets_mode', () => {
   it('l’en-tête servi suit le réglage', async () => {
     await setSetting('privacy.external_assets_mode', 'external', {});
     const ext = await request(app).get('/api/health');
-    assert.match(ext.headers['content-security-policy-report-only'], /fonts\.gstatic\.com/);
+    assert.match(ext.headers['content-security-policy'], /fonts\.gstatic\.com/);
     await setSetting('privacy.external_assets_mode', 'local', {});
     const loc = await request(app).get('/api/health');
-    assert.ok(!/fonts\.gstatic\.com/.test(loc.headers['content-security-policy-report-only']));
+    assert.ok(!/fonts\.gstatic\.com/.test(loc.headers['content-security-policy']));
   });
 
   it('le réglage est servi aux fronts par GET /api/settings/public', async () => {

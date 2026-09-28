@@ -1,9 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { api, saveLegacyStudentSnapshot, saveStoredSession, withAppBase } from '../services/api';
-import {
-  safeLocalStorageRemoveItem,
-  safeLocalStorageSetItem,
-} from '../shared/platform/browserStorage.js';
+import { api, saveStoredSession, withAppBase } from '../services/api';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
@@ -140,20 +136,10 @@ function AuthScreen({
         payload.classCode = classCode.trim().toUpperCase() || null;
       }
       const student = await api(endpoint, 'POST', payload);
-      if (student?.authToken) {
-        safeLocalStorageSetItem('foretmap_auth_token', student.authToken);
-      }
       const userType = String(
         student?.auth?.userType || student?.user_type || 'student',
       ).toLowerCase();
       const isTeacher = userType === 'teacher';
-      if (!isTeacher) {
-        saveLegacyStudentSnapshot(student);
-      } else {
-        safeLocalStorageRemoveItem('foretmap_student');
-        if (student?.authToken)
-          safeLocalStorageSetItem('foretmap_teacher_token', student.authToken);
-      }
       saveStoredSession({
         token: student?.authToken || null,
         user: {

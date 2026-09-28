@@ -40,7 +40,7 @@ const usageRouters = require('./routes/usage');
 const { registerPwaRoutes } = require('./lib/pwaRoutes');
 const { registerRobotsRoutes } = require('./lib/robotsRoutes');
 const { generalLimiter, authLimiter } = require('./lib/rateLimit');
-const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('./lib/csp');
+const { CSP_REPORT_PATH, buildPolicyTable, resolveCspVariant } = require('./lib/csp');
 const { cspReportHandler, BODY_LIMIT: CSP_BODY_LIMIT } = require('./lib/cspReport');
 
 const healthRouter = require('./routes/health');
@@ -187,8 +187,8 @@ app.use(createPermissionsPolicyMiddleware());
 // disponibilité `/api` et `express.static` répondraient sans que l'en-tête soit posé.
 registerRobotsRoutes(app, { resolveProductFromRequest: resolveSecureProductId, getProduct });
 // En-tetes de securite (nosniff, frameguard, HSTS, referrer-policy, etc.).
-// CSP laisse au middleware dedie ci-dessous (img-src) : le CSP par defaut de helmet
-// casserait la SPA (polices Google, styles inline). COEP/CORP desactives : /uploads et
+// CSP laisse au middleware dedie ci-dessous (`lib/csp.js`) : le CSP par defaut de helmet
+// casserait la SPA (styles inline, Rive). COEP/CORP desactives : /uploads et
 // photos externes plantes doivent rester chargeables.
 app.use(
   helmet({
@@ -305,15 +305,9 @@ app.use((err, req, res, next) => {
   }
   return next(err);
 });
-// Deux en-têtes, deux rôles (cf. `lib/csp.js`) :
-//  - `Content-Security-Policy` — ce qui est **imposé**, inchangé (le `img-src` historique) ;
-//  - `Content-Security-Policy-Report-Only` — la politique **candidate**, qui signale sans bloquer.
-// Ce lot ne durcit donc rien : il produit la mesure qui manquait pour décider (audit §2.5).
-const CSP_ENFORCED = buildEnforcedPolicy();
-const CSP_REPORT_ONLY_BY_MODE = {
-  local: buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH, externalAssetsMode: 'local' }),
-  external: buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH, externalAssetsMode: 'external' }),
-};
+// Politique imposée (cf. `lib/csp.js`) : choisie selon le chemin (vue tutoriel, intro GL) et
+// le réglage `privacy.external_assets_mode` (domaines Google Fonts seulement en mode externe).
+const CSP_POLICIES = buildPolicyTable({ reportPath: CSP_REPORT_PATH });
 const { getSettingValue: getCspSettingValue } = require('./lib/settings');
 function resolveExternalAssetsModeForCsp() {
   if (!isApplicationDatabaseReady()) return Promise.resolve('local');
@@ -322,9 +316,9 @@ function resolveExternalAssetsModeForCsp() {
     .catch(() => 'local');
 }
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', CSP_ENFORCED);
+  const variant = resolveCspVariant(req.path);
   resolveExternalAssetsModeForCsp().then((mode) => {
-    res.setHeader('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY_BY_MODE[mode]);
+    res.setHeader('Content-Security-Policy', CSP_POLICIES[mode][variant]);
     next();
   });
 });

@@ -1,3 +1,4 @@
+import '../shared/zodJitless.js';
 import ReactDOM from 'react-dom/client';
 import '../shared/fonts/planFonts.js';
 // Mêmes feuilles que le plan public : le plan des personnels est le même écran, pas un autre

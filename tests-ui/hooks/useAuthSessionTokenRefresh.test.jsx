@@ -43,25 +43,20 @@ function mockFetchOk() {
   });
 }
 
-function legacyStudentToken() {
-  return JSON.parse(localStorage.getItem('foretmap_student') || 'null')?.authToken ?? null;
+/** Le jeton n'est stocké qu'une fois (`session.token`) : jamais dans la fiche élève brute. */
+function rawStoredStudentToken() {
+  return JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.student?.authToken;
 }
 
 describe('useAuthSession — jeton glissant (CDG-28)', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('foretmap_auth_token', OLD);
+    // Pas de fiche élève au montage : l'effet de restauration lancerait sinon un
+    // `POST /api/students/register` réel (hors sujet ici).
     localStorage.setItem(
       'foretmap_session',
-      JSON.stringify({
-        token: OLD,
-        user: { id: 'S1', userType: 'student', displayName: 'Léa' },
-        student: { id: 'S1', first_name: 'Léa', authToken: OLD },
-      }),
+      JSON.stringify({ token: OLD, user: { id: 'S1', userType: 'student', displayName: 'Léa' } }),
     );
-    // Pas de `foretmap_student` au montage : l'effet de restauration lancerait sinon un
-    // `POST /api/students/register` réel (hors sujet ici) ; l'instantané legacy est
-    // réécrit par `saveStoredSession` et vérifié ensuite.
   });
 
   afterEach(() => {
@@ -72,6 +67,14 @@ describe('useAuthSession — jeton glissant (CDG-28)', () => {
     const params = makeParams();
     params.studentRef.current = { id: 'S1', first_name: 'Léa', authToken: OLD };
     const { result } = renderHook(() => useAuthSession(params));
+    localStorage.setItem(
+      'foretmap_session',
+      JSON.stringify({
+        token: OLD,
+        user: { id: 'S1', userType: 'student', displayName: 'Léa' },
+        student: { id: 'S1', first_name: 'Léa' },
+      }),
+    );
 
     act(() =>
       result.current.mergeAuthMeResponse({
@@ -82,8 +85,8 @@ describe('useAuthSession — jeton glissant (CDG-28)', () => {
 
     expect(getAuthToken()).toBe(NEW);
     expect(getStoredSession()?.student?.authToken).toBe(NEW);
-    expect(legacyStudentToken()).toBe(NEW);
-    expect(localStorage.getItem('foretmap_auth_token')).toBe(NEW);
+    expect(rawStoredStudentToken()).toBeUndefined();
+    expect(localStorage.getItem('foretmap_auth_token')).toBeNull();
     // L'état React suit aussi : la ref et le setter reçoivent le jeton renouvelé.
     expect(params.studentRef.current.authToken).toBe(NEW);
     const updater = params.setStudent.mock.calls.at(-1)[0];
@@ -108,7 +111,7 @@ describe('useAuthSession — jeton glissant (CDG-28)', () => {
     act(() => result.current.updateStudentSession({ id: 'S1', first_name: 'Léa', last_name: 'B' }));
     expect(getAuthToken()).toBe(NEW);
     expect(params.studentRef.current.authToken).toBe(NEW);
-    expect(legacyStudentToken()).toBe(NEW);
+    expect(getStoredSession()?.student?.authToken).toBe(NEW);
 
     // Un appelant qui propose explicitement un jeton PLUS ANCIEN ne l'impose pas non plus.
     act(() => result.current.updateStudentSession({ id: 'S1', authToken: OLD }));
@@ -126,6 +129,7 @@ describe('useAuthSession — jeton glissant (CDG-28)', () => {
     const { result } = renderHook(() => useAuthSession(params));
     act(() => result.current.updateStudentSession({ id: 'S1', authToken: NEWER }));
     expect(getAuthToken()).toBe(NEWER);
-    expect(legacyStudentToken()).toBe(NEWER);
+    expect(getStoredSession()?.student?.authToken).toBe(NEWER);
+    expect(rawStoredStudentToken()).toBeUndefined();
   });
 });

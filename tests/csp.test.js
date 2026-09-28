@@ -5,7 +5,17 @@ const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { CSP_REPORT_PATH, buildEnforcedPolicy, buildReportOnlyPolicy } = require('../lib/csp');
+const {
+  CSP_REPORT_PATH,
+  TUTORIAL_VIEW_SCRIPT_HASHES,
+  inlineScriptHash,
+  buildEnforcedPolicy,
+  buildTutorialViewPolicy,
+  buildGlIntroPolicy,
+  resolveCspVariant,
+} = require('../lib/csp');
+const { injectTutorialViewIframeLinkScript } = require('../lib/tutorialRouteHelpers');
+const { injectGlossaryAutolinkScript } = require('../lib/foretmapGlossaryAutolink');
 const {
   WINDOW_MS,
   MAX_KEYS,
@@ -29,14 +39,8 @@ function directives(policy) {
 }
 
 describe('CSP — politique', () => {
-  it('la politique imposée reste le img-src historique : ce lot ne durcit rien', () => {
-    // Garde la plus importante du lot. Si quelqu'un promeut la politique candidate en imposée,
-    // ce test doit être mis à jour **sciemment** — pas passer inaperçu.
-    assert.strictEqual(buildEnforcedPolicy(), "img-src 'self' https: data: blob:;");
-  });
-
-  it('la politique candidate ferme les vecteurs principaux', () => {
-    const d = directives(buildReportOnlyPolicy());
+  it('la politique imposée ferme les vecteurs principaux', () => {
+    const d = directives(buildEnforcedPolicy());
     assert.deepStrictEqual(d.get('default-src'), ["'self'"]);
     assert.deepStrictEqual(d.get('object-src'), ["'none'"], 'aucun plugin');
     assert.deepStrictEqual(d.get('base-uri'), ["'self'"], 'pas de réécriture de <base>');
@@ -45,7 +49,7 @@ describe('CSP — politique', () => {
   });
 
   it("script-src n'autorise ni inline ni eval, mais autorise le WebAssembly de Rive", () => {
-    const script = directives(buildReportOnlyPolicy()).get('script-src');
+    const script = directives(buildEnforcedPolicy()).get('script-src');
     assert.ok(script.includes("'self'"));
     assert.ok(
       script.includes("'wasm-unsafe-eval'"),
@@ -57,9 +61,9 @@ describe('CSP — politique', () => {
 
   it('aucun CDN tiers : le runtime Rive est servi depuis notre origine', () => {
     // `src/utils/riveRuntime.js` remplace les URL unpkg/jsdelivr par défaut. Si cette
-    // substitution disparaissait, la politique candidate le signalerait — d'où ce test qui
+    // substitution disparaissait, la politique le bloquerait — d'où ce test qui
     // fige l'intention.
-    const policy = buildReportOnlyPolicy();
+    const policy = buildEnforcedPolicy();
     assert.ok(!policy.includes('unpkg.com'), 'unpkg ne doit pas être nécessaire');
     assert.ok(!policy.includes('jsdelivr'), 'jsdelivr ne doit pas être nécessaire');
   });
@@ -67,27 +71,65 @@ describe('CSP — politique', () => {
   it('frame-src autorise https : un tutoriel « lien » embarque une URL externe', () => {
     // `TutorialPreviewModal` affiche `tutorial.source_url`, saisie par un professeur.
     // Restreindre à 'self' casserait la fonctionnalité — d'où l'exception, documentée.
-    const frame = directives(buildReportOnlyPolicy()).get('frame-src');
+    const frame = directives(buildEnforcedPolicy()).get('frame-src');
     assert.ok(frame.includes("'self'"));
     assert.ok(frame.includes('https:'));
   });
 
   it('le report-uri pointe vers le collecteur monté', () => {
-    assert.ok(buildReportOnlyPolicy().includes(`report-uri ${CSP_REPORT_PATH}`));
+    assert.ok(buildEnforcedPolicy().includes(`report-uri ${CSP_REPORT_PATH}`));
+  });
+});
+
+describe('CSP — exceptions par route', () => {
+  it('la vue tutoriel autorise ses deux scripts serveur par empreinte, rien de plus', () => {
+    const script = directives(buildTutorialViewPolicy()).get('script-src');
+    assert.deepStrictEqual(
+      script.filter((s) => s.startsWith("'sha256-")),
+      [...TUTORIAL_VIEW_SCRIPT_HASHES],
+    );
+    assert.strictEqual(TUTORIAL_VIEW_SCRIPT_HASHES.length, 2);
+    assert.ok(!script.includes("'unsafe-inline'"), 'un script du contenu reste bloqué');
+  });
+
+  it('les empreintes correspondent aux scripts réellement injectés', () => {
+    const html = injectGlossaryAutolinkScript(
+      injectTutorialViewIframeLinkScript('<html><head></head><body><p>x</p></body></html>'),
+    );
+    const bodies = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    assert.strictEqual(bodies.length, 2);
+    for (const body of bodies) {
+      assert.ok(TUTORIAL_VIEW_SCRIPT_HASHES.includes(inlineScriptHash(body)));
+    }
+  });
+
+  it("seule l'intro GL reçoit 'unsafe-inline' pour les scripts", () => {
+    const script = directives(buildGlIntroPolicy()).get('script-src');
+    assert.ok(script.includes("'unsafe-inline'"));
+    assert.ok(!script.includes("'unsafe-eval'"));
+  });
+
+  it('le chemin choisit la variante', () => {
+    assert.strictEqual(resolveCspVariant('/api/tutorials/12/view'), 'tutorialView');
+    assert.strictEqual(resolveCspVariant('/api/tutorials/12/download/html'), 'default');
+    assert.strictEqual(resolveCspVariant('/gl/intro/index.html'), 'glIntro');
+    assert.strictEqual(resolveCspVariant('/gl/introuvable'), 'default');
+    assert.strictEqual(resolveCspVariant('/'), 'default');
   });
 });
 
 describe('CSP — en-têtes servis', () => {
-  it('les deux en-têtes sont présents, et seul le second est la politique complète', async () => {
+  it('la politique complète est imposée, sans en-tête Report-Only', async () => {
     const res = await request(app).get('/api/health');
-    assert.strictEqual(res.headers['content-security-policy'], buildEnforcedPolicy());
-    const reportOnly = res.headers['content-security-policy-report-only'];
-    assert.ok(reportOnly, 'la politique candidate doit être envoyée');
-    assert.match(reportOnly, /default-src 'self'/);
-    assert.ok(
-      !res.headers['content-security-policy'].includes('default-src'),
-      'la politique imposée ne doit pas gagner de default-src sans décision explicite',
-    );
+    const policy = res.headers['content-security-policy'];
+    assert.match(policy, /default-src 'self'/);
+    assert.match(policy, /script-src 'self' 'wasm-unsafe-eval'(;|$)/);
+    assert.strictEqual(res.headers['content-security-policy-report-only'], undefined);
+  });
+
+  it("l'intro GL reçoit sa politique dédiée", async () => {
+    const res = await request(app).get('/gl/intro/index.html');
+    assert.match(res.headers['content-security-policy'], /script-src [^;]*'unsafe-inline'/);
   });
 });
 

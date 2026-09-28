@@ -502,6 +502,11 @@
       "default": "",
       "adminHidden": true
     },
+    "privacy.clear_local_data_on_logout": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
     "privacy.external_assets_mode": {
       "scope": "public",
       "type": "enum",
@@ -1374,7 +1379,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -1414,7 +1420,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -1445,7 +1452,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -1472,7 +1480,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -2718,6 +2727,22 @@
     {
       "key": "ops.allow_remote_restart",
       "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.clear_local_data_on_logout",
+      "scope": "public",
       "type": "boolean",
       "value": true,
       "default_value": true,
@@ -4676,7 +4701,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -4716,7 +4742,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -4747,7 +4774,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },
@@ -4774,7 +4802,8 @@
         "allow_websocket": false
       },
       "privacy": {
-        "external_assets_mode": "local"
+        "external_assets_mode": "local",
+        "clear_local_data_on_logout": true
       }
     }
   },

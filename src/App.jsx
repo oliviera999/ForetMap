@@ -7,7 +7,14 @@ import {
   pickNewestAuthToken,
   saveStoredSession,
   clearStoredSession,
+  getAuthUserId,
 } from './services/api';
+import {
+  clearLocalDataForAccount,
+  countPendingLocalActions,
+  pendingLossConfirmationMessage,
+  purgeCachedUserMedia,
+} from './utils/localDataCleanup';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useConsumableRequest } from './hooks/useConsumableRequest';
 import { clearPendingDeepLink, consumeDeepLinkFromLocation } from './utils/deepLinkTarget.js';
@@ -960,18 +967,38 @@ function App() {
     setShowPublicVisit(true);
   }, []);
 
-  /** Déconnexion complète (session locale + états React). */
-  const handleLogout = useCallback(() => {
-    clearStoredSession();
-    studentRef.current = null;
-    setStudent(null);
-    setSessionUser(null);
-    setAuthClaims(null);
-    setDiscoveryTourSeen(null);
-    setDiscoveryTourSeenReady(false);
-    setBiodivGroupPedagoLevels([]);
-    setBiodivGroupCurriculumNiveaux([]);
-  }, [studentRef]);
+  const clearLocalDataOnLogout = publicSettings?.privacy?.clear_local_data_on_logout !== false;
+
+  /**
+   * Déconnexion complète (session locale + états React). Avec le réglage
+   * `privacy.clear_local_data_on_logout`, les données du compte gardées sur l'appareil sont
+   * effacées aussi — après confirmation s'il reste des actions non envoyées.
+   */
+  const handleLogout = useCallback(
+    async ({ confirm } = {}) => {
+      if (clearLocalDataOnLogout) {
+        const userId = getAuthUserId();
+        const message = pendingLossConfirmationMessage(countPendingLocalActions(userId));
+        if (message && typeof confirm === 'function') {
+          const ok = await confirm({ message, confirmLabel: 'Se déconnecter', danger: true });
+          if (!ok) return;
+        }
+        // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues.
+        if (!message || typeof confirm === 'function') clearLocalDataForAccount(userId);
+        void purgeCachedUserMedia();
+      }
+      clearStoredSession();
+      studentRef.current = null;
+      setStudent(null);
+      setSessionUser(null);
+      setAuthClaims(null);
+      setDiscoveryTourSeen(null);
+      setDiscoveryTourSeenReady(false);
+      setBiodivGroupPedagoLevels([]);
+      setBiodivGroupCurriculumNiveaux([]);
+    },
+    [clearLocalDataOnLogout, studentRef],
+  );
 
   useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
   useOverlayHistoryBack(

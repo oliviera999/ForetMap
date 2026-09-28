@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { api, saveStoredSession } from '../../services/api';
-import { safeLocalStorageSetItem } from '../../shared/platform/browserStorage.js';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { DialogShell } from '../DialogShell';
@@ -52,8 +51,6 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
         setLoading(false);
         return;
       }
-      safeLocalStorageSetItem('foretmap_auth_token', data.authToken);
-      safeLocalStorageSetItem('foretmap_teacher_token', data.authToken);
       saveStoredSession({
         token: data.authToken,
         user: {

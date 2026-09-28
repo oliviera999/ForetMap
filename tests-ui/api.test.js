@@ -9,6 +9,7 @@ import {
   getAuthToken,
   getStoredSession,
   isLikelyNetworkTransportFailure,
+  migrateLegacySessionStorage,
   networkFailureUserMessage,
   pickNewestAuthToken,
   purgeCachedApiResponses,
@@ -94,6 +95,49 @@ describe('saveStoredSession — session mixte (CDG-29)', () => {
     saveStoredSession({ token: 'jwt-eleve', student: { id: 'S1', authToken: 'jwt-eleve' } });
     saveStoredSession({ token: 'jwt-eleve-2' });
     expect(getStoredSession().student?.id).toBe('S1');
+  });
+});
+
+describe('clé de session unique (audit RGPD S-5)', () => {
+  const LEGACY_KEYS = ['foretmap_auth_token', 'foretmap_teacher_token', 'foretmap_student'];
+
+  test('le jeton n’est rangé qu’une fois, dans foretmap_session', () => {
+    saveStoredSession({
+      token: 'jwt-eleve',
+      user: { userType: 'student', displayName: 'Léa' },
+      student: { id: 'S1', first_name: 'Léa', authToken: 'jwt-eleve' },
+    });
+    for (const key of LEGACY_KEYS) expect(localStorage.getItem(key)).toBeNull();
+    const raw = localStorage.getItem('foretmap_session');
+    expect(raw.split('jwt-eleve').length - 1).toBe(1);
+    expect(JSON.parse(raw).student.authToken).toBeUndefined();
+    expect(getStoredSession().student.authToken).toBe('jwt-eleve');
+  });
+
+  test('une session ouverte avant la mise à jour est migrée puis les anciennes clés effacées', () => {
+    localStorage.setItem('foretmap_auth_token', 'jwt-ancien');
+    localStorage.setItem('foretmap_teacher_token', 'jwt-ancien');
+    localStorage.setItem('foretmap_student', JSON.stringify({ id: 'S1', first_name: 'Léa' }));
+
+    expect(getAuthToken()).toBe('jwt-ancien');
+    for (const key of LEGACY_KEYS) expect(localStorage.getItem(key)).toBeNull();
+    const stored = JSON.parse(localStorage.getItem('foretmap_session'));
+    expect(stored.token).toBe('jwt-ancien');
+    expect(stored.student.id).toBe('S1');
+  });
+
+  test('le jeton de foretmap_session l’emporte sur une ancienne clé périmée', () => {
+    localStorage.setItem(
+      'foretmap_session',
+      JSON.stringify({ token: 'jwt-courant', student: { id: 'S1', authToken: 'jwt-courant' } }),
+    );
+    localStorage.setItem('foretmap_auth_token', 'jwt-perime');
+
+    expect(migrateLegacySessionStorage()).toBe(true);
+    expect(getAuthToken()).toBe('jwt-courant');
+    expect(localStorage.getItem('foretmap_auth_token')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('foretmap_session')).student.authToken).toBeUndefined();
+    expect(migrateLegacySessionStorage()).toBe(false);
   });
 });
 

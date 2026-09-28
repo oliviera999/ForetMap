@@ -26,23 +26,26 @@
     img { width: 96px; height: 96px; border-radius: 20px; }
     h1 { font-size: 1.5rem; font-weight: 600; }
     p { color: #4a7c5e; max-width: 320px; line-height: 1.5; }
-    button {
+    .retry {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
       margin-top: 0.5rem;
       padding: 0.75rem 2rem;
       background: #1a4731;
       color: white;
-      border: none;
       border-radius: 8px;
       font-size: 1rem;
-      cursor: pointer;
+      text-decoration: none;
     }
-    button:hover { background: #2d7a4f; }
+    .retry:hover { background: #2d7a4f; }
   </style>
 </head>
 <body>
   <img src="/icon.svg" alt="%BRAND_PRODUCT_LABEL%" />
   <h1>Vous êtes hors ligne</h1>
   <p>Reconnectez-vous à internet pour accéder à %BRAND_PRODUCT_LABEL%. Les données consultées récemment restent disponibles.</p>
-  <button onclick="window.location.reload()">Réessayer</button>
+  <!-- Lien vide = recharge de l'URL demandée ; pas de onclick : la CSP bloque les scripts inline. -->
+  <a class="retry" href="">Réessayer</a>
 </body>
 </html>

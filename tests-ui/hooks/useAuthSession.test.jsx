@@ -19,7 +19,6 @@ const apiMocks = {
   getAuthToken: vi.fn(() => null),
   getStoredSession: vi.fn(() => null),
   pickNewestAuthToken: vi.fn((candidate, current) => candidate || current || null),
-  saveLegacyStudentSnapshot: vi.fn(),
   saveStoredSession: vi.fn(),
   clearStoredSession: vi.fn(),
   isElevatedJwt: vi.fn(() => false),
@@ -31,7 +30,6 @@ vi.mock('../../src/services/api', () => ({
   getAuthToken: () => apiMocks.getAuthToken(),
   getStoredSession: () => apiMocks.getStoredSession(),
   pickNewestAuthToken: (...a) => apiMocks.pickNewestAuthToken(...a),
-  saveLegacyStudentSnapshot: (...a) => apiMocks.saveLegacyStudentSnapshot(...a),
   saveStoredSession: (...a) => apiMocks.saveStoredSession(...a),
   clearStoredSession: (...a) => apiMocks.clearStoredSession(...a),
   isElevatedJwt: (t) => apiMocks.isElevatedJwt(t),
@@ -72,7 +70,10 @@ describe('useAuthSession', () => {
   });
 
   it('restauration au montage : session n3beur locale revalidée côté serveur', async () => {
-    localStorage.setItem('foretmap_student', JSON.stringify({ id: 'S1', first_name: 'Léa' }));
+    apiMocks.getStoredSession.mockReturnValue({
+      token: 'jwt',
+      student: { id: 'S1', first_name: 'Léa', authToken: 'jwt' },
+    });
     apiMocks.api.mockResolvedValue({ id: 'S1', first_name: 'Léa', last_name: 'B' });
     const { params } = renderAuthSession();
     expect(params.setStudent).toHaveBeenCalledWith(expect.objectContaining({ id: 'S1' }));
@@ -124,7 +125,6 @@ describe('useAuthSession', () => {
       auth: { roleSlug: 'eleve' },
     });
     expect(params.setStudent).toHaveBeenCalledWith(merged);
-    expect(apiMocks.saveLegacyStudentSnapshot).toHaveBeenCalledWith(merged);
     expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
       expect.objectContaining({ student: merged }),
     );
@@ -163,8 +163,7 @@ describe('useAuthSession', () => {
         refreshedToken: ' jwt-neuf ',
       }),
     );
-    // Les anciennes clés (`foretmap_auth_token`…) sont réalignées par `saveStoredSession`
-    // elle-même (source de vérité unique, CDG-28) : c'est son appel qui est vérifié ici.
+    // `saveStoredSession` est le seul point d'écriture du jeton (clé unique, audit RGPD S-5).
     expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
       expect.objectContaining({ token: 'jwt-neuf' }),
     );
@@ -212,7 +211,6 @@ describe('useAuthSession', () => {
 
   it('handleAdminImpersonationApplied (profil prof) : jeton posé, session prof, retour carte', () => {
     const { params, result } = renderAuthSession();
-    localStorage.setItem('foretmap_student', 'x');
     act(() =>
       result.current.handleAdminImpersonationApplied({
         authToken: 'jwt-imp',
@@ -220,13 +218,12 @@ describe('useAuthSession', () => {
         profile: { first_name: 'Ana', last_name: 'K' },
       }),
     );
-    expect(localStorage.getItem('foretmap_auth_token')).toBe('jwt-imp');
-    expect(localStorage.getItem('foretmap_teacher_token')).toBe('jwt-imp');
-    expect(localStorage.getItem('foretmap_student')).toBeNull();
+    expect(localStorage.getItem('foretmap_auth_token')).toBeNull();
     expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
       expect.objectContaining({
         token: 'jwt-imp',
         user: expect.objectContaining({ id: 'T9', displayName: 'Ana K' }),
+        student: null,
       }),
     );
     expect(params.setStudent).toHaveBeenCalledWith(null);
@@ -244,7 +241,9 @@ describe('useAuthSession', () => {
     });
     await act(() => result.current.stopAdminImpersonation());
     expect(apiMocks.api).toHaveBeenCalledWith('/api/auth/admin/impersonate/stop', 'POST');
-    expect(localStorage.getItem('foretmap_auth_token')).toBe('jwt-admin');
+    expect(apiMocks.saveStoredSession).toHaveBeenCalledWith(
+      expect.objectContaining({ token: 'jwt-admin', student: null }),
+    );
     expect(params.setStudent).toHaveBeenCalledWith(null);
     expect(params.setAuthClaims).toHaveBeenCalled();
     expect(params.setTab).toHaveBeenCalledWith('map');

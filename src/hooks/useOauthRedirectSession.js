@@ -1,12 +1,6 @@
 import { useEffect } from 'react';
 
-import {
-  getAuthClaims,
-  getStoredSession,
-  saveLegacyStudentSnapshot,
-  saveStoredSession,
-} from '../services/api';
-import { safeLocalStorageSetItem } from '../shared/platform/browserStorage.js';
+import { getAuthClaims, getStoredSession, saveStoredSession } from '../services/api';
 import {
   resolveOauthErrorMessage,
   decodeBase64UrlJson,
@@ -63,8 +57,6 @@ export function useOauthRedirectSession({
     try {
       const payload = decodeBase64UrlJson(oauthPayload);
       if (payload?.type === 'teacher' && payload?.token) {
-        safeLocalStorageSetItem('foretmap_teacher_token', payload.token);
-        safeLocalStorageSetItem('foretmap_auth_token', payload.token);
         saveStoredSession({
           token: payload.token,
           user: {
@@ -82,10 +74,6 @@ export function useOauthRedirectSession({
       }
       if (payload?.type === 'student' && payload?.student) {
         const nextStudent = payload.student;
-        if (nextStudent?.authToken) {
-          safeLocalStorageSetItem('foretmap_auth_token', nextStudent.authToken);
-        }
-        saveLegacyStudentSnapshot(nextStudent);
         saveStoredSession({
           token: nextStudent?.authToken || getStoredSession()?.token || null,
           user: {

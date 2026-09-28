@@ -1,7 +1,6 @@
 import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
-  safeLocalStorageSetItem,
 } from '../shared/platform/browserStorage.js';
 import { buildApiHttpErrorMessage } from '../shared/apiTransport.js';
 import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
@@ -12,8 +11,15 @@ import { API, withAppBase } from '../shared/appBase.js';
 
 export { API, withAppBase };
 
+/**
+ * Seul emplacement du jeton de session (audit RGPD du 28/09/2026, S-5). Les anciennes clés
+ * (`foretmap_auth_token`, `foretmap_teacher_token`, `foretmap_student`) dupliquaient le jeton
+ * trois fois : elles ne sont plus écrites, seulement lues une fois pour migrer une session
+ * ouverte avant la mise à jour, puis effacées.
+ */
 const SESSION_KEY = 'foretmap_session';
 const LEGACY_STUDENT_KEY = 'foretmap_student';
+const LEGACY_TOKEN_KEYS = ['foretmap_auth_token', 'foretmap_teacher_token'];
 
 const STUDENT_SESSION_FIELDS = [
   'id',
@@ -91,17 +97,6 @@ export function compactStudentForStorage(student) {
   return compact;
 }
 
-export function saveLegacyStudentSnapshot(student) {
-  const compact = compactStudentForStorage(student);
-  if (!compact) {
-    safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
-    return true;
-  }
-  return safeSetLocalStorageItem(LEGACY_STUDENT_KEY, JSON.stringify(compact), {
-    allowDropLegacyStudent: false,
-  });
-}
-
 function dispatchSessionChanged() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent('foretmap_session_changed'));
@@ -164,39 +159,29 @@ export function pickNewestAuthToken(candidate, current) {
   return next;
 }
 
-/**
- * `foretmap_session.token` est la source de vérité ; les anciennes clés ne sont conservées
- * qu'en lecture de repli (`getAuthToken`). On les réaligne à chaque écriture pour qu'aucun
- * exemplaire périmé ne survive à un renouvellement.
- */
-function mirrorAuthTokenToLegacyKeys(token) {
-  safeLocalStorageSetItem('foretmap_auth_token', token);
-  if (safeLocalStorageGetItem('foretmap_teacher_token', null)) {
-    safeLocalStorageSetItem('foretmap_teacher_token', token);
-  }
-}
-
-export function getAuthToken() {
-  try {
-    const raw = safeLocalStorageGetItem(SESSION_KEY, null);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = pickStoredToken(parsed?.token);
-      if (token) return token;
-    }
-  } catch (_) {}
+function hasLegacySessionKeys() {
   return (
-    pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null)) ||
-    getLegacyStudentToken() ||
-    pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null))
+    safeLocalStorageGetItem(LEGACY_STUDENT_KEY, null) != null ||
+    LEGACY_TOKEN_KEYS.some((key) => safeLocalStorageGetItem(key, null) != null)
   );
 }
 
-export function getStoredSession() {
+function removeLegacySessionKeys() {
+  safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+  for (const key of LEGACY_TOKEN_KEYS) safeLocalStorageRemoveItem(key);
+}
+
+function readRawSession() {
   try {
     const raw = safeLocalStorageGetItem(SESSION_KEY, null);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildSessionFromLegacyKeys() {
   const student = readLegacyStudentSnapshot();
   const token =
     pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null)) ||
@@ -221,6 +206,63 @@ export function getStoredSession() {
   };
 }
 
+/** Le jeton n'est rangé qu'une fois (`session.token`), jamais recopié dans la fiche élève. */
+function toPersistedSession(session) {
+  if (!session || typeof session !== 'object') return session;
+  if (!session.student || typeof session.student !== 'object') return session;
+  const { authToken: _dropped, ...student } = session.student;
+  return { ...session, student };
+}
+
+/**
+ * Migration douce : une session ouverte avant la clé unique est recopiée dans
+ * `foretmap_session` (si celle-ci n'a pas déjà de jeton), puis les anciennes clés sont
+ * effacées. Sans effet quand il n'y a plus rien à migrer.
+ */
+export function migrateLegacySessionStorage() {
+  if (!hasLegacySessionKeys()) return false;
+  const current = readRawSession();
+  if (!pickStoredToken(current?.token)) {
+    const legacy = buildSessionFromLegacyKeys();
+    if (legacy) {
+      const merged = { ...legacy, ...(current || {}), token: legacy.token };
+      if (!current?.student && legacy.student) merged.student = legacy.student;
+      if (
+        !safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(toPersistedSession(merged)), {
+          allowDropLegacyStudent: false,
+        })
+      ) {
+        return false;
+      }
+    }
+  } else {
+    const persisted = toPersistedSession(current);
+    if (persisted !== current) safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(persisted));
+  }
+  removeLegacySessionKeys();
+  return true;
+}
+
+export function getAuthToken() {
+  migrateLegacySessionStorage();
+  return pickStoredToken(readRawSession()?.token);
+}
+
+/**
+ * Session stockée. La fiche élève renvoyée porte `authToken` (recopié depuis `token`) pour
+ * les appelants qui le lisent là, sans que le jeton soit stocké deux fois.
+ */
+export function getStoredSession() {
+  migrateLegacySessionStorage();
+  const session = readRawSession();
+  if (!session) return null;
+  const token = pickStoredToken(session.token);
+  if (token && session.student && typeof session.student === 'object') {
+    return { ...session, student: { ...session.student, authToken: token } };
+  }
+  return session;
+}
+
 export function saveStoredSession(next) {
   const current = getStoredSession() || {};
   const merged = { ...current, ...(next || {}) };
@@ -233,14 +275,10 @@ export function saveStoredSession(next) {
   ) {
     merged.student = null;
   }
-  const token = pickStoredToken(merged.token);
   if (Object.prototype.hasOwnProperty.call(merged, 'student')) {
-    // Le jeton porté par la session élève suit toujours le jeton courant (CDG-28).
-    const student =
-      token && merged.student ? { ...merged.student, authToken: token } : merged.student;
-    merged.student = compactStudentForStorage(student);
+    merged.student = compactStudentForStorage(merged.student);
   }
-  let persisted = merged;
+  let persisted = toPersistedSession(merged);
   let writeOk = safeSetLocalStorageItem(SESSION_KEY, JSON.stringify(persisted));
   if (!writeOk && persisted.student) {
     // En cas de quota serré, garder au moins token + user.
@@ -250,9 +288,7 @@ export function saveStoredSession(next) {
     });
   }
   if (!writeOk) return;
-  if (persisted.student) saveLegacyStudentSnapshot(persisted.student);
-  else safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
-  if (token) mirrorAuthTokenToLegacyKeys(token);
+  removeLegacySessionKeys();
   dispatchSessionChanged();
 }
 
@@ -301,9 +337,7 @@ export async function purgeCachedApiResponses() {
 
 export function clearStoredSession() {
   safeLocalStorageRemoveItem(SESSION_KEY);
-  safeLocalStorageRemoveItem('foretmap_auth_token');
-  safeLocalStorageRemoveItem('foretmap_teacher_token');
-  safeLocalStorageRemoveItem(LEGACY_STUDENT_KEY);
+  removeLegacySessionKeys();
   void purgeCachedApiResponses();
   dispatchSessionChanged();
 }

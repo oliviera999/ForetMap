@@ -589,18 +589,27 @@ Outils MCP exposés (`scripts/mcp-foretmap-diagnostics.mjs`) :
 
 ## Sécurité du contenu (CSP)
 
-L'application sert **deux** en-têtes CSP, qui n'ont pas le même rôle :
+L'application sert **une** politique `Content-Security-Policy`, **imposée** depuis l'audit RGPD du
+28/09/2026 (constat S-5) : `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'` (aucun
+script inline, aucun `eval`), `style-src 'self' 'unsafe-inline'`, `connect-src 'self'`,
+`object-src 'none'`, `frame-ancestors 'self'`, `report-uri /api/csp-report`. L'en-tête
+`Content-Security-Policy-Report-Only` n'est plus envoyé.
 
-| En-tête                               | Rôle                                                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `Content-Security-Policy`             | Politique **imposée**. Aujourd'hui le `img-src` historique uniquement — le navigateur bloque effectivement ce qu'elle refuse |
-| `Content-Security-Policy-Report-Only` | Politique **candidate** (complète : `default-src`, `script-src`…). Le navigateur **ne bloque rien**, il signale              |
+La politique est construite par `lib/csp.js`, qui documente directive par directive _pourquoi_
+elle est ce qu'elle est (Rive et `'wasm-unsafe-eval'`, tutoriels « lien » et `frame-src https:`,
+styles React et `'unsafe-inline'`…). Elle varie selon :
 
-La politique candidate est construite par `lib/csp.js`, qui documente directive par directive
-_pourquoi_ elle est ce qu'elle est (Rive et `'wasm-unsafe-eval'`, tutoriels « lien » et
-`frame-src https:`, styles React et `'unsafe-inline'`…). Tant qu'elle produit des signalements en
-usage réel, elle n'est pas prête à devenir la politique imposée ; la promotion consiste à échanger
-les deux en-têtes, et `tests/csp.test.js` échoue si elle est faite sans décision explicite.
+| Critère                                  | Effet                                                                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Réglage `privacy.external_assets_mode`   | `external` ajoute `https://fonts.googleapis.com` (`style-src`) et `https://fonts.gstatic.com` (`font-src`) ; `local` (défaut) n'autorise aucun domaine tiers |
+| `GET /api/tutorials/:id/view`            | Deux scripts **serveur** constants (liens dans l'iframe, auto-liens du glossaire) autorisés par empreinte `sha256` ; un script du contenu reste bloqué       |
+| `/gl/intro/*` (page statique versionnée) | `script-src` reçoit `'unsafe-inline'` — seule exception, cette page étant écrite avec des scripts inline                                                     |
+
+Le HTML construit ne contient aucun script inline : la marque (`FORETMAP_BRAND_*`) est injectée
+à la construction comme constante du bundle (`__FORETMAP_BUILD_BRAND__`, `vite.config.js`). Le
+service worker ne relaie que les requêtes **de même origine** (son `fetch()` relève de
+`connect-src 'self'`). `e2e/rgpd-session-csp.spec.js` vérifie qu'aucune violation n'est signalée au
+chargement des entrées ForetMap, G&L, Plan et de l'intro G&L.
 
 | Méthode | URL               | Auth | Description                                                           |
 | ------- | ----------------- | ---- | --------------------------------------------------------------------- |
@@ -647,6 +656,21 @@ plans (`GET /api/plan/content`, `GET /api/staff-plan/content` → `settings.exte
 | GET     | `/api/media/commons-preview`   | non  | `?category=Category:…` → `{ url }` : première image de la catégorie Wikimedia Commons (aperçu de fiche plante), interrogée par le serveur (cache mémoire 30 jours). `url` est `null` si la catégorie est vide ; titre invalide → **400**                                                                                                                                  |
 | GET     | `/fonts/local-fonts.css`       | non  | Feuille des polices des fiches tutoriels (Playfair Display, DM Sans, DM Mono, Bebas Neue, Special Elite), assemblée depuis les paquets Fontsource                                                                                                                                                                                                                     |
 | GET     | `/fonts/files/:pkg/:file`      | non  | Fichier `woff`/`woff2` d'un paquet de la liste ci-dessus ; tout autre paquet ou nom → **404**. Cache 1 an                                                                                                                                                                                                                                                            |
+
+### Session et données locales du navigateur (RGPD — S-5, S-8)
+
+- Le jeton ForetMap n'est rangé **qu'une fois**, dans `localStorage.foretmap_session.token`. Les
+  anciennes clés (`foretmap_auth_token`, `foretmap_teacher_token`, `foretmap_student`) ne sont plus
+  écrites ; une session ouverte avant la mise à jour est migrée à la première lecture, puis ces
+  clés sont effacées. La fiche élève stockée ne porte plus `authToken` (il est recopié depuis
+  `token` à la lecture, pour les appelants qui le lisent là).
+- Réglage **`privacy.clear_local_data_on_logout`** (portée `public`, booléen, défaut **`true`**,
+  servi dans `GET /api/settings/public` → `privacy`) : à la déconnexion volontaire, le front efface
+  les files hors ligne du compte (tâches faites, observations d'espèces et de plantes, brouillons
+  de carnet — entrées d'un autre compte conservées), la file de progression de visite, la séance
+  pédagogique de l'onglet et les photos `/uploads/` gardées par le service worker. S'il reste des
+  actions non envoyées, une confirmation est demandée avant de les effacer. `false` : comportement
+  antérieur (les files attendent que leur auteur se reconnecte).
 
 ---
 

@@ -7,15 +7,9 @@ import {
   getAuthToken,
   getStoredSession,
   pickNewestAuthToken,
-  saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
 } from '../services/api';
-import {
-  safeLocalStorageGetItem,
-  safeLocalStorageRemoveItem,
-  safeLocalStorageSetItem,
-} from '../shared/platform/browserStorage.js';
 
 /** Toast de la déconnexion forcée par défaut (401 `deleted: true`). */
 export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
@@ -110,7 +104,6 @@ export function useAuthSession({
       };
       studentRef.current = merged;
       setStudent(merged);
-      saveLegacyStudentSnapshot(merged);
       saveStoredSession({
         token: nextToken,
         user: {
@@ -134,8 +127,6 @@ export function useAuthSession({
     (data) => {
       if (!data?.authToken) return;
       const token = String(data.authToken).trim();
-      safeLocalStorageSetItem('foretmap_auth_token', token);
-      safeLocalStorageSetItem('foretmap_teacher_token', token);
       const auth = data.auth;
       if (auth?.userType === 'student' && data.profile) {
         updateStudentSession({
@@ -144,7 +135,6 @@ export function useAuthSession({
           auth,
         });
       } else {
-        safeLocalStorageRemoveItem('foretmap_student');
         const p = data.profile || {};
         const displayName =
           [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
@@ -196,9 +186,6 @@ export function useAuthSession({
         return;
       }
       const token = String(data.authToken).trim();
-      safeLocalStorageSetItem('foretmap_auth_token', token);
-      safeLocalStorageSetItem('foretmap_teacher_token', token);
-      safeLocalStorageRemoveItem('foretmap_student');
       saveStoredSession({
         token,
         user: {
@@ -237,7 +224,7 @@ export function useAuthSession({
       const { auth } = d;
       if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
         const trimmed = d.refreshedToken.trim();
-        // `saveStoredSession` réaligne aussi `student.authToken` et les anciennes clés.
+        // `student.authToken` est dérivé de `session.token` à la lecture : rien d'autre à aligner.
         const sess = getStoredSession() || {};
         saveStoredSession({ ...sess, token: trimmed });
         if (studentRef.current && typeof studentRef.current === 'object') {
@@ -328,17 +315,11 @@ export function useAuthSession({
 
   // Restore session — validates against server on load
   useEffect(() => {
-    const saved = safeLocalStorageGetItem('foretmap_student', null);
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        setStudent(s); // show app immediately with cached data
-        validateStudentSession(s);
-      } catch (e) {
-        console.error('[ForetMap] lecture session locale', e);
-      }
-    }
     const session = getStoredSession();
+    if (session?.student) {
+      setStudent(session.student); // show app immediately with cached data
+      validateStudentSession(session.student);
+    }
     if (session?.user && !session?.student) {
       setSessionUser(session.user);
     }

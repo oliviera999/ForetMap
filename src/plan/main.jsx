@@ -1,3 +1,4 @@
+import '../shared/zodJitless.js';
 import ReactDOM from 'react-dom/client';
 import '../shared/fonts/planFonts.js';
 // Feuilles communes aux produits (le plan ne charge jamais src/index.css ni les styles GL).

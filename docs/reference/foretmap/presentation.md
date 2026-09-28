@@ -403,7 +403,10 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
 - **Tablette partagée : la déconnexion efface les données gardées hors ligne.** Les listes
   que l'appareil garde pour fonctionner sans réseau (tâches, fiches, repères) sont retirées
   à la déconnexion, pour que l'élève suivant ne les lise pas. Le contenu public de la visite
-  reste disponible hors ligne (depuis septembre 2026).
+  reste disponible hors ligne (depuis septembre 2026). Par défaut, la déconnexion efface
+  aussi les actions en attente d'envoi de cet élève et les photos gardées hors ligne, après
+  un avertissement s'il reste des actions non envoyées (réglage « Effacer de l'appareil, à la
+  déconnexion… », section Confidentialité — voir le modèle de sécurité).
 - **Réseau trop lent : on n'attend plus indéfiniment.** Sur le terrain, un réseau « présent
   mais inutilisable » (une seule barre, Wi-Fi saturé par toute une classe) ne coupe pas la
   connexion : l'appareil attendait parfois plus d'une minute. Désormais, au bout de

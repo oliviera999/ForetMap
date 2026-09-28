@@ -494,13 +494,11 @@ async function syncStudentSessionToken(page) {
     const finalToken = meBody?.refreshedToken || token;
     const mergedStudent = {
       ...(student && typeof student === 'object' ? student : {}),
-      authToken: finalToken,
       auth: meBody?.auth || student?.auth || null,
     };
     delete mergedStudent.elevationStudentToken;
-    localStorage.setItem('foretmap_student', JSON.stringify(mergedStudent));
-    localStorage.setItem('foretmap_auth_token', finalToken);
-    localStorage.removeItem('foretmap_teacher_token');
+    // Clé unique (audit RGPD S-5) : le jeton ne vit que dans `foretmap_session.token`.
+    delete mergedStudent.authToken;
     const nextSession = {
       ...(session && typeof session === 'object' ? session : {}),
       token: finalToken,
@@ -566,7 +564,7 @@ async function assignStudentToTaskAsTeacher(page, taskId) {
     };
     let student = null;
     try {
-      student = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
+      student = JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.student || null;
     } catch (_) {
       student = null;
     }

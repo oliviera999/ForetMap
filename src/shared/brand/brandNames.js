@@ -1,12 +1,16 @@
 /**
- * Noms de marque côté front — lecture du global posé par le plugin Vite `foretmap-brand-html`
- * (`vite.config.js`), lui-même alimenté par `lib/brand.js`.
+ * Noms de marque côté front — constante `__FORETMAP_BUILD_BRAND__` compilée dans les bundles
+ * par Vite (`define`, `vite.config.js`), elle-même alimentée par `lib/brand.js`.
  *
- * Pourquoi un global plutôt que les réglages publics : le colophon du carnet et les autres
- * mentions structurelles de l'établissement s'affichent dans les **quatre** produits, dont G&L
- * et le Plan, qui ne consomment pas `publicSettings`. Faire descendre le nom par accessoires
- * depuis chaque racine aurait demandé de traverser des arbres entiers pour une chaîne
- * constante. Le global est écrit au build, avec le reste de l'identité.
+ * Pourquoi une constante de build plutôt que les réglages publics : le colophon du carnet et
+ * les autres mentions structurelles de l'établissement s'affichent dans les **quatre**
+ * produits, dont G&L et le Plan, qui ne consomment pas `publicSettings`. Faire descendre le nom
+ * par accessoires depuis chaque racine aurait demandé de traverser des arbres entiers pour une
+ * chaîne constante.
+ *
+ * Jusqu'au 28/09/2026, la valeur passait par un script inline `window.__FORETMAP_BRAND__` : ce
+ * script empêchait d'imposer `script-src 'self'` (audit RGPD, S-5). Le global reste lu en repli
+ * (outillage, tests qui le posent).
  *
  * Les textes **éditables par un administrateur** ne passent pas par ici : ils restent servis
  * par l'API (`publicSettings.content.brand.*`, cf. `lib/settings.js`), qui peut les surcharger
@@ -16,13 +20,20 @@
  * `src/utils/`, `src/components/` ou `src/gl/`.
  */
 
-/** Repli quand le global est absent : tests unitaires, rendu hors page (SSR, outillage). */
+/* global __FORETMAP_BUILD_BRAND__ */
+
+/** Repli quand la constante est absente : tests unitaires, rendu hors page (SSR, outillage). */
 const EMPTY_BRAND = Object.freeze({
   appName: '',
   appShortName: '',
   orgName: '',
   orgShortName: '',
 });
+
+function readInjectedBrand() {
+  if (typeof __FORETMAP_BUILD_BRAND__ !== 'undefined') return __FORETMAP_BUILD_BRAND__;
+  return globalThis.__FORETMAP_BRAND__;
+}
 
 /**
  * Identité de marque du build. Champs toujours présents, éventuellement vides — une
@@ -31,7 +42,7 @@ const EMPTY_BRAND = Object.freeze({
  */
 export function getBuildBrand() {
   try {
-    const injected = globalThis.__FORETMAP_BRAND__;
+    const injected = readInjectedBrand();
     if (!injected || typeof injected !== 'object') return EMPTY_BRAND;
     return {
       appName: String(injected.appName || ''),

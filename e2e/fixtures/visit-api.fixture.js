@@ -13,10 +13,16 @@ const VISIT_N3_ENTRANCE_LABEL_RE =
  * @returns {Promise<string>}
  */
 async function getTeacherBearerToken(page) {
-  const t = await page.evaluate(() => localStorage.getItem('foretmap_teacher_token') || '');
+  const t = await page.evaluate(() => {
+    try {
+      return JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.token || '';
+    } catch (_) {
+      return '';
+    }
+  });
   if (!t) {
     throw new Error(
-      'foretmap_teacher_token absent : activer les droits étendus avant les appels API visite.',
+      'Jeton prof absent de foretmap_session : se connecter avant les appels API visite.',
     );
   }
   return t;
