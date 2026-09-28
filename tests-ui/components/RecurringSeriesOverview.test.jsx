@@ -237,6 +237,28 @@ describe('RecurringSeriesOverview', () => {
     });
   });
 
+  test('la date de duplication s’affiche même sans prochaine occurrence calculée', async () => {
+    const user = userEvent.setup();
+    repondre({
+      preview: {
+        series_id: 'S1',
+        task_id: 1,
+        recurrence: 'weekly',
+        pending: 'due_date',
+        next_start: null,
+        next_due: null,
+        spawn_date: '2026-09-18',
+      },
+    });
+    render(<RecurringSeriesOverview isTeacher tasks={TASKS} />);
+
+    await user.click(screen.getByRole('button', { name: /Séries récurrentes/ }));
+    await waitFor(() => {
+      expect(screen.getByText(/Duplication prévue le ven\./)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Prochaine occurrence/)).not.toBeInTheDocument();
+  });
+
   test('automatisation suspendue : pas de date de duplication promise', async () => {
     const user = userEvent.setup();
     repondre({

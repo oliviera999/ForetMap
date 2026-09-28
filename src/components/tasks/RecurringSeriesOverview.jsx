@@ -234,7 +234,7 @@ export function RecurringSeriesOverview({
                       )}
                     </span>
                   )}
-                  {!row.archived && prevision && duplication && (
+                  {!row.archived && duplication && (
                     <span className="recurring-series-next recurring-series-spawn">
                       {duplication}
                     </span>
