@@ -4,6 +4,7 @@ import { useDialogA11y } from '../platform/useDialogA11y.js';
 import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack.js';
 import { lockBodyScroll } from '../platform/bodyScrollLock.js';
 import { IconClose } from '../icons.jsx';
+import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
 
 /**
  * Lightbox image partagée (ForetMap + GL) avec overlay fade + popIn.
@@ -41,7 +42,7 @@ export function ImageLightbox({ src, caption = '', onClose, useOverlayHistory = 
         onClick={(event) => event.stopPropagation()}
       >
         <img
-          src={src}
+          src={resolveExternalImageUrl(src)}
           alt={caption || ''}
           className="fm-lightbox-image"
           decoding="async"

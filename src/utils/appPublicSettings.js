@@ -73,6 +73,9 @@ export const DEFAULT_PUBLIC_SETTINGS = {
   realtime: {
     allow_websocket: false,
   },
+  privacy: {
+    external_assets_mode: 'local',
+  },
 };
 
 /**

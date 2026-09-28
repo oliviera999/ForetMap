@@ -9,6 +9,10 @@ import { useMapPosition } from '../shared/pct-map/useMapPosition.js';
 import { useHeadingUpPreference } from '../shared/pct-map/useHeadingUpPreference.js';
 import { useScaleCompassPreference } from '../shared/pct-map/useScaleCompassPreference.js';
 import { useBrandTheme } from '../shared/brand/useBrandTheme.js';
+import {
+  normalizeExternalAssetsMode,
+  setExternalAssetsMode,
+} from '../shared/privacy/externalAssets.js';
 import { PLAN_BRAND_DEFAULTS, PLAN_SCHOOL_LOGO_URL } from './utils/planBrand.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import { parsePctPolygonPoints } from '../shared/pct-map/pctPolygon.js';
@@ -220,10 +224,13 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * Identité visuelle de l'établissement (lot 7) : réglage `ui.plan.brand`, même mécanique
    * que G&L et ForetMap. Sans réglage, l'apparence par défaut du plan est conservée.
    */
+  const externalAssetsMode = normalizeExternalAssetsMode(settings?.external_assets_mode);
+  setExternalAssetsMode(externalAssetsMode);
   const { brand, style: brandStyle } = useBrandTheme(settings?.brand, {
     prefix: 'plan-brand',
     defaults: PLAN_BRAND_DEFAULTS,
     fontFallback: "'DM Sans', sans-serif",
+    externalAssetsMode,
   });
 
   /**

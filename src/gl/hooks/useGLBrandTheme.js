@@ -7,6 +7,7 @@ import {
   normalizeBrandAssetUrl as normalizeAssetUrl,
   normalizeBrandCore,
 } from '../../shared/brand/brandThemeCore.js';
+import { remoteBrandFontFamilies } from '../../shared/privacy/externalAssets.js';
 
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
@@ -119,8 +120,11 @@ function upsertBrandFaviconLink(href) {
 function upsertFontLink(families) {
   if (typeof document === 'undefined') return;
   const href = googleFontsHref(families);
-  if (!href) return;
   let node = document.getElementById('gl-brand-fonts');
+  if (!href) {
+    node?.remove();
+    return;
+  }
   if (!node) {
     node = document.createElement('link');
     node.id = 'gl-brand-fonts';
@@ -130,14 +134,14 @@ function upsertFontLink(families) {
   node.href = href;
 }
 
-export function useGLBrandTheme(rawBrand, chapterTheme) {
+export function useGLBrandTheme(rawBrand, chapterTheme, externalAssetsMode = 'local') {
   const brand = useMemo(
     () => mergeBrandWithChapterTheme(normalizeBrand(rawBrand), chapterTheme),
     [rawBrand, chapterTheme],
   );
   useEffect(() => {
-    upsertFontLink(brand.fonts.googleFamilies);
-  }, [brand]);
+    upsertFontLink(remoteBrandFontFamilies(brand.fonts.googleFamilies, externalAssetsMode));
+  }, [brand, externalAssetsMode]);
 
   useEffect(() => {
     if (brand.faviconUrl) upsertBrandFaviconLink(brand.faviconUrl);

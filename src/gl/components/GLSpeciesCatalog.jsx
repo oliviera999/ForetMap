@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
 
@@ -31,7 +32,7 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
     >
       <span className="gl-species-tile__media" aria-hidden="true">
         {species.photo_url ? (
-          <img src={species.photo_url} alt="" loading="lazy" />
+          <img src={resolveExternalImageUrl(species.photo_url)} alt="" loading="lazy" />
         ) : (
           <span className="gl-species-tile__placeholder" />
         )}

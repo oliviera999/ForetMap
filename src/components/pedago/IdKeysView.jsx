@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
@@ -140,7 +141,11 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
                   onClick={() => chooseLead(lead)}
                 >
                   {lead.image_url ? (
-                    <img src={lead.image_url} alt="" className="id-key-lead-img" />
+                    <img
+                      src={resolveExternalImageUrl(lead.image_url)}
+                      alt=""
+                      className="id-key-lead-img"
+                    />
                   ) : null}
                   <span>{lead.statement}</span>
                 </button>

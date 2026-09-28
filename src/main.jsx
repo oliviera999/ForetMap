@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import './shared/fonts/foretmapFonts.js';
 import './shared/styles/tooltip.css';
 import './shared/styles/floating-dock.css';
 import './shared/styles/presence-badge.css';

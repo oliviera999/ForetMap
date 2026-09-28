@@ -46,6 +46,8 @@ const {
   clearTutorialViewCache,
 } = require('../lib/tutorialViewCache');
 const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
+const { localizeTutorialExternalAssets } = require('../lib/tutorialViewExternalAssets');
+const { getSettingValue } = require('../lib/settings');
 
 /** Incrémenter quand le pipeline d’enrichissement `/view` change (ex. CSS reveal). */
 const TUTORIAL_VIEW_PIPELINE_VERSION = 'reveal-css-1';
@@ -1053,7 +1055,13 @@ router.get(
     const html = await loadTutorialHtml(tutorial);
     if (!html) return res.status(400).send('Aucun contenu HTML');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(await renderTutorialViewHtml(tutorial, html));
+    const externalAssetsMode = await getSettingValue('privacy.external_assets_mode', 'local');
+    res.send(
+      localizeTutorialExternalAssets(
+        await renderTutorialViewHtml(tutorial, html),
+        externalAssetsMode === 'external' ? 'external' : 'local',
+      ),
+    );
   }),
 );
 

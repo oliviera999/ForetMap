@@ -490,3 +490,9 @@ conservée à l'identique.
 Par sécurité, un logo ou un favicon ne peut désigner qu'un fichier **déjà déposé dans
 l'application** : une adresse extérieure est refusée, pour qu'un réglage d'apparence ne
 serve pas à appeler un site tiers depuis toutes les pages.
+
+Les polices d'origine sont fournies par l'application elle-même. Une police choisie en plus,
+que l'application ne fournit pas, n'est chargée depuis Google que si le réglage
+**« Polices et images de sites tiers »** est passé sur « Chargées chez Google et
+Wikimedia » ; sinon la page
+garde sa police de repli (voir le modèle de sécurité, section « Polices et photos »).

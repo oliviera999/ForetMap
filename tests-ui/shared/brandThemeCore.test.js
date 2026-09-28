@@ -107,4 +107,11 @@ describe('toCssFontFamily / googleFontsHref', () => {
     expect(googleFontsHref([])).toBe('');
     expect(googleFontsHref(['  '])).toBe('');
   });
+
+  test('chaque famille reçoit ses graisses, pas seulement la dernière', () => {
+    const href = googleFontsHref(['Lora', 'Merriweather Sans']);
+    expect(href).toContain('family=Lora:wght@400;500;600;700');
+    expect(href).toContain('family=Merriweather+Sans:wght@400;500;600;700');
+    expect(href.endsWith('&display=swap')).toBe(true);
+  });
 });

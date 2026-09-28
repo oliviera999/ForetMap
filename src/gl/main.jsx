@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import '../shared/fonts/glFonts.js';
 // Tokens typographiques communs aux deux produits (G&L ne charge jamais src/index.css).
 import '../shared/styles/typography-tokens.css';
 import '../shared/styles/spacing-tokens.css';

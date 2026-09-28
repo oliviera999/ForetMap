@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { IconBiodiv } from '../../shared/icons.jsx';
@@ -50,7 +51,7 @@ function VisitSpeciesTile({ name, emoji, plant, onOpenPlant }) {
       <span className="visit-biodiv-tile__visual" aria-hidden="true">
         {photoSrc ? (
           <img
-            src={photoSrc}
+            src={resolveExternalImageUrl(photoSrc)}
             alt=""
             loading="lazy"
             decoding="async"

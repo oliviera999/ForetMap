@@ -6,6 +6,7 @@ import {
   googleFontsHref,
   normalizeBrandCore,
 } from './brandThemeCore.js';
+import { remoteBrandFontFamilies } from '../privacy/externalAssets.js';
 
 /** Injecte (ou met à jour) une balise `<link>` identifiée, sans jamais en empiler deux. */
 function upsertLink(id, attrs) {
@@ -42,15 +43,22 @@ export function useBrandTheme(
     defaults = NEUTRAL_BRAND_DEFAULTS,
     fontFallback = 'serif',
     applyFavicon = true,
+    externalAssetsMode = 'local',
   } = {},
 ) {
   const brand = useMemo(() => normalizeBrandCore(rawBrand, defaults), [rawBrand, defaults]);
 
   useEffect(() => {
-    const href = googleFontsHref(brand.fonts.googleFamilies);
-    if (!href) return;
+    const href = googleFontsHref(
+      remoteBrandFontFamilies(brand.fonts.googleFamilies, externalAssetsMode),
+    );
+    if (!href) {
+      if (typeof document !== 'undefined')
+        document.getElementById(`${prefix}-brand-fonts`)?.remove();
+      return;
+    }
     upsertLink(`${prefix}-brand-fonts`, { rel: 'stylesheet', href });
-  }, [brand.fonts.googleFamilies, prefix]);
+  }, [brand.fonts.googleFamilies, prefix, externalAssetsMode]);
 
   useEffect(() => {
     if (!applyFavicon || !brand.faviconUrl) return;

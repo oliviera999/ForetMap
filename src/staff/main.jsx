@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import '../shared/fonts/planFonts.js';
 // Mêmes feuilles que le plan public : le plan des personnels est le même écran, pas un autre
 // produit visuel. Seul `staff-plan.css` s'ajoute, pour la teinte et les blocs réservés.
 import '../shared/styles/typography-tokens.css';

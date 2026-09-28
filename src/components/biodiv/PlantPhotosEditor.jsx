@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { disarmNativeFilePickerGuard } from '../../shared/platform/overlayHistory';
 import { PLANT_PHOTO_FIELD_OPTIONS } from '../../constants/plantMetaSections.js';
 import { COMMON_PHOTO_LICENCES, photosOfKind } from '../../utils/plantPhotos.js';
@@ -71,7 +72,7 @@ export function PlantPhotosEditor({
                   {photo.url ? (
                     <img
                       className="plant-photos-editor__thumb"
-                      src={photo.url}
+                      src={resolveExternalImageUrl(photo.url)}
                       alt=""
                       loading="lazy"
                       decoding="async"

@@ -78,6 +78,10 @@ import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLStatsView } from './components/GLStatsView.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
+import {
+  normalizeExternalAssetsMode,
+  setExternalAssetsMode,
+} from '../shared/privacy/externalAssets.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 import { GlMapOverlaySettingsProvider } from './context/GlMapOverlaySettingsContext.jsx';
 import { MusicPlayer } from './components/MusicPlayer.jsx';
@@ -250,9 +254,13 @@ export function AppGL() {
     return chapters.find((c) => Number(c.id) === themeChapterId) || null;
   }, [chapters, themeChapterId]);
 
+  const externalAssetsMode = normalizeExternalAssetsMode(glConfig?.externalAssetsMode);
+  // Posé pendant le rendu : les vues enfants résolvent leurs URL d'images dans ce même passage.
+  setExternalAssetsMode(externalAssetsMode);
   const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(
     glConfig?.brand,
     themeChapter?.theme,
+    externalAssetsMode,
   );
 
   const glAppStyle = useMemo(

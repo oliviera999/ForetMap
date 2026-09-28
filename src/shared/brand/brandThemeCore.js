@@ -148,6 +148,9 @@ export function googleFontsHref(families) {
     ...new Set((families || []).map((item) => String(item || '').trim()).filter(Boolean)),
   ].slice(0, BRAND_MAX_GOOGLE_FAMILIES);
   if (unique.length === 0) return '';
-  const encoded = unique.map((item) => item.replace(/\s+/g, '+')).join('&family=');
-  return `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;500;600;700&display=swap`;
+  // Chaque famille porte ses graisses : jointes par `&family=`, seule la dernière les recevait.
+  const params = unique
+    .map((item) => `family=${item.replace(/\s+/g, '+')}:wght@400;500;600;700`)
+    .join('&');
+  return `https://fonts.googleapis.com/css2?${params}&display=swap`;
 }

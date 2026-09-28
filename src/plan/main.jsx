@@ -1,4 +1,5 @@
 import ReactDOM from 'react-dom/client';
+import '../shared/fonts/planFonts.js';
 // Feuilles communes aux produits (le plan ne charge jamais src/index.css ni les styles GL).
 import '../shared/styles/typography-tokens.css';
 import '../shared/styles/spacing-tokens.css';

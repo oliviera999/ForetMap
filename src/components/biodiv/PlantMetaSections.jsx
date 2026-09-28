@@ -15,6 +15,8 @@ import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.j
 import { photoAttributionFor, formatPhotoAttribution } from '../../utils/plantPhotos.js';
 import { PLANT_META_SECTIONS, PHOTO_FIELD_KEYS } from '../../constants/plantMetaSections.js';
 import { IconSearch } from '../../shared/icons.jsx';
+import { withAppBase } from '../../shared/appBase.js';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 
 /**
  * Affichage des métadonnées d'une fiche plante — extrait de `foretmap-views.jsx` (O6).
@@ -25,24 +27,14 @@ import { IconSearch } from '../../shared/icons.jsx';
 export async function fetchCommonsCategoryPreview(urlValue) {
   const categoryTitle = parseCommonsCategoryFromUrl(urlValue);
   if (!categoryTitle) return null;
-  const endpoint = new URL('https://commons.wikimedia.org/w/api.php');
-  endpoint.searchParams.set('action', 'query');
-  endpoint.searchParams.set('format', 'json');
-  endpoint.searchParams.set('origin', '*');
-  endpoint.searchParams.set('generator', 'categorymembers');
-  endpoint.searchParams.set('gcmtype', 'file');
-  endpoint.searchParams.set('gcmtitle', categoryTitle);
-  endpoint.searchParams.set('gcmlimit', '1');
-  endpoint.searchParams.set('prop', 'imageinfo');
-  endpoint.searchParams.set('iiprop', 'url');
-  endpoint.searchParams.set('iiurlwidth', '1200');
-  const res = await fetch(endpoint.toString());
+  // C'est le serveur qui interroge Wikimedia Commons (audit RGPD du 28/09/2026, § 7) : le
+  // navigateur de l'élève ne le contacte pas, et la CSP n'a pas à ouvrir `connect-src`.
+  const res = await fetch(
+    withAppBase(`/api/media/commons-preview?category=${encodeURIComponent(categoryTitle)}`),
+  );
   if (!res.ok) return null;
   const data = await res.json();
-  const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
-  const first = pages[0];
-  const info = first?.imageinfo?.[0];
-  return info?.thumburl || info?.url || null;
+  return data?.url || null;
 }
 
 /** Photo principale (champ `photo` puis `photo_species`) entre description brève et bloc écologie. */
@@ -97,7 +89,7 @@ export function PlantBiodivHeroPhoto({ plant }) {
         aria-label={`Agrandir la photo de ${name}`}
       >
         <img
-          src={src}
+          src={resolveExternalImageUrl(src)}
           alt=""
           className="biodiv-card-hero-photo"
           fetchPriority="high"
@@ -211,7 +203,12 @@ export function PlantMetaSections({ plant }) {
                 })
               }
             >
-              <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
+              <img
+                src={resolveExternalImageUrl(entry.src)}
+                alt={item.label}
+                loading="lazy"
+                decoding="async"
+              />
               <span className="plant-photo-overlay">
                 <IconSearch size={14} /> Voir
               </span>

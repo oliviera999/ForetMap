@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import {
@@ -299,7 +300,7 @@ export function GLSpeciesDetailModal({
 
         {hasGlSpeciesFieldValue(species.photo_url) ? (
           <figure className="gl-species-detail-modal__hero">
-            <img src={String(species.photo_url).trim()} alt={nomCommun} />
+            <img src={resolveExternalImageUrl(String(species.photo_url).trim())} alt={nomCommun} />
             {hasGlSpeciesFieldValue(species.photo_credit) ||
             hasGlSpeciesFieldValue(species.photo_licence) ? (
               <figcaption>

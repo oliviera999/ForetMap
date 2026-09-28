@@ -121,6 +121,10 @@ import { PedagoSessionProvider } from './contexts/PedagoSessionContext.jsx';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { BiodivPedagoProvider } from './contexts/BiodivPedagoContext.jsx';
 import { useBrandTheme } from './shared/brand/useBrandTheme.js';
+import {
+  normalizeExternalAssetsMode,
+  setExternalAssetsMode,
+} from './shared/privacy/externalAssets.js';
 import { reportUsage } from './shared/usage/reportUsage.js';
 import { withAppBase } from './shared/appBase.js';
 import { FORETMAP_BRAND_DEFAULTS } from './constants/brand.js';
@@ -237,12 +241,18 @@ function App() {
    * `ui.foret.brand`, mécanique partagée avec G&L et le Plan Lyautey. Sans réglage, les
    * valeurs par défaut reproduisent exactement le thème forêt historique.
    */
+  const externalAssetsMode = normalizeExternalAssetsMode(
+    publicSettings?.privacy?.external_assets_mode,
+  );
+  // Posé pendant le rendu : les vues enfants résolvent leurs URL d'images dans ce même passage.
+  setExternalAssetsMode(externalAssetsMode);
   const { brand: foretBrand, style: foretBrandStyle } = useBrandTheme(
     publicSettings?.foret?.brand,
     {
       prefix: 'fm-brand',
       defaults: FORETMAP_BRAND_DEFAULTS,
       fontFallback: "'DM Sans', sans-serif",
+      externalAssetsMode,
     },
   );
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();

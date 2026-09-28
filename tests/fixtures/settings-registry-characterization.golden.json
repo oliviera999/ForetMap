@@ -502,6 +502,12 @@
       "default": "",
       "adminHidden": true
     },
+    "privacy.external_assets_mode": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["local", "external"],
+      "default": "local"
+    },
     "rbac.progression_by_validated_tasks": {
       "scope": "teacher",
       "type": "boolean",
@@ -1366,6 +1372,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -1403,6 +1412,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -1431,6 +1443,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -1455,6 +1470,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -2708,6 +2726,22 @@
         "max": null,
         "maxLength": null,
         "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.external_assets_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "local",
+      "default_value": "local",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["local", "external"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
@@ -4640,6 +4674,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -4677,6 +4714,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -4705,6 +4745,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },
@@ -4729,6 +4772,9 @@
       },
       "realtime": {
         "allow_websocket": false
+      },
+      "privacy": {
+        "external_assets_mode": "local"
       }
     }
   },

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
@@ -158,7 +159,11 @@ export function GLQcmPopover({
                 />
                 {presentation.photoUrl ? (
                   <figure className="gl-qcm-modal__photo-wrap">
-                    <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
+                    <img
+                      src={resolveExternalImageUrl(presentation.photoUrl)}
+                      alt=""
+                      className="gl-qcm-modal__photo"
+                    />
                     {presentation.photoCredit || presentation.photoLicence ? (
                       <figcaption className="gl-qcm-modal__photo-credit">
                         {[presentation.photoCredit, presentation.photoLicence]

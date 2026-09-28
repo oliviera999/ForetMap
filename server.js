@@ -310,11 +310,23 @@ app.use((err, req, res, next) => {
 //  - `Content-Security-Policy-Report-Only` — la politique **candidate**, qui signale sans bloquer.
 // Ce lot ne durcit donc rien : il produit la mesure qui manquait pour décider (audit §2.5).
 const CSP_ENFORCED = buildEnforcedPolicy();
-const CSP_REPORT_ONLY = buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH });
+const CSP_REPORT_ONLY_BY_MODE = {
+  local: buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH, externalAssetsMode: 'local' }),
+  external: buildReportOnlyPolicy({ reportPath: CSP_REPORT_PATH, externalAssetsMode: 'external' }),
+};
+const { getSettingValue: getCspSettingValue } = require('./lib/settings');
+function resolveExternalAssetsModeForCsp() {
+  if (!isApplicationDatabaseReady()) return Promise.resolve('local');
+  return getCspSettingValue('privacy.external_assets_mode', 'local')
+    .then((mode) => (mode === 'external' ? 'external' : 'local'))
+    .catch(() => 'local');
+}
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', CSP_ENFORCED);
-  res.setHeader('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY);
-  next();
+  resolveExternalAssetsModeForCsp().then((mode) => {
+    res.setHeader('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY_BY_MODE[mode]);
+    next();
+  });
 });
 
 app.use(createHttpRequestLogMiddleware());
@@ -459,6 +471,8 @@ app.use('/tutos', (req, res, next) => {
     });
 });
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
+const { mediaRouter: mediaRelayRouter, fontsRouter: localFontsRouter } = require('./routes/media');
+app.use('/fonts', localFontsRouter);
 
 // Routes de santé / readiness (extraites dans routes/health.js — chemins absolus, ordre inchangé)
 app.use(healthRouter);
@@ -610,6 +624,7 @@ app.use('/api/settings', settingsRouter);
 // de /api/admin/restart (drain HTTP, Socket.IO, pool MySQL).
 settingsRouter.setRestartShutdownHandler(gracefulShutdown);
 app.use('/api/media-library', mediaLibraryRouter);
+app.use('/api/media', mediaRelayRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/context-comments', contextCommentsRouter);
 app.use('/api/notifications', notificationsRouter);

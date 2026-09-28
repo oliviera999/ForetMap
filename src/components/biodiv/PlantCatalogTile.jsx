@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { PlantSpeciesDiscoveryAcknowledgeButton } from '../PlantSpeciesDiscoveryAcknowledge';
 import { PlantPedagoTraitBadges } from './PlantSummaryBlocks.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
@@ -68,7 +69,7 @@ export function PlantCatalogTile({
       >
         <span className="biodiv-tile__visual" aria-hidden="true">
           {photoSrc ? (
-            <img src={photoSrc} alt="" loading="lazy" decoding="async" />
+            <img src={resolveExternalImageUrl(photoSrc)} alt="" loading="lazy" decoding="async" />
           ) : (
             <span className="biodiv-tile__emoji">{plant.emoji || '🌱'}</span>
           )}

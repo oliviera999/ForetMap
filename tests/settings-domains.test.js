@@ -39,6 +39,7 @@ test('le registre est l’agrégat des domaines, dans l’ordre de la liste', ()
       'plan',
       'moodle',
       'lti',
+      'confidentialité',
     ],
   );
 });
@@ -85,6 +86,7 @@ test('les clés vivent dans leur domaine', () => {
     'ui.plan.map_id': 'plan',
     'ui.staff_plan.access_mode': 'plan',
     'security.staff_plan_access_code_hash': 'plan',
+    'privacy.external_assets_mode': 'confidentialité',
     'cle.inconnue': null,
   };
   for (const [key, domain] of Object.entries(cases)) {

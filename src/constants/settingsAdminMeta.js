@@ -14,6 +14,7 @@ export const SECTION_DEFS = {
   progression: { title: 'Progression n3beurs', order: 25 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
+  privacy: { title: 'Confidentialité (RGPD)', order: 32 },
   operations: { title: 'Exploitation', order: 40 },
   other: { title: 'Autres paramètres', order: 90 },
 };
@@ -489,6 +490,16 @@ export const KEY_META = {
       all: 'Tout compte connecté (hors visiteur)',
       assignees: 'Les inscrits de la tâche seulement',
       group: 'Les entrées de ses camarades de groupe et les siennes',
+    },
+  },
+  'privacy.external_assets_mode': {
+    label:
+      'Polices et images de sites tiers. En mode local, rien n’est demandé à Google ni à Wikimedia depuis le navigateur des élèves.',
+    section: 'privacy',
+    order: 10,
+    optionLabels: {
+      local: 'Servies par l’application (recommandé)',
+      external: 'Chargées chez Google et Wikimedia (ancien comportement)',
     },
   },
   'rbac.progression_by_validated_tasks': {

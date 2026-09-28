@@ -1,3 +1,5 @@
+import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
+
 /**
  * Illustration d'une question QCM : image + mention de crédit/licence (et, en contexte
  * d'administration seulement, la légende saisie par le professeur).
@@ -26,7 +28,7 @@ export function QcmQuestionPhoto({
 
   return (
     <figure className={figureClassName || undefined}>
-      <img src={url} alt="" className={imgClassName || undefined} />
+      <img src={resolveExternalImageUrl(url)} alt="" className={imgClassName || undefined} />
       {legende || credit ? (
         <figcaption className={captionClassName || undefined}>
           {legende ? <span className="qcm-photo__legende">{legende}</span> : null}

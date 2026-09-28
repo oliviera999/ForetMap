@@ -1,3 +1,5 @@
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+
 /**
  * Carte (présentation) d'une photo proposée par la pré-saisie — extrait de `PlantPrefillPanel`
  * (O6). Affiche la case d'inclusion, le menu « Associer au champ », l'aperçu (avec repli en cas
@@ -73,7 +75,7 @@ export function PrefillPhotoCard({
               </div>
             ) : (
               <img
-                src={photo.url}
+                src={resolveExternalImageUrl(photo.url)}
                 alt=""
                 className="plant-prefill-photo-thumb"
                 loading="lazy"

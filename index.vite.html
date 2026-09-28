@@ -28,17 +28,13 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!-- Polices auto-hébergées (src/shared/fonts/) : aucun appel à Google Fonts (RGPD). -->
     <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
          inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
          l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
          qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
          Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
          `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <div id="root"></div>

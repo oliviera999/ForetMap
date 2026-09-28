@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import {
   glossaryPropsWhileAnswering,
@@ -250,7 +251,11 @@ export function QuizView({
           />
           {presentation.photoUrl ? (
             <figure className="pedago-quiz__photo-wrap">
-              <img src={presentation.photoUrl} alt="" className="pedago-quiz__photo" />
+              <img
+                src={resolveExternalImageUrl(presentation.photoUrl)}
+                alt=""
+                className="pedago-quiz__photo"
+              />
               {presentation.photoCredit || presentation.photoLicence ? (
                 <figcaption className="pedago-quiz__photo-credit">
                   {[presentation.photoCredit, presentation.photoLicence]

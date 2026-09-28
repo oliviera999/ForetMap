@@ -73,6 +73,7 @@ const {
 const { loginThrottle, sendLoginThrottled } = require('../../lib/loginThrottle');
 const { nowDbTimestamp } = require('../../lib/shared/isoTimestamp');
 const { exportLimiter } = require('../../lib/rateLimit');
+const { getSettingValue } = require('../../lib/settings');
 const { buildGlPlayerExport, sendExportArchive } = require('../../lib/accounts/personalDataExport');
 const { resolveGlPlayerActiveMembership } = require('../../lib/glPlayerMembership');
 
@@ -374,6 +375,7 @@ router.get(
     const modules = await getGlModulesSettings();
     const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
     const guestModeEnabled = await isGlGuestModeEnabled();
+    const externalAssetsMode = await getSettingValue('privacy.external_assets_mode', 'local');
     const googleReady = !!clientId;
     const { getSocketIoRealtimePublicConfig } = require('../../lib/socketIoTransport');
     return res.json({
@@ -384,6 +386,7 @@ router.get(
       allowGooglePlayer: googleReady,
       allowPlayerLinkForetmap,
       guestModeEnabled,
+      externalAssetsMode: externalAssetsMode === 'external' ? 'external' : 'local',
       modules,
       realtime: getSocketIoRealtimePublicConfig(),
     });

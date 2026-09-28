@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — polices et images Wikimedia servies par l'application (RGPD, transferts hors UE)
+
+- Par défaut, plus aucun appel à Google Fonts ni à Wikimedia depuis le navigateur des élèves
+  (audit [RGPD du 28/09](docs/AUDIT_RGPD_2026-09-28.md) §7). Nouveau réglage admin
+  **Confidentialité (RGPD)** → `privacy.external_assets_mode` (`local` par défaut, `external`
+  = ancien comportement), servi à ForetMap, G&L et aux plans.
+- Polices auto-hébergées via les paquets [Fontsource](https://fontsource.org) (licence SIL OFL
+  1.1) : Playfair Display, DM Sans, Caudex, Cinzel, DM Mono, Bebas Neue, Special Elite. Les
+  fiches `tutos/*.html` utilisent `GET /fonts/local-fonts.css` ; dans la vue d'une fiche, les
+  `@import` Google Fonts sont retirés en mode local.
+- Relais d'images `GET /api/media/remote?url=` (hôtes Wikimedia seulement, HTTPS, redirections
+  revalidées, image seulement, taille plafonnée, cache `uploads/remote-cache/`) et
+  `GET /api/media/commons-preview` pour l'aperçu de catégorie d'une fiche plante.
+- Correctif au passage : l'URL Google Fonts de l'identité visuelle ne donnait les graisses qu'à
+  la dernière famille ; G&L chargeait Caudex et Cinzel en double. Les familles admin ne sont
+  désormais demandées à Google qu'en mode `external`, et seulement si elles ne sont pas
+  embarquées.
+- CSP candidate (Report-Only) calculée selon le réglage : domaines Google Fonts absents en mode
+  local.
+
 ### Ajouté — export des données personnelles (RGPD, droit d'accès et portabilité)
 
 - Bouton **Télécharger mes données** dans le profil ForetMap et dans le profil joueur G&L :
