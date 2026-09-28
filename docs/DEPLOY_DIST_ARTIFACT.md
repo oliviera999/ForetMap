@@ -124,19 +124,22 @@ rien poser.
 ### Pourquoi quatre déclencheurs de publication
 
 `dist-publish.yml` écoute `push` sur `main`, `workflow_run` après « Version bump on merge », un
-`schedule` horaire et `workflow_dispatch`. Le deuxième n'est pas un luxe :
+`schedule` toutes les 6 heures et `workflow_dispatch`. Le deuxième n'est pas un luxe :
 
 > `version-bump.yml` pousse `chore(release): vX [skip bump]` sur `main` **avec le
 > `GITHUB_TOKEN`**, et un push par `GITHUB_TOKEN` ne déclenche aucun workflow (anti-boucle
 > GitHub). La tête de `main` est donc presque toujours un commit que `push` n'a jamais vu.
 
 Sans ce crochet, l'artefact serait en permanence un commit en retard sur `main` et le serveur
-reporterait son déploiement **indéfiniment**. Le `schedule` horaire est le filet de sécurité si
-un déclencheur est manqué (`[skip ci]` dans un message, run annulé, incident Actions) : au pire,
-le déploiement attend une heure au lieu d'une minute.
+reporterait son déploiement **indéfiniment**. Le `schedule` est le filet de sécurité si un
+déclencheur est manqué (`[skip ci]` dans un message, run annulé, incident Actions) : au pire, le
+déploiement attend six heures au lieu d'une minute — `workflow_dispatch` (onglet Actions →
+_Publish dist artifact_ → _Run workflow_) republie tout de suite si c'est pressant. Il était
+horaire à l'origine ; il a été espacé pour le dépôt privé sur le plan Free, où chaque exécution,
+même sans rien à publier, coûte au moins une minute facturée (voir `docs/EXPLOITATION.md` § 11.2).
 
 Le job construit toujours la tête courante de `main`, pas le SHA déclencheur, et s'abstient si
-l'artefact publié correspond déjà — le passage horaire ne republie donc pas 32 Mo pour rien.
+l'artefact publié correspond déjà — le passage programmé ne republie donc pas 32 Mo pour rien.
 
 ## 3. Bascule — runbook
 

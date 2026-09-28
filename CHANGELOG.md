@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — exploitation : dépôt privé sur le plan GitHub Free
+
+- `dist-publish.yml` : le filet de sécurité programmé passe de toutes les heures à **toutes les
+  6 heures** (~720 → ~120 minutes Actions facturées par mois) ; `push` et `workflow_run`
+  publient toujours l'artefact dans la minute.
+- `docs/EXPLOITATION.md` § 11 : quota Actions (le cron reporte tout déploiement sans artefact),
+  perte de la protection de branche en privé sur Free et parades, vérification de la clé de
+  déploiement du serveur (SSH, port 443 de repli, cPanel). `docs/DEPLOY_DIST_ARTIFACT.md` aligné.
+
 ### Modifié — polices et images Wikimedia servies par l'application (RGPD, transferts hors UE)
 
 - Par défaut, plus aucun appel à Google Fonts ni à Wikimedia depuis le navigateur des élèves
