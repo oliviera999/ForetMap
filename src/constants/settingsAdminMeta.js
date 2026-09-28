@@ -25,6 +25,9 @@ export const SECTION_DEFS = {
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.visit.mascot.default_id',
+  // Calendrier scolaire (SchoolCalendarPanel) : écrire la clé seule ne recalculerait pas les
+  // jours déjà posés en base.
+  'tasks.school_calendar_open_weekdays',
   'ui.map.show_tutorial_dots',
   'ui.map.heading_up_enabled',
   'ui.visit.heading_up_enabled',

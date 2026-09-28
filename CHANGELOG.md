@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — réglages : calendrier scolaire modifiable (congés, jours ouvrables, années)
+
+- Nouveau cadre **« Calendrier scolaire »** dans Réglages → Pédagogie : cases des **jours
+  ouvrables** (lundi→vendredi par défaut), liste des **congés, fériés, fermetures et
+  ouvertures exceptionnelles** de l'année regroupés en périodes (week-ends intercalés
+  enjambés), ajout d'une période, bouton « Annuler » qui rend les jours ouvrables, et
+  création d'une **nouvelle année scolaire**. Jusqu'ici le calendrier n'existait qu'en base
+  (migration `247`) et s'arrêtait au 31 août 2027.
+- Changer les jours ouvrables recalcule les jours ordinaires des années en cours et à venir
+  sans toucher aux congés ni aux ouvertures exceptionnelles ; hors de toute année saisie, le
+  repli suit désormais ces jours ouvrables (réglage `tasks.school_calendar_open_weekdays`)
+  au lieu d'un lundi→vendredi figé.
+- Routes `GET /api/school-calendar/admin`, `PUT /api/school-calendar/days`,
+  `PUT /api/school-calendar/weekdays`, `POST /api/school-calendar/years`
+  (`admin.settings.read` / `.write`, journal d'audit). Pas de migration : le type
+  `extra_open` tient dans la colonne `kind` existante.
+
 ### Ajouté — séries récurrentes : date de duplication affichée
 
 - Le cadre « Séries récurrentes » annonce, pour chaque série, **le jour où la tâche validée

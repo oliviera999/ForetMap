@@ -3903,6 +3903,58 @@
       margin: 8px 0 0;
       font-size: var(--text-sm);
     }
+    .school-calendar-panel__block {
+      margin: 0 0 18px;
+    }
+    .school-calendar-panel__block h4 {
+      margin: 0 0 4px;
+      color: var(--forest);
+    }
+    .school-calendar-panel__weekdays {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 10px;
+    }
+    .school-calendar-panel__weekday {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      min-width: 64px;
+      padding: 0 10px;
+      border: 1px solid var(--sage, #cfd8cf);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .school-calendar-panel__periods {
+      list-style: none;
+      margin: 8px 0 12px;
+      padding: 0;
+    }
+    .school-calendar-panel__period {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 44px;
+      border-bottom: 1px solid var(--sage, #e3e9e3);
+    }
+    .school-calendar-panel__form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 8px 12px;
+    }
+    .school-calendar-panel__form .field {
+      margin-bottom: 0;
+    }
+    .school-calendar-panel__message {
+      color: var(--forest);
+    }
+    .school-calendar-panel__error {
+      color: var(--alert);
+    }
     .map-location-filters-bar {
       min-height:44px;
     }

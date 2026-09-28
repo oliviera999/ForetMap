@@ -21,6 +21,7 @@ import { PlaceMessagesPanel } from './settings/PlaceMessagesPanel.jsx';
 import { MapsAdminPanel } from './settings/MapsAdminPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
+import { SchoolCalendarPanel } from './settings/SchoolCalendarPanel.jsx';
 import { MoodleAdminPanel } from './settings/MoodleAdminPanel.jsx';
 import { CategoryIdsMultiSelect } from './settings/CategoryIdsMultiSelect.jsx';
 import { ForetBrandEditor } from './settings/ForetBrandEditor.jsx';
@@ -58,6 +59,15 @@ const SEARCH_INDEX = [
       'tâches',
       'taches',
       'imports',
+      'calendrier',
+      'vacances',
+      'congés',
+      'conges',
+      'férié',
+      'ferie',
+      'jours ouvrables',
+      'récurrence',
+      'recurrence',
     ],
   },
   {
@@ -922,6 +932,13 @@ function SettingsAdminView({
           {adminSection === 'pedago' && canReadSettings ? (
             <>
               {renderSettingSectionsGrid(PEDAGO_SECTION_IDS)}
+              <AdminSection id="school-calendar" title="Calendrier scolaire" defaultOpen={false}>
+                <SchoolCalendarPanel
+                  canWrite={canWriteSettings}
+                  confirm={confirm}
+                  onError={(errMsg) => setErr(errMsg)}
+                />
+              </AdminSection>
               <AdminSection id="gating" title="Conditionnement pédagogique" defaultOpen={false}>
                 <FMLearningGatingSettings
                   get={get}

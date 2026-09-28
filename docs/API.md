@@ -1991,11 +1991,15 @@ Contraintes principales :
 
 ## Calendrier scolaire (`/api/school-calendar`)
 
-| Méthode | URL                    | Permission     | Description                                                                     |
-| ------- | ---------------------- | -------------- | ------------------------------------------------------------------------------- |
-| GET     | `/api/school-calendar` | `tasks.manage` | Années actives, statut du jour (`today`), jours `from`–`to` (`is_open`, `kind`) |
+| Méthode | URL                             | Permission             | Description                                                                                                                                                                                                                                     |
+| ------- | ------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/school-calendar`          | `tasks.manage`         | Années actives, statut du jour (`today`), jours `from`–`to` (`is_open`, `kind`)                                                                                                                                                                 |
+| GET     | `/api/school-calendar/admin`    | `admin.settings.read`  | Vue d'édition des réglages : `today`, `open_weekdays` (0 = dimanche … 6 = samedi), `years` (toutes, actives ou non), `year_id` et `days` de l'année demandée (`?year_id=`, sinon celle qui contient aujourd'hui, sinon la plus récente)        |
+| PUT     | `/api/school-calendar/days`     | `admin.settings.write` | Modifie une période `{ from, to, action, kind?, label? }` (≤ 400 jours). `action` : `close` (jours ouvrables fermés avec `kind` = `vacation` / `holiday` / `closed` ; les jours non ouvrables restent `weekend`), `open` (ouverture exceptionnelle de tous les jours, `kind` = `extra_open`), `reset` (retour aux jours ouvrables, libellés effacés). `400` si une date n'appartient à aucune année scolaire. Réponse `{ ok, from, to, updated }` |
+| PUT     | `/api/school-calendar/weekdays` | `admin.settings.write` | Jours ouvrables `{ open_weekdays: [1,2,3,4,5] }` (au moins un, sinon `400`). Enregistre le réglage `tasks.school_calendar_open_weekdays` puis recalcule les jours `open` / `weekend` des années en cours et à venir ; congés, fériés, fermetures et ouvertures exceptionnelles sont conservés. Réponse `{ ok, open_weekdays, changed_days }` |
+| POST    | `/api/school-calendar/years`    | `admin.settings.write` | Nouvelle année `{ label, starts_on, ends_on }` (≤ 400 jours), jours créés d'après les jours ouvrables. `409` si elle chevauche une année existante ou si le libellé est pris. Réponse `201 { ok, year }`                                        |
 
-Query optionnelle : `from`, `to` (`AAAA-MM-JJ`). Source seed : année 2026-2027 (migrations `247`).
+Query optionnelle de `GET /api/school-calendar` : `from`, `to` (`AAAA-MM-JJ`). Source seed : année 2026-2027 (migration `247`). Hors de toute année saisie, un jour est ouvert s'il fait partie des jours ouvrables réglés. Chaque écriture est tracée dans le journal d'audit (`school_calendar_*`).
 
 ---
 

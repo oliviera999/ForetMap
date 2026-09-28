@@ -326,7 +326,8 @@ profils) ou le rattacher à une classe qui confère le statut élève — voir
 ### Et pendant les vacances ?
 
 ForetMap connaît un **calendrier scolaire** (année 2026-2027 préchargée : jours ouvrés,
-week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
+week-ends, vacances et jours fermés issus du calendrier de travail du lycée), modifiable
+dans les réglages (voir « Modifier le calendrier scolaire » ci-dessous).
 
 - Les **jours fermés** (week-ends, vacances, fériés) : aucune nouvelle occurrence n'est
   créée automatiquement.
@@ -361,6 +362,44 @@ week-ends, vacances et jours fermés issus du calendrier de travail du lycée).
   limite est atteinte, les séries non calculées l'affichent en toutes lettres
   (_« Prévision non calculée »_) : une ligne sans prévision veut dire « pas de prochaine
   occurrence », elle ne cache jamais un calcul qui n'a pas eu lieu.
+
+### Modifier le calendrier scolaire
+
+Le calendrier se modifie dans les **réglages**, onglet **Pédagogie**, cadre
+**« Calendrier scolaire »** (réservé aux comptes qui peuvent modifier les réglages ; les
+autres le consultent sans pouvoir le changer).
+
+- **Jours ouvrables** : on coche les jours d'école ordinaires de la semaine (du lundi au
+  vendredi par défaut ; on peut par exemple libérer le mercredi ou ajouter le samedi).
+  Le changement s'applique à l'année en cours et aux suivantes ; les congés, fériés et
+  ouvertures exceptionnelles déjà saisis sont **conservés**, et les années passées ne
+  bougent pas.
+- **Congés et fermetures** : la liste montre les périodes de l'année (vacances, jours
+  fériés, fermetures exceptionnelles, ouvertures exceptionnelles), avec leur libellé et
+  leurs dates. On en **ajoute** une en choisissant le type, les dates (une seule date pour
+  un jour isolé) et un libellé facultatif (« Vacances de la Toussaint »). Fermer une
+  période ne touche que les jours ouvrables : les week-ends restent des week-ends.
+  L'**ouverture exceptionnelle** rend un jour d'école, même un samedi (journée portes
+  ouvertes…).
+- Le bouton **« Annuler »** d'une période la fait revenir aux jours ouvrables habituels.
+- **Nouvelle année scolaire** : un libellé (« 2027-2028 ») et des dates de début et de
+  fin. Les jours sont créés d'après les jours ouvrables ; il reste à y ajouter les congés.
+  Deux années ne peuvent pas se chevaucher.
+- Au-delà des années saisies, l'application ne connaît pas les vacances : seuls les jours
+  ouvrables comptent. Pensez à créer l'année suivante avant la rentrée.
+
+Les changements s'appliquent immédiatement : la prochaine duplication des tâches
+récurrentes et les dates annoncées dans le panneau « Séries récurrentes » en tiennent
+compte.
+
+> ⚠️ **Points d'attention**
+>
+> - Une période ne peut être saisie que **dans une année scolaire existante** : pour
+>   poser des congés après la fin de l'année préchargée (31 août 2027), il faut d'abord
+>   créer l'année suivante.
+> - Les tâches déjà créées ne sont pas déplacées : un congé ajouté après coup ne change
+>   ni la date de départ ni l'échéance d'une occurrence existante, seulement les
+>   suivantes.
 
 L'interrupteur manuel des réglages (_« Duplication automatique des tâches récurrentes »_)
 reste disponible en coupe-circuit, au-dessus du calendrier. L'**archivage automatique**

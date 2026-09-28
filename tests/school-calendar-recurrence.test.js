@@ -8,7 +8,7 @@ const {
   resolveRecurrenceAnchor,
   addDaysToDateString,
 } = require('../lib/recurringTasks');
-const { fallbackIsOpen, parseISODateOnly } = require('../lib/schoolCalendar');
+const { fallbackIsOpen, parseISODateOnly, parseOpenWeekdays } = require('../lib/schoolCalendar');
 
 test('occurrenceDate : weekly / biweekly / monthly', () => {
   assert.strictEqual(occurrenceDate('2026-09-15', 'weekly', 1), '2026-09-22');
@@ -57,6 +57,24 @@ test('fallbackIsOpen : week-end fermé', () => {
   assert.strictEqual(fallbackIsOpen('2026-09-05'), false); // samedi
   assert.strictEqual(fallbackIsOpen('2026-09-06'), false); // dimanche
   assert.strictEqual(fallbackIsOpen('2026-09-07'), true); // lundi
+});
+
+test('fallbackIsOpen : suit les jours ouvrables réglés', () => {
+  // Semaine de quatre jours sans le mercredi, samedi matin travaillé.
+  const jours = [1, 2, 4, 5, 6];
+  assert.strictEqual(fallbackIsOpen('2026-09-09', jours), false); // mercredi
+  assert.strictEqual(fallbackIsOpen('2026-09-05', jours), true); // samedi
+  assert.strictEqual(fallbackIsOpen('2026-09-06', jours), false); // dimanche
+});
+
+test('parseOpenWeekdays : liste triée sans doublon, repli lundi→vendredi', () => {
+  assert.deepStrictEqual(parseOpenWeekdays('5,1,3,1'), [1, 3, 5]);
+  assert.deepStrictEqual(parseOpenWeekdays('1; 2 6'), [1, 2, 6]);
+  assert.deepStrictEqual(parseOpenWeekdays([0, 6]), [0, 6]);
+  // Illisible ou vide : jamais « aucun jour ouvert », qui bloquerait toute récurrence.
+  for (const valeur of ['', null, undefined, 'lundi', '7,8', []]) {
+    assert.deepStrictEqual(parseOpenWeekdays(valeur), [1, 2, 3, 4, 5]);
+  }
 });
 
 /** Calendrier de test : week-ends fermés, plus les jours explicitement listés. */
