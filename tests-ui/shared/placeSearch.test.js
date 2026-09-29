@@ -71,6 +71,16 @@ describe('searchPlaces', () => {
     expect(ids(searchPlaces(mixed, 'sport'))).toEqual(['nom', 'alias', 'texte']);
   });
 
+  test('« n3 » (sans exposant) trouve « N³ », et inversement', () => {
+    const sup = buildPlaceIndex([
+      { id: 'n3', name: 'Bâtiment N³', categories: [] },
+      { id: 'n2', name: 'Bâtiment N2', categories: [] },
+    ]);
+    expect(normalizeSearchText('N³')).toBe('n3');
+    expect(ids(searchPlaces(sup, 'n3'))).toEqual(['n3']);
+    expect(ids(searchPlaces(sup, 'N³'))).toEqual(['n3']);
+  });
+
   test('limite le nombre de résultats', () => {
     expect(searchPlaces(index, 'salles', { limit: 1 })).toHaveLength(1);
   });

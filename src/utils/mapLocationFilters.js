@@ -39,12 +39,15 @@ function surfaceMatches(item, filters) {
   return state === 'visible' ? visible : !visible;
 }
 
-/** Normalise une chaîne pour comparaison (minuscules, sans accents). */
+/**
+ * Normalise une chaîne pour comparaison (minuscules, sans accents). NFKD ramène exposants et
+ * indices à leur chiffre : « N³ » se trouve en tapant « n3 ».
+ */
 export function normalizeMapSearchText(raw) {
   return String(raw || '')
     .trim()
     .toLowerCase()
-    .normalize('NFD')
+    .normalize('NFKD')
     .replace(/\p{M}/gu, '');
 }
 

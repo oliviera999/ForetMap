@@ -31,7 +31,8 @@ du lycée apparaît aussi discrètement en bas à gauche du plan.
 2. **Une barre de recherche en haut.** On tape un mot ; les lieux correspondants
    apparaissent dans une liste qui glisse depuis le bas de l'écran, sans cacher le plan —
    **le plan reste manipulable et le champ garde le curseur** : on peut corriger sa saisie
-   sans refermer la liste. La recherche ignore les accents et les majuscules, connaît les
+   sans refermer la liste. La recherche ignore les accents et les majuscules, lit les
+   exposants comme des chiffres ordinaires (« n3 » trouve le _N³_), connaît les
    **autres noms** d'un lieu (les alias saisis par l'établissement) et comprend le
    **vocabulaire courant** : « wc » ou « toilettes » trouvent les _Sanitaires_, « cantine »
    la _Cafétéria_, « bibliothèque » le _CDI_, « photocopie » la _Reprographie_. Elle porte

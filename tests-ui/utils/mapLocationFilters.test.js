@@ -79,6 +79,11 @@ describe('normalizeMapSearchText', () => {
   test('minuscules et sans accents', () => {
     expect(normalizeMapSearchText('  Élève  ')).toBe('eleve');
   });
+
+  test('exposants et indices ramenés au chiffre : « N³ » se trouve en tapant « n3 »', () => {
+    expect(normalizeMapSearchText('Bâtiment N³')).toBe('batiment n3');
+    expect(normalizeMapSearchText('CO₂')).toBe('co2');
+  });
 });
 
 describe('mapSearchTokens', () => {

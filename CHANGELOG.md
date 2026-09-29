@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — recherche de lieux : « n3 » trouve « N³ »
+
+La normalisation des recherches de lieux (plan, Visite, carte de travail) décomposait en `NFD`, qui laisse les exposants intacts ; « ³ » était ensuite supprimé comme ponctuation, si bien que « N³ » était indexé « n » et restait introuvable en tapant « n3 ». `normalizeSearchText` (`src/shared/search/placeSearch.js`) et `normalizeMapSearchText` (`src/utils/mapLocationFilters.js`) passent en `NFKD` : exposants et indices sont ramenés à leur chiffre (« N³ » → « n3 », « CO₂ » → « co2 »). Tests : `tests-ui/shared/placeSearch.test.js`, `tests-ui/utils/mapLocationFilters.test.js`. Doc : `docs/reference/plan/presentation.md`.
+
 ### Corrigé — favicon Lycée Lyautey rafraîchi sur le plan et le plan des personnels
 
 Les fichiers servis sur `planlyautey.*` et `proflyautey.*` / `stafflyautey.*` étaient déjà identiques au favicon de lyceelyautey.org, mais les navigateurs gardaient en cache l'ancienne icône (cache de favicons indexé par URL, indépendant de `Cache-Control`). Les balises `<link rel="icon">` et `apple-touch-icon` de `plan.html` et `staff.html` portent désormais un paramètre de version (`?v=lyautey-2025-12`) qui force le rechargement.

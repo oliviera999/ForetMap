@@ -36,13 +36,14 @@ const SYNONYM_PENALTY = 25;
 
 /**
  * Normalise une chaîne pour la comparaison : minuscules, accents retirés, ponctuation et
- * espaces réduits à une espace simple.
+ * espaces réduits à une espace simple. La décomposition de compatibilité (NFKD) ramène
+ * exposants et indices à leur chiffre : « N³ » se trouve en tapant « n3 ».
  * @param {unknown} value
  * @returns {string}
  */
 export function normalizeSearchText(value) {
   return String(value ?? '')
-    .normalize('NFD')
+    .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/['’`]/g, ' ')
