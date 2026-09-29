@@ -2,6 +2,9 @@ import React from 'react';
 
 import { PctOverlayCaption } from './PctOverlayCaption.jsx';
 
+/** Côtés du nom qui changent la mise en page (`below` est le rendu par défaut). */
+const SIDE_CLASSES = new Set(['right', 'left', 'above']);
+
 /**
  * Calque HTML des étiquettes de zones d'une carte « % image » (noyau carte partagé).
  *
@@ -22,12 +25,15 @@ import { PctOverlayCaption } from './PctOverlayCaption.jsx';
  *
  * Avec un emoji (`has-emoji`), c'est **l'emoji** qui est centré sur l'ancre et le nom qui pend
  * dessous : l'emoji ne saute plus quand le nom apparaît, disparaît ou passe sur deux lignes
- * (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 1).
+ * (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 1). Quand la place sous l'emoji est
+ * prise, le moteur pose le nom à droite, à gauche ou au-dessus (`nameSide`) : l'emoji reste
+ * centré sur l'ancre dans tous les cas.
  *
  * @param {object} props
  * @param {Array<{ id: string, zoneId?: string, xp: number, yp: number, emoji?: string,
- *   name?: string, maxWidthPx?: number, active?: boolean }>} props.labels étiquettes déjà
- *   filtrées par le produit (résolution des collisions : `pctMapLabels.js`).
+ *   name?: string, nameSide?: 'below'|'right'|'left'|'above', maxWidthPx?: number,
+ *   active?: boolean }>} props.labels étiquettes déjà filtrées par le produit (placement :
+ *   `pctMapLabels.js`).
  * @param {((zoneId: string) => void)|null} [props.onLabelClick] tap sur l'étiquette → sa zone.
  * @param {string} [props.className]
  */
@@ -50,9 +56,11 @@ function PctLabelsLayerImpl({ labels, onLabelClick = null, className = 'fm-pct-l
           maxWidth: label.maxWidthPx ? `${label.maxWidthPx}px` : undefined,
         };
         const hasEmoji = Boolean(String(label.emoji || '').trim());
+        const side =
+          hasEmoji && label.name && SIDE_CLASSES.has(label.nameSide) ? label.nameSide : '';
         const classes = `fm-pct-label${hasEmoji ? ' has-emoji' : ''}${
-          label.active ? ' is-active' : ''
-        }${clickable ? ' is-clickable' : ''}`;
+          side ? ` name-${side}` : ''
+        }${label.active ? ' is-active' : ''}${clickable ? ' is-clickable' : ''}`;
         if (!clickable) {
           return (
             <span key={label.id} className={classes} style={style}>

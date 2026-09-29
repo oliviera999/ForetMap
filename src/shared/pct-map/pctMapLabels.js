@@ -28,13 +28,14 @@
  * Aucun DOM, aucun état : testable en environnement node.
  */
 import {
+  boxesOverlap,
   estimateGlyphBox,
   estimateLabelBox,
-  resolveLabelCollisions,
+  orderLabelCandidates,
 } from './mapOverlayLabelCollision.js';
 import { rotatePointAround } from './pctMapOrientation.js';
 import { parsePctPolygonPoints } from './pctPolygon.js';
-import { polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
+import { polygonLabelAnchorsPct, polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
 
 /**
  * Rang de repli d'un lieu sans catégorie, quand aucune catégorie n'est connue.
@@ -91,10 +92,6 @@ export const ZONE_NAME_GAP_PX = 4;
 
 /** Habillage horizontal du nom du lieu sélectionné (pilule, `padding: 0 6px`). */
 export const ACTIVE_LABEL_EXTRA_WIDTH_PX = 12;
-
-/** Familles d'étiquettes : les emojis de zone sont placés avant les noms. */
-const TIER_EMOJI = 0;
-const TIER_NAME = 1;
 
 function toFinite(value, fallback = 0) {
   const n = Number(value);
@@ -234,8 +231,9 @@ export function polygonAreaPct(points) {
  * @param {Array<object>} zones zones `{ id, name, emoji, points, category_ids }`.
  * @param {(name: string) => { emoji: string, name: string }} splitEmoji séparation emoji / nom.
  * @param {{ aspect?: number }} [options] `aspect` : largeur ÷ hauteur de l'image (ancre isotrope).
- * @returns {Array<object>} specs `{ zone, id, key, emojiKey, emoji, name, anchor, areaPct,
- *   bounds }`.
+ * @returns {Array<object>} specs `{ zone, id, key, emojiKey, emoji, name, anchor, anchors,
+ *   areaPct, bounds }` — `anchors` : pôle puis points de repli (`polygonLabelAnchorsPct`),
+ *   essayés dans l'ordre quand la place est prise.
  */
 export function buildZoneLabelSpecs(zones, splitEmoji, { aspect = 1 } = {}) {
   const specs = [];
@@ -248,6 +246,8 @@ export function buildZoneLabelSpecs(zones, splitEmoji, { aspect = 1 } = {}) {
     if (!name && !emoji) continue;
     const xs = points.map((p) => p.xp);
     const ys = points.map((p) => p.yp);
+    const candidates = polygonLabelAnchorsPct(points, aspect).map(({ xp, yp }) => ({ xp, yp }));
+    const anchor = candidates[0] || zoneLabelAnchorPct(points, aspect);
     specs.push({
       zone,
       id: String(zone.id),
@@ -255,7 +255,8 @@ export function buildZoneLabelSpecs(zones, splitEmoji, { aspect = 1 } = {}) {
       emojiKey: zoneEmojiLabelKey(zone.id),
       emoji,
       name,
-      anchor: zoneLabelAnchorPct(points, aspect),
+      anchor,
+      anchors: candidates.length ? candidates : [anchor],
       areaPct: polygonAreaPct(points),
       bounds: {
         minXPct: Math.min(...xs),
@@ -284,7 +285,103 @@ export function zoneLabelMaxWidthPx(spec, contentWidthPx, scale) {
 }
 
 /**
- * Étiquettes réellement affichables à l'échelle courante.
+ * Côtés possibles du nom d'une zone par rapport à son emoji, par ordre de préférence. `below`
+ * est le rendu par défaut ; les autres ne servent que si la place sous l'emoji est prise.
+ */
+export const ZONE_NAME_SIDES = Object.freeze(['below', 'right', 'left', 'above']);
+
+/** Largeur rendue d'un nom posé à côté de l'emoji : le nom plus l'emoji et l'écart. */
+export function zoneLabelSideExtraWidthPx(nameSide, emojiSizePx, nameGapPx) {
+  return nameSide === 'right' || nameSide === 'left'
+    ? Math.max(toFinite(emojiSizePx, LABEL_EMOJI_SIZE_PX), 0) +
+        Math.max(toFinite(nameGapPx, ZONE_NAME_GAP_PX), 0)
+    : 0;
+}
+
+/** Hauteur visible d'une pastille de groupe de repères (cible tactile, `.fm-pct-cluster`). */
+export const CLUSTER_OBSTACLE_HEIGHT_PX = 44;
+
+/**
+ * Obstacles posés par les repères (épingles et pastilles de groupe), en % de l'image avec leur
+ * taille **écran**. Le moteur d'étiquettes cherche à les éviter sans jamais les masquer : ils
+ * restent la seule façon d'atteindre un repère.
+ *
+ * @param {Array<{ x_pct: number, y_pct: number, count?: number }>} items repères ou groupes
+ *   (`clusterMarkers`).
+ * @param {{ emojiSizePx?: number }} [options]
+ * @returns {Array<{ xPct: number, yPct: number, widthPx: number, heightPx: number }>}
+ */
+export function markerObstaclesFrom(items, { emojiSizePx = LABEL_EMOJI_SIZE_PX } = {}) {
+  const pin = Math.max(toFinite(emojiSizePx, LABEL_EMOJI_SIZE_PX), 1) + 4;
+  const out = [];
+  for (const item of items || []) {
+    const xPct = Number(item?.x_pct);
+    const yPct = Number(item?.y_pct);
+    if (!Number.isFinite(xPct) || !Number.isFinite(yPct)) continue;
+    const count = Math.max(Math.round(toFinite(item?.count, 1)), 1);
+    if (count > 1) {
+      // Pilule « emoji + nombre » : 10 px de marge de chaque côté, 4 px d'écart, ~9 px par
+      // chiffre, bordure de 2 px ; au moins une cible tactile.
+      const width = Math.max(CLUSTER_OBSTACLE_HEIGHT_PX, 28 + pin + 9 * String(count).length);
+      out.push({ xPct, yPct, widthPx: width, heightPx: CLUSTER_OBSTACLE_HEIGHT_PX });
+    } else {
+      out.push({ xPct, yPct, widthPx: pin, heightPx: pin });
+    }
+  }
+  return out;
+}
+
+function shiftBox(box, dx, dy) {
+  return {
+    left: box.left + dx,
+    right: box.right + dx,
+    top: box.top + dy,
+    bottom: box.bottom + dy,
+  };
+}
+
+/**
+ * Boîte du nom d'une zone posé d'un côté de son emoji. Les marges des deux boîtes se touchent
+ * sans se croiser : un nom ne se heurte jamais à son propre emoji, même avec un écart nul.
+ */
+function zoneNameBoxAt(side, at, emojiBox, emojiPx, gapPx, labelBoxOptions) {
+  const base = estimateLabelBox({ ...labelBoxOptions, x: 0, y: 0, anchorY: 'top' });
+  const halfW = (base.right - base.left) / 2;
+  const height = base.bottom - base.top;
+  const half = emojiPx / 2;
+  if (side === 'right' || side === 'left') {
+    const dy = at.y - (base.top + height / 2);
+    const cx = side === 'right' ? at.x + half + gapPx + halfW : at.x - half - gapPx - halfW;
+    const box = shiftBox(base, cx, dy);
+    if (side === 'right') box.left = Math.max(box.left, emojiBox.right);
+    else box.right = Math.min(box.right, emojiBox.left);
+    return box;
+  }
+  if (side === 'above') {
+    const box = shiftBox(base, at.x, at.y - half - gapPx - base.bottom);
+    box.bottom = Math.min(box.bottom, emojiBox.top);
+    return box;
+  }
+  const box = shiftBox(base, at.x, at.y + half + gapPx - base.top);
+  box.top = Math.max(box.top, emojiBox.bottom);
+  return box;
+}
+
+/**
+ * Placement des étiquettes à l'échelle courante : **ce qui s'affiche, et où**.
+ *
+ * Chaque étiquette de zone dispose de plusieurs positions candidates, essayées dans l'ordre :
+ * - l'**emoji**, les points d'ancrage de la zone (`spec.anchors` : pôle d'inaccessibilité puis
+ *   replis, `polygonLabelAnchorsPct`) ;
+ * - le **nom**, sous l'emoji puis à droite, à gauche, au-dessus (`ZONE_NAME_SIDES`) ; sans
+ *   emoji, centré sur chacun des points d'ancrage.
+ *
+ * Une position est retenue si elle ne recouvre aucune étiquette déjà placée et, de préférence,
+ * aucun **obstacle** (épingles et pastilles de groupe des repères). Quand tous les
+ * emplacements libres d'étiquettes touchent un obstacle, l'étiquette garde le premier d'entre
+ * eux : un repère ne fait jamais disparaître un nom, il le fait seulement bouger s'il le peut.
+ * Inspiration : les positions candidates des moteurs cartographiques (`text-variable-anchor`
+ * de Mapbox GL, https://docs.mapbox.com/style-spec/reference/layers/).
  *
  * @param {object} params
  * @param {Array<object>} params.zoneSpecs sortie de `buildZoneLabelSpecs`.
@@ -303,17 +400,21 @@ export function zoneLabelMaxWidthPx(spec, contentWidthPx, scale) {
  * @param {{ xp?: number, yp?: number }|null} [params.orientOriginPct] pivot de cette rotation,
  *   en % du contenu (défaut : centre, comme `mapOrientationStyle`).
  * @param {number} [params.emojiSizePx] taille rendue de l'emoji d'une zone.
- * @param {number} [params.nameGapPx] espace entre le bas de l'emoji et le haut du nom.
+ * @param {number} [params.nameGapPx] espace entre l'emoji et le nom.
  * @param {boolean} [params.includeZoneNames=true] `false` : emojis de zone seuls (bascule
  *   « étiquettes » masquées).
  * @param {number} [params.zoneNameMaxLines] lignes d'un nom de zone (le calque d'édition, en
  *   SVG, n'en rend qu'une).
  * @param {(spec: object) => number} [params.zoneNameMaxWidthPx] largeur allouée au nom (défaut :
  *   `zoneLabelMaxWidthPx`).
- * @returns {Set<string>} clés des étiquettes à afficher : `zone-emoji:<id>` (emoji de zone),
- *   `zone:<id>` (nom de zone), `marker:<id>` (nom de repère).
+ * @param {Array<{ xPct: number, yPct: number, widthPx: number, heightPx: number }>}
+ *   [params.obstacles] épingles et pastilles de repères (`markerObstaclesFrom`).
+ * @returns {{ visible: Set<string>, placements: Map<string, { xp: number, yp: number,
+ *   nameSide: string }> }} `visible` : clés `zone-emoji:<id>`, `zone:<id>`, `marker:<id>` ;
+ *   `placements` : par id de zone, point d'ancrage retenu (en % de l'image) et côté du nom
+ *   (`below`, `right`, `left`, `above`, ou `center` pour un nom sans emoji).
  */
-export function resolveVisibleLabels({
+export function resolveLabelLayout({
   zoneSpecs,
   markers,
   categoriesById = null,
@@ -329,11 +430,14 @@ export function resolveVisibleLabels({
   zoneNameMaxWidthPx = null,
   orientationDeg = 0,
   orientOriginPct = null,
+  obstacles = [],
 }) {
+  const visible = new Set();
+  const placements = new Map();
   const width = toFinite(contentWidthPx);
   const height = toFinite(contentHeightPx);
   const s = toFinite(scale, 1);
-  if (!(width > 0) || !(height > 0) || !(s > 0)) return new Set();
+  if (!(width > 0) || !(height > 0) || !(s > 0)) return { visible, placements };
 
   // Position d'une ancre en pixels **écran**, rotation de la carte comprise. Une mise à
   // l'échelle uniforme commute avec une rotation : tourner après mise à l'échelle donne la
@@ -355,50 +459,131 @@ export function resolveVisibleLabels({
     typeof zoneNameMaxWidthPx === 'function'
       ? zoneNameMaxWidthPx
       : (spec) => zoneLabelMaxWidthPx(spec, width, s);
-  const candidates = [];
-  /** Noms de zone rattachés à l'emoji dont ils dépendent. */
-  const nameEmojiKeys = new Map();
-  for (const spec of zoneSpecs || []) {
-    const at = anchorPx(spec.anchor.xp, spec.anchor.yp);
-    const priority = labelPriority(spec.zone, categoriesById, fallbackPriority);
-    const pinned = spec.key === pinnedKey;
-    const emojiKey = spec.emojiKey || zoneEmojiLabelKey(spec.id);
-    const emojiBox = spec.emoji ? estimateGlyphBox({ x: at.x, y: at.y, sizePx: emojiPx }) : null;
-    if (emojiBox) {
-      candidates.push({
-        id: emojiKey,
-        tier: TIER_EMOJI,
-        priority,
-        weight: spec.areaPct,
-        pinned,
-        box: emojiBox,
-      });
+
+  const softBoxes = [];
+  for (const o of obstacles || []) {
+    const xPct = Number(o?.xPct);
+    const yPct = Number(o?.yPct);
+    if (!Number.isFinite(xPct) || !Number.isFinite(yPct)) continue;
+    const at = anchorPx(xPct, yPct);
+    const w = Math.max(toFinite(o.widthPx, 0), 0) / 2;
+    const h = Math.max(toFinite(o.heightPx, 0), 0) / 2;
+    softBoxes.push({ left: at.x - w, right: at.x + w, top: at.y - h, bottom: at.y + h });
+  }
+  const kept = [];
+  const hitsKept = (box) => kept.some((k) => boxesOverlap(k, box));
+  const hitsSoft = (box) => softBoxes.some((k) => boxesOverlap(k, box));
+  /**
+   * Première option libre d'étiquettes et d'obstacles, sinon première libre d'étiquettes ;
+   * une étiquette épinglée est toujours gardée (de préférence hors obstacle).
+   */
+  const choose = (boxes, pinned, avoidSoft = true) => {
+    let firstFree = -1;
+    for (let i = 0; i < boxes.length; i += 1) {
+      if (!pinned && hitsKept(boxes[i])) continue;
+      if (!avoidSoft || !hitsSoft(boxes[i])) return i;
+      if (firstFree < 0) firstFree = i;
     }
-    if (!includeZoneNames || !spec.name) continue;
-    if (emojiBox) nameEmojiKeys.set(spec.key, emojiKey);
-    // Sous l'emoji, le **haut** du nom est fixe : une deuxième ligne descend, elle ne
-    // remonte pas sur l'emoji. Sans emoji, le nom reste centré sur l'ancre.
-    const nameBox = estimateLabelBox({
-      x: at.x,
-      y: emojiBox ? at.y + emojiPx / 2 + gapPx : at.y,
-      anchorY: emojiBox ? 'top' : 'center',
-      text: spec.name,
-      fontSizePx,
-      maxWidthPx: widthOf(spec),
-      maxLines: zoneNameMaxLines,
-      extraWidthPx: pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
+    if (firstFree >= 0) return firstFree;
+    return pinned && boxes.length ? 0 : -1;
+  };
+  const anchorsOf = (spec) =>
+    Array.isArray(spec.anchors) && spec.anchors.length ? spec.anchors : [spec.anchor];
+  /** Point d'ancrage retenu pour l'emoji de chaque zone (index dans `anchors`) et sa boîte. */
+  const emojiAt = new Map();
+
+  /**
+   * Nom d'une zone à emoji : les quatre côtés autour de l'emoji déjà posé, puis — si aucun ne
+   * convient — les autres points d'ancrage de la zone où l'emoji tiendrait aussi, l'emoji
+   * suivant alors son nom. Même préférence que `choose` : sans obstacle d'abord, sinon
+   * seulement sans étiquette — ce repli-là n'est admis qu'à la place actuelle de l'emoji, qui
+   * ne se déplace que vers un point libre de repères. Met à jour `kept` et `emojiAt` ; renvoie
+   * `null` si rien ne tient.
+   */
+  const placeZoneNameWithEmoji = (entry, anchors, labelBoxOptions) => {
+    const current = emojiAt.get(entry.spec.id);
+    const others = kept.filter((k) => k !== current.box);
+    const hitsOthers = (box) => others.some((k) => boxesOverlap(k, box));
+    const order = [current.index, ...anchors.map((_, i) => i).filter((i) => i !== current.index)];
+    let fallback = null;
+    let chosen = null;
+    for (const index of order) {
+      const at = anchorPx(anchors[index].xp, anchors[index].yp);
+      const emojiBox =
+        index === current.index
+          ? current.box
+          : estimateGlyphBox({ x: at.x, y: at.y, sizePx: emojiPx });
+      if (index !== current.index && hitsOthers(emojiBox)) continue;
+      for (const side of ZONE_NAME_SIDES) {
+        const nameBox = zoneNameBoxAt(side, at, emojiBox, emojiPx, gapPx, labelBoxOptions);
+        if (!entry.pinned && hitsOthers(nameBox)) continue;
+        const option = { index, side, emojiBox, nameBox };
+        if (!hitsSoft(nameBox) && !hitsSoft(emojiBox)) {
+          chosen = option;
+          break;
+        }
+        // L'emoji ne quitte pas sa place pour se poser sur un repère.
+        if (!fallback && index === current.index) fallback = option;
+      }
+      if (chosen) break;
+    }
+    chosen = chosen || fallback;
+    if (!chosen && entry.pinned) {
+      const at = anchorPx(anchors[current.index].xp, anchors[current.index].yp);
+      chosen = {
+        index: current.index,
+        side: ZONE_NAME_SIDES[0],
+        emojiBox: current.box,
+        nameBox: zoneNameBoxAt(
+          ZONE_NAME_SIDES[0],
+          at,
+          current.box,
+          emojiPx,
+          gapPx,
+          labelBoxOptions,
+        ),
+      };
+    }
+    if (!chosen) return null;
+    if (chosen.emojiBox !== current.box) {
+      kept[kept.indexOf(current.box)] = chosen.emojiBox;
+      emojiAt.set(entry.spec.id, { index: chosen.index, box: chosen.emojiBox });
+    }
+    kept.push(chosen.nameBox);
+    return chosen;
+  };
+
+  const zoneEntries = (zoneSpecs || []).map((spec) => ({
+    spec,
+    priority: labelPriority(spec.zone, categoriesById, fallbackPriority),
+    weight: spec.areaPct,
+    pinned: spec.key === pinnedKey,
+    emojiKey: spec.emojiKey || zoneEmojiLabelKey(spec.id),
+  }));
+
+  // 1. Emojis de zone, avant tout nom : petits, lisibles à toute échelle.
+  for (const entry of orderLabelCandidates(zoneEntries.filter((e) => e.spec.emoji))) {
+    const anchors = anchorsOf(entry.spec);
+    const boxes = anchors.map((a) => {
+      const at = anchorPx(a.xp, a.yp);
+      return estimateGlyphBox({ x: at.x, y: at.y, sizePx: emojiPx });
     });
-    // Un nom ne se heurte jamais à son propre emoji, même serré dessous (réglage admin
-    // d'espacement minimal) : les marges des deux boîtes se touchent au lieu de se croiser.
-    if (emojiBox) nameBox.top = Math.max(nameBox.top, emojiBox.bottom);
-    candidates.push({
-      id: spec.key,
-      tier: TIER_NAME,
-      priority,
-      weight: spec.areaPct,
-      pinned,
-      box: nameBox,
-    });
+    const i = choose(boxes, entry.pinned);
+    if (i < 0) continue;
+    kept.push(boxes[i]);
+    visible.add(entry.emojiKey);
+    emojiAt.set(entry.spec.id, { index: i, box: boxes[i] });
+  }
+
+  // 2. Noms de zone et de repère, par priorité. Un nom n'apparaît jamais sans l'emoji de sa
+  //    zone : il flotterait sous une place vide.
+  const names = [];
+  if (includeZoneNames) {
+    for (const entry of zoneEntries) {
+      if (!entry.spec.name) continue;
+      if (entry.spec.emoji && !emojiAt.has(entry.spec.id)) continue;
+      names.push({ ...entry, kind: 'zone' });
+    }
   }
   for (const marker of markers || []) {
     const text = String(marker?.label ?? marker?.name ?? '').trim();
@@ -406,36 +591,91 @@ export function resolveVisibleLabels({
     const yPct = Number(marker?.y_pct);
     if (!text || !Number.isFinite(xPct) || !Number.isFinite(yPct)) continue;
     const key = labelKey('marker', marker.id);
-    const at = anchorPx(xPct, yPct);
-    const pinned = key === pinnedKey;
-    candidates.push({
-      id: key,
-      tier: TIER_NAME,
+    names.push({
+      kind: 'marker',
+      marker,
+      text,
+      xPct,
+      yPct,
+      key,
       priority: labelPriority(marker, categoriesById, fallbackPriority),
       // Un repère n'a pas d'aire : à rang égal il passe après les zones, dont l'étiquette
       // nomme une surface déjà visible à l'écran.
       weight: 0,
-      pinned,
-      box: estimateLabelBox({
+      pinned: key === pinnedKey,
+    });
+  }
+  for (const entry of orderLabelCandidates(names)) {
+    if (entry.kind === 'marker') {
+      const at = anchorPx(entry.xPct, entry.yPct);
+      const box = estimateLabelBox({
         x: at.x,
         // L'écart au point est **vertical à l'écran** : l'étiquette étant contre-tournée,
         // il s'ajoute après la rotation de l'ancre, jamais avant.
         y: at.y + MARKER_LABEL_OFFSET_PX,
-        text,
+        text: entry.text,
         fontSizePx,
         maxWidthPx: MARKER_LABEL_MAX_WIDTH_PX,
-        extraWidthPx: pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
-      }),
+        extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
+      });
+      if (choose([box], entry.pinned, false) < 0) continue;
+      kept.push(box);
+      visible.add(entry.key);
+      continue;
+    }
+    const { spec } = entry;
+    const labelBoxOptions = {
+      text: spec.name,
+      fontSizePx,
+      maxWidthPx: widthOf(spec),
+      maxLines: zoneNameMaxLines,
+      extraWidthPx: entry.pinned ? ACTIVE_LABEL_EXTRA_WIDTH_PX : 0,
+    };
+    const anchors = anchorsOf(spec);
+    if (spec.emoji) {
+      const placed = placeZoneNameWithEmoji(entry, anchors, labelBoxOptions);
+      if (!placed) continue;
+      visible.add(spec.key);
+      placements.set(spec.id, { ...pickPct(anchors[placed.index]), nameSide: placed.side });
+      continue;
+    }
+    const boxes = anchors.map((a) => {
+      const at = anchorPx(a.xp, a.yp);
+      return estimateLabelBox({ ...labelBoxOptions, x: at.x, y: at.y });
+    });
+    const i = choose(boxes, entry.pinned);
+    if (i < 0) continue;
+    kept.push(boxes[i]);
+    visible.add(spec.key);
+    placements.set(spec.id, { ...pickPct(anchors[i]), nameSide: 'center' });
+  }
+
+  // Zones dont l'emoji est affiché sans nom : l'ancre retenue pour l'emoji fait foi.
+  for (const entry of zoneEntries) {
+    const { spec } = entry;
+    if (placements.has(spec.id)) continue;
+    const anchors = anchorsOf(spec);
+    const at = emojiAt.get(spec.id);
+    placements.set(spec.id, {
+      ...pickPct(anchors[at ? at.index : 0]),
+      nameSide: spec.emoji ? 'below' : 'center',
     });
   }
-  const firstPass = resolveLabelCollisions(candidates);
-  // Un nom dont l'emoji a été masqué flotterait sous une place vide : il est retiré, et l'on
-  // rejoue le placement sans lui pour rendre sa place aux étiquettes qu'il bloquait. Les
-  // emojis étant placés avant tous les noms, ce second passage ne change pas leur sort.
-  const orphans = new Set();
-  for (const [nameKey, emojiKey] of nameEmojiKeys) {
-    if (!firstPass.has(emojiKey)) orphans.add(nameKey);
-  }
-  if (!orphans.size) return firstPass;
-  return resolveLabelCollisions(candidates.filter((c) => !orphans.has(c.id)));
+  return { visible, placements };
+}
+
+function pickPct(anchor) {
+  return { xp: toFinite(anchor?.xp), yp: toFinite(anchor?.yp) };
+}
+
+/**
+ * Étiquettes réellement affichables à l'échelle courante (clés seules) — voir
+ * `resolveLabelLayout`, dont c'est la projection.
+ *
+ * @param {Parameters<typeof resolveLabelLayout>[0]} params
+ * @returns {Set<string>} clés des étiquettes à afficher : `zone-emoji:<id>` (emoji de zone),
+ *   `zone:<id>` (nom de zone), `marker:<id>` (nom de repère).
+ */
+export function resolveVisibleLabels(params) {
+  return resolveLabelLayout(params).visible;
 }

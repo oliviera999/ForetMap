@@ -886,6 +886,19 @@ reste donc à la même place quand le nom apparaît ou disparaît. Une zone sans
 nom centré sur ce point. Les pastilles d'état (tâche à faire, tutoriel) se placent en coin,
 autour de l'emoji (ou du nom) sans le recouvrir.
 
+**Quand la place est prise.** Avant de masquer quoi que ce soit, l'application cherche une
+autre place :
+
+- si l'emoji tombe sur celui d'une zone voisine ou sous l'épingle d'un repère (ou une
+  pastille de groupe de repères), il se décale vers un autre point bien à l'intérieur de sa
+  zone ;
+- si le nom ne tient pas sous l'emoji, il se met **à droite**, puis **à gauche**, puis
+  **au-dessus** de l'emoji ; à défaut, l'emoji et son nom essaient ensemble un autre point
+  de la zone.
+
+Les repères restent toujours visibles et cliquables : une étiquette les évite quand elle le
+peut, mais un repère ne fait jamais disparaître une étiquette.
+
 **Quand la place manque.** Les étiquettes ne se chevauchent jamais : quand deux zones sont
 trop proches à l'écran, l'application garde d'abord les **emojis** (le repère visuel le plus
 utile), puis les noms, en privilégiant les grandes zones. Un emoji ou un nom masqué
@@ -902,6 +915,11 @@ noms sont désactivés).
 >   réellement disponible à l'écran. Il sera retiré dans un lot ultérieur.
 > - Sur un plan chargé et vu de loin, certains emojis peuvent être masqués alors qu'ils
 >   s'affichaient tous (en se superposant) auparavant : il suffit de zoomer.
+> - Comme l'emoji évite les repères, il n'est pas toujours au centre visuel du bâtiment :
+>   sur un bâtiment long couvert d'épingles, il peut se trouver vers une extrémité.
+> - Ne pas recopier l'emoji au début du nom d'une zone ou d'un repère : il est déjà affiché
+>   à part, et le nom, plus long, gêne ses voisins. Les noms existants qui commençaient par
+>   leur propre emoji ont été nettoyés automatiquement.
 
 ## Pour aller plus loin
 

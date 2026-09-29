@@ -158,14 +158,67 @@ describe('ZonePolygonsLayer', () => {
     expect(queryByText('Verger')).toBeNull();
   });
 
-  it('même anti-chevauchement que la consultation : deux emojis superposés, un seul reste', () => {
+  it('même anti-chevauchement que la consultation : deux zones superposées, emojis écartés', () => {
     const zones = [
       zoneFixture({ id: 1, name: '🌳 Verger' }),
       zoneFixture({ id: 2, name: '🌱 Potager' }),
     ];
+    const { getByText } = renderLayer({ parsedZones: parseZonesForLayer(zones, EMOJIS) });
+    // Le second emoji prend un point de repli de sa zone au lieu de recouvrir le premier.
+    const [a, b] = ['🌳', '🌱'].map((emoji) => getByText(emoji));
+    const gap = Math.hypot(
+      Number(a.getAttribute('x')) - Number(b.getAttribute('x')),
+      Number(a.getAttribute('y')) - Number(b.getAttribute('y')),
+    );
+    expect(gap).toBeGreaterThanOrEqual(16);
+  });
+
+  it('zones trop petites pour deux emojis : un seul reste', () => {
+    const tiny = JSON.stringify([
+      { xp: 40, yp: 40 },
+      { xp: 44, yp: 40 },
+      { xp: 44, yp: 48 },
+      { xp: 40, yp: 48 },
+    ]);
+    const zones = [
+      zoneFixture({ id: 1, name: '🌳 Verger', points: tiny }),
+      zoneFixture({ id: 2, name: '🌱 Potager', points: tiny }),
+    ];
     const { queryByText } = renderLayer({ parsedZones: parseZonesForLayer(zones, EMOJIS) });
     const shown = ['🌳', '🌱'].filter((emoji) => queryByText(emoji));
     expect(shown).toHaveLength(1);
+  });
+
+  it('nom dessous par défaut, à droite de l’emoji quand la place dessous est prise', () => {
+    const rectPts = (x, y, w, h) =>
+      JSON.stringify([
+        { xp: x, yp: y },
+        { xp: x + w, yp: y },
+        { xp: x + w, yp: y + h },
+        { xp: x, yp: y + h },
+      ]);
+    const verger = zoneFixture({ id: 1, name: '🌳 Verger', points: rectPts(10, 10, 80, 80) });
+    const seul = renderLayer({ parsedZones: parseZonesForLayer([verger], EMOJIS, { aspect: 2 }) });
+    const nameAlone = seul.getByText('Verger');
+    const emojiAlone = seul.getByText('🌳');
+    expect(nameAlone).toHaveAttribute('text-anchor', 'middle');
+    expect(Number(nameAlone.getAttribute('y'))).toBeGreaterThan(
+      Number(emojiAlone.getAttribute('y')),
+    );
+    seul.unmount();
+
+    // « Mare », sélectionnée donc placée en premier, occupe la place sous l'emoji du Verger.
+    const mare = zoneFixture({ id: 2, name: 'Mare', emoji: '', points: rectPts(48, 68, 4, 4) });
+    const { getByText } = renderLayer({
+      parsedZones: parseZonesForLayer([verger, mare], EMOJIS, { aspect: 2 }),
+      selectedZoneId: 2,
+    });
+    const name = getByText('Verger');
+    const emoji = getByText('🌳');
+    expect(getByText('Mare')).toBeInTheDocument();
+    expect(name).toHaveAttribute('text-anchor', 'start');
+    expect(Number(name.getAttribute('x'))).toBeGreaterThan(Number(emoji.getAttribute('x')));
+    expect(Number(name.getAttribute('y'))).toBeCloseTo(Number(emoji.getAttribute('y')), 0);
   });
 
   it('met en surbrillance la zone en édition de contour', () => {

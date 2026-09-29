@@ -167,3 +167,76 @@ export function polygonPoleOfInaccessibilityPct(
   }
   return { xp: best.x, yp: best.y, distance: best.d };
 }
+
+/** Points d'ancrage de repli proposés au-delà du pôle (bâtiments en bande, en L, en H…). */
+export const PCT_LABEL_ALTERNATE_ANCHORS_MAX = 5;
+
+/**
+ * Points d'ancrage candidats d'un polygone : le pôle d'inaccessibilité **d'abord**, puis des
+ * points de repli bien à l'intérieur et écartés les uns des autres.
+ *
+ * Pourquoi : un seul point par zone ne laisse aucune issue quand il est déjà pris — sur le plan
+ * de Lyautey, la pastille de groupe « 🎬 2 » tombait pile sur l'emoji du bâtiment I, l'épingle
+ * du Fablab sur celui du bâtiment T (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`, seconde
+ * passe). Le moteur d'étiquettes essaie ces points dans l'ordre, comme les positions candidates
+ * des moteurs cartographiques (`text-variable-anchor` de Mapbox GL).
+ *
+ * Méthode : quadrillage de l'emprise (16 pas sur le grand côté, isotrope via `aspect`), points
+ * gardés s'ils sont à au moins 35 % de la profondeur du pôle, triés du plus profond au moins
+ * profond, puis retenus s'ils sont à distance du pôle et des points déjà retenus.
+ *
+ * @param {Array<{ xp: number, yp: number }>} points sommets (en % de l'image).
+ * @param {number} [aspect=1] rapport largeur ÷ hauteur de l'image.
+ * @param {{ max?: number }} [options] nombre maximal de points de repli.
+ * @returns {Array<{ xp: number, yp: number, distance: number }>} pôle puis replis (en % de
+ *   l'image ; `distance` en % de la hauteur) ; vide pour moins de trois sommets valides.
+ */
+export function polygonLabelAnchorsPct(
+  points,
+  aspect = 1,
+  { max = PCT_LABEL_ALTERNATE_ANCHORS_MAX } = {},
+) {
+  const ratio = Number(aspect) > 0 && Number.isFinite(Number(aspect)) ? Number(aspect) : 1;
+  const pts = (points || [])
+    .filter((p) => p && Number.isFinite(Number(p.xp)) && Number.isFinite(Number(p.yp)))
+    .map((p) => ({ xp: Number(p.xp) * ratio, yp: Number(p.yp) }));
+  if (pts.length < 3) return [];
+  const pole = polygonPoleOfInaccessibilityPct(pts, PCT_POLYLABEL_PRECISION, 1);
+  const out = [{ xp: pole.xp / ratio, yp: pole.yp, distance: pole.distance }];
+  const limit = Math.max(0, Math.floor(Number(max) || 0));
+  if (!limit || !(pole.distance > 0)) return out;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of pts) {
+    minX = Math.min(minX, p.xp);
+    minY = Math.min(minY, p.yp);
+    maxX = Math.max(maxX, p.xp);
+    maxY = Math.max(maxY, p.yp);
+  }
+  const long = Math.max(maxX - minX, maxY - minY);
+  const step = long / 16;
+  if (!(step > 0)) return out;
+  const minDepth = pole.distance * 0.35;
+  // Assez serré pour qu'un bâtiment trapu ait aussi des replis (au-delà d'environ une
+  // profondeur de pôle, il n'en aurait aucun), assez large pour qu'ils ne se recouvrent pas.
+  const spacing = Math.max(pole.distance * 0.6, long / 8);
+  const samples = [];
+  for (let x = minX + step / 2; x < maxX; x += step) {
+    for (let y = minY + step / 2; y < maxY; y += step) {
+      const d = pointToPolygonDist(x, y, pts);
+      if (d >= minDepth) samples.push({ x, y, d });
+    }
+  }
+  samples.sort((a, b) => b.d - a.d);
+  const kept = [{ x: pole.xp, y: pole.yp }];
+  for (const s of samples) {
+    if (out.length > limit) break;
+    if (kept.some((k) => Math.hypot(k.x - s.x, k.y - s.y) < spacing)) continue;
+    kept.push({ x: s.x, y: s.y });
+    out.push({ xp: s.x / ratio, yp: s.y, distance: s.d });
+  }
+  return out;
+}

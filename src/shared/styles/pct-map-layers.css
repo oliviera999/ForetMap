@@ -131,6 +131,72 @@
   margin-top: var(--map-overlay-label-margin-top, 4px);
 }
 
+/* Place prise sous l'emoji (épingle, pastille de groupe, voisin) : le moteur pose le nom à
+   droite, à gauche ou au-dessus (`nameSide`, `pctMapLabels.js`). L'emoji reste centré sur
+   l'ancre, et la contre-échelle pivote toujours autour de lui. */
+.fm-pct-label.has-emoji.name-right,
+.fm-pct-label.has-emoji.name-left {
+  --fm-pct-label-emoji-half: calc(var(--map-overlay-emoji-font-size, 16px) / 2);
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.fm-pct-label.has-emoji.name-right {
+  transform: translate(calc(-1 * var(--fm-pct-label-emoji-half)), -50%) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
+  transform-origin: var(--fm-pct-label-emoji-half) 50%;
+}
+
+.fm-pct-label.has-emoji.name-left {
+  flex-direction: row-reverse;
+  transform: translate(calc(-100% + var(--fm-pct-label-emoji-half)), -50%) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
+  transform-origin: calc(100% - var(--fm-pct-label-emoji-half)) 50%;
+}
+
+/* Largeur de l'emoji fixée à sa taille : l'avance d'un glyphe emoji dépasse souvent 1 em, ce
+   qui décalerait le centre de l'emoji par rapport à l'ancre. */
+.fm-pct-label.has-emoji.name-right .fm-pct-overlay__emoji,
+.fm-pct-label.has-emoji.name-left .fm-pct-overlay__emoji {
+  display: flex;
+  justify-content: center;
+  width: var(--map-overlay-emoji-font-size, 16px);
+}
+
+.fm-pct-label.has-emoji.name-right .fm-pct-overlay__name,
+.fm-pct-label.has-emoji.name-left .fm-pct-overlay__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.fm-pct-label.has-emoji.name-right .fm-pct-overlay__name {
+  margin-left: var(--map-overlay-label-margin-top, 4px);
+  text-align: left;
+}
+
+.fm-pct-label.has-emoji.name-left .fm-pct-overlay__name {
+  margin-right: var(--map-overlay-label-margin-top, 4px);
+  text-align: right;
+}
+
+.fm-pct-label.has-emoji.name-above {
+  --fm-pct-label-emoji-center-from-bottom: calc(
+    var(--fm-pct-label-pad-top) + var(--map-overlay-emoji-font-size, 16px) / 2
+  );
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  transform: translate(-50%, calc(-100% + var(--fm-pct-label-emoji-center-from-bottom)))
+    scale(var(--pct-inv, 1)) rotate(calc(-1 * var(--pct-orient, 0deg)));
+  transform-origin: 50% calc(100% - var(--fm-pct-label-emoji-center-from-bottom));
+}
+
+.fm-pct-label.has-emoji.name-above .fm-pct-overlay__name {
+  margin-top: 0;
+  margin-bottom: var(--map-overlay-label-margin-top, 4px);
+}
+
 /* Nom de zone sur deux lignes : un nom replié se lit, un nom tronqué ne sert à personne —
    « Cour du lycée » n'entrait pas dans les 96 px d'une petite zone et s'affichait « Cour du… »
    (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N11). Le moteur de collisions réserve la même

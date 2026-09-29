@@ -5,8 +5,42 @@ import {
   boxesOverlap,
   estimateGlyphBox,
   estimateLabelBox,
+  orderLabelCandidates,
   resolveLabelCollisions,
 } from '../../src/shared/pct-map/mapOverlayLabelCollision.js';
+
+describe('orderLabelCandidates', () => {
+  test('épinglée, puis famille, rang, importance, ordre d’entrée', () => {
+    const ordered = orderLabelCandidates([
+      { id: 'tard', tier: 1, priority: 0 },
+      { id: 'petit', priority: 5, weight: 1 },
+      { id: 'grand', priority: 5, weight: 9 },
+      { id: 'rang', priority: 1 },
+      { id: 'sansRang' },
+      { id: 'epingle', tier: 2, priority: 99, pinned: true },
+      { id: 'grand2', priority: 5, weight: 9 },
+    ]);
+    expect(ordered.map((c) => c.id)).toEqual([
+      'epingle',
+      'rang',
+      'grand',
+      'grand2',
+      'petit',
+      'sansRang',
+      'tard',
+    ]);
+  });
+
+  test('ne modifie pas la liste reçue ; entrée absente : liste vide', () => {
+    const input = [
+      { id: 'b', priority: 2 },
+      { id: 'a', priority: 1 },
+    ];
+    orderLabelCandidates(input);
+    expect(input.map((c) => c.id)).toEqual(['b', 'a']);
+    expect(orderLabelCandidates(null)).toEqual([]);
+  });
+});
 
 describe('estimateLabelBox — nom posé sous un emoji', () => {
   const pad = LABEL_COLLISION_PADDING_PX;

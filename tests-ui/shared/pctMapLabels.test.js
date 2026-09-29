@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  CLUSTER_OBSTACLE_HEIGHT_PX,
   DEFAULT_LABEL_PRIORITY,
   LABEL_EMOJI_SIZE_PX,
   LABEL_FONT_SIZE_PX,
@@ -8,16 +9,20 @@ import {
   ZONE_LABEL_MAX_WIDTH_PX,
   ZONE_LABEL_MIN_WIDTH_PX,
   ZONE_NAME_GAP_PX,
+  ZONE_NAME_SIDES,
   buildZoneLabelSpecs,
   contentAspect,
   defaultLabelPriority,
   labelKey,
   labelPriority,
+  markerObstaclesFrom,
   polygonAreaPct,
+  resolveLabelLayout,
   resolveOverlayLabelSizesPx,
   resolveVisibleLabels,
   zoneEmojiLabelKey,
   zoneLabelMaxWidthPx,
+  zoneLabelSideExtraWidthPx,
 } from '../../src/shared/pct-map/pctMapLabels.js';
 import {
   detectLeadingEmojiPrefix,
@@ -568,5 +573,158 @@ describe('resolveVisibleLabels — rotation de la carte', () => {
     });
     const sans = resolveVisibleLabels({ ...view, zoneSpecs: [], markers: SIDE_BY_SIDE });
     expect([...casse].sort()).toEqual([...sans].sort());
+  });
+});
+
+/**
+ * Positions de repli — `docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`, seconde passe (bâtiments
+ * I, T, S, G du plan). Géométrie : 400 × 400 px à l'échelle 1, soit 1 % = 4 px.
+ */
+describe('resolveLabelLayout — positions de repli et obstacles', () => {
+  const view = { contentWidthPx: 400, contentHeightPx: 400, scale: 1 };
+  const verger = () =>
+    buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(20, 20, 40, 20) }],
+      splitEmoji,
+    );
+
+  test('sans gêne : emoji au pôle, nom dessous', () => {
+    const zoneSpecs = verger();
+    const { visible, placements } = resolveLabelLayout({ ...view, zoneSpecs, markers: [] });
+    expect(visible.has(zoneEmojiLabelKey('a'))).toBe(true);
+    expect(placements.get('a')).toEqual({
+      xp: zoneSpecs[0].anchor.xp,
+      yp: zoneSpecs[0].anchor.yp,
+      nameSide: 'below',
+    });
+    // `resolveVisibleLabels` reste la projection des clés.
+    expect([...resolveVisibleLabels({ ...view, zoneSpecs, markers: [] })].sort()).toEqual(
+      [...visible].sort(),
+    );
+  });
+
+  test('une épingle sur le pôle : l’emoji part vers un autre point de la zone', () => {
+    const zoneSpecs = verger();
+    const pole = zoneSpecs[0].anchor;
+    const obstacles = [{ xPct: pole.xp, yPct: pole.yp, widthPx: 20, heightPx: 20 }];
+    const { visible, placements } = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      obstacles,
+    });
+    const at = placements.get('a');
+    expect(visible.has(zoneEmojiLabelKey('a'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'a'))).toBe(true);
+    // Plus de 18 px (demi-emoji + demi-épingle) entre les deux centres, et toujours dans la zone.
+    expect(Math.hypot((at.xp - pole.xp) * 4, (at.yp - pole.yp) * 4)).toBeGreaterThan(18);
+    expect(at.xp).toBeGreaterThan(20);
+    expect(at.xp).toBeLessThan(60);
+    expect(at.yp).toBeGreaterThan(20);
+    expect(at.yp).toBeLessThan(40);
+  });
+
+  test('dessous occupé : le nom passe à droite de l’emoji', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(40, 40, 20, 20) }],
+      splitEmoji,
+    );
+    // Pastille 60 × 10 px centrée 20 px sous l'ancre (200, 200) : elle couvre la place du nom
+    // posé dessous, pas celle du nom posé à droite (≈ 193–207 px en hauteur).
+    const obstacles = [{ xPct: 50, yPct: 55, widthPx: 60, heightPx: 10 }];
+    const { visible, placements } = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      obstacles,
+    });
+    expect(visible.has(labelKey('zone', 'a'))).toBe(true);
+    expect(placements.get('a').nameSide).toBe('right');
+  });
+
+  test('dessous pris par un autre nom : droite, puis gauche', () => {
+    // Nom d'une zone voisine, plus prioritaire, posé juste sous l'emoji du Verger.
+    const zoneSpecs = buildZoneLabelSpecs(
+      [
+        { id: 'a', name: 'Verger', emoji: '🍏', points: rect(40, 40, 20, 20) },
+        { id: 'b', name: 'Mare', points: rect(49, 54, 2, 2), category_ids: ['x'] },
+      ],
+      splitEmoji,
+    );
+    const { visible, placements } = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      categoriesById: new Map([['x', { sort_order: 0 }]]),
+    });
+    expect(visible.has(labelKey('zone', 'b'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'a'))).toBe(true);
+    expect(['right', 'left']).toContain(placements.get('a').nameSide);
+  });
+
+  test('un obstacle ne masque jamais : sans place libre, la position de base est gardée', () => {
+    const zoneSpecs = verger();
+    const obstacles = [{ xPct: 50, yPct: 50, widthPx: 2000, heightPx: 2000 }];
+    const { visible, placements } = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      obstacles,
+    });
+    expect(visible.has(zoneEmojiLabelKey('a'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'a'))).toBe(true);
+    expect(placements.get('a')).toMatchObject({
+      xp: zoneSpecs[0].anchor.xp,
+      yp: zoneSpecs[0].anchor.yp,
+      nameSide: 'below',
+    });
+  });
+
+  test('zone sans emoji : nom centré, côté « center »', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Préau', emoji: '', points: rect(20, 20, 40, 20) }],
+      splitEmoji,
+    );
+    const { placements } = resolveLabelLayout({ ...view, zoneSpecs, markers: [] });
+    expect(placements.get('a').nameSide).toBe('center');
+  });
+
+  test('emoji affiché sans nom : l’ancre de l’emoji est tout de même publiée', () => {
+    const zoneSpecs = verger();
+    const { visible, placements } = resolveLabelLayout({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      includeZoneNames: false,
+    });
+    expect(visible.has(labelKey('zone', 'a'))).toBe(false);
+    expect(placements.get('a')).toMatchObject({ nameSide: 'below' });
+  });
+});
+
+describe('markerObstaclesFrom / zoneLabelSideExtraWidthPx', () => {
+  test('épingle : carré emoji + 4 px ; pastille de groupe : au moins une cible tactile', () => {
+    const [pin, cluster, big] = markerObstaclesFrom(
+      [
+        { x_pct: 10, y_pct: 20 },
+        { x_pct: 30, y_pct: 40, count: 2 },
+        { x_pct: 50, y_pct: 60, count: 128 },
+        { x_pct: 'x', y_pct: 1 },
+      ],
+      { emojiSizePx: 16 },
+    );
+    expect(pin).toEqual({ xPct: 10, yPct: 20, widthPx: 20, heightPx: 20 });
+    expect(cluster.heightPx).toBe(CLUSTER_OBSTACLE_HEIGHT_PX);
+    expect(cluster.widthPx).toBeGreaterThanOrEqual(CLUSTER_OBSTACLE_HEIGHT_PX);
+    expect(big.widthPx).toBeGreaterThan(cluster.widthPx);
+    expect(markerObstaclesFrom(null)).toEqual([]);
+  });
+
+  test('nom à droite ou à gauche : la largeur de l’emoji et de l’écart s’ajoute', () => {
+    expect(ZONE_NAME_SIDES).toEqual(['below', 'right', 'left', 'above']);
+    expect(zoneLabelSideExtraWidthPx('right', 16, 4)).toBe(20);
+    expect(zoneLabelSideExtraWidthPx('left', 16, 4)).toBe(20);
+    expect(zoneLabelSideExtraWidthPx('below', 16, 4)).toBe(0);
+    expect(zoneLabelSideExtraWidthPx('above', 16, 4)).toBe(0);
   });
 });

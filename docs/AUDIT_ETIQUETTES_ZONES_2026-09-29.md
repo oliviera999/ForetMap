@@ -5,7 +5,8 @@
 > **édition** (`ZonePolygonsLayer`). Les repères ne sont concernés que par l'estimation des
 > boîtes de collision.
 >
-> **Statut : les 9 constats sont traités** dans le même lot (voir § Traitement).
+> **Statut : les 9 constats sont traités** dans le même lot (voir § Traitement) ; les
+> constats 10 à 13 de la seconde passe aussi (voir § Seconde passe).
 
 ## Contexte
 
@@ -55,6 +56,43 @@ est glouton, par priorité (`resolveLabelCollisions`).
 Tests : `tests-ui/shared/pctMapLabels.test.js`, `mapOverlayLabelCollision.test.js`,
 `pctPolylabel.test.js`, `PctLayers.test.jsx`, `pct-map/PctStatusDots.test.jsx`,
 `tests-ui/components/map/ZonePolygonsLayer.test.jsx`, `tests/map-overlay-zone-labels.test.js`.
+
+## Seconde passe (29 septembre 2026, après-midi) — plan Lyautey
+
+Relevé sur `planlyautey.olution.info`, bâtiments **I, T, S, G**. Premier constat : le correctif
+ci-dessus n'était **pas encore déployé** (ancien bundle servi). Il l'est depuis la v1.197.5 :
+l'artefact `dist-artifact/main` et le bundle servi en production portent les mêmes empreintes.
+Mais même avec le nouveau moteur, une simulation sur les données du plan (écran 390 × 463 px)
+laissait quatre défauts.
+
+| #   | Gravité | Constat                                                                                                                                                                                                    |
+| --- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10  | Moyenne | **Repères ignorés** : les épingles et pastilles de groupe ne sont pas des obstacles. La pastille « 🎬 2 » recouvrait l'emoji du Bât.I ; l'épingle du Fablab celui du Bât.T ; deux épingles celui du Bât.S. |
+| 11  | Moyenne | **Une seule position par étiquette** : emoji au pôle, nom dessous, sinon masqué. Dans un bâtiment long (I) ou très occupé (T), aucune autre place n'était essayée.                                         |
+| 12  | Faible  | **Emoji recopié dans le nom** (« 🧪 Bât.S… » avec l'emoji 🧪) : l'emoji apparaît deux fois en édition, et le nom est plus long que nécessaire.                                                             |
+| 13  | Faible  | **Bât.G (forme en H)** : ancre hors de la forme avec l'ancien bundle ; conforme une fois le constat 6 déployé.                                                                                             |
+
+Traitement :
+
+10. **Traité** — `markerObstaclesFrom` : chaque épingle (emoji + 4 px) et chaque pastille de
+    groupe (≥ 44 px) est un **obstacle souple**. Une étiquette l'évite si elle le peut, mais un
+    repère ne la masque jamais.
+11. **Traité** — `polygonLabelAnchorsPct` fournit le pôle puis jusqu'à 5 points de repli
+    (quadrillage, profondeur ≥ 35 % de celle du pôle, espacés). `resolveLabelLayout` essaie
+    ces points pour l'emoji, puis place le nom dessous, à droite, à gauche ou au-dessus (classes
+    `name-right|left|above`, même géométrie en édition SVG). Si aucun côté ne convient, l'emoji
+    et son nom essaient ensemble un autre point, mais jamais un point couvert par un repère.
+    L'approche s'inspire des positions candidates `text-variable-anchor` de Mapbox GL
+    (<https://docs.mapbox.com/style-spec/reference/layers/>), réimplémentées.
+12. **Traité** — migration `311_strip_duplicate_emoji_from_names.sql` : elle retire l'emoji de
+    tête identique au champ emoji, sur les zones comme sur les repères (comparaison binaire).
+13. **Traité** — par le déploiement du constat 6.
+
+Simulation sur les données du plan, avant puis après ce traitement :
+
+- à l'échelle 1, 21 noms de zones sur 35 s'affichent, contre 16 auparavant ;
+- les emojis des bâtiments I, T, S et G ne sont plus recouverts par un repère, à aucune échelle ;
+- le nom du Bât.S n'apparaît qu'à partir d'un zoom ×1,5, pour que son emoji reste dégagé.
 
 ## Hors périmètre (ouvert)
 

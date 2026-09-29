@@ -25,10 +25,12 @@ import {
   buildZoneLabelSpecs,
   contentAspect,
   labelKey,
+  markerObstaclesFrom,
+  resolveLabelLayout,
   resolveOverlayLabelSizesPx,
-  resolveVisibleLabels,
   zoneLabelAnchorPct,
   zoneLabelMaxWidthPx,
+  zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
 import { PctDirectLine, PctPositionLayer } from './PctPositionLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
@@ -305,45 +307,11 @@ export function SharedMapStage({
     [markers, isVisibleAtScale],
   );
 
-  /**
-   * Pastilles d'état (ForetMap : tâches du lieu). Calculées une fois par jeu de lieux, pas à
-   * chaque rendu : les tableaux gardent ainsi une identité stable et la mémoïsation des
-   * repères (`PctMarkerButton`) tient.
-   *
-   * Les zones portent les leurs dans un calque HTML ancré au **pôle d'inaccessibilité** du
-   * polygone — le même point que l'étiquette, mais indépendant d'elle : une zone dont le nom
-   * est masqué par la résolution de collisions garde sa pastille. Les pastilles encadrent
-   * l'emoji (ou le nom, pour une zone sans emoji) sans le chevaucher (`variant`).
-   */
   const labelAspect = contentAspect(fitRect.width, fitRect.height);
   const zoneLabelSpecs = useMemo(
     () => buildZoneLabelSpecs(visibleZones, splitNameEmoji, { aspect: labelAspect }),
     [visibleZones, splitNameEmoji, labelAspect],
   );
-  const zoneStatusAnchors = useMemo(() => {
-    if (typeof getZoneStatusDots !== 'function') return [];
-    const specById = new Map(zoneLabelSpecs.map((spec) => [spec.id, spec]));
-    const anchors = [];
-    for (const zone of visibleZones) {
-      const dots = getZoneStatusDots(zone);
-      if (!dots || !dots.length) continue;
-      const spec = specById.get(String(zone.id));
-      let anchor = spec?.anchor;
-      if (!anchor) {
-        const points = parsePctPolygonPoints(zone.points);
-        if (points.length < 3) continue;
-        anchor = zoneLabelAnchorPct(points, labelAspect);
-      }
-      anchors.push({
-        id: labelKey('zone', zone.id),
-        xp: anchor.xp,
-        yp: anchor.yp,
-        dots,
-        variant: spec?.emoji ? 'emoji' : 'name',
-      });
-    }
-    return anchors;
-  }, [visibleZones, getZoneStatusDots, zoneLabelSpecs, labelAspect]);
 
   const zoneStatusLabelOf = useCallback(
     (zone) =>
@@ -573,15 +541,26 @@ export function SharedMapStage({
    *
    * Les tailles mesurées sont celles **rendues** (variables CSS du produit : préférence « Aa »,
    * pointeur tactile), pas les valeurs par défaut du noyau.
+   *
+   * Les épingles et pastilles de groupe des repères sont des **obstacles** : une étiquette de
+   * zone qui tomberait dessous essaie d'abord un autre point de sa zone ou un autre côté pour
+   * son nom (`resolveLabelLayout`) — sans jamais disparaître à cause d'eux.
    */
   const {
     fontSizePx: labelFontPx,
     emojiSizePx: labelEmojiPx,
     nameGapPx: labelNameGapPx,
   } = useMemo(() => resolveOverlayLabelSizesPx(fitExtraStyle), [fitExtraStyle]);
-  const visibleLabelKeys = useMemo(
+  const markerObstacles = useMemo(
     () =>
-      resolveVisibleLabels({
+      markerObstaclesFrom(clusteringEnabled ? clusters : visibleMarkers, {
+        emojiSizePx: labelEmojiPx,
+      }),
+    [clusteringEnabled, clusters, visibleMarkers, labelEmojiPx],
+  );
+  const labelLayout = useMemo(
+    () =>
+      resolveLabelLayout({
         zoneSpecs: zoneLabelSpecs,
         markers: showLabels ? visibleMarkers : [],
         categoriesById,
@@ -598,6 +577,7 @@ export function SharedMapStage({
         // dès que l'on pivote.
         orientationDeg: mapOrientationDeg,
         orientOriginPct: orientPivot,
+        obstacles: markerObstacles,
       }),
     [
       zoneLabelSpecs,
@@ -614,8 +594,42 @@ export function SharedMapStage({
       mapOrientationDeg,
       orientPivot?.xp,
       orientPivot?.yp,
+      markerObstacles,
     ],
   );
+  const visibleLabelKeys = labelLayout.visible;
+  const labelPlacements = labelLayout.placements;
+
+  /**
+   * Pastilles d'état (ForetMap : tâches du lieu). Les zones portent les leurs dans un calque
+   * HTML ancré au **même point que l'emoji** (point retenu par le placement), mais indépendant
+   * de l'étiquette : une zone dont le nom est masqué garde sa pastille. Les pastilles
+   * encadrent l'emoji (ou le nom, pour une zone sans emoji) sans le chevaucher (`variant`).
+   */
+  const zoneStatusAnchors = useMemo(() => {
+    if (typeof getZoneStatusDots !== 'function') return [];
+    const specById = new Map(zoneLabelSpecs.map((spec) => [spec.id, spec]));
+    const anchors = [];
+    for (const zone of visibleZones) {
+      const dots = getZoneStatusDots(zone);
+      if (!dots || !dots.length) continue;
+      const spec = specById.get(String(zone.id));
+      let anchor = labelPlacements.get(String(zone.id)) || spec?.anchor;
+      if (!anchor) {
+        const points = parsePctPolygonPoints(zone.points);
+        if (points.length < 3) continue;
+        anchor = zoneLabelAnchorPct(points, labelAspect);
+      }
+      anchors.push({
+        id: labelKey('zone', zone.id),
+        xp: anchor.xp,
+        yp: anchor.yp,
+        dots,
+        variant: spec?.emoji ? 'emoji' : 'name',
+      });
+    }
+    return anchors;
+  }, [visibleZones, getZoneStatusDots, zoneLabelSpecs, labelPlacements, labelAspect]);
   /** Tap sur l'étiquette d'une zone → même effet qu'un tap sur son polygone (N12). */
   const onZoneLabelClick = useCallback(
     (zoneId) => {
@@ -637,19 +651,34 @@ export function SharedMapStage({
           const emoji = spec.emoji && visibleLabelKeys.has(spec.emojiKey) ? spec.emoji : '';
           const name = showLabels && visibleLabelKeys.has(spec.key) ? spec.name : '';
           if (!emoji && !name) return null;
+          const placement = labelPlacements.get(spec.id);
+          const nameSide = emoji && name ? placement?.nameSide || 'below' : '';
           return {
             id: spec.key,
             zoneId: spec.id,
-            xp: spec.anchor.xp,
-            yp: spec.anchor.yp,
+            xp: placement ? placement.xp : spec.anchor.xp,
+            yp: placement ? placement.yp : spec.anchor.yp,
             emoji,
             name,
-            maxWidthPx: zoneLabelMaxWidthPx(spec, fitRect.width, committed.s),
+            nameSide,
+            maxWidthPx:
+              zoneLabelMaxWidthPx(spec, fitRect.width, committed.s) +
+              zoneLabelSideExtraWidthPx(nameSide, labelEmojiPx, labelNameGapPx),
             active: selectedZoneId != null && String(selectedZoneId) === spec.id,
           };
         })
         .filter(Boolean),
-    [showLabels, zoneLabelSpecs, visibleLabelKeys, fitRect.width, committed.s, selectedZoneId],
+    [
+      showLabels,
+      zoneLabelSpecs,
+      visibleLabelKeys,
+      labelPlacements,
+      fitRect.width,
+      committed.s,
+      selectedZoneId,
+      labelEmojiPx,
+      labelNameGapPx,
+    ],
   );
 
   const markerLabelOf = useCallback(

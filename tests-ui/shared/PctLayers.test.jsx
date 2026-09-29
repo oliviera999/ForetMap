@@ -143,6 +143,26 @@ describe('PctLabelsLayer', () => {
     expect(withEmoji.classList.contains('has-emoji')).toBe(true);
     expect(nameOnly.classList.contains('has-emoji')).toBe(false);
   });
+
+  test('côté du nom : classe name-<côté> seulement avec emoji et nom, jamais pour « below »', () => {
+    const { container } = render(
+      <PctLabelsLayer
+        labels={[
+          { id: 'zone:a', xp: 10, yp: 10, emoji: '📚', name: 'CDI', nameSide: 'right' },
+          { id: 'zone:b', xp: 20, yp: 20, emoji: '🧪', name: 'Labo', nameSide: 'above' },
+          { id: 'zone:c', xp: 30, yp: 30, emoji: '🌳', name: 'Parc', nameSide: 'below' },
+          { id: 'zone:d', xp: 40, yp: 40, emoji: '', name: 'Préau', nameSide: 'left' },
+          { id: 'zone:e', xp: 50, yp: 50, emoji: '🐝', name: '', nameSide: 'left' },
+        ]}
+      />,
+    );
+    const [right, above, below, nameOnly, emojiOnly] = container.querySelectorAll('.fm-pct-label');
+    expect(right.classList.contains('name-right')).toBe(true);
+    expect(above.classList.contains('name-above')).toBe(true);
+    for (const el of [below, nameOnly, emojiOnly]) {
+      expect([...el.classList].some((c) => c.startsWith('name-'))).toBe(false);
+    }
+  });
 });
 
 describe('PctMarkersLayer', () => {

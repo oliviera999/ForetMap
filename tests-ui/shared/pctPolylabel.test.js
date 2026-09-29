@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  PCT_LABEL_ALTERNATE_ANCHORS_MAX,
   polygonCentroidPct,
+  polygonLabelAnchorsPct,
   polygonPoleOfInaccessibilityPct,
 } from '../../src/shared/pct-map/pctPolylabel.js';
 
@@ -141,6 +143,52 @@ describe('polygonPoleOfInaccessibilityPct — rapport largeur/hauteur', () => {
     expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, 0)).toEqual(base);
     expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, Number.NaN)).toEqual(base);
     expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, 1)).toEqual(base);
+  });
+});
+
+describe('polygonLabelAnchorsPct — points de repli', () => {
+  test('le premier point est le pôle, les suivants sont dedans et moins profonds', () => {
+    const anchors = polygonLabelAnchorsPct(SQUARE);
+    const pole = polygonPoleOfInaccessibilityPct(SQUARE);
+    expect(anchors[0].xp).toBeCloseTo(pole.xp, 6);
+    expect(anchors[0].yp).toBeCloseTo(pole.yp, 6);
+    expect(anchors.length).toBeGreaterThan(1);
+    expect(anchors.length).toBeLessThanOrEqual(1 + PCT_LABEL_ALTERNATE_ANCHORS_MAX);
+    for (const a of anchors.slice(1)) {
+      expect(pointInPolygon(a, SQUARE)).toBe(true);
+      expect(a.distance).toBeLessThanOrEqual(anchors[0].distance + 1e-6);
+      expect(a.distance).toBeGreaterThanOrEqual(anchors[0].distance * 0.35 - 1e-6);
+    }
+  });
+
+  test('zone en L : tous les points restent dans la zone, bien espacés', () => {
+    const anchors = polygonLabelAnchorsPct(L_SHAPE);
+    for (const a of anchors) expect(pointInPolygon(a, L_SHAPE)).toBe(true);
+    for (let i = 0; i < anchors.length; i += 1) {
+      for (let j = i + 1; j < anchors.length; j += 1) {
+        const d = Math.hypot(anchors[i].xp - anchors[j].xp, anchors[i].yp - anchors[j].yp);
+        expect(d).toBeGreaterThan(1);
+      }
+    }
+  });
+
+  test('max = 0 : le pôle seul ; géométrie dégénérée : liste vide, jamais d’exception', () => {
+    expect(polygonLabelAnchorsPct(SQUARE, 1, { max: 0 })).toHaveLength(1);
+    expect(polygonLabelAnchorsPct([])).toEqual([]);
+    expect(polygonLabelAnchorsPct(null)).toEqual([]);
+    expect(
+      polygonLabelAnchorsPct([
+        { xp: 1, yp: 1 },
+        { xp: 'a', yp: 2 },
+      ]),
+    ).toEqual([]);
+  });
+
+  test('avec un rapport largeur/hauteur, le premier point reste le pôle isotrope', () => {
+    const anchors = polygonLabelAnchorsPct(L_SHAPE, 2);
+    const pole = polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, 2);
+    expect(anchors[0].xp).toBeCloseTo(pole.xp, 1);
+    expect(anchors[0].yp).toBeCloseTo(pole.yp, 1);
   });
 });
 

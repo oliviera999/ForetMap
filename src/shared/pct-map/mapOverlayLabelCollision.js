@@ -110,19 +110,14 @@ export function boxesOverlap(a, b) {
 }
 
 /**
- * Retient les étiquettes qui ne se recouvrent pas, par ordre de priorité.
- *
- * @param {Array<{ id: string, box: object, tier?: number, priority?: number, weight?: number,
- *   pinned?: boolean }>} candidates
- *   `tier` : famille d'étiquettes (plus petit = placé d'abord ; les emojis de zone passent
- *   avant les noms) ; `priority` : rang de catégorie (plus petit = plus important) ;
- *   `weight` : importance propre (aire d'une zone, par exemple — plus grand = plus important) ;
- *   `pinned` : toujours gardée (lieu sélectionné), et elle occupe la place avant tout le monde.
- * @returns {Set<string>} identifiants des étiquettes à afficher.
+ * Ordre de placement : épinglées, puis famille (`tier`), rang de catégorie, importance propre,
+ * ordre d'entrée (tri stable).
+ * @template {{ tier?: number, priority?: number, weight?: number, pinned?: boolean }} T
+ * @param {Array<T>} candidates
+ * @returns {Array<T>} nouvelle liste triée.
  */
-export function resolveLabelCollisions(candidates) {
-  const list = (candidates || []).filter((c) => c && c.box);
-  const ordered = list
+export function orderLabelCandidates(candidates) {
+  return (candidates || [])
     .map((candidate, index) => ({ candidate, index }))
     .sort((a, b) => {
       const ap = a.candidate.pinned ? 1 : 0;
@@ -138,11 +133,25 @@ export function resolveLabelCollisions(candidates) {
       const bw = toFinite(b.candidate.weight, 0);
       if (aw !== bw) return bw - aw;
       return a.index - b.index;
-    });
+    })
+    .map(({ candidate }) => candidate);
+}
 
+/**
+ * Retient les étiquettes qui ne se recouvrent pas, par ordre de priorité.
+ *
+ * @param {Array<{ id: string, box: object, tier?: number, priority?: number, weight?: number,
+ *   pinned?: boolean }>} candidates
+ *   `tier` : famille d'étiquettes (plus petit = placé d'abord ; les emojis de zone passent
+ *   avant les noms) ; `priority` : rang de catégorie (plus petit = plus important) ;
+ *   `weight` : importance propre (aire d'une zone, par exemple — plus grand = plus important) ;
+ *   `pinned` : toujours gardée (lieu sélectionné), et elle occupe la place avant tout le monde.
+ * @returns {Set<string>} identifiants des étiquettes à afficher.
+ */
+export function resolveLabelCollisions(candidates) {
   const kept = [];
   const visible = new Set();
-  for (const { candidate } of ordered) {
+  for (const candidate of orderLabelCandidates((candidates || []).filter((c) => c && c.box))) {
     if (kept.some((box) => boxesOverlap(box, candidate.box))) continue;
     kept.push(candidate.box);
     visible.add(String(candidate.id));

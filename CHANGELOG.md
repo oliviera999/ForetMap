@@ -37,6 +37,18 @@ Tests : `tests/id-key-schema-layout.test.js`, `tests-ui/components/pedago/{IdKey
 
 `309_visit_mirror_map_locations.sql` recopiait `zones.points` (qui accepte NULL pour une zone sans forme dessinée) dans `visit_zones.points` (NOT NULL). Sur une base contenant une telle zone, le démarrage échouait (`Column 'points' cannot be null`). La valeur de repli `'[]'` est désormais utilisée, comme dans `mapZoneToVisitWhitelistFields`. Test : `tests/visit-map-mirror.test.js`.
 
+### Corrigé — carte : les étiquettes de zones évitent les repères et changent de place plutôt que de disparaître
+
+Seconde passe de l'audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md), relevée sur le plan Lyautey (constats 10 à 13, tous traités). Sur les bâtiments I, T et S, des épingles ou pastilles de groupe recouvraient l'emoji, et une étiquette n'avait qu'une seule position possible.
+
+- **Repères = obstacles souples** (`markerObstaclesFrom`) : une étiquette les évite quand elle le peut, mais un repère ne la masque jamais.
+- **Positions de repli** : `polygonLabelAnchorsPct` fournit le pôle d'inaccessibilité puis jusqu'à 5 autres points bien à l'intérieur de la zone.
+- **Placement** (`resolveLabelLayout`, qui renvoie les clés visibles et les placements) : l'emoji essaie ces points, puis le nom se place dessous, à droite, à gauche ou au-dessus (classes `name-right|left|above`, même rendu dans le calque d'édition SVG). Si aucun côté ne convient, emoji et nom essaient ensemble un autre point, jamais sous un repère. Inspiré des positions candidates `text-variable-anchor` de [Mapbox GL](https://docs.mapbox.com/style-spec/reference/layers/), réimplémentées.
+- **Migration `311_strip_duplicate_emoji_from_names.sql`** : retire l'emoji recopié en tête du nom d'une zone ou d'un repère quand il est identique au champ emoji (« 🧪 Bât.S » → « Bât.S »).
+- **Simulation sur les données du plan** (écran 390 × 463 px) : 21 noms sur 35 affichés à l'ouverture, contre 16 ; plus aucun emoji des bâtiments I, T, S et G sous un repère.
+
+Doc de référence `carte-et-zones.md` mise à jour. Tests : `pctMapLabels`, `pctPolylabel`, `mapOverlayLabelCollision`, `PctLayers`, `ZonePolygonsLayer`, `tests/migration-311-duplicate-emoji-names.test.js`.
+
 ### Corrigé — carte : emojis et noms de zones bien placés et sans chevauchement
 
 Audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md) (9 constats, tous traités). L'emoji d'une zone est désormais centré sur son point d'ancrage et le nom posé dessous : l'emoji ne saute plus quand le nom apparaît ou disparaît. Les emojis entrent dans l'anti-chevauchement, avant les noms (un nom sans son emoji est masqué, la zone sélectionnée garde les deux), avec des boîtes de collision fidèles au rendu et aux tailles réelles (préférence **Aa** incluse, `resolveOverlayLabelSizesPx`). Le point d'ancrage est calculé en pixels (rapport d'aspect de l'image) et plus en % étirés — approche inspirée de [mapbox/polylabel](https://github.com/mapbox/polylabel) (ISC), réimplémentée. Les pastilles d'état s'écartent de l'emoji (ou du nom seul). Le mode édition utilise le même moteur que la consultation ; le réglage `ui.map.zone_label_min_side_factor` devient **sans effet** (conservé pour compatibilité). Code mort supprimé : `VisitZonesSvgLayer`, branche `<text>` de `PctZonesLayer`, CSS `.visit-zone-*`. Tests : `pctMapLabels`, `mapOverlayLabelCollision`, `pctPolylabel`, `PctLayers`, `PctStatusDots`, `ZonePolygonsLayer`, `map-overlay-zone-labels`.
