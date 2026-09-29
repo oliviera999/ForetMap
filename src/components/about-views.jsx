@@ -14,6 +14,13 @@ import { getBuildBrand } from '../shared/brand/brandNames.js';
  * affiche sur place.
  */
 const SITE_ISSUES_DOCS = [
+  // Documentation technique : réservée depuis l'audit sécurité du 29/09/2026 — le CHANGELOG
+  // décrit chaque correctif de sécurité, `API.md` cartographie routes et permissions.
+  { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
+  { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
+  { label: 'LOCAL_DEV', href: '/docs/LOCAL_DEV.md', desc: 'Mise en place locale (Docker + tests)' },
+  { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: "Feuille de route d'évolution" },
+  { label: 'VERSIONING', href: '/docs/VERSIONING.md', desc: 'Règles de versionnage SemVer' },
   {
     label: 'SITE_ISSUES',
     href: '/api/site-issues',
@@ -83,7 +90,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
   const aboutSiteIssuesTitle = getContentText(
     publicSettings,
     'about.site_issues_title',
-    'Audit interne (réservé aux administrateurs)',
+    'Documentation technique et audit interne (réservés aux administrateurs)',
   );
   const aboutHelpTitle = getContentText(publicSettings, 'about.help_title', 'Aide contextuelle');
   const aboutHelpBody = getContentText(
@@ -102,16 +109,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
     'Reinitialiser les compteurs d aide',
   );
   const docsLinks = [
-    { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
-    { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
-    {
-      label: 'LOCAL_DEV',
-      href: '/docs/LOCAL_DEV.md',
-      desc: 'Mise en place locale (Docker + tests)',
-    },
-    { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: "Feuille de route d'évolution" },
-    { label: 'VERSIONING', href: '/docs/VERSIONING.md', desc: 'Règles de versionnage SemVer' },
   ];
 
   return (

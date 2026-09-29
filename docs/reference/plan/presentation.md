@@ -317,7 +317,11 @@ Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 | Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
 | Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
-| Code d'accès                | saisi en clair dans les réglages ; seul un empreinte est stockée                                   |
+| Code d'accès                | saisi en clair dans les réglages ; seule une empreinte est stockée ; **8 caractères minimum**      |
+
+**Changer le code** oblige chaque appareil déjà entré à le ressaisir : l'ancien code cesse
+d'ouvrir le plan immédiatement, y compris sur les téléphones qui l'avaient retenu. C'est le
+moyen de fermer la porte après une diffusion non voulue.
 
 #### Autres plans proposés
 

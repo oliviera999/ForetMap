@@ -624,11 +624,19 @@ app.use('/api/context-comments', contextCommentsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/groups', groupsRouter);
 
-// Docs locales (Markdown) accessibles depuis l'onglet "À propos"
-const rootDocs = new Map([
-  ['/README.md', path.resolve(__dirname, 'README.md')],
-  ['/CHANGELOG.md', path.resolve(__dirname, 'CHANGELOG.md')],
-]);
+// Docs locales (Markdown) accessibles depuis l'onglet "À propos". Seul le README reste
+// public : le CHANGELOG décrit chaque correctif de sécurité et `API.md` cartographie routes et
+// permissions — avec `/api/version`, un tiers savait exactement quelles failles restaient
+// ouvertes sur l'instance (audit sécurité 2026-09-29).
+app.get('/README.md', (req, res) => {
+  res.type('text/markdown; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'README.md'), { dotfiles: 'allow' });
+});
+app.get('/CHANGELOG.md', requirePermission('admin.settings.read'), (req, res) => {
+  res.type('text/markdown; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'CHANGELOG.md'), { dotfiles: 'allow' });
+});
+
 const allowedDocFiles = new Set([
   'API.md',
   'LOCAL_DEV.md',
@@ -637,14 +645,7 @@ const allowedDocFiles = new Set([
   'MASCOT_PACK.md',
 ]);
 
-for (const [routePath, filePath] of rootDocs.entries()) {
-  app.get(routePath, (req, res) => {
-    res.type('text/markdown; charset=utf-8');
-    res.sendFile(filePath, { dotfiles: 'allow' });
-  });
-}
-
-app.get('/docs/:file', (req, res) => {
+app.get('/docs/:file', requirePermission('admin.settings.read'), (req, res) => {
   const file = req.params.file;
   if (!allowedDocFiles.has(file)) return res.status(404).json({ error: 'Document introuvable' });
   res.type('text/markdown; charset=utf-8');

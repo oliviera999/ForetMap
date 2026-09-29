@@ -36,6 +36,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   perte de la protection de branche en privé sur Free et parades, vérification de la clé de
   déploiement du serveur (SSH, port 443 de repli, cPanel). `docs/DEPLOY_DIST_ARTIFACT.md` aligné.
 
+### Sécurité — audit du 29/09/2026 : failles d'écriture et accès tiers au code source
+
+Audit daté : [docs/AUDIT_SECURITE_2026-09-29.md](docs/AUDIT_SECURITE_2026-09-29.md). Tests :
+`tests/security-audit-2026-09-29.test.js`.
+
+- **Plan des personnels (critique)** : le laissez-passer du plan public, recopié sous le nom
+  `staff_plan_access`, ouvrait le plan des personnels (même secret, même valeur, nom absent de
+  la signature). La signature couvre désormais le nom du cookie (`bindName` dans
+  `lib/accessGate.js`, activé pour les deux plans seulement : la progression anonyme de la
+  Visite n'est pas invalidée).
+- **Laissez-passer révocables** : la valeur du cookie dérive du code en vigueur
+  (`codePassValue`) ; changer le code ferme la porte à tous les appareils déjà entrés. Les
+  laissez-passer émis avant ce lot sont invalidés une fois (ressaisie du code).
+- **Codes d'accès des plans : 8 caractères minimum** à l'enregistrement.
+- **Groupes** : un gestionnaire sans vue globale (prof de classe) ne peut plus faire entrer dans
+  ses groupes l'élève d'une autre classe (`PUT /api/groups/:id/members`, `POST …/members/bulk`,
+  `POST …/members/:userId` → `403 Utilisateur hors périmètre`). Élèves sans classe acceptés.
+- **Changement de mot de passe** (`/api/auth/me/password`, `/api/gl/auth/change-password`) placé
+  sous le limiteur strict d'authentification.
+- **Documentation technique réservée** : `GET /CHANGELOG.md` et `GET /docs/:file` exigent
+  `admin.settings.read` (lus avec le jeton depuis « À propos ») ; `README.md` reste public.
+- **CI** : injection du nom de branche corrigée dans `frontend-dist.yml` (passage par `env:`),
+  actions épinglées par empreinte SHA (suivies par Dependabot `github-actions`), `permissions:
+  contents: read` sur `ci.yml`, étape `npm audit --omit=dev --audit-level=high` (informative).
+- **Exposition en production** : les sondes de `deploy:check` (non bloquantes, § 11.4) couvrent
+  aussi `/.git/config`, `/startup.log` et `/src/main.jsx` ; le bundle runtime est
+  construit par **liste blanche** (plus de `src/`, tests, `tmp/`, `.worktrees/`, `.env.*`).
+- `docs/EXPLOITATION.md` § 12 : partager le code avec un tiers par `git archive`, jamais par un
+  accès au dépôt (le dépôt est privé, mais le dump de production reste joignable via
+  `refs/pull/*` pour quiconque y a accès).
+
 ### Ajouté — surface estimée des zones sur les plans calés GPS
 
 - Sur un plan calé sur trois points GPS, les profs et admins voient la **surface estimée**

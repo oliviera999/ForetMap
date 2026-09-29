@@ -31,10 +31,26 @@ describe('AboutView — rapports d’audit interne', () => {
     expect(container.querySelector('a[href="/api/site-issues.json"]')).toBeNull();
   });
 
-  test('les liens publics de documentation restent des liens ordinaires', () => {
+  test('seul le README reste un lien public ; la documentation technique n’est plus exposée', () => {
     const { container } = render(<AboutView appVersion="1.0.0" />);
-    expect(container.querySelector('a[href="/docs/API.md"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/CHANGELOG.md"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/README.md"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/docs/API.md"]')).toBeNull();
+    expect(container.querySelector('a[href="/CHANGELOG.md"]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'CHANGELOG' })).toBeNull();
+  });
+
+  test('avec le droit, le CHANGELOG est récupéré avec le jeton', async () => {
+    global.fetch.mockResolvedValue({ ok: true, status: 200, text: async () => '# Journal' });
+    render(<AboutView appVersion="1.0.0" canReadSiteIssues />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'CHANGELOG' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Journal/)).toBeTruthy();
+    });
+    expect(global.fetch).toHaveBeenCalledWith('/CHANGELOG.md', {
+      headers: { Authorization: 'Bearer jeton-test' },
+    });
   });
 
   test('avec le droit, le rapport est récupéré avec le jeton et affiché sur place', async () => {

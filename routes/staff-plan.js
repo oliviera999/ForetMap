@@ -41,6 +41,8 @@ const { resolveOAuthPublicOrigin } = require('../lib/oauthPublicUrl');
 const {
   staffPlanAccessGate,
   isCodeAccessEnabled,
+  grantStaffPlanCodeAccess,
+  hasValidStaffPlanCodePass,
   resolveCodeRoleSlug,
   verifyStaffPlanCode,
   resolveStaffPlanViewer,
@@ -138,7 +140,7 @@ router.post(
       });
       return res.status(401).json({ error: 'Code incorrect' });
     }
-    staffPlanAccessGate.set(res, 'ok');
+    await grantStaffPlanCodeAccess(res);
     const roleSlug = await resolveCodeRoleSlug();
     await logAudit('staff_plan.access.code_granted', 'staff_plan', null, 'Entrée par code', {
       payload: { ip: req.ip, requestId: req.requestId, roleSlug },
@@ -163,7 +165,7 @@ router.post(
   '/logout',
   asyncHandler(async (req, res) => {
     setPrivateHeaders(res);
-    const hadCodePass = staffPlanAccessGate.read(req) === 'ok';
+    const hadCodePass = await hasValidStaffPlanCodePass(req);
     staffPlanAccessGate.clear(res);
     if (hadCodePass) {
       // Le journal trace l'ouverture par code (`code_granted`) : sans sa contrepartie, un

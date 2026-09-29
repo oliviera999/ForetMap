@@ -24,3 +24,18 @@ updates:
         update-types:
           - 'patch'
           - 'minor'
+  # Les actions sont épinglées par empreinte (SHA) : Dependabot les fait suivre les nouvelles
+  # versions, sans quoi l'épinglage figerait des versions vulnérables.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 2
+    labels:
+      - 'dependencies'
+    commit-message:
+      prefix: 'chore(ci)'
+    groups:
+      github-actions:
+        patterns:
+          - '*'

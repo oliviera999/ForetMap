@@ -46,7 +46,7 @@
       "scope": "public",
       "type": "string",
       "maxLength": 120,
-      "default": "Audit interne (réservé aux administrateurs)"
+      "default": "Documentation technique et audit interne (réservés aux administrateurs)"
     },
     "content.about.subtitle": {
       "scope": "public",
@@ -1115,7 +1115,7 @@
           "subtitle": "Informations du projet ForetMap",
           "purpose_title": "Objet de l'application",
           "purpose_body": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
-          "site_issues_title": "Audit interne (réservé aux administrateurs)",
+          "site_issues_title": "Documentation technique et audit interne (réservés aux administrateurs)",
           "docs_title": "Documentation",
           "help_title": "Aide contextuelle",
           "help_body": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",
@@ -1602,8 +1602,8 @@
       "key": "content.about.site_issues_title",
       "scope": "public",
       "type": "string",
-      "value": "Audit interne (réservé aux administrateurs)",
-      "default_value": "Audit interne (réservé aux administrateurs)",
+      "value": "Documentation technique et audit interne (réservés aux administrateurs)",
+      "default_value": "Documentation technique et audit interne (réservés aux administrateurs)",
       "constraints": {
         "min": null,
         "max": null,
@@ -4437,7 +4437,7 @@
           "subtitle": "Informations du projet ForetMap",
           "purpose_title": "Objet de l'application",
           "purpose_body": "{app} aide les n3beurs et les n3boss du {org} à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.",
-          "site_issues_title": "Audit interne (réservé aux administrateurs)",
+          "site_issues_title": "Documentation technique et audit interne (réservés aux administrateurs)",
           "docs_title": "Documentation",
           "help_title": "Aide contextuelle",
           "help_body": "Si les bulles d aide ont ete masquées, tu peux les reactiver ici.",

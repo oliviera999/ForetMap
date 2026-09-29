@@ -243,7 +243,8 @@ export function StaffPlanSettingsPanel({
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Nouveau code"
+            placeholder="Nouveau code (8 caractères minimum)"
+            minLength={8}
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value)}
             disabled={readOnly || savingCode}
@@ -261,7 +262,8 @@ export function StaffPlanSettingsPanel({
         <p className="muted" style={{ marginBottom: 0 }}>
           Le code n’est jamais stocké en clair : seule une empreinte est enregistrée. Contrairement
           au plan public, le mode « code » <strong>sans</strong> empreinte ne laisse entrer personne
-          — cette surface n’a pas de version publique acceptable.
+          — cette surface n’a pas de version publique acceptable. Changer le code oblige chaque
+          appareil déjà entré à le ressaisir.
         </p>
       </div>
     </div>

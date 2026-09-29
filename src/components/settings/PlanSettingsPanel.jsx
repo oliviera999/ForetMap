@@ -242,7 +242,8 @@ export function PlanSettingsPanel({
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Nouveau code"
+            placeholder="Nouveau code (8 caractères minimum)"
+            minLength={8}
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value)}
             disabled={readOnly || savingCode}
@@ -259,7 +260,8 @@ export function PlanSettingsPanel({
         </div>
         <p className="muted" style={{ marginBottom: 0 }}>
           Le code n’est jamais stocké en clair : seule une empreinte est enregistrée. En mode « code
-          » sans empreinte, le plan reste ouvert (évite un verrouillage accidentel).
+          » sans empreinte, le plan reste ouvert (évite un verrouillage accidentel). Changer le code
+          oblige chaque appareil déjà entré à le ressaisir.
         </p>
       </div>
     </div>

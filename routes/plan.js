@@ -22,7 +22,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 
 const { getDataWriteVersion } = require('../database');
-const { planAccessGate, isPlanAccessGranted } = require('../lib/planAccess');
+const { planAccessGate, grantPlanAccess, isPlanAccessGranted } = require('../lib/planAccess');
 const { authLimiter } = require('../lib/rateLimit');
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
@@ -86,7 +86,7 @@ router.post(
     if (!code) return res.status(400).json({ error: 'Code requis' });
     const valid = await bcrypt.compare(code, hash).catch(() => false);
     if (!valid) return res.status(401).json({ error: 'Code incorrect' });
-    planAccessGate.set(res, 'ok');
+    grantPlanAccess(res, hash);
     res.json({ ok: true, required: true });
   }),
 );
@@ -129,7 +129,7 @@ router.get(
     if (settings.access_mode === 'code' && inlineCode) {
       const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
       if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        planAccessGate.set(res, 'ok');
+        grantPlanAccess(res, hash);
         // Le cookie vient d'être posé sur la réponse : il n'est pas encore dans la requête,
         // et cette requête-ci doit déjà être servie.
         grantedInline = true;

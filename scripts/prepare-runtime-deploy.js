@@ -24,18 +24,59 @@ const skipPrune = argv.has('--skip-prune');
 const cloudlinuxSelector = argv.has('--cloudlinux-selector');
 const includeNodeModules = !argv.has('--without-node-modules') && !cloudlinuxSelector;
 
-const EXCLUDE_DIR_NAMES = new Set([
-  '.git',
-  '.cursor',
-  'deploy',
-  'node_modules',
-  'uploads',
-  'logs',
-  'playwright-report',
-  'test-results',
-  'blob-report',
+/**
+ * Liste **blanche** des entrées racine copiées dans le bundle. Une liste d'exclusions laissait
+ * passer tout ce qui traînait sur le poste de build (`src/`, `tests/`, `tmp/`, `.worktrees/`,
+ * `.env.local`, dumps non versionnés, journaux…) — audit sécurité 2026-09-29. Le serveur tourne
+ * sans `src/` : les miroirs CJS nécessaires vivent sous `lib/`.
+ */
+const RUNTIME_ENTRIES = Object.freeze([
+  'app.js',
+  'server.js',
+  'database.js',
+  'package.json',
+  'package-lock.json',
+  '.npmrc',
+  '.cpanel.yml',
+  '.env.example',
+  'README.md',
+  'CHANGELOG.md',
+  'LICENSE',
+  'dist',
+  'lib',
+  'routes',
+  'middleware',
+  'migrations',
+  'sql',
+  'scripts',
+  'data',
+  'docs',
+  'public',
+  'tutos',
 ]);
-const EXCLUDE_FILE_NAMES = new Set(['.env', 'startup.log', 'startup-diag.log', 'npm-debug.log']);
+
+/** Exclusions appliquées **à l'intérieur** des entrées retenues. */
+const EXCLUDE_NESTED_DIR_NAMES = new Set(['node_modules', 'dumps', 'fixtures', '.git']);
+const EXCLUDE_FILE_PATTERNS = [
+  /^\.env(\..+)?$/,
+  /_bdd_complete\.sql$/i,
+  /[_-]dump\.sql$/i,
+  /\.log$/i,
+  /\.bak(-.*)?$/i,
+];
+
+function isExcludedNested(srcPath) {
+  const name = path.basename(srcPath);
+  if (name === '.env.example') return false;
+  let stat;
+  try {
+    stat = fs.lstatSync(srcPath);
+  } catch {
+    return true;
+  }
+  if (stat.isDirectory()) return EXCLUDE_NESTED_DIR_NAMES.has(name);
+  return EXCLUDE_FILE_PATTERNS.some((re) => re.test(name));
+}
 
 const REQUIRED_RUNTIME_BASE = [
   'app.js',
@@ -102,14 +143,14 @@ function stampCompact() {
 
 function copyProjectFiltered(srcRoot, destRoot) {
   fs.mkdirSync(destRoot, { recursive: true });
-  const entries = fs.readdirSync(srcRoot, { withFileTypes: true });
-  for (const entry of entries) {
-    if (EXCLUDE_DIR_NAMES.has(entry.name) || EXCLUDE_FILE_NAMES.has(entry.name)) {
-      continue;
-    }
-    const srcPath = path.join(srcRoot, entry.name);
-    const destPath = path.join(destRoot, entry.name);
-    fs.cpSync(srcPath, destPath, { recursive: true, dereference: false });
+  for (const name of RUNTIME_ENTRIES) {
+    const srcPath = path.join(srcRoot, name);
+    if (!fs.existsSync(srcPath)) continue;
+    fs.cpSync(srcPath, path.join(destRoot, name), {
+      recursive: true,
+      dereference: false,
+      filter: (src) => src === srcPath || !isExcludedNested(src),
+    });
   }
 }
 

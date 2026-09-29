@@ -97,22 +97,35 @@ try {
   }
   New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 
-  Write-Host "==> Copie des fichiers projet (hors secrets)"
-  $excludeDirs = @(
-    ".git", ".cursor", "deploy", "node_modules", "uploads", "logs",
-    "playwright-report", "test-results", "blob-report"
+  # Liste blanche alignée sur RUNTIME_ENTRIES de prepare-runtime-deploy.js (audit sécurité
+  # 2026-09-29) : une liste d'exclusions laissait passer src/, tests/, tmp/, .worktrees/, .env.*…
+  Write-Host "==> Copie des fichiers projet (liste blanche, hors secrets)"
+  $runtimeDirs = @(
+    "dist", "lib", "routes", "middleware", "migrations", "sql", "scripts",
+    "data", "docs", "public", "tutos"
   )
-  $excludeFiles = @(".env", "startup.log", "startup-diag.log", "npm-debug.log")
-  $robocopyArgsMain = @(
-    $projectRoot, $stageDir, "/E", "/NFL", "/NDL", "/NJH", "/NJS", "/NP",
-    "/XD"
-  ) + $excludeDirs + @(
-    "/XF"
-  ) + $excludeFiles
-  & robocopy @robocopyArgsMain | Out-Null
-  if ($LASTEXITCODE -ge 8) {
-    throw "Robocopy a échoué (code $LASTEXITCODE)"
+  $runtimeFiles = @(
+    "app.js", "server.js", "database.js", "package.json", "package-lock.json",
+    ".npmrc", ".cpanel.yml", ".env.example", "README.md", "CHANGELOG.md", "LICENSE"
+  )
+  $excludeNestedDirs = @("node_modules", "dumps", "fixtures", ".git")
+  $excludeNestedFiles = @(".env", ".env.*", "*_bdd_complete.sql", "*_dump.sql", "*-dump.sql", "*.log", "*.bak", "*.bak-*")
+  foreach ($dir in $runtimeDirs) {
+    $src = Join-Path $projectRoot $dir
+    if (-not (Test-Path $src)) { continue }
+    $robocopyArgs = @(
+      $src, (Join-Path $stageDir $dir), "/E", "/NFL", "/NDL", "/NJH", "/NJS", "/NP", "/XD"
+    ) + $excludeNestedDirs + @("/XF") + $excludeNestedFiles
+    & robocopy @robocopyArgs | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+      throw "Robocopy a échoué sur $dir (code $LASTEXITCODE)"
+    }
   }
+  foreach ($file in $runtimeFiles) {
+    $src = Join-Path $projectRoot $file
+    if (Test-Path $src) { Copy-Item -Path $src -Destination (Join-Path $stageDir $file) -Force }
+  }
+  $global:LASTEXITCODE = 0
 
   if ($includeNodeModules) {
     Write-Host "==> Copie node_modules (runtime)"

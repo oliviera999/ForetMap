@@ -10,6 +10,7 @@ const {
   canManageGroups,
   canBypassGroupScope,
   isGroupInManageScope,
+  findUsersOutsideManageScope,
   getAllGroups,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
@@ -755,6 +756,12 @@ router.put(
         if (!byId.has(userId))
           return res.status(400).json({ error: `Utilisateur introuvable: ${userId}` });
       }
+      const refused = await findUsersOutsideManageScope(req.auth, groupId, allUserIds);
+      if (refused.length > 0) {
+        return res
+          .status(403)
+          .json({ error: 'Utilisateur hors périmètre', user_ids: refused.slice(0, 20) });
+      }
     }
 
     if (scopeMapIds.length > 0) {
@@ -916,11 +923,22 @@ router.post(
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
 
+    const outOfScope = new Set(
+      await findUsersOutsideManageScope(
+        req.auth,
+        groupId,
+        userIds.map((raw) => normalizeId(raw)).filter(Boolean),
+      ),
+    );
     const results = [];
     for (const raw of userIds) {
       const userId = normalizeId(raw);
       if (!userId) {
         results.push({ user_id: String(raw ?? ''), ok: false, error: 'Identifiant invalide' });
+        continue;
+      }
+      if (outOfScope.has(userId)) {
+        results.push({ user_id: userId, ok: false, error: 'Utilisateur hors périmètre' });
         continue;
       }
       const result = await addUserToGroup(userId, groupId);
@@ -968,6 +986,9 @@ router.post(
     if (!groupId || !userId) return res.status(400).json({ error: 'Identifiants requis' });
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    if ((await findUsersOutsideManageScope(req.auth, groupId, [userId])).length > 0) {
+      return res.status(403).json({ error: 'Utilisateur hors périmètre' });
     }
     const result = await addUserToGroup(userId, groupId);
     if (!result.ok) return res.status(result.status).json({ error: result.error });

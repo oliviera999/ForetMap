@@ -279,6 +279,10 @@ Les groupes structurent la vie pédagogique :
 - **Membres** : le professeur compose les groupes (élèves et enseignants). Un
   enseignant membre d'un groupe l'**encadre** : c'est ce rattachement qui délimite le
   périmètre d'un prof de classe. Il n'y a plus de « responsable » distinct du membre.
+  Un prof de classe ne peut ajouter à ses groupes que des comptes déjà présents dans son
+  périmètre, ou des élèves qui n'ont encore **aucune** classe ; l'élève d'une autre classe
+  est refusé (« Utilisateur hors périmètre »). L'administrateur et le n3boss ne sont pas
+  limités.
 - **Parent** : dans le panneau de réglages, un groupe peut être **rattaché à un groupe
   parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
   pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de

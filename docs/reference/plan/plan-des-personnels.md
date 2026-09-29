@@ -122,6 +122,10 @@ Si vous l'activez malgré tout, trois garde-fous s'appliquent :
   décide de ce qu'il voit : laissé bas, il ne verra pas les lieux réservés à l'encadrement ;
 - **chaque ouverture est inscrite au journal d'audit**, réussie comme refusée.
 
+Le code doit faire **au moins 8 caractères**. **Le changer** ferme la porte à tous les
+appareils déjà entrés : l'ancien laissez-passer cesse de fonctionner immédiatement. Le code du
+plan public, lui, n'ouvre jamais le plan des personnels, même si les deux sont actifs.
+
 Le code n'est jamais stocké en clair, seulement son empreinte. Et contrairement au plan public,
 activer le mode « code » **sans** enregistrer de code ne laisse entrer personne : cette surface
 n'a pas de version publique acceptable.

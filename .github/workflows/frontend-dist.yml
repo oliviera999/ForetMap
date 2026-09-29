@@ -32,14 +32,14 @@ jobs:
   dist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Sur une PR : on checkout la *branche source* (et non la merge-ref
           # détachée) pour pouvoir recommiter ; sur push, réf par défaut.
           ref: ${{ github.head_ref }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -67,13 +67,17 @@ jobs:
           steps.drift.outputs.drift == 'true' &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
+        # Le nom de branche passe par l'environnement, jamais interpolé dans le script : un nom
+        # piégé (`$(...)`, `"; …`) exécuterait sinon du code avec `contents: write`.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
           git commit -m "chore(build): régénère les miroirs CJS (auto) [skip ci]"
           # Le push avec GITHUB_TOKEN ne re-déclenche pas de workflow (anti-boucle).
-          git push origin "HEAD:${{ github.head_ref }}"
+          git push origin "HEAD:refs/heads/${HEAD_REF}"
 
       # --- Garde-fou bloquant (push main, ou PR de fork sans auto-commit possible) ---
       - name: Garde-fou miroirs à jour

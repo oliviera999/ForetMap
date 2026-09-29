@@ -239,6 +239,9 @@ const EXPOSURE_PROBE_PATHS = Object.freeze([
   '/scripts/auto-deploy-cron.sh',
   '/.env',
   '/.git/HEAD',
+  '/.git/config',
+  '/startup.log',
+  '/src/main.jsx',
 ]);
 
 /**

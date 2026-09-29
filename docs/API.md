@@ -683,6 +683,14 @@ Ils sont utiles pour l’exploitation, la QA et le suivi des correctifs.
 | ------- | ----------------------- | --------------------------------------------------------------------------------------------- |
 | GET     | `/api/site-issues`      | `admin.settings.read` — rapport en **Markdown** (`text/markdown`) ; audit interne, non public |
 | GET     | `/api/site-issues.json` | `admin.settings.read` — rapport en **JSON** (`application/json`) ; audit interne, non public  |
+| GET     | `/README.md`            | Public — présentation du projet (`text/markdown`)                                             |
+| GET     | `/CHANGELOG.md`         | `admin.settings.read` — historique des versions (`text/markdown`) ; non public depuis le 29/09/2026 |
+| GET     | `/docs/:file`           | `admin.settings.read` — liste blanche `API.md`, `LOCAL_DEV.md`, `EVOLUTION.md`, `VERSIONING.md`, `MASCOT_PACK.md` ; `404` hors liste |
+
+> **Audit sécurité 2026-09-29** : le CHANGELOG décrit chaque correctif de sécurité et `API.md`
+> cartographie routes et permissions ; combinés à `GET /api/version`, ils indiquaient à un tiers
+> les failles encore ouvertes sur l'instance. Ils sont désormais réservés, et récupérés avec le
+> jeton depuis l'onglet « À propos ».
 
 Sources de référence :
 

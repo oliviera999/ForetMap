@@ -260,12 +260,24 @@ const ACCESS_CODE_SETTINGS = Object.freeze({
   'staff-plan': { key: 'security.staff_plan_access_code_hash', label: 'du plan des personnels' },
 });
 
+/**
+ * Longueur minimale d'un code d'accès. La seule défense contre le tâtonnement est `authLimiter`
+ * (plafond par adresse IP) : un code de 4 chiffres tombait en quelques jours depuis une seule
+ * adresse. Les codes déjà enregistrés restent valides ; la règle s'applique à l'enregistrement.
+ */
+const ACCESS_CODE_MIN_LENGTH = 8;
+
 function accessCodeHandler(target) {
   const { key, label } = ACCESS_CODE_SETTINGS[target];
   return asyncHandler(async (req, res) => {
     const code = String(req.body?.code ?? '').trim();
     if (code.length > 64) {
       return res.status(400).json({ error: 'Code trop long (64 caractères maximum)' });
+    }
+    if (code && code.length < ACCESS_CODE_MIN_LENGTH) {
+      return res.status(400).json({
+        error: `Code trop court (${ACCESS_CODE_MIN_LENGTH} caractères minimum)`,
+      });
     }
     const hash = code ? await bcrypt.hash(code, 10) : '';
     const updated = await setSetting(key, hash, {
