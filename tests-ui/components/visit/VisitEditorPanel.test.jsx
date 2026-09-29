@@ -101,13 +101,10 @@ describe('VisitEditorPanel', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
-  test('Supprimer (confirmé) → DELETE /api/visit/zones/:id', async () => {
-    const { onSaved } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
-    await waitFor(() => {
-      expect(api).toHaveBeenCalledWith('/api/visit/zones/7', 'DELETE');
-    });
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  test('pas de suppression côté visite : le lieu se supprime depuis la carte', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: /Supprimer/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/supprimez-le depuis la carte/)).toBeInTheDocument();
   });
 
   test('action média (reload de la même sélection) ne réinitialise pas la saisie en cours', () => {

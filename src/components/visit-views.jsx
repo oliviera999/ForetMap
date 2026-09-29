@@ -844,7 +844,10 @@ function VisitViewImpl({
 
   const createZoneFromPoints = async () => {
     if (!visitMapImageReady || drawPoints.length < 3) return;
-    const name = await prompt({ message: 'Titre de la zone de visite ?', required: true });
+    const name = await prompt({
+      message: 'Titre de la zone ? (elle sera aussi ajoutée à la carte)',
+      required: true,
+    });
     if (!name || !name.trim()) return;
     setCreating(true);
     try {
@@ -883,7 +886,10 @@ function VisitViewImpl({
     }
 
     if (mode === 'add-marker') {
-      const label = await prompt({ message: 'Titre du repère de visite ?', required: true });
+      const label = await prompt({
+        message: 'Titre du repère ? (il sera aussi ajouté à la carte)',
+        required: true,
+      });
       if (!label || !label.trim()) return;
       setCreating(true);
       try {

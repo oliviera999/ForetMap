@@ -1065,7 +1065,7 @@ test('PUT /api/visit/media/reorder réordonne les médias', async () => {
   assert.strictEqual(vm.visit_media[1].id, a.body.id);
 
   await request(app)
-    .delete(`/api/visit/markers/${markerRes.body.id}`)
+    .delete(`/api/map/markers/${markerRes.body.id}`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 });
@@ -1142,12 +1142,12 @@ test('POST /api/visit/media avec image_data, GET /data et contenu public', async
   await request(app).get(`/api/visit/media/${postRes.body.id}/data`).expect(404);
 
   await request(app)
-    .delete(`/api/visit/markers/${markerRes.body.id}`)
+    .delete(`/api/map/markers/${markerRes.body.id}`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 });
 
-test('POST /api/visit/sync importe de manière sélective carte -> visite', async () => {
+test('Les lieux créés sur la carte sont reflétés en visite (sync map_to_visit reste idempotente)', async () => {
   const zoneA = await request(app)
     .post('/api/zones')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -1216,12 +1216,12 @@ test('POST /api/visit/sync importe de manière sélective carte -> visite', asyn
 
   const visitRes = await request(app).get('/api/visit/content?map_id=foret').expect(200);
   assert.ok(visitRes.body.zones.some((z) => z.id === zoneA.body.id));
-  assert.ok(!visitRes.body.zones.some((z) => z.id === zoneB.body.id));
+  assert.ok(visitRes.body.zones.some((z) => z.id === zoneB.body.id));
   assert.ok(visitRes.body.markers.some((m) => m.id === markerA.body.id));
-  assert.ok(!visitRes.body.markers.some((m) => m.id === markerB.body.id));
+  assert.ok(visitRes.body.markers.some((m) => m.id === markerB.body.id));
 });
 
-test('POST /api/visit/sync importe de manière sélective visite -> carte', async () => {
+test('Les lieux créés depuis la visite existent aussi sur la carte', async () => {
   const visitZoneA = await request(app)
     .post('/api/visit/zones')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -1289,9 +1289,71 @@ test('POST /api/visit/sync importe de manière sélective visite -> carte', asyn
   const zonesRes = await request(app).get('/api/zones?map_id=foret').expect(200);
   const markersRes = await request(app).get('/api/map/markers?map_id=foret').expect(200);
   assert.ok(zonesRes.body.some((z) => z.id === visitZoneA.body.id));
-  assert.ok(!zonesRes.body.some((z) => z.id === visitZoneB.body.id));
+  assert.ok(zonesRes.body.some((z) => z.id === visitZoneB.body.id));
   assert.ok(markersRes.body.some((m) => m.id === visitMarkerA.body.id));
-  assert.ok(!markersRes.body.some((m) => m.id === visitMarkerB.body.id));
+  assert.ok(markersRes.body.some((m) => m.id === visitMarkerB.body.id));
+
+  await request(app)
+    .delete(`/api/visit/zones/${visitZoneA.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(409);
+  await request(app)
+    .delete(`/api/visit/markers/${visitMarkerA.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(409);
+
+  const renamed = `Repère renommé depuis visite ${Date.now()}`;
+  await request(app)
+    .put(`/api/visit/markers/${visitMarkerB.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ label: renamed })
+    .expect(200);
+  const markerRow = await queryOne('SELECT label FROM map_markers WHERE id = ?', [
+    visitMarkerB.body.id,
+  ]);
+  assert.strictEqual(markerRow.label, renamed);
+
+  for (const z of [visitZoneA, visitZoneB]) {
+    await request(app)
+      .delete(`/api/zones/${z.body.id}`)
+      .set('Authorization', 'Bearer ' + teacherToken)
+      .expect(200);
+  }
+  for (const m of [visitMarkerA, visitMarkerB]) {
+    await request(app)
+      .delete(`/api/map/markers/${m.body.id}`)
+      .set('Authorization', 'Bearer ' + teacherToken)
+      .expect(200);
+  }
+  const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(!content.body.zones.some((z) => z.id === visitZoneA.body.id));
+  assert.ok(!content.body.markers.some((m) => m.id === visitMarkerA.body.id));
+});
+
+test('GET /api/visit/content ignore les lignes visite orphelines et respecte « Masquer sur Visite »', async () => {
+  const ts = Date.now();
+  const orphanId = `zone-orph${String(ts).slice(-4)}`;
+  await execute(
+    `INSERT INTO visit_zones (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+     VALUES (?, 'foret', ?, '[]', '', '', 'Détails', '', 1, 0, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))`,
+    [orphanId, `Orpheline ${ts}`],
+  );
+  const marker = await request(app)
+    .post('/api/map/markers')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ map_id: 'foret', x_pct: 12, y_pct: 12, label: `Repère masqué ${ts}`, emoji: '📍' })
+    .expect(201);
+  await execute("UPDATE map_markers SET hidden_surfaces = 'visit' WHERE id = ?", [marker.body.id]);
+
+  const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  assert.ok(!content.body.zones.some((z) => z.id === orphanId));
+  assert.ok(!content.body.markers.some((m) => m.id === marker.body.id));
+
+  await execute('DELETE FROM visit_zones WHERE id = ?', [orphanId]);
+  await request(app)
+    .delete(`/api/map/markers/${marker.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
 });
 
 test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire la visite hors carte', async () => {
@@ -1342,19 +1404,12 @@ test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire 
     .send({ name: newName })
     .expect(200);
 
-  const orphan = await request(app)
-    .post('/api/visit/zones')
-    .set('Authorization', 'Bearer ' + teacherToken)
-    .send({
-      map_id: 'foret',
-      name: `Zone visite seule ${ts}`,
-      points: [
-        { xp: 80, yp: 80 },
-        { xp: 88, yp: 80 },
-        { xp: 84, yp: 87 },
-      ],
-    })
-    .expect(201);
+  const orphan = { body: { id: `zone-reb${String(ts).slice(-4)}` } };
+  await execute(
+    `INSERT INTO visit_zones (id, map_id, name, points, subtitle, short_description, details_title, details_text, is_active, sort_order, created_at, updated_at)
+     VALUES (?, 'foret', ?, '[]', '', '', 'Détails', '', 1, 0, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))`,
+    [orphan.body.id, `Zone visite seule ${ts}`],
+  );
 
   const rebuild = await request(app)
     .post('/api/visit/rebuild-from-map')

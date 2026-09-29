@@ -9,7 +9,13 @@ const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
-const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
+const {
+  nowIso,
+  resolveVisitMapId,
+  mapExists,
+  VISIT_PLACE_ON_MAP_ERROR,
+} = require('../../lib/visitRouteShared');
+const { emitGardenChanged } = require('../../lib/realtime');
 const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
@@ -48,35 +54,50 @@ router.post(
     if (!audience.ok) return res.status(400).json({ error: audience.error });
     const notesInput = await readVisitNotesInput(req, res);
     if (!notesInput) return undefined;
+    // La Visite reflète la carte (`lib/visitMapMirror.js`) : un repère posé ici est d'abord
+    // un repère de la carte, avec le même identifiant.
     const id = crypto.randomUUID();
-    await execute(
-      `INSERT INTO visit_markers
-      (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
-       visible_role_slugs, visible_group_ids,
-       sort_order, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        mapId,
-        x,
-        y,
-        label,
-        normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' }),
-        String(req.body.subtitle || '').trim(),
-        String(req.body.short_description || '').trim(),
-        String(req.body.details_title || 'Détails').trim() || 'Détails',
-        String(req.body.details_text || '').trim(),
-        serializeVisitEditorialBlocks(
-          parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
-        ),
-        audience.visible_role_slugs,
-        audience.visible_group_ids,
-        Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
-        req.body.is_active === false ? 0 : 1,
-        nowIso(),
-        nowIso(),
-      ],
-    );
+    const emoji = normalizeMarkerEmoji(req.body.emoji, { allowEmpty: true, fallback: '' });
+    const shortDescription = String(req.body.short_description || '').trim();
+    const now = nowIso();
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        `INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, note, emoji, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, mapId, x, y, label, shortDescription, emoji, now],
+      );
+      await tx.execute(
+        `INSERT INTO visit_markers
+        (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json,
+         visible_role_slugs, visible_group_ids,
+         sort_order, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          mapId,
+          x,
+          y,
+          label,
+          emoji,
+          String(req.body.subtitle || '').trim(),
+          shortDescription,
+          String(req.body.details_title || 'Détails').trim() || 'Détails',
+          String(req.body.details_text || '').trim(),
+          serializeVisitEditorialBlocks(
+            parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
+          ),
+          audience.visible_role_slugs,
+          audience.visible_group_ids,
+          Number.isFinite(Number(req.body.sort_order))
+            ? Math.max(0, Number(req.body.sort_order))
+            : 0,
+          req.body.is_active === false ? 0 : 1,
+          now,
+          now,
+        ],
+      );
+    });
+    emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     await applyVisitNotes('marker', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
     res.status(201).json(await withVisitNotes('marker', id, withLocationAudienceFields(row)));
@@ -162,6 +183,18 @@ router.put(
         markerId,
       ],
     );
+    const identityChanged = ['label', 'x_pct', 'y_pct', 'emoji'].some(
+      (k) => req.body[k] !== undefined,
+    );
+    if (identityChanged) {
+      const result = await execute(
+        'UPDATE map_markers SET label = ?, x_pct = ?, y_pct = ?, emoji = ? WHERE id = ?',
+        [label, x, y, emoji, markerId],
+      );
+      if (result?.affectedRows) {
+        emitGardenChanged({ reason: 'update_marker', markerId, mapId: exists.map_id });
+      }
+    }
     await applyVisitNotes('marker', markerId, notesInput);
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
     res.json(await withVisitNotes('marker', markerId, withLocationAudienceFields(row)));
@@ -174,6 +207,9 @@ router.delete(
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
+    if (await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [markerId])) {
+      return res.status(409).json({ error: VISIT_PLACE_ON_MAP_ERROR });
+    }
     await withTransaction(async (tx) => {
       await deleteVisitTargetCascade('marker', markerId, tx);
       await deleteVisitOnlyNotes(tx, 'marker', markerId);

@@ -41,6 +41,7 @@ const {
 } = require('../lib/visitContentHelpers');
 const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
 const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
+const { isVisibleOnSurface } = require('../lib/locationSurfaces');
 
 const router = express.Router();
 
@@ -250,12 +251,15 @@ router.get(
     // MySQL retenue).
     // Audience : source de vérité = visit_* ; COALESCE vers la carte si pas encore
     // synchronisé (transition post-migration 240). Filtrage via filterLocationsForViewer.
+    // Identité (nom, forme, position, emoji) lue sur la carte, seule source des lieux
+    // (`lib/visitMapMirror.js`) : une ligne visite sans lieu de carte n'est jamais servie.
     const zonesPromise = queryAll(
       `SELECT
-       z.id, z.map_id, z.name, z.points,
+       z.id, zm.map_id, zm.name, zm.points,
        zm.description AS description,
        zm.color AS color,
        zm.emoji AS emoji,
+       zm.hidden_surfaces AS hidden_surfaces,
        COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(z.visible_group_ids, zm.visible_group_ids) AS visible_group_ids,
        z.subtitle AS visit_subtitle,
@@ -266,16 +270,17 @@ router.get(
        z.is_active AS visit_is_active,
        z.sort_order AS visit_sort_order
      FROM visit_zones z
-     LEFT JOIN zones zm ON zm.id = z.id AND zm.map_id = z.map_id
-     WHERE z.map_id = ?
-     ORDER BY z.sort_order ASC, z.name ASC`,
+     INNER JOIN zones zm ON zm.id = z.id
+     WHERE zm.map_id = ?
+     ORDER BY z.sort_order ASC, zm.name ASC`,
       [mapId],
     );
 
     const markersPromise = queryAll(
       `SELECT
-       m.id, m.map_id, m.x_pct, m.y_pct, m.label, m.emoji,
+       m.id, mm.map_id, mm.x_pct, mm.y_pct, mm.label, mm.emoji,
        mm.note AS note,
+       mm.hidden_surfaces AS hidden_surfaces,
        COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(m.visible_group_ids, mm.visible_group_ids) AS visible_group_ids,
        m.subtitle AS visit_subtitle,
@@ -286,9 +291,9 @@ router.get(
        m.is_active AS visit_is_active,
        m.sort_order AS visit_sort_order
      FROM visit_markers m
-     LEFT JOIN map_markers mm ON mm.id = m.id AND mm.map_id = m.map_id
-     WHERE m.map_id = ?
-     ORDER BY m.sort_order ASC, m.label ASC`,
+     INNER JOIN map_markers mm ON mm.id = m.id
+     WHERE mm.map_id = ?
+     ORDER BY m.sort_order ASC, mm.label ASC`,
       [mapId],
     );
 
@@ -534,7 +539,9 @@ router.get(
           visit_media: visitMedia,
           visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(z, visitMedia),
         };
-      });
+      })
+      // « Masquer sur : Visite » (lieu) et catégories non visibles sur la Visite.
+      .filter((z) => isVisibleOnSurface(z, 'visit'));
     const publicMarkers = markers
       .filter((m) => visitContentRowIsPublicActive(m))
       .map((m) => {
@@ -554,7 +561,8 @@ router.get(
           visit_media: visitMedia,
           visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(m, visitMedia),
         };
-      });
+      })
+      .filter((m) => isVisibleOnSurface(m, 'visit'));
 
     const visiblePlaceKeys = new Set([
       ...publicZones.map((z) => `zone:${z.id}`),

@@ -165,18 +165,27 @@ familles.
 ## Ce que gère le professeur
 
 - **Éditer les contenus** : directement dans la vue Visite — un panneau d'outils permet
-  de dessiner des zones de visite, poser des repères, puis remplir chaque fiche
+  de dessiner des zones, poser des repères, puis remplir chaque fiche
   (textes, blocs éditoriaux, photos — importables depuis les photos de la carte de
   travail, l'ordre est réordonnable). Une case « Visible en visite » masque un lieu au
   public sans le supprimer. Une bascule « aperçu élève » montre le rendu final.
   Un enregistrement ne fait plus disparaître la page : le plan et la fiche en cours
   restent affichés, et seule une mention « Actualisation… » signale le rechargement.
-- **Synchroniser avec la carte de travail** : la Visite a ses propres lieux, liés à
-  ceux de la carte par leur identité. Deux outils : l'**import sélectif** (copier des
-  zones/repères de la carte vers la visite, ou l'inverse — seule la géométrie et le nom
-  voyagent) et le **réalignement complet** (reconstruire la couche visite depuis la
-  carte, en préservant les textes des lieux conservés). C'est une **copie ponctuelle**,
-  pas un lien vivant.
+- **La Visite reflète exactement la carte** : ses zones et repères **sont** ceux de la
+  carte de travail, rien de plus, rien de moins. Un lieu créé sur la carte apparaît
+  aussitôt en visite ; un lieu renommé, redessiné, déplacé ou dont l'emoji change est
+  mis à jour aussitôt ; un lieu supprimé de la carte disparaît de la visite avec sa
+  fiche. À l'inverse, une zone dessinée ou un repère posé depuis la vue Visite est
+  **aussi ajouté à la carte**, et un renommage fait depuis la Visite modifie le lieu de
+  la carte. Seuls les textes, blocs, photos, l'ordre et la case « Visible en visite »
+  sont propres à la visite.
+- **Supprimer un lieu se fait depuis la carte** : la fiche de visite n'a pas de bouton
+  « Supprimer ». Pour cacher un lieu au public sans le supprimer, décocher « Visible en
+  visite », ou cocher « Masquer sur : Visite » dans la fiche du lieu sur la carte — ce
+  réglage est désormais respecté par la visite.
+- **Outils de synchronisation** : l'**import sélectif** et le **réalignement complet**
+  restent disponibles, mais ne servent plus qu'en rattrapage : le lien entre carte et
+  visite est tenu en permanence.
 - **Créer des mascottes** : l'onglet « Packs mascotte » offre un **studio visuel** —
   animations image par image, comportements (réactions périodiques, réaction au
   toucher), bulles de dialogue par événement, aperçu animé en direct, bibliothèque
@@ -417,11 +426,22 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > textes selon ce qui a déjà été consulté doublerait le corpus à écrire et à relire. Si le
 > besoin se confirme à l'usage, c'est une évolution à demander.
 
-> ⚠️ **Point d'attention** — La synchronisation carte ↔ visite étant une copie
-> ponctuelle, une zone renommée ou déplacée sur la carte de travail ne se met pas à
-> jour toute seule côté visite : penser à resynchroniser. Et les packs mascotte n'ont
-> pas d'historique de versions : publier écrase l'état précédent (exporter une archive
-> avant les grands changements fait office de sauvegarde).
+> ⚠️ **Point d'attention** — Les packs mascotte n'ont pas d'historique de versions :
+> publier écrase l'état précédent (exporter une archive avant les grands changements fait
+> office de sauvegarde).
+
+> ⚠️ **Point d'attention** — Lors du passage à une visite qui reflète la carte, les lieux
+> qui n'existaient que dans la visite (des essais, comme « permanence 1 », « VIE SCOLAIRE
+> COLLEGE » ou « cantine college ») ont été **supprimés avec leurs fiches**, et les lieux
+> de la carte absents de la visite y ont été ajoutés, visibles, avec la description de la
+> carte comme accroche. Les photos de ces fiches supprimées ne sont plus affichées nulle
+> part, mais leurs fichiers restent sur le serveur.
+
+> ⚠️ **Point d'attention** — Un lieu **sans catégorie** n'apparaît pas en visite dès que
+> la carte a des catégories affichées par défaut, alors que la page Carte et zones indique
+> qu'un lieu sans catégorie reste visible partout. Donner une catégorie aux lieux à
+> montrer en visite évite la surprise ; l'harmonisation des deux comportements est une
+> évolution à demander.
 
 En visite invitée, l’affichage biodiversité est **toujours Collège** (pas d’outils lycée /
 université), quel que soit le réglage de la carte — voir

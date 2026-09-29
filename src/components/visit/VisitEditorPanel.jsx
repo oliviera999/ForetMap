@@ -19,7 +19,7 @@ import { VisitEditorialBuilder } from './VisitEditorialBuilder.jsx';
 import { VisitMediaEditor } from './VisitMediaEditor.jsx';
 import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
-import { IconDelete, IconSave, IconSlider } from '../../shared/icons.jsx';
+import { IconSave, IconSlider } from '../../shared/icons.jsx';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
@@ -382,31 +382,10 @@ export function VisitEditorPanel({
           </>
         )}
       </button>
-      <button
-        className="btn btn-danger btn-sm"
-        style={{ marginLeft: 8 }}
-        onClick={async () => {
-          if (
-            !(await confirm({
-              message: `Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`,
-              danger: true,
-            }))
-          )
-            return;
-          try {
-            await api(
-              `/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`,
-              'DELETE',
-            );
-            await onSaved?.();
-          } catch (err) {
-            if (err instanceof AccountDeletedError) onForceLogout?.();
-            else notify(err.message || 'Erreur suppression');
-          }
-        }}
-      >
-        <IconDelete size={14} /> Supprimer
-      </button>
+      <p className="hint">
+        La visite reflète la carte : pour supprimer ce lieu, supprimez-le depuis la carte ; pour le
+        cacher au public, décochez « Visible en visite ».
+      </p>
 
       <VisitMediaEditor
         sortedVisitMedia={sortedVisitMedia}

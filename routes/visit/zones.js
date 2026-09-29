@@ -9,7 +9,14 @@ const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
-const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
+const {
+  nowIso,
+  resolveVisitMapId,
+  mapExists,
+  VISIT_PLACE_ON_MAP_ERROR,
+} = require('../../lib/visitRouteShared');
+const { emitGardenChanged } = require('../../lib/realtime');
+const { resolveZoneEmojiForWrite } = require('../../lib/zoneEmoji');
 const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
@@ -46,33 +53,54 @@ router.post(
     if (!audience.ok) return res.status(400).json({ error: audience.error });
     const notesInput = await readVisitNotesInput(req, res);
     if (!notesInput) return undefined;
-    const id = crypto.randomUUID();
-    await execute(
-      `INSERT INTO visit_zones
-        (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
-         visible_role_slugs, visible_group_ids,
-         sort_order, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        mapId,
-        name,
-        JSON.stringify(points),
-        String(req.body.subtitle || '').trim(),
-        String(req.body.short_description || '').trim(),
-        String(req.body.details_title || 'Détails').trim() || 'Détails',
-        String(req.body.details_text || '').trim(),
-        serializeVisitEditorialBlocks(
-          parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
-        ),
-        audience.visible_role_slugs,
-        audience.visible_group_ids,
-        Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
-        req.body.is_active === false ? 0 : 1,
-        nowIso(),
-        nowIso(),
-      ],
-    );
+    // La Visite reflète la carte (`lib/visitMapMirror.js`) : une zone dessinée ici est d'abord
+    // un lieu de la carte, avec le même identifiant.
+    const id = 'zone-' + crypto.randomUUID().slice(0, 8);
+    const shortDescription = String(req.body.short_description || '').trim();
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        `INSERT INTO zones
+          (id, map_id, name, emoji, x, y, width, height, special, shape, points, color, description)
+         VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, 'polygon', ?, '#86efac80', ?)`,
+        [
+          id,
+          mapId,
+          name,
+          resolveZoneEmojiForWrite(undefined, name, ''),
+          JSON.stringify(points),
+          shortDescription,
+        ],
+      );
+      await tx.execute(
+        `INSERT INTO visit_zones
+          (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json,
+           visible_role_slugs, visible_group_ids,
+           sort_order, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          mapId,
+          name,
+          JSON.stringify(points),
+          String(req.body.subtitle || '').trim(),
+          shortDescription,
+          String(req.body.details_title || 'Détails').trim() || 'Détails',
+          String(req.body.details_text || '').trim(),
+          serializeVisitEditorialBlocks(
+            parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
+          ),
+          audience.visible_role_slugs,
+          audience.visible_group_ids,
+          Number.isFinite(Number(req.body.sort_order))
+            ? Math.max(0, Number(req.body.sort_order))
+            : 0,
+          req.body.is_active === false ? 0 : 1,
+          nowIso(),
+          nowIso(),
+        ],
+      );
+    });
+    emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     await applyVisitNotes('zone', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
     res.status(201).json(await withVisitNotes('zone', id, withLocationAudienceFields(row)));
@@ -153,6 +181,18 @@ router.put(
         zoneId,
       ],
     );
+    if (req.body.name !== undefined || maybePoints) {
+      const mapZone = await queryOne('SELECT emoji FROM zones WHERE id = ? LIMIT 1', [zoneId]);
+      if (mapZone) {
+        await execute('UPDATE zones SET name = ?, points = ?, emoji = ? WHERE id = ?', [
+          name,
+          maybePoints ? JSON.stringify(maybePoints) : exists.points,
+          resolveZoneEmojiForWrite(undefined, name, mapZone.emoji || ''),
+          zoneId,
+        ]);
+        emitGardenChanged({ reason: 'update_zone', zoneId, mapId: exists.map_id });
+      }
+    }
     await applyVisitNotes('zone', zoneId, notesInput);
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
     res.json(await withVisitNotes('zone', zoneId, withLocationAudienceFields(row)));
@@ -165,6 +205,9 @@ router.delete(
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
+    if (await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zoneId])) {
+      return res.status(409).json({ error: VISIT_PLACE_ON_MAP_ERROR });
+    }
     await withTransaction(async (tx) => {
       await deleteVisitTargetCascade('zone', zoneId, tx);
       await deleteVisitOnlyNotes(tx, 'zone', zoneId);

@@ -53,12 +53,14 @@ async function postVisitMarker(page, headers, body) {
 }
 
 /**
+ * La visite reflète la carte : un lieu créé depuis la visite existe aussi sur la carte, et
+ * c'est depuis la carte qu'on le supprime (`DELETE /api/visit/*` renvoie 409).
  * @param {import('@playwright/test').Page} page
  * @param {string} token
  * @param {string} zoneId
  */
 async function deleteVisitZone(page, token, zoneId) {
-  const res = await page.request.delete(`/api/visit/zones/${encodeURIComponent(zoneId)}`, {
+  const res = await page.request.delete(`/api/zones/${encodeURIComponent(zoneId)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.ok();
@@ -70,7 +72,7 @@ async function deleteVisitZone(page, token, zoneId) {
  * @param {string} markerId
  */
 async function deleteVisitMarker(page, token, markerId) {
-  const res = await page.request.delete(`/api/visit/markers/${encodeURIComponent(markerId)}`, {
+  const res = await page.request.delete(`/api/map/markers/${encodeURIComponent(markerId)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.ok();
@@ -129,7 +131,7 @@ async function deleteAllN3EntranceMarkers(page, headers) {
     const label = String(marker?.label || '').trim();
     if (!VISIT_N3_ENTRANCE_LABEL_RE.test(label)) continue;
     await page.request
-      .delete(`/api/visit/markers/${encodeURIComponent(marker.id)}`, { headers })
+      .delete(`/api/map/markers/${encodeURIComponent(marker.id)}`, { headers })
       .catch(() => false);
   }
 }

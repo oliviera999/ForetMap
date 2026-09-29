@@ -62,6 +62,7 @@ test.after(async () => {
     await execute('DELETE FROM location_categories WHERE id = ?', [id]);
   }
   await execute('DELETE FROM visit_zones WHERE map_id = ?', [mapId]);
+  await execute('DELETE FROM visit_markers WHERE map_id = ?', [mapId]);
   await execute('DELETE FROM zones WHERE map_id = ?', [mapId]);
   await execute('DELETE FROM map_markers WHERE map_id = ?', [mapId]);
   await execute('DELETE FROM location_categories WHERE map_id = ?', [mapId]);

@@ -101,6 +101,7 @@ test.after(async () => {
   for (const id of created.markers) await execute('DELETE FROM map_markers WHERE id = ?', [id]);
   for (const id of [planMapId, visitMapId]) {
     await execute('DELETE FROM visit_zones WHERE map_id = ?', [id]);
+    await execute('DELETE FROM visit_markers WHERE map_id = ?', [id]);
     await execute('DELETE FROM zones WHERE map_id = ?', [id]);
     await execute('DELETE FROM map_markers WHERE map_id = ?', [id]);
     await execute('DELETE FROM maps WHERE id = ?', [id]);

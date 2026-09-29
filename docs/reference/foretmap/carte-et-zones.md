@@ -251,7 +251,9 @@ Cartographie.
    présent sur plusieurs cartes à la fois. Les élèves les retrouvent ensuite au même
    endroit.
 7. **Supprimer** une zone ou un repère : la fiche, ses photos et son contenu de visite
-   sont retirés ensemble.
+   sont retirés ensemble. C'est le seul endroit où l'on supprime un lieu : la Visite
+   reflète exactement les zones et repères de la carte (création, renommage, forme,
+   position et emoji sont repris aussitôt).
 
 ### Les parcours
 
@@ -501,7 +503,12 @@ Deux réglages se combinent :
 - **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, le bloc
   « Masquer sur » retire **ce lieu précis** d'une surface, quelle que soit sa catégorie.
 
-Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué. Si
+« Masquer sur : Visite » est respecté par la visite guidée (il ne l'était pas auparavant :
+le lieu y restait affiché).
+
+Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué
+(exception à ce jour : la Visite le cache dès que la carte a des catégories affichées par
+défaut — voir les points d'attention de la page Visite). Si
 toutes les surfaces sont cochées dans « Masquer sur », un avertissement prévient que le
 lieu ne sera visible nulle part.
 

@@ -13,6 +13,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 Les fichiers servis sur `planlyautey.*` et `proflyautey.*` / `stafflyautey.*` étaient déjà identiques au favicon de lyceelyautey.org, mais les navigateurs gardaient en cache l'ancienne icône (cache de favicons indexé par URL, indépendant de `Cache-Control`). Les balises `<link rel="icon">` et `apple-touch-icon` de `plan.html` et `staff.html` portent désormais un paramètre de version (`?v=lyautey-2025-12`) qui force le rechargement.
 
+### Modifié — la Visite reflète exactement les zones et repères des cartes
+
+La Visite avait ses propres lieux, copiés ponctuellement depuis la carte : un lieu créé ou renommé sur la carte n'y était pas repris, et la visite pouvait garder des lieux absents de la carte (export de production : « permanence 1 » 🐍, « VIE SCOLAIRE COLLEGE » 🤖, « cantine college » 🥕, essais jamais supprimés). La carte devient la seule source des lieux :
+
+- chaque création / modification d'une zone ou d'un repère de carte tient la ligne visite à jour, sans toucher aux textes de visite (`lib/visitMapMirror.js`, branché dans `lib/terrain/locationService.js`) ;
+- `GET /api/visit/content` lit l'identité (nom, forme, position, emoji) sur la carte, ignore les lignes visite sans lieu de carte et respecte enfin « Masquer sur : Visite » (`isVisibleOnSurface`) ;
+- créer une zone / un repère depuis la Visite crée aussi le lieu de carte ; renommer depuis la Visite modifie la carte ; `DELETE /api/visit/zones|markers/:id` renvoie **409** si le lieu existe sur la carte (le bouton « Supprimer » de l'éditeur de visite est retiré) ;
+- migration `309_visit_mirror_map_locations.sql` : supprime les lignes visite orphelines (médias, vues, compléments compris — les fichiers image restent sur le disque), ajoute les lieux de carte manquants et réaligne l'identité.
+
+Tests : `tests/visit-map-mirror.test.js` (nouveau), `tests/new-features.test.js`, `tests-ui/components/visit/VisitEditorPanel.test.jsx`. Docs : `docs/API.md`, `docs/reference/foretmap/visite-et-mascottes.md`, `carte-et-zones.md`.
+
 ### Corrigé — carte de travail : le zoom et le cadrage survivent à l'édition des zones
 
 Ouvrir le mode « Contour » d'une zone, tracer une zone, poser un repère ou aligner des zones faisait revenir la carte à la vue d'ensemble, et de même au retour en consultation. Cause : la consultation (`WorkMapStage` / `SharedMapStage`) et l'édition (`MapViewEditCanvas` / `useMapGestures`) ont chacune leur moteur de vue, et chaque bascule remontait un moteur neuf qui s'ajustait à la carte entière ; en édition, tout redimensionnement du cadre (barre d'outils) réajustait aussi la carte. La vue passe désormais d'un moteur à l'autre sous une forme indépendante du cadre (point central en % du plan + zoom relatif à l'ajustement) : `pctMapViewSnapshot` / `pctMapTransformFromViewSnapshot` (`src/shared/pct-map/pctMapTransform.js`), options `initialView` et `onResize: 'preserve'`, méthodes `getViewSnapshot` / `restoreView` de `usePctMapViewport`, relais dans `src/components/map/useMapViewHandoff.js`. Tests : `tests-ui/shared/pctMapTransform.test.js`, `tests-ui/shared/usePctMapViewport.test.jsx`, `tests-ui/components/map/useMapViewHandoff.test.jsx`.
