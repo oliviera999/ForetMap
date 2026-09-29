@@ -15,14 +15,23 @@ export function estimateDataUrlBytes(dataUrl) {
   return Math.floor((payload.length * 3) / 4) - padding;
 }
 
-/** Libellé du type de profil affiché (admin / prof / élève selon la terminologie). */
+/**
+ * Libellé du type de profil affiché (admin / prof / élève selon la terminologie). Seul le
+ * profil `prof` est « n3boss » : « Prof de classe », « Personnel » ou un profil sur mesure
+ * d'un compte enseignant affichent leur nom réel.
+ */
 export function deriveProfileTypeLabel(student, roleTerms) {
   const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
+  const roleDisplayName = String(student?.auth?.roleDisplayName || '').trim();
   if (roleSlug === 'admin') return 'admin';
-  if (roleSlug.startsWith('prof')) return roleTerms.teacherShort;
+  if (roleSlug === 'prof') return roleTerms.teacherShort;
   if (roleSlug.startsWith('eleve')) return roleTerms.studentSingular;
   const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-  if (userType === 'teacher' || userType === 'user') return roleTerms.teacherShort;
+  if (userType === 'teacher' || userType === 'user') {
+    if (roleSlug && roleDisplayName) return roleDisplayName;
+    if (roleSlug === 'prof_classe') return 'Prof de classe';
+    return roleTerms.teacherShort;
+  }
   if (userType === 'student') return roleTerms.studentSingular;
   return roleTerms.studentSingular;
 }
@@ -71,6 +80,40 @@ export function validateProfileEditorFields({ pseudo, email, description }) {
   }
   return '';
 }
+
+const PROFILE_PATCH_FIELDS = [
+  'pseudo',
+  'email',
+  'description',
+  'visit_mascot_catalog_id',
+  'biodiv_pedago_level',
+];
+
+function normalizeProfileField(value) {
+  const s = String(value ?? '').trim();
+  return s === '' ? null : s;
+}
+
+/**
+ * Corps du PATCH « Mon profil » : **seulement les champs modifiés** depuis l'ouverture. Le
+ * serveur applique tout champ présent, même vide — renvoyer un champ que l'utilisateur n'a
+ * pas touché l'écrasait si la fiche initiale était incomplète.
+ *
+ * @param {object} initial valeurs à l'ouverture du formulaire
+ * @param {object} current valeurs saisies
+ * @returns {object} champs à envoyer (valeurs normalisées, `null` pour vide)
+ */
+export function buildProfilePatchPayload(initial = {}, current = {}) {
+  const payload = {};
+  for (const key of PROFILE_PATCH_FIELDS) {
+    const next = normalizeProfileField(current?.[key]);
+    if (next !== normalizeProfileField(initial?.[key])) payload[key] = next;
+  }
+  return payload;
+}
+
+/** Plancher de mot de passe des comptes enseignants (serveur : `lib/passwordReset.js`). */
+export const TEACHER_PASSWORD_MIN_LENGTH = 12;
 
 /**
  * Validation du formulaire « Changer mon mot de passe » (le plancher de longueur est

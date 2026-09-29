@@ -201,8 +201,9 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     expect(onTabChange).toHaveBeenCalledWith('notebook');
   });
 
-  test('chaque onglet est filtré par sa permission (profil « Prof de classe »)', () => {
-    // Un tuteur limité à ses groupes : il suit ses élèves, il ne gère pas le catalogue.
+  test('chaque onglet est filtré par sa permission (profil restreint à ses groupes)', () => {
+    // Profil personnalisé limité à ses groupes : il suit ses élèves, il ne gère pas le
+    // catalogue. (Le « Prof de classe » livré n'a pas `teacher.access`, donc pas cette barre.)
     const profClasse = new Set(['tasks.validate', 'stats.read.group', 'teacher.access']);
     render(
       <TeacherTopTabs

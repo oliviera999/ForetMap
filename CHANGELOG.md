@@ -16,6 +16,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Deux profs sur la même fiche** : il y a désormais un verrou optimiste sur les tâches, zones, repères et fiches espèces. Il repose sur la migration `312_edit_revision.sql` (colonne `edit_revision`) et `lib/editRevision.js`. Un `PUT` qui porte une révision périmée (`expected_revision`) renvoie 409 `edit_conflict` sans rien écrire. Le formulaire propose alors « Écraser sa version » ou « Ne pas enregistrer » (`src/utils/editRevision.js`, `useEditConflictConfirm`). Principe de `If-Match` / 412 ([RFC 9110 §13.1.1](https://www.rfc-editor.org/rfc/rfc9110#section-13.1.1)), porté dans le corps JSON.
 - Tests : `tests/edit-revision.test.js`, `tests/edit-revision-client.test.js`, `tests/tasks-done-idempotence.test.js`, Vitest de la file et de l'écran Tâches. `docs/API.md` et la doc de référence (`taches-tutoriels-et-validation.md`) sont alignées.
 
+### Corrigé — profil « Prof de classe » cohérent ; « Mon profil » n'efface plus les données des enseignants
+
+Audit [`docs/AUDIT_PROF_CLASSE_2026-09-29.md`](docs/AUDIT_PROF_CLASSE_2026-09-29.md) (14 constats, 13 traités).
+
+- **« Mon profil » (tous les enseignants)** : `GET /api/auth/me` renvoie désormais `profile` (pseudo, description, mascotte, niveau biodiversité). La session le fusionne, et l'enregistrement n'envoie que les champs modifiés : un simple « Enregistrer » vidait auparavant le pseudo, la description et le niveau.
+- **Droits** : un compte enseignant ne reçoit plus jamais de profil par le biais d'un groupe (fin de la montée à n3boss). Le périmètre cartes exempte tout compte enseignant. Hors vue globale, l'import de groupes refuse les lignes sans parent, et le détachement, la désactivation et la suppression d'une classe racine renvoient 403. Un Rôle vide à l'import d'élèves donne « visiteur » hors vue globale. La migration `310_prof_classe_realignement.sql` retire `id_keys.manage` et les quatre droits `tasks.*` inertes du profil système.
+- **Interface du prof de classe** : le profil affiché est le vrai. « Connexion professeur » est masqué pour un compte enseignant, et le bandeau de prise de contrôle précise le type de compte. Côté stats, le titre devient « Statistiques de mes élèves », sans bloc Quiz ni compteurs de tâches. L'onglet Classe s'intitule « Ma classe ». Ajouts : vue complète par défaut, temps réel et forum actifs, textes de visite guidée dédiés, préférences de notification sans Tâches ni Échéances. La mascotte apparaît aussi en Visite.
+- Doc de référence (`comptes-roles-et-groupes.md`, `niveaux-pedagogiques-biodiversite.md`) et `docs/API.md` alignées ; tests serveur, Vitest et scénario Playwright `e2e/class-teacher.spec.js` ajoutés.
+
 ### Corrigé — clés d'identification : schéma lisible, fiable et qui ne donne plus la réponse ; réseau trophique accessible
 
 Audit [`docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md`](docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md) (18 constats, tous traités).

@@ -255,14 +255,24 @@ export function useAuthSession({
         impersonatedBy: auth.impersonatedBy ?? fromJwt.impersonatedBy,
       });
       if (auth.userType === 'teacher') {
+        // `d.profile` (compte enseignant) fait foi ; à défaut, on garde ce qui est connu —
+        // sans quoi mascotte et niveau d'affichage sautaient à chaque renouvellement de jeton.
+        const profile = d.profile && typeof d.profile === 'object' ? d.profile : null;
+        const pick = (key, prev) =>
+          profile && key in profile ? profile[key] : (prev?.[key] ?? null);
         setSessionUser((prev) => ({
+          ...(prev && typeof prev === 'object' ? prev : {}),
           id: auth.canonicalUserId || prev?.id || null,
           userType: 'teacher',
           // Le nom du compte : celui porté par la session ré-émise, sinon celui déjà connu —
           // jamais le nom du profil (« n3boss », « Admin »), CDG-30.
           displayName: auth.displayName || prev?.displayName || 'Utilisateur',
-          email: prev?.email || null,
-          avatar_path: prev?.avatar_path || null,
+          email: pick('email', prev),
+          avatar_path: pick('avatar_path', prev),
+          pseudo: pick('pseudo', prev),
+          description: pick('description', prev),
+          visit_mascot_catalog_id: pick('visit_mascot_catalog_id', prev),
+          biodiv_pedago_level: pick('biodiv_pedago_level', prev),
         }));
       }
       if (d.autoProfilePromotion && auth.userType === 'student') {

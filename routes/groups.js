@@ -560,6 +560,20 @@ router.patch(
     if (niveauInput !== undefined) curriculumNiveau = niveauInput;
     if (parentGroupId && parentGroupId === id)
       return res.status(400).json({ error: 'Un groupe ne peut pas être son propre parent' });
+    // Sans vue globale, on ne crée pas de classe racine (POST) : on n'en fabrique pas non plus
+    // en détachant un sous-groupe, et on ne désactive pas une racine qu'on n'aurait pu créer.
+    if (!canBypassGroupScope(req.auth)) {
+      if (group.parent_group_id && !parentGroupId) {
+        return res.status(403).json({
+          error: 'Sans vue globale, un sous-groupe ne peut pas être détaché de sa classe',
+        });
+      }
+      if (!group.parent_group_id && isActive === 0 && Number(group.is_active) !== 0) {
+        return res.status(403).json({
+          error: 'Sans vue globale, une classe racine ne peut pas être désactivée',
+        });
+      }
+    }
     if (parentGroupId) {
       const parent = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [
         parentGroupId,
@@ -671,10 +685,18 @@ router.delete(
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
     const id = normalizeId(req.params.id);
-    const group = await queryOne('SELECT id, name FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    const group = await queryOne(
+      'SELECT id, name, parent_group_id FROM `groups` WHERE id = ? LIMIT 1',
+      [id],
+    );
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
     if (!(await isGroupInManageScope(req.auth, id))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    if (!group.parent_group_id && !canBypassGroupScope(req.auth)) {
+      return res.status(403).json({
+        error: 'Sans vue globale, une classe racine ne peut pas être supprimée',
+      });
     }
     // Membres relevés AVANT la suppression (cascade group_members) pour recalculer leur
     // profil effectif ensuite ; sinon un membre garde un profil issu du groupe supprimé

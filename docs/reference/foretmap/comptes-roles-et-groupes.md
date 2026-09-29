@@ -178,7 +178,10 @@ rang égal, le profil attribué. Concrètement :
 - un groupe **sans** profil par défaut (« Visiteur ») ne change rien pour personne ;
 - seule la case **« Imposer ce profil »** d'un groupe permet de **forcer plus bas** : le
   profil du groupe devient alors le profil effectif de ses élèves, même s'ils ont mieux.
-  Les enseignants membres d'un groupe ne sont jamais concernés par l'imposition.
+- **Un enseignant ne reçoit jamais de profil par un groupe** : ni conféré, ni imposé. Seul
+  son profil attribué compte. Sans cette règle, un prof de classe membre d'une classe dont
+  le profil par défaut était « n3boss » devenait n3boss — avec la vue sur tout
+  l'établissement.
 - un enseignant **sans profil** reçoit **« Prof de classe »** (jamais n3boss) ; un élève
   sans profil est **visiteur**.
 
@@ -247,16 +250,23 @@ Le profil système **« Prof de classe »** est distinct du n3boss. En pratique 
    exige de rattacher l'élève à un groupe du périmètre du professeur.
 5. **Pas d'escalade** : ce profil ne donne pas les pouvoirs administrateur, ni la
    totalité des pouvoirs n3boss.
-6. **« Accès interface n3boss » reste coché** : malgré son libellé, cette permission
-   (`teacher.access`) n'affiche **aucune** barre haute n3boss sur ce profil — le prof de
-   classe garde la navigation basse d'un visiteur connecté. C'est surtout le droit qui
-   ouvre les **fonctions d'encadrement** (stats de classe, gestion des groupes…). La
-   console **refuse** de le décocher sur « Admin », « n3boss » et « Prof de classe » :
-   sans lui, la connexion réussissait mais l'application restait figée sur l'écran de
-   chargement (plus d'écran de connexion, mais rien ne s'affichait). Un compte
-   enseignant **connecté** voit désormais l'application même si ce droit manque ; les
-   menus d'encadrement restent fermés. Pour un profil d'encadrement plus étroit,
-   **dupliquer** un profil et retirer les autres droits, pas celui-ci.
+6. **Pas d'« Accès interface n3boss »** : le prof de classe livré ne porte pas ce droit.
+   Il n'en a pas besoin — ses fonctions d'encadrement (stats de ses élèves, gestion de
+   ses groupes, plan des personnels) tiennent chacune à leur propre droit, et un compte
+   enseignant connecté voit l'application même sans lui. La console refuse de décocher
+   ce droit sur « Admin » et « n3boss » seulement.
+7. **Ce que le profil contient, exactement** : lire les groupes, gérer ses groupes, lire
+   les statistiques et les carnets d'observation de ses groupes, ouvrir le **Plan des
+   personnels**. Il n'a **aucun** droit sur les tâches ni sur les clés d'identification ;
+   le **forum** lui est ouvert comme à tout compte connecté.
+8. **Ses écrans** : l'onglet Stats s'intitule « Statistiques de mes élèves » et ne montre
+   ni compteurs de tâches ni le bloc Quiz de tout l'établissement ; l'onglet Classe
+   s'intitule « Ma classe ». Les visites guidées de ces deux onglets ont un texte dédié,
+   et le centre de notifications ne propose pas de préférences Tâches ni Échéances. Il
+   voit les fiches biodiversité en **vue complète** par défaut, comme un n3boss. Le
+   bouton « Connexion professeur » n'apparaît pas : il est déjà connecté avec son compte
+   enseignant. « Mon profil » affiche le nom réel du profil (« Prof de classe »), jamais
+   « n3boss ».
 
 ### Portée de groupe
 
@@ -287,6 +297,12 @@ Les groupes structurent la vie pédagogique :
   parent** (une équipe sous sa classe) ou **détaché** (« Aucun parent »). Un groupe ne peut
   pas devenir son propre descendant, et un prof de classe ne rattache qu'à un parent de
   son périmètre.
+- **Classes racines** : sans la vue globale, un prof de classe ne crée pas de classe de
+  premier niveau. Par cohérence, il ne peut pas non plus en fabriquer ou en faire
+  disparaître autrement : il ne **détache** pas un sous-groupe de sa classe, ne
+  **désactive** ni ne **supprime** une classe racine, et l'import de groupes refuse chez
+  lui les lignes sans parent ou marquées « aucun ». Il gère librement les sous-groupes
+  de ses classes.
 - **Niveau de la classe** : cycle 3, cycle 4, seconde, première ou terminale (spécialité
   SVT ou enseignement scientifique), ou **Université**. C'est **le niveau des élèves du
   groupe** (depuis le 25 septembre 2026, la seule échelle de niveau d'un élève) : il fixe
@@ -477,7 +493,9 @@ sous-onglet consulté qui est rouvert.
   administrateur l'a renommé — que son identifiant technique (`eleve_novice`,
   `prof_classe`…) ou un mot courant (tuteur, enseignant, staff, novice…) ; majuscules,
   accents, emoji et espaces n'ont aucune importance. Une cellule **Rôle vide** donne le
-  palier d'entrée n3beur, et le rapport d'import le signale avec les numéros de ligne.
+  palier d'entrée n3beur — ou **visiteur** quand la personne qui importe n'a pas la vue
+  globale (un prof de classe à qui l'on a ouvert l'import : ses élèves sont des
+  visiteurs) —, et le rapport d'import le signale avec les numéros de ligne.
   Une valeur non reconnue n'est jamais devinée : la ligne est refusée avec un message
   qui rappelle la valeur écrite et les valeurs attendues (les profils du jeu Gnomes &
   Licornes, eux, se gèrent depuis l'administration du jeu). Une colonne **Groupes** (à l'import) permet de

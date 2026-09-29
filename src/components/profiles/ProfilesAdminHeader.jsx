@@ -8,6 +8,7 @@ import { IconShield } from '../../shared/icons.jsx';
  * Affiche le titre de section et, lorsque l'aide est activée, le panneau d'aide associé.
  */
 function ProfilesAdminHeader({
+  classTeacherMode = false,
   isHelpEnabled,
   helpProfiles,
   hasSeenSection,
@@ -26,7 +27,7 @@ function ProfilesAdminHeader({
       }}
     >
       <h2 className="section-title" style={{ marginBottom: 0 }}>
-        <IconShield size={20} /> Profils & utilisateurs
+        <IconShield size={20} /> {classTeacherMode ? 'Ma classe' : 'Profils & utilisateurs'}
       </h2>
       {isHelpEnabled && (
         <HelpPanel

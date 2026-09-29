@@ -7,6 +7,7 @@ import {
   buildVisitMascotOptions,
   validateProfileEditorFields,
   validatePasswordChangeFields,
+  buildProfilePatchPayload,
 } from '../../src/utils/studentProfileFields.js';
 import { getVisitMascotCatalog } from '../../src/utils/visitMascotCatalog.js';
 
@@ -35,10 +36,27 @@ describe('deriveProfileTypeLabel / isTeacherLikeAccount / profileUpdateEndpoint'
     expect(profileUpdateEndpoint(s)).toBe('/api/auth/me/profile');
   });
 
-  test('prof* par roleSlug → libellé enseignant + endpoint auth', () => {
-    const s = { id: 7, auth: { roleSlug: 'prof_principal' } };
+  test('prof par roleSlug → libellé enseignant + endpoint auth', () => {
+    const s = { id: 7, auth: { roleSlug: 'prof' } };
     expect(deriveProfileTypeLabel(s, ROLE_TERMS)).toBe('n3boss');
     expect(profileUpdateEndpoint(s)).toBe('/api/auth/me/profile');
+  });
+
+  test('prof de classe : libellé réel du profil, jamais « n3boss »', () => {
+    const s = { id: 7, auth: { roleSlug: 'prof_classe', userType: 'teacher' } };
+    expect(deriveProfileTypeLabel(s, ROLE_TERMS)).toBe('Prof de classe');
+    expect(profileUpdateEndpoint(s)).toBe('/api/auth/me/profile');
+    const named = {
+      auth: { roleSlug: 'prof_classe', roleDisplayName: 'Enseignant de 5e', userType: 'teacher' },
+    };
+    expect(deriveProfileTypeLabel(named, ROLE_TERMS)).toBe('Enseignant de 5e');
+  });
+
+  test('compte enseignant sur un autre profil (ex. visiteur) : nom du profil affiché', () => {
+    const s = {
+      auth: { roleSlug: 'visiteur', roleDisplayName: 'Visiteur', userType: 'teacher' },
+    };
+    expect(deriveProfileTypeLabel(s, ROLE_TERMS)).toBe('Visiteur');
   });
 
   test('eleve* par roleSlug → libellé élève + endpoint students', () => {
@@ -133,6 +151,35 @@ describe('validateProfileEditorFields', () => {
       'Description trop longue (max 300 caractères)',
     );
     expect(validateProfileEditorFields({ ...valid, description: 'x'.repeat(300) })).toBe('');
+  });
+});
+
+describe('buildProfilePatchPayload', () => {
+  const initial = {
+    pseudo: 'momo',
+    email: 'moi@exemple.com',
+    description: 'Salut',
+    visit_mascot_catalog_id: 'gnome1',
+    biodiv_pedago_level: 'college',
+  };
+
+  test('aucun changement → payload vide', () => {
+    expect(buildProfilePatchPayload(initial, { ...initial })).toEqual({});
+  });
+
+  test('seuls les champs modifiés sont envoyés : une fiche incomplète n’écrase rien', () => {
+    // Fiche initiale sans mascotte ni niveau (état reçu d'une session incomplète) :
+    // modifier le pseudo ne doit pas renvoyer mascotte/niveau à null.
+    const partial = { pseudo: 'momo', email: 'moi@exemple.com' };
+    expect(buildProfilePatchPayload(partial, { ...partial, pseudo: 'momo2' })).toEqual({
+      pseudo: 'momo2',
+    });
+  });
+
+  test('valeurs normalisées : espaces retirés, vide → null', () => {
+    expect(
+      buildProfilePatchPayload(initial, { ...initial, pseudo: '  momo  ', description: '   ' }),
+    ).toEqual({ description: null });
   });
 });
 

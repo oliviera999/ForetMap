@@ -843,6 +843,84 @@ test('POST /api/students/import : rôle inconnu → message explicite, colonne v
   assert.deepEqual(info.rows, [2]);
 });
 
+test('POST /api/students/import : sans vue globale, une colonne Rôle vide donne « visiteur »', async () => {
+  // Profil éphémère de rang prof de classe (350) à qui l'on a ouvert l'import : ses élèves
+  // sont des visiteurs, un rôle vide ne doit pas en faire des n3beurs novices.
+  const stamp = `${Date.now()}_${Math.random().toString(16).slice(2, 6)}`;
+  const roleSlug = `prof_classe_imp_${stamp}`.slice(0, 64);
+  await execute('INSERT INTO roles (slug, display_name, `rank`, is_system) VALUES (?, ?, 350, 0)', [
+    roleSlug,
+    `Prof de classe import ${stamp}`,
+  ]);
+  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
+  const groupId = crypto.randomUUID();
+  const groupSlug = `classe-imp-${stamp}`.replace(/_/g, '-');
+  let teacher = null;
+  try {
+    for (const key of ['groups.read', 'groups.manage', 'students.import']) {
+      await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+        role.id,
+        key,
+      ]);
+    }
+    teacher = await createTeacherWithRole({
+      firstName: 'Prof',
+      lastName: `Classe-${stamp}`,
+      roleSlug,
+      email: `prof_classe_imp_${stamp}@example.com`,
+    });
+    await execute(
+      `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
+      [groupId, groupSlug, `Classe import ${stamp}`],
+    );
+    await execute(
+      `INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'teacher')`,
+      [groupId, teacher.id],
+    );
+    const token = await signAuthToken(
+      {
+        userType: 'teacher',
+        userId: teacher.id,
+        canonicalUserId: teacher.id,
+        roleId: role.id,
+        roleSlug,
+        roleDisplayName: roleSlug,
+        elevated: false,
+      },
+      false,
+    );
+    const csv = [
+      IMPORT_CSV_HEADER,
+      `;Vide;Visit-${stamp};MotDePasse12!;${groupSlug};vis_${stamp};vis_${stamp}@example.com;`,
+    ].join('\n');
+    const res = await request(app)
+      .post('/api/students/import')
+      .set('Authorization', 'Bearer ' + token)
+      .send({
+        fileName: 'visiteurs.csv',
+        fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+        dryRun: true,
+      })
+      .expect(200);
+    assert.strictEqual(res.body.report.totals.valid, 1, JSON.stringify(res.body.report.errors));
+    const info = (res.body.report.infos || []).find((i) => i.code === 'role_defaulted');
+    assert.ok(info, 'aucune info sur la colonne Rôle vide');
+    assert.match(info.message, /\(visiteur\)/);
+  } finally {
+    await execute('DELETE FROM group_members WHERE group_id = ?', [groupId]);
+    await execute('DELETE FROM `groups` WHERE id = ?', [groupId]);
+    if (teacher?.id) {
+      await execute("DELETE FROM user_roles WHERE user_type = 'teacher' AND user_id = ?", [
+        teacher.id,
+      ]);
+      await execute('DELETE FROM users WHERE id = ?', [teacher.id]);
+    }
+    await execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
+    await execute('DELETE FROM roles WHERE id = ?', [role.id]);
+  }
+});
+
 test('POST /api/students/import : « Type » ne prime pas sur « Rôle », « E-mail » reconnu', async () => {
   const unique = Date.now();
   const header = ['Type', 'Rôle', 'Prénom', 'Nom', 'Mot de passe', 'E-mail'].join(';');

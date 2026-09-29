@@ -191,6 +191,31 @@ describe('useAuthSession', () => {
     expect(updater({ displayName: 'Mme Dupont' })).toMatchObject({ displayName: 'Mme Dupont' });
   });
 
+  it('mergeAuthMeResponse (enseignant) : mascotte, niveau et pseudo conservés ou relus', () => {
+    const { params, result } = renderAuthSession();
+    act(() =>
+      result.current.mergeAuthMeResponse({
+        auth: { userType: 'teacher', canonicalUserId: 'T1' },
+        profile: { pseudo: 'mme_d', visit_mascot_catalog_id: 'gnome1' },
+      }),
+    );
+    const updater = params.setSessionUser.mock.calls.at(-1)[0];
+    const merged = updater({
+      id: 'T1',
+      displayName: 'Mme Dupont',
+      description: 'Prof de SVT',
+      biodiv_pedago_level: 'lycee',
+      visit_mascot_catalog_id: 'ancienne',
+    });
+    // Champs présents dans `profile` : relus ; absents : ceux de la session précédente.
+    expect(merged).toMatchObject({
+      pseudo: 'mme_d',
+      visit_mascot_catalog_id: 'gnome1',
+      description: 'Prof de SVT',
+      biodiv_pedago_level: 'lycee',
+    });
+  });
+
   it('mergeAuthMeResponse : promotion et drapeaux participation fusionnés côté n3beur', () => {
     const { params, result } = renderAuthSession();
     act(() =>

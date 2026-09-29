@@ -331,6 +331,76 @@ test('Groupes: un prof de classe (rang 350) gère les membres mais pas le profil
   assert.strictEqual(row?.default_role_id ?? null, null, 'le profil par défaut est resté vide');
 });
 
+test('Groupes: sans vue globale, un prof de classe ne supprime, ne détache ni ne désactive une racine', async () => {
+  const adminToken = await getAdminToken();
+  const { token, teacherId } = await createTeacherToken('racine', 'prof_classe');
+  const stamp = Date.now();
+  const root = await createGroupViaApi(adminToken, {
+    name: `Classe racine ${stamp}`,
+    slug: `classe-racine-${stamp}`,
+    kind: 'class',
+  });
+  await request(app)
+    .post(`/api/groups/${root.id}/members/${teacherId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(201);
+  // Sous-groupe créé par le prof lui-même : autorisé (dans son périmètre).
+  const sub = await createGroupViaApi(token, {
+    name: `Atelier ${stamp}`,
+    kind: 'team',
+    parent_group_id: root.id,
+  });
+
+  const detach = await request(app)
+    .patch(`/api/groups/${sub.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ parent_group_id: null })
+    .expect(403);
+  assert.match(detach.body.error, /détaché/);
+
+  const deactivate = await request(app)
+    .patch(`/api/groups/${root.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ is_active: false })
+    .expect(403);
+  assert.match(deactivate.body.error, /désactivée/);
+
+  const del = await request(app)
+    .delete(`/api/groups/${root.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(403);
+  assert.match(del.body.error, /supprimée/);
+  assert.ok(await queryOne('SELECT id FROM `groups` WHERE id = ?', [root.id]));
+
+  // Import : une classe sans parent, ou un rattachement « aucun », est refusé ligne à ligne.
+  const csv = [
+    'Nom,Parent (slug ou nom)',
+    `Nouvelle racine ${stamp},`,
+    `Atelier ${stamp},aucun`,
+  ].join('\n');
+  const imported = await request(app)
+    .post('/api/groups/import')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      fileName: 'groupes.csv',
+      fileDataBase64: Buffer.from(csv, 'utf8').toString('base64'),
+    })
+    .expect(200);
+  assert.strictEqual(imported.body.report.totals.created, 0);
+  const parentErrors = imported.body.report.errors.filter((e) => e.field === 'parent');
+  assert.strictEqual(parentErrors.length, 2, JSON.stringify(imported.body.report.errors));
+  const rootCreated = await queryOne('SELECT id FROM `groups` WHERE name = ? LIMIT 1', [
+    `Nouvelle racine ${stamp}`,
+  ]);
+  assert.ok(!rootCreated, 'aucune classe racine créée par import');
+
+  // Le sous-groupe, lui, reste supprimable par le prof.
+  await request(app)
+    .delete(`/api/groups/${sub.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+});
+
 test('Stats: un n3boss (prof, rang 400) membre d’un groupe voit tous les n3beurs sans filtre', async () => {
   const { token, teacherId } = await createTeacherToken('scope-all', 'prof');
 
@@ -419,6 +489,54 @@ test('Stats: un prof de classe (rang 350) reste borné à ses groupes même avec
     await execute('DELETE FROM role_permissions WHERE role_id = ?', [roleId]);
     await execute('DELETE FROM roles WHERE id = ?', [roleId]);
   }
+});
+
+test('Prof de classe livré : stats de ses élèves visiteurs, quiz global refusé, profil relu par /me', async () => {
+  const adminToken = await getAdminToken();
+  const { token, teacherId } = await createTeacherToken('livre', 'prof_classe');
+  const stamp = Date.now();
+  const visitor = await createStudentForGroups('Visiteur');
+  await setAssignedRole(visitor.id, await getRoleId('visiteur'));
+  const outsider = await createStudentForGroups('Dehors');
+  const group = await createGroupViaApi(adminToken, {
+    name: `Classe sixième ${stamp}`,
+    slug: `classe-sixieme-${stamp}`,
+    kind: 'class',
+  });
+  for (const userId of [teacherId, visitor.id]) {
+    await request(app)
+      .post(`/api/groups/${group.id}/members/${userId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(201);
+  }
+  await execute('UPDATE users SET description = ?, visit_mascot_catalog_id = ? WHERE id = ?', [
+    'Prof de SVT',
+    'gnome1',
+    teacherId,
+  ]);
+
+  const me = await request(app)
+    .get('/api/auth/me')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(me.body.auth.roleSlug, 'prof_classe');
+  assert.ok(!me.body.auth.permissions.includes('teacher.access'));
+  assert.ok(!me.body.auth.permissions.includes('id_keys.manage'));
+  assert.ok(!me.body.auth.permissions.some((p) => p.startsWith('tasks.')));
+  // « Mon profil » se remplit depuis /me : rien ne doit y manquer pour un enseignant.
+  assert.strictEqual(me.body.profile?.description, 'Prof de SVT');
+  assert.strictEqual(me.body.profile?.visit_mascot_catalog_id, 'gnome1');
+  assert.strictEqual(me.body.profile?.pseudo, teacherId);
+
+  const stats = await request(app)
+    .get('/api/stats/all')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const ids = new Set((stats.body.students || []).map((s) => String(s.id)));
+  assert.ok(ids.has(visitor.id), 'élève visiteur de sa classe visible');
+  assert.ok(!ids.has(outsider.id), 'élève hors classe invisible');
+
+  await request(app).get('/api/quiz/stats').set('Authorization', `Bearer ${token}`).expect(403);
 });
 
 test('Stats: filtre group_id limite la liste des n3beurs', async () => {

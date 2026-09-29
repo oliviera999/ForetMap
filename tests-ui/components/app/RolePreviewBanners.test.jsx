@@ -46,21 +46,23 @@ describe('RolePreviewBanners', () => {
     // Le nom de la personne, jamais le nom du profil à sa place (CDG-30).
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText(/\(profil n3beur novice\)/)).toBeInTheDocument();
-    expect(screen.getByText(/\(n3beur\)/)).toBeInTheDocument();
+    expect(screen.getByText(/\(compte élève\)/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Revenir à mon compte admin'));
     expect(onStop).toHaveBeenCalledTimes(1);
   });
 
-  test('mention (n3boss) quand l’identité contrôlée est un n3boss', () => {
+  test('compte enseignant contrôlé : profil réel et type de compte, jamais « n3boss » par défaut', () => {
     render(
       <RolePreviewBanners
         {...baseProps}
-        authClaims={{ impersonating: true, roleDisplayName: 'n3boss', userType: 'teacher' }}
+        authClaims={{ impersonating: true, roleDisplayName: 'Prof de classe', userType: 'teacher' }}
         sessionUser={{ displayName: 'Bob' }}
       />,
     );
     expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText(/\(n3boss\)/)).toBeInTheDocument();
+    expect(screen.getByText(/\(profil Prof de classe\)/)).toBeInTheDocument();
+    expect(screen.getByText(/\(compte enseignant\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/\(n3boss\)/)).toBeNull();
   });
 
   test('aperçu vue n3beur visible uniquement pour un n3boss en roleViewMode student', () => {

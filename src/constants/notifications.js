@@ -29,6 +29,11 @@ export const NOTIFICATION_PREFS_DEFAULTS = {
     [NOTIFICATION_CATEGORY.MESSAGES]: true,
     [NOTIFICATION_CATEGORY.OPERATIONS]: true,
   },
+  // Prof de classe : ni tâches ni échéances (ses élèves sont des visiteurs).
+  class_teacher: {
+    [NOTIFICATION_CATEGORY.MESSAGES]: true,
+    [NOTIFICATION_CATEGORY.OPERATIONS]: true,
+  },
   admin: {
     [NOTIFICATION_CATEGORY.VALIDATIONS]: true,
     [NOTIFICATION_CATEGORY.PROPOSALS]: true,

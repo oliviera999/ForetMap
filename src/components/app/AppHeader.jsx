@@ -58,6 +58,7 @@ export function AppHeader({
   canSwitchToTeacherView,
   onRoleViewModeSelect,
   // Connexion professeur & déconnexion
+  isTeacherAccount = false,
   onRequestPin,
   onLogout,
   // Aide contextuelle
@@ -179,15 +180,19 @@ export function AppHeader({
             helpText={helpText}
           />
         )}
-        <Tooltip text={helpText('header.teacherLogin')}>
-          <button
-            className="lock-btn"
-            aria-label="Connexion professeur"
-            onClick={() => onRequestPin()}
-          >
-            <IconKey />
-          </button>
-        </Tooltip>
+        {/* Sert à passer d'une session élève à un compte enseignant : inutile, et refusé
+            pour un prof de classe, quand un compte enseignant est déjà connecté. */}
+        {!isTeacherAccount && (
+          <Tooltip text={helpText('header.teacherLogin')}>
+            <button
+              className="lock-btn"
+              aria-label="Connexion professeur"
+              onClick={() => onRequestPin()}
+            >
+              <IconKey />
+            </button>
+          </Tooltip>
+        )}
         <Tooltip text={helpText('header.logout')}>
           <button
             className="lock-btn"

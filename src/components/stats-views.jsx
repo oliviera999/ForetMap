@@ -16,7 +16,20 @@ import {
   buildVisitMascotOptions,
   validateProfileEditorFields,
   validatePasswordChangeFields,
+  buildProfilePatchPayload,
+  isTeacherLikeAccount,
+  TEACHER_PASSWORD_MIN_LENGTH,
 } from '../utils/studentProfileFields.js';
+
+function profileFieldsOf(user) {
+  return {
+    pseudo: user?.pseudo ?? null,
+    email: user?.email ?? null,
+    description: user?.description ?? null,
+    visit_mascot_catalog_id: user?.visit_mascot_catalog_id ?? null,
+    biodiv_pedago_level: user?.biodiv_pedago_level ?? null,
+  };
+}
 import { useHelp } from '../hooks/useHelp';
 import { useVisitMascotRegistry } from '../hooks/useVisitMascotCatalogExtras.js';
 import { HelpPanel } from './HelpPanel';
@@ -342,6 +355,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
     student?.visit_mascot_catalog_id || '',
   );
   const [biodivPedagoLevel, setBiodivPedagoLevel] = useState(student?.biodiv_pedago_level || '');
+  const initialFieldsRef = useRef(profileFieldsOf(student));
+  const isTeacherProfile = isTeacherLikeAccount(student);
   // Registre des mascottes proposées : le profil propose exactement les mêmes que le plan.
   const { extras: visitMascotPackExtras, offeredIds: visitMascotOfferedIds } =
     useVisitMascotRegistry();
@@ -405,20 +420,25 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
     });
     if (validationError) return setErr(validationError);
 
+    const payload = buildProfilePatchPayload(initialFieldsRef.current, {
+      pseudo,
+      email,
+      description,
+      visit_mascot_catalog_id: visitMascotCatalogId,
+      biodiv_pedago_level: biodivPedagoLevel,
+    });
+    if (avatarData) payload.avatarData = avatarData;
+    if (removeAvatar) payload.removeAvatar = true;
+    if (Object.keys(payload).length === 0) {
+      setOkMsg('Aucune modification à enregistrer');
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        pseudo: pseudo.trim() || null,
-        email: email.trim() || null,
-        description: description.trim() || null,
-        visit_mascot_catalog_id: visitMascotCatalogId || null,
-        biodiv_pedago_level: biodivPedagoLevel || null,
-      };
-      if (avatarData) payload.avatarData = avatarData;
-      if (removeAvatar) payload.removeAvatar = true;
-
       const updated = await api(profileUpdateEndpoint(student), 'PATCH', payload);
       onUpdated(updated);
+      initialFieldsRef.current = profileFieldsOf(updated);
       setPseudo(updated?.pseudo || '');
       setEmail(updated?.email || '');
       setDescription(updated?.description || '');
@@ -655,6 +675,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       <p className="section-sub">
         Renseigne ton mot de passe actuel (sauf compte Google), puis le nouveau deux fois. Tes
         autres appareils seront déconnectés.
+        {isTeacherProfile &&
+          ` Compte enseignant : ${TEACHER_PASSWORD_MIN_LENGTH} caractères minimum.`}
       </p>
       <div className="field">
         <label>Mot de passe actuel</label>
@@ -723,10 +745,20 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   );
 }
 
-function TeacherStats() {
+/**
+ * @param {object} props
+ * @param {boolean} [props.canReadAllStats] `stats.read.all` : le bloc Quiz (statistiques de
+ *   tout l'établissement, route réservée) n'est chargé qu'avec ce droit.
+ * @param {boolean} [props.classTeacherMode] prof de classe : ses élèves sont des visiteurs,
+ *   sans tâches — libellés « élèves » et pas de compteurs de tâches.
+ */
+function TeacherStats({ canReadAllStats = true, classTeacherMode = false } = {}) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
-  const roleTerms = getRoleTerms(isN3Affiliated);
+  const baseRoleTerms = getRoleTerms(isN3Affiliated);
+  const roleTerms = classTeacherMode
+    ? { ...baseRoleTerms, studentPlural: 'élèves', studentSingular: 'élève' }
+    : baseRoleTerms;
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: true });
   const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
@@ -799,8 +831,8 @@ function TeacherStats() {
     load();
   }, [load]);
   useEffect(() => {
-    loadQuizStats();
-  }, [loadQuizStats]);
+    if (canReadAllStats) loadQuizStats();
+  }, [canReadAllStats, loadQuizStats]);
   useEffect(() => {
     api('/api/groups/options')
       .then((payload) => setGroups(Array.isArray(payload?.groups) ? payload.groups : []))
@@ -856,7 +888,10 @@ function TeacherStats() {
         }}
       >
         <h2 className="section-title">
-          <IconStats size={20} /> Statistiques des {roleTerms.studentPlural}
+          <IconStats size={20} />{' '}
+          {classTeacherMode
+            ? 'Statistiques de mes élèves'
+            : `Statistiques des ${roleTerms.studentPlural}`}
         </h2>
         {isHelpEnabled && (
           <HelpPanel
@@ -881,18 +916,20 @@ function TeacherStats() {
         </div>
       )}
 
-      <StatsSummaryGrid
-        style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}
-      >
-        <StatCard
-          icon={<IconCheck size={20} />}
-          value={totalValidated}
-          label="Tâches validées"
-          highlight
-        />
-        <StatCard icon={<IconHourglass size={20} />} value={totalPending} label="En cours" />
-        <StatCard icon={<IconUser size={20} />} value={activeStudents} label="Actifs" />
-      </StatsSummaryGrid>
+      {!classTeacherMode && (
+        <StatsSummaryGrid
+          style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}
+        >
+          <StatCard
+            icon={<IconCheck size={20} />}
+            value={totalValidated}
+            label="Tâches validées"
+            highlight
+          />
+          <StatCard icon={<IconHourglass size={20} />} value={totalPending} label="En cours" />
+          <StatCard icon={<IconUser size={20} />} value={activeStudents} label="Actifs" />
+        </StatsSummaryGrid>
+      )}
 
       <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>
         Tout le site (biodiversité & tutoriels)
@@ -917,43 +954,45 @@ function TeacherStats() {
         />
       </StatsSummaryGrid>
 
-      <section className="card" style={{ marginBottom: 20, padding: 14 }}>
-        <h3 className="section-title" style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>
-          <IconQuiz size={16} /> Quiz (QCM)
-        </h3>
-        {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
-        {quizStats?.byCategory?.length > 0 ? (
-          <div className="fm-table-wrap">
-            <table className="fm-table">
-              <thead>
-                <tr>
-                  <th>Catégorie</th>
-                  <th>Tentatives</th>
-                  <th>Réussites</th>
-                  <th>Taux</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quizStats.byCategory.map((row) => {
-                  const attempts = Number(row.attempts || 0);
-                  const correct = Number(row.correct || 0);
-                  const rate = attempts > 0 ? Math.round((correct / attempts) * 100) : 0;
-                  return (
-                    <tr key={row.categorie_slug}>
-                      <td>{row.categorie_slug}</td>
-                      <td>{attempts}</td>
-                      <td>{correct}</td>
-                      <td>{rate}%</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="section-sub">Aucune tentative enregistrée pour l’instant.</p>
-        )}
-      </section>
+      {canReadAllStats && (
+        <section className="card" style={{ marginBottom: 20, padding: 14 }}>
+          <h3 className="section-title" style={{ fontSize: 'var(--text-md)', marginBottom: 8 }}>
+            <IconQuiz size={16} /> Quiz (QCM)
+          </h3>
+          {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
+          {quizStats?.byCategory?.length > 0 ? (
+            <div className="fm-table-wrap">
+              <table className="fm-table">
+                <thead>
+                  <tr>
+                    <th>Catégorie</th>
+                    <th>Tentatives</th>
+                    <th>Réussites</th>
+                    <th>Taux</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quizStats.byCategory.map((row) => {
+                    const attempts = Number(row.attempts || 0);
+                    const correct = Number(row.correct || 0);
+                    const rate = attempts > 0 ? Math.round((correct / attempts) * 100) : 0;
+                    return (
+                      <tr key={row.categorie_slug}>
+                        <td>{row.categorie_slug}</td>
+                        <td>{attempts}</td>
+                        <td>{correct}</td>
+                        <td>{rate}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="section-sub">Aucune tentative enregistrée pour l’instant.</p>
+          )}
+        </section>
+      )}
 
       <div className="field" style={{ marginBottom: 12 }}>
         <input

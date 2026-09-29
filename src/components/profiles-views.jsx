@@ -33,6 +33,7 @@ import {
   parseMinDoneTasksThreshold,
 } from '../utils/profilesRbacHelpers.js';
 import { resolveProfilesSubTab } from '../utils/profilesUserListFilters.js';
+import { isClassTeacherRole } from '../utils/appAccess.js';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -822,6 +823,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied }) {
   return (
     <div className="fade-in profiles-admin">
       <ProfilesAdminHeader
+        classTeacherMode={isClassTeacherRole(authRoleSlug)}
         isHelpEnabled={isHelpEnabled}
         helpProfiles={helpProfiles}
         hasSeenSection={hasSeenSection}

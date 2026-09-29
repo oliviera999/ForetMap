@@ -81,6 +81,10 @@ describe('Semis RBAC durable', () => {
     }
     assert.ok(!keys.includes('users.create'));
     assert.ok(!keys.includes('stats.read.all'));
+    // Migration 310 : ni clés d'identification, ni droits de tâches.
+    for (const key of ['id_keys.manage', 'tasks.propose', 'tasks.assign_self', 'tasks.done_self']) {
+      assert.ok(!keys.includes(key), `prof_classe ne doit pas porter ${key}`);
+    }
   });
 
   it('personnel : rang 320, avec le seul accès au plan des personnels', async () => {

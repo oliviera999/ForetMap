@@ -28,6 +28,7 @@ const AUTO_START_DELAY_MS = 650;
  * @param {object} props
  * @param {string} props.tab
  * @param {boolean} [props.isTeacher]
+ * @param {boolean} [props.isClassTeacher] prof de classe (textes `bodyClassTeacher`)
  * @param {boolean} [props.enabled]
  * @param {Record<string, true>|null} [props.accountSeen] progression serveur du compte
  * @param {boolean} [props.accountSeenReady] false tant que `/me` (ou login) n'a pas répondu —
@@ -38,6 +39,7 @@ const AUTO_START_DELAY_MS = 650;
 export function TourProvider({
   tab,
   isTeacher = false,
+  isClassTeacher = false,
   enabled = false,
   accountSeen = null,
   accountSeenReady = true,
@@ -50,6 +52,7 @@ export function TourProvider({
   const tourOverrides = publicSettings?.content?.tour?.registry || null;
   const tour = useDiscoveryTour({
     isTeacher,
+    isClassTeacher,
     tourOverrides,
     accountSeen,
     onTourSeen,

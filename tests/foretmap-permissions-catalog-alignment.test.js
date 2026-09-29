@@ -59,16 +59,19 @@ describe('Permissions ForetMap : matrices catalogue', () => {
         'stats.read.group',
         // Plan des personnels : un prof de classe est un personnel du lycée, il y entre.
         'staff_plan.access',
-        // Clés d'identification (lot biodiversité 6) : édition pédagogique, sans périmètre jardin.
-        'id_keys.manage',
-        // Droits de l'apprenant (réalignement du 22/09/2026) — inertes tant que
-        // `task_assignments` est centrée sur l'élève, mais présents en base de production.
-        'tasks.propose',
-        'tasks.assign_self',
-        'tasks.unassign_self',
-        'tasks.done_self',
       ].sort(),
     );
+    // Retirés par la migration 310 : ni tâches, ni édition de contenus.
+    for (const key of [
+      'id_keys.manage',
+      'tasks.propose',
+      'tasks.assign_self',
+      'tasks.unassign_self',
+      'tasks.done_self',
+      'teacher.access',
+    ]) {
+      assert.ok(!keys.includes(key), `prof_classe ne doit pas porter ${key}`);
+    }
     assert.ok(!keys.includes('users.create'));
     assert.ok(!keys.includes('students.import'));
     assert.ok(!keys.includes('tasks.manage'));

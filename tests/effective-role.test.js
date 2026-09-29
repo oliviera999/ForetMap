@@ -133,6 +133,29 @@ test('pickEffectiveRole : un groupe imposant l’emporte pour un élève, pas po
   assert.strictEqual(teacher.role.slug, 'eleve_avance');
 });
 
+test('pickEffectiveRole : un enseignant ne monte jamais par un groupe (même au profil n3boss)', () => {
+  const assigned = r(5, 'prof_classe', 350);
+  const lift = conferredBy('g1', r(6, 'prof', 400));
+  const teacher = pickEffectiveRole({ userType: 'teacher', assigned, conferred: [lift] });
+  assert.strictEqual(teacher.source, 'assigned');
+  assert.strictEqual(teacher.role.slug, 'prof_classe');
+  const noAssigned = pickEffectiveRole({
+    userType: 'teacher',
+    assigned: null,
+    conferred: [lift],
+    defaultRole: r(5, 'prof_classe', 350),
+  });
+  assert.strictEqual(noAssigned.source, 'default');
+  assert.strictEqual(noAssigned.role.slug, 'prof_classe');
+  const student = pickEffectiveRole({
+    userType: 'student',
+    assigned: r(1, 'visiteur', 50),
+    conferred: [lift],
+  });
+  assert.strictEqual(student.source, 'group');
+  assert.strictEqual(student.role.slug, 'prof');
+});
+
 test('pickEffectiveRole : entre deux groupes imposants, le plus élevé ; les profils gl_* sont ignorés', () => {
   const out = pickEffectiveRole({
     userType: 'student',
@@ -277,6 +300,16 @@ test('groupe imposant : ne concerne pas un enseignant membre du groupe', async (
   await addMember(groupId, teacherId, 'teacher');
   const out = await recomputeUserRole(teacherId);
   assert.strictEqual(out.source, 'assigned');
+  assert.strictEqual(await effectiveSlug('teacher', teacherId), 'prof_classe');
+});
+
+test('prof de classe membre d’un groupe au profil n3boss : reste prof de classe', async () => {
+  const teacherId = await createUser('lift_teacher', 'teacher');
+  await recomputeUserRole(teacherId); // prof_classe
+  const groupId = await createGroup({ defaultRoleSlug: 'prof' });
+  await addMember(groupId, teacherId, 'teacher');
+  const out = await recomputeUserRole(teacherId);
+  assert.strictEqual(out.roleSlug, 'prof_classe');
   assert.strictEqual(await effectiveSlug('teacher', teacherId), 'prof_classe');
 });
 

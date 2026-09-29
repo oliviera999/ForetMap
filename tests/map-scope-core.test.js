@@ -106,6 +106,18 @@ describe('mapScopeCore — combinaison et dérogations', () => {
     assert.strictEqual(canBypassMapScope({ userId: 'u1', roleSlug: 'admin' }), true);
   });
 
+  it('ne borne pas un prof de classe (compte enseignant sans teacher.access)', () => {
+    assert.strictEqual(
+      canBypassMapScope({
+        userId: 'u1',
+        userType: 'teacher',
+        roleSlug: 'prof_classe',
+        permissions: ['groups.read', 'stats.read.group'],
+      }),
+      true,
+    );
+  });
+
   it('borne un élève', () => {
     assert.strictEqual(
       canBypassMapScope({ userId: 'u1', roleSlug: 'eleve_novice', permissions: ['tasks.read'] }),

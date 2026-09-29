@@ -148,7 +148,9 @@ le site.
 
 Sans aperçu, un **professeur** voit toujours la vue gestion **complète** (édition,
 validation, administration), quel que soit le niveau fixé pour les élèves ; ses propres
-groupes ne le restreignent jamais.
+groupes ne le restreignent jamais. Le **prof de classe**, qui garde la navigation d'un
+visiteur connecté, voit lui aussi les fiches en vue **complète** par défaut : le niveau
+de sa classe s'applique à ses élèves, pas à lui.
 
 > ⚠️ **Point d'attention** — La séance n’impose son niveau que tant qu’elle est **ouverte**
 > dans l’application de l’élève (bandeau de séance visible) et qu’elle a été **démarrée** par

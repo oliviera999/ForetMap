@@ -123,7 +123,8 @@ export function TeacherTopTabs({
   const tasksText = tutorialsModuleEnabled ? 'Tâches et tuto' : 'Tâches';
   const mapTasksText = tutorialsModuleEnabled ? 'Cartes, tâches et tuto' : 'Cartes & tâches';
 
-  /* Visibilité pilotée par permissions (profil Prof de classe inclus). */
+  /* Visibilité pilotée par permissions. Le prof de classe (sans `teacher.access`) n'a pas
+     cette barre : ses onglets viennent de la navigation apprenant. */
   const canMap = hasPermission('zones.manage') || hasPermission('map.manage_markers');
   const canPlants = hasPermission('plants.manage');
   const canTasks = hasPermission('tasks.manage') || hasPermission('tasks.validate');

@@ -28,6 +28,11 @@ describe('ProfilesAdminHeader', () => {
     expect(title).toHaveTextContent('Profils & utilisateurs');
   });
 
+  test('prof de classe : la section s’intitule « Ma classe »', () => {
+    const { container } = renderHeader({ classTeacherMode: true });
+    expect(container.querySelector('h2.section-title')).toHaveTextContent('Ma classe');
+  });
+
   test('isHelpEnabled vrai (avec entrées) → rend le bouton d aide', () => {
     renderHeader();
     expect(screen.getByRole('button', { name: /Ouvrir l aide: Aide profils/ })).toBeInTheDocument();

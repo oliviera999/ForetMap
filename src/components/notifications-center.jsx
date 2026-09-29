@@ -34,6 +34,9 @@ function preferenceCategoriesForRole(roleKey) {
       NOTIFICATION_CATEGORY.SECURITY,
     ];
   }
+  if (roleKey === 'class_teacher') {
+    return [NOTIFICATION_CATEGORY.MESSAGES, NOTIFICATION_CATEGORY.OPERATIONS];
+  }
   if (roleKey === 'teacher') {
     return [
       NOTIFICATION_CATEGORY.VALIDATIONS,

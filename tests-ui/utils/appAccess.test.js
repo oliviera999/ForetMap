@@ -27,6 +27,14 @@ describe('isClassTeacherRole / isVisitorLikeRole / shouldUseTeacherChrome', () =
     expect(
       shouldUseTeacherChrome({
         roleSlug: 'prof_classe',
+        hasTeacherAccess: false,
+        roleViewMode: 'native',
+      }),
+    ).toBe(false);
+    // Même si un admin lui ajoutait `teacher.access`, le chrome reste celui d'un tuteur.
+    expect(
+      shouldUseTeacherChrome({
+        roleSlug: 'prof_classe',
         hasTeacherAccess: true,
         roleViewMode: 'native',
       }),

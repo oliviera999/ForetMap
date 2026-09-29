@@ -284,7 +284,7 @@ function App() {
       activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
     }
     const canUseTeacherUi = activePerms.includes('teacher.access');
-    // Prof de classe : teacher.access pour l'API, mais chrome apprenant (pas TeacherTopTabs).
+    // Prof de classe : sans teacher.access (réalignement du 22/09/2026), chrome apprenant.
     const effectiveIsTeacher = shouldUseTeacherChrome({
       roleSlug,
       hasTeacherAccess: canUseTeacherUi,
@@ -796,13 +796,15 @@ function App() {
       first_name: fallbackName,
       last_name: '',
       display_name: fallbackName,
-      pseudo: null,
+      pseudo: sessionUser?.pseudo || null,
       email: sessionUser?.email || null,
       avatar_path: sessionUser?.avatar_path || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
-      description: '',
+      biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
+      description: sessionUser?.description || '',
       auth: {
         roleSlug: authClaims?.roleSlug || null,
+        roleDisplayName: authClaims?.roleDisplayName || null,
         userType: authClaims?.userType || 'teacher',
       },
     };
@@ -815,8 +817,11 @@ function App() {
     isTeacherAccount,
     profileTargetUserId,
     sessionUser?.avatar_path,
+    sessionUser?.biodiv_pedago_level,
+    sessionUser?.description,
     sessionUser?.displayName,
     sessionUser?.email,
+    sessionUser?.pseudo,
     // Le sélecteur de mascotte du plan met à jour `sessionUser` : sans cette dépendance,
     // « Mon profil » rouvrait sur la mascotte précédente jusqu'au rechargement de session.
     sessionUser?.visit_mascot_catalog_id,
@@ -871,6 +876,11 @@ function App() {
           userType: 'teacher',
           displayName: nextDisplayName,
           email: updatedUser?.email ?? prev?.email ?? null,
+          pseudo: updatedUser?.pseudo !== undefined ? updatedUser.pseudo : (prev?.pseudo ?? null),
+          description:
+            updatedUser?.description !== undefined
+              ? updatedUser.description
+              : (prev?.description ?? null),
           avatar_path:
             updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
           visit_mascot_catalog_id:
@@ -926,6 +936,8 @@ function App() {
           displayName:
             session?.display_name || session?.auth?.roleDisplayName || DEFAULT_USER_LABEL,
           email: session?.email || null,
+          pseudo: session?.pseudo || null,
+          description: session?.description || null,
           avatar_path: session?.avatar_path || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
           biodiv_pedago_level: session?.biodiv_pedago_level || null,
@@ -1183,7 +1195,8 @@ function App() {
   // Les libellés d'onglets prof sont dérivés dans TeacherTopTabs (pôles, audit D-4).
 
   const rtStatus = useForetmapRealtime({
-    enabled: !!(student || effectiveIsTeacher),
+    // Le prof de classe n'a ni fiche élève ni barre n3boss, mais le forum lui est ouvert.
+    enabled: !!(student || effectiveIsTeacher || isClassTeacher),
     fetchAll,
     forceLogout,
     activeMapId,
@@ -1239,7 +1252,7 @@ function App() {
   });
 
   const { hasUnread: hasForumUnread } = useForumUnread({
-    enabled: !!(student || effectiveIsTeacher) && canAccessForum,
+    enabled: !!(student || effectiveIsTeacher || isClassTeacher) && canAccessForum,
     userType: String(authClaims?.userType || '').toLowerCase(),
     userId: String(authClaims?.canonicalUserId || authClaims?.userId || ''),
     isForumOpen: tab === 'forum',
@@ -1273,6 +1286,7 @@ function App() {
   } = useNotificationCenter({
     isTeacher: effectiveIsTeacher,
     isAdmin,
+    isClassTeacher,
     tasksForActiveMap,
     student: studentForUi,
     teacherPendingValidationCount,
@@ -1516,7 +1530,7 @@ function App() {
         canTeacherPreview={
           effectiveIsTeacher || (canSwitchToStudentView && roleViewMode === 'student')
         }
-        fullViewByDefault={effectiveIsTeacher}
+        fullViewByDefault={effectiveIsTeacher || isClassTeacher}
       >
         <AppDialogsProvider>
           <AppDialogsBridge dialogsRef={appDialogsRef} />
@@ -1525,6 +1539,7 @@ function App() {
               <TourProvider
                 tab={tab}
                 isTeacher={effectiveIsTeacher}
+                isClassTeacher={isClassTeacher}
                 enabled={discoveryTourAutoEnabled}
                 accountSeen={discoveryTourSeen}
                 accountSeenReady={discoveryTourSeenReady}
@@ -1758,6 +1773,7 @@ function App() {
                     canSwitchToStudentView={canSwitchToStudentView}
                     canSwitchToTeacherView={canSwitchToTeacherView}
                     onRoleViewModeSelect={handleRoleViewModeSelect}
+                    isTeacherAccount={isTeacherAccount}
                     onRequestPin={handleRequestPin}
                     onLogout={handleLogout}
                     helpText={helpText}
@@ -1871,7 +1887,10 @@ function App() {
                             tab === 'stats' &&
                             (canReadStats ? (
                               <TabSuspense>
-                                <TeacherStatsLazy />
+                                <TeacherStatsLazy
+                                  canReadAllStats={hasPermission('stats.read.all')}
+                                  classTeacherMode={isClassTeacher}
+                                />
                               </TabSuspense>
                             ) : (
                               <div className="empty">
@@ -2088,7 +2107,10 @@ function App() {
                               )}
                             {tab === 'stats' && canViewGeneralStats && (
                               <TabSuspense>
-                                <TeacherStatsLazy />
+                                <TeacherStatsLazy
+                                  canReadAllStats={hasPermission('stats.read.all')}
+                                  classTeacherMode={isClassTeacher}
+                                />
                               </TabSuspense>
                             )}
                             {tab === 'profiles' && canAccessProfiles && (
@@ -2126,7 +2148,7 @@ function App() {
                               isTeacher={false}
                               tab={tab}
                               visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                              student={studentForUi}
+                              student={studentForUi || (isTeacherAccount ? sessionUser : null)}
                               tutorials={tutorials}
                               activeMapId={activeMapId}
                               zones={zones}

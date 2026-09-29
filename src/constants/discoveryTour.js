@@ -254,6 +254,8 @@ const DISCOVERY_TOURS = {
         body: 'Le relevé de ce que tu as fait, semaine après semaine. Des chiffres, pas un jugement — et personne n’a jamais trouvé sa propre courbe ennuyeuse !',
         bodyTeacher:
           'L’avancement des n3beurs et la comparaison des groupes. Un chiffre bas dit rarement pourquoi il est bas : va voir la personne, c’est plus fiable qu’un graphique.',
+        bodyClassTeacher:
+          'Les statistiques de tes élèves : ce qu’ils ont lu, observé et noté dans leurs carnets, filtrable par classe. Un chiffre bas dit rarement pourquoi il est bas : va voir la personne.',
         placement: 'auto',
         expression: 'content',
       },
@@ -358,6 +360,8 @@ const DISCOVERY_TOURS = {
         body: 'Les comptes, les rôles et les permissions se tiennent ici. C’est la page qui décide qui peut quoi — la seule où je ne fais pas le malin.',
         bodyTeacher:
           'Comptes, rôles, permissions, et le profil rattaché à chacun. Donner un droit prend trois secondes ; comprendre six mois plus tard pourquoi quelqu’un l’a, beaucoup plus longtemps. Note-le quelque part.',
+        bodyClassTeacher:
+          'Ta classe : crée ou importe les comptes de tes élèves, range-les dans tes sous-groupes et accueille les nouveaux visiteurs. Tu ne vois que les classes qui te sont confiées.',
         placement: 'auto',
         role: 'teacher',
         expression: 'vigilant',
@@ -425,8 +429,22 @@ export function applyTourOverrides(steps, tabKey, overrides) {
  * @param {Object} [overrides] registre `content.tour.registry` (clés plates).
  * @returns {Array} étapes (le filtrage par présence DOM est fait au démarrage).
  */
-export function getDiscoverySteps(tabKey, isTeacher = false, overrides = null) {
-  return foretMapTours.getSteps(tabKey, isTeacher, overrides);
+export function getDiscoverySteps(
+  tabKey,
+  isTeacher = false,
+  overrides = null,
+  { classTeacher = false } = {},
+) {
+  if (isTeacher || !classTeacher) return foretMapTours.getSteps(tabKey, isTeacher, overrides);
+  // Prof de classe : parcours apprenant (les textes staff parlent d'édition qu'il n'a pas),
+  // sauf les étapes dotées d'un `bodyClassTeacher`, incluses quel que soit leur rôle.
+  // Ce texte n'est pas éditable : il n'existe que pour ce profil.
+  const steps = (DISCOVERY_TOURS[tabKey]?.steps || []).filter(
+    (step) => !step.role || step.role === 'student' || step.bodyClassTeacher,
+  );
+  return applyTourOverrides(steps, tabKey, overrides).map((step) =>
+    step.bodyClassTeacher ? { ...step, body: step.bodyClassTeacher } : step,
+  );
 }
 
 /** Indique s'il existe un parcours de découverte pour cet onglet/section. */

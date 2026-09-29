@@ -122,6 +122,22 @@ test('une surcharge ne crée pas de texte n3boss là où le parcours n’en pré
   assert.equal(step.bodyTeacher, undefined);
 });
 
+test('prof de classe : textes dédiés pour Stats et Classe, parcours apprenant ailleurs', async () => {
+  const { DISCOVERY_TOURS, getDiscoverySteps } = await import(tourUrl);
+  const opts = { classTeacher: true };
+  const stats = getDiscoverySteps('stats', false, null, opts);
+  assert.equal(stats[0].body, DISCOVERY_TOURS.stats.steps[0].bodyClassTeacher);
+  // L'étape « Profils » est réservée aux n3boss, mais incluse pour le prof de classe.
+  const profiles = getDiscoverySteps('profiles', false, null, opts);
+  assert.equal(profiles[0].key, 'intro');
+  assert.equal(profiles[0].body, DISCOVERY_TOURS.profiles.steps[0].bodyClassTeacher);
+  assert.equal(getDiscoverySteps('profiles', false)[0].key, 'relaunch');
+  // Ailleurs : strictement le parcours apprenant (pas les textes d'édition n3boss).
+  assert.deepEqual(getDiscoverySteps('map', false, null, opts), getDiscoverySteps('map', false));
+  // Un vrai n3boss ignore l'option.
+  assert.deepEqual(getDiscoverySteps('stats', true, null, opts), getDiscoverySteps('stats', true));
+});
+
 test('les clés de surcharge sont uniques dans chaque parcours', async () => {
   const { DISCOVERY_TOURS, tourOverrideKey } = await import(tourUrl);
   for (const [tabKey, tour] of Object.entries(DISCOVERY_TOURS)) {

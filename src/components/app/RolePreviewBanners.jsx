@@ -67,10 +67,12 @@ export function RolePreviewBanners({
                 ).trim()}
               </strong>
               {authClaims?.roleDisplayName ? ` (profil ${authClaims.roleDisplayName})` : ''}
+              {/* Le type de compte, pas un nom de profil : un compte enseignant peut être
+                  prof de classe ou personnel, un compte élève un simple visiteur. */}
               {authClaims?.userType === 'student'
-                ? ' (n3beur)'
+                ? ' (compte élève)'
                 : authClaims?.userType === 'teacher'
-                  ? ' (n3boss)'
+                  ? ' (compte enseignant)'
                   : ''}
               . Les actions sont enregistrées pour ce compte.
             </span>

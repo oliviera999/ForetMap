@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 /**
  * Montage de `ProfilesAdminView` avec les permissions du **prof de classe** :
- * `teacher.access, groups.read, groups.manage, stats.read.group, observations.read.group,
- * staff_plan.access` — ni `admin.roles.manage` ni `admin.users.assign_roles`.
+ * `groups.read, groups.manage, stats.read.group, observations.read.group, staff_plan.access`
+ * — ni `teacher.access`, ni `admin.roles.manage`, ni `admin.users.assign_roles`.
  *
  * Ce profil doit disposer d'un onglet « Classe » utilisable : le sous-onglet Groupes et la
  * liste des comptes de ses groupes (`GET /api/rbac/users`, ouvert à `groups.manage`), sans
@@ -12,7 +12,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
  */
 
 const CLASS_TEACHER_PERMS = [
-  'teacher.access',
   'groups.read',
   'groups.manage',
   'stats.read.group',

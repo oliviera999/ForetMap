@@ -130,8 +130,8 @@ const MANAGER_TEACHER_SESSION = {
   },
 };
 /**
- * Prof de classe dont un administrateur a décoché « Accès interface n3boss » dans
- * Profils & utilisateurs : session valide, jeton posé, mais plus de `teacher.access`.
+ * Prof de classe tel que livré : session enseignante valide, jeton posé, sans
+ * `teacher.access` (verrou réservé aux profils admin et prof).
  */
 const CLASS_TEACHER_SESSION_WITHOUT_TEACHER_ACCESS = {
   stored: { token: 'jwt', user: { id: 'T2', userType: 'teacher', displayName: 'Prof Classe' } },

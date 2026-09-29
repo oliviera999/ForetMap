@@ -799,10 +799,10 @@ router.put(
         .json({ error: 'Seul un administrateur peut modifier le profil admin' });
     }
     const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
-    // Garde « porte d'entrée » : un profil système d'enseignant ne peut pas perdre
-    // `teacher.access` ici. La révocation est durable depuis la migration 241 et le
-    // libellé du catalogue (« Accès interface n3boss ») invite à la décocher sur
-    // « Prof de classe », dont c'est pourtant le seul droit d'accès à l'API.
+    // Garde « porte d'entrée » : `admin` et `prof` ne peuvent pas perdre `teacher.access`
+    // ici (la révocation est durable depuis la migration 241 ; ce serait se couper la main).
+    // « Prof de classe » n'en dispose plus depuis le 22/09/2026 : son accès passe par la
+    // session enseignante, pas par cette permission.
     const doorLockError = teacherAccessLockError(
       role.slug,
       entries.map((item) => item?.key),

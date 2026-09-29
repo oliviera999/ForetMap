@@ -15,13 +15,15 @@ const SEEN_STORAGE_KEY = 'foretmap_discovery_seen_v1';
 
 export function useDiscoveryTour({
   isTeacher = false,
+  isClassTeacher = false,
   tourOverrides = null,
   accountSeen = null,
   onTourSeen = null,
 } = {}) {
   const getSteps = useCallback(
-    (tabKey) => getDiscoverySteps(tabKey, isTeacher, tourOverrides),
-    [isTeacher, tourOverrides],
+    (tabKey) =>
+      getDiscoverySteps(tabKey, isTeacher, tourOverrides, { classTeacher: isClassTeacher }),
+    [isTeacher, isClassTeacher, tourOverrides],
   );
   return useGuidedTour({
     getSteps,

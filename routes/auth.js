@@ -277,6 +277,25 @@ router.get('/me', requireAuth, async (req, res) => {
       body.contextCommentParticipate = Number(u.context_comment_participate) !== 0;
     }
   }
+  // Un enseignant n'a pas de fiche élève : sans ces champs, « Mon profil » s'ouvrait sur des
+  // valeurs vides et les renvoyait à l'enregistrement (pseudo, description, niveau effacés).
+  if (req.auth?.userType === 'teacher' && req.auth?.userId) {
+    const row = await queryOne(
+      `SELECT pseudo, email, description, avatar_path, visit_mascot_catalog_id, biodiv_pedago_level
+         FROM users WHERE id = ? LIMIT 1`,
+      [req.auth.userId],
+    );
+    if (row) {
+      body.profile = {
+        pseudo: row.pseudo ?? null,
+        email: row.email ?? null,
+        description: row.description ?? null,
+        avatar_path: row.avatar_path ?? null,
+        visit_mascot_catalog_id: row.visit_mascot_catalog_id ?? null,
+        biodiv_pedago_level: row.biodiv_pedago_level ?? null,
+      };
+    }
+  }
   // Progression des visites guidées (accueil OLU + onglets) : liée au compte, pas au navigateur.
   if (req.auth?.userId) {
     try {

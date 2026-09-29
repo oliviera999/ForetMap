@@ -34,9 +34,10 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function roleForStorage({ isAdmin, isTeacher }) {
+function roleForStorage({ isAdmin, isTeacher, isClassTeacher }) {
   if (isAdmin) return 'admin';
   if (isTeacher) return 'teacher';
+  if (isClassTeacher) return 'class_teacher';
   return 'student';
 }
 
@@ -63,6 +64,7 @@ function makeStoreKey(prefix, roleKey) {
 export function useNotificationCenter({
   isTeacher,
   isAdmin,
+  isClassTeacher = false,
   tasksForActiveMap = [],
   student,
   teacherPendingValidationCount = 0,
@@ -72,7 +74,7 @@ export function useNotificationCenter({
   publicSettings = null,
   serverEnabled = false,
 }) {
-  const roleKey = roleForStorage({ isAdmin, isTeacher });
+  const roleKey = roleForStorage({ isAdmin, isTeacher, isClassTeacher });
   const notificationsStorageKey = useMemo(() => makeStoreKey('items', roleKey), [roleKey]);
   const prefsStorageKey = useMemo(() => makeStoreKey('prefs', roleKey), [roleKey]);
   const metricsStorageKey = useMemo(() => makeStoreKey('metrics', roleKey), [roleKey]);
