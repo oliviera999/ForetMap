@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Maintenance — vérification d'accès au dépôt privé
+
+- Bump de version (`1.195.2`) pour valider la chaîne commit / push / PR après le passage du dépôt en privé.
+
 ### Sécurité — le contrôle post-déploiement détecte les sources servies par l'hébergement
 
 - `scripts/post-deploy-check.js` sonde `/server.js`, `/package.json`, `/sql/schema_foretmap.sql`,
