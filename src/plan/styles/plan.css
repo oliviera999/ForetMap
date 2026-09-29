@@ -740,11 +740,18 @@ body.plan-body {
 }
 
 .plan-map {
+  /* Hauteurs du bloc logo (bas gauche), lues par la boussole/échelle pour s'empiler au-dessus. */
+  --plan-school-logo-h: 36px;
+  --plan-school-attribution-h: 0px;
   position: absolute;
   inset: 0;
   overflow: hidden;
   background: #e6ece6;
   cursor: grab;
+}
+
+.plan-map:has(.plan-map__attribution) {
+  --plan-school-attribution-h: 26px;
 }
 
 .plan-map__world {
@@ -811,7 +818,7 @@ body.plan-body {
 .plan-map__school-logo {
   display: block;
   width: auto;
-  height: 36px;
+  height: var(--plan-school-logo-h, 36px);
   max-width: 100%;
   object-fit: contain;
   opacity: 0.72;
@@ -828,8 +835,11 @@ body.plan-body {
 }
 
 @media (min-width: 720px) {
+  .plan-map {
+    --plan-school-logo-h: 44px;
+  }
+
   .plan-map__school-logo {
-    height: 44px;
     opacity: 0.78;
   }
 }

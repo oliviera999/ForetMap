@@ -20,9 +20,13 @@
   backdrop-filter: blur(2px);
 }
 
-/* Remonter au-dessus du logo école (bas gauche) sur Plan Lyautey. */
+/* Empilé au-dessus du bloc logo école (bas gauche) sur Plan Lyautey : mêmes 4px de base
+   et zone sûre que `.plan-map__school-mark`, puis la hauteur du logo et de la mention. */
 .plan-map .map-scale-compass {
-  bottom: 52px;
+  bottom: calc(
+    env(safe-area-inset-bottom, 0px) + 4px + var(--plan-school-logo-h, 44px) +
+      var(--plan-school-attribution-h, 0px) + 10px
+  );
   border-color: rgba(24, 48, 88, 0.35);
 }
 
