@@ -12,7 +12,19 @@ const {
   checkEndpoint,
   checkEndpointAllowedStatuses,
   checkImageEndpoint,
+  checkNotExposed,
+  EXPOSURE_PROBE_PATHS,
 } = require('../scripts/post-deploy-check');
+
+async function withServer(handler, fn) {
+  const server = http.createServer(handler);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    return await fn(`http://127.0.0.1:${server.address().port}`);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
 
 test('parseArgs lit --base-url et --timeout-ms', () => {
   const parsed = parseArgs([
@@ -188,6 +200,60 @@ test('checkImageEndpoint accepte 404 comme succès optionnel', async () => {
     assert.strictEqual(out.status, 404);
   } finally {
     await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('checkNotExposed échoue quand un fichier du dépôt est servi tel quel', async () => {
+  await withServer(
+    (req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/javascript' });
+      res.end("require('dotenv').config();");
+    },
+    async (base) => {
+      const out = await checkNotExposed(base, '/server.js', 3000);
+      assert.strictEqual(out.required, false);
+      assert.strictEqual(out.pass, false);
+      assert.strictEqual(out.status, 200);
+      assert.deepStrictEqual(out.body, {});
+    },
+  );
+});
+
+test('checkNotExposed échoue sur package.json servi en JSON sans en garder le contenu', async () => {
+  await withServer(
+    (req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ name: 'foretmap', version: '1.0.0' }));
+    },
+    async (base) => {
+      const out = await checkNotExposed(base, '/package.json', 3000);
+      assert.strictEqual(out.pass, false);
+      assert.deepStrictEqual(out.body, {});
+    },
+  );
+});
+
+test('checkNotExposed réussit sur le repli SPA (HTML) ou un 404', async () => {
+  await withServer(
+    (req, res) => {
+      if (req.url === '/.env') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<!doctype html><html></html>');
+    },
+    async (base) => {
+      assert.strictEqual((await checkNotExposed(base, '/server.js', 3000)).pass, true);
+      assert.strictEqual((await checkNotExposed(base, '/.env', 3000)).pass, true);
+    },
+  );
+});
+
+test('EXPOSURE_PROBE_PATHS sonde le code serveur, les secrets et git', () => {
+  for (const p of ['/server.js', '/package.json', '/.env', '/.git/HEAD']) {
+    assert.ok(EXPOSURE_PROBE_PATHS.includes(p), p);
   }
 });
 
