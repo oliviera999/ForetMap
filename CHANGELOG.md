@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — plan Lyautey : boussole et échelle ne recouvrent plus le logo du lycée
+
+La boussole et la barre d'échelle étaient remontées d'une valeur fixe (52 px), inférieure à la hauteur réelle du bloc logo sur écran large (logo de 44 px), avec la mention de source ou dans la zone sûre iOS : elles chevauchaient le logo. Leur position est désormais calculée à partir de la hauteur du logo (`--plan-school-logo-h`), de la mention éventuelle et de la zone sûre (`src/plan/styles/plan.css`, `src/shared/styles/map-scale-compass.css`).
+
 ### Modifié — vraies captures dans la fenêtre d'installation de l'application
 
 Les deux captures du manifeste PWA (`public/pwa-screenshot-mobile.png`, `pwa-screenshot-wide.png`), affichées par Chrome et Edge au moment d'installer l'application, étaient des maquettes (ellipses sur fond vert, sans rapport avec l'interface). Elles sont remplacées par de vraies captures de la visite publique (plan « Plage des Sablettes », aucun compte ni donnée nominative), régénérables par `npm run pwa:screenshots` (`scripts/capture-pwa-screenshots.js`, Playwright ; `--base-url` pour viser un serveur local, `--map` pour changer de plan). Elles sortent aussi du précache hors ligne (`public/sw.js`, `scripts/build-pwa.js`), où elles ne servaient à rien. Test : `tests/build-pwa.test.js`.
