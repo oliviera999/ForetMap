@@ -26,6 +26,7 @@ import {
 } from './map/LivingBeingsCatalogPanel.jsx';
 
 import { parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
+import { contentAspect } from '../shared/pct-map/pctMapLabels.js';
 import { MapViewEditCanvas } from './map/MapViewEditCanvas.jsx';
 import { sensitivityToMinStrength } from '../utils/edgeSnap.js';
 import {
@@ -612,9 +613,10 @@ function MapViewImpl({
   }, [isTeacher, activeMapGeoref, mode, drawPoints, editPoints]);
   // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
   // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
+  const zoneLabelAspect = contentAspect(iw, ih);
   const parsedZones = useMemo(
-    () => parseZonesForLayer(zones, emojiParsingList),
-    [zones, emojiParsingList],
+    () => parseZonesForLayer(zones, emojiParsingList, { aspect: zoneLabelAspect }),
+    [zones, emojiParsingList, zoneLabelAspect],
   );
 
   // Catalogue des catégories de la carte active (globales + propres à la carte).

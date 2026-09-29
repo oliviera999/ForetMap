@@ -6525,7 +6525,7 @@ fieldset .media-library-menu__gallery {
 
 /* Dé-anamorphose (viewBox 100×100 étiré sur un plateau rectangulaire) : le scale Y par le
    ratio du plateau, autour du centre de l'élément, rend cercles et glyphes à nouveau
-   uniformes — même correction que visitZoneSvgTextUniformYTransform côté Visite. */
+   uniformes. */
 .gl-feuillet-zone-centre,
 .gl-feuillet-zone-label {
   transform-box: fill-box;

@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte : emojis et noms de zones bien placés et sans chevauchement
+
+Audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md) (9 constats, tous traités). L'emoji d'une zone est désormais centré sur son point d'ancrage et le nom posé dessous : l'emoji ne saute plus quand le nom apparaît ou disparaît. Les emojis entrent dans l'anti-chevauchement, avant les noms (un nom sans son emoji est masqué, la zone sélectionnée garde les deux), avec des boîtes de collision fidèles au rendu et aux tailles réelles (préférence **Aa** incluse, `resolveOverlayLabelSizesPx`). Le point d'ancrage est calculé en pixels (rapport d'aspect de l'image) et plus en % étirés — approche inspirée de [mapbox/polylabel](https://github.com/mapbox/polylabel) (ISC), réimplémentée. Les pastilles d'état s'écartent de l'emoji (ou du nom seul). Le mode édition utilise le même moteur que la consultation ; le réglage `ui.map.zone_label_min_side_factor` devient **sans effet** (conservé pour compatibilité). Code mort supprimé : `VisitZonesSvgLayer`, branche `<text>` de `PctZonesLayer`, CSS `.visit-zone-*`. Tests : `pctMapLabels`, `mapOverlayLabelCollision`, `pctPolylabel`, `PctLayers`, `PctStatusDots`, `ZonePolygonsLayer`, `map-overlay-zone-labels`.
+
 ### Corrigé — plan Lyautey : boussole et échelle ne recouvrent plus le logo du lycée
 
 La boussole et la barre d'échelle étaient remontées d'une valeur fixe (52 px), inférieure à la hauteur réelle du bloc logo sur écran large (logo de 44 px), avec la mention de source ou dans la zone sûre iOS : elles chevauchaient le logo. Leur position est désormais calculée à partir de la hauteur du logo (`--plan-school-logo-h`), de la mention éventuelle et de la zone sûre (`src/plan/styles/plan.css`, `src/shared/styles/map-scale-compass.css`).

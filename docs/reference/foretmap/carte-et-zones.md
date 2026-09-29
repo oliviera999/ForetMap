@@ -876,17 +876,32 @@ toute l'établissement :
 - **écart entre emoji et nom** ;
 - **grossissement des étiquettes au zoom** (0 % = taille constante quand on zoome,
   100 % = grossit linéairement avec le zoom ; la valeur par défaut est intermédiaire) ;
-- **masquage adaptatif des noms de zone** : sur une zone très petite à l'écran, seul
-  l'emoji peut rester visible ; le nom complet reste accessible en ouvrant la fiche.
-  Le seuil est réglable (côté minimal en × hauteur du libellé ; **2,5 par défaut** —
-  plus bas = noms affichés plus souvent, plus haut = masquage plus strict).
+  Pour un **tableau interactif** ou des élèves ayant besoin de caractères plus grands,
+  monter les pourcentages emoji/nom (par exemple 150 %) dans les réglages admin.
 
-Pour un **tableau interactif** ou des élèves ayant besoin de caractères plus grands,
-monter les pourcentages emoji/nom (par exemple 150 %) dans les réglages admin.
+**Placement de l'emoji et du nom d'une zone.** L'emoji est posé au point le plus
+« intérieur » de la forme — celui qui est le plus loin de tous ses bords, tel qu'on le voit
+à l'écran, même sur un plan très allongé — et le nom s'écrit juste en dessous. L'emoji
+reste donc à la même place quand le nom apparaît ou disparaît. Une zone sans emoji a son
+nom centré sur ce point. Les pastilles d'état (tâche à faire, tutoriel) se placent en coin,
+autour de l'emoji (ou du nom) sans le recouvrir.
 
-Sur les **petites zones**, seul l'emoji peut rester visible si le nom ne tiendrait pas
-de façon lisible ; le nom complet reste accessible en ouvrant la fiche. Un administrateur
-peut ajuster ce comportement dans les réglages (seuil « masquage nom de zone »).
+**Quand la place manque.** Les étiquettes ne se chevauchent jamais : quand deux zones sont
+trop proches à l'écran, l'application garde d'abord les **emojis** (le repère visuel le plus
+utile), puis les noms, en privilégiant les grandes zones. Un emoji ou un nom masqué
+réapparaît dès qu'on **zoome**. La zone sélectionnée garde toujours son emoji et son nom.
+Un nom dont l'emoji est masqué est masqué aussi, pour ne jamais laisser un nom orphelin.
+Le nom complet reste accessible en ouvrant la fiche. Le **mode édition** du plan applique
+exactement les mêmes règles que la consultation (les emojis restent visibles même quand les
+noms sont désactivés).
+
+> **⚠️ Points d'attention**
+>
+> - Le réglage « **masquage nom de zone : côté minimal** » est toujours présent dans les
+>   réglages, mais il **n'a plus d'effet** : le masquage suit désormais uniquement la place
+>   réellement disponible à l'écran. Il sera retiré dans un lot ultérieur.
+> - Sur un plan chargé et vu de loin, certains emojis peuvent être masqués alors qu'ils
+>   s'affichaient tous (en se superposant) auparavant : il suffit de zoomer.
 
 ## Pour aller plus loin
 

@@ -5,16 +5,6 @@ async function load() {
   return import('../src/utils/mapOverlayZoneLabels.js');
 }
 
-test('polygonAreaAbs calcule une aire positive', async () => {
-  const { polygonAreaAbs } = await load();
-  const area = polygonAreaAbs([
-    { cx: 0, cy: 0 },
-    { cx: 100, cy: 0 },
-    { cx: 100, cy: 50 },
-  ]);
-  assert.strictEqual(area, 2500);
-});
-
 test('clampZoneLabelMinSideFactor borne et arrondit', async () => {
   const { clampZoneLabelMinSideFactor } = await load();
   assert.strictEqual(clampZoneLabelMinSideFactor(undefined), 2.5);
@@ -23,48 +13,17 @@ test('clampZoneLabelMinSideFactor borne et arrondit', async () => {
   assert.strictEqual(clampZoneLabelMinSideFactor(9), 6);
 });
 
-test('shouldShowZoneNameLabel masque le nom sur une zone minuscule', async () => {
-  const { shouldShowZoneNameLabel } = await load();
-  const pts = [
-    { xp: 0, yp: 0 },
-    { xp: 2, yp: 0 },
-    { xp: 2, yp: 2 },
-  ];
-  assert.equal(shouldShowZoneNameLabel({ pts, iw: 200, ih: 100, inv: 1, labelFontPx: 14 }), false);
+test('le masquage par surface a disparu : toutes les cartes passent par l’anti-chevauchement', async () => {
+  const mod = await load();
+  assert.strictEqual(mod.shouldShowZoneNameLabel, undefined);
+  assert.strictEqual(mod.shouldShowZoneEmojiLabel, undefined);
 });
 
-test('shouldShowZoneNameLabel affiche le nom sur une zone large', async () => {
-  const { shouldShowZoneNameLabel } = await load();
-  const pts = [
-    { xp: 0, yp: 0 },
-    { xp: 50, yp: 0 },
-    { xp: 50, yp: 50 },
-  ];
-  assert.equal(shouldShowZoneNameLabel({ pts, iw: 200, ih: 100, inv: 1, labelFontPx: 12 }), true);
-});
-
-test('shouldShowZoneNameLabel : défaut 2,5 moins agressif que 4', async () => {
-  const { shouldShowZoneNameLabel } = await load();
-  const pts = [
-    { xp: 0, yp: 0 },
-    { xp: 40, yp: 0 },
-    { xp: 40, yp: 40 },
-  ];
-  const params = { pts, iw: 200, ih: 100, inv: 1, labelFontPx: 14 };
-  assert.equal(shouldShowZoneNameLabel({ ...params, minSideFactor: 4 }), false);
-  assert.equal(shouldShowZoneNameLabel({ ...params, minSideFactor: 2.5 }), true);
-});
-
-test('shouldShowZoneEmojiLabel reste visible quand le nom est masqué', async () => {
-  const { shouldShowZoneEmojiLabel, shouldShowZoneNameLabel } = await load();
-  const pts = [
-    { xp: 0, yp: 0 },
-    { xp: 30, yp: 0 },
-    { xp: 30, yp: 30 },
-  ];
-  const base = { pts, iw: 200, ih: 100, inv: 1, minSideFactor: 2.5 };
-  assert.equal(shouldShowZoneNameLabel({ ...base, labelFontPx: 14 }), false);
-  assert.equal(shouldShowZoneEmojiLabel({ ...base, emojiFontPx: 19 }), true);
+test('chasse moyenne : même valeur que le moteur de collisions', async () => {
+  const { MAP_OVERLAY_LABEL_AVG_CHAR_EM } = await load();
+  const { AVG_CHAR_WIDTH_RATIO } =
+    await import('../src/shared/pct-map/mapOverlayLabelCollision.js');
+  assert.strictEqual(MAP_OVERLAY_LABEL_AVG_CHAR_EM, AVG_CHAR_WIDTH_RATIO);
 });
 
 test('zoneLabelMaxTextLengthWorld suit inv', async () => {
@@ -87,7 +46,7 @@ test('fitOverlayLabelToWidth : un nom court reste tel quel (pas de textLength im
 
 test('fitOverlayLabelToWidth : un nom un peu long est réduit sans déformation des glyphes', async () => {
   const { fitOverlayLabelToWidth } = await load();
-  // 13 caractères × 14px × 0,6 = 109,2 > 96 → réduction bornée, texte intact.
+  // 13 caractères × 14px × 0,55 = 100,1 > 96 → réduction bornée, texte intact.
   const fit = fitOverlayLabelToWidth({ text: 'Verger commun', fontSize: 14, maxWidth: 96 });
   assert.strictEqual(fit.text, 'Verger commun');
   assert.ok(fit.fontSize < 14 && fit.fontSize >= 14 * 0.8);
@@ -105,7 +64,7 @@ test('fitOverlayLabelToWidth : un nom très long est tronqué avec « … » à 
   assert.ok(fit.text.endsWith('…'));
   assert.ok(Math.abs(fit.fontSize - 14 * 0.8) < 1e-9);
   // La largeur estimée du texte tronqué tient dans la largeur cible.
-  const width = Array.from(fit.text).length * fit.fontSize * 0.6;
+  const width = Array.from(fit.text).length * fit.fontSize * 0.55;
   assert.ok(width <= 96 + 1e-9);
 });
 

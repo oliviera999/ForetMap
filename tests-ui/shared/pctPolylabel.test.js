@@ -100,6 +100,50 @@ describe('polygonPoleOfInaccessibilityPct', () => {
   });
 });
 
+/**
+ * Image non carrée — `docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 6.
+ *
+ * Sur une image 200 × 100 px, 1 % de largeur vaut 2 px et 1 % de hauteur 1 px. Zone en L (en
+ * pixels) : bras horizontal épais de 30 px, bras vertical large de 60 px. Le bon point est dans
+ * le bras vertical (≈ 30 px du bord) ; en pourcentages bruts, le calcul surestimait
+ * l'épaisseur du bras horizontal et y posait l'étiquette (12,5 px du bord réel).
+ */
+describe('polygonPoleOfInaccessibilityPct — rapport largeur/hauteur', () => {
+  const W = 200;
+  const H = 100;
+  const L_PX = [
+    [0, 0],
+    [160, 0],
+    [160, 30],
+    [60, 30],
+    [60, 100],
+    [0, 100],
+  ];
+  const lPct = L_PX.map(([x, y]) => ({ xp: (x / W) * 100, yp: (y / H) * 100 }));
+
+  test('avec le rapport, le pôle est celui calculé en pixels', () => {
+    const iso = polygonPoleOfInaccessibilityPct(lPct, undefined, W / H);
+    const ref = polygonPoleOfInaccessibilityPct(L_PX.map(([x, y]) => ({ xp: x, yp: y })));
+    expect((iso.xp / 100) * W).toBeCloseTo(ref.xp, 0);
+    expect((iso.yp / 100) * H).toBeCloseTo(ref.yp, 0);
+    // Distance exprimée en % de la hauteur, soit ici en pixels.
+    expect(iso.distance).toBeCloseTo(ref.distance, 0);
+    expect((iso.yp / 100) * H).toBeGreaterThan(30); // dans le bras vertical
+  });
+
+  test('sans le rapport, l’ancre tombait dans le bras étroit (défaut corrigé)', () => {
+    const raw = polygonPoleOfInaccessibilityPct(lPct);
+    expect((raw.yp / 100) * H).toBeLessThan(30);
+  });
+
+  test('rapport absent, nul ou non fini : comportement historique', () => {
+    const base = polygonPoleOfInaccessibilityPct(L_SHAPE);
+    expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, 0)).toEqual(base);
+    expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, Number.NaN)).toEqual(base);
+    expect(polygonPoleOfInaccessibilityPct(L_SHAPE, undefined, 1)).toEqual(base);
+  });
+});
+
 describe('polygonCentroidPct', () => {
   test('carré : le centre ; polygone d’aire nulle : moyenne des sommets', () => {
     expect(polygonCentroidPct(SQUARE)).toEqual({ xp: 50, yp: 50 });

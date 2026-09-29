@@ -37,8 +37,11 @@ describe('PctZonesLayer', () => {
     expect(polygons).toHaveLength(1);
     expect(polygons[0].getAttribute('points')).toBe('0,0 20,0 20,20');
     expect(container.querySelector('svg').getAttribute('viewBox')).toBe('0 0 100 100');
-    expect(screen.getByText('Verger')).toBeTruthy();
-    expect(screen.getByText('🍏')).toBeTruthy();
+  });
+
+  test('aucun texte dans le SVG étiré : emojis et noms passent par PctLabelsLayer (audit C1)', () => {
+    const { container } = render(<PctZonesLayer zones={ZONES} onZoneClick={() => {}} />);
+    expect(container.querySelectorAll('text')).toHaveLength(0);
   });
 
   test('clic : renvoie la zone ; zone active marquée', () => {
@@ -52,13 +55,6 @@ describe('PctZonesLayer', () => {
     expect(onZoneClick.mock.calls[0][0].id).toBe('z1');
   });
 
-  test('showLabels=false : polygone sans emoji ni nom', () => {
-    const { container } = render(
-      <PctZonesLayer zones={ZONES} onZoneClick={() => {}} showLabels={false} />,
-    );
-    expect(container.querySelectorAll('text')).toHaveLength(0);
-  });
-
   test('zone atteignable au clavier et annoncée (audit C4)', () => {
     const onZoneClick = vi.fn();
     render(<PctZonesLayer zones={ZONES} onZoneClick={onZoneClick} />);
@@ -70,16 +66,14 @@ describe('PctZonesLayer', () => {
     expect(onZoneClick).toHaveBeenCalledTimes(2);
   });
 
-  test('emoji de tête retiré du nom dessiné (audit B3)', () => {
+  test('emoji de tête retiré du nom accessible (audit B3)', () => {
     render(
       <PctZonesLayer
         zones={[{ ...ZONES[0], name: '🍏 Verger', emoji: '🍏' }]}
         onZoneClick={() => {}}
       />,
     );
-    // Une seule occurrence de l'emoji, et le nom sans son préfixe.
-    expect(screen.getAllByText('🍏')).toHaveLength(1);
-    expect(screen.getByText('Verger')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Verger' })).toBeTruthy();
   });
 
   test('sans handler de clic : ni rôle ni tabulation (calque décoratif)', () => {
@@ -134,6 +128,20 @@ describe('PctLabelsLayer', () => {
     );
     expect(container.querySelector('.fm-pct-label__emoji')).toBeTruthy();
     expect(container.querySelector('.fm-pct-label__name')).toBe(null);
+  });
+
+  test('avec emoji : classe has-emoji (emoji centré sur l’ancre, nom dessous) ; sans : aucune', () => {
+    const { container } = render(
+      <PctLabelsLayer
+        labels={[
+          { id: 'zone:a', xp: 10, yp: 10, emoji: '📚', name: 'CDI' },
+          { id: 'zone:b', xp: 50, yp: 50, emoji: '', name: 'Préau' },
+        ]}
+      />,
+    );
+    const [withEmoji, nameOnly] = container.querySelectorAll('.fm-pct-label');
+    expect(withEmoji.classList.contains('has-emoji')).toBe(true);
+    expect(nameOnly.classList.contains('has-emoji')).toBe(false);
   });
 });
 

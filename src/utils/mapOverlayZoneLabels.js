@@ -1,33 +1,22 @@
 /**
- * Heuristiques d'affichage des libellés de zone (masquage adaptatif).
+ * Mise en page des libellés de zone et de repère (largeur maximale, ajustement d'un nom).
+ *
+ * Le masquage des noms ne se fait plus ici par seuil de surface : toutes les cartes passent par
+ * le moteur d'anti-chevauchement du noyau (`src/shared/pct-map/pctMapLabels.js`).
  */
 import {
   MAP_OVERLAY_LABEL_COMPRESS_CHARS,
   MAP_OVERLAY_LABEL_MAX_SCREEN_PX,
   MAP_OVERLAY_LABEL_MAX_SCREEN_PX_COARSE,
-  MAP_ZONE_LABEL_EMOJI_SIDE_FACTOR_RATIO,
   MAP_ZONE_LABEL_MIN_SIDE_FACTOR_DEFAULT,
   MAP_ZONE_LABEL_MIN_SIDE_FACTOR_MAX,
   MAP_ZONE_LABEL_MIN_SIDE_FACTOR_MIN,
 } from '../shared/typographyTokens.js';
+import { AVG_CHAR_WIDTH_RATIO } from '../shared/pct-map/mapOverlayLabelCollision.js';
 
 /**
- * Aire d'un polygone (coordonnées quelconques, signe conservé).
- * @param {Array<{ cx: number, cy: number }>} pts
- */
-export function polygonAreaAbs(pts) {
-  if (!pts || pts.length < 3) return 0;
-  let sum = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i];
-    const b = pts[(i + 1) % pts.length];
-    sum += a.cx * b.cy - b.cx * a.cy;
-  }
-  return Math.abs(sum) / 2;
-}
-
-/**
- * Borne le facteur « côté minimal en × hauteur de libellé » pour le masquage des noms de zone.
+ * Borne le facteur « côté minimal en × hauteur de libellé » (réglage admin conservé pour
+ * compatibilité, sans effet sur l'affichage).
  * @param {unknown} raw
  * @param {number} [fallback]
  */
@@ -51,70 +40,6 @@ export function clampZoneLabelMinSideFactor(
 export function resolveZoneLabelMinSideFactor(mapSettings) {
   const m = mapSettings && typeof mapSettings === 'object' ? mapSettings : {};
   return clampZoneLabelMinSideFactor(m.zone_label_min_side_factor);
-}
-
-/**
- * Aire apparente à l'écran (px²) d'une zone dont les points sont en % (xp, yp).
- * @param {{ pts: Array<{xp:number,yp:number}>, iw: number, ih: number, inv: number }} params
- */
-export function computeZoneScreenArea({ pts, iw, ih, inv }) {
-  if (!pts || pts.length < 3 || !(iw > 0) || !(ih > 0)) return 0;
-  const wp = pts.map((p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih }));
-  const areaWorld = polygonAreaAbs(wp);
-  const worldScale = inv > 0 ? 1 / inv : 1;
-  return areaWorld * worldScale * worldScale;
-}
-
-/**
- * @param {number} areaScreen
- * @param {number} apparentPx taille apparente (px écran)
- * @param {number} sideFactor côté minimal ≈ facteur × apparentPx
- */
-function meetsMinLabelArea(areaScreen, apparentPx, sideFactor) {
-  if (!(areaScreen > 0) || !(apparentPx > 0) || !(sideFactor > 0)) return false;
-  const minArea = (apparentPx * sideFactor) ** 2;
-  return areaScreen >= minArea;
-}
-
-/**
- * Indique si le nom de zone doit s'afficher (zone assez grande à l'écran).
- *
- * @param {{ pts: Array<{xp:number,yp:number}>, iw: number, ih: number, inv: number, labelFontPx: number, minSideFactor?: number }} params
- */
-export function shouldShowZoneNameLabel({
-  pts,
-  iw,
-  ih,
-  inv,
-  labelFontPx,
-  minSideFactor = MAP_ZONE_LABEL_MIN_SIDE_FACTOR_DEFAULT,
-}) {
-  if (!pts || pts.length < 3 || !(iw > 0) || !(ih > 0)) return false;
-  const factor = clampZoneLabelMinSideFactor(minSideFactor);
-  const areaScreen = computeZoneScreenArea({ pts, iw, ih, inv });
-  const labelApparentPx = Math.max(1, labelFontPx * (inv > 0 ? 1 / inv : 1));
-  return meetsMinLabelArea(areaScreen, labelApparentPx, factor);
-}
-
-/**
- * Indique si l'emoji de zone doit s'afficher (seuil plus bas que le nom).
- *
- * @param {{ pts: Array<{xp:number,yp:number}>, iw: number, ih: number, inv: number, emojiFontPx: number, minSideFactor?: number }} params
- */
-export function shouldShowZoneEmojiLabel({
-  pts,
-  iw,
-  ih,
-  inv,
-  emojiFontPx,
-  minSideFactor = MAP_ZONE_LABEL_MIN_SIDE_FACTOR_DEFAULT,
-}) {
-  if (!pts || pts.length < 3 || !(iw > 0) || !(ih > 0)) return false;
-  const factor = clampZoneLabelMinSideFactor(minSideFactor);
-  const emojiFactor = Math.max(1, factor * MAP_ZONE_LABEL_EMOJI_SIDE_FACTOR_RATIO);
-  const areaScreen = computeZoneScreenArea({ pts, iw, ih, inv });
-  const emojiApparentPx = Math.max(1, emojiFontPx * (inv > 0 ? 1 / inv : 1));
-  return meetsMinLabelArea(areaScreen, emojiApparentPx, emojiFactor);
 }
 
 /**
@@ -153,8 +78,11 @@ export function shouldCompressOverlayLabel(text, threshold = MAP_OVERLAY_LABEL_C
   return String(text || '').length > threshold;
 }
 
-/** Chasse moyenne estimée d'un caractère de libellé (em) — sans mesure DOM. */
-export const MAP_OVERLAY_LABEL_AVG_CHAR_EM = 0.6;
+/**
+ * Chasse moyenne estimée d'un caractère de libellé (em) — sans mesure DOM. Même valeur que le
+ * moteur de collisions, sinon un nom jugé « tenant » par l'un était tronqué par l'autre.
+ */
+export const MAP_OVERLAY_LABEL_AVG_CHAR_EM = AVG_CHAR_WIDTH_RATIO;
 
 /** Réduction maximale de la taille d'un nom trop long avant troncature (× la taille nominale). */
 export const MAP_OVERLAY_LABEL_MIN_SHRINK = 0.8;

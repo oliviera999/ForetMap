@@ -437,7 +437,7 @@ export const KEY_META = {
   },
   'ui.map.zone_label_min_side_factor': {
     label:
-      'Carte — masquage nom de zone : côté minimal (× hauteur du libellé ; 2,5 = défaut, plus bas = noms plus souvent visibles)',
+      'Carte — masquage nom de zone : côté minimal (sans effet — le masquage suit désormais l’anti-chevauchement)',
     section: 'modules',
     order: 73.6,
   },

@@ -1,10 +1,44 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  LABEL_COLLISION_PADDING_PX,
   boxesOverlap,
+  estimateGlyphBox,
   estimateLabelBox,
   resolveLabelCollisions,
 } from '../../src/shared/pct-map/mapOverlayLabelCollision.js';
+
+describe('estimateLabelBox — nom posé sous un emoji', () => {
+  const pad = LABEL_COLLISION_PADDING_PX;
+
+  test('anchorY « top » : le haut du texte est sur y, une 2e ligne descend', () => {
+    const one = estimateLabelBox({ x: 0, y: 20, text: 'CDI', fontSizePx: 10, anchorY: 'top' });
+    expect(one.top).toBeCloseTo(20 - pad, 5);
+    expect(one.bottom).toBeCloseTo(20 + 12 + pad, 5);
+    const two = estimateLabelBox({
+      x: 0,
+      y: 20,
+      text: 'Salle polyvalente du bâtiment',
+      fontSizePx: 10,
+      maxWidthPx: 60,
+      maxLines: 2,
+      anchorY: 'top',
+    });
+    expect(two.top).toBeCloseTo(one.top, 5); // le haut ne bouge pas
+    expect(two.bottom).toBeCloseTo(20 + 24 + pad, 5);
+  });
+
+  test('extraWidthPx élargit la boîte (pilule du lieu sélectionné)', () => {
+    const plain = estimateLabelBox({ x: 0, y: 0, text: 'CDI', fontSizePx: 10 });
+    const pill = estimateLabelBox({ x: 0, y: 0, text: 'CDI', fontSizePx: 10, extraWidthPx: 12 });
+    expect(pill.right - pill.left).toBeCloseTo(plain.right - plain.left + 12, 5);
+  });
+
+  test('estimateGlyphBox : carré centré de la taille du glyphe', () => {
+    const box = estimateGlyphBox({ x: 10, y: 10, sizePx: 16 });
+    expect(box).toEqual({ left: 2 - pad, right: 18 + pad, top: 2 - pad, bottom: 18 + pad });
+  });
+});
 
 describe('estimateLabelBox / boxesOverlap', () => {
   test('boîte centrée sur le point, largeur croissante avec le texte', () => {
@@ -62,6 +96,19 @@ describe('resolveLabelCollisions', () => {
       { id: 'selection', box: box(5, 0), priority: 999, pinned: true },
     ]);
     expect([...visible]).toEqual(['selection']);
+  });
+
+  test('le rang de famille (tier) passe avant la catégorie ; l’épinglé reste premier', () => {
+    const visible = resolveLabelCollisions([
+      { id: 'nom-prioritaire', box: box(0, 0), tier: 1, priority: 0 },
+      { id: 'emoji', box: box(5, 0), tier: 0, priority: 99 },
+    ]);
+    expect([...visible]).toEqual(['emoji']);
+    const pinned = resolveLabelCollisions([
+      { id: 'emoji', box: box(5, 0), tier: 0 },
+      { id: 'selection', box: box(0, 0), tier: 1, pinned: true },
+    ]);
+    expect([...pinned]).toEqual(['selection']);
   });
 
   test('entrées vides ou sans boîte : ignorées', () => {

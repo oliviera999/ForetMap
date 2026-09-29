@@ -237,8 +237,6 @@ export function MapViewEditCanvas({
                 emojiFontPx={mapEmojiFontPx}
                 labelFontPx={mapLabelFontPx}
                 emojiLabelCenterGap={mapEmojiLabelCenterGap}
-                minSideFactor={mapOverlayLabelLayout.minSideFactor}
-                labelMaxWorldLength={mapOverlayLabelLayout.maxWorldLength}
                 onZoneOpen={openZoneFromMap}
               />
               <AlignZonesPreviewLayer aligned={alignPreview?.aligned} iw={iw} ih={ih} inv={inv} />

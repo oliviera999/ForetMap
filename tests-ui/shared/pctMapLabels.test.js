@@ -2,15 +2,21 @@ import { describe, expect, test } from 'vitest';
 
 import {
   DEFAULT_LABEL_PRIORITY,
+  LABEL_EMOJI_SIZE_PX,
+  LABEL_FONT_SIZE_PX,
   MARKER_LABEL_MAX_WIDTH_PX,
   ZONE_LABEL_MAX_WIDTH_PX,
   ZONE_LABEL_MIN_WIDTH_PX,
+  ZONE_NAME_GAP_PX,
   buildZoneLabelSpecs,
+  contentAspect,
   defaultLabelPriority,
   labelKey,
   labelPriority,
   polygonAreaPct,
+  resolveOverlayLabelSizesPx,
   resolveVisibleLabels,
+  zoneEmojiLabelKey,
   zoneLabelMaxWidthPx,
 } from '../../src/shared/pct-map/pctMapLabels.js';
 import {
@@ -232,6 +238,145 @@ describe('resolveVisibleLabels', () => {
 
   test('largeur maximale d’un nom de repère : constante, indépendante du bâtiment', () => {
     expect(MARKER_LABEL_MAX_WIDTH_PX).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Emoji et nom d'une zone — `docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`, constats 1 à 3.
+ *
+ * Géométrie (400 × 400 px, échelle 1 : 1 % = 4 px) : l'emoji (16 px) est centré sur l'ancre, le
+ * nom commence 4 px sous l'emoji. Le nom d'une zone à emoji occupe donc la bande
+ * [ancre + 12 ; ancre + 26,4] px — et non plus [ancre − 7,2 ; ancre + 7,2].
+ */
+describe('resolveVisibleLabels — emoji et nom de zone', () => {
+  const view = { contentWidthPx: 400, contentHeightPx: 400, scale: 1 };
+
+  test('l’emoji a sa propre clé, distincte de celle du nom', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: '🍏 Verger', emoji: '🍏', points: rect(40, 40, 20, 20) }],
+      splitEmoji,
+    );
+    expect(zoneSpecs[0].emojiKey).toBe(zoneEmojiLabelKey('a'));
+    const visible = resolveVisibleLabels({ ...view, zoneSpecs, markers: [] });
+    expect(visible.has(zoneEmojiLabelKey('a'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'a'))).toBe(true);
+  });
+
+  test('la place réservée au nom est **sous** l’emoji (constat 2)', () => {
+    // « Mare » est centrée 26 px sous l'ancre du Verger : elle ne gênait pas un nom centré sur
+    // l'ancre, mais elle chevauche le nom réellement posé sous l'emoji.
+    const mare = { id: 'b', name: 'Mare', points: rect(49, 56, 1, 1) };
+    const avecEmoji = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(40, 40, 20, 20) }, mare],
+      splitEmoji,
+    );
+    const sansEmoji = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '', points: rect(40, 40, 20, 20) }, mare],
+      splitEmoji,
+    );
+    const v1 = resolveVisibleLabels({ ...view, zoneSpecs: avecEmoji, markers: [] });
+    const v2 = resolveVisibleLabels({ ...view, zoneSpecs: sansEmoji, markers: [] });
+    expect(v1.has(labelKey('zone', 'a'))).toBe(true);
+    expect(v1.has(labelKey('zone', 'b'))).toBe(false);
+    expect(v2.has(labelKey('zone', 'a'))).toBe(true);
+    expect(v2.has(labelKey('zone', 'b'))).toBe(true);
+  });
+
+  test('deux emojis superposés : un seul reste, et le nom de l’autre part avec lui (constat 3)', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [
+        { id: 'grande', name: 'Potager', emoji: '🥕', points: rect(40, 40, 4, 4) },
+        { id: 'petite', name: 'Ruche', emoji: '🐝', points: rect(41, 41, 2, 2) },
+      ],
+      splitEmoji,
+    );
+    const visible = resolveVisibleLabels({ ...view, zoneSpecs, markers: [] });
+    expect(visible.has(zoneEmojiLabelKey('grande'))).toBe(true);
+    expect(visible.has(zoneEmojiLabelKey('petite'))).toBe(false);
+    // Un nom sans son emoji flotterait sous une place vide.
+    expect(visible.has(labelKey('zone', 'petite'))).toBe(false);
+  });
+
+  test('les emojis passent avant les noms, quelle que soit la catégorie', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [
+        { id: 'nom', name: 'Administration', points: rect(40, 40, 4, 4), category_ids: ['x'] },
+        { id: 'emoji', name: '', emoji: '🌳', points: rect(41, 41, 2, 2), category_ids: [] },
+      ],
+      splitEmoji,
+    );
+    const visible = resolveVisibleLabels({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      categoriesById: new Map([['x', { sort_order: 0 }]]),
+    });
+    expect(visible.has(zoneEmojiLabelKey('emoji'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'nom'))).toBe(false);
+  });
+
+  test('le lieu sélectionné garde emoji et nom', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [
+        { id: 'grande', name: 'Potager', emoji: '🥕', points: rect(40, 40, 4, 4) },
+        { id: 'petite', name: 'Ruche', emoji: '🐝', points: rect(41, 41, 2, 2) },
+      ],
+      splitEmoji,
+    );
+    const visible = resolveVisibleLabels({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      pinnedKey: labelKey('zone', 'petite'),
+    });
+    expect(visible.has(zoneEmojiLabelKey('petite'))).toBe(true);
+    expect(visible.has(labelKey('zone', 'petite'))).toBe(true);
+  });
+
+  test('includeZoneNames=false : emojis seuls', () => {
+    const zoneSpecs = buildZoneLabelSpecs(
+      [{ id: 'a', name: 'Verger', emoji: '🍏', points: rect(40, 40, 20, 20) }],
+      splitEmoji,
+    );
+    const visible = resolveVisibleLabels({
+      ...view,
+      zoneSpecs,
+      markers: [],
+      includeZoneNames: false,
+    });
+    expect([...visible]).toEqual([zoneEmojiLabelKey('a')]);
+  });
+});
+
+describe('resolveOverlayLabelSizesPx / contentAspect', () => {
+  test('lit les tailles rendues dans les variables CSS du produit', () => {
+    expect(
+      resolveOverlayLabelSizesPx({
+        '--map-overlay-label-font-size': '14.5px',
+        '--map-overlay-emoji-font-size': '20px',
+        '--map-overlay-label-margin-top': '6px',
+      }),
+    ).toEqual({ fontSizePx: 14.5, emojiSizePx: 20, nameGapPx: 6 });
+  });
+
+  test('variables absentes, illisibles ou négatives : valeurs par défaut du noyau', () => {
+    expect(resolveOverlayLabelSizesPx(null)).toEqual({
+      fontSizePx: LABEL_FONT_SIZE_PX,
+      emojiSizePx: LABEL_EMOJI_SIZE_PX,
+      nameGapPx: ZONE_NAME_GAP_PX,
+    });
+    expect(
+      resolveOverlayLabelSizesPx({
+        '--map-overlay-label-font-size': '1rem',
+        '--map-overlay-label-margin-top': '-3px',
+      }),
+    ).toEqual({ fontSizePx: LABEL_FONT_SIZE_PX, emojiSizePx: LABEL_EMOJI_SIZE_PX, nameGapPx: 0 });
+  });
+
+  test('rapport largeur/hauteur arrondi, 1 à défaut de mesure', () => {
+    expect(contentAspect(200, 100)).toBe(2);
+    expect(contentAspect(390, 463)).toBe(0.842);
+    expect(contentAspect(0, 100)).toBe(1);
   });
 });
 

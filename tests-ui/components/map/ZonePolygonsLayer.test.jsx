@@ -152,6 +152,22 @@ describe('ZonePolygonsLayer', () => {
     expect(poly).not.toHaveAttribute('stroke-dasharray');
   });
 
+  it('étiquettes masquées : emoji seul, comme la consultation', () => {
+    const { queryByText } = renderLayer({ showLabels: false });
+    expect(queryByText('🌳')).toBeInTheDocument();
+    expect(queryByText('Verger')).toBeNull();
+  });
+
+  it('même anti-chevauchement que la consultation : deux emojis superposés, un seul reste', () => {
+    const zones = [
+      zoneFixture({ id: 1, name: '🌳 Verger' }),
+      zoneFixture({ id: 2, name: '🌱 Potager' }),
+    ];
+    const { queryByText } = renderLayer({ parsedZones: parseZonesForLayer(zones, EMOJIS) });
+    const shown = ['🌳', '🌱'].filter((emoji) => queryByText(emoji));
+    expect(shown).toHaveLength(1);
+  });
+
   it('met en surbrillance la zone en édition de contour', () => {
     const { container } = renderLayer({ mode: 'edit-points', editZoneId: 1 });
     const poly = container.querySelector('polygon');

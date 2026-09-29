@@ -61,7 +61,9 @@ export function PctStatusDots({ dots, className = 'fm-pct-status-dots' }) {
  * Calque des pastilles d'état posées à des ancres en pourcentage (zones).
  *
  * @param {object} props
- * @param {Array<{ id: string, xp: number, yp: number, dots: Array<PctStatusDot> }>} props.anchors
+ * @param {Array<{ id: string, xp: number, yp: number, dots: Array<PctStatusDot>,
+ *   variant?: 'emoji'|'name' }>} props.anchors `variant` : ce que les pastilles encadrent à
+ *   l'ancre — l'emoji de la zone (défaut) ou, sans emoji, son nom centré.
  * @param {string} [props.className]
  */
 function PctStatusDotsLayerImpl({ anchors, className = 'fm-pct-status-anchors' }) {
@@ -71,7 +73,9 @@ function PctStatusDotsLayerImpl({ anchors, className = 'fm-pct-status-anchors' }
       {anchors.map((anchor) => (
         <span
           key={anchor.id}
-          className="fm-pct-status-anchor"
+          className={`fm-pct-status-anchor${
+            anchor.variant === 'name' ? ' fm-pct-status-anchor--name' : ''
+          }`}
           style={{ left: `${anchor.xp}%`, top: `${anchor.yp}%` }}
         >
           <PctStatusDots dots={anchor.dots} />

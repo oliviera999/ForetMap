@@ -10,7 +10,6 @@ import { PctMarkerButton, PctMarkersLayer } from './PctMarkersLayer.jsx';
 import { PctZonesLayer } from './PctZonesLayer.jsx';
 import { PctStatusDotsLayer, statusDotsLabel } from './PctStatusDotsLayer.jsx';
 import { parsePctPolygonPoints } from './pctPolygon.js';
-import { polygonPoleOfInaccessibilityPct } from './pctPolylabel.js';
 import { usePctMapViewport } from './usePctMapViewport.js';
 import {
   clusterCenterPct,
@@ -24,8 +23,11 @@ import {
   LABEL_FONT_SIZE_PX,
   MARKER_LABEL_OFFSET_PX,
   buildZoneLabelSpecs,
+  contentAspect,
   labelKey,
+  resolveOverlayLabelSizesPx,
   resolveVisibleLabels,
+  zoneLabelAnchorPct,
   zoneLabelMaxWidthPx,
 } from './pctMapLabels.js';
 import { PctDirectLine, PctPositionLayer } from './PctPositionLayer.jsx';
@@ -86,7 +88,7 @@ const POSITION_ICONS = Object.freeze({
  *   pastille.
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
- * @param {boolean} [props.showLabels=true] afficher les noms (emojis de zone restent visibles)
+ * @param {boolean} [props.showLabels=true] afficher les noms (sinon : emojis de zone seuls)
  * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
  *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
  * @param {import('react').ReactNode} [props.overlaySlot]
@@ -310,24 +312,38 @@ export function SharedMapStage({
    *
    * Les zones portent les leurs dans un calque HTML ancré au **pôle d'inaccessibilité** du
    * polygone — le même point que l'étiquette, mais indépendant d'elle : une zone dont le nom
-   * est masqué par la résolution de collisions garde sa pastille.
+   * est masqué par la résolution de collisions garde sa pastille. Les pastilles encadrent
+   * l'emoji (ou le nom, pour une zone sans emoji) sans le chevaucher (`variant`).
    */
+  const labelAspect = contentAspect(fitRect.width, fitRect.height);
+  const zoneLabelSpecs = useMemo(
+    () => buildZoneLabelSpecs(visibleZones, splitNameEmoji, { aspect: labelAspect }),
+    [visibleZones, splitNameEmoji, labelAspect],
+  );
   const zoneStatusAnchors = useMemo(() => {
     if (typeof getZoneStatusDots !== 'function') return [];
+    const specById = new Map(zoneLabelSpecs.map((spec) => [spec.id, spec]));
     const anchors = [];
     for (const zone of visibleZones) {
       const dots = getZoneStatusDots(zone);
       if (!dots || !dots.length) continue;
-      const points = parsePctPolygonPoints(zone.points);
-      if (points.length < 3) continue;
-      const anchor = polygonPoleOfInaccessibilityPct(points) || {
-        xp: points.reduce((sum, p) => sum + p.xp, 0) / points.length,
-        yp: points.reduce((sum, p) => sum + p.yp, 0) / points.length,
-      };
-      anchors.push({ id: labelKey('zone', zone.id), xp: anchor.xp, yp: anchor.yp, dots });
+      const spec = specById.get(String(zone.id));
+      let anchor = spec?.anchor;
+      if (!anchor) {
+        const points = parsePctPolygonPoints(zone.points);
+        if (points.length < 3) continue;
+        anchor = zoneLabelAnchorPct(points, labelAspect);
+      }
+      anchors.push({
+        id: labelKey('zone', zone.id),
+        xp: anchor.xp,
+        yp: anchor.yp,
+        dots,
+        variant: spec?.emoji ? 'emoji' : 'name',
+      });
     }
     return anchors;
-  }, [visibleZones, getZoneStatusDots]);
+  }, [visibleZones, getZoneStatusDots, zoneLabelSpecs, labelAspect]);
 
   const zoneStatusLabelOf = useCallback(
     (zone) =>
@@ -554,21 +570,29 @@ export function SharedMapStage({
    * qui tient (`pctMapLabels.js`). Comme les étiquettes gardent une taille constante à
    * l'écran (contre-échelle `--pct-inv` ci-dessous), zoomer écarte les ancres sans grossir
    * les boîtes : les noms masqués réapparaissent seuls.
+   *
+   * Les tailles mesurées sont celles **rendues** (variables CSS du produit : préférence « Aa »,
+   * pointeur tactile), pas les valeurs par défaut du noyau.
    */
-  const zoneLabelSpecs = useMemo(
-    () => buildZoneLabelSpecs(visibleZones, splitNameEmoji),
-    [visibleZones, splitNameEmoji],
-  );
+  const {
+    fontSizePx: labelFontPx,
+    emojiSizePx: labelEmojiPx,
+    nameGapPx: labelNameGapPx,
+  } = useMemo(() => resolveOverlayLabelSizesPx(fitExtraStyle), [fitExtraStyle]);
   const visibleLabelKeys = useMemo(
     () =>
       resolveVisibleLabels({
         zoneSpecs: zoneLabelSpecs,
-        markers: visibleMarkers,
+        markers: showLabels ? visibleMarkers : [],
         categoriesById,
         contentWidthPx: fitRect.width,
         contentHeightPx: fitRect.height,
         scale: committed.s,
         pinnedKey,
+        fontSizePx: labelFontPx,
+        emojiSizePx: labelEmojiPx,
+        nameGapPx: labelNameGapPx,
+        includeZoneNames: showLabels,
         // Étiquettes contre-tournées (N1) : leurs boîtes sont alignées sur l'écran, leurs
         // ancres non. Sans l'angle, deux noms qui ne se gênent pas au nord se recouvrent
         // dès que l'on pivote.
@@ -577,12 +601,16 @@ export function SharedMapStage({
       }),
     [
       zoneLabelSpecs,
+      showLabels,
       visibleMarkers,
       categoriesById,
       fitRect.width,
       fitRect.height,
       committed.s,
       pinnedKey,
+      labelFontPx,
+      labelEmojiPx,
+      labelNameGapPx,
       mapOrientationDeg,
       orientPivot?.xp,
       orientPivot?.yp,
@@ -597,37 +625,32 @@ export function SharedMapStage({
     [visibleZones, onZoneClick],
   );
 
-  const zoneLabels = useMemo(() => {
-    if (!showLabels) {
-      // Emojis seuls : le nom est masqué (bascule « étiquettes » carte de travail).
-      return zoneLabelSpecs
-        .filter((spec) => spec.emoji)
-        .map((spec) => ({
-          id: spec.key,
-          zoneId: spec.id,
-          xp: spec.anchor.xp,
-          yp: spec.anchor.yp,
-          emoji: spec.emoji,
-          name: '',
-          maxWidthPx: zoneLabelMaxWidthPx(spec, fitRect.width, committed.s),
-          active: selectedZoneId != null && String(selectedZoneId) === spec.id,
-        }));
-    }
-    return zoneLabelSpecs
-      .filter((spec) => spec.emoji || visibleLabelKeys.has(spec.key))
-      .map((spec) => ({
-        id: spec.key,
-        zoneId: spec.id,
-        xp: spec.anchor.xp,
-        yp: spec.anchor.yp,
-        emoji: spec.emoji,
-        // L'emoji d'une zone reste toujours visible (il tient dans le polygone) ; c'est le
-        // **nom** que la résolution de collisions peut masquer.
-        name: visibleLabelKeys.has(spec.key) ? spec.name : '',
-        maxWidthPx: zoneLabelMaxWidthPx(spec, fitRect.width, committed.s),
-        active: selectedZoneId != null && String(selectedZoneId) === spec.id,
-      }));
-  }, [showLabels, zoneLabelSpecs, visibleLabelKeys, fitRect.width, committed.s, selectedZoneId]);
+  /**
+   * Emoji et nom sont résolus séparément (`zone-emoji:<id>` / `zone:<id>`) : dans deux petites
+   * zones voisines, les emojis ne se superposent plus ; ils reviennent au zoom comme les noms.
+   * Hors étiquettes (`showLabels=false`), seuls les emojis sont candidats.
+   */
+  const zoneLabels = useMemo(
+    () =>
+      zoneLabelSpecs
+        .map((spec) => {
+          const emoji = spec.emoji && visibleLabelKeys.has(spec.emojiKey) ? spec.emoji : '';
+          const name = showLabels && visibleLabelKeys.has(spec.key) ? spec.name : '';
+          if (!emoji && !name) return null;
+          return {
+            id: spec.key,
+            zoneId: spec.id,
+            xp: spec.anchor.xp,
+            yp: spec.anchor.yp,
+            emoji,
+            name,
+            maxWidthPx: zoneLabelMaxWidthPx(spec, fitRect.width, committed.s),
+            active: selectedZoneId != null && String(selectedZoneId) === spec.id,
+          };
+        })
+        .filter(Boolean),
+    [showLabels, zoneLabelSpecs, visibleLabelKeys, fitRect.width, committed.s, selectedZoneId],
+  );
 
   const markerLabelOf = useCallback(
     (marker) => {
@@ -774,7 +797,6 @@ export function SharedMapStage({
             zones={visibleZones}
             onZoneClick={onZoneClick}
             activeZoneId={selectedZoneId}
-            showLabels={false}
             getIsSeen={getIsSeen}
             getDiscoverHalo={getDiscoverHalo}
             getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}

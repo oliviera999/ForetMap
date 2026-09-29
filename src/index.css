@@ -6035,69 +6035,6 @@
       user-select:none;
       pointer-events:none;
     }
-    .visit-map-fit-layer .visit-map-zones {
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      z-index:1;
-    }
-    .visit-zone-hit { pointer-events:all; }
-    .visit-zone-label {
-      pointer-events:none;
-      user-select:none;
-    }
-    .visit-zone-label--emoji {
-      font-family:var(--font-emoji-stack);
-      text-rendering:geometricPrecision;
-    }
-    .visit-zone-poly {
-      fill:rgba(22,163,74,.18);
-      stroke:rgba(26,71,49,.52);
-      /* Trait en px écran (vector-effect) : constant au zoom et identique sur les deux axes,
-         comme les contours de la carte principale (strokeWidth × inv). */
-      vector-effect:non-scaling-stroke;
-      stroke-width:1.5px;
-      cursor:pointer;
-      transition:fill .16s ease, filter .16s ease, fill-opacity .16s ease, stroke .16s ease, stroke-width .16s ease, stroke-opacity .16s ease;
-    }
-    /* Vu / non-vu : couleur métier conservée ; contraste par opacité + contour (sans pastille). */
-    .visit-zone-poly.is-unseen {
-      fill-opacity:0.8;
-      stroke:rgba(26,71,49,.9);
-      stroke-width:2.35px;
-      animation:none;
-      filter:none;
-    }
-    .visit-zone-poly.is-seen {
-      fill-opacity:0.22;
-      stroke:rgba(26,71,49,.4);
-      stroke-width:1px;
-      animation:none;
-      filter:none;
-    }
-    /* Fiche ouverte : forme affirmée + voisines estompées (pas d'outline rectangle noir). */
-    .visit-zone-hit:focus,
-    .visit-zone-hit:focus-visible {
-      outline:none;
-    }
-    .visit-zone-poly.is-selected {
-      fill-opacity:0.92;
-      stroke:rgba(26,71,49,.92);
-      stroke-width:2.75px;
-    }
-    .visit-zone-hit.is-recessed .visit-zone-poly {
-      fill-opacity:0.2;
-      stroke-opacity:0.3;
-    }
-    .visit-zone-hit.is-recessed .visit-zone-label {
-      opacity:0.35;
-    }
-    .visit-zone-hit:focus-visible .visit-zone-poly {
-      stroke:var(--sage);
-      stroke-width:2.75px;
-      stroke-dasharray:5 4;
-    }
     .visit-marker-btn {
       position:absolute;
       transform:translate(-50%,-50%) scale(var(--map-overlay-scale, 1));

@@ -1,26 +1,41 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { TASK_VISUAL_LABEL } from '../../utils/taskEnrollment.js';
+import { fitOverlayLabelToWidth } from '../../utils/mapOverlayZoneLabels.js';
 import {
-  fitOverlayLabelToWidth,
-  shouldShowZoneEmojiLabel,
-  shouldShowZoneNameLabel,
-} from '../../utils/mapOverlayZoneLabels.js';
-import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylabel.js';
+  labelKey,
+  polygonAreaPct,
+  resolveVisibleLabels,
+  zoneEmojiLabelKey,
+  zoneLabelAnchorPct,
+  zoneLabelMaxWidthPx,
+} from '../../shared/pct-map/pctMapLabels.js';
+import { LABEL_LINE_HEIGHT_RATIO } from '../../shared/pct-map/mapOverlayLabelCollision.js';
+
+/** Pastilles d'état : diamètre et marge autour de l'étiquette (px écran, comme la consultation). */
+const STATUS_DOT_RADIUS_PX = 5.5;
+const STATUS_DOT_CLEARANCE_PX = 6.5;
 
 /**
  * Pré-parse les zones pour le calque SVG : `JSON.parse(z.points)` + détection de l'emoji
  * d'étiquette une seule fois par changement de données (à mémoïser côté appelant avec
- * `useMemo` keyé sur `[zones, emojiParsingList]`) au lieu d'à chaque rendu de la carte.
+ * `useMemo` keyé sur `[zones, emojiParsingList, aspect]`) au lieu d'à chaque rendu de la carte.
  * Les zones sans contour exploitable (< 3 points) sont écartées, comme avant
  * (`renderZonePoly` retournait `null`).
  *
+ * Chaque zone porte aussi sa **spec d'étiquette** (`labelSpec`), au format de
+ * `buildZoneLabelSpecs` : le calque d'édition passe par le même moteur de collisions que la
+ * consultation, pour que basculer d'un mode à l'autre ne fasse ni bouger ni changer les
+ * étiquettes (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 5).
+ *
  * @param {Array<object>} zones zones brutes (points JSON en %)
  * @param {string[]} emojiParsingList emojis reconnus en tête de nom
- * @returns {Array<{ zone: object, pts: Array<{xp:number,yp:number}>, zoneEmoji: string, zoneName: string }>}
+ * @param {{ aspect?: number }} [options] `aspect` : largeur ÷ hauteur de l'image (ancre isotrope).
+ * @returns {Array<{ zone: object, pts: Array<{xp:number,yp:number}>, labelAnchor: object,
+ *   zoneEmoji: string, zoneName: string, labelSpec: object }>}
  */
-export function parseZonesForLayer(zones, emojiParsingList) {
+export function parseZonesForLayer(zones, emojiParsingList, { aspect = 1 } = {}) {
   return (zones || [])
     .map((z) => {
       let pts;
@@ -30,18 +45,37 @@ export function parseZonesForLayer(zones, emojiParsingList) {
         pts = null;
       }
       if (!pts || pts.length < 3) return null;
+      // Ancrage de l'étiquette : **pôle d'inaccessibilité** plutôt que centroïde (lot 5,
+      // N4 de `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`), calculé en distances isotropes.
+      const labelAnchor = zoneLabelAnchorPct(pts, aspect);
+      // Colonne dédiée `zones.emoji` (audit C4) en priorité ; repli sur le préfixe du nom.
+      const zoneEmoji =
+        String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
+      const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
+      const xs = pts.map((p) => p.xp);
+      const ys = pts.map((p) => p.yp);
       return {
         zone: z,
         pts,
-        // Ancrage de l'étiquette : **pôle d'inaccessibilité** plutôt que centroïde (lot 5,
-        // N4 de `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`). Sur une zone en L ou en croissant, le
-        // centroïde tombe hors du polygone et le nom flottait sur la zone voisine. Calculé
-        // une fois par changement de données, comme le reste de ce pré-parsing.
-        labelAnchor: polygonPoleOfInaccessibilityPct(pts),
-        // Colonne dédiée `zones.emoji` (audit C4) en priorité ; repli sur le préfixe du nom.
-        zoneEmoji:
-          String(z.emoji || '').trim() || detectLeadingMarkerEmoji(z.name || '', emojiParsingList),
-        zoneName: stripLeadingMarkerEmoji(z.name || '', emojiParsingList),
+        labelAnchor,
+        zoneEmoji,
+        zoneName,
+        labelSpec: {
+          zone: z,
+          id: String(z.id),
+          key: labelKey('zone', z.id),
+          emojiKey: zoneEmojiLabelKey(z.id),
+          emoji: zoneEmoji,
+          name: String(zoneName || z.name || '').trim(),
+          anchor: labelAnchor,
+          areaPct: polygonAreaPct(pts),
+          bounds: {
+            minXPct: Math.min(...xs),
+            maxXPct: Math.max(...xs),
+            minYPct: Math.min(...ys),
+            maxYPct: Math.max(...ys),
+          },
+        },
       };
     })
     .filter(Boolean);
@@ -58,7 +92,8 @@ const ZonePolygon = React.memo(function ZonePolygon({
   ih,
   inv,
   mode,
-  showLabels,
+  showZoneEmoji,
+  showZoneName,
   isEditing,
   dimmed,
   selected,
@@ -67,9 +102,8 @@ const ZonePolygon = React.memo(function ZonePolygon({
   tutorialCount,
   emojiFontPx,
   labelFontPx,
-  emojiLabelCenterGap,
-  minSideFactor,
-  labelMaxWorldLength,
+  nameGapWorld,
+  nameMaxWorldWidth,
   onZoneOpen,
 }) {
   const { zone: z, pts, zoneEmoji, zoneName, labelAnchor } = parsed;
@@ -97,20 +131,23 @@ const ZonePolygon = React.memo(function ZonePolygon({
           .join(' ')
       : '';
   const zoneNameText = zoneName || z.name || '';
-  const showZoneEmoji =
-    showLabels &&
-    Boolean(zoneEmoji) &&
-    shouldShowZoneEmojiLabel({ pts, iw, ih, inv, emojiFontPx, minSideFactor });
-  const showZoneName =
-    showLabels &&
-    shouldShowZoneNameLabel({ pts, iw, ih, inv, labelFontPx, minSideFactor }) &&
-    Boolean(zoneNameText.trim());
   // Ajustement sans déformation : réduction bornée puis « … » (fini textLength/spacingAndGlyphs).
   const nameFit = fitOverlayLabelToWidth({
     text: zoneNameText,
     fontSize: labelFontPx,
-    maxWidth: labelMaxWorldLength,
+    maxWidth: nameMaxWorldWidth,
   });
+  // Même géométrie qu'en consultation : emoji centré sur l'ancre, **haut** du nom sous l'emoji.
+  const nameY = zoneEmoji
+    ? my + emojiFontPx / 2 + nameGapWorld + (nameFit.fontSize * LABEL_LINE_HEIGHT_RATIO) / 2
+    : my;
+  // Pastilles aux coins hauts d'une boîte qui encadre l'emoji (ou, sans emoji, le nom) sans
+  // le toucher — mêmes positions que `PctStatusDotsLayer`.
+  const dotR = STATUS_DOT_RADIUS_PX * inv;
+  const dotDx = emojiFontPx / 2 + STATUS_DOT_CLEARANCE_PX * inv;
+  const dotDy = zoneEmoji
+    ? dotDx
+    : labelFontPx * LABEL_LINE_HEIGHT_RATIO + (STATUS_DOT_CLEARANCE_PX + 1) * inv;
   // Sélection fiche ouverte : fill plus affirmé + trait forêt (pas d'outline navigateur).
   let stroke = 'rgba(26,71,49,0.5)';
   let strokeW = 1.5;
@@ -163,7 +200,7 @@ const ZonePolygon = React.memo(function ZonePolygon({
       {showZoneName && (
         <text
           x={mx}
-          y={my + (showZoneEmoji ? emojiLabelCenterGap : 0)}
+          y={nameY}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={nameFit.fontSize}
@@ -178,9 +215,9 @@ const ZonePolygon = React.memo(function ZonePolygon({
       {taskVisual && (
         <circle
           className={`map-task-status map-task-status--${taskVisual}`}
-          cx={mx + 16 * inv}
-          cy={my - 12 * inv}
-          r={Math.max(5, 7 * inv)}
+          cx={mx + dotDx}
+          cy={my - dotDy}
+          r={dotR}
           style={{ pointerEvents: 'none' }}
         >
           <title>{TASK_VISUAL_LABEL[taskVisual]}</title>
@@ -189,9 +226,9 @@ const ZonePolygon = React.memo(function ZonePolygon({
       {tutorialCount > 0 && (
         <circle
           className="map-tutorial-zone-dot"
-          cx={mx - 16 * inv}
-          cy={my - 12 * inv}
-          r={Math.max(4, 6 * inv)}
+          cx={mx - dotDx}
+          cy={my - dotDy}
+          r={dotR}
           style={{ pointerEvents: 'none' }}
         >
           <title>
@@ -214,16 +251,16 @@ const ZonePolygon = React.memo(function ZonePolygon({
  * @param {number} props.ih hauteur naturelle du plan (px monde)
  * @param {number} props.inv inverse de l'échelle commitée (traits constants à l'écran)
  * @param {string} props.mode mode carte (`view`, `draw-zone`, `edit-points`, …)
- * @param {boolean} props.showLabels affiche emoji + nom des zones
+ * @param {boolean} props.showLabels affiche les noms des zones (sinon : emojis seuls, comme la
+ *   consultation)
  * @param {string|number|null} props.editZoneId id de la zone en édition de contour (surbrillance)
  * @param {string|number|null} [props.selectedZoneId] zone dont la fiche est ouverte (mise en avant)
  * @param {Map<*, string>} props.zoneTaskVisualById visuel de tâche par id de zone
  * @param {Map<*, number>} props.zoneTutorialCountById nb de tutoriels liés par id de zone
  * @param {number} props.emojiFontPx taille de l'emoji d'étiquette (px monde)
  * @param {number} props.labelFontPx taille du nom de zone (px monde)
- * @param {number} props.emojiLabelCenterGap écart vertical emoji/nom (px monde)
- * @param {number} props.minSideFactor seuil masquage adaptatif (× hauteur libellé)
- * @param {number} props.labelMaxWorldLength largeur max nom long (unités monde SVG)
+ * @param {number} props.emojiLabelCenterGap distance entre les centres de l'emoji et du nom
+ *   (px monde, réglage admin)
  * @param {(zone: object, e: React.MouseEvent) => void} props.onZoneOpen clic zone (handler stable)
  */
 export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
@@ -241,11 +278,33 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
   emojiFontPx,
   labelFontPx,
   emojiLabelCenterGap,
-  minSideFactor,
-  labelMaxWorldLength,
   onZoneOpen,
 }) {
   const hasSelection = selectedZoneId != null && selectedZoneId !== '';
+  const safeInv = inv > 0 ? inv : 1;
+  const scale = 1 / safeInv;
+  // Espace entre le bas de l'emoji et le haut du nom, comme `--map-overlay-label-margin-top`.
+  const nameGapWorld = Math.max(0, emojiLabelCenterGap - emojiFontPx / 2 - labelFontPx / 2);
+  const pinnedKey = hasSelection ? labelKey('zone', selectedZoneId) : '';
+  /** Même moteur de collisions que la consultation, mesuré en pixels écran. */
+  const visibleLabelKeys = useMemo(
+    () =>
+      resolveVisibleLabels({
+        zoneSpecs: parsedZones.map((parsed) => parsed.labelSpec).filter(Boolean),
+        markers: [],
+        contentWidthPx: iw,
+        contentHeightPx: ih,
+        scale,
+        pinnedKey,
+        fontSizePx: labelFontPx * scale,
+        emojiSizePx: emojiFontPx * scale,
+        nameGapPx: nameGapWorld * scale,
+        includeZoneNames: showLabels,
+        // Le SVG ne replie pas le texte : un nom tient sur une ligne, tronqué au besoin.
+        zoneNameMaxLines: 1,
+      }),
+    [parsedZones, iw, ih, scale, pinnedKey, labelFontPx, emojiFontPx, nameGapWorld, showLabels],
+  );
   return (
     <>
       {parsedZones.map((parsed) => {
@@ -254,15 +313,17 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
         const dimmed = dimmedZoneIds?.has(id);
         // Estompage des voisines seulement hors filtre déjà atténué / hors édition.
         const recessed = hasSelection && !selected && !dimmed && mode === 'view';
+        const spec = parsed.labelSpec;
         return (
           <ZonePolygon
             key={parsed.zone.id}
             parsed={parsed}
             iw={iw}
             ih={ih}
-            inv={inv}
+            inv={safeInv}
             mode={mode}
-            showLabels={showLabels}
+            showZoneEmoji={Boolean(spec?.emoji) && visibleLabelKeys.has(spec.emojiKey)}
+            showZoneName={Boolean(spec?.name) && showLabels && visibleLabelKeys.has(spec.key)}
             isEditing={mode === 'edit-points' && editZoneId === parsed.zone.id}
             dimmed={dimmed}
             selected={selected}
@@ -271,9 +332,8 @@ export const ZonePolygonsLayer = React.memo(function ZonePolygonsLayer({
             tutorialCount={zoneTutorialCountById.get(parsed.zone.id) || 0}
             emojiFontPx={emojiFontPx}
             labelFontPx={labelFontPx}
-            emojiLabelCenterGap={emojiLabelCenterGap}
-            minSideFactor={minSideFactor}
-            labelMaxWorldLength={labelMaxWorldLength}
+            nameGapWorld={nameGapWorld}
+            nameMaxWorldWidth={spec ? zoneLabelMaxWidthPx(spec, iw, scale) * safeInv : 0}
             onZoneOpen={onZoneOpen}
           />
         );

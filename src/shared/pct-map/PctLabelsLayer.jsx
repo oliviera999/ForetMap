@@ -20,6 +20,10 @@ import { PctOverlayCaption } from './PctOverlayCaption.jsx';
  * sont déjà résolues sans recouvrement — c'est donc une cible sûre, qui ne vole jamais le tap
  * d'une zone voisine (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N12).
  *
+ * Avec un emoji (`has-emoji`), c'est **l'emoji** qui est centré sur l'ancre et le nom qui pend
+ * dessous : l'emoji ne saute plus quand le nom apparaît, disparaît ou passe sur deux lignes
+ * (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 1).
+ *
  * @param {object} props
  * @param {Array<{ id: string, zoneId?: string, xp: number, yp: number, emoji?: string,
  *   name?: string, maxWidthPx?: number, active?: boolean }>} props.labels étiquettes déjà
@@ -45,9 +49,10 @@ function PctLabelsLayerImpl({ labels, onLabelClick = null, className = 'fm-pct-l
           top: `${label.yp}%`,
           maxWidth: label.maxWidthPx ? `${label.maxWidthPx}px` : undefined,
         };
-        const classes = `fm-pct-label${label.active ? ' is-active' : ''}${
-          clickable ? ' is-clickable' : ''
-        }`;
+        const hasEmoji = Boolean(String(label.emoji || '').trim());
+        const classes = `fm-pct-label${hasEmoji ? ' has-emoji' : ''}${
+          label.active ? ' is-active' : ''
+        }${clickable ? ' is-clickable' : ''}`;
         if (!clickable) {
           return (
             <span key={label.id} className={classes} style={style}>

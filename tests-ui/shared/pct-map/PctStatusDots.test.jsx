@@ -51,6 +51,20 @@ describe('PctStatusDotsLayer', () => {
     expect(anchor.querySelectorAll('.fm-pct-status-dot')).toHaveLength(2);
   });
 
+  test('zone sans emoji : variante « nom » (les pastilles montent au-dessus du nom centré)', () => {
+    const { container } = render(
+      <PctStatusDotsLayer
+        anchors={[
+          { id: 'zone:1', xp: 10, yp: 10, dots: [TASK_DOT], variant: 'emoji' },
+          { id: 'zone:2', xp: 50, yp: 50, dots: [TASK_DOT], variant: 'name' },
+        ]}
+      />,
+    );
+    const [emojiAnchor, nameAnchor] = container.querySelectorAll('.fm-pct-status-anchor');
+    expect(emojiAnchor.classList.contains('fm-pct-status-anchor--name')).toBe(false);
+    expect(nameAnchor.classList.contains('fm-pct-status-anchor--name')).toBe(true);
+  });
+
   test('aucune ancre → calque absent (pas de nœud vide sur la carte)', () => {
     expect(render(<PctStatusDotsLayer anchors={[]} />).container.firstChild).toBeNull();
   });

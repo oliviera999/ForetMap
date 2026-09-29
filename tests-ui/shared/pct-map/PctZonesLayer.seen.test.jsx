@@ -21,12 +21,7 @@ function makeZone(overrides = {}) {
 describe('PctZonesLayer — statut vu', () => {
   test('getIsSeen false → classe is-unseen et aria À découvrir', () => {
     const { container } = render(
-      <PctZonesLayer
-        zones={[makeZone()]}
-        onZoneClick={vi.fn()}
-        showLabels={false}
-        getIsSeen={() => false}
-      />,
+      <PctZonesLayer zones={[makeZone()]} onZoneClick={vi.fn()} getIsSeen={() => false} />,
     );
     expect(container.querySelector('.fm-pct-zone')).toHaveClass('is-unseen');
     expect(screen.getByRole('button', { name: /À découvrir/ })).toBeInTheDocument();
@@ -34,21 +29,14 @@ describe('PctZonesLayer — statut vu', () => {
 
   test('getIsSeen true → classe is-seen', () => {
     const { container } = render(
-      <PctZonesLayer
-        zones={[makeZone()]}
-        onZoneClick={vi.fn()}
-        showLabels={false}
-        getIsSeen={() => true}
-      />,
+      <PctZonesLayer zones={[makeZone()]} onZoneClick={vi.fn()} getIsSeen={() => true} />,
     );
     expect(container.querySelector('.fm-pct-zone')).toHaveClass('is-seen');
     expect(screen.getByRole('button', { name: /Vu$/ })).toBeInTheDocument();
   });
 
   test('sans getIsSeen → pas de classe seen', () => {
-    const { container } = render(
-      <PctZonesLayer zones={[makeZone()]} onZoneClick={vi.fn()} showLabels={false} />,
-    );
+    const { container } = render(<PctZonesLayer zones={[makeZone()]} onZoneClick={vi.fn()} />);
     const zone = container.querySelector('.fm-pct-zone');
     expect(zone).not.toHaveClass('is-seen');
     expect(zone).not.toHaveClass('is-unseen');
@@ -56,7 +44,7 @@ describe('PctZonesLayer — statut vu', () => {
 
   test('clic déclenche onZoneClick', () => {
     const onZoneClick = vi.fn();
-    render(<PctZonesLayer zones={[makeZone()]} onZoneClick={onZoneClick} showLabels={false} />);
+    render(<PctZonesLayer zones={[makeZone()]} onZoneClick={onZoneClick} />);
     fireEvent.click(screen.getByRole('button', { name: /Verger/ }));
     expect(onZoneClick).toHaveBeenCalledTimes(1);
   });
@@ -66,7 +54,6 @@ describe('PctZonesLayer — statut vu', () => {
       <PctZonesLayer
         zones={[makeZone()]}
         onZoneClick={vi.fn()}
-        showLabels={false}
         getIsSeen={() => false}
         getDiscoverHalo={() => true}
       />,

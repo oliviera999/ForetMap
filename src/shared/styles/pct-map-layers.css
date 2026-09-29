@@ -45,11 +45,6 @@
   stroke-opacity: 0.3;
 }
 
-.fm-pct-zones.has-selection .fm-pct-zone:not(.is-active) .fm-pct-zone__emoji,
-.fm-pct-zones.has-selection .fm-pct-zone:not(.is-active) .fm-pct-zone__name {
-  opacity: 0.4;
-}
-
 /* Progression Visite : vus atténués, non-vus au contour plus marqué (sans pastilles). */
 .fm-pct-zone.is-seen:not(.is-active) .fm-pct-zone__poly {
   fill-opacity: 0.22;
@@ -95,21 +90,6 @@
   stroke-dasharray: calc(5px * var(--pct-inv, 1)) calc(4px * var(--pct-inv, 1));
 }
 
-.fm-pct-zone__emoji {
-  font-size: 3.4px;
-  dominant-baseline: middle;
-}
-
-.fm-pct-zone__name {
-  fill: var(--plan-ink, var(--ink, #1a4731));
-  font-size: 2.4px;
-  font-weight: var(--fw-semibold, 600);
-  paint-order: stroke;
-  stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 0.6px;
-  dominant-baseline: middle;
-}
-
 /* --- Étiquettes HTML (zones et repères : même habillage `map-overlay-*`) ------------- */
 
 .fm-pct-labels {
@@ -120,6 +100,7 @@
 
 /* Contre-rotation : `--pct-orient` défait la rotation carte ; `--pct-inv` défait le zoom. */
 .fm-pct-label {
+  --fm-pct-label-pad-top: 0px;
   position: absolute;
   display: flex;
   flex-direction: column;
@@ -131,6 +112,23 @@
      rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
      transition, et le zoom reste instantané. */
   transition: var(--pct-orient-transition, none);
+}
+
+/* Avec emoji : l'**emoji** est centré sur l'ancre, le nom pend dessous. Centrer toute la
+   colonne faisait sauter l'emoji de 7 à 14 px à chaque apparition du nom (une ou deux
+   lignes). La boîte de collision suit la même géométrie (`pctMapLabels.js`). */
+.fm-pct-label.has-emoji {
+  --fm-pct-label-emoji-center: calc(
+    var(--fm-pct-label-pad-top) + var(--map-overlay-emoji-font-size, 16px) / 2
+  );
+  justify-content: flex-start;
+  transform: translate(-50%, calc(-1 * var(--fm-pct-label-emoji-center))) scale(var(--pct-inv, 1))
+    rotate(calc(-1 * var(--pct-orient, 0deg)));
+  transform-origin: 50% var(--fm-pct-label-emoji-center);
+}
+
+.fm-pct-label.has-emoji .fm-pct-overlay__name {
+  margin-top: var(--map-overlay-label-margin-top, 4px);
 }
 
 /* Nom de zone sur deux lignes : un nom replié se lit, un nom tronqué ne sert à personne —
@@ -152,17 +150,25 @@
    sans rien changer au dessin. Le calque reste transparent aux gestes de carte : seules les
    étiquettes captent (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N12). */
 .fm-pct-label.is-clickable {
+  --fm-pct-label-pad-top: 6px;
   pointer-events: auto;
   appearance: none;
-  padding: 6px 4px;
+  /* Pas de marge latérale : la largeur allouée au nom (`maxWidthPx`) est celle que le moteur
+     de collisions a mesurée. */
+  padding: 6px 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
+  min-width: var(--tap-target, 44px);
   min-height: var(--tap-target, 44px);
   justify-content: center;
   touch-action: manipulation;
+}
+
+.fm-pct-label.is-clickable.has-emoji {
+  justify-content: flex-start;
 }
 
 .fm-pct-label.is-clickable:focus-visible {
@@ -422,8 +428,12 @@
 }
 
 /* Contre-échelle et contre-rotation comme les étiquettes : taille constante à l'écran. */
+/* Boîte des pastilles d'une zone : l'emoji (centré sur l'ancre) plus deux fois la pastille
+   (11 px) et une marge — les pastilles des coins hauts encadrent l'emoji sans le toucher. Pour
+   une zone sans emoji, le nom (jusqu'à deux lignes) est centré sur l'ancre : la boîte monte
+   au-dessus de lui. Les coins bas ne servent qu'aux repères (ils tomberaient sur le nom). */
 .fm-pct-status-anchor {
-  --fm-pct-status-box: 34px;
+  --fm-pct-status-box: calc(var(--map-overlay-emoji-font-size, 16px) + 24px);
   position: absolute;
   width: 0;
   height: 0;
@@ -435,13 +445,17 @@
   transition: var(--pct-orient-transition, none);
 }
 
+.fm-pct-status-anchor--name {
+  --fm-pct-status-box-h: calc(2.4 * var(--map-overlay-label-font-size, 12px) + 26px);
+}
+
 /* Dans un bouton repère, la contre-échelle est déjà portée par le bouton. */
 .fm-pct-status-dots {
   position: absolute;
   left: 50%;
   top: 50%;
   width: var(--fm-pct-status-box, 26px);
-  height: var(--fm-pct-status-box, 26px);
+  height: var(--fm-pct-status-box-h, var(--fm-pct-status-box, 26px));
   pointer-events: none;
   transform: translate(-50%, -50%);
 }

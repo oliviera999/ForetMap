@@ -1,26 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import {
-  visitZoneSvgTextUniformYTransform,
   clampVisitMascotPctForViewport,
   VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX,
 } from '../../src/utils/visitMascotGeometry.js';
-
-describe('visitZoneSvgTextUniformYTransform', () => {
-  test('undefined si dimensions nulles/négatives', () => {
-    expect(visitZoneSvgTextUniformYTransform(10, 10, 0, 100)).toBeUndefined();
-    expect(visitZoneSvgTextUniformYTransform(10, 10, 100, -1)).toBeUndefined();
-  });
-  test('undefined si quasi carré (ratio ≈ 1)', () => {
-    expect(visitZoneSvgTextUniformYTransform(10, 10, 100, 100)).toBeUndefined();
-    expect(visitZoneSvgTextUniformYTransform(10, 10, 100, 100.02)).toBeUndefined();
-  });
-  test('transform SVG quand largeur ≠ hauteur', () => {
-    // ratio = 200/100 = 2
-    expect(visitZoneSvgTextUniformYTransform(50, 30, 200, 100)).toBe(
-      'translate(50,30) scale(1,2) translate(-50,-30)',
-    );
-  });
-});
 
 describe('clampVisitMascotPctForViewport', () => {
   test('borne X/Y dans [0,100] sans hauteur connue', () => {

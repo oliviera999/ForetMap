@@ -113,7 +113,7 @@ test.describe('Accessibilité — écrans élève', () => {
     const stage = page.locator('.visit-map-stage');
     await stage.locator('img.visit-map-img').waitFor({ state: 'visible', timeout: 30_000 });
     const marker = stage.locator('.fm-pct-marker, .visit-marker-btn').first();
-    const zone = stage.locator('.fm-pct-zone, .visit-zone-hit').first();
+    const zone = stage.locator('.fm-pct-zone').first();
     if ((await marker.count()) === 0 && (await zone.count()) === 0) {
       test.skip();
       return;

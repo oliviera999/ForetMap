@@ -87,12 +87,32 @@ export function polygonCentroidPct(points) {
 /**
  * Pôle d'inaccessibilité d'un polygone simple.
  *
+ * `aspect` (largeur ÷ hauteur de l'image) rend les distances **isotropes** : 1 % de largeur et
+ * 1 % de hauteur ne font pas le même nombre de pixels sur une image non carrée, et « le point le
+ * plus éloigné des bords » calculé en pourcentages bruts favorisait l'axe le plus long
+ * (`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md` constat 6). Les abscisses sont donc dilatées de
+ * `aspect` le temps du calcul — l'unité commune devient le « % de hauteur ».
+ *
  * @param {Array<{ xp: number, yp: number }>} points sommets (en % de l'image).
- * @param {number} [precision] arrêt de la subdivision (en % de l'image).
- * @returns {{ xp: number, yp: number, distance: number }} point et distance au bord le plus
- *   proche ; pour moins de trois sommets, le centroïde avec une distance nulle.
+ * @param {number} [precision] arrêt de la subdivision (en % de la hauteur de l'image).
+ * @param {number} [aspect=1] rapport largeur ÷ hauteur de l'image.
+ * @returns {{ xp: number, yp: number, distance: number }} point (en % de l'image) et distance
+ *   au bord le plus proche (en % de la hauteur) ; pour moins de trois sommets, le centroïde
+ *   avec une distance nulle.
  */
-export function polygonPoleOfInaccessibilityPct(points, precision = PCT_POLYLABEL_PRECISION) {
+export function polygonPoleOfInaccessibilityPct(
+  points,
+  precision = PCT_POLYLABEL_PRECISION,
+  aspect = 1,
+) {
+  const ratio = Number(aspect) > 0 && Number.isFinite(Number(aspect)) ? Number(aspect) : 1;
+  if (ratio !== 1) {
+    const stretched = (points || []).map((p) =>
+      p ? { xp: Number(p.xp) * ratio, yp: Number(p.yp) } : p,
+    );
+    const pole = polygonPoleOfInaccessibilityPct(stretched, precision, 1);
+    return { ...pole, xp: pole.xp / ratio };
+  }
   const pts = (points || []).filter(
     (p) => p && Number.isFinite(Number(p.xp)) && Number.isFinite(Number(p.yp)),
   );
