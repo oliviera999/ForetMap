@@ -96,6 +96,10 @@ test('FORET_STATIC_ASSETS reste aligné sur STATIC_ASSETS de public/sw.js', () =
   assert.deepStrictEqual([...FORET_STATIC_ASSETS], listed);
 });
 
+test("les captures d'installation ne sont pas précachées (inutiles hors ligne)", () => {
+  assert.ok(FORET_STATIC_ASSETS.every((url) => !url.startsWith('/pwa-screenshot-')));
+});
+
 test('collectEntryFiles suit les imports statiques (récursifs) et ignore les chunks dynamiques', () => {
   const files = collectEntryFiles(FAKE_VITE_MANIFEST, 'index.vite.html');
   assert.deepStrictEqual(files, [

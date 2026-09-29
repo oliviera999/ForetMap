@@ -173,6 +173,7 @@
     "sync:shared-cores:check": "node scripts/sync-shared-cores.js --check",
     "build": "node scripts/build-safe.js",
     "build:pwa": "node scripts/build-pwa.js",
+    "pwa:screenshots": "node scripts/capture-pwa-screenshots.js",
     "ship": "node scripts/build-ship.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",

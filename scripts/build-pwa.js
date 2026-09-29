@@ -49,8 +49,6 @@ const FORET_STATIC_ASSETS = Object.freeze([
   '/pwa-icon-192.png',
   '/pwa-icon-512.png',
   '/pwa-maskable-512.png',
-  '/pwa-screenshot-mobile.png',
-  '/pwa-screenshot-wide.png',
 ]);
 
 /**

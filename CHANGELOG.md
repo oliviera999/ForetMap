@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — vraies captures dans la fenêtre d'installation de l'application
+
+Les deux captures du manifeste PWA (`public/pwa-screenshot-mobile.png`, `pwa-screenshot-wide.png`), affichées par Chrome et Edge au moment d'installer l'application, étaient des maquettes (ellipses sur fond vert, sans rapport avec l'interface). Elles sont remplacées par de vraies captures de la visite publique (plan « Plage des Sablettes », aucun compte ni donnée nominative), régénérables par `npm run pwa:screenshots` (`scripts/capture-pwa-screenshots.js`, Playwright ; `--base-url` pour viser un serveur local, `--map` pour changer de plan). Elles sortent aussi du précache hors ligne (`public/sw.js`, `scripts/build-pwa.js`), où elles ne servaient à rien. Test : `tests/build-pwa.test.js`.
+
 ### Corrigé — recherche de lieux : « n3 » trouve « N³ »
 
 La normalisation des recherches de lieux (plan, Visite, carte de travail) décomposait en `NFD`, qui laisse les exposants intacts ; « ³ » était ensuite supprimé comme ponctuation, si bien que « N³ » était indexé « n » et restait introuvable en tapant « n3 ». `normalizeSearchText` (`src/shared/search/placeSearch.js`) et `normalizeMapSearchText` (`src/utils/mapLocationFilters.js`) passent en `NFKD` : exposants et indices sont ramenés à leur chiffre (« N³ » → « n3 », « CO₂ » → « co2 »). Tests : `tests-ui/shared/placeSearch.test.js`, `tests-ui/utils/mapLocationFilters.test.js`. Doc : `docs/reference/plan/presentation.md`.

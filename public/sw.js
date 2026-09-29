@@ -19,8 +19,6 @@ const STATIC_ASSETS = [
   '/pwa-icon-192.png',
   '/pwa-icon-512.png',
   '/pwa-maskable-512.png',
-  '/pwa-screenshot-mobile.png',
-  '/pwa-screenshot-wide.png',
 ];
 
 // URLs d'API en lecture (correspondance exacte pathname)
