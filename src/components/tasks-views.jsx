@@ -74,10 +74,16 @@ import {
 
 import { formatTaskActionError, filterTeacherStatusActions } from '../utils/taskActionErrors.js';
 import {
+  dismissTaskDone,
   flushTaskDoneQueue,
   queuedTaskDoneIds,
+  refusedTaskDoneItems,
+  taskDoneAlreadyClosedMessage,
   taskDoneRequestBody,
 } from '../utils/taskDoneQueue.js';
+import { TaskDoneRefusedNotice } from './tasks/TaskDoneRefusedNotice.jsx';
+import { useEditConflictConfirm } from '../hooks/useEditConflictConfirm.js';
+import { createEditRevisionSession, withExpectedRevision } from '../utils/editRevision.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -147,6 +153,7 @@ function TasksViewImpl({
 }) {
   const publicSettings = usePublicSettings();
   const { prompt } = useAppDialogs();
+  const confirmTaskOverwrite = useEditConflictConfirm();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
   const {
     tasks = [],
@@ -267,9 +274,17 @@ function TasksViewImpl({
   // rejouée à l'ouverture de la vue et au retour du réseau.
   const offlineAccountId = isTeacher ? '' : getAuthUserId();
   const [queuedDoneIds, setQueuedDoneIds] = useState(() => queuedTaskDoneIds(offlineAccountId));
-  const refreshQueuedDone = useCallback(
-    () => setQueuedDoneIds(queuedTaskDoneIds(offlineAccountId)),
-    [offlineAccountId],
+  const [refusedDone, setRefusedDone] = useState(() => refusedTaskDoneItems(offlineAccountId));
+  const refreshQueuedDone = useCallback(() => {
+    setQueuedDoneIds(queuedTaskDoneIds(offlineAccountId));
+    setRefusedDone(refusedTaskDoneItems(offlineAccountId));
+  }, [offlineAccountId]);
+  const dismissRefusedDone = useCallback(
+    (clientUuid) => {
+      dismissTaskDone(clientUuid);
+      refreshQueuedDone();
+    },
+    [refreshQueuedDone],
   );
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
@@ -283,15 +298,25 @@ function TasksViewImpl({
       refreshQueuedDone();
       if (out.synced > 0) {
         await onRefreshRef.current?.();
+        const closed = out.sent
+          .map(({ item, response }) =>
+            taskDoneAlreadyClosedMessage(item.task_title, response?.already_closed),
+          )
+          .find(Boolean);
         setToast(
-          out.synced > 1
-            ? `${out.synced} tâches notées sans réseau sont bien parties ✓`
-            : 'Ta tâche notée sans réseau est bien partie ✓',
+          closed ||
+            (out.synced > 1
+              ? `${out.synced} tâches notées sans réseau sont bien parties ✓`
+              : 'Ta tâche notée sans réseau est bien partie ✓'),
         );
       }
       if (out.refused.length > 0) {
-        const { item, message } = out.refused[0];
-        setToast(`« ${item.task_title || 'Tâche'} » n’a pas pu être marquée faite : ${message}`);
+        const { item, message, kept } = out.refused[0];
+        setToast(
+          `« ${item.task_title || 'Tâche'} » n’a pas pu être marquée faite : ${message}${
+            kept ? ' — ton commentaire est gardé en haut de la liste.' : ''
+          }`,
+        );
       }
     };
     if (typeof navigator === 'undefined' || navigator.onLine !== false) void flush();
@@ -474,10 +499,28 @@ function TasksViewImpl({
     [withLoad, setToast],
   );
 
+  // Une session de révision par ouverture du formulaire (l'objet `editTask` est figé tant
+  // qu'il reste ouvert) : enregistrements automatiques et bouton partagent la même révision.
+  const taskEditSessionRef = useRef({ task: null, session: null });
+  const taskEditSession = (task) => {
+    if (taskEditSessionRef.current.task !== task) {
+      taskEditSessionRef.current = {
+        task,
+        session: createEditRevisionSession(task.edit_revision, {
+          confirmOverwrite: confirmTaskOverwrite,
+        }),
+      };
+    }
+    return taskEditSessionRef.current.session;
+  };
+
   const saveTask = async (form) => {
     const { taskPayload, assignStudentIds } = prepareTaskSavePayload(form);
     if (editTask && !duplicateTask) {
-      await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
+      const taskId = editTask.id;
+      await taskEditSession(editTask).save((expected) =>
+        api(`/api/tasks/${taskId}`, 'PUT', withExpectedRevision(taskPayload, expected)),
+      );
       await onRefresh();
       return;
     }
@@ -1096,9 +1139,12 @@ function TasksViewImpl({
           task={logTask}
           student={student}
           onClose={() => setLogTask(null)}
-          onDone={async () => {
+          onDone={async (response) => {
             await onRefresh();
-            setToast('Merci pour le retour — ça aide toute l’équipe ✓');
+            setToast(
+              taskDoneAlreadyClosedMessage(logTask.title, response?.already_closed) ||
+                'Merci pour le retour — ça aide toute l’équipe ✓',
+            );
           }}
           onForceLogout={onForceLogout}
           offlineAllowed={
@@ -1139,6 +1185,13 @@ function TasksViewImpl({
         setShowProposalForm={setShowProposalForm}
       />
       {isTeacher && <TaskImportPanel setToast={setToast} onRefresh={onRefresh} />}
+      {!isTeacher && (
+        <TaskDoneRefusedNotice
+          items={refusedDone}
+          onDismiss={dismissRefusedDone}
+          onToast={setToast}
+        />
+      )}
 
       <TaskFiltersBar
         viewMode={viewMode}

@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS zones (
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
   restricted_note_group_ids TEXT DEFAULT NULL,
+  -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
+  edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -126,6 +128,8 @@ CREATE TABLE IF NOT EXISTS plants (
   photo_flower TEXT DEFAULT NULL,
   photo_fruit TEXT DEFAULT NULL,
   photo_harvest_part TEXT DEFAULT NULL,
+  -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
+  edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   INDEX idx_plants_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -207,6 +211,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at VARCHAR(32) DEFAULT NULL,
   -- Séance pédagogique liée (optionnelle) ; FK posée par la migration 286.
   pedago_session_id CHAR(36) DEFAULT NULL,
+  -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
+  edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_pedago_session (pedago_session_id),
   INDEX idx_tasks_project_id (project_id),
@@ -972,6 +978,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   restricted_note TEXT DEFAULT NULL,
   restricted_note_role_slugs TEXT DEFAULT NULL,
   restricted_note_group_ids TEXT DEFAULT NULL,
+  -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
+  edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)

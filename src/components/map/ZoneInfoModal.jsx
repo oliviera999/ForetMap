@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   SurfaceVisibilityField,
   normalizeSurfaceList,
@@ -43,6 +43,12 @@ import {
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
+import { useEditConflictConfirm } from '../../hooks/useEditConflictConfirm.js';
+import {
+  EDIT_CONFLICT_DECLINED_MESSAGE,
+  createEditRevisionSession,
+  withExpectedRevision,
+} from '../../utils/editRevision.js';
 import { LocationObservationSlot } from '../observations/LocationObservationSlot.jsx';
 import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
@@ -164,6 +170,10 @@ function ZoneInfoModal({
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [toast, setToast] = useState(null);
+  // Révision des valeurs affichées dans le formulaire : suit la resynchronisation ci-dessous,
+  // pas chaque rafraîchissement — une modification d'un champ non affiché ici reste un conflit.
+  const formRevisionRef = useRef(zone.edit_revision);
+  const confirmOverwrite = useEditConflictConfirm();
   const {
     visitEditorialBlocks,
     visitMediaOptions,
@@ -245,6 +255,9 @@ function ZoneInfoModal({
     setLinks(normalizeLocationLinksForForm(zone.links));
     setNotes(normalizeLocationNotesForForm(zone.notes));
     setVisibleGroupIds(normalizeAudienceGroupList(zone.visible_group_ids));
+    formRevisionRef.current = zone.edit_revision;
+    // `zone.edit_revision` lu sans en dépendre : cf. `formRevisionRef`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     zone.id,
     zone.name,
@@ -277,37 +290,36 @@ function ZoneInfoModal({
     }
     setSaving(true);
     try {
-      await onUpdate(
-        zone.id,
-        buildZonePayload(
-          name,
-          {
-            zoneEmoji,
-            livingBeings,
-            categoryIds,
-            zoneColor,
-            desc,
-            visitSubtitle,
-            visitShortDesc,
-            visitDetailsTitle,
-            visitDetailsText,
-            hiddenSurfaces,
-            searchAliases,
-            visibleRoleSlugs,
-            visibleGroupIds,
-            links,
-            notes,
-          },
-          visitEditorialBlocks,
-          {
-            omitVisitEditorialBlocks: !isZoneVisitBodyReadyForSave(zone, zoneDetail),
-          },
-        ),
+      const payload = buildZonePayload(
+        name,
+        {
+          zoneEmoji,
+          livingBeings,
+          categoryIds,
+          zoneColor,
+          desc,
+          visitSubtitle,
+          visitShortDesc,
+          visitDetailsTitle,
+          visitDetailsText,
+          hiddenSurfaces,
+          searchAliases,
+          visibleRoleSlugs,
+          visibleGroupIds,
+          links,
+          notes,
+        },
+        visitEditorialBlocks,
+        {
+          omitVisitEditorialBlocks: !isZoneVisitBodyReadyForSave(zone, zoneDetail),
+        },
       );
+      const session = createEditRevisionSession(formRevisionRef.current, { confirmOverwrite });
+      await session.save((expected) => onUpdate(zone.id, withExpectedRevision(payload, expected)));
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (_) {
-      setToast('Erreur');
+    } catch (e) {
+      setToast(e?.message === EDIT_CONFLICT_DECLINED_MESSAGE ? e.message : 'Erreur');
     }
     setSaving(false);
   };

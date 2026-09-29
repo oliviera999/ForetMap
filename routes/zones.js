@@ -29,6 +29,7 @@ const {
   loadLocationRelations,
   serializeLocation,
 } = require('../lib/terrain/locationService');
+const { withEditRevision } = require('../lib/editRevision');
 
 /**
  * Routeur des zones : HTTP seulement. Les règles communes aux zones et aux repères
@@ -103,7 +104,9 @@ router.put(
   '/:id',
   requirePermission(ZONE.permission),
   asyncHandler(async (req, res) => {
-    const result = await updateLocation('zone', req.params.id, req.body);
+    const result = await withEditRevision('zones', req.params.id, req.body, (body) =>
+      updateLocation('zone', req.params.id, body),
+    );
     if (result.entity) await notifyLocationChange('zone', 'update', result.entity, { req });
     res.status(result.status).json(result.body);
   }),

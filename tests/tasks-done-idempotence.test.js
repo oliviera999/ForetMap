@@ -228,6 +228,44 @@ test('mode collectif : un renvoi ne repose pas la part ni ne renotifie', async (
   assert.strictEqual(String(after.done_at), String(assignment.done_at), 'done_at inchangé');
 });
 
+for (const closed of ['validated', 'on_hold']) {
+  test(`« fait » arrivé sur une tâche ${closed} entre-temps : rapport gardé, élève prévenu`, async () => {
+    const student = await registerStudent('Tardif');
+    const task = await assignedTask(student);
+    const [{ edit_revision: revisionBefore }] = await queryAll(
+      'SELECT edit_revision FROM tasks WHERE id = ?',
+      [task.id],
+    );
+    await execute('UPDATE tasks SET status = ? WHERE id = ?', [closed, task.id]);
+
+    const res = await sendDone(student, task.id, {
+      comment: 'Fait hors ligne',
+      client_uuid: `late-${closed.replace('_', '-')}-${Date.now()}`,
+    });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(res.body.already_closed, closed);
+    assert.strictEqual(res.body.status, closed, 'le statut ne recule pas');
+    assert.strictEqual((await logsOf(task.id)).length, 1, 'le rapport est enregistré');
+
+    const [after] = await queryAll('SELECT status, edit_revision FROM tasks WHERE id = ?', [
+      task.id,
+    ]);
+    assert.strictEqual(after.status, closed);
+    assert.strictEqual(
+      Number(after.edit_revision),
+      Number(revisionBefore),
+      'un « fait » élève ne crée pas de conflit d’édition côté n3boss',
+    );
+  });
+}
+
+test('« fait » ordinaire : pas de champ already_closed', async () => {
+  const student = await registerStudent('Ordinaire');
+  const task = await assignedTask(student);
+  const res = await sendDone(student, task.id).expect(200);
+  assert.strictEqual(res.body.already_closed, undefined);
+});
+
 test('clé mal formée : 400, rien d’enregistré', async () => {
   const student = await registerStudent('Cle');
   const task = await assignedTask(student);

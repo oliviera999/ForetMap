@@ -4214,6 +4214,30 @@
       gap:6px;
     }
 
+    .task-done-refused {
+      margin-bottom:16px;
+      padding:12px 14px;
+      border:1.5px solid #fed7aa;
+      border-radius:12px;
+      background:var(--tint-danger);
+      font-size:var(--text-sm);
+      line-height:var(--lh-normal);
+    }
+    .task-done-refused__title { margin:0 0 4px; font-size:var(--text-base); }
+    .task-done-refused__hint { margin:0 0 8px; color:var(--ink-soft); }
+    .task-done-refused__list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+    .task-done-refused__item {
+      display:grid;
+      gap:4px;
+      padding:10px;
+      border-radius:10px;
+      background:var(--surface-1, #fff);
+    }
+    .task-done-refused__error { color:var(--ink-alert); }
+    .task-done-refused__comment { margin:0; white-space:pre-wrap; user-select:text; }
+    .task-done-refused__actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .task-done-refused__actions .btn { min-height:44px; }
+
     /* ── URGENCY SECTION ── */
     .urgency-banner {
       background:linear-gradient(135deg,#fff7ed,var(--tint-danger)); border:1.5px solid #fed7aa;

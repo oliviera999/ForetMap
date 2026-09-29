@@ -117,14 +117,17 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
    * @param {(item: T) => Promise<unknown>} send envoi d'une écriture (lève en cas d'échec)
    * @param {string|null|undefined} userId compte connecté ; aucun rejeu sans compte
    * @param {object} [options]
-   * @param {'drop'|'keep'} [options.onRefusal='drop'] sort d'une écriture refusée définitivement ;
-   *   `keep` la garde avec `refused: true` et le message du serveur (`error`)
+   * @param {'drop'|'keep'|((item: T) => 'drop'|'keep')} [options.onRefusal='drop'] sort d'une
+   *   écriture refusée définitivement ; `keep` la garde avec `refused: true` et le message du
+   *   serveur (`error`) ; une fonction choisit écriture par écriture
    * @param {(item: T) => boolean} [options.eligible] filtre des écritures à rejouer maintenant
-   * @returns {Promise<{ synced: number, dropped: number, refused: Array<{ item: T, message: string }>, remaining: number }>}
+   * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean }>, remaining: number }>}
    */
   function flush(send, userId, { onRefusal = 'drop', eligible = () => true } = {}) {
     const uid = String(userId ?? '').trim();
-    if (!uid) return Promise.resolve({ synced: 0, dropped: 0, refused: [], remaining: 0 });
+    if (!uid) {
+      return Promise.resolve({ synced: 0, dropped: 0, sent: [], refused: [], remaining: 0 });
+    }
     if (flushInFlight) {
       if (!flushAgain) {
         flushAgain = flushInFlight.then(() => {
@@ -137,17 +140,21 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
     flushInFlight = (async () => {
       let synced = 0;
       let dropped = 0;
+      const sent = [];
       const refused = [];
       for (const item of listFor(uid).filter((q) => !q.refused && eligible(q))) {
         try {
-          await send(item);
+          const response = await send(item);
           synced += 1;
+          sent.push({ item, response });
           remove(item.client_uuid);
         } catch (err) {
           if (!isDefinitiveRefusal(err)) break; // réseau toujours absent ou serveur en difficulté
           const message = String(err?.message || 'Refusé par le serveur');
-          refused.push({ item, message });
-          if (onRefusal === 'keep') {
+          const policy = typeof onRefusal === 'function' ? onRefusal(item) : onRefusal;
+          const kept = policy === 'keep';
+          refused.push({ item, message, kept });
+          if (kept) {
             update(item.client_uuid, { refused: true, error: message });
           } else {
             dropped += 1;
@@ -155,7 +162,7 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
           }
         }
       }
-      return { synced, dropped, refused, remaining: listFor(uid).length };
+      return { synced, dropped, sent, refused, remaining: listFor(uid).length };
     })().finally(() => {
       flushInFlight = null;
     });

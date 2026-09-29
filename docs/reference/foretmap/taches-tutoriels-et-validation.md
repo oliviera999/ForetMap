@@ -149,8 +149,20 @@ même quand le réseau manque. Le marquage — et son **commentaire** — est **
 l'appareil** et envoyé tout seul au retour du réseau ; l'élève lit « Pas de réseau : ta tâche
 est notée faite et partira toute seule. », et la carte de la tâche affiche « Notée faite —
 partira au retour du réseau » à la place des boutons. Quand l'envoi réussit, un message le
-confirme ; si le serveur le refuse entre-temps (tâche archivée, inscription retirée…),
-l'élève en est prévenu et peut recommencer. Un marquage envoyé deux fois (réponse perdue,
+confirme. Deux situations particulières sont annoncées clairement à l'élève :
+
+- **La tâche a été validée ou mise en attente entre-temps** par le professeur : le compte
+  rendu est bien enregistré dans le journal, mais la tâche ne revient pas à « Terminée ».
+  L'élève lit « … avait déjà été validée entre-temps : ton rapport est bien enregistré » ou
+  « … a été mise en pause entre-temps : ton rapport est enregistré, mais la tâche reste en
+  pause ». Même message s'il marque la tâche depuis un écran resté ouvert.
+- **Le serveur refuse le marquage** (tâche archivée, inscription retirée…) : l'élève en est
+  prévenu. S'il avait écrit un **commentaire**, celui-ci n'est pas perdu : il reste affiché
+  en haut de la liste des tâches, dans un encadré « Rapports non envoyés », avec le titre de
+  la tâche et la raison du refus. L'élève peut **copier** son commentaire pour le réutiliser,
+  puis **effacer** l'encadré. Un marquage refusé sans commentaire est simplement abandonné.
+
+Un marquage envoyé deux fois (réponse perdue,
 appareil qui renvoie) ne publie qu'**un** compte rendu et ne prévient le professeur qu'une
 fois. Sur une tablette partagée, le marquage n'est envoyé que sous le compte de son auteur,
 à sa prochaine connexion.
@@ -215,6 +227,13 @@ Un visiteur ne voit ni les noms des autres ni le journal.
   professeurs) — la liste se charge alors à la demande — d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
   Tant qu'elle est archivée, la tâche est **hors jeu** : ni inscription, ni marquage
   « terminée » ne sont acceptés, même depuis un écran resté ouvert avant l'archivage.
+- **Deux professeurs sur la même fiche** : si un collègue a enregistré la fiche d'une tâche
+  pendant que vous la modifiiez, votre enregistrement ne l'écrase plus en silence. Une
+  fenêtre « Fiche modifiée entre-temps » vous laisse choisir : **Écraser sa version**
+  (la vôtre remplace la sienne) ou **Ne pas enregistrer** (fermez puis rouvrez la fiche pour
+  repartir de sa version). Même protection sur les zones, les repères et les fiches espèces.
+  Les actions des élèves (inscription, « terminée ») et la validation ne déclenchent pas
+  cette fenêtre.
 
 ## Les éléments validés sont masqués par défaut
 
@@ -811,6 +830,16 @@ qui conditionne une validation bloque toute une classe sans raison.
 > ⚠️ **Point d'attention** — Le nombre d'élèves requis n'a pas la même limite partout :
 > le formulaire propose jusqu'à 10, l'import accepte jusqu'à 50, et une modification
 > directe n'a pas de plafond. Sans gravité au quotidien, mais incohérent.
+
+> ⚠️ **Point d'attention** — La protection « Fiche modifiée entre-temps » ne compare pas
+> les champs un à un : même si votre collègue a changé un tout autre champ que vous, il
+> faut choisir entre sa version et la vôtre. Et les gestes rapides (glisser une zone ou un
+> repère sur la carte, changer un statut depuis la liste) enregistrent directement, sans
+> cette vérification.
+
+> ⚠️ **Point d'attention** — Les comptes rendus refusés gardés dans l'encadré « Rapports
+> non envoyés » restent sur l'appareil : sur une tablette partagée, ils sont effacés à la
+> déconnexion avec les autres actions en attente (selon le réglage de confidentialité).
 
 > ⚠️ **Point d'attention** — Pour les tutoriels, le professeur voit **combien** de
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste

@@ -122,8 +122,8 @@ describe('TasksView — file « tâche faite » hors ligne', () => {
     await waitFor(() => expect(loadTaskDoneQueue()).toHaveLength(0));
   });
 
-  test('refus définitif : l’élève est prévenu, la tâche redevient marquable', async () => {
-    queueTask();
+  test('refus définitif sans commentaire : l’élève est prévenu, la tâche redevient marquable', async () => {
+    queueTask({ comment: '' });
     api.mockImplementation(async (path) => {
       if (String(path).endsWith('/done')) {
         throw Object.assign(new Error('Tâche archivée : action indisponible'), { status: 400 });
@@ -138,6 +138,41 @@ describe('TasksView — file « tâche faite » hors ligne', () => {
     ).toBeTruthy();
     expect(loadTaskDoneQueue()).toHaveLength(0);
     expect(screen.getByRole('button', { name: /Marquer termin/ })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Rapports non envoyés' })).toBeNull();
+  });
+
+  test('refus définitif avec commentaire : le texte reste affiché jusqu’à « Effacer »', async () => {
+    queueTask();
+    api.mockImplementation(async (path) => {
+      if (String(path).endsWith('/done')) {
+        throw Object.assign(new Error('Tâche archivée : action indisponible'), { status: 400 });
+      }
+      return {};
+    });
+    renderView();
+    const notice = await screen.findByRole('region', { name: 'Rapports non envoyés' });
+    expect(notice.textContent).toContain('Trois sacs');
+    expect(notice.textContent).toContain('Tâche archivée : action indisponible');
+    expect(screen.getByRole('button', { name: /Marquer termin/ })).toBeTruthy();
+    expect(loadTaskDoneQueue()).toHaveLength(1);
+
+    await act(async () => {
+      screen.getByRole('button', { name: /Effacer le rapport non envoyé/ }).click();
+    });
+    expect(screen.queryByRole('region', { name: 'Rapports non envoyés' })).toBeNull();
+    expect(loadTaskDoneQueue()).toHaveLength(0);
+  });
+
+  test('« fait » arrivé sur une tâche validée entre-temps : l’élève le sait', async () => {
+    queueTask();
+    api.mockImplementation(async (path) =>
+      String(path).endsWith('/done') ? { status: 'validated', already_closed: 'validated' } : {},
+    );
+    renderView();
+    expect(
+      await screen.findByText(/« Ramasser les feuilles » avait déjà été validée entre-temps/),
+    ).toBeTruthy();
+    expect(loadTaskDoneQueue()).toHaveLength(0);
   });
 
   test('le « fait » d’un autre compte n’est jamais rejoué ici (tablette partagée)', async () => {

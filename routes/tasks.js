@@ -56,6 +56,7 @@ const {
   validateTutorialIds,
   validatePedagoSessionId,
 } = require('../lib/tasks/taskService');
+const { withEditRevision } = require('../lib/editRevision');
 const {
   resolveTaskMapId,
   parseTaskDangerLevelFromClient,
@@ -143,7 +144,7 @@ const TASK_LIST_SQL_BASE = `
     SELECT t.id, t.title, t.description, t.image_path, t.map_id, t.project_id, t.group_id,
            t.zone_id, t.marker_id, t.start_date, t.due_date, t.required_students, t.completion_mode,
            t.danger_level, t.difficulty_level, t.importance_level, t.sort_order, t.status,
-           t.archived_at, t.archived_via_project, t.validated_at, t.created_at,
+           t.archived_at, t.archived_via_project, t.validated_at, t.created_at, t.edit_revision,
            t.recurrence, t.parent_task_id, t.recurrence_series_id, t.pedago_session_id,
            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
            m.id AS map_id_resolved_join, m.label AS map_label,
@@ -791,13 +792,11 @@ router.put('/:id', async (req, res) => {
   let auth = null;
   try {
     auth = await parseOptionalAuth(req);
-    const updated = await updateTask({
-      taskId: req.params.id,
-      body: req.body,
-      auth,
-      auditReq: req,
+    const result = await withEditRevision('tasks', req.params.id, req.body, async (body) => {
+      const updated = await updateTask({ taskId: req.params.id, body, auth, auditReq: req });
+      return { status: 200, body: await sanitizeTaskForViewer(auth, updated) };
     });
-    return res.json(await sanitizeTaskForViewer(auth, updated));
+    return res.status(result.status).json(result.body);
   } catch (e) {
     if (e instanceof TaskRuleError) return res.status(e.status).json({ error: e.message });
     const exposeDetail =

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
 import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
@@ -9,6 +9,12 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { LocationLinksBlock } from './LocationLinksBlock.jsx';
 import { LocationNotesBlock } from './LocationNotesBlock.jsx';
 import { useAudienceGroupOptions } from '../../hooks/useAudienceGroupOptions.js';
+import { useEditConflictConfirm } from '../../hooks/useEditConflictConfirm.js';
+import {
+  EDIT_CONFLICT_DECLINED_MESSAGE,
+  createEditRevisionSession,
+  withExpectedRevision,
+} from '../../utils/editRevision.js';
 import { LocationObservationSlot } from '../observations/LocationObservationSlot.jsx';
 import {
   MarkerCommonFormFields,
@@ -143,8 +149,14 @@ function MarkerModal({
     tutorialLinkedMessage: 'Tutoriel lié au repère ✓',
   });
 
+  // Révision des valeurs affichées : suit la resynchronisation ci-dessous, pas chaque
+  // rafraîchissement — une modification d'un champ non affiché ici reste un conflit.
+  const formRevisionRef = useRef(marker.edit_revision);
+  const confirmOverwrite = useEditConflictConfirm();
+
   useEffect(() => {
     setForm(markerFormFromMarker(marker, { defaultEmoji: '🌱' }));
+    formRevisionRef.current = marker.edit_revision;
     // Déps volontairement au niveau des champs lus (réinitialise seulement sur changement réel,
     // pas sur une nouvelle identité d'objet `marker` au re-rendu parent).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,11 +192,15 @@ function MarkerModal({
     if (!onUpdate) return;
     setSaving(true);
     try {
-      await onUpdate(marker.id, buildPayload());
+      const payload = buildPayload();
+      const session = createEditRevisionSession(formRevisionRef.current, { confirmOverwrite });
+      await session.save((expected) =>
+        onUpdate(marker.id, withExpectedRevision(payload, expected)),
+      );
       setToast('Sauvegardé ✓');
       setTab('info');
-    } catch (_) {
-      setToast('Erreur');
+    } catch (e) {
+      setToast(e?.message === EDIT_CONFLICT_DECLINED_MESSAGE ? e.message : 'Erreur');
     }
     setSaving(false);
   };

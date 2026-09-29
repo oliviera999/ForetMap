@@ -19,6 +19,7 @@ const {
   deleteLocation,
   notifyLocationChange,
 } = require('../lib/terrain/locationService');
+const { withEditRevision } = require('../lib/editRevision');
 
 /**
  * Routeur des repères de carte (`/api/map/markers…`) : HTTP seulement. Les règles communes
@@ -83,7 +84,9 @@ router.put(
   '/markers/:id',
   requirePermission(MARKER.permission),
   asyncHandler(async (req, res) => {
-    const result = await updateLocation('marker', req.params.id, req.body);
+    const result = await withEditRevision('map_markers', req.params.id, req.body, (body) =>
+      updateLocation('marker', req.params.id, body),
+    );
     if (result.entity) await notifyLocationChange('marker', 'update', result.entity, { req });
     res.status(result.status).json(result.body);
   }),

@@ -5,6 +5,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
 const { z, validate } = require('../lib/validate');
 const speciesService = require('../lib/biodiv/speciesService');
+const { withEditRevision } = require('../lib/editRevision');
 
 /**
  * Routes des fiches espèces (`/api/plants`) — HTTP seulement.
@@ -242,7 +243,12 @@ router.put(
   '/:id',
   requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
-    send(res, await speciesService.updatePlant(req.params.id, req.body || {}, { req }));
+    send(
+      res,
+      await withEditRevision('plants', req.params.id, req.body || {}, (body) =>
+        speciesService.updatePlant(req.params.id, body, { req }),
+      ),
+    );
   }),
 );
 

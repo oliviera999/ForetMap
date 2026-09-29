@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — hors ligne et modifications concurrentes : plus de perte silencieuse
+
+- **« Tâche faite » refusée au retour du réseau** : un commentaire n'est plus perdu. Le marquage reste sur l'appareil, marqué refusé, et s'affiche dans l'encadré « Rapports non envoyés » en haut des tâches, avec les boutons Copier et Effacer (`TaskDoneRefusedNotice`, option `onRefusal` de `createOfflineQueue`). Un refus sans commentaire est abandonné comme avant.
+- **« Fait » arrivé sur une tâche validée ou mise en pause entre-temps** : `POST /api/tasks/:id/done` renvoie `already_closed` (`validated` | `on_hold`). L'élève apprend que son rapport est enregistré mais que le statut n'a pas changé, au lieu d'un « bien partie ✓ » trompeur.
+- **Deux profs sur la même fiche** : il y a désormais un verrou optimiste sur les tâches, zones, repères et fiches espèces. Il repose sur la migration `312_edit_revision.sql` (colonne `edit_revision`) et `lib/editRevision.js`. Un `PUT` qui porte une révision périmée (`expected_revision`) renvoie 409 `edit_conflict` sans rien écrire. Le formulaire propose alors « Écraser sa version » ou « Ne pas enregistrer » (`src/utils/editRevision.js`, `useEditConflictConfirm`). Principe de `If-Match` / 412 ([RFC 9110 §13.1.1](https://www.rfc-editor.org/rfc/rfc9110#section-13.1.1)), porté dans le corps JSON.
+- Tests : `tests/edit-revision.test.js`, `tests/edit-revision-client.test.js`, `tests/tasks-done-idempotence.test.js`, Vitest de la file et de l'écran Tâches. `docs/API.md` et la doc de référence (`taches-tutoriels-et-validation.md`) sont alignées.
+
 ### Corrigé — clés d'identification : schéma lisible, fiable et qui ne donne plus la réponse ; réseau trophique accessible
 
 Audit [`docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md`](docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md) (18 constats, tous traités).

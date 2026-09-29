@@ -136,7 +136,7 @@ function LogModal({
     setSaving(true);
     setErr('');
     try {
-      await api(`/api/tasks/${task.id}/done`, 'POST', {
+      const response = await api(`/api/tasks/${task.id}/done`, 'POST', {
         comment,
         imageData,
         firstName: student.first_name,
@@ -145,7 +145,7 @@ function LogModal({
         client_uuid: clientUuidRef.current,
       });
       writeTaskLogCommentDraft(task.id, '');
-      await onDone?.();
+      await onDone?.(response);
       onClose();
     } catch (e) {
       if (e instanceof AccountDeletedError) {

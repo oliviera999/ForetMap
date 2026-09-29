@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import { useHelp } from '../hooks/useHelp';
 import { Tooltip } from '../shared/components/Tooltip.jsx';
@@ -9,6 +9,8 @@ import { useBiodivCatalogPage } from '../hooks/useBiodivCatalogPage';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../shared/components/AppDialogsProvider.jsx';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
+import { useEditConflictConfirm } from '../hooks/useEditConflictConfirm.js';
+import { createEditRevisionSession, withExpectedRevision } from '../utils/editRevision.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -44,6 +46,7 @@ function PlantManager({
   canValidateHazards = false,
 }) {
   const { confirm } = useAppDialogs();
+  const confirmPlantOverwrite = useEditConflictConfirm();
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [], activeMapId = null } = useData();
@@ -91,10 +94,23 @@ function PlantManager({
     [displayedPlants, presenceByPlantId, zones, markers],
   );
 
+  // Révision de la fiche à l'ouverture du formulaire, avancée par nos propres
+  // enregistrements (automatiques ou bouton) — pas par le rafraîchissement de la liste.
+  const plantEditSessionRef = useRef(null);
   const startEdit = (p) => {
+    plantEditSessionRef.current = createEditRevisionSession(p.edit_revision, {
+      confirmOverwrite: confirmPlantOverwrite,
+    });
     setEditId(p.id);
     setForm(extractPlantForm(p));
     setShowAdd(false);
+  };
+  const putPlant = (id, body) => {
+    const session = plantEditSessionRef.current;
+    if (!session) return api(`/api/plants/${id}`, 'PUT', body);
+    return session.save((expected) =>
+      api(`/api/plants/${id}`, 'PUT', withExpectedRevision(body, expected)),
+    );
   };
 
   const cancelEdit = () => {
@@ -107,7 +123,7 @@ function PlantManager({
     setSaving(true);
     try {
       let savedId = editId;
-      if (editId) await api(`/api/plants/${editId}`, 'PUT', form);
+      if (editId) await putPlant(editId, form);
       else {
         const created = await api('/api/plants', 'POST', form);
         savedId = created?.id;
@@ -128,7 +144,7 @@ function PlantManager({
 
   const autoSavePersist = useCallback(async () => {
     const sent = form;
-    await api(`/api/plants/${editId}`, 'PUT', sent);
+    await putPlant(editId, sent);
     await persistPlantMapSiteNotes(api, editId, sent.map_ids, sent.map_site_notes);
     await onRefresh();
     return sent;

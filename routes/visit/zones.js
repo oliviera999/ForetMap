@@ -24,6 +24,7 @@ const {
 } = require('../../lib/visitEditorialBlocks');
 const { normalizePoints } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
+const { bumpEditRevision } = require('../../lib/editRevision');
 const { withLocationAudienceFields } = require('../../lib/locationAudience');
 const {
   resolveAudienceForInsert,
@@ -181,6 +182,9 @@ router.put(
         zoneId,
       ],
     );
+    // Même fiche que la carte (`lib/visitMapMirror.js`) : un formulaire de zone ouvert
+    // ailleurs doit voir ce changement comme une modification concurrente.
+    await bumpEditRevision('zones', zoneId);
     if (req.body.name !== undefined || maybePoints) {
       const mapZone = await queryOne('SELECT emoji FROM zones WHERE id = ? LIMIT 1', [zoneId]);
       if (mapZone) {

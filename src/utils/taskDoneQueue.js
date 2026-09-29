@@ -23,11 +23,13 @@ export const TASK_DONE_QUEUE_STORAGE_KEY = 'foretmap_task_done_queue';
 export const TASK_DONE_QUEUE_MAX = 50;
 /** Même plafond que les rapports saisis en ligne n'en ont pas : on borne le stockage local. */
 export const TASK_DONE_COMMENT_MAX = 4000;
+/** Message de refus du serveur gardé avec un commentaire non envoyé. */
+const TASK_DONE_ERROR_MAX = 500;
 
 /**
  * @typedef {{ user_id: string, task_id: string, task_title: string, client_uuid: string,
  *   comment: string, student_id: string, first_name: string, last_name: string,
- *   queued_at: number }} TaskDoneQueueItem
+ *   queued_at: number, refused?: boolean, error?: string }} TaskDoneQueueItem
  */
 
 function normalize(raw) {
@@ -46,6 +48,9 @@ function normalize(raw) {
     first_name: String(raw.first_name ?? ''),
     last_name: String(raw.last_name ?? ''),
     queued_at: Number.isFinite(Number(raw.queued_at)) ? Number(raw.queued_at) : 0,
+    ...(raw.refused === true
+      ? { refused: true, error: String(raw.error || '').slice(0, TASK_DONE_ERROR_MAX) }
+      : {}),
   };
 }
 
@@ -70,7 +75,29 @@ export const enqueueTaskDone = (item) => queue.enqueue(item);
 
 /** Identifiants des tâches qu'un compte a marquées faites sans réseau (en attente d'envoi). */
 export function queuedTaskDoneIds(userId) {
-  return new Set(queue.listFor(userId).map((q) => q.task_id));
+  return new Set(
+    queue
+      .listFor(userId)
+      .filter((q) => !q.refused)
+      .map((q) => q.task_id),
+  );
+}
+
+/**
+ * « Faits » refusés par le serveur dont le commentaire a été gardé : l'élève peut le relire,
+ * le copier, puis l'effacer — il n'est plus jamais renvoyé tout seul.
+ * @returns {TaskDoneQueueItem[]}
+ */
+export function refusedTaskDoneItems(userId) {
+  return queue.listFor(userId).filter((q) => q.refused);
+}
+
+/** Efface un « fait » refusé (l'élève a récupéré son commentaire). */
+export const dismissTaskDone = (clientUuid) => queue.remove(clientUuid);
+
+/** Un commentaire écrit par l'élève ne se jette pas : sans texte, rien à garder. */
+function refusalPolicy(item) {
+  return String(item?.comment || '').trim() ? 'keep' : 'drop';
 }
 
 /** Corps de `POST /api/tasks/:id/done` pour une entrée de la file. */
@@ -86,8 +113,28 @@ export function taskDoneRequestBody(item) {
 
 /**
  * Rejoue les « faits » du compte connecté. Un refus définitif (tâche archivée, tutoriel à lire,
- * inscription retirée…) sort de la file : l'appelant prévient l'élève avec `refused`.
+ * inscription retirée…) n'est plus renvoyé : sans commentaire il sort de la file, avec un
+ * commentaire il y reste marqué refusé pour que l'élève le récupère. L'appelant prévient
+ * l'élève avec `refused` et lit les réponses dans `sent` (`already_closed`).
  * @param {(item: TaskDoneQueueItem) => Promise<unknown>} send
  * @param {string|null|undefined} userId
  */
-export const flushTaskDoneQueue = (send, userId) => queue.flush(send, userId);
+export const flushTaskDoneQueue = (send, userId) =>
+  queue.flush(send, userId, { onRefusal: refusalPolicy });
+
+/**
+ * Message à l'élève quand son « fait » est arrivé sur une tâche déjà validée ou en pause : le
+ * rapport est enregistré, mais le statut n'a pas bougé.
+ * @param {string} title
+ * @param {'validated'|'on_hold'|string|null|undefined} closedStatus
+ */
+export function taskDoneAlreadyClosedMessage(title, closedStatus) {
+  const name = `« ${title || 'Tâche'} »`;
+  if (closedStatus === 'validated') {
+    return `${name} avait déjà été validée entre-temps : ton rapport est bien enregistré.`;
+  }
+  if (closedStatus === 'on_hold') {
+    return `${name} a été mise en pause entre-temps : ton rapport est enregistré, mais la tâche reste en pause.`;
+  }
+  return null;
+}

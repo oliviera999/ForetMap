@@ -53,6 +53,9 @@ const router = express.Router();
  */
 const DONE_CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
 
+/** Statuts qu'un « fait » ne peut pas faire reculer (garde SQL plus bas). */
+const CLOSED_TASK_STATUSES = new Set(['validated', 'on_hold']);
+
 /** Rapport déjà enregistré sous cette clé, pour ce n3beur et cette tâche. */
 async function findDoneLogByClientUuid(taskId, studentId, clientUuid) {
   if (!clientUuid || !studentId) return null;
@@ -69,7 +72,13 @@ async function taskForRequester(req, task) {
 
 /** Réponse d'un renvoi reconnu : l'état courant de la tâche, sans aucun effet de bord. */
 async function replayDoneResponse(req, taskId) {
-  return { ...(await taskForRequester(req, await getTaskWithAssignments(taskId))), replayed: true };
+  const task = await getTaskWithAssignments(taskId);
+  const status = normalizeTaskStatusForRead(task?.status);
+  return {
+    ...(await taskForRequester(req, task)),
+    replayed: true,
+    ...(CLOSED_TASK_STATUSES.has(status) ? { already_closed: status } : {}),
+  };
 }
 
 router.post(
@@ -458,7 +467,16 @@ router.post(
       await syncTaskProjectCompletionForProjects([updated.project_id]);
     }
     const visible = await taskForRequester(req, updated);
-    res.json(reportStored ? { ...visible, replayed: true } : visible);
+    // Validée ou mise en pause par un n3boss avant l'arrivée du « fait » (file hors ligne,
+    // écran resté ouvert) : le rapport est gardé, le statut ne recule pas — l'élève doit
+    // savoir que son marquage n'a rien changé à l'état de la tâche.
+    const finalStatus = normalizeTaskStatusForRead(updated?.status);
+    const alreadyClosed = CLOSED_TASK_STATUSES.has(finalStatus) ? finalStatus : null;
+    res.json({
+      ...visible,
+      ...(reportStored ? { replayed: true } : {}),
+      ...(alreadyClosed ? { already_closed: alreadyClosed } : {}),
+    });
   }),
 );
 

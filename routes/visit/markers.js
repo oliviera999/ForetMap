@@ -24,6 +24,7 @@ const {
 const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
+const { bumpEditRevision } = require('../../lib/editRevision');
 const { withLocationAudienceFields } = require('../../lib/locationAudience');
 const {
   resolveAudienceForInsert,
@@ -183,6 +184,9 @@ router.put(
         markerId,
       ],
     );
+    // Même fiche que la carte (`lib/visitMapMirror.js`) : un formulaire de repère ouvert
+    // ailleurs doit voir ce changement comme une modification concurrente.
+    await bumpEditRevision('map_markers', markerId);
     const identityChanged = ['label', 'x_pct', 'y_pct', 'emoji'].some(
       (k) => req.body[k] !== undefined,
     );
