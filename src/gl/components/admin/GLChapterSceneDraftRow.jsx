@@ -30,8 +30,9 @@ export function GLChapterSceneDraftRow({
     <li className="gl-chapter-scenes-admin__item">
       <img
         src={scene.url}
-        alt={scene.caption || scene.stableKey}
+        alt={scene.caption || `Scène ${index + 1} (sans légende)`}
         loading="lazy"
+        decoding="async"
         width={96}
         style={{ maxWidth: 96, borderRadius: 6 }}
       />

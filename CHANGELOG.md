@@ -48,6 +48,20 @@ Seconde passe de l'audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDI
 - **Simulation sur les données du plan** (écran 390 × 463 px) : 21 noms sur 35 affichés à l'ouverture, contre 16 ; plus aucun emoji des bâtiments I, T, S et G sous un repère.
 
 Doc de référence `carte-et-zones.md` mise à jour. Tests : `pctMapLabels`, `pctPolylabel`, `mapOverlayLabelCollision`, `PctLayers`, `ZonePolygonsLayer`, `tests/migration-311-duplicate-emoji-names.test.js`.
+### Corrigé — affichage des photos : carnet, visionneuse, médiathèque, suppression RGPD, poids et cache
+
+Audit [`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md`](docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md) (4 bloquants, 9 moyens, constats faibles et duplications — tous traités).
+
+- **Carnet** : les illustrations d'un article (pièces jointes et images insérées dans le texte) s'affichent enfin dans la carte de lecture, la vue livre et la fenêtre de lecture (adresse `/api/user-journal/assets/<id>/file` admise par le filtre Markdown, image authentifiée partout).
+- **Visionneuse** : une seule visionneuse globale ; les galeries ouvrent l'original (plus la vignette 520 px) ; images agrandissables au clavier (Entrée/Espace), focus rendu à l'image, nom « Aperçu : légende », navigation précédente/suivante dans une galerie ; Échap ne ferme plus que la fenêtre du dessus (pile dans `useDialogA11y`).
+- **Médiathèque** : écriture par la chaîne commune (EXIF/GPS retirés, taille contrôlée, écriture asynchrone), signature binaire prioritaire sur le type déclaré ; `scripts/strip-uploads-exif.js` couvre désormais `media-library/`.
+- **RGPD** : la suppression d'un élève efface aussi les fichiers de ses messages de forum, commentaires et rapports de tâche (après validation de la transaction). `scripts/reconcile-orphan-uploads.js` couvre `markers/`, `tasks/`, `forum-posts/`, `context-comments/`, `plants/`, et ne supprime plus les vignettes `*.thumb.jpg` des zones et repères comme orphelines.
+- **Sécurité** : contrôle de signature JPEG/PNG/WebP/GIF sur toutes les images enregistrées (400 `UPLOAD_NOT_IMAGE`) ; images du forum GL rangées sous un identifiant aléatoire (plus énumérables) ; images privées servies en `private, no-store`, noms horodatés en `immutable` ; images Markdown passées par le relais (mode « local »).
+- **Poids** : vignettes 520 px générées pour les photos de plantes, de tâches et de la médiathèque (rattrapage : `node scripts/generate-public-thumbs.js --apply`), vignettes Wikimedia `NNNpx-` ; pièces jointes compressées avant envoi (HEIC/AVIF illisibles refusés avec un message) ; correctif du redimensionnement des photos en portrait.
+- **Fiabilité** : cache commun des images authentifiées (compteur de références, révocation, annulation) ; places réservées et replis visibles (`FallbackImage`, `PhotoThumb`) ; cache d'images du service worker borné (200 entrées, 7 jours) et purgé sur 401/403/404 ; cache du relais Wikimedia plafonné (`FORETMAP_REMOTE_MEDIA_CACHE_MAX_BYTES`, 500 Mo par défaut) ; `/api/tasks`, profil et carnet au palier JSON de 8 Mo.
+- **Finitions** : textes alternatifs en français, logo du plan sans nom d'établissement en dur, point focal 0 % accepté dans l'éditeur de cadre, photos de QCM factorisées dans `QcmQuestionPhoto`, illustrations GL dans `GLIllustrationFigure`.
+
+Tests : `tests/http-image-cache.test.js`, `tests/image-thumb-public.test.js`, `tests/uploads-exif.test.js`, `tests/uploads-reconcile-script.test.js`, `tests/account-cleaner-registry.test.js`, `tests/pwa-sw-template.test.js` (répare 14 tests déjà en échec), `tests/remote-media.test.js`, `tests-ui/shared/PhotoThumb.test.jsx`, `FallbackImage`, `useDialogA11yStack`, `useAuthedHtmlImages`, `AttachmentImagesPicker`, `imageFitWithinMaxSide`, `uploadThumbUrl`.
 
 ### Corrigé — carte : emojis et noms de zones bien placés et sans chevauchement
 

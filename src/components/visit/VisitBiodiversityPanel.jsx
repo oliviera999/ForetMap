@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { IconBiodiv } from '../../shared/icons.jsx';
@@ -50,12 +50,10 @@ function VisitSpeciesTile({ name, emoji, plant, onOpenPlant }) {
     <>
       <span className="visit-biodiv-tile__visual" aria-hidden="true">
         {photoSrc ? (
-          <img
-            src={resolveExternalImageUrl(photoSrc)}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailedPhotoSrc(photoSrc)}
+          <FallbackImage
+            src={photoSrc}
+            thumbWidth={200}
+            onAllFailed={() => setFailedPhotoSrc(photoSrc)}
           />
         ) : (
           <span className="visit-biodiv-tile__emoji">{displayEmoji}</span>

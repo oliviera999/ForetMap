@@ -28,8 +28,8 @@ const PNG_1PX = Buffer.from(
   'base64',
 );
 
-function makeMedia(app, name) {
-  const item = saveMediaFromBuffer(PNG_1PX, 'image/png', `${name}-${stamp}.png`, { app });
+async function makeMedia(app, name) {
+  const item = await saveMediaFromBuffer(PNG_1PX, 'image/png', `${name}-${stamp}.png`, { app });
   created.push(item.relativePath);
   return item;
 }
@@ -49,8 +49,8 @@ after(() => {
   }
 });
 
-test('une suppression ciblée ne franchit pas la frontière des médiathèques', () => {
-  const foret = makeMedia('foretmap', 'fm-cible');
+test('une suppression ciblée ne franchit pas la frontière des médiathèques', async () => {
+  const foret = await makeMedia('foretmap', 'fm-cible');
   assert.strictEqual(mediaLibraryItemApp(foret.relativePath), 'foretmap');
 
   assert.throws(
@@ -65,9 +65,9 @@ test('une suppression ciblée ne franchit pas la frontière des médiathèques',
   assert.ok(!exists(foret.relativePath));
 });
 
-test('une purge G&L laisse la médiathèque ForetMap intacte', () => {
-  const gl = makeMedia('gl', 'gl-purge');
-  const foret = makeMedia('foretmap', 'fm-survivant');
+test('une purge G&L laisse la médiathèque ForetMap intacte', async () => {
+  const gl = await makeMedia('gl', 'gl-purge');
+  const foret = await makeMedia('foretmap', 'fm-survivant');
 
   executeMediaLibraryDeleteRequest({ clear_all: true }, { app: 'gl' });
 
@@ -83,9 +83,9 @@ test('une purge G&L laisse la médiathèque ForetMap intacte', () => {
   );
 });
 
-test('une purge ForetMap laisse la médiathèque G&L intacte', () => {
-  const gl = makeMedia('gl', 'gl-survivant');
-  const foret = makeMedia('foretmap', 'fm-purge');
+test('une purge ForetMap laisse la médiathèque G&L intacte', async () => {
+  const gl = await makeMedia('gl', 'gl-survivant');
+  const foret = await makeMedia('foretmap', 'fm-purge');
 
   executeMediaLibraryDeleteRequest({ clear_all: true }, { app: 'foretmap' });
 

@@ -652,7 +652,7 @@ plans (`GET /api/plan/content`, `GET /api/staff-plan/content` → `settings.exte
 
 | Méthode | URL                            | Auth | Description                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/media/remote`            | non  | `?url=` (HTTPS, hôte `upload.wikimedia.org` ou `commons.wikimedia.org`). Télécharge l'image côté serveur puis la sert depuis le cache `uploads/remote-cache/` (30 jours). Redirections suivies à la main et revalidées (hôte hors liste → **502**) ; URL refusée → **400** ; contenu non image → **415** ; plus de `FORETMAP_REMOTE_MEDIA_MAX_BYTES` (défaut 8 Mo) → **413** ; plus de 4 téléchargements simultanés → **503**. Réponse servie avec `X-Content-Type-Options: nosniff` et une CSP `sandbox` |
+| GET     | `/api/media/remote`            | non  | `?url=` (HTTPS, hôte `upload.wikimedia.org` ou `commons.wikimedia.org`). Télécharge l'image côté serveur puis la sert depuis le cache `uploads/remote-cache/` (30 jours, plafonné à `FORETMAP_REMOTE_MEDIA_CACHE_MAX_BYTES`, 500 Mo par défaut, les plus anciens purgés d'abord). Redirections suivies à la main et revalidées (hôte hors liste → **502**) ; URL refusée → **400** ; contenu non image → **415** ; plus de `FORETMAP_REMOTE_MEDIA_MAX_BYTES` (défaut 8 Mo) → **413** ; plus de 4 téléchargements simultanés → **503**. Réponse servie avec `X-Content-Type-Options: nosniff` et une CSP `sandbox` |
 | GET     | `/api/media/commons-preview`   | non  | `?category=Category:…` → `{ url }` : première image de la catégorie Wikimedia Commons (aperçu de fiche plante), interrogée par le serveur (cache mémoire 30 jours). `url` est `null` si la catégorie est vide ; titre invalide → **400**                                                                                                                                  |
 | GET     | `/fonts/local-fonts.css`       | non  | Feuille des polices des fiches tutoriels (Playfair Display, DM Sans, DM Mono, Bebas Neue, Special Elite), assemblée depuis les paquets Fontsource                                                                                                                                                                                                                     |
 | GET     | `/fonts/files/:pkg/:file`      | non  | Fichier `woff`/`woff2` d'un paquet de la liste ci-dessus ; tout autre paquet ou nom → **404**. Cache 1 an                                                                                                                                                                                                                                                            |
@@ -2400,6 +2400,37 @@ Notes d'exploitation :
   invalide), pour qu'un chemin privé ne soit pas servi par contournement.
 - Les familles publiques restent servies statiquement. En particulier, les avatars `students/…`
   sont publics par URL : ne pas y stocker de média nécessitant une autorisation.
+
+**Contrôle du contenu des images.** Tout fichier écrit sous une extension d'image matricielle
+(`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`) par `saveBase64ToDisk` / `writeBufferToDisk`
+(`lib/uploads.js`) doit porter la signature binaire correspondante (JPEG, PNG, WebP, GIF) :
+sinon **400** `{ "code": "UPLOAD_NOT_IMAGE", "error": "Le contenu du fichier ne correspond pas
+à une image (JPEG, PNG, WebP ou GIF)" }`, sans ligne créée en base. Couvre les photos de zones,
+repères, tâches, rapports de tâche, plantes, forum, commentaires, carnet, visite et la
+médiathèque (qui passe désormais par la même chaîne : retrait EXIF/GPS, plafond
+`FORETMAP_MAX_UPLOAD_BYTES`, écriture asynchrone ; la signature prime sur le type déclaré).
+Les images du forum G&L sont rangées sous `gl-forum-posts/<uuid>/…` (identifiant aléatoire,
+non énumérable) au lieu de l'identifiant du message.
+
+**Vignettes.** Outre `zones/` et `markers/` (`thumb_url`, voir plus haut), une vignette JPEG
+de 520 px est générée à l'envoi pour `plants/<id>/<fichier>` → `plants/<id>/<fichier>.thumb.jpg`,
+`tasks/<id>` → `tasks/<id>.thumb.jpg`, et `media-library/image/…/x.<ext>` →
+`media-thumbs/media-library/image/…/x.thumb.jpg` (hors de `media-library/`, dont les fichiers
+constituent le catalogue). Le front dérive la même adresse et retombe sur l'original si la
+vignette manque (fichier antérieur, `sharp` absent) ; rattrapage de l'existant :
+`node scripts/generate-public-thumbs.js --apply`.
+
+**En-têtes de cache.**
+
+| Réponse | `Cache-Control` |
+| ------- | --------------- |
+| `/uploads/…` public, nom horodaté de la médiathèque (`<13 chiffres>-<10 hex>.ext`, et sa vignette `media-thumbs/…`) | `public, max-age=31536000, immutable` |
+| `/uploads/…` public, autres fichiers ; `GET /api/tasks/:id/image`, `GET /api/visit/media/…` | `public, max-age=86400` |
+| Images privées : `GET /api/tasks/:id/logs/:logId/image`, `GET /api/user-journal/assets/:assetId/file` | `private, no-store` |
+
+Le service worker ne met jamais en cache une réponse `no-store` ; son cache d'images est séparé
+(`<cache>-images`), borné à **200** entrées et **7 jours**, et une entrée est retirée dès que le
+serveur répond 401, 403 ou 404.
 
 ---
 

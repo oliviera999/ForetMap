@@ -24,4 +24,24 @@ describe('GLImageFrameEditor', () => {
     expect(call.frame.aspectRatio).toBe('16/9');
     expect(call.frame.focalX).toBe(20);
   });
+
+  it('un point focal à 0 % reste à 0 % (bord gauche / haut)', () => {
+    const onApply = vi.fn();
+    render(
+      <GLImageFrameEditor
+        open
+        context="markdown"
+        imageUrl="/uploads/test.jpg"
+        initialFrame={{ aspectRatio: '16/9', objectFit: 'cover', focalX: 50, focalY: 50 }}
+        onApply={onApply}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Focus horizontal/i), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText(/Focus vertical/i), { target: { value: '0' } });
+    fireEvent.click(screen.getByText('Appliquer cadrage CSS'));
+    const { frame } = onApply.mock.calls[0][0];
+    expect(frame.focalX).toBe(0);
+    expect(frame.focalY).toBe(0);
+  });
 });

@@ -53,8 +53,11 @@ export function GLProfileAvatar({
       return { x: 0, y: 0, w: 1, h: 1 };
     }
     const cropSizePx = Math.min(width, height);
-    const focusX = (Number(frame?.focalX) || 50) / 100;
-    const focusY = (Number(frame?.focalY) || 50) / 100;
+    // 0 % est un bord valide : `|| 50` le ramenait au centre.
+    const rawX = Number(frame?.focalX);
+    const rawY = Number(frame?.focalY);
+    const focusX = (Number.isFinite(rawX) ? rawX : 50) / 100;
+    const focusY = (Number.isFinite(rawY) ? rawY : 50) / 100;
     const centerX = focusX * width;
     const centerY = focusY * height;
     const xPx = Math.min(Math.max(0, centerX - cropSizePx / 2), width - cropSizePx);
@@ -90,7 +93,7 @@ export function GLProfileAvatar({
 
   return (
     <div className="gl-profile-avatar">
-      <img src={preview} alt="Avatar profil" />
+      <img src={preview} alt="Aperçu de votre avatar" decoding="async" />
       <div className="gl-profile-avatar-actions gl-inline-actions">
         <GLButton
           type="button"
@@ -108,7 +111,7 @@ export function GLProfileAvatar({
           disabled={busy || processing}
           onClick={() => cameraRef.current?.click()}
         >
-          Camera
+          Caméra
         </GLButton>
         <GLButton
           type="button"
@@ -139,11 +142,11 @@ export function GLProfileAvatar({
         onChange={(event) => onFile(event.target.files?.[0] || null)}
       />
       {processing ? <div className="gl-hint">Traitement image…</div> : null}
-      <p className="gl-hint">Recadrage 1:1 avant envoi. Taille finale limitee a 2 Mo.</p>
+      <p className="gl-hint">Recadrage 1:1 avant envoi. Taille finale limitée à 2 Mo.</p>
 
       <GLImageFrameEditor
         open={Boolean(pendingImage?.dataUrl)}
-        title="Recadrer l avatar (1:1)"
+        title="Recadrer l’avatar (1:1)"
         context="avatar"
         imageUrl={String(pendingImage?.dataUrl || '')}
         initialFrame={pendingImage?.frame}

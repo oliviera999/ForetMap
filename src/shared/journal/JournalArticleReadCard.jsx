@@ -4,11 +4,15 @@ import { Button } from '../ui/Button.jsx';
 import { renderMarkdownToSafeHtml } from '../platform/markdown.js';
 import { formatDateTime } from '../utils/formatDateTime.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
+import { useHtmlAsIs } from './journalImages.js';
 
 /**
  * Carte lecture d’un article de carnet (mode feuilleter). Affiche le markdown enrichi,
  * les vignettes, les actions Épingler / Modifier / Supprimer. L’édition vit dans la
  * carte produit (UserJournalArticleCard / GLPlayerJournalArticleCard).
+ *
+ * `ImageComponent` / `useHtmlImages` : ForetMap sert les illustrations derrière jeton et
+ * passe `AuthedImage` / `useAuthedHtmlImages` ; G&L garde les valeurs par défaut.
  */
 export function JournalArticleReadCard({
   article,
@@ -20,6 +24,8 @@ export function JournalArticleReadCard({
   extraMetaLine = null,
   deleting = false,
   pinning = false,
+  ImageComponent = 'img',
+  useHtmlImages = useHtmlAsIs,
 }) {
   const { confirm } = useAppDialogs();
   const p = ui.classPrefix;
@@ -39,6 +45,8 @@ export function JournalArticleReadCard({
     [article?.bodyMarkdown],
   );
   const hydratedHtml = useJournalEmbedTitles(html, adapter.resolveEmbeds);
+  const displayHtml = useHtmlImages(hydratedHtml);
+  const Img = ImageComponent;
   const dateLabel = article.updatedAt || article.createdAt;
 
   return (
@@ -97,15 +105,22 @@ export function JournalArticleReadCard({
       {html ? (
         <div
           className={ui.markdownClassName || ''}
-          dangerouslySetInnerHTML={{ __html: hydratedHtml }}
+          dangerouslySetInnerHTML={{ __html: displayHtml }}
         />
       ) : (
         <p className={ui.hintClassName || ''}>Article sans texte.</p>
       )}
       {assets.length > 0 ? (
         <div className={`${p}__assets-inline`}>
-          {assets.map((a) => (
-            <img key={a.id} src={a.url} alt="" loading="lazy" className={`${p}__asset-thumb`} />
+          {assets.map((a, index) => (
+            <Img
+              key={a.id}
+              src={a.url}
+              alt={`Illustration ${index + 1} de l’article « ${title} »`}
+              loading="lazy"
+              decoding="async"
+              className={`${p}__asset-thumb`}
+            />
           ))}
         </div>
       ) : null}

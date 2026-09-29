@@ -133,7 +133,10 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement l
   avec accusé de lecture par l'élève.
 - **Carnet d'observation** : journal personnel (articles texte/photos, imports d’espèces,
   glossaire et tutoriels appris) pour **tout compte connecté** ; consultable par les
-  professeurs selon leur périmètre.
+  professeurs selon leur périmètre. Les illustrations d'un article — photos jointes comme
+  images insérées dans le texte — s'affichent dans toutes les vues de lecture (carte, livre,
+  fenêtre de lecture) ; elles restent privées et ne sont visibles que des personnes autorisées
+  à lire le carnet.
 
 ### La Visite (le mode grand public)
 
@@ -358,6 +361,21 @@ n'ont besoin d'aucune mise en forme : l'écran reste donc léger.
 > - Avant cette version, dans Chrome et Edge, la touche Entrée collait parfois la nouvelle
 >   ligne à la précédente. C'est corrigé ; un texte déjà enregistré « collé » doit être
 >   reséparé à la main.
+
+### Voir une photo en grand
+
+Partout où une photo peut s'agrandir (galeries des zones et des repères, fiches des plantes,
+visite, carnet, forum, illustrations), un clic l'ouvre en grand dans une **visionneuse**.
+Elle s'ouvre aussi **au clavier** : la photo se sélectionne avec la touche Tab, puis Entrée
+ou Espace. Dans une galerie, des flèches permettent de passer à la photo **précédente** ou
+**suivante**. La visionneuse se ferme par la croix, un clic à côté, le bouton retour du
+téléphone ou **Échap** — Échap ne ferme que la visionneuse, pas la fenêtre ouverte en
+dessous. À la fermeture, on retrouve sa place sur la photo de départ.
+
+Les petites vignettes (catalogue, galeries, couvertures de tâches, médiathèque) chargent une
+version **allégée** de la photo ; la photo complète n'est téléchargée qu'à l'agrandissement.
+Une photo introuvable est remplacée par un pictogramme au lieu d'une image cassée, et la
+place de chaque photo est réservée pendant le chargement : la page ne « saute » plus.
 
 ### La pastille d'état en bas d'écran
 

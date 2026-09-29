@@ -64,7 +64,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const mediaData = req.body.media_data;
     const originalName = (req.body.original_name || req.body.originalName || '').trim() || null;
-    const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
+    const saved = await saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
     await logAudit(
       'media_library_upload',
       'media',

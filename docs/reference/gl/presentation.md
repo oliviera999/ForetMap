@@ -154,7 +154,11 @@ distinct du glossaire scientifique) et tutoriels.
 - **Mascottes** : les avatars des équipes (gnomes, licornes…), avec un studio de packs
   pour en ajouter.
 - **Cadres d'image** : encadrements décoratifs configurables (logos, illustrations,
-  cartes, avatars).
+  cartes, avatars). Le point de cadrage peut être placé jusqu'au bord de l'image (0 %).
+- **Voir une image en grand** : illustrations de chapitres, de scènes et de feuillets,
+  photos de QCM et du forum s'ouvrent dans une visionneuse, à la souris comme au clavier
+  (Tab puis Entrée) ; Échap ne ferme que la visionneuse. Une image introuvable est masquée
+  ou remplacée par un pictogramme, jamais affichée cassée.
 - **Marque** : logo, titre, sous-titre et couleurs de la plateforme, personnalisables
   par l'admin.
 

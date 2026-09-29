@@ -13,9 +13,9 @@ describe('ImageLightboxProvider', () => {
       </ImageLightboxProvider>,
     );
 
-    fireEvent.click(screen.getByRole('img', { name: 'Scène du récit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agrandir l’image : Scène du récit' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Aperçu image' });
+    const dialog = screen.getByRole('dialog', { name: 'Aperçu : Chapitre 2' });
     expect(dialog).toBeInTheDocument();
     expect(dialog.querySelector('.fm-lightbox-caption')).toHaveTextContent('Chapitre 2');
   });
@@ -30,9 +30,9 @@ describe('ImageLightboxProvider', () => {
       </ImageLightboxProvider>,
     );
 
-    fireEvent.click(screen.getByRole('img', { name: 'Choisir' }));
+    fireEvent.click(screen.getByAltText('Choisir'));
 
     expect(onButtonClick).toHaveBeenCalled();
-    expect(screen.queryByRole('dialog', { name: 'Aperçu image' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
-import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import { PlantSpeciesDiscoveryAcknowledgeButton } from '../PlantSpeciesDiscoveryAcknowledge';
 import { PlantPedagoTraitBadges } from './PlantSummaryBlocks.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
 import { IconMarker } from '../../shared/icons.jsx';
+
+/** Tuile d'environ 88 px : vignette demandée pour un écran haute densité. */
+const TILE_THUMB_WIDTH = 200;
 
 /**
  * Vignette du catalogue biodiversité (élève et prof).
@@ -69,7 +72,11 @@ export function PlantCatalogTile({
       >
         <span className="biodiv-tile__visual" aria-hidden="true">
           {photoSrc ? (
-            <img src={resolveExternalImageUrl(photoSrc)} alt="" loading="lazy" decoding="async" />
+            <FallbackImage
+              src={photoSrc}
+              thumbWidth={TILE_THUMB_WIDTH}
+              fallback={<span className="biodiv-tile__emoji">{plant.emoji || '🌱'}</span>}
+            />
           ) : (
             <span className="biodiv-tile__emoji">{plant.emoji || '🌱'}</span>
           )}

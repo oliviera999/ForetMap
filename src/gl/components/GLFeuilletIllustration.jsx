@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadGlAssetRuntime } from '../assets/index.js';
+import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import {
   resolveFeuilletExplicitMediaUrl,
   resolveFeuilletImageUrl,
@@ -23,6 +24,32 @@ export function useGlAssetsReady() {
   return ready;
 }
 
+/**
+ * Figure d'illustration G&L (chapitre, scène, feuillet, coupe) : un seul motif au lieu de
+ * quatre copies. Une image introuvable retire la figure au lieu d'une icône cassée.
+ */
+export function GLIllustrationFigure({
+  src,
+  alt = '',
+  caption = '',
+  figureClassName = '',
+  imgClassName = '',
+}) {
+  const [failedSrc, setFailedSrc] = useState('');
+  if (!src || failedSrc === src) return null;
+  return (
+    <figure className={figureClassName || undefined}>
+      <FallbackImage
+        src={src}
+        alt={alt}
+        className={imgClassName || undefined}
+        onAllFailed={() => setFailedSrc(src)}
+      />
+      {caption ? <figcaption>{caption}</figcaption> : null}
+    </figure>
+  );
+}
+
 /** Illustration « coupe » (URL explicite ou clé stable, sans convention feuillet). */
 export function GLFeuilletCoupeIllustration({
   url = null,
@@ -32,11 +59,13 @@ export function GLFeuilletCoupeIllustration({
 }) {
   const assetsReady = useGlAssetsReady();
   const src = useMemo(() => resolveFeuilletExplicitMediaUrl(url, assetsReady), [url, assetsReady]);
-  if (!src) return null;
   return (
-    <figure className={figureClassName || undefined}>
-      <img src={src} alt={alt} loading="lazy" className={imgClassName || undefined} />
-    </figure>
+    <GLIllustrationFigure
+      src={src}
+      alt={alt}
+      figureClassName={figureClassName}
+      imgClassName={imgClassName}
+    />
   );
 }
 
@@ -52,10 +81,12 @@ export function GLFeuilletIllustration({
     () => resolveFeuilletImageUrl(feuilletCode, fallbackUrl, assetsReady),
     [feuilletCode, fallbackUrl, assetsReady],
   );
-  if (!src) return null;
   return (
-    <figure className={figureClassName || undefined}>
-      <img src={src} alt={alt} loading="lazy" className={imgClassName || undefined} />
-    </figure>
+    <GLIllustrationFigure
+      src={src}
+      alt={alt}
+      figureClassName={figureClassName}
+      imgClassName={imgClassName}
+    />
   );
 }

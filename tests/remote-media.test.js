@@ -14,6 +14,8 @@ const {
   setRemoteMediaFetchForTests,
   resetRemoteMediaStateForTests,
   cachePaths,
+  purgeRemoteMediaCache,
+  CACHE_DIR,
 } = require('../lib/remoteMedia');
 const { buildEnforcedPolicy } = require('../lib/csp');
 const { localizeTutorialExternalAssets } = require('../lib/tutorialViewExternalAssets');
@@ -48,6 +50,48 @@ before(async () => {
 });
 beforeEach(() => resetRemoteMediaStateForTests());
 after(() => setRemoteMediaFetchForTests(null));
+
+describe('Relais média — purge du cache disque', () => {
+  function seedEntry(name, { ageMs = 0, size = 1024 } = {}) {
+    const paths = cachePaths(normalizeRemoteMediaUrl(uniqueUrl(name)));
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(paths.body, Buffer.alloc(size, 1));
+    fs.writeFileSync(paths.meta, JSON.stringify({ contentType: 'image/png' }));
+    const when = new Date(Date.now() - ageMs);
+    fs.utimesSync(paths.body, when, when);
+    fs.utimesSync(paths.meta, when, when);
+    return paths;
+  }
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('retire les entrées expirées (image et métadonnées), garde les récentes', () => {
+    const old = seedEntry('vieille', { ageMs: 31 * DAY });
+    const fresh = seedEntry('recente');
+    purgeRemoteMediaCache({ maxBytes: Number.MAX_SAFE_INTEGER });
+    assert.strictEqual(fs.existsSync(old.body), false);
+    assert.strictEqual(fs.existsSync(old.meta), false);
+    assert.strictEqual(fs.existsSync(fresh.body), true);
+    for (const p of [fresh.body, fresh.meta]) fs.rmSync(p, { force: true });
+  });
+
+  it('au-delà du plafond, les plus anciennes sortent d’abord', () => {
+    const a = seedEntry('a', { ageMs: 3 * DAY, size: 4096 });
+    const b = seedEntry('b', { ageMs: 2 * DAY, size: 4096 });
+    const c = seedEntry('c', { ageMs: 1 * DAY, size: 4096 });
+    // Plafond qui ne laisse la place qu'à l'entrée la plus récente parmi celles-ci.
+    const others = fs
+      .readdirSync(CACHE_DIR)
+      .filter((n) => n.endsWith('.bin'))
+      .map((n) => fs.statSync(`${CACHE_DIR}/${n}`))
+      .filter((s) => s.mtimeMs > Date.now() - 12 * 60 * 60 * 1000)
+      .reduce((sum, s) => sum + s.size, 0);
+    purgeRemoteMediaCache({ maxBytes: others + 4096 });
+    assert.strictEqual(fs.existsSync(a.body), false);
+    assert.strictEqual(fs.existsSync(b.body), false);
+    assert.strictEqual(fs.existsSync(c.body), true);
+    for (const p of [c.body, c.meta]) fs.rmSync(p, { force: true });
+  });
+});
 
 describe('Relais média — validation des URL', () => {
   it('seuls les hôtes Wikimedia en HTTPS sont acceptés', () => {

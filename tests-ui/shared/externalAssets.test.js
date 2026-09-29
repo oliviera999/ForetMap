@@ -6,6 +6,7 @@ import {
   remoteBrandFontFamilies,
   resolveExternalImageUrl,
   setExternalAssetsMode,
+  wikimediaThumbUrl,
 } from '../../src/shared/privacy/externalAssets.js';
 
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Malus.jpg';
@@ -48,6 +49,42 @@ describe('resolveExternalImageUrl', () => {
     ]) {
       expect(resolveExternalImageUrl(url)).toBe(url);
     }
+  });
+});
+
+// Audit photos PH-M1 : les tuiles chargeaient l'original Wikimedia (souvent plusieurs Mo).
+describe('wikimediaThumbUrl', () => {
+  test('original → vignette à la largeur standard immédiatement supérieure', () => {
+    expect(wikimediaThumbUrl(COMMONS, 200)).toBe(
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Malus.jpg/250px-Malus.jpg',
+    );
+  });
+
+  test('vignette existante : seule la largeur change ; SVG rendu en PNG', () => {
+    expect(
+      wikimediaThumbUrl(
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Malus.jpg/1024px-Malus.jpg',
+        300,
+      ),
+    ).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Malus.jpg/330px-Malus.jpg');
+    expect(
+      wikimediaThumbUrl('https://upload.wikimedia.org/wikipedia/commons/1/1f/Leaf.svg', 100),
+    ).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Leaf.svg/120px-Leaf.svg.png');
+  });
+
+  test('autres URL et largeur absente : inchangées', () => {
+    expect(wikimediaThumbUrl('/uploads/plants/1.jpg', 200)).toBe('/uploads/plants/1.jpg');
+    expect(wikimediaThumbUrl('https://commons.wikimedia.org/wiki/File:X.jpg', 200)).toBe(
+      'https://commons.wikimedia.org/wiki/File:X.jpg',
+    );
+    expect(wikimediaThumbUrl(COMMONS, 0)).toBe(COMMONS);
+  });
+
+  test('resolveExternalImageUrl({ width }) relaie la vignette, pas l’original', () => {
+    const out = resolveExternalImageUrl(COMMONS, { width: 400 });
+    expect(decodeURIComponent(out.split('url=')[1])).toMatch(
+      /\/thumb\/a\/ab\/Malus\.jpg\/500px-Malus\.jpg$/,
+    );
   });
 });
 

@@ -24,7 +24,6 @@ import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
-import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import {
   IconCamera,
@@ -35,10 +34,6 @@ import {
   IconNotebook,
   IconReports,
 } from '../../shared/icons.jsx';
-
-function Lightbox({ src, caption, onClose }) {
-  return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
-}
 
 /** Photo jointe sans réseau : elle n'entre pas dans la file (poids, tablette partagée). */
 export const TASK_DONE_OFFLINE_PHOTO_MESSAGE =
@@ -269,7 +264,7 @@ function LogModal({
           </div>
         ) : (
           <div className="img-preview-wrap">
-            <img src={preview} className="img-preview" alt="preview" />
+            <img src={preview} className="img-preview" alt="Aperçu de la pièce jointe" />
             <button
               className="img-remove"
               aria-label="Retirer la photo"
@@ -307,7 +302,6 @@ function TaskLogsViewer({ task, onClose }) {
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const [logs, setLogs] = useState([]);
-  const [big, setBig] = useState(null);
   const [toast, setToast] = useState(null);
 
   const loadLogs = () => {
@@ -356,7 +350,6 @@ function TaskLogsViewer({ task, onClose }) {
       closeOnOverlay
       dialogRef={dialogRef}
     >
-      {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
         <IconClose size={16} />
@@ -400,10 +393,10 @@ function TaskLogsViewer({ task, onClose }) {
               <AuthedImage
                 src={l.image_url}
                 className="log-image"
-                alt="rapport"
+                alt={`Photo du rapport de ${[l.student_first_name, l.student_last_name]
+                  .filter(Boolean)
+                  .join(' ')}`.trim()}
                 loading="lazy"
-                decoding="async"
-                onClick={() => setBig(l.image_url)}
               />
             )}
           </div>

@@ -6,6 +6,7 @@ const {
   hydrateAuthFromTokenClaims,
 } = require('../../middleware/requireTeacher');
 const { getAbsolutePath } = require('../../lib/uploads');
+const { sendFilePrivateImageOptions } = require('../../lib/httpImageCache');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../../lib/auditLog');
 const { emitTasksChanged } = require('../../lib/realtime');
@@ -72,7 +73,7 @@ router.get(
     }
     if (log.image_path) {
       const absolutePath = getAbsolutePath(log.image_path);
-      return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
+      return res.sendFile(absolutePath, sendFilePrivateImageOptions(), (err) => {
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     }

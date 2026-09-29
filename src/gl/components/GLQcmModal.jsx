@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
@@ -177,22 +177,12 @@ export function GLQcmModal({
                 {...answeringGlossaryProps}
                 tag="p"
               />
-              {presentation.photoUrl ? (
-                <figure className="gl-qcm-modal__photo-wrap">
-                  <img
-                    src={resolveExternalImageUrl(presentation.photoUrl)}
-                    alt=""
-                    className="gl-qcm-modal__photo"
-                  />
-                  {presentation.photoCredit || presentation.photoLicence ? (
-                    <figcaption className="gl-qcm-modal__photo-credit">
-                      {[presentation.photoCredit, presentation.photoLicence]
-                        .filter(Boolean)
-                        .join(' — ')}
-                    </figcaption>
-                  ) : null}
-                </figure>
-              ) : null}
+              <QcmQuestionPhoto
+                presentation={presentation}
+                figureClassName="gl-qcm-modal__photo-wrap"
+                imgClassName="gl-qcm-modal__photo"
+                captionClassName="gl-qcm-modal__photo-credit"
+              />
               <div className="gl-qcm-modal__choices">
                 {presentation.choices.map((choice) => (
                   <label key={choice.id} className="gl-qcm-choice">

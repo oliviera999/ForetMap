@@ -161,7 +161,11 @@ test('photos jointes : image_urls sous /uploads/gl-forum-posts/', async () => {
     .expect(200);
   const withPhoto = detail.body.posts.find((p) => p.image_urls?.length > 0);
   assert.ok(withPhoto, 'un message avec photo');
-  assert.match(withPhoto.image_urls[0], /^\/uploads\/gl-forum-posts\//);
+  // Dossier aléatoire, pas l'identifiant séquentiel du message (images non énumérables).
+  assert.match(
+    withPhoto.image_urls[0],
+    /^\/uploads\/gl-forum-posts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/0\.png$/,
+  );
   assert.strictEqual(withPhoto.body, '(Photo)');
   assert.strictEqual(Number(detail.body.total_posts), 2);
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLatestRequest } from '../../shared/hooks/useLatestRequest.js';
 import { api } from '../../services/api';
 import { compressImage } from '../../shared/platform/image';
@@ -6,7 +6,7 @@ import {
   armNativeFilePickerGuard,
   disarmNativeFilePickerGuard,
 } from '../../shared/platform/overlayHistory';
-import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { PhotoThumb } from '../../shared/components/PhotoThumb.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { IconCamera, IconClose, IconFolder, IconLeaf } from '../../shared/icons.jsx';
 
@@ -26,7 +26,6 @@ export function reorderZoneMarkerPhotosByDrop(list, draggedId, dropTargetId) {
 export function PhotoGallery({ zoneId, markerId, isTeacher }) {
   const { confirm, notify } = useAppDialogs();
   const [photos, setPhotos] = useState([]);
-  const [big, setBig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [reorderingPhotos, setReorderingPhotos] = useState(false);
@@ -58,6 +57,14 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
     load();
   }, [load]);
 
+  const galleryItems = useMemo(
+    () =>
+      photos
+        .filter((p) => p.image_url || p.thumb_url)
+        .map((p) => ({ src: p.image_url || p.thumb_url, caption: p.caption || '' })),
+    [photos],
+  );
+
   const upload = async (e) => {
     disarmNativeFilePickerGuard();
     const files = Array.from(e.target.files || []).filter((f) => f?.size);
@@ -65,15 +72,27 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
     if (!files.length) return;
     const captionTrim = caption.trim();
     setUploading(true);
+    let sent = 0;
+    const failures = [];
     try {
       for (const file of files) {
-        const img = await compressImage(file);
-        await api(listBase, 'POST', { image_data: img, caption: captionTrim });
+        try {
+          const img = await compressImage(file);
+          await api(listBase, 'POST', { image_data: img, caption: captionTrim });
+          sent += 1;
+        } catch (err) {
+          failures.push(`${file.name || 'photo'} : ${err.message || 'envoi impossible'}`);
+        }
       }
-      setCaption('');
-      await load();
-    } catch (err) {
-      notify(err.message);
+      if (sent > 0) setCaption('');
+      if (failures.length > 0) {
+        notify(
+          files.length > 1
+            ? `${sent} photo(s) envoyée(s) sur ${files.length}. ${failures.join(' — ')}`
+            : failures[0],
+        );
+      }
+      if (sent > 0) await load();
     } finally {
       setUploading(false);
     }
@@ -105,8 +124,6 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
 
   return (
     <div style={{ marginTop: 12 }}>
-      {big && <ImageLightbox src={big.src} caption={big.caption} onClose={() => setBig(null)} />}
-
       {loading ? (
         <p
           style={{
@@ -155,7 +172,7 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
               pointerEvents: reorderingPhotos ? 'none' : undefined,
             }}
           >
-            {photos.map((p) => {
+            {photos.map((p, photoIndex) => {
               const tileSrc = p.thumb_url || p.image_url;
               return (
                 <div
@@ -190,18 +207,18 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                   }}
                 >
                   {tileSrc ? (
-                    <img
+                    <PhotoThumb
                       src={tileSrc}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        cursor: 'pointer',
-                      }}
-                      loading="lazy"
-                      decoding="async"
-                      onClick={() => setBig({ src: p.image_url, caption: p.caption })}
-                      alt={p.caption || ''}
+                      fullSrc={p.image_url || tileSrc}
+                      caption={p.caption || ''}
+                      label={
+                        p.caption
+                          ? `Agrandir la photo ${photoIndex + 1} : ${p.caption}`
+                          : `Agrandir la photo ${photoIndex + 1}`
+                      }
+                      gallery={galleryItems}
+                      index={photoIndex}
+                      fallback={<IconLeaf size={20} />}
                     />
                   ) : (
                     <div
@@ -220,7 +237,9 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                   )}
                   {tileSrc && p.caption && (
                     <div
+                      aria-hidden="true"
                       style={{
+                        pointerEvents: 'none',
                         position: 'absolute',
                         bottom: 0,
                         left: 0,
@@ -246,14 +265,14 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                       onClick={() => del(p.id)}
                       style={{
                         position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        background: 'rgba(0,0,0,.55)',
+                        top: 0,
+                        right: 0,
+                        background: 'transparent',
                         border: 'none',
                         color: 'white',
-                        borderRadius: '50%',
-                        width: 22,
-                        height: 22,
+                        width: 44,
+                        height: 44,
+                        padding: 0,
                         fontSize: 'var(--text-xs)',
                         cursor: 'pointer',
                         display: 'flex',
@@ -261,7 +280,20 @@ export function PhotoGallery({ zoneId, markerId, isTeacher }) {
                         justifyContent: 'center',
                       }}
                     >
-                      <IconClose size={16} />
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          background: 'rgba(0,0,0,.55)',
+                        }}
+                      >
+                        <IconClose size={16} />
+                      </span>
                     </button>
                   )}
                 </div>

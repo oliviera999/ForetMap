@@ -7,6 +7,11 @@
 **Statut : à traiter.** 4 bloquants (PH-B1 à PH-B4), 9 constats moyens, une série de
 constats faibles. Aucune correction faite dans ce lot.
 
+> **Suivi (29 sept. 2026) : traité** dans un lot unique (lots A à E du plan, § 6). Chaque
+> constat porte ci-dessous sa mention « Traité » ; restes explicites : `srcset`/`sizes` non
+> posés (une seule largeur de vignette, 520 px), vignettes des observations non générées
+> (famille privée, servie par route authentifiée), e2e « poids des tuiles » non écrit.
+
 **Périmètre.** Toute la chaîne d'une photo de contenu (plantes, zones et repères, tâches et
 rapports, observations, carnet, visite, médiathèque, forum, QCM, espèces et chapitres GL,
 avatars) : envoi depuis le navigateur, traitement et stockage serveur, service HTTP, rendu
@@ -36,6 +41,11 @@ navigateur** — PH-B1 est à confirmer par une recette.
   test `tests-ui/hooks/useAuthedHtmlImages.test.jsx` injecte du HTML brut et ne voit pas le
   problème.
 
+> **Traité (lot A).** Le filtre Markdown garde `/api/user-journal/assets/<id>/file` ; carte de
+> lecture, vue livre et fenêtre de lecture passent par l'image authentifiée
+> (`src/shared/journal/journalImages.js`). Tests : `tests-ui/hooks/useAuthedHtmlImages.test.jsx`
+> (enchaînement Markdown → hook), `tests-ui/shared/externalAssets.test.js`.
+
 ### PH-B2 — La lightbox globale neutralise les `onClick` des images
 
 - `ImageLightboxProvider.jsx:18` écoute `click` sur `document` **en capture** et
@@ -49,6 +59,10 @@ navigateur** — PH-B1 est à confirmer par une recette.
   y reçoit `data-no-lightbox`, la lightbox locale se réveille avec une adresse `/api/…` sans
   jeton (401). Deux mécanismes de lightbox concurrents coexistent.
 
+> **Traité (lot A).** Les galeries posent `data-lightbox-src` (original) via le composant
+> `PhotoThumb` ; les lightbox locales mortes (`PhotoGallery`, `TaskLogModals`) sont retirées,
+> la lightbox globale est la seule. Tests : `tests-ui/shared/ImageLightbox*.test.jsx`.
+
 ### PH-B3 — La médiathèque contourne toute la chaîne de sécurité des images
 
 - `lib/mediaLibrary.js:255` et `:314` écrivent par `fs.writeFileSync` direct : **pas de
@@ -56,6 +70,11 @@ navigateur** — PH-B1 est à confirmer par une recette.
 - Le dossier est public (`/uploads/media-library/`), et le script de rattrapage l'exclut
   (`scripts/strip-uploads-exif.js:34`, commentaire « rien d'imageable » inexact).
 - Le type **déclaré** prime sur la signature binaire (`lib/mediaLibrary.js:298-309`).
+
+> **Traité (lot A).** Écriture par `writeBufferToDisk` (EXIF/GPS retirés, taille contrôlée,
+> asynchrone), signature binaire prioritaire sur le type déclaré ; `media-library/` sort de
+> `SKIPPED_DIRS` de `scripts/strip-uploads-exif.js` pour le rattrapage de l'existant. Tests :
+> `tests/media-library-*.test.js`, `tests/uploads-exif.test.js`.
 
 ### PH-B4 — Photos d'élèves laissées sur disque après suppression du compte (RGPD)
 
@@ -65,6 +84,14 @@ navigateur** — PH-B1 est à confirmer par une recette.
 - Idem pour les photos de rapports de tâche (`lib/tasks/accountCleaners.js:37`, famille privée).
 - `scripts/reconcile-orphan-uploads.js:28` ne couvre que `zones/`, `task-logs/`,
   `observations/`, `students/`.
+
+> **Traité (lot A).** Les chemins d'images (forum, commentaires, rapports de tâche) sont relevés
+> dans la transaction de suppression et effacés après validation. `reconcile-orphan-uploads`
+> couvre aussi `markers/`, `tasks/`, `forum-posts/`, `context-comments/`, `plants/`, et ne
+> traite plus les vignettes `*.thumb.jpg` comme orphelines tant que leur original existe
+> (elles l'étaient jusqu'ici). `media-library/` en reste exclu volontairement : ses fichiers
+> sont le catalogue, sans table de référence. Tests : `tests/account-cleaner-registry.test.js`,
+> `tests/uploads-reconcile-script.test.js`.
 
 ---
 
@@ -85,6 +112,41 @@ navigateur** — PH-B1 est à confirmer par une recette.
 Aussi moyen : le service worker met les images en cache « d'abord » **sans limite ni durée
 de vie**, et continue de servir une image privée dont l'accès a été révoqué
 (`src/shared/pwa/swTemplate.js:101,236-242`).
+
+> **Traité — constats moyens.**
+>
+> - **PH-M1 (lot C)** : vignettes serveur 520 px générées aussi pour les photos de plantes, de
+>   tâches et de la médiathèque (`lib/imageThumb.js`, rattrapage de l'existant par
+>   `scripts/generate-public-thumbs.js`), dérivées côté front (`src/shared/utils/uploadThumbUrl.js`)
+>   avec repli sur l'original (`FallbackImage`) ; Wikimedia chargé en `NNNpx-`
+>   (`wikimediaThumbUrl`). Tuiles branchées : plantes, visite, espèces GL, médiathèque,
+>   couvertures de tâches. Non fait : `srcset`/`sizes`, vignettes des observations.
+>   Tests : `tests/image-thumb-public.test.js`, `tests-ui/shared/uploadThumbUrl.test.js`,
+>   `tests-ui/shared/FallbackImage.test.jsx`.
+> - **PH-M2 / PH-M3 (lot B)** : cache commun url → blob avec compteur de références, délai de
+>   grâce de 30 s et révocation, `AbortController`, file limitée (`src/services/authedImageCache.js`) ;
+>   `AuthedImage` réserve sa place et affiche un repli ; le hook ne re-télécharge plus à chaque
+>   frappe et un échec n'annule plus les autres images. Tests :
+>   `tests-ui/hooks/useAuthedHtmlImages.test.jsx`.
+> - **PH-M4 (lot B)** : pile des surcouches dans `useDialogA11y`, Échap ne ferme que celle du
+>   dessus. Test : `tests-ui/shared/useDialogA11yStack.test.jsx`.
+> - **PH-M5 (lot E)** : images agrandissables focalisables (rôle bouton, Entrée/Espace), focus
+>   rendu au déclencheur, `aria-label` « Aperçu : légende », navigation précédente/suivante
+>   dans les galeries. Pas de zoom. Tests : `tests-ui/shared/ImageLightbox*.test.jsx`,
+>   `tests-ui/shared/PhotoThumb.test.jsx`.
+> - **PH-M6 / PH-M7 (lot B)** : pièces jointes compressées avant envoi, HEIC/AVIF illisibles
+>   refusés avec un message ; redimensionnement au grand côté. Tests :
+>   `tests-ui/shared/AttachmentImagesPicker.test.jsx`, `tests-ui/shared/imageFitWithinMaxSide.test.js`.
+> - **PH-M8 (lot D)** : images Markdown passées par `resolveExternalImageUrl`, `loading="lazy"`,
+>   `decoding="async"`, balise retirée quand la source est refusée. Test :
+>   `tests-ui/shared/externalAssets.test.js`.
+> - **PH-M9 (lot D)** : signature binaire JPEG/PNG/WebP/GIF contrôlée au point d'écriture commun
+>   (`assertImageContentMatchesPath`, 400 `UPLOAD_NOT_IMAGE`) ; images du forum GL rangées sous un
+>   UUID. Tests : `tests/uploads-exif.test.js`, `tests/gl-forum.test.js`.
+> - **Service worker (lot D)** : cache d'images séparé, borné à 200 entrées et 7 jours, jamais
+>   alimenté par une réponse `no-store`, entrée évincée sur 401/403/404. Tests :
+>   `tests/pwa-sw-template.test.js` (le bac à sable fournit désormais `self.location`, ce qui
+>   répare 14 tests déjà en échec sur `main`).
 
 ---
 
@@ -111,6 +173,19 @@ de vie**, et continue de servir une image privée dont l'accès a été révoqu�
   du relais Wikimedia jamais purgé ; fond `GLBrandHub.jsx:37` en `url()` sans guillemets ;
   bouton de suppression de `PhotoGallery` à 22 px (< 44 px).
 
+> **Traité — constats faibles (lots C à E).** Boîtes réservées (`.task-card-cover` 160 px,
+> `.log-image` 4/3, `.pedago-quiz__photo`, `.gl-qcm-modal__photo`) ; replis `onError` et
+> `lazy`/`async` par `FallbackImage` / `PhotoThumb` ; textes alternatifs en français, avatar
+> décoratif (`alt=""`), repli « Scène N (sans légende) », logo du Plan tiré de la marque et
+> libellé du livre du carnet ramené à « Carnet » (plus de nom de logiciel en dur) ; `private, no-store` sur les images privées et `immutable` sur les
+> noms horodatés (`lib/httpImageCache.js`) ; `/api/tasks`, profil et carnet passés au palier
+> JSON de 8 Mo ; point focal 0 % accepté et accents rétablis ; présence des vignettes mémorisée
+> (plus de `fs.existsSync` par photo) ; cache du relais purgé (plafond
+> `FORETMAP_REMOTE_MEDIA_CACHE_MAX_BYTES`, 500 Mo) ; `url()` entre guillemets ; bouton de
+> suppression de la galerie à 44 px. Tests : `tests/http-image-cache.test.js`,
+> `tests/remote-media.test.js`, `tests/uploads-public-urls.test.js`,
+> `tests/server-load-hardening.test.js`, `tests-ui/gl/GLImageFrameEditor.test.jsx`.
+
 ---
 
 ## 4. Duplications à factoriser
@@ -126,6 +201,10 @@ de vie**, et continue de servir une image privée dont l'accès a été révoqu�
 4. Chargement authentifié : `AuthedImage` et `useAuthedHtmlImages` → cache commun
    url → objectURL avec compteur de références.
 5. Illustrations de chapitre et de feuillet GL (4 fois le même motif).
+
+> **Traité (lots B, C, E).** 1 : `QuizView`, `GLQcmPopover`, `GLQcmModal` utilisent
+> `QcmQuestionPhoto` (vignette, repli qui masque la figure). 2 et 3 : `PhotoThumb` et
+> `FallbackImage`. 4 : `src/services/authedImageCache.js`. 5 : `GLIllustrationFigure`.
 
 ---
 

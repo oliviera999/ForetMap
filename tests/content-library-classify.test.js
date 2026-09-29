@@ -48,9 +48,9 @@ test('extractZipEntries ignore __MACOSX et extrait les fichiers', () => {
   assert.strictEqual(entries[0].fileName, 'photo.png');
 });
 
-test('saveMediaFromBuffer écrit sous media-library/image', () => {
+test('saveMediaFromBuffer écrit sous media-library/image', async () => {
   const buffer = decodeBase64Payload(TINY_PNG_DATA_URL);
-  const saved = saveMediaFromBuffer(buffer, 'image/png', 'unit-test.png');
+  const saved = await saveMediaFromBuffer(buffer, 'image/png', 'unit-test.png');
   assert.ok(saved.relativePath.startsWith('media-library/image/'));
   assert.ok(fs.existsSync(path.join(UPLOADS_DIR, saved.relativePath)));
   fs.unlinkSync(path.join(UPLOADS_DIR, saved.relativePath));

@@ -8,11 +8,7 @@ import { buildJournalExport } from './journalExport.js';
 import { buildJournalTimeline } from './journalFeed.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 import { JournalBookView } from './JournalBookView.jsx';
-
-/** Repli neutre : aucun produit ne fournit de réécriture d'images. */
-function useHtmlAsIs(html) {
-  return html;
-}
+import { useHtmlAsIs } from './journalImages.js';
 
 function ReadArticle({
   article,
@@ -68,8 +64,15 @@ function ReadArticle({
       )}
       {assets.length > 0 ? (
         <div className={`${p}__assets-inline`}>
-          {assets.map((a) => (
-            <Img key={a.id} src={a.url} alt="" loading="lazy" className={`${p}__asset-thumb`} />
+          {assets.map((a, index) => (
+            <Img
+              key={a.id}
+              src={a.url}
+              alt={`Illustration ${index + 1} de l’article`}
+              loading="lazy"
+              decoding="async"
+              className={`${p}__asset-thumb`}
+            />
           ))}
         </div>
       ) : null}
@@ -221,6 +224,8 @@ export function JournalReadModal({
           onClose={() => setBookOpen(false)}
           importTypeMeta={meta.importTypeMeta}
           articleExtraLine={articleExtraLine}
+          ImageComponent={ImageComponent}
+          useHtmlImages={useHtmlImages}
         />
       </DialogShell>
     );

@@ -402,7 +402,7 @@ app.get('/favicon.ico', (req, res) => {
   return res.status(204).end();
 });
 app.use(express.static(staticRoot, staticServeOptions));
-const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
+const { publicImageCacheControlForPath } = require('./lib/httpImageCache');
 const uploadsStaticRoot = path.join(__dirname, 'uploads');
 /** Extensions servies en ligne sous `/uploads` : images raster, audio, vidéo, PDF, données. */
 const UPLOADS_INLINE_SAFE_RE =
@@ -418,7 +418,7 @@ app.use(
     setHeaders(res, filePath) {
       const lower = String(filePath || '').toLowerCase();
       if (/\.(jpe?g|png|gif|webp|avif|svg|ico|bmp)$/i.test(lower)) {
-        res.setHeader('Cache-Control', PUBLIC_IMAGE_CACHE_CONTROL);
+        res.setHeader('Cache-Control', publicImageCacheControlForPath(filePath));
       }
       // Neutralisation XSS SVG stocke : un SVG uploade peut contenir un <script>
       // qui s'execute lors d'une navigation directe vers son URL (CSP helmet desactivee).

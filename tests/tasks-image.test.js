@@ -106,6 +106,36 @@ describe('Tâches — image illustrative', () => {
     assert.strictEqual(direct.status, 403);
   });
 
+  // Audit photos PH-B4 : supprimer une tâche laissait sur disque sa couverture (avant la
+  // transaction, donc même en cas d'échec) et les photos privées de ses rapports.
+  it('DELETE /api/tasks/:id supprime la couverture et les photos des rapports', async () => {
+    const fs = require('fs');
+    const { writeBufferToDisk, getAbsolutePath } = require('../lib/uploads');
+    const taskId = `task-del-files-${Date.now()}`;
+    const cover = `tasks/${taskId}.jpg`;
+    const logPhoto = `task-logs/${taskId}_1.jpg`;
+    const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+    await writeBufferToDisk(cover, jpegBytes);
+    await writeBufferToDisk(logPhoto, jpegBytes);
+    await execute(
+      `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
+       VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
+      [taskId, 'Tâche à supprimer', '', cover, new Date()],
+    );
+    await execute(
+      'INSERT INTO task_logs (task_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [taskId, 'Ada', 'L', 'fait', logPhoto, new Date()],
+    );
+
+    await request(app)
+      .delete(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    assert.strictEqual(fs.existsSync(getAbsolutePath(cover)), false, 'couverture restée');
+    assert.strictEqual(fs.existsSync(getAbsolutePath(logPhoto)), false, 'photo de rapport restée');
+  });
+
   it('le repli sert toujours un image_path d’une famille publique', async () => {
     const taskId = `task-pub-img-${Date.now()}`;
     await execute(

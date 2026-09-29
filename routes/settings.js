@@ -383,7 +383,7 @@ router.post(
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
     const originalName =
       String(req.body?.original_name || req.body?.originalName || '').trim() || null;
-    const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
+    const saved = await saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
     await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
       req,
       payload: {

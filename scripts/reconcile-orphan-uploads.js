@@ -14,8 +14,11 @@
  *   --apply       Supprime réellement les fichiers orphelins.
  *   --json        Affiche un JSON (utile pour CI/cron).
  *   --scope=...   managed (défaut) | all
- *                 managed => limite aux préfixes gérés par l'app:
- *                   zones/, task-logs/, observations/, students/
+ *                 managed => limite aux préfixes gérés par l'app (MANAGED_PREFIXES).
+ *
+ * `media-library/` n'est volontairement pas géré : la médiathèque n'a pas de table, ses
+ * fichiers SONT le catalogue — aucun n'y serait « référencé », tous seraient supprimés.
+ * Une vignette `X.thumb.jpg` suit son original `X.<ext>` (zones, repères).
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -24,8 +27,30 @@ const fs = require('fs');
 const path = require('path');
 const { queryAll } = require('../database');
 const { UPLOADS_DIR, deleteFile } = require('../lib/uploads');
+const { collectUserContentImagePaths } = require('../lib/userContentImages');
 
-const MANAGED_PREFIXES = ['zones/', 'task-logs/', 'observations/', 'students/'];
+const MANAGED_PREFIXES = [
+  'zones/',
+  'markers/',
+  'tasks/',
+  'task-logs/',
+  'observations/',
+  'students/',
+  'forum-posts/',
+  'context-comments/',
+  'plants/',
+];
+
+const THUMB_SUFFIX_RE = /\.thumb\.jpg$/i;
+
+/** `/uploads/plants/3/photo.jpg` (une URL par ligne) → `plants/3/photo.jpg`. */
+function uploadPathsFromUrlText(value) {
+  return String(value || '')
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith('/uploads/'))
+    .map((s) => s.slice('/uploads/'.length).split(/[?#]/)[0]);
+}
 
 function parseFlags(argv) {
   const flags = {
@@ -87,12 +112,23 @@ function listUploadFiles(baseDir, scope = 'managed') {
   return out;
 }
 
+function stemOf(relativePath) {
+  return relativePath.replace(/\.[^./]+$/, '');
+}
+
 function computeOrphanPaths(diskPaths, referencedPaths) {
   const referenced = new Set(referencedPaths.map(normalizeRelativePath).filter(Boolean));
+  const referencedStems = new Set([...referenced].map(stemOf));
+  const isReferenced = (p) => {
+    if (referenced.has(p)) return true;
+    // Vignette dérivée (`lib/imageThumb.js`) : vivante tant que son original l'est.
+    if (THUMB_SUFFIX_RE.test(p)) return referencedStems.has(p.replace(THUMB_SUFFIX_RE, ''));
+    return false;
+  };
   return diskPaths
     .map(normalizeRelativePath)
     .filter(Boolean)
-    .filter((p) => !referenced.has(p))
+    .filter((p) => !isReferenced(p))
     .sort((a, b) => a.localeCompare(b));
 }
 
@@ -130,6 +166,37 @@ const REFERENCE_SOURCES = Object.freeze([
     name: 'user_journal_article_assets',
     sql: "SELECT asset_path AS p FROM user_journal_article_assets WHERE asset_path IS NOT NULL AND asset_path <> ''",
   },
+  {
+    name: 'marker_photos',
+    sql: "SELECT image_path AS p FROM marker_photos WHERE image_path IS NOT NULL AND image_path <> ''",
+  },
+  {
+    name: 'tasks',
+    sql: "SELECT image_path AS p FROM tasks WHERE image_path IS NOT NULL AND image_path <> ''",
+  },
+  {
+    name: 'forum_posts',
+    sql: 'SELECT image_paths_json AS p FROM forum_posts WHERE image_paths_json IS NOT NULL',
+    extract: (value) => collectUserContentImagePaths(value, 'forum-posts'),
+  },
+  {
+    name: 'context_comments',
+    sql: 'SELECT image_paths_json AS p FROM context_comments WHERE image_paths_json IS NOT NULL',
+    extract: (value) => collectUserContentImagePaths(value, 'context-comments'),
+  },
+  // Photos téléversées des fiches : table `plant_photos` (migration 303) et colonnes miroir,
+  // qui peuvent seules porter le lien quand la table n'a pas encore été reconstruite.
+  {
+    name: 'plant_photos',
+    sql: "SELECT url AS p FROM plant_photos WHERE url LIKE '/uploads/%'",
+    extract: uploadPathsFromUrlText,
+  },
+  {
+    name: 'plants',
+    sql: `SELECT CONCAT_WS('\\n', photo, photo_species, photo_leaf, photo_flower, photo_fruit, photo_harvest_part) AS p
+            FROM plants`,
+    extract: uploadPathsFromUrlText,
+  },
 ]);
 
 async function loadReferencedImagePaths(scope = 'managed') {
@@ -139,10 +206,14 @@ async function loadReferencedImagePaths(scope = 'managed') {
   for (const src of sources) {
     const rows = await queryAll(src.sql);
     for (const r of rows) {
-      const rp = normalizeRelativePath(r && r.p);
-      if (!rp) continue;
-      if (scope === 'managed' && !isManagedPath(rp)) continue;
-      references.push(rp);
+      const raw = r && r.p;
+      const candidates = src.extract ? src.extract(raw) : [raw];
+      for (const candidate of candidates) {
+        const rp = normalizeRelativePath(candidate);
+        if (!rp) continue;
+        if (scope === 'managed' && !isManagedPath(rp)) continue;
+        references.push(rp);
+      }
     }
   }
 
@@ -220,4 +291,5 @@ module.exports = {
   isManagedPath,
   listUploadFiles,
   computeOrphanPaths,
+  uploadPathsFromUrlText,
 };

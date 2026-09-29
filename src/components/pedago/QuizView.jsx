@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import {
   glossaryPropsWhileAnswering,
@@ -249,22 +249,12 @@ export function QuizView({
             text={presentation.question}
             {...answeringGlossaryProps}
           />
-          {presentation.photoUrl ? (
-            <figure className="pedago-quiz__photo-wrap">
-              <img
-                src={resolveExternalImageUrl(presentation.photoUrl)}
-                alt=""
-                className="pedago-quiz__photo"
-              />
-              {presentation.photoCredit || presentation.photoLicence ? (
-                <figcaption className="pedago-quiz__photo-credit">
-                  {[presentation.photoCredit, presentation.photoLicence]
-                    .filter(Boolean)
-                    .join(' — ')}
-                </figcaption>
-              ) : null}
-            </figure>
-          ) : null}
+          <QcmQuestionPhoto
+            presentation={presentation}
+            figureClassName="pedago-quiz__photo-wrap"
+            imgClassName="pedago-quiz__photo"
+            captionClassName="pedago-quiz__photo-credit"
+          />
 
           <div className="pedago-quiz__choices">
             {presentation.choices.map((choice) => (

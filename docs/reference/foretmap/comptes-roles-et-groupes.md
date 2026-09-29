@@ -531,7 +531,9 @@ sous-onglet consulté qui est rouvert.
   compte enseignant.
 - **Supprimer** : la suppression d'un élève (sous-onglet Comptes) retire aussi ses
   affectations et son historique de tâches, et recalcule les statuts des tâches
-  concernées. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
+  concernées. Les **photos** qu'il avait jointes à ses rapports de tâche, à ses messages de
+  forum et à ses commentaires sont effacées du serveur avec eux (elles restaient auparavant
+  accessibles à qui en connaissait l'adresse). C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
   **administrateur seulement** (jamais sur son propre compte, jamais le dernier
   administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est

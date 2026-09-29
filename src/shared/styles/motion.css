@@ -259,7 +259,7 @@ img:not([data-no-lightbox]) {
   cursor: zoom-in;
 }
 
-.fm-lightbox-overlay img,
+.fm-lightbox-overlay img:not(.fm-lightbox-image),
 .map-view-canvas img,
 .gl-board-fit-layer img,
 button img,
@@ -281,6 +281,7 @@ label img,
   justify-content: center;
   padding: 20px;
   background: rgba(0, 0, 0, 0.93);
+  overscroll-behavior: contain;
   animation: overlayFadeIn var(--motion-fast) var(--ease-out) both;
 }
 
@@ -293,12 +294,92 @@ label img,
   animation: popIn var(--motion-base) var(--spring) both;
 }
 
+.fm-lightbox-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 95vw;
+  max-height: 85vh;
+  min-width: 120px;
+  min-height: 120px;
+  touch-action: pinch-zoom;
+}
+
 .fm-lightbox-image {
   max-width: 95vw;
   max-height: 85vh;
   border-radius: 10px;
   object-fit: contain;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  cursor: zoom-in;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.fm-lightbox-image[data-status='loading'],
+.fm-lightbox-image[data-status='error'] {
+  opacity: 0;
+}
+
+.fm-lightbox-stage.is-zoomed {
+  overflow: auto;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.fm-lightbox-stage.is-zoomed .fm-lightbox-image {
+  max-width: none;
+  max-height: none;
+  width: min(190vw, 2400px);
+  cursor: zoom-out;
+}
+
+.fm-lightbox-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--text-base);
+}
+
+.fm-lightbox-counter {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.fm-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--surface-plain);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fm-lightbox-nav--prev {
+  left: 8px;
+}
+
+.fm-lightbox-nav--next {
+  right: 8px;
+}
+
+.fm-lightbox-nav:focus-visible,
+.fm-lightbox-close:focus-visible,
+img[data-lightbox-focusable]:focus-visible {
+  outline: 3px solid var(--leaf, var(--accent-leaf-deep));
+  outline-offset: 2px;
 }
 
 .fm-lightbox-caption {
@@ -324,6 +405,64 @@ label img,
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Vignette de photo partagée (PhotoThumb) : la classe appelante fixe les dimensions. */
+.photo-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--mint, var(--tint-success));
+  cursor: zoom-in;
+}
+
+.photo-thumb__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-thumb__fallback,
+.authed-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  font-size: var(--text-lg);
+  color: var(--ink-muted);
+  background: var(--mint, var(--tint-success));
+}
+
+.authed-image-placeholder {
+  display: inline-flex;
+  min-width: 44px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+}
+
+.authed-image-placeholder:not(.is-failed) {
+  animation: authedImagePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes authedImagePulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.photo-thumb:focus-visible {
+  outline: 3px solid var(--leaf, var(--accent-leaf-deep));
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -372,8 +511,13 @@ label img,
     transition: none !important;
   }
 
-  .is-attention-pulse {
+  .is-attention-pulse,
+  .authed-image-placeholder {
     animation: none !important;
+  }
+
+  .fm-lightbox-image {
+    transition: none !important;
   }
 
   .btn,

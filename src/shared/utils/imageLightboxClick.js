@@ -29,6 +29,20 @@ export const IMAGE_LIGHTBOX_EXCLUDE_ANCESTOR_SELECTORS = [
 export const IMAGE_LIGHTBOX_EXCLUDE_IMG_CLASS_RE =
   /\b(gl-brand-logo|gl-auth-logo|visit-map-mascot-sprite-preload)\b/;
 
+/** Lien dont la cible est elle-même une image : la lightbox remplace la navigation. */
+const IMAGE_HREF_RE = /(\.(jpe?g|png|webp|gif|avif)(\?.*)?$)|^\/?uploads\/|\/uploads\//i;
+
+/**
+ * @param {Element} img
+ * @returns {HTMLAnchorElement | null} lien englobant qui mène ailleurs qu'à une image
+ */
+function closestNonImageLink(img) {
+  const link = img.closest('a[href]');
+  if (!link) return null;
+  const href = String(link.getAttribute('href') || '');
+  return IMAGE_HREF_RE.test(href) ? null : link;
+}
+
 /**
  * @param {Element | null | undefined} img
  * @returns {boolean}
@@ -41,6 +55,7 @@ export function isImageLightboxExcluded(img) {
   for (const selector of IMAGE_LIGHTBOX_EXCLUDE_ANCESTOR_SELECTORS) {
     if (img.closest(selector)) return true;
   }
+  if (closestNonImageLink(img)) return true;
   return false;
 }
 
@@ -51,6 +66,11 @@ export function isImageLightboxExcluded(img) {
 export function resolveImageLightboxSrc(img) {
   const dataSrc = img.dataset.lightboxSrc || img.getAttribute('data-lightbox-src');
   if (dataSrc) return String(dataSrc).trim();
+  const link = img.closest('a[href]');
+  if (link) {
+    const href = String(link.getAttribute('href') || '').trim();
+    if (IMAGE_HREF_RE.test(href)) return href;
+  }
   return String(img.currentSrc || img.src || '').trim();
 }
 
@@ -66,6 +86,12 @@ export function resolveImageLightboxCaption(img) {
   return String(img.alt || img.title || '').trim();
 }
 
+function isTinyImage(img) {
+  const w = img.naturalWidth || img.width || 0;
+  const h = img.naturalHeight || img.height || 0;
+  return w > 0 && h > 0 && w <= 16 && h <= 16;
+}
+
 /**
  * @param {Element | null | undefined} img
  * @returns {boolean}
@@ -74,10 +100,39 @@ export function shouldOpenImageLightbox(img) {
   if (!isHtmlImageElement(img)) return false;
   if (isImageLightboxExcluded(img)) return false;
   if (!resolveImageLightboxSrc(img)) return false;
-  const w = img.naturalWidth || img.width || 0;
-  const h = img.naturalHeight || img.height || 0;
-  if (w > 0 && h > 0 && w <= 16 && h <= 16) return false;
+  if (isTinyImage(img)) return false;
   return true;
+}
+
+/**
+ * Galerie implicite : les images agrandissables du plus proche `[data-lightbox-gallery]`.
+ * @param {HTMLImageElement} img
+ * @returns {{ gallery: { src: string, caption: string }[] | null, index: number }}
+ */
+export function resolveImageLightboxGallery(img) {
+  const container = img.closest('[data-lightbox-gallery]');
+  if (!container) return { gallery: null, index: 0 };
+  const imgs = [...container.querySelectorAll('img')].filter(
+    (candidate) => candidate === img || shouldOpenImageLightbox(candidate),
+  );
+  if (imgs.length < 2) return { gallery: null, index: 0 };
+  return {
+    gallery: imgs.map((candidate) => ({
+      src: resolveImageLightboxSrc(candidate),
+      caption: resolveImageLightboxCaption(candidate),
+    })),
+    index: Math.max(0, imgs.indexOf(img)),
+  };
+}
+
+function buildPayload(img) {
+  const { gallery, index } = resolveImageLightboxGallery(img);
+  return {
+    src: resolveImageLightboxSrc(img),
+    caption: resolveImageLightboxCaption(img),
+    gallery,
+    index,
+  };
 }
 
 /**
@@ -92,9 +147,47 @@ export function handleImageLightboxClick(event, openLightbox) {
   if (!img || !shouldOpenImageLightbox(img)) return false;
   event.preventDefault();
   event.stopPropagation();
-  openLightbox({
-    src: resolveImageLightboxSrc(img),
-    caption: resolveImageLightboxCaption(img),
-  });
+  openLightbox(buildPayload(img));
   return true;
+}
+
+/**
+ * Entrée / Espace sur une image rendue focalisable par {@link decorateLightboxImage}.
+ * @param {KeyboardEvent} event
+ * @param {(payload: object) => void} openLightbox
+ */
+export function handleImageLightboxKeyDown(event, openLightbox) {
+  if (event.key !== 'Enter' && event.key !== ' ') return false;
+  const target = event.target;
+  if (!isHtmlImageElement(target) || !target.hasAttribute('data-lightbox-focusable')) return false;
+  if (!shouldOpenImageLightbox(target)) return false;
+  event.preventDefault();
+  openLightbox(buildPayload(target));
+  return true;
+}
+
+/**
+ * Rend une image agrandissable atteignable au clavier (WCAG 2.1.1) : `tabindex`, rôle
+ * bouton et nom « Agrandir… ». Sans effet sur une image déjà focalisable ou exclue.
+ * @param {HTMLImageElement} img
+ */
+export function decorateLightboxImage(img) {
+  if (!isHtmlImageElement(img)) return;
+  if (img.hasAttribute('data-lightbox-focusable')) return;
+  if (img.hasAttribute('tabindex')) return;
+  if (isImageLightboxExcluded(img) || isTinyImage(img)) return;
+  const alt = String(img.getAttribute('alt') || '').trim();
+  img.setAttribute('data-lightbox-focusable', '');
+  img.setAttribute('tabindex', '0');
+  img.setAttribute('role', 'button');
+  img.setAttribute('aria-label', alt ? `Agrandir l’image : ${alt}` : 'Agrandir l’image');
+}
+
+/** @param {ParentNode} root */
+export function decorateLightboxImagesIn(root) {
+  if (!root || typeof root.querySelectorAll !== 'function') return;
+  if (isHtmlImageElement(root)) decorateLightboxImage(root);
+  for (const img of root.querySelectorAll('img:not([data-lightbox-focusable])')) {
+    decorateLightboxImage(img);
+  }
 }

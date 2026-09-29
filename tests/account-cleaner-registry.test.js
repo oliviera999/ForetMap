@@ -44,13 +44,13 @@ test('chaque domaine déclare ses nettoyeurs, le produit G&L à part', () => {
     {
       domain: 'Vie sociale — forum',
       product: 'foret',
-      hooks: ['studentDelete', 'groupDetach', 'mergeRefs'],
+      hooks: ['studentDelete', 'afterStudentDelete', 'groupDetach', 'mergeRefs'],
       mergeSpecialForeignKeys: [],
     },
     {
       domain: 'Vie sociale — commentaires contextuels',
       product: 'foret',
-      hooks: ['studentDelete', 'mergeRefs'],
+      hooks: ['studentDelete', 'afterStudentDelete', 'mergeRefs'],
       mergeSpecialForeignKeys: [],
     },
     {
@@ -119,20 +119,31 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
   );
   assert.deepEqual(out, {
     ok: true,
-    contributions: { affectedTaskIds: [], affectedMapIds: [], speciesObservationPhotoPaths: [] },
+    contributions: {
+      forumImagePaths: [],
+      contextCommentImagePaths: [],
+      affectedTaskIds: [],
+      affectedMapIds: [],
+      taskLogImagePaths: [],
+      speciesObservationPhotoPaths: [],
+    },
   });
   const tables = tx.calls.map((c) => /(?:FROM|INTO|UPDATE)\s+(\w+)/i.exec(c.sql)[1]);
   assert.deepEqual(tables, [
+    // Lecture des chemins d'images avant chaque suppression : fichiers supprimés après validation.
+    'forum_posts',
     'forum_post_reactions',
     'forum_reports',
     'forum_posts',
     'forum_threads',
+    'context_comments',
     'context_comment_reactions',
     'context_comment_reports',
     'context_comments',
     'user_roles',
     'password_reset_tokens',
     'task_assignments',
+    'task_logs',
     'task_assignments',
     'task_logs',
     // Observations d'espèces : lecture des chemins de photos, supprimées après validation.
@@ -142,6 +153,56 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
     tx.calls.every((c) => !/gl_/.test(c.sql)),
     'aucune requête G&L quand le produit est sauté',
   );
+});
+
+test('suppression d’un élève : les images jointes sont relevées puis supprimées après validation', async () => {
+  const tx = fakeTx((sql) => {
+    if (/SELECT p\.image_paths_json/.test(sql)) {
+      return [{ image_paths_json: '["forum-posts/p1/0.jpg","../evasion.jpg"]' }];
+    }
+    if (/SELECT image_paths_json FROM context_comments/.test(sql)) {
+      return [{ image_paths_json: '["context-comments/c1/0.jpg","forum-posts/intrus.jpg"]' }];
+    }
+    if (/SELECT image_path FROM task_logs/.test(sql)) return [{ image_path: 'task-logs/7.jpg' }];
+    if (/^\s*SELECT DISTINCT task_id/.test(sql)) return [];
+    return undefined;
+  });
+  const out = await runStudentDeleteCleaners(
+    tx,
+    { id: 'eleve-4', first_name: 'D', last_name: 'E' },
+    { skipProducts: ['gl'] },
+  );
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.contributions.forumImagePaths, ['forum-posts/p1/0.jpg']);
+  assert.deepEqual(out.contributions.contextCommentImagePaths, ['context-comments/c1/0.jpg']);
+  assert.deepEqual(out.contributions.taskLogImagePaths, ['task-logs/7.jpg']);
+
+  // Suites : chaque domaine supprime ses fichiers — jamais si la suppression a échoué.
+  const uploads = require('../lib/uploads');
+  const original = uploads.deleteFile;
+  const deleted = [];
+  uploads.deleteFile = (p) => deleted.push(p);
+  try {
+    // Les modules ont capturé `deleteFile` au chargement : on les recharge sous l’espion.
+    for (const mod of [
+      '../lib/accounts/cleanerRegistry',
+      '../lib/social/accountCleaners',
+      '../lib/tasks/accountCleaners',
+      '../lib/observations/accountCleaners',
+    ]) {
+      delete require.cache[require.resolve(mod)];
+    }
+    const fresh = require('../lib/accounts/cleanerRegistry');
+    await fresh.runAfterStudentDeleteCleaners({ ok: false }, out.contributions);
+    await fresh.runAfterStudentDeleteCleaners({ ok: true, affectedTaskIds: [] }, out.contributions);
+  } finally {
+    uploads.deleteFile = original;
+  }
+  assert.deepEqual(deleted.sort(), [
+    'context-comments/c1/0.jpg',
+    'forum-posts/p1/0.jpg',
+    'task-logs/7.jpg',
+  ]);
 });
 
 test('suppression d’un élève : le refus du produit G&L arrête les autres domaines', async () => {

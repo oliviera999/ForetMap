@@ -64,6 +64,6 @@ describe('imageLightboxClick', () => {
       opened = payload;
     });
     assert.equal(handled, true);
-    assert.deepEqual(opened, { src: '/scene.jpg', caption: 'Chapitre 1' });
+    assert.deepEqual(opened, { src: '/scene.jpg', caption: 'Chapitre 1', gallery: null, index: 0 });
   });
 });

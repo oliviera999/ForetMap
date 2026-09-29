@@ -1661,8 +1661,13 @@
       display:block; width:100%; padding:0; margin:0 0 10px; border:none; background:transparent;
       border-radius:10px; overflow:hidden; cursor:zoom-in; line-height:0;
     }
+    /* Hauteur fixe : la boîte est réservée avant le chargement (pas de décalage de la liste). */
     .task-card-cover {
-      width:100%; max-height:160px; object-fit:cover; display:block;
+      width:100%; height:160px; object-fit:cover; display:block;
+    }
+    .task-card-cover--failed {
+      display:flex; align-items:center; justify-content:center;
+      background:var(--parchment); font-size:var(--text-2xl);
     }
     .task-chip {
       background:var(--parchment); border-radius:6px; padding:4px 9px; font-size:var(--text-xs); color:var(--soil);
@@ -3023,7 +3028,7 @@
     .log-entry-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin-bottom:8px; font-size:var(--text-sm); color:var(--ink-muted); }
     .log-entry-author { font-weight:var(--fw-bold); color:var(--forest); }
     .log-comment { font-size:var(--text-base); color:var(--ink-strong); line-height:var(--lh-relaxed); margin-bottom:10px; }
-    .log-image { width:100%; border-radius:8px; max-height:250px; object-fit:cover; cursor:pointer; transition:transform .15s; }
+    .log-image { width:100%; aspect-ratio:4/3; border-radius:8px; max-height:250px; object-fit:cover; cursor:pointer; transition:transform .15s; }
     .log-image:active { transform:scale(.97); }
 
     /* ── PLANT MANAGER ── */
@@ -9576,7 +9581,12 @@
 }
 .pedago-quiz__photo-wrap { margin: 0 0 12px; }
 .pedago-quiz__photo {
+  width: 100%;
   max-width: 100%;
+  /* Boîte réservée avant chargement : les choix ne sautent plus sous le doigt. */
+  aspect-ratio: 4 / 3;
+  max-height: 320px;
+  object-fit: contain;
   border-radius: 10px;
   display: block;
 }

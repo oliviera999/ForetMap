@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { deleteFile, writeBufferToDisk } = require('../lib/uploads');
+const { deletePublicUploadThumb } = require('../lib/imageThumb');
 const { respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
@@ -818,15 +819,26 @@ router.delete(
       normalizeTaskStatusForRead(task.status) === 'proposed'
         ? await getTaskProposerStudentId(task.id)
         : null;
-    if (task.image_path) deleteFile(task.image_path);
     // Suppression atomique : sans transaction, un échec entre deux DELETE laissait une tâche
     // amputée de ses logs/assignations (les écritures composées de ce fichier — POST/PUT/validate —
     // sont déjà transactionnelles).
-    await withTransaction(async (tx) => {
+    const logImagePaths = await withTransaction(async (tx) => {
+      const rows = await tx.queryAll(
+        "SELECT image_path FROM task_logs WHERE task_id = ? AND image_path IS NOT NULL AND image_path <> ''",
+        [req.params.id],
+      );
       await tx.execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
       await tx.execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
       await tx.execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+      return rows.map((r) => r.image_path);
     });
+    // Fichiers supprimés après validation seulement : un retour arrière garderait sinon une
+    // tâche sans sa couverture ni les photos de ses rapports.
+    if (task.image_path) {
+      deleteFile(task.image_path);
+      deletePublicUploadThumb(task.image_path);
+    }
+    for (const relativePath of logImagePaths) deleteFile(relativePath);
     logAudit('delete_task', 'task', req.params.id, task.title, { req });
     emitTasksChanged({
       reason: 'delete_task',

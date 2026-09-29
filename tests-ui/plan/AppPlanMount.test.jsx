@@ -176,7 +176,8 @@ describe('AppPlan — montage', () => {
     expect(screen.getByRole('button', { name: /Salles/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Zoomer/ })).toBeTruthy();
     expect(screen.getByAltText('Plan Lycée Lyautey')).toBeTruthy();
-    expect(screen.getByAltText('Lycée Lyautey')).toBeTruthy();
+    // Logo de l'établissement : nom tiré de la marque du build, jamais écrit en dur.
+    expect(screen.getByAltText(/^Logo /)).toBeTruthy();
     expect(screen.getByText('Fond : plan interne')).toBeTruthy();
     expect(await screen.findByText('Touchez un lieu, ou cherchez-le.')).toBeTruthy();
     expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('open', 'lyautey');

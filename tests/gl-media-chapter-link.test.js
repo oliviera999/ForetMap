@@ -34,11 +34,11 @@ const FIXTURE_FILES = [
   { fileName: 'GL_plateau-1_jungle.mp3', buffer: TINY_MP3, mime: 'audio/mpeg' },
 ];
 
-function importFixtures() {
+async function importFixtures() {
   const saved = [];
   for (const file of FIXTURE_FILES) {
     saved.push(
-      saveMediaFromBuffer(file.buffer, file.mime, file.fileName, { skipManifestSync: true }),
+      await saveMediaFromBuffer(file.buffer, file.mime, file.fileName, { skipManifestSync: true }),
     );
   }
   syncAssetManifests();
@@ -54,8 +54,8 @@ function cleanupSaved(saved) {
   syncAssetManifests();
 }
 
-test('liaison média → chapitre après import conventionnel (plateau, biome, feuillet, audio)', () => {
-  const saved = importFixtures();
+test('liaison média → chapitre après import conventionnel (plateau, biome, feuillet, audio)', async () => {
+  const saved = await importFixtures();
   try {
     const index = loadMediaKeyIndex();
     const keys = Object.keys(index);
@@ -86,8 +86,8 @@ test('liaison média → chapitre après import conventionnel (plateau, biome, f
   }
 });
 
-test('buildPublicIntroPayload résout GL_intro_* via médiathèque', () => {
-  const saved = importFixtures();
+test('buildPublicIntroPayload résout GL_intro_* via médiathèque', async () => {
+  const saved = await importFixtures();
   try {
     const payload = buildPublicIntroPayload(loadDefaultIntroConfig());
     assert.ok(payload.images.boite.includes('/uploads/media-library/'));
@@ -97,8 +97,8 @@ test('buildPublicIntroPayload résout GL_intro_* via médiathèque', () => {
   }
 });
 
-test('auditGlMediaKeys — compte les entrées importées', () => {
-  const saved = importFixtures();
+test('auditGlMediaKeys — compte les entrées importées', async () => {
+  const saved = await importFixtures();
   try {
     const index = loadMediaKeyIndex();
     const { resolvePlateauBoardSlug } = require('../src/gl/utils/resolvePlateauBoardSlug.js');
@@ -115,7 +115,7 @@ test('auditGlMediaKeys — compte les entrées importées', () => {
   }
 });
 
-test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-chapN_*)', () => {
+test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-chapN_*)', async () => {
   const recitFiles = [
     {
       fileName: 'GL_recit_01-chap1_le-carnet-dans-la-savane.png',
@@ -129,9 +129,10 @@ test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-c
     },
     { fileName: 'GL_recit_00-prologue_la-boite-portail.png', buffer: TINY_PNG, mime: 'image/png' },
   ];
-  const saved = recitFiles.map((f) =>
-    saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }),
-  );
+  const saved = [];
+  for (const f of recitFiles) {
+    saved.push(await saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  }
   syncAssetManifests();
   try {
     const index = loadMediaKeyIndex();
@@ -154,11 +155,11 @@ test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-c
   }
 });
 
-test('collision de clé stable — avertissement à l’upload (dernier import gagnant)', () => {
-  const first = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
+test('collision de clé stable — avertissement à l’upload (dernier import gagnant)', async () => {
+  const first = await saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
     skipManifestSync: true,
   });
-  const second = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
+  const second = await saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
     skipManifestSync: true,
   });
   try {
@@ -178,7 +179,7 @@ test('collision de clé stable — avertissement à l’upload (dernier import g
   }
 });
 
-test('métas de scène (légende / ordre / couverture) — édition, tri et persistance', () => {
+test('métas de scène (légende / ordre / couverture) — édition, tri et persistance', async () => {
   const { listChapterRecitScenes, updateChapterSceneMeta } = require('../lib/glChapterScenes');
   const TEST_SCENE_KEYS = ['recit_02-chap2_aaa', 'recit_02-chap2_bbb', 'recit_02-chap2_ccc'];
   const pickTestScenes = (scenes) =>
@@ -188,9 +189,10 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
     { fileName: 'GL_recit_02-chap2_bbb.png', buffer: TINY_PNG, mime: 'image/png' },
     { fileName: 'GL_recit_02-chap2_ccc.png', buffer: TINY_PNG, mime: 'image/png' },
   ];
-  const saved = files.map((f) =>
-    saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }),
-  );
+  const saved = [];
+  for (const f of files) {
+    saved.push(await saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  }
   syncAssetManifests();
   try {
     // sans méta : tri alphabétique (fixtures isolées — le chapitre 2 a des scènes seed en prod)
@@ -216,9 +218,14 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
     );
 
     // les métas survivent à un ré-import du même fichier (clé identique)
-    const reuploaded = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_02-chap2_ccc.png', {
-      skipManifestSync: true,
-    });
+    const reuploaded = await saveMediaFromBuffer(
+      TINY_PNG,
+      'image/png',
+      'GL_recit_02-chap2_ccc.png',
+      {
+        skipManifestSync: true,
+      },
+    );
     saved.push(reuploaded);
     scenes = listChapterRecitScenes(2);
     const ccc = scenes.find((s) => s.stableKey === 'recit_02-chap2_ccc');
@@ -232,12 +239,12 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
   }
 });
 
-test('auditGlMediaKeys — signale les clés récit suspectes (typos)', () => {
+test('auditGlMediaKeys — signale les clés récit suspectes (typos)', async () => {
   const saved = [
-    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_1-chap1_typo.png', {
+    await saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_1-chap1_typo.png', {
       skipManifestSync: true,
     }),
-    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_valide.png', {
+    await saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_valide.png', {
       skipManifestSync: true,
     }),
   ];

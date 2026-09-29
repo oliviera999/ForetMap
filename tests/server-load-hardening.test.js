@@ -29,9 +29,13 @@ const { buildKeyIndexByRelativePath } = require('../lib/mediaLibrary');
 test('les mutations ordinaires retombent sur la limite basse', () => {
   // C'est le cœur du correctif : `/api/tasks` entier acceptait 25 Mo, donc valider une
   // tâche ouvrait un pic mémoire de plusieurs dizaines de Mo sur un process à ~120 Mo.
-  assert.strictEqual(resolveJsonBodyTier('/api/tasks'), 'default');
-  assert.strictEqual(resolveJsonBodyTier('/api/tasks/abc/status'), 'default');
+  // Les tâches portent une image (4 Mo décodés) : elles sont au niveau « contenu » (8 Mo),
+  // jamais plus (audit photos du 29/09).
+  assert.strictEqual(resolveJsonBodyTier('/api/tasks'), 'content');
+  assert.strictEqual(resolveJsonBodyTier('/api/tasks/abc/status'), 'content');
+  assert.strictEqual(resolveJsonBodyTier('/api/auth/me/profile'), 'content');
   assert.strictEqual(resolveJsonBodyTier('/api/auth/login'), 'default');
+  assert.strictEqual(resolveJsonBodyTier('/api/auth/me'), 'default');
   assert.strictEqual(resolveJsonBodyTier('/api/task-projects'), 'default');
   assert.strictEqual(resolveJsonBodyTier('/api/sync-state'), 'default');
 });

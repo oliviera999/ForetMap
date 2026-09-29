@@ -550,4 +550,29 @@ describe('plant_photos — base et API', () => {
     ]);
     assert.equal(Number(left.c), 0);
   });
+
+  // Audit photos PH-B4 : les fichiers téléversés (`uploads/plants/<id>/`, public) restaient.
+  test('suppression de la fiche : le dossier des photos téléversées est effacé', async () => {
+    const created = await request(app)
+      .post('/api/plants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: `Photos dossier ${STAMP}` })
+      .expect(201);
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const up = await request(app)
+      .post(`/api/plants/${created.body.id}/photo-upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ field: 'photo', imageData: png })
+      .expect(200);
+    const { UPLOADS_DIR } = require('../lib/uploads');
+    const onDisk = path.join(UPLOADS_DIR, up.body.url.replace(/^\/uploads\//, ''));
+    assert.ok(fs.existsSync(onDisk), 'le fichier doit exister avant suppression');
+
+    await request(app)
+      .delete(`/api/plants/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.equal(fs.existsSync(path.dirname(onDisk)), false, 'dossier de la fiche resté');
+  });
 });

@@ -16,10 +16,10 @@ describe('ImageLightbox', () => {
     document.body.style.overflow = '';
   });
 
-  test('rend un dialogue modal « Aperçu image » dans un conteneur sous body', () => {
+  test('rend un dialogue modal « Aperçu : légende » dans un conteneur sous body', () => {
     const { container } = renderLightbox();
 
-    const dialog = screen.getByRole('dialog', { name: 'Aperçu image' });
+    const dialog = screen.getByRole('dialog', { name: 'Aperçu : Un pommier' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(container.contains(dialog)).toBe(false);
     expect(document.body.contains(dialog)).toBe(true);
@@ -30,11 +30,11 @@ describe('ImageLightbox', () => {
     expect(dialog.querySelector('.fm-lightbox-caption')).toHaveTextContent('Un pommier');
   });
 
-  test('sans légende : pas de paragraphe de légende, alt vide', () => {
+  test('sans légende : pas de paragraphe de légende, alt générique', () => {
     renderLightbox({ caption: '' });
-    const dialog = screen.getByRole('dialog', { name: 'Aperçu image' });
+    const dialog = screen.getByRole('dialog', { name: 'Aperçu de l’image' });
     expect(dialog.querySelector('.fm-lightbox-caption')).toBeNull();
-    expect(dialog.querySelector('img')).toHaveAttribute('alt', '');
+    expect(dialog.querySelector('img')).toHaveAttribute('alt', 'Image agrandie');
   });
 
   test('verrouille le défilement du body au montage et le libère au démontage', () => {
@@ -113,8 +113,8 @@ describe('ImageLightboxProvider — cycle ouverture / fermeture', () => {
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('img', { name: 'Zone humide' }));
-    const dialog = screen.getByRole('dialog', { name: 'Aperçu image' });
+    fireEvent.click(screen.getByRole('button', { name: 'Agrandir l’image : Zone humide' }));
+    const dialog = screen.getByRole('dialog', { name: 'Aperçu : Zone humide' });
     // jsdom résout `img.src` en URL absolue : on vérifie la fin du chemin, pas l'origine.
     expect(dialog.querySelector('img').getAttribute('src')).toMatch(/\/zone\.jpg$/);
     expect(dialog.querySelector('.fm-lightbox-caption')).toHaveTextContent('Zone humide');
@@ -131,7 +131,7 @@ describe('ImageLightboxProvider — cycle ouverture / fermeture', () => {
         <img src="/zone.jpg" alt="Zone humide" width="400" height="300" />
       </ImageLightboxProvider>,
     );
-    fireEvent.click(screen.getByRole('img', { name: 'Zone humide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agrandir l’image : Zone humide' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -144,7 +144,7 @@ describe('ImageLightboxProvider — cycle ouverture / fermeture', () => {
         <img src="/zone.jpg" alt="Zone humide" width="400" height="300" />
       </ImageLightboxProvider>,
     );
-    fireEvent.click(screen.getByRole('img', { name: 'Zone humide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agrandir l’image : Zone humide' }));
     const dialog = screen.getByRole('dialog');
 
     fireEvent.click(dialog.querySelector('img'));
@@ -159,8 +159,8 @@ describe('ImageLightboxProvider — cycle ouverture / fermeture', () => {
         <img src="/icone.png" alt="Icône" width="16" height="16" />
       </ImageLightboxProvider>,
     );
-    fireEvent.click(screen.getByRole('img', { name: 'Décoration' }));
-    fireEvent.click(screen.getByRole('img', { name: 'Icône' }));
+    fireEvent.click(screen.getByAltText('Décoration'));
+    fireEvent.click(screen.getByAltText('Icône'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

@@ -16,7 +16,9 @@
  *   - `/assets/*` (bundles hachés par Vite, immuables) en cache-first — remplace le
  *     network-first historique sur JS/CSS, devenu inutile puisque le nom change à chaque build ;
  *   - JS/CSS hors `/assets/` (non hachés) en network-first, comme avant ;
- *   - images, icônes et fontes en cache-first ;
+ *   - images, icônes et fontes en cache-first, dans un cache à part borné (200 entrées, 7 jours),
+ *     purgé d'une copie révoquée (401/403) ou supprimée (404) ; jamais de copie d'une réponse
+ *     \`no-store\` ;
  *   - message `SKIP_WAITING`, purge des anciens caches à l'activation.
  * Toute évolution de stratégie se fait ICI, puis `npm run build` régénère `dist/sw-<produit>.js`.
  */
@@ -29,6 +31,10 @@
  * 25/09/2026, § 1.4.6 et § 2.4).
  */
 const DEFAULT_NETWORK_TIMEOUT_SECONDS = 4;
+
+/** Borne du cache d'images : nombre d'entrées (les plus anciennes sortent d'abord) et âge. */
+const IMAGE_CACHE_MAX_ENTRIES = 200;
+const IMAGE_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Sérialise une liste de chaînes en littéral JS lisible (une entrée par ligne). */
 function renderStringList(values) {
@@ -98,7 +104,14 @@ const API_NETWORK_FIRST = ${renderStringList(apiNetworkFirst)};
 // 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
 const NETWORK_TIMEOUT_MS = ${networkTimeoutMs};
 
-const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.woff2', '.woff'];
+const IMAGE_FONT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.avif', '.svg', '.ico', '.webp', '.woff2', '.woff'];
+
+// Images et fontes vont dans un cache à part, borné : photos d'élèves et de zones
+// s'accumulaient sans limite ni durée de vie (docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md).
+// Nom stable d'un build à l'autre : les photos survivent à une mise à jour de l'application.
+const IMAGE_CACHE_NAME = ${JSON.stringify(`${cacheName.replace(/-[0-9a-f]{8}$/i, '')}-images`)};
+const IMAGE_CACHE_MAX_ENTRIES = ${IMAGE_CACHE_MAX_ENTRIES};
+const IMAGE_CACHE_MAX_AGE_MS = ${IMAGE_CACHE_MAX_AGE_MS};
 
 function isHtmlEntry(pathname) {
   return HTML_ENTRIES.some((entry) => pathname === entry);
@@ -179,11 +192,18 @@ function evictFromCache(request) {
   return caches.open(CACHE_NAME).then((cache) => cache.delete(cacheKeyFor(request))).catch(() => undefined);
 }
 
+/** Le serveur interdit toute copie (images privées : \`private, no-store\`). */
+function forbidsStorage(response) {
+  const headers = response && response.headers;
+  if (!headers || typeof headers.get !== 'function') return false;
+  return /no-store/i.test(String(headers.get('Cache-Control') || ''));
+}
+
 function putInCache(request, response) {
   // Seules les réponses valides sont mémorisées. Auparavant une 401 ou une 500 devenait la
   // réponse servie hors ligne : l'erreur d'un instant se figeait pour la durée du cache.
   const key = cacheKeyFor(request);
-  if (response && response.ok) {
+  if (response && response.ok && !forbidsStorage(response)) {
     const clone = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(key, clone));
   } else if (isAuthRefusal(response)) {
@@ -241,6 +261,54 @@ function cacheFirst(request) {
   });
 }
 
+/** Copie plus vieille que la durée de vie du cache d'images (en-tête \`Date\` de la réponse). */
+function isExpiredImage(response) {
+  const headers = response && response.headers;
+  if (!headers || typeof headers.get !== 'function') return false;
+  const date = Date.parse(String(headers.get('Date') || ''));
+  return Number.isFinite(date) && Date.now() - date > IMAGE_CACHE_MAX_AGE_MS;
+}
+
+/** Retire les entrées les plus anciennes au-delà de la borne (\`keys()\` suit l'ordre d'ajout). */
+function trimImageCache(cache) {
+  return cache.keys().then((keys) => {
+    const excess = keys.length - IMAGE_CACHE_MAX_ENTRIES;
+    if (excess <= 0) return undefined;
+    return Promise.all(keys.slice(0, excess).map((key) => cache.delete(key)));
+  });
+}
+
+/**
+ * Images et fontes : cache d'abord, dans un cache borné en taille et en âge. Une copie
+ * expirée est redemandée au réseau, et resservie seulement s'il ne répond pas. Un refus
+ * d'accès (401/403) ou une disparition (404) retire la copie : une photo dont l'accès a été
+ * révoqué ou qui a été supprimée n'est plus rejouée depuis l'appareil.
+ */
+function imageCacheFirst(request) {
+  const key = cacheKeyFor(request);
+  return caches.match(key).then((cached) => {
+    if (cached && !isExpiredImage(cached)) return cached;
+    return fetch(request)
+      .then((response) => {
+        if (response && response.ok && !forbidsStorage(response)) {
+          const clone = response.clone();
+          caches
+            .open(IMAGE_CACHE_NAME)
+            .then((cache) => cache.delete(key).then(() => cache.put(key, clone)).then(() => trimImageCache(cache)))
+            .catch(() => undefined);
+        } else if (response && (isAuthRefusal(response) || response.status === 404 || forbidsStorage(response))) {
+          evictFromCache(request);
+          caches.open(IMAGE_CACHE_NAME).then((cache) => cache.delete(key)).catch(() => undefined);
+        }
+        return response;
+      })
+      .catch((err) => {
+        if (cached) return cached;
+        throw err;
+      });
+  });
+}
+
 /**
  * Lecture « stale-while-revalidate » : la réponse mémorisée part tout de suite, le réseau
  * rafraîchit derrière. C'est ce qui rend le plan consultable sans réseau — un visiteur qui
@@ -295,7 +363,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => Promise.all(
-      names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+      names.filter((name) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME).map((name) => caches.delete(name))
     )).then(() => self.clients.claim())
   );
 });
@@ -343,9 +411,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Images, icônes, fontes : cache-first.
+  // Images, icônes, fontes : cache-first, cache borné.
   if (isImageOrFont(url.pathname)) {
-    event.respondWith(cacheFirst(event.request));
+    event.respondWith(imageCacheFirst(event.request));
   }
 });
 `;
@@ -417,6 +485,8 @@ function renderWebManifest(product, { icons, extra } = {}) {
 
 module.exports = {
   DEFAULT_NETWORK_TIMEOUT_SECONDS,
+  IMAGE_CACHE_MAX_ENTRIES,
+  IMAGE_CACHE_MAX_AGE_MS,
   ICON_CANDIDATES,
   renderServiceWorker,
   renderWebManifest,

@@ -39,6 +39,39 @@ test('Validateurs chemins publics zones / repères', () => {
   );
 });
 
+test('resolveMapPhotoThumbUrl : présence mémorisée, une seule lecture disque par vignette', async () => {
+  const fs = require('fs');
+  const { getAbsolutePath, deleteFile } = require('../lib/uploads');
+  const {
+    resolveMapPhotoThumbUrl,
+    resetMapPhotoThumbPresenceForTests,
+  } = require('../lib/uploadsPublicUrls');
+  const zoneId = `zone-thumb-memo-${Date.now()}`;
+  const main = `zones/${zoneId}/1.jpg`;
+  await saveBase64ToDisk(`zones/${zoneId}/1.thumb.jpg`, SAMPLE_IMAGE_DATA.replace('png', 'jpeg'));
+  resetMapPhotoThumbPresenceForTests();
+  const original = fs.existsSync;
+  let calls = 0;
+  fs.existsSync = (p) => {
+    calls += 1;
+    return original(p);
+  };
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      assert.strictEqual(
+        resolveMapPhotoThumbUrl(main, 'zone'),
+        `/uploads/zones/${zoneId}/1.thumb.jpg`,
+      );
+    }
+    assert.strictEqual(calls, 1);
+  } finally {
+    fs.existsSync = original;
+    deleteFile(`zones/${zoneId}/1.thumb.jpg`);
+    fs.rmSync(require('path').dirname(getAbsolutePath(main)), { recursive: true, force: true });
+    resetMapPhotoThumbPresenceForTests();
+  }
+});
+
 test('zoneMapPhotoImageUrl expose /uploads pour chemin canonique', () => {
   const u = zoneMapPhotoImageUrl('zones/my-zone/99.jpg', 'my-zone', 99);
   assert.strictEqual(u, '/uploads/zones/my-zone/99.jpg');

@@ -23,7 +23,7 @@ const path = require('path');
 const request = require('supertest');
 const sharp = require('sharp');
 
-const { initSchema, initDatabase, execute } = require('../database');
+const { initSchema, initDatabase, execute, queryAll } = require('../database');
 const { app } = require('../server');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
@@ -115,6 +115,22 @@ test('même garantie par writeBufferToDisk (l’autre point de passage)', async 
   deleteFile(relative);
 });
 
+test('médiathèque (dossier public) : la photo perd ses coordonnées', async () => {
+  const { saveMediaFromDataUrl } = require('../lib/mediaLibrary');
+  const saved = await saveMediaFromDataUrl(
+    `data:image/jpeg;base64,${(await jpegWithGps(64)).toString('base64')}`,
+    { originalName: 'terrain.jpg', app: 'foretmap', skipManifestSync: true },
+  );
+  try {
+    const onDisk = fs.readFileSync(getAbsolutePath(saved.relativePath));
+    const after = await describeImageMetadata(onDisk);
+    assert.equal(after.hasExif, false, `EXIF encore présent dans uploads/${saved.relativePath}`);
+    assert.ok(!onDisk.toString('latin1').includes('33/1'), 'coordonnée résiduelle');
+  } finally {
+    deleteFile(saved.relativePath);
+  }
+});
+
 test('POST /api/zones/:id/photos — le fichier servi publiquement est propre', async () => {
   // Le cas qui compte vraiment : la route réelle, jusqu'au fichier sur disque. `uploads/zones/`
   // est servi sans authentification (`server.js`), c'est donc ce fichier-là que n'importe qui
@@ -137,6 +153,41 @@ test('POST /api/zones/:id/photos — le fichier servi publiquement est propre', 
   const after = await describeImageMetadata(onDisk);
   assert.equal(after.hasExif, false, `EXIF encore présent dans uploads/${storedPath}`);
   assert.ok(!onDisk.toString('latin1').includes('33/1'), 'coordonnée résiduelle dans le fichier');
+});
+
+test('un fichier .jpg/.png sans signature d’image est refusé (400), rien n’est écrit', async () => {
+  const html = Buffer.from('<html><script>alert(1)</script></html>', 'utf8');
+  for (const [label, write] of [
+    ['saveBase64ToDisk', (rel) => saveBase64ToDisk(rel, html.toString('base64'))],
+    ['writeBufferToDisk', (rel) => writeBufferToDisk(rel, html)],
+  ]) {
+    const relative = `${SCRATCH}/faux-${label}.jpg`;
+    await assert.rejects(write(relative), (err) => {
+      assert.equal(err.code, 'UPLOAD_NOT_IMAGE');
+      assert.equal(err.status, 400);
+      return true;
+    });
+    assert.equal(fs.existsSync(path.join(UPLOADS_DIR, relative)), false, label);
+  }
+  // Une extension non matricielle n'est pas concernée (ex. un JSON de manifeste).
+  const jsonRel = `${SCRATCH}/manifest.json`;
+  await writeBufferToDisk(jsonRel, Buffer.from('{"a":1}'));
+  deleteFile(jsonRel);
+});
+
+test('POST /api/zones/:id/photos — des octets non-image sont refusés en 400', async () => {
+  const zone = await fx.createZone({ mapId, name: 'Zone photo factice' });
+  createdZoneIds.push(zone.id);
+  const res = await request(app)
+    .post(`/api/zones/${zone.id}/photos`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      image_data: `data:image/jpeg;base64,${Buffer.from('pas une image, juste du texte').toString('base64')}`,
+    })
+    .expect(400);
+  assert.match(String(res.body?.error || ''), /ne correspond pas à une image/);
+  const rows = await queryAll('SELECT id FROM zone_photos WHERE zone_id = ?', [zone.id]);
+  assert.equal(rows.length, 0, 'ligne orpheline');
 });
 
 test('l’orientation EXIF est appliquée, pas seulement jetée', async () => {

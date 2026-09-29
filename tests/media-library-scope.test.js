@@ -81,17 +81,17 @@ test('resolveMediaItemApp / mediaItemMatchesApp — médias hérités réservés
   assert.strictEqual(mediaItemMatchesApp('foretmap', null), true);
 });
 
-test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)', () => {
+test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)', async () => {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-fm-${stamp}.png`, {
+  const fm = await saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-fm-${stamp}.png`, {
     skipManifestSync: true,
     app: 'foretmap',
   });
-  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-gl-${stamp}.png`, {
+  const gl = await saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-gl-${stamp}.png`, {
     skipManifestSync: true,
     app: 'gl',
   });
-  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-legacy-${stamp}.png`, {
+  const legacy = await saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-legacy-${stamp}.png`, {
     skipManifestSync: true,
   });
 
@@ -132,15 +132,15 @@ test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)',
 
 test('GET routes médiathèque — cloisonnement HTTP ForetMap vs G&L', async () => {
   const stamp = `${routeStamp}-${Math.random().toString(16).slice(2, 8)}`;
-  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-fm-${stamp}.png`, {
+  const fm = await saveMediaFromBuffer(TINY_PNG, 'image/png', `route-fm-${stamp}.png`, {
     skipManifestSync: true,
     app: 'foretmap',
   });
-  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-gl-${stamp}.png`, {
+  const gl = await saveMediaFromBuffer(TINY_PNG, 'image/png', `route-gl-${stamp}.png`, {
     skipManifestSync: true,
     app: 'gl',
   });
-  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-legacy-${stamp}.png`, {
+  const legacy = await saveMediaFromBuffer(TINY_PNG, 'image/png', `route-legacy-${stamp}.png`, {
     skipManifestSync: true,
   });
   const created = new Set([fm.relativePath, gl.relativePath, legacy.relativePath]);

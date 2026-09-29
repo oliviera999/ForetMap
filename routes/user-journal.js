@@ -4,6 +4,7 @@ const express = require('express');
 const { queryOne, queryAll, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const { writeBufferToDisk, deleteFile, getAbsolutePath } = require('../lib/uploads');
+const { sendFilePrivateImageOptions } = require('../lib/httpImageCache');
 const { decodeUserContentImageBuffer } = require('../lib/userContentImages');
 const { getSettingValue } = require('../lib/settings');
 const asyncHandler = require('../lib/asyncHandler');
@@ -111,7 +112,7 @@ router.get(
     const access = await assertCanReadUserJournal(req.auth, asset.user_id);
     if (!access.ok) return res.status(access.status).json({ error: access.error });
     const absolutePath = getAbsolutePath(asset.asset_path);
-    res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
+    res.sendFile(absolutePath, sendFilePrivateImageOptions(), (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   }),

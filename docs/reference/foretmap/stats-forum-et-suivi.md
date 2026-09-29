@@ -222,9 +222,10 @@ retenu : il s'ouvre juste après la connexion.
 - **Formats acceptés** : images JPEG, PNG, WebP, GIF, SVG ; audio MP3, WAV, OGG, M4A ;
   vidéo MP4, WebM, MOV. Taille maximale : 15 Mo par média.
 - **Photos jointes à un message** (forum, commentaires) : jusqu'à **trois** par message, et
-  **8 Mo par photo**. Au-delà, l'envoi est refusé avec un message qui le dit — l'allègement
-  automatique avant envoi fait que la limite n'est en pratique jamais atteinte depuis un
-  téléphone. Cette borne protège le serveur : quelques envois très lourds simultanés
+  **8 Mo par photo**. Au-delà, l'envoi est refusé avec un message qui le dit — les photos
+  jointes sont elles aussi **allégées automatiquement** avant l'envoi, si bien que la limite
+  n'est en pratique jamais atteinte depuis un téléphone. Un fichier qui n'est pas une vraie
+  image (même renommé en « .jpg ») est refusé. Cette borne protège le serveur : quelques envois très lourds simultanés
   suffisaient à le faire redémarrer, ce qui coupait le site pour tout le monde.
 
 ## ⚠️ Points d'attention
@@ -232,7 +233,8 @@ retenu : il s'ouvre juste après la connexion.
 > ⚠️ **Point d'attention** — Les photos **HEIC / HEIF** (réglage « haute efficacité » de
 > certains appareils Android et iPhone) ne sont pas lisibles par les navigateurs :
 > l'import les refuse en expliquant le réglage à changer (Appareil photo → Format des
-> photos → **JPEG** ou « Compatibilité maximale »).
+> photos → **JPEG** ou « Compatibilité maximale »). Les photos jointes à un message sont
+> désormais traitées de la même façon : un message explicite au lieu d'un refus silencieux.
 
 > ⚠️ **Point d'attention** — Le classement est calculé sur les tâches **validées** :
 > un professeur qui tarde à valider fausse involontairement le palmarès (et retarde

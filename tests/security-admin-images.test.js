@@ -157,6 +157,8 @@ test('Route image task log lit bien depuis disque (mode disk-only)', async () =>
     .set('Authorization', `Bearer ${studentToken}`)
     .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
+  // Photo d'élève servie par route authentifiée : aucune copie en cache (audit photos 29/09).
+  assert.strictEqual(res.headers['cache-control'], 'private, no-store');
 
   // Audit B3 : la même image sans jeton doit être refusée (les identifiants sont
   // séquentiels, ces photos étaient énumérables par un anonyme).

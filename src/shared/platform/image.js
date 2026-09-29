@@ -21,7 +21,18 @@ export const IMAGE_COMPRESSION_PRESETS = {
   adminProfile: { maxPx: 2200, quality: 0.85 },
   glChapter: { maxPx: 2400, quality: 0.9 },
   glInline: { maxPx: 2000, quality: 0.85 },
+  attachment: { maxPx: 1600, quality: 0.8 },
 };
+
+/** Vrai pour une photo HEIC/HEIF (iPhone), souvent illisible hors Safari. */
+export function isHeicFile(file) {
+  const mime = String(file?.type || '').toLowerCase();
+  return (
+    mime === 'image/heic' ||
+    mime === 'image/heif' ||
+    /\.(heic|heif)$/i.test(String(file?.name || ''))
+  );
+}
 
 /**
  * @param {File} file
@@ -30,6 +41,23 @@ export const IMAGE_COMPRESSION_PRESETS = {
 export function compressImageWithPreset(file, presetKey = 'default') {
   const preset = IMAGE_COMPRESSION_PRESETS[presetKey] || IMAGE_COMPRESSION_PRESETS.default;
   return compressImage(file, preset.maxPx, preset.quality);
+}
+
+/**
+ * Dimensions réduites pour que le **plus grand côté** tienne dans `maxPx` (ratio conservé,
+ * jamais d'agrandissement). Une photo portrait 3000×4000 devient 900×1200 pour 1200.
+ * @returns {{ width: number, height: number }}
+ */
+export function fitWithinMaxSide(width, height, maxPx) {
+  const w = Math.max(0, Number(width) || 0);
+  const h = Math.max(0, Number(height) || 0);
+  const longest = Math.max(w, h);
+  if (!(maxPx > 0) || longest <= maxPx) return { width: w, height: h };
+  const ratio = maxPx / longest;
+  return {
+    width: Math.max(1, Math.round(w * ratio)),
+    height: Math.max(1, Math.round(h * ratio)),
+  };
 }
 
 /**
@@ -50,18 +78,11 @@ export function fileToPngDataUrl(file, maxPx = 2048) {
       const img = new Image();
       img.onerror = () => reject(new Error('Image invalide'));
       img.onload = () => {
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        const max = maxPx;
-        if (w > max || h > max) {
-          if (w >= h) {
-            h = Math.round((h * max) / w);
-            w = max;
-          } else {
-            w = Math.round((w * max) / h);
-            h = max;
-          }
-        }
+        const { width: w, height: h } = fitWithinMaxSide(
+          img.naturalWidth,
+          img.naturalHeight,
+          maxPx,
+        );
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
@@ -92,15 +113,7 @@ export function compressImage(file, maxPx = 1200, quality = 0.75) {
           new Error('Impossible de lire cette image (format non pris en charge par le navigateur)'),
         );
       img.onload = () => {
-        let w = img.width;
-        let h = img.height;
-        if (w > maxPx) {
-          h = Math.round((h * maxPx) / w);
-          w = maxPx;
-        } else if (h > maxPx) {
-          w = Math.round((w * maxPx) / h);
-          h = maxPx;
-        }
+        const { width: w, height: h } = fitWithinMaxSide(img.width, img.height, maxPx);
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;

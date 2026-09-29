@@ -1,6 +1,7 @@
 const express = require('express');
 const { queryOne } = require('../../database');
 const { getAbsolutePath } = require('../../lib/uploads');
+const { sendFilePublicImageOptions } = require('../../lib/httpImageCache');
 const { isPrivateUploadPath } = require('../../lib/uploadsPrivatePaths');
 const asyncHandler = require('../../lib/asyncHandler');
 const logger = require('../../lib/logger');
@@ -42,7 +43,7 @@ router.get(
       return res.status(404).json({ error: 'Aucune image' });
     }
     const absolutePath = getAbsolutePath(row.image_path);
-    return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
+    return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   }),

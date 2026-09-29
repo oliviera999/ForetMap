@@ -30,8 +30,12 @@ const path = require('path');
 const { UPLOADS_DIR } = require('../lib/uploads');
 const { stripImageMetadata, describeImageMetadata } = require('../lib/imageMetadata');
 
-/** Familles jamais parcourues : rien d'imageable, et beaucoup de fichiers. */
-const SKIPPED_DIRS = new Set(['media-library']);
+/**
+ * Dossiers jamais parcourus (chemins relatifs à `uploads/`) : rien d'imageable, et beaucoup
+ * de fichiers. `media-library/image/` est parcouru : il contient des photos publiques
+ * (`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md` PH-B3).
+ */
+const SKIPPED_DIRS = new Set(['media-library/audio', 'media-library/video']);
 
 function parseArgs(argv) {
   const dirArg = argv.find((a) => a.startsWith('--dir='));
@@ -53,7 +57,8 @@ function* walk(root) {
   for (const entry of entries) {
     const full = path.join(root, entry.name);
     if (entry.isDirectory()) {
-      if (SKIPPED_DIRS.has(entry.name) && path.dirname(full) === UPLOADS_DIR) continue;
+      const rel = path.relative(UPLOADS_DIR, full).split(path.sep).join('/');
+      if (SKIPPED_DIRS.has(rel)) continue;
       yield* walk(full);
     } else if (entry.isFile()) {
       yield full;

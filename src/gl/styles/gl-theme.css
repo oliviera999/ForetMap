@@ -5224,9 +5224,9 @@ a.gl-glossary-inline-link:hover,
 .gl-qcm-modal__photo {
   display: block;
   max-width: 100%;
-  width: auto;
-  height: auto;
-  max-height: min(34dvh, 34vh, 220px);
+  /* Hauteur fixe (image contenue dedans) : boîte réservée avant chargement. */
+  width: 100%;
+  height: min(34dvh, 34vh, 220px);
   object-fit: contain;
   border-radius: var(--gl-radius-control);
   margin: 0 auto 0.75rem;

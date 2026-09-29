@@ -8,6 +8,12 @@ import { ImageFrameHelp } from './ImageFrameHelp.jsx';
 const RATIO_OPTIONS = ['auto', '1/1', '4/3', '16/9', '21/9'];
 const FIT_OPTIONS = ['cover', 'contain'];
 
+/** Valeur d'un curseur de point focal : 0 % est un bord valide, pas une absence de valeur. */
+export function focalFromInput(raw) {
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50;
+}
+
 /**
  * Éditeur de **cadre d'image** — ratio, ajustement, point focal, recadrage réel (lot 7 du
  * plan de convergence). Né côté Gnomes & Licornes, l'outil n'a jamais rien eu de propre au
@@ -20,7 +26,7 @@ const FIT_OPTIONS = ['cover', 'contain'];
  */
 export function ImageFrameEditor({
   open,
-  title = 'Ajuster le cadre d image',
+  title = 'Ajuster le cadre de l’image',
   context = 'default',
   imageUrl = '',
   initialFrame = null,
@@ -57,7 +63,7 @@ export function ImageFrameEditor({
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt="Apercu recadrage"
+              alt="Aperçu du recadrage"
               className="gl-image-frame-preview"
               style={previewStyle}
             />
@@ -103,7 +109,7 @@ export function ImageFrameEditor({
             step={1}
             value={frame.focalX}
             onChange={(event) =>
-              setDraft((prev) => ({ ...prev, focalX: Number(event.target.value) || 50 }))
+              setDraft((prev) => ({ ...prev, focalX: focalFromInput(event.target.value) }))
             }
           />
         </label>
@@ -117,7 +123,7 @@ export function ImageFrameEditor({
             step={1}
             value={frame.focalY}
             onChange={(event) =>
-              setDraft((prev) => ({ ...prev, focalY: Number(event.target.value) || 50 }))
+              setDraft((prev) => ({ ...prev, focalY: focalFromInput(event.target.value) }))
             }
           />
         </label>

@@ -5,8 +5,16 @@ import { formatDateTime } from '../utils/formatDateTime.js';
 import { buildJournalTimeline } from './journalFeed.js';
 import { useJournalEmbedTitles } from './useJournalEmbedTitles.js';
 import { getBrandOrgName } from '../brand/brandNames.js';
+import { useHtmlAsIs } from './journalImages.js';
 
-function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
+function BookArticlePage({
+  article,
+  adapter,
+  ui,
+  articleExtraLine,
+  ImageComponent = 'img',
+  useHtmlImages = useHtmlAsIs,
+}) {
   const html = useMemo(
     () =>
       article?.bodyMarkdown
@@ -18,6 +26,8 @@ function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
     [article?.bodyMarkdown],
   );
   const hydratedHtml = useJournalEmbedTitles(html, adapter.resolveEmbeds);
+  const displayHtml = useHtmlImages(hydratedHtml);
+  const Img = ImageComponent;
   const p = ui.classPrefix;
   const extra = typeof articleExtraLine === 'function' ? articleExtraLine(article) : null;
   const assets = Array.isArray(article.assets) ? article.assets : [];
@@ -32,15 +42,21 @@ function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
       {html ? (
         <div
           className={ui.markdownClassName || ''}
-          dangerouslySetInnerHTML={{ __html: hydratedHtml }}
+          dangerouslySetInnerHTML={{ __html: displayHtml }}
         />
       ) : (
         <p className={ui.hintClassName || ''}>Article sans texte.</p>
       )}
       {assets.length > 0 ? (
         <div className={`${p}__assets-inline`}>
-          {assets.map((a) => (
-            <img key={a.id} src={a.url} alt="" className={`${p}__asset-thumb`} />
+          {assets.map((a, index) => (
+            <Img
+              key={a.id}
+              src={a.url}
+              alt={`Illustration ${index + 1} de l’article « ${title} »`}
+              decoding="async"
+              className={`${p}__asset-thumb`}
+            />
           ))}
         </div>
       ) : null}
@@ -58,12 +74,14 @@ function BookArticlePage({ article, adapter, ui, articleExtraLine }) {
  * @param {import('./journalAdapter.js').JournalAdapter} props.adapter
  * @param {object} props.ui
  * @param {string} props.ownerLabel
- * @param {string} [props.productLabel='ForetMap']
+ * @param {string} [props.productLabel='Carnet']
  * @param {string} [props.orgName] Établissement mentionné au colophon ; marque du build par défaut.
  * @param {boolean} [props.yearbook=false] options livre de l’année (période + épinglés)
  * @param {() => void} [props.onClose]
  * @param {(type: string) => { label: string, icon?: string }} props.importTypeMeta
  * @param {(article: object) => string|null} [props.articleExtraLine]
+ * @param {import('react').ElementType} [props.ImageComponent] composant des illustrations
+ * @param {(html: string) => string} [props.useHtmlImages] réécriture des `<img>` du Markdown
  */
 export function JournalBookView({
   articles = [],
@@ -71,12 +89,14 @@ export function JournalBookView({
   adapter,
   ui,
   ownerLabel,
-  productLabel = 'ForetMap',
+  productLabel = 'Carnet',
   orgName = getBrandOrgName(),
   yearbook = false,
   onClose = null,
   importTypeMeta,
   articleExtraLine = null,
+  ImageComponent = 'img',
+  useHtmlImages = useHtmlAsIs,
 }) {
   const p = ui.classPrefix;
   const Btn = ui.Button || Button;
@@ -254,6 +274,8 @@ export function JournalBookView({
           adapter={adapter}
           ui={ui}
           articleExtraLine={articleExtraLine}
+          ImageComponent={ImageComponent}
+          useHtmlImages={useHtmlImages}
         />
       ))}
 

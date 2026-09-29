@@ -34,7 +34,9 @@ function StudentAvatar({ student, size = 28, style = {}, className = '' }) {
     <img
       key={imgKey}
       src={src}
-      alt="Avatar"
+      alt=""
+      loading="lazy"
+      decoding="async"
       className={`student-avatar ${className}`.trim()}
       onError={() => setSrc(fallback)}
       style={{

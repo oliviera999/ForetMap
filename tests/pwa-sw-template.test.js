@@ -27,9 +27,11 @@ const BASE_OPTIONS = Object.freeze({
  * Exécute le SW rendu dans un bac à sable minimal (self/caches/fetch factices) et renvoie
  * les écouteurs enregistrés : prouve que la source est du JS valide et complet.
  */
-function loadServiceWorker(source, { timers } = {}) {
+function loadServiceWorker(source, { timers, origin = 'https://foretmap.test' } = {}) {
   const listeners = {};
   const self = {
+    // Le SW ignore les requêtes d'une autre origine que la sienne.
+    location: { origin },
     addEventListener(type, handler) {
       listeners[type] = handler;
     },
@@ -80,7 +82,11 @@ test('renderServiceWorker reprend les stratégies (HTML network-first, SWR, asse
   assert.match(source, /caches\.match\(OFFLINE_PATH\)/);
   assert.match(source, /pathname\.includes\('\/assets\/'\)/);
   assert.match(source, /SKIP_WAITING/);
-  assert.match(source, /names\.filter\(\(name\) => name !== CACHE_NAME\)/);
+  assert.match(
+    source,
+    /names\.filter\(\(name\) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME\)/,
+  );
+  assert.match(source, /const IMAGE_CACHE_NAME = "foretmap-foret-images";/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /\.woff2/);
   assert.match(source, /GÉNÉRÉ par scripts\/build-pwa\.js/);
@@ -195,7 +201,7 @@ test('révocation : une 401 au rafraîchissement vide l’entrée mise en cache 
     apiStaleWhileRevalidate: ['/api/plan/content'],
     apiNetworkFirst: [],
   });
-  const { listeners, context } = loadServiceWorker(source);
+  const { listeners, context } = loadServiceWorker(source, { origin: 'https://plan.test' });
   const stale = {
     ok: true,
     status: 200,
@@ -261,6 +267,128 @@ test('une réponse en erreur ne devient jamais la réponse hors ligne', async ()
   await responded;
   await new Promise((resolve) => setImmediate(resolve));
   assert.ok(store.has('/api/zones'), 'une réponse valide doit rester mise en cache');
+});
+
+/** Réponse factice avec en-têtes (les cas d'images lisent `Date` et `Cache-Control`). */
+function imageResponse({ status = 200, body = 'img', date = new Date(), cacheControl = '' } = {}) {
+  const headers = new Map([
+    ['date', date.toUTCString()],
+    ['cache-control', cacheControl],
+  ]);
+  const response = {
+    ok: status >= 200 && status < 300,
+    status,
+    body,
+    headers: { get: (name) => headers.get(String(name).toLowerCase()) || null },
+  };
+  response.clone = () => response;
+  return response;
+}
+
+/** Bac à sable à deux caches (principal, images) avec `keys()` dans l'ordre d'ajout. */
+function multiCacheSandbox(context) {
+  const stores = new Map();
+  const keyOf = (request) =>
+    typeof request === 'string'
+      ? new URL(request, 'https://x.test').pathname
+      : new URL(request.url).pathname;
+  const open = (name) => {
+    if (!stores.has(name)) stores.set(name, new Map());
+    const store = stores.get(name);
+    return {
+      match: (request) => Promise.resolve(store.get(keyOf(request))),
+      put: (request, response) => {
+        store.set(keyOf(request), response);
+        return Promise.resolve();
+      },
+      delete: (request) => Promise.resolve(store.delete(keyOf(request))),
+      keys: () => Promise.resolve([...store.keys()]),
+    };
+  };
+  context.caches = {
+    open: (name) => Promise.resolve(open(name)),
+    match: (request) => {
+      for (const store of stores.values()) {
+        const hit = store.get(keyOf(request));
+        if (hit) return Promise.resolve(hit);
+      }
+      return Promise.resolve(undefined);
+    },
+    keys: () => Promise.resolve([...stores.keys()]),
+  };
+  return stores;
+}
+
+async function fetchThrough(listeners, url) {
+  let responded;
+  listeners.fetch({
+    request: { method: 'GET', url },
+    respondWith: (promise) => {
+      responded = promise;
+    },
+  });
+  const response = await responded;
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  return response;
+}
+
+test('images : cache à part, borné en nombre d’entrées (les plus anciennes sortent)', async () => {
+  const { IMAGE_CACHE_MAX_ENTRIES } = require('../src/shared/pwa/swTemplate');
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  const stores = multiCacheSandbox(context);
+  context.fetch = (request) => Promise.resolve(imageResponse({ body: request.url }));
+  for (let i = 0; i < IMAGE_CACHE_MAX_ENTRIES + 3; i += 1) {
+    await fetchThrough(listeners, `https://foretmap.test/uploads/zones/z/${i}.jpg`);
+  }
+  const images = stores.get('foretmap-foret-images');
+  assert.ok(images, 'cache d’images dédié');
+  assert.strictEqual(images.size, IMAGE_CACHE_MAX_ENTRIES);
+  assert.strictEqual(images.has('/uploads/zones/z/0.jpg'), false, 'la plus ancienne est sortie');
+  assert.ok(images.has(`/uploads/zones/z/${IMAGE_CACHE_MAX_ENTRIES + 2}.jpg`));
+  assert.strictEqual(stores.has('foretmap-foret-abcdef12'), false, 'rien dans le cache principal');
+});
+
+test('images : copie expirée redemandée au réseau, resservie seulement hors ligne', async () => {
+  const { IMAGE_CACHE_MAX_AGE_MS } = require('../src/shared/pwa/swTemplate');
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  const stores = multiCacheSandbox(context);
+  const old = imageResponse({
+    body: 'vieille',
+    date: new Date(Date.now() - IMAGE_CACHE_MAX_AGE_MS - 1000),
+  });
+  stores.set('foretmap-foret-images', new Map([['/uploads/zones/z/1.jpg', old]]));
+  let calls = 0;
+  context.fetch = () => {
+    calls += 1;
+    return Promise.resolve(imageResponse({ body: 'neuve' }));
+  };
+  const fresh = await fetchThrough(listeners, 'https://foretmap.test/uploads/zones/z/1.jpg');
+  assert.strictEqual(fresh.body, 'neuve');
+  assert.strictEqual(calls, 1);
+
+  stores.get('foretmap-foret-images').set('/uploads/zones/z/1.jpg', old);
+  context.fetch = () => Promise.reject(new Error('hors ligne'));
+  const offline = await fetchThrough(listeners, 'https://foretmap.test/uploads/zones/z/1.jpg');
+  assert.strictEqual(offline.body, 'vieille');
+});
+
+test('images : une réponse no-store n’est jamais copiée ; 403/404 purge la copie', async () => {
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  const stores = multiCacheSandbox(context);
+  context.fetch = () =>
+    Promise.resolve(imageResponse({ body: 'privée', cacheControl: 'private, no-store' }));
+  await fetchThrough(listeners, 'https://foretmap.test/api/tasks/t/logs/1/image.jpg');
+  assert.strictEqual(stores.get('foretmap-foret-images')?.size || 0, 0);
+
+  const past = imageResponse({ body: 'ancienne', date: new Date(0) });
+  for (const status of [403, 404]) {
+    stores.set('foretmap-foret-images', new Map([['/uploads/zones/z/9.jpg', past]]));
+    context.fetch = () => Promise.resolve(imageResponse({ status }));
+    const res = await fetchThrough(listeners, 'https://foretmap.test/uploads/zones/z/9.jpg');
+    assert.strictEqual(res.status, status);
+    assert.strictEqual(stores.get('foretmap-foret-images').has('/uploads/zones/z/9.jpg'), false);
+  }
 });
 
 test('renderServiceWorker refuse une configuration incomplète', () => {

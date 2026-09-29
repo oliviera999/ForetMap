@@ -41,7 +41,7 @@ function log(msg) {
   console.log(msg);
 }
 
-function importGlImagesFromZip() {
+async function importGlImagesFromZip() {
   const zipPath = path.join(sourceDir, 'images.zip');
   if (!fs.existsSync(zipPath)) {
     log(`○ images.zip absent dans ${sourceDir}`);
@@ -83,7 +83,7 @@ function importGlImagesFromZip() {
   let errors = 0;
   for (const file of uniqueFiles) {
     try {
-      saveMediaFromBuffer(file.buffer, null, file.fileName, { skipManifestSync: true });
+      await saveMediaFromBuffer(file.buffer, null, file.fileName, { skipManifestSync: true });
       imported += 1;
     } catch (err) {
       errors += 1;
@@ -99,7 +99,7 @@ function prepareAudioPack() {
   execFileSync(process.execPath, [scriptPath, sourceDir], { stdio: 'inherit' });
 }
 
-function importGlAudioFromPack() {
+async function importGlAudioFromPack() {
   if (!fs.existsSync(audioPackDir)) {
     log(`○ Dossier audio-pack absent : ${audioPackDir}`);
     return { imported: 0, skipped: 0 };
@@ -126,7 +126,7 @@ function importGlAudioFromPack() {
   for (const name of mp3Files) {
     try {
       const buffer = fs.readFileSync(path.join(audioPackDir, name));
-      saveMediaFromBuffer(buffer, 'audio/mpeg', name, { skipManifestSync: true });
+      await saveMediaFromBuffer(buffer, 'audio/mpeg', name, { skipManifestSync: true });
       imported += 1;
     } catch (err) {
       errors += 1;
@@ -137,7 +137,7 @@ function importGlAudioFromPack() {
   return { imported, skipped: errors };
 }
 
-function main() {
+async function main() {
   if (!fs.existsSync(sourceDir)) {
     console.error(`Dossier source introuvable: ${sourceDir}`);
     process.exit(1);
@@ -151,7 +151,7 @@ function main() {
   let audioStats = { imported: 0 };
 
   if (!audioOnly) {
-    imageStats = importGlImagesFromZip();
+    imageStats = await importGlImagesFromZip();
   }
 
   if (!imagesOnly) {
@@ -160,7 +160,7 @@ function main() {
     } else {
       log('\n[dry-run] prepare-gl-audio-pack.mjs serait exécuté');
     }
-    audioStats = importGlAudioFromPack();
+    audioStats = await importGlAudioFromPack();
   }
 
   if (dryRun) {
@@ -193,4 +193,7 @@ function main() {
   log(`\nImport terminé : ${imageStats.imported} image(s), ${audioStats.imported} audio.`);
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

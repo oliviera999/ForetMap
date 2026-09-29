@@ -55,6 +55,8 @@ export function UserJournalArticleCard({
         onDelete={onDelete}
         onTogglePin={togglePin}
         extraMetaLine={metaLine || null}
+        ImageComponent={AuthedImage}
+        useHtmlImages={useAuthedHtmlImages}
       />
     );
   }

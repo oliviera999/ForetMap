@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { withAppBase } from '../appBase.js';
-import { isLikelyImageFile } from '../platform/image';
+import { compressImageWithPreset, isHeicFile, isLikelyImageFile } from '../platform/image';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../platform/overlayHistory';
 
 /** Aligné sur le serveur : lib/userContentImages.js */
@@ -31,37 +31,25 @@ function isSupportedInlineImageDataUrl(dataUrl) {
   return /^data:image\/(png|jpe?g|webp);/i.test(String(dataUrl || ''));
 }
 
-/** JPEG / PNG / WebP, y compris captures mobile (type vide ou octet-stream). */
+/**
+ * Toute image que le navigateur sait décoder : elle est ré-encodée en JPEG (1600 px) avant
+ * l'envoi. Sans cette étape, trois photos d'appareil (~15 Mo chacune) dépassaient la
+ * limite du corps JSON (`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md` PH-M6).
+ */
 function fileAllowedForAttachment(file) {
-  if (!file || !file.size) return false;
-  const t = String(file.type || '').toLowerCase();
-  if (t === 'image/jpeg' || t === 'image/png' || t === 'image/webp') return true;
-  if (
-    t === 'image/gif' ||
-    t === 'image/bmp' ||
-    t === 'image/heic' ||
-    t === 'image/heif' ||
-    t === 'image/avif'
-  ) {
-    return false;
-  }
-  if (t === '' || t === 'application/octet-stream' || t === 'binary/octet-stream') {
-    return isLikelyImageFile(file);
-  }
-  return false;
+  return Boolean(file && file.size && isLikelyImageFile(file));
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result || ''));
-    fr.onerror = () => reject(fr.error);
-    fr.readAsDataURL(file);
-  });
+function unreadableMessage(file) {
+  const name = file?.name || 'fichier';
+  if (isHeicFile(file)) {
+    return `Photo HEIC illisible par ce navigateur : ${name}. Sur iPhone, choisissez « Le plus compatible » (Réglages › Appareil photo › Formats) ou exportez-la en JPEG.`;
+  }
+  return `Format non pris en charge (JPEG, PNG ou WebP) : ${name}`;
 }
 
 /**
- * Sélection locale de photos (JPEG / PNG / WebP) converties en data URL pour l’API JSON.
+ * Sélection locale de photos, compressées en data URL JPEG pour l’API JSON.
  * @param {{ value: string[], onChange: (next: string[]) => void, disabled?: boolean, onNotify?: (msg: string) => void, label?: string }} props
  */
 export function AttachmentImagesPicker({
@@ -69,7 +57,7 @@ export function AttachmentImagesPicker({
   onChange,
   disabled = false,
   onNotify,
-  label = 'Photos (optionnel, max 3, JPEG/PNG/WebP ; galerie ou appareil photo)',
+  label = 'Photos (optionnel, max 3 ; galerie ou appareil photo)',
 }) {
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -77,7 +65,11 @@ export function AttachmentImagesPicker({
 
   const addFiles = useCallback(
     async (fileList) => {
-      const picked = Array.from(fileList || []).filter(fileAllowedForAttachment);
+      const all = Array.from(fileList || []);
+      for (const file of all) {
+        if (!fileAllowedForAttachment(file)) onNotify?.(unreadableMessage(file));
+      }
+      const picked = all.filter(fileAllowedForAttachment);
       const next = [...list];
       for (const file of picked) {
         if (next.length >= MAX_ATTACHMENT_IMAGES) {
@@ -85,14 +77,17 @@ export function AttachmentImagesPicker({
           break;
         }
         try {
-          const dataUrl = await readFileAsDataUrl(file);
+          const dataUrl = await compressImageWithPreset(file, 'attachment');
           if (!isSupportedInlineImageDataUrl(dataUrl)) {
-            onNotify?.(`Format non pris en charge (JPEG, PNG ou WebP) : ${file.name || 'fichier'}`);
+            onNotify?.(unreadableMessage(file));
             continue;
           }
           next.push(dataUrl);
-        } catch {
-          onNotify?.(`Lecture impossible : ${file.name || 'fichier'}`);
+        } catch (err) {
+          const tooHeavy = /trop lourde/i.test(String(err?.message || ''));
+          onNotify?.(
+            tooHeavy ? `${err.message} : ${file.name || 'fichier'}` : unreadableMessage(file),
+          );
         }
       }
       onChange(next.slice(0, MAX_ATTACHMENT_IMAGES));
@@ -123,7 +118,7 @@ export function AttachmentImagesPicker({
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
         multiple
         disabled={disabled}
         className="attachment-images-picker-input"
@@ -229,6 +224,7 @@ export function UserContentImagesGrid({ urls = [], className = '' }) {
             src={withAppBase(u)}
             alt="Pièce jointe (ouvrir en taille réelle)"
             loading="lazy"
+            decoding="async"
             className="user-content-images-grid-img"
           />
         </a>

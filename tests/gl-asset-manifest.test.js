@@ -29,9 +29,9 @@ test('deriveMediaStableKey retire GL_ et normalise', () => {
   );
 });
 
-test('saveMediaFromBuffer enregistre clé stable et manifeste auto', () => {
+test('saveMediaFromBuffer enregistre clé stable et manifeste auto', async () => {
   const fileName = `GL_test-stable-${Date.now()}.png`;
-  const saved = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName);
+  const saved = await saveMediaFromBuffer(TINY_PNG, 'image/png', fileName);
   assert.ok(saved.stableKey);
   assert.strictEqual(saved.stableKey, deriveMediaStableKey(fileName));
 
@@ -46,10 +46,14 @@ test('saveMediaFromBuffer enregistre clé stable et manifeste auto', () => {
   deleteMediaLibraryItem(saved.relativePath);
 });
 
-test('re-upload même slug met à jour la résolution', () => {
+test('re-upload même slug met à jour la résolution', async () => {
   const fileName = 'GL_test-reupload.png';
-  const first = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, { skipManifestSync: true });
-  const second = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, { skipManifestSync: true });
+  const first = await saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, {
+    skipManifestSync: true,
+  });
+  const second = await saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, {
+    skipManifestSync: true,
+  });
   syncAssetManifests();
 
   const index = loadMediaKeyIndex();
@@ -62,9 +66,11 @@ test('re-upload même slug met à jour la résolution', () => {
   deleteMediaLibraryItem(second.relativePath);
 });
 
-test('resolveMediaByStableKey accepte clé GL_ préfixée (intro)', () => {
+test('resolveMediaByStableKey accepte clé GL_ préfixée (intro)', async () => {
   const fileName = 'GL_intro_01_la-boite.png';
-  const saved = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, { skipManifestSync: true });
+  const saved = await saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, {
+    skipManifestSync: true,
+  });
   syncAssetManifests();
   const resolved = resolveMediaByStableKey('GL_intro_01_la-boite');
   assert.ok(

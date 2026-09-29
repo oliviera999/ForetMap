@@ -1,6 +1,7 @@
 import { parsePctPolygonPoints } from '../../shared/pct-map/pctPolygon.js';
 import { SharedMapStage } from '../../shared/pct-map/SharedMapStage.jsx';
 import { planPlaceFocusPct, splitNameEmoji } from '../utils/planPlaces.js';
+import { getBrandOrgName } from '../../shared/brand/brandNames.js';
 
 /**
  * Carte plein écran du Plan Lyautey : mince enveloppe autour de `SharedMapStage`
@@ -37,7 +38,7 @@ export function PlanMapStage({ attribution = '', schoolLogoUrl = '', ...rest }) 
               <img
                 className="plan-map__school-logo"
                 src={schoolLogoUrl}
-                alt="Lycée Lyautey"
+                alt={getBrandOrgName() ? `Logo ${getBrandOrgName()}` : 'Logo de l’établissement'}
                 width={120}
                 height={36}
                 decoding="async"

@@ -34,7 +34,8 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
         <div
           className="gl-brand-hub__hero hero-ken-burns"
           style={{
-            backgroundImage: `url(${heroImage})`,
+            // Guillemets : une URL avec espace ou parenthèse cassait la déclaration CSS.
+            backgroundImage: `url(${JSON.stringify(String(heroImage))})`,
             '--gl-hero-focal-x': `${heroFrame.focalX}%`,
             '--gl-hero-focal-y': `${heroFrame.focalY}%`,
             backgroundPosition: 'var(--gl-hero-focal-x) var(--gl-hero-focal-y)',

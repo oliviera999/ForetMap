@@ -70,6 +70,43 @@ test('computeOrphanPaths calcule uniquement les non référencés', () => {
   assert.deepStrictEqual(orphans, ['zones/z1/2.jpg']);
 });
 
+test('une vignette suit son original, jamais orpheline tant qu’il est référencé', () => {
+  const disk = [
+    'zones/z1/5.jpg',
+    'zones/z1/5.thumb.jpg',
+    'markers/m1/2.png',
+    'markers/m1/2.thumb.jpg',
+    'zones/z1/9.thumb.jpg',
+  ];
+  const refs = ['zones/z1/5.jpg', 'markers/m1/2.png'];
+  assert.deepStrictEqual(computeOrphanPaths(disk, refs), ['zones/z1/9.thumb.jpg']);
+});
+
+test('préfixes gérés étendus aux images publiques du forum, des commentaires et des fiches', () => {
+  for (const p of [
+    'forum-posts/p1/0.jpg',
+    'context-comments/c1/0.png',
+    'plants/3/photo-1.jpg',
+    'markers/m/1.jpg',
+    'tasks/t1.jpg',
+  ]) {
+    assert.strictEqual(isManagedPath(p), true, p);
+  }
+  // Médiathèque : pas de table, ses fichiers sont le catalogue — jamais gérée ici.
+  assert.strictEqual(isManagedPath('media-library/image/2026/09/a.png'), false);
+});
+
+test('uploadPathsFromUrlText : une URL /uploads par ligne, liens externes ignorés', () => {
+  const { uploadPathsFromUrlText } = require('../scripts/reconcile-orphan-uploads');
+  assert.deepStrictEqual(
+    uploadPathsFromUrlText(
+      '/uploads/plants/3/photo-1.jpg\nhttps://upload.wikimedia.org/x.jpg\n/uploads/plants/3/b.png?v=2',
+    ),
+    ['plants/3/photo-1.jpg', 'plants/3/b.png'],
+  );
+  assert.deepStrictEqual(uploadPathsFromUrlText(null), []);
+});
+
 test('les sources de référence couvrent les photos d’observation et les pièces du carnet', async () => {
   require('./helpers/setup');
   const { initSchema } = require('../database');
@@ -83,6 +120,17 @@ test('les sources de référence couvrent les photos d’observation et les piè
   // (préfixe `observations/species/`) et les fichiers de l'ancien carnet recopiés au carnet.
   assert.ok(names.includes('species_observation_photos'));
   assert.ok(names.includes('user_journal_article_assets'));
+  // Chaque préfixe géré doit avoir sa source, sinon `--apply` viderait le dossier.
+  for (const n of [
+    'marker_photos',
+    'tasks',
+    'forum_posts',
+    'context_comments',
+    'plant_photos',
+    'plants',
+  ]) {
+    assert.ok(names.includes(n), n);
+  }
   // Chaque requête s'exécute sur le schéma courant (colonne ou table renommée = échec ici).
   const refs = await loadReferencedImagePaths('all');
   assert.ok(Array.isArray(refs));

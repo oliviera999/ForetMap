@@ -10,6 +10,7 @@ import {
   parseGlImageFrameAttr,
   serializeGlImageFrameAttr,
 } from '../image-frame/glImageFrame.js';
+import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
 
 const ALLOWED_TAGS = [
   'p',
@@ -37,6 +38,7 @@ const ALLOWED_ATTR_WITH_IMAGES = [
   'alt',
   'title',
   'loading',
+  'decoding',
   'class',
   'data-gl-frame',
   'data-gl-md-src',
@@ -229,6 +231,23 @@ function wrapMarkdownContentImages(html) {
   return wrapMarkdownContentImagesWithString(source);
 }
 
+/**
+ * Sources d'image admises dans un contenu riche : hôte HTTPS (ou HTTP historique), fichiers
+ * publics `/uploads/` et `/maps/`, relais d'images tierces, illustrations du carnet (servies
+ * derrière jeton, réécrites en blob par `useAuthedHtmlImages`).
+ */
+const MARKDOWN_IMAGE_SRC_RES = [
+  /^https?:\/\//i,
+  /^\/uploads\//i,
+  /^\/maps\//i,
+  /^(?:\/[\w-]+)*\/api\/media\/remote\?url=/i,
+  /^\/api\/user-journal\/assets\/\d+\/file$/i,
+];
+
+function isAllowedMarkdownImageSrc(src) {
+  return MARKDOWN_IMAGE_SRC_RES.some((re) => re.test(src));
+}
+
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
     // Ancre de glossaire (SVT G&L, ForetMap ou lore G&L) : même traitement pour les
@@ -267,11 +286,18 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     }
   }
   if (node.tagName === 'IMG') {
-    const src = node.getAttribute('src') || '';
-    if (!/^https?:\/\//i.test(src) && !/^\/uploads\//i.test(src) && !/^\/maps\//i.test(src)) {
-      node.removeAttribute('src');
+    const src = String(node.getAttribute('src') || '').trim();
+    if (!isAllowedMarkdownImageSrc(src)) {
+      node.remove();
       return;
     }
+    const relayed = resolveExternalImageUrl(src);
+    if (relayed !== src) {
+      if (!node.getAttribute('data-gl-md-src')) node.setAttribute('data-gl-md-src', src);
+      node.setAttribute('src', relayed);
+    }
+    if (!node.getAttribute('loading')) node.setAttribute('loading', 'lazy');
+    node.setAttribute('decoding', 'async');
     const frame = parseGlImageFrameAttr(node.getAttribute('data-gl-frame'), 'markdown');
     node.setAttribute('data-gl-frame', serializeGlImageFrameAttr(frame, 'markdown'));
     const className = String(node.getAttribute('class') || '').trim();

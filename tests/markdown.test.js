@@ -150,10 +150,19 @@ describe('markdown utils', () => {
     assert.match(html, /\/uploads\/media-library\//);
   });
 
-  it('renderMarkdownToSafeHtml allowImages supprime les sources image dangereuses', () => {
+  it('renderMarkdownToSafeHtml allowImages retire une image à source dangereuse (pas de balise vide)', () => {
     const html = renderMarkdownToSafeHtml('![x](javascript:alert(1))', { allowImages: true });
-    assert.match(html, /<img\b/i);
-    assert.doesNotMatch(html, /src=/i);
+    assert.doesNotMatch(html, /<img\b/i);
+    assert.doesNotMatch(html, /javascript:/i);
+  });
+
+  it('renderMarkdownToSafeHtml allowImages : chargement différé et illustration du carnet admise', () => {
+    const html = renderMarkdownToSafeHtml('![x](/api/user-journal/assets/12/file)', {
+      allowImages: true,
+    });
+    assert.match(html, /src="\/api\/user-journal\/assets\/12\/file"/);
+    assert.match(html, /loading="lazy"/);
+    assert.match(html, /decoding="async"/);
   });
 
   it('renderMarkdownToSafeHtml normalise les attributs de cadre image GL', () => {

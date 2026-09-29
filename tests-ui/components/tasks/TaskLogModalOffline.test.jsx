@@ -92,7 +92,7 @@ describe('LogModal sans réseau', () => {
     fireEvent.change(input, {
       target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
     });
-    await screen.findByAltText('preview');
+    await screen.findByAltText('Aperçu de la pièce jointe');
     submit();
     expect(await screen.findByRole('alert')).toHaveTextContent(TASK_DONE_OFFLINE_PHOTO_MESSAGE);
     expect(onQueued).not.toHaveBeenCalled();

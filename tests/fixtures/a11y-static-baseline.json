@@ -32,8 +32,6 @@
     "jsx-a11y/label-has-associated-control": 8
   },
   "src/components/map/PhotoGallery.jsx": {
-    "jsx-a11y/click-events-have-key-events": 1,
-    "jsx-a11y/no-noninteractive-element-interactions": 1,
     "jsx-a11y/no-static-element-interactions": 1
   },
   "src/components/map/ZoneDrawModal.jsx": {

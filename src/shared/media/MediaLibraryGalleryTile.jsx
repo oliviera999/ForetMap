@@ -2,6 +2,7 @@ import { withAppBase } from '../appBase.js';
 import { formatMediaLibrarySize } from './mediaLibraryView.js';
 import { MediaUsageInfo } from './MediaUsageInfo.jsx';
 import { IconAudio } from '../icons.jsx';
+import { FallbackImage } from '../components/FallbackImage.jsx';
 
 export function resolveMediaUrl(url) {
   return withAppBase(String(url || ''));
@@ -42,7 +43,15 @@ export function MediaLibraryGalleryTile({
       >
         <span className="media-library-menu__gallery-preview">
           {mediaType === 'image' ? (
-            <img src={mediaUrl} alt="" loading="lazy" decoding="async" />
+            <FallbackImage
+              src={mediaUrl}
+              thumbWidth={240}
+              fallback={
+                <span className="media-library-menu__gallery-type" aria-hidden="true">
+                  🖼️
+                </span>
+              }
+            />
           ) : mediaType === 'video' ? (
             <>
               <video src={mediaUrl} preload="metadata" muted playsInline aria-hidden="true" />

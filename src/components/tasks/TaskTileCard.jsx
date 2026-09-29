@@ -31,6 +31,7 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import {
   IconArchive,
   IconCheck,
@@ -247,12 +248,16 @@ function TaskTileCardImpl({
               onClick={() => setCoverLightbox(coverSrc)}
               aria-label="Agrandir la photo de la tâche"
             >
-              <img
+              <FallbackImage
                 src={coverSrc}
+                thumbWidth={520}
                 className="task-card-cover"
-                alt=""
                 loading={index < 3 ? 'eager' : 'lazy'}
-                decoding="async"
+                fallback={
+                  <span className="task-card-cover task-card-cover--failed" aria-hidden="true">
+                    🖼️
+                  </span>
+                }
               />
             </button>
           )}

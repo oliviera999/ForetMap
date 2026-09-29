@@ -13,6 +13,8 @@ import { resolveHelpPanelSection } from '../../utils/helpResolve.js';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { importTypeMeta } from '../../utils/fmJournalMeta.js';
 import { getBuildBrand } from '../../shared/brand/brandNames.js';
+import { AuthedImage } from '../AuthedImage.jsx';
+import { useAuthedHtmlImages } from '../../hooks/useAuthedHtmlImages.js';
 
 /**
  * Carnet ForetMap : fil lecture-first (articles + éléments appris), édition ciblée,
@@ -116,10 +118,12 @@ export function UserJournalView({
         adapter={adapter}
         ui={FM_JOURNAL_UI}
         ownerLabel={bookOwnerLabel}
-        productLabel={getBuildBrand().appName || 'ForetMap'}
+        productLabel={getBuildBrand().appName || undefined}
         yearbook
         onClose={() => setBookOpen(false)}
         importTypeMeta={importTypeMeta}
+        ImageComponent={AuthedImage}
+        useHtmlImages={useAuthedHtmlImages}
       />
     );
   }

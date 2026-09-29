@@ -10,6 +10,7 @@ const asyncHandler = require('../../lib/asyncHandler');
 const { logRouteError } = require('../../lib/routeLog');
 const { emitGardenChanged } = require('../../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../../lib/uploads');
+const { sendFilePublicImageOptions } = require('../../lib/httpImageCache');
 const { nowIso } = require('../../lib/visitRouteShared');
 const {
   sanitizeTargetType,
@@ -95,7 +96,7 @@ router.get(
     ]);
     if (!row?.image_path) return res.status(404).json({ error: 'Image introuvable' });
     const absolutePath = getAbsolutePath(row.image_path);
-    return res.sendFile(absolutePath, { dotfiles: 'allow' }, (err) => {
+    return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
   }),

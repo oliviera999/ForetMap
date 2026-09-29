@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { chapterIllustration, chapterIllustrations } from '../assets/index.js';
-import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
+import { GLIllustrationFigure, useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 /**
  * Résout l'illustration de couverture d'un chapitre via la convention médiathèque
@@ -25,11 +25,13 @@ export function GLChapterIllustration({
     () => resolveChapterCoverUrl(chapterNumber, fallbackUrl, assetsReady),
     [chapterNumber, fallbackUrl, assetsReady],
   );
-  if (!src) return null;
   return (
-    <figure className={figureClassName || undefined}>
-      <img src={src} alt={alt} loading="lazy" className={imgClassName || undefined} />
-    </figure>
+    <GLIllustrationFigure
+      src={src}
+      alt={alt}
+      figureClassName={figureClassName}
+      imgClassName={imgClassName}
+    />
   );
 }
 
@@ -57,15 +59,14 @@ export function GLChapterScenes({
   return (
     <div className={className || undefined}>
       {scenes.map((scene) => (
-        <figure key={scene.key} className={figureClassName || undefined}>
-          <img
-            src={scene.url}
-            alt={scene.caption || alt}
-            loading="lazy"
-            className={imgClassName || undefined}
-          />
-          {scene.caption ? <figcaption>{scene.caption}</figcaption> : null}
-        </figure>
+        <GLIllustrationFigure
+          key={scene.key}
+          src={scene.url}
+          alt={scene.caption || alt}
+          caption={scene.caption}
+          figureClassName={figureClassName}
+          imgClassName={imgClassName}
+        />
       ))}
     </div>
   );

@@ -5,6 +5,9 @@
  * générique (`application/octet-stream`) parce que le `File` n'a pas de `type`. Le
  * serveur doit alors se rabattre sur la signature binaire puis sur l'extension du nom
  * d'origine, au lieu de renvoyer « Type MIME non autorisé ». Test sans base de données.
+ *
+ * Une image annoncée doit aussi être confirmée par sa signature, et ses métadonnées
+ * retirées à l'écriture (`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md` PH-B3).
  */
 
 const test = require('node:test');
@@ -26,12 +29,11 @@ function cleanup(relativePath) {
   if (fs.existsSync(absolutePath)) fs.unlinkSync(absolutePath);
 }
 
-test('data URL générique : le type est déduit de la signature binaire', () => {
-  const saved = saveMediaFromDataUrl(`data:application/octet-stream;base64,${TINY_PNG_BASE64}`, {
-    originalName: 'IMG_20260818_101500',
-    app: 'foretmap',
-    skipManifestSync: true,
-  });
+test('data URL générique : le type est déduit de la signature binaire', async () => {
+  const saved = await saveMediaFromDataUrl(
+    `data:application/octet-stream;base64,${TINY_PNG_BASE64}`,
+    { originalName: 'IMG_20260818_101500', app: 'foretmap', skipManifestSync: true },
+  );
   try {
     assert.equal(saved.mimeType, 'image/png');
     assert.equal(saved.mediaType, 'image');
@@ -42,10 +44,10 @@ test('data URL générique : le type est déduit de la signature binaire', () =>
   }
 });
 
-test('data URL générique sans signature reconnue : repli sur l’extension du nom d’origine', () => {
+test('data URL générique sans signature reconnue : repli sur l’extension du nom d’origine', async () => {
   // Octets volontairement quelconques : seule l'extension `.mp3` permet de trancher.
   const anonymous = Buffer.from('contenu binaire sans magie').toString('base64');
-  const saved = saveMediaFromDataUrl(`data:application/octet-stream;base64,${anonymous}`, {
+  const saved = await saveMediaFromDataUrl(`data:application/octet-stream;base64,${anonymous}`, {
     originalName: 'chanson-du-verger.mp3',
     app: 'foretmap',
     skipManifestSync: true,
@@ -59,12 +61,11 @@ test('data URL générique sans signature reconnue : repli sur l’extension du 
   }
 });
 
-test('data URL générique d’une photo JPEG : signature reconnue', () => {
-  const saved = saveMediaFromDataUrl(`data:application/octet-stream;base64,${TINY_JPEG_BASE64}`, {
-    originalName: 'IMG_20260818_101500.jpg',
-    app: 'foretmap',
-    skipManifestSync: true,
-  });
+test('data URL générique d’une photo JPEG : signature reconnue', async () => {
+  const saved = await saveMediaFromDataUrl(
+    `data:application/octet-stream;base64,${TINY_JPEG_BASE64}`,
+    { originalName: 'IMG_20260818_101500.jpg', app: 'foretmap', skipManifestSync: true },
+  );
   try {
     assert.equal(saved.mimeType, 'image/jpeg');
     assert.ok(saved.relativePath.endsWith('.jpg'));
@@ -73,8 +74,8 @@ test('data URL générique d’une photo JPEG : signature reconnue', () => {
   }
 });
 
-test('alias de type (image/jpg) accepté', () => {
-  const saved = saveMediaFromDataUrl(`data:image/jpg;base64,${TINY_JPEG_BASE64}`, {
+test('alias de type (image/jpg) accepté', async () => {
+  const saved = await saveMediaFromDataUrl(`data:image/jpg;base64,${TINY_JPEG_BASE64}`, {
     originalName: 'photo.jpg',
     app: 'foretmap',
     skipManifestSync: true,
@@ -86,8 +87,48 @@ test('alias de type (image/jpg) accepté', () => {
   }
 });
 
-test('contenu non identifiable : toujours refusé en 400', () => {
-  assert.throws(
+test('type annoncé contredit par la signature : le vrai format est retenu', async () => {
+  const saved = await saveMediaFromDataUrl(`data:image/jpeg;base64,${TINY_PNG_BASE64}`, {
+    originalName: 'photo.jpg',
+    app: 'foretmap',
+    skipManifestSync: true,
+  });
+  try {
+    assert.equal(saved.mimeType, 'image/png');
+    assert.ok(saved.relativePath.endsWith('.png'));
+  } finally {
+    cleanup(saved.relativePath);
+  }
+});
+
+test('image annoncée dont le contenu n’est pas une image : refus 400', async () => {
+  const fake = Buffer.from('<html><script>alert(1)</script></html>').toString('base64');
+  await assert.rejects(
+    () =>
+      saveMediaFromDataUrl(`data:image/jpeg;base64,${fake}`, {
+        originalName: 'piege.jpg',
+        app: 'foretmap',
+        skipManifestSync: true,
+      }),
+    (err) => err?.status === 400 && /ne correspond pas à une image/.test(String(err.message)),
+  );
+});
+
+test('SVG annoncé sans balise svg : refus 400', async () => {
+  const fake = Buffer.from('pas du tout du svg').toString('base64');
+  await assert.rejects(
+    () =>
+      saveMediaFromDataUrl(`data:image/svg+xml;base64,${fake}`, {
+        originalName: 'logo.svg',
+        app: 'foretmap',
+        skipManifestSync: true,
+      }),
+    (err) => err?.status === 400,
+  );
+});
+
+test('contenu non identifiable : toujours refusé en 400', async () => {
+  await assert.rejects(
     () =>
       saveMediaFromDataUrl(
         `data:application/octet-stream;base64,${Buffer.from('texte quelconque').toString('base64')}`,

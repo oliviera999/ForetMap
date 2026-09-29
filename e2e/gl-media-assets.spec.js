@@ -16,7 +16,7 @@ test.describe('GL — liaison médias assets', () => {
     let relativePath = null;
 
     try {
-      const saved = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName);
+      const saved = await saveMediaFromBuffer(TINY_PNG, 'image/png', fileName);
       relativePath = saved.relativePath;
       const stableKey = `e2e-plateau-1_test-${stamp}`;
 

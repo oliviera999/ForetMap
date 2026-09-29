@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { FallbackImage } from '../../shared/components/FallbackImage.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
 
@@ -32,7 +32,11 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
     >
       <span className="gl-species-tile__media" aria-hidden="true">
         {species.photo_url ? (
-          <img src={resolveExternalImageUrl(species.photo_url)} alt="" loading="lazy" />
+          <FallbackImage
+            src={species.photo_url}
+            thumbWidth={250}
+            fallback={<span className="gl-species-tile__placeholder" />}
+          />
         ) : (
           <span className="gl-species-tile__placeholder" />
         )}

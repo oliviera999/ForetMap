@@ -10,6 +10,17 @@ const FOCUSABLE_SELECTOR = [
 ].join(',');
 
 /**
+ * Surcouches ouvertes, de la plus ancienne à la plus récente. Chaque surcouche écoute
+ * `keydown` sur `document` : sans cette pile, Échap dans une lightbox ouverte au-dessus d'une
+ * fenêtre fermait les deux (`docs/AUDIT_AFFICHAGE_PHOTOS_2026-09-29.md` PH-M4).
+ */
+const overlayStack = [];
+
+function isTopOverlay(token) {
+  return overlayStack[overlayStack.length - 1] === token;
+}
+
+/**
  * Accessibilité d'une surcouche : Échap, et — seulement si elle est **modale** — focus
  * initial, piège de tabulation et restauration du focus à la fermeture.
  *
@@ -53,7 +64,11 @@ function useDialogA11y(onClose, options = {}) {
       target.focus();
     }
 
+    const token = {};
+    overlayStack.push(token);
+
     const onKeyDown = (e) => {
+      if (!isTopOverlay(token)) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         onCloseRef.current?.();
@@ -86,6 +101,8 @@ function useDialogA11y(onClose, options = {}) {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      const index = overlayStack.indexOf(token);
+      if (index >= 0) overlayStack.splice(index, 1);
       if (previousActive && typeof previousActive.focus === 'function') {
         previousActive.focus();
       }
