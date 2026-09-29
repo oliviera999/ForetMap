@@ -9,6 +9,10 @@
  * - GET /api/version (optionnel, mais recommandé)
  * - GET /api/admin/diagnostics (optionnel) si **DEPLOY_SECRET**, **FORETMAP_DEPLOY_CHECK_SECRET** ou
  *   **FORETMAP_DEPLOY_SECRET** est défini : vérifie que la route admin déployée répond (200 + body.ok).
+ * - Exposition des sources (optionnel) : `/server.js`, `/package.json`, `/.env`… ne doivent pas être
+ *   servis tels quels. Un hébergement dont la racine web est le dossier du dépôt les sert avant même
+ *   que la requête n'atteigne Node (docs/EXPLOITATION.md § 11.4). Non bloquant : un retour arrière
+ *   du code ne corrigerait pas une configuration d'hébergement.
  *
  * Usage:
  *   node scripts/post-deploy-check.js --base-url https://foretmap.olution.info
@@ -226,6 +230,44 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
   }
 }
 
+// Fichiers suivis par git (ou toujours présents sur le serveur) : servis tels quels, ils prouvent que
+// la racine web est le dossier du dépôt — et donc que backups/, logs/ et uploads/ privés le sont aussi.
+const EXPOSURE_PROBE_PATHS = Object.freeze([
+  '/server.js',
+  '/package.json',
+  '/sql/schema_foretmap.sql',
+  '/scripts/auto-deploy-cron.sh',
+  '/.env',
+  '/.git/HEAD',
+]);
+
+/**
+ * Réussit si le fichier n'est pas servi : 404/403, redirection, ou page HTML du repli SPA.
+ * Échoue sur une réponse 2xx non HTML (le fichier brut). Le corps n'est jamais conservé.
+ */
+async function checkNotExposed(baseUrl, path, timeoutMs) {
+  const full = new URL(path, baseUrl).toString();
+  try {
+    const res = await requestJsonWithRetry(full, timeoutMs);
+    const contentType = String(res.headers['content-type'] || '');
+    const exposed = res.ok && !/^text\/html\b/i.test(contentType);
+    const label = exposed ? 'FAIL' : 'OK';
+    console.log(
+      `${label} ${path} non servi -> HTTP ${res.status} [${contentType || '-'}]${exposed ? ' — fichier du dépôt servi tel quel' : ''}`,
+    );
+    return { path, required: false, pass: !exposed, status: res.status, body: {} };
+  } catch (err) {
+    console.log(`FAIL ${path} non servi -> ${err.name || 'Error'}: ${err.message || err}`);
+    return {
+      path,
+      required: false,
+      pass: false,
+      status: 0,
+      body: { error: err.message || String(err) },
+    };
+  }
+}
+
 async function main() {
   const { baseUrl, glBaseUrl, planBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(
     process.argv.slice(2),
@@ -277,13 +319,19 @@ async function main() {
     if (imageCheckPath) {
       checks.push(await checkImageEndpoint(baseUrl, imageCheckPath, timeoutMs));
     }
+
+    for (const probePath of EXPOSURE_PROBE_PATHS) {
+      checks.push(await checkNotExposed(baseUrl, probePath, timeoutMs));
+    }
   }
 
   const glTargetUrl = glBaseUrl || (glHealthOnly ? baseUrl : '');
   if (glTargetUrl) {
     checks.push(await checkEndpoint(glTargetUrl, '/api/health', timeoutMs, false));
     checks.push(await checkEndpoint(glTargetUrl, '/api/version', timeoutMs, false));
-    checks.push(await checkEndpoint(glTargetUrl, '/api/gl/chapters', timeoutMs, false));
+    checks.push(
+      await checkEndpointAllowedStatuses(glTargetUrl, '/api/gl/chapters', timeoutMs, [200, 401]),
+    );
     checks.push(
       await checkEndpointAllowedStatuses(
         glTargetUrl,
@@ -293,12 +341,14 @@ async function main() {
         false,
       ),
     );
+    checks.push(await checkNotExposed(glTargetUrl, '/server.js', timeoutMs));
   }
 
   // Plan Lyautey (host planlyautey.*) : santé et version, sans exigence (produit en construction).
   if (planBaseUrl && !glHealthOnly) {
     checks.push(await checkEndpoint(planBaseUrl, '/api/health', timeoutMs, false));
     checks.push(await checkEndpoint(planBaseUrl, '/api/version', timeoutMs, false));
+    checks.push(await checkNotExposed(planBaseUrl, '/server.js', timeoutMs));
   }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);
@@ -333,4 +383,6 @@ module.exports = {
   checkEndpoint,
   checkEndpointAllowedStatuses,
   checkImageEndpoint,
+  checkNotExposed,
+  EXPOSURE_PROBE_PATHS,
 };

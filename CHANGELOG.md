@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — le contrôle post-déploiement détecte les sources servies par l'hébergement
+
+- `scripts/post-deploy-check.js` sonde `/server.js`, `/package.json`, `/sql/schema_foretmap.sql`,
+  `/scripts/auto-deploy-cron.sh`, `/.env` et `/.git/HEAD` (plus `/server.js` sur `gl.` et
+  `planlyautey.`) : `FAIL … fichier du dépôt servi tel quel` si l'un d'eux sort brut. Non bloquant
+  pour le cron (un retour arrière ne corrige pas l'hébergement). Le corps n'est jamais conservé.
+- Cause : la racine web de la production était le dossier du dépôt, donc le code, `logs/`,
+  `node_modules/` et potentiellement `backups/` et les `uploads/` privés étaient téléchargeables.
+  Corrigé côté hébergement par une racine web vide (`docs/EXPLOITATION.md` § 11.4).
+- `/api/gl/chapters` exige une connexion depuis le RBAC GL : le contrôle accepte désormais
+  `200` ou `401` (il signalait un faux échec).
+
 ### Vérifié — chaîne PR → fusion → déploiement après le passage du dépôt en privé
 
 - PR témoin, bump de version inclus (v1.193.1) : CI, publication de l'artefact
