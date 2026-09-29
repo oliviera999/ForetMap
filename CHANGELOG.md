@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — clés d'identification : schéma lisible, fiable et qui ne donne plus la réponse ; réseau trophique accessible
+
+Audit [`docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md`](docs/AUDIT_AFFICHAGE_RESEAU_TROPHIQUE_CLES_2026-09-29.md) (18 constats, tous traités).
+
+**Schéma des clés** (`src/utils/idKeySchemaLayout.js`, `IdKeySchemaView.jsx`) :
+
+- La disposition devient un arbre orthogonal dont chaque colonne est plus large qu'une étiquette : toucher la proposition A choisissait parfois B (zones de toucher superposées). Principe inspiré de Reingold–Tilford (1981) et de [d3-hierarchy](https://github.com/d3/d3-hierarchy) (ISC), réimplémenté sans dépendance.
+- Un couplet partagé n'est dessiné qu'une fois, les autres liens deviennent des renvois « → Couplet N ». Les propositions incomplètes sont marquées « à compléter » et ne peuvent pas être choisies ; les couplets orphelins sont signalés aux enseignants.
+- Les énoncés sont repliés sur deux lignes, et le texte complet reste disponible au survol et dans la liste des propositions.
+- Le schéma se pilote au clavier (boutons, Entrée / Espace). Les images passent par le proxy de confidentialité. Le couplet courant est amené à l'écran et porte un double anneau. Un bouton « Ajuster à l'écran » est ajouté.
+- Les espèces restent masquées tant qu'elles ne sont pas atteintes ; les gestionnaires ont un bouton pour les montrer. Couleurs converties en jetons.
+
+**Lecteur** (`IdKeysView.jsx`) : rappel du chemin parcouru, liste des « caractères observés » à l'arrivée, et bouton « Retour » depuis l'arrivée.
+
+**Réseau trophique** (`FoodWebGraph.jsx`) :
+
+- Cibles tactiles d'au moins 44 px pour les nœuds, les flèches, les puces et la légende.
+- Tabulation itinérante : un arrêt pour les espèces, un pour les relations, puis touches fléchées, Début et Fin.
+- Nœuds et arêtes mémoïsés : le survol ne re-rend plus tout le graphe.
+- Aide repliable, couleurs en jetons, résumé de sélection enfin stylé côté ForetMap.
+- L'e2e `e2e/pedago-food-web.spec.js` est alimenté par un jeu de données intercepté et vérifie réellement les parcours au lieu de se contenter d'un graphe vide.
+
+Tests : `tests/id-key-schema-layout.test.js`, `tests-ui/components/pedago/{IdKeySchemaView,IdKeysView,FoodWebGraph}.test.jsx`.
+
+### Corrigé — migration 309 : une zone sans forme ne bloque plus le démarrage
+
+`309_visit_mirror_map_locations.sql` recopiait `zones.points` (qui accepte NULL pour une zone sans forme dessinée) dans `visit_zones.points` (NOT NULL). Sur une base contenant une telle zone, le démarrage échouait (`Column 'points' cannot be null`). La valeur de repli `'[]'` est désormais utilisée, comme dans `mapZoneToVisitWhitelistFields`. Test : `tests/visit-map-mirror.test.js`.
+
 ### Corrigé — carte : emojis et noms de zones bien placés et sans chevauchement
 
 Audit [`docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md`](docs/AUDIT_ETIQUETTES_ZONES_2026-09-29.md) (9 constats, tous traités). L'emoji d'une zone est désormais centré sur son point d'ancrage et le nom posé dessous : l'emoji ne saute plus quand le nom apparaît ou disparaît. Les emojis entrent dans l'anti-chevauchement, avant les noms (un nom sans son emoji est masqué, la zone sélectionnée garde les deux), avec des boîtes de collision fidèles au rendu et aux tailles réelles (préférence **Aa** incluse, `resolveOverlayLabelSizesPx`). Le point d'ancrage est calculé en pixels (rapport d'aspect de l'image) et plus en % étirés — approche inspirée de [mapbox/polylabel](https://github.com/mapbox/polylabel) (ISC), réimplémentée. Les pastilles d'état s'écartent de l'emoji (ou du nom seul). Le mode édition utilise le même moteur que la consultation ; le réglage `ui.map.zone_label_min_side_factor` devient **sans effet** (conservé pour compatibilité). Code mort supprimé : `VisitZonesSvgLayer`, branche `<text>` de `PctZonesLayer`, CSS `.visit-zone-*`. Tests : `pctMapLabels`, `mapOverlayLabelCollision`, `pctPolylabel`, `PctLayers`, `PctStatusDots`, `ZonePolygonsLayer`, `map-overlay-zone-labels`.

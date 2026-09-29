@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   INTERACTION_TYPES,
   interactionMatterFlow,
@@ -56,7 +56,155 @@ import {
 const BASE_W = 880;
 const BASE_H = 560;
 const NODE_R = 20;
+/** Rayon de la cible de toucher (invisible) : 44 px de diamètre, règle tactile projet. */
+const HIT_R = 22;
 const CLICK_MOVE_THRESHOLD = 4;
+
+/** Touches de la tabulation itinérante (un seul arrêt Tab par famille d'éléments). */
+const ROVING_NEXT = new Set(['ArrowRight', 'ArrowDown']);
+const ROVING_PREV = new Set(['ArrowLeft', 'ArrowUp']);
+
+/** Élément voisin dans une liste pour la tabulation itinérante (null si touche sans effet). */
+function rovingTarget(key, ids, currentId) {
+  if (!ids.length) return null;
+  const idx = Math.max(0, ids.indexOf(currentId));
+  if (ROVING_NEXT.has(key)) return ids[(idx + 1) % ids.length];
+  if (ROVING_PREV.has(key)) return ids[(idx - 1 + ids.length) % ids.length];
+  if (key === 'Home') return ids[0];
+  if (key === 'End') return ids[ids.length - 1];
+  return null;
+}
+
+/**
+ * Flèche du graphe. Mémoïsée, avec des props primitives et des gestionnaires stables :
+ * un survol ou le glissement d'un nœud ne redessinent que les flèches concernées.
+ */
+const FoodWebEdgeView = memo(function FoodWebEdgeView({
+  id,
+  d,
+  halo,
+  haloColor,
+  haloWidth,
+  dash,
+  lineClass,
+  color,
+  width,
+  opacity,
+  markerId,
+  symmetric,
+  midX,
+  midY,
+  ariaLabel,
+  title,
+  tabIndex,
+  handlers,
+}) {
+  return (
+    <g>
+      {halo ? (
+        <path
+          d={d}
+          className="pedago-foodweb-graph__line-halo"
+          stroke={haloColor}
+          strokeWidth={haloWidth}
+          strokeDasharray={dash || undefined}
+          aria-hidden="true"
+        />
+      ) : null}
+      <path
+        d={d}
+        className={lineClass}
+        stroke={color}
+        strokeWidth={width}
+        strokeDasharray={dash || undefined}
+        opacity={opacity === 1 ? undefined : opacity}
+        markerEnd={markerId}
+        markerStart={symmetric ? markerId : undefined}
+      />
+      <circle
+        cx={midX}
+        cy={midY}
+        r={HIT_R}
+        className="pedago-foodweb-graph__edge-hit"
+        tabIndex={tabIndex}
+        role="button"
+        aria-label={ariaLabel}
+        data-fw-edge={id}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => handlers.click(id)}
+        onKeyDown={(e) => handlers.keyDown(e, id)}
+        onFocus={() => handlers.focus(id)}
+        onBlur={handlers.blur}
+        onMouseEnter={() => handlers.enter(id)}
+        onMouseLeave={handlers.leave}
+      >
+        <title>{title}</title>
+      </circle>
+    </g>
+  );
+});
+
+/** Nœud (espèce ou environnement) du graphe — mêmes principes que `FoodWebEdgeView`. */
+const FoodWebNodeView = memo(function FoodWebNodeView({
+  id,
+  x,
+  y,
+  circleClass,
+  emoji,
+  showLabel,
+  labelClass,
+  labelText,
+  radial,
+  flip,
+  angle,
+  title,
+  ariaLabel,
+  tabIndex,
+  handlers,
+}) {
+  return (
+    <g
+      transform={`translate(${x}, ${y})`}
+      className="pedago-foodweb-graph__node-group"
+      tabIndex={tabIndex}
+      role="button"
+      aria-label={ariaLabel}
+      data-fw-node={id}
+      onPointerDown={(e) => handlers.pointerDown(e, id)}
+      onPointerUp={(e) => handlers.pointerUp(e, id)}
+      onKeyDown={(e) => handlers.keyDown(e, id)}
+      onFocus={() => handlers.focus(id)}
+      onBlur={handlers.blur}
+      onMouseEnter={() => handlers.enter(id)}
+      onMouseLeave={handlers.leave}
+      onDoubleClick={() => handlers.open(id)}
+      style={{ cursor: 'pointer' }}
+    >
+      <circle r={HIT_R} className="pedago-foodweb-graph__node-hit" aria-hidden="true" />
+      <circle r={NODE_R} className={circleClass} />
+      <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
+        {emoji}
+      </text>
+      {showLabel ? (
+        <text
+          className={labelClass}
+          textAnchor={radial ? (flip ? 'end' : 'start') : 'middle'}
+          x={radial ? 0 : undefined}
+          y={radial ? 0 : NODE_R + 14}
+          dy={radial ? '0.32em' : undefined}
+          transform={
+            radial
+              ? `rotate(${flip ? angle + 180 : angle}) translate(${flip ? -(NODE_R + 8) : NODE_R + 8}, 0)`
+              : undefined
+          }
+        >
+          {labelText}
+        </text>
+      ) : null}
+      <title>{title}</title>
+    </g>
+  );
+});
 
 /** Clé de mémorisation de la disposition choisie (par produit). */
 const LAYOUT_STORAGE_KEY = 'foretmap.foodweb.layout';
@@ -162,6 +310,9 @@ export function FoodWebGraph({
   const [search, setSearch] = useState('');
   const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
   const [moreOpen, setMoreOpen] = useState(false);
+  /** Tabulation itinérante : un seul nœud et une seule flèche portent `tabIndex=0`. */
+  const [rovingNodeId, setRovingNodeId] = useState(null);
+  const [rovingEdgeId, setRovingEdgeId] = useState(null);
 
   const changePreset = useCallback(
     (key) => {
@@ -362,6 +513,23 @@ export function FoodWebGraph({
         : visibleEdges,
     [recomposed, subset, visibleEdges],
   );
+
+  // Tabulation itinérante : sur un réseau de 80 espèces et 180 relations, chaque
+  // élément était un arrêt Tab (~260). Désormais : un arrêt pour les espèces, un
+  // pour les flèches, et les touches fléchées pour circuler dans chaque famille.
+  const renderedNodeIds = useMemo(() => renderedNodes.map((n) => n.id), [renderedNodes]);
+  const renderedEdgeIds = useMemo(() => renderedEdges.map((e) => e.id), [renderedEdges]);
+  const tabNodeId = renderedNodeIds.includes(rovingNodeId) ? rovingNodeId : renderedNodeIds[0];
+  const tabEdgeId = renderedEdgeIds.includes(rovingEdgeId) ? rovingEdgeId : renderedEdgeIds[0];
+
+  const focusGraphElement = useCallback((attr, id) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const el = [...svg.querySelectorAll(`[${attr}]`)].find(
+      (node) => node.getAttribute(attr) === String(id),
+    );
+    el?.focus?.();
+  }, []);
 
   /**
    * Au-delà du seuil de saturation, seules les étiquettes des nœuds actifs sont
@@ -696,21 +864,79 @@ export function FoodWebGraph({
   // ⌘/Ctrl+Entrée ajoute (ou retire) l'espèce de la sélection.
   const onNodeKeyDown = useCallback(
     (evt, id) => {
+      const target = rovingTarget(evt.key, renderedNodeIds, id);
+      if (target != null) {
+        evt.preventDefault();
+        setRovingNodeId(target);
+        focusGraphElement('data-fw-node', target);
+        return;
+      }
       if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
       evt.preventDefault();
       if (evt.shiftKey) openNodePlant(id);
       else toggleFocus(id, addMode || evt.ctrlKey || evt.metaKey);
     },
-    [openNodePlant, toggleFocus, addMode],
+    [openNodePlant, toggleFocus, addMode, renderedNodeIds, focusGraphElement],
   );
 
   const onEdgeKeyDown = useCallback(
     (evt, id) => {
+      const target = rovingTarget(evt.key, renderedEdgeIds, id);
+      if (target != null) {
+        evt.preventDefault();
+        setRovingEdgeId(target);
+        focusGraphElement('data-fw-edge', target);
+        return;
+      }
       if (evt.key !== 'Enter' && evt.key !== ' ' && evt.key !== 'Spacebar') return;
       evt.preventDefault();
       onSelectEdge?.(id);
     },
-    [onSelectEdge],
+    [onSelectEdge, renderedEdgeIds, focusGraphElement],
+  );
+
+  // Gestionnaires **stables** passés aux nœuds / flèches mémoïsés : ils lisent la
+  // dernière version des callbacks via une ref, sans changer d'identité.
+  const latestHandlers = useRef(null);
+  useLayoutEffect(() => {
+    latestHandlers.current = {
+      onNodePointerDown,
+      onNodePointerUp,
+      onNodeKeyDown,
+      openNodePlant,
+      onEdgeKeyDown,
+      onSelectEdge,
+    };
+  });
+  const nodeHandlers = useMemo(
+    () => ({
+      pointerDown: (evt, id) => latestHandlers.current?.onNodePointerDown(evt, id),
+      pointerUp: (evt, id) => latestHandlers.current?.onNodePointerUp(evt, id),
+      keyDown: (evt, id) => latestHandlers.current?.onNodeKeyDown(evt, id),
+      open: (id) => latestHandlers.current?.openNodePlant(id),
+      focus: (id) => {
+        setHoverNode(id);
+        setRovingNodeId(id);
+      },
+      blur: () => setHoverNode(null),
+      enter: (id) => setHoverNode(id),
+      leave: () => setHoverNode(null),
+    }),
+    [],
+  );
+  const edgeHandlers = useMemo(
+    () => ({
+      click: (id) => latestHandlers.current?.onSelectEdge?.(id),
+      keyDown: (evt, id) => latestHandlers.current?.onEdgeKeyDown(evt, id),
+      focus: (id) => {
+        setHoverEdge(id);
+        setRovingEdgeId(id);
+      },
+      blur: () => setHoverEdge(null),
+      enter: (id) => setHoverEdge(id),
+      leave: () => setHoverEdge(null),
+    }),
+    [],
   );
 
   /** Espèces proposées par la recherche (hors nœud environnement). */
@@ -1261,46 +1487,27 @@ export function FoodWebGraph({
             });
             const evidenceClass = edgeEvidenceClass(edge.evidenceLevel);
             return (
-              <g key={edge.id}>
-                {renderStyle.halo ? (
-                  <path
-                    d={d}
-                    className="pedago-foodweb-graph__line-halo"
-                    stroke={renderStyle.haloColor}
-                    strokeWidth={renderStyle.haloWidth}
-                    strokeDasharray={renderStyle.dash || undefined}
-                    aria-hidden="true"
-                  />
-                ) : null}
-                <path
-                  d={d}
-                  className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${evidenceClass ? ` ${evidenceClass}` : ''}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
-                  stroke={renderStyle.color}
-                  strokeWidth={renderStyle.width}
-                  strokeDasharray={renderStyle.dash || undefined}
-                  opacity={renderStyle.opacity === 1 ? undefined : renderStyle.opacity}
-                  markerEnd={markerId}
-                  markerStart={edge.symmetric ? markerId : undefined}
-                />
-                <circle
-                  cx={midX}
-                  cy={midY}
-                  r={12}
-                  className="pedago-foodweb-graph__edge-hit"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={edgeAriaLabel(edge)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onSelectEdge?.(edge.id)}
-                  onKeyDown={(e) => onEdgeKeyDown(e, edge.id)}
-                  onFocus={() => setHoverEdge(edge.id)}
-                  onBlur={() => setHoverEdge(null)}
-                  onMouseEnter={() => setHoverEdge(edge.id)}
-                  onMouseLeave={() => setHoverEdge(null)}
-                >
-                  <title>{edgeTitle(edge)}</title>
-                </circle>
-              </g>
+              <FoodWebEdgeView
+                key={edge.id}
+                id={edge.id}
+                d={d}
+                halo={Boolean(renderStyle.halo)}
+                haloColor={renderStyle.haloColor}
+                haloWidth={renderStyle.haloWidth}
+                dash={renderStyle.dash}
+                lineClass={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${evidenceClass ? ` ${evidenceClass}` : ''}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
+                color={renderStyle.color}
+                width={renderStyle.width}
+                opacity={renderStyle.opacity}
+                markerId={markerId}
+                symmetric={Boolean(edge.symmetric)}
+                midX={midX}
+                midY={midY}
+                ariaLabel={edgeAriaLabel(edge)}
+                title={edgeTitle(edge)}
+                tabIndex={edge.id === tabEdgeId ? 0 : -1}
+                handlers={edgeHandlers}
+              />
             );
           })}
 
@@ -1322,48 +1529,24 @@ export function FoodWebGraph({
               : 0;
             const flip = radial && (angle > 90 || angle < -90);
             return (
-              <g
+              <FoodWebNodeView
                 key={node.id}
-                transform={`translate(${pos.x}, ${pos.y})`}
-                className="pedago-foodweb-graph__node-group"
-                tabIndex={0}
-                role="button"
-                aria-label={nodeAriaLabel(node)}
-                onPointerDown={(e) => onNodePointerDown(e, node.id)}
-                onPointerUp={(e) => onNodePointerUp(e, node.id)}
-                onKeyDown={(e) => onNodeKeyDown(e, node.id)}
-                onFocus={() => setHoverNode(node.id)}
-                onBlur={() => setHoverNode(null)}
-                onMouseEnter={() => setHoverNode(node.id)}
-                onMouseLeave={() => setHoverNode(null)}
-                onDoubleClick={() => openNodePlant(node.id)}
-                style={{ cursor: 'pointer' }}
-              >
-                <circle
-                  r={NODE_R}
-                  className={`pedago-foodweb-graph__node${isEnv ? ' pedago-foodweb-graph__node--env' : ''}${node.outOfScope ? ' pedago-foodweb-graph__node--outside' : ''}${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
-                />
-                <text className="pedago-foodweb-graph__node-emoji" textAnchor="middle" y={5}>
-                  {node.emoji || '🌱'}
-                </text>
-                {showLabel ? (
-                  <text
-                    className={`pedago-foodweb-graph__label${dim ? ' dim' : ''}`}
-                    textAnchor={radial ? (flip ? 'end' : 'start') : 'middle'}
-                    x={radial ? 0 : undefined}
-                    y={radial ? 0 : NODE_R + 14}
-                    dy={radial ? '0.32em' : undefined}
-                    transform={
-                      radial
-                        ? `rotate(${flip ? angle + 180 : angle}) translate(${flip ? -(NODE_R + 8) : NODE_R + 8}, 0)`
-                        : undefined
-                    }
-                  >
-                    {truncateNodeLabel(node.name)}
-                  </text>
-                ) : null}
-                <title>{nodeTitle(node)}</title>
-              </g>
+                id={node.id}
+                x={pos.x}
+                y={pos.y}
+                circleClass={`pedago-foodweb-graph__node${isEnv ? ' pedago-foodweb-graph__node--env' : ''}${node.outOfScope ? ' pedago-foodweb-graph__node--outside' : ''}${highlighted || focused ? ' highlight' : ''}${dim ? ' dim' : ''}`}
+                emoji={node.emoji || '🌱'}
+                showLabel={showLabel}
+                labelClass={`pedago-foodweb-graph__label${dim ? ' dim' : ''}`}
+                labelText={truncateNodeLabel(node.name)}
+                radial={radial}
+                flip={flip}
+                angle={angle}
+                title={nodeTitle(node)}
+                ariaLabel={nodeAriaLabel(node)}
+                tabIndex={node.id === tabNodeId ? 0 : -1}
+                handlers={nodeHandlers}
+              />
             );
           })}
         </g>
@@ -1417,13 +1600,25 @@ export function FoodWebGraph({
         compact={legendCompact}
       />
 
-      <p className="pedago-foodweb-graph__hint section-sub">
-        Clique une espèce pour isoler son réseau — la scène se recompose autour d’elle (Voisins /
-        Chaîne). ⌘/Ctrl + clic, ou le bouton « Ajouter à la sélection », en isole plusieurs à la
-        fois ; « Sélection » ne garde alors qu’elles. « Voir la fiche » ouvre la fiche espèce (ou
-        Maj+Entrée au clavier). Clique une flèche pour le détail de la relation. Molette ou
-        pincement : zoom · glisser : déplacer.
-      </p>
+      <details className="pedago-foodweb-graph__help">
+        <summary>Aide : lire et manipuler le graphe</summary>
+        <ul className="pedago-foodweb-graph__hint section-sub">
+          <li>
+            Touche une espèce pour isoler son réseau : la scène se recompose autour d’elle (Voisins
+            / Chaîne).
+          </li>
+          <li>
+            ⌘/Ctrl + clic, ou « Ajouter à la sélection », en isole plusieurs ; « Sélection » ne
+            garde alors qu’elles.
+          </li>
+          <li>« Voir la fiche » ouvre la fiche espèce. Touche une flèche pour le détail.</li>
+          <li>Molette ou pincement : zoom · glisser : déplacer.</li>
+          <li>
+            Clavier : Tab entre les espèces puis les flèches, touches fléchées pour passer de l’une
+            à l’autre, Entrée pour isoler, Maj+Entrée pour la fiche.
+          </li>
+        </ul>
+      </details>
     </div>
   );
 }

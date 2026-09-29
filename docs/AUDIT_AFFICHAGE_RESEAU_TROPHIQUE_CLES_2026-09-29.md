@@ -190,3 +190,38 @@ Aucun code externe n'est repris dans ce lot : il ne contient que de la documenta
 - **Aucune clé versionnée** : les clés sont rédigées par les professeurs en production ; les sondes
   utilisent des clés minimales construites pour l'audit. K1 se produit sur toute clé réelle (dernier
   couplet à deux espèces) ; K2 seulement si un couplet est partagé.
+
+---
+
+## Suite donnée (29 septembre 2026)
+
+Les 18 constats ont été traités dans le même lot. Les constats d'origine ci-dessus restent tels
+quels : cette section décrit ce qui a été fait pour chacun.
+
+| ID  | Correctif                                                                                                                                                                                                                                   | Preuve                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| K1  | Arbre orthogonal, colonne (`H_GAP`) plus large qu'une étiquette (`LABEL_W`) ; parent centré sur ses enfants                                                                                                                                 | `id-key-schema-layout.test.js`, `IdKeySchemaView.test` |
+| K2  | Couplet placé une seule fois (première visite) ; les autres liens deviennent des nœuds « → Couplet N » ; ids d'arêtes uniques (`lead:ID`)                                                                                                   | `id-key-schema-layout.test.js`                         |
+| K3  | Énoncé replié sur 2 lignes (`wrapEdgeLabel`), texte complet au survol (`<title>`) et dans la liste des propositions du couplet                                                                                                              | les deux fichiers de tests                             |
+| K4  | `role="group"` sur le schéma ; propositions en `role="button"` focalisables, Entrée / Espace                                                                                                                                                | `IdKeySchemaView.test`                                 |
+| K5  | Images passées par `resolveExternalImageUrl`                                                                                                                                                                                                | `IdKeySchemaView.test`                                 |
+| K6  | Couplet courant amené à l'écran ; bouton « Ajuster à l'écran » / « Taille réelle »                                                                                                                                                          | `IdKeySchemaView.test`                                 |
+| K7  | Espèces masquées tant qu'elles ne sont pas atteintes ; bouton « Montrer toutes les espèces » réservé aux gestionnaires                                                                                                                      | `IdKeySchemaView.test`, `IdKeysView.test`              |
+| K8  | Image placée sous l'étiquette, dans la colonne de l'enfant, dégagée du nœud parent                                                                                                                                                          | `id-key-schema-layout.test.js`                         |
+| K9  | Consigne réécrite ; couplet courant marqué d'un double anneau                                                                                                                                                                               | `IdKeySchemaView.test`                                 |
+| K10 | Couleurs du schéma en jetons (`color-tokens.css`)                                                                                                                                                                                           | revue                                                  |
+| K11 | Chemin parcouru rappelé, « Caractères observés » à l'arrivée, « Retour » depuis l'arrivée                                                                                                                                                   | `IdKeysView.test`                                      |
+| K12 | Proposition incomplète « à compléter », non choisissable ; couplets orphelins et propositions à compléter signalés aux gestionnaires                                                                                                        | `id-key-schema-layout.test.js`, `IdKeysView.test`      |
+| T1  | Cibles invisibles de 22 px de rayon (nœuds et flèches) ; puces, légende et aide ≥ 44 px                                                                                                                                                     | `FoodWebGraph.test`                                    |
+| T2  | Tabulation itinérante : un arrêt pour les espèces, un pour les relations ; flèches, Début, Fin                                                                                                                                              | `FoodWebGraph.test`, e2e                               |
+| T3  | Nœuds et arêtes extraits en composants `memo` à props primitives et gestionnaires stables : le survol ne re-rend que les éléments concernés (préféré à la classe CSS, pour garder l'état de survol utilisé par la surbrillance des voisins) | revue, `FoodWebGraph.test`                             |
+| T4  | `e2e/pedago-food-web.spec.js` alimenté par une fixture interceptée (3 relations) : plus aucun retour anticipé                                                                                                                               | e2e vert                                               |
+| T5  | Couleurs de légende, puces et résumé en jetons (copie ForetMap `index.css` et copie GL `food-web-graph.css`)                                                                                                                                | revue                                                  |
+| T6  | Aide repliable « Aide : lire et manipuler le graphe », fermée par défaut, avec la ligne clavier                                                                                                                                             | `FoodWebGraph.test`                                    |
+
+Documentation de référence mise à jour : `docs/reference/foretmap/plantes-et-biodiversite.md`,
+`niveaux-pedagogiques-biodiversite.md`, `pedagogie-quiz-glossaire-reseau.md`.
+
+Découverte en marge : exécuter l'e2e a révélé que la migration `309` échouait sur une base
+contenant une zone sans forme (`zones.points` NULL recopié dans `visit_zones.points`, qui
+n'accepte pas NULL). Corrigé dans le même lot, avec un test dans `tests/visit-map-mirror.test.js`.

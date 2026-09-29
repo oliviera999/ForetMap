@@ -78,10 +78,16 @@
   pointer-events: none;
 }
 .pedago-foodweb-graph__edge-hit {
-  fill: none;
+  fill: transparent;
   stroke: transparent;
   stroke-width: 14px;
   cursor: pointer;
+}
+/* Cible de toucher des nœuds : 44 px de diamètre, invisible, sous la pastille de 40 px. */
+.pedago-foodweb-graph__node-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
 }
 /* Le graphe se parcourt aussi au clavier : l'anneau de focus doit rester visible
    sur un élément SVG, où `outline` n'est pas fiable selon les navigateurs. */
@@ -157,7 +163,7 @@
     max-height: 100%;
     overflow-y: auto;
   }
-  .pedago-foodweb__layout--graph .pedago-foodweb-graph__hint {
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph__help {
     grid-column: 1 / -1;
     grid-row: 3;
   }
@@ -292,6 +298,16 @@
 .pedago-foodweb-graph__hint {
   font-size: var(--text-sm);
   margin: 0;
+  padding-left: 18px;
+}
+.pedago-foodweb-graph__help > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--forest, var(--ink-success));
 }
 .pedago-foodweb-graph__search {
   display: inline-flex;
@@ -352,12 +368,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 32px;
-  padding: 4px 10px;
+  min-height: 44px;
+  padding: 4px 12px;
   border: 1px solid var(--leaf, #86c79a);
   border-radius: 999px;
   background: var(--tint-success);
-  color: #14532d;
+  color: var(--forest, var(--ink-success));
   font-size: var(--text-sm);
   cursor: pointer;
 }
@@ -370,7 +386,7 @@
   margin: 0;
   padding: 6px 10px;
   border-left: 3px solid var(--leaf, #86c79a);
-  background: #f7fbf8;
+  background: var(--surface-pedago);
   border-radius: 0 8px 8px 0;
   line-height: var(--lh-normal, 1.5);
 }
@@ -386,7 +402,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 4px;
-  background: #eef4f0;
+  background: var(--surface-pedago-soft);
   border-radius: 8px;
   border: 1px solid var(--line-leaf);
   min-width: 120px;
@@ -404,7 +420,7 @@
 }
 .pedago-foodweb-legend {
   padding: 10px 12px;
-  background: #f1f8f3;
+  background: var(--surface-pedago-soft);
   border: 1px solid var(--line-leaf);
   border-radius: 8px;
   font-size: var(--text-sm);
@@ -413,12 +429,12 @@
   margin: 0 0 4px;
   font-weight: var(--fw-semibold);
   font-size: var(--text-sm);
-  color: #1a3d2e;
+  color: var(--forest, var(--ink-success));
 }
 .pedago-foodweb-legend__hint {
   margin: 0 0 10px;
   font-size: var(--text-xs);
-  color: #5a6f62;
+  color: var(--ink-pedago-soft);
   line-height: 1.35;
 }
 .pedago-foodweb-legend__group {
@@ -433,7 +449,7 @@
   font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6b7f72;
+  color: var(--ink-pedago-soft);
   margin-bottom: 6px;
 }
 .pedago-foodweb-legend__list {
@@ -453,6 +469,7 @@
   text-align: left;
 }
 .pedago-foodweb-legend__item--toggle {
+  min-height: 44px;
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 4px 6px;
@@ -463,7 +480,7 @@
   color: inherit;
 }
 .pedago-foodweb-legend__item--toggle:hover {
-  background: #e8f3ec;
+  background: var(--tint-success);
   border-color: var(--line-leaf);
 }
 .pedago-foodweb-legend__item--toggle:focus-visible {

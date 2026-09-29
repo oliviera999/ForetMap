@@ -254,6 +254,45 @@ describe('FoodWebGraph', () => {
     expect(edge.getAttribute('aria-label')).toMatch(/Prédation : Lapin est mangée par Renard/);
   });
 
+  test('T2 : tabulation itinérante — un seul arrêt par famille, flèches du clavier', () => {
+    const { container } = render(<FoodWebGraph items={ITEMS} />);
+    const nodes = () => [...container.querySelectorAll('.pedago-foodweb-graph__node-group')];
+    const edges = () => [...container.querySelectorAll('.pedago-foodweb-graph__edge-hit')];
+    expect(nodes().filter((n) => n.getAttribute('tabindex') === '0').length).toBe(1);
+    expect(edges().filter((e) => e.getAttribute('tabindex') === '0').length).toBe(1);
+    expect(nodes()[1].getAttribute('tabindex')).toBe('-1');
+
+    fireEvent.keyDown(nodes()[0], { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(nodes()[1]);
+    expect(nodes()[1].getAttribute('tabindex')).toBe('0');
+    expect(nodes()[0].getAttribute('tabindex')).toBe('-1');
+
+    fireEvent.keyDown(nodes()[1], { key: 'End' });
+    expect(document.activeElement).toBe(nodes()[nodes().length - 1]);
+    fireEvent.keyDown(nodes()[nodes().length - 1], { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(nodes()[0]);
+
+    fireEvent.keyDown(edges()[0], { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(edges()[1]);
+    expect(edges()[1].getAttribute('tabindex')).toBe('0');
+  });
+
+  test('T1 : cibles de toucher de 44 px sur nœuds et flèches', () => {
+    const { container } = render(<FoodWebGraph items={ITEMS} />);
+    const hit = container.querySelector('.pedago-foodweb-graph__node-hit');
+    expect(Number(hit.getAttribute('r')) * 2).toBeGreaterThanOrEqual(44);
+    const edgeHit = container.querySelector('.pedago-foodweb-graph__edge-hit');
+    expect(Number(edgeHit.getAttribute('r')) * 2).toBeGreaterThanOrEqual(44);
+  });
+
+  test('T6 : l’aide est repliable et documente le clavier', () => {
+    const { container } = render(<FoodWebGraph items={ITEMS} />);
+    const help = container.querySelector('details.pedago-foodweb-graph__help');
+    expect(help).toBeTruthy();
+    expect(help.open).toBe(false);
+    expect(help.textContent).toMatch(/touches fléchées/);
+  });
+
   test('le SVG n’est plus un role="img" (son contenu resterait masqué)', () => {
     const { container } = render(<FoodWebGraph items={ITEMS} />);
     expect(container.querySelector('svg.pedago-foodweb-graph').getAttribute('role')).toBe('group');

@@ -3187,54 +3187,81 @@
       display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 12px;
     }
     .id-key-schema { margin:8px 0 4px; }
+    .id-key-schema__tools { display:flex; justify-content:flex-end; gap:8px; margin:0 0 6px; }
+    .id-key-schema__tools .btn { min-height:44px; }
     .id-key-schema__scroll {
       overflow:auto; max-width:100%; max-height:min(70vh, 560px);
       border:1px solid var(--line-pedago); border-radius:10px;
       background: color-mix(in srgb, var(--sage) 12%, var(--surface-plain));
     }
+    .id-key-schema__scroll--fit { max-height:none; overflow:hidden; }
     .id-key-schema__svg { display:block; min-width:100%; }
+    .id-key-schema__svg--fit { width:100%; height:auto; min-width:0; }
     .id-key-schema__hint { margin:8px 0 0; font-size:var(--text-base); }
+    .id-key-schema__current { margin-top:10px; }
+    .id-key-schema__current-title { margin:0 0 6px; font-weight:var(--fw-semibold); }
+    .id-key-schema__author-note {
+      margin:8px 0 0; padding:6px 10px; border-left:3px solid var(--accent-warning-solid);
+      background:var(--tint-warning); color:var(--ink-warning); border-radius:0 8px 8px 0;
+    }
     .id-key-schema__edge-line {
-      stroke:#6b8f71; stroke-width:2; fill:none;
+      stroke:var(--ink-lichen); stroke-width:2; fill:none;
     }
     .id-key-schema__edge--path .id-key-schema__edge-line {
-      stroke:#2f6b3a; stroke-width:2.5;
-    }
-    .id-key-schema__edge--active .id-key-schema__edge-line {
       stroke:var(--accent-leaf-deep); stroke-width:3;
     }
-    .id-key-schema__edge--dim { opacity:0.28; }
-    .id-key-schema__edge-hit {
-      fill:none; stroke:transparent; stroke-width:44;
+    .id-key-schema__edge--active .id-key-schema__edge-line {
+      stroke:var(--forest); stroke-width:3.5;
     }
+    .id-key-schema__edge--missing .id-key-schema__edge-line { stroke-dasharray:5 4; }
+    .id-key-schema__edge--dim { opacity:0.35; }
     .id-key-schema__edge-label-bg {
       fill:var(--surface-plain); stroke:var(--line-pedago-strong); stroke-width:1;
     }
+    .id-key-schema__edge--path .id-key-schema__edge-label-bg {
+      fill:var(--tint-success); stroke:var(--accent-leaf-deep); stroke-width:1.5;
+    }
     .id-key-schema__edge--active .id-key-schema__edge-label-bg {
-      stroke:var(--accent-leaf-deep); stroke-width:1.5;
+      stroke:var(--forest); stroke-width:2;
     }
     .id-key-schema__edge-label-text {
       font:600 11px system-ui, sans-serif; fill:var(--ink-strong);
     }
-    .id-key-schema__edge-img {
-      border-radius:6px;
-    }
     .id-key-schema__edge-tap {
       fill:transparent; cursor:pointer;
+    }
+    .id-key-schema__edge-label[role='button'] { cursor:pointer; }
+    .id-key-schema__edge-label[role='button']:focus { outline:none; }
+    .id-key-schema__edge-label[role='button']:focus-visible .id-key-schema__edge-label-bg,
+    .id-key-schema__edge-label[role='button']:hover .id-key-schema__edge-label-bg {
+      fill:var(--tint-success-strong); stroke-width:3;
     }
     .id-key-schema__node-shape {
       fill:var(--tint-success-strong); stroke:var(--accent-success-solid); stroke-width:1.5;
     }
     .id-key-schema__node--current .id-key-schema__node-shape {
-      fill:#86efac; stroke:var(--ink-success); stroke-width:2.5;
+      fill:var(--forest); stroke:var(--forest); stroke-width:2;
+    }
+    .id-key-schema__node--current .id-key-schema__node-number { fill:var(--surface-plain); }
+    .id-key-schema__node-ring {
+      fill:none; stroke:var(--forest); stroke-width:2.5; stroke-dasharray:4 3;
     }
     .id-key-schema__node--path .id-key-schema__node-shape {
-      fill:#bbf7d0; stroke:#15803d; stroke-width:2;
+      stroke:var(--accent-leaf-deep); stroke-width:2.5;
     }
     .id-key-schema__node--plant .id-key-schema__node-shape {
-      fill:#fef9c3; stroke:#ca8a04;
+      fill:var(--tint-warning); stroke:var(--accent-warning-solid);
     }
-    .id-key-schema__node--dim { opacity:0.28; }
+    .id-key-schema__node--hidden .id-key-schema__node-shape {
+      fill:var(--surface-sunken); stroke:var(--ink-dim); stroke-dasharray:4 3;
+    }
+    .id-key-schema__node--ref .id-key-schema__node-shape {
+      fill:var(--surface-cool); stroke:var(--line-cool); stroke-dasharray:5 3;
+    }
+    .id-key-schema__node--missing .id-key-schema__node-shape {
+      fill:var(--tint-danger); stroke:var(--accent-danger-solid); stroke-dasharray:5 3;
+    }
+    .id-key-schema__node--dim { opacity:0.35; }
     .id-key-schema__node-number {
       font:700 13px system-ui, sans-serif; fill:var(--forest);
     }
@@ -3244,9 +3271,16 @@
     .id-key-schema__node-label {
       font:600 10px system-ui, sans-serif; fill:var(--ink-strong);
     }
-    .id-key-schema__node-tap {
-      fill:transparent; cursor:pointer;
+    .id-key-schema__node--plant[role='button'] { cursor:pointer; }
+    .id-key-schema__node--plant[role='button']:focus { outline:none; }
+    .id-key-schema__node--plant[role='button']:focus-visible .id-key-schema__node-shape {
+      stroke:var(--forest); stroke-width:3;
     }
+    .id-key-trail {
+      margin:6px 0 10px; padding:6px 10px; border-left:3px solid var(--accent-leaf-deep);
+      background:var(--surface-pedago); border-radius:0 8px 8px 0; font-size:var(--text-sm);
+    }
+    .id-key-trail ol { margin:4px 0 0; padding-left:20px; }
 
     /* Suivi d'individus (lot 7) */
     .individuals-view { padding: 12px 4px 24px; max-width: 920px; }
@@ -10018,10 +10052,16 @@
   pointer-events: none;
 }
 .pedago-foodweb-graph__edge-hit {
-  fill: none;
+  fill: transparent;
   stroke: transparent;
   stroke-width: 14px;
   cursor: pointer;
+}
+/* Cible de toucher des nœuds : 44 px de diamètre, invisible, sous la pastille de 40 px. */
+.pedago-foodweb-graph__node-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
 }
 /* Le graphe se parcourt aussi au clavier : l'anneau de focus doit rester visible
    sur un élément SVG, où `outline` n'est pas fiable selon les navigateurs. */
@@ -10091,7 +10131,7 @@
     max-height: 100%;
     overflow-y: auto;
   }
-  .pedago-foodweb__layout--graph .pedago-foodweb-graph__hint {
+  .pedago-foodweb__layout--graph .pedago-foodweb-graph__help {
     grid-column: 1 / -1;
     grid-row: 3;
   }
@@ -10226,6 +10266,25 @@
 .pedago-foodweb-graph__hint {
   font-size: var(--text-sm);
   margin: 0;
+  padding-left: 18px;
+}
+.pedago-foodweb-graph__help > summary {
+  min-height: var(--tap-target, 44px);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--forest);
+}
+/* Résumé en toutes lettres de l'espèce isolée : il n'était habillé que côté G&L. */
+.pedago-foodweb-graph__summary {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--leaf);
+  background: var(--surface-pedago);
+  border-radius: 0 8px 8px 0;
+  line-height: var(--lh-normal, 1.5);
 }
 .pedago-foodweb-graph__col-label {
   font: 600 11px var(--font-sans, sans-serif);
@@ -10334,7 +10393,7 @@
 }
 .pedago-foodweb-legend {
   padding: 10px 12px;
-  background: #f1f8f3;
+  background: var(--surface-pedago-soft);
   border: 1px solid var(--line-leaf);
   border-radius: 8px;
   font-size: var(--text-sm);
@@ -10343,12 +10402,12 @@
   margin: 0 0 4px;
   font-weight: var(--fw-semibold);
   font-size: var(--text-sm);
-  color: #1a3d2e;
+  color: var(--forest);
 }
 .pedago-foodweb-legend__hint {
   margin: 0 0 10px;
   font-size: var(--text-xs);
-  color: #5a6f62;
+  color: var(--ink-pedago-soft);
   line-height: 1.35;
 }
 .pedago-foodweb-legend__group {
@@ -10363,7 +10422,7 @@
   font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6b7f72;
+  color: var(--ink-pedago-soft);
   margin-bottom: 6px;
 }
 .pedago-foodweb-legend__list {
@@ -10383,6 +10442,7 @@
   text-align: left;
 }
 .pedago-foodweb-legend__item--toggle {
+  min-height: 44px;
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 4px 6px;
@@ -10393,7 +10453,7 @@
   color: inherit;
 }
 .pedago-foodweb-legend__item--toggle:hover {
-  background: #e8f3ec;
+  background: var(--tint-success);
   border-color: var(--line-leaf);
 }
 .pedago-foodweb-legend__item--toggle:focus-visible {

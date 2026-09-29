@@ -294,10 +294,18 @@ d'observation** pour l'écriture naturaliste libre.
   **présentes sur la carte** — au registre du site, dans une zone ou sur un repère —, la
   même liste que le catalogue, la fiche espèce, les Groupes emboîtés et la visite (voir
   [Plantes et biodiversité](plantes-et-biodiversite.md), « Présente sur ce site »).
-- **Le graphe se parcourt aussi au clavier** : la tabulation passe d'une espèce et d'une
-  relation à l'autre, `Entrée` isole le réseau d'une espèce (ou sélectionne une relation),
-  `Maj+Entrée` ouvre la fiche de l'espèce. Utile en vidéoprojection sans souris, et
-  nécessaire aux lecteurs d'écran, pour qui le graphe était jusqu'ici entièrement muet.
+- **Le graphe se parcourt aussi au clavier** : une seule tabulation entre dans les espèces,
+  une autre dans les relations ; on passe ensuite de l'une à l'autre avec les **touches
+  fléchées** (`Début` / `Fin` pour aller à la première ou à la dernière), sans devoir
+  traverser tout le graphe pour atteindre le reste de la page. `Entrée` isole le réseau
+  d'une espèce (ou sélectionne une relation), `Maj+Entrée` ouvre la fiche de l'espèce.
+  Utile en vidéoprojection sans souris, et nécessaire aux lecteurs d'écran.
+- **Facile à toucher sur tablette** : chaque espèce et chaque flèche offre une zone de
+  toucher d'au moins un doigt de large, de même que les boutons de légende et les puces
+  de sélection.
+- **Une aide repliée** « Aide : lire et manipuler le graphe » résume, sous le graphe, les
+  gestes (toucher, isoler, déplacer, zoomer) et les touches du clavier ; elle reste fermée
+  par défaut pour laisser la place au graphe.
 - **Changer de carte ou de zone ne laisse plus de filtre fantôme** : un type d'interaction
   qui n'existe pas dans la nouvelle sélection revient à « Tous », au lieu d'afficher un
   menu vide et un réseau annoncé comme vide à tort.

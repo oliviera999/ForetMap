@@ -155,3 +155,36 @@ test('migration 309 : orphelins supprimés, manquants ajoutés, identité réali
     await auth(request(app).delete(`/api/map/markers/${id}`)).expect(200);
   }
 });
+
+test('migration 309 : une zone sans forme (points NULL) ne bloque pas le démarrage', async () => {
+  const created = async (label) =>
+    auth(request(app).post('/api/zones'))
+      .send({
+        name: `${label} ${stamp}`,
+        map_id: 'foret',
+        points: [
+          { xp: 10, yp: 10 },
+          { xp: 20, yp: 10 },
+          { xp: 15, yp: 20 },
+        ],
+        stage: 'empty',
+      })
+      .expect(201);
+  const missing = (await created('Sans forme manquante')).body.id;
+  const drifted = (await created('Sans forme dérivée')).body.id;
+  await execute('UPDATE zones SET points = NULL WHERE id IN (?, ?)', [missing, drifted]);
+  await execute('DELETE FROM visit_zones WHERE id = ?', [missing]);
+
+  await runMigration();
+
+  for (const id of [missing, drifted]) {
+    const row = await queryOne('SELECT points FROM visit_zones WHERE id = ?', [id]);
+    assert.ok(row, 'ligne visite présente');
+    assert.strictEqual(row.points, '[]');
+  }
+  await runMigration();
+
+  for (const id of [missing, drifted]) {
+    await auth(request(app).delete(`/api/zones/${id}`)).expect(200);
+  }
+});

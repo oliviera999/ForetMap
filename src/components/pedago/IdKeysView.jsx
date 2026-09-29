@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { IconAdd, IconBiodiv, IconDelete, IconEdit, IconSearch } from '../../shared/icons.jsx';
 import { IdKeySchemaView } from './IdKeySchemaView.jsx';
+import { isLeadUsable } from '../../utils/idKeySchemaLayout.js';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
 import { QUESTION_NIVEAU_ENUM } from '../../shared/enums/pedagoEnums.js';
 
@@ -26,61 +27,91 @@ function storeReaderMode(mode) {
   }
 }
 
-function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
-  const [history, setHistory] = useState([]);
+/** Récapitulatif des propositions choisies : la justification attendue de l'élève. */
+function TrailRecap({ trail, title = 'Chemin parcouru' }) {
+  if (!trail.length) return null;
+  return (
+    <div className="id-key-trail" aria-live="polite">
+      <strong>{title} :</strong>
+      <ol>
+        {trail.map((step) => (
+          <li key={step.leadId}>{step.statement || 'Proposition sans énoncé'}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ReaderPanel({ keyBundle, onOpenPlant, onBack, canManage = false }) {
+  /** Propositions choisies, dans l'ordre : on sait ainsi *pourquoi* on est arrivé ici. */
+  const [trail, setTrail] = useState([]);
   const [readerMode, setReaderMode] = useState(readStoredReaderMode);
+  /** Schéma : espèces masquées tant qu'elles ne sont pas atteintes (sinon il donne les réponses). */
+  const [revealPlants, setRevealPlants] = useState(false);
+  const couplets = useMemo(() => keyBundle?.couplets || [], [keyBundle]);
+  const coupletIds = useMemo(() => new Set(couplets.map((c) => Number(c.id))), [couplets]);
   const startCouplet = useMemo(
-    () =>
-      (keyBundle?.couplets || []).find((c) => Number(c.number) === 1) || keyBundle?.couplets?.[0],
-    [keyBundle],
+    () => couplets.find((c) => Number(c.number) === 1) || couplets[0],
+    [couplets],
+  );
+  const lastStep = trail.length ? trail[trail.length - 1] : null;
+  const arrivedPlant = lastStep?.plant || null;
+  const history = useMemo(
+    () => trail.filter((step) => step.nextCoupletId != null).map((step) => step.nextCoupletId),
+    [trail],
   );
   const currentId = history.length ? history[history.length - 1] : startCouplet?.id;
-  const current = (keyBundle?.couplets || []).find((c) => Number(c.id) === Number(currentId));
-  const [arrivedPlant, setArrivedPlant] = useState(null);
+  const current = couplets.find((c) => Number(c.id) === Number(currentId));
 
   const setMode = useCallback((mode) => {
     setReaderMode(mode);
     storeReaderMode(mode);
   }, []);
 
-  const chooseLead = useCallback((lead) => {
-    if (lead.plant_id) {
-      setArrivedPlant({
-        id: lead.plant_id,
-        name: lead.plant_name,
-        emoji: lead.plant_emoji,
-      });
-    } else if (lead.next_couplet_id) {
-      setHistory((h) => [...h, lead.next_couplet_id]);
-    }
-  }, []);
+  const chooseLead = useCallback(
+    (lead) => {
+      if (!isLeadUsable(lead, coupletIds)) return;
+      const step = {
+        leadId: Number(lead.id),
+        statement: lead.statement || '',
+        nextCoupletId: lead.next_couplet_id ? Number(lead.next_couplet_id) : null,
+        plant: lead.next_couplet_id
+          ? null
+          : { id: lead.plant_id, name: lead.plant_name, emoji: lead.plant_emoji },
+      };
+      setTrail((t) => [...t, step]);
+    },
+    [coupletIds],
+  );
+
+  const stepBack = useCallback(() => setTrail((t) => t.slice(0, -1)), []);
+  const restart = useCallback(() => setTrail([]), []);
 
   if (!keyBundle) return null;
   if (arrivedPlant) {
     return (
       <div className="id-key-reader">
         <p className="form-success">Espèce identifiée</p>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => onOpenPlant?.(arrivedPlant.id)}
-        >
-          {arrivedPlant.emoji ? `${arrivedPlant.emoji} ` : ''}
-          {arrivedPlant.name || `Fiche #${arrivedPlant.id}`}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => {
-            setArrivedPlant(null);
-            setHistory([]);
-          }}
-        >
-          Recommencer
-        </button>
-        <button type="button" className="btn" onClick={onBack}>
-          Retour à la liste
-        </button>
+        <TrailRecap trail={trail} title="Caractères observés" />
+        <div className="id-key-reader__nav">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => onOpenPlant?.(arrivedPlant.id)}
+          >
+            {arrivedPlant.emoji ? `${arrivedPlant.emoji} ` : ''}
+            {arrivedPlant.name || `Fiche #${arrivedPlant.id}`}
+          </button>
+          <button type="button" className="btn" onClick={stepBack}>
+            Retour
+          </button>
+          <button type="button" className="btn" onClick={restart}>
+            Recommencer
+          </button>
+          <button type="button" className="btn" onClick={onBack}>
+            Retour à la liste
+          </button>
+        </div>
       </div>
     );
   }
@@ -113,18 +144,31 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
           Schéma
         </button>
       </div>
+      <TrailRecap trail={trail} />
       {readerMode === 'schema' ? (
         <>
           <p className="muted">
-            Couplet {current.number} — schéma de la clé (branche active depuis le nœud mis en
-            évidence).
+            Couplet {current.number} — schéma de la clé (branche active depuis le couplet entouré).
           </p>
+          {canManage ? (
+            <button
+              type="button"
+              className="btn btn-sm"
+              aria-pressed={revealPlants}
+              onClick={() => setRevealPlants((on) => !on)}
+            >
+              {revealPlants ? 'Masquer les espèces' : 'Montrer toutes les espèces'}
+            </button>
+          ) : null}
           <IdKeySchemaView
             keyBundle={keyBundle}
             currentCoupletId={currentId}
             history={history}
+            pathLeadIds={trail.map((step) => step.leadId)}
             onChooseLead={chooseLead}
             onOpenPlant={onOpenPlant}
+            revealPlants={revealPlants}
+            authorMode={canManage}
           />
         </>
       ) : (
@@ -133,34 +177,34 @@ function ReaderPanel({ keyBundle, onOpenPlant, onBack }) {
             Couplet {current.number} — choisissez le caractère observé (sans manipuler).
           </p>
           <ul className="id-key-leads">
-            {(current.leads || []).map((lead) => (
-              <li key={lead.id}>
-                <button
-                  type="button"
-                  className="btn id-key-lead-btn"
-                  onClick={() => chooseLead(lead)}
-                >
-                  {lead.image_url ? (
-                    <img
-                      src={resolveExternalImageUrl(lead.image_url)}
-                      alt=""
-                      className="id-key-lead-img"
-                    />
-                  ) : null}
-                  <span>{lead.statement}</span>
-                </button>
-              </li>
-            ))}
+            {(current.leads || []).map((lead) => {
+              const usable = isLeadUsable(lead, coupletIds);
+              return (
+                <li key={lead.id}>
+                  <button
+                    type="button"
+                    className="btn id-key-lead-btn"
+                    disabled={!usable}
+                    onClick={() => chooseLead(lead)}
+                  >
+                    {lead.image_url ? (
+                      <img
+                        src={resolveExternalImageUrl(lead.image_url)}
+                        alt=""
+                        className="id-key-lead-img"
+                      />
+                    ) : null}
+                    <span>{lead.statement}</span>
+                    {!usable ? <span className="muted"> (à compléter)</span> : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
       <div className="id-key-reader__nav">
-        <button
-          type="button"
-          className="btn"
-          disabled={history.length === 0}
-          onClick={() => setHistory((h) => h.slice(0, -1))}
-        >
+        <button type="button" className="btn" disabled={trail.length === 0} onClick={stepBack}>
           Retour
         </button>
         <button type="button" className="btn" onClick={onBack}>
@@ -559,7 +603,12 @@ export function IdKeysView({
           <EditorPanel keyBundle={active} onReload={reloadActive} plants={plants} />
         </>
       ) : (
-        <ReaderPanel keyBundle={active} onOpenPlant={onOpenPlant} onBack={() => setActive(null)} />
+        <ReaderPanel
+          keyBundle={active}
+          onOpenPlant={onOpenPlant}
+          onBack={() => setActive(null)}
+          canManage={canManage}
+        />
       )}
     </div>
   );

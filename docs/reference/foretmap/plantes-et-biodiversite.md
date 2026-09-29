@@ -165,9 +165,30 @@ de l’espèce. Deux modes de lecture, interchangeables à tout moment :
 
 - **Questions** : une fourche à la fois, avec retour en arrière ;
 - **Schéma** : l’arbre entier de la clé (couplets et propositions), avec le couplet
-  courant mis en évidence ; on avance en touchant une branche depuis ce couplet. Les
-  images associées aux propositions apparaissent sur le schéma quand elles sont
-  renseignées.
+  courant entouré d’un double anneau et amené automatiquement à l’écran. On avance en
+  touchant l’énoncé d’une branche qui part de ce couplet, ou en choisissant parmi les
+  propositions du couplet, reprises en toutes lettres sous le schéma. Le chemin déjà
+  parcouru est surligné. Les images associées aux propositions apparaissent sur le
+  schéma quand elles sont renseignées. Un bouton **Ajuster à l’écran** / **Taille
+  réelle** permet de voir toute la clé d’un coup d’œil ou de zoomer.
+
+Dans les deux modes :
+
+- le **chemin parcouru** est rappelé au fil de la lecture ; à l’arrivée, il devient la
+  liste des **caractères observés** qui ont mené à l’espèce, et le bouton **Retour**
+  reste disponible pour revenir sur un choix ;
+- sur le schéma, les espèces restent **masquées** (« ? », « À trouver ») tant qu’on ne
+  les a pas atteintes : le schéma ne donne pas la réponse. Les enseignants qui gèrent
+  les clés disposent d’un bouton **Montrer toutes les espèces** pour vérifier leur clé ;
+- quand une même suite de questions sert à plusieurs endroits, le schéma ne la dessine
+  qu’une fois et renvoie vers elle par une étiquette « → Couplet N » ;
+- une proposition encore incomplète (qui ne mène ni à un couplet ni à une espèce) est
+  affichée « à compléter » et ne peut pas être choisie. Les enseignants voient en plus,
+  sous le schéma, les propositions à compléter et les couplets qui ne sont reliés à
+  rien — les élèves ne les verront jamais ;
+- tout se pilote aussi **au clavier** (Tab pour passer d’une proposition à l’autre,
+  Entrée ou Espace pour la choisir), et l’énoncé complet d’une branche s’affiche au
+  survol quand il est trop long pour le schéma.
 
 Les énoncés décrivent des **caractères observables** — jamais une invitation à
 cueillir, goûter ou manipuler. Les enseignants autorisés créent et publient les clés

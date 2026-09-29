@@ -61,10 +61,13 @@ DELETE v FROM visit_markers v LEFT JOIN map_markers m ON m.id = v.id WHERE m.id 
 -- ---------------------------------------------------------------------------------------
 -- 2) Identité recopiée depuis la carte (carte, nom, forme, position, emoji)
 -- ---------------------------------------------------------------------------------------
+-- `zones.points` accepte NULL (zone sans forme dessinée), `visit_zones.points` non : la
+-- valeur de repli '[]' est celle de `mapZoneToVisitWhitelistFields`.
 UPDATE visit_zones v
   JOIN zones z ON z.id = v.id
-   SET v.map_id = z.map_id, v.name = z.name, v.points = z.points
- WHERE NOT (v.map_id <=> z.map_id AND v.name <=> z.name AND v.points <=> z.points);
+   SET v.map_id = z.map_id, v.name = z.name, v.points = COALESCE(z.points, '[]')
+ WHERE NOT (v.map_id <=> z.map_id AND v.name <=> z.name
+            AND v.points <=> COALESCE(z.points, '[]'));
 
 UPDATE visit_markers v
   JOIN map_markers m ON m.id = v.id
@@ -79,7 +82,7 @@ UPDATE visit_markers v
 INSERT INTO visit_zones
   (id, map_id, name, points, subtitle, short_description, details_title, details_text,
    body_json, visible_role_slugs, visible_group_ids, is_active, sort_order, created_at, updated_at)
-SELECT z.id, z.map_id, z.name, z.points, '', COALESCE(z.description, ''), 'Détails', '',
+SELECT z.id, z.map_id, z.name, COALESCE(z.points, '[]'), '', COALESCE(z.description, ''), 'Détails', '',
        NULL, z.visible_role_slugs, z.visible_group_ids, 1, 0, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3)
   FROM zones z
   LEFT JOIN visit_zones v ON v.id = z.id

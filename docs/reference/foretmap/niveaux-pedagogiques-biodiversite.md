@@ -88,7 +88,8 @@ Public typique : licence, formation d’enseignants, projets de recherche pédag
   - détails de qualité des liens et d’efficacité de pollinisation pleinement exposés ;
   - classification latine et référentiel scientifique (lien GBIF) au premier plan ;
   - liberté d’explorer l’arbre des groupes et les clés sans parcours imposé (mode
-    Schéma particulièrement utile pour parcourir la structure).
+    Schéma particulièrement utile pour parcourir la structure ; comme à tous les
+    niveaux, les espèces n’y sont dévoilées qu’une fois atteintes).
 
 > **Rappel** — « Université » ne crée pas un nouveau rôle dans l’établissement : c’est
 > un **niveau**, le plus haut de l’échelle. Des élèves du lycée peuvent être placés en
