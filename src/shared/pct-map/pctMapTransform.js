@@ -224,6 +224,63 @@ export function centerPctMapTransformOnPct(pct, scale, bounds, fitRect = null, i
   return clampPctMapTransform({ s, x: targetX - cx * s, y: targetY - cy * s }, bounds);
 }
 
+/**
+ * Vue courante exprimée **indépendamment du cadre** : point du plan au centre du cadre (% du
+ * rectangle image) et zoom relatif à l'échelle d'ajustement. C'est ce qui permet de passer la
+ * vue d'un moteur à un autre (consultation ↔ édition de la carte de travail) ou d'un cadre à un
+ * autre (redimensionnement) sans retomber sur la carte entière.
+ * @param {{ transform: { x: number, y: number, s: number }, stage: { w: number, h: number },
+ *   fitRect: { offsetX?: number, offsetY?: number, width: number, height: number },
+ *   fitScale?: number }} view `fitRect` : rectangle image dans le contenu à l'échelle 1 ;
+ *   `fitScale` : échelle d'ajustement (1 en mode scène).
+ * @returns {{ xp: number, yp: number, zoom: number }|null} `null` si la vue n'est pas mesurée.
+ */
+export function pctMapViewSnapshot({ transform, stage, fitRect, fitScale = 1 } = {}) {
+  const s = num(transform?.s, 0);
+  const sw = num(stage?.w, 0);
+  const sh = num(stage?.h, 0);
+  const fw = num(fitRect?.width, 0);
+  const fh = num(fitRect?.height, 0);
+  const fit = num(fitScale, 0);
+  if (!(s > 0) || !(sw > 0) || !(sh > 0) || !(fw > 1) || !(fh > 1) || !(fit > 0)) return null;
+  const wx = (sw / 2 - num(transform.x)) / s;
+  const wy = (sh / 2 - num(transform.y)) / s;
+  return {
+    xp: ((wx - num(fitRect.offsetX)) / fw) * 100,
+    yp: ((wy - num(fitRect.offsetY)) / fh) * 100,
+    zoom: s / fit,
+  };
+}
+
+/**
+ * Transformation qui restitue une vue capturée par `pctMapViewSnapshot` dans un cadre donné :
+ * même point du plan au centre, même zoom relatif à l'ajustement, bornée au cadre.
+ * @param {{ xp: number, yp: number, zoom: number }} snapshot
+ * @param {object} bounds `{ content, stage, min, max }` (cf. `clampPctMapTransform`)
+ * @param {{ fitScale?: number, fitRect?: object|null }} [options]
+ * @returns {{ x: number, y: number, s: number }|null}
+ */
+export function pctMapTransformFromViewSnapshot(
+  snapshot,
+  bounds,
+  { fitScale = 1, fitRect = null } = {},
+) {
+  const zoom = num(snapshot?.zoom, 0);
+  if (
+    !(zoom > 0) ||
+    !Number.isFinite(Number(snapshot?.xp)) ||
+    !Number.isFinite(Number(snapshot?.yp))
+  )
+    return null;
+  const fit = num(fitScale, 1) > 0 ? Number(fitScale) : 1;
+  return centerPctMapTransformOnPct(
+    { xp: Number(snapshot.xp), yp: Number(snapshot.yp) },
+    zoom * fit,
+    bounds,
+    fitRect,
+  );
+}
+
 /** Accélération de retombée de l'inertie (px/ms²) — décroissance exponentielle de la vitesse. */
 export const PCT_MAP_INERTIA_FRICTION = 0.0045;
 /** Vitesse (px/ms) sous laquelle un relâchement ne déclenche pas d'inertie. */

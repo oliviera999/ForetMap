@@ -520,6 +520,12 @@ directement sur le plan ; rien n'est enregistré tant qu'on n'a pas cliqué « S
 Sur un plan calé GPS, le bandeau du bas indique la **surface estimée** du contour
 (« 📐 ≈ 1 234 m² »), mise à jour à chaque déplacement de sommet.
 
+**Le zoom et le cadrage sont conservés** : entrer dans ce mode, tracer une nouvelle zone,
+poser un repère, aligner des zones, puis revenir à la consultation (en sauvant ou en
+annulant) garde exactement la portion du plan qu'on regardait, au même grossissement. La
+carte ne revient à la vue d'ensemble que si l'on appuie sur le bouton de recentrage, ou
+quand on change de plan.
+
 - **Déplacer un sommet** : le faire glisser. **Déplacer la zone entière** : glisser
   l'intérieur du contour.
 - **Ajouter un sommet** : tirer (ou toucher) une **poignée pointillée** au milieu d'un

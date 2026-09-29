@@ -523,4 +523,57 @@ describe('usePctMapViewport', () => {
     expect(apiRef.current.committed.x).toBeGreaterThanOrEqual(200 - 400);
     expect(apiRef.current.stageSize).toEqual({ w: 200, h: 150 });
   });
+
+  describe('relais de vue (consultation ↔ édition de la carte de travail)', () => {
+    const expectView = (snap, { xp, yp, zoom }) => {
+      expect(snap.xp).toBeCloseTo(xp);
+      expect(snap.yp).toBeCloseTo(yp);
+      expect(snap.zoom).toBeCloseTo(zoom);
+    };
+
+    it('initialView : restituée une fois l’image mesurée, au lieu de la carte entière', () => {
+      const { apiRef } = setup({ initialView: { xp: 30, yp: 40, zoom: 4 } });
+      expect(apiRef.current.committed.s).toBeCloseTo(0.4 * 4);
+      expectView(apiRef.current.getViewSnapshot(), { xp: 30, yp: 40, zoom: 4 });
+    });
+
+    it('initialView en mode scène : zoom relatif à l’ajustement (échelle 1)', () => {
+      const { apiRef } = setup({ contentMode: 'stage', initialView: { xp: 30, yp: 40, zoom: 4 } });
+      expect(apiRef.current.committed.s).toBeCloseTo(4);
+      expectView(apiRef.current.getViewSnapshot(), { xp: 30, yp: 40, zoom: 4 });
+    });
+
+    it('restoreView sur un cadre déjà mesuré : appliquée immédiatement', () => {
+      const { apiRef } = setup();
+      act(() => {
+        apiRef.current.restoreView({ xp: 70, yp: 60, zoom: 2.5 });
+      });
+      expect(apiRef.current.committed.s).toBeCloseTo(1);
+      expectView(apiRef.current.getViewSnapshot(), { xp: 70, yp: 60, zoom: 2.5 });
+    });
+
+    it('onResize « preserve » : même point central et même zoom relatif après redimensionnement', () => {
+      vi.useFakeTimers();
+      const { apiRef, canvas } = setup({ onResize: 'preserve' });
+      act(() => {
+        apiRef.current.restoreView({ xp: 40, yp: 50, zoom: 3 });
+      });
+      mockBox(canvas, 800, 600);
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+        vi.advanceTimersByTime(200);
+      });
+      expect(apiRef.current.fitScale).toBeCloseTo(0.8);
+      expect(apiRef.current.committed.s).toBeCloseTo(0.8 * 3);
+      expectView(apiRef.current.getViewSnapshot(), { xp: 40, yp: 50, zoom: 3 });
+    });
+
+    it('fitMap (bouton recentrer) : revient à la carte entière', () => {
+      const { apiRef } = setup({ initialView: { xp: 30, yp: 40, zoom: 4 } });
+      act(() => {
+        apiRef.current.fitMap();
+      });
+      expect(apiRef.current.committed).toEqual({ x: 0, y: 50, s: 0.4 });
+    });
+  });
 });

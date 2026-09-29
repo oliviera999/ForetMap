@@ -10,6 +10,8 @@ import {
   pctMapInertiaStep,
   pctMapReleaseVelocity,
   pctMapTransformEquals,
+  pctMapTransformFromViewSnapshot,
+  pctMapViewSnapshot,
   pinchPctMapTransform,
   zoomPctMapTransformToScale,
 } from '../../src/shared/pct-map/pctMapTransform.js';
@@ -265,5 +267,94 @@ describe('bords recouverts (viewport insets)', () => {
       bottom: 180,
     });
     expect(95 * 3 + without.y).toBeGreaterThan(300 - 180);
+  });
+});
+
+describe('pctMapViewSnapshot / pctMapTransformFromViewSnapshot (relais de vue)', () => {
+  const imageFitRect = { offsetX: 0, offsetY: 0, width: 1000, height: 500 };
+  const imageFitScale = fitPctMapTransform(imageBounds.content, stage).s;
+  // Même plan en mode « scène » : image 1000×500 en `contain` dans 400×300 → 400×200, décalée de 50.
+  const sceneFitRect = { offsetX: 0, offsetY: 50, width: 400, height: 200 };
+  const sceneImageBounds = { content: stage, stage, min: 0.5, max: 8 };
+
+  test('vue non mesurée (image 1×1, cadre nul) → null', () => {
+    expect(
+      pctMapViewSnapshot({
+        transform: { x: 0, y: 0, s: 1 },
+        stage: { w: 0, h: 0 },
+        fitRect: imageFitRect,
+        fitScale: 1,
+      }),
+    ).toBeNull();
+    expect(
+      pctMapViewSnapshot({
+        transform: { x: 0, y: 0, s: 1 },
+        stage,
+        fitRect: { offsetX: 0, offsetY: 0, width: 1, height: 1 },
+        fitScale: 1,
+      }),
+    ).toBeNull();
+    expect(pctMapTransformFromViewSnapshot(null, imageBounds)).toBeNull();
+  });
+
+  test('carte ajustée → centre du plan, zoom 1, et restitution = ajustement', () => {
+    const fit = fitPctMapTransform(imageBounds.content, stage);
+    const snap = pctMapViewSnapshot({
+      transform: fit,
+      stage,
+      fitRect: imageFitRect,
+      fitScale: imageFitScale,
+    });
+    expect(snap.xp).toBeCloseTo(50);
+    expect(snap.yp).toBeCloseTo(50);
+    expect(snap.zoom).toBeCloseTo(1);
+    const back = pctMapTransformFromViewSnapshot(snap, imageBounds, { fitScale: imageFitScale });
+    expect(pctMapTransformEquals(back, fit, { epsilon: 0.01 })).toBe(true);
+  });
+
+  test('vue zoomée : aller-retour dans le même cadre', () => {
+    const zoomed = centerPctMapTransformOnPct({ xp: 30, yp: 40 }, imageFitScale * 4, imageBounds);
+    const snap = pctMapViewSnapshot({
+      transform: zoomed,
+      stage,
+      fitRect: imageFitRect,
+      fitScale: imageFitScale,
+    });
+    expect(snap.xp).toBeCloseTo(30);
+    expect(snap.yp).toBeCloseTo(40);
+    expect(snap.zoom).toBeCloseTo(4);
+    const back = pctMapTransformFromViewSnapshot(snap, imageBounds, { fitScale: imageFitScale });
+    expect(pctMapTransformEquals(back, zoomed, { epsilon: 0.01 })).toBe(true);
+  });
+
+  test('relais édition (mode image) → consultation (mode scène) : même point, même zoom relatif', () => {
+    const zoomed = centerPctMapTransformOnPct({ xp: 30, yp: 40 }, imageFitScale * 4, imageBounds);
+    const snap = pctMapViewSnapshot({
+      transform: zoomed,
+      stage,
+      fitRect: imageFitRect,
+      fitScale: imageFitScale,
+    });
+    const scene = pctMapTransformFromViewSnapshot(snap, sceneImageBounds, {
+      fitScale: 1,
+      fitRect: sceneFitRect,
+    });
+    expect(scene.s).toBeCloseTo(4);
+    const again = pctMapViewSnapshot({
+      transform: scene,
+      stage,
+      fitRect: sceneFitRect,
+      fitScale: 1,
+    });
+    expect(again.xp).toBeCloseTo(30);
+    expect(again.yp).toBeCloseTo(40);
+    expect(again.zoom).toBeCloseTo(4);
+  });
+
+  test('zoom restitué borné par le cadre d’accueil', () => {
+    const back = pctMapTransformFromViewSnapshot({ xp: 50, yp: 50, zoom: 100 }, imageBounds, {
+      fitScale: imageFitScale,
+    });
+    expect(back.s).toBe(8);
   });
 });

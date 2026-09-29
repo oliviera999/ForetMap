@@ -13,6 +13,8 @@ import {
   pctMapInertiaStep,
   pctMapReleaseVelocity,
   pctMapTransformEquals,
+  pctMapTransformFromViewSnapshot,
+  pctMapViewSnapshot,
   pinchPctMapTransform,
   zoomPctMapTransformToScale,
 } from './pctMapTransform.js';
@@ -63,8 +65,12 @@ import { computeContainRect } from './pctMapFit.js';
  * @param {boolean} [options.keyboardPan=false] flèches clavier (hors champs de saisie).
  * @param {boolean} [options.coarsePointerScrollLock=false] sur pointeur grossier, un doigt fait
  *   défiler la page tant que la carte n'est pas « activée » (pinch, bouton) ni zoomée.
- * @param {'fit'|'clamp'} [options.onResize='fit'] au redimensionnement du cadre : réajuster ou
- *   seulement re-borner la vue courante.
+ * @param {'fit'|'clamp'|'preserve'} [options.onResize='fit'] au redimensionnement du cadre :
+ *   réajuster, seulement re-borner la vue courante, ou garder le même point du plan au centre
+ *   et le même zoom relatif à l'ajustement.
+ * @param {{ xp: number, yp: number, zoom: number }|null} [options.initialView] vue à restituer
+ *   au premier ajustement une fois le contenu mesuré (lue au montage seulement), au lieu de la
+ *   carte entière — cf. `pctMapViewSnapshot`.
  * @param {(target: Element) => boolean} [options.isGestureTarget] cibles qui ne démarrent pas de pan
  *   (boutons superposés, poignées d'édition…).
  * @param {(container: HTMLElement) => ({ w: number, h: number }|null)} [options.resolveStageBox]
@@ -124,6 +130,7 @@ export function usePctMapViewport({
   resolveStageBox = null,
   observeRefs = null,
   resetKey = '',
+  initialView = null,
   onFit = null,
   onGestureStart = null,
   onGestureEnd = null,
@@ -142,6 +149,11 @@ export function usePctMapViewport({
   const [fitRect, setFitRect] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
   const [fitScale, setFitScale] = useState(1);
   const fitScaleRef = useRef(1);
+
+  /** Vue à restituer au prochain ajustement où le contenu est mesuré (consommée une fois). */
+  const pendingViewRef = useRef(initialView);
+  const measuredResetKeyRef = useRef(resetKey);
+  const measuredContainerRef = useRef(null);
 
   const moved = useRef(false);
   const skipClickRef = useRef(false);
@@ -395,15 +407,30 @@ export function usePctMapViewport({
     if (bounds) settle();
   }, [insetsKey, bounds, settle]);
 
+  /** Vue courante indépendante du cadre (`pctMapViewSnapshot`) ; `null` tant que rien n'est mesuré. */
+  const getViewSnapshot = useCallback(
+    () =>
+      pctMapViewSnapshot({
+        transform: tx.current,
+        stage: stageRef.current,
+        fitRect: fitRectRef.current,
+        fitScale: fitScaleRef.current,
+      }),
+    [],
+  );
+
   /**
    * Mesure du cadre + ajustement. `mode: 'fit'` réajuste ; `'clamp'` conserve la vue et la
-   * re-borne (redimensionnement pendant la consultation).
+   * re-borne (redimensionnement pendant la consultation) ; `'preserve'` garde le point central
+   * et le zoom relatif. Une vue en attente (`initialView`, `restoreView`) l'emporte sur tout,
+   * dès que le contenu est mesuré.
    */
   const measure = useCallback(
     (mode = 'fit') => {
       const c = containerRef.current;
       if (!c) return;
       const opt = optionsRef.current;
+      const previousView = mode === 'preserve' ? getViewSnapshot() : null;
       let box = null;
       if (typeof opt.resolveStageBox === 'function') {
         box = opt.resolveStageBox(c);
@@ -444,7 +471,23 @@ export function usePctMapViewport({
         opt.contentMode === 'stage'
           ? { x: 0, y: 0, s: 1 }
           : fitPctMapTransform({ w: iw, h: ih }, box);
-      const next = mode === 'clamp' ? clampPctMapTransform(tx.current, currentBounds()) : fitTx;
+      const contentMeasured = iw > 1 && ih > 1;
+      const restoreFrom = (snapshot) =>
+        snapshot
+          ? pctMapTransformFromViewSnapshot(snapshot, currentBounds(), {
+              fitScale: nextFitScale,
+              fitRect: nextFitRect,
+            })
+          : null;
+      let next = null;
+      if (pendingViewRef.current && contentMeasured) {
+        next = restoreFrom(pendingViewRef.current);
+        pendingViewRef.current = null;
+      }
+      if (!next && mode === 'preserve') next = restoreFrom(previousView);
+      if (!next) {
+        next = mode === 'clamp' ? clampPctMapTransform(tx.current, currentBounds()) : fitTx;
+      }
       cancelAnimation();
       tx.current = next;
       applyTransform();
@@ -457,13 +500,38 @@ export function usePctMapViewport({
         transform: next,
       });
     },
-    [applyTransform, cancelAnimation, containerRef, currentBounds, setWorldWillChange],
+    [
+      applyTransform,
+      cancelAnimation,
+      containerRef,
+      currentBounds,
+      getViewSnapshot,
+      setWorldWillChange,
+    ],
   );
 
-  const fitMap = useCallback(() => measure('fit'), [measure]);
-  const remeasure = useCallback(
-    () => measure(optionsRef.current.onResize === 'clamp' ? 'clamp' : 'fit'),
-    [measure],
+  const fitMap = useCallback(() => {
+    pendingViewRef.current = null;
+    measure('fit');
+  }, [measure]);
+  const remeasure = useCallback(() => {
+    const onResizeMode = optionsRef.current.onResize;
+    measure(onResizeMode === 'clamp' || onResizeMode === 'preserve' ? onResizeMode : 'fit');
+  }, [measure]);
+
+  /**
+   * Restitue une vue capturée ailleurs (autre moteur, autre cadre) : appliquée tout de suite si
+   * le contenu est mesuré, sinon au premier ajustement qui suivra sa mesure.
+   */
+  const restoreView = useCallback(
+    (snapshot) => {
+      pendingViewRef.current = snapshot || null;
+      // Cadre qui vient d'apparaître : sa première mesure (effet ci-dessous) consommera la vue ;
+      // l'appliquer ici serait aussitôt écrasé par cet ajustement initial.
+      const c = containerRef.current;
+      if (snapshot && c && measuredContainerRef.current === c) measure('fit');
+    },
+    [containerRef, measure],
   );
 
   /** Réajustement animé (bouton « recentrer ») : même cible que `fitMap`, en douceur. */
@@ -525,7 +593,12 @@ export function usePctMapViewport({
   useLayoutEffect(() => {
     const c = containerEl;
     if (!c) return undefined;
+    if (measuredResetKeyRef.current !== resetKey) {
+      measuredResetKeyRef.current = resetKey;
+      pendingViewRef.current = null;
+    }
     measure('fit');
+    measuredContainerRef.current = c;
     let debounce = null;
     const schedule = () => {
       if (debounce != null) clearTimeout(debounce);
@@ -545,6 +618,7 @@ export function usePctMapViewport({
     const vv = window.visualViewport;
     if (vv) vv.addEventListener('resize', schedule);
     return () => {
+      if (measuredContainerRef.current === c) measuredContainerRef.current = null;
       if (debounce != null) clearTimeout(debounce);
       if (ro) ro.disconnect();
       window.removeEventListener('resize', schedule);
@@ -1131,6 +1205,8 @@ export function usePctMapViewport({
       fitMap,
       fitMapAnimated,
       remeasure,
+      getViewSnapshot,
+      restoreView,
       toImagePct,
       animateZoomTowardScale,
       zoomBy,
@@ -1170,6 +1246,8 @@ export function usePctMapViewport({
       fitMap,
       fitMapAnimated,
       remeasure,
+      getViewSnapshot,
+      restoreView,
       toImagePct,
       animateZoomTowardScale,
       zoomBy,

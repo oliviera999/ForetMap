@@ -44,6 +44,7 @@ import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { useMapViewBadges } from './map/useMapViewBadges.js';
 import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
 import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
+import { useMapViewHandoff } from './map/useMapViewHandoff.js';
 import { useTutorialReadIds } from './map/useTutorialReadIds.js';
 import {
   MapViewLocationSearch,
@@ -171,9 +172,11 @@ function MapViewImpl({
     committed,
     fitScale,
     imgSize,
+    stageSize: editStageSize,
     moved,
     fitMap,
     remeasureMap,
+    restoreView: restoreEditView,
     toImagePct,
     focusOnPct,
     beginMarkerDrag,
@@ -231,6 +234,15 @@ function MapViewImpl({
   const [workFitHeightPx, setWorkFitHeightPx] = useState(0);
   /** Consultation élève/prof sans édition géométrie ni glisser de repères. */
   const useSharedViewStage = mode === 'view' && !markerPositionUnlocked;
+  const { stageInitialView } = useMapViewHandoff({
+    useSharedViewStage,
+    committed,
+    stageSize: editStageSize,
+    imgSize,
+    fitScale,
+    restoreView: restoreEditView,
+    workViewportApiRef,
+  });
   const onWorkViewportChange = useCallback((api) => {
     workViewportApiRef.current = { ...workViewportApiRef.current, ...api };
     const root = mapLayoutOuterRef.current?.closest?.('.map-view-root');
@@ -926,6 +938,7 @@ function MapViewImpl({
                 focusInsets={activeRoute ? { bottom: 96 } : null}
                 targetPct={workTargetPct}
                 onViewportChange={onWorkViewportChange}
+                initialView={stageInitialView}
                 onBackgroundClick={onWorkBackgroundClick}
                 onMapImageError={onMapImageError}
                 overlaySlot={

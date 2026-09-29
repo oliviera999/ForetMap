@@ -150,6 +150,8 @@ export function SharedMapStage({
   onMapImageError = null,
   /** Clic fond de carte (hors zone / repère / commandes) — ex. déplacer la mascotte. */
   onBackgroundClick = null,
+  /** Vue restituée au montage (retour d'un mode d'édition) au lieu de la carte entière. */
+  initialView = null,
 }) {
   const imageSrc = String(map?.map_image_url || '');
   const headingUpEffectiveRef = useRef(headingUpEffective);
@@ -164,6 +166,7 @@ export function SharedMapStage({
     enabled: gesturesEnabled,
     onResize: 'clamp',
     resetKey: String(map?.id || ''),
+    initialView,
     isGestureTarget: gestureIgnoreSelector,
     // Ce qui recouvre le bas de l'écran (feuille basse, barre d'étape) : la carte peut y
     // glisser, sinon un lieu du bas du plan ne peut jamais monter dans la bande visible
@@ -196,6 +199,7 @@ export function SharedMapStage({
     followPct,
     consumeSkipClick,
     toImagePct,
+    getViewSnapshot,
     touchAction,
     setMapOrientation,
     mapOrientation,
@@ -237,6 +241,7 @@ export function SharedMapStage({
       fitMap,
       fitMapAnimated,
       zoomBy,
+      getViewSnapshot,
       setMapOrientation,
       imgSize,
       stageSize,
@@ -251,6 +256,7 @@ export function SharedMapStage({
     fitMap,
     fitMapAnimated,
     zoomBy,
+    getViewSnapshot,
     setMapOrientation,
     imgSize,
     stageSize,

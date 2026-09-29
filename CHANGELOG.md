@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — carte de travail : le zoom et le cadrage survivent à l'édition des zones
+
+Ouvrir le mode « Contour » d'une zone, tracer une zone, poser un repère ou aligner des zones faisait revenir la carte à la vue d'ensemble, et de même au retour en consultation. Cause : la consultation (`WorkMapStage` / `SharedMapStage`) et l'édition (`MapViewEditCanvas` / `useMapGestures`) ont chacune leur moteur de vue, et chaque bascule remontait un moteur neuf qui s'ajustait à la carte entière ; en édition, tout redimensionnement du cadre (barre d'outils) réajustait aussi la carte. La vue passe désormais d'un moteur à l'autre sous une forme indépendante du cadre (point central en % du plan + zoom relatif à l'ajustement) : `pctMapViewSnapshot` / `pctMapTransformFromViewSnapshot` (`src/shared/pct-map/pctMapTransform.js`), options `initialView` et `onResize: 'preserve'`, méthodes `getViewSnapshot` / `restoreView` de `usePctMapViewport`, relais dans `src/components/map/useMapViewHandoff.js`. Tests : `tests-ui/shared/pctMapTransform.test.js`, `tests-ui/shared/usePctMapViewport.test.jsx`, `tests-ui/components/map/useMapViewHandoff.test.jsx`.
+
 ### Maintenance — vérification d'accès au dépôt privé
 
 - Bump de version (`1.195.2`) pour valider la chaîne commit / push / PR après le passage du dépôt en privé.
