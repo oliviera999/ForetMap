@@ -718,7 +718,7 @@
     "ui.map.default_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.map.default_map_student": {
@@ -887,7 +887,7 @@
     "ui.plan.default_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.plan.heading_up_enabled": {
@@ -898,7 +898,7 @@
     "ui.plan.hidden_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.plan.map_id": {
@@ -964,13 +964,13 @@
     "ui.staff_plan.default_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.staff_plan.hidden_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.staff_plan.selectable_map_ids": {
@@ -994,7 +994,7 @@
     "ui.visit.default_category_ids": {
       "scope": "public",
       "type": "string",
-      "maxLength": 512,
+      "maxLength": 8192,
       "default": ""
     },
     "ui.visit.heading_up_enabled": {
@@ -3341,7 +3341,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,
@@ -3821,7 +3821,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,
@@ -3853,7 +3853,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,
@@ -4029,7 +4029,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,
@@ -4045,7 +4045,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,
@@ -4109,7 +4109,7 @@
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 512,
+        "maxLength": 8192,
         "values": null
       },
       "updated_at": null,

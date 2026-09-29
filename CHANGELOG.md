@@ -12,6 +12,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Maintenance — vérification d'accès au dépôt privé
 
 - Bump de version (`1.195.2`) pour valider la chaîne commit / push / PR après le passage du dépôt en privé.
+### Corrigé — réglages du plan : « Texte trop long » en cochant beaucoup de catégories
+
+Les listes de catégories cochées par défaut ou masquées (plan, plan des personnels, carte, Visite) étaient plafonnées à 512 caractères : une quinzaine de catégories suffisait à faire refuser l'enregistrement. Plafond porté à 8192 caractères (constante `CATEGORY_IDS_SETTING_MAX_LENGTH`, `lib/categoryIdsSetting.js`), test de non-régression dans `tests/settings.test.js`.
 
 ### Sécurité — le contrôle post-déploiement détecte les sources servies par l'hébergement
 

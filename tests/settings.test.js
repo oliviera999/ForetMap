@@ -464,6 +464,26 @@ test('PUT /api/settings/admin/:key refuse un contenu texte trop long', async () 
   assert.match(String(res.body?.error || ''), /Texte trop long/i);
 });
 
+test('PUT /api/settings/admin/:key accepte une longue liste de catégories cochées (plan)', async () => {
+  const token = await getAdminToken();
+  const ids = Array.from({ length: 40 }, () => crypto.randomUUID()).join(';');
+  assert.ok(ids.length > 512);
+  const key = 'ui.plan.default_category_ids';
+  try {
+    await request(app)
+      .put(`/api/settings/admin/${key}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ value: ids })
+      .expect(200);
+  } finally {
+    await request(app)
+      .put(`/api/settings/admin/${key}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ value: '' })
+      .expect(200);
+  }
+});
+
 test('PUT /api/settings/admin/:key refuse un préfixe aide trop long', async () => {
   const token = await getAdminToken();
   const res = await request(app)
