@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { publishForumThread } = require('./fixtures/forum.fixture');
 const {
   loginAsNewStudent,
   enableTeacherMode,
@@ -28,13 +29,29 @@ test('forum : la photo jointe s’affiche par URL signée, pas par lien direct',
   await expect(view).toBeVisible({ timeout: 20_000 });
 
   const title = `Sujet photo e2e ${Date.now()}`;
+  // Attendre la liste des sujets et la sélection automatique du plus récent : leur arrivée
+  // re-monte le formulaire et effacerait une saisie commencée trop tôt.
+  const threadList = view.getByRole('region', { name: 'Sujets du forum' });
+  await expect(threadList.getByRole('heading', { name: /^Sujets/ })).toBeVisible({
+    timeout: 20_000,
+  });
+  if ((await threadList.getByRole('button', { name: /message/ }).count()) > 0) {
+    await expect(view.getByRole('region', { name: 'Discussion' })).toBeVisible({
+      timeout: 20_000,
+    });
+  }
   await view.getByRole('button', { name: /Nouveau sujet/ }).click();
   await page.locator('#forum-thread-title').fill(title);
-  await page.locator('#forum-thread-body').fill('Voici la mare ce matin.');
+  // Éditeur visuel (`contenteditable`) : `fill` n'y déclenche pas toujours la saisie React ;
+  // on tape au clavier puis on vérifie le contenu avant de publier.
+  const body = page.locator('#forum-thread-body');
+  await body.click();
+  await page.keyboard.type('Voici la mare ce matin.');
+  await expect(body).toContainText('Voici la mare ce matin.');
   await page
     .getByLabel('Photos du premier message (optionnel, max 3) — galerie ou fichiers')
     .setInputFiles({ name: 'mare.png', mimeType: 'image/png', buffer: PNG_8X8 });
-  await view.getByRole('button', { name: 'Publier le sujet' }).click();
+  await publishForumThread(page, view);
 
   const detail = view.getByRole('region', { name: 'Discussion' });
   await expect(detail.getByRole('heading', { name: title })).toBeVisible({ timeout: 15_000 });

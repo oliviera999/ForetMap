@@ -54,7 +54,7 @@ Audit [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-0
   - Documentation sans nom de compte d'hébergement.
   - `.gitattributes` `export-ignore` pour les archives remises à des tiers.
 - **Dépôt** : crédits photo sans e-mail (migration `313`), métadonnées retirées des documents de `Datas Sources/`.
-- **Correctif CI** : le test e2e d'accessibilité (`presentation-role-conflict`) repasse. Une image décorative (`alt=""`) n'est plus transformée en bouton d'agrandissement.
+- **Correctif CI** : le test e2e d'accessibilité (`presentation-role-conflict`) repasse. Une image décorative (`alt=""`) n'est plus transformée en bouton d'agrandissement. Les e2e `forum`, `admin-settings-tabs` et `gl-socket-reconnect`, rouges sur `main` ou après GL4, sont réalignés (éditeur visuel du forum, délai entre deux sujets, `getByLabel`, repère du chapitre).
 - **Tests** : `tests/security-audit-2026-09-30-{comptes,gl,applicatif,rgpd,uploads}.test.js`, plus les Vitest associés.
 
 ### Documentation — audit sécurité, confidentialité, RGPD et accès au code source (30/09)
