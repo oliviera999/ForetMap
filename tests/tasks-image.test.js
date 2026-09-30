@@ -114,7 +114,13 @@ describe('Tâches — image illustrative', () => {
     const taskId = `task-del-files-${Date.now()}`;
     const cover = `tasks/${taskId}.jpg`;
     const logPhoto = `task-logs/${taskId}_1.jpg`;
-    const jpegBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+    // Vrai JPEG 1×1 : un en-tête seul est refusé (422) depuis l'échec fermé du retrait EXIF
+    // (RG7, audit RGPD du 30/09/2026).
+    const jpegBytes = await require('sharp')({
+      create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 128, b: 0 } },
+    })
+      .jpeg()
+      .toBuffer();
     await writeBufferToDisk(cover, jpegBytes);
     await writeBufferToDisk(logPhoto, jpegBytes);
     await execute(

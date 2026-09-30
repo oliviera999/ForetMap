@@ -21,8 +21,8 @@ function registerInput(overrides = {}) {
   return {
     mode: 'register',
     identifier: '',
-    pass: 'abcd',
-    pass2: 'abcd',
+    pass: 'abcd1234',
+    pass2: 'abcd1234',
     allowRegister: true,
     first: 'Mohamed',
     last: 'El Farrai',
@@ -73,8 +73,8 @@ describe('getAuthSubmitError — mode register', () => {
     expect(getAuthSubmitError(registerInput({ pass2: 'autre' }))).toBe(
       'Les mots de passe ne correspondent pas',
     );
-    expect(getAuthSubmitError(registerInput({ pass: 'abc', pass2: 'abc' }))).toBe(
-      'Mot de passe trop court (min 4 caractères)',
+    expect(getAuthSubmitError(registerInput({ pass: 'abcdefg', pass2: 'abcdefg' }))).toBe(
+      'Mot de passe trop court (min 8 caractères)',
     );
   });
 

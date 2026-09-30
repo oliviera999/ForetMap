@@ -163,6 +163,19 @@ test('GET /api/auth/me/export : archive ZIP de ses seules données, fichiers joi
   assert.match(logs[0].comment, /Compte rendu de Alice/);
   assert.doesNotMatch(json, new RegExp(`Compte rendu de Bob ${suffix}`), 'rien du camarade');
   assert.match(archive.readme, /donnees\.json/);
+
+  // RG5 (audit RGPD du 30/09/2026) : sections ajoutées, présentes même vides.
+  for (const section of [
+    'journal_audit_actions',
+    'groupes_externes',
+    'synchro_conflits',
+    'synchro_rapprochements',
+  ]) {
+    assert.ok(data.sections[section], `section ${section}`);
+  }
+  for (const row of data.sections.journal_audit_actions.lignes) {
+    assert.ok(!('details' in row) && !('payload_json' in row), 'aucun libellé nommant un tiers');
+  }
 });
 
 test('GET /api/rbac/users/:type/:id/export : réservé à admin.users.export, journalisé', async () => {
@@ -225,4 +238,14 @@ test('GET /api/gl/auth/me/export : joueur → archive G&L avec sa fiche de compt
   assert.strictEqual(data.sections.compte.lignes[0].first_name, 'Gaspard');
   assert.doesNotMatch(json, /\$2[aby]\$/);
   assert.ok(!data.sections.taches_inscriptions, 'pas d’activité ForetMap dans l’export G&L');
+  // RG5 : marché, événements de partie, demandes d'action, sortilèges.
+  for (const section of [
+    'gl_marche_transactions',
+    'gl_marche_feuillets_proposes',
+    'gl_parties_evenements',
+    'gl_demandes_action',
+    'gl_sorts_brouillons',
+  ]) {
+    assert.ok(data.sections[section], `section ${section}`);
+  }
 });

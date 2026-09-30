@@ -63,7 +63,7 @@ test('POST /api/gl/admin/players crée un joueur puis reset-password', async () 
       firstName: 'Aurore',
       lastName: 'Dupont',
       pseudo: `gl-admin-player-${stamp}`,
-      pin: '1234',
+      pin: '12345678',
     })
     .expect(201);
   createdPlayerId = Number(created.body?.id);
@@ -72,7 +72,7 @@ test('POST /api/gl/admin/players crée un joueur puis reset-password', async () 
   await request(app)
     .post(`/api/gl/admin/players/${createdPlayerId}/reset-password`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ password: '5555' })
+    .send({ password: '55555555' })
     .expect(200);
 });
 
@@ -111,7 +111,7 @@ test('DELETE /api/gl/admin/classes/:id refuse si joueurs actifs', async () => {
       firstName: 'Milo',
       lastName: 'Roux',
       pseudo: `gl-active-${stamp}`,
-      password: '1234',
+      password: '12345678',
     })
     .expect(201);
   const activePlayerId = Number(active.body?.id);

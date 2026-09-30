@@ -566,9 +566,9 @@
     "security.password_min_length": {
       "scope": "teacher",
       "type": "number",
-      "min": 4,
+      "min": 8,
       "max": 32,
-      "default": 4
+      "default": 8
     },
     "security.plan_access_code_hash": {
       "scope": "admin",
@@ -2904,10 +2904,10 @@
       "key": "security.password_min_length",
       "scope": "teacher",
       "type": "number",
-      "value": 4,
-      "default_value": 4,
+      "value": 8,
+      "default_value": 8,
       "constraints": {
-        "min": 4,
+        "min": 8,
         "max": 32,
         "maxLength": null,
         "values": null

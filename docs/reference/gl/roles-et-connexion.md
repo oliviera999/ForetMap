@@ -104,10 +104,13 @@ demande un compte, le jeu la refuse poliment.
 
 ### Les mots de passe
 
-- **Longueur minimale** : **4 caractères pour les joueurs** (relevable par le réglage
+- **Longueur minimale** : **8 caractères pour les joueurs** (relevable par le réglage
   « longueur minimale des mots de passe », le même que pour ForetMap, appliqué à la
   création, à l'import et à la réinitialisation par le MJ), **8 caractères minimum pour
-  le staff** (MJ et Admin) — et davantage si le réglage global est plus strict.
+  le staff** (MJ et Admin) — et davantage si le réglage global est plus strict. Le
+  minimum des joueurs est passé de 4 à 8 caractères le 30/09/2026 (recommandation de la
+  CNIL) : les mots de passe déjà en place continuent de fonctionner, la règle ne
+  s'applique qu'au prochain mot de passe créé ou changé.
 - **Mot de passe oublié** : depuis l'écran de connexion, on saisit son adresse
   e-mail et on reçoit un lien de réinitialisation valable une heure. La procédure
   fonctionne pour les joueurs (si leur compte a une adresse e-mail) comme pour le
@@ -259,8 +262,14 @@ explicite d'un **Admin** (pas d'un MJ), supprimer les comptes miroirs orphelins.
   créé. Si le joueur jouait avec un **vrai compte élève** ForetMap, ce compte est conservé
   et simplement retiré du groupe de la classe.
 - Supprimer un **élève** dans ForetMap supprime aussi son joueur. La suppression est
-  refusée tant que le joueur est engagé dans une partie en cours (ou a contribué à un
-  sortilège d'une partie terminée) : terminer ou supprimer la partie d'abord.
+  refusée tant que le joueur est engagé dans une partie **en cours** : terminer la partie
+  ou le retirer de son équipe d'abord.
+- La suppression d'un joueur est un **effacement complet** (droit à l'effacement) : ses
+  messages et sujets du forum, ses commentaires, ses réponses aux QCM, les pages et
+  images de son journal et sa photo de profil disparaissent. L'**historique des parties**
+  reste lisible, mais sans son nom : ses déplacements et demandes d'action apparaissent
+  sans auteur, et sa contribution aux sortilèges est retirée. Avoir contribué à un
+  sortilège d'une partie terminée **ne bloque plus** la suppression.
 - **Désactiver un élève** dans ForetMap le coupe aussi du jeu, immédiatement. Désactiver un
   **joueur** dans le jeu ne touche pas à son compte ForetMap.
 

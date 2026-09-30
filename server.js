@@ -917,11 +917,14 @@ function boot() {
       scheduleRecurringTaskSpawn();
       checkCriticalAdminAccount()
         .then((state) => {
+          // Identifiant seulement : l'e-mail de l'administrateur n'a rien à faire dans un
+          // journal relu à chaque démarrage (RG6, audit RGPD du 30/09/2026). Même règle pour
+          // l'anomalie, dont l'état porte les adresses candidates.
           if (state?.ok) {
-            logger.info({ admin: state.email }, 'Contrôle admin critique OK');
+            logger.info({ adminId: state.teacherId }, 'Contrôle admin critique OK');
             return;
           }
-          logger.warn({ state }, 'Contrôle admin critique en anomalie');
+          logger.warn({ reason: state?.reason || null }, 'Contrôle admin critique en anomalie');
         })
         .catch((err) => {
           logger.warn({ err }, 'Contrôle admin critique en échec');

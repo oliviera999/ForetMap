@@ -156,7 +156,7 @@ test.before(async () => {
   for (const key of SETTING_KEYS) savedSettings[key] = await getSettingValue(key, undefined);
   await setSetting('students.import.existing_strategy', 'update', {});
   await setSetting('students.import.allow_weak_passwords', false, {});
-  await setSetting('security.password_min_length', 4, {});
+  await setSetting('security.password_min_length', 8, {});
   const admin = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
     [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()],

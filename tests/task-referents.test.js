@@ -38,7 +38,7 @@ before(async () => {
   );
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Ref', lastName: `St${Date.now()}`, password: 'pass123' })
+    .send({ firstName: 'Ref', lastName: `St${Date.now()}`, password: 'pass1234' })
     .expect(201);
   studentId = reg.body.id;
 });

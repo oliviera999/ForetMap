@@ -95,7 +95,7 @@ before(async () => {
 
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ ...student, password: 'pass123' });
+    .send({ ...student, password: 'pass1234' });
   assert.strictEqual(reg.status, 201, `inscription: ${JSON.stringify(reg.body)}`);
   studentId = reg.body.id;
   await setStudentPrimaryRole(studentId, 'eleve_novice');

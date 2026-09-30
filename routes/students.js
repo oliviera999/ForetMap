@@ -465,7 +465,9 @@ router.delete(
       }
       return res.status(400).json({ error: 'Suppression impossible' });
     }
-    logAudit('delete_student', 'student', result.studentId, result.displayName, {
+    // Identifiant seulement : le nom d'une personne effacée n'a rien à faire dans le journal
+    // qui trace son effacement (RG3, audit RGPD du 30/09/2026).
+    await logAudit('delete_student', 'student', result.studentId, result.studentId, {
       req,
       payload: { affected_tasks: result.affectedTaskIds.length },
     });
