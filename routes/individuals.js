@@ -5,11 +5,20 @@
  * - CRUD individu : `individuals.manage` (admin, prof)
  * - Saisie mesures : `individuals.measure` (admin, prof, paliers élève)
  * - Lecture publique des individus actifs et de leur courbe / estimations
+ *
+ * Audit sécurité du 30/09/2026 (AP6) : les lectures suivent désormais les mêmes gardes que
+ * les autres routes de lieux (lots S3/S4 du 22/09) — surface décidée par le serveur
+ * (`withLocationSurface`, laissez-passer des plans gardés), cartes de la surface, périmètre
+ * cartes du compte (`resolveScopedMapFilter`). Les champs personnels des mesures
+ * (`observer_user_id`, `group_id`, `notes`) et les notes internes de la fiche ne sont servis
+ * qu'au personnel. La saisie d'une mesure vérifie le périmètre cartes du compte.
  */
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission, authenticate, hasPermission } = require('../middleware/requireTeacher');
+const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('../lib/mapAccess');
+const { withLocationSurface, intersectSurfaceMapScope } = require('../lib/surfaceAccess');
 const asyncHandler = require('../lib/asyncHandler');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
 const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
@@ -24,6 +33,19 @@ const measureIndividuals = requirePermission('individuals.measure');
 // GET `/:id`, et saisie de mesure (`individuals.measure`, que portent aussi des paliers élève).
 // Gestion (ouverte au gestionnaire) : fiches, mesures et suppressions.
 router.use(requirePedagoModuleOrManager('individuals', 'Suivi des individus désactivé'));
+
+/**
+ * Lecteur « personnel » : gestionnaire des individus ou compte enseignant / admin. Lui seul
+ * reçoit l'auteur, le groupe et les notes libres des mesures (données d'élèves).
+ */
+function isStaffReader(auth) {
+  if (!auth) return false;
+  if (hasPermission(auth, 'individuals.manage') || hasPermission(auth, 'teacher.access')) {
+    return true;
+  }
+  if (String(auth.userType || '').toLowerCase() === 'teacher') return true;
+  return String(auth.roleSlug || '').toLowerCase() === 'admin';
+}
 
 function parsePositiveInt(raw) {
   const n = Number(raw);
@@ -53,9 +75,9 @@ async function loadIndividual(id) {
   );
 }
 
-function presentIndividual(row) {
+function presentIndividual(row, { staff = true } = {}) {
   if (!row) return null;
-  return {
+  const out = {
     id: Number(row.id),
     plant_id: Number(row.plant_id),
     plant_name: row.plant_name || null,
@@ -70,6 +92,8 @@ function presentIndividual(row) {
     notes: row.notes || null,
     created_at: row.created_at,
   };
+  if (!staff) out.notes = null;
+  return out;
 }
 
 function presentMeasurement(row, woodDensity) {
@@ -93,18 +117,45 @@ function presentMeasurement(row, woodDensity) {
   };
 }
 
+/** Masque les champs personnels d'une mesure pour un lecteur hors personnel. */
+function redactMeasurement(measurement, staff) {
+  if (staff) return measurement;
+  return { ...measurement, observer_user_id: null, group_id: null, notes: null };
+}
+
+/**
+ * Cartes lisibles par la requête (surface servie ∩ périmètre du compte).
+ * @returns {Promise<{ status: number, body: object } | { mapIds: string[]|null }>}
+ */
+async function resolveReadableMapIds(req, requestedMapId) {
+  const mapId = requestedMapId ? String(requestedMapId).trim() : '';
+  const scope = await resolveScopedMapFilter(req.auth || null, mapId);
+  if (scope.forbidden) return { status: 403, body: MAP_OUT_OF_SCOPE };
+  const surfaceScope = intersectSurfaceMapScope(req.locationSurface, scope.mapIds, mapId);
+  if (surfaceScope.notFound) return { status: 404, body: { error: 'Carte introuvable' } };
+  return { mapIds: surfaceScope.mapIds };
+}
+
 /** GET /api/individuals?mapId=&plantId=&active=1 */
 router.get(
   '/',
+  authenticate,
+  withLocationSurface,
   asyncHandler(async (req, res) => {
     const mapId = normalizeOptionalString(req.query?.mapId ?? req.query?.map_id);
     const plantId = parsePositiveInt(req.query?.plantId ?? req.query?.plant_id);
     const activeOnly = String(req.query?.active ?? '1') !== '0';
+    const readable = await resolveReadableMapIds(req, mapId);
+    if (readable.status) return res.status(readable.status).json(readable.body);
+    if (readable.mapIds && readable.mapIds.length === 0) {
+      return res.json({ items: [], disclaimer: DISCLAIMER });
+    }
+    const staff = isStaffReader(req.auth);
     const where = [];
     const params = [];
-    if (mapId) {
-      where.push('ti.map_id = ?');
-      params.push(mapId);
+    if (readable.mapIds) {
+      where.push(`ti.map_id IN (${readable.mapIds.map(() => '?').join(', ')})`);
+      params.push(...readable.mapIds);
     }
     if (plantId) {
       where.push('ti.plant_id = ?');
@@ -117,26 +168,39 @@ router.get(
                   ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
                   ORDER BY ti.label ASC`;
     const rows = await queryAll(sql, params);
-    return res.json({ items: rows.map(presentIndividual), disclaimer: DISCLAIMER });
+    return res.json({
+      items: rows.map((row) => presentIndividual(row, { staff })),
+      disclaimer: DISCLAIMER,
+    });
   }),
 );
 
 /** GET /api/individuals/:id */
 router.get(
   '/:id',
+  authenticate,
+  withLocationSurface,
   asyncHandler(async (req, res) => {
     const id = parsePositiveInt(req.params?.id);
     if (!id) return res.status(400).json({ error: 'Identifiant invalide' });
     const row = await loadIndividual(id);
     if (!row) return res.status(404).json({ error: 'Individu introuvable' });
+    // Carte hors surface ou hors périmètre : même 404 qu'un individu inexistant.
+    const readable = await resolveReadableMapIds(req, row.map_id);
+    if (readable.status || (readable.mapIds && !readable.mapIds.includes(String(row.map_id)))) {
+      return res.status(404).json({ error: 'Individu introuvable' });
+    }
+    const staff = isStaffReader(req.auth);
     const measurements = await queryAll(
       `SELECT * FROM individual_measurements WHERE individual_id = ? ORDER BY measured_at ASC, id ASC`,
       [id],
     );
     const woodDensity = row.wood_density != null ? Number(row.wood_density) : null;
     return res.json({
-      ...presentIndividual(row),
-      measurements: measurements.map((m) => presentMeasurement(m, woodDensity)),
+      ...presentIndividual(row, { staff }),
+      measurements: measurements.map((m) =>
+        redactMeasurement(presentMeasurement(m, woodDensity), staff),
+      ),
       disclaimer: DISCLAIMER,
     });
   }),
@@ -285,6 +349,9 @@ router.post(
     if (!id) return res.status(400).json({ error: 'Identifiant invalide' });
     const individual = await loadIndividual(id);
     if (!individual) return res.status(404).json({ error: 'Individu introuvable' });
+    if (!(await canAccessMapId(req.auth || null, individual.map_id))) {
+      return res.status(403).json(MAP_OUT_OF_SCOPE);
+    }
 
     const measuredAt = parseOptionalDate(req.body?.measured_at ?? req.body?.measuredAt);
     if (!measuredAt) {

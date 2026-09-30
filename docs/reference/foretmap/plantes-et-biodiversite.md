@@ -203,6 +203,13 @@ carte, éventuellement une zone ou un repère). Les élèves saisissent des **me
 CO₂ — clairement présentée comme un **ordre de grandeur** (formule établie pour des
 arbres tropicaux).
 
+Qui voit quoi : un arbre n'est visible que si sa **carte** l'est pour la personne qui
+consulte (carte de la visite publique pour un visiteur, cartes de sa classe pour un élève) ;
+un élève ne peut saisir une mesure que sur un arbre d'une carte de sa classe. Les
+**remarques** (celle de la fiche et celles des mesures), ainsi que l'auteur et le groupe
+de chaque mesure, ne sont montrés qu'aux professeurs et administrateurs ; les élèves et
+visiteurs voient les mesures elles-mêmes, la courbe et les estimations.
+
 S’y ajoutent des **espèces du jardin méditerranéen et marocain** et du potager local :
 figuier de Barbarie (différent de l’oponce ornementale), volubilis, figuier, olivier,
 caroubier, arganier, citronnier, palmier-dattier, artichaut, pois chiche, fenugrec,

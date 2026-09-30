@@ -43,7 +43,7 @@ mediaRouter.get(
   '/remote',
   asyncHandler(async (req, res) => {
     try {
-      const media = await getRemoteMedia(req.query.url);
+      const media = await getRemoteMedia(req.query.url, { clientKey: req.ip || null });
       setInertImageHeaders(res, media.contentType);
       return res.sendFile(media.filePath, { dotfiles: 'deny' });
     } catch (err) {
