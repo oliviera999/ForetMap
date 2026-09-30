@@ -165,6 +165,43 @@ describe('VisitEditorPanel', () => {
     expect(screen.getByDisplayValue('Autre sous-titre')).toBeInTheDocument();
   });
 
+  test('envoie la révision ouverte avec le formulaire', async () => {
+    setup({ selected: { ...ZONE, edit_revision: 4 } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sauver' }));
+    await waitFor(() => {
+      expect(api).toHaveBeenCalledWith(
+        '/api/visit/zones/7',
+        'PUT',
+        expect.objectContaining({ name: '🌳 Verger', expected_revision: 4 }),
+      );
+    });
+  });
+
+  test('conflit : écraser renvoie la révision courante, renoncer n’enregistre pas', async () => {
+    const conflict = new Error('modifié');
+    conflict.status = 409;
+    conflict.body = { code: 'edit_conflict', current_revision: 9, error: 'conflit' };
+    api.mockRejectedValueOnce(conflict).mockResolvedValueOnce({ edit_revision: 10 });
+    const { onSaved } = setup({ selected: { ...ZONE, edit_revision: 4 } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sauver' }));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    expect(api).toHaveBeenLastCalledWith(
+      '/api/visit/zones/7',
+      'PUT',
+      expect.objectContaining({ expected_revision: 9 }),
+    );
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+
+    api.mockReset();
+    api.mockRejectedValueOnce(conflict);
+    window.confirm.mockReturnValue(false);
+    const declined = setup({ selected: { ...ZONE, id: 11, edit_revision: 4 } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Sauver' })[1]);
+    await waitFor(() => expect(window.alert).toHaveBeenCalled());
+    expect(declined.onSaved).not.toHaveBeenCalled();
+    expect(api).toHaveBeenCalledTimes(1);
+  });
+
   test('repère : PUT /api/visit/markers/:id avec label + emoji', async () => {
     setup({
       selected: { ...ZONE, id: 9, label: 'Pommier', emoji: '🍎', name: undefined },

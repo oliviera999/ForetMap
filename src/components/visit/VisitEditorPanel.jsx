@@ -20,6 +20,11 @@ import { VisitMediaEditor } from './VisitMediaEditor.jsx';
 import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { IconSave, IconSlider } from '../../shared/icons.jsx';
+import {
+  EDIT_CONFLICT_CONFIRM_OPTIONS,
+  EDIT_CONFLICT_DECLINED_MESSAGE,
+  isEditConflictError,
+} from '../../utils/editRevision.js';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
@@ -93,10 +98,16 @@ export function VisitEditorPanel({
   // de saisie non encore sauvegardés. On ne recharge donc le formulaire qu'au changement
   // d'élément sélectionné (type + id).
   const loadedKeyRef = useRef(null);
+  // Révision de la fiche carte au moment où le formulaire s'ouvre. On ne la relit pas
+  // quand le parent recharge le même lieu : le nom saisi resterait l'ancien, et l'envoyer
+  // avec la révision neuve écraserait le renommage.
+  const revisionRef = useRef(null);
   useEffect(() => {
     const identityKey = selected && selectedType ? `${selectedType}:${selected.id}` : null;
     if (loadedKeyRef.current === identityKey) return;
     loadedKeyRef.current = identityKey;
+    const opened = Number(selected?.edit_revision);
+    revisionRef.current = Number.isInteger(opened) && opened >= 0 ? opened : null;
     if (!selected || !selectedType) return;
     const nextTitle = selectedType === 'zone' ? selected?.name || '' : selected?.label || '';
     const trimmedTitle = String(nextTitle || '').trim();
@@ -140,11 +151,26 @@ export function VisitEditorPanel({
         payload.label = form.title;
         payload.emoji = form.emoji;
       }
-      await api(
-        `/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`,
-        'PUT',
-        payload,
-      );
+      if (revisionRef.current != null) payload.expected_revision = revisionRef.current;
+      const url = `/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`;
+      let saved;
+      try {
+        saved = await api(url, 'PUT', payload);
+      } catch (err) {
+        if (!isEditConflictError(err)) throw err;
+        const overwrite = await confirm(EDIT_CONFLICT_CONFIRM_OPTIONS);
+        if (!overwrite) {
+          notify(EDIT_CONFLICT_DECLINED_MESSAGE);
+          return;
+        }
+        const current = Number(err.body?.current_revision);
+        if (!Number.isInteger(current) || current < 0) throw err;
+        saved = await api(url, 'PUT', { ...payload, expected_revision: current });
+      }
+      const nextRevision = Number(saved?.edit_revision);
+      if (Number.isInteger(nextRevision) && nextRevision >= 0) {
+        revisionRef.current = nextRevision;
+      }
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();

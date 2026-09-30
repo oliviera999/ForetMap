@@ -24,7 +24,7 @@ const {
 const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
-const { bumpEditRevision } = require('../../lib/editRevision');
+const { claimVisitIdentityWrite, releaseVisitIdentityWrite } = require('../../lib/visitMapMirror');
 const { withLocationAudienceFields } = require('../../lib/locationAudience');
 const {
   resolveAudienceForInsert,
@@ -160,47 +160,129 @@ router.put(
           ? Math.max(0, Number(req.body.sort_order))
           : Number(exists.sort_order || 0)
         : Number(exists.sort_order || 0);
-    await execute(
-      `UPDATE visit_markers
-     SET label = ?, x_pct = ?, y_pct = ?, emoji = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
-         visible_role_slugs = ?, visible_group_ids = ?,
-         is_active = ?, sort_order = ?, updated_at = ?
-     WHERE id = ?`,
-      [
-        label,
-        x,
-        y,
-        emoji,
-        subtitle,
-        shortDescription,
-        detailsTitle,
-        detailsText,
-        bodyJson,
-        audience.visible_role_slugs,
-        audience.visible_group_ids,
-        isActive,
-        sortOrder,
-        nowIso(),
-        markerId,
-      ],
+    // L'éditeur renvoie le nom et l'emoji ouverts avec le formulaire. On ne les recopie
+    // sur la carte que s'ils diffèrent encore et que la révision correspond.
+    const mapMarker = await queryOne(
+      'SELECT label, emoji, x_pct, y_pct, edit_revision FROM map_markers WHERE id = ? LIMIT 1',
+      [markerId],
     );
-    // Même fiche que la carte (`lib/visitMapMirror.js`) : un formulaire de repère ouvert
-    // ailleurs doit voir ce changement comme une modification concurrente.
-    await bumpEditRevision('map_markers', markerId);
-    const identityChanged = ['label', 'x_pct', 'y_pct', 'emoji'].some(
-      (k) => req.body[k] !== undefined,
+    const labelChanged = !!(
+      mapMarker &&
+      req.body.label !== undefined &&
+      label !== String(mapMarker.label || '').trim()
     );
-    if (identityChanged) {
-      const result = await execute(
-        'UPDATE map_markers SET label = ?, x_pct = ?, y_pct = ?, emoji = ? WHERE id = ?',
-        [label, x, y, emoji, markerId],
-      );
-      if (result?.affectedRows) {
-        emitGardenChanged({ reason: 'update_marker', markerId, mapId: exists.map_id });
-      }
+    const emojiChanged = !!(
+      mapMarker &&
+      req.body.emoji !== undefined &&
+      emoji !== normalizeMarkerEmoji(mapMarker.emoji, { allowEmpty: true, fallback: '' })
+    );
+    const xChanged = !!(
+      mapMarker &&
+      req.body.x_pct !== undefined &&
+      x !== null &&
+      Math.abs(x - Number(mapMarker.x_pct)) > 1e-6
+    );
+    const yChanged = !!(
+      mapMarker &&
+      req.body.y_pct !== undefined &&
+      y !== null &&
+      Math.abs(y - Number(mapMarker.y_pct)) > 1e-6
+    );
+    const gate = await claimVisitIdentityWrite(
+      'marker',
+      markerId,
+      req.body,
+      labelChanged || emojiChanged || xChanged || yChanged,
+    );
+    if (gate.error) return res.status(gate.error.status).json(gate.error.body);
+    if (gate.missing) return res.status(404).json({ error: 'Repère introuvable' });
+    const visitSets = [];
+    const visitParams = [];
+    if (!mapMarker || labelChanged) {
+      visitSets.push('label = ?');
+      visitParams.push(label);
     }
-    await applyVisitNotes('marker', markerId, notesInput);
+    if (!mapMarker || xChanged) {
+      visitSets.push('x_pct = ?');
+      visitParams.push(x);
+    }
+    if (!mapMarker || yChanged) {
+      visitSets.push('y_pct = ?');
+      visitParams.push(y);
+    }
+    if (!mapMarker || emojiChanged) {
+      visitSets.push('emoji = ?');
+      visitParams.push(emoji);
+    }
+    visitSets.push(
+      'subtitle = ?',
+      'short_description = ?',
+      'details_title = ?',
+      'details_text = ?',
+      'body_json = ?',
+      'visible_role_slugs = ?',
+      'visible_group_ids = ?',
+      'is_active = ?',
+      'sort_order = ?',
+      'updated_at = ?',
+    );
+    visitParams.push(
+      subtitle,
+      shortDescription,
+      detailsTitle,
+      detailsText,
+      bodyJson,
+      audience.visible_role_slugs,
+      audience.visible_group_ids,
+      isActive,
+      sortOrder,
+      nowIso(),
+      markerId,
+    );
+    let identityWritten = false;
+    try {
+      await execute(`UPDATE visit_markers SET ${visitSets.join(', ')} WHERE id = ?`, visitParams);
+      if (gate.apply && mapMarker) {
+        const mapSets = [];
+        const mapParams = [];
+        if (labelChanged) {
+          mapSets.push('label = ?');
+          mapParams.push(label);
+        }
+        if (xChanged) {
+          mapSets.push('x_pct = ?');
+          mapParams.push(x);
+        }
+        if (yChanged) {
+          mapSets.push('y_pct = ?');
+          mapParams.push(y);
+        }
+        if (emojiChanged) {
+          mapSets.push('emoji = ?');
+          mapParams.push(emoji);
+        }
+        if (mapSets.length) {
+          const result = await execute(
+            `UPDATE map_markers SET ${mapSets.join(', ')} WHERE id = ?`,
+            [...mapParams, markerId],
+          );
+          identityWritten = true;
+          if (result?.affectedRows) {
+            emitGardenChanged({ reason: 'update_marker', markerId, mapId: exists.map_id });
+          }
+        }
+      }
+      await applyVisitNotes('marker', markerId, notesInput);
+    } catch (err) {
+      if (!identityWritten) await releaseVisitIdentityWrite('marker', markerId, gate.claim);
+      throw err;
+    }
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
+    row.edit_revision = gate.apply
+      ? gate.claim.revision
+      : mapMarker
+        ? Number(mapMarker.edit_revision) || 0
+        : null;
     res.json(await withVisitNotes('marker', markerId, withLocationAudienceFields(row)));
   }),
 );
