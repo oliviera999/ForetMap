@@ -10,7 +10,7 @@ const {
 const { insertGameEvent } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getSpellCastConfig } = require('../../lib/glSpellCast');
-const { getGameplaySettings } = require('../../lib/glSettings');
+const { getGameplaySettings, getGlModulesSettings } = require('../../lib/glSettings');
 const { assignPlayerToTeamTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 
@@ -24,7 +24,7 @@ const {
 const { serializeZonePopoverRow, zoneHasPopoverContent } = require('../../lib/glZoneContent');
 const { MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
 const { resolveBoardMovementMode } = require('../../lib/glBoardPath');
-const { parseDiceRollPayload } = require('../../lib/glDiceRoll');
+const { parseDiceCount, rollServerDice } = require('../../lib/glDiceRoll');
 const logger = require('../../lib/logger');
 // O10 — helpers runtime à I/O (DB) déplacés en l'état vers lib/gl/gamesRuntime.js
 // (déplacement pur byte-identique) ; débloque le découpage futur en sous-routeurs.
@@ -33,6 +33,7 @@ const {
   resolveRosterError,
   claimTeamRoundAction,
   applyTeamMoveTx,
+  checkNumberedPathPlayerMove,
   readGameState,
 } = require('../../lib/gl/gamesRuntime');
 
@@ -415,7 +416,7 @@ router.post(
     // Une seule requête : l'existence de l'équipe décide du 404, l'appartenance de
     // classe (comparaison SQL, NULL-safe comme l'ancien INNER JOIN) décide du 403.
     const team = await queryOne(
-      `SELECT t.id, t.game_id, (p.class_id = g.class_id) AS class_match
+      `SELECT t.id, t.game_id, g.status AS game_status, (p.class_id = g.class_id) AS class_match
        FROM gl_teams t
  INNER JOIN gl_games g ON g.id = t.game_id
   LEFT JOIN gl_players p ON p.id = ?
@@ -429,6 +430,24 @@ router.post(
     }
     if (!Number(team.class_match)) {
       return res.status(403).json({ error: 'Joueur non autorisé pour cette équipe' });
+    }
+    // GL5 : choisir librement son équipe n'a de sens qu'en préparation. Partie lancée (ou en
+    // pause) : un joueur SANS équipe peut encore en rejoindre une, mais un joueur déjà placé
+    // ne change plus d'équipe (sinon il agissait pour plusieurs équipes dans un même tour —
+    // dés, déplacement, QCM). Le MJ garde la main via le roster. Partie terminée : refus.
+    const gameStatus = String(team.game_status || '').toLowerCase();
+    if (gameStatus !== 'draft') {
+      if (gameStatus !== 'live' && gameStatus !== 'paused') {
+        return res.status(409).json({ error: 'Partie terminée : équipes figées' });
+      }
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (membership?.team_id) {
+        if (Number(membership.team_id) === Number(teamId)) return res.json({ ok: true });
+        return res.status(409).json({
+          error: 'Partie en cours : changement d’équipe réservé au maître du jeu',
+          code: 'GL_TEAM_LOCKED',
+        });
+      }
     }
     try {
       await withTransaction(async (tx) => {
@@ -634,8 +653,13 @@ router.get(
 );
 
 /**
- * Enregistre le lancer de dés d'une équipe pour le tour courant (mode classique).
+ * Lance les dés d'une équipe pour le tour courant (mode classique).
  * MJ : toute équipe de la partie ; joueur : uniquement son équipe.
+ *
+ * Tirage SERVEUR (audit sécurité 2026-09-30, GL4) : le corps ne porte plus que le nombre de
+ * dés (`count`, 1 à 5). Les champs historiques `values` / `total` sont acceptés pour
+ * compatibilité — seule la longueur de `values` est lue — mais jamais utilisés comme résultat.
+ * La réponse (l'événement `dice_roll`) porte les valeurs tirées, que le client affiche.
  */
 router.post(
   '/games/:id/teams/:teamId/dice-roll',
@@ -645,9 +669,9 @@ router.post(
     const teamId = parseId(req.params.teamId);
     if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
 
-    const roll = parseDiceRollPayload(req.body);
-    if (!roll) {
-      return res.status(400).json({ error: 'Jet de dés invalide (values[], total requis)' });
+    const diceCount = parseDiceCount(req.body);
+    if (diceCount == null) {
+      return res.status(400).json({ error: 'Jet de dés invalide (count : 1 à 5 dés)' });
     }
 
     if (!(await canAccessGlGame(req.glAuth, gameId))) {
@@ -701,7 +725,8 @@ router.post(
 
     const actorType = isStaff ? 'mj' : 'team';
     const actorId = String(req.glAuth.userId);
-    const payload = { values: roll.values, total: roll.total, roundNumber };
+    const roll = rollServerDice(diceCount);
+    const payload = { values: roll.values, total: roll.total, roundNumber, serverRoll: true };
 
     let diceEvent = null;
     try {
@@ -764,7 +789,9 @@ router.post(
     }
 
     const game = await queryOne(
-      'SELECT id, status, current_round_number, board_movement_mode FROM gl_games WHERE id = ? LIMIT 1',
+      `SELECT id, status, chapter_id, current_round_number, board_movement_mode,
+              board_path_start_index
+         FROM gl_games WHERE id = ? LIMIT 1`,
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -817,9 +844,28 @@ router.post(
       });
     }
 
+    const numberedPath = resolveBoardMovementMode(game) === 'numbered_path';
+    const modules = numberedPath ? await getGlModulesSettings() : null;
+
     let moveEvent = null;
     try {
       await withTransaction(async (tx) => {
+        // GL4 : en repères numérotés, la destination est celle du dernier jet (serveur).
+        if (numberedPath && moveMarkerId != null) {
+          const check = await checkNumberedPathPlayerMove(tx, {
+            gameId,
+            teamId,
+            game,
+            markerId: moveMarkerId,
+            virtualDiceEnabled: !!modules?.virtualDiceEnabled,
+          });
+          if (!check.ok) {
+            const err = new Error(check.error);
+            err.status = check.status;
+            err.code = 'NUMBERED_PATH_MOVE_REFUSED';
+            throw err;
+          }
+        }
         // Réservation d'abord : deux requêtes simultanées ne consomment qu'un déplacement.
         if (settings.turnsEnabled) {
           const claimed = await claimTeamRoundAction(tx, {
@@ -854,6 +900,9 @@ router.post(
     } catch (err) {
       if (err?.message === 'MOVE_ALREADY_DONE') {
         return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
+      }
+      if (err?.code === 'NUMBERED_PATH_MOVE_REFUSED') {
+        return res.status(err.status || 409).json({ error: err.message });
       }
       if (err?.status === 404 && err?.message === 'MARKER_NOT_FOUND') {
         return res.status(404).json({ error: 'Repère introuvable' });

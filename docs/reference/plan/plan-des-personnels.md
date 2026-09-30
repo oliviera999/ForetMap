@@ -4,7 +4,7 @@
 
 ## À quoi sert ce plan ?
 
-Le **plan des personnels** (`proflyautey.olution.info`, ou `stafflyautey.olution.info` — voir
+Le **plan des personnels** (`proflyautey.<domaine>`, ou `stafflyautey.<domaine>` — voir
 plus bas) est le **même plan** que [le Plan Lyautey public](presentation.md) — la même carte, la
 même recherche, les mêmes fiches de lieu — mais réservé aux personnels du lycée, et **plus
 complet**.
@@ -29,10 +29,10 @@ données pédagogiques. C'est un plan, rien d'autre.
 
 Le plan des personnels répond sur **deux adresses équivalentes** :
 
-| Adresse                     | Statut                                                                   |
-| --------------------------- | ------------------------------------------------------------------------ |
-| `proflyautey.olution.info`  | Adresse historique, toujours valable — rien à changer si vous l'utilisez |
-| `stafflyautey.olution.info` | Nouvelle adresse, à préférer quand on la communique                      |
+| Adresse                  | Statut                                                                   |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `proflyautey.<domaine>`  | Adresse historique, toujours valable — rien à changer si vous l'utilisez |
+| `stafflyautey.<domaine>` | Nouvelle adresse, à préférer quand on la communique                      |
 
 Elles ouvrent **le même écran**, avec les mêmes lieux, les mêmes fiches et le même mode
 d'entrée. Ce n'est pas un second plan à entretenir : c'est la même application, jointe par
@@ -51,7 +51,7 @@ l'adresse depuis laquelle vous l'avez installée.
 
 ### La voie normale : son compte du lycée
 
-On ouvre `proflyautey.olution.info` ou `stafflyautey.olution.info`, on touche **« Se connecter
+On ouvre `proflyautey.<domaine>` ou `stafflyautey.<domaine>`, on touche **« Se connecter
 avec Google »**, on choisit son compte du lycée. C'est tout : pas de code à retenir, pas de mot
 de passe supplémentaire.
 

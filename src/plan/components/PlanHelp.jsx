@@ -1,4 +1,5 @@
 import { HelpDock } from '../../shared/help/HelpDock.jsx';
+import { PrivacyNoticeLink } from '../../shared/privacy/PrivacyNoticeLink.jsx';
 
 /**
  * Aide du Plan Lyautey (lot 7) : le **dock d'aide partagé**, celui de G&L et de ForetMap.
@@ -72,6 +73,11 @@ export function PlanHelp({
               </li>
             )}
           </ul>
+          {/* Notice publique (audit RGPD du 30/09/2026, RG1) : le plan ne garde rien qui
+              identifie un visiteur, mais il le dit. */}
+          <p className="plan-help__privacy">
+            <PrivacyNoticeLink />
+          </p>
         </div>
       }
     />

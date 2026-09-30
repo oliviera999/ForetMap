@@ -143,6 +143,10 @@ test('POST /me/articles/:id/assets — upload illustration', async () => {
     .send({ imageData: PNG_BASE64 })
     .expect(201);
   assert.ok(res.body.asset?.url?.startsWith('/uploads/gl-player-journal/'));
+  // Illustration lisible par URL signée seulement (constat RG4 : noms prévisibles).
+  assert.match(res.body.asset.url, /\?exp=\d+&sig=[\w-]+$/);
+  await request(app).get(res.body.asset.url).expect(200);
+  await request(app).get(res.body.asset.url.split('?')[0]).expect(404);
   assert.strictEqual(res.body.usage.assetCount, 1);
 });
 

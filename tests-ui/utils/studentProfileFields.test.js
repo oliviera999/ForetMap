@@ -8,6 +8,7 @@ import {
   validateProfileEditorFields,
   validatePasswordChangeFields,
   buildProfilePatchPayload,
+  isProfileEmailChange,
 } from '../../src/utils/studentProfileFields.js';
 import { getVisitMascotCatalog } from '../../src/utils/visitMascotCatalog.js';
 
@@ -192,5 +193,18 @@ describe('validatePasswordChangeFields', () => {
       'Les deux mots de passe ne correspondent pas',
     );
     expect(validatePasswordChangeFields({ newPassword: 'abcd', confirmPassword: 'abcd' })).toBe('');
+  });
+});
+
+describe('isProfileEmailChange (AC3 : mot de passe exigé pour changer de mail)', () => {
+  test('casse et espaces ignorés, comme côté serveur', () => {
+    expect(isProfileEmailChange('a@b.fr', ' A@B.FR ')).toBe(false);
+    expect(isProfileEmailChange(null, '')).toBe(false);
+  });
+
+  test('ajout, retrait ou remplacement = changement', () => {
+    expect(isProfileEmailChange(null, 'a@b.fr')).toBe(true);
+    expect(isProfileEmailChange('a@b.fr', '')).toBe(true);
+    expect(isProfileEmailChange('a@b.fr', 'c@b.fr')).toBe(true);
   });
 });

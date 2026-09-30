@@ -515,6 +515,13 @@ body.gl-body {
   margin-top: 4px;
 }
 
+/* Lien « Vos données » sous la carte de connexion (audit RGPD du 30/09/2026, RG1). */
+.gl-auth-privacy {
+  margin: 8px 0 0;
+  text-align: center;
+  color: inherit;
+}
+
 .gl-panel {
   background: var(--gl-surface);
   border: 1px solid var(--gl-border);

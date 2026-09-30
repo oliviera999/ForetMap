@@ -122,7 +122,7 @@ test('syncForetmapUserForGlPlayer déplace le membre lors d un changement de cla
 test('syncForetmapUserForGlPlayer rapproche un joueur non lié d un élève ForetMap de même e-mail (C1)', async () => {
   const admin = await createGlAdmin();
   const glClass = await createGlClass({ adminId: admin.id, name: `Collision ${Date.now()}` });
-  await ensureForetmapGroupForGlClass(glClass);
+  const group = await ensureForetmapGroupForGlClass(glClass);
   const pseudo = `gl_collision_${Date.now()}`;
   const email = `${pseudo}@example.com`;
   const existing = await createForetmapStudent({
@@ -130,6 +130,11 @@ test('syncForetmapUserForGlPlayer rapproche un joueur non lié d un élève Fore
     email,
     password: 'foretmap-secret',
   });
+  // Rapprochement réservé à un élève déjà membre du groupe de la classe (audit 2026-09-30, GL1).
+  await execute(
+    "INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
+    [group.id, existing.id],
+  );
   const glPasswordHash = await bcrypt.hash('gl-secret', 10);
   const player = await createGlPlayer({
     classId: glClass.id,

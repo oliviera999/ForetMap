@@ -106,14 +106,14 @@ Après la migration SQL finale (`migrations/006_drop_legacy_image_data.sql`), ce
 Le script d'import local remet d'abord la base cible a zero, puis importe le dump :
 
 ```bash
-npm run db:import:dump -- --file "C:\Users\olivi\Downloads\oliviera_foretmap.sql"
+npm run db:import:dump -- --file "C:\Users\<vous>\Downloads\foretmap_dump.sql"
 npm run db:migrate
 ```
 
 Vous pouvez aussi passer le chemin via variable d'environnement :
 
 ```bash
-set FORETMAP_DUMP_PATH=C:\Users\olivi\Downloads\oliviera_foretmap.sql
+set FORETMAP_DUMP_PATH=C:\Users\<vous>\Downloads\foretmap_dump.sql
 npm run db:import:dump
 npm run db:migrate
 ```
@@ -534,7 +534,8 @@ BASE_URL=http://localhost:3000 npm run test:load
 
 Bypass du rate limit pour un run de charge contrôlé :
 
-- côté serveur : définir `LOAD_TEST_SECRET` ;
+- côté serveur : définir `LOAD_TEST_SECRET` (**32 caractères minimum** ; ignoré si
+  `NODE_ENV=production`, avertissement au démarrage) ;
 - côté client (Artillery) : utiliser la même valeur `LOAD_TEST_SECRET`.
 
 Exemple :

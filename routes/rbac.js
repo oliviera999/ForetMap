@@ -1,5 +1,6 @@
 const express = require('express');
 const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const { emailWillChange, applyEmailChangeEffects } = require('../lib/accounts/emailChange');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
@@ -787,7 +788,7 @@ router.put(
   '/profiles/:id/permissions',
   requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
-    const role = await queryOne('SELECT id, slug FROM roles WHERE id = ?', [req.params.id]);
+    const role = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
     const actorRoleSlug = String(req.auth?.roleSlug || '')
       .trim()
@@ -797,6 +798,13 @@ router.put(
       return res
         .status(403)
         .json({ error: 'Seul un administrateur peut modifier le profil admin' });
+    }
+    // Hors administrateur, on ne touche pas aux permissions d'un profil de rang égal ou
+    // supérieur au sien : un délégué ne vide pas le profil de ses supérieurs (AC4, 2026-09-30).
+    if (actorRoleSlug !== 'admin' && Number(role.rank || 0) >= Number(req.auth?.roleRank || 0)) {
+      return res.status(403).json({
+        error: 'Réservé à un profil de rang supérieur à celui du profil modifié',
+      });
     }
     const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
     // Garde « porte d'entrée » : `admin` et `prof` ne peuvent pas perdre `teacher.access`
@@ -1105,10 +1113,12 @@ router.patch(
       return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
     }
 
-    // Mot de passe et désactivation : jamais sur soi-même, ni sur un profil de rang égal ou
-    // supérieur au sien (hors administrateur). `admin.users.assign_roles` ne vaut pas prise
-    // de contrôle d'un pair (CDG-07, CDG-40).
-    if (passwordWillChange || activeWillChange) {
+    // Mot de passe, désactivation et adresse e-mail : jamais sur soi-même, ni sur un profil de
+    // rang égal ou supérieur au sien (hors administrateur). `admin.users.assign_roles` ne vaut
+    // pas prise de contrôle d'un pair (CDG-07, CDG-40) — et l'e-mail est la clé du « mot de
+    // passe oublié » : le remplacer par le sien revenait à prendre le compte (AC2, 2026-09-30).
+    const emailChanges = hasEmail && emailWillChange(user.email, normalizeEmail(body.email));
+    if (passwordWillChange || activeWillChange || emailChanges) {
       if (String(req.auth?.userId) === String(resolvedUserId)) {
         return res
           .status(403)
@@ -1227,7 +1237,17 @@ router.patch(
       }
       throw err;
     }
-    if (passwordWillChange || (activeWillChange && nextIsActive === 0)) {
+    if (emailChanges) {
+      // Révoque les sessions, consomme les liens « mot de passe oublié » ouverts et avertit
+      // l'ancienne adresse (AC2) — `bumpUserTokenEpoch` y est inclus.
+      await applyEmailChangeEffects({
+        userId: resolvedUserId,
+        previousEmail: user.email,
+        nextEmail: email,
+        displayName,
+        changedBy: 'admin',
+      });
+    } else if (passwordWillChange || (activeWillChange && nextIsActive === 0)) {
       // Révoque les sessions en cours du compte (ForetMap et GL) : nouveau mot de passe ou
       // désactivation — la coupure est immédiate, pas à l'expiration du jeton.
       await bumpUserTokenEpoch(resolvedUserId);
@@ -1377,7 +1397,7 @@ router.delete(
       return res.status(403).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     }
     const teacher = await queryOne(
-      "SELECT id, first_name, last_name, display_name, email FROM users WHERE id = ? AND user_type = 'teacher' LIMIT 1",
+      "SELECT id, avatar_path FROM users WHERE id = ? AND user_type = 'teacher' LIMIT 1",
       [userId],
     );
     if (!teacher) return res.status(404).json({ error: 'Enseignant introuvable' });
@@ -1385,16 +1405,20 @@ router.delete(
     if (role?.slug === 'admin' && (await countPrimaryAdmins()) <= 1) {
       return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
     }
-    const label =
-      teacher.display_name ||
-      `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() ||
-      teacher.email ||
-      userId;
+    // `require` locaux : l'effacement ne touche que ce gestionnaire.
+    const { eraseAccountJournalTraces } = require('../lib/accounts/identityAccountCleaners');
+    const { deleteFile } = require('../lib/uploads');
     await withTransaction(async (tx) => {
       await tx.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
+      // IP et navigateur de ses événements de sécurité, libellés d'audit qui le nomment
+      // (RG3, audit RGPD du 30/09/2026) — mêmes règles que l'effacement d'un élève.
+      await eraseAccountJournalTraces(tx, userId, 'teacher');
       await tx.execute("DELETE FROM users WHERE id = ? AND user_type = 'teacher'", [userId]);
     });
-    logAudit('delete_teacher', 'user', userId, label, { req, payload: { email: teacher.email } });
+    // Avatar : supprimé du disque après validation (il restait servi sous /uploads).
+    if (teacher.avatar_path) deleteFile(teacher.avatar_path);
+    // Identifiant seulement : ni nom ni e-mail dans le journal de l'effacement.
+    await logAudit('delete_teacher', 'user', userId, userId, { req });
     res.json({ ok: true, deleted: userId });
   }),
 );

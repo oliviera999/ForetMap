@@ -133,7 +133,16 @@ async function run() {
     }
     if (!apply) continue;
 
-    const cleaned = await stripImageMetadata(buffer, { relativePath: relative });
+    let cleaned;
+    try {
+      cleaned = await stripImageMetadata(buffer, { relativePath: relative });
+    } catch (err) {
+      // Échec fermé (RG7) : l'image porte des métadonnées et ne se réécrit pas. Le fichier
+      // existant reste en place ; il est compté en échec, à traiter à la main.
+      stats.failed += 1;
+      console.error(`  ✘ non nettoyable : ${relative} — ${err.message}`);
+      continue;
+    }
     if (cleaned === buffer) {
       // `stripImageMetadata` n'a pas su faire (format ignoré, encodeur manquant) : elle a
       // déjà journalisé le motif. On ne récrit rien plutôt que de récrire à l'identique.

@@ -12,6 +12,7 @@ const {
 } = require('../../lib/glUnifiedMascotCatalog');
 const { validateGlMascotPack } = require('../../lib/gl-pack/mascotPack');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath } = require('../../lib/uploads');
+const { stripImageMetadata } = require('../../lib/imageMetadata');
 const {
   parseMascotPackZipBuffer,
   buildMascotPackZipBuffer,
@@ -79,6 +80,17 @@ function readGlArchiveBufferFromRequest(req) {
 }
 
 async function replaceGlPackAssetsFromArchive(packId, assetsMap) {
+  // Métadonnées retirées de chaque image AVANT toute suppression (RG7, audit RGPD du
+  // 30/09/2026) : ces fichiers sont servis publiquement sous /uploads, et une image refusée
+  // (422, échec fermé) ne doit pas laisser un pack à moitié remplacé.
+  const cleanedAssets = new Map();
+  for (const [zipPath, buffer] of assetsMap.entries()) {
+    if (!Buffer.isBuffer(buffer)) continue;
+    cleanedAssets.set(
+      zipPath,
+      await stripImageMetadata(buffer, { relativePath: `gl-mascot-packs/${packId}/${zipPath}` }),
+    );
+  }
   const existing = await queryAll(
     'SELECT asset_path FROM gl_mascot_pack_assets WHERE pack_id = ?',
     [packId],
@@ -89,7 +101,7 @@ async function replaceGlPackAssetsFromArchive(packId, assetsMap) {
   }
   const filenameToUploadUrl = new Map();
   const folder = `gl-mascot-packs/${packId}`;
-  for (const [zipPath, buffer] of assetsMap.entries()) {
+  for (const [zipPath, buffer] of cleanedAssets.entries()) {
     const zipName = sanitizeMascotPackAssetFilename(path.basename(zipPath));
     if (!zipName || !Buffer.isBuffer(buffer)) continue;
     const hashedPrefix = crypto.createHash('sha1').update(zipName).digest('hex').slice(0, 12);
@@ -470,7 +482,14 @@ router.post(
       }
     }
 
-    const filenameToUrl = await replaceGlPackAssetsFromArchive(packId, parsed.assets);
+    let filenameToUrl;
+    try {
+      filenameToUrl = await replaceGlPackAssetsFromArchive(packId, parsed.assets);
+    } catch (err) {
+      // Image refusée (422, métadonnées non retirables) : pas de pack vide en mode création.
+      if (mode === 'create') await execute('DELETE FROM gl_mascot_packs WHERE id = ?', [packId]);
+      throw err;
+    }
     const serverPayload = rewriteGlPayloadForServerImport(parsed.pack, filenameToUrl);
     const validated = validateGlMascotPack(serverPayload);
     if (!validated.success) {

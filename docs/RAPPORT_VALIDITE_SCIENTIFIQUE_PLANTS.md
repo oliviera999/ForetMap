@@ -1,7 +1,7 @@
 # Rapport de validité scientifique — table `plants`
 
 Date: 2026-03-23  
-Source analysée: `GET https://foretmap.olution.info/api/plants` (66 entrées)
+Source analysée: `GET https://foretmap.<domaine>/api/plants` (66 entrées)
 
 ## Méthode
 

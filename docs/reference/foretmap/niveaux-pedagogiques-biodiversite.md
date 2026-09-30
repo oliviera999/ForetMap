@@ -307,7 +307,9 @@ silence et apparaissent tous au rallumage.
 - Les professeurs ne sont jamais bloqués par un prérequis, pour pouvoir préparer et
   montrer la séance.
 - En terminant des séances, l’élève gagne des **badges** : première séance, trois séances
-  différentes, séance refaite, séance de niveau lycée. Les nouveaux badges s’affichent
+  différentes, séance refaite, séance de niveau lycée. Une séance n’est comptée
+  « terminée » que si elle a été **lancée** auparavant (chaque fin suit un lancement) :
+  on ne peut pas obtenir un badge sans faire la séance. Les nouveaux badges s’affichent
   dans la fenêtre de fin de séance. Le catalogue affiche « Mes badges », avec ceux qui
   restent à gagner.
 

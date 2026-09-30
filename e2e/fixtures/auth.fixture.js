@@ -164,7 +164,7 @@ function buildE2eStudentProfile({ withPseudo = false } = {}) {
   return {
     firstName: `E2E${nonce}`,
     lastName: 'Eleve',
-    password: '1234',
+    password: '12345678',
     pseudo: withPseudo ? `e2e_${safeNonce}` : '',
     email: `e2e_${safeNonce}@example.com`,
   };

@@ -91,7 +91,7 @@ before(async () => {
       firstName: 'Iris',
       lastName: 'Nadal',
       pseudo: `player-roster-${stamp}`,
-      password: '1234',
+      password: '12345678',
     })
     .expect(201);
   playerId = Number(player.body?.id);
@@ -178,7 +178,7 @@ test('roster auto-assign répartit les joueurs non assignés (mode fill)', async
         firstName: `Auto${i}`,
         lastName: `Joueur${i}`,
         pseudo: `auto-roster-${stamp}-${i}`,
-        password: '1234',
+        password: '12345678',
       })
       .expect(201);
     extraPlayerIds.push(Number(created.body?.id));

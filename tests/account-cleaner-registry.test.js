@@ -38,7 +38,7 @@ test('chaque domaine déclare ses nettoyeurs, le produit G&L à part', () => {
     {
       domain: 'Gnomes & Licornes (joueur lié)',
       product: 'gl',
-      hooks: ['studentDelete'],
+      hooks: ['studentDelete', 'afterStudentDelete'],
       mergeSpecialForeignKeys: ['gl_players.linked_foretmap_user_id'],
     },
     {
@@ -67,6 +67,12 @@ test('chaque domaine déclare ses nettoyeurs, le produit G&L à part', () => {
     },
     {
       domain: 'Observations',
+      product: 'foret',
+      hooks: ['studentDelete', 'afterStudentDelete'],
+      mergeSpecialForeignKeys: [],
+    },
+    {
+      domain: 'Carnet personnel',
       product: 'foret',
       hooks: ['studentDelete', 'afterStudentDelete'],
       mergeSpecialForeignKeys: [],
@@ -126,6 +132,8 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
       affectedMapIds: [],
       taskLogImagePaths: [],
       speciesObservationPhotoPaths: [],
+      userJournalAssetPaths: [],
+      userJournalDirectory: 'user-journal/eleve-1',
     },
   });
   const tables = tx.calls.map((c) => /(?:FROM|INTO|UPDATE)\s+(\w+)/i.exec(c.sql)[1]);
@@ -142,12 +150,20 @@ test('suppression d’un élève : ordre des domaines, produit G&L sautable, con
     'context_comments',
     'user_roles',
     'password_reset_tokens',
+    // Effacement RGPD (RG3, audit du 30/09/2026) : IP/UA, libellés d'audit, activité ; la
+    // table d'échafaudage `elevation_audit` n'est touchée que si elle existe encore.
+    'security_events',
+    'audit_log',
+    'user_activity_events',
+    'INFORMATION_SCHEMA',
     'task_assignments',
     'task_logs',
     'task_assignments',
     'task_logs',
     // Observations d'espèces : lecture des chemins de photos, supprimées après validation.
     'species_observation_photos',
+    // Carnet personnel : chemins des pièces jointes, supprimées (avec le dossier) après validation.
+    'user_journal_article_assets',
   ]);
   assert.ok(
     tx.calls.every((c) => !/gl_/.test(c.sql)),
@@ -164,6 +180,9 @@ test('suppression d’un élève : les images jointes sont relevées puis suppri
       return [{ image_paths_json: '["context-comments/c1/0.jpg","forum-posts/intrus.jpg"]' }];
     }
     if (/SELECT image_path FROM task_logs/.test(sql)) return [{ image_path: 'task-logs/7.jpg' }];
+    if (/SELECT asset_path FROM user_journal_article_assets/.test(sql)) {
+      return [{ asset_path: 'user-journal/eleve-4/1.jpg' }];
+    }
     if (/^\s*SELECT DISTINCT task_id/.test(sql)) return [];
     return undefined;
   });
@@ -180,8 +199,11 @@ test('suppression d’un élève : les images jointes sont relevées puis suppri
   // Suites : chaque domaine supprime ses fichiers — jamais si la suppression a échoué.
   const uploads = require('../lib/uploads');
   const original = uploads.deleteFile;
+  const originalDir = uploads.deleteDirectory;
   const deleted = [];
+  const deletedDirs = [];
   uploads.deleteFile = (p) => deleted.push(p);
+  uploads.deleteDirectory = (p) => deletedDirs.push(p);
   try {
     // Les modules ont capturé `deleteFile` au chargement : on les recharge sous l’espion.
     for (const mod of [
@@ -189,6 +211,7 @@ test('suppression d’un élève : les images jointes sont relevées puis suppri
       '../lib/social/accountCleaners',
       '../lib/tasks/accountCleaners',
       '../lib/observations/accountCleaners',
+      '../lib/accounts/userJournalAccountCleaners',
     ]) {
       delete require.cache[require.resolve(mod)];
     }
@@ -197,12 +220,16 @@ test('suppression d’un élève : les images jointes sont relevées puis suppri
     await fresh.runAfterStudentDeleteCleaners({ ok: true, affectedTaskIds: [] }, out.contributions);
   } finally {
     uploads.deleteFile = original;
+    uploads.deleteDirectory = originalDir;
   }
   assert.deepEqual(deleted.sort(), [
     'context-comments/c1/0.jpg',
     'forum-posts/p1/0.jpg',
     'task-logs/7.jpg',
+    'user-journal/eleve-4/1.jpg',
   ]);
+  // Dossier du carnet (RG3) : supprimé une seule fois, et jamais si la suppression a échoué.
+  assert.deepEqual(deletedDirs, ['user-journal/eleve-4']);
 });
 
 test('suppression d’un élève : le refus du produit G&L arrête les autres domaines', async () => {

@@ -2,7 +2,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import {
+  decorateLightboxImage,
+  decorateLightboxImagesIn,
   handleImageLightboxClick,
+  isDecorativeImage,
   isImageLightboxExcluded,
   resolveImageLightboxCaption,
   resolveImageLightboxSrc,
@@ -65,5 +68,61 @@ describe('imageLightboxClick', () => {
     });
     assert.equal(handled, true);
     assert.deepEqual(opened, { src: '/scene.jpg', caption: 'Chapitre 1', gallery: null, index: 0 });
+  });
+  it('decorateLightboxImage rend focalisable une image informative', () => {
+    const win = dom('<img src="/scene.jpg" alt="Scène" width="400" height="300" />');
+    const img = win.document.querySelector('img');
+    decorateLightboxImage(img);
+    assert.equal(img.getAttribute('role'), 'button');
+    assert.equal(img.getAttribute('tabindex'), '0');
+    assert.equal(img.getAttribute('aria-label'), 'Agrandir l’image : Scène');
+    assert.ok(img.hasAttribute('data-lightbox-focusable'));
+  });
+
+  it('decorateLightboxImage laisse intacte une image décorative (presentation-role-conflict)', () => {
+    const win = dom(`
+      <img id="a" src="/a.jpg" alt="" width="400" height="300" />
+      <img id="b" src="/b.jpg" alt="Décor" aria-hidden="true" width="400" height="300" />
+      <img id="c" src="/c.jpg" alt="Décor" role="presentation" width="400" height="300" />
+      <img id="d" src="/d.jpg" alt="Décor" role="none" width="400" height="300" />
+    `);
+    decorateLightboxImagesIn(win.document.body);
+    for (const img of win.document.querySelectorAll('img')) {
+      assert.equal(isDecorativeImage(img), true, img.id);
+      assert.equal(img.hasAttribute('role') && img.getAttribute('role') === 'button', false);
+      assert.equal(img.hasAttribute('tabindex'), false, img.id);
+      assert.equal(img.hasAttribute('aria-label'), false, img.id);
+      assert.equal(img.hasAttribute('data-lightbox-focusable'), false, img.id);
+    }
+  });
+
+  it('une image sans attribut alt ou avec alt espace n’est pas décorative', () => {
+    const win = dom(`
+      <img id="a" src="/a.jpg" width="400" height="300" />
+      <img id="b" src="/b.jpg" alt=" " width="400" height="300" />
+    `);
+    for (const img of win.document.querySelectorAll('img')) {
+      assert.equal(isDecorativeImage(img), false, img.id);
+      decorateLightboxImage(img);
+      assert.equal(img.getAttribute('role'), 'button', img.id);
+      assert.equal(img.getAttribute('aria-label'), 'Agrandir l’image', img.id);
+    }
+  });
+
+  it('une image décorative reste agrandissable au clic', () => {
+    const win = dom('<img src="/deco.jpg" alt="" width="400" height="300" />');
+    const img = win.document.querySelector('img');
+    decorateLightboxImage(img);
+    assert.equal(shouldOpenImageLightbox(img), true);
+    let opened = null;
+    const event = new win.MouseEvent('click', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'target', { value: img });
+    assert.equal(
+      handleImageLightboxClick(event, (payload) => {
+        opened = payload;
+      }),
+      true,
+    );
+    assert.equal(opened.src, '/deco.jpg');
   });
 });

@@ -208,6 +208,23 @@ Un n3beur qui clique dans un cours de chapitre Gnomes & Licornes voit les **deux
 applications (carte ForetMap et jeu). Un élève de 6e non n3beur suit l'écran réglé pour ce
 cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion automatique).
 
+**Comment la personne est reconnue (depuis le 30 septembre 2026).** Au tout premier clic,
+l'application cherche d'abord le compte par l'**identifiant Moodle** que la synchronisation a
+déjà enregistré ; l'adresse e-mail transmise par Moodle ne sert qu'en dernier recours. Les
+clics suivants passent par le lien posé la première fois. Côté Moodle, l'administrateur doit
+laisser **activée la confirmation de changement d'adresse e-mail** (réglage
+`emailchangeconfirmation`) : sans elle, un élève pourrait donner à son compte Moodle l'adresse
+d'un camarade et entrer dans son compte ForetMap s'il n'a encore jamais été relié.
+
+**Côté enseignant (Gnomes & Licornes).** Le bouton « MJ » n'ouvre une session maître du jeu
+que pour un compte **enseignant** qui a accès à l'interface enseignant, **et** dont l'accès
+maître du jeu est déjà **relié** à ce compte (première connexion directe à Gnomes & Licornes,
+ou rattachement dans l'administration du jeu). Une ligne MJ ancienne qui ne porte que la même
+adresse e-mail ne suffit plus.
+
+Le lien d'arrivée ne sert qu'**une fois** : recharger la page d'arrivée après être entré, ou
+réutiliser un lien copié, affiche un refus — il suffit de recliquer sur l'activité dans Moodle.
+
 ## Ce que ça change pour un professeur
 
 - Les groupes-classes apparaissent **tout seuls** à la rentrée, avec les bons élèves ; plus
@@ -261,7 +278,7 @@ cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion au
   chapitre. Seuls ces groupes-miroir sont créés ou retirés ; un joueur sans compte Moodle
   reconnu est signalé, pas inventé. Le premier passage sur le vrai Moodle reste à valider.
 - **Entrée depuis le cours** : le clic Moodle est en place côté application ; le premier
-  lancement réel depuis olution.info reste à mesurer (réglage de l'outil dans Moodle, geste
+  lancement réel depuis <domaine> reste à mesurer (réglage de l'outil dans Moodle, geste
   technique).
 - **Un conflit ignoré ne revient pas** : « Ignorer » est définitif pour cet écart-là. Si l'on
   change d'avis, il faut refaire le geste dans le groupe (remettre ou retirer l'élève) puis

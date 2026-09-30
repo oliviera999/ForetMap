@@ -9,7 +9,9 @@ Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (o
 
 ## Fichier projet (recommandé)
 
-Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**, URL prod par défaut dans `env.FORETMAP_BASE_URL`.
+Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**. Le fichier ne porte
+**aucune URL** (audit sécurité du 30/09/2026, CS4 : les adresses de production n'ont pas à voyager
+avec une archive du code) ; les URL cibles se posent dans `.env` (voir « Autre URL que la prod »).
 
 Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 
@@ -26,7 +28,10 @@ Si besoin d’une config MCP hors dépôt : **`%USERPROFILE%\.cursor\mcp.json`**
 
 ### Autre URL que la prod
 
-Éditez **`FORETMAP_BASE_URL`** dans `.cursor/mcp.json` (ex. `http://127.0.0.1:3000`) ou surchargez via config MCP utilisateur.
+Définissez **`FORETMAP_BASE_URL`** et **`GL_BASE_URL`** dans le `.env` local (ex.
+`FORETMAP_BASE_URL=https://<domaine-foretmap>`, `GL_BASE_URL=https://<domaine-gl>`, ou
+`http://127.0.0.1:3000` pour une instance locale), ou dans la config MCP utilisateur (bloc `env`).
+Sans variable, le script retombe sur l'instance de production du projet.
 
 ## Outils exposés
 

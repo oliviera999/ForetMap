@@ -4,6 +4,7 @@ const { queryOne, execute } = db;
 const { requireGlPermission, hasGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
+const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const logger = require('../../../lib/logger');
 const { grantStartingFeuilletsToTeam } = require('../../../lib/glFeuilletBundleGrant');
 const {
@@ -29,6 +30,11 @@ function requireTeamCompositionRights(req, res) {
 
 function sendCompositionError(res, err) {
   if (err instanceof GlTeamCompositionError) {
+    // AP2 : erreur typée, mais un statut 5xx n'expose pas son message.
+    if (Number(err.status) >= 500) {
+      sendSafeError(res, err);
+      return true;
+    }
     res.status(err.status || 400).json({ error: err.message, code: err.code });
     return true;
   }

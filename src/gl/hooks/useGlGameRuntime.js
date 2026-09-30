@@ -20,6 +20,7 @@ import {
   targetMarkerAfterDice,
 } from '../utils/glBoardPath.js';
 import { buildSpellCastResultViewModel } from '../utils/glSpellCastRules.js';
+import { clampDiceCount, rollDice } from '../utils/glVirtualDice.js';
 
 /**
  * Runtime de partie GL, extrait d'AppGL (audit §3.5) sans changement de comportement :
@@ -413,23 +414,38 @@ export function useGlGameRuntime({
     await reloadGame();
   }
 
-  /** Enregistre le jet de dés côté serveur (1× par équipe et par tour). */
-  async function recordDiceRoll(roll) {
-    if (!turnsEnabled || !gameState?.game?.id) return true;
+  /**
+   * Lance les dés d'une équipe (audit sécurité 2026-09-30, GL4) : en partie EN COURS, c'est le
+   * serveur qui tire (`POST …/dice-roll { count }`) et le résultat renvoyé est celui affiché —
+   * 1× par équipe et par tour quand les tours sont actifs. Hors partie en cours (démo,
+   * préparation), tirage local sans enregistrement.
+   *
+   * @param {{ count?: number, values?: number[] }} request nombre de dés demandé
+   * @returns {Promise<{ values: number[], total: number } | null>} `null` = jet refusé
+   */
+  async function recordDiceRoll(request) {
+    const count = clampDiceCount(request?.count ?? request?.values?.length ?? 1);
+    const gameId = gameState?.game?.id;
+    const live = String(gameState?.game?.status || '').toLowerCase() === 'live';
     const teamId = activeDiceTeamId;
-    if (teamId == null) {
+    if (turnsEnabled && gameId && teamId == null) {
       setError('Choisissez une équipe avant de lancer les dés.');
-      return false;
+      return null;
     }
+    if (!gameId || !live || teamId == null) return rollDice(count);
     try {
-      await apiGL(`/api/gl/games/${gameState.game.id}/teams/${teamId}/dice-roll`, 'POST', {
-        values: roll?.values,
-        total: roll?.total,
+      const event = await apiGL(`/api/gl/games/${gameId}/teams/${teamId}/dice-roll`, 'POST', {
+        count,
       });
-      return true;
+      const values = Array.isArray(event?.payload?.values) ? event.payload.values : null;
+      if (!values) {
+        setError('Lancer les dés impossible');
+        return null;
+      }
+      return { values: values.map(Number), total: Number(event.payload.total) };
     } catch (err) {
       setError(err.message || 'Lancer les dés impossible');
-      return false;
+      return null;
     }
   }
 

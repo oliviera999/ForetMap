@@ -17,7 +17,11 @@ commentaires) et rester informé (notifications, temps réel).
 - **Classement** : un palmarès des élèves fondé sur les tâches validées — motivant en
   classe, à utiliser avec discernement.
 - **Export tableur** : les données de suivi s'exportent en un clic (permission
-  dédiée) pour les bulletins ou les bilans.
+  dédiée) pour les bulletins ou les bilans. Par sécurité, une cellule qui commencerait
+  par `=`, `+`, `-` ou `@` (un prénom saisi « =… » par exemple) est précédée d'une
+  apostrophe : le tableur l'affiche comme du texte au lieu de l'exécuter comme une
+  formule. Cela vaut pour tous les exports CSV (statistiques, journal de sécurité,
+  identifiants G&L).
 - **Côté élève** : chacun voit sa propre progression ; l'accès aux statistiques
   générales est un réglage (activable ou non par l'administrateur).
 - **Fiche « Mes statistiques » d'un compte hors groupe n3beur** (visiteur, membre du
@@ -64,7 +68,9 @@ commentaires) et rester informé (notifications, temps réel).
 - **Modifier son message** : l'auteur d'un message peut le **corriger** (« Modifier »,
   puis « Enregistrer »). Le message affiche alors « modifié le … ». Un professeur ne réécrit
   pas le message de quelqu'un d'autre : il peut seulement le supprimer. On ne modifie plus
-  rien dans un sujet verrouillé.
+  rien dans un sujet verrouillé. Un modérateur dont le profil est limité à ses groupes ne
+  supprime que les messages des sujets de **ses** groupes (comme pour verrouiller ou
+  épingler) ; l'auteur, lui, peut toujours supprimer ses propres messages.
 - **Affichage** : sur ordinateur, la liste des sujets est à gauche et la discussion à droite.
   Sur téléphone ou tablette en portrait, on voit d'abord la **liste** ; toucher un sujet
   ouvre la **discussion** en plein écran, et le bouton « ← Tous les sujets » ramène à la liste.
@@ -202,8 +208,10 @@ retenu : il s'ouvre juste après la connexion.
   figurent aussi.
 - **Journal de sécurité (administrateurs)** : sous-onglet dédié dans Audit, réservé aux
   administrateurs. Il reprend les mêmes événements avec l’**adresse IP** et le
-  **navigateur** utilisés, des filtres (période, compte, action, IP) et un export
-  tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
+  **navigateur** utilisés (au-delà de **6 mois**, l’adresse IP est raccourcie et le
+  navigateur effacé ; au-delà d’un an, l’événement est supprimé — par la purge mensuelle,
+  que l’hébergeur doit avoir installée), des filtres (période, compte, action, IP) et un
+  export tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
   historique : on peut toujours remonter jusqu’à l’auteur via son compte, puis croiser
   l’IP et le navigateur.
 - **Suivi utilisateurs (administrateur)** : dans les paramètres d’administration,
@@ -215,6 +223,14 @@ retenu : il s'ouvre juste après la connexion.
   Les visiteurs sans compte n’apparaissent que dans les compteurs anonymes.
 - **Médiathèque** : une bibliothèque d'images (et de pistes audio ou vidéo)
   réutilisables pour illustrer les contenus, gérée par les professeurs.
+- **Informations cachées des photos** : toute image déposée (médiathèque, photos jointes,
+  packs mascotte du jeu…) est débarrassée de ses informations cachées — **position GPS**,
+  date, modèle du téléphone. Une image que le serveur ne parvient pas à nettoyer est
+  **refusée** avec le message « Image illisible ou non nettoyable » : la réenregistrer
+  (capture d'écran, export JPEG) puis la déposer à nouveau. Les **vidéos et sons**, eux,
+  ne sont **pas** nettoyés : une vidéo filmée au téléphone peut contenir le lieu du
+  tournage — la déposer depuis un logiciel qui retire ces informations, ou éviter de
+  filmer des élèves identifiables.
 - **Importer depuis un téléphone** : deux boutons, « 📁 Importer » (galerie ou
   gestionnaire de fichiers) et « 📸 Prendre une photo ». Les photos volumineuses sont
   automatiquement allégées avant l'envoi ; un fichier refusé est signalé **par son nom**

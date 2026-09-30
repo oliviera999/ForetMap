@@ -121,12 +121,12 @@ Fichier autre que le défaut : `-- --file=/chemin/fichier.xlsx --apply`.
 
 Modèle Excel chapitres vide : `npm run gl:import:chapters:example`.
 
-**WordPress (yo.olution.info → GL)** — procédure complète :
+**WordPress (<domaine-wordpress-gl> → GL)** — procédure complète :
 [GL_IMPORT_FROM_YO.md](GL_IMPORT_FROM_YO.md).
 
 ```bash
-npm run gl:import:wp -- --source-base-url https://yo.olution.info --target=all --dry-run
-npm run gl:import:wp -- --source-base-url https://yo.olution.info --target=all --apply
+npm run gl:import:wp -- --source-base-url https://<domaine-wordpress-gl> --target=all --dry-run
+npm run gl:import:wp -- --source-base-url https://<domaine-wordpress-gl> --target=all --apply
 ```
 
 **Médias GL** déjà sur le disque :

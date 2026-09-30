@@ -22,6 +22,8 @@ const ROUTERS = [
 
 const PASSWORD_CHECK_MARKERS = [
   'bcrypt.compare(',
+  // Connexion à temps constant (AC5, audit 2026-09-30) : bcrypt même sans compte.
+  'comparePasswordConstantTime(',
   'verifyGlPlayerPassword(',
   'attemptGlStaffPasswordLogin(',
 ];

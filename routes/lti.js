@@ -24,6 +24,7 @@ const {
   clearOidcCookie,
   rememberNonce,
   buildPlatformAuthRedirect,
+  isTargetLinkUriOnToolOrigin,
 } = require('../lib/lti/oidc');
 const { verifyLaunchToken, toolPublicJwk, launchView } = require('../lib/lti/launch');
 const { resolveLtiUser, isN3beurUser } = require('../lib/lti/identity');
@@ -66,6 +67,12 @@ async function handleLogin(req, res) {
   }
   if (!params.targetLinkUri) {
     return res.status(400).json({ error: 'target_link_uri manquant' });
+  }
+  // `target_link_uri` devient le `redirect_uri` renvoyé à la plateforme : il doit viser
+  // l'outil lui-même (audit sécurité 2026-09-30, §6).
+  const toolOrigin = settings.publicOrigin || `${req.protocol}://${req.get('host')}`;
+  if (!isTargetLinkUriOnToolOrigin(params.targetLinkUri, toolOrigin)) {
+    return res.status(400).json({ error: 'target_link_uri hors de l’outil', code: 'LTI_TARGET' });
   }
   const pair = newOidcPair();
   setOidcCookie(res, pair);

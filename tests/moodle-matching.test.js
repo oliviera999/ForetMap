@@ -61,7 +61,7 @@ test('runUpstreamChecks : e-mail absent, domaine interdit, doublon → laissés 
       { id: 1, email: 'a@lyautey.ma' },
       { id: 2, email: '' },
       { id: 3, email: 'A@Lyautey.ma' },
-      { id: 4, email: 'x@gmail.com' },
+      { id: 4, email: 'x@exemple.invalid' },
       { id: 5, email: '', suspended: true },
     ],
     emailDomains: ['lyautey.ma'],
@@ -87,7 +87,7 @@ test('runUpstreamChecks : déjà lié + doublon / domaine → le lié reste, l�
     members: [
       { id: 10, email: 'a@lyautey.ma', username: 'lie' },
       { id: 11, email: 'A@Lyautey.ma', username: 'fantome' },
-      { id: 12, email: 'perso@gmail.com', username: 'hors-domaine' },
+      { id: 12, email: 'perso@exemple.invalid', username: 'hors-domaine' },
     ],
     emailDomains: ['lyautey.ma'],
     linkedExternalIds: new Set(['10', '12']),

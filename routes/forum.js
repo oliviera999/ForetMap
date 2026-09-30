@@ -585,6 +585,12 @@ router.delete(
     const ownsPost = forumCore.actorOwns(post, actor);
     const moderator = canModerateForum(req.auth);
     if (!ownsPost && !moderator) return res.status(403).json({ error: 'Permission insuffisante' });
+    // AP7 (audit 30/09/2026) : un modérateur limité à ses groupes ne supprime que dans son
+    // périmètre, comme pour `lock`, `pin` et les signalements. L'auteur garde la main sur ses
+    // propres messages.
+    if (!ownsPost && !(await isForumGroupInScope(req.auth, post.group_id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
 
     await forumCore.softDeletePost(FORUM, post, actor);
     await logAudit('forum_post_delete', 'forum_post', post.id, 'Suppression message forum', {

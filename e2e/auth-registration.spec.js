@@ -54,7 +54,7 @@ test.describe('inscription publique', () => {
       data: {
         firstName: `E2ERefus${nonce}`,
         lastName: 'Eleve',
-        password: '1234',
+        password: '12345678',
       },
     });
     expect(resp.status(), "l'API doit refuser l'inscription, pas seulement la masquer").toBe(403);
@@ -67,7 +67,7 @@ test.describe('inscription publique', () => {
     const safeNonce = String(nonce).replace(/[^a-zA-Z0-9]/g, '_');
     const firstName = `E2EInscr${nonce}`;
     const email = `e2e_inscr_${safeNonce}@example.com`;
-    const password = '1234';
+    const password = '12345678';
 
     await page.goto('/');
     await markAllDiscoveryToursSeen(page);

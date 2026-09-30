@@ -41,7 +41,7 @@ test.before(async () => {
 
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Feature', lastName: 'Test' + Date.now(), password: 'pwd123' })
+    .send({ firstName: 'Feature', lastName: 'Test' + Date.now(), password: 'pwd12345' })
     .expect(201);
   studentData = reg.body;
   await setStudentPrimaryRole(studentData.id, 'eleve_novice');
@@ -647,8 +647,13 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
       email: `profil_${Date.now()}@example.com`,
       description: 'Description mise à jour',
       avatarData: tinyAvatar,
+      // Changer d'e-mail exige le mot de passe actuel (AC3, audit 2026-09-30).
+      currentPassword: 'pwd12345',
     })
     .expect(200);
+  // Le changement d'e-mail révoque les sessions : la réponse porte le jeton qui la remplace.
+  assert.ok(res.body.authToken);
+  studentData.authToken = res.body.authToken;
 
   assert.ok(res.body.pseudo);
   assert.ok(res.body.email);
@@ -674,7 +679,7 @@ test('PATCH /api/students/:id/profile rejette un conflit pseudo', async () => {
     .send({
       firstName: 'Another',
       lastName: `Student${Date.now()}`,
-      password: 'pwd123',
+      password: 'pwd12345',
       pseudo: pseudoConflict,
       email: `another_${Date.now()}@example.com`,
     })
@@ -717,7 +722,7 @@ test('PATCH /api/students/:id/profile sans token renvoie 401', async () => {
 test('PATCH /api/students/:id/profile refuse la modification par un autre élève', async () => {
   const other = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Other', lastName: `Student${Date.now()}`, password: 'pwd123' })
+    .send({ firstName: 'Other', lastName: `Student${Date.now()}`, password: 'pwd12345' })
     .expect(201);
 
   await request(app)
@@ -1520,7 +1525,12 @@ test('GET /api/visit/progress?student_id refuse sans jeton élève', async () =>
 test('GET /api/visit/progress?student_id refuse si le jeton est un autre élève', async () => {
   const other = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Prog', lastName: `X${Date.now()}`, password: 'pwd123', affiliation: 'n3' })
+    .send({
+      firstName: 'Prog',
+      lastName: `X${Date.now()}`,
+      password: 'pwd12345',
+      affiliation: 'n3',
+    })
     .expect(201);
   await setStudentPrimaryRole(other.body.id, 'eleve_novice');
   await request(app)
@@ -1555,7 +1565,12 @@ test('POST /api/visit/seen avec student_id refuse sans authentification', async 
 test('POST /api/visit/seen refuse student_id différent du compte authentifié', async () => {
   const other = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Other', lastName: `V${Date.now()}`, password: 'pwd123', affiliation: 'n3' })
+    .send({
+      firstName: 'Other',
+      lastName: `V${Date.now()}`,
+      password: 'pwd12345',
+      affiliation: 'n3',
+    })
     .expect(201);
   await setStudentPrimaryRole(other.body.id, 'eleve_novice');
 
@@ -1655,7 +1670,7 @@ test('GET /api/visit/stats calcule correctement sessions, complétion et visites
 
   const studentReg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Stats', lastName: `Visit${Date.now()}`, password: 'pwd123' })
+    .send({ firstName: 'Stats', lastName: `Visit${Date.now()}`, password: 'pwd12345' })
     .expect(201);
   const studentToken = studentReg.body.authToken;
   assert.ok(studentToken, 'authToken élève après inscription');

@@ -3,7 +3,7 @@
 - Date:
 - Auteur:
 - Perimetre (lot/PR/commit):
-- Environnement (URL: `gl.olution.info`, device, navigateur):
+- Environnement (URL: `gl.<domaine>`, device, navigateur):
 - Version app (si connue):
 
 ## Partie 1 - Matrice de resultats

@@ -9,7 +9,6 @@
  */
 
 const express = require('express');
-const crypto = require('crypto');
 const { ping: dbPing, queryAll, queryOne } = require('../database');
 const { getMigrationStatus } = require('../lib/migrationStatus');
 const logger = require('../lib/logger');
@@ -22,15 +21,10 @@ const { tailLogLines, getBufferedLineCount, getMaxLines } = require('../lib/logB
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
 
-const startupVersion = require('../package.json').version;
+// Comparaison à temps constant sur DEPLOY_SECRET — module partagé avec lib/rateLimit.js (AC8).
+const { timingSafeSecretEqual } = require('../lib/shared/secretCompare');
 
-/** Comparaison de secret a temps constant (evite l'oracle temporel sur DEPLOY_SECRET). */
-function timingSafeSecretEqual(provided, expected) {
-  const a = Buffer.from(String(provided == null ? '' : provided));
-  const b = Buffer.from(String(expected == null ? '' : expected));
-  if (a.length !== b.length || a.length === 0) return false;
-  return crypto.timingSafeEqual(a, b);
-}
+const startupVersion = require('../package.json').version;
 
 /**
  * Garde DEPLOY_SECRET (en-tête `x-deploy-secret`, comparaison à temps constant).

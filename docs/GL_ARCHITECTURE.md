@@ -6,8 +6,8 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 - Garder un seul dépôt et un seul serveur Node.
 - Servir deux produits séparés :
-  - `foretmap.olution.info` (ForetMap historique)
-  - `gl.olution.info` (Gnomes & Licornes)
+  - `foretmap.<domaine>` (ForetMap historique)
+  - `gl.<domaine>` (Gnomes & Licornes)
 - Isoler les sessions, permissions et données GL sans modifier le métier ForetMap.
 
 ## Code partagé ForetMap ↔ GL (mutualisation)
@@ -439,7 +439,7 @@ Tests : `tests/gl-lore-import.test.js`, `tests/gl-lore-feuillets.test.js`, `test
 
 Ordre des commandes (XLSX + WP + médias) : [SCRIPTS.md](SCRIPTS.md) §2.
 
-Source recommandée : API publique WordPress de `yo.olution.info` (avec canonical `www.yo.olution.info`).
+Source recommandée : API publique WordPress de `yo.<domaine>` (avec canonical `www.yo.<domaine>`).
 
 - Config : `scripts/gl-import-wp.config.json`
 - Script : `scripts/gl-import-wp.js`
@@ -454,7 +454,7 @@ Modes disponibles :
 - `--target=chapters` (Lot 2B) : cible `gl_chapters`, en utilisant la clé `chapterMap` de la config pour ne retenir que les pages WP référencées comme chapitres GL (`slug`, `biome`, `mapImageUrl`, `orderIndex`).
 - `--target=all` : enchaîne `brand` puis `pages` et, si `chapterMap` est renseigné, `chapters`.
 
-Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-licornes -> world` pour les pages, et `chapitre-1-la-foret-magique -> { slug: foret-magique, ... }` pour les chapitres). La config accepte aussi `canonicalHost` (URL canonique WordPress, ex. `www.yo.olution.info`) et `brandMap` (fallback logo).
+Le mapping de slugs est configurable (ex. `le-monde-de-gnomes-licornes -> world` pour les pages, et `chapitre-1-la-foret-magique -> { slug: foret-magique, ... }` pour les chapitres). La config accepte aussi `canonicalHost` (URL canonique WordPress, ex. `www.yo.<domaine>`) et `brandMap` (fallback logo).
 
 ## Variables d'environnement utiles
 

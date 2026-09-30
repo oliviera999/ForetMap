@@ -403,6 +403,13 @@ test('admin GL : POST /players rapproche un élève ForetMap existant sans écra
     firstName: 'Nadia',
     lastName: `Unif-${stamp}`,
   });
+  // Rapprochement réservé à un élève déjà membre du groupe de la classe (audit 2026-09-30, GL1).
+  const { ensureForetmapGroupForGlClass } = require('../lib/glGroupBridge');
+  const group = await ensureForetmapGroupForGlClass(cls);
+  await execute(
+    "INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
+    [group.id, fm.id],
+  );
   const res = await request(app)
     .post('/api/gl/admin/players')
     .set('Authorization', `Bearer ${adminToken}`)

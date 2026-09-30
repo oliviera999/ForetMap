@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Button } from '../../shared/ui/Button.jsx';
 import { AccessCodeGate } from '../../shared/components/AccessCodeGate.jsx';
+import { PrivacyNoticeLink } from '../../shared/privacy/PrivacyNoticeLink.jsx';
 import { startGoogleAuth } from '../../components/auth/startGoogleAuth.js';
 
 /**
@@ -57,6 +58,7 @@ export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSu
         >
           Revenir à la connexion
         </button>
+        <PrivacyNoticeLink className="plan-access-gate__privacy" />
       </div>
     );
   }
@@ -86,6 +88,8 @@ export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSu
           Je n’ai pas de compte : entrer un code
         </button>
       ) : null}
+      {/* Notice publique « Vos données » (audit RGPD du 30/09/2026, RG1). */}
+      <PrivacyNoticeLink className="plan-access-gate__privacy" />
     </div>
   );
 }

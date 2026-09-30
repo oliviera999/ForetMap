@@ -54,8 +54,21 @@
   stricte entre équipes reste une convention d'animation que vous tenez. Les **sortilèges ne
   sont pas liés au tour** : ce qui les régule, c'est la validation du MJ (voir
   [l'économie](economie-marche-sorts.md)).
+- **Les dés virtuels** : c'est le **serveur** qui tire les dés — l'écran anime le lancer
+  puis affiche le résultat officiel. Un élève ne peut donc plus « choisir » son score. Hors
+  partie en cours (démonstration, préparation), le lancer reste local et n'est pas enregistré.
 - **Les déplacements** : selon le réglage, le MJ déplace les mascottes ou laisse la
-  main aux joueurs. À l'arrivée sur un repère, les effets s'appliquent — parfois
+  main aux joueurs. Une mascotte ne peut aller que sur un repère **du chapitre de la
+  partie**. En **mode repères numérotés**, quand ce sont les joueurs qui déplacent, la case
+  d'arrivée doit être celle que donne leur **dernier lancer** (et un lancer ne sert qu'à un
+  déplacement) ; si les dés virtuels sont coupés (dés physiques en classe), le jeu ne peut
+  pas connaître le résultat et admet toute avance de 1 à 30 cases — la vérification reste
+  alors la vôtre.
+- **Les équipes pendant la partie** : un élève choisit ou change librement d'équipe tant que
+  la partie est **en préparation**. Une fois la partie lancée, un élève sans équipe peut
+  encore en rejoindre une, mais **un élève déjà placé ne change plus d'équipe tout seul** —
+  c'est vous qui le déplacez depuis la composition des équipes. Sinon, un même élève pouvait
+  jouer pour deux équipes dans le même tour. À l'arrivée sur un repère, les effets s'appliquent — parfois
   différemment pour un gnome et une licorne : c'est le moment de la phrase-clé,
   _« ce lieu est écrit pour l'autre peuple »_.
 - **Les questions** : en mode « QCM réservés au MJ », c'est vous qui présentez la

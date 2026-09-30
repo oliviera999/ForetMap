@@ -4,7 +4,7 @@
 
 ## À quoi sert le Plan Lyautey ?
 
-Le **Plan Lyautey** (`planlyautey.olution.info`) est une application à part, très simple :
+Le **Plan Lyautey** (`planlyautey.<domaine>`) est une application à part, très simple :
 **un plan de l'établissement, sur téléphone, pour trouver un lieu**. Elle s'adresse aux
 élèves, aux familles, aux visiteurs et aux nouveaux personnels.
 
@@ -373,6 +373,10 @@ anonymes** sont incrémentés, sans jamais dire qui : ouverture du plan, ouvertu
 recherche, recherche restée sans résultat, localisation, démarrage de parcours, etc. La
 recherche sans résultat est la plus utile : elle dit quels mots les gens emploient et que le
 plan ne connaît pas encore — donc quels **alias de recherche** ajouter.
+
+Une page publique **« Vos données »** le dit aux visiteurs : lien dans l'aide (bouton « ? »),
+sur l'écran de saisie du code et sur l'écran de connexion du plan des personnels. Détail :
+[Vos données](../exploitation/vos-donnees.md).
 
 ## ⚠️ Points d'attention
 

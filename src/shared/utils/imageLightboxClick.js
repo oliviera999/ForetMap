@@ -167,8 +167,26 @@ export function handleImageLightboxKeyDown(event, openLightbox) {
 }
 
 /**
+ * Image déclarée décorative (`alt=""` exact, `aria-hidden="true"` ou rôle `presentation` /
+ * `none`) : lui donner un rôle bouton et un nom accessible créerait un conflit de rôle
+ * (règle axe `presentation-role-conflict`). Elle reste agrandissable à la souris.
+ * @param {Element} img
+ * @returns {boolean}
+ */
+export function isDecorativeImage(img) {
+  if (!isHtmlImageElement(img)) return false;
+  if (img.getAttribute('alt') === '') return true;
+  if (String(img.getAttribute('aria-hidden') || '').toLowerCase() === 'true') return true;
+  const role = String(img.getAttribute('role') || '')
+    .trim()
+    .toLowerCase();
+  return role === 'presentation' || role === 'none';
+}
+
+/**
  * Rend une image agrandissable atteignable au clavier (WCAG 2.1.1) : `tabindex`, rôle
- * bouton et nom « Agrandir… ». Sans effet sur une image déjà focalisable ou exclue.
+ * bouton et nom « Agrandir… ». Sans effet sur une image déjà focalisable, exclue ou
+ * décorative (cf. {@link isDecorativeImage}).
  * @param {HTMLImageElement} img
  */
 export function decorateLightboxImage(img) {
@@ -176,6 +194,7 @@ export function decorateLightboxImage(img) {
   if (img.hasAttribute('data-lightbox-focusable')) return;
   if (img.hasAttribute('tabindex')) return;
   if (isImageLightboxExcluded(img) || isTinyImage(img)) return;
+  if (isDecorativeImage(img)) return;
   const alt = String(img.getAttribute('alt') || '').trim();
   img.setAttribute('data-lightbox-focusable', '');
   img.setAttribute('tabindex', '0');

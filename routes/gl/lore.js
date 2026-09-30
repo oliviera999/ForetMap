@@ -92,7 +92,8 @@ const {
   upsertGlQcmLoreQuestion,
 } = require('../../lib/glQcmLoreCrud');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/qcmChoices');
-const { consumePresentationJti } = require('../../lib/qcmPresentationUse');
+const { consumeFreePresentationJti } = require('../../lib/qcmPresentationUse');
+const { sendSafeError, looksInternal, isBusinessError } = require('../../lib/safeErrorResponse');
 const {
   resolvePresentContext,
   assertPresentAllowed,
@@ -1169,7 +1170,11 @@ router.post(
       const report = await applyFeuilletsImport(db, parsed, { dryRun });
       return res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Import impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -1219,6 +1224,7 @@ router.post(
       const result = await upsertLoreGlossaryTerm(db, req.body || {}, { requireNew: false });
       return res.status(result.created ? 201 : 200).json(result);
     } catch (err) {
+      if (looksInternal(err) && !isBusinessError(err)) return sendSafeError(res, err, { req });
       return res.status(err.statusCode || 400).json({ error: err.message, details: err.details });
     }
   }),
@@ -1232,6 +1238,7 @@ router.put(
       const result = await upsertLoreGlossaryTerm(db, { ...req.body, lore_code: req.params.code });
       return res.json(result);
     } catch (err) {
+      if (looksInternal(err) && !isBusinessError(err)) return sendSafeError(res, err, { req });
       return res.status(err.statusCode || 400).json({ error: err.message, details: err.details });
     }
   }),
@@ -1268,7 +1275,11 @@ router.post(
       const report = await applyLoreGlossaryImport(db, glossaryRows, { dryRun });
       return res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Import impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -1475,7 +1486,11 @@ router.get(
       });
       return res.json(presentation);
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Présentation impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Présentation impossible',
+        req,
+        context: 'gl.lore.qcm.present',
+      });
     }
   }),
 );
@@ -1511,9 +1526,10 @@ router.post(
       // permettait d'essayer tous les choiceId jusqu'à `correct:true` (et d'écrire une
       // tentative juste qui débloque le conditionnement). La PK (jti) arbitre l'unicité
       // — y compris hors partie (game_id NULL, migration 197).
-      const consumption = await consumePresentationJti(
+      // Invité : usage unique tenu en mémoire, rien n'est écrit en base (GL8).
+      const consumption = await consumeFreePresentationJti(
         { execute },
-        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+        { glAuth: req.glAuth, jti: result.jti, questionCode: code },
       );
       if (consumption === 'already_used') {
         return res.status(409).json({ error: 'Présentation déjà utilisée' });
@@ -1551,7 +1567,12 @@ router.post(
         cooldown: cooldown || undefined,
       });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Réponse invalide' });
+      // AP2 : seul un refus métier (jeton, choix) renvoie son message ; une panne → 500.
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Réponse invalide',
+        req,
+        context: 'gl.lore.qcm.answer',
+      });
     }
   }),
 );
@@ -1627,7 +1648,11 @@ router.post(
     try {
       parsed = await resolveQcmLoreImportRows(req.body || {});
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Fichier import invalide',
+        trustPlainErrors: true,
+        req,
+      });
     }
     const { scopeRows, categoryRows, questionRows } = parsed;
     if (!Array.isArray(questionRows) || questionRows.length === 0) {
@@ -1646,7 +1671,11 @@ router.post(
       );
       return res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Import impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -1707,8 +1736,11 @@ router.post(
       );
       return res.status(201).json({ ok: true, created: true, question: result.question });
     } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Création impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Création impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -1728,8 +1760,11 @@ router.put(
       );
       return res.json({ ok: true, created: false, question: result.question });
     } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Mise à jour impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );

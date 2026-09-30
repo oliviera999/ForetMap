@@ -52,6 +52,10 @@ jobs:
           # AUTO_MERGE_PAT (optionnel) : un PAT permet de RE-DÉCLENCHER la CI sur
           # la branche de PR après push (le GITHUB_TOKEN par défaut ne le fait
           # pas). À défaut, la résolution est poussée sans relancer la CI.
+          # Portée minimale attendue (audit sécurité du 30/09/2026, CS5) : jeton FIN
+          # (fine-grained), limité à CE SEUL dépôt, avec uniquement les permissions
+          # « Contents: Read and write » et « Pull requests: Read and write », et une
+          # date d'expiration. Jamais un PAT classique `repo` (accès à tous les dépôts).
           token: ${{ secrets.AUTO_MERGE_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Setup Node

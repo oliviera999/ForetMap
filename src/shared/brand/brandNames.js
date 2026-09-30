@@ -28,6 +28,8 @@ const EMPTY_BRAND = Object.freeze({
   appShortName: '',
   orgName: '',
   orgShortName: '',
+  glName: '',
+  glShortName: '',
 });
 
 function readInjectedBrand() {
@@ -38,7 +40,7 @@ function readInjectedBrand() {
 /**
  * Identité de marque du build. Champs toujours présents, éventuellement vides — une
  * installation sans établissement rattaché a un `orgName` vide, et c'est une valeur valide.
- * @returns {{ appName: string, appShortName: string, orgName: string, orgShortName: string }}
+ * @returns {{ appName: string, appShortName: string, orgName: string, orgShortName: string, glName: string, glShortName: string }}
  */
 export function getBuildBrand() {
   try {
@@ -49,6 +51,8 @@ export function getBuildBrand() {
       appShortName: String(injected.appShortName || ''),
       orgName: String(injected.orgName || ''),
       orgShortName: String(injected.orgShortName || ''),
+      glName: String(injected.glName || ''),
+      glShortName: String(injected.glShortName || ''),
     };
   } catch {
     // Accès au global refusé (contexte isolé) : la marque n'est jamais critique à l'affichage.

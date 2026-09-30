@@ -93,6 +93,7 @@ const {
   spawnRecurringTaskOnValidation,
 } = require('../lib/recurringTasks');
 const { getSettingValue } = require('../lib/settings');
+const { signUploadRelativePath } = require('../lib/uploadsSignedUrls');
 const {
   filterAssignmentsForViewer,
   sanitizeTaskForViewer,
@@ -453,7 +454,7 @@ router.get(
         first_name: row.first_name,
         last_name: row.last_name,
         pseudo: row.pseudo,
-        avatar_path: row.avatar_path,
+        avatar_path: signUploadRelativePath(row.avatar_path),
         role_slug: row.role_slug ?? null,
         role_display_name: row.role_display_name ?? null,
       })),

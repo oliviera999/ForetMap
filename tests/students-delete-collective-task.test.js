@@ -58,12 +58,12 @@ before(async () => {
 
   const regA = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: firstNameA, lastName: lastNameA, password: 'pass123' })
+    .send({ firstName: firstNameA, lastName: lastNameA, password: 'pass1234' })
     .expect(201);
   studentIdA = regA.body.id;
   const regB = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: firstNameB, lastName: lastNameB, password: 'pass123' })
+    .send({ firstName: firstNameB, lastName: lastNameB, password: 'pass1234' })
     .expect(201);
   studentIdB = regB.body.id;
   // Seuls des comptes au statut n3beur sont inscriptibles sur une tâche.

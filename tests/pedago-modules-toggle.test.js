@@ -285,11 +285,17 @@ test('séances éteintes : routes élèves 503, gestion prof 200 ; rallumé → 
 });
 
 test('récompenses éteintes : badges enregistrés sans annonce, rattrapés au rallumage, sans doublon', async () => {
-  const complete = () =>
-    request(app)
+  // Chaque fin suit un démarrage (audit sécurité du 30/09/2026, § 6).
+  const complete = async () => {
+    await request(app)
+      .post(`/api/pedago-sessions/${SESSION_SLUG}/runs/start`)
+      .set(student())
+      .expect(200);
+    return request(app)
       .post(`/api/pedago-sessions/${SESSION_SLUG}/runs/complete`)
       .set(student())
       .expect(200);
+  };
 
   await setModule('ui.modules.rewards_enabled', false);
   try {
