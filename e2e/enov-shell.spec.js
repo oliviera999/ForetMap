@@ -19,6 +19,24 @@ const ADMIN_PASSWORD = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
 /** Catégorie-label semée par la migration 313. */
 const ENOV_CATEGORY_ID = 'cat-enov';
 
+/**
+ * Contexte « console ForêtMap ». Un contexte créé à la main **hérite** de l'en-tête
+ * `X-Foretmap-Product: enov` du projet : sans cette surcharge, la lecture de la zone passait par
+ * la surface `enov`, qui ne sert que les cartes déclarées du plan — 404 sur une base où la
+ * carte servie n'est qu'un repli.
+ */
+const CONSOLE_HEADERS = Object.freeze({ 'X-Foretmap-Product': 'foret' });
+
+/** Zone dessinée (au moins trois sommets) : seule une zone tracée a un contour à entourer. */
+function hasPolygon(zone) {
+  try {
+    const points = typeof zone?.points === 'string' ? JSON.parse(zone.points) : zone?.points;
+    return Array.isArray(points) && points.length >= 3;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function teacherToken(api) {
   const res = await api.post('/api/auth/login', {
     data: { identifier: ADMIN_EMAIL, password: ADMIN_PASSWORD },
@@ -35,8 +53,8 @@ test.afterEach(async ({ playwright, baseURL }) => {
   const pending = restore;
   restore = null;
   if (!pending) return;
-  // Contexte neuf, hors fixtures et **sans** l'en-tête produit : la console est ForêtMap.
-  const api = await playwright.request.newContext({ baseURL });
+  // Contexte neuf, hors fixtures, en ForêtMap : c'est la console qui restaure.
+  const api = await playwright.request.newContext({ baseURL, extraHTTPHeaders: CONSOLE_HEADERS });
   try {
     const token = await teacherToken(api);
     if (!token) return;
@@ -64,10 +82,13 @@ test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son text
   expect(content.tasks).toBeUndefined();
   expect(content.students).toBeUndefined();
   test.skip(!content.map?.map_image_url, 'La carte du plan de cette base locale n’a pas de fond.');
-  const zone = (content.zones || [])[0];
-  test.skip(!zone, 'Aucune zone publiée sur le plan de cette base locale.');
+  const zone = (content.zones || []).find(hasPolygon);
+  test.skip(!zone, 'Aucune zone dessinée sur le plan de cette base locale.');
 
-  const consoleApi = await playwright.request.newContext({ baseURL });
+  const consoleApi = await playwright.request.newContext({
+    baseURL,
+    extraHTTPHeaders: CONSOLE_HEADERS,
+  });
   const text = `Innovation e2e ${Date.now()}`;
   try {
     const token = await teacherToken(consoleApi);
