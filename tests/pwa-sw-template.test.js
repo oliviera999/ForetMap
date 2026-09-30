@@ -391,6 +391,46 @@ test('images : une réponse no-store n’est jamais copiée ; 403/404 purge la c
   }
 });
 
+test('images : URL signée des médias d’élèves mise en cache sans sa signature (RG4)', async () => {
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  // Bac à sable indexé par l'URL COMPLÈTE (requête comprise), comme la vraie Cache API.
+  const images = new Map();
+  const hrefOf = (request) =>
+    typeof request === 'string' ? new URL(request).href : new URL(request.url).href;
+  const store = {
+    match: (request) => Promise.resolve(images.get(hrefOf(request))),
+    put: (request, response) => Promise.resolve(images.set(hrefOf(request), response)),
+    delete: (request) => Promise.resolve(images.delete(hrefOf(request))),
+    keys: () => Promise.resolve([...images.keys()]),
+  };
+  context.caches = {
+    open: () => Promise.resolve(store),
+    match: (request) => Promise.resolve(images.get(hrefOf(request))),
+    keys: () => Promise.resolve(['foretmap-foret-images']),
+  };
+  const fetched = [];
+  context.fetch = (request) => {
+    fetched.push(request.url);
+    return Promise.resolve(
+      imageResponse({ body: 'avatar', cacheControl: 'private, max-age=3600' }),
+    );
+  };
+  const first = 'https://foretmap.test/uploads/students/s1/avatar-1.jpg?exp=100&sig=aaa';
+  const second = 'https://foretmap.test/uploads/students/s1/avatar-1.jpg?exp=200&sig=bbb';
+  await fetchThrough(listeners, first);
+  // Le réseau reçoit l'URL signée telle quelle ; la clé de cache n'en garde que le chemin.
+  assert.deepStrictEqual(fetched, [first]);
+  assert.deepStrictEqual(
+    [...images.keys()],
+    ['https://foretmap.test/uploads/students/s1/avatar-1.jpg'],
+  );
+  // Nouvelle signature (heure suivante) : même clé, copie resservie sans réseau.
+  const again = await fetchThrough(listeners, second);
+  assert.strictEqual(again.body, 'avatar');
+  assert.strictEqual(fetched.length, 1);
+  assert.strictEqual(images.size, 1);
+});
+
 test('renderServiceWorker refuse une configuration incomplète', () => {
   assert.throws(() => renderServiceWorker({ ...BASE_OPTIONS, product: '' }), /product/);
   assert.throws(() => renderServiceWorker({ ...BASE_OPTIONS, cacheName: '' }), /cacheName/);

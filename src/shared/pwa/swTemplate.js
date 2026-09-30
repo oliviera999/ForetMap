@@ -18,7 +18,7 @@
  *   - JS/CSS hors `/assets/` (non hachés) en network-first, comme avant ;
  *   - images, icônes et fontes en cache-first, dans un cache à part borné (200 entrées, 7 jours),
  *     purgé d'une copie révoquée (401/403) ou supprimée (404) ; jamais de copie d'une réponse
- *     \`no-store\` ;
+ *     \`no-store\` ; clé sans la signature \`exp\`/\`sig\` des médias \`/uploads/\` signés ;
  *   - message `SKIP_WAITING`, purge des anciens caches à l'activation.
  * Toute évolution de stratégie se fait ICI, puis `npm run build` régénère `dist/sw-<produit>.js`.
  */
@@ -187,6 +187,23 @@ function cacheKeyFor(request) {
   return url.toString();
 }
 
+/**
+ * Clé de cache d'une image. Les médias d'élèves (\`/uploads/students/…\`, forum, tâches…)
+ * sont lus par URL **signée** (\`?exp=…&sig=…\`, lib/uploadsSignedUrls.js) dont la requête
+ * change toutes les heures : la garder dans la clé remplirait le cache borné de doublons de
+ * la même photo et ferait manquer, hors ligne, la copie déjà téléchargée. La clé retire donc
+ * \`exp\` et \`sig\` ; la requête réseau, elle, part avec sa signature. La purge des médias
+ * à la déconnexion (\`/uploads/\` dans le chemin) reste inchangée.
+ */
+function imageCacheKeyFor(request) {
+  const key = cacheKeyFor(request);
+  const url = new URL(typeof key === 'string' ? key : request.url);
+  if (!url.pathname.includes('/uploads/') || !url.searchParams.has('sig')) return key;
+  url.searchParams.delete('sig');
+  url.searchParams.delete('exp');
+  return url.toString();
+}
+
 /** Retire une entrée du cache (révocation) — sans bruit si elle n'y était pas. */
 function evictFromCache(request) {
   return caches.open(CACHE_NAME).then((cache) => cache.delete(cacheKeyFor(request))).catch(() => undefined);
@@ -285,7 +302,7 @@ function trimImageCache(cache) {
  * révoqué ou qui a été supprimée n'est plus rejouée depuis l'appareil.
  */
 function imageCacheFirst(request) {
-  const key = cacheKeyFor(request);
+  const key = imageCacheKeyFor(request);
   return caches.match(key).then((cached) => {
     if (cached && !isExpiredImage(cached)) return cached;
     return fetch(request)
