@@ -275,7 +275,7 @@ export function buildPrivacyNotice({
 
   // --- Durées ---------------------------------------------------------------------------------
   const session = `la session de connexion : ${R.sessionMinutes / 60 === 1.5 ? '1 h 30' : `${R.sessionMinutes} minutes`}, prolongée tant que ${t('tu utilises', 'vous utilisez')} l’application, ${R.sessionMaxHours} heures au plus ;`;
-  const securityYear = `les journaux de sécurité (connexions, adresses IP) : ${R.securityDays === 365 ? '1 an' : `${R.securityDays} jours`} ;`;
+  const securityYear = `les journaux de sécurité (connexions, adresses IP) : ${R.securityDays === 365 ? '1 an' : `${R.securityDays} jours`} ; l’adresse IP y est raccourcie au bout de 6 mois ;`;
   const durations = {
     foret: [
       'ton compte et tes productions : tant que ton compte existe. Quand il est supprimé (à ta demande ou par l’établissement), ton profil, tes tâches, observations, messages et photos sont effacés ;',
