@@ -652,7 +652,7 @@ plans (`GET /api/plan/content`, `GET /api/staff-plan/content` → `settings.exte
 
 | Méthode | URL                            | Auth | Description                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/media/remote`            | non  | `?url=` (HTTPS, hôte `upload.wikimedia.org` ou `commons.wikimedia.org`). Télécharge l'image côté serveur puis la sert depuis le cache `uploads/remote-cache/` (30 jours, plafonné à `FORETMAP_REMOTE_MEDIA_CACHE_MAX_BYTES`, 500 Mo par défaut, les plus anciens purgés d'abord). Redirections suivies à la main et revalidées (hôte hors liste → **502**) ; URL refusée → **400** ; contenu non image → **415** ; plus de `FORETMAP_REMOTE_MEDIA_MAX_BYTES` (défaut 8 Mo) → **413** ; plus de 4 téléchargements simultanés → **503**. Réponse servie avec `X-Content-Type-Options: nosniff` et une CSP `sandbox` |
+| GET     | `/api/media/remote`            | non  | `?url=` (HTTPS, hôte `upload.wikimedia.org` ou `commons.wikimedia.org`). Télécharge l'image côté serveur puis la sert depuis le cache `uploads/remote-cache/` (30 jours, plafonné à `FORETMAP_REMOTE_MEDIA_CACHE_MAX_BYTES`, 500 Mo par défaut, les plus anciens purgés d'abord). Redirections suivies à la main et revalidées (hôte hors liste → **502**) ; URL refusée → **400** ; contenu non image → **415** ; plus de `FORETMAP_REMOTE_MEDIA_MAX_BYTES` (défaut 8 Mo) → **413** ; plus de 4 téléchargements simultanés → **503**. Audit sécurité du 30/09/2026 (AP4) : la query string est retirée des URL `upload.wikimedia.org` (seul `width` numérique est gardé pour `commons.wikimedia.org`) avant le cache **et** l'appel amont ; la place est réservée dans le cache **avant** écriture (purge des plus anciennes, sinon **507**) ; quota de téléchargements amont par IP (`FORETMAP_REMOTE_MEDIA_FETCHES_PER_IP`, défaut 120, par fenêtre `FORETMAP_REMOTE_MEDIA_FETCH_WINDOW_MS`, défaut 10 min ; les réponses servies depuis le cache ne comptent pas) → **429**. Réponse servie avec `X-Content-Type-Options: nosniff` et une CSP `sandbox` |
 | GET     | `/api/media/commons-preview`   | non  | `?category=Category:…` → `{ url }` : première image de la catégorie Wikimedia Commons (aperçu de fiche plante), interrogée par le serveur (cache mémoire 30 jours). `url` est `null` si la catégorie est vide ; titre invalide → **400**                                                                                                                                  |
 | GET     | `/fonts/local-fonts.css`       | non  | Feuille des polices des fiches tutoriels (Playfair Display, DM Sans, DM Mono, Bebas Neue, Special Elite), assemblée depuis les paquets Fontsource                                                                                                                                                                                                                     |
 | GET     | `/fonts/files/:pkg/:file`      | non  | Fichier `woff`/`woff2` d'un paquet de la liste ci-dessus ; tout autre paquet ou nom → **404**. Cache 1 an                                                                                                                                                                                                                                                            |
@@ -2167,7 +2167,7 @@ Si le réglage public `ui.modules.reports_enabled` est à `false`, les routes `P
 | PATCH   | `/api/forum/reports/:id`                              | Traiter un signalement (`{ status: 'resolved'\|'dismissed'\|'open' }`)                |
 | PATCH   | `/api/forum/threads/:id/lock`                         | Verrouiller/déverrouiller un sujet (`{ locked }`, n3boss/admin)                       |
 | PATCH   | `/api/forum/threads/:id/pin`                          | Épingler/désépingler un sujet (`{ pinned }`, n3boss/admin)                            |
-| DELETE  | `/api/forum/posts/:id`                                | Supprimer un message (auteur ou n3boss/admin)                                         |
+| DELETE  | `/api/forum/posts/:id`                                | Supprimer un message (auteur, ou modérateur **dans son périmètre de groupes** — `403 Groupe hors périmètre` sinon, comme `lock` / `pin`) |
 
 Contraintes principales :
 
@@ -3382,7 +3382,7 @@ appelant `plants.manage` (préparation, suivi, démonstration).
 | POST | `/api/pedago-sessions` | `plants.manage` | Créer depuis `templateKey` (titre et niveau par défaut du modèle) ; `custom` accepte `steps` |
 | PUT | `/api/pedago-sessions/:idOrSlug` | `plants.manage` | Titre, config (carte, clé, plantes ≤ 6, `individualId`, `mapRouteSlug`, notion/quiz, `requiresSessionId`), `steps` (séance `custom` uniquement, sinon 400), publication |
 | POST | `/api/pedago-sessions/:idOrSlug/runs/start` | connecté | Enregistre un démarrage (`{ run }`) ; non publiée → 404 ; prérequis non terminé → 403 `{ error, locked: true, requiresSessionId, requiresSessionTitle }` |
-| POST | `/api/pedago-sessions/:idOrSlug/runs/complete` | connecté | Enregistre une fin (`{ run, rewards }`, `rewards` = badges **nouvellement** obtenus) ; crée la ligne si le démarrage manque ; non publiée → 404 ; prérequis → 403 |
+| POST | `/api/pedago-sessions/:idOrSlug/runs/complete` | connecté | Enregistre une fin (`{ run, rewards }`, `rewards` = badges **nouvellement** obtenus) ; **chaque fin doit suivre un démarrage** (`startCount > completionCount`), sinon **409** `{ error, code: 'SESSION_NOT_STARTED' }` sans badge (audit sécurité du 30/09/2026, § 6) ; non publiée → 404 ; prérequis → 403 |
 | GET | `/api/pedago-sessions/me/runs` | connecté | `{ runs: [{ sessionId, startCount, completionCount, completed, firstStartedAt, lastStartedAt, firstCompletedAt, lastCompletedAt }] }` |
 | GET | `/api/pedago-sessions/stats` | `plants.manage` | Agrégats anonymes `{ stats: [{ sessionId, startedUsers, completedUsers, lastCompletedAt }] }` |
 | GET | `/api/pedago-sessions/:idOrSlug/runs` | `plants.manage` | Suivi nominatif `{ sessionId, groupId, students: [{ userId, firstName, lastName, startCount, completionCount, completed, lastStartedAt, lastCompletedAt }] }` ; `?groupId=` → tous les élèves du groupe (y compris non démarrés), groupe hors périmètre → 403 ; sans groupe → comptes ayant ouvert la séance (périmètre du prof) |
@@ -3420,7 +3420,12 @@ connectés ne laissent aucune trace. La note de fin de séance dans le carnet r�
 
 ### Suivi d'individus arbres (`/api/individuals`)
 
-Migration `276`. Lecture publique ; création/édition sous `individuals.manage` (admin, prof) ;
+Migration `276`. Lecture sans compte possible, mais **bornée** comme les autres routes de lieux
+(audit sécurité du 30/09/2026, AP6) : surface décidée par le serveur (`withLocationSurface`,
+laissez-passer des plans gardés), cartes de la surface, périmètre cartes du compte
+(`resolveScopedMapFilter`). Hors personnel (`individuals.manage`, `teacher.access`, admin), les
+champs personnels sont masqués (`null`) : `notes` de la fiche, et `observer_user_id`,
+`group_id`, `notes` de chaque mesure. Création/édition sous `individuals.manage` (admin, prof) ;
 saisie de mesures sous `individuals.measure` (admin, prof, paliers élève). Chaque mesure
 peut porter une estimation pédagogique (Chave 2014) avec disclaimer « ordre de grandeur ».
 
@@ -3430,12 +3435,12 @@ sur toutes les routes ci-dessous (saisie de mesure comprise), sauf pour un appel
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/individuals` | non | Liste (`?mapId=`, `?plantId=`, `?active=0` pour inclure les inactifs) |
-| GET | `/api/individuals/:id` | non | Détail + `measurements[]` (avec `estimate`) + `disclaimer` |
+| GET | `/api/individuals` | non | Liste (`?mapId=`, `?plantId=`, `?active=0` pour inclure les inactifs), ramenée aux cartes lisibles ; `?mapId=` hors périmètre du compte → **403** `MAP_OUT_OF_SCOPE`, hors surface → **404** |
+| GET | `/api/individuals/:id` | non | Détail + `measurements[]` (avec `estimate`) + `disclaimer` ; carte hors surface ou hors périmètre → **404** (comme un individu inexistant) |
 | POST | `/api/individuals` | `individuals.manage` | Créer (plant_id, map_id, label ; zone_id / marker_id optionnels) |
 | PUT | `/api/individuals/:id` | `individuals.manage` | Modifier libellé, densité, rattachements, actif |
 | DELETE | `/api/individuals/:id` | `individuals.manage` | Supprimer (cascade mesures) |
-| POST | `/api/individuals/:id/measurements` | `individuals.measure` | Ajouter une mesure (measured_at + au moins une grandeur) |
+| POST | `/api/individuals/:id/measurements` | `individuals.measure` | Ajouter une mesure (measured_at + au moins une grandeur) ; carte de l'individu hors périmètre du compte → **403** `MAP_OUT_OF_SCOPE` |
 | DELETE | `/api/individuals/:id/measurements/:measurementId` | `individuals.manage` | Supprimer une mesure |
 
 ### Notions des programmes (`/api/curriculum`)

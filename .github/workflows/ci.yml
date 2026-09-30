@@ -51,11 +51,11 @@ jobs:
       - name: Run UI tests (Vitest)
         run: npm run test:ui
 
-      # Vulnérabilités connues des dépendances de production. Informatif pour l'instant
-      # (Dependabot propose les montées de version) ; à rendre bloquant une fois l'arriéré
-      # soldé — audit sécurité du 29/09/2026.
-      - name: Audit des dépendances (npm audit, informatif)
-        continue-on-error: true
+      # Vulnérabilités connues des dépendances de production, niveau `high` et plus.
+      # Bloquant depuis l'audit sécurité du 30/09/2026 (CS5 / AP1) : informative, l'étape avait
+      # laissé passer `engine.io@6.6.9` (déni de service sans compte). Les `moderate` restent
+      # suivies par Dependabot.
+      - name: Audit des dépendances (npm audit, bloquant)
         run: npm audit --omit=dev --audit-level=high
 
   # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les

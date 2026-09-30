@@ -135,6 +135,12 @@ test('runs : démarrage / fin élève, /me/runs, /stats réservé prof (migratio
     assert.ok(done.body.run.firstCompletedAt);
     assert.ok(done.body.rewards.some((r) => r.key === 'session_first'));
 
+    // § 6 (audit 30/09/2026) : une nouvelle fin exige un nouveau démarrage.
+    await request(app)
+      .post(`/api/pedago-sessions/${slug}/runs/complete`)
+      .set(studentAuth)
+      .expect(409);
+    await request(app).post(`/api/pedago-sessions/${slug}/runs/start`).set(studentAuth).expect(200);
     const again = await request(app)
       .post(`/api/pedago-sessions/${slug}/runs/complete`)
       .set(studentAuth)
@@ -293,6 +299,10 @@ test('lot 5 : partage, suivi par élève, séance libre, prérequis', async () =
       .expect(403);
     assert.equal(locked.body.locked, true);
     assert.equal(locked.body.requiresSessionId, 'pedago-session-college-reconaitre');
+    await request(app)
+      .post('/api/pedago-sessions/college-reconaitre-sans-toucher/runs/start')
+      .set(studentAuth)
+      .expect(200);
     await request(app)
       .post('/api/pedago-sessions/college-reconaitre-sans-toucher/runs/complete')
       .set(studentAuth)

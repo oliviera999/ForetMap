@@ -8,6 +8,7 @@ const { getOnlineUserIdSet } = require('../lib/realtime');
 const { attachPresenceStatus } = require('../lib/shared/presenceCore');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
 const { getAccountN3beurStatus } = require('../lib/n3beurStudents');
+const { csvCell } = require('../lib/shared/csvCell');
 const {
   EMPTY_ASSIGNMENT_COUNTS,
   summarizeAssignments,
@@ -290,12 +291,8 @@ router.get(
       'Tutoriels lus',
       'Dernière connexion',
     ];
-    const escapeCSV = (v) => {
-      const s = String(v ?? '');
-      return s.includes(';') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"`
-        : s;
-    };
+    // AP3 (audit 30/09/2026) : prénom / nom libres → neutralisation des formules de tableur.
+    const escapeCSV = csvCell;
     const rows = result.map((s) =>
       [
         s.first_name,

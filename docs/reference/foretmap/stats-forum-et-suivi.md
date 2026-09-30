@@ -17,7 +17,11 @@ commentaires) et rester informé (notifications, temps réel).
 - **Classement** : un palmarès des élèves fondé sur les tâches validées — motivant en
   classe, à utiliser avec discernement.
 - **Export tableur** : les données de suivi s'exportent en un clic (permission
-  dédiée) pour les bulletins ou les bilans.
+  dédiée) pour les bulletins ou les bilans. Par sécurité, une cellule qui commencerait
+  par `=`, `+`, `-` ou `@` (un prénom saisi « =… » par exemple) est précédée d'une
+  apostrophe : le tableur l'affiche comme du texte au lieu de l'exécuter comme une
+  formule. Cela vaut pour tous les exports CSV (statistiques, journal de sécurité,
+  identifiants G&L).
 - **Côté élève** : chacun voit sa propre progression ; l'accès aux statistiques
   générales est un réglage (activable ou non par l'administrateur).
 - **Fiche « Mes statistiques » d'un compte hors groupe n3beur** (visiteur, membre du
@@ -64,7 +68,9 @@ commentaires) et rester informé (notifications, temps réel).
 - **Modifier son message** : l'auteur d'un message peut le **corriger** (« Modifier »,
   puis « Enregistrer »). Le message affiche alors « modifié le … ». Un professeur ne réécrit
   pas le message de quelqu'un d'autre : il peut seulement le supprimer. On ne modifie plus
-  rien dans un sujet verrouillé.
+  rien dans un sujet verrouillé. Un modérateur dont le profil est limité à ses groupes ne
+  supprime que les messages des sujets de **ses** groupes (comme pour verrouiller ou
+  épingler) ; l'auteur, lui, peut toujours supprimer ses propres messages.
 - **Affichage** : sur ordinateur, la liste des sujets est à gauche et la discussion à droite.
   Sur téléphone ou tablette en portrait, on voit d'abord la **liste** ; toucher un sujet
   ouvre la **discussion** en plein écran, et le bouton « ← Tous les sujets » ramène à la liste.
