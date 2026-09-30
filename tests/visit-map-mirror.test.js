@@ -188,3 +188,102 @@ test('migration 309 : une zone sans forme (points NULL) ne bloque pas le démarr
     await auth(request(app).delete(`/api/zones/${id}`)).expect(200);
   }
 });
+
+test('un texte de visite ne réécrit pas un renommage fait sur la carte', async () => {
+  const created = await auth(request(app).post('/api/zones'))
+    .send({
+      name: `Avant visite ${stamp}`,
+      map_id: 'foret',
+      points: [
+        { xp: 40, yp: 40 },
+        { xp: 50, yp: 40 },
+        { xp: 45, yp: 55 },
+      ],
+      stage: 'empty',
+    })
+    .expect(201);
+  const id = created.body.id;
+  const opened = await queryOne('SELECT edit_revision FROM zones WHERE id = ?', [id]);
+  await auth(request(app).put(`/api/zones/${id}`))
+    .send({ name: `Après carte ${stamp}`, expected_revision: Number(opened.edit_revision) })
+    .expect(200);
+
+  const refused = await auth(request(app).put(`/api/visit/zones/${id}`))
+    .send({ name: `Avant visite ${stamp}`, subtitle: `ne doit pas s'écrire ${stamp}` })
+    .expect(409);
+  assert.strictEqual(refused.body.code, 'edit_conflict');
+
+  const zone = await queryOne('SELECT name FROM zones WHERE id = ?', [id]);
+  const visit = await queryOne('SELECT name, subtitle FROM visit_zones WHERE id = ?', [id]);
+  assert.strictEqual(zone.name, `Après carte ${stamp}`);
+  assert.strictEqual(visit.name, `Après carte ${stamp}`);
+  assert.notStrictEqual(visit.subtitle, `ne doit pas s'écrire ${stamp}`);
+
+  const current = await queryOne('SELECT edit_revision FROM zones WHERE id = ?', [id]);
+  const renamed = await auth(request(app).put(`/api/visit/zones/${id}`))
+    .send({
+      name: `Depuis la visite ${stamp}`,
+      expected_revision: Number(current.edit_revision),
+    })
+    .expect(200);
+  assert.strictEqual(Number(renamed.body.edit_revision), Number(current.edit_revision) + 1);
+  const after = await queryOne('SELECT name FROM zones WHERE id = ?', [id]);
+  assert.strictEqual(after.name, `Depuis la visite ${stamp}`);
+
+  await auth(request(app).delete(`/api/zones/${id}`)).expect(200);
+});
+
+test('un texte de visite s’enregistre sans avancer la révision si le nom est inchangé', async () => {
+  const created = await auth(request(app).post('/api/zones'))
+    .send({
+      name: `Stable ${stamp}`,
+      map_id: 'foret',
+      points: [
+        { xp: 60, yp: 10 },
+        { xp: 70, yp: 10 },
+        { xp: 65, yp: 20 },
+      ],
+      stage: 'empty',
+    })
+    .expect(201);
+  const id = created.body.id;
+  const before = await queryOne('SELECT edit_revision FROM zones WHERE id = ?', [id]);
+  const saved = await auth(request(app).put(`/api/visit/zones/${id}`))
+    .send({ name: `Stable ${stamp}`, subtitle: `accroche stable ${stamp}` })
+    .expect(200);
+  assert.strictEqual(Number(saved.body.edit_revision), Number(before.edit_revision));
+  const after = await queryOne('SELECT name, edit_revision FROM zones WHERE id = ?', [id]);
+  const visit = await queryOne('SELECT subtitle FROM visit_zones WHERE id = ?', [id]);
+  assert.strictEqual(after.name, `Stable ${stamp}`);
+  assert.strictEqual(Number(after.edit_revision), Number(before.edit_revision));
+  assert.strictEqual(visit.subtitle, `accroche stable ${stamp}`);
+
+  const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
+  const listed = (content.body.zones || []).find((z) => z.id === id);
+  assert.ok(listed, 'la zone figure dans le contenu de visite');
+  assert.strictEqual(Number(listed.edit_revision), Number(before.edit_revision));
+
+  await auth(request(app).delete(`/api/zones/${id}`)).expect(200);
+});
+
+test('un emoji de repère périmé n’est pas recopié sur la carte', async () => {
+  const created = await auth(request(app).post('/api/map/markers'))
+    .send({ map_id: 'foret', x_pct: 12, y_pct: 18, label: `Repère emoji ${stamp}`, emoji: '📍' })
+    .expect(201);
+  const id = created.body.id;
+  const opened = await queryOne('SELECT edit_revision FROM map_markers WHERE id = ?', [id]);
+  await auth(request(app).put(`/api/map/markers/${id}`))
+    .send({ emoji: '🍎', expected_revision: Number(opened.edit_revision) })
+    .expect(200);
+
+  const refused = await auth(request(app).put(`/api/visit/markers/${id}`))
+    .send({ label: `Repère emoji ${stamp}`, emoji: '📍', subtitle: `perdu ${stamp}` })
+    .expect(409);
+  assert.strictEqual(refused.body.code, 'edit_conflict');
+  const marker = await queryOne('SELECT emoji FROM map_markers WHERE id = ?', [id]);
+  const visit = await queryOne('SELECT subtitle FROM visit_markers WHERE id = ?', [id]);
+  assert.strictEqual(marker.emoji, '🍎');
+  assert.notStrictEqual(visit.subtitle, `perdu ${stamp}`);
+
+  await auth(request(app).delete(`/api/map/markers/${id}`)).expect(200);
+});

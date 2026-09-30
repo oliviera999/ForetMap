@@ -1303,10 +1303,13 @@ test('Les lieux créés depuis la visite existent aussi sur la carte', async () 
     .expect(409);
 
   const renamed = `Repère renommé depuis visite ${Date.now()}`;
+  const rev = await queryOne('SELECT edit_revision FROM map_markers WHERE id = ?', [
+    visitMarkerB.body.id,
+  ]);
   await request(app)
     .put(`/api/visit/markers/${visitMarkerB.body.id}`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ label: renamed })
+    .send({ label: renamed, expected_revision: Number(rev.edit_revision) })
     .expect(200);
   const markerRow = await queryOne('SELECT label FROM map_markers WHERE id = ?', [
     visitMarkerB.body.id,

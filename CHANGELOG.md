@@ -16,6 +16,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Deux profs sur la même fiche** : il y a désormais un verrou optimiste sur les tâches, zones, repères et fiches espèces. Il repose sur la migration `312_edit_revision.sql` (colonne `edit_revision`) et `lib/editRevision.js`. Un `PUT` qui porte une révision périmée (`expected_revision`) renvoie 409 `edit_conflict` sans rien écrire. Le formulaire propose alors « Écraser sa version » ou « Ne pas enregistrer » (`src/utils/editRevision.js`, `useEditConflictConfirm`). Principe de `If-Match` / 412 ([RFC 9110 §13.1.1](https://www.rfc-editor.org/rfc/rfc9110#section-13.1.1)), porté dans le corps JSON.
 - Tests : `tests/edit-revision.test.js`, `tests/edit-revision-client.test.js`, `tests/tasks-done-idempotence.test.js`, Vitest de la file et de l'écran Tâches. `docs/API.md` et la doc de référence (`taches-tutoriels-et-validation.md`) sont alignées.
 
+### Corrigé — la visite n'annule plus un renommage de la carte
+
+- Enregistrer un texte de visite renvoyait le nom (et l'emoji du repère) tel que le formulaire l'avait ouvert, et le réécrivait sur la carte. Deux professeurs, ou deux onglets : le second enregistrement effaçait le renommage, le déplacement ou l'emoji posés entre-temps.
+- L'identité n'est recopiée que si la révision de la fiche correspond encore. Sinon l'enregistrement est refusé (409) et rien n'est écrit. Le professeur choisit d'écraser ou de renoncer. Un texte seul, nom inchangé, s'enregistre comme avant.
+
 ### Corrigé — profil « Prof de classe » cohérent ; « Mon profil » n'efface plus les données des enseignants
 
 Audit [`docs/AUDIT_PROF_CLASSE_2026-09-29.md`](docs/AUDIT_PROF_CLASSE_2026-09-29.md) (14 constats, 13 traités).

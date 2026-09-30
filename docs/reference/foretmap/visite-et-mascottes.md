@@ -177,7 +177,10 @@ familles.
   mis à jour aussitôt ; un lieu supprimé de la carte disparaît de la visite avec sa
   fiche. À l'inverse, une zone dessinée ou un repère posé depuis la vue Visite est
   **aussi ajouté à la carte**, et un renommage fait depuis la Visite modifie le lieu de
-  la carte. Seuls les textes, blocs, photos, l'ordre et la case « Visible en visite »
+  la carte. Si ce lieu a été renommé, redessiné, déplacé ou a changé d'emoji sur la
+  carte depuis l'ouverture de la fiche, l'enregistrement ne remplace pas ces changements
+  en silence : l'application demande s'il faut écraser la version de la carte, ou ne
+  rien enregistrer. Seuls les textes, blocs, photos, l'ordre et la case « Visible en visite »
   sont propres à la visite.
 - **Supprimer un lieu se fait depuis la carte** : la fiche de visite n'a pas de bouton
   « Supprimer ». Pour cacher un lieu au public sans le supprimer, décocher « Visible en

@@ -255,7 +255,7 @@ router.get(
     // (`lib/visitMapMirror.js`) : une ligne visite sans lieu de carte n'est jamais servie.
     const zonesPromise = queryAll(
       `SELECT
-       z.id, zm.map_id, zm.name, zm.points,
+       z.id, zm.map_id, zm.name, zm.points, zm.edit_revision AS edit_revision,
        zm.description AS description,
        zm.color AS color,
        zm.emoji AS emoji,
@@ -278,7 +278,7 @@ router.get(
 
     const markersPromise = queryAll(
       `SELECT
-       m.id, mm.map_id, mm.x_pct, mm.y_pct, mm.label, mm.emoji,
+       m.id, mm.map_id, mm.x_pct, mm.y_pct, mm.label, mm.emoji, mm.edit_revision AS edit_revision,
        mm.note AS note,
        mm.hidden_surfaces AS hidden_surfaces,
        COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,

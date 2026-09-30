@@ -24,7 +24,7 @@ const {
 } = require('../../lib/visitEditorialBlocks');
 const { normalizePoints } = require('../../lib/visitContentHelpers');
 const { logAudit } = require('../../lib/auditLog');
-const { bumpEditRevision } = require('../../lib/editRevision');
+const { claimVisitIdentityWrite, releaseVisitIdentityWrite } = require('../../lib/visitMapMirror');
 const { withLocationAudienceFields } = require('../../lib/locationAudience');
 const {
   resolveAudienceForInsert,
@@ -38,6 +38,19 @@ const {
 } = require('../../lib/visitNotesWrite');
 
 const router = express.Router();
+
+/** Polygone stocké (JSON ou déjà parsé) identique au polygone normalisé du corps. */
+function storedPointsEqual(stored, normalized) {
+  let parsed = stored;
+  if (typeof stored === 'string') {
+    try {
+      parsed = JSON.parse(stored);
+    } catch (_) {
+      return false;
+    }
+  }
+  return JSON.stringify(parsed) === JSON.stringify(normalized);
+}
 
 router.post(
   '/zones',
@@ -160,45 +173,99 @@ router.put(
           ? Math.max(0, Number(req.body.sort_order))
           : Number(exists.sort_order || 0)
         : Number(exists.sort_order || 0);
-    await execute(
-      `UPDATE visit_zones
-       SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
-           visible_role_slugs = ?, visible_group_ids = ?,
-           is_active = ?, sort_order = ?, updated_at = ?
-       WHERE id = ?`,
-      [
-        name,
-        maybePoints ? JSON.stringify(maybePoints) : exists.points,
-        subtitle,
-        shortDescription,
-        detailsTitle,
-        detailsText,
-        bodyJson,
-        audience.visible_role_slugs,
-        audience.visible_group_ids,
-        isActive,
-        sortOrder,
-        nowIso(),
-        zoneId,
-      ],
+    // L'éditeur renvoie le nom ouvert avec le formulaire. On ne le recopie sur la carte
+    // que s'il diffère encore de la fiche carte et que la révision correspond.
+    const mapZone = await queryOne(
+      'SELECT name, points, emoji, edit_revision FROM zones WHERE id = ? LIMIT 1',
+      [zoneId],
     );
-    // Même fiche que la carte (`lib/visitMapMirror.js`) : un formulaire de zone ouvert
-    // ailleurs doit voir ce changement comme une modification concurrente.
-    await bumpEditRevision('zones', zoneId);
-    if (req.body.name !== undefined || maybePoints) {
-      const mapZone = await queryOne('SELECT emoji FROM zones WHERE id = ? LIMIT 1', [zoneId]);
-      if (mapZone) {
-        await execute('UPDATE zones SET name = ?, points = ?, emoji = ? WHERE id = ?', [
-          name,
-          maybePoints ? JSON.stringify(maybePoints) : exists.points,
-          resolveZoneEmojiForWrite(undefined, name, mapZone.emoji || ''),
-          zoneId,
-        ]);
-        emitGardenChanged({ reason: 'update_zone', zoneId, mapId: exists.map_id });
-      }
+    const nameChanged = !!(
+      mapZone &&
+      req.body.name !== undefined &&
+      name !== String(mapZone.name || '').trim()
+    );
+    const pointsChanged = !!(
+      mapZone &&
+      maybePoints &&
+      !storedPointsEqual(mapZone.points, maybePoints)
+    );
+    const gate = await claimVisitIdentityWrite(
+      'zone',
+      zoneId,
+      req.body,
+      nameChanged || pointsChanged,
+    );
+    if (gate.error) return res.status(gate.error.status).json(gate.error.body);
+    if (gate.missing) return res.status(404).json({ error: 'Zone introuvable' });
+    const visitSets = [];
+    const visitParams = [];
+    if (!mapZone || nameChanged) {
+      visitSets.push('name = ?');
+      visitParams.push(name);
     }
-    await applyVisitNotes('zone', zoneId, notesInput);
+    if ((!mapZone && maybePoints) || pointsChanged) {
+      visitSets.push('points = ?');
+      visitParams.push(JSON.stringify(maybePoints));
+    }
+    visitSets.push(
+      'subtitle = ?',
+      'short_description = ?',
+      'details_title = ?',
+      'details_text = ?',
+      'body_json = ?',
+      'visible_role_slugs = ?',
+      'visible_group_ids = ?',
+      'is_active = ?',
+      'sort_order = ?',
+      'updated_at = ?',
+    );
+    visitParams.push(
+      subtitle,
+      shortDescription,
+      detailsTitle,
+      detailsText,
+      bodyJson,
+      audience.visible_role_slugs,
+      audience.visible_group_ids,
+      isActive,
+      sortOrder,
+      nowIso(),
+      zoneId,
+    );
+    let identityWritten = false;
+    try {
+      await execute(`UPDATE visit_zones SET ${visitSets.join(', ')} WHERE id = ?`, visitParams);
+      if (gate.apply && mapZone) {
+        const mapSets = [];
+        const mapParams = [];
+        if (nameChanged) {
+          mapSets.push('name = ?', 'emoji = ?');
+          mapParams.push(name, resolveZoneEmojiForWrite(undefined, name, mapZone.emoji || ''));
+        }
+        if (pointsChanged) {
+          mapSets.push('points = ?');
+          mapParams.push(JSON.stringify(maybePoints));
+        }
+        if (mapSets.length) {
+          await execute(`UPDATE zones SET ${mapSets.join(', ')} WHERE id = ?`, [
+            ...mapParams,
+            zoneId,
+          ]);
+          identityWritten = true;
+          emitGardenChanged({ reason: 'update_zone', zoneId, mapId: exists.map_id });
+        }
+      }
+      await applyVisitNotes('zone', zoneId, notesInput);
+    } catch (err) {
+      if (!identityWritten) await releaseVisitIdentityWrite('zone', zoneId, gate.claim);
+      throw err;
+    }
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
+    row.edit_revision = gate.apply
+      ? gate.claim.revision
+      : mapZone
+        ? Number(mapZone.edit_revision) || 0
+        : null;
     res.json(await withVisitNotes('zone', zoneId, withLocationAudienceFields(row)));
   }),
 );
