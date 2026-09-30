@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Plan public, gardé par code au besoin, jamais référencé (audit sécurité 2026-09-22, S9). -->
+    <meta name="robots" content="noindex, nofollow" />
+    <!-- Polices auto-hébergées (src/shared/fonts/planFonts.js) : aucun appel à Google Fonts. -->
+    <title>%BRAND_PRODUCT_NAME%</title>
+    <meta name="theme-color" content="#7a4a00" />
+    <meta name="application-name" content="%BRAND_PRODUCT_LABEL%" />
+    <meta name="apple-mobile-web-app-title" content="%BRAND_PRODUCT_LABEL%" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.json" />
+    <!--
+      Même favicon officiel que le plan public (logo Lycée Lyautey). La distinction d’onglet
+      repose sur le titre et theme-color ambre ; le SVG sous /enov/ est une copie pour le SW.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/enov/favicon.svg?v=lyautey-2025-12" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/plan/favicon-32.png?v=lyautey-2025-12" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/plan/favicon-16.png?v=lyautey-2025-12" />
+    <link rel="icon" type="image/x-icon" href="/plan/favicon.ico?v=lyautey-2025-12" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/plan/apple-touch-icon.png?v=lyautey-2025-12"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/enov/main.jsx"></script>
+  </body>
+</html>

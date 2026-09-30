@@ -11,6 +11,8 @@ const {
   searchAliasesToList,
   normalizeSearchAliases,
   isVisibleOnSurface,
+  isDistinctionCategory,
+  stripDistinctionCategoriesOffSurface,
   withLocationSurfaceFields,
   readSurfaceQuery,
   SEARCH_ALIASES_MAX_LENGTH,
@@ -23,7 +25,9 @@ describe('locationSurfaces — parse / sérialisation', () => {
     assert.deepEqual(parseSurfaceSet(['VISIT ', 'plan', 'zzz']), ['visit', 'plan']);
     assert.deepEqual(parseSurfaceSet(''), []);
     assert.deepEqual(parseSurfaceSet(null), []);
-    assert.deepEqual(parseSurfaceSet('map,map,visit,plan,staff'), SURFACES);
+    assert.deepEqual(parseSurfaceSet('map,map,visit,plan,staff,enov'), SURFACES);
+    // Surface e-nov (migration 313) : ajoutée en fin, ordre du `SET` SQL.
+    assert.deepEqual(SURFACES, ['map', 'visit', 'plan', 'staff', 'enov']);
   });
 
   it('serializeSurfaceSet → valeur SET', () => {
@@ -96,6 +100,56 @@ describe('locationSurfaces — visibilité', () => {
 
   it('surface inconnue → jamais visible', () => {
     assert.equal(isVisibleOnSurface({}, 'carte'), false);
+  });
+
+  it('catégorie-label (e-nov) : transparente là où elle n’apparaît pas', () => {
+    const label = { id: 'cat-enov', surfaces: 'enov', is_distinction: true };
+    // Lieu jusque-là sans catégorie (loge, entrée) : le label ne le retire d'aucun plan.
+    const onlyLabel = { categories: [label] };
+    for (const surface of ['map', 'visit', 'plan', 'staff', 'enov']) {
+      assert.equal(isVisibleOnSurface(onlyLabel, surface), true, surface);
+    }
+    // Lieu à catégorie ordinaire : la règle historique s'applique hors de la surface du label…
+    const salles = { id: 'cat-salles', surfaces: 'map,plan' };
+    const labelled = { categories: [salles, label] };
+    assert.equal(isVisibleOnSurface(labelled, 'plan'), true);
+    assert.equal(isVisibleOnSurface(labelled, 'visit'), false);
+    // …et le label compte comme une catégorie ordinaire sur sa propre surface.
+    assert.equal(isVisibleOnSurface(labelled, 'enov'), true);
+    // Un masquage explicite l'emporte toujours.
+    assert.equal(isVisibleOnSurface({ ...onlyLabel, hidden_surfaces: 'enov' }, 'enov'), false);
+    // Sans le drapeau, la même catégorie retire le lieu des autres surfaces (règle historique).
+    const plain = { categories: [{ id: 'cat-x', surfaces: 'enov' }] };
+    assert.equal(isVisibleOnSurface(plain, 'plan'), false);
+  });
+
+  it('isDistinctionCategory : booléen, 1, « 1 »', () => {
+    assert.equal(isDistinctionCategory({ is_distinction: true }), true);
+    assert.equal(isDistinctionCategory({ is_distinction: 1 }), true);
+    assert.equal(isDistinctionCategory({ is_distinction: '1' }), true);
+    assert.equal(isDistinctionCategory({ is_distinction: 0 }), false);
+    assert.equal(isDistinctionCategory(null), false);
+  });
+
+  it('stripDistinctionCategoriesOffSurface : retire le label hors de ses surfaces seulement', () => {
+    const label = { id: 'cat-enov', surfaces: ['enov'], is_distinction: true };
+    const other = { id: 'cat-salles', surfaces: ['map', 'plan'] };
+    const offMap = { id: 'cat-admin', surfaces: ['plan'] };
+    const entity = {
+      id: 'z1',
+      categories: [other, label, offMap],
+      category_ids: ['cat-salles', 'cat-enov', 'cat-admin'],
+    };
+    const onMap = stripDistinctionCategoriesOffSurface(entity, 'map');
+    assert.deepEqual(
+      onMap.categories.map((c) => c.id),
+      ['cat-salles', 'cat-admin'],
+      'catégorie ordinaire hors surface conservée (comportement historique)',
+    );
+    assert.deepEqual(onMap.category_ids, ['cat-salles', 'cat-admin']);
+    assert.equal(entity.categories.length, 3, 'entrée non modifiée');
+    assert.equal(stripDistinctionCategoriesOffSurface(entity, 'enov'), entity);
+    assert.equal(stripDistinctionCategoriesOffSurface(null, 'map'), null);
   });
 
   it('withLocationSurfaceFields : tableau + chaîne, autres champs intacts', () => {

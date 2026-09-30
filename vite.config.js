@@ -37,7 +37,8 @@ function shareMetaForProduct(product) {
   if (product.id === 'gl') {
     return { title: product.pwa.name, description: GL_SHARE_DESCRIPTION };
   }
-  if (product.id === 'plan') {
+  // Plan e-nov : son lien se partage (jury, partenaires) — l'aperçu doit dire ce qu'il montre.
+  if (product.id === 'plan' || product.id === 'enov') {
     return { title: product.pwa.name, description: product.pwa.description };
   }
   return null;
@@ -125,6 +126,7 @@ export default defineConfig({
         gl: path.resolve(process.cwd(), 'gl.html'),
         plan: path.resolve(process.cwd(), 'plan.html'),
         staff: path.resolve(process.cwd(), 'staff.html'),
+        enov: path.resolve(process.cwd(), 'enov.html'),
       },
       output: {
         manualChunks(id) {

@@ -32,8 +32,9 @@ const SIDE_CLASSES = new Set(['right', 'left', 'above']);
  * @param {object} props
  * @param {Array<{ id: string, zoneId?: string, xp: number, yp: number, emoji?: string,
  *   name?: string, nameSide?: 'below'|'right'|'left'|'above', maxWidthPx?: number,
- *   active?: boolean }>} props.labels étiquettes déjà filtrées par le produit (placement :
- *   `pctMapLabels.js`).
+ *   active?: boolean, highlight?: boolean, badge?: string }>} props.labels étiquettes déjà
+ *   filtrées par le produit (placement : `pctMapLabels.js`). `highlight` : zone mise en avant
+ *   (plan e-nov) ; `badge` : texte de sa pastille, vide = pas de pastille.
  * @param {((zoneId: string) => void)|null} [props.onLabelClick] tap sur l'étiquette → sa zone.
  * @param {string} [props.className]
  */
@@ -43,12 +44,15 @@ function PctLabelsLayerImpl({ labels, onLabelClick = null, className = 'fm-pct-l
       {(labels || []).map((label) => {
         const clickable = Boolean(onLabelClick && label.zoneId != null);
         const content = (
-          <PctOverlayCaption
-            emoji={label.emoji}
-            name={label.name}
-            emojiClassName="fm-pct-label__emoji"
-            nameClassName="fm-pct-label__name"
-          />
+          <>
+            <PctOverlayCaption
+              emoji={label.emoji}
+              name={label.name}
+              emojiClassName="fm-pct-label__emoji"
+              nameClassName="fm-pct-label__name"
+            />
+            {label.badge ? <span className="fm-pct-highlight-badge">{label.badge}</span> : null}
+          </>
         );
         const style = {
           left: `${label.xp}%`,
@@ -60,7 +64,9 @@ function PctLabelsLayerImpl({ labels, onLabelClick = null, className = 'fm-pct-l
           hasEmoji && label.name && SIDE_CLASSES.has(label.nameSide) ? label.nameSide : '';
         const classes = `fm-pct-label${hasEmoji ? ' has-emoji' : ''}${
           side ? ` name-${side}` : ''
-        }${label.active ? ' is-active' : ''}${clickable ? ' is-clickable' : ''}`;
+        }${label.active ? ' is-active' : ''}${label.highlight ? ' is-highlight' : ''}${
+          clickable ? ' is-clickable' : ''
+        }`;
         if (!clickable) {
           return (
             <span key={label.id} className={classes} style={style}>

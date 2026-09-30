@@ -45,6 +45,7 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
     visit_details_text: m.visit_details_text || '',
     hidden_surfaces: normalizeSurfaceList(m.hidden_surfaces),
     search_aliases: m.search_aliases || '',
+    enov_description: m.enov_description || '',
     visible_role_slugs: normalizeAudienceRoleList(m.visible_role_slugs),
     visible_group_ids: normalizeAudienceGroupList(m.visible_group_ids),
     notes: normalizeLocationNotesForForm(m.notes),
@@ -78,6 +79,8 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     visit_details_text: form.visit_details_text,
     hidden_surfaces: normalizeSurfaceList(form.hidden_surfaces),
     search_aliases: String(form.search_aliases || '').trim(),
+    // Texte e-nov (migration 313) : affiché sur le seul plan e-nov.
+    enov_description: String(form.enov_description || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visible_role_slugs),
     visible_group_ids: normalizeAudienceGroupList(form.visible_group_ids),
     notes: buildLocationNotesPayload(form.notes),

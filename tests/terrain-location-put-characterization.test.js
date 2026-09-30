@@ -86,6 +86,8 @@ const PUT_RESPONSE_KEYS = {
     'description',
     'edit_revision',
     'emoji',
+    // Texte e-nov (migration 313) : lu et écrit par la console (gestionnaire).
+    'enov_description',
     'has_visit_body',
     'height',
     'hidden_surfaces',
@@ -119,6 +121,7 @@ const PUT_RESPONSE_KEYS = {
     'created_at',
     'edit_revision',
     'emoji',
+    'enov_description',
     'hidden_surfaces',
     'id',
     'is_infrastructure',
@@ -210,7 +213,7 @@ for (const kind of Object.keys(KINDS)) {
       [{ [K.nameField]: '   ' }, K.nameRequired],
       [
         { hidden_surfaces: ['bogus'] },
-        'hidden_surfaces : surface inconnue (map, visit, plan, staff)',
+        'hidden_surfaces : surface inconnue (map, visit, plan, staff, enov)',
       ],
       [
         { visible_role_slugs: ['??'] },

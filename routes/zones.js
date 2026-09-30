@@ -11,6 +11,7 @@ const {
   withLocationSurface,
   intersectSurfaceMapScope,
   filterRowsForSurface,
+  projectRowsForSurface,
 } = require('../lib/surfaceAccess');
 const { projectLocationAudienceForViewer, canViewLocation } = require('../lib/locationAudience');
 const {
@@ -96,7 +97,7 @@ router.get(
     if (!payload || !filterRowsForSurface([payload], filters).length) {
       return res.status(404).json({ error: 'Zone introuvable' });
     }
-    res.json(payload);
+    res.json(projectRowsForSurface([payload], req.locationSurface)[0]);
   }),
 );
 

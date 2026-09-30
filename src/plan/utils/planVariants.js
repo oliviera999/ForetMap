@@ -1,8 +1,8 @@
 /**
- * Variantes du produit « plan » : le Plan Lyautey public (`planlyautey`) et le plan des
- * personnels (`proflyautey`, alias `stafflyautey`).
+ * Variantes du produit « plan » : le Plan Lyautey public (`planlyautey`), le plan des
+ * personnels (`proflyautey`, alias `stafflyautey`) et le plan e-nov (`enov`).
  *
- * Les deux affichent **le même écran**, servi par le même composant `AppPlan` — une carte
+ * Les trois affichent **le même écran**, servi par le même composant `AppPlan` — une carte
  * plein écran, une recherche, des puces de catégorie, des fiches de lieu, des parcours. Ce
  * qui les sépare tient dans cet objet : l'API interrogée, la porte d'entrée, les clés de
  * stockage local et l'habillage. Dupliquer l'écran pour ces quelques lignes reviendrait à
@@ -52,6 +52,27 @@ export const STAFF_PLAN_VARIANT = Object.freeze({
 });
 
 /**
+ * Plan e-nov : le plan public de l'établissement, sur lequel les lieux labellisés e-nov
+ * (innovations) ressortent — halo, lieux ordinaires estompés, liste « Innovations », texte
+ * e-nov en tête de fiche. Ouvert à tous, éventuellement derrière son propre code.
+ *
+ * `highlightPlaces` n'est posé que sur cette variante : c'est lui qui allume la mise en avant
+ * dans `AppPlan`, sur la foi des champs `is_enov` que seule la charge `/api/enov/content`
+ * renvoie.
+ */
+export const ENOV_PLAN_VARIANT = Object.freeze({
+  id: 'enov',
+  apiBase: '/api/enov',
+  usageProduct: 'enov',
+  storagePrefix: 'enov-plan',
+  defaultTitle: 'Plan e-nov',
+  bodyClass: 'plan-body enov-plan-body',
+  requiresAccount: false,
+  accessIntro: 'Ce plan est réservé aux invités du label e-nov. Saisissez le code communiqué.',
+  highlightPlaces: true,
+});
+
+/**
  * Clés de stockage local d'une variante. Elles sont préfixées par variante : les deux plans
  * peuvent être ouverts sur le même appareil, et les filtres de l'un n'ont rien à faire dans
  * l'autre — leurs catégories ne sont même pas les mêmes.
@@ -62,7 +83,8 @@ export const STAFF_PLAN_VARIANT = Object.freeze({
  * proposer « Reprendre le parcours » pour un parcours d'un autre bâtiment. Les autres sont
  * des préférences d'appareil, indifférentes à la carte.
  *
- * @param {object} variant variante de plan (`PLAN_VARIANT`, `STAFF_PLAN_VARIANT`).
+ * @param {object} variant variante de plan (`PLAN_VARIANT`, `STAFF_PLAN_VARIANT`,
+ *   `ENOV_PLAN_VARIANT`).
  * @param {string} [mapId] carte réellement affichée ; vide tant que la charge n'est pas là.
  */
 export function planStorageKeys(variant, mapId = '') {

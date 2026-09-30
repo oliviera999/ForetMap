@@ -4,7 +4,9 @@
  * Miroir exact de `isVisibleOnSurface()` dans `lib/locationSurfaces.js` : un lieu est visible
  * sur une surface s'il n'y est pas masqué (`hidden_surfaces`) et si, lorsqu'il porte des
  * catégories, au moins l'une d'elles y apparaît (`categories[].surfaces`). Un lieu sans
- * catégorie est visible partout où il n'est pas masqué.
+ * catégorie est visible partout où il n'est pas masqué. Les **catégories-labels**
+ * (`is_distinction`, label e-nov, migration 313) sont transparentes là où elles n'apparaissent
+ * pas : un lieu qui ne porte que des labels s'y comporte comme un lieu sans catégorie.
  *
  * Les deux implémentations doivent rester alignées — `tests-ui/locationSurfaceVisibility.test.js`
  * rejoue les mêmes cas que `tests/location-surfaces.test.js`. La règle est dupliquée plutôt que
@@ -27,7 +29,11 @@ export function isLocationVisibleOnSurface(item, surface) {
   if (normalizeSurfaceList(item?.hidden_surfaces).includes(target)) return false;
   const categories = Array.isArray(item?.categories) ? item.categories : [];
   if (categories.length === 0) return true;
-  return categories.some((c) => normalizeSurfaceList(c?.surfaces).includes(target));
+  if (categories.some((c) => normalizeSurfaceList(c?.surfaces).includes(target))) return true;
+  return categories.every((c) => {
+    const flag = c?.is_distinction;
+    return flag === true || flag === 1 || flag === '1';
+  });
 }
 
 /** Surfaces sur lesquelles ce lieu sort réellement, dans l'ordre canonique. */

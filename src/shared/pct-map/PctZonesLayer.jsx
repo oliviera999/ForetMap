@@ -29,6 +29,8 @@ import { parsePctPolygonPoints } from './pctPolygon.js';
  * @param {(zone: object) => string} [props.getStatusLabel] libellé des pastilles d'état de la
  *   zone (`PctStatusDotsLayer`), joint au nom accessible : les pastilles elles-mêmes sont
  *   décoratives et posées en HTML, pas dans ce SVG déformé (`preserveAspectRatio="none"`).
+ * @param {string} [props.highlightLabel] complément du nom accessible d'une zone mise en
+ *   avant (`zone.map_highlight`, plan e-nov) — son halo ne s'entend pas.
  * @param {string} [props.className]
  */
 function PctZonesLayerImpl({
@@ -38,6 +40,7 @@ function PctZonesLayerImpl({
   getIsSeen = null,
   getDiscoverHalo = null,
   getStatusLabel = null,
+  highlightLabel = '',
   className = 'fm-pct-zones',
 }) {
   const parsed = useMemo(
@@ -76,16 +79,20 @@ function PctZonesLayerImpl({
           seenFlag === true ? ' — Vu' : seenFlag === false ? ' — À découvrir' : '';
         const dotsSuffix =
           typeof getStatusLabel === 'function' ? String(getStatusLabel(zone) || '').trim() : '';
+        const highlighted = zone.map_highlight === true;
+        const highlightSuffix = highlighted && highlightLabel ? ` — ${highlightLabel}` : '';
         return (
           <g
             key={zone.id}
-            className={`fm-pct-zone${isActive ? ' is-active' : ''}${seenClass}${haloClass}`}
+            className={`fm-pct-zone${isActive ? ' is-active' : ''}${seenClass}${haloClass}${
+              highlighted ? ' is-highlight' : ''
+            }`}
             role={onZoneClick ? 'button' : undefined}
             tabIndex={onZoneClick ? 0 : undefined}
             aria-current={isActive ? 'true' : undefined}
             aria-label={
               onZoneClick
-                ? `${accessibleName || 'Zone'}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`
+                ? `${accessibleName || 'Zone'}${highlightSuffix}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`
                 : undefined
             }
             onClick={activate}

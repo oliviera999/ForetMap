@@ -135,9 +135,12 @@ const EMPTY_DRAFT = {
   description: '',
   map_id: '',
   applies_to: 'both',
-  surfaces: ['map', 'visit', 'plan'],
+  // Le plan e-nov montre le même plan que le plan public (migration 313) : une catégorie
+  // nouvelle y apparaît aussi, sinon ses lieux manqueraient au plan e-nov.
+  surfaces: ['map', 'visit', 'plan', 'enov'],
   is_infrastructure: false,
   zoom_only: false,
+  is_distinction: false,
   sort_order: 100,
   is_active: true,
   // Audience héritée (migration 262) : les lieux de la catégorie sans audience propre
@@ -160,6 +163,7 @@ function draftFromCategory(category) {
         : normalizeSurfaceList(category.surfaces),
     is_infrastructure: !!category.is_infrastructure,
     zoom_only: !!category.zoom_only,
+    is_distinction: !!category.is_distinction,
     sort_order: Number(category.sort_order) || 0,
     is_active: category.is_active !== false,
     visible_role_slugs: normalizeAudienceRoleList(category.visible_role_slugs),
@@ -204,6 +208,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
     surfaces: draft.surfaces,
     is_infrastructure: draft.is_infrastructure,
     zoom_only: draft.zoom_only,
+    is_distinction: draft.is_distinction,
     sort_order: Number(draft.sort_order) || 0,
     is_active: draft.is_active,
     visible_role_slugs: normalizeAudienceRoleList(draft.visible_role_slugs),
@@ -405,6 +410,16 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
         Visible seulement au zoom (désencombre la carte vue en entier)
       </label>
 
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={draft.is_distinction}
+          onChange={(e) => setField({ is_distinction: e.target.checked })}
+          style={{ width: 18, height: 18 }}
+        />
+        Catégorie-label (e-nov…) : signale le lieu sans jamais le retirer des autres surfaces
+      </label>
+
       <CategoryAudienceFields
         roleSlugs={draft.visible_role_slugs}
         groupIds={draft.visible_group_ids}
@@ -528,6 +543,7 @@ export function MapCategoriesPanel({ maps = [], onError, onMessage }) {
                 · {APPLIES_TO_LABELS[cat.applies_to] || cat.applies_to}
                 {cat.is_infrastructure ? ' · Infrastructure' : ''}
                 {cat.zoom_only ? ' · au zoom' : ''}
+                {cat.is_distinction ? ' · Label' : ''}
                 {surfaceSummary(cat)}
                 {cat.is_active ? '' : ' · Inactive'}
               </div>

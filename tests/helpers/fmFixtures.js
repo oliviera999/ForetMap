@@ -93,13 +93,14 @@ async function createLocationCategory({
   isInfrastructure = false,
   sortOrder = 0,
   surfaces = ['map', 'visit', 'plan'],
+  isDistinction = false,
   zoneIds = [],
   markerIds = [],
 } = {}) {
   const slug = id;
   await execute(
-    `INSERT INTO location_categories (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces)
-     VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, 1, ?)`,
+    `INSERT INTO location_categories (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, is_distinction)
+     VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, 1, ?, ?)`,
     [
       id,
       mapId,
@@ -111,6 +112,7 @@ async function createLocationCategory({
       isInfrastructure ? 1 : 0,
       sortOrder,
       [].concat(surfaces).join(','),
+      isDistinction ? 1 : 0,
     ],
   );
   for (const zoneId of zoneIds) {

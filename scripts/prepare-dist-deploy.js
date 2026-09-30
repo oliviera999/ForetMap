@@ -88,8 +88,8 @@ if (!fs.existsSync(distIndex)) {
   fail('Build incomplet: dist/index.vite.html (ou index.html) introuvable.');
 }
 // Entrées des autres produits (registre lib/products.js) : leur absence ferait servir
-// ForetMap en silence sur gl.* et planlyautey.* (repli du fallback SPA).
-for (const entry of ['gl.html', 'plan.html']) {
+// ForetMap en silence sur gl.*, planlyautey.* et enov.* (repli du fallback SPA).
+for (const entry of ['gl.html', 'plan.html', 'enov.html']) {
   if (!fs.existsSync(path.join(distPath, entry))) {
     fail(`Build incomplet: dist/${entry} introuvable (entrée produit).`);
   }

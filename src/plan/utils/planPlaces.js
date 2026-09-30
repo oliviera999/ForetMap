@@ -36,6 +36,10 @@ export function placeDisplayParts(place) {
  * Chaque lieu porte `kind` (`'zone'` | `'marker'`), `name` (nom affiché) et conserve ses
  * champs d'origine (`points` pour une zone, `x_pct`/`y_pct` pour un repère).
  *
+ * Plan e-nov : un lieu labellisé (`is_enov`, charge `/api/enov/content` seulement) porte en
+ * plus `map_highlight`, le drapeau **générique** que lit la carte partagée pour le mettre en
+ * avant (halo, priorité d'étiquette, jamais fondu dans un groupe).
+ *
  * @param {{ zones?: Array<object>, markers?: Array<object> }} content
  * @returns {Array<object>}
  */
@@ -44,11 +48,13 @@ export function planPlacesFromContent(content) {
     ...zone,
     kind: 'zone',
     name: String(zone.name || '').trim(),
+    ...(zone.is_enov === true ? { map_highlight: true } : null),
   }));
   const markers = (content?.markers || []).map((marker) => ({
     ...marker,
     kind: 'marker',
     name: String(marker.label || '').trim(),
+    ...(marker.is_enov === true ? { map_highlight: true } : null),
   }));
   const collator = new Intl.Collator('fr-FR', { sensitivity: 'base' });
   return [...zones, ...markers].sort((a, b) => collator.compare(a.name, b.name));

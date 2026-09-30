@@ -24,7 +24,10 @@ const SHA_B = 'b'.repeat(40);
 const SHA_C = 'c'.repeat(40);
 
 /** Crée un `dist/` minimal mais complet au sens de `findDistGaps`. */
-function makeDist(dir, entries = ['index.vite.html', 'gl.html', 'plan.html', 'staff.html']) {
+function makeDist(
+  dir,
+  entries = ['index.vite.html', 'gl.html', 'plan.html', 'staff.html', 'enov.html'],
+) {
   fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'assets', 'main-abc123.js'), '// bundle');
   for (const entry of entries) {

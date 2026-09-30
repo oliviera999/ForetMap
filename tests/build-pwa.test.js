@@ -207,11 +207,13 @@ test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/ma
   const { written, builds } = buildPwa({ distDir, publicDir, log: (m) => logs.push(m) });
   const names = written.map((file) => path.basename(file)).sort();
   assert.deepStrictEqual(names, [
+    'manifest-enov.webmanifest',
     'manifest-foret.webmanifest',
     'manifest-gl.webmanifest',
     'manifest-plan.webmanifest',
     'manifest-staff.webmanifest',
     'manifest.json',
+    'sw-enov.js',
     'sw-foret.js',
     'sw-gl.js',
     'sw-plan.js',
@@ -235,6 +237,14 @@ test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/ma
   assert.ok(!staffSw.includes('/api/staff-plan/content'));
   assert.ok(!staffSw.includes('/api/plan/content'));
   assert.ok(builds.staff.precache.includes('/staff.html'));
+
+  // Plan e-nov : charge publique, gardée hors ligne comme celle du plan public — et jamais
+  // celle d'un autre plan.
+  const enovSw = fs.readFileSync(path.join(distDir, 'sw-enov.js'), 'utf8');
+  assert.ok(enovSw.includes('/api/enov/content'));
+  assert.ok(!enovSw.includes('/api/plan/content'));
+  assert.ok(!enovSw.includes('/api/staff-plan/content'));
+  assert.ok(builds.enov.precache.includes('/enov.html'));
 
   // Copies ForetMap identiques aux fichiers nommés.
   assert.strictEqual(

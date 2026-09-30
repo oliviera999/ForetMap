@@ -41,7 +41,10 @@ const {
 } = require('../lib/visitContentHelpers');
 const { attachStepsToRoutes, serializeRouteRow } = require('../lib/mapRoutes');
 const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
-const { isVisibleOnSurface } = require('../lib/locationSurfaces');
+const {
+  isVisibleOnSurface,
+  stripDistinctionCategoriesOffSurface,
+} = require('../lib/locationSurfaces');
 
 const router = express.Router();
 
@@ -541,7 +544,9 @@ router.get(
         };
       })
       // « Masquer sur : Visite » (lieu) et catégories non visibles sur la Visite.
-      .filter((z) => isVisibleOnSurface(z, 'visit'));
+      .filter((z) => isVisibleOnSurface(z, 'visit'))
+      // Catégories-labels (e-nov) : jamais affichées hors de leurs surfaces.
+      .map((z) => stripDistinctionCategoriesOffSurface(z, 'visit'));
     const publicMarkers = markers
       .filter((m) => visitContentRowIsPublicActive(m))
       .map((m) => {
@@ -562,7 +567,8 @@ router.get(
           visit_editorial_blocks: resolveVisitEditorialBlocksForContentRow(m, visitMedia),
         };
       })
-      .filter((m) => isVisibleOnSurface(m, 'visit'));
+      .filter((m) => isVisibleOnSurface(m, 'visit'))
+      .map((m) => stripDistinctionCategoriesOffSurface(m, 'visit'));
 
     const visiblePlaceKeys = new Set([
       ...publicZones.map((z) => `zone:${z.id}`),

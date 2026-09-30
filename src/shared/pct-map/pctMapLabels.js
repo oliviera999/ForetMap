@@ -197,13 +197,20 @@ export function defaultLabelPriority(categoriesById) {
 }
 
 /**
+ * Rang d'une étiquette de lieu **mis en avant** (`map_highlight`, plan e-nov) : devant toute
+ * catégorie — son nom doit rester écrit quand deux étiquettes se disputent la place.
+ */
+export const HIGHLIGHT_LABEL_PRIORITY = -1e9;
+
+/**
  * Rang de catégorie d'un lieu : le plus petit `sort_order` de ses catégories, ou
- * `fallback` s'il n'en a aucune (connue).
- * @param {{ category_ids?: Array<string> }} place
+ * `fallback` s'il n'en a aucune (connue). Un lieu mis en avant passe devant tout le monde.
+ * @param {{ category_ids?: Array<string>, map_highlight?: boolean }} place
  * @param {Map<string, { sort_order?: number }>|null} categoriesById
  * @param {number} [fallback]
  */
 export function labelPriority(place, categoriesById, fallback = DEFAULT_LABEL_PRIORITY) {
+  if (place?.map_highlight === true) return HIGHLIGHT_LABEL_PRIORITY;
   let best = Number.POSITIVE_INFINITY;
   for (const id of place?.category_ids || []) {
     const rank = toFinite(categoriesById?.get?.(String(id))?.sort_order, Number.POSITIVE_INFINITY);

@@ -1,7 +1,7 @@
 /**
  * Surfaces d'affichage d'un lieu ou d'une catégorie (lot 4 du plan de convergence,
  * `docs/AUDIT_PLAN_LYAUTEY_2026-09.md` §8.4) : la carte de travail ForetMap, la Visite, le
- * Plan Lyautey public et le plan des personnels. Même liste, dans le même ordre, que
+ * Plan Lyautey public, le plan des personnels et le plan e-nov. Même liste, dans le même ordre, que
  * `lib/locationSurfaces.js` côté serveur — une surface nouvelle s'ajoute en fin de liste.
  */
 export const SURFACE_OPTIONS = Object.freeze([
@@ -9,6 +9,7 @@ export const SURFACE_OPTIONS = Object.freeze([
   { id: 'visit', label: 'Visite', hint: 'visite grand public' },
   { id: 'plan', label: 'Plan public', hint: 'planlyautey — visible de tous' },
   { id: 'staff', label: 'Plan personnels', hint: 'proflyautey — personnels connectés' },
+  { id: 'enov', label: 'Plan e-nov', hint: 'enov — lieux innovants mis en avant' },
 ]);
 
 export const ALL_SURFACES = Object.freeze(SURFACE_OPTIONS.map((s) => s.id));

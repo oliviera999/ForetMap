@@ -43,7 +43,22 @@ describe('isLocationVisibleOnSurface — mêmes règles que le serveur', () => {
 
   test('accepte la forme SQL (`"map,plan"`) comme le serveur', () => {
     const item = { hidden_surfaces: 'plan,visit' };
-    expect(visibleSurfacesOfLocation(item)).toEqual(['map', 'staff']);
+    expect(visibleSurfacesOfLocation(item)).toEqual(['map', 'staff', 'enov']);
+  });
+
+  test('catégorie-label (e-nov) : transparente hors de ses surfaces, comme au serveur', () => {
+    const label = { surfaces: ['enov'], is_distinction: true };
+    expect(visibleSurfacesOfLocation({ categories: [label] })).toEqual([
+      'map',
+      'visit',
+      'plan',
+      'staff',
+      'enov',
+    ]);
+    const labelled = { categories: [{ surfaces: ['map', 'plan'] }, label] };
+    expect(visibleSurfacesOfLocation(labelled)).toEqual(['map', 'plan', 'enov']);
+    // Sans le drapeau : règle historique, la catégorie retire le lieu des autres surfaces.
+    expect(visibleSurfacesOfLocation({ categories: [{ surfaces: ['enov'] }] })).toEqual(['enov']);
   });
 });
 
@@ -55,10 +70,10 @@ describe('countLocationsBySurface — bandeau de la revue des surfaces', () => {
       { hidden_surfaces: ['plan', 'visit'] },
       { hidden_surfaces: [], categories: [{ surfaces: ['staff'] }] },
     ]);
-    expect(counts).toEqual({ map: 3, visit: 2, plan: 1, staff: 4 });
+    expect(counts).toEqual({ map: 3, visit: 2, plan: 1, staff: 4, enov: 3 });
   });
 
   test('liste vide : des zéros, pas un objet vide', () => {
-    expect(countLocationsBySurface([])).toEqual({ map: 0, visit: 0, plan: 0, staff: 0 });
+    expect(countLocationsBySurface([])).toEqual({ map: 0, visit: 0, plan: 0, staff: 0, enov: 0 });
   });
 });
