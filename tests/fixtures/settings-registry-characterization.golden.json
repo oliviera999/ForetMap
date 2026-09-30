@@ -507,6 +507,12 @@
       "type": "boolean",
       "default": true
     },
+    "privacy.data_contact": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 400,
+      "default": ""
+    },
     "privacy.external_assets_mode": {
       "scope": "public",
       "type": "enum",
@@ -1380,7 +1386,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1421,7 +1428,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1453,7 +1461,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1481,7 +1490,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -2750,6 +2760,22 @@
         "min": null,
         "max": null,
         "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.data_contact",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 400,
         "values": null
       },
       "updated_at": null,
@@ -4702,7 +4728,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -4743,7 +4770,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -4775,7 +4803,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -4803,7 +4832,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },

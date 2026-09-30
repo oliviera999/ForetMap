@@ -25,6 +25,10 @@
 > - **Rien n'a été sondé sur la production.**
 > - Aucune valeur de secret, aucun e-mail réel et aucun hachage n'est recopié ici.
 
+> **Statut (30/09, même jour)** : **39 constats traités sur 40**, avec tests. Seul **CS1**
+> reste ouvert : il ne se corrige pas dans le code (purge des `refs/pull/*` par le support
+> GitHub, actions du propriétaire au § 10). Détail constat par constat : § 11.
+
 ## Verdict
 
 Aucune faille critique nouvelle dans le code. **Le seul critique reste hors code** : le dump de
@@ -769,3 +773,54 @@ rougissement).
    `LOAD_TEST_SECRET` et le drapeau e2e absents. Contrôler avec `npm run deploy:check:prod`.
 7. Registre des traitements et AIPD (R7) : l'AIPD est probablement requise (données de mineurs,
    suivi de progression), avec l'appui du DPO académique.
+
+---
+
+## 11. Suite donnée — 30 septembre 2026
+
+Traité le jour même, en six lots fusionnés sur la même PR. Les constats ci-dessus restent
+tels quels (convention des audits datés) ; ce tableau dit ce qui a été fait. Tests :
+`tests/security-audit-2026-09-30-{comptes,gl,applicatif,rgpd,uploads}.test.js`, plus les
+tests existants ajustés et les Vitest cités.
+
+| ID          | Statut     | Correctif                                                                                                                                                                                                                              |
+| ----------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CS1         | **Ouvert** | Hors code : actions du propriétaire (§ 10)                                                                                                                                                                                             |
+| CS2         | Traité     | Migration `313` (crédits sans e-mail, fiches 72 et 206) ; `252` corrigée en place (aucune empreinte de migration n'est contrôlée) ; adresses fictives en `@exemple.invalid` ; test de contenu                                          |
+| CS3         | Traité     | Métadonnées vidées (docx, pptx, PDF), fichier renommé, `.gitattributes` `export-ignore` (dont `Datas Sources/`) ; limite : le `.doc` n'est pas nettoyé, il est exclu des archives                                                      |
+| CS4         | Traité     | Compte d'hébergement et domaines remplacés par des variables dans la doc ; `.cursor/mcp.json` sans URL. L'historique Git garde les anciennes versions                                                                                  |
+| CS5         | Traité     | `frontend-dist.yml` : build en lecture seule, `persist-credentials: false`, push dans un job séparé ; `npm audit --audit-level=high` bloquant                                                                                          |
+| CS6         | Traité     | Liste de refus des `JWT_SECRET` publiés (`lib/env.js`) ; MariaDB publiée sur `127.0.0.1`                                                                                                                                               |
+| AC1         | Traité     | Session MJ G&L par LTI : `foretmap_user_id` seul, enseignant avec `teacher.access` ; hydratation stricte pour la voie LTI                                                                                                              |
+| AC2, AC3    | Traité     | `lib/accounts/emailChange.js` : garde de rang, mot de passe actuel exigé, refus en prise de contrôle, `token_epoch` incrémenté, ancienne adresse prévenue ; champ mot de passe dans « Mon profil »                                     |
+| AC4         | Traité     | Rang actuel de la cible et du profil modifié bornés                                                                                                                                                                                    |
+| AC5         | Traité     | bcrypt factice (`lib/auth/timingEqualizer.js`), envoi SMTP sans attente, ForetMap et G&L                                                                                                                                               |
+| AC6         | Traité     | Ticket LTI à usage unique (`jti`, migration `314`)                                                                                                                                                                                     |
+| AC7         | Traité     | Identifiant Moodle d'abord, e-mail en repli ; exigence Moodle documentée                                                                                                                                                               |
+| AC8         | Traité     | Comparaison à temps constant, 32 caractères, ignoré en production                                                                                                                                                                      |
+| GL1         | Traité     | Rapprochement limité au miroir ou à la classe ; aucun mot de passe ni e-mail écrit sur un vrai compte                                                                                                                                  |
+| GL2         | Traité     | Jeton de présentation signé (partie, équipe, repère), partie `live`, un point par (partie, équipe, question, arrivée)                                                                                                                  |
+| GL3 (= I4)  | Traité     | Filtre `context_type` par produit, des deux côtés ; modération G&L réservée aux permissions de gestion                                                                                                                                 |
+| GL4         | Traité     | Dés tirés par le serveur ; repère du chapitre ; destination liée au dernier jet (limite : dés physiques)                                                                                                                               |
+| GL5, GL6    | Traité     | Équipe verrouillée en partie ; `canAccessGlGame` sur les commentaires de partie                                                                                                                                                        |
+| GL7, GL8    | Traité     | Deux routes au limiteur strict ; invité sans écriture en base                                                                                                                                                                          |
+| AP1         | Traité     | engine.io 6.6.11, ip-address 10.7.2 : `npm audit --omit=dev --audit-level=high` → 0                                                                                                                                                    |
+| AP2 (= M4)  | Traité     | `lib/shared/publicError.js` et `lib/safeErrorResponse.js` (classification commune)                                                                                                                                                     |
+| AP3         | Traité     | `lib/shared/csvCell.js`, `src/shared/utils/csvCell.js` (OWASP)                                                                                                                                                                         |
+| AP4         | Traité     | Clé de cache sans query, place réservée avant écriture (507), quota par IP (429)                                                                                                                                                       |
+| AP5         | Traité     | Visibilité (audience, carte, surface) vérifiée en lecture et en écriture                                                                                                                                                               |
+| AP6         | Traité     | Filtre de carte et de surface ; champs personnels réservés au personnel                                                                                                                                                                |
+| AP7 à AP10  | Traité     | Périmètre de groupe du forum ; `style` limité aux images ; tailles ZIP et XLSX bornées ; parseur de 25 Mo réservé aux requêtes authentifiées                                                                                           |
+| RG1         | Traité     | Page publique « Vos données » (`/confidentialite`) dans les quatre produits, liens depuis connexion, inscription et « À propos », réglage `privacy.data_contact` ; à compléter par l'établissement : DPO, hébergeur, registre          |
+| RG2         | Traité     | Purge étendue (jetons, synchronisations, visites, QCM invités), IP tronquées après 6 mois, `scripts/purge-inactive-accounts.js`, crontab documentée                                                                                    |
+| RG3         | Traité     | Effacement élève, joueur (plus de 409 sortilège) et enseignant : fichiers, IP, audit par identifiant ; test « registre » sur INFORMATION_SCHEMA                                                                                        |
+| RG4 (= S-6) | Traité     | URL signées à durée limitée (`lib/uploadsSignedUrls.js`) pour `students/`, `forum-posts/`, `context-comments/`, `tasks/`, `gl-player-journal/`… ; accès direct → 404                                                                   |
+| RG5 à RG8   | Traité     | Export complété ; `redact` imbriqué ; EXIF en échec fermé (422), `sharp` exigé ; mot de passe minimum 8                                                                                                                                |
+| R6 (S-4)    | Documenté  | Comportement inchangé (arbitrage de l'établissement) : annoncé dans la notice et dans `comptes-roles-et-groupes.md`                                                                                                                    |
+| § 6 (infos) | Traité     | Prise de contrôle en liste blanche ; avertissement du drapeau e2e ; CORS Socket.IO strict ; `target_link_uri` contrôlée ; `FORETMAP_OAUTH_RETURN_ORIGINS` ; séance pédagogique : fin sans début refusée ; G&L sans périmètre documenté |
+
+**Limites connues** (détail dans les commits) : une URL signée copiée reste lisible jusqu'à son
+échéance ; un compte Google sans mot de passe peut toujours s'en poser un sans
+réauthentification (CDG-42), puis changer d'e-mail ; les charges `payload_json` des journaux
+ne sont pas nettoyées à l'effacement ; les vidéos de la médiathèque ne sont pas nettoyées de
+leurs métadonnées.

@@ -9,6 +9,54 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — correctifs de l'audit sécurité, confidentialité et RGPD du 30/09 (39 constats sur 40)
+
+Audit [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-09-30.md), § 11. Seul CS1 (dump dans les `refs/pull/*` de GitHub) reste ouvert : il relève du support GitHub.
+
+- **Comptes** :
+  - « Mon profil » : changer d'adresse e-mail demande le mot de passe actuel. Le changement déconnecte les autres appareils et prévient l'ancienne adresse. Il est impossible pendant une prise de contrôle.
+  - Fiche compte : un profil délégué ne change plus l'e-mail, le profil ni les permissions d'un rang supérieur ou égal au sien.
+  - Entrée Moodle : le lien d'arrivée ne sert qu'une fois (migration `314`). Le bouton MJ exige un accès G&L relié au compte enseignant. Un élève est reconnu d'abord par son identifiant Moodle.
+  - Connexion et « mot de passe oublié » : temps de réponse égalisés.
+  - Mot de passe : **8 caractères minimum** pour les nouveaux mots de passe (CNIL).
+- **G&L** :
+  - Les dés virtuels sont tirés par le serveur.
+  - Plus de changement d'équipe une fois la partie lancée.
+  - QCM de partie : un point par équipe et par question, et seulement en partie en cours.
+  - Le MJ ne rattache plus un élève d'une autre classe et ne modifie plus l'e-mail d'un vrai compte élève.
+  - Chaque produit ne modère que ses propres commentaires.
+- **Photos d'élèves** : avatars, images du forum, des commentaires et des tâches, carnet G&L ne s'ouvrent plus par lien direct. L'application les affiche par un lien signé valable quelques heures (`FORETMAP_UPLOADS_SIGNED_URL_TTL_SECONDS`). Un proxy devant `/uploads` doit transmettre la query string.
+- **Vos données** : page publique `/confidentialite` dans ForetMap, G&L et les plans. Elle est liée depuis la connexion, l'inscription et « À propos », avec un nouveau réglage « Contact données personnelles ».
+- **Conservation et effacement** :
+  - La purge couvre les jetons de réinitialisation, les synchronisations Moodle, les visites et les QCM des invités.
+  - Les adresses IP sont tronquées après 6 mois.
+  - Nouveau script de fin d'année `scripts/purge-inactive-accounts.js`.
+  - La suppression d'un élève, d'un joueur (plus bloquée par un sortilège) ou d'un enseignant efface ses fichiers et ses traces. L'audit ne garde que l'identifiant.
+  - L'export des données est complété.
+- **Images** : une image dont les métadonnées ne peuvent pas être retirées est refusée (422). `sharp` est exigé par `check:runtime`, et Pl@ntNet reçoit une image nettoyée.
+- **Applicatif** :
+  - Exports CSV protégés contre l'injection de formules.
+  - Individus suivis : lecture bornée à la carte ou à la surface, notes et auteurs réservés au personnel.
+  - Commentaires de lieux invisibles → 404.
+  - Contenus riches : `style` ignoré hors images.
+  - Relais d'images : codes 429 et 507.
+  - Erreurs techniques masquées (500 générique).
+  - Pas de badge de séance sans lancement préalable.
+- **Exploitation** :
+  - `engine.io` 6.6.11.
+  - `npm audit --audit-level=high` bloquant en CI.
+  - `frontend-dist.yml` construit sans droit d'écriture.
+  - Le serveur refuse en production un `JWT_SECRET` d'exemple.
+  - `LOAD_TEST_SECRET` est ignoré en production.
+  - CORS Socket.IO strict.
+  - `FORETMAP_OAUTH_RETURN_ORIGINS` (origines de retour Google).
+  - MariaDB de développement publiée sur `127.0.0.1`.
+  - Documentation sans nom de compte d'hébergement.
+  - `.gitattributes` `export-ignore` pour les archives remises à des tiers.
+- **Dépôt** : crédits photo sans e-mail (migration `313`), métadonnées retirées des documents de `Datas Sources/`.
+- **Correctif CI** : le test e2e d'accessibilité (`presentation-role-conflict`) repasse. Une image décorative (`alt=""`) n'est plus transformée en bouton d'agrandissement.
+- **Tests** : `tests/security-audit-2026-09-30-{comptes,gl,applicatif,rgpd,uploads}.test.js`, plus les Vitest associés.
+
 ### Documentation — audit sécurité, confidentialité, RGPD et accès au code source (30/09)
 
 - Nouvel audit daté [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-09-30.md), indexé dans `docs/audits/README.md`.
