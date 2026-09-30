@@ -180,7 +180,11 @@ describe('AppPlan — montage', () => {
     expect(screen.getByAltText(/^Logo /)).toBeTruthy();
     expect(screen.getByText('Fond : plan interne')).toBeTruthy();
     expect(await screen.findByText('Touchez un lieu, ou cherchez-le.')).toBeTruthy();
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('open', 'lyautey');
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+      'open',
+      'lyautey',
+      expect.objectContaining({ id: 'plan' }),
+    );
   });
 
   test('recherche par alias : « bibliothèque » ouvre la feuille de résultats et le CDI', async () => {
@@ -198,7 +202,11 @@ describe('AppPlan — montage', () => {
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(placeSheet.textContent).toContain('Centre de documentation');
     expect(placeSheet.textContent).toContain('8 h – 17 h');
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('place_open', 'z-cdi');
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+      'place_open',
+      'z-cdi',
+      expect.objectContaining({ id: 'plan' }),
+    );
     expect(window.location.search).toContain('lieu=z-cdi');
   });
 
@@ -342,7 +350,11 @@ describe('AppPlan — montage', () => {
       expect(goButton.disabled).toBe(false);
       fireEvent.click(goButton);
       expect(positionStub.toggle).toHaveBeenCalled();
-      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('go', 'z-cdi');
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+        'go',
+        'z-cdi',
+        expect.objectContaining({ id: 'plan' }),
+      );
     } finally {
       positionStub.available = false;
     }
@@ -405,7 +417,11 @@ describe('AppPlan — montage', () => {
     const sheet = await screen.findByTestId('plan-results-sheet');
     expect(sheet.textContent).toContain('Aucun lieu ne correspond');
     await waitFor(() =>
-      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('search_empty', 'piscine'),
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+        'search_empty',
+        'piscine',
+        expect.objectContaining({ id: 'plan' }),
+      ),
     );
     // Refermer la feuille : sinon la pile d'overlays / le focus peut polluer le test suivant.
     fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer les résultats' }));
@@ -784,7 +800,11 @@ describe('AppPlan — affichage des repères et des zones (audit 2026-09)', () =
     expect(guide.textContent).toMatch(/à vol d’oiseau/);
     // La fiche s'efface : c'est la carte que l'on veut voir en marchant.
     await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBe(null));
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith('go', 'z-cdi');
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+      'go',
+      'z-cdi',
+      expect.objectContaining({ id: 'plan' }),
+    );
   });
 
   test('fermer la fiche n’arrête pas le guidage ; seul « Arrêter » l’arrête', async () => {

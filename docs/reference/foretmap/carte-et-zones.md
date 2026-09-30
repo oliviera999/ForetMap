@@ -490,10 +490,11 @@ les liens passent par les textes (description, détails), comme décrit plus hau
 
 ### Où apparaît un lieu (carte, visite, plan)
 
-Un même lieu peut être montré sur trois **surfaces** : la **Carte** de travail des élèves,
-la **Visite** guidée grand public, et le **Plan Lyautey** (le plan d'établissement sur
-téléphone — voir [../plan/presentation.md](../plan/presentation.md)). Les lieux ne sont
-jamais dupliqués : c'est le même lieu, montré ou non à chaque endroit.
+Un même lieu peut être montré sur plusieurs **surfaces** : la **Carte** de travail des élèves,
+la **Visite** guidée grand public, le **Plan Lyautey** (le plan d'établissement sur
+téléphone — voir [../plan/presentation.md](../plan/presentation.md)), le **plan des
+personnels** et le **plan e-nov** (voir [../plan/plan-enov.md](../plan/plan-enov.md)). Les
+lieux ne sont jamais dupliqués : c'est le même lieu, montré ou non à chaque endroit.
 
 Deux réglages se combinent :
 
@@ -516,6 +517,15 @@ La même fiche propose un champ **« Alias de recherche »** : les autres noms s
 cherche ce lieu, séparés par des points-virgules (`CDI ; bibliothèque ; docs`). Ces mots ne
 s'affichent nulle part ; ils servent à ce que la recherche du plan trouve le lieu quel que
 soit le mot employé.
+
+**Label e-nov.** Pour présenter un lieu comme une innovation sur le
+[plan e-nov](../plan/plan-enov.md), cochez sa catégorie **« 💡 e-nov »** et remplissez le champ
+**« 💡 Description e-nov »** (en quoi ce lieu est une innovation). Ce texte ne s'affiche que
+sur le plan e-nov, en tête de la fiche. La catégorie « e-nov » est une **catégorie-label** :
+elle n'apparaît que sur le plan e-nov, n'est visible dans ForetMap que des comptes qui
+modifient les lieux (administrateur, n3boss), et ne retire jamais le lieu des autres
+surfaces — même s'il n'avait aucune autre catégorie. La case « Catégorie-label » de
+_Réglages → Cartographie → Catégories_ donne ce comportement à toute autre catégorie.
 
 ### Retoucher le contour d'une zone
 

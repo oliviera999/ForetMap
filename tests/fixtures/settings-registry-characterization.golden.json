@@ -555,6 +555,12 @@
       "type": "boolean",
       "default": true
     },
+    "security.enov_plan_access_code_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
+    },
     "security.jwt_sliding_max_seconds": {
       "scope": "teacher",
       "type": "number",
@@ -704,6 +710,71 @@
       "scope": "public",
       "type": "boolean",
       "default": false
+    },
+    "ui.enov_plan.access_mode": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["public", "code"],
+      "default": "public"
+    },
+    "ui.enov_plan.attribution": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": ""
+    },
+    "ui.enov_plan.badge_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": false
+    },
+    "ui.enov_plan.default_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 8192,
+      "default": ""
+    },
+    "ui.enov_plan.hidden_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 8192,
+      "default": ""
+    },
+    "ui.enov_plan.highlight_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 8192,
+      "default": "cat-enov"
+    },
+    "ui.enov_plan.highlight_color": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 7,
+      "default": "#f59e0b"
+    },
+    "ui.enov_plan.innovations_label": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 40,
+      "default": "Innovations"
+    },
+    "ui.enov_plan.selectable_map_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 512,
+      "default": ""
+    },
+    "ui.enov_plan.title": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Plan e-nov — {orgShort}"
+    },
+    "ui.enov_plan.welcome_hint": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 400,
+      "default": "Les lieux mis en avant sont nos innovations : touchez-en un pour le découvrir."
     },
     "ui.foret.brand": {
       "scope": "public",
@@ -2895,6 +2966,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.enov_plan_access_code_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.jwt_sliding_max_seconds",
       "scope": "teacher",
       "type": "number",
@@ -3304,6 +3391,182 @@
         "min": null,
         "max": null,
         "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.access_mode",
+      "scope": "public",
+      "type": "enum",
+      "value": "public",
+      "default_value": "public",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["public", "code"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.attribution",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.badge_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.default_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8192,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.hidden_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8192,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.highlight_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "cat-enov",
+      "default_value": "cat-enov",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8192,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.highlight_color",
+      "scope": "public",
+      "type": "string",
+      "value": "#f59e0b",
+      "default_value": "#f59e0b",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 7,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.innovations_label",
+      "scope": "public",
+      "type": "string",
+      "value": "Innovations",
+      "default_value": "Innovations",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.selectable_map_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 512,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.title",
+      "scope": "public",
+      "type": "string",
+      "value": "Plan e-nov — {orgShort}",
+      "default_value": "Plan e-nov — {orgShort}",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.welcome_hint",
+      "scope": "public",
+      "type": "string",
+      "value": "Les lieux mis en avant sont nos innovations : touchez-en un pour le découvrir.",
+      "default_value": "Les lieux mis en avant sont nos innovations : touchez-en un pour le découvrir.",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 400,
         "values": null
       },
       "updated_at": null,

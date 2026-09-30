@@ -97,6 +97,12 @@ test('le registre produits sans marque déclarée sert les libellés historiques
       'Plan personnels — Lyautey',
       'Plan du Lycée Lyautey réservé aux personnels : lieux et consignes internes',
     ],
+    [
+      'enov',
+      'Plan e-nov',
+      'Plan e-nov — Lyautey',
+      'Les innovations du Lycée Lyautey, sur le plan de l’établissement',
+    ],
   ]);
 });
 
@@ -111,6 +117,7 @@ test('une autre installation renomme logiciel et établissement sans toucher au 
     'Gnomes & Licornes',
     'Plan Jean Moulin',
     'Plan personnels — Jean Moulin',
+    'Plan e-nov — Jean Moulin',
   ]);
 });
 

@@ -24,7 +24,7 @@ async function fetchPrivacySettings() {
  * `main.jsx` de chaque produit quand l'adresse est `/confidentialite`.
  *
  * @param {object} props
- * @param {'foret'|'gl'|'plan'|'staff'} props.product
+ * @param {'foret'|'gl'|'plan'|'staff'|'enov'} props.product
  * @param {object|null} [props.privacySettings] section `privacy` des réglages publics ; si
  *   absente, la page la demande elle-même au serveur.
  * @param {string} [props.backHref] lien de retour vers l'application.

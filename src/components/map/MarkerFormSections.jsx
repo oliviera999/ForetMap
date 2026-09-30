@@ -1,5 +1,6 @@
 import { MAP_MARKER_EMOJI_MAX_CHARS } from '../../constants/emojis';
 import { SurfaceVisibilityField } from '../../shared/ui/SurfaceVisibilityField.jsx';
+import { EnovDescriptionField } from '../../shared/ui/EnovDescriptionField.jsx';
 import { LocationAudienceFields } from '../../shared/ui/LocationAudienceFields.jsx';
 import { LocationLinksFields } from '../../shared/ui/LocationLinksFields.jsx';
 import { LocationNotesFields } from '../../shared/ui/LocationNotesFields.jsx';
@@ -72,6 +73,11 @@ export function MarkerCommonFormFields({
         catalog={categoryCatalog}
         value={form.category_ids || []}
         onChange={(next) => setForm((f) => ({ ...f, category_ids: next }))}
+      />
+      <EnovDescriptionField
+        idPrefix="marker"
+        value={form.enov_description || ''}
+        onChange={(next) => setForm((f) => ({ ...f, enov_description: next }))}
       />
       <div className="field">
         <label>Description</label>

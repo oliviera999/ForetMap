@@ -80,3 +80,20 @@ test('réglage privacy.data_contact : servi à chaque produit par /api/settings/
     );
   }
 });
+
+test('notice du plan e-nov : celle du plan public, sous son propre nom', async () => {
+  const { buildPrivacyNotice, PRIVACY_NOTICE_PRODUCTS } = await loadNotice();
+  const { PRODUCT_IDS } = require('../lib/products');
+  // Chaque produit du registre a sa notice : un produit ajouté sans elle ne la servirait pas.
+  for (const id of PRODUCT_IDS) assert.ok(PRIVACY_NOTICE_PRODUCTS.includes(id), id);
+
+  const brand = { orgName: 'Lycée Test', orgShortName: 'Test' };
+  const enov = buildPrivacyNotice({ product: 'enov', brand });
+  const plan = buildPrivacyNotice({ product: 'plan', brand });
+  assert.equal(enov.productName, 'Plan e-nov Test');
+  // Même contenu (aucune donnée, cookie de code), nom du produit mis à part.
+  const strip = (notice) =>
+    JSON.stringify(notice.sections).split(notice.productName).join('<produit>');
+  assert.equal(strip(enov), strip(plan));
+  assert.equal(enov.product, 'plan', 'mise en page du plan public');
+});

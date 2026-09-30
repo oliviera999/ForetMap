@@ -38,6 +38,8 @@ function matchOriginLabel(matchedFields) {
  *   de la limite d'affichage, le titre le dit au lieu de prétendre montrer « tous les lieux »
  *   (`docs/AUDIT_PLAN_NAVIGATION_UX_2026-09-16.md` N9).
  * @param {boolean} [props.filterActive] au moins une catégorie est cochée.
+ * @param {string} [props.highlightTag] plan e-nov : étiquette des lieux mis en avant
+ *   (`map_highlight`) dans la liste ; vide = rien.
  */
 export function PlanResultsSheet({
   open,
@@ -50,6 +52,7 @@ export function PlanResultsSheet({
   title = null,
   totalCount = null,
   filterActive = false,
+  highlightTag = '',
 }) {
   const count = results.length;
   const truncated = totalCount != null && totalCount > count;
@@ -104,6 +107,9 @@ export function PlanResultsSheet({
                   <span className="plan-results__text">
                     <span className="plan-results__name">
                       {name}
+                      {highlightTag && place.map_highlight === true ? (
+                        <span className="plan-results__highlight">{highlightTag}</span>
+                      ) : null}
                       {distance ? <span className="plan-results__distance">{distance}</span> : null}
                     </span>
                     {place.visit_subtitle ? (

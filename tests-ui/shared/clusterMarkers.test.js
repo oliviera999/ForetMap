@@ -6,6 +6,7 @@ import {
   clusterMarkers,
   clusterSeparatesOnZoom,
   clusterZoomTargetScale,
+  HIGHLIGHT_PRIORITY,
   markerPriority,
 } from '../../src/shared/pct-map/clusterMarkers.js';
 
@@ -153,5 +154,32 @@ describe('keepApartId — le lieu mis en avant sort du groupe', () => {
     const clusters = clusterMarkers(superposes, { ...opts, keepApartId: 'inexistant' });
     expect(clusters).toHaveLength(1);
     expect(clusters[0].count).toBe(3);
+  });
+});
+
+describe('map_highlight — lieux mis en avant (plan e-nov)', () => {
+  const opts = { contentWidthPx: 1000, contentHeightPx: 1000, scale: 1 };
+
+  test('passent devant toute catégorie', () => {
+    expect(markerPriority({ map_highlight: true, category_ids: ['sanitaires'] }, CATEGORIES)).toBe(
+      HIGHLIGHT_PRIORITY,
+    );
+    expect(HIGHLIGHT_PRIORITY).toBeLessThan(
+      markerPriority({ category_ids: ['entrees'] }, CATEGORIES),
+    );
+  });
+
+  test('ne se fondent jamais dans un groupe, même superposés', () => {
+    const superposes = [
+      { id: 'a', x_pct: 50, y_pct: 50 },
+      { id: 'b', x_pct: 50.1, y_pct: 50.1, map_highlight: true },
+      { id: 'c', x_pct: 50.2, y_pct: 50.2 },
+      { id: 'd', x_pct: 50.3, y_pct: 50.3, map_highlight: true },
+    ];
+    const clusters = clusterMarkers(superposes, opts);
+    const singles = clusters.filter((c) => c.count === 1).map((c) => c.lead.id);
+    expect(singles.sort()).toEqual(['b', 'd']);
+    const groupe = clusters.find((c) => c.count === 2);
+    expect(groupe.markers.map((m) => m.id).sort()).toEqual(['a', 'c']);
   });
 });

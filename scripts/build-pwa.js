@@ -111,6 +111,18 @@ const PWA_PROFILES = Object.freeze({
     apiStaleWhileRevalidate: Object.freeze([]),
     apiNetworkFirst: Object.freeze([]),
   }),
+  enov: Object.freeze({
+    // Icônes partagées avec le plan public (`assetsDir: 'plan'`) ; SVG enov = copie du plan.
+    staticPrecache: Object.freeze([
+      '/enov/favicon.svg',
+      '/plan/favicon.ico',
+      ...ICON_CANDIDATES.map((icon) => `/plan/${icon.file}`),
+    ]),
+    // Charge publique, comme celle du plan public : consultable hors ligne (une visite de
+    // jury dans un couloir sans réseau), rafraîchie en arrière-plan.
+    apiStaleWhileRevalidate: Object.freeze(['/api/enov/content', '/api/enov/settings']),
+    apiNetworkFirst: Object.freeze([]),
+  }),
 });
 
 /** Entrées HTML servies en network-first pour un produit (`/`, `/index.html` pour ForetMap, entrée Vite). */

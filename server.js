@@ -58,6 +58,7 @@ const tutorialsRouter = require('./routes/tutorials');
 const visitRouter = require('./routes/visit');
 const planRouter = require('./routes/plan');
 const staffPlanRouter = require('./routes/staff-plan');
+const enovPlanRouter = require('./routes/enov-plan');
 const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
@@ -605,6 +606,8 @@ app.use('/api/visit', visitRouter);
 app.use('/api/plan', planRouter);
 // Plan des personnels (proflyautey) : même noyau de charge, surface `staff`, lecteur identifié.
 app.use('/api/staff-plan', staffPlanRouter);
+// Plan e-nov (enov.*) : même noyau de charge, surface `enov`, lieux labellisés mis en avant.
+app.use('/api/enov', enovPlanRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
 // Ancien carnet (`observation_logs`) : 410 Gone depuis la migration 307 (retrait, temps 1 et 2).

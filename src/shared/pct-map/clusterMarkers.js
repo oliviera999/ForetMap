@@ -30,11 +30,19 @@ function toFinite(value, fallback = 0) {
 }
 
 /**
+ * Rang d'un lieu **mis en avant** (`map_highlight`, plan e-nov) : devant toute catégorie.
+ * Fini (et non `-Infinity`) pour rester comparable et sérialisable.
+ */
+export const HIGHLIGHT_PRIORITY = -1e9;
+
+/**
  * Rang de priorité d'un repère : plus **petit** = plus important (on garde `sort_order` des
  * catégories, déjà utilisé pour l'ordre d'affichage ; pas de nouveau champ à saisir).
  * Un repère sans catégorie prend la priorité la plus basse.
  */
 export function markerPriority(marker, categoriesById) {
+  // Lieu mis en avant (plan e-nov) : il mène son groupe, quel que soit son ordre de catégorie.
+  if (marker?.map_highlight === true) return HIGHLIGHT_PRIORITY;
   const ids = marker?.category_ids || [];
   let best = Number.POSITIVE_INFINITY;
   for (const id of ids) {
@@ -92,8 +100,14 @@ export function clusterMarkers(markers, options = {}) {
    * (`docs/AUDIT_PLAN_NAVIGATION_2026-09-16-bis.md` G3).
    */
   const apartKey = String(keepApartId || '');
-  const apart = apartKey ? all.filter((m) => String(m.id) === apartKey) : [];
-  const list = apart.length > 0 ? all.filter((m) => String(m.id) !== apartKey) : all;
+  /**
+   * Les repères **mis en avant** (`map_highlight`, plan e-nov) ne se fondent pas non plus :
+   * tout l'objet de ce plan est qu'on les repère au premier coup d'œil, dès la vue
+   * d'ensemble — fondus dans une pastille chiffrée, ils disparaîtraient justement là.
+   */
+  const isApart = (m) => (apartKey && String(m.id) === apartKey) || m.map_highlight === true;
+  const apart = all.filter(isApart);
+  const list = apart.length > 0 ? all.filter((m) => !isApart(m)) : all;
   const width = toFinite(contentWidthPx);
   const height = toFinite(contentHeightPx);
   const s = toFinite(scale, 1);

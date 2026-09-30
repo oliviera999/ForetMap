@@ -164,6 +164,9 @@ const WRITE_ROUTES = Object.freeze({
   'PUT /api/curriculum/glossary-terms/:code/notions': 'permission:plants.manage',
   'PUT /api/curriculum/quiz-categories/:slug/notions': 'permission:plants.manage',
   'PUT /api/curriculum/quiz-questions/:code/notions': 'permission:plants.manage',
+  'POST /api/enov/access':
+    'publique : entrée par code du plan e-nov (bcrypt, limiteur authLimiter)',
+  'POST /api/enov/logout': 'publique : efface le laissez-passer du plan e-nov, toujours 200',
   'POST /api/food-web/interactions': 'permission:plants.manage',
   'DELETE /api/food-web/interactions/:id': 'permission:plants.manage',
   'PUT /api/food-web/interactions/:id': 'permission:plants.manage',
@@ -278,6 +281,7 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/settings/admin/media-library': 'permission:admin.settings.write',
   'POST /api/settings/admin/plan-access-code': 'permission:admin.settings.write',
   'POST /api/settings/admin/staff-plan-access-code': 'permission:admin.settings.write',
+  'POST /api/settings/admin/enov-plan-access-code': 'permission:admin.settings.write',
   'POST /api/settings/admin/system/restart': 'permission:admin.settings.secrets.write',
   'PUT /api/settings/admin/tour-content': 'permission:tours.manage',
   'POST /api/settings/admin/tour-content/reset': 'permission:tours.manage',

@@ -14,12 +14,15 @@ import { PrivacyNoticeLink } from '../../shared/privacy/PrivacyNoticeLink.jsx';
  * @param {string} [props.welcomeHint] phrase d'accueil de l'établissement.
  * @param {boolean} [props.canLocate] la carte est calée pour la localisation (lot 6).
  * @param {() => void} [props.onOpen] compteur d'usage (`help_open`).
+ * @param {string} [props.highlightListLabel] plan e-nov : intitulé de la puce qui liste les
+ *   lieux mis en avant (« Innovations ») ; vide = pas de mise en avant, pas de ligne d'aide.
  */
 export function PlanHelp({
   welcomeHint = '',
   canLocate = false,
   hasRoutes = false,
   onOpen = null,
+  highlightListLabel = '',
 }) {
   return (
     <HelpDock
@@ -35,6 +38,13 @@ export function PlanHelp({
         <div className="plan-help__body">
           {welcomeHint ? <p className="plan-help__hint">{welcomeHint}</p> : null}
           <ul className="plan-help__list">
+            {highlightListLabel ? (
+              <li>
+                <strong>Les lieux entourés d’un halo</strong> sont les innovations de
+                l’établissement. La puce « {highlightListLabel} » les liste ; leur fiche commence
+                par ce qui en fait une innovation.
+              </li>
+            ) : null}
             <li>
               <strong>Chercher un lieu</strong> : tapez son nom en haut de l’écran. Les autres noms
               d’un lieu fonctionnent aussi (« bibliothèque » trouve le CDI).

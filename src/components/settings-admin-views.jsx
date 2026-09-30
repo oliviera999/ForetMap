@@ -14,6 +14,7 @@ import { MapCategoriesPanel } from './settings/MapCategoriesPanel.jsx';
 import { MapRoutesPanel } from './settings/MapRoutesPanel.jsx';
 import { PlanSettingsPanel } from './settings/PlanSettingsPanel.jsx';
 import { StaffPlanSettingsPanel } from './settings/StaffPlanSettingsPanel.jsx';
+import { EnovPlanSettingsPanel } from './settings/EnovPlanSettingsPanel.jsx';
 import { UsagePanel } from './settings/UsagePanel.jsx';
 import { UserTrackingPanel } from './settings/UserTrackingPanel.jsx';
 import { MapLocationsAdminPanel } from './settings/MapLocationsAdminPanel.jsx';
@@ -970,6 +971,21 @@ function SettingsAdminView({
                   évite d'avoir à se souvenir lequel des deux onglets on cherche. */}
               <h3 style={{ marginTop: 32 }}>Plan des personnels (proflyautey)</h3>
               <StaffPlanSettingsPanel
+                maps={maps}
+                get={get}
+                saveSetting={saveSetting}
+                savingKey={savingKey}
+                canWrite={canWriteSettings}
+                onMessage={(okMsg) => {
+                  setMsg(okMsg);
+                  setErr('');
+                  load();
+                }}
+                onError={(errMsg) => setErr(errMsg)}
+              />
+              {/* Plan e-nov : même carte encore, lieux labellisés mis en avant. */}
+              <h3 style={{ marginTop: 32 }}>Plan e-nov (enov)</h3>
+              <EnovPlanSettingsPanel
                 maps={maps}
                 get={get}
                 saveSetting={saveSetting}

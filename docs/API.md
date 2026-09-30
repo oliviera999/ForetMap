@@ -891,18 +891,19 @@ lectures anonymes.
 | ----------------------------------- | --------------- | ------- |
 | `plan` (planlyautey)                | quel qu'il soit | `plan`  |
 | `staff` (proflyautey, stafflyautey) | quel qu'il soit | `staff` |
+| `enov` (enov)                       | quel qu'il soit | `enov`  |
 | `foret` / défaut                    | authentifié     | `map`   |
 | `foret` / défaut                    | anonyme         | `visit` |
 
 Conséquences sur les routes de lieux (`/api/zones`, `/api/zones/:id`, `/api/map/markers`,
 `/api/map-categories`, `/api/maps`) :
 
-1. **Laissez-passer exigé.** Sur une surface gardée (`plan`, `staff`), ces routes réclament le
+1. **Laissez-passer exigé.** Sur une surface gardée (`plan`, `staff`, `enov`), ces routes réclament le
    même laissez-passer que le point d'entrée composite de la surface —
    `401 { error, access_required: true }` sinon. Auparavant, fermer le plan par un code ne
    fermait que `/api/plan/content`.
 2. **Cartes déclarées.** Chaque surface ne sert que les cartes qui y sont déclarées
-   (`ui.plan.map_id` + `ui.plan.selectable_map_ids`, idem `ui.staff_plan.*`, et
+   (`ui.plan.map_id` + `ui.plan.selectable_map_ids`, idem `ui.staff_plan.*` et `ui.enov_plan.*`, et
    `ui.visit.selectable_map_ids` pour la Visite). Une carte hors surface répond
    **`400 { error: 'Carte introuvable' }`** — le même message qu'un identifiant inexistant,
    pour ne pas apprendre au curieux quelles cartes existent sans être publiées.
@@ -1238,6 +1239,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST    | `/api/settings/admin/tour-content/reset`                     | Efface toutes les surcharges (`registry` vide). Les textes livrés étant en code, il n'y a rien à recopier. Audit `settings_tour_content_reset`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | POST    | `/api/settings/admin/plan-access-code`                       | Définir / effacer le code d’accès du Plan (`{ code }` clair → bcrypt serveur ; `code: ""` efface). Permission `admin.settings.write`. L’écriture directe de `security.plan_access_code_hash` via PUT `:key` est refusée.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | POST    | `/api/settings/admin/staff-plan-access-code`                 | Idem pour le **plan des personnels** (`security.staff_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST    | `/api/settings/admin/enov-plan-access-code`                  | Idem pour le **plan e-nov** (`security.enov_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | PUT     | `/api/settings/admin/:key`                                   | Mettre à jour un réglage (`{ value }`) — validation complète (normalisation + cohérence croisée) **avant** persistance : un 400 garantit que rien n’a été enregistré ; panne interne → **500**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | POST    | `/api/settings/admin/maps`                                   | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | PUT     | `/api/settings/admin/maps/:id`                               | Mettre à jour une carte (label, ordre, activation, URL image, padding), pedago_level)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -1417,6 +1419,31 @@ aucun code). **Ne pas** écrire cette clé via `PUT /api/settings/admin/:key` : 
 efface. La console Réglages → Plan expose ce flux. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
 chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
 la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
+
+### Réglages du plan e-nov (`ui.enov_plan.*`)
+
+Migration `315`, registre `lib/settings/plan.js`, portée `public` sauf l'empreinte du code. Le
+plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.brand`,
+`ui.plan.heading_up_enabled`) ; il n'a en propre que ce qui suit. Console : Réglages → Plan →
+« Plan e-nov (enov) » (`EnovPlanSettingsPanel`).
+
+| Clé                                     | Type    | Défaut                                   | Rôle                                                                                   |
+| --------------------------------------- | ------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ui.enov_plan.title`                    | string  | `Plan e-nov — <établissement>`           | Titre de l'application                                                                 |
+| `ui.enov_plan.welcome_hint`             | string  | phrase d'accueil                         | Bulle du premier lancement                                                             |
+| `ui.enov_plan.access_mode`              | enum    | `public`                                 | `public` ou `code` (code **propre** au plan e-nov)                                     |
+| `ui.enov_plan.attribution`              | string  | vide                                     | Mention en pied de carte                                                               |
+| `ui.enov_plan.selectable_map_ids`       | string  | vide                                     | Autres cartes proposées — et liste blanche de `?map_id=`                               |
+| `ui.enov_plan.default_category_ids`     | string  | vide                                     | Catégories cochées à l'ouverture                                                       |
+| `ui.enov_plan.hidden_category_ids`      | string  | vide                                     | Catégories retirées des filtres (n'éteint pas la mise en avant)                        |
+| `ui.enov_plan.highlight_category_ids`   | string  | `cat-enov`                               | Catégories dont les lieux sont **mis en avant** (`is_enov`)                            |
+| `ui.enov_plan.highlight_color`          | string  | `#f59e0b`                                | Couleur du halo ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`              |
+| `ui.enov_plan.badge_enabled`            | boolean | `false`                                  | Pastille « e-nov » à côté des lieux mis en avant, en plus du halo                      |
+| `ui.enov_plan.innovations_label`        | string  | `Innovations`                            | Intitulé de la puce qui liste les lieux mis en avant                                   |
+
+Portée `admin` : `security.enov_plan_access_code_hash`, écrite **uniquement** par
+`POST /api/settings/admin/enov-plan-access-code` (même contrat que le plan public ; `PUT :key`
+→ **400**).
 
 ## Zones
 
@@ -2593,10 +2620,11 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 
 ### Surfaces d'affichage des lieux
 
-Un lieu (zone ou repère) s'affiche sur quatre **surfaces** : `map` (carte de travail
-ForetMap), `visit` (Visite), `plan` (Plan Lyautey public) et `staff` (plan des personnels,
-proflyautey). Migrations `208_location_surfaces_search_aliases.sql` puis
-`260_location_surface_staff.sql`, règles pures dans `lib/locationSurfaces.js`.
+Un lieu (zone ou repère) s'affiche sur cinq **surfaces** : `map` (carte de travail
+ForetMap), `visit` (Visite), `plan` (Plan Lyautey public), `staff` (plan des personnels,
+proflyautey) et `enov` (plan e-nov). Migrations `208_location_surfaces_search_aliases.sql`,
+`260_location_surface_staff.sql` puis `315_enov_plan.sql`, règles pures dans
+`lib/locationSurfaces.js`.
 
 > **Ordre du `SET` SQL** : `staff` a été ajouté **en fin** de `SET('map','visit','plan')`.
 > MySQL encode un `SET` par position de bit : insérer une valeur au milieu réécrirait
@@ -2609,6 +2637,11 @@ aussi : un personnel voit au minimum ce que voit le public. Seuls les lieux masq
 **toutes** les surfaces existantes sont également masqués sur `staff` — ils avaient été
 retirés délibérément.
 
+Migration `315` (plan e-nov) : `enov` est ajouté **en fin** de chaque `SET`. Toute catégorie
+visible sur `plan` le devient sur `enov`, et tout lieu masqué sur `plan` l'est aussi sur `enov`
+(le plan e-nov est public : il ne fait réapparaître aucun lieu retiré du public). Les parcours
+ne sont pas reportés.
+
 - `location_categories.surfaces` (**tableau** en réponse ; défaut : les quatre) : surfaces où la
   catégorie apparaît. Décocher une surface y retire d'un coup tous les lieux de la catégorie.
 - `zones.hidden_surfaces` / `map_markers.hidden_surfaces` (**tableau** en réponse ; défaut :
@@ -2616,12 +2649,26 @@ retirés délibérément.
 - **Règle** : un lieu est visible sur une surface s'il n'y est pas masqué **et** si, lorsqu'il
   porte des catégories, au moins l'une d'elles y apparaît. Un lieu **sans catégorie** est
   visible partout où il n'est pas masqué (cas des lieux historiques).
+- **Catégories-labels** (`location_categories.is_distinction`, booléen, migration `315` ;
+  accepté en `POST` / `PUT /api/map-categories`, omis = inchangé) : elles signalent un lieu
+  sans décider de sa visibilité hors de leurs surfaces. Là où un label n'apparaît pas, il est
+  **transparent** : un lieu qui ne porte que des labels s'y comporte comme un lieu sans
+  catégorie. Il n'y est pas non plus **exposé** : les routes de lieux, `GET /api/visit/content`
+  et les charges des plans retirent de `categories` / `category_ids` les labels absents de la
+  surface servie. Seul le gestionnaire en situation d'édition (lecture non filtrée, onglet
+  « Lieux ») les reçoit. La catégorie `cat-enov` (« e-nov », surface `enov` seule, label) est
+  semée par la migration.
+- **Texte e-nov** (`zones.enov_description` / `map_markers.enov_description`, TEXT, migration
+  `315`) : en quoi le lieu est une innovation. Accepté en `POST` / `PUT` zones et repères
+  (chaîne ; espaces de bord retirés, borné à 4 000 caractères, vide → `null`, omis sur `PUT` =
+  inchangé). Renvoyé aux gestionnaires en édition et par `GET /api/enov/content` ; retiré de
+  toute autre lecture.
 - **Écritures** : `POST` / `PUT` de `/api/zones`, `/api/map/markers` acceptent
   `hidden_surfaces` (tableau `['plan']`, chaîne `'map,plan'`, `[]` / `''` / `null` = aucune) ;
   `POST` / `PUT /api/map-categories` accepte `surfaces` (même forme ; omis à la création =
   toutes). Une surface inconnue → **400**. Omettre la clé sur un `PUT` conserve la valeur.
 - **Lecture filtrée** : `GET /api/zones`, `GET /api/map/markers` et `GET /api/map-categories`
-  acceptent **`?surface=map|visit|plan|staff`** (valeur inconnue → **400**). Sans ce paramètre, la
+  acceptent **`?surface=map|visit|plan|staff|enov`** (valeur inconnue → **400**). Sans ce paramètre, la
   réponse est inchangée (tous les lieux), pour ne pas modifier le comportement des clients
   existants.
 - **Priorité et désencombrement** (lot 5) : `location_categories.sort_order` fait office de
@@ -3069,6 +3116,42 @@ coïncident toujours, il n'y a jamais de rebond, et le comportement est inchang�
 
 Couverture : `tests/oauth-cross-product-start.test.js`.
 
+## Plan e-nov (`/api/enov`)
+
+Produit **`enov`** (migration `315`) : le Plan Lyautey, servi par host (`enov.*`, surcharge
+`X-Foretmap-Product: enov` hors production) sur la surface **`enov`**, avec les lieux
+labellisés e-nov **mis en avant**. Même noyau de charge (`lib/planContent.js`), mêmes tables,
+même écran (`AppPlan` + `ENOV_PLAN_VARIANT`). Public, sans session ; lecteur anonyme traité
+en « visiteur » (`PUBLIC_SURFACES`).
+
+| Méthode | URL                         | Auth | Description                                                                         |
+| ------- | --------------------------- | ---- | ----------------------------------------------------------------------------------- |
+| GET     | `/api/enov/content?map_id=` | non  | Charge publique de la surface `enov` (lieux e-nov mis en avant, texte e-nov)        |
+| GET     | `/api/enov/settings`        | non  | Réglages publics `ui.enov_plan.*` + `enov` (mise en avant), sans `map_id`           |
+| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, 30 jours)           |
+| POST    | `/api/enov/logout`          | non  | Oublie le laissez-passer — toujours **200**                                         |
+
+- **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,
+  categories, zones, markers, routes }`), avec en plus :
+  - sur chaque zone et chaque repère : **`is_enov`** (booléen — le lieu porte une catégorie de
+    `ui.enov_plan.highlight_category_ids`, lue **avant** le masquage des filtres) et
+    **`enov_description`** (chaîne, `''` si vide) ;
+  - **`settings.enov`** : `{ highlight_category_ids, highlight_color, badge_enabled,
+    innovations_label }` — catégories ramenées à celles servies sur cette carte.
+  Aucun de ces champs ne sort de `/api/plan/content` ni de `/api/staff-plan/content`.
+- **Carte servie**, **cartes proposées**, **cache** (par carte, périmé à la première
+  écriture, `Cache-Control` `public`/`private` selon le mode) : comme le plan public, avec
+  `ui.enov_plan.selectable_map_ids`.
+- **Accès par code** : même contrat que « Accès du plan par code » ci-dessus, avec
+  `ui.enov_plan.access_mode` et `security.enov_plan_access_code_hash`. Le code du plan e-nov
+  n'ouvre pas le plan public, et inversement. `POST /access` et `?code=` passent par le
+  limiteur d'authentification. Mode `code` sans code configuré : le plan reste ouvert.
+- **Routes génériques** (`/api/zones`, `/api/map/markers`, `/api/map-categories`, `/api/maps`)
+  appelées sur le host `enov.*` : surface `enov`, même laissez-passer (`lib/surfaceAccess.js`).
+- **Parcours** : `GET /api/map-routes?surface=enov` suit la garde du plan e-nov. Le détail
+  public `GET /api/map-routes/:idOrSlug` ne sert que `visit` / `plan` (sa garde est celle du
+  plan public).
+
 ## Compteur d'usage anonyme (tous produits)
 
 Lot 1 du plan de convergence (`docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2 ; principe dans
@@ -3086,7 +3169,10 @@ event, key, count)`. Noms d'événements en liste blanche **par produit** (`lib/
   jours, un produit inconnu sur tous). Réponse `{ from, to, product, rows: [{ day, product,
 event, key, count }] }`, triée par jour décroissant puis produit, événement, compte.
 
-Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`).
+Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`, `staff`, `enov`) ;
+seuls ceux qui déclarent des événements dans `USAGE_EVENTS` sont comptés (`foret`, `gl`,
+`plan`, et `enov` — mêmes événements que le plan, plus `innovations_open`). Le plan des
+personnels compte sous `plan`.
 
 ## Suivi utilisateurs admin (présence, activité, passage)
 

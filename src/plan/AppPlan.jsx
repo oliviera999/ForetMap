@@ -69,6 +69,15 @@ const EMPTY_CATEGORY_IDS = new Set();
 /** Idem pour « aucun signalement sur ce lieu ». */
 const EMPTY_REPORTS = Object.freeze([]);
 
+/** Idem pour « aucun lieu mis en avant » (tout plan autre que le plan e-nov). */
+const EMPTY_PLACES = Object.freeze([]);
+
+/** Plan e-nov : mention d'un lieu mis en avant (fiche, nom accessible sur la carte). */
+const HIGHLIGHT_TITLE = 'Innovation e-nov';
+
+/** Plan e-nov : texte de la pastille facultative (`ui.enov_plan.badge_enabled`). */
+const HIGHLIGHT_BADGE = 'e-nov';
+
 /**
  * Plan Lyautey (lot 4 du plan de convergence, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`).
  *
@@ -152,6 +161,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   /** Lieux d'un groupe de repères ouvert depuis la carte (désencombrement, lot 5). */
   const [groupPlaces, setGroupPlaces] = useState(null);
+  /** Plan e-nov : la feuille de résultats montre la liste des lieux mis en avant. */
+  const [innovationsOpen, setInnovationsOpen] = useState(false);
   const deepLinkAppliedRef = useRef(false);
   /** Parcours actif, lu par les gestionnaires stables (`openPlace`). */
   const activeRouteSlugRef = useRef('');
@@ -164,6 +175,18 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const resetGuidanceRef = useRef(null);
 
   const title = settings?.title || variant.defaultTitle;
+
+  /**
+   * Plan e-nov : réglages de mise en avant (`settings.enov`, servis par `/api/enov/content`
+   * seulement) et lieux concernés (`map_highlight`, posé par `planPlacesFromContent`). Sur
+   * les autres plans, tout ce qui suit reste éteint.
+   */
+  const enovSettings = variant.highlightPlaces ? settings?.enov || null : null;
+  const highlightedPlaces = useMemo(
+    () => (enovSettings ? places.filter((place) => place.map_highlight === true) : EMPTY_PLACES),
+    [enovSettings, places],
+  );
+  const innovationsLabel = String(enovSettings?.innovations_label || '').trim() || 'Innovations';
 
   /**
    * Droits du lecteur, tels que le serveur les a calculés (`/api/staff-plan/content`). Le plan
@@ -233,6 +256,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     fontFallback: "'DM Sans', sans-serif",
     externalAssetsMode,
   });
+  /**
+   * Variables de la coquille : la marque, plus la couleur du halo e-nov
+   * (`ui.enov_plan.highlight_color`) quand ce plan en a une — lue par la carte partagée
+   * (`--pct-highlight-color`) et par les feuilles basses.
+   */
+  const highlightColor = String(enovSettings?.highlight_color || '');
+  const shellStyle = useMemo(
+    () =>
+      highlightColor ? { ...brandStyle, '--pct-highlight-color': highlightColor } : brandStyle,
+    [brandStyle, highlightColor],
+  );
 
   /**
    * Les feuilles basses sont montées **en portail sous `body`**, donc hors de `.plan-shell` :
@@ -244,7 +278,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
     const root = document.documentElement;
-    const entries = Object.entries(brandStyle || {});
+    const entries = Object.entries(shellStyle || {});
     for (const [name, value] of entries) {
       if (name.startsWith('--')) root.style.setProperty(name, String(value));
     }
@@ -253,7 +287,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         if (name.startsWith('--')) root.style.removeProperty(name);
       }
     };
-  }, [brandStyle]);
+  }, [shellStyle]);
 
   /**
    * Position de la personne sur le plan (lot 6) : le point bleu, son halo de précision et le
@@ -351,8 +385,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   useEffect(() => {
     if (!content || openedOnceRef.current) return;
     openedOnceRef.current = true;
-    reportPlanUsage('open', String(map?.id || ''));
-  }, [content, map]);
+    reportPlanUsage('open', String(map?.id || ''), variant);
+  }, [content, map, variant]);
 
   /**
    * Lieux retenus par les puces de catégories. Les lieux **sans catégorie** restent affichés :
@@ -390,6 +424,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   );
   const results = useMemo(() => {
     if (groupPlaces) return groupPlaces.map((place) => ({ place }));
+    if (innovationsOpen) return highlightedPlaces.map((place) => ({ place }));
     if (!searchMatches) {
       return filteredPlaces.slice(0, RESULTS_LIMIT).map((place) => ({ place }));
     }
@@ -398,12 +433,20 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       matchedFields: match.matchedFields,
       hiddenByFilter: !filteredKeys.has(`${match.place.kind}:${match.place.id}`),
     }));
-  }, [groupPlaces, searchMatches, filteredPlaces, filteredKeys]);
+  }, [
+    groupPlaces,
+    innovationsOpen,
+    highlightedPlaces,
+    searchMatches,
+    filteredPlaces,
+    filteredKeys,
+  ]);
   /** Nombre de lieux que la liste pourrait montrer, limite d'affichage mise à part (N9). */
   const resultsTotal = useMemo(() => {
     if (groupPlaces) return groupPlaces.length;
+    if (innovationsOpen) return highlightedPlaces.length;
     return searchMatches ? searchMatches.length : filteredPlaces.length;
-  }, [groupPlaces, searchMatches, filteredPlaces]);
+  }, [groupPlaces, innovationsOpen, highlightedPlaces, searchMatches, filteredPlaces]);
 
   const categoriesOf = useCallback(
     (place) =>
@@ -436,6 +479,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const onRouteStartExtra = useCallback(() => {
     setResultsOpen(false);
     setGroupPlaces(null);
+    setInnovationsOpen(false);
   }, []);
   const onRouteExitExtra = useCallback(() => {
     setSelectedPlace(null);
@@ -486,18 +530,20 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         setRoutePeekPlace(place);
         setResultsOpen(false);
         setGroupPlaces(null);
-        reportPlanUsage('place_open', String(place?.id || ''));
+        setInnovationsOpen(false);
+        reportPlanUsage('place_open', String(place?.id || ''), variant);
         return;
       }
       setSelectedPlace(place);
       setResultsOpen(false);
       setGroupPlaces(null);
-      reportPlanUsage('place_open', String(place?.id || ''));
+      setInnovationsOpen(false);
+      reportPlanUsage('place_open', String(place?.id || ''), variant);
       if (typeof window !== 'undefined' && window.history?.replaceState) {
         window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
       }
     },
-    [setRoutePeekPlace],
+    [setRoutePeekPlace, variant],
   );
 
   /**
@@ -580,18 +626,32 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (!trimmed) return;
     if (searchReportedRef.current !== trimmed) {
       searchReportedRef.current = trimmed;
-      reportPlanUsage('search', trimmed.slice(0, 60));
+      reportPlanUsage('search', trimmed.slice(0, 60), variant);
     }
     if (results.length > 0 || emptyReportedRef.current === trimmed) return;
     emptyReportedRef.current = trimmed;
-    reportPlanUsage('search_empty', trimmed.slice(0, 60));
-  }, [query, results]);
+    reportPlanUsage('search_empty', trimmed.slice(0, 60), variant);
+  }, [query, results, variant]);
 
   const onQueryChange = useCallback((next) => {
     setQuery(next);
     setGroupPlaces(null);
+    setInnovationsOpen(false);
     setResultsOpen(Boolean(next.trim()));
   }, []);
+
+  /**
+   * Plan e-nov : la puce « Innovations » ouvre la liste des lieux mis en avant, dans la même
+   * feuille basse que les résultats — on les parcourt un à un, la carte restant visible.
+   */
+  const openInnovations = useCallback(() => {
+    if (!highlightedPlaces.length) return;
+    setGroupPlaces(null);
+    setQuery('');
+    setInnovationsOpen(true);
+    setResultsOpen(true);
+    reportPlanUsage('innovations_open', String(highlightedPlaces.length), variant);
+  }, [highlightedPlaces, variant]);
 
   /**
    * Tap sur un groupe de repères qui ne se sépare pas au zoom : ses lieux montent dans la
@@ -603,6 +663,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       const ids = new Set((groupMarkers || []).map((m) => String(m.id)));
       const list = places.filter((place) => place.kind === 'marker' && ids.has(String(place.id)));
       if (list.length === 0) return;
+      setInnovationsOpen(false);
       setGroupPlaces(list);
       setResultsOpen(true);
     },
@@ -640,15 +701,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    */
   const onGuidanceStart = useCallback(
     (place) => {
-      reportPlanUsage('go', String(place.id));
+      reportPlanUsage('go', String(place.id), variant);
       if (!position.active) position.toggle();
       if (!activeRouteSlugRef.current) closePlace();
     },
-    [position, closePlace],
+    [position, closePlace, variant],
   );
   const onGuidanceStop = useCallback(() => {
-    reportPlanUsage('go_stop', '');
-  }, []);
+    reportPlanUsage('go_stop', '', variant);
+  }, [variant]);
   const {
     guidedPlace: guidanceTargetPlace,
     goTo: goToPlace,
@@ -791,7 +852,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     const goOnline = () => setOffline(false);
     const goOffline = () => {
       setOffline(true);
-      reportPlanUsage('offline_view', String(map?.id || ''));
+      reportPlanUsage('offline_view', String(map?.id || ''), variant);
     };
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -799,7 +860,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     };
-  }, [map]);
+  }, [map, variant]);
 
   const submitAccessCode = useCallback(
     async (code) => {
@@ -838,6 +899,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       setFiltersOpen(false);
       setResultsOpen(false);
       setGroupPlaces(null);
+      setInnovationsOpen(false);
       setQuery('');
       setSelectedPlace(null);
       setChosenCategoryIds(null);
@@ -964,7 +1026,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       : '';
 
   return (
-    <div className="plan-shell" style={brandStyle}>
+    <div className="plan-shell" style={shellStyle}>
       <PlanTopBar
         title={title}
         logoUrl={brand.logoUrl}
@@ -977,7 +1039,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             welcomeHint={settings?.welcome_hint || ''}
             canLocate={position.available}
             hasRoutes={(routes || []).some((r) => (r?.steps || []).length > 0)}
-            onOpen={() => reportPlanUsage('help_open', 'plan')}
+            onOpen={() => reportPlanUsage('help_open', 'plan', variant)}
+            highlightListLabel={highlightedPlaces.length ? innovationsLabel : ''}
           />
         }
         tools={
@@ -1006,6 +1069,20 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       */}
       <div className="plan-filters">
         <div className="plan-filters__row">
+          {highlightedPlaces.length > 0 ? (
+            <button
+              type="button"
+              className={`plan-chip plan-chip--innovations${
+                innovationsOpen && resultsOpen ? ' is-active' : ''
+              }`}
+              aria-expanded={innovationsOpen && resultsOpen}
+              data-testid="plan-innovations-button"
+              onClick={openInnovations}
+            >
+              <span aria-hidden>💡</span> {innovationsLabel}
+              <span className="plan-chip__count">{highlightedPlaces.length}</span>
+            </button>
+          ) : null}
           <PlanRoutePicker
             routes={routes}
             places={places}
@@ -1059,10 +1136,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
             labelsClickable
+            highlightBadge={enovSettings?.badge_enabled ? HIGHLIGHT_BADGE : ''}
+            highlightLabel={enovSettings ? HIGHLIGHT_TITLE : ''}
             categoriesById={categoriesById}
             position={position}
             onLocateToggle={() => {
-              reportPlanUsage('locate', position.active ? 'off' : 'on');
+              reportPlanUsage('locate', position.active ? 'off' : 'on', variant);
               position.toggle();
             }}
             headingUpAllowed={headingUpAllowed}
@@ -1070,7 +1149,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             headingUpUserEnabled={headingUpPref.userEnabled}
             onHeadingUpToggle={() => {
               const next = !headingUpPref.userEnabled;
-              reportPlanUsage('heading_up', next ? 'on' : 'off');
+              reportPlanUsage('heading_up', next ? 'on' : 'off', variant);
               headingUpPref.setEnabled(next);
             }}
             scaleCompassAllowed={scaleCompassAllowed}
@@ -1128,7 +1207,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           onStop={stopGuidance}
           onOpenPlace={() => openPlace(guidedPlace)}
           onLocate={() => {
-            reportPlanUsage('locate', 'on');
+            reportPlanUsage('locate', 'on', variant);
             if (!position.active) position.toggle();
           }}
         />
@@ -1154,8 +1233,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         onClose={() => {
           setResultsOpen(false);
           setGroupPlaces(null);
+          setInnovationsOpen(false);
         }}
-        title={groupPlaces ? `Lieux regroupés (${groupPlaces.length})` : null}
+        title={
+          groupPlaces
+            ? `Lieux regroupés (${groupPlaces.length})`
+            : innovationsOpen
+              ? `${innovationsLabel} (${highlightedPlaces.length})`
+              : null
+        }
         query={query}
         results={results}
         onSelect={openPlace}
@@ -1163,6 +1249,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         distanceOf={distanceOfPlace}
         totalCount={resultsTotal}
         filterActive={selectedCategoryIds.size > 0}
+        highlightTag={enovSettings ? 'Innovation' : ''}
       />
 
       <PlanFiltersSheet
@@ -1213,6 +1300,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         editUrl={canEditLocations ? consoleBaseUrl : ''}
         onSuggest={suggestForPlace(sheetPlace)}
         myReports={reportsForPlace(sheetPlace)}
+        highlightTitle={enovSettings ? HIGHLIGHT_TITLE : ''}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>

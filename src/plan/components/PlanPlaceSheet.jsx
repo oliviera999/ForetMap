@@ -33,6 +33,9 @@ import { placeStatusClass, placeStatusLabel } from '../../shared/place-messages/
  *   [props.myReports] ce que **ce lecteur** a déjà signalé sur ce lieu, avec l'état de
  *   traitement. Sans cette liste, signaler revenait à parler dans le vide : la fiche n'affiche
  *   pas les commentaires, et la console refuse le profil `personnel` en lecture.
+ * @param {string} [props.highlightTitle] plan e-nov : titre du bloc « en quoi ce lieu est une
+ *   innovation », affiché **en tête** de fiche pour un lieu mis en avant ou porteur d'un texte
+ *   e-nov. Vide (autres plans) = aucun bloc.
  * @param {'peek'|'half'|'full'} [props.initialSnap] cran d'ouverture. `peek` sert pendant un
  *   parcours : une fiche à mi-hauteur recouvrait entièrement la barre d'étape, « Quitter »,
  *   « Précédent » et « Suivant » compris
@@ -65,6 +68,7 @@ export function PlanPlaceSheet({
   onSuggest = null,
   myReports = EMPTY_REPORTS,
   initialSnap = 'half',
+  highlightTitle = '',
 }) {
   if (!place) return null;
   // Le nom porte presque toujours l'emoji en tête, et la colonne `emoji` le répète : sans
@@ -85,6 +89,12 @@ export function PlanPlaceSheet({
   const notes = Array.isArray(place.notes)
     ? place.notes.filter((n) => n && String(n.body || '').trim())
     : [];
+  /**
+   * Plan e-nov : ce qui fait de ce lieu une innovation passe **avant** tout le reste de la
+   * fiche — c'est la raison pour laquelle on l'ouvre sur ce plan-là.
+   */
+  const enovText = String(place.enov_description || '').trim();
+  const showEnov = Boolean(highlightTitle) && (place.map_highlight === true || Boolean(enovText));
   return (
     <BottomSheet
       open
@@ -145,6 +155,14 @@ export function PlanPlaceSheet({
         </div>
       }
     >
+      {showEnov ? (
+        <section className="plan-place__enov" data-testid="plan-place-enov">
+          <h3 className="plan-place__enov-title">
+            <span aria-hidden>💡</span> {highlightTitle}
+          </h3>
+          {enovText ? <PlanLinkedText className="plan-place__enov-text" text={enovText} /> : null}
+        </section>
+      ) : null}
       {place.visit_subtitle ? <p className="plan-place__subtitle">{place.visit_subtitle}</p> : null}
       {categories.length > 0 ? (
         <ul className="plan-place__categories">

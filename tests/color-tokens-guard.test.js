@@ -38,6 +38,7 @@ const PRODUCT_ENTRIES = [
   path.join('gl', 'main.jsx'),
   path.join('plan', 'main.jsx'),
   path.join('staff', 'main.jsx'),
+  path.join('enov', 'main.jsx'),
 ];
 
 /**

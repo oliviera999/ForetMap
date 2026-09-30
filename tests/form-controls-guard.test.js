@@ -52,6 +52,7 @@ const PRODUCT_ENTRIES = [
   path.join('gl', 'main.jsx'),
   path.join('plan', 'main.jsx'),
   path.join('staff', 'main.jsx'),
+  path.join('enov', 'main.jsx'),
 ];
 
 /** Tokens que la couche de base et ses variantes consomment. */

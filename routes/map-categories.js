@@ -260,8 +260,8 @@ router.post(
     const id = crypto.randomUUID();
     await execute(
       `INSERT INTO location_categories
-        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only, visible_role_slugs, visible_group_ids)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, map_id, slug, label, emoji, color, description, applies_to, is_infrastructure, sort_order, is_active, surfaces, zoom_only, is_distinction, visible_role_slugs, visible_group_ids)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         mapId,
@@ -278,6 +278,8 @@ router.post(
         normalizeBooleanFlag(req.body?.is_active, 1),
         serializeSurfaceSet(surfacesInput.value === null ? SURFACES : surfacesInput.value),
         normalizeBooleanFlag(req.body?.zoom_only, 0),
+        // Catégorie-label (migration 315) : signale sans décider de la visibilité ailleurs.
+        normalizeBooleanFlag(req.body?.is_distinction, 0),
         serializeRoleSlugList(audienceInput.roles || []),
         serializeGroupIdList(audienceInput.groups || []),
       ],
@@ -337,7 +339,7 @@ router.put(
       `UPDATE location_categories
           SET map_id = ?, slug = ?, label = ?, emoji = ?, color = ?, description = ?,
               applies_to = ?, is_infrastructure = ?, sort_order = ?, is_active = ?, surfaces = ?,
-              zoom_only = ?, visible_role_slugs = ?, visible_group_ids = ?
+              zoom_only = ?, is_distinction = ?, visible_role_slugs = ?, visible_group_ids = ?
         WHERE id = ?`,
       [
         mapId,
@@ -356,6 +358,7 @@ router.put(
         normalizeBooleanFlag(req.body?.is_active, current.is_active ? 1 : 0),
         serializeSurfaceSet(nextSurfaces),
         normalizeBooleanFlag(req.body?.zoom_only, current.zoom_only ? 1 : 0),
+        normalizeBooleanFlag(req.body?.is_distinction, current.is_distinction ? 1 : 0),
         serializeRoleSlugList(
           audienceInput.roles === null ? current.visible_role_slugs : audienceInput.roles,
         ),

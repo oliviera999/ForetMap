@@ -18,6 +18,8 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   onMarkerClick,
   labelOf,
   nameOf = defaultName,
+  highlightBadge = '',
+  highlightLabel = '',
 }) {
   const handleClick = useCallback(
     (event) => onMarkerClick?.(marker, event),
@@ -33,12 +35,18 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   const statusSuffix = isSeen === true ? ' — Vu' : isSeen === false ? ' — À découvrir' : '';
   // Les pastilles sont décoratives : leur libellé rejoint le nom accessible du bouton.
   const dotsSuffix = statusDotsLabel(statusDots);
+  // Lieu mis en avant (plan e-nov) : halo en CSS, pastille facultative, et mention au nom
+  // accessible — le halo ne s'entend pas.
+  const highlighted = marker.map_highlight === true;
+  const highlightSuffix = highlighted && highlightLabel ? ` — ${highlightLabel}` : '';
   return (
     <button
       type="button"
-      className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}`}
+      className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}${
+        highlighted ? ' is-highlight' : ''
+      }`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
-      aria-label={`${accessibleName || 'Lieu'}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
+      aria-label={`${accessibleName || 'Lieu'}${highlightSuffix}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
       onClick={handleClick}
     >
       <PctOverlayCaption
@@ -47,6 +55,11 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
         emojiClassName="fm-pct-marker__pin"
         nameClassName="fm-pct-marker__label"
       />
+      {highlighted && highlightBadge ? (
+        <span className="fm-pct-highlight-badge" aria-hidden>
+          {highlightBadge}
+        </span>
+      ) : null}
       <PctStatusDots dots={statusDots} />
     </button>
   );
@@ -72,6 +85,8 @@ function defaultName(marker) {
  * @param {(marker: object) => string} [props.labelOf] étiquette **visible** (le produit peut
  *   la masquer au dézoom sans rendre le repère anonyme : voir `nameOf`).
  * @param {(marker: object) => string} [props.nameOf] nom **accessible** du bouton.
+ * @param {string} [props.highlightBadge] pastille des repères mis en avant (`map_highlight`).
+ * @param {string} [props.highlightLabel] complément du nom accessible d'un repère mis en avant.
  */
 function PctMarkersLayerImpl({
   markers,
@@ -82,6 +97,8 @@ function PctMarkersLayerImpl({
   getStatusDots = null,
   labelOf = defaultName,
   nameOf = defaultName,
+  highlightBadge = '',
+  highlightLabel = '',
 }) {
   return (markers || []).map((marker) => (
     <PctMarkerButton
@@ -94,6 +111,8 @@ function PctMarkersLayerImpl({
       onMarkerClick={onMarkerClick}
       labelOf={labelOf}
       nameOf={nameOf}
+      highlightBadge={highlightBadge}
+      highlightLabel={highlightLabel}
     />
   ));
 }

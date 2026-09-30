@@ -251,13 +251,14 @@ router.post(
 );
 
 /**
- * Codes d'accès des deux plans : jamais stockés en clair, seulement leur empreinte bcrypt. Ils
+ * Codes d'accès des trois plans : jamais stockés en clair, seulement leur empreinte bcrypt. Ils
  * passent par une route dédiée plutôt que par `PUT /admin/:key`, qui écrirait la valeur telle
  * quelle — la garde plus bas refuse d'ailleurs explicitement ces clés.
  */
 const ACCESS_CODE_SETTINGS = Object.freeze({
   plan: { key: 'security.plan_access_code_hash', label: 'du plan' },
   'staff-plan': { key: 'security.staff_plan_access_code_hash', label: 'du plan des personnels' },
+  'enov-plan': { key: 'security.enov_plan_access_code_hash', label: 'du plan e-nov' },
 });
 
 /**
@@ -307,6 +308,12 @@ router.post(
   accessCodeHandler('staff-plan'),
 );
 
+router.post(
+  '/admin/enov-plan-access-code',
+  requirePermission('admin.settings.write'),
+  accessCodeHandler('enov-plan'),
+);
+
 router.put(
   '/admin/:key',
   requirePermission('admin.settings.write'),
@@ -325,7 +332,21 @@ router.put(
           'Utilisez POST /api/settings/admin/staff-plan-access-code pour définir le code d’accès du plan des personnels',
       });
     }
+    if (key === 'security.enov_plan_access_code_hash') {
+      return res.status(400).json({
+        error:
+          'Utilisez POST /api/settings/admin/enov-plan-access-code pour définir le code d’accès du plan e-nov',
+      });
+    }
     const value = req.body?.value;
+    // Couleur du halo e-nov : un `#rrggbb` ou rien — une valeur quelconque serait injectée
+    // telle quelle dans le style du plan.
+    if (
+      key === 'ui.enov_plan.highlight_color' &&
+      !/^#[0-9a-f]{6}$/i.test(String(value ?? '').trim())
+    ) {
+      return res.status(400).json({ error: 'Couleur invalide (format #rrggbb)' });
+    }
     if (
       [
         'ui.map.default_map_student',

@@ -91,6 +91,10 @@ const POSITION_ICONS = Object.freeze({
  * @param {boolean} [props.clusteringEnabled]
  * @param {boolean} [props.applyZoomOnlyCategories]
  * @param {boolean} [props.showLabels=true] afficher les noms (sinon : emojis de zone seuls)
+ * @param {string} [props.highlightBadge] texte de la pastille accolée aux lieux **mis en
+ *   avant** (`map_highlight`, plan e-nov) ; vide = pas de pastille, le halo seul les signale.
+ * @param {string} [props.highlightLabel] complément du nom accessible d'un lieu mis en avant
+ *   (« Innovation e-nov ») : le halo ne se voit pas au lecteur d'écran.
  * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
  *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
  * @param {import('react').ReactNode} [props.overlaySlot]
@@ -140,6 +144,10 @@ export function SharedMapStage({
   showLabels = true,
   /** L'étiquette d'une zone vaut cible tactile pour cette zone (audit navigation Plan, N12). */
   labelsClickable = false,
+  /** Pastille des lieux mis en avant (`map_highlight`) ; vide = halo seul. */
+  highlightBadge = '',
+  /** Complément du nom accessible d'un lieu mis en avant. */
+  highlightLabel = '',
   splitNameEmoji,
   focusPlacePct,
   overlaySlot = null,
@@ -292,6 +300,8 @@ export function SharedMapStage({
     (place) => {
       if (!applyZoomOnlyCategories) return true;
       if (zoomedIn) return true;
+      // Un lieu mis en avant se voit dès la vue d'ensemble : c'est tout son objet.
+      if (place?.map_highlight === true) return true;
       const ids = place?.category_ids || [];
       if (ids.length === 0) return true;
       return ids.some((id) => !categoriesById?.get?.(String(id))?.zoom_only);
@@ -530,6 +540,16 @@ export function SharedMapStage({
 
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;
   const selectedMarkerId = selectedPlace?.kind === 'marker' ? selectedPlace.id : null;
+  /**
+   * Des lieux sont-ils mis en avant (plan e-nov) ? La coquille le dit en CSS
+   * (`has-highlight`) : les autres lieux s'estompent pour leur laisser le contraste.
+   */
+  const hasHighlight = useMemo(
+    () =>
+      (zones || []).some((zone) => zone?.map_highlight === true) ||
+      (markers || []).some((marker) => marker?.map_highlight === true),
+    [zones, markers],
+  );
   const pinnedKey = selectedPlace ? labelKey(selectedPlace.kind, selectedPlace.id) : '';
 
   /**
@@ -665,6 +685,8 @@ export function SharedMapStage({
               zoneLabelMaxWidthPx(spec, fitRect.width, committed.s) +
               zoneLabelSideExtraWidthPx(nameSide, labelEmojiPx, labelNameGapPx),
             active: selectedZoneId != null && String(selectedZoneId) === spec.id,
+            highlight: spec.zone?.map_highlight === true,
+            badge: spec.zone?.map_highlight === true ? highlightBadge : '',
           };
         })
         .filter(Boolean),
@@ -678,6 +700,7 @@ export function SharedMapStage({
       selectedZoneId,
       labelEmojiPx,
       labelNameGapPx,
+      highlightBadge,
     ],
   );
 
@@ -702,6 +725,8 @@ export function SharedMapStage({
         statusDots={markerStatusDotsOf(marker)}
         onMarkerClick={onMarkerClick}
         labelOf={markerLabelOf}
+        highlightBadge={highlightBadge}
+        highlightLabel={highlightLabel}
       />
     ),
     [
@@ -711,6 +736,8 @@ export function SharedMapStage({
       getIsSeen,
       getDiscoverHalo,
       markerStatusDotsOf,
+      highlightBadge,
+      highlightLabel,
     ],
   );
 
@@ -724,7 +751,7 @@ export function SharedMapStage({
     // les lieux restent des boutons ; le fond n'est pas une commande primaire.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- canvas carte
     <div
-      className={className}
+      className={`${className}${hasHighlight ? ' has-highlight' : ''}`}
       ref={containerRef}
       style={{ touchAction }}
       onClick={handleBackgroundClick}
@@ -829,6 +856,7 @@ export function SharedMapStage({
             getIsSeen={getIsSeen}
             getDiscoverHalo={getDiscoverHalo}
             getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}
+            highlightLabel={highlightLabel}
             className="fm-pct-zones plan-map__zones"
           />
           <PctLabelsLayer
@@ -856,6 +884,8 @@ export function SharedMapStage({
               getDiscoverHalo={getDiscoverHalo}
               getStatusDots={markerStatusDotsOf}
               labelOf={markerLabelOf}
+              highlightBadge={highlightBadge}
+              highlightLabel={highlightLabel}
             />
           )}
           {position?.displayPct ? (

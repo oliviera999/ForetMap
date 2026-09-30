@@ -28,12 +28,16 @@ const { resolveScopedMapFilter, canAccessMapId, MAP_OUT_OF_SCOPE } = require('..
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const {
-  PUBLIC_SURFACES,
+  isPublicSurface,
   parseSurfaceSet,
   readSurfaceQuery,
   normalizeSurfaceInput,
 } = require('../lib/locationSurfaces');
-const { isPlanAccessGranted, requirePlanAccess } = require('../lib/planAccess');
+const {
+  isPlanAccessGranted,
+  isEnovPlanAccessGranted,
+  requirePlanAccess,
+} = require('../lib/planAccess');
 const { resolveStaffPlanViewer } = require('../lib/staffPlanAccess');
 const {
   ROUTE_AUDIENCE_MAX,
@@ -112,7 +116,7 @@ async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
         )
       : [],
   ]);
-  const publicSurface = !surface || surface === 'visit' || surface === 'plan';
+  const publicSurface = !surface || isPublicSurface(surface);
   const visible = new Set();
   for (const row of zones) {
     if (!canViewLocation(row, auth, { publicSurface })) continue;
@@ -211,6 +215,12 @@ async function checkStepTargets(mapId, steps) {
 async function guardSurfaceRead(req, res, surface) {
   if (!surface || surface === 'plan') {
     if (await isPlanAccessGranted(req)) return true;
+    res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+    return false;
+  }
+  if (surface === 'enov') {
+    // Plan e-nov : même garde que sa charge (`/api/enov/content`).
+    if (await isEnovPlanAccessGranted(req)) return true;
     res.status(401).json({ error: 'Code d’accès requis', access_required: true });
     return false;
   }
@@ -327,6 +337,13 @@ router.get(
  * interne : toute évolution des parcours doit passer ici aussi
  * (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.6 a).
  */
+/**
+ * Surfaces servies par le détail public : celles que couvre sa garde (`requirePlanAccess`).
+ * Le plan e-nov, public lui aussi, a son propre code de diffusion : un parcours publié sur
+ * `enov` seulement ne passe donc pas par cette porte-ci (il sort dans `/api/enov/content`).
+ */
+const DETAIL_SURFACES = Object.freeze(['visit', 'plan']);
+
 router.get(
   '/:idOrSlug',
   authenticate,
@@ -337,9 +354,9 @@ router.get(
     const where = [
       'is_published = 1',
       '(id = ? OR slug = ?)',
-      `(${PUBLIC_SURFACES.map(() => 'FIND_IN_SET(?, surfaces) > 0').join(' OR ')})`,
+      `(${DETAIL_SURFACES.map(() => 'FIND_IN_SET(?, surfaces) > 0').join(' OR ')})`,
     ];
-    const params = [key, key, ...PUBLIC_SURFACES];
+    const params = [key, key, ...DETAIL_SURFACES];
     if (mapId) {
       where.push('map_id = ?');
       params.push(mapId);

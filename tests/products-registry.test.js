@@ -27,8 +27,8 @@ function fakeReq({ hostname = '', override = '' } = {}) {
   };
 }
 
-test('le registre déclare foret, gl, plan et staff avec leurs entrées HTML', () => {
-  assert.deepStrictEqual(products.PRODUCT_IDS, ['foret', 'gl', 'plan', 'staff']);
+test('le registre déclare foret, gl, plan, staff et enov avec leurs entrées HTML', () => {
+  assert.deepStrictEqual(products.PRODUCT_IDS, ['foret', 'gl', 'plan', 'staff', 'enov']);
   assert.strictEqual(products.getProduct('gl').htmlEntry, 'gl.html');
   assert.strictEqual(products.getProduct('plan').htmlEntry, 'plan.html');
   assert.strictEqual(products.getProduct('staff').htmlEntry, 'staff.html');
@@ -43,12 +43,35 @@ test('le registre déclare foret, gl, plan et staff avec leurs entrées HTML', (
     products.getProduct('plan').pwa.themeColor,
   );
   assert.strictEqual(products.getProduct('staff').manifestFile, 'manifest-staff.webmanifest');
+  // Plan e-nov : même logique que le plan des personnels — icônes du plan public, teinte et
+  // manifest propres, API isolée, code sous le limiteur strict, jamais référencé.
+  const enov = products.getProduct('enov');
+  assert.strictEqual(enov.htmlEntry, 'enov.html');
+  assert.strictEqual(enov.assetsDir, 'plan');
+  assert.strictEqual(enov.apiPrefix, '/api/enov');
+  assert.strictEqual(enov.indexable, false);
+  assert.strictEqual(enov.manifestFile, 'manifest-enov.webmanifest');
+  assert.deepStrictEqual([...enov.authRateLimitPaths], ['/api/enov/access']);
+  assert.notStrictEqual(enov.pwa.themeColor, products.getProduct('plan').pwa.themeColor);
+  assert.notStrictEqual(enov.pwa.themeColor, products.getProduct('staff').pwa.themeColor);
   assert.deepStrictEqual(products.listHtmlEntryBasenames(), [
     'index.vite.html',
     'gl.html',
     'plan.html',
     'staff.html',
+    'enov.html',
   ]);
+});
+
+test('résolution par host : enov.* sert le plan e-nov', () => {
+  assert.strictEqual(products.resolveProductIdFromHost('enov.olution.info'), 'enov');
+  assert.strictEqual(
+    resolveProductFromRequest(fakeReq({ hostname: 'www.enov.olution.info:3000' })),
+    'enov',
+  );
+  // Aucun autre host ne tombe sur le plan e-nov par préfixe.
+  assert.strictEqual(products.resolveProductIdFromHost('planlyautey.olution.info'), 'plan');
+  assert.strictEqual(products.resolveProductIdFromHost('foretmap.olution.info'), 'foret');
 });
 
 test('résolution par host : proflyautey est distinct de planlyautey', () => {

@@ -12,6 +12,10 @@ Le **Plan Lyautey** (`planlyautey.<domaine>`) est une application à part, très
 > [`proflyautey`](plan-des-personnels.md). Même carte, mêmes fiches, mais elle montre en plus
 > les lieux retirés d'ici et les compléments réservés. Ce document-ci décrit ce que voit
 > **le public**.
+>
+> **Et une troisième, tournée vers le label e-nov** : [`enov`](plan-enov.md). Même carte,
+> mêmes lieux, mais les innovations de l'établissement y ressortent au premier coup d'œil et
+> leur fiche s'ouvre sur ce qui en fait une innovation.
 
 Elle ne demande **aucun compte** et ne conserve **aucune donnée personnelle**. On l'ouvre,
 on cherche, on trouve. Il n'y a ni tâche, ni validation, ni progression : ces choses-là
@@ -163,13 +167,15 @@ l'établissement décrit déjà.
 
 ### Choisir où apparaît un lieu
 
-Un même lieu peut être montré sur trois « surfaces » :
+Un même lieu peut être montré sur plusieurs « surfaces » :
 
-| Surface    | Où c'est                                     |
-| ---------- | -------------------------------------------- |
-| **Carte**  | la carte de travail des élèves dans ForetMap |
-| **Visite** | la visite guidée grand public                |
-| **Plan**   | le Plan Lyautey                              |
+| Surface             | Où c'est                                                     |
+| ------------------- | ------------------------------------------------------------ |
+| **Carte**           | la carte de travail des élèves dans ForetMap                 |
+| **Visite**          | la visite guidée grand public                                |
+| **Plan**            | le Plan Lyautey                                              |
+| **Plan personnels** | le [plan des personnels](plan-des-personnels.md)             |
+| **Plan e-nov**      | le [plan e-nov](plan-enov.md), où les innovations ressortent |
 
 Deux réglages se combinent :
 

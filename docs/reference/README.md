@@ -9,7 +9,8 @@ Ce dossier est la **référence fonctionnelle** des applications du projet :
 
 - **ForetMap** — l'application de gestion de la forêt comestible du Lycée Lyautey ;
 - **Gnomes & Licornes (GL)** — le jeu pédagogique qui vit à côté de ForetMap ;
-- **Plan Lyautey** — le plan d'établissement consultable sur téléphone.
+- **Plan Lyautey** — le plan d'établissement consultable sur téléphone (avec ses variantes :
+  plan des personnels, plan e-nov des innovations).
 
 Il poursuit trois objectifs, dans l'ordre :
 
@@ -70,6 +71,7 @@ Il poursuit trois objectifs, dans l'ordre :
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------- |
 | [plan/presentation.md](plan/presentation.md)               | Le plan d'établissement sur téléphone : usage, surfaces d'affichage, alias, réglages                                   | ✅ Rédigé |
 | [plan/plan-des-personnels.md](plan/plan-des-personnels.md) | Le plan réservé aux personnels (proflyautey / stafflyautey) : accès, lieux et compléments réservés, revue des surfaces | ✅ Rédigé |
+| [plan/plan-enov.md](plan/plan-enov.md)                     | Le plan e-nov (enov) : lieux innovants mis en avant, catégorie-label « e-nov », texte e-nov, réglages et code d'accès  | ✅ Rédigé |
 
 ### Gnomes & Licornes (GL)
 

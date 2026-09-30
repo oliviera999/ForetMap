@@ -8,6 +8,7 @@
  * - apple-touch + PWA : même source, tailles d’installation
  * - `public/staff/favicon.svg` : copie du SVG plan (même établissement ; la distinction
  *   d’onglet reste le titre et la couleur de thème brune)
+ * - `public/enov/favicon.svg` : idem pour le plan e-nov (couleur de thème ambre)
  *
  * Le logo d’interface `logo-lyautey.png` (bandeau / coin carte) n’est pas modifié ici.
  */
@@ -20,6 +21,7 @@ const sharp = require('sharp');
 const root = path.resolve(__dirname, '..');
 const outDir = path.join(root, 'public', 'plan');
 const staffDir = path.join(root, 'public', 'staff');
+const enovDir = path.join(root, 'public', 'enov');
 const SRC = path.join(outDir, 'lyautey-favicon.png');
 
 async function resizePng(size, filename) {
@@ -58,6 +60,17 @@ async function writeFaviconSvg() {
 ${svg.replace(/^<\?xml[^>]*>\r?\n/, '')}`,
     'utf8',
   );
+  await fs.promises.mkdir(enovDir, { recursive: true });
+  await fs.promises.writeFile(
+    path.join(enovDir, 'favicon.svg'),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Même favicon que le plan public (logo officiel Lycée Lyautey).
+  La distinction d’onglet repose sur le titre et theme-color (#7a4a00) — plan e-nov.
+-->
+${svg.replace(/^<\?xml[^>]*>\r?\n/, '')}`,
+    'utf8',
+  );
 }
 
 async function main() {
@@ -79,7 +92,7 @@ async function main() {
   await resizePng(512, 'pwa-maskable-512.png');
 
   console.log(
-    '[icons:plan] Écrit favicon.svg (+ staff), favicon-16/32.png, favicon.ico, apple-touch + pwa depuis lyautey-favicon.png',
+    '[icons:plan] Écrit favicon.svg (+ staff, enov), favicon-16/32.png, favicon.ico, apple-touch + pwa depuis lyautey-favicon.png',
   );
 }
 

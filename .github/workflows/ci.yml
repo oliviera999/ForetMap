@@ -209,6 +209,13 @@ jobs:
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
 
+      - name: Run Playwright Plan e-nov smoke (bloquant)
+        # Plan e-nov (projet `enov-mobile`) : lieu étiqueté depuis la console, mis en avant,
+        # listé par la puce « Innovations », fiche ouverte sur le texte e-nov.
+        run: npx playwright test --project=enov-mobile e2e/enov-shell.spec.js
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+
       - name: Run Playwright mobile-webkit smoke (bloquant)
         # Audit navigation iPhone — WebKit ≠ Safari iOS, mais filet CSS/touch manquant avant.
         run: npx playwright test --project=mobile-webkit

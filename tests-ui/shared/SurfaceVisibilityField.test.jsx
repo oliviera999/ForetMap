@@ -15,7 +15,7 @@ describe('normalizeSurfaceList', () => {
     expect(normalizeSurfaceList('')).toEqual([]);
     // L'ordre canonique est celui du `SET` SQL, surface personnels comprise et **en dernier** :
     // MySQL encode un SET par position de bit (migration `260`).
-    expect(normalizeSurfaceList(ALL_SURFACES)).toEqual(['map', 'visit', 'plan', 'staff']);
+    expect(normalizeSurfaceList(ALL_SURFACES)).toEqual(['map', 'visit', 'plan', 'staff', 'enov']);
     expect(normalizeSurfaceList('staff,map')).toEqual(['map', 'staff']);
   });
 });

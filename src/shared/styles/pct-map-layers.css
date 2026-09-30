@@ -304,6 +304,108 @@
   }
 }
 
+/*
+ * Lieux MIS EN AVANT (`map_highlight`, plan e-nov) : ils doivent se repérer au premier coup
+ * d'œil. Halo coloré qui respire (contour épais pour une zone, anneau pour un repère), nom en
+ * gras souligné de la même couleur ; les autres lieux s'estompent (`has-highlight`, posé par
+ * `SharedMapStage` sur la coquille dès qu'un lieu est mis en avant). La couleur vient du
+ * produit (`--pct-highlight-color`, réglage `ui.enov_plan.highlight_color`). Aucun autre
+ * produit ne pose `map_highlight` : ces règles y sont inertes.
+ */
+.fm-pct-zone.is-highlight .fm-pct-zone__poly {
+  stroke: var(--pct-highlight-color, var(--accent-warning-solid));
+  stroke-opacity: 1;
+  stroke-width: calc(3.5px * var(--pct-inv, 1));
+  fill-opacity: 0.85;
+  filter: drop-shadow(0 0 4px var(--pct-highlight-color, var(--accent-warning-solid)));
+  animation: fmPctHighlightZone 2.4s ease-in-out infinite;
+}
+
+@keyframes fmPctHighlightZone {
+  0%,
+  100% {
+    stroke-width: calc(3px * var(--pct-inv, 1));
+  }
+  50% {
+    stroke-width: calc(5.5px * var(--pct-inv, 1));
+  }
+}
+
+.fm-pct-marker.is-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  border: 3px solid var(--pct-highlight-color, var(--accent-warning-solid));
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--pct-highlight-color, var(--accent-warning-solid)) 24%,
+    transparent
+  );
+  pointer-events: none;
+  animation: fmPctHighlightRing 2.4s ease-in-out infinite;
+}
+
+@keyframes fmPctHighlightRing {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.45;
+  }
+}
+
+.fm-pct-label.is-highlight .fm-pct-overlay__name,
+.fm-pct-marker.is-highlight .fm-pct-overlay__name {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--pct-highlight-color, var(--accent-warning-solid));
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.has-highlight .fm-pct-zone:not(.is-highlight):not(.is-active) .fm-pct-zone__poly {
+  fill-opacity: 0.28;
+  stroke-opacity: 0.35;
+}
+
+.has-highlight .fm-pct-marker:not(.is-highlight):not(.is-active),
+.has-highlight .fm-pct-cluster {
+  opacity: 0.5;
+}
+
+.has-highlight .fm-pct-label:not(.is-highlight):not(.is-active) {
+  opacity: 0.6;
+}
+
+/* Pastille facultative (« e-nov ») : posée en absolu, elle ne déplace ni l'emoji ni le nom. */
+.fm-pct-highlight-badge {
+  position: absolute;
+  top: 0;
+  left: calc(50% + var(--map-overlay-emoji-font-size, 16px) / 2);
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--pct-highlight-color, var(--accent-warning-solid));
+  box-shadow: 0 0 0 1.5px var(--surface-plain);
+  color: var(--ink-strong);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-zone.is-highlight .fm-pct-zone__poly,
+  .fm-pct-marker.is-highlight::before {
+    animation: none;
+  }
+}
+
 .fm-pct-marker__pin {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }

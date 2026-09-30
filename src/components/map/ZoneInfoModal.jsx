@@ -3,6 +3,7 @@ import {
   SurfaceVisibilityField,
   normalizeSurfaceList,
 } from '../../shared/ui/SurfaceVisibilityField.jsx';
+import { EnovDescriptionField } from '../../shared/ui/EnovDescriptionField.jsx';
 import {
   LocationAudienceFields,
   normalizeAudienceGroupList,
@@ -159,6 +160,7 @@ function ZoneInfoModal({
     normalizeSurfaceList(zone.hidden_surfaces),
   );
   const [searchAliases, setSearchAliases] = useState(zone.search_aliases || '');
+  const [enovDescription, setEnovDescription] = useState(zone.enov_description || '');
   const [visibleRoleSlugs, setVisibleRoleSlugs] = useState(() =>
     normalizeAudienceRoleList(zone.visible_role_slugs),
   );
@@ -251,6 +253,7 @@ function ZoneInfoModal({
     setVisitDetailsText(zone.visit_details_text || '');
     setHiddenSurfaces(normalizeSurfaceList(zone.hidden_surfaces));
     setSearchAliases(zone.search_aliases || '');
+    setEnovDescription(zone.enov_description || '');
     setVisibleRoleSlugs(normalizeAudienceRoleList(zone.visible_role_slugs));
     setLinks(normalizeLocationLinksForForm(zone.links));
     setNotes(normalizeLocationNotesForForm(zone.notes));
@@ -274,6 +277,7 @@ function ZoneInfoModal({
     zone.visit_body_json,
     zone.hidden_surfaces,
     zone.search_aliases,
+    zone.enov_description,
     zone.visible_role_slugs,
     zone.links,
     zone.notes,
@@ -304,6 +308,7 @@ function ZoneInfoModal({
           visitDetailsText,
           hiddenSurfaces,
           searchAliases,
+          enovDescription,
           visibleRoleSlugs,
           visibleGroupIds,
           links,
@@ -465,6 +470,11 @@ function ZoneInfoModal({
             catalog={categoryCatalog}
             value={categoryIds}
             onChange={setCategoryIds}
+          />
+          <EnovDescriptionField
+            idPrefix="zone"
+            value={enovDescription}
+            onChange={setEnovDescription}
           />
           <div className="field">
             <label>Description</label>

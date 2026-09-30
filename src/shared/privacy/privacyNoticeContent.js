@@ -15,8 +15,11 @@
  *   commentaire à côté. Si l'une change, cette notice doit changer dans le même lot.
  */
 
-/** Produits qui ont une notice. `staff` = plan des personnels. */
-export const PRIVACY_NOTICE_PRODUCTS = Object.freeze(['foret', 'gl', 'plan', 'staff']);
+/**
+ * Produits qui ont une notice. `staff` = plan des personnels ; `enov` = plan e-nov, dont la
+ * notice est celle du plan public (mêmes données : aucune, hors cookie de code) sous son nom.
+ */
+export const PRIVACY_NOTICE_PRODUCTS = Object.freeze(['foret', 'gl', 'plan', 'staff', 'enov']);
 
 /** Longueur maximale du contact affiché (réglage `privacy.data_contact`, `lib/settings/privacy.js`). */
 export const PRIVACY_CONTACT_MAX_LENGTH = 400;
@@ -68,6 +71,7 @@ export function privacyProductName(product, brand = {}) {
   if (product === 'staff') {
     return orgShort ? `Plan des personnels ${orgShort}` : 'le plan des personnels';
   }
+  if (product === 'enov') return orgShort ? `Plan e-nov ${orgShort}` : 'le plan e-nov';
   return clean(brand.appName) || 'l’application';
 }
 
@@ -75,7 +79,7 @@ export function privacyProductName(product, brand = {}) {
  * Notice complète d'un produit.
  *
  * @param {object} options
- * @param {'foret'|'gl'|'plan'|'staff'} options.product
+ * @param {'foret'|'gl'|'plan'|'staff'|'enov'} options.product
  * @param {{ appName?: string, orgName?: string, orgShortName?: string, glName?: string }} [options.brand]
  * @param {string} [options.contact] coordonnées « données personnelles » saisies par un admin.
  * @param {string} [options.externalAssetsMode] `privacy.external_assets_mode` (`local` par défaut).
@@ -90,11 +94,14 @@ export function buildPrivacyNotice({
   externalAssetsMode = 'local',
   clearLocalDataOnLogout = true,
 } = {}) {
-  const kind = PRIVACY_NOTICE_PRODUCTS.includes(product) ? product : 'foret';
+  const requested = PRIVACY_NOTICE_PRODUCTS.includes(product) ? product : 'foret';
+  // Plan e-nov : le plan public, mis en avant autrement — il ne garde rien de plus. Son code de
+  // diffusion, s'il est activé, est un cookie de même nature et de même durée que celui du plan.
+  const kind = requested === 'enov' ? 'plan' : requested;
   const isPlan = kind === 'plan' || kind === 'staff';
   /** Tutoiement pour les élèves et joueurs, vouvoiement pour les plans. */
   const t = (tu, vous) => (isPlan ? vous : tu);
-  const productName = privacyProductName(kind, brand);
+  const productName = privacyProductName(requested, brand);
   const orgName = clean(brand.orgName);
   const contactText = clean(contact).slice(0, PRIVACY_CONTACT_MAX_LENGTH);
   const R = PRIVACY_RETENTION;

@@ -1,0 +1,86 @@
+/*
+ * Plan e-nov (`enov.*`) — surcouche de `src/plan/styles/plan.css`.
+ *
+ * L'écran est celui du plan public : cette feuille ne fait que le teinter et habiller ce qui
+ * n'existe que sur le plan e-nov — la puce « Innovations », le bloc e-nov en tête de fiche,
+ * l'étiquette « Innovation » de la liste. La mise en avant sur la carte elle-même (halo,
+ * lieux estompés, pastille) est générique et vit dans `src/shared/styles/pct-map-layers.css`
+ * (classes `is-highlight` / `has-highlight`), colorée par `--pct-highlight-color`.
+ */
+
+/*
+ * La barre haute garde la marque de l'établissement (`ui.plan.brand`), comme sur le plan
+ * public — le plan des personnels, lui, la teinte en brun. Ce qui distingue le plan e-nov à
+ * l'écran, c'est son titre et la couleur du halo, reprise ci-dessous par la puce, l'encadré de
+ * fiche et l'étiquette de liste.
+ */
+
+/* ---- Puce « Innovations » : la première de la rangée, dans la couleur du halo ---- */
+
+.plan-chip.plan-chip--innovations {
+  flex: 0 0 auto;
+  width: auto;
+  border-color: var(--pct-highlight-color, var(--accent-warning-solid));
+  background: color-mix(
+    in srgb,
+    var(--pct-highlight-color, var(--accent-warning-solid)) 18%,
+    var(--surface-plain)
+  );
+  color: var(--ink-strong);
+  font-weight: var(--fw-semibold, 600);
+}
+
+.plan-chip.plan-chip--innovations.is-active {
+  border-color: var(--pct-highlight-color, var(--accent-warning-solid));
+  background: var(--pct-highlight-color, var(--accent-warning-solid));
+  color: var(--ink-strong);
+}
+
+.plan-chip--innovations .plan-chip__count {
+  margin-left: 2px;
+}
+
+/* ---- Fiche : « en quoi ce lieu est une innovation », avant tout le reste ---- */
+
+.plan-place__enov {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--pct-highlight-color, var(--accent-warning-solid));
+  border-radius: 0 8px 8px 0;
+  background: color-mix(
+    in srgb,
+    var(--pct-highlight-color, var(--accent-warning-solid)) 12%,
+    var(--surface-plain)
+  );
+}
+
+.plan-place__enov-title {
+  margin: 0 0 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+}
+
+.plan-place__enov-text {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ---- Liste de résultats : les innovations se reconnaissent aussi dans la liste ---- */
+
+.plan-results__highlight {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pct-highlight-color, var(--accent-warning-solid));
+  color: var(--ink-strong);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: middle;
+}

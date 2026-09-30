@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   CLUSTER_OBSTACLE_HEIGHT_PX,
   DEFAULT_LABEL_PRIORITY,
+  HIGHLIGHT_LABEL_PRIORITY,
   LABEL_EMOJI_SIZE_PX,
   LABEL_FONT_SIZE_PX,
   MARKER_LABEL_MAX_WIDTH_PX,
@@ -119,6 +120,10 @@ describe('labelPriority / polygonAreaPct / zoneLabelMaxWidthPx', () => {
     expect(labelPriority({ category_ids: ['infra', 'detail'] }, categories)).toBe(10);
     expect(labelPriority({ category_ids: ['detail'] }, categories)).toBe(100);
     expect(labelPriority({ category_ids: [] }, categories)).toBe(DEFAULT_LABEL_PRIORITY);
+    // Lieu mis en avant (plan e-nov) : son nom passe devant tous les autres.
+    expect(labelPriority({ category_ids: ['detail'], map_highlight: true }, categories)).toBe(
+      HIGHLIGHT_LABEL_PRIORITY,
+    );
     // Catégorie inconnue (masquée par un réglage) : traitée comme une absence.
     expect(labelPriority({ category_ids: ['fantome'] }, categories)).toBe(DEFAULT_LABEL_PRIORITY);
   });
