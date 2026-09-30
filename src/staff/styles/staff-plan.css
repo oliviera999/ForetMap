@@ -17,6 +17,18 @@
   --plan-brand-accent-soft: #f6f2ea;
 }
 
+/*
+ * La barre haute porte la teinte, et elle seule : sans cette règle, `.plan-topbar` retombait
+ * sur le bleu marine du plan public (`--plan-brand-color-topbar`, puis `--forest`), et les deux
+ * cartes devenaient indiscernables d'un coup d'œil — alors que la documentation invite à
+ * « regarder la couleur de la barre avant de montrer son écran ». Posée ici plutôt que via
+ * `--plan-brand-color-topbar` : ce réglage d'identité est partagé avec le plan public, et la
+ * teinte brune est précisément ce qui ne l'est pas.
+ */
+.staff-plan-body .plan-topbar {
+  background: var(--plan-brand-accent, #5a3a12);
+}
+
 /* ---- Écran d'entrée (compte ou code) ---- */
 
 .plan-access-gate__title {
@@ -84,6 +96,8 @@
   margin: 0;
   white-space: pre-line;
   line-height: 1.5;
+  /* Un lien long ou une référence sans espace sortait de l'encadré (et de l'écran sur mobile). */
+  overflow-wrap: anywhere;
 }
 
 /* ---- Signaler / proposer ---- */

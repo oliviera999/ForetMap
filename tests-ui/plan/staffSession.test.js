@@ -14,6 +14,8 @@ import {
   consumeStaffOauthHash,
   getStaffToken,
   clearStaffToken,
+  forgetRefusedStaffToken,
+  STAFF_TOKEN_REFUSED_MESSAGE,
   staffOauthErrorMessage,
 } from '../../src/plan/staffSession.js';
 
@@ -106,5 +108,17 @@ describe('staffSession — messages d’erreur', () => {
   it('garde un message de repli pour un code inconnu', () => {
     expect(staffOauthErrorMessage('oauth_inconnu')).toBe(GENERIC);
     expect(staffOauthErrorMessage('')).toBe(GENERIC);
+  });
+});
+
+describe('staffSession — jeton refusé par le serveur', () => {
+  it('oublie le jeton et dépose le message pour l’écran d’entrée', () => {
+    window.localStorage.setItem('staffplan_auth_token', 'jeton-expire');
+    window.sessionStorage.clear();
+    forgetRefusedStaffToken();
+    expect(getStaffToken()).toBe('');
+    expect(window.sessionStorage.getItem('staffplan:oauth-error')).toBe(
+      STAFF_TOKEN_REFUSED_MESSAGE,
+    );
   });
 });

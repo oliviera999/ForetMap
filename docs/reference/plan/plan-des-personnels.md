@@ -185,6 +185,10 @@ scolaire, téléphone prêté. Sans lui, l'onglet resté ouvert donnait accès a
 aux compléments confidentiels à qui passait ensuite devant l'écran. Rendre un laissez-passer de
 code est d'ailleurs inscrit au journal d'audit, en regard de son ouverture.
 
+**Session expirée, accès retiré.** Si votre session a expiré, ou si un administrateur vous a
+retiré l'accès depuis votre dernière visite, l'écran de connexion revient avec un message qui
+le dit. L'appareil oublie alors la session refusée : il suffit de se reconnecter.
+
 > La déconnexion ne « coupe » rien à distance : elle rend **cet appareil-là**. Si un téléphone
 > est perdu, prévenez un administrateur — c'est le mot de passe, ou le code partagé, qu'il
 > faudra changer.

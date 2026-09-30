@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — plan des personnels (recette stafflyautey du 30/09)
+
+Recette des profils sur `stafflyautey` / `proflyautey` : connexion, contenu, signalement, code partagé et déconnexion conformes pour Administrateur, n3boss, Prof de classe et Personnel ; refus nommé pour les autres profils. Trois écarts corrigés :
+
+- **Barre haute brune** : elle restait bleu marine, comme sur le plan public. La teinte n'habillait que les encadrés réservés. La couleur distingue à nouveau les deux plans.
+- **Session expirée ou accès retiré** : le jeton refusé restait sur l'appareil, et l'écran de connexion revenait sans explication. Il est désormais oublié, avec un message.
+- **Complément réservé** : un lien long sans espace sortait de l'encadré. Il est coupé.
+
 ### Sécurité — correctifs de l'audit sécurité, confidentialité et RGPD du 30/09 (39 constats sur 40)
 
 Audit [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-09-30.md), § 11. Seul CS1 (dump dans les `refs/pull/*` de GitHub) reste ouvert : il relève du support GitHub.
