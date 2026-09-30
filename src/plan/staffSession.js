@@ -122,7 +122,12 @@ export function staffOauthErrorMessage(code, roleLabel = '') {
       return 'La connexion Google n’est pas configurée sur ce serveur.';
     case 'oauth_invalid_state':
     case 'oauth_missing_code':
+    case 'oauth_code_expired':
       return 'La session de connexion a expiré avant le retour de Google. Réessayez.';
+    case 'oauth_client_rejected':
+      return 'Google refuse la configuration de connexion de ce serveur. Prévenez un administrateur.';
+    case 'oauth_google_unreachable':
+      return 'Le serveur n’a pas pu joindre Google. Réessayez dans quelques minutes.';
     default:
       return 'La connexion n’a pas abouti. Réessayez.';
   }
