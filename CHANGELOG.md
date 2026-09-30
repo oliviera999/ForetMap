@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit sécurité, confidentialité, RGPD et accès au code source (30/09)
+
+- Nouvel audit daté [`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`](docs/AUDIT_SECURITE_RGPD_2026-09-30.md), indexé dans `docs/audits/README.md`.
+  - **Portée** : comptes et sessions, G&L, routes ForetMap, RGPD, secrets, historique Git et CI.
+  - **Constats** : 40 au total, dont 1 critique hors code (dump encore joignable par les `refs/pull/*`, déjà connu) et 10 importants. Parmi les importants : trois voies de prise de compte par l'e-mail (LTI → admin G&L, pont GL → compte ForetMap, e-mail d'un pair modifiable), `engine.io` vulnérable au déni de service sans compte, photos et productions d'élèves servies sans authentification sous `/uploads`, notice d'information absente, conservation et effacement incomplets.
+  - **Suite** : plan en sept lots et actions du propriétaire. Aucune modification de code dans ce lot.
+
 ### Corrigé — hors ligne et modifications concurrentes : plus de perte silencieuse
 
 - **« Tâche faite » refusée au retour du réseau** : un commentaire n'est plus perdu. Le marquage reste sur l'appareil, marqué refusé, et s'affiche dans l'encadré « Rapports non envoyés » en haut des tâches, avec les boutons Copier et Effacer (`TaskDoneRefusedNotice`, option `onRefusal` de `createOfflineQueue`). Un refus sans commentaire est abandonné comme avant.
