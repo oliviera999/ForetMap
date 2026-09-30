@@ -12,6 +12,14 @@ describe('uploadThumbUrl (miroir de lib/imageThumb.js)', () => {
     );
   });
 
+  it('URL signée de tâche : la signature (commune à l’original et à la vignette) est recopiée', () => {
+    expect(uploadThumbUrl('/uploads/tasks/abc-1.png?exp=1790000000&sig=Ab_c-9')).toBe(
+      '/uploads/tasks/abc-1.thumb.jpg?exp=1790000000&sig=Ab_c-9',
+    );
+    // Requête inconnue : pas de vignette dérivée (comportement antérieur).
+    expect(uploadThumbUrl('/uploads/tasks/abc-1.png?v=2')).toBeNull();
+  });
+
   it('autres familles, vignettes, liens externes et chemins douteux : null', () => {
     for (const url of [
       '/uploads/zones/z/1.jpg',

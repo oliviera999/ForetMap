@@ -247,10 +247,11 @@ describe('taskRouteHelpers — image de tâche', () => {
     );
   });
 
-  it('attachTaskImagePublicFields : chemin sûr → /uploads, sinon route API, absent → null', () => {
+  it('attachTaskImagePublicFields : chemin sûr → /uploads signé, sinon route API, absent → null', () => {
     const safe = { id: 't1', image_path: 'tasks/t1.png' };
     attachTaskImagePublicFields(safe);
-    assert.equal(safe.image_url, '/uploads/tasks/t1.png');
+    // Famille privée `tasks/` (constat RG4) : URL signée à durée limitée.
+    assert.match(safe.image_url, /^\/uploads\/tasks\/t1\.png\?exp=\d+&sig=[\w-]+$/);
     assert.equal('image_path' in safe, false);
 
     const unsafe = { id: 't 2', image_path: 'tasks/../secret.png' };

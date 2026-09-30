@@ -407,9 +407,12 @@ const uploadsStaticRoot = path.join(__dirname, 'uploads');
 /** Extensions servies en ligne sous `/uploads` : images raster, audio, vidéo, PDF, données. */
 const UPLOADS_INLINE_SAFE_RE =
   /\.(jpe?g|png|gif|webp|avif|ico|bmp|mp3|ogg|oga|opus|wav|m4a|aac|flac|mp4|m4v|webm|ogv|mov|pdf|json|txt|csv|riv)$/i;
-// Familles privées (`observations/`, `task-logs/`) : refusées en accès direct pour que
-// l'autorisation portée par les routes API ne soit pas contournable (cf. lib/uploadsPrivatePaths.js).
+// Familles privées : refusées en accès direct pour que l'autorisation portée par les routes
+// API ne soit pas contournable — servies par route (`observations/`, `task-logs/`,
+// `user-journal/`) ou lisibles par URL signée à durée limitée (avatars d'élèves, forum,
+// commentaires, tâches, carnet G&L). Cf. lib/uploadsPrivatePaths.js et lib/uploadsSignedUrls.js.
 const { createPrivateUploadsGuard } = require('./lib/uploadsPrivatePaths');
+const { signedUploadCacheControl } = require('./lib/httpImageCache');
 app.use('/uploads', createPrivateUploadsGuard());
 app.use(
   '/uploads',
@@ -417,7 +420,11 @@ app.use(
     index: false,
     setHeaders(res, filePath) {
       const lower = String(filePath || '').toLowerCase();
-      if (/\.(jpe?g|png|gif|webp|avif|svg|ico|bmp)$/i.test(lower)) {
+      if (res.locals?.signedUpload) {
+        // Média d'élève lu par URL signée : jamais de cache partagé (proxy, CDN), ni d'index.
+        res.setHeader('Cache-Control', signedUploadCacheControl());
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      } else if (/\.(jpe?g|png|gif|webp|avif|svg|ico|bmp)$/i.test(lower)) {
         res.setHeader('Cache-Control', publicImageCacheControlForPath(filePath));
       }
       // Neutralisation XSS SVG stocke : un SVG uploade peut contenir un <script>

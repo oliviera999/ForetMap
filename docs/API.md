@@ -1978,7 +1978,7 @@ Contrat principal :
 | GET     | `/api/tasks/referent-candidates`   | oui (`tasks.manage`, sauf profils **admin** / **prof** natifs) | Liste des utilisateurs **actifs** (enseignants puis n3beurs) pour le sélecteur « référents » en création/édition de tâche ; la partie « n3beurs » est restreinte aux **profils n3beur** (un visiteur ou un prof de classe n'est pas proposé)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | GET     | `/api/tasks/recurring-preview`     | oui (`tasks.manage`)                                           | Prochaine occurrence **prévue** de chaque série récurrente active, pour le panneau « Séries récurrentes ». Une ligne par série : celle dont l'échéance est la plus récente, c'est-à-dire l'occurrence qui engendrera la suivante. Sans échéance, la tête est l'occurrence active créée en dernier ; `without_due: true` signale une série sans échéance (dupliquée dès sa validation, copie sans échéance : `next_due` vaut `null`). Champs : `series_id`, `task_id`, `title`, `recurrence`, `anchor_date` (ancre résolue), `current_start` / `current_due`, `next_start` / `next_due` (dates que le job posera, calculées depuis `spawn_date` ; `null` si incalculable), `spawn_date` (jour où le job dupliquera l'occurrence : premier jour ouvré scolaire ≥ max(échéance, aujourd'hui) — sans échéance, premier jour ouvré ≥ aujourd'hui — pour une tâche non validée, la date n'est tenue que si la validation arrive avant ; `null` si incalculable ou si la série est à l'arrêt), `already_spawned` (booléen : le job a déjà dupliqué cette occurrence pour son échéance actuelle — ou, sans échéance, l'a déjà dupliquée tout court — marqueur `recurrence_spawned_for_due_date` — mais la copie n'est plus active ; la série ne repartira pas sans changement d'échéance) et `pending` — `'validation'` (la tâche n'est pas encore validée), `'due_date'` (échéance pas encore atteinte) ou `null` (l'occurrence sera créée au prochain passage du job). Le calcul coûtant plusieurs requêtes par série, la liste est bornée à `limit` (200) ; l'ordre est **ce qui appelle une action d'abord** (séries non validées, puis échéance la plus ancienne), et `truncated: true` prévient que des séries n'ont pas été calculées — une série absente de `series` n'est alors pas une série sans prochaine occurrence. `automation_enabled` reflète le réglage `tasks.recurring_automation_enabled` (à `false`, aucune duplication n'aura lieu). Lecture seule, ne crée rien. Déclarée avant `/:id` dans le routeur |
 | GET     | `/api/tasks/:id`                   | non                                                            | Détail tâche (payload fiche complète, y compris `species[]` si liés)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| GET     | `/api/tasks/:id/image`             | non                                                            | Fichier image illustrative (fallback) ; en pratique `image_url` pointe vers **`/uploads/tasks/…`** (fichier statique, même origine). Le repli **refuse** un `image_path` visant une famille privée d'`uploads/` (`observations/`, `task-logs/`) et répond `404` : la garde du montage statique ne doit pas être contournable par une route API                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| GET     | `/api/tasks/:id/image`             | non                                                            | Fichier image illustrative (fallback) ; en pratique `image_url` pointe vers **`/uploads/tasks/…?exp=…&sig=…`** (URL signée, même origine). Le repli **refuse** un `image_path` visant une autre famille privée d'`uploads/` (`observations/`, `task-logs/`, avatars…) et répond `404` : la garde du montage statique ne doit pas être contournable par une route API                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | POST    | `/api/tasks`                       | oui                                                            | Créer tâche                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/tasks/reorder-project`       | oui                                                            | Réordonner les tâches d’un projet (drag & drop prof/admin)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | PUT     | `/api/tasks/:id`                   | oui\*                                                          | Modifier tâche (changement de `status` : `validated` → `tasks.validate` ; autres statuts → `tasks.manage`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -2022,7 +2022,7 @@ séance **ne valide pas** la tâche.
 
 - Corps JSON optionnel : `imageData` (data URL ou base64, **JPEG**, **PNG** ou **WebP**). Taille décodée max **4 Mo** ; signature binaire contrôlée côté serveur.
 - `PUT` : `remove_task_image: true` supprime l’image existante (fichier disque + colonne).
-- Les listes et le détail exposent `image_url` (`/uploads/tasks/<id>.<ext>` en temps normal, ou `/api/tasks/:id/image` en repli si le chemin disque est atypique) lorsqu’une image est enregistrée ; le chemin interne `image_path` n’est pas renvoyé.
+- Les listes et le détail exposent `image_url` (`/uploads/tasks/<id>.<ext>?exp=…&sig=…` en temps normal — URL signée à durée limitée, voir « Médias sous `/uploads` », ou `/api/tasks/:id/image` en repli si le chemin disque est atypique) lorsqu’une image est enregistrée ; le chemin interne `image_path` n’est pas renvoyé.
 
 Contraintes principales :
 
@@ -2177,7 +2177,7 @@ Si le réglage public `ui.modules.reports_enabled` est à `false`, les routes `P
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers et **8 Mo par fichier après décodage** (**`FORETMAP_MAX_UPLOAD_BYTES`** ; dépassement → **400** « Fichier trop volumineux »). Le corps entier est par ailleurs plafonné au niveau **contenu** (`/api/forum`, défaut **8 Mo** via **`FORETMAP_JSON_BODY_LIMIT_CONTENT`** ; défaut global **2 Mo** / **`FORETMAP_JSON_BODY_LIMIT`**, imports et packs **25 Mo** / **`FORETMAP_JSON_BODY_LIMIT_LARGE`** — voir `lib/jsonBodyLimit.js`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (chemins publics `/uploads/…`, tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
+- **Photos** : champ optionnel `images` (tableau de data URLs / base64 **JPEG, PNG ou WebP**), **maximum 3** fichiers et **8 Mo par fichier après décodage** (**`FORETMAP_MAX_UPLOAD_BYTES`** ; dépassement → **400** « Fichier trop volumineux »). Le corps entier est par ailleurs plafonné au niveau **contenu** (`/api/forum`, défaut **8 Mo** via **`FORETMAP_JSON_BODY_LIMIT_CONTENT`** ; défaut global **2 Mo** / **`FORETMAP_JSON_BODY_LIMIT`**, imports et packs **25 Mo** / **`FORETMAP_JSON_BODY_LIMIT_LARGE`** — voir `lib/jsonBodyLimit.js`). Fichiers stockés sous `uploads/forum-posts/<postId>/`. Les réponses incluent `posts[].image_urls` (URL `/uploads/…` **signées à durée limitée**, voir « Médias sous `/uploads` » ; tableau vide si aucune image). Si au moins une image est envoyée **sans** texte de message, le corps enregistré vaut littéralement `(Photo)` pour respecter la longueur minimale du message.
 - Validation serveur des longueurs (titre/message/motif). Le corps `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
 - Anti-abus V1 : cooldown par utilisateur sur création de sujet/réponse.
 - Réactions emoji supportées : issues du réglage public `ui.reactions.allowed_emojis` (fallback défaut `👍 ❤️ 😂 😮 😢 😡 🔥 👏`).
@@ -2267,7 +2267,7 @@ Contexte supporté :
 
 Contraintes principales :
 
-- **Photos** : champ optionnel `images` (même format que le forum : **max 3**, JPEG/PNG/WebP, **8 Mo par fichier** via **`FORETMAP_MAX_UPLOAD_BYTES`** — voir forum pour les niveaux de corps JSON). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`. Le champ `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
+- **Photos** : champ optionnel `images` (même format que le forum : **max 3**, JPEG/PNG/WebP, **8 Mo par fichier** via **`FORETMAP_MAX_UPLOAD_BYTES`** — voir forum pour les niveaux de corps JSON). Stockage sous `uploads/context-comments/<commentId>/`. Les réponses `GET` exposent `items[].image_urls` (`/uploads/…`, **signées à durée limitée**). Texte seul, images seules ou texte + images : au moins un texte **ou** une image requis ; sans texte mais avec images, le corps enregistré vaut `(Photo)`. Le champ `body` peut contenir du Markdown léger (voir section **Texte enrichi**).
 - Validation serveur de `contextType` et de l’existence du contexte ciblé.
 - Validation longueur message/motif de signalement.
 - Anti-abus V1 : cooldown par utilisateur sur publication.
@@ -2397,14 +2397,18 @@ registre `map_species` réveille le domaine `plants` (qui renvoie `map_ids`).
 ## Médias sous `/uploads` : familles publiques et privées
 
 Les fichiers envoyés sont stockés sous `uploads/`. Le montage statique **`/uploads`** sert
-directement les familles **publiques** (chargement navigateur sans passer par `/api`) :
+directement les familles de **contenu pédagogique**, publiées par l'équipe et destinées à tous
+(chargement navigateur sans passer par `/api`) :
 
-`zones/` · `markers/` · `tasks/` · `forum-posts/` · `context-comments/` · `students/` ·
-`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/` · `gl-forum-posts/`
+`zones/` · `markers/` · `plants/` · `media-library/` · `media-thumbs/` · `visit_media/` ·
+`tutorials/` · `gl_chapters_maps/` et autres `gl_*` de contenu · `gl-mascot-packs/` ·
+`visit_mascot_packs/` · avatars des personnels (`teacher/`, `gl_admins/`)
 
-Trois familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
-refuse en **403** (`{"code": "PRIVATE_UPLOAD"}`), car leur lecture est soumise à autorisation
-applicative et les noms de fichiers sont prédictibles :
+Les photos et productions d'**élèves** sont **privées** (lib/uploadsPrivatePaths.js). Elles
+restent stockées au même endroit, mais `/uploads` ne les sert qu'à certaines conditions.
+
+**1. Familles servies par une route API** — accès direct refusé en **403**
+(`{"code": "PRIVATE_UPLOAD"}`) ; le client charge l'image avec son jeton :
 
 | Famille         | Contenu                        | Route de lecture autorisée                   |
 | --------------- | ------------------------------ | -------------------------------------------- |
@@ -2412,19 +2416,55 @@ applicative et les noms de fichiers sont prédictibles :
 | `task-logs/`    | Photos des journaux tâche      | `GET /api/tasks/:id/logs/:logId/image`       |
 | `user-journal/` | Illustrations du carnet unifié | `GET /api/user-journal/assets/:assetId/file` |
 
-> Toute nouvelle famille de médias soumise à autorisation doit être ajoutée à
-> `PRIVATE_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`), sans quoi elle serait servie en
-> clair par `/uploads`.
+**2. Familles lisibles par URL signée à durée limitée** (constat RG4 de
+`docs/AUDIT_SECURITE_RGPD_2026-09-30.md`) — l'API qui renvoie l'URL, après avoir contrôlé
+l'accès à la ressource, y ajoute `?exp=<échéance epoch s>&sig=<signature>` ; sans signature
+valide et non expirée, `/uploads` répond **404** (indiscernable d'un fichier absent) :
+
+| Famille                           | Contenu                                   | Champ API qui porte l'URL signée                                                                 |
+| --------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `students/`, `student/`           | Avatars d'élèves                          | `avatar_path` (profil, connexion, `/api/students/*`, statistiques, `/api/tasks/assignable-students`) |
+| `gl_players/`                     | Avatars des joueurs G&L                   | `profile.avatar_path` (`/api/gl/auth/me`, `PATCH /api/gl/auth/me/profile`)                       |
+| `forum-posts/`, `gl-forum-posts/` | Images jointes aux messages de forum      | `posts[].image_urls`                                                                             |
+| `context-comments/`               | Images jointes aux commentaires           | `items[].image_urls`                                                                             |
+| `tasks/`                          | Image de tâche et sa vignette `.thumb.jpg` | `image_url`                                                                                      |
+| `gl-player-journal/`              | Illustrations du carnet d'un joueur G&L   | `assets[].url`, et les images citées dans `bodyMarkdown`                                          |
+
+Contrat des URL signées (`lib/uploadsSignedUrls.js`, sur le modèle des URL présignées S3) :
+
+- **Signature** : HMAC-SHA256 (tronqué à 128 bits, base64url) du **radical** du chemin (sans
+  extension ni suffixe `.thumb.jpg` : l'original et sa vignette partagent la signature) et de
+  l'échéance ; clé dérivée de `JWT_SECRET` (changer le secret invalide toutes les URL).
+- **Durée de vie** : `FORETMAP_UPLOADS_SIGNED_URL_TTL_SECONDS` (défaut **6 h**, borné à
+  5 min–7 j). L'échéance est **arrondie à l'heure** supérieure : une même image garde la même
+  URL pendant une heure, ce qui préserve le cache du navigateur et du service worker.
+- **Réponse** : `Cache-Control: private, max-age=3600` (jamais de cache partagé),
+  `X-Robots-Tag: noindex, nofollow`.
+- **Refus (404)** : signature absente, altérée, empruntée à un autre fichier, échéance
+  dépassée ou au-delà de la durée de vie courante, chemin dont la casse diffère.
+- **La signature vaut autorisation** : elle n'est émise qu'aux lecteurs autorisés par la route
+  qui la produit. Une URL copiée reste lisible jusqu'à son échéance (quelques heures).
+- **Texte libre** (carnet G&L) : seules les URL du préfixe du joueur propriétaire
+  (`gl-player-journal/<playerId>/`) sont signées à la lecture ; les signatures reçues dans un
+  corps d'article sont retirées avant enregistrement.
+- **Hors ligne** : le service worker range ces images sous une clé **sans** `exp`/`sig`, et la
+  purge des médias `/uploads/` à la déconnexion s'applique toujours.
+
+> Toute nouvelle famille contenant des photos ou productions d'élèves doit être ajoutée à
+> `ROUTE_ONLY_UPLOAD_PREFIXES` ou `SIGNED_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`),
+> sans quoi elle serait servie en clair par `/uploads` ; et son URL signée à la sérialisation
+> (`signUploadUrl` / `signUploadRelativePath`).
 
 Notes d'exploitation :
 
-- Le garde `/uploads` est monté **avant** `express.static` : un accès direct à
-  `/uploads/observations/…` ou `/uploads/task-logs/…` répond **403** sans que le fichier soit lu
-  sur disque.
-- La normalisation refuse les chemins suspects (`..`, séparateurs Windows, encodage pourcent
-  invalide), pour qu'un chemin privé ne soit pas servi par contournement.
-- Les familles publiques restent servies statiquement. En particulier, les avatars `students/…`
-  sont publics par URL : ne pas y stocker de média nécessitant une autorisation.
+- Le garde `/uploads` est monté **avant** `express.static` : un accès direct refusé ne lit
+  pas le fichier sur disque.
+- La normalisation refuse les chemins suspects (`..` → **404**, séparateurs Windows, encodage
+  pourcent invalide), pour qu'un chemin privé ne soit pas servi par contournement.
+- Aucune réponse API contenant une URL signée n'est gardée dans un cache mémoire serveur
+  (vérifié le 30/09/2026 : les caches de `lib/visitContentCache.js`, `lib/terrain/mapService.js`,
+  `lib/biodiv/speciesService.js`… ne portent que des familles de contenu). Un cache futur de
+  ces réponses devra garder une durée de vie très inférieure au TTL, ou signer à la sortie.
 
 **Contrôle du contenu des images.** Tout fichier écrit sous une extension d'image matricielle
 (`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`) par `saveBase64ToDisk` / `writeBufferToDisk`
@@ -3210,8 +3250,10 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 - Validation : type MIME déclaré dans la data URL, sur liste fermée (`lib/shared/dataUrlImage.js`,
   `image/svg+xml` exclu), et taille décodée. Il n'y a **pas** de contrôle de signature binaire
   (« magic bytes ») : le type déclaré fait foi pour l'extension du fichier écrit.
-- Exposition : fichiers stockés sous `uploads/students/…` et servis par `/uploads/…` — famille
-  **publique**, toute personne connaissant l'URL peut charger l'image.
+- Exposition : fichiers stockés sous `uploads/students/…` (ou `uploads/student/…`) — famille
+  **privée** depuis le constat RG4 : `avatar_path` est renvoyé **signé**
+  (`students/<id>/avatar-….png?exp=…&sig=…`), le client le préfixe de `/uploads/`. Sans
+  signature valide, `/uploads` répond **404**. Voir « Médias sous `/uploads` ».
 
 ---
 
