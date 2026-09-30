@@ -38,6 +38,12 @@ export const OAUTH_ERROR_MESSAGES = {
     'Cette adresse est déjà rattachée à une autre identité Google. Connectez-vous avec le compte Google utilisé la première fois, ou demandez à un responsable de corriger la fiche.',
   oauth_teacher_no_role:
     'Compte enseignant sans profil de droits. Un administrateur doit attribuer un profil (ex. Prof de classe, n3boss) sur la fiche.',
+  oauth_code_expired:
+    'La connexion Google a expiré ou a déjà été utilisée (retour trop lent, double clic, bouton « Précédent »). Relancez la connexion Google.',
+  oauth_client_rejected:
+    'Google refuse les identifiants de connexion de ce serveur (configuration OAuth à corriger). Prévenez un administrateur ; en attendant, utilisez votre identifiant et votre mot de passe.',
+  oauth_google_unreachable:
+    'Le serveur n’a pas pu joindre Google pour terminer la connexion. Réessayez dans quelques minutes.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google. Réessayez plus tard.',
 };
 

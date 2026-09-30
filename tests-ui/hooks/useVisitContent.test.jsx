@@ -70,6 +70,27 @@ describe('useVisitContent', () => {
     await waitFor(() => expect(apiRef.current.mapId).toBe('verger'));
   });
 
+  it('carte demandée non servie (« Carte introuvable ») : bascule sans alerte', async () => {
+    // Régression du 30/09/2026 : la Visite sans compte demandait n³, que le serveur ne servait
+    // plus ; le catalogue était jeté avec l'erreur et la Visite restait vide.
+    api.mockImplementation(async (path) => {
+      if (path === '/api/maps') return [{ id: 'sablettes', is_active: true }];
+      if (String(path).includes('map_id=n3')) throw new Error('Carte introuvable');
+      if (String(path).startsWith('/api/visit/content')) {
+        return { zones: [{ id: 5 }], markers: [], tutorials: [] };
+      }
+      return { seen: [] };
+    });
+    const apiRef = { current: null };
+    render(<Harness apiRef={apiRef} initialMapId="n3" />);
+
+    await waitFor(() => expect(apiRef.current.content.map_id).toBe('sablettes'));
+    expect(apiRef.current.mapId).toBe('sablettes');
+    expect(apiRef.current.maps).toEqual([{ id: 'sablettes', is_active: true }]);
+    expect(apiRef.current.content.zones).toEqual([{ id: 5 }]);
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
   it('ignore une réponse obsolète après changement de carte pendant le chargement', async () => {
     let resolveContent;
     const bothActive = [
