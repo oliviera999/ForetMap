@@ -26,7 +26,7 @@ const {
 } = require('../../lib/googleOAuthShared');
 const { logRouteError } = require('../../lib/routeLog');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../../lib/oauthPublicUrl');
-const { sendPasswordResetEmail } = require('../../lib/mailer');
+const { queuePasswordResetEmail } = require('../../lib/mailer');
 const {
   EMAIL_RE,
   createPasswordResetToken,
@@ -132,9 +132,13 @@ function readCookie(req, name) {
 }
 
 const { resolveLoginAccountByIdentifier } = require('../../lib/identity');
+const { comparePasswordConstantTime } = require('../../lib/auth/timingEqualizer');
 
 async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent = false } = {}) {
   const account = await resolveLoginAccountByIdentifier(identifier);
+  // bcrypt s'exécute dans tous les cas (hachage factice si compte absent ou sans mot de
+  // passe) : le temps de réponse ne trahit plus l'existence du compte (AC5, 2026-09-30).
+  const passOk = await comparePasswordConstantTime(password, account?.password_hash);
   if (!account) {
     return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
   }
@@ -150,11 +154,11 @@ async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent
     }
     return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
   }
+  if (!passOk) return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
+  // « Compte inactif » seulement avec le bon mot de passe, comme côté ForetMap (CDG-13).
   if (account.is_active != null && !Number(account.is_active)) {
     return { ok: false, status: 401, error: 'Compte inactif' };
   }
-  const passOk = await bcrypt.compare(password, String(account.password_hash));
-  if (!passOk) return { ok: false, status: 401, error: 'Identifiant ou mot de passe incorrect' };
 
   const userType = String(account.user_type || '').toLowerCase();
   if (userType === 'student') {
@@ -431,6 +435,8 @@ router.post(
     const player = await findGlPlayerByIdentifier(identifier);
     if (player) {
       if (!isGlPlayerLoginActive(player)) {
+        // Même coût qu'une vraie vérification : un joueur désactivé ne se devine pas (AC5).
+        await comparePasswordConstantTime(password, null);
         loginThrottle.recordFailure(LOGIN_THROTTLE_SCOPE, identifier);
         return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
       }
@@ -532,23 +538,30 @@ router.post(
         normalizeOptionalString(player.pseudo) ||
         `${player.first_name || ''} ${player.last_name || ''}`.trim() ||
         'Joueur';
-      await sendPasswordResetEmail({
-        to: player.email,
-        displayName,
-        resetUrl: makeResetUrl('gl_player', token, { product: 'gl' }, req),
-        roleLabel: 'Gnomes & Licornes (joueur)',
-      });
+      // Sans attendre le SMTP : la durée de réponse ne trahit pas l'existence du compte (AC5).
+      queuePasswordResetEmail(
+        {
+          to: player.email,
+          displayName,
+          resetUrl: makeResetUrl('gl_player', token, { product: 'gl' }, req),
+          roleLabel: 'Gnomes & Licornes (joueur)',
+        },
+        { requestId: req.requestId, userType: 'gl_player' },
+      );
     }
 
     const teacher = await findTeacherForGlPasswordReset(email);
     if (teacher && Number(teacher.is_active)) {
       const token = await createPasswordResetToken('teacher', teacher.id);
-      await sendPasswordResetEmail({
-        to: teacher.email || email,
-        displayName: 'MJ / Admin',
-        resetUrl: makeResetUrl('teacher', token, { product: 'gl' }, req),
-        roleLabel: 'Gnomes & Licornes (MJ/Admin)',
-      });
+      queuePasswordResetEmail(
+        {
+          to: teacher.email || email,
+          displayName: 'MJ / Admin',
+          resetUrl: makeResetUrl('teacher', token, { product: 'gl' }, req),
+          roleLabel: 'Gnomes & Licornes (MJ/Admin)',
+        },
+        { requestId: req.requestId, userType: 'teacher' },
+      );
     }
 
     return res.json({ ok: true, message: FORGOT_PASSWORD_NEUTRAL_MESSAGE });

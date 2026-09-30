@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
 const { queryOne, execute } = require('../database');
-const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, requirePermission, signAuthToken } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
@@ -44,6 +44,14 @@ const {
   findProfileUniquenessConflict,
   isDuplicateEntryError,
 } = require('../lib/profileUpdate');
+
+const {
+  emailWillChange,
+  checkSelfEmailChangeAllowed,
+  applyEmailChangeEffects,
+} = require('../lib/accounts/emailChange');
+const { buildSessionPayload } = require('../lib/auth/sessionPayload');
+const { exposeAuth } = require('../lib/authRouteHelpers');
 
 const router = express.Router();
 
@@ -367,6 +375,17 @@ router.patch(
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
+    // Changer son adresse e-mail : mot de passe actuel exigé, jamais en prise de contrôle
+    // (AC3, audit 2026-09-30) — l'e-mail ouvre « mot de passe oublié ».
+    const emailChanges = hasEmail && emailWillChange(student.email, email);
+    if (emailChanges) {
+      const reauth = await checkSelfEmailChangeAllowed(student, body, auth);
+      if (!reauth.ok) {
+        return res
+          .status(reauth.status)
+          .json({ error: reauth.error, ...(reauth.code ? { code: reauth.code } : {}) });
+      }
+    }
     const avatarRes = await applyAvatarUpdate({
       hasAvatarData,
       avatarDataRaw: body.avatarData,
@@ -433,7 +452,26 @@ router.patch(
       },
     );
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
-    res.json(toPublicUserRow(updated));
+    let freshSession = null;
+    if (emailChanges) {
+      // Sessions révoquées, liens de réinitialisation consommés, ancienne adresse avertie ;
+      // la session courante reçoit un jeton neuf (même contrat que `POST /api/auth/me/password`).
+      await applyEmailChangeEffects({
+        userId: student.id,
+        previousEmail: student.email,
+        nextEmail: updated?.email ?? email,
+        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+        changedBy: 'self',
+      });
+      const session = await buildSessionPayload(auth.userType, student.id);
+      if (session) {
+        freshSession = {
+          authToken: await signAuthToken(session.tokenPayload),
+          auth: exposeAuth(session.tokenPayload),
+        };
+      }
+    }
+    res.json({ ...toPublicUserRow(updated), ...(freshSession || {}) });
   }),
 );
 

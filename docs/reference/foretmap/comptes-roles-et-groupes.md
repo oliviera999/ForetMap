@@ -54,7 +54,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   (y compris accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
 - **Modifier son profil** (pseudo, e-mail, description, photo, mascotte, niveau d'affichage) :
-  depuis « Mon profil », sans redonner son mot de passe — être connecté suffit.
+  depuis « Mon profil », sans redonner son mot de passe — être connecté suffit, **sauf pour
+  changer d'adresse e-mail**. Depuis le 30 septembre 2026, un nouvel e-mail demande le **mot
+  de passe actuel** (un champ apparaît sous « Mail » dès que l'adresse change) : l'e-mail
+  sert au « mot de passe oublié », le changer sans contrôle suffisait à s'approprier un
+  compte laissé ouvert. Le changement **déconnecte les autres appareils**, annule un lien
+  « mot de passe oublié » encore ouvert, et un courriel prévient l'**ancienne** adresse.
+  Un compte **Google sans mot de passe** doit d'abord s'en donner un (ou demander le
+  changement à un administrateur) ; pendant une **prise de contrôle**, l'e-mail ne se change
+  pas.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
@@ -477,7 +485,10 @@ sous-onglet consulté qui est rouvert.
     partout (ligne, lot, création, import) : personne ne modifie **son propre** profil,
     seul un administrateur attribue ou retire `administrateur`, un n3boss n'attribue pas
     un profil de rang supérieur au sien, et le **dernier administrateur actif** ne peut
-    être ni rétrogradé, ni désactivé, ni supprimé.
+    être ni rétrogradé, ni désactivé, ni supprimé. Hors administrateur, on ne change pas
+    non plus le profil d'un compte **déjà** de rang égal ou supérieur au sien (un délégué
+    ne rétrograde pas un supérieur), et on ne modifie pas les permissions d'un profil de
+    rang égal ou supérieur au sien (depuis le 30 septembre 2026).
   - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
     motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
     fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
@@ -597,7 +608,11 @@ sous-onglet consulté qui est rouvert.
     administrateur les voit tous. Si elle a le droit de gérer les groupes, elle peut
     **rattacher ou retirer** un élève directement depuis la fiche ; sinon l'affichage
     reste en lecture seule et la modification se fait dans le sous-onglet **Groupes**.
-  - **Identité** : prénom, nom, pseudo, e-mail, description.
+  - **Identité** : prénom, nom, pseudo, e-mail, description. Comme le mot de passe,
+    l'**e-mail** ne se change pas sur son propre compte depuis cette fiche (passer par
+    « Mon profil »), ni, hors administrateur, sur un compte de rang égal ou supérieur au
+    sien. Un e-mail changé ici déconnecte la personne, annule ses liens « mot de passe
+    oublié » ouverts et prévient son ancienne adresse par courriel.
   - **Actions** : « Réinitialiser le mot de passe » est désormais une action à part,
     repliée par défaut et avec sa propre validation — elle ne part plus par
     inadvertance avec un simple « Enregistrer ». « Voir comme cet utilisateur » y est
