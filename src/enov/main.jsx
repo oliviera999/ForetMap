@@ -27,13 +27,23 @@ import { AppPlan } from '../plan/AppPlan.jsx';
 import { ENOV_PLAN_VARIANT } from '../plan/utils/planVariants.js';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
+import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
+import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
 
 document.body.classList.add(...ENOV_PLAN_VARIANT.bodyClass.split(' ').filter(Boolean));
 
+// Notice « Vos données » (`/confidentialite`), lisible sans code ni compte (audit RGPD du
+// 30/09/2026, RG1) — comme sur les deux autres plans.
+const showPrivacyNotice = isPrivacyNoticePath(window.location.pathname);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <AppDialogsProvider>
-      <AppPlan variant={ENOV_PLAN_VARIANT} />
-    </AppDialogsProvider>
+    {showPrivacyNotice ? (
+      <PrivacyNoticePage product="enov" />
+    ) : (
+      <AppDialogsProvider>
+        <AppPlan variant={ENOV_PLAN_VARIANT} />
+      </AppDialogsProvider>
+    )}
   </ErrorBoundary>,
 );

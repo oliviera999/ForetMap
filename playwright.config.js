@@ -102,7 +102,7 @@ module.exports = defineConfig({
       testMatch: /plan-.*\.spec\.js/,
     },
     {
-      // Plan e-nov (migration 313) : même écran que le plan public, servi sur `enov.*` —
+      // Plan e-nov (migration 315) : même écran que le plan public, servi sur `enov.*` —
       // ciblé ici par la même surcharge d'en-tête. Lancé par l'étape « Playwright Plan e-nov
       // smoke » de `.github/workflows/ci.yml` (ne pas retirer l'un sans l'autre).
       name: 'enov-mobile',

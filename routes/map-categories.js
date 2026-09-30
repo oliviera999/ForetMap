@@ -278,7 +278,7 @@ router.post(
         normalizeBooleanFlag(req.body?.is_active, 1),
         serializeSurfaceSet(surfacesInput.value === null ? SURFACES : surfacesInput.value),
         normalizeBooleanFlag(req.body?.zoom_only, 0),
-        // Catégorie-label (migration 313) : signale sans décider de la visibilité ailleurs.
+        // Catégorie-label (migration 315) : signale sans décider de la visibilité ailleurs.
         normalizeBooleanFlag(req.body?.is_distinction, 0),
         serializeRoleSlugList(audienceInput.roles || []),
         serializeGroupIdList(audienceInput.groups || []),

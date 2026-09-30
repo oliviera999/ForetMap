@@ -82,4 +82,10 @@ describe('GLAuthView', () => {
     expect(screen.getByText('Lire la quatrième de couverture')).toBeInTheDocument();
     expect(screen.getByText(/Une voyageuse est partie avant vous/i)).toBeInTheDocument();
   });
+
+  test('propose la notice « Vos données » avant toute connexion (RGPD, RG1)', async () => {
+    render(<GLAuthView onLogin={() => {}} />);
+    const link = await screen.findByRole('link', { name: 'Vos données' });
+    expect(link.getAttribute('href')).toMatch(/\/confidentialite$/);
+  });
 });

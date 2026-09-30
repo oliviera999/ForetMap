@@ -48,6 +48,7 @@ const {
 } = require('../../../lib/gl/gamesRuntime');
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
+const { sendSafeError } = require('../../../lib/safeErrorResponse');
 
 const router = express.Router();
 
@@ -260,9 +261,17 @@ router.post(
     const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
     let presentation;
     try {
-      presentation = buildAnyPresentation(questionRow, glossaryTerms);
+      // GL2 : partie, équipe et repère gravés dans le jeton — seule source lue par
+      // `POST /games/:id/qcm/answer` (jamais le corps de la requête).
+      presentation = buildAnyPresentation(questionRow, glossaryTerms, {
+        game: { gameId, teamId, markerId },
+      });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Présentation impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Présentation impossible',
+        req,
+        context: 'gl.games.markers.present-question',
+      });
     }
 
     const actorType = actorTypeOf(req);

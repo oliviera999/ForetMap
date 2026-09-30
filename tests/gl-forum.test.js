@@ -162,10 +162,13 @@ test('photos jointes : image_urls sous /uploads/gl-forum-posts/', async () => {
   const withPhoto = detail.body.posts.find((p) => p.image_urls?.length > 0);
   assert.ok(withPhoto, 'un message avec photo');
   // Dossier aléatoire, pas l'identifiant séquentiel du message (images non énumérables).
+  // URL signée à durée limitée (constat RG4) : sans signature, le fichier est introuvable.
   assert.match(
     withPhoto.image_urls[0],
-    /^\/uploads\/gl-forum-posts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/0\.png$/,
+    /^\/uploads\/gl-forum-posts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/0\.png\?exp=\d+&sig=[\w-]+$/,
   );
+  await request(app).get(withPhoto.image_urls[0]).expect(200);
+  await request(app).get(withPhoto.image_urls[0].split('?')[0]).expect(404);
   assert.strictEqual(withPhoto.body, '(Photo)');
   assert.strictEqual(Number(detail.body.total_posts), 2);
 });

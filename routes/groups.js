@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { publicErrorMessage } = require('../lib/shared/publicError');
 const { rethrowSlugConflict } = require('../lib/slugConflict');
 const {
   normalizeId,
@@ -459,7 +460,9 @@ router.post(
     try {
       rawRows = await resolveImportRowsFromBody(req.body || {});
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier invalide' });
+      return res
+        .status(400)
+        .json({ error: publicErrorMessage(err, 'Fichier invalide', { context: 'groups_import' }) });
     }
     try {
       const report = await importGroupsFromRows(req.auth, rawRows, { dryRun });
@@ -471,7 +474,9 @@ router.post(
       }
       res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return res.status(400).json({
+        error: publicErrorMessage(err, 'Import impossible', { context: 'groups_import' }),
+      });
     }
   }),
 );

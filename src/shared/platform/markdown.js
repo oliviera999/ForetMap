@@ -248,6 +248,76 @@ function isAllowedMarkdownImageSrc(src) {
   return MARKDOWN_IMAGE_SRC_RES.some((re) => re.test(src));
 }
 
+/**
+ * Propriétés CSS admises dans l'attribut `style` d'un contenu riche (audit sécurité du
+ * 30/09/2026, AP8). Avant, `style` était permis sur **toutes** les balises dès que les images
+ * l'étaient : un élève pouvait écrire, dans son carnet lu par le professeur, un
+ * `<p style="position:fixed;inset:0">` qui recouvrait l'écran (hameçonnage), ou charger une
+ * image tierce par `background:url(https://…)` malgré le mode « local » des images externes.
+ *
+ * Désormais : `style` seulement sur `img` et sur son cadre `figure.gl-content-image-wrap`
+ * (seule `figure` que le sanitizer conserve), limité aux propriétés de dimension et de cadrage
+ * produites par `glImageFrame`, avec des valeurs simples (pas de `url(`, de fonction, de
+ * commentaire ni d'échappement). Hook `uponSanitizeAttribute` de DOMPurify —
+ * https://github.com/cure53/DOMPurify#hooks (Apache-2.0 / MPL-2.0).
+ */
+const RICH_STYLE_ALLOWED_PROPERTIES = new Set([
+  'width',
+  'height',
+  'max-width',
+  'max-height',
+  'min-width',
+  'min-height',
+  'object-fit',
+  'object-position',
+  'aspect-ratio',
+  'display',
+]);
+const RICH_STYLE_DISPLAY_VALUES = new Set(['block', 'inline', 'inline-block', 'none']);
+const RICH_STYLE_VALUE_RE = /^[a-z0-9.%\s/-]{1,64}$/i;
+const RICH_STYLE_TAGS = new Set(['IMG', 'FIGURE']);
+
+/**
+ * Filtre une déclaration `style` : ne garde que les propriétés de la liste blanche, aux
+ * valeurs simples. Renvoie `''` si rien ne reste.
+ * @param {string} raw
+ * @returns {string}
+ */
+export function filterRichInlineStyle(raw) {
+  const kept = [];
+  for (const declaration of String(raw || '').split(';')) {
+    const colon = declaration.indexOf(':');
+    if (colon <= 0) continue;
+    const property = declaration.slice(0, colon).trim().toLowerCase();
+    const value = declaration
+      .slice(colon + 1)
+      .trim()
+      .replace(/\s+/g, ' ');
+    if (!RICH_STYLE_ALLOWED_PROPERTIES.has(property)) continue;
+    if (!value || !RICH_STYLE_VALUE_RE.test(value)) continue;
+    if (property === 'display' && !RICH_STYLE_DISPLAY_VALUES.has(value.toLowerCase())) continue;
+    kept.push(`${property}: ${value}`);
+  }
+  return kept.join('; ');
+}
+
+/** Vrai pendant un `sanitizeRichHtml` : le hook de style ne touche pas les autres appels. */
+let richSanitizeDepth = 0;
+
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+  if (richSanitizeDepth === 0 || data?.attrName !== 'style') return;
+  if (!RICH_STYLE_TAGS.has(String(node?.tagName || '').toUpperCase())) {
+    data.keepAttr = false;
+    return;
+  }
+  const filtered = filterRichInlineStyle(data.attrValue);
+  if (!filtered) {
+    data.keepAttr = false;
+    return;
+  }
+  data.attrValue = filtered;
+});
+
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
     // Ancre de glossaire (SVT G&L, ForetMap ou lore G&L) : même traitement pour les
@@ -426,11 +496,17 @@ export function sanitizeRichHtml(html, options = {}) {
   if (allowGlossaryLinks) {
     attrs = Array.from(new Set([...attrs, ...ALLOWED_ATTR_WITH_GLOSSARY]));
   }
-  const sanitized = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: tags,
-    ALLOWED_ATTR: attrs,
-    ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks || allowImages,
-  });
+  let sanitized;
+  richSanitizeDepth += 1;
+  try {
+    sanitized = DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: tags,
+      ALLOWED_ATTR: attrs,
+      ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks || allowImages,
+    });
+  } finally {
+    richSanitizeDepth -= 1;
+  }
   if (allowImages) {
     return wrapMarkdownContentImages(sanitized);
   }

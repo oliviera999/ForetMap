@@ -11,6 +11,7 @@ const {
   createGlClass,
   createGlPlayer,
   createGlGameWithTeams,
+  assignPlayerToGameTeam,
   signTokens,
 } = require('./helpers/glFixtures');
 
@@ -48,6 +49,12 @@ before(async () => {
     classId: cls.id,
     pseudo: `collab-player-${stamp}`,
     password: 'motdepasse123',
+  });
+  // Commentaires de partie : réservés aux joueurs de la partie (audit 2026-09-30, GL6).
+  await assignPlayerToGameTeam({
+    gameId,
+    teamId: gameSeed.teams[0].id,
+    playerId: player.id,
   });
   const tokens = await signTokens({
     adminId: admin.id,

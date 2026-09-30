@@ -30,7 +30,7 @@ export const CATEGORY_APPLIES_TO_ENUM = defineEnum('CATEGORY_APPLIES_TO_ENUM', {
 
 /**
  * Surfaces d'affichage d'un lieu (SET) : carte de travail, Visite, plan public, plan des
- * personnels, plan e-nov (migration 313).
+ * personnels, plan e-nov (migration 315).
  */
 export const SURFACE_ENUM = defineEnum('SURFACE_ENUM', {
   values: ['map', 'visit', 'plan', 'staff', 'enov'],

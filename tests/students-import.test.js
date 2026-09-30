@@ -81,14 +81,14 @@ test('GET /api/students/import/template retourne un modèle CSV multi-rôles', a
   ]) {
     assert.ok((res.text || '').includes(slug), `modèle sans ligne ${slug}`);
   }
-  assert.ok((res.text || '').includes('@gmail.com'));
+  assert.ok((res.text || '').includes('@exemple.invalid'));
 });
 
 test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => {
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Import;Eleve-${unique};pass123;Classe Import ${unique};import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
+    `eleve;Import;Eleve-${unique};pass1234;Classe Import ${unique};import_${unique};import_${unique}@exemple.invalid;Test import hors domaine`,
     `prof;Import;SansMdp-${unique};;;;;`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
@@ -117,7 +117,7 @@ test('POST /api/students/import dryRun : aperçu des groupes à créer, sans rie
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Apercu;Groupe-${unique};pass123;Classe Apercu ${unique} > Atelier ${unique};;;`,
+    `eleve;Apercu;Groupe-${unique};pass1234;Classe Apercu ${unique} > Atelier ${unique};;;`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -141,7 +141,7 @@ test('POST /api/students/import crée les élèves valides', async () => {
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Mass;Create-${unique};pass123;Classe Mass ${unique};mass_${unique};mass_${unique}@example.com;Import réel`,
+    `eleve;Mass;Create-${unique};pass1234;Classe Mass ${unique};mass_${unique};mass_${unique}@example.com;Import réel`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -180,7 +180,7 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof;Prof;Import-${unique};MotDePasse12!;;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
+    `prof;Prof;Import-${unique};MotDePasse12!;;prof_${unique};prof_${unique}@exemple.invalid;Import prof hors domaine`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -201,7 +201,7 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
     ['Prof', `Import-${unique}`],
   );
   assert.ok(inserted);
-  assert.strictEqual(String(inserted.email || '').toLowerCase(), `prof_${unique}@gmail.com`);
+  assert.strictEqual(String(inserted.email || '').toLowerCase(), `prof_${unique}@exemple.invalid`);
   const role = await queryOne(
     `SELECT r.slug FROM user_roles ur
      INNER JOIN roles r ON r.id = ur.role_id
@@ -215,7 +215,7 @@ test('POST /api/students/import crée un prof_classe avec le bon profil', async 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
+    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@exemple.invalid;Import tuteur`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -255,7 +255,7 @@ test('POST /api/students/import met à jour un compte déjà présent (défaut)'
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Maj;User-${unique};pass123;;maj_${unique};maj_${unique}@example.com;Avant`,
+    `eleve;Maj;User-${unique};pass1234;;maj_${unique};maj_${unique}@example.com;Avant`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -311,7 +311,7 @@ test('POST /api/students/import ignore les existants si strategy=skip', async ()
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Skip;User-${unique};pass123;;skip_${unique};skip_${unique}@example.com;Origine`,
+    `eleve;Skip;User-${unique};pass1234;;skip_${unique};skip_${unique}@example.com;Origine`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -325,7 +325,7 @@ test('POST /api/students/import ignore les existants si strategy=skip', async ()
 
   const againCsv = [
     header,
-    `eleve;Skip;User-${unique};pass123;;skip_${unique}_x;skip_x_${unique}@example.com;Changé`,
+    `eleve;Skip;User-${unique};pass1234;;skip_${unique}_x;skip_x_${unique}@example.com;Changé`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')
@@ -436,7 +436,7 @@ test('POST /api/students/import : un ré-import ne rétrograde jamais le profil'
     .send({
       fileName: 'create.csv',
       fileDataBase64: Buffer.from(
-        [IMPORT_CSV_HEADER, `eleve_chevronne;Haut;Niveau-${unique};pass123;;;;`].join('\n'),
+        [IMPORT_CSV_HEADER, `eleve_chevronne;Haut;Niveau-${unique};pass1234;;;;`].join('\n'),
         'utf8',
       ).toString('base64'),
     })
@@ -482,9 +482,10 @@ test('POST /api/students/import : existingStrategy=fill complète sans écraser'
     .send({
       fileName: 'create.csv',
       fileDataBase64: Buffer.from(
-        [IMPORT_CSV_HEADER, `eleve;Fill;Only-${unique};pass123;;;fill_${unique}@example.com;`].join(
-          '\n',
-        ),
+        [
+          IMPORT_CSV_HEADER,
+          `eleve;Fill;Only-${unique};pass1234;;;fill_${unique}@example.com;`,
+        ].join('\n'),
         'utf8',
       ).toString('base64'),
     })
@@ -532,7 +533,7 @@ test('POST /api/students/import : existingStrategy=fill complète sans écraser'
 
 test('POST /api/students/import : existingStrategy prime sur le réglage, valeur invalide → 400', async () => {
   const unique = Date.now();
-  const csv = [IMPORT_CSV_HEADER, `eleve;Choix;Ponctuel-${unique};pass123;;;;v1`].join('\n');
+  const csv = [IMPORT_CSV_HEADER, `eleve;Choix;Ponctuel-${unique};pass1234;;;;v1`].join('\n');
   const send = (body) =>
     request(app)
       .post('/api/students/import')
@@ -714,7 +715,7 @@ test('POST /api/students/import : cellules vides ne transent pas e-mail / pseudo
   const header = IMPORT_CSV_HEADER;
   const createCsv = [
     header,
-    `eleve;Garde;Champs-${unique};pass123;;garde_${unique};garde_${unique}@example.com;A conserver`,
+    `eleve;Garde;Champs-${unique};pass1234;;garde_${unique};garde_${unique}@example.com;A conserver`,
   ].join('\n');
   await request(app)
     .post('/api/students/import')
@@ -751,9 +752,9 @@ test('POST /api/students/import : la colonne Rôle accepte les noms affichés de
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `n3beur novice;Libelle;Novice-${unique};pass123;;lib_nov_${unique};lib_nov_${unique}@example.com;`,
-    `Élève avancé;Libelle;Avance-${unique};pass123;;lib_av_${unique};lib_av_${unique}@example.com;`,
-    `n3beur chevronné 🏆;Libelle;Chevron-${unique};pass123;;lib_chev_${unique};lib_chev_${unique}@example.com;`,
+    `n3beur novice;Libelle;Novice-${unique};pass1234;;lib_nov_${unique};lib_nov_${unique}@example.com;`,
+    `Élève avancé;Libelle;Avance-${unique};pass1234;;lib_av_${unique};lib_av_${unique}@example.com;`,
+    `n3beur chevronné 🏆;Libelle;Chevron-${unique};pass1234;;lib_chev_${unique};lib_chev_${unique}@example.com;`,
     `Prof de classe;Libelle;Tuteur-${unique};MotDePasse12!;;lib_tut_${unique};lib_tut_${unique}@example.com;`,
   ].join('\n');
 
@@ -788,7 +789,7 @@ test('POST /api/students/import : un profil renommé en base reste reconnu', asy
   try {
     const csv = [
       IMPORT_CSV_HEADER,
-      `Jardinier confirmé;Renomme;Profil-${unique};pass123;;ren_${unique};ren_${unique}@example.com;`,
+      `Jardinier confirmé;Renomme;Profil-${unique};pass1234;;ren_${unique};ren_${unique}@example.com;`,
     ].join('\n');
     const res = await request(app)
       .post('/api/students/import')
@@ -812,8 +813,8 @@ test('POST /api/students/import : rôle inconnu → message explicite, colonne v
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `;Defaut;Role-${unique};pass123;;def_${unique};def_${unique}@example.com;`,
-    `Terminale S;Inconnu;Role-${unique};pass123;;inc_${unique};inc_${unique}@example.com;`,
+    `;Defaut;Role-${unique};pass1234;;def_${unique};def_${unique}@example.com;`,
+    `Terminale S;Inconnu;Role-${unique};pass1234;;inc_${unique};inc_${unique}@example.com;`,
     `gl_mj;Gl;Role-${unique};MotDePasse12!;;gl_${unique};gl_${unique}@example.com;`,
   ].join('\n');
 

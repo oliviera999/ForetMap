@@ -17,6 +17,7 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
 import { ScrollProgressBar } from '../../shared/components/ScrollProgressBar.jsx';
+import { PrivacyNoticeLink } from '../../shared/privacy/PrivacyNoticeLink.jsx';
 
 const OAUTH_ERROR_MESSAGES = {
   oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
@@ -386,6 +387,11 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
           </div>
         ) : null}
       </GLSurface>
+      {/* Notice publique « Vos données », lisible avant toute connexion (audit RGPD du
+          30/09/2026, RG1). */}
+      <p className="gl-auth-privacy">
+        <PrivacyNoticeLink />
+      </p>
       {appVersion != null ? (
         <p className="gl-auth-version auth-version">Version {appVersion}</p>
       ) : null}

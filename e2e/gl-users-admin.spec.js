@@ -38,7 +38,7 @@ test.describe('GL users admin flow', () => {
         firstName: 'Amina',
         lastName: 'Test',
         pseudo: `ui-player-${Date.now()}`,
-        password: '1234',
+        password: '12345678',
       },
     });
     expect(playerRes.status()).toBe(201);

@@ -510,7 +510,7 @@ test('catégories : surfaces en écriture (défaut toutes), exposition et ?surfa
     .expect(201);
   createdIds.categories.push(createdCat.body.id);
   // Défaut = toutes les surfaces, `staff` (plan des personnels, migration `260`) et `enov`
-  // (plan e-nov, migration `313`) comprises : une catégorie nouvelle est visible partout tant
+  // (plan e-nov, migration `315`) comprises : une catégorie nouvelle est visible partout tant
   // qu'on ne l'a pas restreinte.
   assert.deepEqual(createdCat.body.surfaces, ['map', 'visit', 'plan', 'staff', 'enov']);
   assert.equal(createdCat.body.is_distinction, false);

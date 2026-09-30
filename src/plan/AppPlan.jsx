@@ -53,6 +53,7 @@ import { buildMapUrl, readMapIdFromLocation } from './utils/planMaps.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
 /**
  * Préférences d'appareil : catégories retenues d'une visite à l'autre, message d'accueil déjà
@@ -986,6 +987,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           intro={variant.accessIntro}
           onSubmit={submitAccessCode}
         />
+        {/* Notice publique, lisible sans le code (audit RGPD du 30/09/2026, RG1). */}
+        <PrivacyNoticeLink className="plan-access-gate__privacy" />
       </div>
     );
   }

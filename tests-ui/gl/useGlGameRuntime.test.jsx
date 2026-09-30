@@ -221,7 +221,7 @@ describe('useGlGameRuntime', () => {
     });
   });
 
-  it('recordDiceRoll : vrai sans appel API quand le jeu en tours est inactif', async () => {
+  it('recordDiceRoll : tirage local sans appel API hors partie en cours', async () => {
     mockApiRoutes({
       '/api/gl/chapters': [],
       '/api/gl/auth/config': {},
@@ -234,12 +234,44 @@ describe('useGlGameRuntime', () => {
     await waitFor(() => expect(result.current.gameState?.game?.id).toBe(42));
 
     const before = vi.mocked(apiGL).mock.calls.length;
-    let ok;
+    let roll;
     await act(async () => {
-      ok = await result.current.recordDiceRoll({ values: [3], total: 3 });
+      roll = await result.current.recordDiceRoll({ count: 2 });
     });
-    expect(ok).toBe(true);
+    expect(roll.values).toHaveLength(2);
+    expect(roll.total).toBe(roll.values[0] + roll.values[1]);
     expect(vi.mocked(apiGL).mock.calls.length).toBe(before);
+  });
+
+  it('recordDiceRoll : en partie en cours, affiche le tirage SERVEUR (GL4)', async () => {
+    const diceCalls = [];
+    mockApiRoutes({
+      '/api/gl/chapters': [],
+      '/api/gl/auth/config': {},
+      '/api/gl/auth/me': { auth: { userType: 'gl_player', userId: 7, gameId: 42, teamId: 5 } },
+      '/api/gl/gameplay-settings': { settings: { turnsEnabled: false } },
+      '/api/gl/games/42': { game: { id: 42, status: 'live' }, teams: [{ id: 5, name: 'A' }] },
+    });
+    const baseImpl = vi.mocked(apiGL).getMockImplementation();
+    vi.mocked(apiGL).mockImplementation(async (url, method, body) => {
+      if (url === '/api/gl/games/42/teams/5/dice-roll') {
+        diceCalls.push({ method, body });
+        return { eventType: 'dice_roll', payload: { values: [6, 1], total: 7 } };
+      }
+      return baseImpl(url, method, body);
+    });
+    const props = defaultProps({
+      auth: { userType: 'gl_player', userId: 7, teamId: 5, gameId: 42 },
+    });
+    const { result } = renderRuntime(props);
+    await waitFor(() => expect(result.current.gameState?.game?.id).toBe(42));
+
+    let roll;
+    await act(async () => {
+      roll = await result.current.recordDiceRoll({ count: 2 });
+    });
+    expect(diceCalls).toEqual([{ method: 'POST', body: { count: 2 } }]);
+    expect(roll).toEqual({ values: [6, 1], total: 7 });
   });
 
   it('recordDiceRoll : refuse sans équipe active quand le jeu en tours est actif', async () => {
@@ -255,11 +287,11 @@ describe('useGlGameRuntime', () => {
     await waitFor(() => expect(result.current.turnsEnabled).toBe(true));
     await waitFor(() => expect(result.current.gameState?.game?.id).toBe(42));
 
-    let ok;
+    let roll;
     await act(async () => {
-      ok = await result.current.recordDiceRoll({ values: [3], total: 3 });
+      roll = await result.current.recordDiceRoll({ count: 1 });
     });
-    expect(ok).toBe(false);
+    expect(roll).toBeNull();
     expect(props.setError).toHaveBeenCalledWith('Choisissez une équipe avant de lancer les dés.');
   });
 

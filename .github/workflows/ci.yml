@@ -51,11 +51,11 @@ jobs:
       - name: Run UI tests (Vitest)
         run: npm run test:ui
 
-      # Vulnérabilités connues des dépendances de production. Informatif pour l'instant
-      # (Dependabot propose les montées de version) ; à rendre bloquant une fois l'arriéré
-      # soldé — audit sécurité du 29/09/2026.
-      - name: Audit des dépendances (npm audit, informatif)
-        continue-on-error: true
+      # Vulnérabilités connues des dépendances de production, niveau `high` et plus.
+      # Bloquant depuis l'audit sécurité du 30/09/2026 (CS5 / AP1) : informative, l'étape avait
+      # laissé passer `engine.io@6.6.9` (déni de service sans compte). Les `moderate` restent
+      # suivies par Dependabot.
+      - name: Audit des dépendances (npm audit, bloquant)
         run: npm audit --omit=dev --audit-level=high
 
   # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les
@@ -161,8 +161,9 @@ jobs:
       - name: Install Playwright browser
         # Téléchargement du navigateur + paquets système : la seule étape du job qui
         # dépende d'un réseau externe, et donc la seule à pouvoir rester suspendue.
-        # Elle prend ~1 min quand tout va bien.
-        timeout-minutes: 10
+        # Elle prend ~1 min quand tout va bien, mais un miroir apt lent l'a déjà fait
+        # dépasser 10 min (30/09/2026) : 20 min laissent la marge sans masquer un blocage.
+        timeout-minutes: 20
         run: npx playwright install --with-deps chromium webkit
 
       - name: Start app server for e2e

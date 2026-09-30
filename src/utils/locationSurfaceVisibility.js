@@ -5,7 +5,7 @@
  * sur une surface s'il n'y est pas masqué (`hidden_surfaces`) et si, lorsqu'il porte des
  * catégories, au moins l'une d'elles y apparaît (`categories[].surfaces`). Un lieu sans
  * catégorie est visible partout où il n'est pas masqué. Les **catégories-labels**
- * (`is_distinction`, label e-nov, migration 313) sont transparentes là où elles n'apparaissent
+ * (`is_distinction`, label e-nov, migration 315) sont transparentes là où elles n'apparaissent
  * pas : un lieu qui ne porte que des labels s'y comporte comme un lieu sans catégorie.
  *
  * Les deux implémentations doivent rester alignées — `tests-ui/locationSurfaceVisibility.test.js`

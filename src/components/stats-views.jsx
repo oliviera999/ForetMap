@@ -18,6 +18,7 @@ import {
   validatePasswordChangeFields,
   buildProfilePatchPayload,
   isTeacherLikeAccount,
+  isProfileEmailChange,
   TEACHER_PASSWORD_MIN_LENGTH,
 } from '../utils/studentProfileFields.js';
 
@@ -370,6 +371,9 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
+  // Mot de passe actuel exigé par le serveur pour changer d'adresse e-mail (AC3).
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+  const emailChanged = isProfileEmailChange(initialFieldsRef.current.email, email);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -433,6 +437,12 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setOkMsg('Aucune modification à enregistrer');
       return;
     }
+    if ('email' in payload && emailChanged) {
+      if (!emailCurrentPassword) {
+        return setErr('Mot de passe actuel requis pour changer d’adresse e-mail');
+      }
+      payload.currentPassword = emailCurrentPassword;
+    }
 
     setLoading(true);
     try {
@@ -446,6 +456,7 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       setBiodivPedagoLevel(updated?.biodiv_pedago_level || '');
       setAvatarData(null);
       setRemoveAvatar(false);
+      setEmailCurrentPassword('');
       setAvatarPreview(getStudentAvatarUrl(updated));
       setOkMsg('Profil mis à jour');
     } catch (e) {
@@ -612,6 +623,23 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           placeholder="moi@exemple.com"
         />
       </div>
+      {emailChanged && (
+        <div className="field" data-testid="profile-email-current-password">
+          <label htmlFor="profile-email-current-password">
+            Mot de passe actuel (requis pour changer de mail)
+          </label>
+          <input
+            id="profile-email-current-password"
+            type="password"
+            value={emailCurrentPassword}
+            onChange={(e) => setEmailCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+          <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+            Tes autres appareils seront déconnectés et ton ancienne adresse sera prévenue.
+          </small>
+        </div>
+      )}
       <div className="field">
         <label>Mascotte préférée (visite)</label>
         <select

@@ -135,7 +135,7 @@ const EMPTY_DRAFT = {
   description: '',
   map_id: '',
   applies_to: 'both',
-  // Le plan e-nov montre le même plan que le plan public (migration 313) : une catégorie
+  // Le plan e-nov montre le même plan que le plan public (migration 315) : une catégorie
   // nouvelle y apparaît aussi, sinon ses lieux manqueraient au plan e-nov.
   surfaces: ['map', 'visit', 'plan', 'enov'],
   is_infrastructure: false,

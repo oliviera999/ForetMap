@@ -103,7 +103,7 @@
         {
           "row": 6,
           "field": "password",
-          "error": "Mot de passe trop court (min 4 caractères)"
+          "error": "Mot de passe trop court (min 8 caractères)"
         },
         {
           "row": 13,
@@ -253,7 +253,7 @@
         {
           "row": 6,
           "field": "password",
-          "error": "Mot de passe trop court (min 4 caractères)"
+          "error": "Mot de passe trop court (min 8 caractères)"
         },
         {
           "row": 13,
@@ -329,7 +329,7 @@
         {
           "row": 6,
           "field": "password",
-          "error": "Mot de passe trop court (min 4 caractères)"
+          "error": "Mot de passe trop court (min 8 caractères)"
         },
         {
           "row": 13,

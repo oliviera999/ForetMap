@@ -22,7 +22,7 @@ const {
 } = require('../lib/discoveryTourSeen');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
-const { sendPasswordResetEmail } = require('../lib/mailer');
+const { queuePasswordResetEmail } = require('../lib/mailer');
 const {
   EMAIL_RE,
   PRIVILEGED_PASSWORD_MIN_LEN,
@@ -47,6 +47,12 @@ const {
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('../lib/auditLog');
 const { resolveLoginAccountByIdentifier } = require('../lib/identity');
+const { comparePasswordConstantTime } = require('../lib/auth/timingEqualizer');
+const {
+  emailWillChange,
+  checkSelfEmailChangeAllowed,
+  applyEmailChangeEffects,
+} = require('../lib/accounts/emailChange');
 const {
   getUserTokenEpoch,
   bumpUserTokenEpoch,
@@ -361,10 +367,11 @@ router.patch(
     const body = req.body || {};
     const auth = req.auth || {};
     // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler.
-    // La session suffit : le mot de passe actuel n'est redemandé que pour en changer.
+    // La session suffit, sauf pour changer d'adresse e-mail : le mot de passe actuel est alors
+    // redemandé, comme pour en changer (AC3, audit 2026-09-30).
     const account = await queryOne(
-      `SELECT id, user_type, email, pseudo, description,
-              visit_mascot_catalog_id, biodiv_pedago_level, avatar_path
+      `SELECT id, user_type, email, pseudo, description, password_hash, display_name,
+              first_name, last_name, visit_mascot_catalog_id, biodiv_pedago_level, avatar_path
          FROM users WHERE id = ? LIMIT 1`,
       [auth.userId],
     );
@@ -416,6 +423,15 @@ router.patch(
 
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
+    const emailChanges = hasEmail && emailWillChange(account.email, email);
+    if (emailChanges) {
+      const reauth = await checkSelfEmailChangeAllowed(account, body, auth);
+      if (!reauth.ok) {
+        return res
+          .status(reauth.status)
+          .json({ error: reauth.error, ...(reauth.code ? { code: reauth.code } : {}) });
+      }
+    }
     const avatarRes = await applyAvatarUpdate({
       hasAvatarData,
       avatarDataRaw: body.avatarData,
@@ -494,9 +510,48 @@ router.patch(
     if (String(account.user_type || '').toLowerCase() === 'student') {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
     }
-    res.json(toPublicUserRow(updated));
+    // E-mail changé : sessions révoquées, liens « mot de passe oublié » consommés, ancienne
+    // adresse avertie. La réponse porte un jeton neuf pour que la session courante survive.
+    const freshSession = emailChanges
+      ? await reissueSessionAfterEmailChange({
+          req,
+          account,
+          nextEmail: updated?.email ?? email,
+        })
+      : null;
+    res.json({ ...toPublicUserRow(updated), ...(freshSession || {}) });
   }),
 );
+
+/**
+ * Applique les effets d'un changement d'e-mail en libre-service puis ré-émet la session
+ * courante (même contrat que `POST /me/password`) : `{ authToken, auth }` ou `null`.
+ */
+async function reissueSessionAfterEmailChange({ req, account, nextEmail }) {
+  await applyEmailChangeEffects({
+    userId: account.id,
+    previousEmail: account.email,
+    nextEmail,
+    displayName:
+      normalizeOptionalString(account.display_name) ||
+      `${account.first_name || ''} ${account.last_name || ''}`.trim(),
+    changedBy: 'self',
+  });
+  await logSecurityEvent('auth.email_change', {
+    req,
+    actorUserType: account.user_type,
+    actorUserId: account.id,
+    targetType: account.user_type,
+    targetId: account.id,
+    payload: { had_email: !!account.email },
+  });
+  const session = await buildSessionPayload(req.auth.userType, account.id);
+  if (!session) return null;
+  return {
+    authToken: await signAuthToken(session.tokenPayload),
+    auth: exposeAuth(session.tokenPayload),
+  };
+}
 
 router.post(
   '/register',
@@ -658,9 +713,11 @@ router.post(
       );
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     };
+    // bcrypt s'exécute dans tous les cas (hachage factice si compte absent ou sans mot de
+    // passe) : le temps de réponse ne trahit plus l'existence du compte (AC5).
+    const ok = await comparePasswordConstantTime(password, account?.password_hash);
     if (!account) return failLogin('account_not_found');
     if (!account.password_hash) return failLogin('password_not_set');
-    const ok = await bcrypt.compare(password, account.password_hash);
     if (!ok) return failLogin('password_invalid');
 
     // Compte désactivé : dit seulement une fois le mot de passe vérifié (pas d'énumération).
@@ -1002,12 +1059,16 @@ router.post(
     );
     if (student && Number(student.is_active) !== 0 && forgotPasswordAllowed(email)) {
       const token = await createPasswordResetToken('student', student.id);
-      await sendPasswordResetEmail({
-        to: student.email,
-        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
-        resetUrl: makeResetUrl('student', token),
-        roleLabel: 'n3beur',
-      });
+      // Sans attendre le SMTP : la durée de réponse ne trahit pas l'existence du compte (AC5).
+      queuePasswordResetEmail(
+        {
+          to: student.email,
+          displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
+          resetUrl: makeResetUrl('student', token),
+          roleLabel: 'n3beur',
+        },
+        { requestId: req.requestId, userType: 'student' },
+      );
       await logSecurityEvent('auth.password_reset.request.student', {
         req,
         actorUserType: 'student',
@@ -1075,12 +1136,16 @@ router.post(
     );
     if (teacher && teacher.is_active && forgotPasswordAllowed(email)) {
       const token = await createPasswordResetToken('teacher', teacher.id);
-      await sendPasswordResetEmail({
-        to: teacher.email,
-        displayName: 'n3boss',
-        resetUrl: makeResetUrl('teacher', token),
-        roleLabel: 'n3boss',
-      });
+      // Sans attendre le SMTP : la durée de réponse ne trahit pas l'existence du compte (AC5).
+      queuePasswordResetEmail(
+        {
+          to: teacher.email,
+          displayName: 'n3boss',
+          resetUrl: makeResetUrl('teacher', token),
+          roleLabel: 'n3boss',
+        },
+        { requestId: req.requestId, userType: 'teacher' },
+      );
       await logSecurityEvent('auth.password_reset.request.teacher', {
         req,
         actorUserType: 'teacher',
@@ -1225,12 +1290,12 @@ router.post(
       },
     );
 
-    const { password_hash: _passwordHash, ...profile } = account;
-    void _passwordHash;
+    // Liste blanche (`toPublicUserRow`) et non plus `SELECT *` moins `password_hash` : une
+    // colonne sensible ajoutée à `users` ne part pas au client (audit 2026-09-30, §6).
     res.json({
       authToken: token,
       auth: exposeAuth(hydrated),
-      profile,
+      profile: toPublicUserRow(account),
     });
   }),
 );

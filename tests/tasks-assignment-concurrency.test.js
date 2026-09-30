@@ -102,14 +102,14 @@ before(async () => {
 
   const regA = await request(app)
     .post('/api/auth/register')
-    .send({ ...alice, password: 'pass123' });
+    .send({ ...alice, password: 'pass1234' });
   assert.strictEqual(regA.status, 201, `inscription Alice: ${JSON.stringify(regA.body)}`);
   aliceId = regA.body.id;
   await setStudentPrimaryRole(aliceId, 'eleve_novice');
 
   const regB = await request(app)
     .post('/api/auth/register')
-    .send({ ...bob, password: 'pass123' });
+    .send({ ...bob, password: 'pass1234' });
   assert.strictEqual(regB.status, 201, `inscription Bob: ${JSON.stringify(regB.body)}`);
   bobId = regB.body.id;
   await setStudentPrimaryRole(bobId, 'eleve_novice');

@@ -26,7 +26,7 @@ describe('locationSurfaces — parse / sérialisation', () => {
     assert.deepEqual(parseSurfaceSet(''), []);
     assert.deepEqual(parseSurfaceSet(null), []);
     assert.deepEqual(parseSurfaceSet('map,map,visit,plan,staff,enov'), SURFACES);
-    // Surface e-nov (migration 313) : ajoutée en fin, ordre du `SET` SQL.
+    // Surface e-nov (migration 315) : ajoutée en fin, ordre du `SET` SQL.
     assert.deepEqual(SURFACES, ['map', 'visit', 'plan', 'staff', 'enov']);
   });
 

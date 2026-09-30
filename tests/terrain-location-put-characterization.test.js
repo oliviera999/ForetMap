@@ -86,7 +86,7 @@ const PUT_RESPONSE_KEYS = {
     'description',
     'edit_revision',
     'emoji',
-    // Texte e-nov (migration 313) : lu et écrit par la console (gestionnaire).
+    // Texte e-nov (migration 315) : lu et écrit par la console (gestionnaire).
     'enov_description',
     'has_visit_body',
     'height',

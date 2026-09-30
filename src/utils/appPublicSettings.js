@@ -76,6 +76,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
   privacy: {
     external_assets_mode: 'local',
     clear_local_data_on_logout: true,
+    data_contact: '',
   },
 };
 

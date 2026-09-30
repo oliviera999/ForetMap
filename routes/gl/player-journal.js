@@ -5,6 +5,7 @@ const { queryOne, queryAll, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { writeBufferToDisk, deleteFile } = require('../../lib/uploads');
 const { decodeUserContentImageBuffer } = require('../../lib/userContentImages');
+const { signUploadUrl } = require('../../lib/uploadsSignedUrls');
 const { getGlModulesSettings } = require('../../lib/glSettings');
 const {
   getArticlesForPlayer,
@@ -271,7 +272,7 @@ router.post(
     return res.status(201).json({
       asset: {
         id: Number(asset.id),
-        url: `/uploads/${asset.asset_path}`,
+        url: signUploadUrl(`/uploads/${asset.asset_path}`),
         mimeType: asset.mime_type,
         byteSize: Number(asset.byte_size) || 0,
         createdAt: asset.created_at,

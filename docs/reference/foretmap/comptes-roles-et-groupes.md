@@ -54,7 +54,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   (y compris accentuées), les chiffres et les signes `.` `_` `-` `+` (ex. `prenom.nom`) ; pas
   d'espace ni de `@`.
 - **Modifier son profil** (pseudo, e-mail, description, photo, mascotte, niveau d'affichage) :
-  depuis « Mon profil », sans redonner son mot de passe — être connecté suffit.
+  depuis « Mon profil », sans redonner son mot de passe — être connecté suffit, **sauf pour
+  changer d'adresse e-mail**. Depuis le 30 septembre 2026, un nouvel e-mail demande le **mot
+  de passe actuel** (un champ apparaît sous « Mail » dès que l'adresse change) : l'e-mail
+  sert au « mot de passe oublié », le changer sans contrôle suffisait à s'approprier un
+  compte laissé ouvert. Le changement **déconnecte les autres appareils**, annule un lien
+  « mot de passe oublié » encore ouvert, et un courriel prévient l'**ancienne** adresse.
+  Un compte **Google sans mot de passe** doit d'abord s'en donner un (ou demander le
+  changement à un administrateur) ; pendant une **prise de contrôle**, l'e-mail ne se change
+  pas.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
@@ -91,8 +99,8 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   30 secondes, puis de plus en plus longtemps (jusqu'à 15 minutes) — sans gêner les autres
   élèves de la classe qui partagent la même connexion.
 - **Longueur minimale du mot de passe** : le réglage « Sécurité » fixe le minimum pour
-  les **élèves** (4 caractères par défaut — un choix assumé pour des sixièmes qui
-  saisissent leur mot de passe en classe). Les comptes **professeur et administrateur**
+  les **élèves** (**8 caractères** par défaut, et jamais moins — recommandation de la
+  CNIL pour un accès limité aux tentatives ; il valait 4 avant le 30/09/2026). Les comptes **professeur et administrateur**
   ont un minimum propre de **12 caractères**, qui ne descend jamais en dessous quel que
   soit le réglage : ce sont eux qui peuvent voir l'application « comme » n'importe quel
   utilisateur, donc leur mot de passe protège bien plus que leur seul compte. Les mots
@@ -415,9 +423,12 @@ Chacun peut récupérer tout ce que l'application garde sur lui, comme la loi le
 - Depuis **Mon profil**, le bouton **Télécharger mes données** produit une archive : la
   fiche du compte, les profils et groupes, les inscriptions aux tâches et les comptes
   rendus, les observations et mesures, le carnet, les messages du forum et les
-  commentaires, les réponses aux quiz, les notifications, l'historique des connexions — et
-  les photos et pièces jointes déposées. Si l'élève joue aussi à Gnomes & Licornes, la
-  partie jeu est incluse.
+  commentaires, les réponses aux quiz, les notifications, l'historique des connexions, les
+  actions faites au journal d'audit (sans le détail qui nommerait d'autres personnes), les
+  groupes et écarts de la synchronisation Moodle — et les photos et pièces jointes
+  déposées. Si l'élève joue aussi à Gnomes & Licornes, la partie jeu est incluse
+  (dont les échanges du marché, les événements de partie, les demandes d'action et les
+  sortilèges).
 - L'archive contient un fichier lisible avec un simple éditeur de texte, les fichiers
   déposés, et une notice qui explique son contenu. Les mots de passe n'y figurent jamais.
 - Pour une personne qui ne peut pas se connecter (compte désactivé, demande écrite d'un
@@ -426,6 +437,10 @@ Chacun peut récupérer tout ce que l'application garde sur lui, comme la loi le
   (droit « Export des données d'un compte ») et chaque export est inscrit au journal
   d'audit.
 - Pour éviter les abus, on ne peut pas produire plus de dix archives par heure.
+- Avant même d'avoir un compte, chacun peut lire la page **« Vos données »** (lien sous la
+  carte de connexion, phrase d'information dans le formulaire d'inscription, rubrique
+  **À propos**) : ce qui est gardé, qui le voit, combien de temps, et ses droits. Détail :
+  [Vos données](../exploitation/vos-donnees.md).
 - Pendant un « Voir comme cet utilisateur », le bouton du profil est refusé :
   l'administrateur passe par l'export de la fiche, qui est tracé à son nom.
 
@@ -470,7 +485,10 @@ sous-onglet consulté qui est rouvert.
     partout (ligne, lot, création, import) : personne ne modifie **son propre** profil,
     seul un administrateur attribue ou retire `administrateur`, un n3boss n'attribue pas
     un profil de rang supérieur au sien, et le **dernier administrateur actif** ne peut
-    être ni rétrogradé, ni désactivé, ni supprimé.
+    être ni rétrogradé, ni désactivé, ni supprimé. Hors administrateur, on ne change pas
+    non plus le profil d'un compte **déjà** de rang égal ou supérieur au sien (un délégué
+    ne rétrograde pas un supérieur), et on ne modifie pas les permissions d'un profil de
+    rang égal ou supérieur au sien (depuis le 30 septembre 2026).
   - **Le résultat s'affiche sur la ligne concernée** (« Profil enregistré », ou le
     motif du refus) plutôt qu'en haut de page, où il était invisible dès qu'on avait
     fait défiler. Une seule ligne se met en attente pendant son enregistrement : les
@@ -554,11 +572,20 @@ sous-onglet consulté qui est rouvert.
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. Les **photos** qu'il avait jointes à ses rapports de tâche, à ses messages de
   forum et à ses commentaires sont effacées du serveur avec eux (elles restaient auparavant
-  accessibles à qui en connaissait l'adresse). C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
+  accessibles à qui en connaissait l'adresse), comme les images de son **carnet**. Ses
+  traces techniques sont effacées aussi : journal d'activité, adresse IP et navigateur de
+  ses connexions ; le journal d'audit ne garde de la suppression que l'**identifiant** du
+  compte, jamais son nom. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
   **administrateur seulement** (jamais sur son propre compte, jamais le dernier
   administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est
-  **conservé**, l'auteur apparaissant comme « compte supprimé ».
+  **conservé**, l'auteur apparaissant comme « compte supprimé ». Sa **photo de profil** est
+  effacée du serveur, et le journal d'audit n'en garde que l'identifiant (ni nom, ni
+  e-mail).
+- **Comptes inactifs en fin d'année** : un administrateur technique peut supprimer, par un
+  script lancé à la main en juillet, les comptes élèves sans activité depuis 13 mois (même
+  effacement que ci-dessus). La liste est d'abord affichée sans rien supprimer ; rien n'est
+  automatique.
 - **Désactiver / réactiver** : depuis la fiche, un compte peut être **désactivé** sans
   être supprimé — l'élève ou l'enseignant ne peut plus se connecter, sa session en cours
   est coupée, et tout son historique reste en place ; **réactiver** rouvre l'accès.
@@ -581,7 +608,11 @@ sous-onglet consulté qui est rouvert.
     administrateur les voit tous. Si elle a le droit de gérer les groupes, elle peut
     **rattacher ou retirer** un élève directement depuis la fiche ; sinon l'affichage
     reste en lecture seule et la modification se fait dans le sous-onglet **Groupes**.
-  - **Identité** : prénom, nom, pseudo, e-mail, description.
+  - **Identité** : prénom, nom, pseudo, e-mail, description. Comme le mot de passe,
+    l'**e-mail** ne se change pas sur son propre compte depuis cette fiche (passer par
+    « Mon profil »), ni, hors administrateur, sur un compte de rang égal ou supérieur au
+    sien. Un e-mail changé ici déconnecte la personne, annule ses liens « mot de passe
+    oublié » ouverts et prévient son ancienne adresse par courriel.
   - **Actions** : « Réinitialiser le mot de passe » est désormais une action à part,
     repliée par défaut et avec sa propre validation — elle ne part plus par
     inadvertance avec un simple « Enregistrer ». « Voir comme cet utilisateur » y est
@@ -635,6 +666,17 @@ sous-onglet consulté qui est rouvert.
 > la carte. Pour une **classe de visiteurs** gérée par un prof de classe, ce comportement
 > « rester visiteur » est **voulu** — ne pas poser par erreur un palier n3beur sur ce
 > groupe.
+
+> ⚠️ **Point d'attention — à arbitrer (minimisation des données).** Le profil **n3boss**
+> reçoit par défaut les droits « statistiques de tous les élèves » et « export des
+> statistiques », en plus des statistiques de ses groupes. Il voit donc la progression de
+> **tous** les élèves de l'établissement, pas seulement de ses classes, et peut l'exporter.
+> Le principe de minimisation du RGPD invite à se demander si c'est nécessaire. Rien n'a été
+> changé sans décision : la notice « Vos données » l'annonce en tête (« tes enseignants voient
+> tes statistiques et peuvent les exporter »). **Pour restreindre**, aucun réglage dédié
+> n'existe ; un administrateur retire ces deux droits du profil n3boss dans **Profils &
+> utilisateurs → Profils** (le n3boss garde alors les statistiques de ses groupes, comme le
+> prof de classe, qui n'a jamais eu la vue globale). Audit du 30/09/2026, R6.
 
 ## Pour aller plus loin
 

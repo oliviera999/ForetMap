@@ -25,7 +25,8 @@ const {
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
 } = require('../../lib/qcmChoices');
-const { consumePresentationJti } = require('../../lib/qcmPresentationUse');
+const { consumeFreePresentationJti } = require('../../lib/qcmPresentationUse');
+const { sendSafeError } = require('../../lib/safeErrorResponse');
 const {
   resolvePresentContext,
   assertPresentAllowed,
@@ -270,7 +271,11 @@ router.get(
       const presentation = presentQuestion(row, glossaryTerms, { resource: context.resource });
       return res.json(presentation);
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Présentation impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Présentation impossible',
+        req,
+        context: 'gl.qcm.present',
+      });
     }
   }),
 );
@@ -307,9 +312,10 @@ router.post(
       // consommation force un nouveau tirage (choix remélangés) à chaque tentative, ce qui
       // défait le brute-force. La clé primaire (jti) arbitre l'unicité (game_id NULL hors
       // partie, cf. migration 197).
-      const consumption = await consumePresentationJti(
+      // Invité : usage unique tenu en mémoire, rien n'est écrit en base (GL8).
+      const consumption = await consumeFreePresentationJti(
         { execute },
-        { jti: result.jti, gameId: null, teamId: null, questionCode: code },
+        { glAuth: req.glAuth, jti: result.jti, questionCode: code },
       );
       if (consumption === 'already_used') {
         return res.status(409).json({ error: 'Présentation déjà utilisée' });
@@ -349,7 +355,12 @@ router.post(
         cooldown: cooldown || undefined,
       });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Réponse invalide' });
+      // AP2 : seul un refus métier (jeton, choix) renvoie son message ; une panne → 500.
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Réponse invalide',
+        req,
+        context: 'gl.qcm.answer',
+      });
     }
   }),
 );
@@ -436,7 +447,11 @@ router.post(
     try {
       parsed = await resolveImportRows(req.body || {});
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Fichier import invalide',
+        trustPlainErrors: true,
+        req,
+      });
     }
     const { categoryRows, questionRows } = parsed;
     if (!Array.isArray(questionRows) || questionRows.length === 0) {
@@ -460,7 +475,11 @@ router.post(
       );
       return res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Import impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -519,8 +538,11 @@ router.post(
       });
       return res.status(201).json({ ok: true, created: true, question: result.question });
     } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Création impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Création impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );
@@ -539,8 +561,11 @@ router.put(
       });
       return res.json({ ok: true, created: false, question: result.question });
     } catch (err) {
-      const status = err.statusCode || 400;
-      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Mise à jour impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );

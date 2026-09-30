@@ -23,7 +23,9 @@ export function getAuthSubmitError({
   if (mode === 'register' && (!first.trim() || !last.trim() || !pass))
     return 'Tous les champs sont requis';
   if (mode === 'register' && pass !== pass2) return 'Les mots de passe ne correspondent pas';
-  if (mode === 'register' && pass.length < 4) return 'Mot de passe trop court (min 4 caractères)';
+  // Pré-contrôle au plancher serveur (8, `lib/passwordReset.js`) ; un réglage plus exigeant
+  // est rappelé par la réponse du serveur.
+  if (mode === 'register' && pass.length < 8) return 'Mot de passe trop court (min 8 caractères)';
   if (mode === 'register' && pseudo.trim() && !PSEUDO_RE.test(pseudo.trim())) {
     return PSEUDO_INVALID_MSG;
   }

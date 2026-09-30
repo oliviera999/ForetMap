@@ -101,3 +101,19 @@ test('resolveProductReturnOrigin refuse tout le reste et retombe sur l’origine
     assert.equal(resolveProductReturnOrigin(bogus, RETURN_OPTS), RETURN_OPTS.fallbackOrigin);
   }
 });
+
+test('resolveProductReturnOrigin : FORETMAP_OAUTH_RETURN_ORIGINS restreint aux origines listées (audit 2026-09-30 §6)', () => {
+  const opts = {
+    ...RETURN_OPTS,
+    allowedOrigins: 'https://foretmap.olution.info, https://proflyautey.olution.info',
+  };
+  assert.equal(
+    resolveProductReturnOrigin('https://proflyautey.olution.info', opts),
+    'https://proflyautey.olution.info',
+  );
+  // Produit du registre, même domaine parent, mais absent de la liste explicite → repli.
+  assert.equal(
+    resolveProductReturnOrigin('https://gl.olution.info', opts),
+    RETURN_OPTS.fallbackOrigin,
+  );
+});

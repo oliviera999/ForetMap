@@ -79,7 +79,7 @@ export function buildMarkerPayload(marker, form, visitEditorialBlocks) {
     visit_details_text: form.visit_details_text,
     hidden_surfaces: normalizeSurfaceList(form.hidden_surfaces),
     search_aliases: String(form.search_aliases || '').trim(),
-    // Texte e-nov (migration 313) : affiché sur le seul plan e-nov.
+    // Texte e-nov (migration 315) : affiché sur le seul plan e-nov.
     enov_description: String(form.enov_description || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visible_role_slugs),
     visible_group_ids: normalizeAudienceGroupList(form.visible_group_ids),

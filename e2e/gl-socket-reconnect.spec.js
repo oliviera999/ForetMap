@@ -46,7 +46,11 @@ test.describe('GL Socket reconnect', () => {
 
     const eventRes = await request.post(`/api/gl/games/${seeded.gameId}/events`, {
       headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { teamId: seeded.teamId, eventType: 'move', payload: { markerId: 1 } },
+      data: {
+        teamId: seeded.teamId,
+        eventType: 'move',
+        payload: { markerId: seeded.chapterMarkerId },
+      },
     });
     expect(eventRes.status()).toBe(201);
 

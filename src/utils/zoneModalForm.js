@@ -99,7 +99,7 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     visit_details_text: form.visitDetailsText,
     hidden_surfaces: normalizeSurfaceList(form.hiddenSurfaces),
     search_aliases: String(form.searchAliases || '').trim(),
-    // Texte e-nov (migration 313) : affiché sur le seul plan e-nov.
+    // Texte e-nov (migration 315) : affiché sur le seul plan e-nov.
     enov_description: String(form.enovDescription || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visibleRoleSlugs),
     visible_group_ids: normalizeAudienceGroupList(form.visibleGroupIds),

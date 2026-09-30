@@ -42,8 +42,8 @@ test('admin Paramètres : sous-onglets Accueil / Cartographie / Aide', async ({ 
 
   const search = page.getByTestId('settings-admin-search');
   if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await expect(page.getByLabelText(/Rechercher un paramètre/i)).toBeVisible();
-    await page.getByLabelText(/Rechercher un paramètre/i).fill('maintenance');
+    await expect(page.getByLabel(/Rechercher un paramètre/i)).toBeVisible();
+    await page.getByLabel(/Rechercher un paramètre/i).fill('maintenance');
     await expect(page.getByTestId('settings-admin-search-results')).toBeVisible({
       timeout: 10_000,
     });

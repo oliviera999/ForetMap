@@ -112,6 +112,19 @@ export function buildProfilePatchPayload(initial = {}, current = {}) {
   return payload;
 }
 
+/**
+ * Vrai si l'adresse e-mail saisie diffère réellement de celle du compte (casse et espaces
+ * ignorés, comme côté serveur `lib/accounts/emailChange.js`). Un tel changement exige le mot
+ * de passe actuel (audit sécurité 2026-09-30, AC3).
+ */
+export function isProfileEmailChange(initialEmail, currentEmail) {
+  const norm = (value) =>
+    String(value ?? '')
+      .trim()
+      .toLowerCase();
+  return norm(initialEmail) !== norm(currentEmail);
+}
+
 /** Plancher de mot de passe des comptes enseignants (serveur : `lib/passwordReset.js`). */
 export const TEACHER_PASSWORD_MIN_LENGTH = 12;
 

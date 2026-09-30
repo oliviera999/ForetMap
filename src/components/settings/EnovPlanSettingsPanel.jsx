@@ -26,7 +26,7 @@ const DEFAULT_HIGHLIGHT_COLOR = '#f59e0b';
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 /**
- * Réglages du plan e-nov (`enov.*`, migration 313).
+ * Réglages du plan e-nov (`enov.*`, migration 315).
  *
  * Comme le plan des personnels, il n'a **pas** de réglage de carte : il montre la carte du
  * plan public (`ui.plan.map_id`). Ne se règlent ici que sa ligne éditoriale, sa porte

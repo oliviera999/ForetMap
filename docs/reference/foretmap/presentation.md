@@ -494,6 +494,15 @@ Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
 - ✅ **Doublons internes** assainis : le mode Visite n'a plus qu'une génération de
   contenus, et le lien tâche ↔ zones/repères n'a plus qu'une seule source de vérité.
 
+## Vos données
+
+Une page publique **« Vos données »** explique aux élèves, en mots simples, ce que
+l'application garde sur eux, qui le voit (en tête : les enseignants voient leurs
+statistiques et peuvent les exporter), combien de temps, et leurs droits. Elle se lit sans
+compte : lien sous la carte de connexion, phrase d'information dans le formulaire
+d'inscription, rubrique **À propos**. Détail et contact DPO à renseigner :
+[Vos données](../exploitation/vos-donnees.md).
+
 ## Pour aller plus loin
 
 Documents spécifiques (produits au fur et à mesure — voir le

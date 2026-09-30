@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 /**
- * Plan e-nov (migration 313) — filet e2e du produit servi par host : un lieu désigné comme
+ * Plan e-nov (migration 315) — filet e2e du produit servi par host : un lieu désigné comme
  * innovation depuis la console ressort sur le plan e-nov, la puce « Innovations » le liste, et
  * sa fiche s'ouvre sur son texte e-nov. Le plan public, lui, n'en montre rien.
  *
@@ -16,7 +16,7 @@ const { test, expect } = require('@playwright/test');
 const ADMIN_EMAIL = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
 const ADMIN_PASSWORD = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
 
-/** Catégorie-label semée par la migration 313. */
+/** Catégorie-label semée par la migration 315. */
 const ENOV_CATEGORY_ID = 'cat-enov';
 
 /**

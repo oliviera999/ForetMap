@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { signUploadRelativePath } = require('../lib/uploadsSignedUrls');
 const { z, validate } = require('../lib/validate');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
@@ -8,6 +9,7 @@ const { getOnlineUserIdSet } = require('../lib/realtime');
 const { attachPresenceStatus } = require('../lib/shared/presenceCore');
 const { isModuleEnabled } = require('../lib/shared/moduleGate');
 const { getAccountN3beurStatus } = require('../lib/n3beurStudents');
+const { csvCell } = require('../lib/shared/csvCell');
 const {
   EMPTY_ASSIGNMENT_COUNTS,
   summarizeAssignments,
@@ -112,7 +114,7 @@ async function userStats(userId, options = {}) {
     email: s.email,
     pseudo: s.pseudo,
     description: s.description,
-    avatar_path: s.avatar_path,
+    avatar_path: signUploadRelativePath(s.avatar_path),
     last_seen: s.last_seen,
     is_n3beur: isN3beur,
     stats: {
@@ -202,7 +204,7 @@ router.get(
         last_name: s.last_name,
         pseudo: s.pseudo,
         description: s.description,
-        avatar_path: s.avatar_path,
+        avatar_path: signUploadRelativePath(s.avatar_path),
         last_seen: s.last_seen,
         stats: {
           total: agg.total,
@@ -290,12 +292,8 @@ router.get(
       'Tutoriels lus',
       'Dernière connexion',
     ];
-    const escapeCSV = (v) => {
-      const s = String(v ?? '');
-      return s.includes(';') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"`
-        : s;
-    };
+    // AP3 (audit 30/09/2026) : prénom / nom libres → neutralisation des formules de tableur.
+    const escapeCSV = csvCell;
     const rows = result.map((s) =>
       [
         s.first_name,

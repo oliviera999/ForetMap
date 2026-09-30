@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS zones (
   restricted_note_group_ids TEXT DEFAULT NULL,
   -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
-  -- Migration 313 : texte e-nov (plan e-nov seulement).
+  -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
@@ -595,6 +595,14 @@ CREATE TABLE IF NOT EXISTS lti_nonces (
   INDEX idx_lti_nonces_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tickets d'arrivée LTI consommés (migration 314) : un ticket ne s'échange qu'une fois.
+CREATE TABLE IF NOT EXISTS lti_tickets_used (
+  jti VARCHAR(64) NOT NULL PRIMARY KEY,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_lti_tickets_used_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id VARCHAR(64) PRIMARY KEY,
   user_type VARCHAR(16) NOT NULL,
@@ -982,7 +990,7 @@ CREATE TABLE IF NOT EXISTS map_markers (
   restricted_note_group_ids TEXT DEFAULT NULL,
   -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
-  -- Migration 313 : texte e-nov (plan e-nov seulement).
+  -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
@@ -1027,7 +1035,7 @@ CREATE TABLE IF NOT EXISTS location_categories (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   surfaces SET('map','visit','plan','staff','enov') NOT NULL DEFAULT 'map,visit,plan,staff,enov',
   zoom_only TINYINT(1) NOT NULL DEFAULT 0,
-  -- Catégorie-label (migration 313, e-nov) : signale un lieu sans décider de sa visibilité
+  -- Catégorie-label (migration 315, e-nov) : signale un lieu sans décider de sa visibilité
   -- hors de ses propres surfaces (`isVisibleOnSurface`).
   is_distinction TINYINT(1) NOT NULL DEFAULT 0,
   -- Audience héritée par les lieux de la catégorie qui n'ont pas d'audience propre

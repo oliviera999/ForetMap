@@ -18,7 +18,9 @@ recherche, les mêmes fiches, le même bouton « Me situer » — avec trois dif
 - la fiche d'un lieu innovant s'ouvre sur un encadré **« 💡 Innovation e-nov »** qui dit **en
   quoi ce lieu est une innovation**, avant tout le reste (sous-titre, photo, description).
 
-Comme le plan public, il ne demande **aucun compte** et ne conserve aucune donnée personnelle.
+Comme le plan public, il ne demande **aucun compte** et ne conserve aucune donnée personnelle ;
+sa page **« Vos données »** (lien dans l'aide et sur l'écran de saisie du code) le dit aux
+visiteurs.
 Il n'y a ni tâche, ni élève, ni progression. Des **compteurs anonymes** de fréquentation lui sont
 propres (ouvertures, recherches, ouvertures de la liste « Innovations »), séparés de ceux du
 plan public.

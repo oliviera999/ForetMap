@@ -307,7 +307,7 @@ Composer un parcours :
 - Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
   **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
   à la console, renseigner l'URL publique du plan dans _Réglages → Général_
-  (`ui.plan.public_base_url`, par exemple `https://planlyautey.olution.info`).
+  (`ui.plan.public_base_url`, par exemple `https://planlyautey.<domaine>`).
 - Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
   aucune progression, aucun suivi individuel.
 

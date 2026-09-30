@@ -21,7 +21,7 @@ describe('markerFormFromMarker', () => {
       visit_details_text: '',
       hidden_surfaces: [],
       search_aliases: '',
-      // Texte e-nov (migration 313) : affiché sur le seul plan e-nov.
+      // Texte e-nov (migration 315) : affiché sur le seul plan e-nov.
       enov_description: '',
       // Cloisonnement d'audience : qui voit le repère.
       visible_role_slugs: [],

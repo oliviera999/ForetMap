@@ -507,6 +507,12 @@
       "type": "boolean",
       "default": true
     },
+    "privacy.data_contact": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 400,
+      "default": ""
+    },
     "privacy.external_assets_mode": {
       "scope": "public",
       "type": "enum",
@@ -572,9 +578,9 @@
     "security.password_min_length": {
       "scope": "teacher",
       "type": "number",
-      "min": 4,
+      "min": 8,
       "max": 32,
-      "default": 4
+      "default": 8
     },
     "security.plan_access_code_hash": {
       "scope": "admin",
@@ -1451,7 +1457,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1492,7 +1499,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1524,7 +1532,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -1552,7 +1561,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -2828,6 +2838,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "privacy.data_contact",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 400,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "privacy.external_assets_mode",
       "scope": "public",
       "type": "enum",
@@ -2991,10 +3017,10 @@
       "key": "security.password_min_length",
       "scope": "teacher",
       "type": "number",
-      "value": 4,
-      "default_value": 4,
+      "value": 8,
+      "default_value": 8,
       "constraints": {
-        "min": 4,
+        "min": 8,
         "max": 32,
         "maxLength": null,
         "values": null
@@ -4965,7 +4991,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -5006,7 +5033,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -5038,7 +5066,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },
@@ -5066,7 +5095,8 @@
       },
       "privacy": {
         "external_assets_mode": "local",
-        "clear_local_data_on_logout": true
+        "clear_local_data_on_logout": true,
+        "data_contact": ""
       }
     }
   },

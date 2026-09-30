@@ -15,6 +15,7 @@ const { normalizeSpellCodeList, parseSpellCodesFromQuery } = require('../../lib/
 const { buildSpellBulkPatch, buildSpellBulkUpdateSql } = require('../../lib/glSpellBulkPatch');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
+const { sendSafeError, looksInternal, isBusinessError } = require('../../lib/safeErrorResponse');
 const {
   normalizeOptionalString: normalizeOptionalFilter,
 } = require('../../lib/shared/httpHelpers');
@@ -65,6 +66,8 @@ function normalizeCategorySlug(value) {
 }
 
 function handleSpellCrudError(res, err) {
+  // AP2 : une panne (pilote SQL, système) n'expose jamais son message.
+  if (looksInternal(err) && !isBusinessError(err)) return sendSafeError(res, err);
   const status = err.statusCode || 400;
   return res.status(status).json({
     error: err.message || 'Opération impossible',
@@ -387,7 +390,11 @@ router.post(
     try {
       parsed = await resolveImportRows(req.body || {});
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Fichier import invalide',
+        trustPlainErrors: true,
+        req,
+      });
     }
     const { spellRows, categoryRows } = parsed;
     if (!Array.isArray(spellRows) || spellRows.length === 0) {
@@ -407,7 +414,11 @@ router.post(
       );
       return res.json({ report });
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Import impossible' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Import impossible',
+        trustPlainErrors: true,
+        req,
+      });
     }
   }),
 );

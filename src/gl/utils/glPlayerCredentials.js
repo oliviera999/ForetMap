@@ -4,8 +4,11 @@
 // rapport d'import (`credentials`) : rien n'est stocké en clair. Ce module met en forme cette
 // liste pour l'affichage et la distribution (CSV à imprimer / coller dans un tableur).
 
+import { neutralizeCsvFormula } from '../../shared/utils/csvCell.js';
+
+// AP3 (audit 30/09/2026) : noms et pseudos saisis → neutralisation des formules de tableur.
 function csvEscape(value) {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  return `"${neutralizeCsvFormula(value).replace(/"/g, '""')}"`;
 }
 
 /**

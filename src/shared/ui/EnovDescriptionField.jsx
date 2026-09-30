@@ -1,5 +1,5 @@
 /**
- * Texte **e-nov** d'un lieu (migration 313) : en quoi cette zone ou ce repère constitue une
+ * Texte **e-nov** d'un lieu (migration 315) : en quoi cette zone ou ce repère constitue une
  * innovation pour l'établissement. Il n'est affiché que sur le plan e-nov (`enov.*`), **en
  * tête** de la fiche du lieu ; aucune autre surface ne le montre.
  *

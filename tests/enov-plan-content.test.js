@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Plan e-nov (`enov.*`, surface `enov`, migration 313) : charge `GET /api/enov/content`,
+ * Plan e-nov (`enov.*`, surface `enov`, migration 315) : charge `GET /api/enov/content`,
  * catégorie-label (transparente hors de ses surfaces, jamais montrée ailleurs), texte e-nov
  * (écrit par la console, lu sur ce seul plan), garde par code propre, réglages.
  */
@@ -138,7 +138,7 @@ test.after(async () => {
   clearCaches();
 });
 
-test('migration 313 : catégorie e-nov semée, label, visible sur le seul plan e-nov', async () => {
+test('migration 315 : catégorie e-nov semée, label, visible sur le seul plan e-nov', async () => {
   const row = await queryOne(
     'SELECT surfaces, is_distinction, is_active FROM location_categories WHERE id = ?',
     ['cat-enov'],

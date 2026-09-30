@@ -2491,6 +2491,16 @@
       line-height:1.25;
     }
     .auth-version { font-size:var(--text-xs); color:var(--ink-muted); margin-top:8px; margin-bottom:0; text-align:center; }
+    /* Notice « Vos données » (audit RGPD du 30/09/2026, RG1) : phrase d'information avant
+       « Créer le compte », et lien permanent en bas de la carte de connexion. */
+    .auth-privacy-notice {
+      margin:4px 0 8px;
+      font-size:var(--text-sm);
+      color:var(--ink-soft);
+      line-height:1.4;
+    }
+    .auth-privacy-notice .privacy-notice-link { padding:0 4px; min-height:44px; color:var(--forest); }
+    .auth-privacy-footer { margin:12px 0 0; text-align:center; color:var(--forest); }
 
     /* ── ROWS ── */
     .row { display:flex; gap:10px; }

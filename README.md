@@ -172,7 +172,7 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 1. **Créer l’application Node.js** dans cPanel : **Setup Node.js App** — choisir la version Node proposée par l’hébergeur (**18**, **20** ou **22** ; la prod foretmap utilise **22**). **Le répertoire de l’application** doit contenir `server.js`, le dossier **`public/`** (assets + `sw.js` + page d’aide `deploy-help.html`) et, après build, le dossier **`dist/`** avec l’entrée SPA Vite (`index.vite.html`). En production (`NODE_ENV=production`), l’UI est servie depuis **`dist/`**.
 
 2. **Variables d’environnement** dans l’interface de l’app Node (obligatoires pour l’API) :  
-   `DB_HOST=localhost`, `DB_NAME=oliviera_foretmap`, `DB_USER=oliviera_foretmap`, `DB_PASS=...`, `NODE_ENV=production`.  
+   `DB_HOST=localhost`, `DB_NAME=<base>`, `DB_USER=<utilisateur>`, `DB_PASS=...`, `NODE_ENV=production`.  
    Sans ces variables MySQL, la page d’accueil peut s’afficher mais les appels `/api/*` échoueront (erreur serveur).
 
 3. **Fichier d’entrée (Application startup file)** : **`app.js`** (valeur par défaut de cPanel). Ce fichier charge `server.js` et lance le serveur via `boot()`. Il écrit un diagnostic immédiat dans `startup-diag.log` pour faciliter le débogage. Si le champ est sur `server.js`, le démarrage direct fonctionne aussi (`node server.js` appelle `boot()` automatiquement).

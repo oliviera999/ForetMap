@@ -214,6 +214,12 @@ function runHandler(kind) {
       return res.json({ run });
     }
     const run = await recordRunComplete(row.id, userId);
+    if (!run) {
+      return res.status(409).json({
+        error: 'Séance non démarrée : lance-la avant de la terminer',
+        code: 'SESSION_NOT_STARTED',
+      });
+    }
     // Attribution toujours faite (rattrapage au rallumage) ; annonce seulement si le module
     // récompenses est allumé (`ui.modules.rewards_enabled`).
     const awarded = await evaluateSessionRewards(userId, { run, level: row.level });

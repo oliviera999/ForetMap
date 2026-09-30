@@ -100,6 +100,9 @@ export default defineConfig({
       appShortName: brand.appShortName,
       orgName: brand.orgName,
       orgShortName: brand.orgShortName,
+      // Nom du jeu : la notice « Vos données » de G&L le cite (src/shared/privacy/).
+      glName: brand.glName,
+      glShortName: brand.glShortName,
     }),
   },
   root: '.',

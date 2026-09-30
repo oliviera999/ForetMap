@@ -75,7 +75,7 @@ test('POST /api/auth/login avec mauvais mot de passe renvoie 401', async () => {
   const email = `badpass_${Date.now()}@example.com`;
   await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'BadPass', lastName: last, email, password: 'good' });
+    .send({ firstName: 'BadPass', lastName: last, email, password: 'good-pass' });
   const res = await request(app)
     .post('/api/auth/login')
     .send({ identifier: email, password: 'wrong' })
@@ -583,7 +583,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
 
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Statut', lastName: 'Elève' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Statut', lastName: 'Elève' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const { first_name, last_name, id: studentId } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
@@ -634,7 +634,7 @@ test('Unassign élève : le profil conféré par le groupe (plus élevé) l’em
 
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Baby', lastName: 'Unassign' + Date.now(), password: 'pwd1' })
+      .send({ firstName: 'Baby', lastName: 'Unassign' + Date.now(), password: 'pwd1pwd1' })
       .expect(201);
     const { first_name, last_name, id: studentId, authToken: registerToken } = studentRes.body;
 
@@ -748,12 +748,12 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
       .send({
         firstName: 'Limite',
         lastName: `N3b${Date.now()}`,
-        password: 'pwd1',
+        password: 'pwd1pwd1',
         email: enrollEmail,
       })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
-    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const session = await loginStudentAfterRole(studentRes, 'pwd1pwd1', enrollEmail);
     const authToken = session.authToken;
     const { first_name, last_name, id: studentId } = session;
 
@@ -814,12 +814,12 @@ test('Plafond auto-inscription : tâche all_assignees_done avec partie individue
       .send({
         firstName: 'Coll',
         lastName: `N3b${Date.now()}`,
-        password: 'pwd1',
+        password: 'pwd1pwd1',
         email: enrollEmail,
       })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
-    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const session = await loginStudentAfterRole(studentRes, 'pwd1pwd1', enrollEmail);
     const authToken = session.authToken;
     const { first_name, last_name, id: studentId } = session;
 
@@ -888,12 +888,12 @@ test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur
       .send({
         firstName: 'Limite',
         lastName: `Profil${Date.now()}`,
-        password: 'pwd1',
+        password: 'pwd1pwd1',
         email: enrollEmail,
       })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
-    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const session = await loginStudentAfterRole(studentRes, 'pwd1pwd1', enrollEmail);
     const authToken = session.authToken;
     const { first_name, last_name, id: studentId } = session;
 
@@ -951,12 +951,12 @@ test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglag
       .send({
         firstName: 'Sans',
         lastName: `Limite${Date.now()}`,
-        password: 'pwd1',
+        password: 'pwd1pwd1',
         email: enrollEmail,
       })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
-    const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
+    const session = await loginStudentAfterRole(studentRes, 'pwd1pwd1', enrollEmail);
     const authToken = session.authToken;
     const { first_name, last_name, id: studentId } = session;
 
@@ -1109,11 +1109,11 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
 
   const studentARes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'CapA', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'CapA', lastName: 'Eleve' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const studentBRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'CapB', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'CapB', lastName: 'Eleve' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
 
   await setStudentPrimaryRole(studentARes.body.id, 'eleve_novice');
@@ -1152,7 +1152,7 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
 test('Un élève peut proposer une tâche en statut proposed', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Prop', lastName: 'Eleve' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Prop', lastName: 'Eleve' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const { first_name, last_name, id: studentId } = studentRes.body;
   await allowStudentProposalsAtZeroDone();
@@ -1184,7 +1184,7 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
 test('Sécurité proposals : refus sans jeton (403)', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'NoTok', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'NoTok', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   await allowStudentProposalsAtZeroDone();
   await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
@@ -1204,11 +1204,11 @@ test('Sécurité proposals : refus sans jeton (403)', async () => {
 test("Sécurité proposals : refus d'un studentId usurpé (403)", async () => {
   const victimRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Victime', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Victime', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const attackerRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Usurpateur', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Usurpateur', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   await allowStudentProposalsAtZeroDone();
   await setStudentPrimaryRole(victimRes.body.id, 'eleve_avance');
@@ -1229,7 +1229,7 @@ test("Sécurité proposals : refus d'un studentId usurpé (403)", async () => {
 test('Un enseignant peut modifier une proposition élève', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Edit', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Edit', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const { first_name, last_name, id: studentId } = studentRes.body;
   await allowStudentProposalsAtZeroDone();
@@ -1274,11 +1274,11 @@ test('Un enseignant peut modifier une proposition élève', async () => {
 test("Un élève ne peut pas modifier la proposition d'un autre élève", async () => {
   const proposerRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Owner', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Owner', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const otherRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Other', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Other', lastName: 'Prop' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   await allowStudentProposalsAtZeroDone();
   await setStudentPrimaryRole(proposerRes.body.id, 'eleve_avance');
@@ -1311,7 +1311,7 @@ test("Un élève ne peut pas modifier la proposition d'un autre élève", async 
 test("Le proposeur ne peut pas changer le statut d'une proposition", async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Status', lastName: 'Block' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Status', lastName: 'Block' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   await allowStudentProposalsAtZeroDone();
   await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
@@ -1342,7 +1342,7 @@ test("Le proposeur ne peut pas changer le statut d'une proposition", async () =>
 test("Le proposeur ne peut pas changer le mode de validation d'une proposition", async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Mode', lastName: 'Block' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'Mode', lastName: 'Block' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   await allowStudentProposalsAtZeroDone();
   await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
@@ -1742,7 +1742,7 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
 
   const studentRes = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'ToDelete', lastName: 'User' + Date.now(), password: 'pwd1' })
+    .send({ firstName: 'ToDelete', lastName: 'User' + Date.now(), password: 'pwd1pwd1' })
     .expect(201);
   const { id: studentId, first_name, last_name } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');

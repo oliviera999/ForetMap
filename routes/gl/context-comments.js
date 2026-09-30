@@ -3,7 +3,8 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
-const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireGlAuth, hasGlPermission } = require('../../middleware/requireGlAuth');
+const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { requireModuleEnabled } = require('../../lib/shared/moduleGate');
 const { emitContextCommentsChanged } = require('../../lib/realtime');
 const {
@@ -97,8 +98,46 @@ function getActor(glAuth) {
   return { userType, userId };
 }
 
+/**
+ * Modération des commentaires G&L (audit sécurité 2026-09-30, GL3 / I4).
+ *
+ * Réservée aux comptes d'encadrement G&L (`gl_admin` : administrateurs et MJ) qui détiennent
+ * une permission de pilotage du jeu — réglages, contenu ou parties. Le MJ garde ainsi la main
+ * sur les commentaires de ses parties et chapitres ; il n'y a pas de permission RBAC dédiée
+ * à la modération G&L. Les requêtes ci-dessous bornent en plus la modération aux commentaires
+ * **G&L** (`context_type` en `gl_*`) : un MJ ne supprime plus un commentaire ForetMap.
+ */
+const GL_MODERATION_PERMISSIONS = ['gl.settings.manage', 'gl.content.manage', 'gl.game.manage'];
+
 function canModerate(auth) {
-  return String(auth?.userType || '').toLowerCase() === 'gl_admin';
+  if (String(auth?.userType || '').toLowerCase() !== 'gl_admin') return false;
+  return GL_MODERATION_PERMISSIONS.some((perm) => hasGlPermission(auth, perm));
+}
+
+/**
+ * Le lecteur peut-il voir ce contexte ? Existence, puis — pour une partie — appartenance
+ * (GL6 : un joueur lisait et écrivait sur la partie d'une autre classe).
+ */
+async function contextAccessible(glAuth, contextType, contextId) {
+  if (!(await contextExists(contextType, contextId))) return false;
+  if (contextType === 'gl_game') return canAccessGlGame(glAuth, contextId);
+  return true;
+}
+
+/**
+ * Commentaire G&L (type `gl_*` de ce produit) visible par le lecteur, ou `null` (→ 404).
+ * Un identifiant de commentaire ForetMap ne se résout plus depuis `/api/gl/*` (GL3).
+ */
+async function loadAccessibleGlComment(glAuth, commentId, columns) {
+  const types = [...ALLOWED_CONTEXT_TYPES];
+  const comment = await queryOne(
+    `SELECT ${columns} FROM context_comments
+      WHERE id = ? AND context_type IN (${types.map(() => '?').join(', ')}) LIMIT 1`,
+    [commentId, ...types],
+  );
+  if (!comment) return null;
+  if (!(await contextAccessible(glAuth, comment.context_type, comment.context_id))) return null;
+  return comment;
 }
 
 router.use(requireGlAuth);
@@ -112,7 +151,7 @@ router.get(
     const { contextType, contextId, page, pageSize, offset } = req.validatedQuery;
     if (!contextType) return res.status(400).json({ error: 'contextType invalide' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
-    if (!(await contextExists(contextType, contextId))) {
+    if (!(await contextAccessible(req.glAuth, contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
     const { items, total } = await listContextComments(contextType, contextId, {
@@ -154,7 +193,7 @@ router.post(
         .status(400)
         .json({ error: `Message invalide (${MIN_BODY}-${MAX_BODY} caractères)` });
     }
-    if (!(await contextExists(contextType, contextId))) {
+    if (!(await contextAccessible(req.glAuth, contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
     const id = crypto.randomUUID();
@@ -208,7 +247,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const actor = getActor(req.glAuth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const toggle = await resolveReactionToggle(req.params.id, actor, req.body?.emoji);
+    const target = await loadAccessibleGlComment(
+      req.glAuth,
+      req.params.id,
+      'id, context_type, context_id',
+    );
+    if (!target) return res.status(404).json({ error: 'Commentaire introuvable' });
+    const toggle = await resolveReactionToggle(target.id, actor, req.body?.emoji);
     if (toggle.status !== 200) return res.status(toggle.status).json({ error: toggle.error });
     const { comment, reacted, emoji } = toggle;
     emitContextCommentsChanged({
@@ -225,9 +270,10 @@ router.post(
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    const existing = await queryOne(
-      'SELECT id, author_user_type, author_user_id, is_deleted FROM context_comments WHERE id = ? LIMIT 1',
-      [req.params.id],
+    const existing = await loadAccessibleGlComment(
+      req.glAuth,
+      req.params.id,
+      'id, context_type, context_id, author_user_type, author_user_id, is_deleted',
     );
     if (!existing) return res.status(404).json({ error: 'Commentaire introuvable' });
     if (Number(existing.is_deleted)) return res.json({ ok: true, already_deleted: true });
@@ -237,7 +283,7 @@ router.delete(
     if (!owns && !canModerate(req.glAuth)) {
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
-    const deleted = await softDeleteContextComment(req.params.id);
+    const deleted = await softDeleteContextComment(existing.id);
     const comment = deleted.comment;
     emitContextCommentsChanged({
       reason: 'comment_deleted',
@@ -266,9 +312,10 @@ router.post(
         error: `Motif invalide (${MIN_REPORT_REASON_LEN}-${MAX_REPORT_REASON_LEN} caractères)`,
       });
     }
-    const comment = await queryOne(
-      'SELECT id, context_type, context_id FROM context_comments WHERE id = ? LIMIT 1',
-      [req.params.id],
+    const comment = await loadAccessibleGlComment(
+      req.glAuth,
+      req.params.id,
+      'id, context_type, context_id',
     );
     if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
     const duplicate = await queryOne(
@@ -295,3 +342,4 @@ router.post(
 
 module.exports = router;
 module.exports.glContextCommentsListQuerySchema = glContextCommentsListQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.canModerateGlComments = canModerate; // exporté pour test (GL3)
