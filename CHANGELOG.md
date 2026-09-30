@@ -19,6 +19,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Console** : Réglages → Plan Lyautey → « Plan e-nov (enov) » (`EnovPlanSettingsPanel`) : catégories mises en avant, couleur, pastille, intitulé, textes, cartes proposées, filtres, accès.
 - **Migration `315_enov_plan.sql`** : `enov` ajouté **en fin** des `SET` ; continuité avec le plan public (catégories visibles sur `plan` → aussi sur `enov` ; lieux masqués sur `plan` → aussi sur `enov`) ; colonnes `is_distinction` et `enov_description` ; catégorie `cat-enov`.
 - Tests : `tests/enov-plan-content.test.js`, `tests-ui/plan/EnovPlanMount.test.jsx`, règle label dans `tests/location-surfaces.test.js` et `tests-ui/plan/locationSurfaceVisibility.test.js`, priorités / regroupement (`clusterMarkers`, `pctMapLabels`). Docs : `docs/API.md` (section « Plan e-nov », réglages, surfaces), `docs/reference/plan/plan-enov.md`, `docs/EXPLOITATION.md` (ouverture du sous-domaine).
+### Corrigé — plan des personnels (recette stafflyautey du 30/09)
+
+Recette des profils sur `stafflyautey` / `proflyautey` : connexion, contenu, signalement, code partagé et déconnexion conformes pour Administrateur, n3boss, Prof de classe et Personnel ; refus nommé pour les autres profils. Trois écarts corrigés :
+
+- **Barre haute brune** : elle restait bleu marine, comme sur le plan public. La teinte n'habillait que les encadrés réservés. La couleur distingue à nouveau les deux plans.
+- **Session expirée ou accès retiré** : le jeton refusé restait sur l'appareil, et l'écran de connexion revenait sans explication. Il est désormais oublié, avec un message.
+- **Complément réservé** : un lien long sans espace sortait de l'encadré. Il est coupé.
 
 ### Sécurité — correctifs de l'audit sécurité, confidentialité et RGPD du 30/09 (39 constats sur 40)
 

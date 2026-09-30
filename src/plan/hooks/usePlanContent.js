@@ -46,6 +46,8 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
       } catch (err) {
         if (signal?.aborted) return;
         if (err?.status === 401 && err?.body?.auth_required) {
+          // Refus malgré un jeton mémorisé : il ne vaut plus rien ici (expiré, accès retiré).
+          if (variant.getToken?.()) variant.onTokenRefused?.();
           setAuthRequired(true);
           setCodeAvailable(!!err.body.code_available);
           setError(null);

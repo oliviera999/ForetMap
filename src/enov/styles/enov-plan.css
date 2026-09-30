@@ -9,9 +9,10 @@
  */
 
 /*
- * La barre haute garde la marque de l'établissement (`ui.plan.brand`, partagée par les trois
- * plans) : ce qui distingue le plan e-nov à l'écran, c'est son titre et la couleur du halo,
- * reprise ci-dessous par la puce, l'encadré de fiche et l'étiquette de liste.
+ * La barre haute garde la marque de l'établissement (`ui.plan.brand`), comme sur le plan
+ * public — le plan des personnels, lui, la teinte en brun. Ce qui distingue le plan e-nov à
+ * l'écran, c'est son titre et la couleur du halo, reprise ci-dessous par la puce, l'encadré de
+ * fiche et l'étiquette de liste.
  */
 
 /* ---- Puce « Innovations » : la première de la rangée, dans la couleur du halo ---- */

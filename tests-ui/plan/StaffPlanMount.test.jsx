@@ -142,4 +142,34 @@ describe('AppPlan — variante « plan des personnels »', () => {
     fireEvent.click(switchToCode);
     expect(await screen.findByLabelText('Code d’accès')).toBeTruthy();
   });
+
+  test('401 malgré un jeton mémorisé : le jeton est oublié et l’écran d’entrée dit pourquoi', async () => {
+    // Jeton expiré, ou compte qui a perdu l'accès (profil changé, case décochée) : le garder
+    // laissait un jeton ForetMap valide sur l'appareil, et l'écran d'entrée revenait muet.
+    window.localStorage.setItem('staffplan_auth_token', 'jeton-refuse');
+    window.sessionStorage.clear();
+    planApiMock.fetchPlanContent.mockRejectedValueOnce(
+      Object.assign(new Error('Connexion requise'), {
+        status: 401,
+        body: { auth_required: true, code_available: false },
+      }),
+    );
+    render(<AppPlan variant={STAFF_PLAN_VARIANT} />);
+    expect(await screen.findByRole('button', { name: /Se connecter avec Google/ })).toBeTruthy();
+    expect(window.localStorage.getItem('staffplan_auth_token')).toBeNull();
+    expect(screen.getByRole('alert').textContent).toMatch(/expiré|plus accès/);
+  });
+
+  test('401 sans jeton mémorisé (première visite) : aucun message d’échec', async () => {
+    window.sessionStorage.clear();
+    planApiMock.fetchPlanContent.mockRejectedValueOnce(
+      Object.assign(new Error('Connexion requise'), {
+        status: 401,
+        body: { auth_required: true, code_available: false },
+      }),
+    );
+    render(<AppPlan variant={STAFF_PLAN_VARIANT} />);
+    expect(await screen.findByRole('button', { name: /Se connecter avec Google/ })).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
