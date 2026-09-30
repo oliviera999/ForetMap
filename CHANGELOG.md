@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — plan des personnels : « La connexion n'a pas abouti » pour un personnel déjà lié à Google
+
+- **Cause** : l'ancien compte de la personne (souvent un compte élève) gardait sa liaison Google, et son compte Personnel portait l'adresse Google. La connexion plantait (doublon `uq_users_google_sub`).
+- **Désormais** : le compte lié fait foi (CDG-15). S'il n'a pas l'accès, le message le dit (`oauth_google_linked_elsewhere`) et le journal de sécurité nomme les deux comptes, à fusionner.
+- **Codes d'erreur** : le plan des personnels traduit tous les codes Google du serveur (test relu à la source). Un code imprévu est affiché avec le message.
+
 ### Ajouté — Plan e-nov (`enov.olution.info`) : les innovations de l'établissement mises en avant
 
 - **Nouveau produit `enov`** (host `enov.*`, entrée `enov.html`, API `/api/enov`), calqué sur le Plan Lyautey : même écran (`AppPlan` + `ENOV_PLAN_VARIANT`), même carte, même noyau de charge (`lib/planContent.js`) sur une **cinquième surface `enov`**. Public, code de diffusion **propre** facultatif (`ui.enov_plan.access_mode`, `security.enov_plan_access_code_hash`, `POST /api/settings/admin/enov-plan-access-code`, cookie `enov_plan_access`). PWA, icônes (favicon du plan), `noindex`, compteur d'usage `enov` (+ `innovations_open`), notice « Vos données » (`/confidentialite`, contenu du plan public sous le nom « Plan e-nov »).

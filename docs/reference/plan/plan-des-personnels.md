@@ -91,6 +91,18 @@ sur le compte. C'est l'information à comparer avec :
 > plus. Les messages de refus ont été repris dans la foulée : on lit désormais s'il n'existe
 > aucun compte pour cette adresse, si le compte est désactivé, ou s'il lui manque l'accès.
 
+**« Ce compte Google est déjà rattaché à un autre compte de l'établissement ».** La personne a
+deux comptes : son compte Personnel, qui porte son adresse Google, et un **ancien compte**
+(souvent un compte élève créé par une première connexion Google) qui garde la liaison avec
+Google. C'est l'ancien compte qui est reconnu, et il n'a pas l'accès. Fusionnez les deux comptes
+(le compte Personnel absorbe l'ancien) ; le **Journal de sécurité** nomme les deux, à l'action
+`auth.login.oauth_google.linked_elsewhere`.
+
+> **Corrigé (30 septembre 2026).** Ce cas affichait « La connexion n'a pas abouti. Réessayez. »,
+> sans autre indication : la connexion plantait en tentant de rattacher Google au compte
+> Personnel. Désormais, un échec imprévu affiche aussi son **code** (par exemple
+> `oauth_server_error`) : c'est l'information à transmettre à l'administrateur.
+
 Pour un **profil maison**, cochez la permission dans **Réglages → Profils RBAC**, ou
 ajoutez-le aux cases s'il figure dans la liste proposée.
 
