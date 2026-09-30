@@ -37,6 +37,26 @@ export function clearStaffToken() {
   safeLocalStorageRemoveItem(TOKEN_STORAGE_KEY);
 }
 
+/** Message déposé pour l'écran d'entrée quand le serveur refuse un jeton mémorisé. */
+export const STAFF_TOKEN_REFUSED_MESSAGE =
+  'Votre session sur ce plan a expiré, ou votre compte n’y a plus accès. Reconnectez-vous ; si le plan reste fermé, demandez l’accès à un administrateur.';
+
+/**
+ * Le serveur a répondu « connexion requise » alors qu'un jeton était mémorisé : il a expiré,
+ * ou le compte a perdu l'accès (profil changé, case décochée). On l'oublie — le garder
+ * laissait sur l'appareil un jeton ForetMap valide que ce plan n'honore plus — et on dit
+ * pourquoi l'écran d'entrée revient, au lieu de le laisser réapparaître sans explication.
+ * Même canal que l'échec d'un retour Google (`staffplan:oauth-error`, lu par l'écran d'entrée).
+ */
+export function forgetRefusedStaffToken() {
+  clearStaffToken();
+  try {
+    window.sessionStorage?.setItem?.('staffplan:oauth-error', STAFF_TOKEN_REFUSED_MESSAGE);
+  } catch (_) {
+    /* stockage indisponible : le jeton est oublié, le message est facultatif */
+  }
+}
+
 /**
  * Consomme le fragment `#oauth=` / `#oauth_error=` du retour Google, au montage.
  *

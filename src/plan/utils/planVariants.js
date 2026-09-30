@@ -12,7 +12,7 @@
  * (host, PWA, icônes).
  */
 
-import { clearStaffToken, getStaffToken } from '../staffSession.js';
+import { clearStaffToken, forgetRefusedStaffToken, getStaffToken } from '../staffSession.js';
 
 /** Plan Lyautey public : ouvert à tous, éventuellement derrière un code de diffusion. */
 export const PLAN_VARIANT = Object.freeze({
@@ -47,6 +47,8 @@ export const STAFF_PLAN_VARIANT = Object.freeze({
   requiresAccount: true,
   accessIntro: 'Réservé aux personnels du lycée.',
   getToken: getStaffToken,
+  /** Jeton mémorisé refusé par le serveur (expiré, accès retiré) : oublié, avec un message. */
+  onTokenRefused: forgetRefusedStaffToken,
   /** Déconnexion : le jeton quitte l'appareil (le laissez-passer, lui, est effacé côté serveur). */
   clearToken: clearStaffToken,
 });
