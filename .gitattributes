@@ -7,3 +7,18 @@
 # .github/workflows/auto-resolve-conflicts.yml pour la résolution automatisée
 # côté CI (qui gère aussi les bumps de version package.json / package-lock.json).
 CHANGELOG.md merge=union
+
+# Archive remise à un tiers (`git archive`, docs/EXPLOITATION.md § 12) — audit sécurité/RGPD du
+# 30/09/2026 (CS3, S-14). `export-ignore` retire ces chemins de l'archive SANS les retirer du
+# dépôt : documents de terrain (métadonnées d'auteurs, noms d'adultes), fixtures de base, tests et
+# scénarios (adresses et données fictives), configuration des assistants, audits datés (qui
+# décrivent des faiblesses connues du site).
+"Datas Sources/" export-ignore
+sql/fixtures/ export-ignore
+tests/ export-ignore
+tests-ui/ export-ignore
+e2e/ export-ignore
+.cursor/ export-ignore
+.claude/ export-ignore
+docs/audits/ export-ignore
+docs/AUDIT_* export-ignore

@@ -34,6 +34,19 @@ test('toute photo Wikimedia porte un auteur et une licence', async () => {
   );
 });
 
+test('aucun crédit photo ne recopie une adresse e-mail (migration 314)', async () => {
+  // Commons laisse parfois l'adresse du photographe dans le champ « Artist » : l'attribution
+  // demande un nom, jamais des coordonnées personnelles (audit du 30/09/2026, CS2).
+  const rows = await queryAll(
+    `SELECT name FROM plants WHERE photo_credit LIKE '%@%' ORDER BY name`,
+  );
+  assert.deepStrictEqual(
+    rows.map((row) => row.name),
+    [],
+    'crédit photo contenant une adresse e-mail : ne garder que le nom de l’auteur',
+  );
+});
+
 test('une licence renseignée n’est jamais seule sans auteur, ni l’inverse', async () => {
   const rows = await queryAll(
     `SELECT name FROM plants

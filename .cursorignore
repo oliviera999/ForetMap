@@ -22,6 +22,11 @@ sql/dumps/
 *.sql.gz
 !sql/fixtures/*.sql.gz
 *.prod-dump.sql
+# Dumps complets et exports nommés d'après la base (mêmes motifs que `.gitignore`) — audit RGPD
+# du 28/09/2026, S-14.
+*_bdd_complete.sql
+*_dump.sql
+*-dump.sql
 
 # Photos déposées par les élèves et les professeurs (zones, task-logs, forum)
 uploads/
@@ -35,6 +40,10 @@ logs/
 *.log
 startup.log
 startup-diag.log
+# Archives de journaux CI téléchargées depuis GitHub Actions (S-14) : sorties de tests, parfois
+# enrichies de requêtes et d'identifiants.
+ci-job-*-logs.zip
+*-logs.zip
 
 # Artefacts lourds sans valeur de contexte
 node_modules/

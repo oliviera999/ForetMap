@@ -10,12 +10,22 @@ import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { ImageLightboxProvider } from './shared/components/ImageLightboxProvider.jsx';
 import { withAppBase } from './services/api';
 import { registerServiceWorker } from './shared/pwa/registerServiceWorker.js';
+import { isPrivacyNoticePath } from './shared/privacy/privacyNoticePath.js';
+import { PrivacyNoticePage } from './shared/privacy/PrivacyNoticePage.jsx';
+
+// Notice « Vos données » (`/confidentialite`) : page publique, montée à la place de
+// l'application pour être lisible sans compte ni session (audit RGPD du 30/09/2026, RG1).
+const showPrivacyNotice = isPrivacyNoticePath(window.location.pathname);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <ImageLightboxProvider>
-      <App />
-    </ImageLightboxProvider>
+    {showPrivacyNotice ? (
+      <PrivacyNoticePage product="foret" />
+    ) : (
+      <ImageLightboxProvider>
+        <App />
+      </ImageLightboxProvider>
+    )}
   </ErrorBoundary>,
 );
 

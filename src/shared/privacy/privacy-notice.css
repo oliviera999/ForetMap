@@ -1,0 +1,105 @@
+/*
+ * Notice « Vos données » et son lien (audit sécurité/RGPD du 30/09/2026, RG1).
+ * Feuille commune aux quatre produits : elle ne s'appuie que sur les jetons partagés
+ * (`src/shared/styles/color-tokens.css`, `typography-tokens.css`), avec des replis.
+ */
+
+.privacy-notice-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  color: inherit;
+  font-size: var(--text-sm, 0.875rem);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.privacy-notice-link:focus-visible,
+.privacy-notice__back-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.privacy-notice {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 16px;
+  background: var(--surface-cool, #f8fafc);
+  color: var(--ink-strong, #1f2937);
+  font-size: var(--text-md, 1rem);
+  line-height: 1.55;
+}
+
+.privacy-notice__card {
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 20px 12px;
+  background: var(--surface-plain, #fff);
+  border: 1px solid var(--line-soft, #e5e7eb);
+  border-radius: 14px;
+}
+
+.privacy-notice__eyebrow {
+  margin: 0;
+  color: var(--ink-muted, #6b7280);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.privacy-notice__title {
+  margin: 4px 0 8px;
+  font-size: var(--text-xl, 1.5rem);
+  line-height: 1.25;
+}
+
+.privacy-notice__intro {
+  margin: 0 0 12px;
+}
+
+.privacy-notice__highlight {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--ink-moss, #4c5b52);
+  background: var(--surface-sunken, #f3f4f6);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.privacy-notice__section {
+  margin: 0 0 16px;
+}
+
+.privacy-notice__section h2 {
+  margin: 0 0 6px;
+  font-size: var(--text-lg, 1.125rem);
+  line-height: 1.3;
+}
+
+.privacy-notice__section p,
+.privacy-notice__section ul {
+  margin: 0 0 8px;
+}
+
+.privacy-notice__section ul {
+  padding-left: 1.25em;
+}
+
+.privacy-notice__section li + li {
+  margin-top: 4px;
+}
+
+.privacy-notice__back {
+  margin: 8px 0 0;
+}
+
+.privacy-notice__back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  font-weight: 600;
+}

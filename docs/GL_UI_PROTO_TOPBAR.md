@@ -77,4 +77,4 @@ Exporter le HTML + notes d’intention. **Ne pas merger le HTML brut** : retrans
 
 ## Capture web
 
-Capturer `gl.olution.info` (connecté joueur) en viewport mobile pour ancrer le prototype sur l’existant.
+Capturer `gl.<domaine>` (connecté joueur) en viewport mobile pour ancrer le prototype sur l’existant.

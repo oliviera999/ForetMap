@@ -112,7 +112,7 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       isGoogleEmailAllowed('eleve@lyceelyautey.org', 'lyceelyautey.org', domains, emails),
       true,
     );
-    assert.equal(isGoogleEmailAllowed('intrus@gmail.com', null, domains, emails), false);
+    assert.equal(isGoogleEmailAllowed('intrus@exemple.invalid', null, domains, emails), false);
     assert.equal(isGoogleEmailAllowed('', null, domains, emails), false);
     assert.equal(isGoogleEmailAllowed(null, null, domains, emails), false);
   });

@@ -3,7 +3,8 @@
 Mémo unique, autosuffisant, pour configurer l'exploitation côté serveur (o2switch).
 Détail et comportement : [`docs/EXPLOITATION.md`](EXPLOITATION.md).
 
-> Remplacer `USER` par le compte hébergeur et adapter `DEPLOY_BASE_URL` / chemins.
+> Remplacer `USER` par le compte hébergeur et `<domaine-foretmap>` par le domaine de ForetMap ;
+> adapter `DEPLOY_BASE_URL` / chemins.
 > Tout repose sur le `.env` serveur (non versionné) pour les secrets : `DEPLOY_SECRET`,
 > `DB_*`, `SMTP_*`, `OPS_ALERT_TO`.
 
@@ -55,16 +56,16 @@ OPS_ALERT_TO=admin@…
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
-*/2 * * * * mkdir -p /home/USER/foretmap/logs && APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info DEPLOY_AUTO_MIGRATE=1 bash /home/USER/foretmap/scripts/auto-deploy-cron.sh >> /home/USER/foretmap/logs/foretmap-auto-deploy.log 2>&1
+*/2 * * * * mkdir -p /home/USER/foretmap/logs && APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://<domaine-foretmap> DEPLOY_AUTO_MIGRATE=1 bash /home/USER/foretmap/scripts/auto-deploy-cron.sh >> /home/USER/foretmap/logs/foretmap-auto-deploy.log 2>&1
 
 # 2) Sauvegarde BDD quotidienne (dump compressé, chiffré si BACKUP_ENCRYPT_KEY_FILE est dans .env, + rotation) — 03:00
 0 3 * * * APP_DIR=/home/USER/foretmap bash /home/USER/foretmap/scripts/db-backup.sh >> /home/USER/foretmap/logs/db-backup.log 2>&1
 
 # 3) Sonde de disponibilité /api/ready (alerte email au changement d'état) — toutes les 5 min
-*/5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info bash /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
+*/5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://<domaine-foretmap> bash /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
 
 # 4) Keepalive : empêche l'arrêt d'inactivité Passenger aux heures d'usage — toutes les 3 min, 7h-22h
-*/3 7-22 * * * curl -fsS --max-time 20 https://foretmap.olution.info/api/health >/dev/null 2>&1
+*/3 7-22 * * * curl -fsS --max-time 20 https://<domaine-foretmap>/api/health >/dev/null 2>&1
 ```
 
 **Pourquoi la ligne 4 alors que la ligne 3 interroge déjà le site ?** Elles ne font pas le

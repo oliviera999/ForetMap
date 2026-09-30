@@ -26,13 +26,23 @@ import './styles/plan.css';
 import { AppPlan } from './AppPlan.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
+import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
+import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
 
 document.body.classList.add('plan-body');
 
+// Notice « Vos données » (`/confidentialite`), lisible sans code ni compte (audit RGPD du
+// 30/09/2026, RG1).
+const showPrivacyNotice = isPrivacyNoticePath(window.location.pathname);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <AppDialogsProvider>
-      <AppPlan />
-    </AppDialogsProvider>
+    {showPrivacyNotice ? (
+      <PrivacyNoticePage product="plan" />
+    ) : (
+      <AppDialogsProvider>
+        <AppPlan />
+      </AppDialogsProvider>
+    )}
   </ErrorBoundary>,
 );

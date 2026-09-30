@@ -36,15 +36,24 @@ import { AppGL } from './AppGL.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { ImageLightboxProvider } from '../shared/components/ImageLightboxProvider.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
+import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
+import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
 
 document.body.classList.add('gl-body');
 
+// Notice « Vos données » (`/confidentialite`), lisible sans compte (audit RGPD du 30/09/2026, RG1).
+const showPrivacyNotice = isPrivacyNoticePath(window.location.pathname);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <AppDialogsProvider>
-      <ImageLightboxProvider>
-        <AppGL />
-      </ImageLightboxProvider>
-    </AppDialogsProvider>
+    {showPrivacyNotice ? (
+      <PrivacyNoticePage product="gl" />
+    ) : (
+      <AppDialogsProvider>
+        <ImageLightboxProvider>
+          <AppGL />
+        </ImageLightboxProvider>
+      </AppDialogsProvider>
+    )}
   </ErrorBoundary>,
 );

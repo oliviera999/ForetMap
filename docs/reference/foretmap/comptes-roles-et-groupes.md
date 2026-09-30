@@ -423,6 +423,10 @@ Chacun peut récupérer tout ce que l'application garde sur lui, comme la loi le
   (droit « Export des données d'un compte ») et chaque export est inscrit au journal
   d'audit.
 - Pour éviter les abus, on ne peut pas produire plus de dix archives par heure.
+- Avant même d'avoir un compte, chacun peut lire la page **« Vos données »** (lien sous la
+  carte de connexion, phrase d'information dans le formulaire d'inscription, rubrique
+  **À propos**) : ce qui est gardé, qui le voit, combien de temps, et ses droits. Détail :
+  [Vos données](../exploitation/vos-donnees.md).
 - Pendant un « Voir comme cet utilisateur », le bouton du profil est refusé :
   l'administrateur passe par l'export de la fiche, qui est tracé à son nom.
 
@@ -632,6 +636,17 @@ sous-onglet consulté qui est rouvert.
 > la carte. Pour une **classe de visiteurs** gérée par un prof de classe, ce comportement
 > « rester visiteur » est **voulu** — ne pas poser par erreur un palier n3beur sur ce
 > groupe.
+
+> ⚠️ **Point d'attention — à arbitrer (minimisation des données).** Le profil **n3boss**
+> reçoit par défaut les droits « statistiques de tous les élèves » et « export des
+> statistiques », en plus des statistiques de ses groupes. Il voit donc la progression de
+> **tous** les élèves de l'établissement, pas seulement de ses classes, et peut l'exporter.
+> Le principe de minimisation du RGPD invite à se demander si c'est nécessaire. Rien n'a été
+> changé sans décision : la notice « Vos données » l'annonce en tête (« tes enseignants voient
+> tes statistiques et peuvent les exporter »). **Pour restreindre**, aucun réglage dédié
+> n'existe ; un administrateur retire ces deux droits du profil n3boss dans **Profils &
+> utilisateurs → Profils** (le n3boss garde alors les statistiques de ses groupes, comme le
+> prof de classe, qui n'a jamais eu la vue globale). Audit du 30/09/2026, R6.
 
 ## Pour aller plus loin
 

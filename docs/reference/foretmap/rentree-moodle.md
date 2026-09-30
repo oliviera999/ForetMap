@@ -261,7 +261,7 @@ cours. Le professeur pose l'activité à la main dans Moodle (pas d'insertion au
   chapitre. Seuls ces groupes-miroir sont créés ou retirés ; un joueur sans compte Moodle
   reconnu est signalé, pas inventé. Le premier passage sur le vrai Moodle reste à valider.
 - **Entrée depuis le cours** : le clic Moodle est en place côté application ; le premier
-  lancement réel depuis olution.info reste à mesurer (réglage de l'outil dans Moodle, geste
+  lancement réel depuis <domaine> reste à mesurer (réglage de l'outil dans Moodle, geste
   technique).
 - **Un conflit ignoré ne revient pas** : « Ignorer » est définitif pour cet écart-là. Si l'on
   change d'avis, il faut refaire le geste dans le groupe (remettre ou retirer l'élève) puis

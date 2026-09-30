@@ -100,7 +100,7 @@ UPDATE plants SET photo_credit = 'Ivar Leidus', photo_licence = 'CC BY-SA 4.0' W
 UPDATE plants SET photo_credit = 'Alberto Salguero', photo_licence = 'CC BY-SA 3.0' WHERE id = 69 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'JMK', photo_licence = 'CC BY-SA 3.0' WHERE id = 70 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Ejgouda (téléversement Wikimedia Commons)', photo_licence = 'CC BY-SA 3.0' WHERE id = 71 AND photo_credit IS NULL;
-UPDATE plants SET photo_credit = 'Arch. Attilio Mileto - attilio.mileto@florero.net', photo_licence = 'CC BY-SA 3.0' WHERE id = 72 AND photo_credit IS NULL;
+UPDATE plants SET photo_credit = 'Arch. Attilio Mileto', photo_licence = 'CC BY-SA 3.0' WHERE id = 72 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Stan Shebs', photo_licence = 'CC BY-SA 3.0' WHERE id = 73 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Griensteidl', photo_licence = 'CC BY-SA 3.0' WHERE id = 74 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'ArtMechanic (téléversement Wikimedia Commons)', photo_licence = 'Public domain' WHERE id = 75 AND photo_credit IS NULL;
@@ -163,7 +163,7 @@ UPDATE plants SET photo_credit = 'Amédée Masclef', photo_licence = 'Public dom
 UPDATE plants SET photo_credit = 'Fir0002 (téléversement Wikimedia Commons)', photo_licence = 'CC BY-SA 3.0' WHERE id = 203 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'H. Zell', photo_licence = 'CC BY-SA 3.0' WHERE id = 204 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Otto Wilhelm Thomé', photo_licence = 'Public domain' WHERE id = 205 AND photo_credit IS NULL;
-UPDATE plants SET photo_credit = 'Kolforn ( Kolforn ) I''d appreciate if you could mail me (Kolforn@gmail.com) if you want to use this picture out of th…', photo_licence = 'CC BY-SA 4.0' WHERE id = 206 AND photo_credit IS NULL;
+UPDATE plants SET photo_credit = 'Kolforn', photo_licence = 'CC BY-SA 4.0' WHERE id = 206 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'H. Zell', photo_licence = 'CC BY-SA 3.0' WHERE id = 207 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Otto Wilhelm Thomé', photo_licence = 'CC BY-SA 3.0' WHERE id = 208 AND photo_credit IS NULL;
 UPDATE plants SET photo_credit = 'Walther Otto Müller', photo_licence = 'Public domain' WHERE id = 209 AND photo_credit IS NULL;

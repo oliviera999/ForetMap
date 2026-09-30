@@ -212,6 +212,13 @@ L'admin dispose d'un écran de réglages complet :
 Le MJ peut animer et éditer les contenus, mais **seul l'admin touche aux réglages de la
 plateforme**.
 
+## Vos données
+
+Une page publique **« Vos données »** explique aux joueurs ce que le jeu garde sur eux, qui le
+voit (le MJ et les enseignants voient leur progression), combien de temps, et leurs droits.
+Elle se lit sans compte : lien sous la carte de connexion, et dans **Mon profil → Mes
+données**. Détail : [Vos données](../exploitation/vos-donnees.md).
+
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête — ces points ont été relevés en examinant le fonctionnement

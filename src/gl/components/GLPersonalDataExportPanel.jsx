@@ -5,6 +5,7 @@ import { personalDataExportFilename } from '../../shared/personalDataExport.js';
 import { getGlToken } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
+import { PrivacyNoticeLink } from '../../shared/privacy/PrivacyNoticeLink.jsx';
 
 /** Téléchargement de l'archive des données personnelles du joueur (droit d'accès RGPD). */
 export function GLPersonalDataExportPanel() {
@@ -46,6 +47,9 @@ export function GLPersonalDataExportPanel() {
       <GLButton type="button" variant="secondary" loading={busy} onClick={download}>
         {busy ? 'Préparation…' : 'Télécharger mes données'}
       </GLButton>
+      <p className="gl-hint">
+        Qui voit quoi, combien de temps, vos droits : <PrivacyNoticeLink />
+      </p>
     </GLSurface>
   );
 }
