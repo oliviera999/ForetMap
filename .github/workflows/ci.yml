@@ -161,8 +161,9 @@ jobs:
       - name: Install Playwright browser
         # Téléchargement du navigateur + paquets système : la seule étape du job qui
         # dépende d'un réseau externe, et donc la seule à pouvoir rester suspendue.
-        # Elle prend ~1 min quand tout va bien.
-        timeout-minutes: 10
+        # Elle prend ~1 min quand tout va bien, mais un miroir apt lent l'a déjà fait
+        # dépasser 10 min (30/09/2026) : 20 min laissent la marge sans masquer un blocage.
+        timeout-minutes: 20
         run: npx playwright install --with-deps chromium webkit
 
       - name: Start app server for e2e
