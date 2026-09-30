@@ -2,11 +2,7 @@
   "mcpServers": {
     "foretmap-diagnostics": {
       "command": "node",
-      "args": ["${workspaceFolder}/scripts/mcp-foretmap-diagnostics.mjs"],
-      "env": {
-        "FORETMAP_BASE_URL": "https://foretmap.olution.info",
-        "GL_BASE_URL": "https://gl.olution.info"
-      }
+      "args": ["${workspaceFolder}/scripts/mcp-foretmap-diagnostics.mjs"]
     }
   }
 }

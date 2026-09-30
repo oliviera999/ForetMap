@@ -4,6 +4,7 @@ import { getContentText } from '../utils/content';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { getAuthToken, withAppBase } from '../services/api';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
+import { privacyNoticeHref } from '../shared/privacy/privacyNoticePath.js';
 
 /**
  * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
@@ -110,6 +111,12 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
   );
   const docsLinks = [
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
+    // Notice RGPD publique (audit du 30/09/2026, RG1) : aussi liée depuis l'écran de connexion.
+    {
+      label: 'Vos données',
+      href: privacyNoticeHref(),
+      desc: 'Ce que l’application garde sur toi, qui le voit, combien de temps, et tes droits',
+    },
   ];
 
   return (

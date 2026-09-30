@@ -7,6 +7,7 @@ import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 import { PinModal } from './auth/PinModal.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
 import { IconWarning } from '../shared/icons.jsx';
+import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
 function AuthScreen({
   onLogin,
@@ -382,6 +383,13 @@ function AuthScreen({
                 onKeyDown={onKey}
               />
             </div>
+            {/* Information au moment de la collecte (art. 13 RGPD, audit du 30/09/2026, RG1) :
+                le public est mineur, la phrase reste courte et renvoie à la notice complète. */}
+            <p className="auth-privacy-notice" data-testid="auth-register-privacy">
+              Ton nom, ton e-mail (si tu le donnes) et ce que tu fais dans l’application sont gardés
+              par l’établissement pour les activités de la classe ; tes enseignants voient ta
+              progression. <PrivacyNoticeLink>En savoir plus : vos données</PrivacyNoticeLink>
+            </p>
           </>
         )}
         <button
@@ -490,6 +498,9 @@ function AuthScreen({
             {guestVisitLabel}
           </button>
         )}
+        <p className="auth-privacy-footer">
+          <PrivacyNoticeLink />
+        </p>
         <p className="auth-home-credit">projet initialement produit Mohammed El Farrai</p>
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>

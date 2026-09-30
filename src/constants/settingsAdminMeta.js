@@ -508,6 +508,13 @@ export const KEY_META = {
     section: 'privacy',
     order: 20,
   },
+  'privacy.data_contact': {
+    label:
+      'Contact « données personnelles » affiché dans la page « Vos données » de chaque application (DPO de l’établissement, adresse e-mail ou bureau à contacter). Vide : la page renvoie vers les enseignants et la direction.',
+    section: 'privacy',
+    order: 30,
+  },
+
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',

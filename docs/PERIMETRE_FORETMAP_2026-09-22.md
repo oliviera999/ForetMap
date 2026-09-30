@@ -29,13 +29,13 @@ Le dépôt sert **quatre applications publiques** plus un outil interne. Chacune
 l'adresse web utilisée et possède ses propres pages, ses propres icônes d'installation sur
 téléphone et, pour certaines, sa propre famille d'adresses techniques.
 
-| Surface                      | Adresse                                                                      | Public visé                                                               | Mode d'accès                                                                                                                                                                 | État vérifié                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **ForêtMap**                 | `foretmap.olution.info` (adresse principale)                                 | Élèves, professeurs, personnels, visiteurs                                | Compte (identifiant ou e-mail + mot de passe, ou compte Google si un administrateur l'a autorisé — désactivé par défaut) ; entrée « Visiter en invité » possible sans compte | En service, c'est la surface la plus utilisée                    |
-| **Gnomes & Licornes (G&L)**  | `gl.olution.info`                                                            | Élèves de cycle 3 (~9-12 ans) et leurs enseignants, qui animent la partie | Comptes joueurs propres au jeu ; les comptes enseignants de ForêtMap servent de comptes maître du jeu / administrateur ; mode invité activable                               | En service, mais usage encore très faible sur la période mesurée |
-| **Plan Lyautey**             | `planlyautey.olution.info`                                                   | Élèves, familles, visiteurs, nouveaux personnels                          | Aucun compte, aucune donnée personnelle ; un mode « code d'accès » existe mais n'est pas activé                                                                              | En service                                                       |
-| **Plan des personnels**      | `proflyautey.olution.info` et `stafflyautey.olution.info` (même application) | Personnels du lycée (enseignants, vie scolaire, intendance, agents)       | Connexion avec un compte portant l'un des profils autorisés ; un code partagé peut être ouvert en complément (désactivé par défaut)                                          | En service, mise en place la plus récente (17 septembre 2026)    |
-| **Outil « packs mascotte »** | page technique du même serveur                                               | Personne chargée de préparer les mascottes                                | Outil de mise au point, non destiné aux utilisateurs finaux                                                                                                                  | Outil interne                                                    |
+| Surface                      | Adresse                                                                | Public visé                                                               | Mode d'accès                                                                                                                                                                 | État vérifié                                                     |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **ForêtMap**                 | `foretmap.<domaine>` (adresse principale)                              | Élèves, professeurs, personnels, visiteurs                                | Compte (identifiant ou e-mail + mot de passe, ou compte Google si un administrateur l'a autorisé — désactivé par défaut) ; entrée « Visiter en invité » possible sans compte | En service, c'est la surface la plus utilisée                    |
+| **Gnomes & Licornes (G&L)**  | `gl.<domaine>`                                                         | Élèves de cycle 3 (~9-12 ans) et leurs enseignants, qui animent la partie | Comptes joueurs propres au jeu ; les comptes enseignants de ForêtMap servent de comptes maître du jeu / administrateur ; mode invité activable                               | En service, mais usage encore très faible sur la période mesurée |
+| **Plan Lyautey**             | `planlyautey.<domaine>`                                                | Élèves, familles, visiteurs, nouveaux personnels                          | Aucun compte, aucune donnée personnelle ; un mode « code d'accès » existe mais n'est pas activé                                                                              | En service                                                       |
+| **Plan des personnels**      | `proflyautey.<domaine>` et `stafflyautey.<domaine>` (même application) | Personnels du lycée (enseignants, vie scolaire, intendance, agents)       | Connexion avec un compte portant l'un des profils autorisés ; un code partagé peut être ouvert en complément (désactivé par défaut)                                          | En service, mise en place la plus récente (17 septembre 2026)    |
+| **Outil « packs mascotte »** | page technique du même serveur                                         | Personne chargée de préparer les mascottes                                | Outil de mise au point, non destiné aux utilisateurs finaux                                                                                                                  | Outil interne                                                    |
 
 Les quatre applications publiques partagent le même serveur, la même base de données et une
 bibliothèque d'affichage commune (le moteur de carte, les champs de formulaire, les encadrés).
@@ -146,7 +146,7 @@ boussole et l'installation sur l'écran d'accueil.
   passerelles voulues : les comptes enseignants de ForêtMap servent de comptes maître du jeu, et un
   élève peut relier ses deux comptes.
 
-- **Moodle (`olution.info`) — deux liens distincts, de maturité différente.**
+- **Moodle (`<domaine>`) — deux liens distincts, de maturité différente.**
   1. **L'annuaire des classes (en service).** ForêtMap lit les cohortes Moodle (une par classe,
      une par niveau, une pour le club) et s'aligne dessus : création des comptes nouveaux,
      reconnaissance des comptes existants sans doublon, création d'un groupe par cohorte,
@@ -162,7 +162,7 @@ boussole et l'installation sur l'écran d'accueil.
      création de liens depuis Moodle** ; la documentation interne identifie ces deux mécanismes
      comme le principal chantier restant.
 
-- **`yo.olution.info` — site WordPress d'origine des contenus du jeu.** Un outil d'import récupère
+- **`yo.<domaine>` — site WordPress d'origine des contenus du jeu.** Un outil d'import récupère
   les pages et l'identité visuelle de ce site pour alimenter Gnomes & Licornes. C'est une opération
   ponctuelle d'alimentation en contenu, pas une intégration permanente.
 

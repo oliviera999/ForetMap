@@ -99,7 +99,7 @@ tout autre motif → **400**, pas de traversée de chemin possible).
 Le fichier Markdown n'est **jamais réécrit** par le serveur : pour reverser une modification dans
 Git, l'onglet propose de télécharger le `.md` et de le commiter.
 
-Import éditorial WordPress (source recommandée `https://yo.olution.info`) : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
+Import éditorial WordPress (source recommandée `https://yo.<domaine>`) : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
 
 Le script accepte aussi :
 
@@ -633,6 +633,29 @@ chargement des entrées ForetMap, G&L, Plan et de l'intro G&L.
   section suivante).
 
 ---
+
+## Notice « Vos données » (RGPD — information des personnes)
+
+Audit sécurité/RGPD du 30/09/2026, constat RG1 (art. 12 à 14 du RGPD, public mineur).
+
+- **Page publique `/confidentialite`**, dans chaque produit (ForetMap, G&L, plan, plan des
+  personnels) : ce n'est pas une route serveur. Le repli SPA (`lib/spaFallback.js`) rend l'entrée
+  HTML du produit, et chaque `main.jsx` monte `PrivacyNoticePage`
+  (`src/shared/privacy/`) à la place de l'application : aucune session, aucun code d'accès, aucun
+  appel authentifié. Le texte (`privacyNoticeContent.js`) prend les noms dans la marque du build
+  (`lib/brand.js`, constante `__FORETMAP_BUILD_BRAND__`, qui porte désormais aussi `glName` et
+  `glShortName`) ; ses durées de conservation sont vérifiées contre les constantes serveur par
+  `tests/privacy-notice.test.js`.
+- La page lit `GET /api/settings/public` (section `privacy`, servie à **tous** les produits) :
+  - **`privacy.data_contact`** (portée `public`, texte, 400 caractères au plus, défaut vide) —
+    coordonnées « données personnelles » (DPO, adresse de contact) affichées dans la rubrique
+    « Qui est responsable ? ». Vide : la notice renvoie vers les enseignants et la direction.
+    Réglage modifiable dans Réglages → Confidentialité (RGPD) (`admin.settings.write`) ;
+  - `privacy.external_assets_mode` et `privacy.clear_local_data_on_logout` adaptent la rubrique
+    « Ce qui est gardé sur ton appareil ».
+- Liens « Vos données » : écran de connexion et formulaire d'inscription ForetMap (phrase
+  d'information avant « Créer le compte »), page « À propos », écran de connexion G&L et panneau
+  « Mes données » du profil G&L, aide du plan, écrans de code et de connexion des plans.
 
 ## Ressources tierces (RGPD — polices et images Wikimedia)
 

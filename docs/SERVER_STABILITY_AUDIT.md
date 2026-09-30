@@ -2,7 +2,7 @@
 
 Document de synthèse (exécution le **2026-04-05**). Complète les guides [EXPLOITATION.md](EXPLOITATION.md), [EVOLUTION.md](EVOLUTION.md) § 1.4 et le plan d’audit stabilité.
 
-## 1. Vérifications production (`https://foretmap.olution.info`)
+## 1. Vérifications production (`https://foretmap.<domaine>`)
 
 | Contrôle                                                   | Résultat                                                                                                                                                                    |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

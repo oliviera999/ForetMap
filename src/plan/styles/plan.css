@@ -266,6 +266,15 @@ body.plan-body {
   margin-top: var(--space-2, 8px);
 }
 
+/* Lien « Vos données » (audit RGPD du 30/09/2026, RG1) : aide, écran de code, connexion. */
+.plan-help__privacy {
+  margin: var(--space-3, 12px) 0 0;
+}
+
+.plan-access-gate__privacy {
+  align-self: center;
+}
+
 .plan-help__hint {
   margin: 0 0 var(--space-3, 12px);
   color: var(--plan-muted);

@@ -322,7 +322,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Nom: ' Lovelace ',
       'Mot de passe': ' MotDePasse12! ',
       Pseudo: '  ',
-      Email: ' ada@gmail.com ',
+      Email: ' ada@exemple.invalid ',
       Description: '',
     });
     assert.deepEqual(payload, {
@@ -334,7 +334,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       password: 'MotDePasse12!',
       groupRefs: [],
       pseudo: null,
-      email: 'ada@gmail.com',
+      email: 'ada@exemple.invalid',
       description: null,
     });
   });
@@ -387,7 +387,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
       Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'azerty123',
-      Email: 'ada.externe@gmail.com',
+      Email: 'ada.externe@exemple.invalid',
     });
     assert.deepEqual(validateImportStudentPayload(payload, 2), []);
   });
@@ -556,7 +556,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
 
     // Situations : e-mail hors établissement, multi-groupes, chemin Parent>Enfant,
     // absence de groupe, ligne minimale, doublon fusionnable.
-    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[6]] || '').includes('@gmail.com')));
+    assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[6]] || '').includes('@exemple.invalid')));
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '').includes('|')));
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '').includes('>')));
     assert.ok(rows.some((r) => String(r[TEMPLATE_COLUMNS[4]] || '') === ''));

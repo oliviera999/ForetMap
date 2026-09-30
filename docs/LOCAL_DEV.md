@@ -106,14 +106,14 @@ Après la migration SQL finale (`migrations/006_drop_legacy_image_data.sql`), ce
 Le script d'import local remet d'abord la base cible a zero, puis importe le dump :
 
 ```bash
-npm run db:import:dump -- --file "C:\Users\olivi\Downloads\oliviera_foretmap.sql"
+npm run db:import:dump -- --file "C:\Users\<vous>\Downloads\foretmap_dump.sql"
 npm run db:migrate
 ```
 
 Vous pouvez aussi passer le chemin via variable d'environnement :
 
 ```bash
-set FORETMAP_DUMP_PATH=C:\Users\olivi\Downloads\oliviera_foretmap.sql
+set FORETMAP_DUMP_PATH=C:\Users\<vous>\Downloads\foretmap_dump.sql
 npm run db:import:dump
 npm run db:migrate
 ```

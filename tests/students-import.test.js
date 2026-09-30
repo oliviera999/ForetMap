@@ -81,14 +81,14 @@ test('GET /api/students/import/template retourne un modèle CSV multi-rôles', a
   ]) {
     assert.ok((res.text || '').includes(slug), `modèle sans ligne ${slug}`);
   }
-  assert.ok((res.text || '').includes('@gmail.com'));
+  assert.ok((res.text || '').includes('@exemple.invalid'));
 });
 
 test('POST /api/students/import dryRun valide un CSV avec erreurs', async () => {
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `eleve;Import;Eleve-${unique};pass1234;Classe Import ${unique};import_${unique};import_${unique}@gmail.com;Test import hors domaine`,
+    `eleve;Import;Eleve-${unique};pass1234;Classe Import ${unique};import_${unique};import_${unique}@exemple.invalid;Test import hors domaine`,
     `prof;Import;SansMdp-${unique};;;;;`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
@@ -180,7 +180,7 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof;Prof;Import-${unique};MotDePasse12!;;prof_${unique};prof_${unique}@gmail.com;Import prof hors domaine`,
+    `prof;Prof;Import-${unique};MotDePasse12!;;prof_${unique};prof_${unique}@exemple.invalid;Import prof hors domaine`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 
@@ -201,7 +201,7 @@ test('POST /api/students/import crée un professeur si rôle=prof', async () => 
     ['Prof', `Import-${unique}`],
   );
   assert.ok(inserted);
-  assert.strictEqual(String(inserted.email || '').toLowerCase(), `prof_${unique}@gmail.com`);
+  assert.strictEqual(String(inserted.email || '').toLowerCase(), `prof_${unique}@exemple.invalid`);
   const role = await queryOne(
     `SELECT r.slug FROM user_roles ur
      INNER JOIN roles r ON r.id = ur.role_id
@@ -215,7 +215,7 @@ test('POST /api/students/import crée un prof_classe avec le bon profil', async 
   const unique = Date.now();
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@outlook.com;Import tuteur`,
+    `prof_classe;Tuteur;Classe-${unique};MotDePasse12!;Classe Tuteur ${unique}|Autre Classe ${unique};tuteur_${unique};tuteur_${unique}@exemple.invalid;Import tuteur`,
   ].join('\n');
   const fileDataBase64 = Buffer.from(csv, 'utf8').toString('base64');
 

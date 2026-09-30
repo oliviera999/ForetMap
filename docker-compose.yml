@@ -9,7 +9,9 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: foretmap_local_root
     ports:
-      - '${FORETMAP_DB_PUBLISH_PORT:-3306}:3306'
+      # Boucle locale seulement : le mot de passe root ci-dessus est un mot de passe de
+      # développement, il ne doit pas être joignable depuis le réseau (audit du 30/09/2026, CS6).
+      - '127.0.0.1:${FORETMAP_DB_PUBLISH_PORT:-3306}:3306'
     volumes:
       - foretmap_mariadb_data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
