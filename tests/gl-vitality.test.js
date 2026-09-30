@@ -56,12 +56,12 @@ before(async () => {
   const playerA = await createGlPlayer({
     classId: cls.id,
     pseudo: `vitality-a-${stamp}`,
-    password: '1234',
+    password: '12345678',
   });
   const playerB = await createGlPlayer({
     classId: cls.id,
     pseudo: `vitality-b-${stamp}`,
-    password: '1234',
+    password: '12345678',
   });
   playerAId = Number(playerA.id);
   playerBId = Number(playerB.id);
@@ -195,7 +195,7 @@ test('nouveau joueur reçoit les défauts configurés', async () => {
       firstName: 'Nouveau',
       lastName: 'Joueur',
       pseudo,
-      password: '1234',
+      password: '12345678',
     })
     .expect(201);
 

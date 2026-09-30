@@ -19,9 +19,11 @@ const { UPLOADS_DIR } = require('../lib/uploads');
 
 const TINY_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
-const TINY_JPEG_BASE64 = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]).toString(
-  'base64',
-);
+// Vrai JPEG 1×1 (268 octets) : depuis l'échec fermé du retrait EXIF (RG7, audit RGPD du
+// 30/09/2026), un contenu à signature JPEG que sharp ne sait pas lire est refusé en 422 — les
+// huit octets d'en-tête d'avant ne suffisent plus.
+const TINY_JPEG_BASE64 =
+  '/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAABf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AIgAsM//2Q==';
 
 function cleanup(relativePath) {
   if (!relativePath) return;

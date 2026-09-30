@@ -202,8 +202,10 @@ retenu : il s'ouvre juste après la connexion.
   figurent aussi.
 - **Journal de sécurité (administrateurs)** : sous-onglet dédié dans Audit, réservé aux
   administrateurs. Il reprend les mêmes événements avec l’**adresse IP** et le
-  **navigateur** utilisés, des filtres (période, compte, action, IP) et un export
-  tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
+  **navigateur** utilisés (au-delà de **6 mois**, l’adresse IP est raccourcie et le
+  navigateur effacé ; au-delà d’un an, l’événement est supprimé — par la purge mensuelle,
+  que l’hébergeur doit avoir installée), des filtres (période, compte, action, IP) et un
+  export tableur ou JSON pour un incident. La déconnexion d’un compte **n’efface pas** cet
   historique : on peut toujours remonter jusqu’à l’auteur via son compte, puis croiser
   l’IP et le navigateur.
 - **Suivi utilisateurs (administrateur)** : dans les paramètres d’administration,
@@ -215,6 +217,14 @@ retenu : il s'ouvre juste après la connexion.
   Les visiteurs sans compte n’apparaissent que dans les compteurs anonymes.
 - **Médiathèque** : une bibliothèque d'images (et de pistes audio ou vidéo)
   réutilisables pour illustrer les contenus, gérée par les professeurs.
+- **Informations cachées des photos** : toute image déposée (médiathèque, photos jointes,
+  packs mascotte du jeu…) est débarrassée de ses informations cachées — **position GPS**,
+  date, modèle du téléphone. Une image que le serveur ne parvient pas à nettoyer est
+  **refusée** avec le message « Image illisible ou non nettoyable » : la réenregistrer
+  (capture d'écran, export JPEG) puis la déposer à nouveau. Les **vidéos et sons**, eux,
+  ne sont **pas** nettoyés : une vidéo filmée au téléphone peut contenir le lieu du
+  tournage — la déposer depuis un logiciel qui retire ces informations, ou éviter de
+  filmer des élèves identifiables.
 - **Importer depuis un téléphone** : deux boutons, « 📁 Importer » (galerie ou
   gestionnaire de fichiers) et « 📸 Prendre une photo ». Les photos volumineuses sont
   automatiquement allégées avant l'envoi ; un fichier refusé est signalé **par son nom**

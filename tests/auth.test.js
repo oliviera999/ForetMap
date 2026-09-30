@@ -66,7 +66,7 @@ describe('Auth', () => {
   it('POST /api/auth/register avec même nom renvoie 409', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ firstName, lastName, password: 'other' })
+      .send({ firstName, lastName, password: 'other-pass' })
       .expect(409);
     assert.ok(res.body.error);
   });

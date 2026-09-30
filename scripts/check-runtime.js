@@ -13,7 +13,8 @@
  *   - version de Node ;
  *   - schéma de la base à jour (sinon : `npm run db:migrate`) ;
  *   - `isomorphic-dompurify` (obligatoire : nettoyage du HTML des tutoriels) ;
- *   - `sharp` (facultatif : vignettes d'images ; sans lui, l'application fonctionne) ;
+ *   - `sharp` (obligatoire depuis RG7 du 30/09/2026 : sans lui, toute image téléversée est
+ *     refusée, faute de pouvoir en retirer les métadonnées — `lib/imageMetadata.js`) ;
  *   - build du front présent (`dist/index.vite.html`) ;
  *   - miroir `lib/visit-pack/` présent (requis au runtime par l'API).
  *
@@ -115,8 +116,10 @@ async function main() {
       purpose: 'nettoyage du HTML des tutoriels',
     }),
     checkModule('sharp', {
-      required: false,
-      purpose: 'vignettes des photos ; facultatif, voir docs/EXPLOITATION.md § 8',
+      required: true,
+      purpose:
+        'retrait des métadonnées (GPS) et vignettes ; sans lui, les images sont refusées — ' +
+        'voir docs/EXPLOITATION.md § 8',
     }),
     checkFile('build du front', 'dist/index.vite.html', {
       required: true,

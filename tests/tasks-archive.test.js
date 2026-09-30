@@ -88,7 +88,7 @@ before(async () => {
 
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName, lastName, password: 'pass123' })
+    .send({ firstName, lastName, password: 'pass1234' })
     .expect(201);
   studentToken = reg.body.authToken;
   studentId = reg.body.id;

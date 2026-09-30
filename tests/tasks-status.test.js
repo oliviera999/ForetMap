@@ -75,14 +75,14 @@ before(async () => {
   );
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName, lastName, password: 'pass123' })
+    .send({ firstName, lastName, password: 'pass1234' })
     .expect(201);
   studentId = reg.body.id;
   studentToken = reg.body.authToken;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
   const regTwo = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: secondFirstName, lastName: secondLastName, password: 'pass123' })
+    .send({ firstName: secondFirstName, lastName: secondLastName, password: 'pass1234' })
     .expect(201);
   studentTwoId = regTwo.body.id;
   studentTwoToken = regTwo.body.authToken;

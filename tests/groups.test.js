@@ -841,7 +841,7 @@ test('F2-A : génération/suppression du code de classe et inscription avec code
     .send({
       firstName: 'Code',
       lastName: `Classe${Date.now()}`,
-      password: 'pwd1',
+      password: 'pwd1pwd1',
       classCode: code.toLowerCase(), // insensible à la casse
     })
     .expect(201);
@@ -869,7 +869,7 @@ test('F2-A : génération/suppression du code de classe et inscription avec code
   const lastName = `Refus${Date.now()}`;
   const bad = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Code', lastName, password: 'pwd1', classCode: code })
+    .send({ firstName: 'Code', lastName, password: 'pwd1pwd1', classCode: code })
     .expect(400);
   assert.match(String(bad.body?.error || ''), /Code de classe invalide/);
 
@@ -898,7 +898,7 @@ test('F2-A : le code d’un groupe sans profil par défaut rattache sans promouv
     .send({
       firstName: 'Code',
       lastName: `Club${Date.now()}`,
-      password: 'pwd1',
+      password: 'pwd1pwd1',
       classCode: gen.body.class_code,
     })
     .expect(201);
@@ -913,7 +913,7 @@ test('F2-A : le code d’un groupe sans profil par défaut rattache sans promouv
 test("F2-A : l'inscription sans code reste possible (compte visiteur)", async () => {
   const reg = await request(app)
     .post('/api/auth/register')
-    .send({ firstName: 'Sans', lastName: `Code${Date.now()}`, password: 'pwd1' })
+    .send({ firstName: 'Sans', lastName: `Code${Date.now()}`, password: 'pwd1pwd1' })
     .expect(201);
   assert.strictEqual(await getPrimaryRoleSlug(reg.body?.id), 'visiteur');
 });

@@ -88,8 +88,8 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   30 secondes, puis de plus en plus longtemps (jusqu'à 15 minutes) — sans gêner les autres
   élèves de la classe qui partagent la même connexion.
 - **Longueur minimale du mot de passe** : le réglage « Sécurité » fixe le minimum pour
-  les **élèves** (4 caractères par défaut — un choix assumé pour des sixièmes qui
-  saisissent leur mot de passe en classe). Les comptes **professeur et administrateur**
+  les **élèves** (**8 caractères** par défaut, et jamais moins — recommandation de la
+  CNIL pour un accès limité aux tentatives ; il valait 4 avant le 30/09/2026). Les comptes **professeur et administrateur**
   ont un minimum propre de **12 caractères**, qui ne descend jamais en dessous quel que
   soit le réglage : ce sont eux qui peuvent voir l'application « comme » n'importe quel
   utilisateur, donc leur mot de passe protège bien plus que leur seul compte. Les mots
@@ -412,9 +412,12 @@ Chacun peut récupérer tout ce que l'application garde sur lui, comme la loi le
 - Depuis **Mon profil**, le bouton **Télécharger mes données** produit une archive : la
   fiche du compte, les profils et groupes, les inscriptions aux tâches et les comptes
   rendus, les observations et mesures, le carnet, les messages du forum et les
-  commentaires, les réponses aux quiz, les notifications, l'historique des connexions — et
-  les photos et pièces jointes déposées. Si l'élève joue aussi à Gnomes & Licornes, la
-  partie jeu est incluse.
+  commentaires, les réponses aux quiz, les notifications, l'historique des connexions, les
+  actions faites au journal d'audit (sans le détail qui nommerait d'autres personnes), les
+  groupes et écarts de la synchronisation Moodle — et les photos et pièces jointes
+  déposées. Si l'élève joue aussi à Gnomes & Licornes, la partie jeu est incluse
+  (dont les échanges du marché, les événements de partie, les demandes d'action et les
+  sortilèges).
 - L'archive contient un fichier lisible avec un simple éditeur de texte, les fichiers
   déposés, et une notice qui explique son contenu. Les mots de passe n'y figurent jamais.
 - Pour une personne qui ne peut pas se connecter (compte désactivé, demande écrite d'un
@@ -551,11 +554,20 @@ sous-onglet consulté qui est rouvert.
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. Les **photos** qu'il avait jointes à ses rapports de tâche, à ses messages de
   forum et à ses commentaires sont effacées du serveur avec eux (elles restaient auparavant
-  accessibles à qui en connaissait l'adresse). C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
+  accessibles à qui en connaissait l'adresse), comme les images de son **carnet**. Ses
+  traces techniques sont effacées aussi : journal d'activité, adresse IP et navigateur de
+  ses connexions ; le journal d'audit ne garde de la suppression que l'**identifiant** du
+  compte, jamais son nom. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
   prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
   **administrateur seulement** (jamais sur son propre compte, jamais le dernier
   administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est
-  **conservé**, l'auteur apparaissant comme « compte supprimé ».
+  **conservé**, l'auteur apparaissant comme « compte supprimé ». Sa **photo de profil** est
+  effacée du serveur, et le journal d'audit n'en garde que l'identifiant (ni nom, ni
+  e-mail).
+- **Comptes inactifs en fin d'année** : un administrateur technique peut supprimer, par un
+  script lancé à la main en juillet, les comptes élèves sans activité depuis 13 mois (même
+  effacement que ci-dessus). La liste est d'abord affichée sans rien supprimer ; rien n'est
+  automatique.
 - **Désactiver / réactiver** : depuis la fiche, un compte peut être **désactivé** sans
   être supprimé — l'élève ou l'enseignant ne peut plus se connecter, sa session en cours
   est coupée, et tout son historique reste en place ; **réactiver** rouvre l'accès.

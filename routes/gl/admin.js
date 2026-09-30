@@ -8,7 +8,7 @@ const {
   withTransaction,
   getDataWriteVersion,
 } = require('../../database');
-const { purgeGlPlayerLearningTraces } = require('../../lib/glPlayerPurge');
+const { purgeGlPlayerAccount, deleteGlPlayerFiles } = require('../../lib/glPlayerPurge');
 const { ACTIVE_TEAM_ID_SUBQUERY_SQL } = require('../../lib/glPlayerMembership');
 const {
   GlPairingLockError,
@@ -688,31 +688,25 @@ router.delete(
         .json({ error: 'Suppression refusée : joueur engagé dans une partie en cours' });
     }
 
+    // Effacement complet (RG3, audit RGPD du 30/09/2026) : équipes, jetons, traces
+    // d'apprentissage, forum, commentaires, traces de partie anonymisées, contributions aux
+    // sortilèges (qui ne bloquent plus : 409 systématique auparavant), puis fichiers.
+    let playerFiles = null;
     try {
       await withTransaction(async (tx) => {
-        await tx.execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
-        // Les jetons de réinitialisation du joueur ne portent pas de FK (table polymorphe) :
-        // purge applicative, comme pour les élèves (lib/studentDeletion.js).
-        await tx.execute(
-          `DELETE FROM password_reset_tokens WHERE user_type = 'gl_player' AND user_id = ?`,
-          [id],
-        );
-        // Tentatives QCM, verrous et accusés d'apprentissage : lecteur polymorphe, pas de FK.
-        await purgeGlPlayerLearningTraces(tx, id);
+        playerFiles = await purgeGlPlayerAccount(tx, id);
         await tx.execute('DELETE FROM gl_players WHERE id = ?', [id]);
       });
     } catch (err) {
-      // Une contribution à un sortilège dans une partie TERMINÉE référence encore le joueur via
-      // `fk_gl_spell_cast_contrib_player` (ON DELETE RESTRICT) : sans capture, l'erreur devenait
-      // un 500. On répond un 409 explicite plutôt que de supprimer l'historique de partie.
+      // Filet : une clé étrangère RESTRICT ajoutée plus tard ne doit pas devenir un 500.
       if (err && (err.errno === 1451 || err.code === 'ER_ROW_IS_REFERENCED_2')) {
         return res.status(409).json({
-          error:
-            'Suppression refusée : ce joueur a contribué à un sortilège dans une partie terminée. Supprimez d’abord cette partie.',
+          error: 'Suppression refusée : ce joueur est encore référencé par des données de jeu.',
         });
       }
       throw err;
     }
+    deleteGlPlayerFiles(playerFiles);
     let accountDeleted = false;
     if (existing.linked_foretmap_user_id) {
       if (String(existing.auth_provider || '') === 'gl_bridge') {
