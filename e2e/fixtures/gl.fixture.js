@@ -26,6 +26,23 @@ async function seedGlScenario(label = 'default') {
   );
   const game = await queryOne('SELECT id FROM gl_games ORDER BY id DESC LIMIT 1');
 
+  // Repère du chapitre de la partie : un déplacement ou un événement vers un repère d'un
+  // autre chapitre est refusé (404, audit 2026-09-30 GL4).
+  let chapterMarker = await queryOne(
+    'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY order_index ASC, id ASC LIMIT 1',
+    [chapter.id],
+  );
+  if (!chapterMarker) {
+    await execute(
+      'INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, label) VALUES (?, 50, 50, ?)',
+      [chapter.id, `Repère ${label} ${stamp}`],
+    );
+    chapterMarker = await queryOne(
+      'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
+      [chapter.id],
+    );
+  }
+
   await execute(
     `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
      VALUES (?, 'Equipe A', 'gnome', '#22c55e', NOW(), NOW())`,
@@ -81,6 +98,7 @@ async function seedGlScenario(label = 'default') {
     gameId: Number(game.id),
     teamId: Number(team.id),
     playerId: Number(player.id),
+    chapterMarkerId: Number(chapterMarker.id),
     adminToken,
     playerToken,
     playerPseudo: player.pseudo,
