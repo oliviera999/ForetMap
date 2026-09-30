@@ -101,6 +101,14 @@ test('importPlayersFromRows rapproche un élève ForetMap existant au lieu de le
      VALUES (?, 'student', ?, ?, 'Existante', ?, 'Existante Eleve', ?, 'local', 1, NOW(), NOW())`,
     [existingId, email, `fm_existing_${stamp}`, `Eleve-${stamp}`, fmHash],
   );
+  // Rapprochement réservé à un élève déjà membre du groupe de la classe (audit 2026-09-30, GL1).
+  const { ensureForetmapGroupForGlClass } = require('../lib/glGroupBridge');
+  const cls = await queryOne('SELECT * FROM gl_classes WHERE name = ? LIMIT 1', [className]);
+  const group = await ensureForetmapGroupForGlClass(cls);
+  await execute(
+    "INSERT INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
+    [group.id, existingId],
+  );
   const report = await importPlayersFromRows(
     [
       row({

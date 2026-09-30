@@ -37,7 +37,9 @@ biodiversité, équilibres).
   soit une **question fixe** choisie par le MJ pour ce repère, soit un **tirage** dans
   le catalogue (par catégorie/niveau). Le repère précise s'il puise dans les QCM biomes
   ou les QCM lore.
-- **Hors partie** : les questions restent accessibles pour s'entraîner.
+- **Hors partie** : les questions restent accessibles pour s'entraîner — mais une question
+  ouverte hors du plateau **ne rapporte jamais de point de partie** : seule une question
+  présentée par un repère de la partie compte au score.
 - **Réglage « QCM réservés au MJ »** : quand il est actif, les joueurs ne reçoivent
   plus les questions directement — le MJ les présente et les valide depuis sa console
   (mode animation).
@@ -47,12 +49,14 @@ biodiversité, équilibres).
   faux), la question affichée est close : renvoyer la même réponse ne rapporte pas de
   points supplémentaires. Pour rejouer, il faut une nouvelle question — nouveau passage
   sur le repère, ou nouveau tirage.
-- **Le score se compte par joueur, pas par équipe.** Chaque élève qui répond juste rapporte
-  un point à son équipe : une équipe de cinq peut donc gagner jusqu'à cinq points sur la
-  même question. C'est voulu — on veut que **chacun réponde**, et non qu'un seul réponde
-  pour tout le groupe. Corollaire à garder en tête au moment de composer les équipes : une
-  équipe nombreuse marque mécaniquement plus qu'une équipe réduite. Si les scores doivent
-  être comparables, former des équipes de taille voisine.
+- **Une question juste = un point par équipe, une fois par arrivée.** Une bonne réponse
+  rapporte un point à l'équipe **une seule fois par question** dans la partie, et une seule
+  fois par arrivée sur un repère : rester sur la case et redemander la question donne encore
+  la correction, mais plus de point (le popover n'affiche alors pas de « +1 point »). Si
+  la répétition est réglée sur « à chaque passage », la même question peut de nouveau
+  rapporter **après un nouveau déplacement** de l'équipe. Et une partie terminée ou en pause ne compte plus de points.
+  _(Jusqu'au 30/09/2026, chaque élève de l'équipe pouvait marquer sur la même question, et
+  une boucle « redemander → répondre » gonflait le score sans limite.)_
 
 ## Le conditionnement par QCM (« marquer appris »)
 

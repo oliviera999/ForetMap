@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryOne, execute } = require('../database');
+const database = require('../database');
+const { queryOne, execute } = database;
 const { requireAuth, requirePermission, hasPermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -23,6 +24,12 @@ const {
 const { persistUserContentImages, validateImagesPayload } = require('../lib/userContentImages');
 const { normalizeOptionalString, parsePageQuery } = require('../lib/shared/httpHelpers');
 const { listRecentPlaceMessages, setPlaceMessageStatus } = require('../lib/placeMessages');
+const { canAccessMapId } = require('../lib/mapAccess');
+const { canViewLocation, isLocationManager } = require('../lib/locationAudience');
+const { loadCategoriesMap, attachCategoriesToEntity } = require('../lib/locationCategories');
+const { isVisibleOnSurface } = require('../lib/locationSurfaces');
+const { resolveSurfaceForRequest, allowedMapIdsForSurface } = require('../lib/surfaceAccess');
+const { resolveSurfaceFilters } = require('../lib/shared/surfaceCore');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
   loadContextCommentReactions,
@@ -104,22 +111,68 @@ async function requireContextCommentParticipation(req, res) {
   return false;
 }
 
-async function contextExists(contextType, contextId) {
+/**
+ * Lieu (zone / repère) visible par ce lecteur, sur cette surface et dans son périmètre de
+ * cartes (audit sécurité 2026-09-30, AP5) — même règle que `GET /api/zones/:id` et que
+ * `routes/species-observations.js` : audience (propre ou héritée des catégories), carte du
+ * périmètre du compte, carte servie par la surface, lieu non masqué sur la surface.
+ */
+async function isPlaceVisibleForRequest(req, kind, row) {
+  if (!row) return false;
+  const categories = await loadCategoriesMap(database, kind, [row.id]);
+  const entity = attachCategoriesToEntity(row, categories.get(String(row.id)) || []);
+  if (!canViewLocation(entity, req.auth)) return false;
+  if (!(await canAccessMapId(req.auth, row.map_id))) return false;
+  const surface = resolveSurfaceForRequest(req);
+  const surfaceMaps = await allowedMapIdsForSurface(surface);
+  if (surfaceMaps != null && row.map_id != null && !surfaceMaps.includes(String(row.map_id))) {
+    return false;
+  }
+  const filters = resolveSurfaceFilters({
+    surface,
+    unfiltered: surface === 'map' && isLocationManager(req.auth),
+  });
+  return filters.every((f) => isVisibleOnSurface(entity, f));
+}
+
+/**
+ * Le contexte existe-t-il ET le lecteur peut-il le voir ? Les commentaires se lisent et
+ * s'écrivent aux mêmes conditions que le contexte lui-même : jusqu'ici, seule l'existence
+ * était vérifiée, et l'on lisait / écrivait sur un repère réservé à la surface `staff` en
+ * connaissant son identifiant (AP5).
+ */
+async function contextAccessible(req, contextType, contextId) {
   if (contextType === 'task') {
-    const row = await queryOne('SELECT id FROM tasks WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
+    const row = await queryOne(
+      `SELECT t.id, COALESCE(t.map_id, z.map_id, mk.map_id) AS map_id
+         FROM tasks t
+         LEFT JOIN zones z ON z.id = t.zone_id
+         LEFT JOIN map_markers mk ON mk.id = t.marker_id
+        WHERE t.id = ? LIMIT 1`,
+      [contextId],
+    );
+    if (!row) return false;
+    return canAccessMapId(req.auth, row.map_id);
   }
   if (contextType === 'project') {
     const row = await queryOne('SELECT id FROM task_projects WHERE id = ? LIMIT 1', [contextId]);
     return !!row;
   }
   if (contextType === 'zone') {
-    const row = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
+    const row = await queryOne(
+      `SELECT id, map_id, visible_role_slugs, visible_group_ids, hidden_surfaces
+         FROM zones WHERE id = ? LIMIT 1`,
+      [contextId],
+    );
+    return isPlaceVisibleForRequest(req, 'zone', row);
   }
   if (contextType === 'marker') {
-    const row = await queryOne('SELECT id FROM map_markers WHERE id = ? LIMIT 1', [contextId]);
-    return !!row;
+    const row = await queryOne(
+      `SELECT id, map_id, visible_role_slugs, visible_group_ids, hidden_surfaces
+         FROM map_markers WHERE id = ? LIMIT 1`,
+      [contextId],
+    );
+    return isPlaceVisibleForRequest(req, 'marker', row);
   }
   if (contextType === 'plant') {
     const row = await queryOne('SELECT id FROM plants WHERE id = ? LIMIT 1', [contextId]);
@@ -130,6 +183,23 @@ async function contextExists(contextType, contextId) {
     return !!row;
   }
   return false;
+}
+
+/**
+ * Commentaire de CE produit (types ForetMap, jamais `gl_*`) dont le contexte est visible par
+ * le lecteur, ou `null` (→ 404). Un identifiant de commentaire G&L ne se résout plus depuis
+ * `/api/context-comments` : un modérateur ForetMap supprimait les commentaires G&L (GL3 / I4).
+ */
+async function loadAccessibleComment(req, commentId, columns) {
+  const types = [...ALLOWED_CONTEXT_TYPES];
+  const comment = await queryOne(
+    `SELECT ${columns} FROM context_comments
+      WHERE id = ? AND context_type IN (${types.map(() => '?').join(', ')}) LIMIT 1`,
+    [commentId, ...types],
+  );
+  if (!comment) return null;
+  if (!(await contextAccessible(req, comment.context_type, comment.context_id))) return null;
+  return comment;
 }
 
 router.use(requireAuth);
@@ -302,7 +372,7 @@ router.get(
         .status(400)
         .json({ error: 'contextType invalide (task|project|zone|marker|plant|tutorial)' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
-    if (!(await contextExists(contextType, contextId))) {
+    if (!(await contextAccessible(req, contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
     const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
@@ -330,7 +400,9 @@ router.post(
     if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const toggle = await resolveReactionToggle(req.params.id, actor, req.body?.emoji);
+    const target = await loadAccessibleComment(req, req.params.id, 'id, context_type, context_id');
+    if (!target) return res.status(404).json({ error: 'Commentaire introuvable' });
+    const toggle = await resolveReactionToggle(target.id, actor, req.body?.emoji);
     if (toggle.status !== 200) return res.status(toggle.status).json({ error: toggle.error });
     const { comment, reacted, emoji } = toggle;
 
@@ -395,7 +467,7 @@ router.post(
         .status(400)
         .json({ error: `Message invalide (${MIN_COMMENT_LEN}-${MAX_COMMENT_LEN} caractères)` });
     }
-    if (!(await contextExists(contextType, contextId))) {
+    if (!(await contextAccessible(req, contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
     if (!checkCooldown(actor, 'context_comment', COMMENT_COOLDOWN_MS)) {
@@ -452,10 +524,10 @@ router.delete(
     if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
-    const existing = await queryOne(
-      `SELECT id, context_type, context_id, author_user_type, author_user_id, is_deleted
-       FROM context_comments WHERE id = ? LIMIT 1`,
-      [req.params.id],
+    const existing = await loadAccessibleComment(
+      req,
+      req.params.id,
+      'id, context_type, context_id, author_user_type, author_user_id, is_deleted',
     );
     if (!existing) return res.status(404).json({ error: 'Commentaire introuvable' });
     if (Number(existing.is_deleted)) return res.json({ ok: true, already_deleted: true });
@@ -466,7 +538,7 @@ router.delete(
     if (!ownsComment && !moderator)
       return res.status(403).json({ error: 'Permission insuffisante' });
 
-    const deleted = await softDeleteContextComment(req.params.id);
+    const deleted = await softDeleteContextComment(existing.id);
     const comment = deleted.comment;
     await logAudit(
       'context_comment_delete',
@@ -512,13 +584,7 @@ router.post(
         error: `Motif invalide (${MIN_REPORT_REASON_LEN}-${MAX_REPORT_REASON_LEN} caractères)`,
       });
     }
-    const comment = await queryOne(
-      `SELECT id, context_type, context_id
-       FROM context_comments
-      WHERE id = ?
-      LIMIT 1`,
-      [req.params.id],
-    );
+    const comment = await loadAccessibleComment(req, req.params.id, 'id, context_type, context_id');
     if (!comment) return res.status(404).json({ error: 'Commentaire introuvable' });
 
     const duplicate = await queryOne(
