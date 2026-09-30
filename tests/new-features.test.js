@@ -648,7 +648,7 @@ test('PATCH /api/students/:id/profile met à jour pseudo/email/description', asy
       description: 'Description mise à jour',
       avatarData: tinyAvatar,
       // Changer d'e-mail exige le mot de passe actuel (AC3, audit 2026-09-30).
-      currentPassword: 'pwd123',
+      currentPassword: 'pwd12345',
     })
     .expect(200);
   // Le changement d'e-mail révoque les sessions : la réponse porte le jeton qui la remplace.
