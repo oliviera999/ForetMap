@@ -15,6 +15,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   - **Portée** : comptes et sessions, G&L, routes ForetMap, RGPD, secrets, historique Git et CI.
   - **Constats** : 40 au total, dont 1 critique hors code (dump encore joignable par les `refs/pull/*`, déjà connu) et 10 importants. Parmi les importants : trois voies de prise de compte par l'e-mail (LTI → admin G&L, pont GL → compte ForetMap, e-mail d'un pair modifiable), `engine.io` vulnérable au déni de service sans compte, photos et productions d'élèves servies sans authentification sous `/uploads`, notice d'information absente, conservation et effacement incomplets.
   - **Suite** : plan en sept lots et actions du propriétaire. Aucune modification de code dans ce lot.
+### Corrigé — Visite sans compte « Carte introuvable » ; échecs de connexion Google nommés
+
+- **Visite sans compte** : en production, `GET /api/visit/content` répondait « Carte introuvable » et la Visite restait vide. La liste blanche publique (`allowedVisitMapIds`, `lib/surfaceAccess.js`) retirait toute carte **proposée au changement** sur un plan gardé (`ui.plan.selectable_map_ids`, `ui.staff_plan.selectable_map_ids`) : n³ — carte de visite par défaut — et la forêt comestible en sortaient. Seule la carte des plans (`ui.plan.map_id`, `lyautey`) reste réservée, et la carte de visite par défaut est toujours servie. Sans `map_id`, la route ouvre la première carte servie plutôt que de refuser (`lib/visitRouteShared.js`). Une carte demandée hors liste reste « Carte introuvable ».
+- **Front de la Visite** (`useVisitContent`) : le catalogue des cartes n'est plus jeté avec l'erreur de contenu ; une carte non servie bascule sur la première carte listée, sans alerte.
+- **Connexion Google** : l'échange du code jetait la réponse de Google et tout échec devenait « Erreur serveur ». La raison OAuth (`error`, RFC 6749 §5.2) est désormais journalisée et nommée : `oauth_code_expired` (`invalid_grant`), `oauth_client_rejected` (identifiants OAuth refusés), `oauth_google_unreachable` ; messages dédiés côté ForetMap et plan des personnels.
+- Tests : `tests/visit-map-whitelist.test.js`, `tests/auth-google-exchange-errors.test.js`, Vitest `useVisitContent`. `docs/API.md` et la doc de référence (visite, comptes) alignées.
 
 ### Corrigé — hors ligne et modifications concurrentes : plus de perte silencieuse
 

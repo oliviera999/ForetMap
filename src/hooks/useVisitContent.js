@@ -65,18 +65,17 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       : '/api/visit/content';
     setLoading(true);
     try {
-      const [mapsRes, visitRes] = await Promise.all([
+      // Le catalogue est appliqué même si le contenu échoue : une carte demandée qui n'est
+      // pas servie à ce lecteur (« Carte introuvable ») doit basculer sur la première carte
+      // listée, pas laisser la Visite vide et sans sélecteur de carte.
+      const [mapsRes, visitOutcome] = await Promise.all([
         api('/api/maps').catch(() => []),
-        api(visitContentPath),
+        api(visitContentPath).then(
+          (value) => ({ ok: true, value }),
+          (error) => ({ ok: false, error }),
+        ),
       ]);
       if (requestedMapId !== String(visitLoadMapIdLiveRef.current).trim()) return;
-
-      let progressBody = null;
-      try {
-        progressBody = await api('/api/visit/progress');
-      } catch (_) {
-        progressBody = null;
-      }
 
       const fetchedMaps = Array.isArray(mapsRes) ? mapsRes : [];
       const activeMaps = fetchedMaps.filter((m) => m?.is_active !== false);
@@ -84,6 +83,17 @@ export function useVisitContent({ mapId, setMapId, onForceLogout, onProgressLoad
       setMaps(visibleMaps);
       if (visibleMaps.length > 0 && !visibleMaps.some((m) => m.id === requestedMapId)) {
         setMapId(visibleMaps[0].id);
+        // Le changement de carte relance le chargement : l'échec de celle-ci n'est pas à dire.
+        if (!visitOutcome.ok) return;
+      }
+      if (!visitOutcome.ok) throw visitOutcome.error;
+      const visitRes = visitOutcome.value;
+
+      let progressBody = null;
+      try {
+        progressBody = await api('/api/visit/progress');
+      } catch (_) {
+        progressBody = null;
       }
       const visitPayload =
         visitRes && typeof visitRes === 'object' && !Array.isArray(visitRes)

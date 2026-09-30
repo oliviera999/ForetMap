@@ -25,7 +25,10 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   **exactement** l'adresse Google du lycée. Si la connexion Google enseignant échoue,
   un message explique les causes possibles (compte absent, e-mail différent, adresse
   déjà liée à un compte élève/visiteur, domaine non autorisé, compte inactif, connexion
-  Google enseignant désactivée dans les réglages…). En mode enseignant, aucun compte
+  Google enseignant désactivée dans les réglages…). Quand le blocage vient de Google
+  lui-même, le message le dit aussi : connexion expirée ou déjà utilisée (il suffit de la
+  relancer), identifiants de connexion du serveur refusés par Google (à signaler à
+  l'administrateur), ou Google injoignable. En mode enseignant, aucun compte
   visiteur n'est créé à la place, même si la création automatique élève est activée.
 - **Un compte Google par compte ForetMap.** À la première connexion Google, l'identifiant
   Google est **lié** au compte ; ensuite, c'est cet identifiant qui est reconnu, avant

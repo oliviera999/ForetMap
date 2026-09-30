@@ -104,7 +104,10 @@ familles.
   visite les mêmes cartes que sur la carte de travail (celles de ses classes, ou toutes pour
   un prof) — y compris une carte aussi proposée sur le plan de l'établissement, comme le
   complexe sportif ; **sans compte**, seules les cartes ouvertes à la visite publique sont
-  servies ; à droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
+  servies — toutes les cartes actives sauf le plan de l'établissement, même quand un plan
+  les propose aussi, et toujours la carte de visite par défaut ; si la carte retenue par
+  l'appareil n'est plus ouverte au public, la visite ouvre la première carte disponible au
+  lieu d'afficher « Carte introuvable » ; à droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
   compact). Sous cette barre : une **recherche de lieux** et, s'il y a des catégories,
   des **puces de filtre** (comme sur le plan de l'établissement) pour n'afficher que
