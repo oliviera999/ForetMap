@@ -75,6 +75,8 @@ const {
   upsertForetmapUserForGlPlayer,
   syncForetmapUserForGlPlayer,
   removeGlClassGroupMembership,
+  findForeignStudentAccountByEmail,
+  isBridgeAccount,
 } = require('../../lib/glGroupBridge');
 const { setGlPlayerPassword } = require('../../lib/glPlayerIdentity');
 const { deleteStudentById } = require('../../lib/studentDeletion');
@@ -106,6 +108,7 @@ const glMediaUsageCache = createMediaLibraryUsageCache({ writeVersion: getDataWr
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const asyncHandler = require('../../lib/asyncHandler');
+const { sendSafeError } = require('../../lib/safeErrorResponse');
 const { z, validate } = require('../../lib/validate');
 const {
   normalizeBiomeSlugFilter,
@@ -160,11 +163,38 @@ function resolveSettingsKey(req) {
   return paramKey;
 }
 
+/** Message du 409 « e-mail d'un élève ForetMap hors de la classe » (GL1). */
+const EMAIL_FOREIGN_STUDENT_MSG =
+  'E-mail déjà utilisé par un compte ForetMap (élève hors de cette classe G&L)';
+
 /**
  * E-mail disponible pour un joueur : il vit sur le compte `users` lié (unification des
- * identités). Un élève ForetMap libre portant cet e-mail n'est pas un conflit — le pont le
- * rapprochera ; un compte non-élève ou déjà lié à un autre joueur, si.
+ * identités). Un élève ForetMap libre portant cet e-mail n'est pas un conflit s'il est un
+ * compte miroir ou déjà membre du groupe de la classe — le pont le rapprochera ; un compte
+ * non-élève, déjà lié à un autre joueur, ou un élève d'une AUTRE classe, si (GL1 : sinon le
+ * MJ s'appropriait ce compte).
+ *
+ * @returns {Promise<true|{ error: string }>}
  */
+async function checkEmailAvailable(email, excludedPlayerId = null, classId = null) {
+  if (!email) return true;
+  if (!(await ensureEmailAvailable(email, excludedPlayerId)))
+    return { error: 'Email déjà utilisé' };
+  if (classId != null) {
+    const foreign = await findForeignStudentAccountByEmail(email, classId);
+    if (foreign) {
+      const linkedToThisPlayer =
+        excludedPlayerId != null &&
+        (await queryOne(
+          'SELECT id FROM gl_players WHERE id = ? AND linked_foretmap_user_id = ? LIMIT 1',
+          [excludedPlayerId, foreign.id],
+        ));
+      if (!linkedToThisPlayer) return { error: EMAIL_FOREIGN_STUDENT_MSG };
+    }
+  }
+  return true;
+}
+
 async function ensureEmailAvailable(email, excludedPlayerId = null) {
   if (!email) return true;
   const existing = await queryOne(
@@ -351,6 +381,11 @@ router.delete(
 
 function sendPairingLockError(res, err) {
   if (err instanceof GlPairingLockError) {
+    // AP2 : erreur typée, mais un statut 5xx n'expose pas son message.
+    if (Number(err.status) >= 500) {
+      sendSafeError(res, err);
+      return true;
+    }
     res.status(err.status || 400).json({ error: err.message, code: err.code });
     return true;
   }
@@ -494,8 +529,9 @@ router.post(
     if (!pseudoAvailable) {
       return res.status(409).json({ error: 'Pseudo déjà utilisé' });
     }
-    if (email && !(await ensureEmailAvailable(email))) {
-      return res.status(409).json({ error: 'Email déjà utilisé' });
+    if (email) {
+      const emailCheck = await checkEmailAvailable(email, null, classId);
+      if (emailCheck !== true) return res.status(409).json({ error: emailCheck.error });
     }
     const generated = !password;
     const effectivePassword = password || buildGeneratedPassword();
@@ -574,7 +610,11 @@ router.put(
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
     const existing = await queryOne(
-      'SELECT id, pseudo, class_id FROM gl_players WHERE id = ? LIMIT 1',
+      `SELECT p.id, p.pseudo, p.class_id, p.linked_foretmap_user_id,
+              u.auth_provider AS user_auth_provider, u.email AS user_email
+         FROM gl_players p
+         LEFT JOIN users u ON u.id = p.linked_foretmap_user_id
+        WHERE p.id = ? LIMIT 1`,
       [id],
     );
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
@@ -606,8 +646,31 @@ router.put(
       const pseudoAvailable = await ensurePseudoAvailable(pseudo, id);
       if (!pseudoAvailable) return res.status(409).json({ error: 'Pseudo déjà utilisé' });
     }
-    if (emailProvided && email && !(await ensureEmailAvailable(email, id))) {
-      return res.status(409).json({ error: 'Email déjà utilisé' });
+    // GL1 : l'e-mail d'un VRAI compte élève (non miroir) n'appartient qu'à son titulaire. Le
+    // réécrire ici permettait au MJ d'y mettre sa propre adresse, puis de passer par
+    // « mot de passe oublié » pour prendre le compte ForetMap de l'élève.
+    const linkedIsRealAccount =
+      !!existing.linked_foretmap_user_id &&
+      !isBridgeAccount({ auth_provider: existing.user_auth_provider });
+    if (emailProvided && linkedIsRealAccount) {
+      const current = String(existing.user_email || '')
+        .trim()
+        .toLowerCase();
+      const next = String(email || '')
+        .trim()
+        .toLowerCase();
+      if (current !== next) {
+        return res.status(403).json({
+          error:
+            'E-mail non modifiable : ce joueur utilise son propre compte ForetMap (seul l’élève peut changer son e-mail)',
+          code: 'GL_PLAYER_REAL_ACCOUNT',
+        });
+      }
+    }
+    if (emailProvided && email) {
+      const targetClassId = Number.isFinite(classId) ? classId : existing.class_id;
+      const emailCheck = await checkEmailAvailable(email, id, targetClassId);
+      if (emailCheck !== true) return res.status(409).json({ error: emailCheck.error });
     }
 
     await execute(
@@ -628,17 +691,15 @@ router.put(
         id,
       ],
     );
-    // Le compte lié suit : identité et groupe de classe ; l'e-mail s'y écrit (source unique).
-    const syncResult = await syncForetmapUserForGlPlayer(
-      id,
-      emailProvided ? { email, forceEmail: true } : {},
-    );
+    // Le compte lié suit : identité et groupe de classe ; l'e-mail s'y écrit (source unique)
+    // — sur un compte miroir seulement : jamais `forceEmail` depuis la console MJ (GL1).
+    const syncResult = await syncForetmapUserForGlPlayer(id, emailProvided ? { email } : {});
     if (!syncResult.ok) {
       return res
         .status(500)
         .json({ error: syncResult.error || 'Synchronisation ForetMap impossible' });
     }
-    if (emailProvided && email == null) {
+    if (emailProvided && email == null && isBridgeAccount(syncResult.user)) {
       await execute('UPDATE users SET email = NULL, updated_at = NOW() WHERE id = ?', [
         syncResult.user.id,
       ]);
@@ -940,7 +1001,11 @@ router.post(
     try {
       parsedRows = await resolveImportRows(req.body || {});
     } catch (err) {
-      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+      return sendSafeError(res, err, {
+        fallbackMessage: 'Fichier import invalide',
+        trustPlainErrors: true,
+        req,
+      });
     }
     if (!Array.isArray(parsedRows) || parsedRows.length === 0) {
       return res.status(400).json({ error: 'Fichier import vide ou sans lignes exploitables' });

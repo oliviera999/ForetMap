@@ -20,6 +20,11 @@ const { loadAnyActiveQuestion, isLoreQuestionCode } = require('../../../lib/glQc
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { recordGlQcmAttemptForReader } = require('../../../lib/learningGatingRuntime');
 const { parseId } = require('../../../lib/shared/httpHelpers');
+const {
+  QCM_SCORE_REASON,
+  resolveGameQcmScoreEligibility,
+} = require('../../../lib/glGameQcmScoring');
+const { sendSafeError } = require('../../../lib/safeErrorResponse');
 
 const router = express.Router();
 
@@ -114,6 +119,14 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
   }
 
+  // GL2 : on ne marque de points que dans une partie EN COURS (plus en brouillon, en pause
+  // ni terminée).
+  const game = await queryOne('SELECT id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+  if (String(game.status || '').toLowerCase() !== 'live') {
+    return res.status(409).json({ error: 'La partie doit être en cours' });
+  }
+
   // Mode classique : toutes les équipes jouent simultanément, plus de blocage « pas votre tour ».
 
   const questionRow = await loadAnyActiveQuestion({ queryOne }, questionCode);
@@ -129,14 +142,36 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
       req.body?.choiceId,
     );
   } catch (err) {
-    return res.status(400).json({ error: err.message || 'Réponse invalide' });
+    return sendSafeError(res, err, {
+      fallbackMessage: 'Réponse invalide',
+      req,
+      context: 'gl.games.qcm.answer',
+    });
+  }
+
+  // GL2 : le jeton doit venir de la présentation d'un repère de CETTE partie, pour CETTE
+  // équipe. Un jeton de QCM libre (`/api/gl/qcm/questions/:code/present`) ne porte pas de
+  // contexte de partie : il reste utilisable hors partie, mais ne rapporte aucun point ici.
+  const tokenGame = verification.game;
+  if (!tokenGame || Number(tokenGame.gameId) !== Number(gameId)) {
+    return res.status(403).json({
+      error: 'Question non présentée par un repère de cette partie',
+      code: 'GL_QCM_TOKEN_NOT_FOR_GAME',
+    });
+  }
+  if (Number(tokenGame.teamId) !== Number(teamIdForGame)) {
+    return res.status(403).json({
+      error: 'Question présentée pour une autre équipe',
+      code: 'GL_QCM_TOKEN_OTHER_TEAM',
+    });
   }
 
   const dataset = isLore ? 'qcm_lore' : 'qcm';
 
   let scoreDelta = 0;
-  const markerIdRaw = req.body?.markerId;
-  const markerId = markerIdRaw == null ? null : Number(markerIdRaw);
+  let scoreSkippedReason = null;
+  // Repère lu dans le jeton (GL2) ; `req.body.markerId` n'est plus honoré.
+  const markerId = tokenGame.markerId != null ? Number(tokenGame.markerId) : null;
 
   let lastEvent = null;
   try {
@@ -157,6 +192,20 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
         throw err;
       }
 
+      // Une bonne réponse notée par (partie, équipe, question) et par arrivée sur le repère
+      // (GL2, cf. lib/glGameQcmScoring.js) — lu AVANT d'insérer la réponse courante.
+      let eligibility = { eligible: true };
+      if (verification.correct && settings.scoringEnabled) {
+        eligibility = await resolveGameQcmScoreEligibility(tx, {
+          gameId,
+          teamId: teamIdForGame,
+          questionCode,
+          markerId,
+          retriggerMode: settings.markerQuestionRetrigger,
+        });
+        if (!eligibility.eligible) scoreSkippedReason = eligibility.reason;
+      }
+
       lastEvent = await insertGameEvent(tx, {
         gameId,
         teamId: teamIdForGame,
@@ -168,9 +217,10 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           correct: verification.correct,
           choiceId: verification.selectedChoiceId,
           markerId: Number.isFinite(markerId) ? markerId : null,
+          ...(scoreSkippedReason ? { scoreSkipped: scoreSkippedReason } : {}),
         },
       });
-      if (verification.correct && settings.scoringEnabled) {
+      if (verification.correct && settings.scoringEnabled && eligibility.eligible) {
         scoreDelta = 1;
         await tx.execute(
           `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
@@ -179,7 +229,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
              score = score + VALUES(score),
              last_reason = VALUES(last_reason),
              updated_at = NOW()`,
-          [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM'],
+          [gameId, teamIdForGame, scoreDelta, QCM_SCORE_REASON],
         );
         lastEvent = await insertGameEvent(tx, {
           gameId,
@@ -187,7 +237,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           actorType: answerCtx.actorType,
           actorId: answerCtx.actorId,
           eventType: 'score',
-          payload: { delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode },
+          payload: { delta: scoreDelta, reason: QCM_SCORE_REASON, questionCode },
         });
       }
     });
@@ -235,6 +285,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     correct: verification.correct,
     feedback: resolveQcmAnswerFeedback(questionRow, verification),
     scoreDelta,
+    scoreSkippedReason: scoreSkippedReason || undefined,
     qcmSet: isLore ? 'lore' : 'biome',
     glossaryTerms: !isLore && verification.correct ? glossaryTerms : undefined,
     loreGlossaryTerms: isLore && verification.correct ? glossaryTerms : undefined,

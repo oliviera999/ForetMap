@@ -150,7 +150,7 @@ test('rejeu du même presentationToken : le score ne monte qu’une fois (409 en
   assert.equal(Number(scoreRow?.score || 0), 1);
 });
 
-test('une nouvelle présentation reste jouable après un rejeu refusé', async () => {
+test('une nouvelle présentation reste jouable après un rejeu refusé (sans nouveau point sur place)', async () => {
   const present = await request(app)
     .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
     .set('Authorization', `Bearer ${playerToken}`)
@@ -168,10 +168,14 @@ test('une nouvelle présentation reste jouable après un rejeu refusé', async (
     })
     .expect(200);
   assert.equal(answer.body.correct, true);
+  // Audit sécurité 2026-09-30 (GL2) : la même question, sur le même repère, sans que
+  // l'équipe se soit déplacée, est corrigée mais ne rapporte plus de point.
+  assert.equal(answer.body.scoreDelta, 0);
+  assert.equal(answer.body.scoreSkippedReason, 'question_already_scored');
 
   const scoreRow = await queryOne(
     'SELECT score FROM gl_team_scores WHERE game_id = ? AND team_id = ? LIMIT 1',
     [gameId, teamId],
   );
-  assert.equal(Number(scoreRow?.score || 0), 2);
+  assert.equal(Number(scoreRow?.score || 0), 1);
 });

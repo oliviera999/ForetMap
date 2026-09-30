@@ -35,6 +35,18 @@ Comment on obtient le rôle MJ ou Admin :
 > MJ que si son compte a été préparé en dehors des écrans du jeu. Le circuit
 > « comment nommer un nouveau MJ » mérite d'être outillé ou documenté.
 
+**Un MJ n'est pas cantonné à « sa » classe.** Dans G&L, il n'existe pas de périmètre de
+classe pour le staff : **tout MJ voit et gère toutes les classes, toutes les parties et tous
+les joueurs** de l'établissement, et peut prendre la main sur n'importe quel compte joueur
+(« Voir comme »). C'est un choix de conception — une équipe pédagogique partage le jeu —, pas
+un oubli : ne confier le rôle MJ qu'à des enseignants à qui l'on confierait l'ensemble des
+élèves joueurs. De même, le **forum G&L est commun à tout l'établissement** : les pseudos des
+élèves y sont visibles d'une classe à l'autre (d'où l'intérêt de pseudos qui ne révèlent pas
+l'identité). Les limites qui, elles, existent bien : un MJ ne peut ni poser de mot de passe
+sur le compte ForetMap d'un élève, ni en changer l'e-mail (voir
+[Importer des joueurs en masse](#importer-des-joueurs-en-masse)) ; il ne modère que les
+commentaires **du jeu**, jamais ceux de ForetMap.
+
 **Retirer un rôle ou désactiver un compte prend effet tout de suite.** Rétrograder un
 Admin en MJ, désactiver un joueur ou supprimer son compte s'applique **dès l'action
 suivante** de la personne concernée — même si elle est déjà connectée : elle perd
@@ -212,8 +224,17 @@ ForetMap correspondant est automatiquement préparé pour chacun.
 
 - **Élève déjà inscrit à ForetMap** : si la ligne porte le même e-mail qu'un compte élève
   existant — ou le même pseudo **et** les mêmes prénom et nom —, le jeu **rattache ce
-  compte** au lieu d'en créer un second. L'élève garde son mot de passe ForetMap ; le
-  rapport le signale (« compte existant rapproché »).
+  compte** au lieu d'en créer un second, **à condition que l'élève soit déjà dans le groupe
+  ForetMap de cette classe G&L**. L'élève garde son mot de passe ForetMap (le jeu n'en pose
+  jamais sur un vrai compte élève) ; le rapport le signale (« compte existant rapproché »).
+  Un élève d'une **autre** classe n'est pas rattaché : un compte de jeu distinct est créé, sans
+  l'e-mail déjà pris (signalé dans le rapport). À la création d'un joueur une par une, l'e-mail
+  d'un élève hors de la classe est refusé (« E-mail déjà utilisé par un compte ForetMap »).
+  Pourquoi : rattacher n'importe quel élève sur la seule foi d'un e-mail revenait à donner au
+  MJ les clés de son compte ForetMap.
+- **E-mail d'un joueur qui utilise son propre compte ForetMap** : il n'est plus modifiable
+  depuis la fiche du joueur — seul l'élève le change, depuis son profil (mot de passe
+  demandé). La fiche d'un joueur au compte « miroir » (créé par le jeu) reste modifiable.
 - **Mots de passe** : après un import réel, le rapport affiche **une seule fois** la liste
   des identifiants créés (pseudo + mot de passe, fourni dans le fichier ou généré par le
   jeu), avec un bouton pour la copier ou la télécharger en tableur et la distribuer. Un mot
