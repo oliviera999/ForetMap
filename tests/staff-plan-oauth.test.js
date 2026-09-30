@@ -88,7 +88,7 @@ async function createAccount({ roleSlug, userType }) {
 }
 
 /** Retour de Google sur l'hôte du rappel, pour une connexion partie de proflyautey. */
-async function googleCallback(email, mode) {
+async function googleCallback(email, mode, sub) {
   const state = `st-${crypto.randomUUID()}`;
   authRouter.__setGoogleOAuthHooks({
     exchangeCode: async () => ({ id_token: 'id-token-test' }),
@@ -98,6 +98,7 @@ async function googleCallback(email, mode) {
       email,
       email_verified: true,
       hd: 'pedagolyautey.org',
+      ...(sub ? { sub } : {}),
     }),
   });
   try {
@@ -245,5 +246,48 @@ describe('Connexion Google du plan des personnels (mode=staff)', () => {
     assert.strictEqual(location.origin, CALLBACK_ORIGIN);
     assert.strictEqual(location.searchParams.get('mode'), 'staff');
     assert.strictEqual(location.searchParams.get('return_origin'), STAFF_ORIGIN);
+  });
+
+  describe('identité Google déjà liée à un autre compte', () => {
+    /**
+     * Cas vécu sur stafflyautey : l'ancien compte élève d'un personnel garde la liaison Google
+     * (`google_sub`), son compte Personnel porte l'adresse Google. Le compte enseignant trouvé
+     * par e-mail passait devant le compte lié, la connexion tentait de lui poser un
+     * `google_sub` déjà porté ailleurs, et `uq_users_google_sub` levait une exception :
+     * `oauth_server_error`, affiché « La connexion n'a pas abouti ».
+     */
+    async function linkOldAccount(userType, roleSlug, sub) {
+      const old = await createAccount({ roleSlug, userType });
+      await execute('UPDATE users SET google_sub = ? WHERE id = ?', [sub, old.id]);
+      return old;
+    }
+
+    it('ancien compte élève lié + compte Personnel enseignant : refus nommé, sans exception', async () => {
+      const sub = `sub-${crypto.randomUUID()}`;
+      const old = await linkOldAccount('student', 'eleve_novice', sub);
+      const staff = await createAccount({ roleSlug: 'personnel', userType: 'teacher' });
+      for (const mode of ['staff', 'teacher']) {
+        const out = await googleCallback(staff.email, mode, sub);
+        assert.strictEqual(out.error, 'oauth_google_linked_elsewhere', `mode ${mode}`);
+      }
+      // Rien n'a été écrit sur le compte Personnel, et le journal nomme les deux comptes.
+      const row = await queryOne('SELECT google_sub FROM users WHERE id = ?', [staff.id]);
+      assert.strictEqual(row.google_sub, null);
+      const event = await queryOne(
+        "SELECT actor_user_id, target_id FROM security_events WHERE action = 'auth.login.oauth_google.linked_elsewhere' AND target_id = ? ORDER BY id DESC LIMIT 1",
+        [staff.id],
+      );
+      assert.ok(event, 'conflit absent du journal de sécurité');
+      assert.ok(old.id, 'compte lié créé');
+    });
+
+    it('le compte lié reste celui qui entre quand il a l’accès (CDG-15 inchangé)', async () => {
+      const sub = `sub-${crypto.randomUUID()}`;
+      await linkOldAccount('teacher', 'prof_classe', sub);
+      const staff = await createAccount({ roleSlug: 'personnel', userType: 'teacher' });
+      const out = await googleCallback(staff.email, 'staff', sub);
+      assert.strictEqual(out.error, null, `refus inattendu : ${out.error}`);
+      assert.strictEqual(out.payload?.auth?.roleSlug, 'prof_classe');
+    });
   });
 });

@@ -36,6 +36,8 @@ export const OAUTH_ERROR_MESSAGES = {
     'La connexion Google des enseignants est désactivée par l’établissement. Utilisez votre identifiant et votre mot de passe.',
   oauth_account_mismatch:
     'Cette adresse est déjà rattachée à une autre identité Google. Connectez-vous avec le compte Google utilisé la première fois, ou demandez à un responsable de corriger la fiche.',
+  oauth_google_linked_elsewhere:
+    'Ce compte Google est déjà rattaché à un autre compte ForetMap que celui qui porte cette adresse (souvent un ancien compte élève ou visiteur). Un administrateur doit fusionner les deux comptes, puis réessayez.',
   oauth_teacher_no_role:
     'Compte enseignant sans profil de droits. Un administrateur doit attribuer un profil (ex. Prof de classe, n3boss) sur la fiche.',
   oauth_code_expired:

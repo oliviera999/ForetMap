@@ -8,6 +8,9 @@
 // message qui ne dit ni ce qui a échoué ni quoi faire — c'est celui que voyaient les
 // personnels refusés à tort.
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import {
@@ -75,27 +78,20 @@ describe('staffSession — retour Google', () => {
 describe('staffSession — messages d’erreur', () => {
   const GENERIC = 'La connexion n’a pas abouti. Réessayez.';
 
-  it('traduit tous les refus que le serveur sait émettre depuis ce produit', () => {
-    const codes = [
-      'oauth_staff_no_access',
-      'oauth_staff_account_not_found',
-      'oauth_teacher_account_not_found',
-      'oauth_account_not_found',
-      'oauth_teacher_email_is_student',
-      'oauth_account_inactive',
-      'oauth_teacher_inactive',
-      'oauth_teacher_no_role',
-      'oauth_email_not_allowed',
-      'oauth_google_refused',
-      'oauth_teacher_google_disabled',
-      'oauth_student_google_disabled',
-      'oauth_account_mismatch',
-      'oauth_not_configured',
-      'oauth_invalid_state',
-      'oauth_missing_code',
-    ];
+  it('traduit tous les codes que le serveur sait émettre (relus dans le code serveur)', () => {
+    // Liste relue à la source plutôt que recopiée : un code ajouté côté serveur sans message
+    // ici retombait sur « La connexion n'a pas abouti », sans rien dire de la cause — c'est
+    // ainsi qu'un conflit de liaison Google restait inexpliqué sur le plan des personnels.
+    const sources = ['lib/auth/googleAuthService.js', 'routes/auth.js']
+      .map((file) => readFileSync(resolve(process.cwd(), file), 'utf8'))
+      .join('\n');
+    const codes = [...new Set(sources.match(/'oauth_[a-z_]+'/g).map((c) => c.slice(1, -1)))];
+    expect(codes).toContain('oauth_google_linked_elsewhere');
+    expect(codes).toContain('oauth_server_error');
     for (const code of codes) {
-      expect(staffOauthErrorMessage(code), `code non traduit : ${code}`).not.toBe(GENERIC);
+      expect(staffOauthErrorMessage(code), `code non traduit : ${code}`).not.toMatch(
+        /n’a pas abouti/,
+      );
     }
   });
 
@@ -105,9 +101,12 @@ describe('staffSession — messages d’erreur', () => {
     expect(message).toContain('n3beur novice');
   });
 
-  it('garde un message de repli pour un code inconnu', () => {
-    expect(staffOauthErrorMessage('oauth_inconnu')).toBe(GENERIC);
+  it('garde un message de repli, qui nomme le code inconnu', () => {
+    expect(staffOauthErrorMessage('oauth_inconnu')).toContain('oauth_inconnu');
+    expect(staffOauthErrorMessage('oauth_inconnu')).toMatch(/n’a pas abouti/);
     expect(staffOauthErrorMessage('')).toBe(GENERIC);
+    // Le fragment se forge : une phrase glissée à la place du code n'est pas reprise.
+    expect(staffOauthErrorMessage('Appelez le 0600000000')).toBe(GENERIC);
   });
 });
 

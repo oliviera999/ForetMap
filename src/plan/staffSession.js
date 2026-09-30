@@ -102,6 +102,8 @@ export function consumeStaffOauthHash() {
   }
 }
 
+const GENERIC_FAILURE = 'La connexion n’a pas abouti. Réessayez.';
+
 /**
  * Messages des codes d'erreur OAuth rencontrés depuis ce produit.
  *
@@ -138,6 +140,14 @@ export function staffOauthErrorMessage(code, roleLabel = '') {
       return 'La connexion Google est désactivée pour ce type de compte par l’établissement.';
     case 'oauth_account_mismatch':
       return 'Cette adresse est déjà rattachée à une autre identité Google.';
+    case 'oauth_google_linked_elsewhere':
+      return 'Ce compte Google est déjà rattaché à un autre compte de l’établissement (souvent un ancien compte élève). Demandez à un administrateur de fusionner les deux comptes.';
+    case 'oauth_missing_id_token':
+    case 'oauth_invalid_token':
+    case 'oauth_claims_invalid':
+      return 'Google n’a pas confirmé l’identité de ce compte. Réessayez ; si l’échec persiste, prévenez un administrateur.';
+    case 'oauth_server_error':
+      return 'Erreur du serveur pendant la connexion. Réessayez ; si l’échec persiste, prévenez un administrateur.';
     case 'oauth_not_configured':
       return 'La connexion Google n’est pas configurée sur ce serveur.';
     case 'oauth_invalid_state':
@@ -149,6 +159,12 @@ export function staffOauthErrorMessage(code, roleLabel = '') {
     case 'oauth_google_unreachable':
       return 'Le serveur n’a pas pu joindre Google. Réessayez dans quelques minutes.';
     default:
-      return 'La connexion n’a pas abouti. Réessayez.';
+      // Le code voyage avec le message : sans lui, un échec non prévu ne se diagnostique pas
+      // (le fragment `#oauth_error=` est effacé de l'adresse dès l'arrivée sur la page).
+      // Seul un identifiant de code est repris : le fragment vient de l'adresse, qu'un tiers
+      // peut forger — il ne doit pas pouvoir y glisser une phrase de son choix.
+      return /^[a-z_]{1,48}$/.test(String(code || ''))
+        ? `La connexion n’a pas abouti (code : ${code}). Réessayez.`
+        : GENERIC_FAILURE;
   }
 }
