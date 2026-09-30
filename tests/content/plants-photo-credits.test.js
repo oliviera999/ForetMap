@@ -34,7 +34,7 @@ test('toute photo Wikimedia porte un auteur et une licence', async () => {
   );
 });
 
-test('aucun crédit photo ne recopie une adresse e-mail (migration 314)', async () => {
+test('aucun crédit photo ne recopie une adresse e-mail (migration 313)', async () => {
   // Commons laisse parfois l'adresse du photographe dans le champ « Artist » : l'attribution
   // demande un nom, jamais des coordonnées personnelles (audit du 30/09/2026, CS2).
   const rows = await queryAll(
