@@ -1,5 +1,6 @@
 const express = require('express');
 const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+const { emailWillChange, applyEmailChangeEffects } = require('../lib/accounts/emailChange');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
@@ -787,7 +788,7 @@ router.put(
   '/profiles/:id/permissions',
   requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
-    const role = await queryOne('SELECT id, slug FROM roles WHERE id = ?', [req.params.id]);
+    const role = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
     const actorRoleSlug = String(req.auth?.roleSlug || '')
       .trim()
@@ -797,6 +798,13 @@ router.put(
       return res
         .status(403)
         .json({ error: 'Seul un administrateur peut modifier le profil admin' });
+    }
+    // Hors administrateur, on ne touche pas aux permissions d'un profil de rang égal ou
+    // supérieur au sien : un délégué ne vide pas le profil de ses supérieurs (AC4, 2026-09-30).
+    if (actorRoleSlug !== 'admin' && Number(role.rank || 0) >= Number(req.auth?.roleRank || 0)) {
+      return res.status(403).json({
+        error: 'Réservé à un profil de rang supérieur à celui du profil modifié',
+      });
     }
     const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
     // Garde « porte d'entrée » : `admin` et `prof` ne peuvent pas perdre `teacher.access`
@@ -1105,10 +1113,12 @@ router.patch(
       return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
     }
 
-    // Mot de passe et désactivation : jamais sur soi-même, ni sur un profil de rang égal ou
-    // supérieur au sien (hors administrateur). `admin.users.assign_roles` ne vaut pas prise
-    // de contrôle d'un pair (CDG-07, CDG-40).
-    if (passwordWillChange || activeWillChange) {
+    // Mot de passe, désactivation et adresse e-mail : jamais sur soi-même, ni sur un profil de
+    // rang égal ou supérieur au sien (hors administrateur). `admin.users.assign_roles` ne vaut
+    // pas prise de contrôle d'un pair (CDG-07, CDG-40) — et l'e-mail est la clé du « mot de
+    // passe oublié » : le remplacer par le sien revenait à prendre le compte (AC2, 2026-09-30).
+    const emailChanges = hasEmail && emailWillChange(user.email, normalizeEmail(body.email));
+    if (passwordWillChange || activeWillChange || emailChanges) {
       if (String(req.auth?.userId) === String(resolvedUserId)) {
         return res
           .status(403)
@@ -1227,7 +1237,17 @@ router.patch(
       }
       throw err;
     }
-    if (passwordWillChange || (activeWillChange && nextIsActive === 0)) {
+    if (emailChanges) {
+      // Révoque les sessions, consomme les liens « mot de passe oublié » ouverts et avertit
+      // l'ancienne adresse (AC2) — `bumpUserTokenEpoch` y est inclus.
+      await applyEmailChangeEffects({
+        userId: resolvedUserId,
+        previousEmail: user.email,
+        nextEmail: email,
+        displayName,
+        changedBy: 'admin',
+      });
+    } else if (passwordWillChange || (activeWillChange && nextIsActive === 0)) {
       // Révoque les sessions en cours du compte (ForetMap et GL) : nouveau mot de passe ou
       // désactivation — la coupure est immédiate, pas à l'expiration du jeton.
       await bumpUserTokenEpoch(resolvedUserId);

@@ -593,6 +593,14 @@ CREATE TABLE IF NOT EXISTS lti_nonces (
   INDEX idx_lti_nonces_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tickets d'arrivée LTI consommés (migration 313) : un ticket ne s'échange qu'une fois.
+CREATE TABLE IF NOT EXISTS lti_tickets_used (
+  jti VARCHAR(64) NOT NULL PRIMARY KEY,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_lti_tickets_used_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id VARCHAR(64) PRIMARY KEY,
   user_type VARCHAR(16) NOT NULL,

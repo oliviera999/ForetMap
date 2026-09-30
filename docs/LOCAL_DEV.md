@@ -534,7 +534,8 @@ BASE_URL=http://localhost:3000 npm run test:load
 
 Bypass du rate limit pour un run de charge contrôlé :
 
-- côté serveur : définir `LOAD_TEST_SECRET` ;
+- côté serveur : définir `LOAD_TEST_SECRET` (**32 caractères minimum** ; ignoré si
+  `NODE_ENV=production`, avertissement au démarrage) ;
 - côté client (Artillery) : utiliser la même valeur `LOAD_TEST_SECRET`.
 
 Exemple :
