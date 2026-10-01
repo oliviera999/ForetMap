@@ -1033,7 +1033,11 @@ CREATE TABLE IF NOT EXISTS location_categories (
   is_infrastructure TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
-  surfaces SET('map','visit','plan','staff','enov') NOT NULL DEFAULT 'map,visit,plan,staff,enov',
+  -- Défaut SANS `enov` : les migrations 204 et 246 sèment des catégories avec ce défaut, puis
+  -- la 260 repose le SET à quatre valeurs — une valeur `enov` y serait tronquée et ferait
+  -- échouer `db:init` sur base neuve. La migration 315 ajoute `enov` au défaut et aux lignes
+  -- visibles sur `plan`, comme sur une base de production migrée.
+  surfaces SET('map','visit','plan','staff','enov') NOT NULL DEFAULT 'map,visit,plan,staff',
   zoom_only TINYINT(1) NOT NULL DEFAULT 0,
   -- Catégorie-label (migration 315, e-nov) : signale un lieu sans décider de sa visibilité
   -- hors de ses propres surfaces (`isVisibleOnSurface`).
