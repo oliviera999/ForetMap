@@ -305,7 +305,7 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `npm test`                                    | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.)         |
 | `npm run test:content`                        | Corpus pédagogique **`tests/content/*.test.js`** (espèces, liaisons trophiques, liens QCM) — job CI `contenu` |
-| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`)                                 |
+| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (job `quality`, PR hors brouillon)                 |
 | `npm run test:all`                            | `npm test`, `npm run test:content` puis `npm run test:ui`                                                     |
 | `npm run test:e2e`                            | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                          |
 | `npm run smoke:local:fast`                    | Smoke applicatif (`scripts/local-smoke.js`)                                                                   |

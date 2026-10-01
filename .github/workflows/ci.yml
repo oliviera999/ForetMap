@@ -1,10 +1,27 @@
 name: CI
 
+# Coût en minutes Actions (dépôt privé, plan Free : 2 000 min/mois). Le quota a été épuisé en
+# ~48 h fin septembre 2026 : un run complet coûtait ~40 min facturées (somme des jobs, chacune
+# arrondie à la minute) et tournait deux fois par changement (PR puis push `main`), sans
+# annulation des runs dépassés. D'où, dans ce fichier :
+#   - `concurrency` : un nouveau push sur la même PR (ou sur `main`) annule le run en cours ;
+#   - PR en brouillon : aucun job (les jobs passent en « skipped ») — la CI part au passage
+#     « Ready for review » (`ready_for_review`) ou à la main (Actions → CI → Run workflow) ;
+#   - push `main` : `quality` seul, sans Vitest. La PR a déjà passé la CI complète ; ce qui
+#     peut casser à la fusion, c'est surtout la collision de numéros de migration, que
+#     `quality` vérifie en une minute ;
+#   - PR de documentation seule (audits, `.cursor/`, `.claude/`…, cf.
+#     scripts/ci-change-scope.js) : `quality` sans Vitest ;
+#   - suite e2e complète (informative) : sortie dans e2e-full.yml, à la demande.
+# Détail et chiffres : docs/EXPLOITATION.md § 11.2.
+
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    # `ready_for_review` : une PR sortie du brouillon lance sa première CI.
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 # Lecture seule : ce workflow ne pousse rien. Sans bloc explicite, le jeton hérite des droits
@@ -12,10 +29,59 @@ on:
 permissions:
   contents: read
 
+# Un push qui en suit un autre rend le run précédent caduc : on l'annule au lieu de le payer.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Décide de l'étendue du run. Coûte une minute facturée, en économise ~40 sur une PR de doc.
+  changes:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      full: ${{ steps.scope.outputs.full }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts/ci-change-scope.js
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Étendue du run
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          case "$EVENT" in
+            pull_request)
+              # Liste des fichiers de la PR (API, pas besoin d'historique git). En cas d'échec,
+              # `ci-change-scope.js` reçoit une liste vide et répond « complète » par prudence.
+              gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename' \
+                > "$RUNNER_TEMP/files.txt" || : > "$RUNNER_TEMP/files.txt"
+              echo "Fichiers modifiés : $(wc -l < "$RUNNER_TEMP/files.txt")"
+              node scripts/ci-change-scope.js < "$RUNNER_TEMP/files.txt" >> "$GITHUB_OUTPUT"
+              ;;
+            workflow_dispatch)
+              echo "full=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              # push sur `main` / `master` : déjà validé sur la PR.
+              echo "full=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+          cat "$GITHUB_OUTPUT"
+
   # Lint / format / tests UI : aucun besoin de MySQL → job parallèle sans service,
   # qui ne paie ni le health-check MariaDB (~40 s) ni db:init.
   quality:
+    needs: changes
     runs-on: ubuntu-latest
     # Même garde-fou que le job `test` ci-dessous (run sain : ~5 min).
     timeout-minutes: 20
@@ -48,7 +114,10 @@ jobs:
       - name: Run format check
         run: npm run format:check
 
+      # ~2 min depuis le pool `vmThreads` (vitest.config.js), ~12 min avant. Sauté sur push
+      # `main` et sur une PR de documentation seule (cf. job `changes`).
       - name: Run UI tests (Vitest)
+        if: needs.changes.outputs.full == 'true'
         run: npm run test:ui
 
       # Vulnérabilités connues des dépendances de production, niveau `high` et plus.
@@ -66,6 +135,8 @@ jobs:
   # contenaient que du Markdown. Un contenu incohérent doit tomber — mais sous son propre
   # nom, sans se confondre avec un échec de code.
   contenu:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -105,6 +176,8 @@ jobs:
 
   # Conserve le nom `test` : c'est le check requis côté protections de branche.
   test:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     # Sans borne, une étape qui se fige consomme les 6 h du délai GitHub par défaut,
     # puis le check requis termine en `cancelled` — indiscernable d'un vrai échec, et
@@ -201,7 +274,7 @@ jobs:
 
       - name: Run Playwright Plan smoke (bloquant)
         # Coquille, parcours, position et cap en haut (projet `plan-mobile`) — filet court et
-        # stable ; la suite e2e complète reste informative ci-dessous.
+        # stable ; la suite e2e complète, informative, vit dans e2e-full.yml (à la demande).
         # Position et orientation y sont entrées après l'audit du 13 septembre (N1) : le
         # retournement des étiquettes sous « cap en haut » avait traversé la CI parce que le
         # seul scénario qui exerce la position n'était pas bloquant.
@@ -222,26 +295,10 @@ jobs:
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
 
-      - name: Run Playwright smoke e2e (non-bloquant — informatif)
-        id: e2e
-        # La suite Playwright complète ne tient pas dans le budget CI (timeout global)
-        # et reste instable en headless : on ne bloque plus le job `test` dessus. Les
-        # gates fiables (lint, tests backend, Vitest, coverage, build) gardent leur rôle.
-        continue-on-error: true
-        run: npm run test:e2e
-        env:
-          E2E_BASE_URL: http://127.0.0.1:3000
-
+      # La suite e2e complète (informative, ~12 min, non bloquante) ne tourne plus ici : elle
+      # coûtait un tiers du job sans jamais bloquer, et ses rapports (captures, traces) avaient
+      # rempli le quota de stockage d'artefacts du plan Free — l'envoi échouait, rendant le
+      # job rouge à chaque run. Elle vit dans e2e-full.yml, à lancer à la main.
       - name: Dump server log on failure
-        if: ${{ steps.e2e.outcome == 'failure' }}
+        if: failure()
         run: cat /tmp/foretmap-server.log || true
-
-      - name: Upload Playwright report
-        if: ${{ steps.e2e.outcome == 'failure' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
-            /tmp/foretmap-server.log

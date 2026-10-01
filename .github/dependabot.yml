@@ -1,17 +1,27 @@
 # Dependabot — propositions de mises à jour npm (PR à relire ; CI doit passer avant merge).
 # Doc : https://docs.github.com/code-security/dependabot/dependabot-version-updates
+#
+# Quota Actions (dépôt privé, cf. docs/EXPLOITATION.md § 11.2) : chaque PR Dependabot lance la
+# CI complète (~25 min facturées), et Dependabot **rebase** sa PR à chaque conflit — or chaque
+# fusion sur `main` modifie `package-lock.json` (bump de version automatique), donc chaque
+# fusion relançait la CI de toutes les PR Dependabot ouvertes (4 runs en une journée pour la
+# même PR le 29/09/2026). D'où :
+#   - `rebase-strategy: disabled` : plus de rebase automatique. Avant de fusionner, commenter
+#     `@dependabot rebase` sur la PR (une seule CI, au moment utile) ;
+#   - npm en mensuel plutôt qu'hebdomadaire. Les alertes de **sécurité** ne dépendent pas de
+#     ce calendrier : Dependabot ouvre les correctifs de vulnérabilité dès leur publication.
 
 version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
-      interval: 'weekly'
-      day: 'monday'
+      interval: 'monthly'
       time: '07:00'
       timezone: 'Europe/Paris'
     # Évite l’avalanche de PR ouvertes en parallèle
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    rebase-strategy: 'disabled'
     labels:
       - 'dependencies'
     commit-message:
@@ -31,6 +41,7 @@ updates:
     schedule:
       interval: 'monthly'
     open-pull-requests-limit: 2
+    rebase-strategy: 'disabled'
     labels:
       - 'dependencies'
     commit-message:

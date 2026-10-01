@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — CI : quota de minutes GitHub Actions épuisé en 48 h (dépôt privé)
+
+- **Cause** : depuis le passage en privé, chaque minute d'Actions est décomptée (2 000 min/mois en Free, facturées par job). Un run `CI` coûtait ~40 min et tournait deux fois par changement (PR puis `main`), sans annulation des runs dépassés : 49 runs complets du 28/09 au 30/09. Le job `test` était en outre **rouge à chaque run** : les rapports Playwright avaient rempli le quota de stockage d'artefacts (« Artifact storage quota has been hit »).
+- **Vitest ~5× plus rapide** : pool `vmThreads` (`vitest.config.js`), ~2 min au lieu de ~9–12. Trois fichiers incompatibles restent en pool `forks` (`FORKS_ONLY`) ; `isomorphic-dompurify` servi en version navigateur ; `matchMedia` du setup rendu `configurable`.
+- **`ci.yml`** : `concurrency` avec annulation ; aucun job sur une PR **brouillon** (la CI part au passage « Ready for review ») ; push `main` → `quality` seul, sans Vitest ; PR de documentation seule → `quality` sans Vitest (job `changes`, `scripts/ci-change-scope.js`, testé par `tests/ci-change-scope.test.js`). Suite e2e complète (informative) sortie dans **`e2e-full.yml`**, à la demande, rapport téléversé sur option (rétention 3 jours). Les smokes bloquants (plan, e-nov, mobile WebKit) restent — WebKit conservé pour ce dernier.
+- **`frontend-dist.yml`** : sauté sur PR brouillon et sur changement de pure documentation.
+- **Dependabot** : plus de rebase automatique (chaque fusion relançait la CI de ses PR), npm en mensuel.
+- Doc : `docs/EXPLOITATION.md` § 11.2 (diagnostic chiffré, conséquences pour le travail courant), `CLAUDE.md`, skill `foretmap-testing`.
+
 ### Corrigé — plan des personnels : « La connexion n'a pas abouti » pour un personnel déjà lié à Google
 
 - **Cause** : l'ancien compte de la personne (souvent un compte élève) gardait sa liaison Google, et son compte Personnel portait l'adresse Google. La connexion plantait (doublon `uq_users_google_sub`).
