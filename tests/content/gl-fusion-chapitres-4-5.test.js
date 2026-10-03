@@ -8,27 +8,24 @@
 // session) sur un jeu de données qui imite la production — mêmes slugs, mêmes `order_index`,
 // mêmes libellés de zones, mêmes codes de feuillets — puis vérifie la grammaire du chapitre
 // fusionné, la rejouabilité, le no-op sur une base sans ces chapitres et la garde « équipe
-// posée sur un repère supprimé ». Il se met de côté si la base contient déjà ces données
-// (base locale importée de la production) : il ne doit jamais toucher du contenu réel.
+// posée sur un repère supprimé ».
+//
+// Tout se joue dans **une transaction annulée à la fin** (la migration ne contient que du DML) :
+// le test ne laisse aucune trace et ne dépend pas de ce que d'autres suites ont importé dans la
+// base de test (corpus de feuillets, scopes QCM lore) — ces lignes sont écartées le temps du
+// test, puis rendues par le ROLLBACK. Seule une base qui porte les vrais chapitres 4 et 5
+// (copie de production) est laissée de côté.
 require('../helpers/setup');
 const fs = require('node:fs');
 const path = require('node:path');
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const {
-  initSchema,
-  pool,
-  queryAll,
-  queryOne,
-  execute,
-  splitSqlStatements,
-} = require('../../database');
+const { initSchema, pool, splitSqlStatements } = require('../../database');
 const {
   isFeuilletInChapterPool,
   resolveChapterFeuilletPool,
 } = require('../../lib/glFeuilletChapterPool');
 const { resolveMarkerEventConfig } = require('../../lib/glMarkerEventConfig');
-const { createGlAdmin, createGlClass, createGlGameWithTeams } = require('../helpers/glFixtures');
 
 const MIGRATION_FILE = path.join(
   __dirname,
@@ -41,8 +38,23 @@ const ZONES_FILE = path.join(__dirname, '..', '..', 'src', 'gl', 'data', 'zones_
 
 const SLUG_E = 'eurasie-continentale';
 const SLUG_T = 'toundra-arctique';
-const db = { queryOne, queryAll, execute };
 const stamp = Date.now();
+
+// Connexion unique, transaction ouverte dans before() et annulée dans after() : toutes les
+// requêtes du test (et la migration rejouée) passent par elle.
+let conn = null;
+async function queryAll(sql, params = []) {
+  const [rows] = await conn.execute(sql, params);
+  return Array.isArray(rows) ? rows : [];
+}
+async function queryOne(sql, params = []) {
+  return (await queryAll(sql, params))[0];
+}
+async function execute(sql, params = []) {
+  const [result] = await conn.execute(sql, params);
+  return result;
+}
+const db = { queryOne, queryAll, execute };
 
 // --- Chapitre 4 « avant » : 42 repères, taïga (10–210) puis désert froid (220–420) --------
 const QUIZ = (categorie, niveau) => ({ type: 'quiz', categorie, niveau });
@@ -188,14 +200,9 @@ function migrationSql() {
 }
 
 /** Rejoue la migration comme le runner : une seule connexion, requête par requête. */
-async function runMigration() {
-  const conn = await pool.getConnection();
-  try {
-    for (const stmt of splitSqlStatements(migrationSql())) {
-      await conn.query(stmt);
-    }
-  } finally {
-    conn.release();
+async function runMigration(statements = splitSqlStatements(migrationSql())) {
+  for (const stmt of statements) {
+    await conn.query(stmt);
   }
 }
 
@@ -347,6 +354,15 @@ function pointInPolygon(x, y, points) {
 
 /** Jeu de données « comme en production » (chapitres, repères, zones, QCM lore, feuillets). */
 async function createFixtures() {
+  // Corpus réel importé par d'autres suites (même codes, mêmes scopes) : écarté le temps du
+  // test, la transaction le rend à la fin.
+  const codes = allFixtureFeuilletCodes();
+  await execute(
+    `DELETE FROM gl_lore_feuillets WHERE feuillet_code IN (${codes.map(() => '?').join(', ')})`,
+    codes,
+  );
+  await execute("DELETE FROM gl_qcm_lore_questions WHERE chapitre_slug IN ('ch4', 'ch5')");
+  await execute("DELETE FROM gl_qcm_lore_scopes WHERE slug IN ('ch4', 'ch5')");
   await execute(
     `INSERT INTO gl_chapters (slug, title, biome, plateau_number, order_index, story_markdown,
                               sortileges_markdown, created_at, updated_at)
@@ -455,12 +471,12 @@ async function createFixtures() {
   await insertFeuillet('sc-nom', {
     biome_slug: 'toundra',
     plateau_number: 5,
-    ordre_recit: 1499,
+    ordre_recit: 999998,
   });
   await insertFeuillet('ep-VIII-09', {
     biome_slug: 'toundra',
     plateau_number: 5,
-    ordre_recit: 1500,
+    ordre_recit: 999999,
   });
   const zoneHiver = await queryOne(
     "SELECT id FROM gl_kingdom_zones WHERE chapter_id = ? AND label = 'Toundra — hiver polaire'",
@@ -522,31 +538,18 @@ async function fusionResult() {
 
 before(async () => {
   await initSchema();
+  conn = await pool.getConnection();
   if ((await chapterIdBySlug(SLUG_E)) || (await chapterIdBySlug(SLUG_T))) {
     skipReason = 'chapitres de production présents dans cette base : rien à simuler';
     return;
   }
-  const scopeRows = await queryAll(
-    "SELECT slug FROM gl_qcm_lore_scopes WHERE slug IN ('ch4', 'ch5')",
-  );
-  if (scopeRows.length > 0) {
-    skipReason = 'scopes QCM lore ch4/ch5 déjà présents : base importée, rien à simuler';
-    return;
-  }
-  const codes = allFixtureFeuilletCodes();
-  const existing = await queryAll(
-    `SELECT feuillet_code FROM gl_lore_feuillets
-      WHERE feuillet_code IN (${codes.map(() => '?').join(', ')})`,
-    codes,
-  );
-  if (existing.length > 0) {
-    skipReason = 'corpus de feuillets présent dans cette base : rien à simuler';
-  }
+  await conn.query('START TRANSACTION');
 });
 
 after(async () => {
-  if (skipReason) return;
-  await dropFixtures();
+  if (!conn) return;
+  if (!skipReason) await conn.query('ROLLBACK');
+  conn.release();
 });
 
 test('sans les chapitres 4 et 5 (CI, base neuve), la migration ne touche à rien', async (t) => {
@@ -565,20 +568,35 @@ test('mise en place : chapitres, zones, QCM lore et feuillets comme en productio
 
 test('garde : une équipe posée sur un repère supprimé suspend toute la fusion', async (t) => {
   if (skipReason) return t.skip(skipReason);
-  const admin = await createGlAdmin({ email: `gl.fusion.${stamp}@ecole.local` });
-  const cls = await createGlClass({ name: `Classe fusion ${stamp}`, adminId: admin.id });
-  const { game, teams } = await createGlGameWithTeams({
-    classId: cls.id,
-    chapterId: chapterE,
-    createdBy: admin.id,
-    teams: [{ name: 'Gnomes du Gobi', type: 'gnome' }],
-  });
-  gameId = game.id;
+  const admin = await execute(
+    `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
+     VALUES (?, 'MJ fusion', 'admin', 1, NOW(), NOW())`,
+    [`gl.fusion.${stamp}@ecole.local`],
+  );
+  const cls = await execute(
+    `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
+     VALUES (?, 'Ecole Test', ?, 1, NOW(), NOW())`,
+    [`Classe fusion ${stamp}`, admin.insertId],
+  );
+  const game = await execute(
+    `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
+    [cls.insertId, chapterE, `Partie fusion ${stamp}`, admin.insertId],
+  );
+  gameId = game.insertId;
+  const team = await execute(
+    `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
+     VALUES (?, 'Gnomes du Gobi', 'gnome', '#22c55e', NOW(), NOW())`,
+    [gameId],
+  );
   const gobi = await queryOne(
     'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? AND order_index = 300',
     [chapterE],
   );
-  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [gobi.id, teams[0].id]);
+  await execute('UPDATE gl_teams SET position_marker_id = ? WHERE id = ?', [
+    gobi.id,
+    team.insertId,
+  ]);
 
   const avant = await snapshot();
   await runMigration();
@@ -927,13 +945,8 @@ test('interrompue en plein milieu puis relancée, la migration aboutit au même 
   for (const cut of cuts) {
     await dropFixtures();
     await createFixtures();
-    const conn = await pool.getConnection();
-    try {
-      // Le runner s'arrête sur une erreur après la requête `cut` : on la simule.
-      for (const stmt of statements.slice(0, cut + 1)) await conn.query(stmt);
-    } finally {
-      conn.release();
-    }
+    // Le runner s'arrête sur une erreur après la requête `cut` : on la simule.
+    await runMigration(statements.slice(0, cut + 1));
     await runMigration();
     assert.strictEqual(await fusionResult(), reference, `reprise après la requête ${cut}`);
   }
