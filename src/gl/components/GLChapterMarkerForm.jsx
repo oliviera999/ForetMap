@@ -2,6 +2,7 @@ import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLMarkerEventEditor } from './GLMarkerEventEditor.jsx';
 import { GLMarkerAppearanceEditor } from './GLMarkerAppearanceEditor.jsx';
+import { sousBiomeSlugOptions } from '../utils/glChapterMapStudioForm.js';
 
 // Formulaire d'édition d'un repère (panneau périphérique, piloté par props).
 // Aucune logique de gestes / coordonnées : les champs x/y sont de simples
@@ -76,12 +77,12 @@ export function GLChapterMarkerForm({
           list="gl-chapter-biome-slugs"
           value={markerForm.sousBiomeSlug}
           onChange={(event) => onFieldChange('sousBiomeSlug', event.target.value)}
-          placeholder="jungle_afc, savane…"
+          placeholder="jungle_afc, toundra_hiver, transition…"
         />
         <datalist id="gl-chapter-biome-slugs">
-          {(chapterBiomes || []).map((b) => (
-            <option key={b.slug} value={b.slug}>
-              {b.nom || b.slug}
+          {sousBiomeSlugOptions(chapterBiomes).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </datalist>
@@ -98,6 +99,7 @@ export function GLChapterMarkerForm({
       <GLMarkerEventEditor
         marker={selectedMarker}
         chapterBiomes={chapterBiomes}
+        sousBiomeSlug={markerForm.sousBiomeSlug}
         onChange={onEventDraftChange}
         effectsDraft={effectsDraft}
         onEffectsDraftChange={onEffectsDraftChange}

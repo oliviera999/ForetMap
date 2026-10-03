@@ -37,6 +37,16 @@ biodiversité, équilibres).
   soit une **question fixe** choisie par le MJ pour ce repère, soit un **tirage** dans
   le catalogue (par catégorie/niveau). Le repère précise s'il puise dans les QCM biomes
   ou les QCM lore.
+- **D'où viennent les questions d'un tirage (QCM biomes)** : l'éditeur du repère propose
+  trois choix dans « Biomes du pool ».
+  - _Biomes du chapitre (défaut)_ : toutes les questions des biomes rattachés au chapitre.
+  - _Chapitre + biomes additionnels_ : les mêmes, plus des biomes ajoutés à la main.
+  - _Biome de la case_ : seulement les questions du milieu de la case, lu dans le
+    **sous-biome** du repère (« toundra_hiver » compte comme la toundra). Une case sans
+    sous-biome ou une case-charnière (« transition ») retombe sur les biomes du chapitre.
+    C'est le réglage des quiz d'un chapitre à plusieurs milieux, comme le chapitre 4
+    (taïga puis toundra) : une case de taïga ne tire jamais une question de toundra.
+    L'éditeur affiche sous le choix le biome retenu pour le repère.
 - **Hors partie** : les questions restent accessibles pour s'entraîner — mais une question
   ouverte hors du plateau **ne rapporte jamais de point de partie** : seule une question
   présentée par un repère de la partie compte au score.

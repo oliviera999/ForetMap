@@ -27,8 +27,20 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
 - **Les repères « question »** déclenchent un QCM : une question fixe choisie par le
   MJ, ou un tirage dans le catalogue (QCM biomes ou QCM lore) — voir
   [QCM et pédagogie](qcm-et-pedagogie.md).
+- **Le sous-biome d'un repère** dit dans quel milieu se trouve la case : un biome du
+  chapitre (« taiga », « toundra »…), une saison de ce biome (« toundra_ete » pour l'été
+  polaire, « toundra_hiver » pour la nuit polaire), ou « transition » pour une case-charnière
+  entre deux milieux (elle n'appartient à aucun des deux). Le champ propose ces valeurs ;
+  une valeur inconnue est refusée à l'enregistrement. Il sert au tirage « Biome de la case »
+  des repères question et à la musique de plateau.
 - **Les mascottes des équipes** : gnomes et licornes, qui matérialisent la position de
   chaque équipe.
+- **La musique de plateau** (distincte de la musique des zones) est **commune à toute la
+  partie** : elle suit la case la plus avancée qu'une équipe ait jamais atteinte, d'après le
+  sous-biome de cette case. Sur le plateau 4, elle passe de la taïga à l'été polaire, puis à
+  la nuit polaire dès qu'une équipe atteint la case 32 « La nuit qui tombe » — et la nuit ne
+  se lève plus, même si cette équipe recule ensuite. Une case-charnière garde la musique du
+  milieu d'avant. Sans sous-biome sur les cases, la musique reste celle du chapitre.
 
 ## Naviguer sur le plateau
 

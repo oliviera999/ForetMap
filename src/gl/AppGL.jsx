@@ -104,6 +104,7 @@ import {
 } from './utils/glStaffView.js';
 import { isGlGuest } from './utils/glGuestMode.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
+import { resolvePlateauMusicBiomeSlug } from './utils/glPlateauMusicProgress.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
@@ -402,6 +403,16 @@ export function AppGL() {
     if (fromList) return fromList;
     return gameState?.game?.biome || null;
   }, [chapterBiomeSlugs, gameState?.game?.biome]);
+  // Musique de plateau commune à la partie : biome de la case la plus avancée jamais
+  // atteinte (taïga → été polaire → nuit polaire sur le plateau 4, sans retour en arrière).
+  const plateauMusicBiomeSlug = useMemo(
+    () =>
+      resolvePlateauMusicBiomeSlug(
+        { markers: gameState?.markers, teams: gameState?.teams, events: gameState?.events },
+        chapterMusicBiomeSlug,
+      ),
+    [gameState?.markers, gameState?.teams, gameState?.events, chapterMusicBiomeSlug],
+  );
 
   useEffect(() => {
     if (!token) return undefined;
@@ -1137,7 +1148,7 @@ export function AppGL() {
               enabled={Boolean(token && gameState?.game)}
               plateauNumber={chapterPlateauNumber}
               introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
-              biomeSlug={chapterMusicBiomeSlug}
+              biomeSlug={plateauMusicBiomeSlug}
             />
             {/*
              * Les commandes flottantes du coin bas-droit tiennent dans **un seul**

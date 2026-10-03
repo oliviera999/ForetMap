@@ -541,47 +541,47 @@
    "popover": "Un grand-père se souvient d'un ciel plein d'oiseaux. Son petit-fils n'a jamais vu ça : pour lui, le ciel presque vide est normal. C'est comme ça qu'on oublie ce qu'on a perdu."
   },
   {
-   "zone_id": "zf-p4-12",
+   "zone_id": "zf-p4-01",
    "plateau": 4,
-   "board_image": "watermarked_img_15989862586475956910.png",
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-I-11",
    "titre": "Le Détricotage",
    "centre": [
-    0.14,
-    0.54
+    0.293,
+    0.285
    ],
    "polygone": [
     [
-     0.1585,
-     0.5538
+     0.3115,
+     0.2988
     ],
     [
-     0.1477,
-     0.5733
+     0.3007,
+     0.3183
     ],
     [
-     0.1323,
-     0.5733
+     0.2853,
+     0.3183
     ],
     [
-     0.1215,
-     0.5538
+     0.2745,
+     0.2988
     ],
     [
-     0.1215,
-     0.5262
+     0.2745,
+     0.2712
     ],
     [
-     0.1323,
-     0.5067
+     0.2853,
+     0.2517
     ],
     [
-     0.1477,
-     0.5067
+     0.3007,
+     0.2517
     ],
     [
-     0.1585,
-     0.5262
+     0.3115,
+     0.2712
     ]
    ],
    "declenchement": "traversee_unique",
@@ -590,47 +590,47 @@
    "popover": "Quand l'abeille manque, la fleur ne fait plus de fruit, puis l'oiseau part. Tout est lié : un fil lâche, et cent suivent."
   },
   {
-   "zone_id": "zf-p4-13",
+   "zone_id": "zf-p4-02",
    "plateau": 4,
-   "board_image": "watermarked_img_15989862586475956910.png",
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-I-12",
    "titre": "Un fil, pas une étrangère",
    "centre": [
-    0.32,
-    0.72
+    0.262,
+    0.757
    ],
    "polygone": [
     [
-     0.3385,
-     0.7338
+     0.2805,
+     0.7708
     ],
     [
-     0.3277,
-     0.7533
+     0.2697,
+     0.7903
     ],
     [
-     0.3123,
-     0.7533
+     0.2543,
+     0.7903
     ],
     [
-     0.3015,
-     0.7338
+     0.2435,
+     0.7708
     ],
     [
-     0.3015,
-     0.7062
+     0.2435,
+     0.7432
     ],
     [
-     0.3123,
-     0.6867
+     0.2543,
+     0.7237
     ],
     [
-     0.3277,
-     0.6867
+     0.2697,
+     0.7237
     ],
     [
-     0.3385,
-     0.7062
+     0.2805,
+     0.7432
     ]
    ],
    "declenchement": "traversee_unique",
@@ -639,47 +639,47 @@
    "popover": "Selene est tentée de se croire en dehors de la nature. Mais non : elle en fait partie, comme tout le monde. Donc elle peut aussi aider à réparer."
   },
   {
-   "zone_id": "zf-p4-14",
+   "zone_id": "zf-p4-03",
    "plateau": 4,
-   "board_image": "watermarked_img_15989862586475956910.png",
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-III-01",
    "titre": "Sur ma propre mémoire",
    "centre": [
-    0.4987,
-    0.4151
+    0.538,
+    0.624
    ],
    "polygone": [
     [
-     0.5172,
-     0.4289
+     0.5565,
+     0.6378
     ],
     [
-     0.5064,
-     0.4484
+     0.5457,
+     0.6573
     ],
     [
-     0.491,
-     0.4484
+     0.5303,
+     0.6573
     ],
     [
-     0.4802,
-     0.4289
+     0.5195,
+     0.6378
     ],
     [
-     0.4802,
-     0.4013
+     0.5195,
+     0.6102
     ],
     [
-     0.491,
-     0.3818
+     0.5303,
+     0.5907
     ],
     [
-     0.5064,
-     0.3818
+     0.5457,
+     0.5907
     ],
     [
-     0.5172,
-     0.4013
+     0.5565,
+     0.6102
     ]
    ],
    "declenchement": "traversee_unique",
@@ -688,145 +688,47 @@
    "popover": "Selene s'aperçoit qu'elle oublie. Elle trouve un mot écrit de sa main dont elle ne se souvient pas. Alors elle écrit pour ne pas tout perdre."
   },
   {
-   "zone_id": "zf-p4-15",
+   "zone_id": "zf-p4-04",
    "plateau": 4,
-   "board_image": "watermarked_img_15989862586475956910.png",
-   "feuillet_code": "ep-III-02",
-   "titre": "Perdre n'est pas être effacée",
-   "centre": [
-    0.7657,
-    0.2624
-   ],
-   "polygone": [
-    [
-     0.7842,
-     0.2762
-    ],
-    [
-     0.7734,
-     0.2957
-    ],
-    [
-     0.758,
-     0.2957
-    ],
-    [
-     0.7472,
-     0.2762
-    ],
-    [
-     0.7472,
-     0.2486
-    ],
-    [
-     0.758,
-     0.2291
-    ],
-    [
-     0.7734,
-     0.2291
-    ],
-    [
-     0.7842,
-     0.2486
-    ]
-   ],
-   "declenchement": "traversee_unique",
-   "cout_gemme": 1,
-   "gain_coeur": 1,
-   "popover": "Quand Selene perd un feuillet, elle le sait. Mais quand le Souffle l'efface, elle oublie qu'il a existé. Ça, c'est bien pire."
-  },
-  {
-   "zone_id": "zf-p4-16",
-   "plateau": 4,
-   "board_image": "watermarked_img_15989862586475956910.png",
-   "feuillet_code": "ep-III-03",
-   "titre": "À qui trouvera une page blanche",
-   "centre": [
-    0.7124,
-    0.5978
-   ],
-   "polygone": [
-    [
-     0.7309,
-     0.6116
-    ],
-    [
-     0.7201,
-     0.6311
-    ],
-    [
-     0.7047,
-     0.6311
-    ],
-    [
-     0.6939,
-     0.6116
-    ],
-    [
-     0.6939,
-     0.584
-    ],
-    [
-     0.7047,
-     0.5645
-    ],
-    [
-     0.7201,
-     0.5645
-    ],
-    [
-     0.7309,
-     0.584
-    ]
-   ],
-   "declenchement": "traversee_unique",
-   "cout_gemme": 1,
-   "gain_coeur": 1,
-   "popover": "Tu trouveras des pages blanches. Ce n'est pas du papier neuf : il y avait des mots, et le Souffle les a pris. Garde-les pour montrer qu'il y avait quelque chose."
-  },
-  {
-   "zone_id": "zf-p5-17",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-I-14",
    "titre": "Deux voix",
    "centre": [
-    0.14,
-    0.4
+    0.586,
+    0.428
    ],
    "polygone": [
     [
-     0.1585,
-     0.4138
+     0.6045,
+     0.4418
     ],
     [
-     0.1477,
-     0.4333
+     0.5937,
+     0.4613
     ],
     [
-     0.1323,
-     0.4333
+     0.5783,
+     0.4613
     ],
     [
-     0.1215,
-     0.4138
+     0.5675,
+     0.4418
     ],
     [
-     0.1215,
-     0.3862
+     0.5675,
+     0.4142
     ],
     [
-     0.1323,
-     0.3667
+     0.5783,
+     0.3947
     ],
     [
-     0.1477,
-     0.3667
+     0.5937,
+     0.3947
     ],
     [
-     0.1585,
-     0.3862
+     0.6045,
+     0.4142
     ]
    ],
    "declenchement": "traversee_unique",
@@ -835,194 +737,96 @@
    "popover": "Deux voix disent à Selene d'abandonner. Elle répond : on a déjà réparé un trou dans le ciel en arrêtant le poison. Donc rien n'est joué."
   },
   {
-   "zone_id": "zf-p5-18",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
-   "feuillet_code": "ep-III-04",
-   "titre": "Ce que tu fais en me lisant",
+   "zone_id": "zf-p4-05",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
+   "feuillet_code": "ep-III-03",
+   "titre": "À qui trouvera une page blanche",
    "centre": [
-    0.165,
-    0.6
+    0.682,
+    0.246
    ],
    "polygone": [
     [
-     0.1835,
-     0.6138
+     0.7005,
+     0.2598
     ],
     [
-     0.1727,
-     0.6333
+     0.6897,
+     0.2793
     ],
     [
-     0.1573,
-     0.6333
+     0.6743,
+     0.2793
     ],
     [
-     0.1465,
-     0.6138
+     0.6635,
+     0.2598
     ],
     [
-     0.1465,
-     0.5862
+     0.6635,
+     0.2322
     ],
     [
-     0.1573,
-     0.5667
+     0.6743,
+     0.2127
     ],
     [
-     0.1727,
-     0.5667
+     0.6897,
+     0.2127
     ],
     [
-     0.1835,
-     0.5862
+     0.7005,
+     0.2322
     ]
    ],
    "declenchement": "traversee_unique",
    "cout_gemme": 1,
    "gain_coeur": 1,
-   "popover": "En lisant ce feuillet, tu te souviens de Selene. Tu fais pour elle ce qu'elle a fait pour les animaux : tu la gardes un peu en vie."
+   "popover": "Tu trouveras des pages blanches. Ce n'est pas du papier neuf : il y avait des mots, et le Souffle les a pris. Garde-les pour montrer qu'il y avait quelque chose."
   },
   {
-   "zone_id": "zf-p5-19",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
-   "feuillet_code": "ep-I-16",
-   "titre": "Le carnet ne se finit pas",
-   "centre": [
-    0.24,
-    0.82
-   ],
-   "polygone": [
-    [
-     0.2585,
-     0.8338
-    ],
-    [
-     0.2477,
-     0.8533
-    ],
-    [
-     0.2323,
-     0.8533
-    ],
-    [
-     0.2215,
-     0.8338
-    ],
-    [
-     0.2215,
-     0.8062
-    ],
-    [
-     0.2323,
-     0.7867
-    ],
-    [
-     0.2477,
-     0.7867
-    ],
-    [
-     0.2585,
-     0.8062
-    ]
-   ],
-   "declenchement": "traversee_unique",
-   "cout_gemme": 1,
-   "gain_coeur": 1,
-   "popover": "Selene comprend qu'on ne finit jamais ce carnet. On le donne à la personne suivante, qui continue."
-  },
-  {
-   "zone_id": "zf-p5-20",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
-   "feuillet_code": "ep-I-13",
-   "titre": "La cendre sur la neige",
-   "centre": [
-    0.42,
-    0.76
-   ],
-   "polygone": [
-    [
-     0.4385,
-     0.7738
-    ],
-    [
-     0.4277,
-     0.7933
-    ],
-    [
-     0.4123,
-     0.7933
-    ],
-    [
-     0.4015,
-     0.7738
-    ],
-    [
-     0.4015,
-     0.7462
-    ],
-    [
-     0.4123,
-     0.7267
-    ],
-    [
-     0.4277,
-     0.7267
-    ],
-    [
-     0.4385,
-     0.7462
-    ]
-   ],
-   "declenchement": "traversee_unique",
-   "cout_gemme": 0,
-   "gain_coeur": 0,
-   "popover": "Selene voit de la cendre sur la neige et entend un grondement venu du sud, de chez elle. Elle se demande si le Souffle ne vient pas des humains."
-  },
-  {
-   "zone_id": "zf-p5-21",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "zone_id": "zf-p4-06",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-I-15",
    "titre": "Le dernier blanc",
    "centre": [
-    0.55,
-    0.56
+    0.765,
+    0.395
    ],
    "polygone": [
     [
-     0.5685,
-     0.5738
+     0.7835,
+     0.4088
     ],
     [
-     0.5577,
-     0.5933
+     0.7727,
+     0.4283
     ],
     [
-     0.5423,
-     0.5933
+     0.7573,
+     0.4283
     ],
     [
-     0.5315,
-     0.5738
+     0.7465,
+     0.4088
     ],
     [
-     0.5315,
-     0.5462
+     0.7465,
+     0.3812
     ],
     [
-     0.5423,
-     0.5267
+     0.7573,
+     0.3617
     ],
     [
-     0.5577,
-     0.5267
+     0.7727,
+     0.3617
     ],
     [
-     0.5685,
-     0.5462
+     0.7835,
+     0.3812
     ]
    ],
    "declenchement": "traversee_unique",
@@ -1031,47 +835,96 @@
    "popover": "Selene écrit contre l'oubli. Le pire n'est pas qu'un animal disparaisse : c'est qu'on oublie même qu'il a existé."
   },
   {
-   "zone_id": "zf-p5-22",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
-   "feuillet_code": "ep-III-06",
-   "titre": "Plus on s'approche, plus elle s'efface",
+   "zone_id": "zf-p4-07",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
+   "feuillet_code": "ep-I-13",
+   "titre": "La cendre sur la neige",
    "centre": [
-    0.64,
-    0.38
+    0.82,
+    0.479
    ],
    "polygone": [
     [
-     0.6585,
-     0.3938
+     0.8385,
+     0.4928
     ],
     [
-     0.6477,
-     0.4133
+     0.8277,
+     0.5123
     ],
     [
-     0.6323,
-     0.4133
+     0.8123,
+     0.5123
     ],
     [
-     0.6215,
-     0.3938
+     0.8015,
+     0.4928
     ],
     [
-     0.6215,
-     0.3662
+     0.8015,
+     0.4652
     ],
     [
-     0.6323,
-     0.3467
+     0.8123,
+     0.4457
     ],
     [
-     0.6477,
-     0.3467
+     0.8277,
+     0.4457
     ],
     [
-     0.6585,
-     0.3662
+     0.8385,
+     0.4652
+    ]
+   ],
+   "declenchement": "traversee_unique",
+   "cout_gemme": 0,
+   "gain_coeur": 0,
+   "popover": "Selene voit de la cendre sur la neige et entend un grondement venu du sud, de chez elle. Elle se demande si le Souffle ne vient pas des humains."
+  },
+  {
+   "zone_id": "zf-p4-08",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
+   "feuillet_code": "ep-III-06",
+   "titre": "Plus on s'approche, plus elle s'efface",
+   "centre": [
+    0.859,
+    0.454
+   ],
+   "polygone": [
+    [
+     0.8775,
+     0.4678
+    ],
+    [
+     0.8667,
+     0.4873
+    ],
+    [
+     0.8513,
+     0.4873
+    ],
+    [
+     0.8405,
+     0.4678
+    ],
+    [
+     0.8405,
+     0.4402
+    ],
+    [
+     0.8513,
+     0.4207
+    ],
+    [
+     0.8667,
+     0.4207
+    ],
+    [
+     0.8775,
+     0.4402
     ]
    ],
    "declenchement": "traversee_unique",
@@ -1080,96 +933,96 @@
    "popover": "Plus on avance vers le pôle, plus les feuillets s'effacent. Au bout, on comprend la vérité : la voyageuse, c'était nous."
   },
   {
-   "zone_id": "zf-p5-23",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
-   "feuillet_code": "ep-III-07",
-   "titre": "Ne fais pas de moi un trésor",
+   "zone_id": "zf-p4-09",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
+   "feuillet_code": "ep-I-16",
+   "titre": "Le carnet ne se finit pas",
    "centre": [
-    0.8,
-    0.34
+    0.914,
+    0.359
    ],
    "polygone": [
     [
-     0.8185,
-     0.3538
+     0.9325,
+     0.3728
     ],
     [
-     0.8077,
-     0.3733
+     0.9217,
+     0.3923
     ],
     [
-     0.7923,
-     0.3733
+     0.9063,
+     0.3923
     ],
     [
-     0.7815,
-     0.3538
+     0.8955,
+     0.3728
     ],
     [
-     0.7815,
-     0.3262
+     0.8955,
+     0.3452
     ],
     [
-     0.7923,
-     0.3067
+     0.9063,
+     0.3257
     ],
     [
-     0.8077,
-     0.3067
+     0.9217,
+     0.3257
     ],
     [
-     0.8185,
-     0.3262
+     0.9325,
+     0.3452
     ]
    ],
    "declenchement": "traversee_unique",
    "cout_gemme": 1,
    "gain_coeur": 1,
-   "popover": "Selene dit : ne me garde pas comme un trésor. Recopie, donne, et un jour laisse à ton tour des feuillets pour les suivants."
+   "popover": "Selene comprend qu'on ne finit jamais ce carnet. On le donne à la personne suivante, qui continue."
   },
   {
-   "zone_id": "zf-p5-24",
-   "plateau": 5,
-   "board_image": "watermarked_img_12187730459568620673.jpg",
+   "zone_id": "zf-p4-10",
+   "plateau": 4,
+   "board_image": "GL_plateau-4_fond.png",
    "feuillet_code": "ep-I-17",
    "titre": "Prenez le crayon",
    "centre": [
-    0.82,
-    0.66
+    0.919,
+    0.288
    ],
    "polygone": [
     [
-     0.8385,
-     0.6738
+     0.9375,
+     0.3018
     ],
     [
-     0.8277,
-     0.6933
+     0.9267,
+     0.3213
     ],
     [
-     0.8123,
-     0.6933
+     0.9113,
+     0.3213
     ],
     [
-     0.8015,
-     0.6738
+     0.9005,
+     0.3018
     ],
     [
-     0.8015,
-     0.6462
+     0.9005,
+     0.2742
     ],
     [
-     0.8123,
-     0.6267
+     0.9113,
+     0.2547
     ],
     [
-     0.8277,
-     0.6267
+     0.9267,
+     0.2547
     ],
     [
-     0.8385,
-     0.6462
+     0.9375,
+     0.2742
     ]
    ],
    "declenchement": "traversee_unique",

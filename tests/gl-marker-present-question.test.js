@@ -274,6 +274,31 @@ test('PUT marker avec eventConfig', async () => {
   assert.deepStrictEqual(res.body.event_config.question.pool.selectedQuestionCodes, ['QCM0001']);
 });
 
+test('PUT marker : sous-biome de saison et case-charnière acceptés, inconnu refusé', async () => {
+  // Le mode « Biome de la case » et la musique de plateau lisent ces valeurs : l'admin doit
+  // pouvoir les enregistrer (avant : seuls les 11 slugs du catalogue passaient).
+  for (const [input, stored] of [
+    ['toundra_hiver', 'toundra_hiver'],
+    ['Toundra-Ete', 'toundra_ete'],
+    ['transition', 'transition'],
+    ['jungle', 'jungle_afc'],
+    ['', null],
+  ]) {
+    const res = await request(app)
+      .put(`/api/gl/chapters/admin/markers/${markerId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ sousBiomeSlug: input })
+      .expect(200);
+    assert.strictEqual(res.body.sous_biome_slug, stored, `entrée « ${input} »`);
+  }
+  const bad = await request(app)
+    .put(`/api/gl/chapters/admin/markers/${markerId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ sousBiomeSlug: 'banquise-imaginaire' })
+    .expect(400);
+  assert.match(bad.body.error, /Sous-biome inconnu/);
+});
+
 test('POST present-question repère random avec selectedQuestionCodes', async () => {
   const chapter = await queryOne('SELECT chapter_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
   await execute(

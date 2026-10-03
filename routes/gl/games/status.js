@@ -20,8 +20,12 @@ const logger = require('../../../lib/logger');
 
 const router = express.Router();
 
-/** Dernier plateau du voyage : c'est là que la liasse du copiste se remet d'elle-même. */
-const LAST_PLATEAU = 5;
+/**
+ * Dernier plateau du voyage : c'est là que la liasse du copiste se remet d'elle-même.
+ * L'année se joue en 4 plateaux depuis la fusion des chapitres 4 et 5 (taïga → toundra) ;
+ * le chapitre « Toundra arctique » mis de côté n'a plus de plateau.
+ */
+const LAST_PLATEAU = 4;
 
 /** Transitions autorisées — alignées sur `gameLifecycleAction` (bandeau MJ). */
 const ALLOWED_FROM = Object.freeze({

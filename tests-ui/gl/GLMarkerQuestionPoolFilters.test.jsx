@@ -63,6 +63,28 @@ describe('GLMarkerQuestionPoolFilters — biome', () => {
     expect(onPatchPool).toHaveBeenCalledWith({ biomeMode: 'custom' });
   });
 
+  test('propose le mode « Biome de la case »', () => {
+    const onPatchPool = vi.fn();
+    renderFilters({ onPatchPool });
+    expect(screen.getByRole('option', { name: 'Biome de la case' })).toBeInTheDocument();
+    fireEvent.change(screen.getByDisplayValue('Biomes du chapitre (défaut)'), {
+      target: { value: 'sous_biome' },
+    });
+    expect(onPatchPool).toHaveBeenCalledWith({ biomeMode: 'sous_biome' });
+  });
+
+  test('mode « Biome de la case » affiche le biome retenu pour le repère', () => {
+    renderFilters({
+      pool: { ...BASE_BIOME_POOL, biomeMode: 'sous_biome' },
+      sousBiomeHint: 'Questions du biome de la case : toundra (sous-biome toundra_hiver).',
+    });
+    expect(screen.getByDisplayValue('Biome de la case')).toBeInTheDocument();
+    expect(
+      screen.getByText('Questions du biome de la case : toundra (sous-biome toundra_hiver).'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Biomes additionnels')).not.toBeInTheDocument();
+  });
+
   test('saisie de difficulté min remonte un nombre', () => {
     const onPatchPool = vi.fn();
     renderFilters({ onPatchPool });
