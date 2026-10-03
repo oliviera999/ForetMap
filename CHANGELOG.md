@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — `db:init` échouait sur base neuve depuis le plan e-nov (migration 260)
+
+- **Cause** : `sql/schema_foretmap.sql` posait `enov` dans le défaut de `location_categories.surfaces` ; les migrations 204 et 246 semaient des catégories avec ce défaut, puis la 260 reposait le `SET` à quatre valeurs → « Data truncated for column 'surfaces' ». Toute base neuve (CI, tests, poste local) était cassée ; une base de production migrée ne l'était pas. Passé inaperçu : #572 a été fusionnée quota Actions épuisé, donc sans CI.
+- **Correctif** : défaut de base sans `enov` ; la migration 315 l'ajoute ensuite, comme sur une base migrée. État final identique.
+
+### Corrigé — CI : quota de minutes GitHub Actions épuisé en 48 h (dépôt privé)
+
+- **Cause** : depuis le passage en privé, chaque minute d'Actions est décomptée (2 000 min/mois en Free, facturées par job). Un run `CI` coûtait ~40 min et tournait deux fois par changement (PR puis `main`), sans annulation des runs dépassés : 49 runs complets du 28/09 au 30/09. Le job `test` était en outre **rouge à chaque run** : les rapports Playwright avaient rempli le quota de stockage d'artefacts (« Artifact storage quota has been hit »).
+- **Vitest ~5× plus rapide** : pool `vmThreads` (`vitest.config.js`), ~2 min au lieu de ~9–12. Trois fichiers incompatibles restent en pool `forks` (`FORKS_ONLY`) ; `isomorphic-dompurify` servi en version navigateur ; `matchMedia` du setup rendu `configurable`.
+- **`ci.yml`** : `concurrency` avec annulation ; aucun job sur une PR **brouillon** (la CI part au passage « Ready for review ») ; push `main` → `quality` seul, sans Vitest ; PR de documentation seule → `quality` sans Vitest (job `changes`, `scripts/ci-change-scope.js`, testé par `tests/ci-change-scope.test.js`). Suite e2e complète (informative) sortie dans **`e2e-full.yml`**, à la demande, rapport téléversé sur option (rétention 3 jours). Les smokes bloquants (plan, e-nov, mobile WebKit) restent — WebKit conservé pour ce dernier.
+- **`frontend-dist.yml`** : sauté sur PR brouillon et sur changement de pure documentation.
+- **Dependabot** : plus de rebase automatique (chaque fusion relançait la CI de ses PR), npm en mensuel.
+- Doc : `docs/EXPLOITATION.md` § 11.2 (diagnostic chiffré, conséquences pour le travail courant), `CLAUDE.md`, skill `foretmap-testing`.
 ### Modifié — G&L : fusion des chapitres 4 et 5, le plateau des Grands Froids
 
 Décision éditoriale de l'auteur : les chapitres 4 (Taïga & désert froid) et 5 (Toundra arctique) ne font plus qu'un chapitre 4 « Eurasie continentale ». Il se joue sur **un seul plateau peint** (clé médiathèque `plateau-4_fond`, prioritaire sans code) : taïga → limite des arbres → toundra en été polaire → nuit polaire. L'année passe de 5 à **4 plateaux**. Le Livre de Sélène garde ses 5 pays (`gl_lore_plateaux` et `lib/glBiomePays.js` inchangés).

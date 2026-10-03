@@ -1,0 +1,114 @@
+name: E2E complet (à la demande)
+
+# Suite Playwright complète, informative. Sortie de `ci.yml` le 01/10/2026 : elle prenait
+# ~12 min de chaque run CI (sur un dépôt privé, chaque minute est décomptée du quota du plan)
+# sans jamais bloquer, et ses rapports avaient rempli le quota de **stockage** d'artefacts
+# (500 Mo en Free) — l'envoi échouait alors et rendait le job `test` rouge à chaque run.
+#
+# Les smokes bloquants (plan-mobile, enov-mobile, mobile-webkit) restent dans `ci.yml`.
+#
+# Lancement : Actions → « E2E complet (à la demande) » → Run workflow, en choisissant la
+# branche. Coût : ~25 min facturées par lancement.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_report:
+        description: 'Téléverser le rapport Playwright en cas d’échec (stockage limité)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-full-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: foretmap_test
+      DB_USER: root
+      DB_PASS: ''
+      JWT_SECRET: 'ci-test-secret-not-for-production'
+    services:
+      mysql:
+        image: mariadb:11.4.10
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: foretmap_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=40s
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize test database
+        run: npm run db:init
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Install Playwright browsers
+        timeout-minutes: 20
+        run: npx playwright install --with-deps chromium webkit
+
+      # Mêmes réglages que le serveur e2e de `ci.yml` (job `test`) : voir ses commentaires.
+      - name: Start app server for e2e
+        run: |
+          nohup npm run start:e2e > /tmp/foretmap-server.log 2>&1 &
+        env:
+          NODE_ENV: production
+          VISIT_COOKIE_SECRET: 'foretmap-e2e-visit-cookie-secret'
+          E2E_DISABLE_RATE_LIMIT: '1'
+          TEACHER_ADMIN_EMAIL: 'admin.test@foretmap.local'
+          TEACHER_ADMIN_PASSWORD: 'admin1234'
+
+      - name: Wait for app health
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000/api/health && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy in time"
+          exit 1
+
+      - name: Run Playwright (suite complète)
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+
+      - name: Dump server log on failure
+        if: failure()
+        run: cat /tmp/foretmap-server.log || true
+
+      # Désactivé par défaut : captures et traces pèsent vite plusieurs dizaines de Mo, et le
+      # quota de stockage d'artefacts est partagé par tout le compte. Rétention courte.
+      - name: Upload Playwright report
+        if: failure() && inputs.upload_report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          retention-days: 3
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/foretmap-server.log

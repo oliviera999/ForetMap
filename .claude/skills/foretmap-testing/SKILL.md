@@ -55,6 +55,12 @@ node --test tests/<fichier>.test.js   # cibler un fichier
   > Un composant racine sans test de montage est une zone aveugle : lint, build et 3 153 tests
   > n'ont pas vu un `ReferenceError` levé à chaque rendu de l'écran authentifié
   > (`docs/AUDIT_REFACTORING_APP_2026-08.md` §5).
+- **Pool `vmThreads`** depuis le 01/10/2026 (`vitest.config.js`, ~2 min au lieu de ~9–12) : chaque
+  fichier tourne dans un contexte `vm` où `window` **est** l'objet global. Conséquences : ne pas
+  réassigner `globalThis.window` (espionner `window.history`… avec `vi.spyOn`), et poser les
+  propriétés globales avec `configurable: true`. Un fichier qui ne peut pas s'y plier va dans
+  `FORKS_ONLY` (projet `forks`), jamais un retour de toute la suite au pool `forks`.
+  `isomorphic-dompurify` y est servi en version navigateur (celle que Vite livre au front).
 - Mock partiel d'un module : `vi.mock(chemin, async (importOriginal) => ({ ...(await importOriginal()), … }))`
   — un mock exhaustif casse les imports secondaires (`withAppBase` dans `services/api`, par exemple).
 
