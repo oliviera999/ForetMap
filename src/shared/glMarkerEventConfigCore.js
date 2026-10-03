@@ -1,3 +1,5 @@
+import { resolveBiome, SOUS_BIOME_TRANSITION } from './glBiomesRegistryCore.js';
+
 const MARKER_QUESTION_EVENT_TYPES = new Set(['question', 'quiz']);
 const MARKER_QUESTION_RETRIGGER_MODES = new Set([
   'every_arrival',
@@ -38,6 +40,15 @@ const MARKER_EFFECT_EVENT_TYPES = new Set([
   'frontier',
   'finish',
 ]);
+/**
+ * Origine des biomes d'un pool QCM biome :
+ *  - `chapter` : biomes du chapitre (défaut) ;
+ *  - `custom` : biomes du chapitre + biomes additionnels (élargit, ne restreint pas) ;
+ *  - `sous_biome` : le biome de la case (`sous_biome_slug` du repère, normalisé par le
+ *    registre : `toundra_ete` / `toundra_hiver` → `toundra`), repli sur `chapter` si la case
+ *    n'a pas de sous-biome ou qu'il n'est pas un biome (`transition`).
+ */
+const QUESTION_POOL_BIOME_MODES = Object.freeze(['chapter', 'custom', 'sous_biome']);
 const EFFECT_DELTA_MIN = -99;
 const EFFECT_DELTA_MAX = 99;
 const DEFAULT_QUESTION_POOL = Object.freeze({
@@ -166,14 +177,16 @@ function normalizeLoreQuestionPool(input) {
     ),
   };
 }
+function normalizeQuestionPoolBiomeMode(value) {
+  const mode = String(value || 'chapter')
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, '_');
+  return QUESTION_POOL_BIOME_MODES.includes(mode) ? mode : 'chapter';
+}
 function normalizeQuestionPool(input) {
   const src = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
-  const biomeMode =
-    String(src.biomeMode || 'chapter')
-      .trim()
-      .toLowerCase() === 'custom'
-      ? 'custom'
-      : 'chapter';
+  const biomeMode = normalizeQuestionPoolBiomeMode(src.biomeMode);
   return {
     biomeMode,
     biomeSlugs: normalizeStringList(src.biomeSlugs),
@@ -379,9 +392,24 @@ function normalizeMarkerQuestionRetrigger(value) {
   const s = String(value || '').trim();
   return MARKER_QUESTION_RETRIGGER_MODES.has(s) ? s : 'every_arrival';
 }
-function resolveBiomeSlugsForPool(pool, chapterBiomeSlugs) {
+/**
+ * Biome catalogue d'une case, déduit de son `sous_biome_slug` par le registre (alias de
+ * saison compris). `null` si la case n'en a pas, si c'est une `transition` ou un slug inconnu.
+ */
+function resolveSousBiomePoolSlug(sousBiomeSlug) {
+  const key = String(sousBiomeSlug || '')
+    .trim()
+    .toLowerCase();
+  if (!key || key === SOUS_BIOME_TRANSITION) return null;
+  return resolveBiome(key)?.slugCanonique || null;
+}
+function resolveBiomeSlugsForPool(pool, chapterBiomeSlugs, sousBiomeSlug = null) {
   const chapterSlugs = normalizeStringList(chapterBiomeSlugs);
   const poolCfg = normalizeQuestionPool(pool);
+  if (poolCfg.biomeMode === 'sous_biome') {
+    const caseBiome = resolveSousBiomePoolSlug(sousBiomeSlug);
+    return caseBiome ? [caseBiome] : chapterSlugs;
+  }
   if (poolCfg.biomeMode === 'custom') {
     const merged = normalizeStringList([...chapterSlugs, ...poolCfg.biomeSlugs]);
     return merged.length > 0 ? merged : chapterSlugs;
@@ -410,6 +438,8 @@ export {
   MARKER_EVENT_TYPE_ALIASES,
   MARKER_PEOPLE_EFFECT_TYPES,
   MARKER_EFFECT_EVENT_TYPES,
+  QUESTION_POOL_BIOME_MODES,
+  SOUS_BIOME_TRANSITION,
   EFFECT_DELTA_MIN,
   EFFECT_DELTA_MAX,
   DEFAULT_QUESTION_POOL,
@@ -418,6 +448,7 @@ export {
   normalizeStringList,
   normalizeQuestionCode,
   normalizeQuestionSet,
+  normalizeQuestionPoolBiomeMode,
   normalizeQuestionPool,
   normalizeLoreQuestionPool,
   normalizeQuestionConfig,
@@ -439,6 +470,7 @@ export {
   serializeEventConfig,
   parseEventConfigJson,
   normalizeMarkerQuestionRetrigger,
+  resolveSousBiomePoolSlug,
   resolveBiomeSlugsForPool,
   resolveChapitreSlugsForPool,
 };

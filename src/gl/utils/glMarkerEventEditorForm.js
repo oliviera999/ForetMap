@@ -12,6 +12,8 @@ import {
   normalizeEventConfig,
   normalizeQuestionPool,
   normalizeLoreQuestionPool,
+  resolveBiomeSlugsForPool,
+  resolveSousBiomePoolSlug,
 } from './glMarkerEventConfig.js';
 
 /** Types d'événement proposés dans le sélecteur. */
@@ -110,16 +112,39 @@ export function patchPoolForSet(pool, questionSet, patch) {
 
 /**
  * Biomes effectifs du pool : ceux du chapitre, plus les biomes additionnels
- * éventuels (mode `custom`) sans doublon.
+ * éventuels (mode `custom`) sans doublon ; en mode `sous_biome`, le biome de la case
+ * (repli sur le chapitre pour une case sans biome propre, comme au tirage).
  */
-export function effectiveBiomeSlugs(pool, chapterBiomeSlugs) {
+export function effectiveBiomeSlugs(pool, chapterBiomeSlugs, sousBiomeSlug = null) {
   const normalized = normalizeQuestionPool(pool);
+  if (normalized.biomeMode === 'sous_biome') {
+    return resolveBiomeSlugsForPool(normalized, chapterBiomeSlugs, sousBiomeSlug);
+  }
   if (normalized.biomeMode === 'chapter') return chapterBiomeSlugs;
   const merged = [...chapterBiomeSlugs];
   for (const slug of normalized.biomeSlugs || []) {
     if (!merged.includes(slug)) merged.push(slug);
   }
   return merged;
+}
+
+/**
+ * Phrase d'aide du mode « Biome de la case » : quel biome le tirage utilisera pour ce
+ * repère, ou pourquoi il retombe sur les biomes du chapitre.
+ */
+export function sousBiomePoolHint(sousBiomeSlug, chapterBiomeSlugs = []) {
+  const raw = String(sousBiomeSlug || '').trim();
+  const chapterLabel = chapterBiomeSlugs.length ? chapterBiomeSlugs.join(', ') : 'aucun';
+  const caseBiome = resolveSousBiomePoolSlug(raw);
+  if (caseBiome) {
+    return caseBiome === raw
+      ? `Questions du biome de la case : ${caseBiome}.`
+      : `Questions du biome de la case : ${caseBiome} (sous-biome ${raw}).`;
+  }
+  if (!raw) {
+    return `Ce repère n'a pas de sous-biome : tirage dans les biomes du chapitre (${chapterLabel}).`;
+  }
+  return `Sous-biome « ${raw} » sans biome propre : tirage dans les biomes du chapitre (${chapterLabel}).`;
 }
 
 /** Slugs des biomes du chapitre (filtrés non vides). */

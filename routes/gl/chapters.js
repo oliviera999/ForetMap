@@ -10,6 +10,7 @@ const {
   loadBiomesForChapterIds,
   syncChapterBiomes,
   validateBiomeSlugsExist,
+  parseMarkerSousBiomeSlug,
 } = require('../../lib/glChapterBiomes');
 const {
   parseSpellCodesFromBody,
@@ -218,14 +219,7 @@ const MARKER_UPDATE_FIELDS = [
   {
     key: 'sousBiomeSlug',
     column: 'sous_biome_slug',
-    parse: async (raw) => {
-      const sousBiomeSlug = normalizeOptionalString(raw);
-      if (sousBiomeSlug) {
-        const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
-        if (biomeError) return { error: biomeError };
-      }
-      return { value: sousBiomeSlug };
-    },
+    parse: (raw) => parseMarkerSousBiomeSlug({ queryAll }, raw),
   },
   {
     key: 'effetMecanique',
@@ -560,11 +554,9 @@ router.post(
       return res.status(400).json({ error: `eventType invalide : ${eventType}` });
     }
     const description = req.body?.description != null ? String(req.body.description) : null;
-    const sousBiomeSlug = normalizeOptionalString(req.body?.sousBiomeSlug);
-    if (sousBiomeSlug) {
-      const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
-      if (biomeError) return res.status(400).json({ error: biomeError });
-    }
+    const sousBiome = await parseMarkerSousBiomeSlug({ queryAll }, req.body?.sousBiomeSlug);
+    if (sousBiome.error) return res.status(400).json({ error: sousBiome.error });
+    const sousBiomeSlug = sousBiome.value;
     const effetMecanique =
       req.body?.effetMecanique != null ? String(req.body.effetMecanique) : null;
     const orderIndex = toPositiveInt(req.body?.orderIndex, 0);

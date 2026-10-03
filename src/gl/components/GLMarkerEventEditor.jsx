@@ -10,6 +10,7 @@ import {
   patchPoolForSet,
   effectiveBiomeSlugs as computeEffectiveBiomeSlugs,
   chapterBiomeSlugsFrom,
+  sousBiomePoolHint,
   buildAdditionalBiomeOptions,
   buildCategoryOptions,
   buildLoreScopeOptions,
@@ -24,6 +25,7 @@ import { GLMarkerEffectsEditor } from './GLMarkerEffectsEditor.jsx';
 export function GLMarkerEventEditor({
   marker,
   chapterBiomes = [],
+  sousBiomeSlug,
   onChange,
   effectsDraft,
   onEffectsDraftChange,
@@ -86,9 +88,18 @@ export function GLMarkerEventEditor({
     };
   }, [isLoreSet]);
 
+  // Sous-biome saisi dans le formulaire du repère (non encore enregistré), sinon celui du
+  // repère enregistré : le mode « Biome de la case » en dépend.
+  const caseSousBiomeSlug = sousBiomeSlug !== undefined ? sousBiomeSlug : marker?.sous_biome_slug;
+
   const effectiveBiomeSlugs = useMemo(
-    () => computeEffectiveBiomeSlugs(form.pool, chapterBiomeSlugs),
-    [form.pool, chapterBiomeSlugs],
+    () => computeEffectiveBiomeSlugs(form.pool, chapterBiomeSlugs, caseSousBiomeSlug),
+    [form.pool, chapterBiomeSlugs, caseSousBiomeSlug],
+  );
+
+  const sousBiomeHint = useMemo(
+    () => sousBiomePoolHint(caseSousBiomeSlug, chapterBiomeSlugs),
+    [caseSousBiomeSlug, chapterBiomeSlugs],
   );
 
   const loadPoolPreview = useCallback(async () => {
@@ -277,6 +288,7 @@ export function GLMarkerEventEditor({
             pool={form.pool}
             isLoreSet={isLoreSet}
             chapterBiomeSlugs={chapterBiomeSlugs}
+            sousBiomeHint={sousBiomeHint}
             loreScopeOptions={loreScopeOptions}
             additionalBiomeOptions={additionalBiomeOptions}
             categoryOptions={categoryOptions}

@@ -83,8 +83,13 @@ L'aiguillage se fait dans `drawQuestionFromMarker` (`lib/glMarkerQuestionPool.js
 1. `set='lore'` → délègue à `drawLoreQuestionFromMarker`
    (`lib/glMarkerLoreQuestionPool.js`), scope résolu depuis le `plateau_number` du chapitre.
 2. `mode='fixed'` → charge la `fixedQuestionCode` (vérifie qu'elle est présentable).
-3. `mode='random'` → construit le pool filtré (biome(s) du chapitre, catégories, niveaux,
-   difficulté min/max) puis tire en Fisher-Yates jusqu'à une question présentable.
+3. `mode='random'` → construit le pool filtré (biome(s), catégories, niveaux,
+   difficulté min/max) puis tire en Fisher-Yates jusqu'à une question présentable. Les biomes
+   viennent de `pool.biomeMode` (`resolveBiomeSlugsForPool`, `glMarkerEventConfigCore`) :
+   `chapter` (biomes du chapitre, défaut), `custom` (chapitre **+** biomes additionnels : élargit,
+   ne restreint pas) ou `sous_biome` (« Biome de la case » : le `sous_biome_slug` du repère,
+   normalisé par le registre — `toundra_ete` / `toundra_hiver` → `toundra` —, repli sur
+   `chapter` si le sous-biome est vide, `transition` ou inconnu).
 
 ## Accès élève / joueur — trois voies (communes aux deux sets)
 

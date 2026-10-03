@@ -3,6 +3,7 @@ import {
   EMPTY_MARKER_FORM,
   toFormFromMarker,
   toMarkerPayload,
+  sousBiomeSlugOptions,
 } from '../../src/gl/utils/glChapterMapStudioForm.js';
 
 describe('EMPTY_MARKER_FORM', () => {
@@ -111,5 +112,27 @@ describe('toMarkerPayload', () => {
       emoji: '🌲',
     });
     expect(payload).toHaveProperty('displayMode');
+  });
+});
+
+describe('sousBiomeSlugOptions', () => {
+  test('biomes du chapitre, variantes de saison de la toundra, puis transition', () => {
+    const options = sousBiomeSlugOptions([
+      { slug: 'taiga', nom: 'Taïga' },
+      { slug: 'toundra', nom: 'Toundra arctique' },
+    ]);
+    expect(options.map((o) => o.value)).toEqual([
+      'taiga',
+      'toundra',
+      'toundra_ete',
+      'toundra_hiver',
+      'transition',
+    ]);
+    expect(options.find((o) => o.value === 'toundra_hiver').label).toMatch(/nuit polaire/);
+  });
+
+  test('sans biome de chapitre : seulement la case-charnière', () => {
+    expect(sousBiomeSlugOptions([]).map((o) => o.value)).toEqual(['transition']);
+    expect(sousBiomeSlugOptions(null).map((o) => o.value)).toEqual(['transition']);
   });
 });

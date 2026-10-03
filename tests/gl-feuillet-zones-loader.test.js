@@ -10,11 +10,12 @@ function loadZonesJson() {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-test('glFeuilletZones: charge 24 zones valides', async () => {
+// 21 zones depuis la fusion des chapitres 4 et 5 (plateaux 1–4 : 4 + 3 + 4 + 10).
+test('glFeuilletZones: charge 21 zones valides', async () => {
   const { loadAndValidateFeuilletZones } = await import('../src/gl/utils/glFeuilletZones.js');
   const { zones, errors } = loadAndValidateFeuilletZones(loadZonesJson());
   assert.strictEqual(errors.length, 0);
-  assert.strictEqual(zones.length, 24);
+  assert.strictEqual(zones.length, 21);
 });
 
 test('glFeuilletZones: fail-soft zone invalide', async () => {

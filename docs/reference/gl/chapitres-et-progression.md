@@ -20,13 +20,27 @@ séance) ; les **joueurs** vivent la partie et font avancer leur progression per
 ### Un chapitre = un milieu naturel
 
 Le jeu se découpe en **chapitres**, chacun adossé à un milieu naturel et à l'un des
-**cinq plateaux** du voyage de Sélène, « de la chaleur de l'équateur jusqu'à la glace
-du pôle » : tropiques africains (désert chaud, jungle, mangrove) → savane et forêt
-méditerranéenne → landes atlantiques → forêts et prairies tempérées → taïga, toundra
-arctique et désert froid. Un chapitre rassemble : un **récit**, les fiches du milieu
+**quatre plateaux** de l'année, « de la chaleur de l'équateur jusqu'à la glace du pôle » :
+(1) tropiques africains — jungle et savane → (2) aride chaud — Sahara et forêt
+méditerranéenne → (3) tempéré atlantique — forêt caducifoliée et landes → (4) Eurasie
+continentale — la taïga, puis la toundra arctique en été polaire, puis la nuit polaire. Le
+**Livre de Sélène**, lui, garde ses **cinq pays** : la toundra reste le cinquième pays du
+récit, même si elle se joue sur le plateau 4. Le désert froid (Gobi) n'est plus un terrain
+joué : une seule page du Livre l'évoque, « la page d'un pays où vous n'irez pas ». Un
+chapitre rassemble : un **récit**, les fiches du milieu
 (**biotope** et **biocénose**), la liste des **sortilèges** du chapitre, un ou
 plusieurs **biomes** rattachés, et surtout **sa carte** (le plateau de jeu) avec ses
 zones et ses repères — décrite dans [carte-du-royaume.md](carte-du-royaume.md).
+
+> **Le chapitre 5 « Toundra arctique » n'est plus proposé** (octobre 2026). Les chapitres 4
+> et 5 ont fusionné en un seul chapitre 4, « Eurasie continentale », joué sur un seul plateau
+> de 38 cases : taïga → limite des arbres → toundra en été polaire → nuit polaire. La bascule
+> du jour à la nuit est peinte sur l'image du plateau. L'ancien chapitre 5 reste dans la liste,
+> rangé en dernier sous le titre « Chapitre 5 — Toundra arctique (mis de côté) », **sans
+> plateau**, comme les chapitres de test : ne le choisissez pas pour une partie.
+>
+> ⚠️ **Point d'attention** — son onglet Histoire dévoile la fin du récit. C'est sans
+> conséquence tant qu'il reste hors jeu, mais ne le montrez pas aux élèves.
 
 Les chapitres se créent et s'éditent dans les écrans d'administration des contenus
 (MJ et Admin). Il n'y a pas de « chapitre courant » global : **chaque partie choisit
@@ -208,11 +222,11 @@ et les deux pages qui expliquent que le carnet de Sélène s'arrête sur un mot 
 d'un autre ordre : une réflexion _sur_ l'histoire, à lire quand elle a été vécue.
 
 Elle est donc **remise en bloc à la clôture** d'une partie du **dernier plateau** (chapitre
-adossé au plateau 5) : la partie passe en « terminée », chaque équipe reçoit la liasse
+adossé au plateau 4, le dernier de l'année) : la partie passe en « terminée », chaque équipe reçoit la liasse
 entière, sans QCM et sans coût. Deux raisons à ce déclenchement tardif : livrée plus tôt,
 elle dévoilerait la fin ; jamais livrée, elle laisserait croire qu'il manque un feuillet.
 
-Pour une classe qui s'arrête avant le chapitre 5, ou pour une dernière séance dédiée, le MJ
+Pour une classe qui s'arrête avant le chapitre 4, ou pour une dernière séance dédiée, le MJ
 peut **remettre une liasse à la demande** (ouverture ou clôture) depuis la console : la
 remise est sans effet sur les feuillets déjà trouvés, elle ne fait que compléter.
 
@@ -221,7 +235,7 @@ où son texte les appelle — le premier au début du voyage, le deuxième juste
 la tourbière qu'il commente, le troisième en tout dernier, après les feuillets vierges.
 
 > ⚠️ **Point d'attention** — La découverte par zone-feuillet exige que le chapitre
-> soit **rattaché à un plateau (1 à 5)** compatible. Un chapitre sans plateau rend
+> soit **rattaché à un plateau** compatible (les plateaux joués sont 1 à 4). Un chapitre sans plateau rend
 > ses feuillets de carte inatteignables — l'éditeur de chapitre affiche désormais un
 > **avertissement** dans ce cas.
 
