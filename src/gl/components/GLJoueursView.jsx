@@ -65,12 +65,30 @@ export function GLJoueursView({
         aria-labelledby={`gl-joueurs-subtab-${activeSubTab}`}
       >
         {activeSubTab === 'forum' ? (
-          <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+          <Suspense
+            fallback={
+              <div
+                className="gl-tab-loading"
+                role="status"
+                aria-busy="true"
+                aria-label="Chargement"
+              />
+            }
+          >
             <GLForumView canModerate={canModerateForum} auth={auth} token={token} />
           </Suspense>
         ) : null}
         {activeSubTab === 'market' && includeMarket ? (
-          <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+          <Suspense
+            fallback={
+              <div
+                className="gl-tab-loading"
+                role="status"
+                aria-busy="true"
+                aria-label="Chargement"
+              />
+            }
+          >
             <GLMarketView
               token={token}
               classId={classId}

@@ -180,6 +180,11 @@ export const MODULE_TOGGLES = [
     hint: 'Affiche l’onglet Histoire et la timeline évènements de partie.',
   },
   {
+    key: 'modules.voyageur_enabled',
+    label: 'Le Seuil (niveau du voyageur)',
+    hint: 'Onglet d’accueil des joueurs : niveau à deux regards (proche / loin), expédition en cours et grimoire personnel (sortilèges lançables hors séance). Éteint, les joueurs arrivent sur Cartes.',
+  },
+  {
     key: 'modules.player_journal_enabled',
     label: 'Mon journal (carnet personnel)',
     hint: 'Carnet éditable par chaque joueur (texte, images, encarts).',

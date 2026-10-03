@@ -66,7 +66,16 @@ export function GLAdventureView({
         aria-labelledby={`gl-adventure-subtab-${activeSubTab}`}
       >
         {activeSubTab === 'history' ? (
-          <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+          <Suspense
+            fallback={
+              <div
+                className="gl-tab-loading"
+                role="status"
+                aria-busy="true"
+                aria-label="Chargement"
+              />
+            }
+          >
             <GLHistoryView
               gameState={gameState}
               glossaryLinkItems={glossaryLinkItems}

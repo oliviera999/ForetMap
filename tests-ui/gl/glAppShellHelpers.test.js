@@ -53,13 +53,19 @@ describe('readStoredGlTab', () => {
 });
 
 describe('isGlAdminRole / defaultTabForGlAuth', () => {
-  test('gl_admin atterrit sur la console MJ, joueur sur les cartes', () => {
+  test('gl_admin atterrit sur la console MJ, joueur sur le Seuil', () => {
     expect(isGlAdminRole({ userType: 'gl_admin' })).toBe(true);
     expect(isGlAdminRole({ userType: 'gl_player' })).toBe(false);
     expect(isGlAdminRole(null)).toBe(false);
     expect(defaultTabForGlAuth({ userType: 'gl_admin' })).toBe('mj');
-    expect(defaultTabForGlAuth({ userType: 'gl_player' })).toBe('maps');
-    expect(defaultTabForGlAuth(null)).toBe('maps');
+    expect(defaultTabForGlAuth({ userType: 'gl_player' })).toBe('seuil');
+    expect(defaultTabForGlAuth(null)).toBe('seuil');
+  });
+
+  test('joueur : retour sur les cartes quand le module du Seuil est éteint', () => {
+    expect(defaultTabForGlAuth({ userType: 'gl_player' }, { voyageurEnabled: false })).toBe('maps');
+    expect(defaultTabForGlAuth({ userType: 'gl_player' }, { voyageurEnabled: true })).toBe('seuil');
+    expect(defaultTabForGlAuth({ userType: 'gl_admin' }, { voyageurEnabled: true })).toBe('mj');
   });
 });
 
@@ -148,6 +154,7 @@ describe('filterGlTabs', () => {
       showStaffAdminUi: false,
     });
     const ids = tabs.map((t) => t.id);
+    expect(ids[0]).toBe('seuil');
     expect(ids).toContain('maps');
     expect(ids).toContain('joueurs');
     expect(ids).toContain('nature');
@@ -192,11 +199,12 @@ describe('filterGlTabs', () => {
       playerJournalEnabled: false,
       loreCarnetEnabled: false,
       loreGlossaryEnabled: false,
+      voyageurEnabled: false,
     };
     const ids = filterGlTabs({ modules, vitalityEnabled: true, showStaffAdminUi: false }).map(
       (t) => t.id,
     );
-    for (const hidden of ['journal', 'forum', 'my-journal']) {
+    for (const hidden of ['journal', 'forum', 'my-journal', 'seuil']) {
       expect(ids).not.toContain(hidden);
     }
     expect(ids).toContain('maps');

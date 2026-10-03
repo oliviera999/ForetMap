@@ -13,6 +13,10 @@
 > exemple). Les directions à arbitrer sont désormais celles du **§ 10** (V1–V6). Le § 9
 > reste comme trace (U0, U2, U3 y sont absorbés).
 >
+> **Suite donnée (même jour)** : V1, V2 et V3 retenues. Un premier lot est **livré** sur ce
+> qu'elles ont de plus tangible (onglet « Le Seuil », niveau à deux regards, deux sortilèges du
+> voyageur). Voir **§ 11**, qui propose aussi la suite.
+>
 > **Angle** : l'élève, pas le MJ. Deux questions guident l'audit. Que peut faire un joueur
 > **à tout moment**, et qu'est-ce qui dépend du **rythme des cours** ? Et l'ensemble
 > ressemble-t-il à un **jeu vidéo** qui donne envie de revenir et de progresser ?
@@ -832,3 +836,59 @@ classement public, rien ne se perd, la vitalité (cœurs, gemmes) reste à la s�
    formée, le campement montre-t-il la dernière expédition, ou rien ?
 5. **Jumelage gnome / licorne** (V5) : coopération limitée à l'équipe, ou aussi entre équipes
    de peuples différents ?
+
+---
+
+## 11. Lot 1 livré — « Le Seuil » — et la suite, en simple
+
+### 11.1 Les invariants retenus
+
+Parmi V1, V2 et V3, le lot garde ce qui vaut **dans tous les cas**, quoi qu'on décide ensuite :
+
+1. **Le joueur a un chez-soi** : il arrive sur un écran qui parle de lui, pas sur un plateau
+   qui ne dépend que de la séance.
+2. **Tout ce qu'il apprend compte, pour toujours** : un niveau calculé à partir de ce qui
+   existe déjà, sans nouvelle monnaie, sans rien qui se perde.
+3. **Deux regards, pas un score** : la progression dit _comment_ l'élève apprend (observer /
+   raconter), tirée du récit, plutôt que _combien_ il vaut par rapport aux autres.
+4. **Le niveau ouvre quelque chose d'utile** : des sortilèges personnels, gratuits, sans
+   validation du MJ, dont l'effet aide à apprendre.
+5. **L'équipe reste l'équipe** : la mascotte et l'expédition sont montrées telles qu'elles
+   sont ; le Seuil ne crée aucune mascotte personnelle.
+
+### 11.2 Ce qui est livré
+
+| Élément                  | Contenu                                                                                                                                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Onglet **Le Seuil**      | Premier onglet joueur et page d'arrivée à la connexion ; épinglé sur la barre mobile ; module `modules.voyageur_enabled` (éteint → arrivée sur Cartes, comme avant).                                             |
+| Face **Moi, voyageur**   | Anneau de niveau, stade (_Graine_ → _Forêt ancienne_), penchant (_regard du proche_ / _du loin_ / _pacte du seuil_), deux barres avec le détail des sources, points avant le niveau suivant, prochain déblocage. |
+| Face **Mon expédition**  | Équipe, mascotte, peuple, chapitre, coéquipiers, phrase d'état honnête (séance en cours / campe / se prépare / terminée), bouton vers le plateau en séance ; message explicite sans équipe.                      |
+| **Ce soir, tu peux…**    | Trois propositions : le regard le moins exercé d'abord, puis l'autre, puis un sortilège prêt (ou le plateau en séance). Jamais un onglet éteint.                                                                 |
+| **Grimoire du voyageur** | _Seconde chance_ (niveau 2) et _Mémoire_ (niveau 3), une charge qui revient après 5 nouveaux points. Choix de la cible dans la carte du sortilège.                                                               |
+| **Célébration**          | Bandeau « Niveau N atteint ! » à la visite qui suit une montée de niveau ; carte du sortilège qui s'illumine au lancer ; animations coupées si l'élève a réduit les mouvements.                                  |
+| **Finitions d'août**     | Bannière d'erreur annoncée et refermable ; chargement des onglets visible (fini la page blanche).                                                                                                                |
+| **Technique**            | `lib/glVoyageur.js`, `routes/gl/voyageur.js`, migration 317 (table des charges seulement), `GLSeuilView` ; 13 tests serveur, 8 tests UI, 1 scénario e2e ; `docs/API.md`, `docs/reference/gl/presentation.md`.    |
+
+**Volontairement laissé de côté** : pas de classement ni de vue MJ du niveau (à décider), pas
+de visite guidée OLU du Seuil (contenu à écrire), pas d'effet en séance (le pont « chacun
+apporte son grimoire » reste une option), pas de nouveau son (les assets manquent).
+
+### 11.3 La suite — des choses simples et efficaces
+
+Chacune tient en quelques jours, sans dépendance au professeur, et s'appuie sur ce qui
+existe.
+
+| #   | Proposition                                            | Ce que l'élève vit                                                                                                                                                                   | Ce que ça demande                                                                                                 | Effort |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | :----: |
+| S1  | **« +1 » au moment où l'on apprend**                   | Quand il marque « appris » ou réussit une question, une petite pastille « +1 regard du proche 🍄 » s'envole, et la jauge du Seuil a bougé. Le lien geste → progrès devient immédiat. | Un composant de pastille appelé après les réponses existantes de `/learning/*` et du QCM ; aucune route nouvelle. |   S    |
+| S2  | **Mes traversées**                                     | Dans le Seuil, la liste de ses expéditions passées : mascotte, chapitre, coéquipiers. Au fil de l'année, une collection de compagnons de route.                                      | Calculée depuis `gl_team_members` + `gl_games` terminées ; aucune table.                                          |   S    |
+| S3  | **Troisième sortilège : _Loupe_**                      | Au niveau 4, écarter une mauvaise réponse d'une question avant de répondre. Utile, rassurant, ne donne jamais la réponse.                                                            | Paramètre optionnel sur la présentation d'une question (`/qcm/questions/:code/present`) + une charge.             |  S–M   |
+| S4  | **Visite guidée du Seuil par OLU**                     | À la première ouverture, OLU explique en trois bulles les deux regards et le grimoire.                                                                                               | Une entrée de contenu dans `glDiscoveryTour.js`.                                                                  |   S    |
+| S5  | **Le niveau visible du MJ**                            | Le professeur voit, dans les statistiques de classe, le stade et le penchant de chaque élève : un repère pour l'accompagner, sans classement montré aux élèves.                      | Une colonne de plus dans `/stats/class`, calculée par `buildVoyageurProgress`.                                    |   S    |
+| S6  | **Gestes de mascotte débloqués par niveau** (V4 léger) | Au niveau 5, l'élève peut faire saluer ou danser la mascotte **de son équipe** dans la face expédition. Le déblocage est à lui, la mascotte reste à l'équipe.                        | Les états `HAPPY` / `TALKING` existent ; un bouton et un petit catalogue de gestes.                               |  S–M   |
+
+**Recommandation** : **S1 + S2 + S4** ensemble. S1 donne le retour immédiat qui manque encore,
+S2 donne la première vraie collection de l'année, S4 explique le tout sans un mot du
+professeur. Les trois réunis tiennent en moins d'une semaine. S3 et S6 donnent ensuite au
+niveau de nouvelles raisons d'être désiré ; S5 dépend de ce que vous voulez montrer aux
+enseignants.

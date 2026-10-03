@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L : « Le Seuil », l'accueil du joueur (niveau du voyageur et grimoire personnel)
+
+- **Pourquoi** : audit de l'expérience joueur (`docs/AUDIT_EXPERIENCE_JOUEUR_GL_2026-10-03.md`) — hors séance, l'élève n'avait aucune progression visible ni rien à gagner, et atterrissait sur un plateau souvent vide. Premier lot des directions V1–V3, sans aucune action requise du professeur.
+- **Onglet « Le Seuil »** (premier onglet joueur, page d'arrivée à la connexion, épinglé sur la barre mobile) : face *Moi, voyageur* (niveau de *Graine* à *Forêt ancienne*, anneau de progression, regards **proche** / **loin** tirés du pacte du seuil, penchant), face *Mon expédition* (équipe, mascotte, coéquipiers, état honnête de la partie ; message explicite sans équipe), « Ce soir, tu peux… » (trois propositions vers le regard le moins exercé), célébration au passage de niveau.
+- **Niveau calculé**, sans table de points ni monnaie : acquis (`gl_learning_acknowledgements`), questions réussies distinctes (`gl_qcm_attempts`), feuillets possédés, articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Paliers `5·n·(n−1)/2`.
+- **Grimoire du voyageur** : *Seconde chance* (niveau 2, lève un délai d'attente après une mauvaise réponse) et *Mémoire* (niveau 3, rend lisible un feuillet effacé). Une charge, rechargée après 5 nouveaux points ; verrou de ligne en transaction ; cible absente → charge non consommée. Table `gl_voyageur_spell_uses` (migration **317**), ajoutée à l'export des données personnelles.
+- **API** : `GET /api/gl/voyageur/me`, `GET /api/gl/voyageur/spells/:code/targets`, `POST /api/gl/voyageur/spells/:code/cast` — joueurs seulement, module `modules.voyageur_enabled` (défaut activé ; éteint → les joueurs arrivent sur Cartes).
+- **Finitions de l'audit d'août** : la bannière d'erreur GL est annoncée (`role="alert"`) et se ferme ; le repli de chargement des onglets (`gl-tab-loading`) a enfin un style et un `role="status"` (fini la page blanche).
+- Tests : `tests/gl-voyageur.test.js` (13), `tests-ui/gl/GLSeuilView.test.jsx` (8), navigation et bannières mises à jour. Doc : `docs/API.md`, `docs/reference/gl/presentation.md`, `economie-marche-sorts.md`.
+
 ### Documentation — G&L : audit de l'expérience joueur
 
 - `docs/AUDIT_EXPERIENCE_JOUEUR_GL_2026-10-03.md` : grille « hors séance / en séance » de ce que peut faire un joueur, lecture « jeu vidéo » pilier par pilier, suivi des constats joueur de l'audit d'août, verdict technique et cinq directions (A « dire le jeu », B quête de la semaine, C rang d'apprenti, D plateau qui répond, E jauge d'équipe entre deux séances) à arbitrer. Indexé dans `docs/audits/README.md`.
