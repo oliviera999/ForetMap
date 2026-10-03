@@ -1,0 +1,1 @@
+import{s as e}from"./VisitMascotFallbackSvg-BFdcpl_D.js";import{t}from"./react-vendor-DNL2Q_op.js";var n=t();function r({tone:t=`neutral`,className:r=``,children:i}){return(0,n.jsx)(`span`,{className:e(`gl-badge`,`gl-badge--${t}`,r),children:i})}export{r as t};

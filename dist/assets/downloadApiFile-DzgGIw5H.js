@@ -1,0 +1,1 @@
+import{un as e,xn as t}from"./VisitMascotFallbackSvg-BFdcpl_D.js";import{a as n}from"./useAppVersion-BrorNy-Q.js";async function r(r,i){return n(r,i,{resolveUrl:t,getToken:e,messages:{unauthorized:`Session expirée — reconnectez-vous.`,forbidden:`Permission insuffisante pour cette action.`,notFound:`Route introuvable — déployez la dernière version du serveur.`}})}export{r as t};

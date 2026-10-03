@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- PWA core -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1a4731" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ForêtMap" />
+
+    <!-- Android / Chrome -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="ForêtMap" />
+
+    <!-- SEO / description -->
+    <meta name="description" content="Gestion et cartographie de la forêt comestible du Lycée Lyautey" />
+
+    <title>ForêtMap – Lycée Lyautey</title>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
+
+    <!-- Polices auto-hébergées (src/shared/fonts/) : aucun appel à Google Fonts (RGPD). -->
+    <!-- PAS de preload de la police emoji auto-hébergée : un preload de police est
+         inconditionnel et prioritaire (il part avant même l'analyse du CSS), ce qui annulait
+         l'`unicode-range` du @font-face et imposait 5,7 Mo à tous les appareils — dont ceux
+         qui, depuis que 'Apple Color Emoji' est en tête de pile, ne la demandent jamais.
+         Le FOUT que ce preload évitait ne concerne plus que le parc non-Apple, où
+         `font-display: swap` fait le travail. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md § 4. -->
+    <script type="module" crossorigin src="/assets/main-BKIOvej8.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
+    <link rel="modulepreload" crossorigin href="/assets/icons-D8Aep2K4.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-DNL2Q_op.js">
+    <link rel="modulepreload" crossorigin href="/assets/VisitMascotFallbackSvg-BFdcpl_D.js">
+    <link rel="modulepreload" crossorigin href="/assets/spriteCutCatalogEntry-BoORiSCz.js">
+    <link rel="modulepreload" crossorigin href="/assets/PrivacyNoticePage-Dow2I7WE.js">
+    <link rel="modulepreload" crossorigin href="/assets/useBrandTheme-BNZ8QaCf.js">
+    <link rel="modulepreload" crossorigin href="/assets/markdown-BT1_tLPZ.js">
+    <link rel="modulepreload" crossorigin href="/assets/useAppVersion-BrorNy-Q.js">
+    <link rel="modulepreload" crossorigin href="/assets/mascotPack-CIG-C85-.js">
+    <link rel="modulepreload" crossorigin href="/assets/visitMascotPackExtras-CSQk36lC.js">
+    <link rel="modulepreload" crossorigin href="/assets/PublicSettingsContext-BdTFrdUL.js">
+    <link rel="modulepreload" crossorigin href="/assets/journalUi-DYVkApxz.js">
+    <link rel="modulepreload" crossorigin href="/assets/FmLearnAndImportSlot-B0oMOmw2.js">
+    <link rel="modulepreload" crossorigin href="/assets/socket-io-SGWxBABF.js">
+    <link rel="modulepreload" crossorigin href="/assets/MarkdownTextarea-BLk-kKey.js">
+    <link rel="modulepreload" crossorigin href="/assets/GlossaryMarkdown-BxKj54VL.js">
+    <link rel="modulepreload" crossorigin href="/assets/GuidedTourOverlay-BJ5urPjF.js">
+    <link rel="modulepreload" crossorigin href="/assets/useLatestRequest-DG2zhiLX.js">
+    <link rel="modulepreload" crossorigin href="/assets/datetime-fr-CVMfrGmw.js">
+    <link rel="modulepreload" crossorigin href="/assets/downloadApiFile-DzgGIw5H.js">
+    <link rel="stylesheet" crossorigin href="/assets/PrivacyNoticePage-DKelHO6a.css">
+    <link rel="stylesheet" crossorigin href="/assets/useBrandTheme-BpdSH9YF.css">
+    <link rel="stylesheet" crossorigin href="/assets/useAppVersion-BQXMtgsx.css">
+    <link rel="stylesheet" crossorigin href="/assets/visitMascotPackExtras-B0kFt_VU.css">
+    <link rel="stylesheet" crossorigin href="/assets/main-qsLIrKS2.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
