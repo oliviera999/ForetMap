@@ -9,6 +9,7 @@ import {
   emptyPoolForSet,
   patchPoolForSet,
   effectiveBiomeSlugs,
+  sousBiomePoolHint,
   chapterBiomeSlugsFrom,
   buildAdditionalBiomeOptions,
   buildCategoryOptions,
@@ -128,6 +129,44 @@ describe('effectiveBiomeSlugs', () => {
   test('mode custom fusionne sans doublon', () => {
     const result = effectiveBiomeSlugs({ biomeMode: 'custom', biomeSlugs: ['b', 'c'] }, ['a', 'b']);
     expect(result).toEqual(['a', 'b', 'c']);
+  });
+
+  test('mode sous_biome : biome de la case, repli sur le chapitre', () => {
+    const chapter = ['taiga', 'toundra'];
+    expect(effectiveBiomeSlugs({ biomeMode: 'sous_biome' }, chapter, 'toundra_hiver')).toEqual([
+      'toundra',
+    ]);
+    expect(effectiveBiomeSlugs({ biomeMode: 'sous_biome' }, chapter, 'taiga')).toEqual(['taiga']);
+    expect(effectiveBiomeSlugs({ biomeMode: 'sous_biome' }, chapter, 'transition')).toEqual(
+      chapter,
+    );
+    expect(effectiveBiomeSlugs({ biomeMode: 'sous_biome' }, chapter, '')).toEqual(chapter);
+  });
+
+  test('le mode sous_biome survit à la normalisation du formulaire', () => {
+    const next = patchPoolForSet({ biomeMode: 'chapter' }, 'biome', { biomeMode: 'sous_biome' });
+    expect(next.biomeMode).toBe('sous_biome');
+    const cfg = buildEventConfigFromForm({
+      eventType: 'question',
+      questionSet: 'biome',
+      questionMode: 'random',
+      fixedQuestionCode: '',
+      pool: next,
+    });
+    expect(cfg.question.pool.biomeMode).toBe('sous_biome');
+  });
+});
+
+describe('sousBiomePoolHint', () => {
+  test('nomme le biome retenu, ou explique le repli', () => {
+    expect(sousBiomePoolHint('taiga', ['taiga'])).toBe('Questions du biome de la case : taiga.');
+    expect(sousBiomePoolHint('toundra_hiver', ['taiga', 'toundra'])).toBe(
+      'Questions du biome de la case : toundra (sous-biome toundra_hiver).',
+    );
+    expect(sousBiomePoolHint('transition', ['taiga', 'toundra'])).toMatch(
+      /sans biome propre : tirage dans les biomes du chapitre \(taiga, toundra\)/,
+    );
+    expect(sousBiomePoolHint('', [])).toMatch(/pas de sous-biome.*\(aucun\)/);
   });
 });
 

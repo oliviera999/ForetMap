@@ -66,6 +66,25 @@ test('buildMarkerPayload et validation repère', () => {
   assert.strictEqual(validateMarkerPayload(payload, 2, known).length, 0);
 });
 
+test('buildMarkerPayload garde la saison du sous-biome (aller-retour export → import)', () => {
+  const sousBiome = (value) =>
+    buildMarkerPayload({
+      chapitre_slug: 'x',
+      label: 'X',
+      x_pct: '1',
+      y_pct: '1',
+      sous_biome_slug: value,
+    }).sousBiomeSlug;
+  // La musique de plateau tire la nuit polaire de `toundra_hiver` : l'import ne doit plus
+  // l'aplatir en `toundra`.
+  assert.strictEqual(sousBiome('toundra_hiver'), 'toundra_hiver');
+  assert.strictEqual(sousBiome('toundra-ete'), 'toundra_ete');
+  assert.strictEqual(sousBiome('transition'), 'transition');
+  assert.strictEqual(sousBiome('jungle'), 'jungle_afc');
+  assert.strictEqual(sousBiome('valeur-libre'), 'valeur_libre');
+  assert.strictEqual(sousBiome(''), null);
+});
+
 test('validateMarkerPayload refuse chapitre inconnu', () => {
   const payload = buildMarkerPayload({
     chapitre_slug: 'inconnu',

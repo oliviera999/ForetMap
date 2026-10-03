@@ -9,6 +9,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — G&L : fusion des chapitres 4 et 5, le plateau des Grands Froids
+
+Décision éditoriale de l'auteur : les chapitres 4 (Taïga & désert froid) et 5 (Toundra arctique) ne font plus qu'un chapitre 4 « Eurasie continentale ». Il se joue sur **un seul plateau peint** (clé médiathèque `plateau-4_fond`, prioritaire sans code) : taïga → limite des arbres → toundra en été polaire → nuit polaire. L'année passe de 5 à **4 plateaux**. Le Livre de Sélène garde ses 5 pays (`gl_lore_plateaux` et `lib/glBiomePays.js` inchangés).
+
+- **Migration `316_gl_fusion_chapitres_4_5.sql`** (données de production ; no-op sur une base sans ces chapitres). Repérage par slug et `order_index`, jamais par id. Rejouable, y compris après une interruption : les repères sont construits en coulisse (`order_index` + 100000) puis basculés d'un seul `UPDATE`. Si une équipe stationne sur un repère supprimé, rien n'est fait.
+  - **Repères** : 38 au lieu de 42, car le plateau peint compte 38 dalles. Les 4 cases retirées sont dans la nuit polaire : quiz conservation et vocabulaire de niveau base, « Ours polaire », « Aurores boréales ». Elles restent dans le chapitre mis de côté.
+  - **Grammaire** : 1 départ · 14 quiz (8 catégories, 11 approfondissement / 3 base) · 22 comportements · 1 arrivée. Taïga 1–22 (charnière 22 « Le dernier arbre », sous-biome `transition`), été polaire 23–31, nuit polaire 32–38.
+  - **Repères repris** : les repères de la taïga sont mis à jour en place (ids conservés) ; ceux de la toundra sont copiés depuis le chapitre mis de côté. Deux cases nouvelles : « L'homme assis » et « Le dernier arbre ».
+  - **Chapitres** : « Toundra arctique » est renommé « Chapitre 5 — Toundra arctique (mis de côté) », sans plateau, `order_index` 900. Le chapitre fusionné a pour biomes taïga + toundra (désert froid retiré). Récit, biotope et biocénose sont réécrits ; dans les sortilèges, seule la phrase des deux visages du Souffle change.
+  - **Zones du royaume** : « Désert froid » est supprimée. « Taïga » est redessinée. « Toundra — été polaire » et « Toundra — nuit polaire » sont créées, avec popovers, images et musiques repris du chapitre mis de côté. Les polygones ne se chevauchent pas et suivent la bascule peinte.
+  - **QCM lore** : les questions `ch5` passent en `ch4`, numérotées à la suite dans leur catégorie ; les libellés de scopes sont mis à jour.
+  - **Feuillets** : 14 passent inactifs (Gobi, doublons, densité), 10 sont rattachés à la taïga au lieu du désert froid, et tous les feuillets actifs du plateau 5 passent au plateau 4. `ordre_recit`, `ordre_voyage` et `lien_pays` sont intacts : `sc-nom` et `ep-VIII-09` restent les derniers du récit.
+- **Nouveau mode de tirage « Biome de la case »** (`biomeMode: 'sous_biome'`) : le pool d'un quiz prend le `sous_biome_slug` du repère, normalisé par le registre (`toundra_ete` / `toundra_hiver` → `toundra`). Il retombe sur les biomes du chapitre si la case n'a pas de sous-biome ou si c'est une `transition`. Le mode est proposé dans l'éditeur de repère, avec le biome retenu affiché, et appliqué aux 14 quiz du chapitre fusionné. Il est rétrocompatible : `chapter` et `custom` sont inchangés.
+- **Sous-biome d'un repère** : l'admin accepte désormais `transition` et les variantes de saison (`toundra_ete`, `toundra_hiver`), et refuse une valeur inconnue avec un message clair. Avant, seuls les 11 slugs du catalogue passaient : un repère `transition` ne pouvait plus être enregistré. L'import XLSX garde la saison au lieu de l'aplatir en `toundra`. Le champ propose ces valeurs.
+- **Musique de plateau** : la piste se choisit désormais **par biome** (`resolvePlateauAudioSlug`), sans renommer aucune clé audio. Elle est **commune à la partie** : elle suit la case la plus avancée jamais atteinte (`glPlateauMusicProgress.js`). Sur le plateau 4, taïga → toundra jour → toundra nuit ; la nuit est irréversible dès qu'une équipe atteint la case 32. La règle vaut pour tous les plateaux dont les cases ont un sous-biome (P1 : jungle puis savane, etc.) ; sans sous-biome, la musique reste celle du chapitre comme avant. Le repli par préfixe `plateau-N_` ne retient plus une **image** comme musique.
+- **Registre des biomes** : le champ `plateau` est aligné sur le jeu réel. Biomes hors trajet (mangrove, prairie/steppe, désert froid) : `plateau` et `assets.board` à `null`. Taïga et toundra : `assets.board` = `plateau-4_fond`.
+- **Liasse du copiste** : elle est désormais remise à la fin d'une partie du **plateau 4**, devenu le dernier plateau (`LAST_PLATEAU`).
+- **Zones feuillets** (`zones_feuillets.json`) : 21 zones (P1 4, P2 3, P3 4, P4 10). Les 10 zones du plateau 4 sont posées sur les dalles du plateau peint et les 13 anciennes zones P4/P5 sont retirées.
+- **Docs** : `docs/GL_FEUILLET_ZONES.md`, `docs/GL_QCM_SETS.md`, `docs/API.md` (route repère), `public/gl/boards/README.md`, et la doc de référence MJ (chapitres, carte du royaume, QCM).
+- **Tests** :
+  - contenu : `tests/content/gl-fusion-chapitres-4-5.test.js` (grammaire, no-op, garde équipes, rejeu, reprise après interruption, feuillets, zones) ;
+  - code : `tests/gl-plateau-music-progress.test.js`, `tests/gl-game-end-closing-bundle.test.js`, et des cas ajoutés aux tests pool QCM, registre, audio, image, import et route repère ;
+  - UI : `tests-ui/gl/GLMarkerEventEditor.test.jsx`, filtres de pool, formulaire.
+
 ### Corrigé — plan des personnels : « La connexion n'a pas abouti » pour un personnel déjà lié à Google
 
 - **Cause** : l'ancien compte de la personne (souvent un compte élève) gardait sa liaison Google, et son compte Personnel portait l'adresse Google. La connexion plantait (doublon `uq_users_google_sub`).

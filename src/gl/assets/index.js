@@ -140,7 +140,13 @@ export function audio(slug) {
 export function plateauAudio(plateauNumber, biomeSlug = null, saison = null) {
   const keysIndex = getKeysIndex();
   const knownSlugs = Object.keys(keysIndex);
-  const stableKey = resolvePlateauAudioSlug(plateauNumber, biomeSlug, saison, knownSlugs);
+  const stableKey = resolvePlateauAudioSlug(
+    plateauNumber,
+    biomeSlug,
+    saison,
+    knownSlugs,
+    keysIndex,
+  );
   if (stableKey) return audioByStableKey(stableKey);
   const slot = Number(plateauNumber);
   if (Number.isFinite(slot) && slot >= 1 && slot <= 5) {

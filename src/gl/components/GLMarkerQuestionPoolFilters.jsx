@@ -10,6 +10,7 @@ import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
  * @param {object}   pool                pool courant du formulaire
  * @param {boolean}  isLoreSet           catalogue lore actif
  * @param {string[]} chapterBiomeSlugs   slugs des biomes du chapitre
+ * @param {string}   [sousBiomeHint]     aide du mode « Biome de la case » (biome retenu)
  * @param {{value,label}[]} loreScopeOptions
  * @param {{value,label}[]} additionalBiomeOptions
  * @param {{value,label}[]} categoryOptions
@@ -21,6 +22,7 @@ export function GLMarkerQuestionPoolFilters({
   pool,
   isLoreSet,
   chapterBiomeSlugs,
+  sousBiomeHint = '',
   loreScopeOptions,
   additionalBiomeOptions,
   categoryOptions,
@@ -68,8 +70,16 @@ export function GLMarkerQuestionPoolFilters({
             >
               <option value="chapter">Biomes du chapitre (défaut)</option>
               <option value="custom">Chapitre + biomes additionnels</option>
+              <option value="sous_biome">Biome de la case</option>
             </select>
           </label>
+
+          {pool.biomeMode === 'sous_biome' ? (
+            <p className="gl-hint gl-marker-event-sous-biome-hint">
+              {sousBiomeHint ||
+                'Questions du biome de la case (sous-biome du repère) ; repli sur les biomes du chapitre pour une case sans biome propre.'}
+            </p>
+          ) : null}
 
           {pool.biomeMode === 'custom' ? (
             <div className="gl-marker-event-biomes">

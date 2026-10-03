@@ -13,9 +13,28 @@ Calque de petits polygones sur la carte de jeu : à la **première traversée** 
 - **Coords :** normalisées **0–1**, origine haut-gauche (non modifiées à l’import).
 - **Runtime :** conversion vers le référentiel GL **0–100 %** via [`src/gl/utils/glNormMapCoords.js`](../src/gl/utils/glNormMapCoords.js).
 
+## Catalogue actuel : 21 zones sur 4 plateaux
+
+Depuis la fusion des chapitres 4 et 5 (octobre 2026, migration `316`), l'année se joue en
+**4 plateaux** et le plateau 5 n'a plus de zone.
+
+| Plateau | Zones                   | Fond (`board_image`)                       | Feuillets                                                                                                          |
+| ------- | ----------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| 1       | `zf-p1-01` → `zf-p1-04` | `watermarked_img_13496490473232250296.jpg` | 4 feuillets des tropiques africains                                                                                |
+| 2       | `zf-p2-05` → `zf-p2-07` | `watermarked_img_16999739831612660178.jpg` | 3 feuillets d'aride chaud                                                                                          |
+| 3       | `zf-p3-08` → `zf-p3-11` | `watermarked_img_6895487107210024833.jpg`  | 4 feuillets du tempéré atlantique                                                                                  |
+| 4       | `zf-p4-01` → `zf-p4-10` | `GL_plateau-4_fond.png`                    | `ep-I-11`, `ep-I-12`, `ep-III-01`, `ep-I-14`, `ep-III-03`, `ep-I-15`, `ep-I-13`, `ep-III-06`, `ep-I-16`, `ep-I-17` |
+
+Les 10 zones du plateau 4 sont posées sur les dalles 6, 13, 22 (le dernier arbre), 25, 29,
+32 (la bascule vers la nuit polaire), 34, 35, 37 et 38 (l'étoile fixe) du plateau peint à
+38 dalles. Polygone : l'octogone commun à toutes les zones (demi-largeur 0,0185, demi-hauteur
+0,0333 en coordonnées 0–1), qui ne recouvre que sa dalle. Les anciennes zones `zf-p4-12` →
+`zf-p4-16` et `zf-p5-17` → `zf-p5-24` ont été retirées ; leurs feuillets `ep-III-02`,
+`ep-III-04` et `ep-III-07` sont passés inactifs (corpus raccourci).
+
 ## Associer un chapitre à un plateau
 
-1. Admin **Contenus → Chapitres** : champ **Plateau narratif (1–5)**.
+1. Admin **Contenus → Chapitres** : champ **Plateau narratif (1–5)** — les plateaux joués sont 1 à 4.
 2. Image de carte (`map_image_url`) alignée sur le visuel du plateau (voir [`public/gl/boards/README.md`](../public/gl/boards/README.md)).
 3. En partie, seules les zones dont `plateau` correspond au chapitre sont actives.
 

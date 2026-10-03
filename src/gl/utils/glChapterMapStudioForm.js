@@ -11,6 +11,34 @@ import {
   appearanceToPayload,
 } from '../components/GLMarkerAppearanceEditor.jsx';
 import { duplicateMapLabel, offsetPctCoordinate } from './glMapDuplicate.js';
+import { resolveBiome, SOUS_BIOME_TRANSITION } from '../data/biomes.registry.js';
+
+/**
+ * Suggestions du champ « Sous-biome » d'un repère : les biomes du chapitre, leurs variantes
+ * de saison (`toundra_ete`, `toundra_hiver` : la musique de plateau en tire le jour ou la
+ * nuit polaire) et `transition` (case-charnière entre deux biomes).
+ */
+export function sousBiomeSlugOptions(chapterBiomes = []) {
+  const options = [];
+  const seen = new Set();
+  const push = (value, label) => {
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    options.push({ value, label });
+  };
+  for (const biome of Array.isArray(chapterBiomes) ? chapterBiomes : []) {
+    const slug = String(biome?.slug || '').trim();
+    if (!slug) continue;
+    const name = biome.nom || slug;
+    push(slug, name);
+    if (resolveBiome(slug)?.saison) {
+      push(`${slug}_ete`, `${name} — été`);
+      push(`${slug}_hiver`, `${name} — hiver / nuit polaire`);
+    }
+  }
+  push(SOUS_BIOME_TRANSITION, 'Case-charnière (aucun biome propre)');
+  return options;
+}
 
 /** Formulaire de repère vide (valeurs par défaut). */
 export const EMPTY_MARKER_FORM = {
