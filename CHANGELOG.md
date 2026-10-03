@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — G&L : audit de l'expérience joueur
+
+- `docs/AUDIT_EXPERIENCE_JOUEUR_GL_2026-10-03.md` : grille « hors séance / en séance » de ce que peut faire un joueur, lecture « jeu vidéo » pilier par pilier, suivi des constats joueur de l'audit d'août, verdict technique et cinq directions (A « dire le jeu », B quête de la semaine, C rang d'apprenti, D plateau qui répond, E jauge d'équipe entre deux séances) à arbitrer. Indexé dans `docs/audits/README.md`.
+
 ### Corrigé — `db:init` échouait sur base neuve depuis le plan e-nov (migration 260)
 
 - **Cause** : `sql/schema_foretmap.sql` posait `enov` dans le défaut de `location_categories.surfaces` ; les migrations 204 et 246 semaient des catégories avec ce défaut, puis la 260 reposait le `SET` à quatre valeurs → « Data truncated for column 'surfaces' ». Toute base neuve (CI, tests, poste local) était cassée ; une base de production migrée ne l'était pas. Passé inaperçu : #572 a été fusionnée quota Actions épuisé, donc sans CI.
