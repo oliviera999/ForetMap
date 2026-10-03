@@ -5,9 +5,13 @@
 >
 > **Réorientation du porteur (même jour)** : priorité à l'**UI/UX**, à des directions
 > **indépendantes de l'action du professeur**, où **les joueurs interagissent et suivent leur
-> propre chemin**. Les directions retenues pour arbitrage sont donc celles du **§ 9** (U0–U4).
-> Les § 6–8 restent comme trace : B, C et le volet coopératif de E y sont repris sous une
-> forme autonome ; D (séance) sort du périmètre.
+> propre chemin**. Les § 6–8 restent comme trace ; D (séance) sort du périmètre.
+>
+> **Deuxième réorientation (même jour)** : **les mascottes sont celles des équipes**, donc le
+> chemin solo U1 du § 9 ne tient pas. Le solo et l'équipe ont chacun leur sens, et une
+> progression par niveaux peut débloquer des choses **hors chapitre** (des sortilèges, par
+> exemple). Les directions à arbitrer sont désormais celles du **§ 10** (V1–V6). Le § 9
+> reste comme trace (U0, U2, U3 y sont absorbés).
 >
 > **Angle** : l'élève, pas le MJ. Deux questions guident l'audit. Que peut faire un joueur
 > **à tout moment**, et qu'est-ce qui dépend du **rythme des cours** ? Et l'ensemble
@@ -481,6 +485,8 @@ Toutes sont indépendantes du professeur. Effort : **S** < 1 semaine, **M** 1 à
 
 #### U1 — Le chemin solo sur le plateau (le cœur)
 
+> ❌ **Écarté** : la mascotte appartient à l'équipe, pas au joueur. Voir § 10.
+
 > _J'avance ma propre mascotte sur le plateau du chapitre, à mon rythme._
 
 - Chaque joueur a **sa position** sur le chemin numéroté du plateau de son chapitre, avec sa
@@ -602,3 +608,227 @@ la visibilité (§ 9.5, question 4).
    ou désactivables par l'élève ?
 5. **Lien avec la séance** : le chemin solo reste-t-il totalement séparé, ou peut-il, plus
    tard, apporter un petit bonus à l'équipe (direction E) ?
+
+---
+
+## 10. Deuxième réorientation — deux échelles de jeu, le voyageur et l'expédition
+
+### 10.1 Ce qui structure la réflexion
+
+Trois faits du code et du récit, qu'aucune direction ne doit contourner :
+
+1. **La mascotte appartient à l'équipe.** `gl_teams.mascot_id`, une mascotte par équipe ; le
+   joueur n'en a pas à lui.
+2. **L'équipe est éphémère, le joueur est permanent.** Une équipe vit le temps d'une partie
+   (`gl_teams.game_id`, `gl_team_members` clé `(game_id, player_id)`), et la politique de
+   classe par défaut **recompose les équipes à chaque partie** (`team_policy =
+'reshuffle_each'`, migration 217). Le joueur, lui, garde tout de l'année : feuillets
+   (`gl_player_feuillet_states`), acquis (`gl_learning_acknowledgements`), réponses
+   (`gl_qcm_attempts`), journal (`gl_player_journal_articles`).
+3. **Le récit a déjà la réponse.** Le « pacte du seuil » (`docs/reference/gl/lore-deux-peuples.md`) :
+   - les **gnomes** tiennent les noms « par le bas », par l'**observation** ;
+   - les **licornes** les tiennent « par le haut », par le **récit** ;
+   - une page mangée par le Souffle ne se réécrit qu'avec **les deux regards** ;
+   - au passage d'un seuil, la forme change. Sélène a été gnome dans un biome et licorne dans
+     un autre, c'est pourquoi son carnet sait tout tenir.
+
+D'où le principe : **deux échelles de jeu, et un pont entre elles.**
+
+```
+  LE VOYAGEUR (moi, toute l'année)           L'EXPÉDITION (mon équipe, un chapitre)
+  ─────────────────────────────────          ──────────────────────────────────────
+  niveau à deux regards (proche / loin)      la mascotte compagnon et son campement
+  grimoire personnel hors chapitre           carnet de route de l'équipe
+  « Mes traversées » (souvenirs)             pages à réécrire à plusieurs mains
+            │                                              │
+            │  chaque geste solo compte deux fois :        │
+            └──────── pour moi ET pour mon expédition ─────┘
+            ┌──────── à la fin, l'expédition laisse ───────┐
+            │         un souvenir dans chaque carnet       │
+                                    │
+                    LA SÉANCE (inchangée, MJ) : l'expédition
+                    rejoint le plateau avec ce qu'elle a préparé
+```
+
+- **Le voyageur** n'a besoin de personne : sans équipe, sans partie, il progresse.
+- **L'expédition** n'a besoin d'aucun geste du professeur une fois l'équipe formée (la
+  composition automatique existe). Elle continue de vivre entre les séances, y compris quand
+  la partie est en pause.
+- **La séance** reste le moment du plateau, tel quel. On n'y touche que par un pont
+  optionnel (V3).
+
+### 10.2 Les directions
+
+#### V1 — Le Seuil : l'accueil à deux faces (socle UI)
+
+> _En ouvrant GL, je vois qui je suis et où en est mon expédition._
+
+- **Face gauche, « Moi »** : mon anneau de niveau à deux moitiés (proche / loin, V2), le
+  prochain déblocage (« plus que 3 acquis pour le sortilège _Loupe_ »), mes derniers
+  feuillets.
+- **Face droite, « Mon expédition »** : la mascotte de l'équipe, animée selon l'humeur du
+  campement (V4), ce que les coéquipiers ont fait depuis ma dernière visite, la page à
+  réécrire en cours (V5).
+- **En bas, « Ce soir, tu peux… »** : trois propositions tirées de ce qui reste à faire.
+- Sans équipe : la face droite le dit franchement (« Ton compagnon t'attend à la prochaine
+  traversée ») et la face gauche reste pleine.
+- On y range les finitions déjà listées : état de séance honnête, chargements visibles,
+  bannière d'erreur annoncée, plus de plateau muet.
+
+**Effort** S · **Back** : aucun au départ (agrège `/learning/me`, `/stats/me`,
+`/lore/feuillets`, l'équipe active).
+
+#### V2 — Les deux regards : un niveau de voyageur
+
+> _Je grandis, et je vois de quel côté je penche._
+
+- **Deux jauges personnelles, tirées du récit** :
+  - **Regard du proche** (gnome) : espèces étudiées, termes du glossaire scientifique,
+    QCM biomes réussis ;
+  - **Regard du loin** (licorne) : feuillets lus, termes du lexique lore, QCM lore réussis,
+    **articles de « Mon journal »** (le journal reçoit enfin une mécanique).
+- **Niveau** = la somme des deux. **Titres** selon l'équilibre : _Arpenteur_ (penche
+  proche), _Conteur_ (penche loin), et **_Passeur_** quand les deux regards sont réunis, comme
+  Sélène. L'élève est poussé à explorer **les deux natures d'activité**, sciences et récit,
+  ce qui est exactement l'intention pédagogique du jeu.
+- **Indépendant du peuple de l'équipe** : on peut être licorne dans l'expédition et penché
+  vers le proche. C'est même ce que le récit raconte (la forme change à chaque seuil).
+- **Calculé, pas stocké** dans un premier temps : dérivé des tables existantes
+  (`gl_learning_acknowledgements.target_type`, `gl_qcm_attempts.question_dataset`,
+  `gl_player_feuillet_states`, `gl_player_journal_articles`). Aucune monnaie nouvelle,
+  aucun équilibrage d'économie. Pour le journal, ne compter qu'un nombre plafonné
+  d'articles par semaine, pour ne pas récompenser le remplissage.
+
+**Effort** S–M · **Risque** faible.
+
+#### V3 — Le grimoire du voyageur : des sortilèges hors chapitre
+
+> _Mon niveau m'ouvre des sortilèges qui m'appartiennent et que je peux lancer quand je veux._
+
+Les 31 sortilèges actuels sont liés aux chapitres (`gl_chapter_spells`), se lancent en
+partie `live` et touchent le plateau. On ajoute une **seconde famille, personnelle et hors
+chapitre**, débloquée par niveau, **lançable à tout moment** et dont l'effet porte sur le jeu
+hors séance. Chaque effet est **borné et codé**, donc sans arbitrage du MJ :
+
+| Sortilège (proposition) | Regard | Effet hors séance                                                  | Point d'ancrage dans le code                              |
+| ----------------------- | ------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| _Loupe_                 | proche | Écarte une mauvaise réponse d'un QCM                               | Présentation de question (`/qcm/questions/:code/present`) |
+| _Seconde chance_        | proche | Lève le verrou après une mauvaise réponse sur une fiche            | `gl_resource_gating_cooldowns`                            |
+| _Mémoire_               | loin   | Restaure le texte d'un feuillet « mangé par le Souffle »           | `gl_player_feuillet_states.effacement_pct`                |
+| _Boussole_              | proche | Indique dans quelle zone du chapitre se cache un feuillet manquant | Zones de feuillets (`games/feuillet-zones.js`)            |
+| _Écho_                  | loin   | Rejoue la dernière narration de séance manquée                     | `gl_game_events` (narrations)                             |
+| _Révélation_            | loin   | Dévoile la silhouette d'une espèce ou d'un feuillet encore inconnu | Album (V1/U3)                                             |
+
+- **Charges plutôt que monnaie** : un sortilège débloqué a une charge, qui revient après
+  quelques nouveaux acquis. On apprend pour pouvoir relancer, ce qui ferme la boucle sans
+  minuteur.
+- **Pont optionnel vers la séance** : « chacun apporte son grimoire ». Pendant une partie,
+  l'équipe peut aussi lancer les sortilèges de séance que **ses membres** ont débloqués, sous
+  les règles actuelles (coût, validation du MJ). La composition de l'équipe prend du sens,
+  et l'effort solo pèse en séance sans que le MJ ait à le décider.
+- Données : une colonne de niveau requis et une portée « voyageur » sur `gl_spells` (la
+  colonne `caster_kind` gnome / licorne existe déjà), et une table de charges par joueur.
+
+**Effort** M · **Risque** moyen : chaque effet est un petit chantier à tester, à introduire
+deux ou trois à la fois.
+
+#### V4 — Le campement de l'expédition
+
+> _Entre deux séances, notre mascotte vit, et elle réagit à ce que chacun de nous fait._
+
+- Un écran **Campement** par équipe : la mascotte au repos dans un décor du biome, et le
+  **carnet de route** de l'expédition (« Lina a étudié le fennec », « Sam a retrouvé un
+  feuillet »).
+- **Chaque geste solo d'un membre est aussi une offrande au campement** : les compteurs du
+  voyageur (V2), filtrés sur la durée de l'expédition. L'humeur de la mascotte en découle
+  (les états `HAPPY`, `TALKING`, `IDLE`, `SAD` de `useGLMascotStateMachine` existent).
+- **Gestes de mascotte** : le niveau personnel débloque des gestes (danse, salut, cri du
+  peuple) que le joueur peut faire faire **à la mascotte de son équipe actuelle**. Le
+  déblocage est à moi, la mascotte reste à l'équipe.
+- **Fin d'expédition** : à la fin de la partie, chaque membre reçoit un **souvenir** dans
+  « Mes traversées » : la mascotte, le biome, les coéquipiers, les pages réécrites. Comme les
+  équipes changent à chaque partie, l'élève construit au fil de l'année une collection de
+  compagnons et de compagnons de route.
+- Données : réutiliser le journal d'événements de la partie (`gl_game_events`, déjà
+  rattaché au jeu et à l'équipe) avec de nouveaux types d'événement, plutôt qu'une table
+  nouvelle. Une table de souvenirs par joueur à la clôture.
+
+**Effort** M · **Risque** faible.
+
+#### V5 — Le pacte du seuil : des pages à réécrire à plusieurs mains
+
+> _Certaines pages, je ne peux pas les réécrire seul : il faut le regard d'un coéquipier._
+
+- L'expédition reçoit automatiquement des **pages effacées** tirées des contenus du chapitre
+  (espèces, feuillets).
+- Chaque page a **deux moitiés** :
+  - la **moitié du proche** : retrouver la chose (étudier l'espèce, réussir sa question) ;
+  - la **moitié du loin** : retrouver l'histoire (remettre trois fragments de récit dans
+    l'ordre, relier un indice à sa légende, réussir la question lore).
+- **Deux joueurs différents** doivent remplir les deux moitiés. Quand c'est fait, la page
+  est réécrite pour toute l'équipe : un feuillet pour chacun, une mention dans le carnet de
+  route, des points de niveau aux deux.
+- **Aucun texte libre** : les mini-jeux sont fermés (ordre, association, QCM), donc rien à
+  modérer.
+- **Variante « jumelage »**, encore plus fidèle au récit : une page dont la moitié du proche
+  revient à une équipe **gnome** et celle du loin à une équipe **licorne**. Les deux peuples
+  de la classe coopèrent entre les séances, ce qui fait exister l'inter-équipes en dehors
+  de la compétition du plateau.
+
+**Effort** M · **Risque** moyen : il faut doser le nombre de pages pour qu'un élève absent ne
+bloque pas son équipe (une page reste accessible à tous les membres, pas à un seul).
+
+#### V6 — Les échos : se croiser sans se parler
+
+> _Je sens que les autres sont passés par là._
+
+- **Échos à phrases choisies** : sur une fiche d'espèce ou un feuillet, laisser un écho
+  pour son équipe ou sa classe (« Regarde ses pattes », « La fin du feuillet est belle »)
+  dans une liste fermée. Pas de texte libre, donc rien à modérer.
+- **Traces de passage** : « 4 voyageurs de ta classe ont étudié cette espèce », « Un gnome
+  de l'expédition Ronce a lu ce feuillet avant toi ». Uniquement des pseudos et des comptes,
+  jamais de score.
+- **Joute du miroir** (optionnelle) : un défi de cinq questions envoyé à un camarade, chacun
+  répond aux mêmes, et la seule récompense est une mention dans le carnet de route.
+
+**Effort** S–M · **Back** : une table d'échos, des comptages en lecture.
+
+### 10.3 Synthèse
+
+| Direction                      | Échelle               | Ce que l'élève ressent                            | Effort |        Dépend du prof         |
+| ------------------------------ | --------------------- | ------------------------------------------------- | :----: | :---------------------------: |
+| **V1** Le Seuil (accueil)      | Les deux              | « Je sais qui je suis et où on en est »           |   S    |              Non              |
+| **V2** Les deux regards        | Voyageur              | « Je grandis, et je vois comment »                |  S–M   |              Non              |
+| **V3** Grimoire du voyageur    | Voyageur (+ séance)   | « Mon niveau m'ouvre des pouvoirs »               |   M    |              Non              |
+| **V4** Le campement            | Expédition            | « Notre mascotte vit grâce à nous »               |   M    | Non, une fois l'équipe formée |
+| **V5** Pages à plusieurs mains | Expédition (+ classe) | « J'ai besoin des autres, ils ont besoin de moi » |   M    | Non, une fois l'équipe formée |
+| **V6** Les échos               | Classe                | « Je ne suis pas seul »                           |  S–M   |              Non              |
+
+Les retours et célébrations (sons, animations, carte qui se retourne) ne sont plus une
+direction à part : ils sont **une exigence de chaque lot**.
+
+### 10.4 Enchaînement proposé
+
+1. **Lot 1 — V1 + V2** : l'accueil à deux faces et le niveau à deux regards. Tout est
+   calculé à partir de l'existant ; c'est la colonne vertébrale du reste.
+2. **Lot 2 — V3** (trois premiers sortilèges : _Loupe_, _Seconde chance_, _Mémoire_) : le
+   niveau devient désirable parce qu'il ouvre quelque chose.
+3. **Lot 3 — V4 puis V5** : l'expédition prend vie entre les séances, puis le pacte la rend
+   indispensable.
+4. **V6** peut se glisser dans n'importe quel lot (petit, autonome).
+
+Les garde-fous du § 9.4 restent valables : pas de série punitive, pas de minuteur, pas de
+classement public, rien ne se perd, la vitalité (cœurs, gemmes) reste à la séance.
+
+### 10.5 Questions à trancher
+
+1. **Ordre et périmètre** : le lot 1 (V1 + V2) vous convient-il comme point de départ ?
+2. **Les deux regards** : la répartition proposée des activités entre proche et loin
+   (le journal côté « loin ») vous paraît-elle juste ?
+3. **Grimoire** : sortilèges du voyageur **nouveaux** (famille à part), ou certains des 31
+   existants qui deviennent personnels ? Et le pont « chacun apporte son grimoire » en séance :
+   oui ou non ?
+4. **Campement sans partie** : quand l'expédition est finie et la suivante pas encore
+   formée, le campement montre-t-il la dernière expédition, ou rien ?
+5. **Jumelage gnome / licorne** (V5) : coopération limitée à l'équipe, ou aussi entre équipes
+   de peuples différents ?
