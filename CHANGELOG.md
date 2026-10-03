@@ -12,6 +12,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Documentation — G&L : audit de l'expérience joueur
 
 - `docs/AUDIT_EXPERIENCE_JOUEUR_GL_2026-10-03.md` : grille « hors séance / en séance » de ce que peut faire un joueur, lecture « jeu vidéo » pilier par pilier, suivi des constats joueur de l'audit d'août, verdict technique et cinq directions (A « dire le jeu », B quête de la semaine, C rang d'apprenti, D plateau qui répond, E jauge d'équipe entre deux séances) à arbitrer. Indexé dans `docs/audits/README.md`.
+- § 9 (réorientation) : cinq directions **UI/UX indépendantes du professeur** — U0 accueil « Mon chemin », U1 chemin solo sur le plateau (avancer = apprendre), U2 retours et célébrations, U3 collection et rang, U4 interactions entre joueurs sans arbitre — avec enchaînement recommandé et garde-fous.
 
 ### Corrigé — `db:init` échouait sur base neuve depuis le plan e-nov (migration 260)
 

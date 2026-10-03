@@ -1,8 +1,13 @@
 # Audit — l'expérience joueur de Gnomes & Licornes (3 octobre 2026)
 
 > **Statut** : instantané du 3 octobre 2026 (v1.198.1). **Cadrage** : verdict général et technique,
-> cinq directions possibles (§ 6). Aucune n'est encore retenue : le chantier part en production
-> **après arbitrage**.
+> cinq directions possibles (§ 6).
+>
+> **Réorientation du porteur (même jour)** : priorité à l'**UI/UX**, à des directions
+> **indépendantes de l'action du professeur**, où **les joueurs interagissent et suivent leur
+> propre chemin**. Les directions retenues pour arbitrage sont donc celles du **§ 9** (U0–U4).
+> Les § 6–8 restent comme trace : B, C et le volet coopératif de E y sont repris sous une
+> forme autonome ; D (séance) sort du périmètre.
 >
 > **Angle** : l'élève, pas le MJ. Deux questions guident l'audit. Que peut faire un joueur
 > **à tout moment**, et qu'est-ce qui dépend du **rythme des cours** ? Et l'ensemble
@@ -417,3 +422,183 @@ collective de _Classcraft_, **sans** son volet « points de comportement » puni
    joue) — ou les deux, avec deux profils ?
 5. **Économie** : les gains en séance vont-ils aux joueurs (cœurs/gemmes) ou à l'équipe
    (score) ?
+
+---
+
+## 9. Réorientation — directions UI/UX autonomes (le joueur suit son chemin)
+
+### 9.1 Le cadre posé par le porteur
+
+- **Priorité UI/UX** : ce que l'élève voit, touche et ressent avant toute refonte de règles.
+- **Aucune dépendance à une action du professeur** dans la boucle de jeu. Le professeur
+  n'a pas à lancer une partie, affecter une équipe, valider une action ou ouvrir un tour pour
+  que l'élève joue. La configuration ponctuelle (comptes, classes, modules) reste à l'admin.
+- **Les joueurs interagissent** entre eux, sans modération en direct.
+- **Chacun suit son chemin** : une progression personnelle, à son rythme.
+
+Conséquence : la séance animée par le MJ (plateau d'équipe, tours, sorts validés) **reste
+telle quelle** et n'est pas le chantier. Le chantier crée la **seconde moitié du jeu**, celle
+que l'élève joue seul ou avec ses camarades, à tout moment.
+
+### 9.2 Ce qui rend la chose faisable sans tout réécrire
+
+Trois briques existent déjà **au niveau du chapitre ou du joueur**, et non de la partie :
+
+| Brique                                                                                                           | Portée actuelle               | Ce que le chemin solo en fait                                             |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------- |
+| Repères du plateau `gl_chapter_markers` (position, sous-biome, pool QCM, effets — migrations 081, 097, 102, 116) | **Chapitre**                  | Les cases du chemin personnel : même plateau, mêmes repères               |
+| Tirage d'une question depuis un repère `drawQuestionFromMarker` (`lib/glMarkerQuestionPool.js`)                  | Fonction pure de bibliothèque | La question posée à l'arrivée sur une case                                |
+| Ordre du chemin `resolveBoardMovementConfig` (`lib/shared/glBoardPathCore.js`)                                   | Fonction partagée front/back  | L'avancée case par case                                                   |
+| Possession des feuillets `gl_player_feuillet_states` (migration 175)                                             | **Joueur**                    | La collection se remplit hors partie (seule l'attribution est à détacher) |
+| Acquittements « appris » `gl_learning_acknowledgements` (migration 107)                                          | **Lecteur**                   | Le carburant du chemin (étudier = gagner des pas)                         |
+| API QCM libre `GET /api/gl/qcm/draw`, `POST /qcm/questions/:code/answer`                                         | Biome, sans partie            | Entraînement et duels entre joueurs                                       |
+| Rendu `GLGameBoard`, `GLMascotRenderer`, `GLDiceCube`, musiques de plateau                                       | Composants                    | La scène du chemin solo, sans nouvel art                                  |
+
+Le seul vrai manque côté données est une **position personnelle** sur le chemin
+(une petite table `gl_player_paths`), et une règle pour **le chapitre d'un joueur sans
+partie** (§ 9.5, question 2).
+
+### 9.3 Les directions
+
+Toutes sont indépendantes du professeur. Effort : **S** < 1 semaine, **M** 1 à 3 semaines,
+**L** au-delà.
+
+#### U0 — « Mon chemin » : l'accueil du joueur (socle, UI pure)
+
+> _En ouvrant GL, je vois où j'en suis et ce que je peux faire maintenant._
+
+- Un écran d'accueil joueur remplace l'atterrissage sur « Cartes » : ma mascotte, mon rang,
+  ma collection (X / Y feuillets, espèces étudiées), **le prochain pas suggéré** (« étudie
+  le Fennec », « 2 questions pour atteindre la case suivante »).
+- Le plateau d'équipe garde sa place, avec une ligne d'état honnête : « Séance en cours » ou
+  « Le plateau d'équipe s'anime en classe — ton chemin, lui, t'attend ici ».
+- États vides et finitions : plus de plateau muet, style de `gl-tab-loading`,
+  `role="alert"` et fermeture de la bannière d'erreur, écoute de `subscription-refused`,
+  retrait des replis `map-foret.svg`.
+
+**Effort** S · **Back** : aucun (agrège `/learning/me`, `/stats/me`, `/lore/feuillets`) ·
+**Risque** nul.
+
+#### U1 — Le chemin solo sur le plateau (le cœur)
+
+> _J'avance ma propre mascotte sur le plateau du chapitre, à mon rythme._
+
+- Chaque joueur a **sa position** sur le chemin numéroté du plateau de son chapitre, avec sa
+  mascotte (ou son avatar).
+- **Avancer = apprendre.** Un lancer de dé (tiré côté serveur) se **gagne** en étudiant une
+  fiche, en marquant « appris » ou en réussissant une courte série de QCM. On ne peut donc pas
+  « farmer » le dé, et le jeu pousse vers le contenu au lieu de l'en détourner. Aucun minuteur,
+  aucune énergie qui se recharge.
+- **Arriver sur une case** déclenche ce que la case porte déjà : question tirée du pool du
+  repère, fiche d'espèce du sous-biome, feuillet à trouver, musique de zone. Les textes de case
+  qui promettent des gains doivent dire vrai : sur le chemin solo, la règle est
+  **« bonne réponse = feuillet ou pas bonus »**, jamais une perte.
+- Bout du chemin : bilan du chapitre, carnet du chapitre complété, chapitre suivant ouvert
+  selon la règle retenue (§ 9.5).
+- Le chemin solo est **distinct** du plateau d'équipe : il n'interfère ni avec la position de
+  l'équipe, ni avec le score, ni avec la vitalité.
+
+**Effort** M à L · **Back** : migration `gl_player_paths` (joueur, chapitre, index de case,
+pas disponibles), routes `/api/gl/me/path` (état, lancer, arrivée, réponse) qui réutilisent
+`drawQuestionFromMarker` et `resolveBoardMovementConfig`, variante « joueur » de
+`pickFeuilletForConsultation`, module `soloPathEnabled` (flag + validation, comme tout onglet) ·
+**Front** : vue `GLSoloPathView` qui réutilise `GLGameBoard` avec une seule « équipe » ·
+**Risque** moyen : c'est un nouveau mode de jeu, à couvrir par un scénario e2e complet.
+
+#### U2 — Le jeu qui répond : retours et célébrations (UI pure)
+
+> _Chaque geste a un effet que je vois et que j'entends._
+
+- Petits sons (bonne réponse, case atteinte, feuillet trouvé, dé), coupables avec le bouton
+  de son existant.
+- Animations courtes : « +1 pas » qui s'envole, feuillet qui se retourne comme une carte,
+  jauge qui se remplit, mascotte qui réagit (la machine à états `useGLMascotStateMachine`
+  existe).
+- Déclenchées **localement sur la réponse HTTP**, sans attendre le cycle temps réel (§ 5.2).
+- Respect de `prefers-reduced-motion`, sons désactivés par défaut en classe si souhaité.
+
+**Effort** S à M · **Back** : aucun · **Assets** : 6 à 8 sons courts, sous licence compatible
+avec une distribution propriétaire (citer la source).
+
+#### U3 — Collection et progression visibles
+
+> _Je vois ce que j'ai trouvé, ce qu'il me reste, et que je grandis._
+
+- **Album** : le Carnet de Sélène et le bestiaire des espèces en cartes, les non-découvertes
+  en silhouette (« ? »), par chapitre.
+- **Rang d'apprenti** calculé à partir des acquittements, feuillets et cases parcourues
+  (Graine → Pousse → Arbrisseau → Gardien du Souffle). Pas de nouvelle monnaie.
+- **Succès** dérivés de l'existant (« 10 espèces du désert », « carnet du chapitre complet »,
+  « 5 bonnes réponses d'affilée ») qui débloquent du **cosmétique** : cadres d'avatar (les
+  cadres d'image GL existent), titres.
+- Feuillets **attribuables hors partie** (la possession est déjà par joueur).
+
+**Effort** S à M · **Back** : calcul de rang et de succès (lecture seule) + détachement de
+l'attribution des feuillets · **Risque** faible.
+
+#### U4 — Jouer avec les autres, sans arbitre
+
+> _Je croise mes camarades sur le chemin, on s'aide et on se défie._
+
+Trois mécanismes, choisis parce qu'ils **n'exigent aucune modération en direct** :
+
+- **Traces sur le chemin** : les mascottes des camarades de la classe apparaissent en
+  « fantômes » sur mon plateau, à leur position. On voit qu'on n'est pas seul, sans comparer
+  de chiffres.
+- **Messages de case à phrases prédéfinies** : on laisse un indice sur une case pour ceux qui
+  passent après (« Regarde bien les pattes », « Courage, la suite est belle ! »), choisi dans
+  une liste fermée. Pas de texte libre, donc rien à modérer.
+- **Duels de savoir asynchrones** : je réponds à 5 questions d'un biome, j'envoie le défi à
+  un camarade, il répond aux mêmes ; chacun voit le résultat. Gagner ne rapporte qu'un
+  cosmétique ou un pas, perdre ne coûte rien.
+- En option, une **jauge coopérative de classe** (« le Souffle recule ») alimentée par toutes
+  les cases parcourues, visible de tous, qui débloque un feuillet commun.
+
+Le marché (échange de feuillets) existe déjà mais exige le module vitalité : à rendre
+utilisable pour les feuillets seuls dans ce cadre.
+
+**Effort** M · **Back** : tables `gl_path_hints` (phrase choisie, case) et `gl_duels`
+(questions, réponses), positions de classe en lecture · **Risque** faible à moyen : arbitrer
+la visibilité (§ 9.5, question 4).
+
+### 9.4 Synthèse et enchaînement recommandé
+
+| Direction                      | Ce que l'élève ressent                 | Effort | Back                | Dépend du prof |
+| ------------------------------ | -------------------------------------- | :----: | ------------------- | :------------: |
+| **U0** Mon chemin (accueil)    | « Je sais où j'en suis et quoi faire » |   S    | Aucun               |      Non       |
+| **U1** Chemin solo             | « C'est moi qui avance »               |  M–L   | Migration + routes  |      Non       |
+| **U2** Retours et célébrations | « Le jeu me répond »                   |  S–M   | Aucun               |      Non       |
+| **U3** Collection et rang      | « Je grandis, je collectionne »        |  S–M   | Lecture + feuillets |      Non       |
+| **U4** Jouer avec les autres   | « Je ne joue pas seul »                |   M    | 2 tables            |      Non       |
+
+**Enchaînement recommandé** :
+
+1. **Lot 1 — U0 + U3 + U2 (2 à 3 semaines)** : tout est UI ou lecture seule, sans risque, et
+   change déjà la perception du jeu. L'élève a un accueil, une collection, un rang et des
+   retours.
+2. **Lot 2 — U1** : le chemin solo, qui donne enfin un verbe à l'élève, avec les
+   célébrations de U2 intégrées dès le départ.
+3. **Lot 3 — U4** : les interactions, qui ont besoin du chemin solo pour exister (traces,
+   messages de case).
+
+**Garde-fous de conception, valables pour tous les lots** (public de 10-12 ans) :
+
+- jamais de série punitive (« flamme » qui s'éteint), de minuteur d'énergie ni de classement
+  public : ce sont des leviers d'addiction, pas d'apprentissage ;
+- on ne perd jamais ce qu'on a gagné sur son chemin ;
+- les comparaisons entre élèves passent par la coopération (traces, jauge de classe), pas
+  par des chiffres ;
+- la vitalité (cœurs, gemmes) reste l'affaire de la séance et n'est pas touchée.
+
+### 9.5 Questions à trancher pour le lot 1 et le lot 2
+
+1. **Ordre** : le lot 1 (U0 + U3 + U2) d'abord, ou directement le chemin solo (U1) ?
+2. **Chapitre d'un joueur sans partie** : le chapitre de la dernière partie de sa classe, à
+   défaut le premier ? Peut-il revisiter les chapitres déjà vécus ?
+3. **Ouverture du chapitre suivant** : en finissant son chemin (l'élève peut aller plus vite
+   que la classe), ou seulement quand la classe y est arrivée (risque de dévoiler le contenu
+   de la prochaine séance) ?
+4. **Visibilité entre élèves** : mascottes fantômes et duels limités à la classe, à l'équipe,
+   ou désactivables par l'élève ?
+5. **Lien avec la séance** : le chemin solo reste-t-il totalement séparé, ou peut-il, plus
+   tard, apporter un petit bonus à l'équipe (direction E) ?
