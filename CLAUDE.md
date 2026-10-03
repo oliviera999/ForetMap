@@ -120,6 +120,10 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   le détecte et s'abstient. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
 - CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test` → `test:ui` → `test:coverage`.
+  **Dépôt privé = minutes Actions comptées** (2 000/mois en Free, épuisées en 48 h le 30/09) :
+  aucune CI sur une PR **brouillon** (elle part au passage « Ready for review »), `quality` seul
+  sur push `main` et sur une PR de doc seule, e2e complet à la demande (`e2e-full.yml`).
+  Détail : `docs/EXPLOITATION.md` § 11.2.
   Faire passer `npm run lint` et `npm run format:check` avant de pousser.
 - **Cohérence inter-PR (anti-conflit de merge)** : à **chaque publication ou mise à jour d'une PR**,
   vérifier les autres PR ouvertes qui touchent la tête de `CHANGELOG.md` ou ajoutent une migration

@@ -23,11 +23,28 @@ name: Frontend dist
 #     PR (ni `npm ci`, ni build), télécharge le patch, vérifie qu'il ne touche QUE les miroirs,
 #     puis le commite et le pousse.
 
+# Quota Actions (dépôt privé, cf. docs/EXPLOITATION.md § 11.2) :
+#   - `paths-ignore` : un changement de pure documentation ne touche pas au build. Si la
+#     protection de branche redevient active (dépôt public ou plan payant), un check requis
+#     sauté par `paths-ignore` reste « en attente » : retirer alors `dist` des checks requis
+#     ou ce filtre ;
+#   - PR en brouillon : job sauté, il part au passage « Ready for review ».
 on:
   pull_request:
     branches: [main, master]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - 'docs/**'
+      - '.cursor/**'
+      - '.claude/**'
+      - '**/*.md'
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'docs/**'
+      - '.cursor/**'
+      - '.claude/**'
+      - '**/*.md'
 
 # Par défaut : lecture seule. Seul `dist-push-mirrors` élève ses droits.
 permissions:
@@ -40,6 +57,7 @@ concurrency:
 
 jobs:
   dist:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     permissions:
       contents: read
