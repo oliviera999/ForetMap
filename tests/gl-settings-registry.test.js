@@ -81,6 +81,8 @@ const HISTORICAL_MODULE_KEYS = [
   'modules.presence_enabled',
   // Le Seuil — niveau du voyageur et grimoire personnel (migration 317).
   'modules.voyageur_enabled',
+  // Sons synthétisés du voyageur (audit expérience joueur § 13).
+  'modules.voyageur_sounds_enabled',
 ];
 
 test('les listes de clés gameplay / modules / gating sont inchangées', () => {

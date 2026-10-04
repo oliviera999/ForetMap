@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GL_VOYAGEUR_GAIN_EVENT } from '../services/glVoyageurEvents.js';
+import { playVoyageurSound } from '../utils/glVoyageurSounds.js';
 
 /**
  * État du sortilège « Loupe » partagé entre toutes les questions ouvertes : une lecture de
@@ -69,6 +70,7 @@ export function GLLoupeButton({ presentationToken, onEliminate, disabled = false
       setSpell(out?.spell || { ...spell, charged: false });
       setUsedOnToken(presentationToken);
       if (out?.effect?.eliminatedChoiceId != null) onEliminate?.(out.effect.eliminatedChoiceId);
+      playVoyageurSound('loupe');
       setMessage('🔍 Une mauvaise réponse est écartée.');
     } catch (err) {
       setMessage(err?.message || 'La Loupe n’a pas fonctionné.');

@@ -421,6 +421,7 @@ dans `gl_settings` :
 - `modules.virtual_dice_enabled` — lanceur de dés D6 (1 à 5) sur la carte de jeu (client uniquement, défaut `false`)
 - `modules.market_enabled`
 - `modules.voyageur_enabled` — « Le Seuil » : onglet d'accueil des joueurs, niveau du voyageur et grimoire personnel (défaut `true`, migration 317) ; éteint, les joueurs arrivent sur Cartes et `/api/gl/voyageur/*` répond `503`
+- `modules.voyageur_sounds_enabled` — sons synthétisés du voyageur côté client (« +1 », niveau, sortilèges, gestes) ; défaut `true`, aucun effet serveur. L'élève peut aussi les couper depuis le Seuil (préférence locale)
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).

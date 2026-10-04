@@ -16,6 +16,7 @@ export const GL_MODULE_DEFAULTS = {
   introEnabled: true,
   presenceEnabled: true,
   voyageurEnabled: true,
+  voyageurSoundsEnabled: true,
 };
 
 export function normalizeGlModules(raw) {

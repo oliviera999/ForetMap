@@ -224,3 +224,31 @@ describe('GLSeuilView — suite S2/S3/S6', () => {
     expect(screen.getAllByRole('button', { name: 'Lancer' })).toHaveLength(1);
   });
 });
+
+describe('GLSeuilView — sons du voyageur', () => {
+  test('bouton Sons : coupe puis réactive, mémorisé pour l’élève', async () => {
+    const user = userEvent.setup();
+    apiGL.mockResolvedValueOnce(makeView());
+    render(<GLSeuilView modules={allModules} onNavigateTab={() => {}} />);
+    const btn = await screen.findByRole('button', { name: /Sons activés/ });
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await user.click(btn);
+    expect(screen.getByRole('button', { name: /Sons coupés/ })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(localStorage.getItem('gl_voyageur_sfx_muted')).toBe('1');
+  });
+
+  test('module des sons éteint par l’admin : pas de bouton', async () => {
+    apiGL.mockResolvedValueOnce(makeView());
+    render(
+      <GLSeuilView
+        modules={{ ...allModules, voyageurSoundsEnabled: false }}
+        onNavigateTab={() => {}}
+      />,
+    );
+    await screen.findByRole('heading', { name: 'Moi, voyageur' });
+    expect(screen.queryByRole('button', { name: /Sons/ })).toBeNull();
+  });
+});

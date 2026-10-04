@@ -8,6 +8,25 @@
   padding: 4px 0 24px;
 }
 
+.gl-seuil__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gl-seuil__sfx {
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: var(--gl-radius-pill);
+  border: 1px solid var(--gl-border);
+  background: var(--gl-surface);
+  color: var(--gl-color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
 .gl-seuil__header h2 {
   margin: 0;
   font-size: var(--text-xl);

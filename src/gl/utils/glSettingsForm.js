@@ -185,6 +185,11 @@ export const MODULE_TOGGLES = [
     hint: 'Onglet d’accueil des joueurs : niveau à deux regards (proche / loin), expédition en cours et grimoire personnel (sortilèges lançables hors séance). Éteint, les joueurs arrivent sur Cartes.',
   },
   {
+    key: 'modules.voyageur_sounds_enabled',
+    label: 'Sons du voyageur',
+    hint: 'Petits sons synthétisés (« +1 », niveau atteint, sortilèges, gestes de mascotte), à volume bas. Chaque élève peut aussi les couper depuis le Seuil. Éteindre ici les coupe pour toute la plateforme (utile en classe).',
+  },
+  {
     key: 'modules.player_journal_enabled',
     label: 'Mon journal (carnet personnel)',
     hint: 'Carnet éditable par chaque joueur (texte, images, encarts).',
