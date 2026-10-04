@@ -6995,3 +6995,106 @@ fieldset .media-library-menu__gallery {
   margin: 0 auto;
   padding: 16px;
 }
+
+/* « +1 » du voyageur (GLVoyageurGainToast) : pastilles qui s'envolent en bas de l'écran. */
+.gl-voyageur-gain {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: var(--fm-z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.gl-voyageur-gain__chip {
+  padding: 6px 14px;
+  border-radius: var(--gl-radius-pill);
+  font-weight: var(--fw-bold);
+  color: var(--surface-plain);
+  box-shadow: var(--gl-shadow-md);
+  animation: gl-voyageur-gain-rise 2.6s ease-out forwards;
+}
+
+.gl-voyageur-gain__chip--proche {
+  background: #55762c;
+}
+
+.gl-voyageur-gain__chip--loin {
+  background: #6a4f94;
+}
+
+@keyframes gl-voyageur-gain-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-18px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-36px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-voyageur-gain__chip {
+    animation: none;
+  }
+}
+
+/* Sortilège « Loupe » (GLLoupeButton) : bouton au-dessus des choix, réponse écartée barrée. */
+.gl-loupe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.gl-loupe__btn {
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: var(--gl-radius-pill);
+  border: 1px solid var(--gl-color-accent);
+  background: var(--gl-color-accent-soft);
+  color: var(--gl-color-primary);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.gl-loupe__btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.gl-loupe__hint,
+.gl-loupe__message {
+  font-size: var(--text-sm);
+  color: var(--gl-color-text-muted);
+}
+
+.gl-qcm-choice.is-eliminated,
+.learning-gating-quiz__choice.is-eliminated {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* Statistiques de classe (MJ) : stade et penchant du voyageur (S5). */
+.gl-stats-voyageur {
+  padding: 2px 8px;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-color-accent-soft);
+  color: var(--gl-color-primary);
+  font-weight: var(--fw-semibold);
+}

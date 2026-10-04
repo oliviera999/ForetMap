@@ -33,6 +33,11 @@ export function LearningGatingQuestionPanel({
   choiceClassName = 'learning-gating-quiz__choice',
   primaryBtnClassName = 'btn btn-primary btn-sm',
   ghostBtnClassName = 'btn btn-ghost btn-sm',
+  /**
+   * Aide optionnelle au-dessus des choix : `({ presentationToken, onEliminate }) => node`.
+   * G&L y branche le sortilège « Loupe » ; ForetMap ne la fournit pas (rien ne change).
+   */
+  choiceAid = null,
 }) {
   const [loading, setLoading] = useState(true);
   const [presentation, setPresentation] = useState(null);
@@ -41,6 +46,7 @@ export function LearningGatingQuestionPanel({
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [eliminatedIds, setEliminatedIds] = useState(() => new Set());
 
   const loadPresentation = useCallback(async () => {
     setLoading(true);
@@ -48,6 +54,7 @@ export function LearningGatingQuestionPanel({
     setPresentation(null);
     setSelectedChoiceId(null);
     setResult(null);
+    setEliminatedIds(new Set());
     try {
       // Le contexte ressource est demandé dès la présentation : le serveur le grave dans le
       // jeton, ce qui fait tenir le verrou même si le corps de la réponse est modifié.
@@ -166,15 +173,27 @@ export function LearningGatingQuestionPanel({
             figureClassName="learning-gating-quiz__photo"
             captionClassName="learning-gating-quiz__photo-credit"
           />
+          {typeof choiceAid === 'function'
+            ? choiceAid({
+                presentationToken: presentation.presentationToken,
+                onEliminate: (id) => {
+                  setEliminatedIds((prev) => new Set([...prev, id]));
+                  setSelectedChoiceId((current) => (current === id ? null : current));
+                },
+              })
+            : null}
           <div className="learning-gating-quiz__choices">
             {(presentation.choices || []).map((choice) => (
-              <label key={choice.id} className={choiceClassName}>
+              <label
+                key={choice.id}
+                className={`${choiceClassName}${eliminatedIds.has(choice.id) ? ' is-eliminated' : ''}`}
+              >
                 <input
                   type="radio"
                   name={`gating-qcm-${questionCode}`}
                   checked={selectedChoiceId === choice.id}
                   onChange={() => setSelectedChoiceId(choice.id)}
-                  disabled={submitting}
+                  disabled={submitting || eliminatedIds.has(choice.id)}
                 />
                 <span>{choice.text}</span>
               </label>

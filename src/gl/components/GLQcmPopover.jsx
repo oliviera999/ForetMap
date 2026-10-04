@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
+import { GLLoupeButton } from './GLLoupeButton.jsx';
 import { shouldShowQcmAnswerPhase } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
@@ -42,12 +43,14 @@ export function GLQcmPopover({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [answerResult, setAnswerResult] = useState(null);
+  const [eliminatedIds, setEliminatedIds] = useState(() => new Set());
 
   useEffect(() => {
     if (open) {
       setSelectedChoiceId(null);
       setError('');
       setAnswerResult(null);
+      setEliminatedIds(new Set());
     }
   }, [open, questionCode, presentation?.presentationToken]);
 
@@ -163,13 +166,24 @@ export function GLQcmPopover({
                   imgClassName="gl-qcm-modal__photo"
                   captionClassName="gl-qcm-modal__photo-credit"
                 />
+                <GLLoupeButton
+                  presentationToken={presentation.presentationToken}
+                  onEliminate={(id) => {
+                    setEliminatedIds((prev) => new Set([...prev, id]));
+                    setSelectedChoiceId((current) => (current === id ? null : current));
+                  }}
+                />
                 <div className="gl-qcm-modal__choices">
                   {presentation.choices.map((choice) => (
-                    <label key={choice.id} className="gl-qcm-choice">
+                    <label
+                      key={choice.id}
+                      className={`gl-qcm-choice${eliminatedIds.has(choice.id) ? ' is-eliminated' : ''}`}
+                    >
                       <input
                         type="radio"
                         name="qcm-popover-choice"
                         checked={selectedChoiceId === choice.id}
+                        disabled={eliminatedIds.has(choice.id)}
                         onChange={() => setSelectedChoiceId(choice.id)}
                       />
                       <InlineText text={choice.text} {...answeringGlossaryProps} />

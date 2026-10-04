@@ -117,7 +117,7 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 
 > **À ne pas confondre avec le grimoire du voyageur.** Les sorts décrits ici sont ceux des
 > chapitres, lancés pendant une partie, payés en cœurs et en gemmes. Le **Seuil** donne aussi
-> à chaque élève quelques sortilèges **personnels** (_Seconde chance_, _Mémoire_), débloqués
+> à chaque élève quelques sortilèges **personnels** (_Seconde chance_, _Mémoire_, _Loupe_), débloqués
 > par son niveau, lancés hors séance, gratuits et sans validation du MJ. Voir
 > [Présentation — Le Seuil](presentation.md#le-seuil-laccueil-des-joueurs).
 

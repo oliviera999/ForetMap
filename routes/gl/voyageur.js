@@ -24,7 +24,8 @@ const router = express.Router();
 const db = { queryAll, queryOne };
 
 const spellParamsSchema = z.object({ code: z.string().trim().min(1).max(32) });
-const castBodySchema = z.object({ target: z.string().trim().min(1).max(160) });
+// 4096 : la cible de la Loupe est un jeton de présentation (JWT), bien plus long qu'un code.
+const castBodySchema = z.object({ target: z.string().trim().min(1).max(4096) });
 
 function requireVoyageurModule(req, res, next) {
   getGlModulesSettings()

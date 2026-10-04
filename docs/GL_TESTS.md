@@ -92,7 +92,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 ### Admin, réglages, RBAC
 
 - `gl-admin-classes-players.test.js`, `gl-admin-helpers.test.js`, `gl-admin-query-validation.test.js`
-- `gl-players-admin.test.js`, `gl-players-import.test.js`, `gl-player-journal.test.js`, `gl-player-journal-lib.test.js`, `gl-player-stats.test.js`, `gl-voyageur.test.js` (Le Seuil : niveau, grimoire)
+- `gl-players-admin.test.js`, `gl-players-import.test.js`, `gl-player-journal.test.js`, `gl-player-journal-lib.test.js`, `gl-player-stats.test.js`, `gl-voyageur.test.js` (Le Seuil : niveau, grimoire), `gl-voyageur-suite.test.js` (« +1 », traversées, Loupe, vue MJ, gestes)
 - `gl-settings.test.js`, `gl-settings-cache.test.js`, `gl-rbac.test.js`, `gl-permissions-catalog-alignment.test.js`, `gl-brand.test.js`
 - `gl-diagnostics.test.js`, `gl-realtime.test.js`, `gl-product-routing.test.js`
 

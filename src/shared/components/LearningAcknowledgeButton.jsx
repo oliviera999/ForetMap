@@ -101,6 +101,8 @@ export function LearningAcknowledgeButton({
   choiceClassName,
   primaryBtnClassName,
   ghostBtnClassName,
+  /** Transmis à `LearningGatingQuestionPanel` (G&L : sortilège « Loupe »). */
+  choiceAid = null,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [flowPhase, setFlowPhase] = useState('loading');
@@ -488,6 +490,7 @@ export function LearningAcknowledgeButton({
                 choiceClassName={choiceClassName}
                 primaryBtnClassName={primaryBtnClassName}
                 ghostBtnClassName={ghostBtnClassName}
+                choiceAid={choiceAid}
               />
             </>
           ) : null}

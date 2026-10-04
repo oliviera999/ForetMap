@@ -157,6 +157,45 @@ export const GL_DISCOVERY_TOURS = Object.freeze({
     ],
   },
 
+  // — Le Seuil (accueil joueur) ———————————————————————————————————————————
+
+  seuil: {
+    title: 'Le Seuil',
+    steps: [
+      {
+        key: 'intro',
+        title: 'Ton point de départ',
+        body: 'Ici, c’est chez toi. Tout ce que tu apprends dans le jeu te fait grandir, même quand la classe ne joue pas.',
+        bodyTeacher:
+          'L’accueil de chaque élève : son niveau, son équipe et ses sortilèges personnels. Rien n’y attend votre validation.',
+        target: null,
+        placement: 'center',
+        expression: 'content',
+      },
+      {
+        key: 'regards',
+        title: 'Deux façons de grandir',
+        body: 'Observer et nommer d’un côté, raconter et relier de l’autre. Les deux barres montrent ce que tu as déjà fait, et je ne te dirai pas laquelle est la meilleure.',
+        bodyTeacher:
+          'Deux jauges : les activités d’observation et celles de récit. Le titre de l’élève dit de quel côté il penche.',
+        target: '[data-gl-tour="seuil-moi"]',
+        placement: 'bottom',
+        expression: 'parle',
+      },
+      {
+        key: 'grimoire',
+        title: 'Tes sortilèges',
+        body: 'Ils s’ouvrent avec ton niveau et se rechargent quand tu apprends de nouvelles choses. Pas besoin d’attendre la séance pour t’en servir.',
+        bodyTeacher:
+          'Des sortilèges personnels, gratuits, aux effets bornés : ils aident à apprendre et ne touchent pas le plateau.',
+        target: '[data-gl-tour="seuil-grimoire"]',
+        placement: 'top',
+        expression: 'complice',
+      },
+      GL_RELAUNCH_STEP,
+    ],
+  },
+
   // — Plateau et cartes ————————————————————————————————————————————————
 
   discovery: {
