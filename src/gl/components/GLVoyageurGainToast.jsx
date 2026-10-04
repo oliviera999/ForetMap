@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { GL_VOYAGEUR_GAIN_EVENT } from '../services/glVoyageurEvents.js';
+import { playVoyageurSound } from '../utils/glVoyageurSounds.js';
 
 const REGARD_LABELS = {
   proche: { emoji: '🍄', label: 'regard du proche' },
@@ -36,6 +37,12 @@ export function GLVoyageurGainToast() {
       });
       if (!next.length) return;
       setChips((prev) => [...prev, ...next].slice(-4));
+      // Un son par regard gagné, le second légèrement décalé pour qu'ils ne se couvrent pas.
+      next.forEach((chip, i) => {
+        const play = () => playVoyageurSound(`gain-${chip.regard}`);
+        if (i === 0) play();
+        else timers.add(setTimeout(play, 220 * i));
+      });
       const ids = new Set(next.map((c) => c.id));
       const timer = setTimeout(() => {
         timers.delete(timer);

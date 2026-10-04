@@ -73,6 +73,7 @@ const GLSeuilView = lazy(() =>
 import { FloatingDock } from '../shared/components/FloatingDock.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLVoyageurGainToast } from './components/GLVoyageurGainToast.jsx';
+import { setVoyageurSoundsAllowed } from './utils/glVoyageurSounds.js';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
@@ -594,6 +595,11 @@ export function AppGL() {
       setTab(defaultTabForGlAuth(auth, modules));
     }
   }, [tabs, tab, auth, modules, joueursNavOptions]);
+
+  // Sons du voyageur : l'admin peut les couper pour toute la plateforme (module).
+  useEffect(() => {
+    setVoyageurSoundsAllowed(isModuleEnabled(modules, 'voyageurSoundsEnabled'));
+  }, [modules]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();

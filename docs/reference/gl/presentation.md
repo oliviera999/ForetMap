@@ -129,6 +129,12 @@ son stade, son niveau et son penchant (le détail des deux regards au survol) : 
 l'accompagner. Les élèves, eux, ne voient que leur propre niveau : il n'y a pas de
 classement entre élèves.
 
+**Les sons.** Les « +1 », le passage de niveau, les sortilèges et les gestes de mascotte
+s'accompagnent de petits sons courts, à volume bas, fabriqués par le navigateur (aucun fichier
+audio). Chaque élève peut les couper avec le bouton **Sons activés / Sons coupés** en haut du
+Seuil ; l'admin peut les couper pour toute la plateforme (module **Sons du voyageur**), ce qui est
+utile en classe.
+
 **Visite guidée.** À la première ouverture, OLU présente le Seuil en trois bulles (le point
 de départ, les deux façons de grandir, le grimoire).
 

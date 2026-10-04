@@ -20,6 +20,9 @@
 > **Suite S1–S6 (4 octobre 2026)** : le porteur a retenu **toutes** les propositions du § 11.3 ;
 > elles sont **livrées**. Voir **§ 12**.
 >
+> **Sons et détail des pistes restantes (4 octobre 2026)** : les sons sont livrés ; les
+> cinq pistes encore ouvertes sont détaillées pour arbitrage. Voir **§ 13**.
+>
 > **Angle** : l'élève, pas le MJ. Deux questions guident l'audit. Que peut faire un joueur
 > **à tout moment**, et qu'est-ce qui dépend du **rythme des cours** ? Et l'ensemble
 > ressemble-t-il à un **jeu vidéo** qui donne envie de revenir et de progresser ?
@@ -923,3 +926,157 @@ professeur, sous le module `modules.voyageur_enabled`.
 - des **sons** de célébration (assets à choisir, sous licence compatible) ;
 - un « +1 » pour les articles de « Mon journal » (le plafond hebdomadaire rend le calcul
   immédiat moins simple).
+
+---
+
+## 13. Les sons (livrés) et le détail des pistes restantes
+
+### 13.1 Les sons — livrés
+
+**Choix technique : des sons synthétisés, pas des fichiers.** Les sons sont fabriqués à la
+volée par le navigateur (Web Audio API) à partir de petites partitions écrites dans le code
+(`src/gl/utils/glVoyageurSounds.js`). Résultat : aucun fichier à héberger, aucun poids ajouté au
+chargement, et **aucune question de licence**, ce qui compte pour un dépôt propriétaire.
+
+| Événement               | Son                                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| « +1 regard du proche » | deux notes graves et boisées (un pas sur la mousse)                                                                                                    |
+| « +1 regard du loin »   | une cloche claire qui monte                                                                                                                            |
+| Niveau atteint          | un arpège majeur                                                                                                                                       |
+| Sortilège lancé (Seuil) | un souffle qui monte                                                                                                                                   |
+| _Loupe_                 | « tic-ting »                                                                                                                                           |
+| Gestes de mascotte      | deux notes (salut), une petite ronde (danse), un cri **différent selon le peuple** (grave et rauque pour les gnomes, aigu et glissé pour les licornes) |
+
+**Garde-fous** : volume bas (une classe entière peut jouer en même temps), sons de moins de
+0,6 s, rien quand l'onglet est caché, rien avant un clic (règles d'autoplay respectées).
+**Deux interrupteurs** : l'élève coupe ses sons depuis le Seuil (mémorisé sur son appareil) ;
+l'admin peut les couper pour toute la plateforme (module **Sons du voyageur**,
+`modules.voyageur_sounds_enabled`, allumé par défaut), utile en classe.
+
+### 13.2 Le pont vers la séance — « chacun apporte son grimoire »
+
+> _Ce que j'ai gagné chez moi compte quand mon équipe joue en classe._
+
+**Mécanique proposée.** Certains des 31 sortilèges de séance deviennent **déblocables par le
+niveau du voyageur**, hors chapitre. En séance, la liste des sortilèges que l'équipe peut lancer
+devient : sortilèges du chapitre **+** sortilèges débloqués par **au moins un membre** de
+l'équipe. Le lancer suit exactement les règles actuelles : coût en cœurs et gemmes, validation du
+MJ quand elle est exigée, effet appliqué par le MJ. Rien ne change pour le professeur, sinon
+qu'une équipe dont les membres ont progressé a plus d'options.
+
+**Données.** Une colonne `niveau_voyageur_requis` (nullable) sur `gl_spells`, réglée par l'admin
+dans l'éditeur de sortilèges ; le catalogue de partie (`routes/gl/spells.js`) ajoute les
+sortilèges débloqués par les membres de l'équipe (niveau calculé par `loadVoyageurCountsForPlayers`,
+déjà livré). Le Seuil affiche ces sortilèges dans le grimoire, avec la mention « à lancer en
+séance avec ton équipe ».
+
+**Effort** M (une migration, le catalogue de partie, l'éditeur admin, l'affichage). **Risque** :
+l'équilibrage (une équipe avancée a plus de leviers). Parade : un seul sortilège « voyageur » par
+équipe et par séance, et une sélection courte (3 ou 4 sortilèges peu puissants).
+
+**À trancher** : quels sortilèges ouvrir ainsi ; limite par séance ; faut-il que le membre qui a
+débloqué le sortilège soit présent (connecté) pour que l'équipe y ait droit.
+
+### 13.3 Le campement de l'expédition
+
+> _Entre deux séances, notre mascotte vit, et elle réagit à ce que chacun de nous fait._
+
+**Ce que voit l'élève.** Un écran **Campement**, accessible depuis la face « Mon expédition » du
+Seuil quand la partie est en pause ou pas encore commencée :
+
+- la mascotte de l'équipe au repos, sur un fond tiré du plateau du chapitre ;
+- une **humeur** (endormie, tranquille, joyeuse, impatiente) qui dépend de l'activité récente de
+  l'équipe ;
+- le **carnet de route** : « Lina a étudié le fennec », « Sam a retrouvé un feuillet », « Noé a
+  réussi une question du lore », du plus récent au plus ancien ;
+- une **jauge de provisions** : chaque geste d'un membre l'alimente ; pleine, la mascotte est
+  « prête pour la séance ».
+
+**Données : aucune table.** Le carnet de route se calcule à partir des horodatages qui existent
+déjà : `gl_learning_acknowledgements.acknowledged_at`, `gl_qcm_attempts.answered_at` (bonnes
+réponses seulement), `gl_player_feuillet_states.acquired_at`, filtrés sur les membres de l'équipe
+et sur la durée de la partie. On ne montre jamais une mauvaise réponse ni un compte comparatif.
+
+**Effort** M (une route de lecture, un écran, l'humeur réutilise `useGLMascotStateMachine`).
+**Risque** faible. Une attention : un élève absent ne doit pas « décevoir » la mascotte : l'humeur
+ne descend jamais en dessous de « tranquille ».
+
+**À trancher** : la jauge de provisions donne-t-elle quelque chose en séance (c'est alors un
+pont, voir § 13.2), ou reste-t-elle symbolique ; le carnet de route est-il visible des autres
+équipes.
+
+### 13.4 Les pages à plusieurs mains — le pacte du seuil
+
+> _Certaines pages, je ne peux pas les réécrire seul : il faut le regard d'un coéquipier._
+
+**Mécanique.** L'expédition reçoit, au fil du chapitre, 2 ou 3 **pages effacées** tirées de son
+contenu. Chaque page a deux moitiés :
+
+- **moitié du proche** : étudier l'espèce liée et réussir sa question (gestes existants) ;
+- **moitié du loin** : remettre dans l'ordre trois fragments du feuillet lié, découpés
+  automatiquement dans son `texte_accessible` (aucun contenu à écrire).
+
+Deux **joueurs différents** doivent remplir les deux moitiés. La page réécrite donne le feuillet
+à **toute l'équipe**, un « +1 » aux deux auteurs et une ligne dans le carnet de route.
+
+**Variante jumelage.** La moitié du proche revient à une équipe **gnome**, celle du loin à une
+équipe **licorne** de la même partie : les deux peuples coopèrent entre les séances, comme le
+raconte le pacte.
+
+**Données.** Une table `gl_team_pages` (partie, équipe, page, auteur de chaque moitié, date de
+réécriture) ; un tirage des pages à partir des espèces et feuillets du chapitre ; un mini-jeu
+« remettre dans l'ordre » (front).
+
+**Effort** M à L. **Risques** : un élève absent bloque une moitié (parade : n'importe quel autre
+membre peut la prendre) ; un feuillet trop court pour trois fragments (parade : l'exclure du
+tirage).
+
+**À trancher** : équipe seule ou jumelage ; nombre de pages par chapitre ; récompense (le
+feuillet seul, ou aussi des provisions de campement).
+
+### 13.5 Les échos — se croiser sans se parler
+
+> _Je sens que les autres sont passés par là._
+
+**Mécanique.** Trois éléments, du plus simple au plus riche :
+
+1. **Traces de passage** (sans table) : sur une fiche d'espèce ou un feuillet, « 4 voyageurs de
+   ta classe l'ont étudié ». Comptage sur `gl_learning_acknowledgements`, limité à la classe ;
+   jamais de nom ni de score.
+2. **Échos à phrases choisies** : laisser un écho sur une fiche (« Regarde bien ses pattes »,
+   « La fin est belle », « Pas facile, celle-là ! »), choisi dans une liste fermée d'une douzaine
+   de phrases. Un écho par élève et par fiche. Pas de texte libre, donc **rien à modérer**. Table
+   `gl_echoes` (classe, ressource, joueur, code de phrase, date).
+3. **Joute du miroir** (optionnelle) : défi asynchrone de cinq questions envoyé à un camarade ;
+   chacun répond aux mêmes ; la seule récompense est une mention dans les carnets de route. Table
+   `gl_duels`.
+
+**Effort** : traces S, échos S à M, joute M. **Risque** faible pour les deux premiers. La joute
+introduit une comparaison directe entre deux élèves : à garder optionnelle et désactivable.
+
+**À trancher** : périmètre (classe ou équipe) ; liste des phrases ; joute ou non.
+
+### 13.6 Le « +1 » de « Mon journal »
+
+> _Écrire dans mon journal me fait aussi grandir, et je le vois tout de suite._
+
+Le journal compte déjà dans le regard du loin (deux articles d'au moins 40 caractères par
+semaine), mais sans « +1 » immédiat. **Mécanique** : à l'enregistrement d'un article, le serveur
+recalcule le compte du journal ; s'il a augmenté, la réponse porte `voyageurGain: { loin: 1 }`,
+et la pastille et le son suivent comme ailleurs. **Effort** S (une comparaison avant / après dans
+`routes/gl/player-journal.js`). **Aucun arbitrage nécessaire** : c'est la règle actuelle, rendue
+visible.
+
+### 13.7 Synthèse pour arbitrer
+
+| Piste                            | Ce que l'élève ressent                        | Effort | Nouvelle table |         Dépend du prof         |
+| -------------------------------- | --------------------------------------------- | :----: | :------------: | :----------------------------: |
+| **13.6** « +1 » du journal       | « Écrire compte aussi »                       |   S    |      Non       |              Non               |
+| **13.5** Traces + échos          | « Je ne suis pas seul »                       |  S–M   |   1 (échos)    |              Non               |
+| **13.3** Campement               | « Notre mascotte vit grâce à nous »           |   M    |      Non       |              Non               |
+| **13.4** Pages à plusieurs mains | « J'ai besoin des autres »                    |  M–L   |       1        |              Non               |
+| **13.2** Pont vers la séance     | « Ce que je gagne chez moi compte en classe » |   M    |   1 colonne    | Le MJ valide comme aujourd'hui |
+
+**Ordre suggéré** : 13.6 puis 13.5 (traces et échos) dans un même petit lot ; puis 13.3 (le
+campement, qui sert de scène aux deux suivants) ; puis 13.4 ; enfin 13.2, une fois l'équilibrage
+de la séance arbitré (audit d'équilibrage, options A–E).

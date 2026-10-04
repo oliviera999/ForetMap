@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L : sons du voyageur (synthétisés) et détail des pistes restantes
+
+- **Sons** (`src/gl/utils/glVoyageurSounds.js`) : synthétisés par la Web Audio API à partir de petites partitions — aucun fichier, aucune dépendance, aucune question de licence. Un son par événement : « +1 » (deux timbres, proche / loin), niveau atteint (arpège), sortilège lancé, _Loupe_, gestes de mascotte (cri différent selon le peuple). Volume bas, < 0,6 s, muets onglet caché et sans contexte audio.
+- **Deux interrupteurs** : bouton « Sons activés / coupés » en haut du Seuil (préférence de l'élève, `localStorage`) ; module `modules.voyageur_sounds_enabled` (défaut activé) pour couper toute la plateforme.
+- **Audit § 13** : détail, pour arbitrage, du pont vers la séance, du campement, des pages à plusieurs mains, des échos et du « +1 » du journal (mécanique, données, effort, risques, questions).
+- Tests : `tests-ui/gl/glVoyageurSounds.test.js` (partitions, coupures, faux contexte audio), `GLSeuilView.test.jsx` (bouton des sons), registre des réglages. Doc : `docs/API.md`, `docs/reference/gl/presentation.md`.
+
 ### Ajouté — G&L : le Seuil, suite S1–S6 (« +1 », traversées, Loupe, visite d'OLU, vue MJ, gestes)
 
 - **S1 — « +1 » au moment où l'on apprend** : au premier acquis d'une ressource comptée et à la première bonne réponse à une question (libre, lore ou en partie), l'API renvoie `voyageurGain: { proche, loin }` ; `apiGL` émet `gl:voyageur-gain` et `GLVoyageurGainToast` fait s'envoler une pastille « +1 regard du proche / du loin ». `recordGlQcmAttemptForReader` signale désormais la première bonne réponse (`firstCorrect`).

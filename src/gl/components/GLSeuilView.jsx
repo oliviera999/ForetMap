@@ -4,6 +4,12 @@ import { useGLVoyageur } from '../hooks/useGLVoyageur.js';
 import { isModuleEnabled } from '../constants/modules.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLMascotAvatar } from './GLMascotAvatar.jsx';
+import {
+  GL_VOYAGEUR_SFX_CHANGED_EVENT,
+  isVoyageurSfxMuted,
+  playVoyageurSound,
+  setVoyageurSfxMuted,
+} from '../utils/glVoyageurSounds.js';
 
 const SEEN_LEVEL_KEY = 'gl_voyageur_seen_level';
 
@@ -193,6 +199,7 @@ function SpellCard({ spell, onCast, loadTargets }) {
       await onCast(spell.code, target.target);
       setOpen(false);
       setJustCast(true);
+      playVoyageurSound('spell');
       setMessage(`${spell.emoji} ${spell.name} lancé sur « ${target.label} ».`);
     } catch (err) {
       setMessage(err?.message || 'Le sortilège a échoué.');
@@ -282,6 +289,14 @@ export function GLSeuilView({ onNavigateTab, modules }) {
   const { data, loading, error, errorStatus, loadTargets, castSpell } = useGLVoyageur();
   const [levelUp, setLevelUp] = useState(null);
   const [gesture, setGesture] = useState(null);
+  const [sfxMuted, setSfxMuted] = useState(() => isVoyageurSfxMuted());
+  const soundsAllowed = isModuleEnabled(modules, 'voyageurSoundsEnabled');
+
+  useEffect(() => {
+    const onChange = () => setSfxMuted(isVoyageurSfxMuted());
+    window.addEventListener(GL_VOYAGEUR_SFX_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(GL_VOYAGEUR_SFX_CHANGED_EVENT, onChange);
+  }, []);
 
   // Le geste dure le temps de l'animation ; minuterie plutôt que `animationend`, qui ne
   // vient jamais quand l'élève a réduit les mouvements.
@@ -294,7 +309,10 @@ export function GLSeuilView({ onNavigateTab, modules }) {
   useEffect(() => {
     if (!data?.level) return;
     const seen = readSeenLevel();
-    if (seen != null && data.level > seen) setLevelUp(data.level);
+    if (seen != null && data.level > seen) {
+      setLevelUp(data.level);
+      playVoyageurSound('level-up');
+    }
     if (seen == null || data.level > seen) writeSeenLevel(data.level);
   }, [data?.level]);
 
@@ -334,8 +352,23 @@ export function GLSeuilView({ onNavigateTab, modules }) {
   return (
     <div className="gl-seuil fade-in">
       <header className="gl-seuil__header">
-        <h2>Le Seuil</h2>
-        <p>Ton voyage avance à ton rythme, même entre deux séances.</p>
+        <div>
+          <h2>Le Seuil</h2>
+          <p>Ton voyage avance à ton rythme, même entre deux séances.</p>
+        </div>
+        {soundsAllowed ? (
+          <button
+            type="button"
+            className="gl-seuil__sfx"
+            aria-pressed={!sfxMuted}
+            onClick={() => setVoyageurSfxMuted(!sfxMuted)}
+          >
+            <span className="foretmap-emoji-text-mixed" aria-hidden>
+              {sfxMuted ? '🔇' : '🔊'}
+            </span>{' '}
+            {sfxMuted ? 'Sons coupés' : 'Sons activés'}
+          </button>
+        ) : null}
       </header>
 
       {levelUp ? (
@@ -433,7 +466,10 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                           key={g.code}
                           type="button"
                           className="gl-seuil-gesture"
-                          onClick={() => setGesture(g)}
+                          onClick={() => {
+                            setGesture(g);
+                            playVoyageurSound(`gesture-${g.code}`, { people: exp.teamType });
+                          }}
                         >
                           <span className="foretmap-emoji-text-mixed" aria-hidden>
                             {g.emoji}
