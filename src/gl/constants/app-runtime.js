@@ -1,7 +1,13 @@
 export const GL_TAB_STORAGE_KEY = 'gl_active_tab';
 
 /** Onglets épinglés sur la barre mobile (bottom-nav + raccourcis desktop compacts). */
-export const GL_MOBILE_PRIMARY_TAB_IDS = ['maps', 'nature', 'monde-gl'];
+export const GL_MOBILE_PRIMARY_TAB_IDS = ['seuil', 'maps', 'nature'];
+
+/**
+ * « Le Seuil » : accueil du joueur — niveau du voyageur, expédition en cours, grimoire
+ * personnel (module `voyageurEnabled`, `routes/gl/voyageur.js`).
+ */
+export const GL_SEUIL_TAB = { id: 'seuil', label: 'Le Seuil', icon: '🌗' };
 
 /** Sous-onglets regroupés dans « La nature ». */
 export const GL_NATURE_SUB_TABS = [
@@ -54,6 +60,7 @@ export const GL_DISCOVERY_TAB = { id: 'discovery', label: 'Découverte', icon: '
 export const GL_GUEST_TAB_IDS = ['monde-gl', 'discovery', 'nature'];
 
 export const GL_PLAYER_TABS = [
+  GL_SEUIL_TAB,
   { id: 'maps', label: 'Cartes', icon: '🗺️' },
   GL_NATURE_TAB,
   GL_ADVENTURE_TAB,

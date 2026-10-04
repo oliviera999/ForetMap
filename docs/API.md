@@ -335,6 +335,18 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 
 **Réglage `gameplay.marker_effect_auto_move_enabled`** (booléen, défaut `false`) : en parcours numéroté, applique automatiquement le `deltaMove` des repères à effet lors de `present-arrival` / `apply-effects` ; l'événement `move` porte `skipDestinationEffects: true` (pas d'effet sur la case d'arrivée). Exposé sous `markerEffectAutoMoveEnabled` dans `GET /api/gl/gameplay-settings`. Toggle « Déplacement auto (effet de case) » dans Réglages → Affichage carte plateau.
 
+### Le Seuil — niveau du voyageur et grimoire (`/api/gl/voyageur`)
+
+Réservé aux joueurs (`gl_player` → sinon `403`), module `modules.voyageur_enabled` (sinon `503`).
+Aucune action du MJ : le niveau est **calculé** à chaque lecture à partir de l'existant, et chaque
+sortilège du grimoire a un effet borné appliqué par le serveur (`lib/glVoyageur.js`).
+
+| Méthode | Route                                     | Corps / query          | Réponse                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------- | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/voyageur/me`                     | —                      | `{ points, level, stage:{name,emoji}, affinity:{key,label,emoji}, levelStart, nextLevelAt, pointsToNextLevel, regards:{ proche:{points,sources[]}, loin:{points,sources[]} }, grimoire:[{ code,name,emoji,regard,levelRequired,description,unlocked,charged,usesCount,pointsToRecharge }], expedition:{ gameId,gameName,gameStatus,chapterTitle,teamId,teamName,teamType,mascotId,color,teammates[] } \| null }`. Regard **proche** = acquis `species` / `glossary` / `ecosystem` + questions `qcm` réussies (distinctes) ; **loin** = feuillets trouvés + acquis `feuillet` / `lore_glossary` / `content_page` + questions `qcm_lore` réussies + articles de « Mon journal » (≥ 40 caractères, 2 par semaine au plus). Niveau `n` atteint à `5·n·(n−1)/2` points. |
+| GET     | `/api/gl/voyageur/spells/:code/targets`   | —                      | `{ spell, items:[{ target, label, … }], emptyMessage }`. `seconde_chance` : délais d'attente en cours (`target` = `type:ref`, `lockedUntil`) ; `memoire` : feuillets du carnet encore effacés (`target` = code, `effacementPct`). Code inconnu → `404`.                                                                                                                                                                                                         |
+| POST    | `/api/gl/voyageur/spells/:code/cast`      | `{ target }` (1–160)   | `{ success, spell:{…état après lancer}, effect }`. `409` `SPELL_LOCKED` (niveau insuffisant) ou `SPELL_NOT_CHARGED` (la charge revient après 5 nouveaux points), `404` `TARGET_NOT_FOUND` (charge non consommée), `400` cible vide. Effets : `seconde_chance` supprime le délai d'attente de la fiche ; `memoire` ramène l'effacement du feuillet à 0 dans la possession du joueur.                                                                            |
+
 ### Administration GL
 
 | Méthode | URL | Body | Permission |
@@ -401,6 +413,7 @@ dans `gl_settings` :
 - `modules.zone_music_enabled`
 - `modules.virtual_dice_enabled` — lanceur de dés D6 (1 à 5) sur la carte de jeu (client uniquement, défaut `false`)
 - `modules.market_enabled`
+- `modules.voyageur_enabled` — « Le Seuil » : onglet d'accueil des joueurs, niveau du voyageur et grimoire personnel (défaut `true`, migration 317) ; éteint, les joueurs arrivent sur Cartes et `/api/gl/voyageur/*` répond `503`
 
 Modifiables via `PUT /api/gl/admin/settings/:key` (validation booléenne stricte,
 permission `gl.settings.manage`).

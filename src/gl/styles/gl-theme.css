@@ -1103,7 +1103,42 @@ button.gl-brand-hub__card {
 }
 
 .gl-error-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 10px 16px;
+}
+
+/* Repli des onglets chargés à la demande : la classe n'avait aucun style (page blanche
+   pendant le chargement, audit août § 5.2.3). Un libellé + une barre discrète suffisent. */
+.gl-tab-loading {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  color: var(--gl-color-text-muted);
+}
+
+.gl-tab-loading::before {
+  content: 'Chargement…';
+  padding: 10px 18px;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+  border: 1px solid var(--gl-border);
+  animation: gl-tab-loading-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes gl-tab-loading-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-tab-loading::before {
+    animation: none;
+  }
 }
 
 .gl-markdown h2 {

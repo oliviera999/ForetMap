@@ -67,6 +67,9 @@ const GLJournalView = lazy(() =>
 const GLPlayerJournalView = lazy(() =>
   import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })),
 );
+const GLSeuilView = lazy(() =>
+  import('./components/GLSeuilView.jsx').then((m) => ({ default: m.GLSeuilView })),
+);
 import { FloatingDock } from '../shared/components/FloatingDock.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
@@ -587,7 +590,7 @@ export function AppGL() {
       }
     }
     if (!isGlTabVisibleInNav(tab, tabs, modules, joueursNavOptions)) {
-      setTab(defaultTabForGlAuth(auth));
+      setTab(defaultTabForGlAuth(auth, modules));
     }
   }, [tabs, tab, auth, modules, joueursNavOptions]);
 
@@ -798,6 +801,7 @@ export function AppGL() {
 
             <GLAppBanners
               error={error}
+              onDismissError={() => setError('')}
               isGuestMode={isGuest}
               onQuitGuest={quitGuestMode}
               onGuestLogin={quitGuestMode}
@@ -820,7 +824,16 @@ export function AppGL() {
                 id={`${GL_TABPANEL_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
                 aria-labelledby={`${GL_TAB_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
               >
-                <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+                <Suspense
+                  fallback={
+                    <div
+                      className="gl-tab-loading"
+                      role="status"
+                      aria-busy="true"
+                      aria-label="Chargement"
+                    />
+                  }
+                >
                   {resolveGlNavActiveTab(tab) === 'monde-gl' ? (
                     <GLMondeView
                       activeSubTab={mondeSubTab}
@@ -1039,6 +1052,9 @@ export function AppGL() {
                       defaultTeamId={selectedTeamId}
                       narrationEnabled={!!gameplaySettings.narrationEnabled}
                     />
+                  )}
+                  {tab === 'seuil' && isModuleEnabled(modules, 'voyageurEnabled') && (
+                    <GLSeuilView onNavigateTab={navigateTab} modules={modules} />
                   )}
                   {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
                     <GLPlayerJournalView

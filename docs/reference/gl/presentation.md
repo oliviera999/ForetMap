@@ -71,6 +71,46 @@ réglages. Voici ce que contient le jeu, regroupé comme dans la navigation :
 > refermer). Le bouton **Retour** du navigateur ou du téléphone ferme d'abord une feuille
 > ou une fenêtre ouverte, puis revient à l'onglet précédent, avant de quitter le jeu.
 
+### Le Seuil (l'accueil des joueurs)
+
+À la connexion, un élève arrive sur **Le Seuil**. C'est son point de départ, et il
+fonctionne **à tout moment, même entre deux séances et sans aucune action du professeur** :
+
+- **Moi, voyageur** : le **niveau** de l'élève (de _Graine_ à _Forêt ancienne_) et ses
+  **deux regards**, tirés du récit des deux peuples :
+  - le **regard du proche** (côté gnome, l'observation) grandit quand il étudie une
+    espèce, apprend un mot du glossaire scientifique, explore un écosystème ou réussit
+    une question des biomes ;
+  - le **regard du loin** (côté licorne, le récit) grandit quand il trouve ou lit un
+    feuillet de Sélène, apprend un mot du lexique lore, lit une page du monde, réussit
+    une question du lore ou écrit dans « Mon journal » (deux articles comptés par semaine
+    au plus, d'au moins quelques lignes).
+
+  Chaque élément compte une fois et ne se perd jamais. L'élève voit de quel côté il
+  penche (_regard du proche_, _regard du loin_, ou _pacte du seuil_ quand les deux sont
+  équilibrés) et combien de points le séparent du niveau suivant. Quand il monte de
+  niveau, un message le lui annonce à sa prochaine visite.
+
+- **Mon expédition** : son équipe actuelle, sa mascotte, son peuple, ses coéquipiers et
+  une phrase honnête sur l'état de la partie (séance en cours, expédition qui campe entre
+  deux séances, partie pas encore commencée ou terminée). Sans équipe, l'écran le dit :
+  _« Ton compagnon t'attend à la prochaine traversée »_.
+- **Ce soir, tu peux…** : trois propositions qui l'envoient vers le regard qu'il a le
+  moins exercé, puis vers l'autre, puis vers un sortilège prêt.
+- **Le grimoire du voyageur** : des sortilèges **personnels**, hors des chapitres, qui
+  s'ouvrent avec le niveau et que l'élève lance seul, quand il veut :
+  - 🔁 **Seconde chance** (niveau 2) lève le délai d'attente posé après une mauvaise
+    réponse sur une fiche : il peut retenter tout de suite ;
+  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle.
+
+  Un sortilège lancé se **recharge** quand l'élève a gagné 5 nouveaux points : on
+  apprend pour pouvoir le relancer. Pas de minuteur, rien à valider par le MJ. Ces
+  sortilèges ne coûtent ni cœur ni gemme et ne touchent pas le plateau.
+
+Le niveau n'est visible que de l'élève : il n'y a pas de classement. L'admin peut éteindre
+le module (**Le Seuil**, dans les modules) : les élèves arrivent alors sur Cartes, comme
+avant.
+
 ### Cartes (le plateau de jeu)
 
 L'écran central du jeu : la carte du chapitre en cours, avec les **zones** du royaume,
@@ -194,8 +234,8 @@ qui ne se confond pas avec les cœurs et les gemmes.
 
 L'admin dispose d'un écran de réglages complet :
 
-- **Modules** : activer/désactiver chaque brique (marché, forum, sorts, journaux,
-  intro, aide, tutoriels, musique de zone, dé virtuel, notifications…).
+- **Modules** : activer/désactiver chaque brique (Le Seuil, marché, forum, sorts,
+  journaux, intro, aide, tutoriels, musique de zone, dé virtuel, notifications…).
 - **Gameplay** : tours de jeu, narration, actions des joueurs, score, vitalité (et
   valeurs de départ des cœurs/gemmes), qui peut déplacer les mascottes, qui peut lancer
   les QCM, comportement des feuillets de Sélène (coûts, récompenses, aperçus),

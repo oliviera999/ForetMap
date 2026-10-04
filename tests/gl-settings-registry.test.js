@@ -79,6 +79,8 @@ const HISTORICAL_MODULE_KEYS = [
   // Ajoutée par `feat: présence en ligne staff FM+GL (cœur partagé)`. Ce gel n'interdit pas
   // d'étendre le registre : il oblige à le faire sciemment, en inscrivant la clé ici.
   'modules.presence_enabled',
+  // Le Seuil — niveau du voyageur et grimoire personnel (migration 317).
+  'modules.voyageur_enabled',
 ];
 
 test('les listes de clés gameplay / modules / gating sont inchangées', () => {

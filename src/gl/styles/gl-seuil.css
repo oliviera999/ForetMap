@@ -1,0 +1,415 @@
+/* Le Seuil — accueil joueur G&L (GLSeuilView). Palette locale GL (`--gl-*`). */
+
+.gl-seuil {
+  display: grid;
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4px 0 24px;
+}
+
+.gl-seuil__header h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil__header p,
+.gl-seuil__loading,
+.gl-seuil__notice {
+  margin: 4px 0 0;
+  color: var(--gl-color-text-muted);
+}
+
+.gl-seuil__notice {
+  padding: 16px;
+  border-radius: var(--gl-radius-card);
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+}
+
+.gl-seuil__faces {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .gl-seuil__faces {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gl-seuil-face,
+.gl-seuil-tonight,
+.gl-seuil-grimoire {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-card);
+  box-shadow: var(--gl-shadow-sm);
+  padding: 16px;
+  min-width: 0;
+}
+
+.gl-seuil-face h3,
+.gl-seuil-tonight h3,
+.gl-seuil-grimoire h3 {
+  margin: 0 0 12px;
+  font-size: var(--text-md);
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-face__identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.gl-seuil-face__identity p {
+  margin: 2px 0;
+}
+
+.gl-seuil-face__stage {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-face__affinity,
+.gl-seuil-face__unlock {
+  color: var(--gl-color-text-muted);
+}
+
+/* Anneau de niveau */
+.gl-seuil-ring {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  flex: 0 0 auto;
+}
+
+.gl-seuil-ring__track,
+.gl-seuil-ring__fill {
+  fill: none;
+  stroke-width: 10;
+}
+
+.gl-seuil-ring__track {
+  stroke: var(--gl-color-accent-soft);
+}
+
+.gl-seuil-ring__fill {
+  stroke: var(--gl-color-accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 900ms ease-out;
+}
+
+.gl-seuil-ring__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.gl-seuil-ring__emoji {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+
+.gl-seuil-ring__level {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--gl-color-primary);
+}
+
+/* Les deux regards */
+.gl-seuil-regard {
+  margin-top: 12px;
+}
+
+.gl-seuil-regard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.gl-seuil-regard__value {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-regard__bar {
+  height: 10px;
+  margin-top: 6px;
+  border-radius: var(--gl-radius-pill);
+  background: var(--gl-surface-muted);
+  border: 1px solid var(--gl-border);
+  overflow: hidden;
+}
+
+.gl-seuil-regard__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 900ms ease-out;
+}
+
+.gl-seuil-regard--proche .gl-seuil-regard__bar span {
+  background: #6a8f3a;
+}
+
+.gl-seuil-regard--loin .gl-seuil-regard__bar span {
+  background: #7b5ea7;
+}
+
+.gl-seuil-regard__hint {
+  margin: 6px 0 0;
+  font-size: var(--text-sm);
+  color: var(--gl-color-text-muted);
+}
+
+/* Expédition */
+.gl-seuil-expedition {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.gl-seuil-expedition p {
+  margin: 2px 0 8px;
+}
+
+.gl-seuil-expedition__team {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-expedition__people,
+.gl-seuil-expedition__mates,
+.gl-seuil-expedition__none {
+  color: var(--gl-color-text-muted);
+}
+
+.gl-seuil-expedition__status {
+  padding: 8px 10px;
+  border-radius: var(--gl-radius-sm);
+  background: var(--gl-surface-muted);
+  border-left: 4px solid var(--gl-color-tertiary);
+}
+
+.gl-seuil-expedition__status.is-live {
+  border-left-color: var(--gl-accent-success);
+}
+
+.gl-seuil-expedition__status.is-paused {
+  border-left-color: var(--gl-accent-warm);
+}
+
+/* Ce soir, tu peux… */
+.gl-seuil-tonight ul,
+.gl-seuil-grimoire__list,
+.gl-seuil-spell__targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gl-seuil-tonight ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gl-seuil-tonight__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border-radius: var(--gl-radius-md);
+  border: 1px solid var(--gl-select-border);
+  background: var(--gl-select-surface-soft);
+  color: var(--gl-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.gl-seuil-tonight__item:hover,
+.gl-seuil-tonight__item:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-seuil-tonight__item > span:first-child {
+  font-size: var(--text-xl);
+}
+
+/* Grimoire */
+.gl-seuil-grimoire__intro {
+  margin: -4px 0 12px;
+  color: var(--gl-color-text-muted);
+}
+
+.gl-seuil-grimoire__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.gl-seuil-spell {
+  padding: 14px;
+  border-radius: var(--gl-radius-md);
+  border: 1px solid var(--gl-border);
+  background: var(--gl-surface-muted);
+}
+
+.gl-seuil-spell.is-locked {
+  opacity: 0.7;
+}
+
+.gl-seuil-spell.is-ready {
+  border-color: var(--gl-color-accent);
+  box-shadow: 0 0 0 3px var(--gl-color-accent-soft);
+}
+
+.gl-seuil-spell.is-cast {
+  animation: gl-seuil-cast 900ms ease-out;
+}
+
+.gl-seuil-spell__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-seuil-spell__head > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.gl-seuil-spell__emoji {
+  font-size: var(--text-2xl);
+}
+
+.gl-seuil-spell__desc {
+  margin: 8px 0 4px;
+}
+
+.gl-seuil-spell__status {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-spell__picker {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gl-seuil-spell__picker p {
+  margin: 0;
+}
+
+.gl-seuil-spell__targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gl-seuil-spell__message {
+  margin: 8px 0 0;
+  font-weight: 600;
+  color: var(--gl-ink-success);
+}
+
+.gl-seuil-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--gl-radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--surface-plain);
+}
+
+.gl-seuil-tag--proche {
+  background: #55762c;
+}
+
+.gl-seuil-tag--loin {
+  background: #6a4f94;
+}
+
+/* Célébration de niveau */
+.gl-seuil-levelup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--gl-radius-card);
+  background: linear-gradient(
+    120deg,
+    var(--gl-color-accent-soft),
+    color-mix(in srgb, var(--gl-accent-warm) 30%, var(--gl-surface))
+  );
+  border: 1px solid var(--gl-color-accent);
+  animation: gl-seuil-pop 600ms ease-out;
+}
+
+.gl-seuil-levelup > span {
+  font-size: var(--text-2xl);
+}
+
+.gl-seuil-levelup > div {
+  flex: 1;
+}
+
+@keyframes gl-seuil-pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes gl-seuil-cast {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gl-accent-warm) 80%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-seuil-levelup,
+  .gl-seuil-spell.is-cast {
+    animation: none;
+  }
+
+  .gl-seuil-ring__fill,
+  .gl-seuil-regard__bar span,
+  .gl-seuil-tonight__item {
+    transition: none;
+  }
+}

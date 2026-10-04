@@ -15,6 +15,7 @@ export const GL_MODULE_DEFAULTS = {
   loreGlossaryEnabled: true,
   introEnabled: true,
   presenceEnabled: true,
+  voyageurEnabled: true,
 };
 
 export function normalizeGlModules(raw) {
