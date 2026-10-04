@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { execute } = require('../database');
-const { seedGlScenario, mountGlSession } = require('./fixtures/gl.fixture');
+const { seedGlScenario, mountGlSession, seedGlGlossaryTerm } = require('./fixtures/gl.fixture');
 
 // Le Seuil — accueil du joueur : niveau du voyageur, expédition, grimoire (routes/gl/voyageur.js).
 
@@ -70,5 +70,33 @@ test.describe('GL — Le Seuil (voyageur)', () => {
 
     await page.getByRole('button', { name: 'Rejoindre le plateau' }).click();
     await expect(page.locator('.gl-seuil')).toHaveCount(0);
+  });
+
+  test('« +1 » : marquer un mot appris fait s’envoler une pastille du regard du proche', async ({
+    page,
+    request,
+  }) => {
+    const seeded = await seedGlScenario('seuil-gain');
+    await request.put('/api/gl/admin/settings/modules.voyageur_enabled', {
+      headers: { Authorization: `Bearer ${seeded.adminToken}` },
+      data: { value: true },
+    });
+    const { terme } = await seedGlGlossaryTerm('seuil-gain');
+
+    await loginGlPlayer(page, seeded, { tab: 'glossary' });
+    await page.getByRole('button', { name: terme }).first().click();
+    await page.getByRole('button', { name: /Marquer comme appris/ }).click();
+    await page.getByLabel(/Je confirme avoir lu et compris/).check();
+    const ack = page.waitForResponse(
+      (res) =>
+        res.request().method() === 'POST' &&
+        res.url().includes('/api/gl/learning/glossary/') &&
+        res.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Confirmer' }).click();
+    await ack;
+    await expect(page.locator('.gl-voyageur-gain__chip--proche')).toContainText(
+      '+1 regard du proche',
+    );
   });
 });

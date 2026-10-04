@@ -72,6 +72,7 @@ const GLSeuilView = lazy(() =>
 );
 import { FloatingDock } from '../shared/components/FloatingDock.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
+import { GLVoyageurGainToast } from './components/GLVoyageurGainToast.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
@@ -799,6 +800,9 @@ export function AppGL() {
               appVersion={appVersion}
             />
 
+            {showsPlayerChrome && !isGuest && isModuleEnabled(modules, 'voyageurEnabled') ? (
+              <GLVoyageurGainToast />
+            ) : null}
             <GLAppBanners
               error={error}
               onDismissError={() => setError('')}

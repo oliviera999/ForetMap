@@ -34,7 +34,7 @@
   gap: 16px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .gl-seuil__faces {
     grid-template-columns: 1fr;
   }
@@ -411,5 +411,157 @@
   .gl-seuil-regard__bar span,
   .gl-seuil-tonight__item {
     transition: none;
+  }
+}
+
+/* Gestes de la mascotte d'équipe (S6) */
+.gl-seuil-mascot {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.gl-seuil-mascot__bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface-elevated);
+  border: 1px solid var(--gl-border);
+  box-shadow: var(--gl-shadow-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  z-index: 1;
+}
+
+.gl-seuil-mascot--salut .gl-mascot-avatar {
+  display: inline-block;
+  animation: gl-seuil-salut 1.6s ease-in-out;
+  transform-origin: 50% 90%;
+}
+
+.gl-seuil-mascot--danse .gl-mascot-avatar {
+  display: inline-block;
+  animation: gl-seuil-danse 1.6s ease-in-out;
+}
+
+.gl-seuil-mascot--cri .gl-mascot-avatar {
+  display: inline-block;
+  animation: gl-seuil-cri 1.6s ease-out;
+}
+
+@keyframes gl-seuil-salut {
+  20%,
+  60% {
+    transform: rotate(-10deg);
+  }
+  40%,
+  80% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes gl-seuil-danse {
+  25% {
+    transform: translateY(-10px) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0);
+  }
+  75% {
+    transform: translateY(-10px) rotate(6deg);
+  }
+}
+
+@keyframes gl-seuil-cri {
+  30% {
+    transform: scale(1.18);
+  }
+  60% {
+    transform: scale(0.96);
+  }
+}
+
+.gl-seuil-gestures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gl-seuil-gesture {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: var(--gl-radius-pill);
+  border: 1px solid var(--gl-select-border);
+  background: var(--gl-select-surface-soft);
+  color: var(--gl-color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.gl-seuil-gesture.is-locked {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+  opacity: 0.65;
+  font-size: var(--text-sm);
+}
+
+/* Mes traversées (S2) */
+.gl-seuil-traversees {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-card);
+  box-shadow: var(--gl-shadow-sm);
+  padding: 16px;
+}
+
+.gl-seuil-traversees h3 {
+  margin: 0 0 12px;
+  font-size: var(--text-md);
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-traversees__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.gl-seuil-traversee {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--gl-radius-md);
+  background: var(--gl-surface-muted);
+  border: 1px solid var(--gl-border);
+}
+
+.gl-seuil-traversee p {
+  margin: 0;
+}
+
+.gl-seuil-traversee__team {
+  font-weight: var(--fw-bold);
+  color: var(--gl-color-primary);
+}
+
+.gl-seuil-traversee__meta {
+  font-size: var(--text-sm);
+  color: var(--gl-color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-seuil-mascot--salut .gl-mascot-avatar,
+  .gl-seuil-mascot--danse .gl-mascot-avatar,
+  .gl-seuil-mascot--cri .gl-mascot-avatar {
+    animation: none;
   }
 }

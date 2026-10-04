@@ -1,4 +1,5 @@
 import { dispatchGlSessionChanged } from './glSessionEvents.js';
+import { GL_VOYAGEUR_GAIN_EVENT } from './glVoyageurEvents.js';
 import { withAppBase } from '../../shared/appBase.js';
 import {
   buildApiHttpErrorMessage,
@@ -46,7 +47,26 @@ function glDevUnavailableMessage() {
  * (`src/shared/fetchJsonWithRetry.js`) : injecte le jeton GL, la purge de
  * `gl_session` + erreur `sessionExpired` sur 401 expiré, et les messages GL.
  */
+
+function announceVoyageurGain(payload) {
+  const gain = payload && typeof payload === 'object' ? payload.voyageurGain : null;
+  if (!gain || typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent(GL_VOYAGEUR_GAIN_EVENT, { detail: gain }));
+  } catch (_) {
+    // noop
+  }
+}
+
 export async function apiGL(path, method = 'GET', body = null) {
+  const payload = await apiGLRaw(path, method, body);
+  // « +1 » immédiat (audit expérience joueur, S1) : un seul point d'écoute pour tous les
+  // gestes qui font grandir le voyageur (acquis, première bonne réponse…).
+  announceVoyageurGain(payload);
+  return payload;
+}
+
+async function apiGLRaw(path, method, body) {
   return fetchJsonWithRetry(
     path,
     { method, body },

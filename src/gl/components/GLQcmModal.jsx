@@ -3,6 +3,7 @@ import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
+import { GLLoupeButton } from './GLLoupeButton.jsx';
 import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
@@ -42,6 +43,7 @@ export function GLQcmModal({
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [eliminatedIds, setEliminatedIds] = useState(() => new Set());
 
   const slugsKey = Array.isArray(biomeSlugs) ? biomeSlugs.join(',') : '';
   const chapitreSlugsKey = Array.isArray(chapitreSlugs) ? chapitreSlugs.join(',') : '';
@@ -54,6 +56,7 @@ export function GLQcmModal({
     setPresentation(null);
     setSelectedChoiceId(null);
     setResult(null);
+    setEliminatedIds(new Set());
     try {
       let code = marker?.qcm_question_code || null;
       if (isLoreQcmCode(code)) code = String(code).trim().toUpperCase();
@@ -183,13 +186,24 @@ export function GLQcmModal({
                 imgClassName="gl-qcm-modal__photo"
                 captionClassName="gl-qcm-modal__photo-credit"
               />
+              <GLLoupeButton
+                presentationToken={presentation.presentationToken}
+                onEliminate={(id) => {
+                  setEliminatedIds((prev) => new Set([...prev, id]));
+                  setSelectedChoiceId((current) => (current === id ? null : current));
+                }}
+              />
               <div className="gl-qcm-modal__choices">
                 {presentation.choices.map((choice) => (
-                  <label key={choice.id} className="gl-qcm-choice">
+                  <label
+                    key={choice.id}
+                    className={`gl-qcm-choice${eliminatedIds.has(choice.id) ? ' is-eliminated' : ''}`}
+                  >
                     <input
                       type="radio"
                       name="qcm-choice"
                       checked={selectedChoiceId === choice.id}
+                      disabled={eliminatedIds.has(choice.id)}
                       onChange={() => setSelectedChoiceId(choice.id)}
                     />
                     <InlineText text={choice.text} {...answeringGlossaryProps} />

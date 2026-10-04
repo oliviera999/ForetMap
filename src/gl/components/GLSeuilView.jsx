@@ -19,6 +19,13 @@ const EXPEDITION_STATUS = {
   ended: 'Expédition terminée. La prochaine traversée se prépare.',
 };
 
+function formatTraverseeDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function readSeenLevel() {
   try {
     const n = Number(localStorage.getItem(SEEN_LEVEL_KEY));
@@ -196,6 +203,8 @@ function SpellCard({ spell, onCast, loadTargets }) {
 
   let status;
   if (!spell.unlocked) status = `S’ouvre au niveau ${spell.levelRequired}`;
+  else if (spell.charged && spell.targetKind === 'qcm')
+    status = 'Prêt — se lance pendant une question';
   else if (spell.charged) status = 'Prêt';
   else status = `Se recharge : encore ${spell.pointsToRecharge} point(s) à gagner`;
 
@@ -219,7 +228,7 @@ function SpellCard({ spell, onCast, loadTargets }) {
       </div>
       <p className="gl-seuil-spell__desc">{spell.description}</p>
       <p className="gl-seuil-spell__status">{status}</p>
-      {spell.unlocked && spell.charged && !open ? (
+      {spell.unlocked && spell.charged && spell.targetKind !== 'qcm' && !open ? (
         <GLButton type="button" variant="primary" size="sm" onClick={openPicker}>
           Lancer
         </GLButton>
@@ -272,6 +281,15 @@ function SpellCard({ spell, onCast, loadTargets }) {
 export function GLSeuilView({ onNavigateTab, modules }) {
   const { data, loading, error, errorStatus, loadTargets, castSpell } = useGLVoyageur();
   const [levelUp, setLevelUp] = useState(null);
+  const [gesture, setGesture] = useState(null);
+
+  // Le geste dure le temps de l'animation ; minuterie plutôt que `animationend`, qui ne
+  // vient jamais quand l'élève a réduit les mouvements.
+  useEffect(() => {
+    if (!gesture) return undefined;
+    const timer = setTimeout(() => setGesture(null), 1800);
+    return () => clearTimeout(timer);
+  }, [gesture]);
 
   useEffect(() => {
     if (!data?.level) return;
@@ -336,7 +354,11 @@ export function GLSeuilView({ onNavigateTab, modules }) {
       ) : null}
 
       <div className="gl-seuil__faces">
-        <section className="gl-seuil-face gl-seuil-face--moi" aria-labelledby="gl-seuil-moi">
+        <section
+          className="gl-seuil-face gl-seuil-face--moi"
+          aria-labelledby="gl-seuil-moi"
+          data-gl-tour="seuil-moi"
+        >
           <h3 id="gl-seuil-moi">Moi, voyageur</h3>
           <div className="gl-seuil-face__identity">
             <LevelRing data={data} />
@@ -371,12 +393,21 @@ export function GLSeuilView({ onNavigateTab, modules }) {
           <h3 id="gl-seuil-expedition">Mon expédition</h3>
           {exp ? (
             <div className="gl-seuil-expedition">
-              <GLMascotAvatar
-                mascotId={exp.mascotId}
-                size={84}
-                fallbackType={exp.teamType === 'unicorn' ? 'unicorn' : 'gnome'}
-                fallbackLabel={exp.teamName}
-              />
+              <div
+                className={`gl-seuil-mascot${gesture ? ` gl-seuil-mascot--${gesture.code}` : ''}`}
+              >
+                {gesture ? (
+                  <span className="gl-seuil-mascot__bubble" role="status">
+                    {gesture.bubble?.[exp.teamType] || gesture.bubble?.gnome}
+                  </span>
+                ) : null}
+                <GLMascotAvatar
+                  mascotId={exp.mascotId}
+                  size={84}
+                  fallbackType={exp.teamType === 'unicorn' ? 'unicorn' : 'gnome'}
+                  fallbackLabel={exp.teamName}
+                />
+              </div>
               <div>
                 <p className="gl-seuil-expedition__team">{exp.teamName}</p>
                 <p className="gl-seuil-expedition__people">
@@ -393,6 +424,29 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                   <GLButton type="button" variant="primary" onClick={() => onNavigateTab?.('maps')}>
                     Rejoindre le plateau
                   </GLButton>
+                ) : null}
+                {data.gestures?.length ? (
+                  <div className="gl-seuil-gestures" aria-label="Gestes de la mascotte">
+                    {data.gestures.map((g) =>
+                      g.unlocked ? (
+                        <button
+                          key={g.code}
+                          type="button"
+                          className="gl-seuil-gesture"
+                          onClick={() => setGesture(g)}
+                        >
+                          <span className="foretmap-emoji-text-mixed" aria-hidden>
+                            {g.emoji}
+                          </span>{' '}
+                          {g.name}
+                        </button>
+                      ) : (
+                        <span key={g.code} className="gl-seuil-gesture is-locked">
+                          🔒 {g.name} · niveau {g.levelRequired}
+                        </span>
+                      ),
+                    )}
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -423,7 +477,12 @@ export function GLSeuilView({ onNavigateTab, modules }) {
         </section>
       ) : null}
 
-      <section className="gl-seuil-grimoire" id="gl-seuil-grimoire" aria-labelledby="gl-seuil-gri">
+      <section
+        className="gl-seuil-grimoire"
+        id="gl-seuil-grimoire"
+        aria-labelledby="gl-seuil-gri"
+        data-gl-tour="seuil-grimoire"
+      >
         <h3 id="gl-seuil-gri">Grimoire du voyageur</h3>
         <p className="gl-seuil-grimoire__intro">
           Tes sortilèges à toi, hors des chapitres. Ils s’ouvrent avec ton niveau et se rechargent
@@ -439,6 +498,39 @@ export function GLSeuilView({ onNavigateTab, modules }) {
             />
           ))}
         </ul>
+      </section>
+
+      <section className="gl-seuil-traversees" aria-labelledby="gl-seuil-trav">
+        <h3 id="gl-seuil-trav">Mes traversées</h3>
+        {data.traversees?.length ? (
+          <ul className="gl-seuil-traversees__list">
+            {data.traversees.map((t) => (
+              <li key={t.gameId} className="gl-seuil-traversee">
+                <GLMascotAvatar
+                  mascotId={t.mascotId}
+                  size={48}
+                  fallbackType={t.teamType === 'unicorn' ? 'unicorn' : 'gnome'}
+                  fallbackLabel={t.teamName}
+                />
+                <div>
+                  <p className="gl-seuil-traversee__team">{t.teamName}</p>
+                  <p className="gl-seuil-traversee__meta">
+                    {t.chapterTitle || t.gameName}
+                    {formatTraverseeDate(t.endedAt) ? ` · ${formatTraverseeDate(t.endedAt)}` : ''}
+                  </p>
+                  {t.teammates?.length ? (
+                    <p className="gl-seuil-traversee__meta">Avec : {t.teammates.join(', ')}</p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="gl-seuil-grimoire__intro">
+            Tes expéditions terminées viendront se ranger ici, avec leur mascotte et tes compagnons
+            de route.
+          </p>
+        )}
       </section>
     </div>
   );

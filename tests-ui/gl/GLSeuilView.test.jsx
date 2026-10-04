@@ -62,6 +62,29 @@ function makeView(overrides = {}) {
       mascotId: null,
       teammates: ['Lina', 'Sam'],
     },
+    traversees: [
+      {
+        gameId: 9,
+        gameName: 'Partie passée',
+        chapterTitle: 'Déserts chauds',
+        endedAt: '2026-09-20T10:00:00Z',
+        teamName: 'Les Anciens',
+        teamType: 'gnome',
+        mascotId: null,
+        teammates: ['Noé'],
+      },
+    ],
+    gestures: [
+      {
+        code: 'salut',
+        name: 'Saluer',
+        emoji: '👋',
+        levelRequired: 2,
+        unlocked: true,
+        bubble: { gnome: 'Bonjour, voyageur !', unicorn: 'Salut à toi, voyageur !' },
+      },
+      { code: 'danse', name: 'Danser', emoji: '🎶', levelRequired: 6, unlocked: false, bubble: {} },
+    ],
     ...overrides,
   };
 }
@@ -152,5 +175,52 @@ describe('buildSeuilSuggestions', () => {
     const modules = { ...allModules, loreCarnetEnabled: false, playerJournalEnabled: false };
     const out = buildSeuilSuggestions(makeView(), modules);
     expect(out.map((s) => s.id)).toEqual(['lore', 'species', 'spell']);
+  });
+});
+
+describe('GLSeuilView — suite S2/S3/S6', () => {
+  test('Mes traversées : les expéditions passées avec leurs compagnons', async () => {
+    apiGL.mockResolvedValueOnce(makeView());
+    render(<GLSeuilView modules={allModules} onNavigateTab={() => {}} />);
+    expect(await screen.findByRole('heading', { name: 'Mes traversées' })).toBeInTheDocument();
+    expect(screen.getByText('Les Anciens')).toBeInTheDocument();
+    expect(screen.getByText('Avec : Noé')).toBeInTheDocument();
+  });
+
+  test('Mes traversées vides : message d’attente', async () => {
+    apiGL.mockResolvedValueOnce(makeView({ traversees: [] }));
+    render(<GLSeuilView modules={allModules} onNavigateTab={() => {}} />);
+    expect(await screen.findByText(/Tes expéditions terminées viendront/)).toBeInTheDocument();
+  });
+
+  test('geste débloqué : la mascotte de l’équipe parle ; geste verrouillé : niveau requis', async () => {
+    const user = userEvent.setup();
+    apiGL.mockResolvedValueOnce(makeView());
+    render(<GLSeuilView modules={allModules} onNavigateTab={() => {}} />);
+    await user.click(await screen.findByRole('button', { name: /Saluer/ }));
+    // Équipe licorne (expédition de makeView) : la bulle du peuple licorne.
+    expect(screen.getByText('Salut à toi, voyageur !')).toBeInTheDocument();
+    expect(screen.getByText(/Danser · niveau 6/)).toBeInTheDocument();
+  });
+
+  test('Loupe dans le grimoire : pas de bouton Lancer, elle se lance pendant une question', async () => {
+    const view = makeView();
+    view.grimoire.push({
+      code: 'loupe',
+      name: 'Loupe',
+      emoji: '🔍',
+      regard: 'proche',
+      levelRequired: 2,
+      targetKind: 'qcm',
+      description: 'Écarte une mauvaise réponse.',
+      unlocked: true,
+      charged: true,
+      usesCount: 0,
+      pointsToRecharge: 0,
+    });
+    apiGL.mockResolvedValueOnce(view);
+    render(<GLSeuilView modules={allModules} onNavigateTab={() => {}} />);
+    expect(await screen.findByText('Prêt — se lance pendant une question')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Lancer' })).toHaveLength(1);
   });
 });

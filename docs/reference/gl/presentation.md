@@ -94,22 +94,47 @@ fonctionne **à tout moment, même entre deux séances et sans aucune action du 
 - **Mon expédition** : son équipe actuelle, sa mascotte, son peuple, ses coéquipiers et
   une phrase honnête sur l'état de la partie (séance en cours, expédition qui campe entre
   deux séances, partie pas encore commencée ou terminée). Sans équipe, l'écran le dit :
-  _« Ton compagnon t'attend à la prochaine traversée »_.
+  _« Ton compagnon t'attend à la prochaine traversée »_. À partir du niveau 5, l'élève
+  débloque des **gestes** (saluer, puis danser au niveau 6, puis le cri du peuple au
+  niveau 7) qu'il peut faire faire **à la mascotte de son équipe** sur cet écran : le geste
+  est à lui, la mascotte reste celle de l'équipe. C'est un effet visuel, sur son écran
+  seulement.
 - **Ce soir, tu peux…** : trois propositions qui l'envoient vers le regard qu'il a le
   moins exercé, puis vers l'autre, puis vers un sortilège prêt.
 - **Le grimoire du voyageur** : des sortilèges **personnels**, hors des chapitres, qui
   s'ouvrent avec le niveau et que l'élève lance seul, quand il veut :
   - 🔁 **Seconde chance** (niveau 2) lève le délai d'attente posé après une mauvaise
     réponse sur une fiche : il peut retenter tout de suite ;
-  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle.
+  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle ;
+  - 🔍 **Loupe** (niveau 4) se lance **pendant une question** (contrôle de compréhension
+    avant « appris », question d'un repère ou d'une zone) : un bouton _Loupe_ apparaît
+    au-dessus des réponses et écarte une mauvaise réponse. Elle ne donne jamais la bonne :
+    elle refuse de servir quand il ne reste que deux réponses.
 
   Un sortilège lancé se **recharge** quand l'élève a gagné 5 nouveaux points : on
   apprend pour pouvoir le relancer. Pas de minuteur, rien à valider par le MJ. Ces
   sortilèges ne coûtent ni cœur ni gemme et ne touchent pas le plateau.
 
-Le niveau n'est visible que de l'élève : il n'y a pas de classement. L'admin peut éteindre
-le module (**Le Seuil**, dans les modules) : les élèves arrivent alors sur Cartes, comme
-avant.
+- **Mes traversées** : la liste de ses expéditions terminées (mascotte, chapitre, date,
+  coéquipiers). Comme les équipes changent d'une partie à l'autre, l'élève construit au fil
+  de l'année une collection de compagnons et de compagnons de route.
+
+**Le « +1 » au moment où l'on apprend.** Où qu'il soit dans le jeu, quand l'élève marque
+« appris » une ressource pour la première fois ou réussit une question pour la première
+fois, une pastille _« +1 regard du proche »_ ou _« +1 regard du loin »_ s'envole en bas de
+l'écran. Il voit ainsi tout de suite que son geste compte.
+
+**Ce que voit le MJ.** Dans les statistiques de classe, chaque élève porte une pastille avec
+son stade, son niveau et son penchant (le détail des deux regards au survol) : un repère pour
+l'accompagner. Les élèves, eux, ne voient que leur propre niveau : il n'y a pas de
+classement entre élèves.
+
+**Visite guidée.** À la première ouverture, OLU présente le Seuil en trois bulles (le point
+de départ, les deux façons de grandir, le grimoire).
+
+L'admin peut éteindre le module (**Le Seuil**, dans les modules) : les élèves arrivent alors
+sur Cartes, comme avant, et le « +1 », la Loupe et la pastille des statistiques
+disparaissent avec lui.
 
 ### Cartes (le plateau de jeu)
 

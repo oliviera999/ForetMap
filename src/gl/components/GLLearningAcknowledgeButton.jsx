@@ -4,6 +4,12 @@ import { apiGL } from '../services/apiGL.js';
 import { createGlGatingHandlers } from '../../shared/utils/learningGatingChallengeClient.js';
 import { LearningQuizPopover } from '../../shared/components/LearningQuizPopover.jsx';
 import { useGlGatingSummary } from '../hooks/useGlGatingSummary.js';
+import { GLLoupeButton } from './GLLoupeButton.jsx';
+
+/** Sortilège « Loupe » du voyageur, au-dessus des choix du contrôle de compréhension. */
+function renderLoupeAid({ presentationToken, onEliminate }) {
+  return <GLLoupeButton presentationToken={presentationToken} onEliminate={onEliminate} />;
+}
 
 /**
  * Accusé de progression GL (espèce, glossaire, tutoriel) avec confirmation explicite.
@@ -67,6 +73,7 @@ export function GLLearningAcknowledgeButton({
       gatingSummary={gatingSummary}
       enableGating={enableGating}
       onSubmit={submit}
+      choiceAid={renderLoupeAid}
       {...rest}
     />
   );

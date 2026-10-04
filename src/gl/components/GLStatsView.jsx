@@ -174,6 +174,14 @@ function ClassLeaderboardRow({
         <span title="Espèces étudiées">🦋 {formatCount(s.species_learned)}</span>
         <span title="Termes du glossaire scientifique">📚 {formatCount(s.glossary_learned)}</span>
         <span title="Tutoriels lus">🎓 {formatCount(s.tutorials_read)}</span>
+        {row.voyageur ? (
+          <span
+            className="gl-stats-voyageur"
+            title={`Le Seuil — niveau ${row.voyageur.level} (${row.voyageur.points} points) · regard du proche ${row.voyageur.proche} · regard du loin ${row.voyageur.loin}`}
+          >
+            {row.voyageur.stage?.emoji} Niv. {row.voyageur.level} · {row.voyageur.affinity?.label}
+          </span>
+        ) : null}
       </div>
       {showJournalButton ? (
         <GLButton

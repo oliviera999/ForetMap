@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L : le Seuil, suite S1–S6 (« +1 », traversées, Loupe, visite d'OLU, vue MJ, gestes)
+
+- **S1 — « +1 » au moment où l'on apprend** : au premier acquis d'une ressource comptée et à la première bonne réponse à une question (libre, lore ou en partie), l'API renvoie `voyageurGain: { proche, loin }` ; `apiGL` émet `gl:voyageur-gain` et `GLVoyageurGainToast` fait s'envoler une pastille « +1 regard du proche / du loin ». `recordGlQcmAttemptForReader` signale désormais la première bonne réponse (`firstCorrect`).
+- **S2 — Mes traversées** : les expéditions terminées du joueur (mascotte, chapitre, date, coéquipiers) dans le Seuil, calculées depuis `gl_team_members` + `gl_games`, sans table.
+- **S3 — sortilège _Loupe_** (niveau 4) : bouton au-dessus des réponses (QCM de repère, de zone et contrôle « appris »), écarte une mauvaise réponse lue depuis le jeton de présentation sans le consommer ; refusé sous trois choix (charge non consommée). Prop optionnelle `choiceAid` sur `LearningGatingQuestionPanel` / `LearningAcknowledgeButton` (ForetMap inchangé) ; `readPresentationLayout` dans `lib/qcmChoices.js`.
+- **S4 — visite guidée d'OLU** sur le Seuil (trois bulles + relance), ancres `data-gl-tour="seuil-moi"` / `"seuil-grimoire"`.
+- **S5 — niveau visible du MJ** : `GET /api/gl/stats/class` ajoute `voyageur` (stade, niveau, penchant, deux regards) à chaque joueur — calcul groupé `loadVoyageurCountsForPlayers` ; pastille dans les statistiques de classe. Aucun classement côté élève.
+- **S6 — gestes de mascotte** : saluer (niveau 5), danser (6), cri du peuple (7), joués par la mascotte de l'équipe actuelle dans la face expédition, avec une bulle propre au peuple ; effet visuel local, coupé si l'élève a réduit les mouvements.
+- **Corrigé** : le Seuil (lot 1) introduisait un seuil `760px` hors liste canonique (`tests-ui/utils/breakpoints.test.js` rouge sur `main`) → `767px`. La pastille « +1 » utilise `--fm-z-toast` plutôt qu'un `z-index` en dur.
+- Tests : `tests/gl-voyageur-suite.test.js` (12), `tests-ui/gl/GLVoyageurGainToast.test.jsx`, `GLLoupeButton.test.jsx`, `GLSeuilView.test.jsx` complété. Doc : `docs/API.md`, `docs/reference/gl/presentation.md`, `economie-marche-sorts.md`, audit § 12.
+
 ### Ajouté — G&L : « Le Seuil », l'accueil du joueur (niveau du voyageur et grimoire personnel)
 
 - **Pourquoi** : audit de l'expérience joueur (`docs/AUDIT_EXPERIENCE_JOUEUR_GL_2026-10-03.md`) — hors séance, l'élève n'avait aucune progression visible ni rien à gagner, et atterrissait sur un plateau souvent vide. Premier lot des directions V1–V3, sans aucune action requise du professeur.

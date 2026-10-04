@@ -53,19 +53,23 @@ test.describe('GL responsive & accessibilité', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await seedGlPlayerSession(page, seeded);
 
+    // Barre épinglée : Le Seuil, Cartes, La nature (GL_MOBILE_PRIMARY_TAB_IDS) ; le reste
+    // (dont « Le monde G&L ») passe dans « Plus ».
     await expect(page.locator('.gl-bottom-nav')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le Seuil' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Cartes' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'La nature' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Plus d'onglets/ })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Le monde G&L' }).click();
-    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toHaveAttribute(
+    await page.getByRole('tab', { name: 'Cartes' }).click();
+    await expect(page.getByRole('tab', { name: 'Cartes' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
 
     await page.getByRole('button', { name: /Plus d'onglets/ }).click();
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toBeVisible();
     await expect(page.getByRole('tab', { name: "L'aventure" })).toBeVisible();
 
     await page.getByRole('tab', { name: "L'aventure" }).click();

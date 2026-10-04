@@ -59,6 +59,8 @@ test('les deux adaptateurs ont la même forme', () => {
   assert.equal(gl.filterLinksByLevel, null);
   assert.equal(fm.recordAttempt, null);
   assert.equal(typeof gl.recordAttempt, 'function');
+  assert.equal(fm.hasCorrectAttempt, null);
+  assert.equal(typeof gl.hasCorrectAttempt, 'function');
   assert.ok(Object.isFrozen(fm) && Object.isFrozen(gl) && Object.isFrozen(GATING_PRODUCTS));
 });
 

@@ -17,6 +17,9 @@
 > qu'elles ont de plus tangible (onglet « Le Seuil », niveau à deux regards, deux sortilèges du
 > voyageur). Voir **§ 11**, qui propose aussi la suite.
 >
+> **Suite S1–S6 (4 octobre 2026)** : le porteur a retenu **toutes** les propositions du § 11.3 ;
+> elles sont **livrées**. Voir **§ 12**.
+>
 > **Angle** : l'élève, pas le MJ. Deux questions guident l'audit. Que peut faire un joueur
 > **à tout moment**, et qu'est-ce qui dépend du **rythme des cours** ? Et l'ensemble
 > ressemble-t-il à un **jeu vidéo** qui donne envie de revenir et de progresser ?
@@ -892,3 +895,31 @@ S2 donne la première vraie collection de l'année, S4 explique le tout sans un 
 professeur. Les trois réunis tiennent en moins d'une semaine. S3 et S6 donnent ensuite au
 niveau de nouvelles raisons d'être désiré ; S5 dépend de ce que vous voulez montrer aux
 enseignants.
+
+---
+
+## 12. Suite S1–S6 livrée (4 octobre 2026)
+
+Le porteur a retenu les six propositions du § 11.3. Toutes sont livrées, sans action requise du
+professeur, sous le module `modules.voyageur_enabled`.
+
+| #   | Livré                                                                                                             | Où                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| S1  | Pastille « +1 regard du proche / du loin » au premier acquis et à la première bonne réponse, partout dans le jeu. | `voyageurGain` (routes learning / QCM), `apiGL` → `gl:voyageur-gain`, `GLVoyageurGainToast` |
+| S2  | **Mes traversées** : expéditions terminées, avec mascotte, chapitre, date et coéquipiers.                         | `loadTraversees` (calcul, sans table), section du Seuil                                     |
+| S3  | Sortilège **Loupe** (niveau 4) : écarte une mauvaise réponse pendant une question ; jamais sous trois choix.      | `applyLoupe`, `readPresentationLayout`, `GLLoupeButton` dans les trois interfaces QCM       |
+| S4  | Visite guidée d'OLU sur le Seuil (trois bulles + relance).                                                        | `glDiscoveryTour.js`, ancres `data-gl-tour`                                                 |
+| S5  | Stade, niveau et penchant de chaque élève dans les statistiques de classe du MJ ; aucun classement côté élève.    | `loadVoyageurCountsForPlayers`, `/stats/class`, `GLStatsView`                               |
+| S6  | Gestes de la mascotte **d'équipe** (saluer, danser, cri du peuple) débloqués par le niveau personnel.             | `MASCOT_GESTURES`, face expédition du Seuil                                                 |
+
+**Au passage** : le seuil CSS `760px` du lot 1 sortait de la liste canonique et faisait échouer
+`tests-ui/utils/breakpoints.test.js` sur `main` (fusion sans CI) ; ramené à `767px`.
+
+**Ce qui reste ouvert** (pistes, non arbitrées) :
+
+- le **pont vers la séance** (« chacun apporte son grimoire », § 10.2 V3) ;
+- le **campement** et les **pages à plusieurs mains** (V4, V5) ;
+- les **échos** entre joueurs (V6) ;
+- des **sons** de célébration (assets à choisir, sous licence compatible) ;
+- un « +1 » pour les articles de « Mon journal » (le plafond hebdomadaire rend le calcul
+  immédiat moins simple).
