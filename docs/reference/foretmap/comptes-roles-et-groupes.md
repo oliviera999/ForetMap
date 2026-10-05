@@ -15,6 +15,12 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Un seul écran de connexion** pour tout le monde : identifiant (e-mail ou pseudo) +
   mot de passe, ou compte Google. Le système reconnaît automatiquement s'il s'agit d'un
   élève, d'un professeur ou d'un administrateur.
+- **Bas de l'écran de connexion** : sous le lien « Vos données » s'affichent l'auteur et
+  le ou les contributeurs du projet, puis un message libre facultatif. Un administrateur
+  les modifie dans **Réglages → Accueil & modules → Contenus du site** (« Auteur »,
+  « Contributeur(s) », « Message au bas de l'écran de connexion ») ; vider un champ fait
+  disparaître la mention. L'auteur et
+  les contributeurs sont repris à l'identique sur la page « À propos ».
 - **Google ne crée pas de compte par défaut** : la connexion Google ne fonctionne que si
   le compte existe déjà (même adresse e-mail). Un administrateur peut activer, dans les
   réglages d'accueil, la **création automatique à la première connexion Google** — un

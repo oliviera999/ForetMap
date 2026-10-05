@@ -45,7 +45,18 @@ const SEARCH_INDEX = [
   {
     id: 'accueil',
     label: 'Accueil & modules',
-    keywords: ['accueil', 'auth', 'modules', 'connexion', 'authentification', 'contenu'],
+    keywords: [
+      'accueil',
+      'auth',
+      'modules',
+      'connexion',
+      'authentification',
+      'contenu',
+      'auteur',
+      'contributeur',
+      'crédits',
+      'credits',
+    ],
   },
   {
     id: 'pedago',

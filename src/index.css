@@ -2490,6 +2490,7 @@
       font-size:var(--text-xs);
       line-height:1.25;
     }
+    .auth-home-credit--message { margin-top:6px; white-space:pre-line; }
     .auth-version { font-size:var(--text-xs); color:var(--ink-muted); margin-top:8px; margin-bottom:0; text-align:center; }
     /* Notice « Vos données » (audit RGPD du 30/09/2026, RG1) : phrase d'information avant
        « Créer le compte », et lien permanent en bas de la carte de connexion. */

@@ -152,6 +152,22 @@ export const KEY_META = {
     section: 'content',
     order: 50,
   },
+  'content.auth.credit_author': {
+    label: 'Auteur (bas de l’écran de connexion et page À propos ; vide = masqué)',
+    section: 'content',
+    order: 52,
+  },
+  'content.auth.credit_contributor': {
+    label: 'Contributeur(s) (bas de l’écran de connexion et page À propos ; vide = masqué)',
+    section: 'content',
+    order: 54,
+  },
+  'content.auth.credit_message': {
+    label: 'Message au bas de l’écran de connexion (vide = masqué)',
+    section: 'content',
+    order: 56,
+    multiline: true,
+  },
   'content.app.loader': { label: 'Message global de chargement', section: 'content', order: 60 },
   'content.app.server_down_notice': {
     label: 'Message serveur indisponible',

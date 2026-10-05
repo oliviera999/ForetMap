@@ -84,6 +84,24 @@
       "maxLength": 180,
       "default": "Serveur indisponible. Nouvel essai automatique toutes les 2 minutes."
     },
+    "content.auth.credit_author": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 120,
+      "default": "Mohammed El Farrai"
+    },
+    "content.auth.credit_contributor": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 200,
+      "default": "Olivier Arnould-Laurent"
+    },
+    "content.auth.credit_message": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 240,
+      "default": ""
+    },
     "content.auth.guest_visit_cta": {
       "scope": "public",
       "type": "string",
@@ -1168,7 +1186,10 @@
           "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
           "login_tab": "Connexion",
           "register_tab": "Créer un compte",
-          "guest_visit_cta": "🧭 Visiter sans compte"
+          "guest_visit_cta": "🧭 Visiter sans compte",
+          "credit_author": "Mohammed El Farrai",
+          "credit_contributor": "Olivier Arnould-Laurent",
+          "credit_message": ""
         },
         "app": {
           "loader": "Chargement de la forêt…",
@@ -1785,6 +1806,54 @@
         "min": null,
         "max": null,
         "maxLength": 180,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.credit_author",
+      "scope": "public",
+      "type": "string",
+      "value": "Mohammed El Farrai",
+      "default_value": "Mohammed El Farrai",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.credit_contributor",
+      "scope": "public",
+      "type": "string",
+      "value": "Olivier Arnould-Laurent",
+      "default_value": "Olivier Arnould-Laurent",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 200,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "content.auth.credit_message",
+      "scope": "public",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 240,
         "values": null
       },
       "updated_at": null,
@@ -4702,7 +4771,10 @@
           "subtitle": "{app} — Le terrain d’apprentissage vivant du lycée",
           "login_tab": "Connexion",
           "register_tab": "Créer un compte",
-          "guest_visit_cta": "🧭 Visiter sans compte"
+          "guest_visit_cta": "🧭 Visiter sans compte",
+          "credit_author": "Mohammed El Farrai",
+          "credit_contributor": "Olivier Arnould-Laurent",
+          "credit_message": ""
         },
         "app": {
           "loader": "Chargement de la forêt…",

@@ -3,6 +3,7 @@ import { api, saveStoredSession, withAppBase } from '../services/api';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
+import { getAppCredits } from '../utils/appCredits.js';
 import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 import { PinModal } from './auth/PinModal.jsx';
 import { startGoogleAuth } from './auth/startGoogleAuth.js';
@@ -71,6 +72,7 @@ function AuthScreen({
     'auth.guest_visit_cta',
     '🧭 Visiter sans compte',
   );
+  const credits = getAppCredits(uiSettings);
 
   const resetTokenFromUrl = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -501,7 +503,21 @@ function AuthScreen({
         <p className="auth-privacy-footer">
           <PrivacyNoticeLink />
         </p>
-        <p className="auth-home-credit">projet initialement produit Mohammed El Farrai</p>
+        {(credits.author || credits.contributor) && (
+          <p className="auth-home-credit" data-testid="auth-credits">
+            {credits.author && <span>Auteur : {credits.author}</span>}
+            {credits.author && credits.contributor && ' · '}
+            {credits.contributor && <span>Contributeur : {credits.contributor}</span>}
+          </p>
+        )}
+        {credits.message && (
+          <p
+            className="auth-home-credit auth-home-credit--message"
+            data-testid="auth-credit-message"
+          >
+            {credits.message}
+          </p>
+        )}
         {appVersion != null && <p className="auth-version">Version {appVersion}</p>}
       </div>
     </main>

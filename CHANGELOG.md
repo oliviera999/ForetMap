@@ -9,13 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Modifié — Cartographie → Cartes : catégories affichées par défaut et cachées, par carte
+### Ajouté — Crédits réglables au bas de l'écran de connexion
 
-- **Par carte** : le réglage unique « Catégories de lieux affichées par défaut sur la carte », qui listait toutes les catégories de toutes les cartes, est remplacé par deux sélecteurs dans le bloc de chaque carte — **Catégories affichées par défaut** et **Catégories cachées** — limités aux catégories globales et à celles de la carte (visibles sur la carte de travail). Une catégorie cochée d'un côté n'est plus proposée de l'autre.
-- **Carte de travail** : les catégories cochées d'office sont celles de la carte active, réappliquées à chaque changement de carte (auparavant appliquées une seule fois par session). Les catégories cachées disparaissent des filtres, et un lieu qui n'a que des catégories cachées n'apparaît plus sur la carte (même règle que les catégories masquées du Plan).
-- **Données** : migration `318_maps_category_ids.sql` (colonnes `maps.default_category_ids` / `maps.hidden_category_ids`, reprise de la valeur de `ui.map.default_category_ids` sur chaque carte). `GET /api/maps` et `PUT /api/settings/admin/maps/:id` portent les deux listes, ramenées par le serveur aux catégories actives qui concernent la carte. La clé `ui.map.default_category_ids` n'est plus lue.
-- Tests : `tests/maps-category-ids.test.js`, `tests/map-category-ids-utils.test.js`, `tests-ui/components/settings/MapsAdminPanel.categories.test.jsx`, `MapViewImpl.mount.test.jsx` (défauts par carte, lieux cachés), instantané `terrain-maps-admin-snapshot`. Doc : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
-
+- **Constat** : la phrase « projet initialement produit Mohammed El Farrai » (écran de connexion) et les mentions « Auteur / Contributeur » (page À propos) étaient écrites en dur.
+- **Trois réglages publics** (`lib/settings/identity.js`) : `content.auth.credit_author`, `content.auth.credit_contributor`, `content.auth.credit_message`, éditables dans Réglages → Accueil & modules → Contenus du site. Une valeur vide masque la mention. L'écran de connexion affiche « Auteur : … · Contributeur : … » puis le message libre ; la page À propos lit les mêmes valeurs (`src/utils/appCredits.js`).
+- Tests : `tests/app-credits.test.js`, `tests-ui/components/AuthScreen.test.jsx`, instantané du registre des réglages. Doc : `docs/reference/foretmap/comptes-roles-et-groupes.md`.
 
 ### Corrigé — Mode hors ligne : l'application reste utilisable en mode avion
 
@@ -25,7 +23,6 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Écrans à la demande précachés** pour ForetMap (`precacheDynamicImports`, `collectEntryFiles({ includeDynamic })` dans `scripts/build-pwa.js`, ~1,3 Mo par version). `vite:preloadError` ne recharge plus la page hors ligne ; filet `lazyScreen` + `ScreenLoadBoundary` (dans `TabSuspense`) : « Cet écran n'est pas encore disponible hors ligne », nouvel essai automatique au retour du réseau (`React.lazy` mémorisait l'échec jusqu'au rechargement).
 - **Cache API** ForetMap en network-first : `/api/settings/public`, `/api/task-projects`, `/api/tutorials` ajoutés ; `/api/sync-state` volontairement exclu.
 - Tests : `tests-ui/shared/fetchJsonWithRetry.test.js`, `networkStatus.test.js`, `ScreenLoadBoundary.test.jsx`, `registerServiceWorker.test.js`, `tests-ui/hooks/useAppDataSync.test.jsx`, `useAppDataPolling.test.jsx`, `useAuthSession.test.jsx`, `tests/build-pwa.test.js`, `tests/last-data-sync.test.js`, e2e `e2e/offline-mode.spec.js` (service worker autorisé, `setOffline`). Doc : `docs/reference/foretmap/presentation.md` (section « Sans réseau du tout »).
-
 
 ### Modifié — Plan e-nov : logo et couleurs du label e-nov
 
@@ -42,6 +39,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Plusieurs onglets** : les lectures sont relues sur l'événement `storage`, et l'état des pastilles est fusionné à l'écriture (`mergeThreadReadState`) au lieu d'écraser celui d'un autre onglet. Commun ForetMap / G&L.
 - **Relèves** : le marqueur est relu à l'ouverture de l'onglet Forum et au changement de compte (réponses périmées ignorées).
 - Tests : `tests-ui/hooks/useForumUnread.test.jsx`, `tests-ui/utils/forumHelpers.test.js`, `tests-ui/shared/forum/SharedForumView.test.jsx`. Doc : `docs/API.md`, `docs/reference/foretmap/stats-forum-et-suivi.md`, `docs/reference/gl/presentation.md`.
+
+### Modifié — Cartographie → Cartes : catégories affichées par défaut et cachées, par carte
+
+- **Par carte** : le réglage unique « Catégories de lieux affichées par défaut sur la carte », qui listait toutes les catégories de toutes les cartes, est remplacé par deux sélecteurs dans le bloc de chaque carte — **Catégories affichées par défaut** et **Catégories cachées** — limités aux catégories globales et à celles de la carte (visibles sur la carte de travail). Une catégorie cochée d'un côté n'est plus proposée de l'autre.
+- **Carte de travail** : les catégories cochées d'office sont celles de la carte active, réappliquées à chaque changement de carte (auparavant appliquées une seule fois par session). Les catégories cachées disparaissent des filtres, et un lieu qui n'a que des catégories cachées n'apparaît plus sur la carte (même règle que les catégories masquées du Plan).
+- **Données** : migration `318_maps_category_ids.sql` (colonnes `maps.default_category_ids` / `maps.hidden_category_ids`, reprise de la valeur de `ui.map.default_category_ids` sur chaque carte). `GET /api/maps` et `PUT /api/settings/admin/maps/:id` portent les deux listes, ramenées par le serveur aux catégories actives qui concernent la carte. La clé `ui.map.default_category_ids` n'est plus lue.
+- Tests : `tests/maps-category-ids.test.js`, `tests/map-category-ids-utils.test.js`, `tests-ui/components/settings/MapsAdminPanel.categories.test.jsx`, `MapViewImpl.mount.test.jsx` (défauts par carte, lieux cachés), instantané `terrain-maps-admin-snapshot`. Doc : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
 
 ### Modifié — Captures PWA : vue « carte » d'un compte connecté
 

@@ -30,6 +30,36 @@ describe('AuthScreen', () => {
     expect(screen.getByRole('button', { name: 'Créer le compte' })).toBeInTheDocument();
   });
 
+  test('affiche les crédits par défaut tant que les réglages ne les fournissent pas', () => {
+    render(<AuthScreen onLogin={() => {}} uiSettings={{ auth: { allow_register: true } }} />);
+    const credits = screen.getByTestId('auth-credits');
+    expect(credits).toHaveTextContent('Auteur : Mohammed El Farrai');
+    expect(credits).toHaveTextContent('Contributeur : Olivier Arnould-Laurent');
+    expect(screen.queryByTestId('auth-credit-message')).toBeNull();
+  });
+
+  test('les crédits et le message suivent les réglages ; une valeur vide masque la mention', () => {
+    render(
+      <AuthScreen
+        onLogin={() => {}}
+        uiSettings={{
+          auth: { allow_register: true },
+          content: {
+            auth: {
+              credit_author: '',
+              credit_contributor: 'Équipe SVT',
+              credit_message: 'Merci !',
+            },
+          },
+        }}
+      />,
+    );
+    const credits = screen.getByTestId('auth-credits');
+    expect(credits).toHaveTextContent('Contributeur : Équipe SVT');
+    expect(credits).not.toHaveTextContent('Auteur');
+    expect(screen.getByTestId('auth-credit-message')).toHaveTextContent('Merci !');
+  });
+
   test('un resetToken dans l’URL ouvre le formulaire et disparaît de la barre d’adresse (CDG-52)', async () => {
     window.history.replaceState(null, '', '/?resetToken=abc123&resetType=teacher');
     const replaceSpy = vi.spyOn(window.history, 'replaceState');
