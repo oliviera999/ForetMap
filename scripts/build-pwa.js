@@ -115,6 +115,7 @@ const PWA_PROFILES = Object.freeze({
     // Icônes partagées avec le plan public (`assetsDir: 'plan'`) ; SVG enov = copie du plan.
     staticPrecache: Object.freeze([
       '/enov/favicon.svg',
+      '/enov/logo-enov.png',
       '/plan/favicon.ico',
       ...ICON_CANDIDATES.map((icon) => `/plan/${icon.file}`),
     ]),

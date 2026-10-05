@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Plan e-nov : logo et couleurs du label e-nov
+
+- **Logo du label** « e-nov — Établissements innovants » (AEFE, [page de l'appel à candidatures](https://aefe.gouv.fr/fr/actualites/label-e-nov-etablissement-innovant-ouverture-des-candidatures)) dans la barre haute, sur une pastille blanche (`public/enov/logo-enov.png`, recadré, précaché par le service worker `enov`). Le logo du lycée reste sur la carte. Porté par la variante (`ENOV_PLAN_VARIANT.labelLogo`, prop `labelLogo` de `PlanTopBar`) : les deux autres plans n'en ont pas.
+- **Charte** relevée sur le logo (bleu `#365f85`, bleu `#497fb8`, jaune `#faba38`) : barre haute en dégradé de bleus soulignée de jaune, boutons, fond et encres en bleus e-nov (`src/enov/styles/enov-plan.css`, prioritaire sur `ui.plan.brand`) ; `theme-color` / manifeste PWA en bleu e-nov.
+- **Couleur du halo par défaut** : `ui.enov_plan.highlight_color` passe de l'ambre `#f59e0b` au jaune du label `#faba38` (valeur déjà enregistrée inchangée).
+- Tests : `tests-ui/plan/EnovPlanMount.test.jsx` (logo e-nov présent, logo du lycée conservé, absent du plan public), instantané du registre des réglages. Doc : `docs/API.md`, `docs/reference/plan/plan-enov.md`.
+
 ### Corrigé — Forum : point rouge et pastilles « non lus »
 
 - **Suppression d'un message** : le point rouge de l'onglet Forum se rallumait chez tous ceux qui avaient tout lu, le serveur désignant alors un message plus ancien, différent du curseur. Le curseur local mémorise désormais `{ id, at }` et le point ne s'allume que pour un message **plus récent** (`src/utils/forumUnread.js`, ancien format relu).

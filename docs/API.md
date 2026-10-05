@@ -1458,7 +1458,7 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 | `ui.enov_plan.default_category_ids`     | string  | vide                                     | Catégories cochées à l'ouverture                                                       |
 | `ui.enov_plan.hidden_category_ids`      | string  | vide                                     | Catégories retirées des filtres (n'éteint pas la mise en avant)                        |
 | `ui.enov_plan.highlight_category_ids`   | string  | `cat-enov`                               | Catégories dont les lieux sont **mis en avant** (`is_enov`)                            |
-| `ui.enov_plan.highlight_color`          | string  | `#f59e0b`                                | Couleur du halo ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`              |
+| `ui.enov_plan.highlight_color`          | string  | `#faba38`                                | Couleur du halo ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`              |
 | `ui.enov_plan.badge_enabled`            | boolean | `false`                                  | Pastille « e-nov » à côté des lieux mis en avant, en plus du halo                      |
 | `ui.enov_plan.innovations_label`        | string  | `Innovations`                            | Intitulé de la puce qui liste les lieux mis en avant                                   |
 

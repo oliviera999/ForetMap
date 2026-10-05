@@ -1030,6 +1030,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       <PlanTopBar
         title={title}
         logoUrl={brand.logoUrl}
+        labelLogo={variant.labelLogo || null}
         query={query}
         onQueryChange={onQueryChange}
         onFocusSearch={() => setResultsOpen(true)}

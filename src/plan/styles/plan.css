@@ -134,6 +134,31 @@ body.plan-body {
   opacity: 0.95;
 }
 
+/* Logo d'un label (plan e-nov) : sur une pastille blanche, ses couleurs ne doivent pas se
+   fondre dans celles de la barre. */
+.plan-topbar__label {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--surface-plain);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+.plan-topbar__label-logo {
+  display: block;
+  width: auto;
+  height: 40px;
+  object-fit: contain;
+}
+
+@media (min-width: 720px) {
+  .plan-topbar__label-logo {
+    height: 48px;
+  }
+}
+
 .plan-topbar__title {
   margin: 0;
   font-size: var(--text-lg, 1.2rem);

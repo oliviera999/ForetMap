@@ -175,6 +175,17 @@ describe('AppPlan — variante « plan e-nov »', () => {
     ).toBe('#22aa88');
   });
 
+  test('logo du label e-nov dans la barre haute, logo du lycée conservé sur la carte', async () => {
+    const { container } = await mountEnov();
+    const label = screen.getByTestId('plan-label-logo');
+    expect(label.getAttribute('src')).toBe('/enov/logo-enov.png');
+    expect(label.getAttribute('alt')).toMatch(/Label e-nov/);
+    expect(container.querySelector('.plan-topbar').contains(label)).toBe(true);
+    expect(container.querySelector('.plan-map__school-logo')?.getAttribute('src')).toBe(
+      '/plan/logo-lyautey.png',
+    );
+  });
+
   test('sans pastille réglée : le halo seul', async () => {
     planApiMock.fetchPlanContent.mockResolvedValue({
       ...enovContent,
@@ -232,6 +243,7 @@ describe('AppPlan — plan public : aucune mise en avant', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan e-nov' })).toBeTruthy());
     // Le drapeau `map_highlight` vient de la charge ; c'est la variante qui allume le reste.
     expect(screen.queryByTestId('plan-innovations-button')).toBeNull();
+    expect(screen.queryByTestId('plan-label-logo')).toBeNull();
     expect(container.querySelector('.fm-pct-highlight-badge')).toBeNull();
     expect(
       container.querySelector('.plan-shell').style.getPropertyValue('--pct-highlight-color'),

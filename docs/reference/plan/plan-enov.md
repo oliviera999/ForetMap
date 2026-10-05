@@ -9,7 +9,15 @@ Le **plan e-nov** (`enov.olution.info`) est le plan de l'établissement tourné 
 innovant**, sur le vrai plan du lycée, pour qu'on les repère **au premier coup d'œil**.
 
 C'est **le même plan** que [le Plan Lyautey public](presentation.md) — la même carte, la même
-recherche, les mêmes fiches, le même bouton « Me situer » — avec trois différences :
+recherche, les mêmes fiches, le même bouton « Me situer » — habillé aux **couleurs du label
+e-nov** :
+
+- la **barre du haut** reprend les bleus du logo e-nov, soulignée d'un trait jaune, et porte le
+  **logo officiel « Label e-nov — Établissements innovants »** (AEFE) à côté du titre ;
+- le **logo du lycée** reste affiché en bas à gauche de la carte, comme sur les autres plans ;
+- les boutons, le fond et les textes passent du bleu marine du lycée aux bleus du label.
+
+Il s'en distingue aussi par trois fonctions :
 
 - les **lieux innovants ressortent** : un halo coloré les entoure et respire doucement, leur nom
   est écrit en gras et souligné de la même couleur, et **les autres lieux s'estompent** ;
@@ -86,20 +94,21 @@ e-nov **retirerait** de tous les autres plans les lieux qui n'ont qu'elle.
 
 Dans _Réglages → Plan Lyautey_, section **« Plan e-nov (enov) »** :
 
-| Réglage                           | Effet                                                                                     |
-| --------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Catégories mises en avant**     | Les catégories dont les lieux ressortent (par défaut « e-nov » seule)                     |
-| **Couleur du halo**               | La couleur de la mise en avant (halo, souligné, puce, encadré de la fiche)                |
-| **Pastille « e-nov »**            | Ajoute une pastille « e-nov » à côté des lieux mis en avant, en plus du halo (désactivée) |
-| **Intitulé de la liste**          | Le nom de la puce qui liste les lieux mis en avant (par défaut « Innovations »)           |
-| **Titre, message d'accueil**      | Le titre de l'application et la bulle affichée à la première ouverture                    |
-| **Mention en pied de page**       | Une mention sur la carte (source du fond de plan, par exemple)                            |
-| **Autres plans proposés**         | D'autres cartes que le lecteur peut ouvrir depuis « Réglages → Plan affiché »             |
-| **Catégories cochées / masquées** | Comme sur le plan public : filtres à l'ouverture, catégories retirées des filtres         |
-| **Mode d'accès, code d'accès**    | Public, ou fermé par un code (voir ci-dessous)                                            |
+| Réglage                           | Effet                                                                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Catégories mises en avant**     | Les catégories dont les lieux ressortent (par défaut « e-nov » seule)                                          |
+| **Couleur du halo**               | La couleur de la mise en avant (halo, souligné, puce, encadré de la fiche) — par défaut le jaune du logo e-nov |
+| **Pastille « e-nov »**            | Ajoute une pastille « e-nov » à côté des lieux mis en avant, en plus du halo (désactivée)                      |
+| **Intitulé de la liste**          | Le nom de la puce qui liste les lieux mis en avant (par défaut « Innovations »)                                |
+| **Titre, message d'accueil**      | Le titre de l'application et la bulle affichée à la première ouverture                                         |
+| **Mention en pied de page**       | Une mention sur la carte (source du fond de plan, par exemple)                                                 |
+| **Autres plans proposés**         | D'autres cartes que le lecteur peut ouvrir depuis « Réglages → Plan affiché »                                  |
+| **Catégories cochées / masquées** | Comme sur le plan public : filtres à l'ouverture, catégories retirées des filtres                              |
+| **Mode d'accès, code d'accès**    | Public, ou fermé par un code (voir ci-dessous)                                                                 |
 
 La **carte** affichée est celle du Plan Lyautey public : la changer là change aussi le plan
-e-nov. Masquer la puce « e-nov » des filtres (« Catégories masquées ») **n'éteint pas** la mise
+e-nov. Les **couleurs et le logo e-nov**, eux, ne se règlent pas : ils suivent la charte du label,
+et les couleurs de marque réglées pour le Plan Lyautey ne s'appliquent pas au plan e-nov. Masquer la puce « e-nov » des filtres (« Catégories masquées ») **n'éteint pas** la mise
 en avant : les lieux continuent de ressortir.
 
 ### Ouvrir le plan à un jury seulement

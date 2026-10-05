@@ -9,10 +9,71 @@
  */
 
 /*
- * La barre haute garde la marque de l'établissement (`ui.plan.brand`), comme sur le plan
- * public — le plan des personnels, lui, la teinte en brun. Ce qui distingue le plan e-nov à
- * l'écran, c'est son titre et la couleur du halo, reprise ci-dessous par la puce, l'encadré de
- * fiche et l'étiquette de liste.
+ * Charte du label e-nov (logo AEFE 2026) : bleu soutenu, bleu ciel et jaune soleil. Elle
+ * remplace le bleu marine Lyautey sur la coquille et les feuilles basses (montées en portail
+ * sous `body`, d'où les variables posées sur `body` *et* sur `.plan-shell`). Le logo du lycée,
+ * lui, reste sur la carte : seul l'habillage change.
+ *
+ * Elle prime sur `ui.plan.brand`, réglage d'identité partagé avec le plan public — comme la
+ * teinte brune du plan des personnels, c'est précisément ce qui ne doit pas l'être.
+ */
+
+/* Trois couleurs relevées sur le logo ; les teintes claires en dérivent (cliquet de
+   `tests/color-tokens-guard.test.js`). Le bleu marine est celui du texte « Établissements ». */
+.enov-plan-body {
+  --enov-blue-deep: #365f85;
+  --enov-blue: #497fb8;
+  --enov-sun: #faba38;
+  --enov-sky-soft: color-mix(in srgb, var(--enov-blue) 11%, var(--surface-plain));
+  --plan-navy: var(--enov-blue-deep);
+  --plan-navy-mid: var(--enov-blue);
+  --plan-steel: color-mix(in srgb, var(--enov-blue) 55%, var(--surface-plain));
+  --plan-primary: var(--enov-blue-deep);
+  --plan-bg: var(--enov-sky-soft);
+  --plan-ink: var(--enov-blue-deep);
+  --plan-muted: color-mix(in srgb, var(--enov-blue-deep) 85%, var(--surface-plain));
+  --forest: var(--enov-blue-deep);
+  --leaf: var(--enov-blue);
+  background: var(--plan-bg);
+}
+
+.enov-plan-body .plan-shell {
+  --plan-primary: var(--enov-blue-deep);
+  --forest: var(--enov-blue-deep);
+  --leaf: var(--enov-blue);
+  --plan-bg: var(--enov-sky-soft);
+  --plan-ink: var(--enov-blue-deep);
+}
+
+/* Barre haute : dégradé des bleus du logo, soulignée du jaune du label. */
+.enov-plan-body .plan-topbar {
+  background: linear-gradient(
+    115deg,
+    var(--enov-blue-deep) 0%,
+    var(--enov-blue) 75%,
+    color-mix(in srgb, var(--enov-blue) 80%, var(--surface-plain)) 100%
+  );
+  border-bottom: 4px solid var(--enov-sun);
+}
+
+.enov-plan-body .plan-topbar__search:focus-within {
+  box-shadow: 0 0 0 3px var(--enov-sun);
+}
+
+.enov-plan-body .plan-topbar__tool:focus-visible {
+  outline-color: var(--enov-sun);
+}
+
+.enov-plan-body .plan-access-gate {
+  --fm-control-border: rgba(54, 95, 133, 0.4);
+  --fm-control-border-hover: var(--enov-blue);
+  --fm-control-border-focus: var(--enov-blue);
+  --fm-control-ring: 0 0 0 3px rgba(250, 186, 56, 0.5);
+}
+
+/*
+ * Ce qui distingue aussi le plan e-nov à l'écran, c'est la couleur du halo (par défaut le
+ * jaune du label), reprise ci-dessous par la puce, l'encadré de fiche et l'étiquette de liste.
  */
 
 /* ---- Puce « Innovations » : la première de la rangée, dans la couleur du halo ---- */

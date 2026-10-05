@@ -21,7 +21,7 @@ const ENOV_KEYS = Object.freeze({
 });
 
 /** Miroir de `ENOV_DEFAULT_HIGHLIGHT_COLOR` (`lib/enovPlan.js`). */
-const DEFAULT_HIGHLIGHT_COLOR = '#f59e0b';
+const DEFAULT_HIGHLIGHT_COLOR = '#faba38';
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
