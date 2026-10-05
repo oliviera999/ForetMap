@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Captures PWA : vue « carte » d'un compte connecté
+
+- `scripts/capture-pwa-screenshots.js` (`npm run pwa:screenshots`) sait photographier l'onglet Carte d'un compte connecté (vue `carte`, plan `foret` par défaut) quand `PWA_SCREENSHOT_IDENTIFIER` / `PWA_SCREENSHOT_PASSWORD` sont renseignés dans `.env` (documentés dans `.env.example`, compte élève de démonstration recommandé). Le nom et l'avatar du compte sont remplacés par un libellé neutre avant la prise de vue, y compris sur la capture d'échec. Sans compte, la vue `visite` (visite publique) reste le comportement par défaut ; option `--vue carte|visite`.
+- Les captures `public/pwa-screenshot-*.png` sont régénérées (visite publique, aucune donnée nominative).
+
 ### Ajouté — G&L : sons du voyageur (synthétisés) et détail des pistes restantes
 
 - **Sons** (`src/gl/utils/glVoyageurSounds.js`) : synthétisés par la Web Audio API à partir de petites partitions — aucun fichier, aucune dépendance, aucune question de licence. Un son par événement : « +1 » (deux timbres, proche / loin), niveau atteint (arpège), sortilège lancé, _Loupe_, gestes de mascotte (cri différent selon le peuple). Volume bas, < 0,6 s, muets onglet caché et sans contexte audio.
