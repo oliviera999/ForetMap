@@ -1,31 +1,37 @@
-import { lazy } from 'react';
+import { lazyScreen } from '../../shared/lazyScreen.jsx';
 
 import { TabSuspense } from '../TabSuspense.jsx';
 
-const VisitViewLazy = lazy(() => import('../visit-views').then((m) => ({ default: m.VisitView })));
-const GlossaryViewLazy = lazy(() =>
+const VisitViewLazy = lazyScreen(() =>
+  import('../visit-views').then((m) => ({ default: m.VisitView })),
+);
+const GlossaryViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.GlossaryView })),
 );
-const QuizViewLazy = lazy(() => import('../pedago-views').then((m) => ({ default: m.QuizView })));
-const QuizAdminViewLazy = lazy(() =>
+const QuizViewLazy = lazyScreen(() =>
+  import('../pedago-views').then((m) => ({ default: m.QuizView })),
+);
+const QuizAdminViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.QuizAdminView })),
 );
-const FoodWebViewLazy = lazy(() =>
+const FoodWebViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.FoodWebView })),
 );
-const NestedGroupsViewLazy = lazy(() =>
+const NestedGroupsViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.NestedGroupsView })),
 );
-const IdKeysViewLazy = lazy(() =>
+const IdKeysViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.IdKeysView })),
 );
-const IndividualsViewLazy = lazy(() =>
+const IndividualsViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.IndividualsView })),
 );
-const SessionsViewLazy = lazy(() =>
+const SessionsViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.SessionsView })),
 );
-const AboutViewLazy = lazy(() => import('../about-views').then((m) => ({ default: m.AboutView })));
+const AboutViewLazy = lazyScreen(() =>
+  import('../about-views').then((m) => ({ default: m.AboutView })),
+);
 
 /**
  * Onglets pédagogiques partagés par les branches prof et élève d'App.jsx (D4) :

@@ -144,6 +144,27 @@ describe('useAuthSession', () => {
     spy.mockRestore();
   });
 
+  it('validateStudentSession hors ligne : aucune alerte, nouvelle vérification au retour du réseau', async () => {
+    const { params, result } = renderAuthSession();
+    const offlineErr = new Error('Pas de réseau pour l’instant.');
+    offlineErr.offline = true;
+    apiMocks.api.mockRejectedValueOnce(offlineErr);
+    await act(() => result.current.validateStudentSession({ id: 'S1' }));
+    expect(params.setSessionValidationError).not.toHaveBeenCalledWith(true);
+    expect(params.setToast).not.toHaveBeenCalled();
+
+    apiMocks.getStoredSession.mockReturnValue({ student: { id: 'S1' } });
+    apiMocks.api.mockResolvedValueOnce({ id: 'S1', first_name: 'Léa' });
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() =>
+      expect(apiMocks.api).toHaveBeenLastCalledWith('/api/students/register', 'POST', {
+        studentId: 'S1',
+      }),
+    );
+  });
+
   it('validateStudentSession : compte supprimé → forceLogout', async () => {
     const { params, result } = renderAuthSession();
     apiMocks.api.mockRejectedValue(new AccountDeletedErrorMock());

@@ -274,6 +274,87 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     expect(pauses[1]).toBeGreaterThan(pauses[0]);
   });
 
+  describe('appareil hors ligne (mode avion)', () => {
+    test('une seule tentative, erreur marquée `offline`, aucun bandeau de reconnexion', async () => {
+      const fetchMock = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValue(new TypeError('Failed to fetch'));
+      const retryGate = createApiRetryGate();
+      const events = [];
+      const unsubscribe = subscribeAppStatus((detail) => events.push(detail));
+      let caught = null;
+      try {
+        await fetchJsonWithRetry(
+          '/api/test',
+          { method: 'GET' },
+          { buildHttpError, retryGate, isOffline: () => true },
+        );
+      } catch (err) {
+        caught = err;
+      } finally {
+        unsubscribe();
+      }
+      expect(caught).toBeInstanceOf(TypeError);
+      expect(caught.offline).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(events).toEqual([]);
+      // Pas de pause partagée : ce n'est pas le serveur qui est indisponible.
+      expect(retryGate.remainingMs()).toBe(0);
+    });
+
+    test('l’erreur produit (onNetworkError) est marquée elle aussi', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+      await expect(
+        fetchJsonWithRetry(
+          '/api/test',
+          { method: 'POST', body: { a: 1 } },
+          {
+            buildHttpError,
+            isOffline: () => true,
+            onNetworkError: () => new Error('Pas de réseau pour l’instant.'),
+          },
+        ),
+      ).rejects.toMatchObject({ message: 'Pas de réseau pour l’instant.', offline: true });
+    });
+
+    test('la copie du service worker reste servie : la tentative unique réussit', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonRes(200, [{ id: 'z1' }]));
+      const data = await fetchJsonWithRetry(
+        '/api/zones',
+        { method: 'GET' },
+        { buildHttpError, isOffline: () => true },
+      );
+      expect(data).toEqual([{ id: 'z1' }]);
+    });
+
+    test('n’attend pas la pause partagée ouverte par une panne serveur', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonRes(200, { ok: true }));
+      const retryGate = createApiRetryGate();
+      const waitSpy = vi.spyOn(retryGate, 'wait');
+      retryGate.pauseFor(60000);
+      await fetchJsonWithRetry(
+        '/api/test',
+        { method: 'GET' },
+        { buildHttpError, retryGate, isOffline: () => true },
+      );
+      expect(waitSpy).not.toHaveBeenCalled();
+    });
+
+    test('en ligne, une coupure réseau reste réessayée comme avant', async () => {
+      const fetchMock = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(jsonRes(200, { ok: true }));
+      const data = await fetchJsonWithRetry(
+        '/api/test',
+        { method: 'GET' },
+        { buildHttpError, isOffline: () => false },
+      );
+      expect(data).toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   test('200 HTML lève un message de contenu inattendu (assertJsonApiBody)', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,

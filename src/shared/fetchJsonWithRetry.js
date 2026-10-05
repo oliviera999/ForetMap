@@ -27,6 +27,7 @@ import {
 } from './apiTransport.js';
 import { apiRetryGate } from './apiRetryGate.js';
 import { emitAppStatus } from './appStatusEvents.js';
+import { isDeviceOffline, markOfflineError } from './networkStatus.js';
 
 /** Message utilisateur commun aux deux produits quand la requête dépasse le timeout. */
 export const REQUEST_TIMEOUT_USER_MESSAGE = 'Délai d’attente dépassé pour la requête réseau.';
@@ -80,6 +81,7 @@ function createRetryStatusReporter() {
  *   (compte supprimé, session expirée…) ou se limiter à des effets de bord
  * @param {(ctx: { res: Response, errBody: object, token: string|null, sawGatewayResponse: boolean }) => Error} options.buildHttpError
  *   construit l'Error produit pour toute réponse HTTP non-ok non réessayée
+ * @param {() => boolean} [options.isOffline] appareil sans réseau (défaut : `navigator.onLine === false`)
  * @returns {Promise<any>} corps JSON parsé (ou null pour 204/205)
  */
 export async function fetchJsonWithRetry(path, request = {}, options = {}) {
@@ -103,6 +105,7 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
     buildHttpError,
     // Injectable pour les tests ; en production, une seule fenêtre partagée par onglet.
     retryGate = apiRetryGate,
+    isOffline = isDeviceOffline,
   } = options;
 
   const headers = {
@@ -146,8 +149,9 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
     let sawGatewayResponse = false;
     try {
       // Le serveur est déjà connu comme indisponible : attendre la fenêtre partagée plutôt
-      // que d'ajouter une requête à celles qui échouent déjà.
-      await retryGate.wait();
+      // que d'ajouter une requête à celles qui échouent déjà. Hors ligne, la pause ne sert
+      // à rien : la requête part tout de suite, le service worker répond depuis sa copie.
+      if (!isOffline()) await retryGate.wait();
 
       let res;
       try {
@@ -158,6 +162,13 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
           signal: controller.signal,
         });
       } catch (err) {
+        if (isOffline()) {
+          // Mode avion : le serveur n'est pas en cause, et réessayer ne ferait que retarder
+          // l'échec (8 tentatives, ~25 s) en affichant « reconnexion en cours ». L'appelant
+          // reçoit tout de suite une erreur marquée `offline` (file d'attente, bandeau dédié).
+          const mapped = typeof onNetworkError === 'function' ? onNetworkError(err) : null;
+          throw markOfflineError(mapped || err);
+        }
         if (timedOut || err?.name === 'AbortError') {
           await handleTimeout(attempt);
           continue;

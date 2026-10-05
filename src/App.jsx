@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { lazyScreen } from './shared/lazyScreen.jsx';
 import {
   api,
   getAuthClaims,
@@ -38,50 +39,52 @@ import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
 import { oauthFeedbackDurationMs } from './utils/appShellHelpers';
 import { readLastViewedMapId, rememberLastViewedMapId } from './utils/lastViewedMap.js';
 import { PinModal } from './components/auth-views';
-const StudentStatsLazy = lazy(() =>
+const StudentStatsLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
 );
-const StudentProfileEditorLazy = lazy(() =>
+const StudentProfileEditorLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })),
 );
 import { TabSuspense } from './components/TabSuspense.jsx';
 import { GlossaryPopover, readGlossaryTermMessage } from './components/pedago/GlossaryPopover.jsx';
 
-const PlantManagerLazy = lazy(() =>
+const PlantManagerLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })),
 );
-const PlantViewerLazy = lazy(() =>
+const PlantViewerLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })),
 );
-const ObservationNotebookLazy = lazy(() =>
+const ObservationNotebookLazy = lazyScreen(() =>
   import('./components/journal/UserJournalView.jsx').then((m) => ({ default: m.UserJournalView })),
 );
 // Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
-const PlantCatalogPreviewModalLazy = lazy(() =>
+const PlantCatalogPreviewModalLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantCatalogPreviewModal })),
 );
-const TutorialsViewLazy = lazy(() =>
+const TutorialsViewLazy = lazyScreen(() =>
   import('./components/tutorials-views').then((m) => ({ default: m.TutorialsView })),
 );
-const TeacherStatsLazy = lazy(() =>
+const TeacherStatsLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.TeacherStats })),
 );
-const ProfilesAdminViewLazy = lazy(() =>
+const ProfilesAdminViewLazy = lazyScreen(() =>
   import('./components/profiles-views').then((m) => ({ default: m.ProfilesAdminView })),
 );
-const AuditLogLazy = lazy(() =>
+const AuditLogLazy = lazyScreen(() =>
   import('./components/audit-views').then((m) => ({ default: m.AuditLog })),
 );
-const SettingsAdminViewLazy = lazy(() =>
+const SettingsAdminViewLazy = lazyScreen(() =>
   import('./components/settings-admin-views').then((m) => ({ default: m.SettingsAdminView })),
 );
-const MediaLibraryViewLazy = lazy(() =>
+const MediaLibraryViewLazy = lazyScreen(() =>
   import('./components/media-library-views').then((m) => ({ default: m.MediaLibraryView })),
 );
-const ForumViewLazy = lazy(() =>
+const ForumViewLazy = lazyScreen(() =>
   import('./components/forum-views').then((m) => ({ default: m.ForumView })),
 );
-const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
+const VisitMascotPackManagerLazy = lazyScreen(
+  () => import('./components/VisitMascotPackManager.jsx'),
+);
 
 /** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
@@ -149,6 +152,8 @@ import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useAuthTokenRenewal } from './hooks/useAuthTokenRenewal';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { useDeviceOnline } from './shared/hooks/useDeviceOnline.js';
+import { offlineBannerText } from './utils/lastDataSync.js';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
@@ -532,6 +537,7 @@ function App() {
     loading,
     refreshMs,
     serverDown,
+    lastSyncAt,
     retryingServer,
     fetchAll,
     retryServerNow,
@@ -585,6 +591,7 @@ function App() {
 
   // Mise à jour de l'app prête à être appliquée : proposée en bandeau, jamais imposée.
   const swUpdate = useServiceWorkerUpdate();
+  const deviceOnline = useDeviceOnline();
 
   useDefaultActiveMapFromSettings({
     publicSettingsReady,
@@ -1621,7 +1628,10 @@ function App() {
                       </button>
                     </div>
                   )}
-                  {serverDown && (
+                  {!deviceOnline && (
+                    <NoticeBanner tone="info">{offlineBannerText(lastSyncAt)}</NoticeBanner>
+                  )}
+                  {deviceOnline && serverDown && (
                     <NoticeBanner tone="warning">
                       {appServerDownNotice}
                       {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver

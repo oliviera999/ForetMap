@@ -151,6 +151,10 @@ export function registerServiceWorker({
     .catch(() => {});
 
   win.addEventListener('vite:preloadError', (event) => {
+    // Hors ligne, le chunk manque faute de réseau, pas parce qu'une version l'a remplacé :
+    // recharger viderait l'écran sans rien réparer (et annoncerait à tort une mise à jour).
+    // L'erreur remonte à l'écran concerné (`lazyScreen` + `TabSuspense`), qui le dit.
+    if (nav.onLine === false) return;
     // Anti-boucle : si le chunk manque encore après rechargement, mieux vaut laisser
     // l'erreur remonter (ErrorBoundary) que boucler sur `location.reload()`.
     const last = Number(safeSessionStorageGetItem(SW_PRELOAD_RELOAD_FLAG, 0)) || 0;

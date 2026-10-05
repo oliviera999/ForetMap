@@ -115,6 +115,20 @@ test('collectEntryFiles suit les imports statiques (récursifs) et ignore les ch
   assert.deepStrictEqual(collectEntryFiles(null, 'gl.html'), []);
 });
 
+test('collectEntryFiles({ includeDynamic }) ajoute les chunks dynamiques après le graphe statique', () => {
+  const files = collectEntryFiles(FAKE_VITE_MANIFEST, 'index.vite.html', { includeDynamic: true });
+  assert.deepStrictEqual(files, [
+    '/assets/main-AAA.js',
+    '/assets/main-AAA.css',
+    '/assets/react-vendor-RRR.js',
+    '/assets/scheduler-SSS.js',
+    '/assets/icons-III.js',
+    '/assets/icons-III.css',
+    '/assets/Lazy-LLL.js',
+    '/assets/Lazy-LLL.css',
+  ]);
+});
+
 test('htmlEntriesForProduct : ForetMap garde /index.html, les autres produits non', () => {
   assert.deepStrictEqual(htmlEntriesForProduct(PRODUCTS.foret), [
     '/',
@@ -192,9 +206,23 @@ test('buildProductPwa : seuls les bundles de la bonne entrée sont précachés',
   const foret = buildProductPwa(PRODUCTS.foret, { viteManifest: FAKE_VITE_MANIFEST, exists });
   for (const url of FORET_STATIC_ASSETS) assert.ok(foret.precache.includes(url), url);
   assert.ok(foret.precache.includes('/assets/icons-III.css'));
-  assert.ok(!foret.precache.includes('/assets/Lazy-LLL.js'));
+  // Écrans chargés à la demande : précachés pour ForetMap (ouverts hors ligne sur le terrain).
+  assert.ok(foret.precache.includes('/assets/Lazy-LLL.js'));
+  assert.ok(foret.precache.includes('/assets/Lazy-LLL.css'));
   assert.ok(foret.serviceWorker.includes('"/api/visit/content"'));
   assert.ok(foret.serviceWorker.includes('"/api/zones"'));
+});
+
+test('ForetMap hors ligne : réglages publics, projets et tutoriels en cache, jamais la sonde', () => {
+  const foret = buildProductPwa(PRODUCTS.foret, {
+    viteManifest: FAKE_VITE_MANIFEST,
+    exists: () => true,
+  });
+  for (const route of ['/api/settings/public', '/api/task-projects', '/api/tutorials']) {
+    assert.ok(foret.serviceWorker.includes(`"${route}"`), route);
+  }
+  // La sonde du polling différentiel doit refléter l'état réel du serveur.
+  assert.ok(!foret.serviceWorker.includes('/api/sync-state'));
 });
 
 test('buildPwa écrit les SW et manifests de tous les produits + copies sw.js/manifest.json', () => {

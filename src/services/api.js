@@ -371,6 +371,7 @@ export function isLikelyNetworkTransportFailure(err) {
   if (!err) return false;
   if (err.name === 'AbortError') return false;
   if (err.code === NETWORK_FAILURE_CODE) return true;
+  if (err.offline === true) return true;
   const msg = String(err.message || err || '').toLowerCase();
   if (err instanceof TypeError && typeof fetch !== 'undefined') {
     return (

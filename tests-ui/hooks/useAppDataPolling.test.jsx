@@ -49,6 +49,19 @@ describe('useAppDataPolling', () => {
     vi.useRealTimers();
   });
 
+  it('suspend le rafraîchissement automatique tant que l’appareil est hors ligne', () => {
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => false });
+    try {
+      const { fetchAll } = mountPolling({ tab: 'map', refreshMs: 1000 });
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(fetchAll).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => true });
+    }
+  });
+
   it('double l’intervalle sur un onglet coarse si le temps réel n’est pas live', () => {
     const { fetchAll } = mountPolling({ tab: 'glossary' });
 

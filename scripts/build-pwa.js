@@ -63,8 +63,28 @@ const FORET_STATIC_ASSETS = Object.freeze([
 const PWA_PROFILES = Object.freeze({
   foret: Object.freeze({
     staticPrecache: FORET_STATIC_ASSETS,
+    /**
+     * Écrans chargés à la demande (stats, plantes, carnet, tutoriels, forum, pédagogie…)
+     * précachés eux aussi (~1,3 Mo, une fois par version). Sans eux, ouvrir hors ligne un
+     * écran jamais visité échouait : l'élève sur le terrain, en mode avion, perdait la page.
+     */
+    precacheDynamicImports: true,
     apiStaleWhileRevalidate: Object.freeze(['/api/maps', '/api/visit/content']),
-    apiNetworkFirst: Object.freeze(['/api/zones', '/api/plants', '/api/map/markers', '/api/tasks']),
+    /**
+     * `/api/settings/public` : sans copie, un démarrage hors ligne attendait l'échec de cette
+     * requête avant de charger les données. `/api/task-projects` et `/api/tutorials` sont
+     * lus à chaque cycle de synchronisation. `/api/sync-state` n'y figure **jamais** : la
+     * sonde doit refléter l'état réel du serveur.
+     */
+    apiNetworkFirst: Object.freeze([
+      '/api/zones',
+      '/api/plants',
+      '/api/map/markers',
+      '/api/tasks',
+      '/api/task-projects',
+      '/api/tutorials',
+      '/api/settings/public',
+    ]),
   }),
   gl: Object.freeze({
     staticPrecache: Object.freeze(['/gl/favicon.svg', '/gl/logo.png']),
@@ -134,13 +154,15 @@ function htmlEntriesForProduct(product) {
 }
 
 /**
- * Fichiers (JS + CSS) d'une entrée du manifeste Vite, imports statiques suivis récursivement,
- * chunks dynamiques ignorés (chargés à la demande, mis en cache-first au premier accès).
+ * Fichiers (JS + CSS) d'une entrée du manifeste Vite, imports statiques suivis récursivement.
+ * Par défaut les chunks dynamiques sont ignorés (chargés à la demande, mis en cache-first au
+ * premier accès) ; `includeDynamic` les suit aussi, récursivement.
  * @param {Record<string, { file: string, css?: string[], imports?: string[], dynamicImports?: string[] }>} viteManifest
  * @param {string} entryKey Clé du manifeste (ex. `gl.html`).
+ * @param {{ includeDynamic?: boolean }} [options]
  * @returns {string[]} URLs absolues (`/assets/...`), sans doublon, entrée en premier.
  */
-function collectEntryFiles(viteManifest, entryKey) {
+function collectEntryFiles(viteManifest, entryKey, { includeDynamic = false } = {}) {
   const manifest = viteManifest && typeof viteManifest === 'object' ? viteManifest : {};
   const entry = manifest[entryKey];
   if (!entry) return [];
@@ -154,6 +176,7 @@ function collectEntryFiles(viteManifest, entryKey) {
     files.push(url);
   };
   const visited = new Set();
+  const dynamicQueue = [];
   const visit = (key) => {
     if (visited.has(key)) return;
     visited.add(key);
@@ -162,8 +185,12 @@ function collectEntryFiles(viteManifest, entryKey) {
     push(chunk.file);
     for (const css of chunk.css || []) push(css);
     for (const imported of chunk.imports || []) visit(imported);
+    if (includeDynamic) dynamicQueue.push(...(chunk.dynamicImports || []));
   };
   visit(entryKey);
+  // Les chunks dynamiques après tout le graphe statique : l'ordre du précache reste lisible
+  // (coquille d'abord) et identique à celui d'avant pour la partie statique.
+  while (dynamicQueue.length > 0) visit(dynamicQueue.shift());
   return files;
 }
 
@@ -215,7 +242,9 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
     apiNetworkFirst: [],
   };
   const htmlEntries = htmlEntriesForProduct(product);
-  const bundles = collectEntryFiles(viteManifest, product.htmlEntry);
+  const bundles = collectEntryFiles(viteManifest, product.htmlEntry, {
+    includeDynamic: !!profile.precacheDynamicImports,
+  });
   const staticPrecache = profile.staticPrecache.filter(
     (url) =>
       url === '/' || url === '/manifest.json' || url.endsWith('.html') || exists(url.slice(1)),

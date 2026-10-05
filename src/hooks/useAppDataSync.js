@@ -14,6 +14,18 @@ import { pickDefaultMapId, resolveScopedMapId, visibleMapsForScope } from '../ut
 import { keepPrevIfEqual } from '../utils/stableCollection';
 import { partitionByArchived } from '../utils/taskArchive';
 import { readLastViewedMapId } from '../utils/lastViewedMap.js';
+import { readLastDataSyncAt, rememberLastDataSyncAt } from '../utils/lastDataSync.js';
+import {
+  isDeviceOffline,
+  isOfflineError,
+  subscribeNetworkStatus,
+} from '../shared/networkStatus.js';
+
+/** Échec imputable au serveur (réseau ou 5xx) — jamais quand l'appareil est hors ligne. */
+function isServerSideFailure(err) {
+  if (isOfflineError(err)) return false;
+  return err?.status == null || err.status >= 500;
+}
 
 /** Référence stable partagée par tous les états « pas de carte » (évite un re-render inutile). */
 const DEFAULT_MAPS = [];
@@ -76,6 +88,7 @@ export function useAppDataSync({
   const [loading, setLoading] = useState(true);
   const [refreshMs, setRefreshMs] = useState(DATA_REFRESH_INTERVAL_MS);
   const [serverDown, setServerDown] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState(readLastDataSyncAt);
   // Vrai pendant une relance manuelle déclenchée par « Réessayer maintenant » :
   // désactive brièvement le bouton pour éviter les doubles clics (le rafraîchissement
   // automatique toutes les 2 min n'est pas affecté).
@@ -147,7 +160,9 @@ export function useAppDataSync({
           let syncState = null;
           // Pas de sonde au tout premier chargement : elle ajouterait un aller-retour
           // avant les premières données. La baseline s'établit au cycle suivant.
-          if (initialFetchDoneRef.current) {
+          // Hors ligne, la sonde (jamais mise en cache) échouerait à coup sûr : cycle complet
+          // directement, servi par les copies du service worker.
+          if (initialFetchDoneRef.current && !isDeviceOffline()) {
             try {
               const probed = await api('/api/sync-state');
               if (isValidSyncState(probed)) syncState = probed;
@@ -193,7 +208,7 @@ export function useAppDataSync({
               } catch (err) {
                 if (err instanceof AccountDeletedError) throw err;
                 domainFailures += 1;
-                if (err?.status == null || err.status >= 500) serverSideFailures += 1;
+                if (isServerSideFailure(err)) serverSideFailures += 1;
                 console.error(err);
                 return FETCH_DOMAIN_FAILED;
               }
@@ -338,6 +353,13 @@ export function useAppDataSync({
               // ces domaines à jour et ne les rechargerait qu'à la prochaine écriture.
               lastSyncStateRef.current = null;
             } else {
+              // Hors ligne, un cycle « réussi » ne fait que relire les copies du service
+              // worker : il ne date pas les données.
+              if (!isDeviceOffline()) {
+                const now = Date.now();
+                rememberLastDataSyncAt(now);
+                setLastSyncAt(now);
+              }
               // Cycle complet réussi : baseline du polling différentiel. `syncState` a été
               // sondé AVANT les refetchs — une écriture arrivée pendant le cycle rendra
               // donc le prochain compteur différent → refetch (conservateur, jamais stale).
@@ -366,8 +388,7 @@ export function useAppDataSync({
             if (e instanceof AccountDeletedError) forceLogout();
             else {
               console.error(e);
-              const isServerSide = e.status == null || e.status >= 500;
-              if (isServerSide) {
+              if (isServerSideFailure(e)) {
                 failCountRef.current += 1;
                 if (failCountRef.current >= 3) {
                   setServerDown(true);
@@ -438,6 +459,21 @@ export function useAppDataSync({
     };
   }, [hasAuthenticatedShell, activeMapId, contextReady, context, fetchAll]);
 
+  /*
+   * Retour du réseau : synchronisation complète immédiate, sans attendre le prochain tick
+   * du rafraîchissement automatique (suspendu hors ligne, voir `useAppDataPolling`).
+   */
+  useEffect(() => {
+    if (!hasAuthenticatedShell || !contextReady) return undefined;
+    return subscribeNetworkStatus((online) => {
+      if (!online) return;
+      failCountRef.current = 0;
+      lastSyncStateRef.current = null;
+      setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+      void fetchAll();
+    });
+  }, [hasAuthenticatedShell, contextReady, fetchAll]);
+
   /**
    * Charge les tâches/projets archivés de la carte active (prof, vue « Archivés »).
    * Séparé du poll pour ne pas sérialiser l'historique à chaque cycle.
@@ -493,6 +529,7 @@ export function useAppDataSync({
     loading,
     refreshMs,
     serverDown,
+    lastSyncAt,
     retryingServer,
     fetchAll,
     retryServerNow,

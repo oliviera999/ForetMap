@@ -451,6 +451,42 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   qui donne les pistes : vérifier la connexion de l'établissement, maintenance possible
   du site.
 
+### Sans réseau du tout (mode avion, Wi-Fi coupé)
+
+Quand c'est **l'appareil** qui n'a plus de réseau, le serveur n'est pas en cause :
+l'application le reconnaît et ne se comporte plus comme pendant une panne.
+
+- **Un bandeau bleu le dit clairement** : « Hors ligne — données de la dernière
+  synchronisation (à 10:42). Tâches terminées, observations et carnet sont gardés et
+  partiront au retour du réseau. » L'heure indiquée est celle du dernier chargement réussi
+  avec le serveur, même si l'application a été rouverte entre-temps sans réseau.
+- **Plus de « reconnexion en cours » en boucle.** L'application n'essaie plus de joindre le
+  serveur à répétition : elle affiche tout de suite ce qu'elle a gardé sur l'appareil, et le
+  rafraîchissement automatique se met en pause. Le bandeau « Serveur indisponible » ne
+  s'affiche pas non plus.
+- **Tous les écrans s'ouvrent**, y compris ceux qu'on n'avait pas encore visités (statistiques,
+  biodiversité, carnet, tutoriels, quiz, glossaire…) : l'appareil les garde dès la première
+  ouverture de l'application en ligne. Auparavant, ouvrir hors ligne un écran jamais visité
+  rechargeait toute la page.
+- **Ouvrir l'application sans réseau** fonctionne : la carte, les zones, les tâches, les
+  fiches et les repères du dernier chargement s'affichent sans attente. La vérification de
+  la session de l'élève se fait au retour du réseau, sans alerte « connexion instable ».
+- **Au retour du réseau**, le bandeau disparaît, une synchronisation complète part aussitôt
+  et les actions gardées sont envoyées.
+
+> ⚠️ **Points d'attention**
+>
+> - Seules les actions prévues pour le terrain sont gardées hors ligne : marquer une tâche
+>   terminée (sans photo), confirmer une observation d'espèce, écrire dans le carnet,
+>   marquer un lieu « vu » pendant la visite. Les autres (créer une tâche, modifier une
+>   fiche, écrire dans le forum…) affichent le message « Pas de réseau pour l'instant ».
+> - Un écran que l'appareil n'a pas encore pu garder (première ouverture de l'application
+>   interrompue, par exemple) affiche « Cet écran n'est pas encore disponible hors ligne » et
+>   s'ouvre tout seul au retour du réseau.
+> - Un téléphone qui affiche du réseau mais ne passe rien (une barre, portail Wi-Fi) n'est
+>   pas reconnu comme hors ligne : c'est alors le fonctionnement « serveur qui ne répond
+>   plus » décrit plus haut qui s'applique.
+
 ### Quand une nouvelle version est publiée
 
 L'application est mise à jour plusieurs fois par jour. Ce qu'un utilisateur en voit :

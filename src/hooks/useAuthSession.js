@@ -10,6 +10,7 @@ import {
   saveStoredSession,
   clearStoredSession,
 } from '../services/api';
+import { isOfflineError, subscribeNetworkStatus } from '../shared/networkStatus.js';
 
 /** Toast de la déconnexion forcée par défaut (401 `deleted: true`). */
 export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
@@ -313,6 +314,17 @@ export function useAuthSession({
       } catch (err) {
         if (err instanceof AccountDeletedError || err.deleted) {
           forceLogout();
+          return;
+        }
+        if (isOfflineError(err)) {
+          // Ouverture en mode avion : la session locale suffit pour travailler. La
+          // vérification attend le retour du réseau, sans alerte « connexion instable ».
+          const unsubscribe = subscribeNetworkStatus((online) => {
+            if (!online) return;
+            unsubscribe();
+            if (String(getStoredSession()?.student?.id || '') !== String(savedStudent.id)) return;
+            void validateStudentSession(savedStudent);
+          });
           return;
         }
         console.error('[ForetMap] validation session n3beur', err);

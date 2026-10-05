@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazyScreen } from '../../shared/lazyScreen.jsx';
 import { PublicSettingsProvider } from '../../contexts/PublicSettingsContext.jsx';
 import { BiodivPedagoProvider } from '../../contexts/BiodivPedagoContext.jsx';
 import { AppStatusSticky } from '../../shared/components/AppStatusSticky.jsx';
@@ -8,7 +8,9 @@ import { TabSuspense } from '../TabSuspense.jsx';
 import { AuthScreen } from '../auth-views';
 import { AppFooter } from './AppFooter.jsx';
 
-const VisitViewLazy = lazy(() => import('../visit-views').then((m) => ({ default: m.VisitView })));
+const VisitViewLazy = lazyScreen(() =>
+  import('../visit-views').then((m) => ({ default: m.VisitView })),
+);
 
 /** Visite invitée : aucun tutoriel proposé (constante de module — évite un tableau recréé à chaque rendu). */
 const GUEST_VISIT_TUTORIALS = [];
