@@ -12,8 +12,8 @@ import {
   applyMapLocationFilters,
   collectMapSpeciesOptions,
 } from '../../utils/mapLocationFilters.js';
-import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
 import { collectMapCategoryOptions } from '../../utils/locationCategories.js';
+import { mapCategoryIdList, mapDefaultCategoryIds } from '../../utils/mapCategoryIds.js';
 
 /** Identifiants des éléments absents de `matchingIds` (`null` si aucun filtre n'est actif). */
 function dimmedIds(active, ids, matchingIds) {
@@ -28,8 +28,8 @@ function dimmedIds(active, ids, matchingIds) {
 /**
  * @param {object} options
  * @param {string} options.activeMapId carte active (les filtres repartent de zéro à chaque carte)
+ * @param {object} [options.activeMap] carte active (`default_category_ids`, `hidden_category_ids`)
  * @param {string} options.mode mode de la carte (le raccourci clavier ne vit qu'en navigation)
- * @param {object} options.publicSettings réglages publics (`default_category_ids`)
  * @param {object[]} options.zones zones (toutes cartes, comme la liste d'origine)
  * @param {object[]} options.markersOnMap repères de la carte active
  * @param {object[]} options.parsedZones zones pré-parsées du calque (atténuation)
@@ -40,51 +40,50 @@ function dimmedIds(active, ids, matchingIds) {
  */
 export function useMapViewLocationFilters({
   activeMapId,
+  activeMap = null,
   mode,
-  publicSettings,
   zones,
   markersOnMap,
   parsedZones,
   categoryCatalog,
-  categoriesById,
   badges,
 }) {
   const [mapLocationFilters, setMapLocationFilters] = useState(() => ({
     ...MAP_LOCATION_FILTER_DEFAULTS,
   }));
-  const [categoryDefaultsApplied, setCategoryDefaultsApplied] = useState(false);
+  /** Carte dont les catégories d'office ont déjà été appliquées (une fois par carte). */
+  const defaultsAppliedForMapRef = useRef(null);
   const mapLocationSearchRef = useRef(null);
 
-  // Nouvelle carte : filtres remis à zéro (avant l'application des catégories d'office).
+  // Nouvelle carte : filtres remis à zéro, puis catégories cochées d'office de **cette**
+  // carte (réglage « Cartographie → Cartes »). Attend que la carte soit connue : le catalogue
+  // des cartes peut arriver après l'identifiant de la carte active.
+  const activeMapLoaded = !!activeMap && String(activeMap.id) === String(activeMapId);
+  const defaultIdsKey = activeMapLoaded ? mapDefaultCategoryIds(activeMap).join(';') : '';
   useEffect(() => {
-    setMapLocationFilters({ ...MAP_LOCATION_FILTER_DEFAULTS });
-  }, [activeMapId]);
+    if (defaultsAppliedForMapRef.current === activeMapId) return;
+    setMapLocationFilters({
+      ...MAP_LOCATION_FILTER_DEFAULTS,
+      categoryIds: defaultIdsKey ? defaultIdsKey.split(';') : [],
+    });
+    if (activeMapLoaded) defaultsAppliedForMapRef.current = activeMapId;
+  }, [activeMapId, activeMapLoaded, defaultIdsKey]);
 
-  // Catégories cochées d'office (réglage admin `ui.map.default_category_ids`).
-  useEffect(() => {
-    if (categoryDefaultsApplied || !(categoryCatalog || []).length) return;
-    const raw =
-      publicSettings?.map?.default_category_ids ??
-      publicSettings?.ui?.map?.default_category_ids ??
-      '';
-    const ids = parseCategoryIdsSetting(raw).filter((id) => categoriesById.has(id));
-    if (ids.length) {
-      setMapLocationFilters((prev) => ({ ...prev, categoryIds: ids }));
-    }
-    setCategoryDefaultsApplied(true);
-  }, [categoryDefaultsApplied, categoryCatalog, categoriesById, publicSettings]);
-
+  const hiddenIdsKey = mapCategoryIdList(activeMap?.hidden_category_ids).join(';');
   const mapSpeciesOptions = useMemo(
     () => collectMapSpeciesOptions(zones, markersOnMap),
     [zones, markersOnMap],
   );
 
   // Options du filtre « Catégories » : celles réellement portées par les lieux affichés,
-  // complétées par le catalogue de la carte (une catégorie encore inutilisée reste visible).
-  const mapCategoryOptions = useMemo(
-    () => collectMapCategoryOptions(zones, markersOnMap, categoryCatalog),
-    [zones, markersOnMap, categoryCatalog],
-  );
+  // complétées par le catalogue de la carte (une catégorie encore inutilisée reste visible),
+  // moins les catégories cachées sur cette carte.
+  const mapCategoryOptions = useMemo(() => {
+    const hidden = new Set(hiddenIdsKey ? hiddenIdsKey.split(';') : []);
+    return collectMapCategoryOptions(zones, markersOnMap, categoryCatalog).filter(
+      (cat) => !hidden.has(cat.id),
+    );
+  }, [zones, markersOnMap, categoryCatalog, hiddenIdsKey]);
 
   const {
     zoneTaskVisualById,

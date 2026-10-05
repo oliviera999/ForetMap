@@ -6,12 +6,12 @@ import { AdminTextSettingField, AdminNumberSettingField } from './AdminSettingFi
 import { MapGeorefPanel } from './MapGeorefPanel.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { IconCamera, IconGallery } from '../../shared/icons.jsx';
-
-const DEFAULT_CATEGORY_IDS_KEY = 'ui.map.default_category_ids';
+import { formatCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
 
 /**
  * Panneau admin « Cartes & plans » : réglages d’affichage, création de cartes,
- * liste éditable (libellé, ordre, image, bibliothèque, calage GPS).
+ * liste éditable (libellé, ordre, image, bibliothèque, catégories affichées par défaut et
+ * cachées, calage GPS).
  *
  * @param {object} props
  * @param {Array<object>} [props.maps]
@@ -41,10 +41,31 @@ export function MapsAdminPanel({
   const [mapSavingKey, setMapSavingKey] = useState('');
   // Copie locale pour upserts optimistes sans recharger toute la console admin.
   const [localMaps, setLocalMaps] = useState(() => (Array.isArray(maps) ? maps : []));
+  // Catalogue chargé une fois pour toutes les cartes (deux sélecteurs par carte).
+  const [categoryCatalog, setCategoryCatalog] = useState([]);
+  const [categoryLoadErr, setCategoryLoadErr] = useState('');
 
   useEffect(() => {
     setLocalMaps(Array.isArray(maps) ? maps : []);
   }, [maps]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api('/api/map-categories/manage');
+        if (!cancelled) {
+          setCategoryCatalog(Array.isArray(data) ? data : []);
+          setCategoryLoadErr('');
+        }
+      } catch (e) {
+        if (!cancelled) setCategoryLoadErr(e?.message || 'Impossible de charger les catégories');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const busyKey = mapSavingKey || savingKey;
   const readOnly = !canWrite;
@@ -168,20 +189,7 @@ export function MapsAdminPanel({
         celui de ses groupes, ou toutes les cartes sans périmètre de groupe.
       </p>
 
-      <CategoryIdsMultiSelect
-        label="Catégories de lieux affichées par défaut sur la carte"
-        hint="Cochez les catégories visibles d’office sur la carte de travail (modifiable ensuite par l’élève)."
-        value={String(get(DEFAULT_CATEGORY_IDS_KEY, '') || '')}
-        disabled={readOnly || busyKey === DEFAULT_CATEGORY_IDS_KEY}
-        testId="map-default-category-ids"
-        onSave={(next) =>
-          saveSetting(
-            DEFAULT_CATEGORY_IDS_KEY,
-            next,
-            'Catégories par défaut de la carte enregistrées',
-          )
-        }
-      />
+      {categoryLoadErr ? <p className="auth-error">{categoryLoadErr}</p> : null}
 
       <label
         className="field"
@@ -341,6 +349,40 @@ export function MapsAdminPanel({
                   <option value="universite">Université</option>
                 </select>
               </label>
+            </div>
+            <div style={{ marginTop: 8 }} data-testid={`map-categories-${m.id}`}>
+              <CategoryIdsMultiSelect
+                label="Catégories affichées par défaut"
+                hint="Cochées d’office à l’ouverture de cette carte (chacun peut ensuite changer ses filtres). Aucune case cochée = tous les lieux."
+                mapId={m.id}
+                requireSurface="map"
+                categories={categoryCatalog}
+                value={formatCategoryIdsSetting(m.default_category_ids)}
+                excludeIds={m.hidden_category_ids}
+                disabled={readOnly}
+                testId={`map-default-category-ids-${m.id}`}
+                onSave={(next) =>
+                  saveMap(
+                    m.id,
+                    { default_category_ids: next },
+                    'Catégories affichées par défaut enregistrées',
+                  )
+                }
+              />
+              <CategoryIdsMultiSelect
+                label="Catégories cachées"
+                hint="Retirées des filtres de cette carte ; un lieu qui n’a que des catégories cachées n’y apparaît plus."
+                mapId={m.id}
+                requireSurface="map"
+                categories={categoryCatalog}
+                value={formatCategoryIdsSetting(m.hidden_category_ids)}
+                excludeIds={m.default_category_ids}
+                disabled={readOnly}
+                testId={`map-hidden-category-ids-${m.id}`}
+                onSave={(next) =>
+                  saveMap(m.id, { hidden_category_ids: next }, 'Catégories cachées enregistrées')
+                }
+              />
             </div>
             <div style={{ marginTop: 8 }}>
               <AdminTextSettingField

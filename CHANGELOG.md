@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Cartographie → Cartes : catégories affichées par défaut et cachées, par carte
+
+- **Par carte** : le réglage unique « Catégories de lieux affichées par défaut sur la carte », qui listait toutes les catégories de toutes les cartes, est remplacé par deux sélecteurs dans le bloc de chaque carte — **Catégories affichées par défaut** et **Catégories cachées** — limités aux catégories globales et à celles de la carte (visibles sur la carte de travail). Une catégorie cochée d'un côté n'est plus proposée de l'autre.
+- **Carte de travail** : les catégories cochées d'office sont celles de la carte active, réappliquées à chaque changement de carte (auparavant appliquées une seule fois par session). Les catégories cachées disparaissent des filtres, et un lieu qui n'a que des catégories cachées n'apparaît plus sur la carte (même règle que les catégories masquées du Plan).
+- **Données** : migration `318_maps_category_ids.sql` (colonnes `maps.default_category_ids` / `maps.hidden_category_ids`, reprise de la valeur de `ui.map.default_category_ids` sur chaque carte). `GET /api/maps` et `PUT /api/settings/admin/maps/:id` portent les deux listes, ramenées par le serveur aux catégories actives qui concernent la carte. La clé `ui.map.default_category_ids` n'est plus lue.
+- Tests : `tests/maps-category-ids.test.js`, `tests/map-category-ids-utils.test.js`, `tests-ui/components/settings/MapsAdminPanel.categories.test.jsx`, `MapViewImpl.mount.test.jsx` (défauts par carte, lieux cachés), instantané `terrain-maps-admin-snapshot`. Doc : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
+
 ### Corrigé — Mode hors ligne : l'application reste utilisable en mode avion
 
 - **Constat** : lancée en ligne puis passée en mode avion, l'application affichait « Serveur momentanément indisponible — reconnexion en cours… » en boucle et devenait inutilisable. Aucune requête ne consultait l'état réseau de l'appareil : chaque lecture non gardée en cache retentait 8 fois (~25 s), la pause partagée de réessai retardait aussi les actions, le polling repartait à chaque cycle (`/api/sync-state`, `/api/task-projects`, `/api/tutorials` absents du cache) et levait « Serveur indisponible ». Surtout, ouvrir un écran chargé à la demande jamais visité (stats, biodiversité, carnet, tutoriels…, ~41 chunks non précachés) déclenchait `vite:preloadError`, donc un **rechargement forcé** de la page hors ligne, avec un faux « Nouvelle version installée ». Au démarrage hors ligne, `/api/settings/public` (non caché) retardait le chargement d'environ 25 s.

@@ -54,6 +54,8 @@ function expectedMap(overrides) {
     gps_enabled: false,
     heading_up_enabled: false,
     scale_compass_enabled: false,
+    default_category_ids: [],
+    hidden_category_ids: [],
     ...overrides,
   };
 }

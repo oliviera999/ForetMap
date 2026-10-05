@@ -18,7 +18,11 @@ CREATE TABLE IF NOT EXISTS maps (
   heading_up_enabled TINYINT(1) NOT NULL DEFAULT 0,
   scale_compass_enabled TINYINT(1) NOT NULL DEFAULT 1,
   pedago_level ENUM('college','lycee','universite') DEFAULT NULL
-    COMMENT 'Niveau pédagogique biodiversité pour cette carte (NULL = hériter)'
+    COMMENT 'Niveau pédagogique biodiversité pour cette carte (NULL = hériter)',
+  default_category_ids TEXT DEFAULT NULL
+    COMMENT 'Catégories cochées par défaut sur la carte de travail',
+  hidden_category_ids TEXT DEFAULT NULL
+    COMMENT 'Catégories cachées sur la carte de travail'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES
   ('foret', 'Forêt comestible', '/maps/map-foret.svg', 1),

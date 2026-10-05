@@ -81,8 +81,10 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   );
 }
 
+const NO_MAPS = [];
+
 function MapViewImpl({
-  maps = [],
+  maps = NO_MAPS,
   onMapChange,
   isTeacher,
   student,
@@ -111,7 +113,7 @@ function MapViewImpl({
     activeMapId,
     markersOnActiveMap: mapMarkersOnActiveMap,
     zonesOnActiveMap: mapZonesOnActiveMap,
-  } = useMapViewData();
+  } = useMapViewData(maps);
   const {
     publicSettings,
     markerEmojis,
@@ -668,13 +670,12 @@ function MapViewImpl({
     getFilterDimSeen,
   } = useMapViewLocationFilters({
     activeMapId,
+    activeMap,
     mode,
-    publicSettings,
     zones,
     markersOnMap: mapMarkersOnActiveMap,
     parsedZones,
     categoryCatalog: mapCategoryCatalog,
-    categoriesById: mapCategoriesById,
     badges: {
       zoneTaskVisualById,
       markerTaskVisualById,

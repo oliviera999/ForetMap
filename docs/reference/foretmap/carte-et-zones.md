@@ -618,6 +618,43 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
+### Catégories affichées par défaut et catégories cachées (par carte)
+
+Dans **Paramètres → Cartographie → Cartes**, chaque carte de la liste porte deux choix de
+catégories. Seules sont proposées les catégories **qui concernent cette carte** : celles
+créées pour toutes les cartes et celles créées pour cette carte-là (et visibles sur la
+carte de travail).
+
+- **Catégories affichées par défaut** : elles sont cochées d'office dans les filtres à
+  l'ouverture de la carte — les lieux qui n'en portent aucune apparaissent estompés.
+  Chacun peut ensuite changer ses filtres librement. Aucune case cochée = tous les lieux
+  sont mis en avant. Le choix est refait à chaque changement de carte : passer de la
+  Forêt au N3 applique les catégories du N3.
+- **Catégories cachées** : elles disparaissent des filtres de cette carte, et un lieu qui
+  **n'a que** des catégories cachées n'apparaît plus du tout sur cette carte de travail
+  (ni sur le plan, ni dans la recherche). Un lieu qui garde au moins une autre catégorie
+  reste affiché ; un lieu sans catégorie aussi.
+
+Une même catégorie ne peut pas être à la fois affichée par défaut et cachée : une fois
+cochée d'un côté, elle n'est plus proposée de l'autre.
+
+Ces deux réglages ne concernent que la **carte de travail** (onglet Carte). La Visite garde
+son propre choix de catégories affichées par défaut (Paramètres → Visite), et les plans
+(Plan Lyautey, plan des personnels, plan e-nov) leurs propres catégories cochées et
+masquées.
+
+> ⚠️ **Points d'attention**
+>
+> - Cacher une catégorie retire ses lieux de la carte **pour tout le monde**, gestionnaires
+>   compris : un lieu qui n'a que des catégories cachées ne se modifie plus depuis la carte.
+>   Pour le retoucher, décocher la catégorie cachée le temps de la modification, ou passer
+>   par l'inventaire « Zones & repères ».
+> - Cacher n'est pas protéger : c'est un désencombrement de l'affichage. Pour réserver un
+>   lieu à certains publics, utiliser l'audience du lieu ou de sa catégorie.
+> - L'ancien réglage unique « Catégories de lieux affichées par défaut sur la carte » (commun
+>   à toutes les cartes) a été remplacé : sa valeur a été recopiée sur chaque carte, en n'y
+>   gardant que les catégories qui la concernent.
+
 > L'**affichage** du plan en consultation (zones, repères, regroupements au dézoom,
 > boutons zoom / « Me suivre ») est aligné sur le Plan Lyautey et la Visite. La carte de
 > travail garde en revanche sa **barre d'outils** et ses **filtres de lieux** — sans les
