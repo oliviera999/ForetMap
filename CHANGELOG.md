@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Forum : point rouge et pastilles « non lus »
+
+- **Suppression d'un message** : le point rouge de l'onglet Forum se rallumait chez tous ceux qui avaient tout lu, le serveur désignant alors un message plus ancien, différent du curseur. Le curseur local mémorise désormais `{ id, at }` et le point ne s'allume que pour un message **plus récent** (`src/utils/forumUnread.js`, ancien format relu).
+- **Premier usage sur un appareil** : le point s'allumait alors qu'aucun sujet n'avait de pastille. L'existant compte désormais comme lu des deux côtés.
+- **Grand écran** : le sujet affiché d'office à l'ouverture du forum (souvent celui qui venait de recevoir le message) était marqué lu sans action ; seul un sujet choisi (clic, notification, réponse) l'est maintenant. La bascule écran étroit / large suit le redimensionnement et la rotation (`useMediaQuery`).
+- **Plusieurs onglets** : les lectures sont relues sur l'événement `storage`, et l'état des pastilles est fusionné à l'écriture (`mergeThreadReadState`) au lieu d'écraser celui d'un autre onglet. Commun ForetMap / G&L.
+- **Relèves** : le marqueur est relu à l'ouverture de l'onglet Forum et au changement de compte (réponses périmées ignorées).
+- Tests : `tests-ui/hooks/useForumUnread.test.jsx`, `tests-ui/utils/forumHelpers.test.js`, `tests-ui/shared/forum/SharedForumView.test.jsx`. Doc : `docs/API.md`, `docs/reference/foretmap/stats-forum-et-suivi.md`, `docs/reference/gl/presentation.md`.
+
 ### Modifié — Captures PWA : vue « carte » d'un compte connecté
 
 - `scripts/capture-pwa-screenshots.js` (`npm run pwa:screenshots`) sait photographier l'onglet Carte d'un compte connecté (vue `carte`, plan `foret` par défaut) quand `PWA_SCREENSHOT_IDENTIFIER` / `PWA_SCREENSHOT_PASSWORD` sont renseignés dans `.env` (documentés dans `.env.example`, compte élève de démonstration recommandé). Le nom et l'avatar du compte sont remplacés par un libellé neutre avant la prise de vue, y compris sur la capture d'échec. Sans compte, la vue `visite` (visite publique) reste le comportement par défaut ; option `--vue carte|visite`.

@@ -11,6 +11,7 @@ import {
   initialThreadReadState,
   isThreadUnread,
   markThreadRead,
+  mergeThreadReadState,
   readThreadReadState,
   sameForumId,
   writeThreadReadState,
@@ -75,6 +76,33 @@ describe('non-lus par sujet', () => {
     expect(readThreadReadState('k', storage)).toEqual({ baseline: 'b', threads: { 1: 'x' } });
     store.set('k', '{pas du json');
     expect(readThreadReadState('k', storage)).toBeNull();
+  });
+
+  test('fusion : la lecture la plus avancée gagne, sujet par sujet', () => {
+    const a = { baseline: '2026-09-01 00:00:00', threads: { 1: '2026-09-05 10:00:00', 2: 'x0' } };
+    const b = { baseline: '2026-09-02 00:00:00', threads: { 1: '2026-09-04 10:00:00', 3: 'z' } };
+    expect(mergeThreadReadState(a, b)).toEqual({
+      baseline: '2026-09-02 00:00:00',
+      threads: { 1: '2026-09-05 10:00:00', 2: 'x0', 3: 'z' },
+    });
+    expect(mergeThreadReadState(null, b)).toBe(b);
+    expect(mergeThreadReadState(a, null)).toBe(a);
+  });
+
+  test('écriture : un onglet en retard n’efface pas les lectures d’un autre', () => {
+    const store = new Map();
+    const storage = {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, v),
+    };
+    writeThreadReadState('k', { baseline: 'b', threads: { 1: '2026-09-05' } }, storage);
+    const written = writeThreadReadState(
+      'k',
+      { baseline: 'b', threads: { 2: '2026-09-03' } },
+      storage,
+    );
+    expect(written.threads).toEqual({ 1: '2026-09-05', 2: '2026-09-03' });
+    expect(readThreadReadState('k', storage).threads).toEqual(written.threads);
   });
 
   test('sameForumId compare nombre et chaîne', () => {

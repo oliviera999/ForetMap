@@ -49,17 +49,23 @@ commentaires) et rester informé (notifications, temps réel).
   personne publie un message (nouveau sujet ou réponse) que vous n'avez pas encore vu. Sur
   téléphone, quand le Forum est rangé dans le menu, le point apparaît aussi sur le bouton
   « Plus » ; côté professeur, il apparaît aussi sur le pôle **Suivi**. Ouvrir le forum
-  éteint le point. Vos propres messages ne l'allument jamais.
+  éteint le point. Vos propres messages ne l'allument jamais, et la suppression d'un
+  message ne le rallume pas. La toute première fois qu'un compte ouvre l'application sur
+  un appareil, les messages déjà publiés comptent comme lus : pas de point « de
+  bienvenue », comme pour les pastilles des sujets.
 
   > ⚠️ **Point d'attention** — La lecture est mémorisée **sur l'appareil** : un message lu
-  > sur l'ordinateur de la salle peut encore apparaître comme non lu sur le téléphone. La
-  > toute première fois qu'un compte ouvre l'application sur un appareil, le point s'allume
-  > s'il existe déjà des messages, puisque rien n'y a encore été lu.
+  > sur l'ordinateur de la salle peut encore apparaître comme non lu sur le téléphone.
+  > Entre deux onglets (ou l'application installée et le navigateur) du même appareil, en
+  > revanche, la lecture est partagée.
 
 - **Non lus sujet par sujet** : dans la liste, une **pastille** devant le titre signale les
-  sujets où quelqu'un d'autre a écrit depuis votre dernière lecture. Ouvrir le sujet
-  l'éteint. Là aussi, la lecture est mémorisée sur l'appareil ; la toute première fois,
-  tout ce qui est déjà visible compte comme lu (aucune pastille « de bienvenue »).
+  sujets où quelqu'un d'autre a écrit depuis votre dernière lecture. **Choisir** le sujet
+  l'éteint. Sur grand écran, le premier sujet de la liste s'affiche d'office à côté de la
+  liste, mais il garde sa pastille tant qu'on ne l'a pas choisi : on voit ainsi d'un coup
+  d'œil où se trouve la nouveauté. Répondre dans un sujet le marque aussi comme lu. Là
+  aussi, la lecture est mémorisée sur l'appareil ; la toute première fois, tout ce qui est
+  déjà visible compte comme lu (aucune pastille « de bienvenue »).
 - **Sujets épinglés** : les professeurs peuvent **épingler** un sujet important (consignes,
   règles de la classe). Il reste en tête de liste, avec la mention « Épinglé », avant les
   sujets triés par dernier message. Le même bouton le « désépingle ».

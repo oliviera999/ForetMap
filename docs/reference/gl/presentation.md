@@ -199,7 +199,9 @@ distinct du glossaire scientifique) et tutoriels.
   jusqu'à **trois photos** à un message, **réagir** avec un emoji, **citer** un message dans
   sa réponse, **corriger** son propre message (mention « modifié le … ») et **signaler** un
   message déplacé. Une **pastille** signale les sujets où quelqu'un d'autre a écrit depuis
-  la dernière lecture (mémorisée sur l'appareil). Le forum se met à jour **tout seul**
+  la dernière lecture (mémorisée sur l'appareil, partagée entre les onglets) ; sur grand
+  écran, le sujet affiché d'office garde sa pastille tant qu'on ne l'a pas choisi. Le forum
+  se met à jour **tout seul**
   quand quelqu'un publie, sans recharger la page.
 - **Rôle du MJ au forum** : il peut supprimer n'importe quel message, **épingler** un sujet
   (il reste en tête de liste) et le **verrouiller** — il reste alors le seul à pouvoir y

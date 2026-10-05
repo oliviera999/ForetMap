@@ -123,9 +123,32 @@ export function readThreadReadState(storageKey, storage = globalThis.localStorag
   }
 }
 
+/**
+ * Union de deux états de lecture : on garde, sujet par sujet, la lecture la plus avancée.
+ * Deux onglets ouverts sur le même compte ne peuvent ainsi pas effacer les lectures l'un de
+ * l'autre (chacun écrivait son état complet en mémoire, et rallumait des pastilles éteintes).
+ */
+export function mergeThreadReadState(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  const baseA = normalizeMarker(a.baseline);
+  const baseB = normalizeMarker(b.baseline);
+  const threads = { ...(a.threads || {}) };
+  for (const [key, value] of Object.entries(b.threads || {})) {
+    const marker = normalizeMarker(value);
+    if (marker > normalizeMarker(threads[key])) threads[key] = marker;
+  }
+  return { baseline: baseB > baseA ? baseB : baseA, threads };
+}
+
+/**
+ * Enregistre l'état fusionné avec celui déjà présent sur l'appareil et renvoie l'état
+ * effectivement enregistré.
+ */
 export function writeThreadReadState(storageKey, state, storage = globalThis.localStorage) {
-  if (!storageKey || !storage || !state) return;
-  const entries = Object.entries(state.threads || {});
+  if (!storageKey || !storage || !state) return state || null;
+  const merged = mergeThreadReadState(readThreadReadState(storageKey, storage), state);
+  const entries = Object.entries(merged.threads || {});
   const threads =
     entries.length > THREAD_READ_MAX_ENTRIES
       ? Object.fromEntries(
@@ -133,12 +156,14 @@ export function writeThreadReadState(storageKey, state, storage = globalThis.loc
             .sort((a, b) => String(b[1]).localeCompare(String(a[1])))
             .slice(0, THREAD_READ_MAX_ENTRIES),
         )
-      : state.threads || {};
+      : merged.threads || {};
+  const next = { baseline: merged.baseline || '', threads };
   try {
-    storage.setItem(storageKey, JSON.stringify({ baseline: state.baseline || '', threads }));
+    storage.setItem(storageKey, JSON.stringify(next));
   } catch {
     /* stockage plein ou interdit (navigation privée) : les pastilles restent éteintes */
   }
+  return next;
 }
 
 /**
