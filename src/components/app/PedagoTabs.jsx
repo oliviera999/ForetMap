@@ -83,6 +83,7 @@ export function PedagoTabs({
   appVersion,
   onOpenSettingsLearning = null,
   canReadSiteIssues = false,
+  canReadTeacherGuide = false,
   sessionsProps = null,
   pedagoEntry = null,
   idKeysEnabled = true,
@@ -207,6 +208,7 @@ export function PedagoTabs({
             appVersion={appVersion}
             isTeacher={isTeacher}
             canReadSiteIssues={canReadSiteIssues}
+            canReadTeacherGuide={canReadTeacherGuide}
           />
         </TabSuspense>
       )}

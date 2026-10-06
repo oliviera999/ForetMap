@@ -2037,6 +2037,10 @@ function App() {
                             canMeasureIndividuals={canMeasureIndividuals}
                             appVersion={appVersion}
                             canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
+                            canReadTeacherGuide={
+                              hasPermissionInRole('reference_docs.teacher_guide.read') ||
+                              hasPermissionInRole('admin.settings.read')
+                            }
                             onOpenSettingsLearning={handleOpenSettingsLearning}
                             sessionsProps={sessionsProps}
                             pedagoEntry={pedagoEntry}

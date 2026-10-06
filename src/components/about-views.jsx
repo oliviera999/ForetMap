@@ -6,6 +6,7 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { getAuthToken, withAppBase } from '../services/api';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
 import { privacyNoticeHref } from '../shared/privacy/privacyNoticePath.js';
+import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
 
 /**
  * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
@@ -35,7 +36,12 @@ const SITE_ISSUES_DOCS = [
   },
 ];
 
-function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false }) {
+function AboutView({
+  appVersion,
+  isTeacher = false,
+  canReadSiteIssues = false,
+  canReadTeacherGuide = false,
+}) {
   const publicSettings = usePublicSettings();
   // Rapport d'audit affiché en place (pas d'onglet : voir SITE_ISSUES_DOCS).
   const [siteIssuesDoc, setSiteIssuesDoc] = useState(null);
@@ -217,6 +223,15 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
             </div>
           )}
         </div>
+
+        {/* Le serveur filtre le sommaire : guide du prof seul pour un n3boss, tous les
+            documents pour un détenteur de `admin.settings.read`. */}
+        {canReadTeacherGuide && (
+          <div className="fm-panel about-card" data-testid="about-teacher-guide">
+            <h3>{canReadSiteIssues ? 'Documentation de référence' : 'Guide du prof'}</h3>
+            <ForetMapReferenceDocsPanel />
+          </div>
+        )}
 
         <div className="fm-panel about-card">
           <h3>{aboutHelpTitle}</h3>

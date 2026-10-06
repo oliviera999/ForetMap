@@ -547,15 +547,20 @@ d'inscription, rubrique **À propos**. Détail et contact DPO à renseigner :
 Documents spécifiques (produits au fur et à mesure — voir le
 [sommaire](../README.md)) : carte et zones · plantes et biodiversité · tâches,
 tutoriels et validation · comptes, rôles et groupes · visite et mascottes · pédagogie
-(quiz, glossaire, réseau trophique) · stats, forum et suivi.
+(quiz, glossaire, réseau trophique) · stats, forum et suivi. Les professeurs disposent en
+plus d'un **guide pratique** qui leur est propre : le **Guide du prof (n3boss)**.
 
-Cette documentation de référence se lit aussi **dans l'application**, en lecture seule :
-**Paramètres → Aide & découverte → Doc de référence**. Cet onglet demande le droit de
-consulter les réglages, accordé par défaut au seul rôle **Administrateur**.
+Cette documentation se lit aussi **dans l'application**, en lecture seule :
 
-> ⚠️ **Point d'attention** — La documentation s'adresse aussi aux professeurs, mais un
-> **n3boss** ne voit pas l'onglet « Doc de référence » par défaut : il faut lui accorder
-> le droit de consulter les réglages dans **Profils & utilisateurs**.
+- les **n3boss** lisent le **Guide du prof** depuis la page **À propos** (carte « Guide du
+  prof ») ; c'est le seul document qui leur est ouvert, car les autres décrivent aussi des
+  points d'attention d'exploitation réservés à l'administration ;
+- les **administrateurs** lisent tous les documents ForetMap, depuis **Paramètres → Aide &
+  découverte → Doc de référence** ou depuis la page **À propos**.
+
+Le droit « Lecture du guide du prof » est accordé par défaut aux profils **n3boss** et
+**Administrateur** ; un administrateur peut le retirer ou l'accorder à un autre profil dans
+**Profils & utilisateurs**. Le prof de classe et les élèves n'y ont pas accès.
 
 ## Identité visuelle de l'établissement
 

@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Guide du prof (n3boss), lisible dans l'application
+
+- **Nouveau document** `docs/reference/foretmap/guide-du-prof.md` : guide pratique écrit pour les n3boss (avant / pendant / après la séance, gestes courants, problèmes fréquents), sur le modèle du guide du MJ de G&L, sans les points d'attention d'exploitation des autres documents de référence.
+- **Nouvelle permission** `reference_docs.teacher_guide.read` (« Lecture du guide du prof »), accordée par défaut aux profils `prof` (n3boss) et `admin` — déployée sur les profils existants au démarrage, sans migration. `GET /api/admin/reference-docs` filtre désormais le sommaire : tous les documents avec `admin.settings.read`, le seul guide du prof avec la nouvelle permission (autre document → 404), 403 sinon (`lib/foretmapReferenceDocs.js`, `routes/reference-docs.js`).
+- **Page À propos** : carte « Guide du prof » (« Documentation de référence » pour un administrateur) qui réutilise le lecteur existant.
+- Tests : `tests/reference-docs-teacher-guide.test.js`, `tests-ui/AboutView.test.jsx`. Doc : `docs/API.md`, `docs/reference/README.md`, `docs/reference/foretmap/presentation.md`.
+
 ### Documentation — Doc de référence remise à jour (audit doc ↔ code du 06/10)
 
 - **ForetMap** : rôles (le n3beur avancé propose des tâches), retrait d'une tâche, onglets de la barre prof, droits d'accès à l'inventaire « Zones & repères », chemins de menus, passages restés au futur (niveaux pédagogiques, séances), point d'attention périmé sur le niveau des questions, Visite (libellé du bouton, catégories propres à la Visite), forum (8 Mo par image, anti-flood, commentaires sur repères / fiches / tutoriels), statistiques, Moodle. La lecture de la doc dans l'application (Réglages → Aide & découverte → Doc de référence, réservée aux admins) est désormais signalée.

@@ -4,9 +4,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 // Le composant lit le jeton et résout l'URL via le service API : on neutralise le
 // stockage local et la base d'URL pour ne tester que le comportement du composant.
+const apiMock = vi.fn();
 vi.mock('../src/services/api', () => ({
   getAuthToken: () => 'jeton-test',
   withAppBase: (path) => path,
+  api: (...args) => apiMock(...args),
 }));
 vi.mock('../src/hooks/useHelp', () => ({
   useHelp: () => ({ resetHelp() {}, metrics: {}, resetHelpMetrics() {} }),
@@ -69,6 +71,21 @@ describe('AboutView — rapports d’audit interne', () => {
     expect(global.fetch).toHaveBeenCalledWith('/api/site-issues', {
       headers: { Authorization: 'Bearer jeton-test' },
     });
+  });
+
+  test('sans le droit, pas de carte « Guide du prof »', () => {
+    render(<AboutView appVersion="1.0.0" />);
+    expect(screen.queryByTestId('about-teacher-guide')).toBeNull();
+  });
+
+  test('un n3boss voit la carte « Guide du prof » et son sommaire', async () => {
+    apiMock.mockResolvedValue({
+      docs: [{ slug: 'guide-du-prof', title: 'Guide du prof (n3boss)', summary: 'Pratique.' }],
+    });
+    render(<AboutView appVersion="1.0.0" canReadTeacherGuide />);
+    expect(screen.getByRole('heading', { name: 'Guide du prof' })).toBeTruthy();
+    expect(await screen.findByText('Guide du prof (n3boss)')).toBeTruthy();
+    expect(apiMock).toHaveBeenCalledWith('/api/admin/reference-docs');
   });
 
   test('un refus affiche un message lisible, jamais le JSON brut de l’API', async () => {
