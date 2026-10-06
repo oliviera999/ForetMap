@@ -220,8 +220,8 @@ celle du plan public. Une carte inactive n'est jamais proposée, même cochée.
 
 ## Décider ce que chacun voit
 
-Chaque lieu porte quatre cases, « Masquer sur » : **Carte**, **Visite**, **Plan public**,
-**Plan personnels**. Elles se règlent sur la fiche du lieu, et se règlent aussi **par lot**.
+Chaque lieu porte cinq cases, « Masquer sur » : **Carte**, **Visite**, **Plan public**,
+**Plan personnels**, **Plan e-nov**. Elles se règlent sur la fiche du lieu, et se règlent aussi **par lot**.
 
 La même logique existe au niveau des **catégories** (« Visible sur ») : décocher une surface sur
 une catégorie y retire d'un coup tous ses lieux.
@@ -231,7 +231,7 @@ une catégorie y retire d'un coup tous ses lieux.
 Pour faire le tri sans ouvrir les fiches une par une :
 **Réglages → Cartographie → Zones & repères**.
 
-- Le filtre **Surface** liste les quatre surfaces avec, entre parenthèses, **combien de lieux
+- Le filtre **Surface** liste les cinq surfaces avec, entre parenthèses, **combien de lieux
   chacune publie**. C'est la réponse à « qu'est-ce que le public voit, aujourd'hui ? ».
 - Le filtre **Sur cette surface** (Affichés / Retirés) restreint la liste à ce qui vous
   intéresse, et se combine avec la recherche, la catégorie et la carte.

@@ -306,8 +306,8 @@ Composer un parcours :
 - Un parcours reste sur **sa** carte : pour le déplacer, il faut le recréer.
 - Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
   **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
-  à la console, renseigner l'URL publique du plan dans _Réglages → Général_
-  (`ui.plan.public_base_url`, par exemple `https://planlyautey.<domaine>`).
+  à la console, renseigner l'adresse publique du plan dans l'onglet _Réglages → Plan Lyautey_
+  (par exemple l'adresse « planlyautey » de l'établissement).
 - Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
   aucune progression, aucun suivi individuel.
 
@@ -498,7 +498,7 @@ lieux ne sont jamais dupliqués : c'est le même lieu, montré ou non à chaque 
 
 Deux réglages se combinent :
 
-- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+- **Par catégorie** — dans _Réglages → Cartographie → Catégories_, chaque catégorie porte une case
   par surface (« Visible sur »). Décocher **Plan** pour « Cultures » retire d'un coup toutes
   les cultures du plan d'établissement, sans rien changer pour les élèves.
 - **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, le bloc
@@ -508,8 +508,9 @@ Deux réglages se combinent :
 le lieu y restait affiché).
 
 Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué
-(exception à ce jour : la Visite le cache dès que la carte a des catégories affichées par
-défaut — voir les points d'attention de la page Visite). Si
+(exception à ce jour : la Visite le cache dès que des catégories affichées par défaut sont
+choisies pour la Visite elle-même, dans Paramètres → Visite — voir les points d'attention de
+la page Visite). Si
 toutes les surfaces sont cochées dans « Masquer sur », un avertissement prévient que le
 lieu ne sera visible nulle part.
 
@@ -623,7 +624,8 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
 Dans **Paramètres → Cartographie → Cartes**, chaque carte de la liste porte deux choix de
 catégories. Seules sont proposées les catégories **qui concernent cette carte** : celles
 créées pour toutes les cartes et celles créées pour cette carte-là (et visibles sur la
-carte de travail).
+carte de travail). Ce sous-onglet « Cartes » demande le droit de **consulter les
+réglages** : une personne qui gère seulement les zones ou les repères ne le voit pas.
 
 - **Catégories affichées par défaut** : elles sont cochées d'office dans les filtres à
   l'ouverture de la carte — les lieux qui n'en portent aucune apparaissent estompés.
@@ -693,7 +695,7 @@ Sur la carte, un **petit point violet** peut signaler qu'une zone ou un repère 
 au moins un tutoriel (en bas à gauche du repère, ou à côté du nom de la zone).
 
 Ce témoin est **éteint par défaut**. Un administrateur l'allume dans
-_Réglages → Cartes & plans_ (« Afficher le point violet sur les zones et repères liés à un
+_Réglages → Cartographie → Cartes_ (« Afficher le point violet sur les zones et repères liés à un
 tutoriel »). Les liens tutoriel ↔ lieu restent inchangés : seuls le filtre « tutoriels liés »
 et l'onglet Tutoriels de la fiche permettent de les retrouver quand le point est masqué.
 
@@ -719,7 +721,8 @@ liste **toutes les zones et tous les repères, toutes cartes confondues** — l�
 recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
 d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
 la mauvaise carte. Les personnes qui ont seulement le droit de gérer les zones ou les
-repères voient cet onglet Cartographie (sans les réglages généraux).
+repères voient cet onglet Cartographie et cet inventaire (sans les réglages généraux ni le
+sous-onglet « Cartes »).
 
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).
@@ -769,9 +772,9 @@ Le bouton « Appliquer » annonce **combien de lieux sont réellement concernés
 d'agir, une progression s'affiche pendant le traitement, et le bilan distingue les
 lieux mis à jour, ceux déjà conformes et les éventuels échecs.
 
-L'accès au sous-onglet suit celui des Réglages administrateur (permission « Lecture
-paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
-zone et « Gestion repères » pour un repère.
+Le sous-onglet est ouvert à qui peut consulter les réglages **ou** gérer les zones ou les
+repères ; l'enregistrement demande « Gestion zones » pour une zone et « Gestion repères »
+pour un repère.
 
 ## « Messages reçus sur les lieux »
 

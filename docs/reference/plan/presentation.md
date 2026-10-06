@@ -179,7 +179,7 @@ Un même lieu peut être montré sur plusieurs « surfaces » :
 
 Deux réglages se combinent :
 
-- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+- **Par catégorie** — dans _Réglages → Cartographie → Catégories_, chaque catégorie porte une case
   par surface (« Visible sur »). Décocher **Plan** pour la catégorie « Cultures » retire d'un
   coup toutes les cultures du plan de l'établissement, sans toucher à la carte des élèves.
 - **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, un bloc
@@ -206,7 +206,7 @@ culture, commentaires) ne sort sur le plan.
 
 ### Rendre le plan lisible quand il est dense
 
-Trois réglages, dans _Réglages → Catégories de lieux_ :
+Trois réglages, dans _Réglages → Cartographie → Catégories_ :
 
 - **L'ordre des catégories** sert de **priorité**. Quand deux noms se disputent la même place,
   celui de la catégorie placée en tête est écrit et l'autre attend le zoom ; c'est aussi la
@@ -266,10 +266,10 @@ disponible. ») plutôt que de s'ouvrir sans rien annoncer.
 Quand le plan est protégé par un **code d'accès**, les parcours le sont avec lui : rien de leur
 contenu ne sort avant la saisie du code.
 
-Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
-carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**, et on coche les
-surfaces (**Plan public**, **Plan personnels**, **Visite**, **carte de travail**) où ils doivent
-apparaître. Un parcours brouillon n'apparaît nulle part, pas même via son lien. Un parcours
+Les parcours se créent dans ForetMap, dans _Réglages → Cartographie → Parcours_ (voir la
+documentation de la carte) : on cherche les lieux, on les ordonne au glisser-déposer, on
+**publie**, et on coche les cinq surfaces possibles (**Plan public**, **Plan personnels**,
+**Plan e-nov**, **Visite**, **carte de travail**) où ils doivent apparaître. Un parcours brouillon n'apparaît nulle part, pas même via son lien. Un parcours
 publié sur les seules surfaces internes — **Plan personnels** ou **carte de travail** — ne
 s'ouvre pas non plus par lien direct : il n'est lisible que depuis l'écran auquel il est
 destiné, et par qui y a accès. Le QR code d'une affiche n'a donc de sens que pour un parcours
@@ -311,7 +311,7 @@ quelque chose à y faire, donc jamais sur un plan public à carte unique.
 
 ### Réglages d'établissement
 
-Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
+Dans _Réglages → Plan Lyautey_ (portée publique, sauf le code d'accès) :
 
 | Réglage                     | Effet                                                                                              |
 | --------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -325,6 +325,12 @@ Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
 | Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
 | Code d'accès                | saisi en clair dans les réglages ; seule une empreinte est stockée ; **8 caractères minimum**      |
+| Orienter                    | autorise le bouton « Orienter » (la carte doit aussi l'autoriser dans son calage GPS)              |
+
+L'**apparence du plan** (couleurs, logo) se règle à part, dans _Réglages → Identité visuelle_,
+bloc « Marque Plan Lyautey ». Elle vaut aussi pour le plan des personnels et le plan e-nov ; sur
+ce dernier, les couleurs du label e-nov priment, et le logo du label s'ajoute à celui de
+l'établissement.
 
 **Changer le code** oblige chaque appareil déjà entré à le ressaisir : l'ancien code cesse
 d'ouvrir le plan immédiatement, y compris sur les téléphones qui l'avaient retenu. C'est le

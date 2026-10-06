@@ -26,6 +26,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   réglages d'accueil, la **création automatique à la première connexion Google** — un
   compte élève « visiteur » est alors créé. Tant que ce réglage est désactivé (valeur
   livrée), aucun utilisateur ne peut s'inscrire via Google.
+- **La connexion Google élève peut être coupée** : dans les réglages d'accueil, la case
+  « Afficher "Google élève" » (cochée par défaut) retire le bouton Google des élèves de
+  l'écran de connexion, et le serveur refuse alors aussi leur connexion Google. Ils se
+  connectent par identifiant et mot de passe ; la connexion Google enseignant a son propre
+  réglage.
 - **Enseignants (prof de classe, n3boss, admin)** : Google ne crée **jamais** un compte
   enseignant. Le compte doit être créé avant (Profils → Comptes ou import), avec
   **exactement** l'adresse Google du lycée. Si la connexion Google enseignant échoue,

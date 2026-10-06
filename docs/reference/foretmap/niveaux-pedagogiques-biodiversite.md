@@ -1,8 +1,8 @@
 # Niveaux pédagogiques biodiversité et séances types
 
 > **Public de ce document : professeurs et administrateurs.**
-> Il décrit le **fonctionnement souhaité** pour adapter la biodiversité au niveau des
-> élèves, sans jargon technique.
+> Il décrit **comment l'application adapte** la biodiversité au niveau des élèves, sans
+> jargon technique.
 > Retour au sommaire : [../README.md](../README.md)
 
 > **Lot A livré :** les trois niveaux d’affichage, les réglages (compte, carte, groupe,
@@ -241,7 +241,7 @@ Voir aussi [Visite et mascottes](visite-et-mascottes.md).
 ## Tableau récapitulatif — ce que voit un élève
 
 Légende : **O** = visible · **R** = replié / discret · **—** = masqué · **S** = seulement
-dans une séance lancée par le professeur (quand les séances guidées existeront).
+dans une séance guidée (onglet **Séances**) qui ouvre cet outil.
 
 | Élément                                       | Collège            | Lycée    | Université |
 | --------------------------------------------- | ------------------ | -------- | ---------- |
@@ -296,7 +296,7 @@ silence et apparaissent tous au rallumage.
   imprimer ou à afficher sur le terrain.
 - En scannant le code, l’élève arrive dans l’application et la séance démarre. S’il doit
   d’abord se connecter, elle démarre juste après la connexion.
-- Une séance encore en brouillon peut être partagée, mais le lien ne fonctionnera pour
+- Une séance encore en brouillon peut être partagée, mais le lien ne fonctionne pour
   les élèves qu’une fois la séance publiée.
 
 ### Enchaîner les séances (prérequis) et badges
@@ -393,10 +393,11 @@ Disponible en brouillon : le professeur choisit les six espèces puis publie.
 
 ## Points d’attention
 
-> ⚠️ **Point d'attention** — Tant que les niveaux ne sont pas dans le code, **éviter de
-> laisser une classe de collège seule** face au réseau complet, à l’activité groupes
-> emboîtés libre, ou aux estimations d’arbres. Préférer les séances A et B, et le
-> commentaire oral du professeur.
+> ⚠️ **Point d'attention** — Le niveau n’allège l’affichage que s’il est connu : une classe
+> sans niveau (même hérité) suit les replis, et un élève peut **relever** son affichage si
+> un administrateur l’y autorise. Vérifier le niveau des classes de collège avant de les
+> laisser seules face au réseau, aux groupes emboîtés ou aux estimations d’arbres ; les
+> séances A et B et le commentaire oral du professeur restent le cadre le plus sûr.
 
 > ⚠️ **Point d'attention** — Le mot « niveau » désigne plusieurs choses (niveau d’une
 > question de quiz collège/lycée, profondeur d’un terme de glossaire, niveau de la classe).
@@ -415,7 +416,8 @@ Disponible en brouillon : le professeur choisit les six espèces puis publie.
   individus, clés ;
 - [Quiz, glossaire, réseau](pedagogie-quiz-glossaire-reseau.md) — notions des programmes,
   réseau trophique ;
-- [Carte et zones](carte-et-zones.md) — cartes (futur réglage par carte) ;
-- [Comptes, rôles et groupes](comptes-roles-et-groupes.md) — groupes (futur réglage par
-  groupe) ;
+- [Carte et zones](carte-et-zones.md) — cartes (réglage d’affichage par carte, utilisé en
+  repli) ;
+- [Comptes, rôles et groupes](comptes-roles-et-groupes.md) — groupes (niveau de la classe,
+  et ancien réglage d’affichage par groupe utilisé en repli) ;
 - [Visite et mascottes](visite-et-mascottes.md) — visite invitée.

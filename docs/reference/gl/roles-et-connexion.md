@@ -24,16 +24,20 @@ Comment on obtient le rôle MJ ou Admin :
 
 - Un **administrateur ForetMap** qui se connecte à GL devient automatiquement
   **Admin GL** : son compte GL est créé et relié tout seul à la première connexion. Si ce
-  compte staff a ensuite été **désactivé** dans GL, la connexion ne le rouvre pas : l'accès
-  maître du jeu reste fermé tant qu'un Admin ne le réactive pas.
+  compte staff a ensuite été **désactivé**, la connexion ne le rouvre pas : l'accès
+  maître du jeu reste fermé tant que le compte n'est pas réactivé (voir le point d'attention
+  ci-dessous).
 - Un **enseignant non administrateur** ne peut entrer comme **MJ** que si un compte
   MJ a déjà été préparé pour lui dans GL ; sinon la connexion staff lui est refusée
   avec un message explicite.
 
 > ⚠️ **Point d'attention** — Il n'existe pas, aujourd'hui, d'écran dans GL pour
 > **créer ou promouvoir un compte MJ** : un enseignant non administrateur ne devient
-> MJ que si son compte a été préparé en dehors des écrans du jeu. Le circuit
-> « comment nommer un nouveau MJ » mérite d'être outillé ou documenté.
+> MJ que si son compte a été préparé en dehors des écrans du jeu. Il en va de même
+> pour **désactiver ou réactiver un compte staff** et pour **rétrograder un Admin en
+> MJ** : aucun écran du jeu ne le permet aujourd'hui, cela demande une intervention
+> technique. Le circuit « comment nommer, retirer ou rétablir un MJ » mérite d'être
+> outillé ou documenté.
 
 **Un MJ n'est pas cantonné à « sa » classe.** Dans G&L, il n'existe pas de périmètre de
 classe pour le staff : **tout MJ voit et gère toutes les classes, toutes les parties et tous
@@ -48,8 +52,8 @@ sur le compte ForetMap d'un élève, ni en changer l'e-mail (voir
 commentaires **du jeu**, jamais ceux de ForetMap.
 
 **Retirer un rôle ou désactiver un compte prend effet tout de suite.** Rétrograder un
-Admin en MJ, désactiver un joueur ou supprimer son compte s'applique **dès l'action
-suivante** de la personne concernée — même si elle est déjà connectée : elle perd
+Admin en MJ (par intervention technique, voir plus haut), désactiver un joueur ou supprimer
+son compte s'applique **dès l'action suivante** de la personne concernée — même si elle est déjà connectée : elle perd
 aussitôt les droits retirés, ou se retrouve déconnectée si son compte n'est plus actif.
 Le flux en direct de la partie est aussi coupé dès que la connexion se rétablit
 (coupure réseau, onglet qui reprend) : on ne garde pas l'écoute d'une partie dont

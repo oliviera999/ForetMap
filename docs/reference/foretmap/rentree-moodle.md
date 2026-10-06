@@ -60,7 +60,8 @@ l'**état du lien** :
   restent éditables.
 
 Puis, en sections repliables : **Synchroniser**, **Rapprochements en attente**, **Conflits à
-trancher**, **Historique**, **Politiques par cohorte**, **Chapitres → cours**, **Seuils de
+trancher**, **Historique des exécutions**, **Politiques par cohorte**, **Chapitres G&L →
+cours Moodle**, **Seuils de
 sécurité**, **Entrée depuis le cours**, **Outils**.
 
 ## Synchroniser, pas à pas
@@ -169,7 +170,7 @@ s'annule pas.
   dans ces domaines est **laissé de côté** (les autres membres de la cohorte sont quand même
   traités). Même principe pour un membre sans e-mail, ou deux membres Moodle qui partagent le
   même e-mail : le rapport les liste, l'exécution continue.
-- **Chapitres → cours** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
+- **Chapitres G&L → cours Moodle** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
   du cours** s'affiche à côté de son identifiant pour éviter une erreur d'année. Sert aux miroirs
   d'équipes et à l'entrée depuis le cours.
 - **Seuils de sécurité** : les cinq garde-fous décrits plus haut, en pourcentage ou en nombre.
@@ -240,7 +241,7 @@ réutiliser un lien copié, affiche un refus — il suffit de recliquer sur l'ac
   gestion des tâches) ; détail dans
   [Comptes, rôles et groupes](comptes-roles-et-groupes.md).
 - La **création manuelle** de comptes par un prof de classe n'est pas obligatoire si Moodle
-  peupple déjà les classes : ce droit reste **paramétrable** pour ce profil.
+  peuple déjà les classes : ce droit reste **paramétrable** pour ce profil.
 
 ## Procédure de rentrée (administrateur)
 
@@ -248,7 +249,7 @@ réutiliser un lien copié, affiche un refus — il suffit de recliquer sur l'ac
    des élèves existants (export, complétion par les profs, réimport) — l'e-mail est la clé de
    reconnaissance la plus sûre.
 2. Mettre à jour le **préfixe d'année** et relire les **politiques**.
-3. Mettre à jour la table **Chapitres → cours** (les cours changent d'identifiant chaque année)
+3. Mettre à jour la table **Chapitres G&L → cours Moodle** (les cours changent d'identifiant chaque année)
    et vérifier les **noms affichés**.
 4. Demander une **sauvegarde** de la base (geste technique, voir l'encadré).
 5. **Contrôler la connexion**.

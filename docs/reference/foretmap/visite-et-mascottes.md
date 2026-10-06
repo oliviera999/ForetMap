@@ -13,8 +13,8 @@ familles.
 
 ## Ce que vit le visiteur
 
-- **Entrer** : depuis l'écran d'accueil, un bouton « Visiter en invité » (activable
-  dans les réglages) ouvre la visite sans créer de compte. À la première venue, une
+- **Entrer** : depuis l'écran d'accueil, un bouton « Visiter sans compte » (libellé
+  par défaut, modifiable ; bouton activable dans les réglages) ouvre la visite sans créer de compte. À la première venue, une
   fenêtre de bienvenue propose de **choisir sa mascotte guide** ; ce choix est retenu
   pour les fois suivantes et reste modifiable pendant la visite.
 - **Explorer** : un plan du jardin avec zones et repères, que l'on parcourt en
@@ -104,8 +104,9 @@ familles.
   visite les mêmes cartes que sur la carte de travail (celles de ses classes, ou toutes pour
   un prof) — y compris une carte aussi proposée sur le plan de l'établissement, comme le
   complexe sportif ; **sans compte**, seules les cartes ouvertes à la visite publique sont
-  servies — toutes les cartes actives sauf le plan de l'établissement, même quand un plan
-  les propose aussi, et toujours la carte de visite par défaut ; si la carte retenue par
+  servies — par défaut, toutes les cartes actives sauf le plan de l'établissement, même
+  quand un plan les propose aussi, et toujours la carte de visite par défaut (voir le point
+  d'attention plus bas sur la liste des cartes ouvertes aux invités) ; si la carte retenue par
   l'appareil n'est plus ouverte au public, la visite ouvre la première carte disponible au
   lieu d'afficher « Carte introuvable » ; à droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
@@ -209,7 +210,7 @@ familles.
   résultat ne convient pas, **« Réinitialiser depuis l'origine »** défait l'import.
 - **Une archive OLU prête à importer est fournie.** Elle couvre ses **vingt et un états**
   (repos, marche, course, parole, désignation, joie, saut, célébration, tour sur soi,
-  examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
+  observation attentive, examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
   contrariété, sommeil, repas, danse). Importée **en remplacement** de la mascotte livrée
   « OLU » depuis l'onglet « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout
   où il apparaît. L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe
@@ -443,11 +444,19 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > carte comme accroche. Les photos de ces fiches supprimées ne sont plus affichées nulle
 > part, mais leurs fichiers restent sur le serveur.
 
-> ⚠️ **Point d'attention** — Un lieu **sans catégorie** n'apparaît pas en visite dès que
-> la carte a des catégories affichées par défaut, alors que la page Carte et zones indique
-> qu'un lieu sans catégorie reste visible partout. Donner une catégorie aux lieux à
+> ⚠️ **Point d'attention** — La Visite a **son propre** réglage de catégories affichées par
+> défaut (Paramètres → Visite), commun à toutes les cartes de la visite ; les catégories
+> affichées par défaut ou cachées **par carte** (Paramètres → Cartographie → Cartes) ne
+> concernent que la carte de travail. Dès que des catégories sont cochées d'office pour la
+> Visite, un lieu **sans catégorie** n'y apparaît plus, alors que la page Carte et zones
+> indique qu'un lieu sans catégorie reste visible partout. Donner une catégorie aux lieux à
 > montrer en visite évite la surprise ; l'harmonisation des deux comportements est une
 > évolution à demander.
+
+> ⚠️ **Point d'attention** — « Toutes les cartes actives sauf le plan de l'établissement »
+> est le comportement quand la **liste des cartes ouvertes aux invités** est vide, ce qui est
+> le cas par défaut. Une liste explicite peut remplacer ce choix automatique, mais ce
+> réglage **n'a pas d'écran** dans les Paramètres : le modifier demande l'équipe technique.
 
 En visite invitée, l’affichage biodiversité est **toujours Collège** (pas d’outils lycée /
 université), quel que soit le réglage de la carte — voir

@@ -364,7 +364,7 @@ l'écologie de la fiche ne touche pas à la validation.
 
 Le droit de valider est **séparé** du droit de gérer les fiches : un compte peut renseigner un
 danger sans pouvoir certifier qu'il a été relu. Il est accordé d'office à l'administrateur et
-au professeur, pas au professeur de classe.
+au n3boss, pas au prof de classe.
 
 ## L'encadré « Risque sanitaire »
 
@@ -660,8 +660,8 @@ Lycée, les détails scientifiques sont repliés — voir
 - Retour au [sommaire de la documentation](../README.md) ;
 - [Présentation générale de ForetMap](presentation.md) ;
 - [Niveaux pédagogiques biodiversité](niveaux-pedagogiques-biodiversite.md) —
-  Collège / Lycée / Université, réglages souhaités (compte, carte, groupe), séances
-  types (cahier des charges, pas encore dans l’application) ;
+  Collège / Lycée / Université, réglages (classe, séance, compte, carte), séances
+  types (disponibles dans l’onglet **Séances**) ;
 - [La carte et les zones](carte-et-zones.md) — où l'on associe les espèces aux lieux
   du jardin (et, pour les espèces sans lieu précis, directement à la carte) ;
 - Le réseau trophique, le glossaire et les quiz reliés aux fiches sont détaillés dans

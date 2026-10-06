@@ -845,10 +845,11 @@ qui conditionne une validation bloque toute une classe sans raison.
 > fiches chaque élève a lues (statistiques), mais pas **lesquelles** : pas de liste
 > nominative « qui a lu tel tutoriel ».
 
-> ⚠️ **Point d'attention** — Le contrôle **ignore le niveau des questions**. Une question
-> pensée pour le lycée peut bloquer un élève de collège si elle est rattachée à sa fiche.
-> L'application ne sait pas en quelle classe est un élève : cette information n'existe nulle
-> part. En attendant, c'est au moment du rattachement qu'il faut y veiller.
+> ⚠️ **Point d'attention** — Le tri par niveau a une limite : quand une fiche n'a **aucune**
+> question au niveau de l'élève, toutes ses questions restent posées (voir « Les questions
+> posées suivent le niveau de l'élève »). Une fiche qui ne porte que des questions de lycée
+> peut donc encore bloquer un élève de collège : c'est au moment du rattachement qu'il faut
+> prévoir au moins une question de collège.
 
 > ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
 > **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes

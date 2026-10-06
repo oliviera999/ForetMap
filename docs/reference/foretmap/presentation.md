@@ -29,7 +29,7 @@ leurs permissions sont configurables par les administrateurs) :
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                                                    |
 | **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                                                  |
 | **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                                               |
-| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                                             |
+| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice, et en plus **proposer** ses propres idées de tâches au professeur                                                                                                |
 | **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                                                    |
 | **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** seulement — pas les tâches ni le jardin                                                                                                       |
 | **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large : zones, plantes, tâches et validation, visite, quiz, élèves, stats, **carnet personnel** — **ce n'est pas** l'administrateur                           |
@@ -113,8 +113,8 @@ Le moteur pédagogique de l'application :
    difficulté et d'importance, le nombre d'élèves requis, ses échéances, ses tutoriels
    et son professeur référent.
 2. **L'élève se positionne lui-même** sur une tâche disponible (il peut aussi se
-   retirer tant qu'il n'a pas commencé, et même **proposer** ses propres idées de
-   tâches au professeur).
+   retirer tant que la tâche n'est ni terminée ni validée, et, à partir du palier
+   « avancé », **proposer** ses propres idées de tâches au professeur).
 3. Une fois le travail fait, l'élève le **marque comme réalisé**, avec un commentaire
    et une photo en guise de preuve.
 4. Le professeur **valide** (ou pas). Chaque validation fait progresser l'élève vers
@@ -151,10 +151,12 @@ existe, lui, sur la carte de travail des élèves.
 
 - **Forum** : fils de discussion avec réactions, images, signalements et modération ;
   il peut être cloisonné par groupe. Des **commentaires contextuels** peuvent aussi
-  être attachés à une tâche, un projet ou une zone.
+  être attachés à une tâche, un projet, une zone, un repère, une fiche espèce ou un
+  tutoriel.
 - **Statistiques** (professeur) : tableau de bord par élève et par statut de tâche,
-  classement, progression, export tableur. L'accès des élèves aux statistiques
-  générales est réglable.
+  classement, progression, export tableur. Le seul réglage est l'interrupteur du module ;
+  tableau de bord et classement demandent un droit de lecture des statistiques, qu'aucun
+  profil élève ne possède.
 - **Notifications**, **visite guidée** de prise en main et **panneau d'aide** : l'écran
   se met à jour en temps réel (une validation, une observation, un message forum
   apparaissent sans recharger). Si la connexion live est coupée, les listes se
@@ -227,9 +229,10 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 - **Le professeur** navigue par une barre en haut, organisée en **trois pôles** qui
   déploient chacun leur rangée d'onglets :
   - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
-    Tuto, Visite, Packs mascotte, Médiathèque ;
-  - **Suivi** — Tâches, Stats, Carnet, Forum, Audit (le nombre de tâches « à valider »
-    s'affiche en pastille sur le pôle et sur l'onglet) ;
+    Groupes emboîtés, Clés d'identification, Séances, Tuto, Visite, Packs mascotte,
+    Médiathèque ;
+  - **Suivi** — Individus, Tâches, Stats, Carnet, Forum, Audit (le nombre de tâches
+    « à valider » s'affiche en pastille sur le pôle et sur l'onglet) ;
   - **Administration** — Profils & utilisateurs, Paramètres, À propos.
 
   Dans **Paramètres**, une **barre de recherche** en tête de page filtre tous les
@@ -238,7 +241,7 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
   recherche est active, les résultats s’affichent à la place des sous-onglets ; les
   sections trouvées s’ouvrent d’elles-mêmes. La console reste découpée en sous-onglets
   hors recherche : Accueil & modules, Pédagogie, Cartographie (cartes, zones &
-  repères, catégories, parcours), Plan Lyautey, Identité visuelle, Visite,
+  repères, catégories, parcours, messages), Plan Lyautey, Identité visuelle, Visite,
   Intégrations (Moodle), Aide & découverte, Usage & exploitation. Un professeur avec
   seulement la gestion des zones y voit la Cartographie ; un délégué « visites
   guidées » n’y voit que l’aide dédiée.
@@ -545,6 +548,14 @@ Documents spécifiques (produits au fur et à mesure — voir le
 [sommaire](../README.md)) : carte et zones · plantes et biodiversité · tâches,
 tutoriels et validation · comptes, rôles et groupes · visite et mascottes · pédagogie
 (quiz, glossaire, réseau trophique) · stats, forum et suivi.
+
+Cette documentation de référence se lit aussi **dans l'application**, en lecture seule :
+**Paramètres → Aide & découverte → Doc de référence**. Cet onglet demande le droit de
+consulter les réglages, accordé par défaut au seul rôle **Administrateur**.
+
+> ⚠️ **Point d'attention** — La documentation s'adresse aussi aux professeurs, mais un
+> **n3boss** ne voit pas l'onglet « Doc de référence » par défaut : il faut lui accorder
+> le droit de consulter les réglages dans **Profils & utilisateurs**.
 
 ## Identité visuelle de l'établissement
 

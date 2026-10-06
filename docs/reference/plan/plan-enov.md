@@ -145,6 +145,11 @@ Un parcours du plan public **n'est pas repris** automatiquement sur le plan e-no
 > innovations était retirée du plan public, décochez « Plan e-nov » dans son bloc
 > « Masquer sur » pour qu'elle y apparaisse.
 
+> ⚠️ **Point d'attention — suivi d'usage.** Les compteurs de fréquentation du plan e-nov sont
+> bien enregistrés, mais l'écran de suivi d'usage ne propose comme filtre que ForetMap,
+> Gnomes & Licornes et le Plan Lyautey : on ne peut pas y isoler le plan e-nov. Ses chiffres
+> n'apparaissent qu'en choisissant « Tous les produits », mêlés à ceux des autres applications.
+
 ## Renvois
 
 - [Le Plan Lyautey public](presentation.md) — tout ce qui est commun (recherche, filtres,

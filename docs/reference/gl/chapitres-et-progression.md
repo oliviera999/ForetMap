@@ -135,10 +135,15 @@ son chapitre** à sa création.
      lancer de dé). Chaque « tour suivant » ouvre un round où **toutes les équipes
      rejouent** — le moteur ne met pas une seule équipe « au trait » ; l'alternance
      stricte est une convention d'animation tenue par le MJ.
-   - **Le dé virtuel** (module optionnel `virtual_dice_enabled`) : quand il est activé,
-     une équipe peut lancer un dé une fois par tour ; le résultat sert à cadencer les
-     déplacements sur le plateau. C'est un outil d'animation — le MJ garde la main sur
-     l'application du déplacement.
+   - **Le dé virtuel** (module optionnel « dés virtuels ») : quand il est activé,
+     une équipe peut lancer les dés une fois par tour. C'est le **serveur** qui tire le
+     résultat : l'écran anime le lancer puis affiche le résultat officiel, qu'un élève ne
+     peut pas choisir. Sur un **parcours numéroté**, quand ce sont les joueurs qui
+     déplacent, la case d'arrivée doit être celle que donne le **dernier lancer** de
+     l'équipe (un lancer ne sert qu'à un déplacement, et il faut lancer avant de
+     bouger). Si les dés virtuels sont coupés (dés physiques en classe), le jeu admet
+     toute avance de 1 à 30 cases : la vérification reste alors celle du MJ. Hors partie
+     en cours (démonstration, préparation), le lancer reste local et n'est pas enregistré.
    - **Narration** (optionnelle) : le MJ écrit des messages narratifs (avec image
      possible) qui alimentent le **journal de partie**, où s'inscrivent aussi tous
      les événements (déplacements, scores, questions, sorts, découvertes…).

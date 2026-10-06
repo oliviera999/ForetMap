@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Doc de référence remise à jour (audit doc ↔ code du 06/10)
+
+- **ForetMap** : rôles (le n3beur avancé propose des tâches), retrait d'une tâche, onglets de la barre prof, droits d'accès à l'inventaire « Zones & repères », chemins de menus, passages restés au futur (niveaux pédagogiques, séances), point d'attention périmé sur le niveau des questions, Visite (libellé du bouton, catégories propres à la Visite), forum (8 Mo par image, anti-flood, commentaires sur repères / fiches / tutoriels), statistiques, Moodle. La lecture de la doc dans l'application (Réglages → Aide & découverte → Doc de référence, réservée aux admins) est désormais signalée.
+- **Plan et exploitation** : plan e-nov ajouté partout où il manquait (cinq surfaces, modèle de sécurité, indexation, « Vos données »), chemins de menus, titres de secours encore écrits en dur ; `INCOHERENCES.md` : G7 (mots de passe) marqué dépassé, R1-R3 d'F1 soldés.
+- **G&L** : minimum de 8 caractères pour les joueurs, point de QCM compté une fois par équipe, délai de nouvelle tentative en heures, dé virtuel tiré par le serveur, 19 visites guidées (Seuil), comptes staff sans écran de réactivation ni de rétrogradation.
+
 ### Ajouté — Crédits réglables au bas de l'écran de connexion
 
 - **Constat** : la phrase « projet initialement produit Mohammed El Farrai » (écran de connexion) et les mentions « Auteur / Contributeur » (page À propos) étaient écrites en dur.

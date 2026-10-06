@@ -13,7 +13,9 @@
    narration, les actions, le score et qui lance QCM et sorts.
 2. **Vérifier les modules** voulus : vitalité (cœurs/gemmes), Marché (exige la
    vitalité — les réglages avertissent), Sortilèges, journaux, dé virtuel, musique de
-   zone…
+   zone, **Le Seuil** (l'accueil des joueurs, avec leur niveau de voyageur)… Si les
+   petits sons du Seuil gênent en classe, l'admin peut les **couper pour tout le monde**
+   (module **Sons du voyageur**) ; chaque élève peut aussi couper les siens.
 3. **Préparer le chapitre** : plateau prêt (zones, repères, effets — voir
    [Carte du royaume](carte-du-royaume.md)), questions en place, feuillets répartis.
 4. **Composer les équipes** et attribuer les mascottes **gnome ou licorne** — en
@@ -91,7 +93,10 @@
 ## Après la séance
 
 - **Scores et statistiques** : le score des équipes, la progression individuelle et de
-  classe (contenus appris, feuillets découverts).
+  classe (contenus appris, feuillets découverts). Si Le Seuil est actif, chaque élève y
+  porte une pastille **« niveau du voyageur »** (stade, niveau et penchant ; le détail des
+  deux regards au survol) : un repère pour l'accompagner, que les élèves ne voient pas
+  entre eux — il n'y a pas de classement. Voir [Présentation générale](presentation.md).
 - **Les carnets personnels** : consultables en lecture, exportables et imprimables en
   forme de livre pour valoriser le travail d'écriture des élèves.
 - **Le journal de partie** garde la trace narrative de la séance.
@@ -146,7 +151,7 @@ glossaires, les tutoriels — l'aide affiche une version qui vous est destinée 
 faut vérifier avant la séance, où se règle telle mécanique. Les autres écrans affichent le
 même texte pour tout le monde.
 
-**Dix-huit onglets ont une visite guidée** — tout ce qui se joue : cartes, écosystèmes,
+**Dix-neuf onglets ont une visite guidée** — tout ce qui se joue : le Seuil, cartes, écosystèmes,
 biodiversité, glossaire scientifique, histoire, carnet de Sélène, sortilèges,
 introduction, règles, lexique du récit, tutoriels, forum, marché, statistiques, journal
 de partie, journal personnel, plateau de découverte et console MJ. C'est une courte

@@ -322,8 +322,9 @@ Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
 - ✅ **Vocabulaire harmonisé** : l'interface dit Écosystèmes/Biodiversité ; les termes
   scientifiques biotope/biocénose restent dans les contenus pédagogiques, définis au
   glossaire scientifique.
-- ✅ **Mots de passe du personnel renforcés** : 8 caractères minimum pour les comptes
-  MJ/Admin (les joueurs restent à 4).
+- ✅ **Mots de passe renforcés** : 8 caractères minimum pour les comptes MJ/Admin, et
+  désormais aussi pour les joueurs (passés de 4 à 8 caractères le 30/09/2026 ; les mots de
+  passe déjà en place continuent de fonctionner).
 - ✅ **Scories internes nettoyées** (réglage en double, listes désynchronisées).
 
 ## Pour aller plus loin

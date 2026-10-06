@@ -199,7 +199,8 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 
 > ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique par défaut à
 > **toute la ressource** après une erreur : un lecteur verrouillé n'est pas un bug. Le
-> délai se règle (jusqu'à l'annuler, à 0 jour), on peut désormais **tolérer une ou deux
+> délai se règle **en heures** (1 heure par défaut, de 0 — ce qui l'annule — jusqu'à un
+> an au maximum), on peut désormais **tolérer une ou deux
 > erreurs** avant qu'il ne tombe, et limiter le blocage à la **seule question ratée**.
 
 > ⚠️ **Point d'attention** — Le **mode** choisi change beaucoup la charge de travail : sur une
@@ -224,8 +225,9 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > la même question mélangée est refusé, il faut en relancer une (les choix sont alors
 > remélangés). Et si le score d'équipe est
 > activé, **une même réponse ne compte qu'une fois** : renvoyer plusieurs fois la sienne ne
-> fait pas monter le score. À ne pas confondre avec la règle du point par joueur ci-dessus —
-> les camarades, eux, marquent bien chacun le leur.
+> fait pas monter le score. Les camarades non plus ne marquent pas chacun le leur : le
+> point est compté **une seule fois par équipe, par question et par arrivée** sur le repère
+> (voir « Une question juste = un point par équipe, une fois par arrivée » plus haut).
 
 ## Pour aller plus loin
 
