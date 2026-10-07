@@ -48,6 +48,16 @@ test('mode avion : bandeau hors ligne, écrans ouvrables, aucun bandeau de recon
   await expect(page.getByText(/reconnexion en cours/)).toHaveCount(0);
   await expect(page.getByText('Une erreur s’est produite.')).toHaveCount(0);
 
+  // Écran « Hors ligne » : ouvert depuis le bandeau, rien en attente pour un compte neuf,
+  // préparation de sortie impossible sans réseau.
+  await page.getByRole('button', { name: 'Détails' }).click();
+  const center = page.getByRole('dialog', { name: 'Hors ligne' });
+  await expect(center).toBeVisible();
+  await expect(center.getByText(/Rien en attente/)).toBeVisible();
+  await expect(center.getByRole('button', { name: 'Préparer la sortie terrain' })).toBeDisabled();
+  await center.getByRole('button', { name: 'Fermer la fenêtre' }).click();
+  await expect(center).toHaveCount(0);
+
   await context.setOffline(false);
   await expect(page.getByText(/^Hors ligne — données/)).toHaveCount(0, { timeout: 15_000 });
 });

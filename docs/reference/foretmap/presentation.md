@@ -460,9 +460,16 @@ Quand c'est **l'appareil** qui n'a plus de réseau, le serveur n'est pas en caus
 l'application le reconnaît et ne se comporte plus comme pendant une panne.
 
 - **Un bandeau bleu le dit clairement** : « Hors ligne — données de la dernière
-  synchronisation (à 10:42). Tâches terminées, observations et carnet sont gardés et
-  partiront au retour du réseau. » L'heure indiquée est celle du dernier chargement réussi
-  avec le serveur, même si l'application a été rouverte entre-temps sans réseau.
+  synchronisation (à 10:42). Tâches terminées, observations, lectures et carnet sont gardés
+  et partiront au retour du réseau. » L'heure indiquée est celle du dernier chargement réussi
+  avec le serveur, même si l'application a été rouverte entre-temps sans réseau. Un bouton
+  **« En attente (3) »** (ou **« Détails »** s'il n'y a rien à envoyer) ouvre l'écran
+  « Hors ligne » décrit plus bas.
+- **Réseau présent mais inutilisable** (une barre, Wi-Fi saturé, portail Wi-Fi qui demande
+  une connexion) : après **trois requêtes de suite restées sans réponse**, l'application se
+  comporte comme en mode avion et le bandeau commence par **« Réseau trop faible »**. Elle
+  vérifie toutes les 15 secondes si le serveur répond de nouveau ; la première réponse fait
+  disparaître le bandeau et relance les envois.
 - **Plus de « reconnexion en cours » en boucle.** L'application n'essaie plus de joindre le
   serveur à répétition : elle affiche tout de suite ce qu'elle a gardé sur l'appareil, et le
   rafraîchissement automatique se met en pause. Le bandeau « Serveur indisponible » ne
@@ -475,20 +482,71 @@ l'application le reconnaît et ne se comporte plus comme pendant une panne.
   fiches et les repères du dernier chargement s'affichent sans attente. La vérification de
   la session de l'élève se fait au retour du réseau, sans alerte « connexion instable ».
 - **Au retour du réseau**, le bandeau disparaît, une synchronisation complète part aussitôt
-  et les actions gardées sont envoyées.
+  et les actions gardées sont envoyées — **quel que soit l'écran ouvert** (auparavant, une
+  tâche notée faite sans réseau attendait qu'on rouvre l'onglet Tâches). L'application
+  réessaie aussi quand on revient sur elle, et toutes les minutes tant qu'il reste quelque
+  chose à envoyer. Un seul message résume l'envoi (« Ta tâche notée sans réseau est bien
+  partie ✓ », « 3 envois gardés sans réseau sont bien partis ✓ »).
+- **Même application fermée** (Chrome sur Android et ordinateur) : les actions gardées
+  partent dès que le réseau revient, sans attendre que l'élève rouvre l'application.
+
+**Ce qui peut être fait sans réseau**
+
+- **Marquer une tâche terminée, avec ou sans photo.** La photo, déjà réduite par
+  l'application, est gardée sur l'appareil avec le commentaire et part avec eux. Si
+  l'appareil est plein, l'élève en est prévenu tout de suite et garde sa saisie.
+- **Signaler une observation d'espèce, avec ou sans photo** : l'observation part d'abord, puis
+  sa photo.
+- **Confirmer avoir vu une espèce**, **écrire dans le carnet**, **marquer un lieu « vu »**
+  pendant la visite.
+- **Marquer un tutoriel comme lu**, s'il n'y a pas de quiz de compréhension à passer : la
+  lecture compte tout de suite (les tâches liées deviennent marquables) et part au retour du
+  réseau, avant les tâches qui en dépendent.
+
+**L'écran « Hors ligne »** (bouton nuage de l'en-tête, avec une pastille quand des envois
+attendent ; ou bouton du bandeau) rassemble :
+
+- l'**état du réseau** ;
+- la liste **« En attente d'envoi »** : chaque action gardée, son heure, une mention
+  « photo » le cas échéant. Un bouton **« Envoyer maintenant »** relance l'envoi. Une action
+  peut être **supprimée** de l'appareil (après confirmation : elle ne sera jamais envoyée) ;
+- les **actions refusées** au retour du réseau, avec la raison en clair (« la tâche a été
+  archivée entre-temps », « tu n'es plus inscrit·e sur cette tâche », « un tutoriel lié doit
+  d'abord être lu »…) et un bouton **« Copier le texte »** pour ne pas perdre un commentaire ;
+- **« Préparer la sortie terrain »** : à faire avec du Wi-Fi avant de partir. L'application
+  garde d'un geste la carte active, les photos des zones et repères, les fiches espèces et
+  les tutoriels, avec une barre d'avancement puis un bilan (« Prêt pour la sortie ✓ (124
+  éléments gardés) »). Chaque préparation remplace la précédente ;
+- le **stockage de l'appareil** : place utilisée, bouton **« Protéger les données hors
+  ligne »** (le navigateur s'engage alors à ne pas effacer les actions en attente pour faire
+  de la place), alerte quand l'appareil est presque plein. L'application fait aussi cette
+  demande d'elle-même la première fois qu'une action est gardée sans réseau.
 
 > ⚠️ **Points d'attention**
 >
-> - Seules les actions prévues pour le terrain sont gardées hors ligne : marquer une tâche
->   terminée (sans photo), confirmer une observation d'espèce, écrire dans le carnet,
->   marquer un lieu « vu » pendant la visite. Les autres (créer une tâche, modifier une
->   fiche, écrire dans le forum…) affichent le message « Pas de réseau pour l'instant ».
+> - Les autres actions (créer une tâche, modifier une fiche, écrire dans le forum, s'inscrire
+>   sur une tâche…) demandent le réseau et affichent « Pas de réseau pour l'instant ».
+> - **Les quiz ne se passent pas sans réseau** : les questions sont tirées et corrigées par le
+>   serveur. Un tutoriel qui exige un quiz ne peut donc pas être marqué lu hors ligne.
+> - Une action refusée au retour du réseau (tâche archivée ou supprimée entre-temps,
+>   inscription retirée…) n'est jamais forcée : l'élève est prévenu, son texte reste
+>   copiable jusqu'à ce qu'il le supprime.
+> - Les brouillons du carnet apparaissent dans « En attente d'envoi » mais se gèrent depuis
+>   le carnet (ils partent quand on l'ouvre en ligne).
+> - « Préparer la sortie terrain » ne peut pas garder les photos d'espèces hébergées sur un
+>   autre site (Wikimedia…) : elles sont seulement préchargées, sans garantie. Les tutoriels
+>   « lien » vers un site extérieur ne sont pas copiés.
+> - L'envoi **application fermée** n'existe que sur Chrome (Android, ordinateur). Sur
+>   iPhone, iPad et Firefox, les actions partent à la prochaine ouverture de l'application.
+>   Les actions avec photo partent toujours à l'ouverture de l'application.
+> - **iPhone et iPad** : Safari efface les données d'un site non installé après quelques jours
+>   sans visite. L'écran « Hors ligne » le rappelle : il faut ajouter l'application à l'écran
+>   d'accueil pour une sortie terrain.
 > - Un écran que l'appareil n'a pas encore pu garder (première ouverture de l'application
 >   interrompue, par exemple) affiche « Cet écran n'est pas encore disponible hors ligne » et
 >   s'ouvre tout seul au retour du réseau.
-> - Un téléphone qui affiche du réseau mais ne passe rien (une barre, portail Wi-Fi) n'est
->   pas reconnu comme hors ligne : c'est alors le fonctionnement « serveur qui ne répond
->   plus » décrit plus haut qui s'applique.
+> - Le « réseau trop faible » n'est reconnu qu'après trois requêtes sans réponse : les
+>   toutes premières secondes peuvent encore ressembler à une attente.
 
 ### Quand une nouvelle version est publiée
 

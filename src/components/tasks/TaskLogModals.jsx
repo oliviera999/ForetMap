@@ -19,6 +19,8 @@ import {
   enqueueTaskDone,
   newTaskDoneClientUuid,
 } from '../../utils/taskDoneQueue.js';
+import { deleteOfflinePhoto, putOfflinePhoto } from '../../utils/offlinePhotoStore.js';
+import { notifyOutboxChanged } from '../../services/offlineOutbox.js';
 import { AuthedImage } from '../AuthedImage.jsx';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -35,9 +37,9 @@ import {
   IconReports,
 } from '../../shared/icons.jsx';
 
-/** Photo jointe sans réseau : elle n'entre pas dans la file (poids, tablette partagée). */
+/** Photo jointe sans réseau, que l'appareil n'a pas pu garder (stockage plein ou indisponible). */
 export const TASK_DONE_OFFLINE_PHOTO_MESSAGE =
-  'Pas de réseau : la photo ne peut pas être gardée sur l’appareil. Retire-la pour que ta tâche parte toute seule, ou réessaie quand le réseau revient.';
+  'Pas de réseau : la photo ne peut pas être gardée sur l’appareil (stockage plein ou indisponible). Retire-la pour que ta tâche parte toute seule, ou réessaie quand le réseau revient.';
 
 /**
  * Rapport « tâche faite ».
@@ -103,17 +105,26 @@ function LogModal({
   };
 
   /**
-   * Sans réseau : garde le marquage (et son commentaire) sur l'appareil, s'il peut l'être.
-   * @returns {boolean} vrai si le marquage est en file — la modale peut se fermer
+   * Sans réseau : garde le marquage (son commentaire, et sa photo dans IndexedDB) sur
+   * l'appareil, s'il peut l'être.
+   * @returns {Promise<'queued'|'photo_refused'|null>} `queued` : en file, la modale peut se
+   *   fermer ; `photo_refused` : la photo n'a pas pu être gardée (message déjà affiché)
    */
-  const keepOffline = () => {
-    if (imageData) {
-      setErr(TASK_DONE_OFFLINE_PHOTO_MESSAGE);
-      return false;
-    }
+  const keepOffline = async () => {
     const userId = getAuthUserId();
     if (!offlineAllowed || !userId || String(comment || '').length > TASK_DONE_COMMENT_MAX) {
-      return false;
+      return null;
+    }
+    if (imageData) {
+      const photoKept = await putOfflinePhoto(clientUuidRef.current, {
+        userId,
+        dataUrl: imageData,
+        kind: 'task_done',
+      });
+      if (!photoKept) {
+        setErr(TASK_DONE_OFFLINE_PHOTO_MESSAGE);
+        return 'photo_refused';
+      }
     }
     const kept = enqueueTaskDone({
       user_id: userId,
@@ -124,12 +135,17 @@ function LogModal({
       student_id: student?.id != null ? String(student.id) : '',
       first_name: student?.first_name || '',
       last_name: student?.last_name || '',
+      has_photo: !!imageData,
     });
-    if (!kept) return false;
+    if (!kept) {
+      if (imageData) await deleteOfflinePhoto(clientUuidRef.current);
+      return null;
+    }
     writeTaskLogCommentDraft(task.id, '');
+    notifyOutboxChanged({ reason: 'queued', kind: 'task_done' });
     onQueued?.(task);
     onClose();
-    return true;
+    return 'queued';
   };
 
   const submit = async () => {
@@ -153,8 +169,9 @@ function LogModal({
         return;
       }
       if (isLikelyNetworkTransportFailure(e)) {
-        if (keepOffline()) return;
-        if (imageData) {
+        const outcome = await keepOffline();
+        if (outcome === 'queued') return;
+        if (outcome === 'photo_refused') {
           setSaving(false);
           return;
         }

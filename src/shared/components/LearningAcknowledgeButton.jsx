@@ -103,6 +103,12 @@ export function LearningAcknowledgeButton({
   ghostBtnClassName,
   /** Transmis à `LearningGatingQuestionPanel` (G&L : sortilège « Loupe »). */
   choiceAid = null,
+  /**
+   * Le contrôle n'a pas pu être chargé : vrai si l'on peut tout de même passer à la
+   * confirmation (ForetMap : pas de réseau et résumé connu « aucun contrôle à passer » —
+   * la lecture est alors gardée sur l'appareil).
+   */
+  confirmWhenChallengeUnavailable = null,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [flowPhase, setFlowPhase] = useState('loading');
@@ -173,13 +179,20 @@ export function LearningAcknowledgeButton({
         setFlowPhase('confirm');
       }
     } catch (e) {
+      if (
+        typeof confirmWhenChallengeUnavailable === 'function' &&
+        confirmWhenChallengeUnavailable(e)
+      ) {
+        setFlowPhase('confirm');
+        return;
+      }
       // Sans challenge, on ne sait pas si un contrôle est exigé : passer à la confirmation
       // promettait une validation que le serveur allait refuser (D3). On le dit, et on
       // propose de réessayer.
       setError(e?.message || 'Impossible de charger le contrôle de compréhension');
       setFlowPhase('error');
     }
-  }, [enableGating, gatingHandlers, gatingResource]);
+  }, [enableGating, gatingHandlers, gatingResource, confirmWhenChallengeUnavailable]);
 
   /** Relit le challenge après un refus du serveur (403 : questions manquantes ou verrou). */
   const reloadChallengeAfterRefusal = useCallback(

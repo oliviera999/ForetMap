@@ -410,6 +410,18 @@ export function useAppDataSync({
   }, [forceLogout, mergeAuthMeResponse, studentRef]);
 
   /**
+   * Cycle **complet** (sans polling différentiel) : tous les domaines sont relus. Sert à
+   * « Préparer la sortie terrain », qui doit recopier chaque lecture, même inchangée. Une passe
+   * déjà lancée est attendue d'abord : ses requêtes sont parties sans la demande de copie.
+   */
+  const fetchAllFull = useCallback(async () => {
+    const running = fetchAllRunPromiseRef.current;
+    if (running) await running.catch(() => {});
+    lastSyncStateRef.current = null;
+    return fetchAll();
+  }, [fetchAll]);
+
+  /**
    * Relance immédiate des données depuis le bandeau « Serveur indisponible » : réarme
    * le compteur d'échecs et l'intervalle nominal, puis attend `fetchAll`. Le bandeau
    * reste visible et le bouton désactivé le temps de la tentative ; `fetchAll` pilote
@@ -532,6 +544,7 @@ export function useAppDataSync({
     lastSyncAt,
     retryingServer,
     fetchAll,
+    fetchAllFull,
     retryServerNow,
     loadArchivedTasks,
   };

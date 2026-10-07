@@ -22,6 +22,8 @@ import {
   Camera,
   Check,
   Clock,
+  CloudOff,
+  CloudUpload,
   ChevronDown,
   ChevronRight,
   Circle,
@@ -44,6 +46,7 @@ import {
   Globe,
   GraduationCap,
   Hand,
+  HardDrive,
   Headphones,
   HelpCircle,
   Hourglass,
@@ -149,6 +152,11 @@ export const IconNotebook = ui(NotebookPen);
 export const IconPoleContents = ui(LayoutGrid);
 export const IconPoleTracking = ui(LineChart);
 export const IconPoleAdmin = ui(Settings2);
+
+/* Hors ligne (boîte d'envoi, sortie terrain, stockage) */
+export const IconOffline = ui(CloudOff);
+export const IconOutbox = ui(CloudUpload);
+export const IconStorage = ui(HardDrive);
 
 /* Actions et barres d'outils */
 export const IconHand = ui(Hand);

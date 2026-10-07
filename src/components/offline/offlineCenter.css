@@ -1,0 +1,118 @@
+.offline-center {
+  max-width: 560px;
+}
+
+.offline-center h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: var(--text-base);
+}
+
+.offline-center__network {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+  background: var(--surface-muted, #f1f5f1);
+}
+
+.offline-center__network--offline,
+.offline-center__network--unreachable {
+  background: #fff7e6;
+}
+
+.offline-center__section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #e2e8e2);
+}
+
+.offline-center__section .btn {
+  min-height: 44px;
+}
+
+.offline-center__list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.offline-center__item {
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e2e8e2);
+  border-radius: 8px;
+}
+
+.offline-center__item.is-refused {
+  border-color: var(--ink-alert, #b91c1c);
+}
+
+.offline-center__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.offline-center__kind {
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint, #667);
+}
+
+.offline-center__photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-2xs);
+  color: var(--ink-faint, #667);
+}
+
+.offline-center__detail {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 6em;
+  overflow: auto;
+}
+
+.offline-center__meta,
+.offline-center__empty {
+  margin: 4px 0 8px;
+  font-size: var(--text-sm);
+  color: var(--ink-faint, #667);
+}
+
+.offline-center__item.is-refused .offline-center__meta,
+.offline-center__warn {
+  color: var(--ink-alert, #b91c1c);
+  font-size: var(--text-sm);
+}
+
+.offline-center__ok {
+  color: var(--forest, #1f5130);
+  font-size: var(--text-sm);
+}
+
+.offline-center__item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.offline-center__progress {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.offline-center-btn .notif-badge.is-refused {
+  background: var(--ink-alert, #b91c1c);
+}

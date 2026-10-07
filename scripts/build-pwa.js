@@ -84,7 +84,25 @@ const PWA_PROFILES = Object.freeze({
       '/api/task-projects',
       '/api/tutorials',
       '/api/settings/public',
+      // Sans elles, hors ligne : tutoriels liés vus « non lus » (la tâche ne pouvait plus être
+      // marquée faite sans réseau) et « Mes observations » en erreur.
+      '/api/tutorials/me/read-ids',
+      '/api/species-observations/me',
     ]),
+    /**
+     * Lectures par lieu ou par document, gardées pour la sortie terrain
+     * (`src/services/fieldTripPrep.js`) : listes de photos des zones et repères, aperçu d'un
+     * tutoriel, documents PDF déposés ou fournis avec les tutoriels.
+     */
+    apiNetworkFirstPatterns: Object.freeze([
+      '^/api/zones/[^/]+/photos$',
+      '^/api/map/markers/[^/]+/photos$',
+      '^/api/tutorials/\\d+/view$',
+      '^/uploads/.+\\.pdf$',
+      '^/tutos/.+\\.pdf$',
+    ]),
+    // Rejeu en arrière-plan des écritures gardées hors ligne (Background Sync).
+    outboxSync: true,
   }),
   gl: Object.freeze({
     staticPrecache: Object.freeze(['/gl/favicon.svg', '/gl/logo.png']),
@@ -223,6 +241,9 @@ function precacheHash(product, precache, apiPolicy) {
       `swr:${[...(apiPolicy.apiStaleWhileRevalidate || [])].join(',')}`,
       `nf:${[...(apiPolicy.apiNetworkFirst || [])].join(',')}`,
     );
+    if (apiPolicy.apiNetworkFirstPatterns?.length) {
+      parts.push(`nfp:${[...apiPolicy.apiNetworkFirstPatterns].join(',')}`);
+    }
   }
   return crypto.createHash('sha256').update(parts.join('\n')).digest('hex').slice(0, 8);
 }
@@ -255,6 +276,7 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
   const cacheName = `foretmap-${product.id}-${precacheHash(product.id, precache, {
     apiStaleWhileRevalidate: profile.apiStaleWhileRevalidate,
     apiNetworkFirst: profile.apiNetworkFirst,
+    apiNetworkFirstPatterns: profile.apiNetworkFirstPatterns,
   })}`;
   const serviceWorker = renderServiceWorker({
     product: product.id,
@@ -263,6 +285,8 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
     htmlEntries,
     apiStaleWhileRevalidate: [...profile.apiStaleWhileRevalidate],
     apiNetworkFirst: [...profile.apiNetworkFirst],
+    apiNetworkFirstPatterns: [...(profile.apiNetworkFirstPatterns || [])],
+    outboxSync: !!profile.outboxSync,
     offlinePath: OFFLINE_PATH,
   });
   const icons = listProductIcons(product, { exists });

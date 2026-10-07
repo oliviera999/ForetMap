@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+// IndexedDB en mémoire (photos hors ligne, boîte d'envoi) : jsdom n'en fournit pas.
+import 'fake-indexeddb/auto';
+import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
+import { resetReachabilityState } from '../src/shared/networkStatus.js';
+import { resetOfflineDbForTests } from '../src/utils/offlineDb.js';
 
 /*
  * Délai des attentes asynchrones (`findBy*`, `waitFor`) : 1 s par défaut dans Testing Library,
@@ -92,10 +97,14 @@ globalThis.requestAnimationFrame = (callback) => {
 };
 globalThis.cancelAnimationFrame = vi.fn();
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   vi.restoreAllMocks();
+  // État « réseau inutilisable » : module partagé du fichier de test, à ne pas laisser fuir.
+  resetReachabilityState();
   if (typeof localStorage !== 'undefined') {
     localStorage.clear();
   }
+  await resetOfflineDbForTests();
+  globalThis.indexedDB = new IDBFactory();
 });

@@ -12,10 +12,15 @@ import {
 } from './services/api';
 import {
   clearLocalDataForAccount,
+  clearOfflinePhotosForAccount,
   countPendingLocalActions,
   pendingLossConfirmationMessage,
   purgeCachedUserMedia,
 } from './utils/localDataCleanup';
+import { clearOutboxMirror } from './services/offlineOutboxMirror.js';
+import { prepareFieldTrip } from './services/fieldTripPrep.js';
+import { useOfflineOutbox } from './hooks/useOfflineOutbox.js';
+import { OfflineCenterDialog } from './components/offline/OfflineCenterDialog.jsx';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useConsumableRequest } from './hooks/useConsumableRequest';
 import { clearPendingDeepLink, consumeDeepLinkFromLocation } from './utils/deepLinkTarget.js';
@@ -153,6 +158,7 @@ import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useAuthTokenRenewal } from './hooks/useAuthTokenRenewal';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { useDeviceOnline } from './shared/hooks/useDeviceOnline.js';
+import { useNetworkMode } from './shared/hooks/useNetworkMode.js';
 import { offlineBannerText } from './utils/lastDataSync.js';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
@@ -540,6 +546,7 @@ function App() {
     lastSyncAt,
     retryingServer,
     fetchAll,
+    fetchAllFull,
     retryServerNow,
     loadArchivedTasks,
   } = useAppDataSync({
@@ -592,6 +599,30 @@ function App() {
   // Mise à jour de l'app prête à être appliquée : proposée en bandeau, jamais imposée.
   const swUpdate = useServiceWorkerUpdate();
   const deviceOnline = useDeviceOnline();
+  const networkMode = useNetworkMode();
+
+  // Boîte d'envoi hors ligne : rejouée quel que soit l'écran ouvert, messages centralisés.
+  const outboxUserId = hasAuthenticatedShell ? getAuthUserId() : '';
+  const offlineOutbox = useOfflineOutbox({
+    userId: outboxUserId,
+    enabled: hasAuthenticatedShell,
+    onToast: setToast,
+    onSynced: fetchAll,
+  });
+  const [offlineCenterOpen, setOfflineCenterOpen] = useState(false);
+  const fieldTripDataRef = useRef({});
+  useEffect(() => {
+    fieldTripDataRef.current = { maps, zones, markers, plants, tutorials, activeMapId };
+  });
+  const prepareFieldTripNow = useCallback(
+    (onProgress) =>
+      prepareFieldTrip({
+        refreshAll: fetchAllFull,
+        getData: () => fieldTripDataRef.current,
+        onProgress,
+      }),
+    [fetchAllFull],
+  );
 
   useDefaultActiveMapFromSettings({
     publicSettingsReady,
@@ -1003,9 +1034,14 @@ function App() {
           if (!ok) return;
         }
         // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues.
-        if (!message || typeof confirm === 'function') clearLocalDataForAccount(userId);
+        if (!message || typeof confirm === 'function') {
+          clearLocalDataForAccount(userId);
+          void clearOfflinePhotosForAccount(userId);
+        }
         void purgeCachedUserMedia();
       }
+      // Toujours : la copie pour la synchronisation en arrière-plan porte le jeton de session.
+      void clearOutboxMirror();
       clearStoredSession();
       studentRef.current = null;
       setStudent(null);
@@ -1629,7 +1665,25 @@ function App() {
                     </div>
                   )}
                   {!deviceOnline && (
-                    <NoticeBanner tone="info">{offlineBannerText(lastSyncAt)}</NoticeBanner>
+                    <NoticeBanner tone="info">
+                      {offlineBannerText(
+                        lastSyncAt,
+                        Date.now(),
+                        networkMode === 'unreachable' ? 'unreachable' : 'offline',
+                      )}
+                      {hasAuthenticatedShell ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                          onClick={() => setOfflineCenterOpen(true)}
+                        >
+                          {offlineOutbox.entries.length > 0
+                            ? `En attente (${offlineOutbox.entries.length})`
+                            : 'Détails'}
+                        </button>
+                      ) : null}
+                    </NoticeBanner>
                   )}
                   {deviceOnline && serverDown && (
                     <NoticeBanner tone="warning">
@@ -1694,6 +1748,17 @@ function App() {
                     </NoticeBanner>
                   )}
                   <AppStatusSticky />
+                  {offlineCenterOpen && hasAuthenticatedShell ? (
+                    <OfflineCenterDialog
+                      onClose={() => setOfflineCenterOpen(false)}
+                      entries={offlineOutbox.entries}
+                      networkMode={networkMode}
+                      lastSyncAt={lastSyncAt}
+                      onFlushNow={offlineOutbox.flushNow}
+                      onPrepareFieldTrip={prepareFieldTripNow}
+                      onToast={setToast}
+                    />
+                  ) : null}
                   {toast && (
                     <Toast
                       msg={toast}
@@ -1787,6 +1852,16 @@ function App() {
                     onRequestPin={handleRequestPin}
                     onLogout={handleLogout}
                     helpText={helpText}
+                    offlineCenter={
+                      hasAuthenticatedShell
+                        ? {
+                            pendingCount: offlineOutbox.pendingCount,
+                            refusedCount: offlineOutbox.refusedCount,
+                            networkMode,
+                            onOpen: () => setOfflineCenterOpen(true),
+                          }
+                        : null
+                    }
                   />
 
                   <RolePreviewBanners

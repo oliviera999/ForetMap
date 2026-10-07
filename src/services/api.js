@@ -8,8 +8,11 @@ import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 // `src/shared/appBase.js` (purs, sans session). On les ré-exporte ici pour
 // préserver la compatibilité des importateurs ForetMap existants.
 import { API, withAppBase } from '../shared/appBase.js';
+import { configureReachabilityProbe } from '../shared/networkStatus.js';
 
 export { API, withAppBase };
+
+configureReachabilityProbe(withAppBase('/api/health'));
 
 /**
  * Seul emplacement du jeton de session (audit RGPD du 28/09/2026, S-5). Les anciennes clés
@@ -372,6 +375,8 @@ export function isLikelyNetworkTransportFailure(err) {
   if (err.name === 'AbortError') return false;
   if (err.code === NETWORK_FAILURE_CODE) return true;
   if (err.offline === true) return true;
+  // Délai dépassé sur un réseau qui n'est pas (encore) jugé inutilisable : une barre de réseau.
+  if (err.timeout === true) return true;
   const msg = String(err.message || err || '').toLowerCase();
   if (err instanceof TypeError && typeof fetch !== 'undefined') {
     return (
@@ -448,15 +453,50 @@ export function createNetworkFailureError(cause, options) {
 }
 
 /**
+ * En-tête qui demande au service worker de garder aussi la réponse dans sa copie « sortie
+ * terrain », conservée d'une mise à jour de l'application à l'autre (`fieldTripPrep.js`).
+ */
+export const TERRAIN_COPY_HEADER = 'X-Foretmap-Terrain';
+let terrainCaptureDepth = 0;
+
+/**
+ * Pendant `fn`, toutes les lectures de l'API sont aussi copiées pour la sortie terrain :
+ * « Préparer la sortie terrain » relance simplement le chargement normal des données sous ce
+ * mode, sans recopier ici les adresses exactes qu'utilise chaque écran.
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+export async function withTerrainCapture(fn) {
+  terrainCaptureDepth += 1;
+  try {
+    return await fn();
+  } finally {
+    terrainCaptureDepth -= 1;
+  }
+}
+
+/**
  * Adaptateur ForetMap au-dessus de la boucle partagée `fetchJsonWithRetry`
  * (`src/shared/fetchJsonWithRetry.js`) : injecte le jeton ForetMap, la
  * déconnexion locale + l'événement `foretmap_teacher_expired` sur session
  * expirée, et le format d'erreur ForetMap (requestId, rateLimited).
+ *
+ * @param {{ headers?: Record<string, string> }} [requestOptions] en-têtes supplémentaires
+ *   (ex. `X-Foretmap-Queued-At` des écritures rejouées depuis une file hors ligne)
  */
-export async function api(path, method = 'GET', body) {
+export async function api(path, method = 'GET', body, requestOptions = {}) {
+  const terrain = terrainCaptureDepth > 0 && String(method).toUpperCase() === 'GET';
   return fetchJsonWithRetry(
     path,
-    { method, body },
+    {
+      method,
+      body,
+      headers: {
+        ...(terrain ? { [TERRAIN_COPY_HEADER]: '1' } : {}),
+        ...(requestOptions?.headers || {}),
+      },
+    },
     {
       resolveUrl: withAppBase,
       getToken: getAuthToken,

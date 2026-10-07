@@ -121,7 +121,7 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
    *   écriture refusée définitivement ; `keep` la garde avec `refused: true` et le message du
    *   serveur (`error`) ; une fonction choisit écriture par écriture
    * @param {(item: T) => boolean} [options.eligible] filtre des écritures à rejouer maintenant
-   * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean }>, remaining: number }>}
+   * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean, code: string, status: number }>, remaining: number }>}
    */
   function flush(send, userId, { onRefusal = 'drop', eligible = () => true } = {}) {
     const uid = String(userId ?? '').trim();
@@ -151,11 +151,17 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
         } catch (err) {
           if (!isDefinitiveRefusal(err)) break; // réseau toujours absent ou serveur en difficulté
           const message = String(err?.message || 'Refusé par le serveur');
+          // Code stable du refus (`body.code`) : l'écran explique le conflit sans lire le texte.
+          const code = typeof err?.body?.code === 'string' ? err.body.code : '';
           const policy = typeof onRefusal === 'function' ? onRefusal(item) : onRefusal;
           const kept = policy === 'keep';
-          refused.push({ item, message, kept });
+          refused.push({ item, message, kept, code, status: Number(err?.status) || 0 });
           if (kept) {
-            update(item.client_uuid, { refused: true, error: message });
+            update(item.client_uuid, {
+              refused: true,
+              error: message,
+              ...(code ? { error_code: code } : {}),
+            });
           } else {
             dropped += 1;
             remove(item.client_uuid);

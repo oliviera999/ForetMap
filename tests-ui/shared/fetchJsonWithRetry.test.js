@@ -180,6 +180,35 @@ describe('fetchJsonWithRetry (boucle partagée)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  test('timeout : l’erreur est marquée `timeout` (une file hors ligne peut garder l’écriture)', async () => {
+    const abortErr = new Error('aborted');
+    abortErr.name = 'AbortError';
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(abortErr);
+    const err = await fetchJsonWithRetry(
+      '/api/test',
+      { method: 'POST', body: { a: 1 } },
+      { buildHttpError },
+    ).catch((e) => e);
+    expect(err.timeout).toBe(true);
+  });
+
+  test('réseau inutilisable : échecs de transport répétés puis réponse du serveur', async () => {
+    const { isServerUnreachable, UNREACHABLE_FAILURE_THRESHOLD } =
+      await import('../../src/shared/networkStatus.js');
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    for (let i = 0; i < UNREACHABLE_FAILURE_THRESHOLD; i += 1) {
+      await fetchJsonWithRetry(
+        '/api/test',
+        { method: 'POST', body: {} },
+        { onNetworkError: (e) => e, buildHttpError },
+      ).catch(() => {});
+    }
+    expect(isServerUnreachable()).toBe(true);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonRes(200, { ok: true }));
+    await fetchJsonWithRetry('/api/test', { method: 'GET' }, { buildHttpError });
+    expect(isServerUnreachable()).toBe(false);
+  });
+
   test('un GET qui expire est rejoué une fois, puis réussit', async () => {
     const abortErr = new Error('aborted');
     abortErr.name = 'AbortError';

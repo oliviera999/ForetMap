@@ -27,10 +27,28 @@ import {
 } from './apiTransport.js';
 import { apiRetryGate } from './apiRetryGate.js';
 import { emitAppStatus } from './appStatusEvents.js';
-import { isDeviceOffline, markOfflineError } from './networkStatus.js';
+import {
+  isDeviceOffline,
+  isServerUnreachable,
+  markOfflineError,
+  reportTransportFailure,
+  reportTransportSuccess,
+} from './networkStatus.js';
 
 /** Message utilisateur commun aux deux produits quand la requête dépasse le timeout. */
 export const REQUEST_TIMEOUT_USER_MESSAGE = 'Délai d’attente dépassé pour la requête réseau.';
+
+/**
+ * Délai d'une requête quand le réseau est déjà jugé inutilisable (ms). Sans lui, une écriture
+ * faite sur une barre de réseau attendait 40 s avant d'être gardée sur l'appareil.
+ */
+export const UNREACHABLE_FETCH_TIMEOUT_MS = 6000;
+
+/**
+ * En-tête posé par le service worker sur une copie servie faute de réponse du réseau à temps
+ * (`src/shared/pwa/swTemplate.js`) : la requête a « réussi », mais le réseau n'a pas répondu.
+ */
+export const SW_CACHE_FALLBACK_HEADER = 'X-Foretmap-SW-Cache';
 
 let retryStatusSeq = 0;
 
@@ -81,7 +99,10 @@ function createRetryStatusReporter() {
  *   (compte supprimé, session expirée…) ou se limiter à des effets de bord
  * @param {(ctx: { res: Response, errBody: object, token: string|null, sawGatewayResponse: boolean }) => Error} options.buildHttpError
  *   construit l'Error produit pour toute réponse HTTP non-ok non réessayée
- * @param {() => boolean} [options.isOffline] appareil sans réseau (défaut : `navigator.onLine === false`)
+ * @param {() => boolean} [options.isOffline] appareil sans réseau ou réseau inutilisable
+ * @param {() => boolean} [options.isUnreachable] réseau jugé inutilisable (délai court)
+ * @param {{ failure: () => void, success: () => void }} [options.reachability] signalement
+ *   des échecs / réussites de transport (détection du réseau inutilisable)
  * @returns {Promise<any>} corps JSON parsé (ou null pour 204/205)
  */
 export async function fetchJsonWithRetry(path, request = {}, options = {}) {
@@ -96,7 +117,12 @@ export async function fetchJsonWithRetry(path, request = {}, options = {}) {
   }
 }
 
-async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {}, retryStatus) {
+async function runFetchJsonLoop(
+  path,
+  { method = 'GET', body, headers: extraHeaders } = {},
+  options = {},
+  retryStatus,
+) {
   const {
     resolveUrl = (p) => p,
     getToken = () => null,
@@ -106,9 +132,12 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
     // Injectable pour les tests ; en production, une seule fenêtre partagée par onglet.
     retryGate = apiRetryGate,
     isOffline = isDeviceOffline,
+    isUnreachable = isServerUnreachable,
+    reachability = { failure: reportTransportFailure, success: reportTransportSuccess },
   } = options;
 
   const headers = {
+    ...(extraHeaders && typeof extraHeaders === 'object' ? extraHeaders : {}),
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
@@ -131,7 +160,9 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
   /** Expiration du délai : réessaie si la méthode le permet, sinon lève le message commun. */
   const handleTimeout = async (attempt) => {
     if (!shouldRetryAfterTimeout(method, body, attempt, maxAttempts)) {
-      throw new Error(REQUEST_TIMEOUT_USER_MESSAGE);
+      // `timeout` : l'écriture a pu ne jamais arriver — une file hors ligne peut la garder
+      // (sa clé `client_uuid` évite le doublon si elle était arrivée malgré tout).
+      throw Object.assign(new Error(REQUEST_TIMEOUT_USER_MESSAGE), { timeout: true });
     }
     retryStatus.retrying(attempt, maxAttempts);
     await pauseBeforeRetry(transientRetryDelayMs(attempt));
@@ -142,10 +173,13 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
     // `timedOut` distingue notre expiration d'un abandon venu d'ailleurs, et reste lisible
     // après la lecture du corps — que `parseApiBody` transforme sinon en « JSON invalide ».
     let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, API_FETCH_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => {
+        timedOut = true;
+        controller.abort();
+      },
+      isUnreachable() ? UNREACHABLE_FETCH_TIMEOUT_MS : API_FETCH_TIMEOUT_MS,
+    );
     let sawGatewayResponse = false;
     try {
       // Le serveur est déjà connu comme indisponible : attendre la fenêtre partagée plutôt
@@ -162,12 +196,21 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
           signal: controller.signal,
         });
       } catch (err) {
+        const isTransportFailure =
+          timedOut || err?.name === 'AbortError' || err instanceof TypeError;
+        if (isTransportFailure && !isOffline()) reachability.failure();
         if (isOffline()) {
-          // Mode avion : le serveur n'est pas en cause, et réessayer ne ferait que retarder
-          // l'échec (8 tentatives, ~25 s) en affichant « reconnexion en cours ». L'appelant
-          // reçoit tout de suite une erreur marquée `offline` (file d'attente, bandeau dédié).
-          const mapped = typeof onNetworkError === 'function' ? onNetworkError(err) : null;
-          throw markOfflineError(mapped || err);
+          // Mode avion ou réseau inutilisable : le serveur n'est pas en cause, et réessayer ne
+          // ferait que retarder l'échec (8 tentatives, ~25 s) en affichant « reconnexion en
+          // cours ». L'appelant reçoit tout de suite une erreur marquée `offline` (file
+          // d'attente, bandeau dédié). Un délai dépassé devient une panne de transport : sans
+          // cela, l'écriture n'était pas reconnue comme gardable sur l'appareil.
+          const transportErr =
+            timedOut || err?.name === 'AbortError'
+              ? new TypeError('Failed to fetch (délai dépassé, réseau inutilisable)')
+              : err;
+          const mapped = typeof onNetworkError === 'function' ? onNetworkError(transportErr) : null;
+          throw markOfflineError(mapped || transportErr);
         }
         if (timedOut || err?.name === 'AbortError') {
           await handleTimeout(attempt);
@@ -187,6 +230,9 @@ async function runFetchJsonLoop(path, { method = 'GET', body } = {}, options = {
         }
         throw err;
       }
+
+      if (res.headers?.get?.(SW_CACHE_FALLBACK_HEADER) === '1') reachability.failure();
+      else reachability.success();
 
       // Le minuteur reste armé pendant la lecture du corps : `fetch` résout dès les
       // en-têtes reçus, si bien qu'une réponse tronquée laissait auparavant la requête

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchTutorialReadIds } from '../components/TutorialReadAcknowledge';
+import { OUTBOX_CHANGED_EVENT } from '../services/offlineOutbox.js';
 
 /**
  * IDs des tutoriels marqués « lus » par l'utilisateur connecté.
@@ -26,9 +27,12 @@ export function useTutorialReadIds(tutorials = []) {
     load();
     if (typeof window !== 'undefined') {
       window.addEventListener('foretmap_session_changed', load);
+      // Une lecture gardée hors ligne puis refusée au retour du réseau n'est plus « lue ».
+      window.addEventListener(OUTBOX_CHANGED_EVENT, load);
       return () => {
         cancelled = true;
         window.removeEventListener('foretmap_session_changed', load);
+        window.removeEventListener(OUTBOX_CHANGED_EVENT, load);
       };
     }
     return () => {

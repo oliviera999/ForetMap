@@ -134,10 +134,16 @@ tâches dont l'échéance approche s'affichent dans l'encart **« 🚨 Urgent ! 
 
 ### Sur le terrain, sans réseau
 
-Quand la connexion tombe, un **bandeau bleu** l'indique. L'élève peut continuer à travailler :
-« Marquer terminée » (sans photo), ses observations et son carnet restent enregistrés sur
-l'appareil et partent automatiquement au retour du réseau. Conseil : faites ouvrir
-l'application avant de quitter la salle, pour que la carte et les tâches soient déjà chargées.
+Quand la connexion tombe — ou qu'elle est trop faible pour passer — un **bandeau bleu**
+l'indique. L'élève peut continuer à travailler : « Marquer terminée » (avec ou sans photo), ses
+observations (avec photo), la lecture des tutoriels sans quiz et son carnet restent
+enregistrés sur l'appareil et partent automatiquement au retour du réseau, quel que soit
+l'écran ouvert. Les quiz, eux, demandent le réseau.
+
+Conseil : avant de quitter la salle, avec le Wi-Fi, faites ouvrir l'écran **« Hors ligne »**
+(bouton nuage de l'en-tête) et toucher **« Préparer la sortie terrain »** : la carte, les
+photos des zones, les fiches et les tutoriels sont alors gardés sur l'appareil. Sur iPhone et
+iPad, l'application doit être ajoutée à l'écran d'accueil.
 
 ---
 
@@ -320,22 +326,22 @@ compte : adressez-vous à l'administrateur de l'établissement pour :
 
 ## Problèmes fréquents
 
-| Symptôme                                        | Cause probable                                                      | Geste                                                                                 |
-| ----------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Un élève ne voit pas sa classe                  | Inscrit sans code de classe : il est dans les comptes en attente    | Le rattacher depuis le sous-onglet Groupes.                                           |
-| Le code de classe ne fonctionne plus            | Le code a été régénéré                                              | Redonner le nouveau code affiché dans les réglages du groupe.                         |
-| Un élève ne peut pas s'inscrire sur une tâche   | Nombre d'élèves requis atteint, ou tâche affectée à un autre groupe | Augmenter le nombre requis ou vérifier l'affectation.                                 |
-| Un élève reste novice malgré son travail        | Tâches terminées mais pas encore validées                           | Valider ses tâches en attente ; vérifier qu'un profil n'est pas imposé au groupe.     |
-| « Marquer terminée » ne passe pas               | Photo demandée sans réseau, ou photo manquante                      | Prendre la photo et réessayer une fois le réseau revenu.                              |
-| Le travail d'un élève hors ligne n'apparaît pas | L'appareil n'a pas encore retrouvé le réseau                        | Rouvrir l'application avec une connexion : l'envoi se fait tout seul.                 |
-| Une fiche ou un quiz paraît trop compliqué      | Niveau de la classe absent ou erroné                                | Renseigner le niveau du groupe ; ajuster l'affichage biodiversité.                    |
-| Un élève est bloqué sur un quiz                 | Trop d'essais                                                       | « Débloquer » dans « Élèves bloqués ».                                                |
-| Une tâche validée a disparu                     | Les validées sont masquées par défaut                               | Cocher « Afficher les validés », ou le filtre « 📦 Archivés » si elle a été archivée. |
-| Mes modifications d'une tâche ont été refusées  | Un collègue l'a modifiée en même temps                              | Recharger la fiche puis refaire le changement.                                        |
-| Un onglet attendu est absent                    | Module désactivé ou contenu réservé à un autre niveau               | Vérifier le niveau de la classe, sinon demander à l'administrateur.                   |
-| Un lieu n'apparaît pas pour les élèves          | Réglage « Qui peut voir ce lieu » restrictif                        | Ouvrir le lieu et élargir sa visibilité.                                              |
-| Une observation a été écartée par erreur        | « Ne pas retenir » est définitif                                    | Demander à l'élève de refaire l'observation.                                          |
-| Un message déplacé sur le forum                 | —                                                                   | Le retirer via « Signalements (n) » et verrouiller la discussion si besoin.           |
+| Symptôme                                        | Cause probable                                                      | Geste                                                                                                                                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Un élève ne voit pas sa classe                  | Inscrit sans code de classe : il est dans les comptes en attente    | Le rattacher depuis le sous-onglet Groupes.                                                                                                                                               |
+| Le code de classe ne fonctionne plus            | Le code a été régénéré                                              | Redonner le nouveau code affiché dans les réglages du groupe.                                                                                                                             |
+| Un élève ne peut pas s'inscrire sur une tâche   | Nombre d'élèves requis atteint, ou tâche affectée à un autre groupe | Augmenter le nombre requis ou vérifier l'affectation.                                                                                                                                     |
+| Un élève reste novice malgré son travail        | Tâches terminées mais pas encore validées                           | Valider ses tâches en attente ; vérifier qu'un profil n'est pas imposé au groupe.                                                                                                         |
+| « Marquer terminée » ne passe pas               | Photo demandée sans réseau, ou photo manquante                      | Prendre la photo et réessayer une fois le réseau revenu.                                                                                                                                  |
+| Le travail d'un élève hors ligne n'apparaît pas | L'appareil n'a pas encore retrouvé le réseau                        | Rouvrir l'application avec une connexion : l'envoi se fait tout seul. Le bouton nuage de l'en-tête (écran « Hors ligne ») montre ce qui attend encore, et pourquoi un envoi a été refusé. |
+| Une fiche ou un quiz paraît trop compliqué      | Niveau de la classe absent ou erroné                                | Renseigner le niveau du groupe ; ajuster l'affichage biodiversité.                                                                                                                        |
+| Un élève est bloqué sur un quiz                 | Trop d'essais                                                       | « Débloquer » dans « Élèves bloqués ».                                                                                                                                                    |
+| Une tâche validée a disparu                     | Les validées sont masquées par défaut                               | Cocher « Afficher les validés », ou le filtre « 📦 Archivés » si elle a été archivée.                                                                                                     |
+| Mes modifications d'une tâche ont été refusées  | Un collègue l'a modifiée en même temps                              | Recharger la fiche puis refaire le changement.                                                                                                                                            |
+| Un onglet attendu est absent                    | Module désactivé ou contenu réservé à un autre niveau               | Vérifier le niveau de la classe, sinon demander à l'administrateur.                                                                                                                       |
+| Un lieu n'apparaît pas pour les élèves          | Réglage « Qui peut voir ce lieu » restrictif                        | Ouvrir le lieu et élargir sa visibilité.                                                                                                                                                  |
+| Une observation a été écartée par erreur        | « Ne pas retenir » est définitif                                    | Demander à l'élève de refaire l'observation.                                                                                                                                              |
+| Un message déplacé sur le forum                 | —                                                                   | Le retirer via « Signalements (n) » et verrouiller la discussion si besoin.                                                                                                               |
 
 En cas de doute, le bouton **« ? »** de l'écran concerné donne l'aide contextuelle. Pour tout ce
 qui touche aux comptes au-delà de vos droits, aux réglages de l'établissement ou à une panne,

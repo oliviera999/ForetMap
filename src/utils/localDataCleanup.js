@@ -17,6 +17,8 @@ import { TASK_DONE_QUEUE_STORAGE_KEY } from './taskDoneQueue.js';
 import { SPECIES_OBSERVATION_QUEUE_STORAGE_KEY } from './speciesObservationQueue.js';
 import { PLANT_OBSERVATION_QUEUE_STORAGE_KEY } from './plantObservationQueue.js';
 import { JOURNAL_DRAFT_QUEUE_STORAGE_KEY } from './journalDraftQueue.js';
+import { TUTORIAL_READ_QUEUE_STORAGE_KEY } from './tutorialReadQueue.js';
+import { clearOfflinePhotosForUser } from './offlinePhotoStore.js';
 import { VISIT_SEEN_QUEUE_STORAGE_KEY } from './visitProgressClient.js';
 import { PEDAGO_SESSION_STORAGE_KEY } from './pedagoSessionScope.js';
 
@@ -26,7 +28,20 @@ export const PER_ACCOUNT_QUEUE_KEYS = Object.freeze([
   SPECIES_OBSERVATION_QUEUE_STORAGE_KEY,
   PLANT_OBSERVATION_QUEUE_STORAGE_KEY,
   JOURNAL_DRAFT_QUEUE_STORAGE_KEY,
+  TUTORIAL_READ_QUEUE_STORAGE_KEY,
 ]);
+
+/**
+ * Photos prises sans réseau par ce compte (IndexedDB). Meilleur effort : ne rejette jamais.
+ * @returns {Promise<number>} nombre de photos retirées
+ */
+export async function clearOfflinePhotosForAccount(userId) {
+  try {
+    return await clearOfflinePhotosForUser(userId);
+  } catch {
+    return 0;
+  }
+}
 
 /** File sans auteur (progression de visite) : elle appartient à la session qui se ferme. */
 export const SHARED_QUEUE_KEYS = Object.freeze([VISIT_SEEN_QUEUE_STORAGE_KEY]);

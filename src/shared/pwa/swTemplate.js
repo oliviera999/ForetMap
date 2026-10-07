@@ -19,9 +19,28 @@
  *   - images, icônes et fontes en cache-first, dans un cache à part borné (200 entrées, 7 jours),
  *     purgé d'une copie révoquée (401/403) ou supprimée (404) ; jamais de copie d'une réponse
  *     \`no-store\` ; clé sans la signature \`exp\`/\`sig\` des médias \`/uploads/\` signés ;
- *   - message `SKIP_WAITING`, purge des anciens caches à l'activation.
+ *   - message `SKIP_WAITING`, purge des anciens caches à l'activation ;
+ *   - une copie servie faute de réponse du réseau porte l'en-tête `X-Foretmap-SW-Cache: 1` :
+ *     le client y lit un réseau inutilisable (`src/shared/networkStatus.js`) ;
+ *   - cache « sortie terrain » (`<produit>-terrain`, nom stable, survit aux mises à jour) :
+ *     toute lecture marquée `X-Foretmap-Terrain: 1` y est aussi copiée
+ *     (`src/services/fieldTripPrep.js`) ;
+ *   - option `outboxSync` : rejeu en arrière-plan des écritures gardées hors ligne
+ *     (Background Sync, Chromium/Android), lues dans IndexedDB (`src/utils/offlineDb.js`).
  * Toute évolution de stratégie se fait ICI, puis `npm run build` régénère `dist/sw-<produit>.js`.
  */
+
+/**
+ * Base IndexedDB partagée avec la page (`src/utils/offlineDb.js` — mêmes valeurs, vérifiées
+ * par `tests/pwa-sw-template.test.js`).
+ */
+const OFFLINE_DB_NAME = 'foretmap-offline';
+const OFFLINE_DB_VERSION = 1;
+const OFFLINE_DB_STORES = Object.freeze({ photos: 'photos', outbox: 'outbox' });
+/** Étiquette Background Sync du rejeu des écritures gardées hors ligne. */
+const OUTBOX_SYNC_TAG = 'foretmap-outbox';
+/** Message envoyé aux pages après un rejeu en arrière-plan. */
+const OUTBOX_REPLAYED_MESSAGE = 'FORETMAP_OUTBOX_REPLAYED';
 
 /**
  * Délai d'attente du réseau des lectures network-first (HTML et API mises en cache), en
@@ -52,6 +71,9 @@ function renderStringList(values) {
  * @param {string[]} options.htmlEntries Chemins HTML servis en network-first (`/`, `/index.html`, entrée Vite…).
  * @param {string[]} [options.apiStaleWhileRevalidate] Chemins d'API en stale-while-revalidate (correspondance par suffixe).
  * @param {string[]} [options.apiNetworkFirst] Chemins d'API en network-first (correspondance exacte).
+ * @param {string[]} [options.apiNetworkFirstPatterns] Sources d'expressions régulières (sur le
+ *   pathname) servies en network-first — listes de photos d'un lieu, aperçu d'un tutoriel…
+ * @param {boolean} [options.outboxSync] Rejeu en arrière-plan des écritures hors ligne.
  * @param {string} [options.offlinePath] Page de repli hors ligne (`/offline.html`).
  * @param {number} [options.networkTimeoutSeconds] Délai d'attente du réseau des lectures
  *   network-first (HTML, API) avant de servir le cache ; `0` le désactive.
@@ -64,9 +86,15 @@ function renderServiceWorker({
   htmlEntries,
   apiStaleWhileRevalidate = [],
   apiNetworkFirst = [],
+  apiNetworkFirstPatterns = [],
+  outboxSync = false,
   offlinePath = '/offline.html',
   networkTimeoutSeconds = DEFAULT_NETWORK_TIMEOUT_SECONDS,
 }) {
+  for (const source of apiNetworkFirstPatterns) {
+    // Fail fast au build plutôt qu'un service worker qui ne s'installe pas.
+    RegExp(source);
+  }
   if (!product || typeof product !== 'string') throw new TypeError('product requis');
   if (
     typeof networkTimeoutSeconds !== 'number' ||
@@ -100,6 +128,12 @@ const API_STALE_WHILE_REVALIDATE = ${renderStringList(apiStaleWhileRevalidate)};
 // API en lecture « network-first » (correspondance exacte du pathname).
 const API_NETWORK_FIRST = ${renderStringList(apiNetworkFirst)};
 
+// Lectures « network-first » reconnues par motif (listes de photos d'un lieu, aperçu d'un
+// tutoriel…), utiles hors ligne après une préparation de sortie terrain.
+const API_NETWORK_FIRST_PATTERNS = ${renderStringList(apiNetworkFirstPatterns)}.map(
+  (source) => new RegExp(source),
+);
+
 // Délai d'attente du réseau des lectures network-first (HTML, API), en millisecondes ;
 // 0 = pas de délai. Au-delà, la copie en cache part si elle existe.
 const NETWORK_TIMEOUT_MS = ${networkTimeoutMs};
@@ -113,6 +147,14 @@ const IMAGE_CACHE_NAME = ${JSON.stringify(`${cacheName.replace(/-[0-9a-f]{8}$/i,
 const IMAGE_CACHE_MAX_ENTRIES = ${IMAGE_CACHE_MAX_ENTRIES};
 const IMAGE_CACHE_MAX_AGE_MS = ${IMAGE_CACHE_MAX_AGE_MS};
 
+// Cache « sortie terrain » : ce que l'élève a demandé de garder avant de partir (photos des
+// lieux et des espèces, aperçus de tutoriels…). Nom stable, non borné par la purge des
+// images, vidé à chaque nouvelle préparation et à la déconnexion (médias d'élèves).
+const TERRAIN_CACHE_NAME = ${JSON.stringify(`${cacheName.replace(/-[0-9a-f]{8}$/i, '')}-terrain`)};
+const TERRAIN_HEADER = 'X-Foretmap-Terrain';
+// Posé sur une copie servie faute de réponse du réseau : le client y lit un réseau inutilisable.
+const SW_CACHE_FALLBACK_HEADER = 'X-Foretmap-SW-Cache';
+
 function isHtmlEntry(pathname) {
   return HTML_ENTRIES.some((entry) => pathname === entry);
 }
@@ -122,7 +164,37 @@ function isStaleWhileRevalidateApi(pathname) {
 }
 
 function isNetworkFirstApi(pathname) {
-  return API_NETWORK_FIRST.some((exact) => pathname === exact);
+  return (
+    API_NETWORK_FIRST.some((exact) => pathname === exact) ||
+    API_NETWORK_FIRST_PATTERNS.some((re) => re.test(pathname))
+  );
+}
+
+function wantsTerrainCopy(request) {
+  const headers = request && request.headers;
+  return !!headers && typeof headers.get === 'function' && headers.get(TERRAIN_HEADER) === '1';
+}
+
+function putInTerrainCache(key, response) {
+  if (!response || !response.ok) return;
+  const clone = response.clone();
+  caches.open(TERRAIN_CACHE_NAME).then((cache) => cache.put(key, clone)).catch(() => undefined);
+}
+
+/** Copie de secours marquée comme telle (le corps n'est pas relu, seulement réemballé). */
+function markAsCacheFallback(response) {
+  if (!response) return response;
+  try {
+    const headers = new Headers(response.headers);
+    headers.set(SW_CACHE_FALLBACK_HEADER, '1');
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch (_) {
+    return response;
+  }
 }
 
 /** Bundles hachés par Vite : immuables, donc cache-first sans risque de version obsolète. */
@@ -223,6 +295,7 @@ function putInCache(request, response) {
   if (response && response.ok && !forbidsStorage(response)) {
     const clone = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(key, clone));
+    if (wantsTerrainCopy(request)) putInTerrainCache(key, response);
   } else if (isAuthRefusal(response)) {
     evictFromCache(request);
   }
@@ -254,13 +327,17 @@ function networkFirst(request, fallback, options = {}) {
     options.event.waitUntil(network.then(() => undefined, () => undefined));
   }
   const networkOrCache = network.catch(() =>
-    caches.match(key).then((cached) => cached || (fallback ? fallback() : undefined)),
+    caches
+      .match(key)
+      .then((cached) => (cached ? markAsCacheFallback(cached) : fallback ? fallback() : undefined)),
   );
   if (timeoutMs <= 0) return networkOrCache;
   let timer = null;
   const cacheAfterTimeout = new Promise((resolve) => {
     timer = setTimeout(() => {
-      caches.match(key).then(resolve, () => resolve(undefined));
+      caches
+        .match(key)
+        .then((cached) => resolve(cached ? markAsCacheFallback(cached) : undefined), () => resolve(undefined));
     }, timeoutMs);
   });
   return Promise.race([networkOrCache, cacheAfterTimeout]).then((response) => {
@@ -303,11 +380,16 @@ function trimImageCache(cache) {
  */
 function imageCacheFirst(request) {
   const key = imageCacheKeyFor(request);
+  const terrain = wantsTerrainCopy(request);
   return caches.match(key).then((cached) => {
-    if (cached && !isExpiredImage(cached)) return cached;
+    if (cached && !isExpiredImage(cached)) {
+      if (terrain) putInTerrainCache(key, cached);
+      return cached;
+    }
     return fetch(request)
       .then((response) => {
         if (response && response.ok && !forbidsStorage(response)) {
+          if (terrain) putInTerrainCache(key, response);
           const clone = response.clone();
           caches
             .open(IMAGE_CACHE_NAME)
@@ -316,6 +398,7 @@ function imageCacheFirst(request) {
         } else if (response && (isAuthRefusal(response) || response.status === 404 || forbidsStorage(response))) {
           evictFromCache(request);
           caches.open(IMAGE_CACHE_NAME).then((cache) => cache.delete(key)).catch(() => undefined);
+          caches.open(TERRAIN_CACHE_NAME).then((cache) => cache.delete(key)).catch(() => undefined);
         }
         return response;
       })
@@ -380,7 +463,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => Promise.all(
-      names.filter((name) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME).map((name) => caches.delete(name))
+      names
+        .filter((name) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME && name !== TERRAIN_CACHE_NAME)
+        .map((name) => caches.delete(name))
     )).then(() => self.clients.claim())
   );
 });
@@ -432,6 +517,120 @@ self.addEventListener('fetch', (event) => {
   if (isImageOrFont(url.pathname)) {
     event.respondWith(imageCacheFirst(event.request));
   }
+});
+${outboxSync ? renderOutboxSync() : ''}`;
+}
+
+/**
+ * Rejeu en arrière-plan des écritures gardées hors ligne (Background Sync, Chromium/Android ;
+ * https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API). Même contrat que
+ * le module `workbox-background-sync` de Workbox (Google, licence MIT ;
+ * https://developer.chrome.com/docs/workbox/modules/workbox-background-sync), réécrit ici sans
+ * la dépendance : la page dépose dans IndexedDB une copie prête à envoyer de chaque écriture
+ * en attente (`src/services/offlineOutboxMirror.js`), le service worker la rejoue quand le
+ * navigateur signale le retour du réseau — même application fermée.
+ *
+ * Règles, identiques à celles des files de la page (`src/utils/offlineActionQueue.js`) :
+ * succès ou refus définitif → la copie sort ; réseau absent, 5xx, 401, 408, 429 → elle reste
+ * et le navigateur réessaiera. La copie ne décide de rien : la page rejoue ensuite sa propre
+ * file, et le serveur, qui reconnaît chaque écriture à sa clé `client_uuid`, ne la compte
+ * qu'une fois — c'est la page qui garde un texte refusé et prévient l'élève.
+ */
+function renderOutboxSync() {
+  return `
+const OFFLINE_DB_NAME = ${JSON.stringify(OFFLINE_DB_NAME)};
+const OFFLINE_DB_VERSION = ${OFFLINE_DB_VERSION};
+const OFFLINE_DB_STORES = ${JSON.stringify(OFFLINE_DB_STORES)};
+const OUTBOX_SYNC_TAG = ${JSON.stringify(OUTBOX_SYNC_TAG)};
+const OUTBOX_REPLAYED_MESSAGE = ${JSON.stringify(OUTBOX_REPLAYED_MESSAGE)};
+const OUTBOX_RETRYABLE_STATUSES = [401, 408, 429];
+
+function openOfflineDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(OFFLINE_DB_STORES.photos)) {
+        db.createObjectStore(OFFLINE_DB_STORES.photos, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(OFFLINE_DB_STORES.outbox)) {
+        db.createObjectStore(OFFLINE_DB_STORES.outbox, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function readOutboxEntries(db) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(OFFLINE_DB_STORES.outbox, 'readonly').objectStore(OFFLINE_DB_STORES.outbox).getAll();
+    req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function deleteOutboxEntry(db, id) {
+  return new Promise((resolve) => {
+    const tx = db.transaction(OFFLINE_DB_STORES.outbox, 'readwrite');
+    tx.objectStore(OFFLINE_DB_STORES.outbox).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+
+async function replayOutbox() {
+  if (typeof indexedDB === 'undefined') return;
+  const db = await openOfflineDb();
+  let sent = 0;
+  let retryLater = false;
+  try {
+    const entries = (await readOutboxEntries(db)).sort(
+      (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || (Number(a.queued_at) || 0) - (Number(b.queued_at) || 0),
+    );
+    for (const entry of entries) {
+      if (!entry || !entry.url || !entry.token) continue;
+      let res;
+      try {
+        res = await fetch(entry.url, {
+          method: entry.method || 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: 'Bearer ' + entry.token,
+            'X-Foretmap-Queued-At': String(Number(entry.queued_at) || ''),
+            'X-Foretmap-Replay': 'background-sync',
+          },
+          body: entry.body,
+          credentials: 'same-origin',
+        });
+      } catch (_) {
+        retryLater = true;
+        break;
+      }
+      if (res.ok) {
+        sent += 1;
+        await deleteOutboxEntry(db, entry.id);
+        continue;
+      }
+      if (res.status >= 400 && res.status < 500 && !OUTBOX_RETRYABLE_STATUSES.includes(res.status)) {
+        await deleteOutboxEntry(db, entry.id);
+        continue;
+      }
+      retryLater = true;
+      break;
+    }
+  } finally {
+    db.close();
+  }
+  const pages = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const page of pages) page.postMessage({ type: OUTBOX_REPLAYED_MESSAGE, sent });
+  // Une promesse rejetée demande au navigateur de reprogrammer la synchronisation.
+  if (retryLater) throw new Error('Rejeu des écritures hors ligne : nouvel essai plus tard');
+}
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === OUTBOX_SYNC_TAG) event.waitUntil(replayOutbox());
 });
 `;
 }
@@ -501,6 +700,11 @@ function renderWebManifest(product, { icons, extra } = {}) {
 }
 
 module.exports = {
+  OFFLINE_DB_NAME,
+  OFFLINE_DB_VERSION,
+  OFFLINE_DB_STORES,
+  OUTBOX_SYNC_TAG,
+  OUTBOX_REPLAYED_MESSAGE,
   DEFAULT_NETWORK_TIMEOUT_SECONDS,
   IMAGE_CACHE_MAX_ENTRIES,
   IMAGE_CACHE_MAX_AGE_MS,

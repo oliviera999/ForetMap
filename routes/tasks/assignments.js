@@ -308,10 +308,14 @@ router.post(
 router.post(
   '/:id/done',
   asyncHandler(async (req, res) => {
+    // `code` : motif stable du refus, lu par la boîte d'envoi hors ligne pour expliquer un
+    // « fait » refusé au retour du réseau sans dépendre du texte (voir docs/API.md).
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (!task) return res.status(404).json({ error: 'Tâche introuvable', code: 'task_not_found' });
     if (task.archived_at != null)
-      return res.status(400).json({ error: 'Tâche archivée : action indisponible' });
+      return res
+        .status(400)
+        .json({ error: 'Tâche archivée : action indisponible', code: 'task_archived' });
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
     const { comment, imageData } = req.body || {};
@@ -351,9 +355,10 @@ router.post(
     );
     if (!assignment) {
       if (reportStored) return res.json(await replayDoneResponse(req, task.id));
-      return res
-        .status(400)
-        .json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
+      return res.status(400).json({
+        error: 'Tu dois être inscrit à cette tâche avant de la terminer',
+        code: 'not_assigned',
+      });
     }
 
     if (!reportStored) {
@@ -364,6 +369,7 @@ router.post(
       if (!tutorialsGate.ok) {
         return res.status(403).json({
           error: 'Lis d’abord les tutoriels liés à cette tâche avant de la marquer comme faite.',
+          code: 'tutorials_unread',
           missing_tutorials: tutorialsGate.missing,
         });
       }

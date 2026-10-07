@@ -9,9 +9,9 @@
  * l'observation reste, marquée en échec avec le message du serveur, jusqu'à ce que l'élève la
  * supprime (`onRefusal: 'keep'`).
  *
- * Ce qui attend le réseau : la **photo** (plusieurs centaines de Ko dans un stockage local
- * limité et partagé, lisible par l'élève suivant sur une tablette commune). L'élève en est
- * prévenu au moment d'enregistrer.
+ * La **photo** n'entre pas dans cette file (stockage local limité à ~5 Mo) : elle est gardée à
+ * part dans IndexedDB (`offlinePhotoStore.js`) sous la même clé `client_uuid`, et envoyée juste
+ * après l'observation. L'entrée de la file ne porte que `has_photo`.
  */
 
 import { createOfflineQueue, newClientUuid } from './offlineActionQueue.js';
@@ -28,7 +28,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * @typedef {{ user_id: string, client_uuid: string, map_id: string, zone_id: string|null,
  *   marker_id: string|null, plant_id: number|null, observed_at: string,
  *   detection_mode: string|null, text: string, plant_label: string, place_label: string,
- *   refused: boolean, error: string, queued_at: number }} QueuedSpeciesObservation
+ *   has_photo: boolean, refused: boolean, error: string, error_code?: string,
+ *   queued_at: number }} QueuedSpeciesObservation
  */
 
 function optionalString(value, max = 64) {
@@ -59,8 +60,10 @@ function normalize(raw) {
     text,
     plant_label: String(raw.plant_label || '').slice(0, 120),
     place_label: String(raw.place_label || '').slice(0, 120),
+    has_photo: raw.has_photo === true,
     refused: !!raw.refused,
     error: raw.error ? String(raw.error).slice(0, 500) : '',
+    ...(raw.error_code ? { error_code: String(raw.error_code).slice(0, 64) } : {}),
     queued_at: Number.isFinite(Number(raw.queued_at)) ? Number(raw.queued_at) : 0,
   };
 }
@@ -107,4 +110,9 @@ export function speciesObservationRequestBody(item) {
  */
 export function flushSpeciesObservationQueue(send, userId) {
   return queue.flush(send, userId, { onRefusal: 'keep' });
+}
+
+/** Clés des observations encore en file, tous comptes confondus (photos à garder). */
+export function liveSpeciesObservationKeys() {
+  return new Set(queue.load().map((q) => q.client_uuid));
 }

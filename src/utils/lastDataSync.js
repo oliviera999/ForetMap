@@ -26,12 +26,15 @@ export function rememberLastDataSyncAt(timestamp = Date.now()) {
  * Texte du bandeau hors ligne.
  * @param {number|null} lastSyncAt horodatage de la dernière synchronisation
  * @param {number} [now]
+ * @param {'offline'|'unreachable'} [mode] `unreachable` : le téléphone affiche du réseau,
+ *   mais le serveur ne répond pas (une barre, Wi-Fi saturé, portail Wi-Fi)
  */
-export function offlineBannerText(lastSyncAt, now = Date.now()) {
+export function offlineBannerText(lastSyncAt, now = Date.now(), mode = 'offline') {
   const tail =
-    'Tâches terminées, observations et carnet sont gardés et partiront au retour du réseau.';
+    'Tâches terminées, observations, lectures et carnet sont gardés et partiront au retour du réseau.';
+  const head = mode === 'unreachable' ? 'Réseau trop faible' : 'Hors ligne';
   if (!Number.isFinite(lastSyncAt) || lastSyncAt <= 0) {
-    return `Hors ligne — données gardées sur l’appareil. ${tail}`;
+    return `${head} — données gardées sur l’appareil. ${tail}`;
   }
   const at = new Date(lastSyncAt);
   const sameDay = new Date(now).toDateString() === at.toDateString();
@@ -39,5 +42,5 @@ export function offlineBannerText(lastSyncAt, now = Date.now()) {
   const when = sameDay
     ? `à ${time}`
     : `le ${at.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${time}`;
-  return `Hors ligne — données de la dernière synchronisation (${when}). ${tail}`;
+  return `${head} — données de la dernière synchronisation (${when}). ${tail}`;
 }

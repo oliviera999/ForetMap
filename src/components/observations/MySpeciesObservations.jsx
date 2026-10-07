@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccountDeletedError } from '../../services/api';
 import {
-  createSpeciesObservation,
   deleteSpeciesObservation,
   listMySpeciesObservations,
 } from '../../services/observationsApi';
 import {
+  OUTBOX_CHANGED_EVENT,
+  OUTBOX_KINDS,
+  dismissOutboxEntry,
+  sendQueuedSpeciesObservation,
+} from '../../services/offlineOutbox.js';
+import {
   flushSpeciesObservationQueue,
   listQueuedSpeciesObservations,
-  removeQueuedSpeciesObservation,
-  speciesObservationRequestBody,
 } from '../../utils/speciesObservationQueue.js';
 import { AuthedImage } from '../AuthedImage.jsx';
 import { currentObservationUserId } from './SpeciesObservationForm.jsx';
@@ -29,13 +32,12 @@ function placeOf(item) {
   return item.zone_name || item.marker_label || item.place_label || '';
 }
 
-function sendQueued(item) {
-  return createSpeciesObservation(speciesObservationRequestBody(item));
-}
-
 /** Rejoue les observations du compte gardées sans réseau (un seul rejeu à la fois). */
 export function flushQueuedSpeciesObservations() {
-  return flushSpeciesObservationQueue(sendQueued, currentObservationUserId()).catch(() => null);
+  return flushSpeciesObservationQueue(
+    sendQueuedSpeciesObservation,
+    currentObservationUserId(),
+  ).catch(() => null);
 }
 
 /**
@@ -87,13 +89,16 @@ export function MySpeciesObservations({ plantId = null, onForceLogout = null }) 
     const onRealtime = (e) => {
       if (e?.detail?.domain === 'observations') void load();
     };
+    const onOutbox = () => void load();
     window.addEventListener('online', onOnline);
     window.addEventListener('foretmap_realtime', onRealtime);
+    window.addEventListener(OUTBOX_CHANGED_EVENT, onOutbox);
     return () => {
       cancelled = true;
       seqRef.current += 1;
       window.removeEventListener('online', onOnline);
       window.removeEventListener('foretmap_realtime', onRealtime);
+      window.removeEventListener(OUTBOX_CHANGED_EVENT, onOutbox);
     };
   }, [load]);
 
@@ -141,13 +146,14 @@ export function MySpeciesObservations({ plantId = null, onForceLogout = null }) 
               {placeOf(q) ? ` · ${placeOf(q)}` : ''}
             </p>
             {q.text ? <p className="species-obs-card__text">{q.text}</p> : null}
+            {q.has_photo ? <p className="species-obs-card__meta">{T.pendingPhoto}</p> : null}
             {q.refused && q.error ? <p className="species-obs-error">{q.error}</p> : null}
             <div className="species-obs-card__actions">
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  removeQueuedSpeciesObservation(q.client_uuid);
+                onClick={async () => {
+                  await dismissOutboxEntry(OUTBOX_KINDS.speciesObservation, q.client_uuid);
                   setQueued(listQueuedSpeciesObservations(currentObservationUserId()));
                 }}
               >

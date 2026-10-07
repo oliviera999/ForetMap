@@ -84,8 +84,9 @@ test('renderServiceWorker reprend les stratégies (HTML network-first, SWR, asse
   assert.match(source, /SKIP_WAITING/);
   assert.match(
     source,
-    /names\.filter\(\(name\) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME\)/,
+    /names\s*\.filter\(\(name\) => name !== CACHE_NAME && name !== IMAGE_CACHE_NAME && name !== TERRAIN_CACHE_NAME\)/,
   );
+  assert.match(source, /const TERRAIN_CACHE_NAME = "foretmap-foret-terrain";/);
   assert.match(source, /const IMAGE_CACHE_NAME = "foretmap-foret-images";/);
   assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(source, /\.woff2/);
@@ -728,6 +729,138 @@ test('visite : la réponse mémorisée d’un compte n’est pas servie tout de 
   const student = { ok: true, status: 200, clone: () => ({ body: 'visite de l’élève' }) };
   network.resolve(student);
   assert.strictEqual(await second.responded, student);
+});
+
+test('sortie terrain : une lecture marquée est copiée dans le cache terrain, resservie hors ligne', async () => {
+  const { listeners, context } = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  const stores = multiCacheSandbox(context);
+  const fresh = { ok: true, status: 200, clone: () => ({ body: 'zones' }) };
+  context.fetch = () => Promise.resolve(fresh);
+  let responded;
+  listeners.fetch({
+    request: {
+      method: 'GET',
+      url: 'https://foretmap.test/api/zones',
+      headers: { get: (name) => (name === 'X-Foretmap-Terrain' ? '1' : null) },
+    },
+    respondWith: (promise) => {
+      responded = promise;
+    },
+    waitUntil: () => {},
+  });
+  await responded;
+  await flushMicrotasks();
+  await flushMicrotasks();
+  assert.ok(stores.get('foretmap-foret-terrain')?.has('/api/zones'), 'copie terrain');
+
+  // Le cache principal est vidé (mise à jour, purge) : la copie terrain répond encore.
+  stores.get('foretmap-foret-abcdef12').clear();
+  context.fetch = () => Promise.reject(new Error('hors ligne'));
+  const offline = await fetchThrough(listeners, 'https://foretmap.test/api/zones');
+  assert.deepStrictEqual(offline, { body: 'zones' });
+});
+
+// ── Boîte d'envoi hors ligne : rejeu en arrière-plan (Background Sync) ─────────────────
+
+test('outbox : constantes du SW identiques à celles de la page (src/utils/offlineDb.js)', async () => {
+  const page = await import('../src/utils/offlineDb.js');
+  const sw = require('../src/shared/pwa/swTemplate');
+  assert.strictEqual(sw.OFFLINE_DB_NAME, page.OFFLINE_DB_NAME);
+  assert.strictEqual(sw.OFFLINE_DB_VERSION, page.OFFLINE_DB_VERSION);
+  assert.deepStrictEqual({ ...sw.OFFLINE_DB_STORES }, { ...page.OFFLINE_DB_STORES });
+  assert.strictEqual(sw.OUTBOX_SYNC_TAG, page.OUTBOX_SYNC_TAG);
+  assert.strictEqual(sw.OUTBOX_REPLAYED_MESSAGE, page.OUTBOX_REPLAYED_MESSAGE);
+});
+
+test('outbox : l’écouteur sync n’existe qu’avec outboxSync', () => {
+  const without = loadServiceWorker(renderServiceWorker(BASE_OPTIONS));
+  assert.strictEqual(without.listeners.sync, undefined);
+  const withSync = loadServiceWorker(renderServiceWorker({ ...BASE_OPTIONS, outboxSync: true }));
+  assert.strictEqual(typeof withSync.listeners.sync, 'function');
+});
+
+test('outbox : rejoue dans l’ordre, retire succès et refus définitifs, garde le reste', async () => {
+  const { IDBFactory } = require('fake-indexeddb');
+  const sw = require('../src/shared/pwa/swTemplate');
+  const indexedDB = new IDBFactory();
+  const db = await new Promise((resolve, reject) => {
+    const req = indexedDB.open(sw.OFFLINE_DB_NAME, sw.OFFLINE_DB_VERSION);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(sw.OFFLINE_DB_STORES.photos, { keyPath: 'key' });
+      req.result.createObjectStore(sw.OFFLINE_DB_STORES.outbox, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  const entries = [
+    { id: 'c', order: 2, url: '/api/tasks/1/done', body: '{}', token: 't', queued_at: 3 },
+    { id: 'a', order: 1, url: '/api/tutorials/1/read', body: '{}', token: 't', queued_at: 1 },
+    { id: 'b', order: 2, url: '/api/tasks/2/done', body: '{}', token: 't', queued_at: 2 },
+    { id: 'd', order: 3, url: '/api/observations', body: '{}', token: 't', queued_at: 4 },
+  ];
+  await new Promise((resolve) => {
+    const tx = db.transaction(sw.OFFLINE_DB_STORES.outbox, 'readwrite');
+    for (const e of entries) tx.objectStore(sw.OFFLINE_DB_STORES.outbox).put(e);
+    tx.oncomplete = resolve;
+  });
+  db.close();
+
+  const { listeners, context } = loadServiceWorker(
+    renderServiceWorker({ ...BASE_OPTIONS, outboxSync: true }),
+  );
+  context.indexedDB = indexedDB;
+  const posted = [];
+  context.self.clients.matchAll = () =>
+    Promise.resolve([{ postMessage: (message) => posted.push(message) }]);
+  const calls = [];
+  const statuses = {
+    '/api/tutorials/1/read': 200,
+    '/api/tasks/2/done': 404,
+    '/api/tasks/1/done': 503,
+  };
+  context.fetch = (url, init) => {
+    calls.push({
+      url,
+      replay: init.headers['X-Foretmap-Replay'],
+      queued: init.headers['X-Foretmap-Queued-At'],
+    });
+    const status = statuses[url] || 200;
+    return Promise.resolve({ ok: status < 400, status });
+  };
+
+  let waited;
+  listeners.sync({ tag: sw.OUTBOX_SYNC_TAG, waitUntil: (p) => (waited = p) });
+  await assert.rejects(waited, /nouvel essai/);
+  // 503 : on s'arrête là, l'observation (ordre 3) attend le prochain essai.
+  assert.deepStrictEqual(
+    calls.map((c) => c.url),
+    ['/api/tutorials/1/read', '/api/tasks/2/done', '/api/tasks/1/done'],
+  );
+  assert.ok(calls.every((c) => c.replay === 'background-sync'));
+  assert.strictEqual(calls[0].queued, '1');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(posted)), [
+    { type: sw.OUTBOX_REPLAYED_MESSAGE, sent: 1 },
+  ]);
+
+  const remaining = await new Promise((resolve) => {
+    const req = indexedDB.open(sw.OFFLINE_DB_NAME, sw.OFFLINE_DB_VERSION);
+    req.onsuccess = () => {
+      const all = req.result
+        .transaction(sw.OFFLINE_DB_STORES.outbox, 'readonly')
+        .objectStore(sw.OFFLINE_DB_STORES.outbox)
+        .getAll();
+      all.onsuccess = () => {
+        req.result.close();
+        resolve(all.result.map((e) => e.id).sort());
+      };
+    };
+  });
+  assert.deepStrictEqual(remaining, ['c', 'd']);
+
+  // Autre étiquette : ignorée.
+  let other = null;
+  listeners.sync({ tag: 'autre', waitUntil: (p) => (other = p) });
+  assert.strictEqual(other, null);
 });
 
 test('SW du mode dev (public/sw.js) : même délai réseau que le gabarit', async () => {

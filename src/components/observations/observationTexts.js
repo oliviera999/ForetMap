@@ -51,13 +51,17 @@ export const OBSERVATION_TEXTS = Object.freeze({
   textLabel: 'Ce que tu as vu',
   textPlaceholder: 'Nombre, taille, couleur, comportement, météo…',
   photoLabel: 'Photo (facultatif)',
-  photoOfflineHint: 'Sans réseau, la photo ne peut pas être gardée : ton texte partira seul.',
+  photoOfflineHint:
+    'Sans réseau, la photo est gardée sur l’appareil et partira avec ton observation.',
   needSpeciesOrText: 'Choisis l’espèce ou décris ce que tu as vu.',
   submit: 'Envoyer',
   cancel: 'Annuler',
   sent: 'Observation envoyée : un enseignant va la vérifier ✓',
   sentWithoutPhoto: 'Observation envoyée, mais la photo n’a pas pu partir.',
   queued: 'Pas de réseau : ton observation est gardée sur l’appareil et partira toute seule.',
+  queuedWithoutPhoto:
+    'Pas de réseau : ton observation est gardée et partira toute seule, mais l’appareil n’a pas pu garder la photo (stockage plein).',
+  pendingPhoto: 'Photo jointe',
   queueFailed:
     'Pas de réseau et l’appareil ne peut pas garder ton observation. Réessaie plus tard.',
   confirmedOnSite: 'Confirmée sur le site',
