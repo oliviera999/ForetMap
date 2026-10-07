@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Carte : résultats repliés quand seules les catégories par défaut sont cochées
+
+- **Carte de travail** : quand les filtres sont exactement les catégories cochées d'office de la carte (réglage « Cartographie → Cartes »), la liste « Résultats » s'affiche repliée ; elle se déplie dès que l'utilisateur change un filtre, et reste dépliable à la main (`MapLocationFilterResults`, `useMapViewLocationFilters` → `mapFiltersAtDefaults`).
+- Test : `tests-ui/components/map/MapViewImpl.mount.test.jsx`.
+
 ### Ajouté — Mode hors ligne renforcé (terrain sans réseau)
 
 - **Réseau inutilisable reconnu** (« lie-fi ») : trois requêtes de suite sans réponse (erreur de transport, délai dépassé, copie servie par le service worker faute de réponse — en-tête `X-Foretmap-SW-Cache`) font passer l'appareil en mode hors ligne ; une sonde `/api/health` toutes les 15 s, ou la moindre réponse HTTP, lève l'état (`src/shared/networkStatus.js`, `useNetworkMode`). Bandeau « Réseau trop faible — … ».

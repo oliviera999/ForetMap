@@ -665,6 +665,7 @@ function MapViewImpl({
     matchingMarkerIds,
     mapFilterResultItems,
     mapFilterActive,
+    mapFiltersAtDefaults,
     dimmedZoneIds,
     dimmedMarkerIds,
     getFilterDimSeen,
@@ -903,6 +904,7 @@ function MapViewImpl({
             markerMatchCount={matchingMarkerIds.size}
             searchInputRef={mapLocationSearchRef}
             resultItems={mapFilterResultItems}
+            resultsCollapsedByDefault={mapFiltersAtDefaults}
             onSelectItem={onSelectMapFilterResult}
           />
           <div className="map-view-canvas-slot">

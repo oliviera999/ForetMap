@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Liste cliquable des zones / repères correspondant aux filtres.
+ *
+ * `collapsedByDefault` : repliée tant que les filtres sont ceux posés d'office (catégories
+ * par défaut de la carte) ; se déplie dès que l'utilisateur modifie les filtres.
  */
-export function MapLocationFilterResults({ items = [], onSelectItem }) {
-  const [collapsed, setCollapsed] = useState(false);
+export function MapLocationFilterResults({ items = [], collapsedByDefault = false, onSelectItem }) {
+  const [collapsed, setCollapsed] = useState(collapsedByDefault);
+
+  useEffect(() => {
+    setCollapsed(collapsedByDefault);
+  }, [collapsedByDefault]);
 
   if (!items.length) return null;
 

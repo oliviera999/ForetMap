@@ -25,6 +25,18 @@ function dimmedIds(active, ids, matchingIds) {
   return set;
 }
 
+/** Les filtres sont-ils exactement ceux posés d'office (catégories par défaut, rien d'autre) ? */
+function filtersMatchMapDefaults(filters, defaultIdsKey) {
+  if (!defaultIdsKey) return false;
+  const f = { ...MAP_LOCATION_FILTER_DEFAULTS, ...filters };
+  for (const key of Object.keys(MAP_LOCATION_FILTER_DEFAULTS)) {
+    if (key === 'categoryIds') continue;
+    if (f[key] !== MAP_LOCATION_FILTER_DEFAULTS[key]) return false;
+  }
+  const current = (f.categoryIds || []).map(String).sort().join(';');
+  return current === defaultIdsKey.split(';').sort().join(';');
+}
+
 /**
  * @param {object} options
  * @param {string} options.activeMapId carte active (les filtres repartent de zéro à chaque carte)
@@ -68,6 +80,11 @@ export function useMapViewLocationFilters({
     });
     if (activeMapLoaded) defaultsAppliedForMapRef.current = activeMapId;
   }, [activeMapId, activeMapLoaded, defaultIdsKey]);
+
+  const mapFiltersAtDefaults = useMemo(
+    () => filtersMatchMapDefaults(mapLocationFilters, defaultIdsKey),
+    [mapLocationFilters, defaultIdsKey],
+  );
 
   const hiddenIdsKey = mapCategoryIdList(activeMap?.hidden_category_ids).join(';');
   const mapSpeciesOptions = useMemo(
@@ -198,6 +215,7 @@ export function useMapViewLocationFilters({
     matchingMarkerIds,
     mapFilterResultItems,
     mapFilterActive,
+    mapFiltersAtDefaults,
     dimmedZoneIds,
     dimmedMarkerIds,
     getFilterDimSeen,

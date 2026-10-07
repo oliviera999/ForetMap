@@ -116,7 +116,7 @@ const MARKERS = [
 
 function renderMapView(
   props = {},
-  { isTeacher = false, settings = { modules: {}, ui: { map: {} } } } = {},
+  { isTeacher = false, settings = { modules: {}, ui: { map: {} } }, data = {} } = {},
 ) {
   const dataValue = {
     zones: ZONES,
@@ -125,6 +125,7 @@ function renderMapView(
     tutorials: [],
     plants: [],
     activeMapId: 'foret',
+    ...data,
   };
   const handlers = {
     onMapChange: vi.fn(),
@@ -275,6 +276,33 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
         expect(view.container.querySelector('.fm-pct-zone.is-seen')).not.toBeNull(),
       );
       expect(view.container.querySelector('.fm-pct-marker.is-seen')).not.toBeNull();
+    } finally {
+      stubs.categories = saved;
+    }
+  });
+
+  test('catégories cochées d’office : liste des résultats repliée, dépliable', async () => {
+    const saved = stubs.categories;
+    stubs.categories = {
+      ...saved,
+      categories: [{ id: 'cat-verger', label: 'Verger', emoji: '🍎', applies_to: 'both' }],
+    };
+    try {
+      const { view } = renderMapView(
+        {
+          maps: MAPS.map((m) =>
+            m.id === 'foret' ? { ...m, default_category_ids: ['cat-verger'] } : m,
+          ),
+        },
+        { data: { markers: [{ ...MARKERS[0], category_ids: ['cat-verger'] }, MARKERS[1]] } },
+      );
+      await waitForToolbar(view);
+      const toggle = await screen.findByRole('button', { name: /Résultats \(1\)/ }, MOUNT_TIMEOUT);
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('listbox', { name: 'Lieux correspondants' })).toBeNull();
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('listbox', { name: 'Lieux correspondants' })).toBeInTheDocument();
     } finally {
       stubs.categories = saved;
     }
