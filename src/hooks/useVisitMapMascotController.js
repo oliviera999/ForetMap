@@ -42,6 +42,9 @@ export const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
  * @param {number} params.viewportFitHeight hauteur du rect « contain » (état — pilote le clamp du rendu).
  * @param {(item: object|null) => void} params.setSelected sélection du panneau détail.
  * @param {(type: ('zone'|'marker')|null) => void} params.setSelectedType type de sélection.
+ * @param {((item: object, itemType: 'zone'|'marker') => void)|null} [params.openSelection]
+ *   ouverture du panneau à l'arrivée de la mascotte (ex. zoom sur le lieu puis sélection) ;
+ *   à défaut, la sélection est posée directement.
  */
 export function useVisitMapMascotController({
   mapId,
@@ -54,6 +57,7 @@ export function useVisitMapMascotController({
   viewportFitHeight,
   setSelected,
   setSelectedType,
+  openSelection = null,
 }) {
   const publicSettings = usePublicSettings();
   // Vide = mascotte par défaut livrée : `normalizeVisitMascotId` s'en charge (pas d'id en dur ici).
@@ -333,6 +337,10 @@ export function useVisitMapMascotController({
 
       const applySelection = () => {
         visitDetailPanelAfterMoveTimeoutRef.current = null;
+        if (typeof openSelection === 'function') {
+          openSelection(item, itemType);
+          return;
+        }
         setSelected(item);
         setSelectedType(itemType);
       };
@@ -343,7 +351,7 @@ export function useVisitMapMascotController({
         visitDetailPanelAfterMoveTimeoutRef.current = window.setTimeout(applySelection, delay);
       }
     },
-    [prefersReducedMotion, setSelected, setSelectedType, visitMapFitRef],
+    [prefersReducedMotion, setSelected, setSelectedType, openSelection, visitMapFitRef],
   );
 
   /** Annule une ouverture différée du panneau lieu (fermeture de sélection, changement de carte). */

@@ -333,6 +333,16 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 
 **Réglage `gameplay.plateau_marker_numbers_visible`** (booléen, défaut `false`) : affiche les numéros de parcours (1, 2, 3…) sur les repères en partie lorsque la partie est en mode `numbered_path`. Exposé sous `plateauMarkerNumbersVisible` dans `GET /api/gl/gameplay-settings`. Toggle « Numéros de parcours sur les repères » dans Réglages → Affichage carte plateau.
 
+**Réglages `gameplay.board_focus_*`** (zoom sur le repère / la zone d'arrivée avant le popover, puis retour à la vue d'avant à la fermeture du dernier popover d'arrivée) — modifiables via `PUT /api/gl/admin/settings/:key` (`gl.settings.manage`), exposés dans `GET /api/gl/gameplay-settings` :
+
+| Clé                                     | Type    | Défaut | Clé exposée                | Effet                                                    |
+| --------------------------------------- | ------- | ------ | -------------------------- | -------------------------------------------------------- |
+| `gameplay.board_focus_enabled`          | boolean | `true` | `boardFocusEnabled`        | Zoom bref sur le lieu d'arrivée avant le popover         |
+| `gameplay.board_focus_duration_ms`      | number  | `350`  | `boardFocusDurationMs`     | Durée du zoom et du retour (entier 150 → 800, sinon HTTP 400) |
+| `gameplay.board_focus_restore_on_close` | boolean | `true` | `boardFocusRestoreOnClose` | Retour au zoom et au centrage d'avant à la fermeture     |
+
+Le mode Découverte invité applique les défauts. Mouvement réduit : zoom instantané et popover sans attendre le trajet de la mascotte.
+
 **Réglage `gameplay.marker_effect_auto_move_enabled`** (booléen, défaut `false`) : en parcours numéroté, applique automatiquement le `deltaMove` des repères à effet lors de `present-arrival` / `apply-effects` ; l'événement `move` porte `skipDestinationEffects: true` (pas d'effet sur la case d'arrivée). Exposé sous `markerEffectAutoMoveEnabled` dans `GET /api/gl/gameplay-settings`. Toggle « Déplacement auto (effet de case) » dans Réglages → Affichage carte plateau.
 
 ### Le Seuil — niveau du voyageur et grimoire (`/api/gl/voyageur`)
@@ -1436,6 +1446,23 @@ défaut.
 | `ui.routes.walking_trigger_m`      | number  | `8`    | Distance parcourue (m) qui déclenche le zoom de marche (2 → 100)                        |
 | `ui.routes.lookahead_percent`      | number  | `60`   | Ouverture de la vue vers l'étape, en % de la demi-vue (0 → 90 ; 0 = centrée)           |
 | `ui.routes.line_animated`          | boolean | `true` | Ligne de guidage animée (figée de toute façon si mouvement réduit)                     |
+
+**Zoom sur le lieu avant sa fiche** (`lib/settings/placeFocus.js`, portée publique) — au clic sur
+une zone ou un repère, la carte cadre le lieu (zone entière avec marge, repère à zoom fixe,
+plafonnés) **puis** ouvre sa fiche ; à la fermeture, retour au zoom et au centrage d'avant.
+Côté ForêtMap, `GET /api/settings/public` les sert sous `ui.place_focus` (repliés en
+`place_focus` par `mergePublicSettings`) ; côté plans, `GET /api/plan/content` (et
+`/api/staff-plan/content`) les joint à `settings.place_focus`. Le client les borne à nouveau
+(`src/shared/pct-map/placeFocusSettings.js`). Inactif pendant un parcours guidé.
+
+| Clé                               | Type    | Défaut | Effet                                                               |
+| --------------------------------- | ------- | ------ | ------------------------------------------------------------------- |
+| `ui.place_focus.work_enabled`     | boolean | `true` | Séquence active sur la carte de travail (consultation)              |
+| `ui.place_focus.visit_enabled`    | boolean | `true` | Séquence active sur la Visite (après l'arrivée de la mascotte)      |
+| `ui.place_focus.plan_enabled`     | boolean | `true` | Séquence active sur les plans                                       |
+| `ui.place_focus.duration_ms`      | number  | `350`  | Durée du zoom et du retour, en ms (150 → 800)                       |
+| `ui.place_focus.max_zoom_percent` | number  | `400`  | Zoom maximal du cadrage, en % de la carte entière (150 → 800)       |
+| `ui.place_focus.restore_on_close` | boolean | `true` | Retour au zoom et au centrage d'avant à la fermeture de la fiche    |
 
 | Clé                                   | Type    | Défaut  | Effet                                                         |
 | ------------------------------------- | ------- | ------- | ------------------------------------------------------------- |
@@ -2639,7 +2666,8 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     `default_category_ids` (restreint aux catégories réellement servies dans le catalogue),
     `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage),
     `routes` (réglages `ui.routes.*` des parcours guidés, sans le préfixe — voir le tableau
-    « Parcours guidés » des réglages publics).
+    « Parcours guidés » des réglages publics), `place_focus` (réglages `ui.place_focus.*`,
+    sans le préfixe — tableau « Zoom sur le lieu avant sa fiche »).
     `ui.plan.map_id` et `ui.plan.selectable_map_ids` ne sont **pas** repris ici (l'identifiant
     servi est déjà dans `map`, les plans proposés dans `maps`).
   - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la

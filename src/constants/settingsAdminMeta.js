@@ -12,6 +12,7 @@ export const SECTION_DEFS = {
   content: { title: 'Contenus du site', order: 22 },
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
   routes: { title: 'Parcours guidés (Visite, carte, plans)', order: 24 },
+  place_focus: { title: 'Zoom sur le lieu avant sa fiche (carte, Visite, plans)', order: 24.5 },
   progression: { title: 'Progression n3beurs', order: 25 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
@@ -563,6 +564,38 @@ export const KEY_META = {
       'Animer les chevrons de la ligne de guidage (toujours figés si l’appareil demande moins d’animations)',
     section: 'routes',
     order: 80,
+  },
+  'ui.place_focus.work_enabled': {
+    label:
+      'Carte de travail : au clic sur une zone ou un repère, zoomer dessus avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 10,
+  },
+  'ui.place_focus.visit_enabled': {
+    label: 'Visite : zoomer sur la zone ou le repère avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 20,
+  },
+  'ui.place_focus.plan_enabled': {
+    label: 'Plans : zoomer sur le lieu avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 30,
+  },
+  'ui.place_focus.duration_ms': {
+    label: 'Durée du zoom et du retour (millisecondes : 150 à 800, 350 = défaut)',
+    section: 'place_focus',
+    order: 40,
+  },
+  'ui.place_focus.max_zoom_percent': {
+    label:
+      'Zoom maximal sur un lieu (% de la carte entière : 100 = carte entière, 400 = défaut, 800 = très près)',
+    section: 'place_focus',
+    order: 50,
+  },
+  'ui.place_focus.restore_on_close': {
+    label: 'À la fermeture de la fiche, revenir au zoom et au centrage d’avant',
+    section: 'place_focus',
+    order: 60,
   },
   'privacy.external_assets_mode': {
     label:

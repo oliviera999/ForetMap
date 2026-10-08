@@ -58,6 +58,9 @@ const HISTORICAL_GAMEPLAY_KEYS = [
   'gameplay.market_hearts_enabled',
   'gameplay.market_feuillets_enabled',
   'gameplay.team_composition_profile_recipes_enabled',
+  'gameplay.board_focus_enabled',
+  'gameplay.board_focus_duration_ms',
+  'gameplay.board_focus_restore_on_close',
 ];
 
 const HISTORICAL_MODULE_KEYS = [
@@ -166,6 +169,8 @@ test('messages historiques — booléens stricts (un booléen JSON, pas « true 
     'gameplay.market_hearts_enabled',
     'gameplay.market_feuillets_enabled',
     'gameplay.team_composition_profile_recipes_enabled',
+    'gameplay.board_focus_enabled',
+    'gameplay.board_focus_restore_on_close',
     // Les cinq interrupteurs autrefois sans validateur rejoignent la même règle.
     'gameplay.turns_enabled',
     'gameplay.narration_enabled',
@@ -211,6 +216,15 @@ test('messages historiques — carnet personnel (0 = illimité, sinon plage)', (
   assert.equal(err('gameplay.player_journal_max_assets', 201), assets);
   assert.equal(err('gameplay.player_journal_max_assets', -1), assets);
   assert.equal(ok('gameplay.player_journal_max_assets', 12), 12);
+});
+
+test('zoom du plateau avant le popover — durée entière 150..800 ms', () => {
+  const msg = 'La valeur doit être un entier entre 150 et 800';
+  assert.equal(err('gameplay.board_focus_duration_ms', 100), msg);
+  assert.equal(err('gameplay.board_focus_duration_ms', 900), msg);
+  assert.equal(err('gameplay.board_focus_duration_ms', 350.5), msg);
+  assert.equal(ok('gameplay.board_focus_duration_ms', 350), 350);
+  assert.equal(ok('gameplay.board_focus_duration_ms', '500'), 500);
 });
 
 test('messages historiques — listes, fonds de repères, marque', () => {

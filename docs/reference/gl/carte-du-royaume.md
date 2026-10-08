@@ -53,6 +53,22 @@ en place. Le **plein écran** (bouton dédié, Échap ou « Fermer » pour sorti
 plateau seul, avec les mêmes gestes. Pendant l'édition d'un plateau (repères, zones), le
 déplacement par glisser est suspendu pour ne pas gêner le placement.
 
+**Zoom sur le lieu d'arrivée.** Quand une équipe arrive sur un repère qui déclenche quelque
+chose (question, effet) ou entre dans une zone qui a un contenu ou un feuillet, la mascotte
+termine d'abord son trajet, puis le plateau fait un **zoom bref et fluide** sur ce repère ou
+sur toute la zone, et **ensuite seulement** le popover s'ouvre. Quand le dernier popover
+d'arrivée est refermé, le plateau revient au **zoom et au centrage d'avant**. Le MJ/admin
+règle ce comportement dans _Réglages plateforme → Gameplay → Affichage carte plateau_ : l'activer ou non,
+revenir ou non à la vue d'avant, et la durée du zoom (0,35 s par défaut). Le mode Découverte
+des invités suit le comportement par défaut.
+
+> ⚠️ **Points d'attention**
+>
+> - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, la
+>   mascotte se téléporte, le popover n'attend plus son trajet et le zoom est instantané.
+> - Si une nouvelle arrivée survient pendant un zoom, c'est elle qui l'emporte : le popover
+>   précédent ne s'ouvre pas.
+
 ## Qui déplace les mascottes
 
 C'est un **réglage de gameplay** : soit les joueurs déplacent eux-mêmes leur mascotte,

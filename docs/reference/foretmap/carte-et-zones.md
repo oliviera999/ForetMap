@@ -213,7 +213,14 @@ Cartographie.
    gardent le point visé sous le pointeur. Si une **mascotte** est affichée, un clic sur le
    plan — y compris **hors** de toute zone ou repère — la fait marcher jusqu'au point
    touché ; un clic sur un lieu l'y amène aussi en ouvrant la fiche.
-2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
+2. Il **touche une zone ou un repère** : la carte fait d'abord un **zoom bref et fluide** sur
+   le lieu (une zone est cadrée en entier avec une marge, un repère est grossi à un niveau
+   fixe ; le zoom est plafonné), **puis seulement** la fiche s'ouvre. Quand il **referme la
+   fiche**, la carte revient doucement au **zoom et au centrage d'avant**. Passer d'un lieu
+   à un autre sans refermer garde la vue d'origine : c'est elle qui revient à la fin. En
+   mode parcours, la caméra du parcours garde la main et ce zoom ne s'applique pas. Le
+   comportement se règle dans l'administration (voir « Zoom sur le lieu avant sa fiche »
+   plus bas). La fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone
    reste **mise en avant** sur le plan (remplissage plus marqué) et les autres zones
@@ -358,6 +365,34 @@ Visite et aux plans) :
 >   caméra guidée se met en retrait.
 > - Sans position (carte non calée, ou « Me situer » refusé), la vue d'étape cadre l'étape
 >   précédente et l'étape en cours, pour montrer le sens à suivre.
+
+### Zoom sur le lieu avant sa fiche
+
+Toucher une zone ou un repère (sur la carte, dans la liste de recherche ou par une pastille de
+groupe) enchaîne trois temps : la mascotte arrive si la surface en a une, la carte **zoome
+brièvement** sur le lieu, puis sa **fiche s'ouvre**. À la fermeture, la carte **revient au
+zoom et au centrage d'avant**. Si l'on bouge la carte pendant le zoom, la fiche s'ouvre quand
+même.
+
+Ce comportement se règle dans _Réglages → **Zoom sur le lieu avant sa fiche**_ (commun à la
+carte, à la Visite et aux plans) :
+
+- un interrupteur **par surface** : carte de travail, Visite, plans (tous actifs par défaut) —
+  désactivé, la fiche s'ouvre tout de suite et la carte se recentre comme auparavant ;
+- **Durée du zoom** (0,35 s par défaut, de 0,15 à 0,8 s), utilisée aussi pour le retour ;
+- **Zoom maximal** (en % de la carte entière, 400 % par défaut) : une petite zone ou un
+  repère ne grossissent pas au-delà ;
+- **Revenir à la vue d'avant à la fermeture** (actif par défaut) — désactivé, la carte reste
+  sur le lieu après la fermeture de la fiche.
+
+> ⚠️ **Points d'attention**
+>
+> - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
+>   et le retour sont instantanés.
+> - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
+>   visé, c'est là que le guidage commence.
+> - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la
+>   main.
 
 ### Se situer sur la carte
 
@@ -755,8 +790,9 @@ Quand un filtre est actif :
 - les lieux **correspondants** restent visibles normalement ;
 - les autres lieux sont **atténués** sur le plan (ils restent visibles mais moins
   lisibles, et ne s'ouvrent plus au clic) ;
-- une **liste de résultats** sous la barre permet de **cliquer** sur un lieu : la
-  fiche s'ouvre et la carte se **centre** doucement sur ce point.
+- une **liste de résultats** sous la barre permet de **cliquer** sur un lieu : la carte
+  **zoome** d'abord brièvement sur ce lieu, puis la fiche s'ouvre ; la refermer ramène la
+  vue d'avant (même séquence qu'un clic sur la carte).
 
 Le compteur indique combien de zones et de repères correspondent. Un bouton ✕ ou
 « Tout effacer » remet la carte en vue complète. Élèves et professeurs utilisent

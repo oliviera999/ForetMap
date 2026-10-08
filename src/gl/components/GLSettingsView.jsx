@@ -13,6 +13,7 @@ import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
 import { GLGatingSettings } from './settings/GLGatingSettings.jsx';
 import { GLMarkerBackgroundSettings } from './settings/GLMarkerBackgroundSettings.jsx';
 import { GLMascotMoveSettings } from './settings/GLMascotMoveSettings.jsx';
+import { GLBoardFocusDurationSettings } from './settings/GLBoardFocusDurationSettings.jsx';
 import { GLPlateauMarkerScaleSettings } from './settings/GLPlateauMarkerScaleSettings.jsx';
 import { GLVitalityDefaultsSettings } from './settings/GLVitalityDefaultsSettings.jsx';
 import { GLLoreRetriggerSettings } from './settings/GLLoreRetriggerSettings.jsx';
@@ -297,6 +298,12 @@ export function GLSettingsView() {
         settings={settings}
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}
+      />
+
+      <GLBoardFocusDurationSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSaveSetting={saveSetting}
       />
 
       <GLPlateauMarkerScaleSettings

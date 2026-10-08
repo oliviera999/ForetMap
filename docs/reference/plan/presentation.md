@@ -69,8 +69,14 @@ du lycée apparaît aussi discrètement en bas à gauche du plan.
    au-delà, il est raccourci et la fiche du lieu en donne toujours le nom complet. Le nom
    écrit sur le plan est aussi une **cible tactile** : le toucher ouvre son lieu, ce qui rend
    les petits bâtiments atteignables au pouce.
-6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
-   bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. Elle s'ouvre à
+6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste fait d'abord un
+   **zoom bref et fluide** sur ce lieu — cadré dans la partie du plan qui restera visible
+   au-dessus de la fiche —, **puis** ouvre une fiche en bas d'écran : nom, sous-titre, photo,
+   description, horaires ou précisions. **Refermer la fiche** ramène le plan au **zoom et au
+   centrage d'avant** ; après un lien direct, il revient au plan entier. « Y aller » laisse
+   le plan sur le lieu, et pendant un parcours la caméra du parcours garde la main. Le
+   comportement se règle dans l'administration ForetMap (_Réglages → Zoom sur le lieu avant
+   sa fiche_ : interrupteur « plans », durée, zoom maximal, retour à la vue d'avant). Elle s'ouvre à
    **mi-hauteur**, assez haut pour qu'on lise l'essentiel sans rien faire ; on la fait
    glisser vers le haut pour tout lire, vers le bas pour la réduire puis la refermer.
    **Le plan reste vivant derrière elle** : on peut le déplacer et le zoomer sans fermer la

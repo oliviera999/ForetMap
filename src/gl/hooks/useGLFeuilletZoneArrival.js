@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { findZoneTriggeredOnMoveGeneric } from '../utils/glMapZoneDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
+import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
 function presentationKey(teamId, zoneId) {
   return `${Number(teamId)}:${String(zoneId)}`;
@@ -27,6 +28,7 @@ export function useGLFeuilletZoneArrival({
   qcmOpen = false,
   loreCarnetEnabled = false,
   onZonePresented,
+  beforePresent = null,
 }) {
   const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [popover, setPopover] = useState(null);
@@ -57,6 +59,7 @@ export function useGLFeuilletZoneArrival({
       const dedupeKey = presentationKey(teamId, zone.zoneId);
       if (wasRecentPresentation(dedupeKey)) return;
       markRecentPresentation(dedupeKey);
+      if (beforePresent) await awaitBeforePresent(beforePresent, zone);
 
       setPopover({
         zone,
@@ -126,6 +129,7 @@ export function useGLFeuilletZoneArrival({
       onZonePresented,
       wasRecentPresentation,
       markRecentPresentation,
+      beforePresent,
     ],
   );
 

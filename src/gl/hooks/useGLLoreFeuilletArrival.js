@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { findZoneTriggeredOnMove } from '../utils/glZoneContentDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
+import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
 function presentationKey(teamId, zoneId, feuilletCode) {
   return `${Number(teamId)}:${Number(zoneId)}:${feuilletCode || ''}`;
@@ -18,6 +19,7 @@ export function useGLLoreFeuilletArrival({
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
   qcmOpen = false,
+  beforePresent = null,
 }) {
   const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [discovery, setDiscovery] = useState(null);
@@ -32,6 +34,7 @@ export function useGLLoreFeuilletArrival({
       const dedupeKey = presentationKey(teamId, zone.id, feuillet.feuilletCode);
       if (wasRecentPresentation(dedupeKey)) return;
       markRecentPresentation(dedupeKey);
+      if (beforePresent) await awaitBeforePresent(beforePresent, zone);
 
       setDiscovery({
         zone,
@@ -67,7 +70,7 @@ export function useGLLoreFeuilletArrival({
         });
       }
     },
-    [gameId, wasRecentPresentation, markRecentPresentation],
+    [gameId, wasRecentPresentation, markRecentPresentation, beforePresent],
   );
 
   const handleZoneArrival = useCallback(

@@ -9,6 +9,7 @@ import {
   shouldSkipMarkerArrival,
 } from '../utils/glMarkerArrivalSkip.js';
 import { useGLRecentPresentation } from './useGLZonePresence.js';
+import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
 function presentationKey(teamId, markerId) {
   return `${Number(teamId)}:${Number(markerId)}`;
@@ -29,6 +30,7 @@ export function useGLMarkerArrival({
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
   onEffectAutoMove = null,
+  beforePresent = null,
 }) {
   const prevMarkerByTeamRef = useRef(new Map());
   const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
@@ -49,6 +51,7 @@ export function useGLMarkerArrival({
 
       const excludeCodes = options.excludeCodes || excludeCodesRef.current || [];
       markRecentPresentation(presentationKey(teamId, marker.id));
+      if (beforePresent && !options.skipFocus) await awaitBeforePresent(beforePresent, marker);
       setEffectPopover(null);
       setQuestionPopover({
         marker,
@@ -94,7 +97,7 @@ export function useGLMarkerArrival({
         });
       }
     },
-    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation],
+    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation, beforePresent],
   );
 
   const presentEffectAtMarker = useCallback(
@@ -109,6 +112,7 @@ export function useGLMarkerArrival({
       if (!options.force && wasRecentPresentation(presentationKey(teamId, marker.id))) return;
 
       markRecentPresentation(presentationKey(teamId, marker.id));
+      if (beforePresent && !options.skipFocus) await awaitBeforePresent(beforePresent, marker);
       setQuestionPopover(null);
       setEffectPopover({
         marker,
@@ -148,7 +152,14 @@ export function useGLMarkerArrival({
         });
       }
     },
-    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation, onEffectAutoMove],
+    [
+      gameId,
+      watchTeamId,
+      wasRecentPresentation,
+      markRecentPresentation,
+      onEffectAutoMove,
+      beforePresent,
+    ],
   );
 
   const presentAtMarker = useCallback(
@@ -209,6 +220,7 @@ export function useGLMarkerArrival({
       teamId: questionPopover.teamId,
       excludeCodes: excludeCodesRef.current,
       force: true,
+      skipFocus: true,
     });
   }, [questionPopover, presentQuestionAtMarker]);
 

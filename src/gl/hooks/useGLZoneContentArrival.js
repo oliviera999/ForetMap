@@ -3,6 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { findZoneTriggeredOnMove } from '../utils/glZoneContentDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
+import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
 function presentationKey(teamId, zoneId) {
   return `${Number(teamId)}:${Number(zoneId)}`;
@@ -18,6 +19,7 @@ export function useGLZoneContentArrival({
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
   qcmOpen = false,
+  beforePresent = null,
 }) {
   const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [popover, setPopover] = useState(null);
@@ -32,6 +34,7 @@ export function useGLZoneContentArrival({
       if (wasRecentPresentation(presentationKey(teamId, zone.id))) return;
 
       markRecentPresentation(presentationKey(teamId, zone.id));
+      if (beforePresent) await awaitBeforePresent(beforePresent, zone);
       setPopover({
         zone,
         teamId,
@@ -69,7 +72,7 @@ export function useGLZoneContentArrival({
         });
       }
     },
-    [gameId, wasRecentPresentation, markRecentPresentation],
+    [gameId, wasRecentPresentation, markRecentPresentation, beforePresent],
   );
 
   const resolveZoneOnMove = useCallback(

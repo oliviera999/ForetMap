@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
+import {
+  clampMapMascotPctForViewport,
+  MAP_VIEW_MASCOT_MOVE_MS,
+} from '../../utils/mapViewMascotMotion.js';
 import { isQuestionMarker } from '../utils/glMarkerEventConfig.js';
 import { shouldPresentMarkerOnArrival } from '../utils/glMarkerEffects.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
@@ -18,6 +21,8 @@ import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { useGLZoneContentArrival } from '../hooks/useGLZoneContentArrival.js';
 import { useGLLoreFeuilletArrival } from '../hooks/useGLLoreFeuilletArrival.js';
 import { useGLFeuilletZoneArrival } from '../hooks/useGLFeuilletZoneArrival.js';
+import { useGLBoardFocus, useGLBoardFocusRestore } from '../hooks/useGLBoardFocus.js';
+import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
 import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
@@ -99,6 +104,7 @@ export function GLGameBoard({
   vitalityEnabled = false,
   vitalityByPlayerId = null,
   playerId = null,
+  boardFocus = BOARD_FOCUS_DEFAULTS,
 }) {
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
@@ -167,6 +173,14 @@ export function GLGameBoard({
     [markers, moveTeamAlongPath],
   );
 
+  // Mouvement réduit : la mascotte se téléporte, le popover n'attend pas son trajet.
+  const arrivalMoveDelayMs = prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS;
+  const { beforePresent: boardFocusBeforePresent, restore: restoreBoardFocus } = useGLBoardFocus({
+    mapGestures,
+    settings: boardFocus,
+    resetKey: gameId,
+  });
+
   const {
     popover: questionPopover,
     effectPopover,
@@ -181,7 +195,9 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
+    moveDelayMs: arrivalMoveDelayMs,
     onEffectAutoMove: handleEffectAutoMove,
+    beforePresent: boardFocusBeforePresent,
   });
 
   const qcmOpen = Boolean(questionPopover);
@@ -197,7 +213,9 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     enabled: Boolean(gameId && watchTeamId != null),
+    moveDelayMs: arrivalMoveDelayMs,
     qcmOpen: modalOpen,
+    beforePresent: boardFocusBeforePresent,
   });
 
   const {
@@ -210,7 +228,9 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     enabled: loreCarnetEnabled && Boolean(gameId && watchTeamId != null),
+    moveDelayMs: arrivalMoveDelayMs,
     qcmOpen: modalOpen,
+    beforePresent: boardFocusBeforePresent,
   });
 
   const [presentedFeuilletZoneIds, setPresentedFeuilletZoneIds] = useState([]);
@@ -281,10 +301,17 @@ export function GLGameBoard({
     enabled:
       Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) &&
       !feuilletZoneEditMode,
+    moveDelayMs: arrivalMoveDelayMs,
     qcmOpen: modalOpen,
     loreCarnetEnabled,
     onZonePresented: handleFeuilletZonePresented,
+    beforePresent: boardFocusBeforePresent,
   });
+
+  useGLBoardFocusRestore(
+    Boolean(modalOpen || zoneContentPopover || feuilletDiscovery || feuilletZonePopover),
+    restoreBoardFocus,
+  );
 
   useEffect(() => {
     if (!feuilletZonePopover?.zone?.zoneId || feuilletZonePopover?.loading) return;

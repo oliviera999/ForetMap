@@ -41,6 +41,7 @@ test('le registre est l’agrégat des domaines, dans l’ordre de la liste', ()
       'lti',
       'confidentialité',
       'parcours',
+      'zoom sur le lieu',
     ],
   );
 });
@@ -88,6 +89,8 @@ test('les clés vivent dans leur domaine', () => {
     'ui.staff_plan.access_mode': 'plan',
     'security.staff_plan_access_code_hash': 'plan',
     'privacy.external_assets_mode': 'confidentialité',
+    'ui.place_focus.work_enabled': 'zoom sur le lieu',
+    'ui.place_focus.max_zoom_percent': 'zoom sur le lieu',
     'cle.inconnue': null,
   };
   for (const [key, domain] of Object.entries(cases)) {

@@ -44,6 +44,8 @@ import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { useMapViewBadges } from './map/useMapViewBadges.js';
 import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
+import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
 import { useMapViewHandoff } from './map/useMapViewHandoff.js';
 import { useTutorialReadIds } from './map/useTutorialReadIds.js';
@@ -705,6 +707,43 @@ function MapViewImpl({
     },
   });
 
+  // Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant (scène partagée seulement ;
+  // pendant un parcours, la caméra guidée garde la main).
+  const placeFocusSettings = useMemo(
+    () => resolvePlaceFocusSettings(publicSettings?.place_focus),
+    [publicSettings?.place_focus],
+  );
+  const workPlaceFocusActive = useSharedViewStage && placeFocusSettings.workEnabled && !activeRoute;
+  const getWorkViewport = useCallback(() => workViewportApiRef.current, []);
+  const placeFocus = usePlaceFocusSequence({
+    getViewport: getWorkViewport,
+    enabled: workPlaceFocusActive,
+    durationMs: placeFocusSettings.durationMs,
+    maxZoom: placeFocusSettings.maxZoom,
+    restoreOnClose: placeFocusSettings.restoreOnClose,
+    resetKey: String(activeMapId || ''),
+  });
+  const openZoneFocused = useCallback(
+    (zone) => placeFocus.focusThenOpen({ ...zone, kind: 'zone' }, () => setSelectedZone(zone)),
+    [placeFocus],
+  );
+  const openMarkerFocused = useCallback(
+    (marker) =>
+      placeFocus.focusThenOpen({ ...marker, kind: 'marker' }, () => setSelectedMarker(marker)),
+    [placeFocus],
+  );
+  // Fermeture d'une fiche (quel qu'en soit le bouton) : retour à la vue d'avant le zoom. Hors
+  // consultation (passage à l'édition des sommets), la vue mémorisée est simplement oubliée.
+  const hadPlaceDetailRef = useRef(false);
+  useEffect(() => {
+    const hasDetail = !!(selectedZone || selectedMarker);
+    if (hadPlaceDetailRef.current && !hasDetail) {
+      if (mode === 'view' && useSharedViewStage) placeFocus.restore();
+      else placeFocus.forget();
+    }
+    hadPlaceDetailRef.current = hasDetail;
+  }, [selectedZone, selectedMarker, mode, useSharedViewStage, placeFocus]);
+
   // Ouverture d'un lieu : toucher (scène, canevas, groupe), résultat de recherche, fond.
   const {
     onSelectMapFilterResult,
@@ -734,6 +773,9 @@ function MapViewImpl({
     mapFilterActive,
     matchingZoneIds,
     matchingMarkerIds,
+    openZone: openZoneFocused,
+    openMarker: openMarkerFocused,
+    placeFocusActive: workPlaceFocusActive,
   });
 
   const workTargetPct = useMemo(
@@ -940,6 +982,7 @@ function MapViewImpl({
                 markers={mapMarkersOnActiveMap}
                 categoriesById={mapCategoriesById}
                 selectedPlace={selectedPlaceForStage}
+                autoFocusSelected={!workPlaceFocusActive}
                 onSelectPlace={onSelectPlaceFromStage}
                 onOpenGroup={onOpenGroupFromStage}
                 position={mapPosition}

@@ -6,6 +6,8 @@ import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLGuestFeuilletArrival } from '../hooks/useGLGuestFeuilletArrival.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
+import { useGLBoardFocus, useGLBoardFocusRestore } from '../hooks/useGLBoardFocus.js';
+import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
@@ -96,6 +98,11 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     });
   }, []);
 
+  // Découverte : réglages de partie par défaut (pas de partie, donc pas de réglage MJ).
+  const { beforePresent: boardFocusBeforePresent, restore: restoreBoardFocus } = useGLBoardFocus({
+    mapGestures,
+  });
+
   const {
     popover: feuilletZonePopover,
     closePopover: closeFeuilletZonePopover,
@@ -105,7 +112,9 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     watchTeamId: DEMO_TEAM_ID,
     presentedZoneIds,
     enabled: !showWall && demoFeuillets.length > 0,
+    moveDelayMs: prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS,
     onZonePresented: handleZonePresented,
+    beforePresent: boardFocusBeforePresent,
   });
 
   const watchPosition = getPositionForTeam(DEMO_TEAM_ID);
@@ -160,6 +169,8 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
       setShowWall(true);
     }
   }, [discoveryZone]);
+
+  useGLBoardFocusRestore(Boolean(feuilletZonePopover || discoveryZone), restoreBoardFocus);
 
   const handleFeuilletPopoverClose = useCallback(() => {
     const zone = feuilletZonePopover?.zone;

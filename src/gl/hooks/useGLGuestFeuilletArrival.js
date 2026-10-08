@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { findZoneTriggeredOnMoveGeneric } from '../utils/glMapZoneDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
+import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
 function presentationKey(teamId, zoneId) {
   return `${Number(teamId)}:${String(zoneId)}`;
@@ -22,6 +23,7 @@ export function useGLGuestFeuilletArrival({
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
   onZonePresented,
+  beforePresent = null,
 }) {
   const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [popover, setPopover] = useState(null);
@@ -45,13 +47,14 @@ export function useGLGuestFeuilletArrival({
   }, []);
 
   const presentFeuilletZone = useCallback(
-    (zone, teamId) => {
+    async (zone, teamId) => {
       if (!zone?.zoneId || teamId == null) return;
       const dedupeKey = presentationKey(teamId, zone.zoneId);
       if (wasRecentPresentation(dedupeKey)) return;
       markRecentPresentation(dedupeKey);
 
       markPresentedLocal(zone.zoneId);
+      if (beforePresent) await awaitBeforePresent(beforePresent, zone);
       setPopover({
         zone,
         teamId,
@@ -65,7 +68,13 @@ export function useGLGuestFeuilletArrival({
       });
       onZonePresented?.(zone);
     },
-    [markPresentedLocal, onZonePresented, wasRecentPresentation, markRecentPresentation],
+    [
+      markPresentedLocal,
+      onZonePresented,
+      wasRecentPresentation,
+      markRecentPresentation,
+      beforePresent,
+    ],
   );
 
   const resolveZoneOnMove = useCallback(

@@ -22,8 +22,11 @@ familles.
   l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
-  ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
-  sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis la carte
+  fait un **zoom bref et fluide** sur le lieu, et **ensuite seulement** sa fiche s'ouvre.
+  Refermer la fiche ramène doucement le plan au **zoom et au centrage d'avant** (réglable :
+  _Réglages → Zoom sur le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif
+  pendant un parcours). Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
   travail et le Plan Lyautey : la vue reste **centrée sur votre position** et un peu

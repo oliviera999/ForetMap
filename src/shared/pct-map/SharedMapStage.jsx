@@ -176,6 +176,11 @@ export function SharedMapStage({
   onBackgroundClick = null,
   /** Vue restituée au montage (retour d'un mode d'édition) au lieu de la carte entière. */
   initialView = null,
+  /**
+   * Centrer la carte sur le lieu sélectionné. À `false` quand le produit cadre lui-même le lieu
+   * avant d'ouvrir sa fiche (`usePlaceFocusSequence`) : sinon la carte bougerait deux fois.
+   */
+  autoFocusSelected = true,
 }) {
   const imageSrc = String(map?.map_image_url || '');
   const headingUpEffectiveRef = useRef(headingUpEffective);
@@ -233,6 +238,8 @@ export function SharedMapStage({
     fitMapAnimated,
     zoomBy,
     focusOnPct,
+    flyToPctBounds,
+    restoreViewAnimated,
     followPct,
     consumeSkipClick,
     toImagePct,
@@ -273,6 +280,8 @@ export function SharedMapStage({
       fitRect,
       committed,
       focusOnPct,
+      flyToPctBounds,
+      restoreViewAnimated,
       consumeSkipClick,
       toImagePct,
       fitMap,
@@ -288,6 +297,8 @@ export function SharedMapStage({
     fitRect,
     committed,
     focusOnPct,
+    flyToPctBounds,
+    restoreViewAnimated,
     consumeSkipClick,
     toImagePct,
     fitMap,
@@ -605,12 +616,17 @@ export function SharedMapStage({
       lastFocusedRef.current = key;
       return;
     }
+    if (!autoFocusSelected) {
+      lastFocusedRef.current = key;
+      return;
+    }
     const pct = typeof focusPlacePct === 'function' ? focusPlacePct(selectedPlace) : null;
     if (!pct) return;
     lastFocusedRef.current = key;
     focusOnPct(pct, { insets: focusInsets });
   }, [
     selectedPlace,
+    autoFocusSelected,
     focusOnPct,
     focusInsets,
     focusInsetsKey,

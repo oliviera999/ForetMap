@@ -205,6 +205,40 @@ test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async (
   invalidateGameplayCache();
 });
 
+test('PUT gameplay.board_focus_* persiste et est lu par /gameplay-settings', async () => {
+  const before = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(before.body.settings.boardFocusEnabled, true);
+  assert.strictEqual(before.body.settings.boardFocusDurationMs, 350);
+  assert.strictEqual(before.body.settings.boardFocusRestoreOnClose, true);
+
+  const put = (key, value) =>
+    request(app)
+      .put(`/api/gl/admin/settings/${key}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ value });
+  await put('gameplay.board_focus_enabled', false).expect(200);
+  await put('gameplay.board_focus_duration_ms', 500).expect(200);
+  await put('gameplay.board_focus_restore_on_close', false).expect(200);
+  await put('gameplay.board_focus_duration_ms', 2000).expect(400);
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(res.body.settings.boardFocusEnabled, false);
+  assert.strictEqual(res.body.settings.boardFocusDurationMs, 500);
+  assert.strictEqual(res.body.settings.boardFocusRestoreOnClose, false);
+
+  await put('gameplay.board_focus_enabled', true).expect(200);
+  await put('gameplay.board_focus_duration_ms', 350).expect(200);
+  await put('gameplay.board_focus_restore_on_close', true).expect(200);
+  invalidateGameplayCache();
+});
+
 test('PUT ui.map.plateau_marker_size_percent via admin GL persiste dans app_settings', async () => {
   await request(app)
     .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')

@@ -55,6 +55,9 @@ import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js'
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
 import { buildStageRoute } from '../shared/map-routes/mapRouteSteps.js';
 import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
+import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
+import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { computeSnapHeights } from '../shared/ui/bottomSheetSnap.js';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
 /**
@@ -545,6 +548,33 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
 
   activeRouteSlugRef.current = activeRouteSlug;
 
+  /**
+   * Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant à la fermeture
+   * (`ui.place_focus.*`). Pendant un parcours, la caméra guidée garde la main.
+   */
+  const placeFocusSettings = useMemo(
+    () => resolvePlaceFocusSettings(settings?.place_focus),
+    [settings],
+  );
+  const planViewportApiRef = useRef({});
+  const onPlanViewportChange = useCallback((api) => {
+    planViewportApiRef.current = api || {};
+  }, []);
+  const getPlanViewport = useCallback(() => planViewportApiRef.current, []);
+  const planPlaceFocusActive = placeFocusSettings.planEnabled && !activeRoute;
+  const placeFocus = usePlaceFocusSequence({
+    getViewport: getPlanViewport,
+    enabled: planPlaceFocusActive,
+    durationMs: placeFocusSettings.durationMs,
+    maxZoom: placeFocusSettings.maxZoom,
+    restoreOnClose: placeFocusSettings.restoreOnClose,
+    resetKey: mapId,
+  });
+  /** Le lien direct `?lieu=` a cadré un lieu sans vue d'avant : fermer revient au plan entier. */
+  const deepLinkFocusedRef = useRef(false);
+  /** Marges de recadrage courantes (barres basses), calculées plus bas. */
+  const mapFocusInsetsRef = useRef(null);
+
   const openPlace = useCallback(
     (place) => {
       // Pendant un parcours, l'étape courante garde la sélection : le lieu consulté passe par
@@ -557,7 +587,6 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         reportPlanUsage('place_open', String(place?.id || ''), variant);
         return;
       }
-      setSelectedPlace(place);
       setResultsOpen(false);
       setGroupPlaces(null);
       setInnovationsOpen(false);
@@ -565,8 +594,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       if (typeof window !== 'undefined' && window.history?.replaceState) {
         window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
       }
+      // La fiche s'ouvre à mi-hauteur : le lieu est cadré dans la bande qui restera visible.
+      const halfSheetPx =
+        typeof window !== 'undefined'
+          ? computeSnapHeights({ viewportHeight: window.innerHeight || 0 }).half || 0
+          : 0;
+      const bottom = Math.max(Math.round(halfSheetPx), mapFocusInsetsRef.current?.bottom || 0);
+      placeFocus.focusThenOpen(place, () => setSelectedPlace(place), {
+        insets: bottom > 0 ? { bottom } : null,
+      });
     },
-    [setRoutePeekPlace, variant],
+    [setRoutePeekPlace, variant, placeFocus],
   );
 
   /**
@@ -581,7 +619,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
     }
-  }, []);
+    if (placeFocus.hasSnapshot()) {
+      placeFocus.restore();
+    } else if (
+      deepLinkFocusedRef.current &&
+      planPlaceFocusActive &&
+      placeFocusSettings.restoreOnClose
+    ) {
+      planViewportApiRef.current.fitMapAnimated?.();
+    }
+    deepLinkFocusedRef.current = false;
+  }, [placeFocus, planPlaceFocusActive, placeFocusSettings.restoreOnClose]);
 
   /**
    * Réaffirme `?lieu=` après un retour d'historique.
@@ -638,8 +686,22 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     );
     if (!wanted) return;
     const found = places.find((place) => String(place.id) === wanted);
-    if (found) setSelectedPlace(found);
-  }, [places]);
+    if (!found) return;
+    setSelectedPlace(found);
+    // Le cadrage automatique est coupé quand le zoom sur le lieu est actif : c'est donc ici
+    // qu'on centre le lieu, une fois le plan mesuré (première charge).
+    if (planPlaceFocusActive) {
+      deepLinkFocusedRef.current = true;
+      const pct = planPlaceFocusPct(found, parsePctPolygonPoints);
+      if (pct) {
+        setTimeout(() => {
+          planViewportApiRef.current.focusOnPct?.(pct, {
+            insets: mapFocusInsetsRef.current,
+          });
+        }, 250);
+      }
+    }
+  }, [places, planPlaceFocusActive]);
 
   // Recherche : compteur d'usage (mots tapés) + recherche vide (mots manquants au plan).
   const searchReportedRef = useRef('');
@@ -737,9 +799,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     (place) => {
       reportPlanUsage('go', String(place.id), variant);
       if (!position.active) position.toggle();
+      // « Y aller » : la carte reste sur le lieu visé, pas sur la vue d'avant le zoom.
+      placeFocus.forget();
+      deepLinkFocusedRef.current = false;
       if (!activeRouteSlugRef.current) closePlace();
     },
-    [position, closePlace, variant],
+    [position, closePlace, variant, placeFocus],
   );
   const onGuidanceStop = useCallback(() => {
     reportPlanUsage('go_stop', '', variant);
@@ -825,6 +890,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     const bottom = Math.max(bars, Math.round(sheetInsetPx) || 0);
     return bottom > 0 ? { bottom } : null;
   }, [activeRoute, guidedPlace, sheetInsetPx, routeBarHeight]);
+  mapFocusInsetsRef.current = mapFocusInsets;
 
   /**
    * Distance à vol d'oiseau d'un lieu quelconque, formatée — pour la liste de résultats
@@ -1169,6 +1235,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             /* Le lieu visé reste mis en avant même fiche refermée : pendant le guidage, la
                carte doit montrer *où l'on va*, pas seulement d'où part le trait (B4). */
             selectedPlace={routePeekPlace || selectedPlace || guidedPlace}
+            autoFocusSelected={!planPlaceFocusActive}
+            onViewportChange={onPlanViewportChange}
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
             labelsClickable

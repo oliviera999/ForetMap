@@ -24,6 +24,7 @@ import { useTabBrowserHistory } from '../shared/platform/useTabBrowserHistory.js
 import { computePlayerVitality, findPlayerMascotId } from './utils/glGameplayRules.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
+import { resolveBoardFocusSettings } from './utils/glBoardFocus.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { AppStatusSticky } from '../shared/components/AppStatusSticky.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
@@ -275,6 +276,10 @@ export function AppGL() {
       ...markerBackgroundStyleFromSettings(gameplaySettings),
     }),
     [glBrandStyle, gameplaySettings],
+  );
+  const boardFocusSettings = useMemo(
+    () => resolveBoardFocusSettings(gameplaySettings),
+    [gameplaySettings],
   );
 
   const chapterBiomeSlugs = useMemo(() => {
@@ -949,6 +954,7 @@ export function AppGL() {
                         showPlateauMarkers={plateauMapVisibility.markersVisible}
                         showPlateauZones={plateauMapVisibility.zonesVisible}
                         showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
+                        boardFocus={boardFocusSettings}
                         roster={gameState?.roster || []}
                         vitalityEnabled={!!gameplaySettings.vitalityEnabled}
                         vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}
