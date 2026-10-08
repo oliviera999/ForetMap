@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Popovers et modales : une sélection relâchée hors du cadre ne les ferme plus
+
+- Sélectionner du texte à la souris dans un champ (ou dans le contenu) d'un popover puis relâcher le bouton sur le fond fermait la fenêtre : le navigateur envoie alors le `click` à l'ancêtre commun, c'est-à-dire le fond. Un vrai clic sur le fond (appui **et** relâchement dehors) ferme toujours.
+- Garde-fou global unique `src/shared/platform/dragReleaseClickGuard.js` (phase de capture sur `window`, clics clavier non concernés), installé par les cinq points d'entrée (ForetMap, GL, plan, plan personnels, e-nov) : couvre toutes les modales sans les retoucher une à une. Test : `tests-ui/platform/dragReleaseClickGuard.test.jsx`.
+
 ### Ajouté — Effets visuels du zoom sur le lieu (emoji qui s'envole, projecteur, étincelles GL)
 
 - **Emoji qui s'envole** : pendant le zoom vers une zone ou un repère, une copie de son emoji grossit très vite (4 à 9 fois sa taille à l'écran) en s'effaçant ; au retour, elle fait l'inverse et « atterrit » à sa place quand la vue d'avant est rétablie.

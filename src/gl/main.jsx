@@ -38,7 +38,9 @@ import { ImageLightboxProvider } from '../shared/components/ImageLightboxProvide
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
+import { installDragReleaseClickGuard } from '../shared/platform/dragReleaseClickGuard.js';
 
+installDragReleaseClickGuard();
 document.body.classList.add('gl-body');
 
 // Notice « Vos données » (`/confidentialite`), lisible sans compte (audit RGPD du 30/09/2026, RG1).

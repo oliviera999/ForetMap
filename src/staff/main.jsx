@@ -30,6 +30,9 @@ import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
+import { installDragReleaseClickGuard } from '../shared/platform/dragReleaseClickGuard.js';
+
+installDragReleaseClickGuard();
 
 // Le retour Google dépose le jeton dans `#oauth=` : on le recueille **avant** de monter
 // l'application, pour que le premier appel à `/api/staff-plan/content` parte déjà signé et
