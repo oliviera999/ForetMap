@@ -130,6 +130,26 @@ export const MAP_DISPLAY_TOGGLES = [
     hint: 'La carte reprend son zoom et son centrage d’avant le zoom (défaut : actif).',
     readChecked: readBoardFocusRestoreSetting,
   },
+  {
+    key: 'gameplay.board_focus_fx_emoji',
+    label: 'Effet : l’emoji du lieu s’envole pendant le zoom',
+    hint: 'L’emoji du repère ou de la zone grossit très vite en s’effaçant pendant le zoom, et atterrit au retour (défaut : actif).',
+    readChecked: (settings) => readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_emoji'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_spotlight',
+    label: 'Effet : projecteur sur le lieu',
+    hint: 'Le reste du plateau s’assombrit pendant le zoom et tant que le popover est ouvert (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_spotlight'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_sparkles',
+    label: 'Effet : étincelles à l’arrivée',
+    hint: 'Une couronne d’étincelles dorées jaillit du lieu pendant le zoom (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_sparkles'),
+  },
 ];
 
 /** Toggles gameplay (modes standard puis complet), avec libellé et aide. */

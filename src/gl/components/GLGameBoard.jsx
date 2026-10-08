@@ -13,6 +13,7 @@ import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { MapFullscreenShell } from '../../shared/components/MapFullscreenShell.jsx';
 import { useMapFullscreen } from '../../shared/hooks/useMapFullscreen.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
+import { GLBoardFocusFx } from './GLBoardFocusFx.jsx';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLBoardAmbientBehavior } from '../hooks/useGLBoardAmbientBehavior.js';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
@@ -175,7 +176,11 @@ export function GLGameBoard({
 
   // Mouvement réduit : la mascotte se téléporte, le popover n'attend pas son trajet.
   const arrivalMoveDelayMs = prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS;
-  const { beforePresent: boardFocusBeforePresent, restore: restoreBoardFocus } = useGLBoardFocus({
+  const {
+    beforePresent: boardFocusBeforePresent,
+    restore: restoreBoardFocus,
+    fx: boardFocusFx,
+  } = useGLBoardFocus({
     mapGestures,
     settings: boardFocus,
     resetKey: gameId,
@@ -524,6 +529,8 @@ export function GLGameBoard({
           }
         />
       ) : null}
+
+      {feuilletZoneEditMode ? null : <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />}
 
       {teamList.map((team) => {
         const position = getPositionForTeam(team.id);

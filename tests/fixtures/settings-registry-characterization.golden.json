@@ -968,6 +968,36 @@
       "max": 800,
       "default": 350
     },
+    "ui.place_focus.fx_emoji_plan": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.place_focus.fx_emoji_visit": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.place_focus.fx_emoji_work": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.place_focus.fx_spotlight_plan": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.place_focus.fx_spotlight_visit": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.place_focus.fx_spotlight_work": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
     "ui.place_focus.max_zoom_percent": {
       "scope": "public",
       "type": "number",
@@ -1265,7 +1295,13 @@
           "plan_enabled": true,
           "duration_ms": 350,
           "max_zoom_percent": 400,
-          "restore_on_close": true
+          "restore_on_close": true,
+          "fx_emoji_work": true,
+          "fx_emoji_visit": true,
+          "fx_emoji_plan": true,
+          "fx_spotlight_work": true,
+          "fx_spotlight_visit": true,
+          "fx_spotlight_plan": true
         }
       },
       "content": {
@@ -4231,6 +4267,102 @@
       "updated_by_user_id": null
     },
     {
+      "key": "ui.place_focus.fx_emoji_plan",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.place_focus.fx_emoji_visit",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.place_focus.fx_emoji_work",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.place_focus.fx_spotlight_plan",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.place_focus.fx_spotlight_visit",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.place_focus.fx_spotlight_work",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "ui.place_focus.max_zoom_percent",
       "scope": "public",
       "type": "number",
@@ -5075,7 +5207,13 @@
           "plan_enabled": true,
           "duration_ms": 350,
           "max_zoom_percent": 400,
-          "restore_on_close": true
+          "restore_on_close": true,
+          "fx_emoji_work": true,
+          "fx_emoji_visit": true,
+          "fx_emoji_plan": true,
+          "fx_spotlight_work": true,
+          "fx_spotlight_visit": true,
+          "fx_spotlight_plan": true
         }
       },
       "content": {

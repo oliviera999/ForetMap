@@ -59,8 +59,18 @@ termine d'abord son trajet, puis le plateau fait un **zoom bref et fluide** sur 
 sur toute la zone, et **ensuite seulement** le popover s'ouvre. Quand le dernier popover
 d'arrivée est refermé, le plateau revient au **zoom et au centrage d'avant**. Le MJ/admin
 règle ce comportement dans _Réglages plateforme → Gameplay → Affichage carte plateau_ : l'activer ou non,
-revenir ou non à la vue d'avant, et la durée du zoom (0,35 s par défaut). Le mode Découverte
-des invités suit le comportement par défaut.
+revenir ou non à la vue d'avant, et la durée du zoom (0,35 s par défaut). Trois **effets**
+accompagnent ce zoom, chacun désactivable au même endroit (tous actifs par défaut) :
+
+- **l'emoji qui s'envole** : l'emoji du repère grossit très vite en s'effaçant pendant le
+  zoom, et revient se poser à sa place au retour (seuls les repères affichés en emoji en ont
+  un) ;
+- **le projecteur** : le reste du plateau s'assombrit, seul le lieu reste éclairé, tant que le
+  popover est ouvert ;
+- **les étincelles** : une couronne d'étincelles dorées jaillit du lieu pendant le zoom.
+
+Le mode Découverte des invités suit le comportement par défaut (effets compris). Avec
+« réduire les animations », ni zoom animé ni effet.
 
 > ⚠️ **Points d'attention**
 >

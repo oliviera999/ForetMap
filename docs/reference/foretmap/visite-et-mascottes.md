@@ -24,7 +24,9 @@ familles.
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
   ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis la carte
   fait un **zoom bref et fluide** sur le lieu, et **ensuite seulement** sa fiche s'ouvre.
-  Refermer la fiche ramène doucement le plan au **zoom et au centrage d'avant** (réglable :
+  Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur »).
+  Refermer la fiche ramène doucement le plan au **zoom et au centrage d'avant**, et l'emoji
+  revient se poser à sa place (effets et comportement réglables :
   _Réglages → Zoom sur le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif
   pendant un parcours). Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point

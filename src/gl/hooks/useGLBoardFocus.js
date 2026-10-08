@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import { usePlaceFocusSequence } from '../../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../../shared/pct-map/usePlaceFocusFx.js';
 import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
 
 /**
@@ -11,21 +12,27 @@ import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
  * popover. Une séquence rendue caduque (nouvelle arrivée) laisse sa promesse en suspens : la
  * présentation la plus récente l'emporte.
  *
+ * `fx` est l'état des effets du zoom (emoji, projecteur, étincelles), à rendre par
+ * `PctPlaceFocusFx` dans le calque du plateau.
+ *
  * @param {object} options
  * @param {object} options.mapGestures moteur du plateau (`useGlPctMapGestures`)
- * @param {{ enabled?: boolean, durationMs?: number, restoreOnClose?: boolean }} [options.settings]
+ * @param {{ enabled?: boolean, durationMs?: number, restoreOnClose?: boolean,
+ *   fx?: { emoji?: boolean, spotlight?: boolean, sparkles?: boolean } }} [options.settings]
  * @param {string|number} [options.resetKey] changement de plateau : la vue mémorisée est oubliée.
  */
 export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, resetKey = '' }) {
   const gesturesRef = useRef(mapGestures);
   gesturesRef.current = mapGestures;
   const getViewport = useCallback(() => gesturesRef.current || null, []);
+  const placeFx = usePlaceFocusFx(settings?.fx ?? BOARD_FOCUS_DEFAULTS.fx);
   const focus = usePlaceFocusSequence({
     getViewport,
     enabled: settings?.enabled !== false,
     durationMs: settings?.durationMs ?? BOARD_FOCUS_DEFAULTS.durationMs,
     restoreOnClose: settings?.restoreOnClose !== false,
     resetKey: String(resetKey ?? ''),
+    onFx: placeFx.onFx,
   });
 
   const beforePresent = useCallback(
@@ -33,7 +40,7 @@ export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, 
     [focus],
   );
 
-  return { beforePresent, restore: focus.restore, forget: focus.forget };
+  return { beforePresent, restore: focus.restore, forget: focus.forget, fx: placeFx.fx };
 }
 
 /**

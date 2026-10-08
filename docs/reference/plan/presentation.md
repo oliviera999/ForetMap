@@ -76,7 +76,9 @@ du lycée apparaît aussi discrètement en bas à gauche du plan.
    centrage d'avant** ; après un lien direct, il revient au plan entier. « Y aller » laisse
    le plan sur le lieu, et pendant un parcours la caméra du parcours garde la main. Le
    comportement se règle dans l'administration ForetMap (_Réglages → Zoom sur le lieu avant
-   sa fiche_ : interrupteur « plans », durée, zoom maximal, retour à la vue d'avant). Elle s'ouvre à
+   sa fiche_ : interrupteur « plans », durée, zoom maximal, retour à la vue d'avant, et deux
+   effets : l'emoji du lieu qui s'envole pendant le zoom puis revient se poser au retour, et
+   le « projecteur » qui assombrit le reste du plan). Elle s'ouvre à
    **mi-hauteur**, assez haut pour qu'on lise l'essentiel sans rien faire ; on la fait
    glisser vers le haut pour tout lire, vers le bas pour la réduire puis la refermer.
    **Le plan reste vivant derrière elle** : on peut le déplacer et le zoomer sans fermer la

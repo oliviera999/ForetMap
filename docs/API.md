@@ -340,6 +340,9 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | `gameplay.board_focus_enabled`          | boolean | `true` | `boardFocusEnabled`        | Zoom bref sur le lieu d'arrivée avant le popover         |
 | `gameplay.board_focus_duration_ms`      | number  | `350`  | `boardFocusDurationMs`     | Durée du zoom et du retour (entier 150 → 800, sinon HTTP 400) |
 | `gameplay.board_focus_restore_on_close` | boolean | `true` | `boardFocusRestoreOnClose` | Retour au zoom et au centrage d'avant à la fermeture     |
+| `gameplay.board_focus_fx_emoji`         | boolean | `true` | `boardFocusFxEmoji`        | Effet : l'emoji du repère s'envole au zoom, atterrit au retour |
+| `gameplay.board_focus_fx_spotlight`     | boolean | `true` | `boardFocusFxSpotlight`    | Effet : reste du plateau assombri pendant le zoom et le popover |
+| `gameplay.board_focus_fx_sparkles`      | boolean | `true` | `boardFocusFxSparkles`     | Effet : couronne d'étincelles dorées pendant le zoom     |
 
 Le mode Découverte invité applique les défauts. Mouvement réduit : zoom instantané et popover sans attendre le trajet de la mascotte.
 
@@ -1463,6 +1466,15 @@ Côté ForêtMap, `GET /api/settings/public` les sert sous `ui.place_focus` (rep
 | `ui.place_focus.duration_ms`      | number  | `350`  | Durée du zoom et du retour, en ms (150 → 800)                       |
 | `ui.place_focus.max_zoom_percent` | number  | `400`  | Zoom maximal du cadrage, en % de la carte entière (150 → 800)       |
 | `ui.place_focus.restore_on_close` | boolean | `true` | Retour au zoom et au centrage d'avant à la fermeture de la fiche    |
+| `ui.place_focus.fx_emoji_work`     | boolean | `true` | Carte de travail : l'emoji du lieu s'envole au zoom, atterrit au retour |
+| `ui.place_focus.fx_emoji_visit`    | boolean | `true` | Idem, Visite                                                        |
+| `ui.place_focus.fx_emoji_plan`     | boolean | `true` | Idem, plans                                                         |
+| `ui.place_focus.fx_spotlight_work` | boolean | `true` | Carte de travail : « projecteur » (reste de la carte assombri pendant le zoom et tant que la fiche est ouverte) |
+| `ui.place_focus.fx_spotlight_visit`| boolean | `true` | Idem, Visite                                                        |
+| `ui.place_focus.fx_spotlight_plan` | boolean | `true` | Idem, plans                                                         |
+
+Les effets ne jouent que lorsque le vol est réellement animé : jamais avec « réduire les
+animations », ni quand la vue est déjà sur le lieu.
 
 | Clé                                   | Type    | Défaut  | Effet                                                         |
 | ------------------------------------- | ------- | ------- | ------------------------------------------------------------- |

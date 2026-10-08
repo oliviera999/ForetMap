@@ -10,6 +10,7 @@ import { useGLBoardFocus, useGLBoardFocusRestore } from '../hooks/useGLBoardFocu
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
+import { GLBoardFocusFx } from './GLBoardFocusFx.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
@@ -99,7 +100,11 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   }, []);
 
   // Découverte : réglages de partie par défaut (pas de partie, donc pas de réglage MJ).
-  const { beforePresent: boardFocusBeforePresent, restore: restoreBoardFocus } = useGLBoardFocus({
+  const {
+    beforePresent: boardFocusBeforePresent,
+    restore: restoreBoardFocus,
+    fx: boardFocusFx,
+  } = useGLBoardFocus({
     mapGestures,
   });
 
@@ -203,6 +208,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
             presentedZoneIds={presentedZoneIds}
             watchPosition={watchPosition}
           />
+          <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />
           <GLBoardMascot
             team={DEMO_TEAM}
             position={watchPosition}

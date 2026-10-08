@@ -239,6 +239,39 @@ test('PUT gameplay.board_focus_* persiste et est lu par /gameplay-settings', asy
   invalidateGameplayCache();
 });
 
+test('PUT gameplay.board_focus_fx_* (effets du zoom) persiste et est lu par /gameplay-settings', async () => {
+  const read = async () =>
+    (
+      await request(app)
+        .get('/api/gl/gameplay-settings')
+        .set('Authorization', `Bearer ${playerToken}`)
+        .expect(200)
+    ).body.settings;
+  const before = await read();
+  assert.strictEqual(before.boardFocusFxEmoji, true);
+  assert.strictEqual(before.boardFocusFxSpotlight, true);
+  assert.strictEqual(before.boardFocusFxSparkles, true);
+
+  const put = (key, value) =>
+    request(app)
+      .put(`/api/gl/admin/settings/${key}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ value });
+  await put('gameplay.board_focus_fx_emoji', false).expect(200);
+  await put('gameplay.board_focus_fx_sparkles', false).expect(200);
+  await put('gameplay.board_focus_fx_spotlight', 'non').expect(400);
+  invalidateGameplayCache();
+
+  const after = await read();
+  assert.strictEqual(after.boardFocusFxEmoji, false);
+  assert.strictEqual(after.boardFocusFxSpotlight, true);
+  assert.strictEqual(after.boardFocusFxSparkles, false);
+
+  await put('gameplay.board_focus_fx_emoji', true).expect(200);
+  await put('gameplay.board_focus_fx_sparkles', true).expect(200);
+  invalidateGameplayCache();
+});
+
 test('PUT ui.map.plateau_marker_size_percent via admin GL persiste dans app_settings', async () => {
   await request(app)
     .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')

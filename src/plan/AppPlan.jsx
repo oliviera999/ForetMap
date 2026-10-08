@@ -57,6 +57,7 @@ import { buildStageRoute } from '../shared/map-routes/mapRouteSteps.js';
 import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
 import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { computeSnapHeights } from '../shared/ui/bottomSheetSnap.js';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
@@ -562,6 +563,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   }, []);
   const getPlanViewport = useCallback(() => planViewportApiRef.current, []);
   const planPlaceFocusActive = placeFocusSettings.planEnabled && !activeRoute;
+  const planPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.plan);
   const placeFocus = usePlaceFocusSequence({
     getViewport: getPlanViewport,
     enabled: planPlaceFocusActive,
@@ -569,6 +571,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     maxZoom: placeFocusSettings.maxZoom,
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: mapId,
+    onFx: planPlaceFx.onFx,
   });
   /** Le lien direct `?lieu=` a cadré un lieu sans vue d'avant : fermer revient au plan entier. */
   const deepLinkFocusedRef = useRef(false);
@@ -1236,6 +1239,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
                carte doit montrer *où l'on va*, pas seulement d'où part le trait (B4). */
             selectedPlace={routePeekPlace || selectedPlace || guidedPlace}
             autoFocusSelected={!planPlaceFocusActive}
+            placeFocusFx={planPlaceFx.fx}
             onViewportChange={onPlanViewportChange}
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}

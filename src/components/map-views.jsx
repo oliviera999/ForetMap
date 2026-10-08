@@ -45,6 +45,7 @@ import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { useMapViewBadges } from './map/useMapViewBadges.js';
 import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
 import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
 import { useMapViewHandoff } from './map/useMapViewHandoff.js';
@@ -715,6 +716,7 @@ function MapViewImpl({
   );
   const workPlaceFocusActive = useSharedViewStage && placeFocusSettings.workEnabled && !activeRoute;
   const getWorkViewport = useCallback(() => workViewportApiRef.current, []);
+  const workPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.work);
   const placeFocus = usePlaceFocusSequence({
     getViewport: getWorkViewport,
     enabled: workPlaceFocusActive,
@@ -722,6 +724,7 @@ function MapViewImpl({
     maxZoom: placeFocusSettings.maxZoom,
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: String(activeMapId || ''),
+    onFx: workPlaceFx.onFx,
   });
   const openZoneFocused = useCallback(
     (zone) => placeFocus.focusThenOpen({ ...zone, kind: 'zone' }, () => setSelectedZone(zone)),
@@ -983,6 +986,7 @@ function MapViewImpl({
                 categoriesById={mapCategoriesById}
                 selectedPlace={selectedPlaceForStage}
                 autoFocusSelected={!workPlaceFocusActive}
+                placeFocusFx={workPlaceFx.fx}
                 onSelectPlace={onSelectPlaceFromStage}
                 onOpenGroup={onOpenGroupFromStage}
                 position={mapPosition}

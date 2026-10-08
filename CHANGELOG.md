@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Effets visuels du zoom sur le lieu (emoji qui s'envole, projecteur, étincelles GL)
+
+- **Emoji qui s'envole** : pendant le zoom vers une zone ou un repère, une copie de son emoji grossit très vite (4 à 9 fois sa taille à l'écran) en s'effaçant ; au retour, elle fait l'inverse et « atterrit » à sa place quand la vue d'avant est rétablie.
+- **Projecteur** : le reste de la carte s'assombrit pendant le zoom (voile percé à la forme de la zone, ou en cercle autour du repère), s'allège tant que la fiche est ouverte, disparaît au retour.
+- **Étincelles** (plateaux GL) : couronne d'étincelles dorées qui jaillit du lieu pendant le zoom.
+- Moteur : option `onPlan` de `flyToPctBounds` / `restoreViewAnimated` (annoncée seulement si le vol est réellement animé) ; `usePlaceFocusSequence` émet `onFx` (`in` / `out` / `cancel`). Nouveaux `src/shared/pct-map/placeFocusFxGeometry.js` (échelles caméra compensée, ancre, voile SVG), `usePlaceFocusFx.js`, `PctPlaceFocusFx.jsx` + `placeFocusFx.css` (posé dans le calque « fit » de `SharedMapStage`, prop `placeFocusFx`) ; GL : `GLBoardFocusFx.jsx`, `useGLBoardFocus` expose `fx`. Aucun effet en mouvement réduit.
+- **Réglages par surface** : ForetMap `ui.place_focus.fx_emoji_work|visit|plan` et `fx_spotlight_work|visit|plan` (_Réglages → Zoom sur le lieu avant sa fiche_) ; GL `gameplay.board_focus_fx_emoji`, `board_focus_fx_spotlight`, `board_focus_fx_sparkles` (_Affichage carte plateau_, exposés `boardFocusFx*`). Tous actifs par défaut.
+- Tests : `tests/place-focus.test.js`, `tests/gl-settings-registry.test.js`, `tests/gl-settings.test.js`, fixture golden, `tests-ui/shared/usePlaceFocusSequence.test.jsx`, nouveau `tests-ui/shared/PctPlaceFocusFx.test.jsx`. Doc : `docs/reference` (carte et zones, Visite, plans, carte du royaume GL), `docs/API.md`.
+
 ### Ajouté — Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant
 
 - **Séquence commune** à la carte de travail, à la Visite, aux plans et aux plateaux GL : au clic sur une zone ou un repère (ou à l'arrivée d'une équipe en GL), la mascotte arrive d'abord quand la surface en a une, puis la carte fait un **zoom bref et fluide** sur le lieu (zone cadrée en entier avec marge, repère à zoom fixe, plafonnés), et **ensuite seulement** la fiche / le popover s'ouvre ; à la fermeture, retour animé au **zoom et au centrage d'avant**. Enchaîner plusieurs lieux garde la vue d'origine ; un geste pendant le zoom n'empêche pas l'ouverture ; « Y aller » ne restaure pas ; inactif pendant un parcours guidé ; instantané en mouvement réduit.

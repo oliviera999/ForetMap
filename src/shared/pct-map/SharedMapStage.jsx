@@ -32,6 +32,7 @@ import {
   zoneLabelMaxWidthPx,
   zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
+import { PctPlaceFocusFx } from './PctPlaceFocusFx.jsx';
 import { PctPositionLayer } from './PctPositionLayer.jsx';
 import { PctRouteBadges, PctRouteLines } from './PctRouteLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
@@ -108,6 +109,7 @@ const POSITION_ICONS = Object.freeze({
  *   (« Innovation e-nov ») : le halo ne se voit pas au lecteur d'écran.
  * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
  *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
+ * @param {object|null} [props.placeFocusFx] effets du zoom sur le lieu (`usePlaceFocusFx`)
  * @param {import('react').ReactNode} [props.overlaySlot]
  * @param {import('react').ReactNode} [props.chromeSlot]
  * @param {import('react').ReactNode} [props.emptySlot]
@@ -162,6 +164,8 @@ export function SharedMapStage({
   highlightLabel = '',
   splitNameEmoji,
   focusPlacePct,
+  /** Effets du « zoom sur le lieu » (état `usePlaceFocusFx`) ; `null` : aucun. */
+  placeFocusFx = null,
   overlaySlot = null,
   chromeSlot = null,
   emptySlot = null,
@@ -829,6 +833,25 @@ export function SharedMapStage({
     }
     return anchors;
   }, [visibleZones, getZoneStatusDots, zoneLabelSpecs, labelPlacements, labelAspect]);
+  /** Emoji et point d'ancrage d'un lieu, pour les effets du zoom sur le lieu. */
+  const placeFxEmojiOf = useCallback(
+    (place) => {
+      if (place?.kind === 'marker') return place.emoji || '📍';
+      const spec = zoneLabelSpecs.find((s) => s.id === String(place?.id));
+      return spec?.emoji || '';
+    },
+    [zoneLabelSpecs],
+  );
+  const placeFxAnchorOf = useCallback(
+    (place) => {
+      if (place?.kind === 'marker') return null;
+      const id = String(place?.id);
+      const spec = zoneLabelSpecs.find((s) => s.id === id);
+      return labelPlacements.get(id) || spec?.anchor || null;
+    },
+    [zoneLabelSpecs, labelPlacements],
+  );
+
   /** Tap sur l'étiquette d'une zone → même effet qu'un tap sur son polygone (N12). */
   const onZoneLabelClick = useCallback(
     (zoneId) => {
@@ -1100,6 +1123,15 @@ export function SharedMapStage({
               highlightLabel={highlightLabel}
             />
           )}
+          {placeFocusFx ? (
+            <PctPlaceFocusFx
+              fx={placeFocusFx}
+              fitWidth={fitRect.width}
+              fitHeight={fitRect.height}
+              emojiOf={placeFxEmojiOf}
+              anchorOf={placeFxAnchorOf}
+            />
+          ) : null}
           {route ? (
             <PctRouteBadges
               points={routePoints}

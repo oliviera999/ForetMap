@@ -55,11 +55,14 @@ describe('usePlaceFocusSequence', () => {
     const open = vi.fn();
     act(() => result.current.focusThenOpen(zone, open, { insets: { bottom: 100 } }));
     expect(open).not.toHaveBeenCalled();
-    expect(vp.flyToPctBounds).toHaveBeenCalledWith(zone.points, {
-      insets: { bottom: 100 },
-      maxZoom: 3,
-      duration: 200,
-    });
+    expect(vp.flyToPctBounds).toHaveBeenCalledWith(
+      zone.points,
+      expect.objectContaining({
+        insets: { bottom: 100 },
+        maxZoom: 3,
+        duration: 200,
+      }),
+    );
     await act(async () => vp.flights[0].resolve(true));
     expect(open).toHaveBeenCalledTimes(1);
   });
@@ -98,9 +101,10 @@ describe('usePlaceFocusSequence', () => {
     expect(vp.getViewSnapshot).toHaveBeenCalledTimes(1);
     expect(result.current.hasSnapshot()).toBe(true);
     act(() => result.current.restore());
-    expect(vp.restoreViewAnimated).toHaveBeenCalledWith(expect.objectContaining({ n: 1 }), {
-      duration: 300,
-    });
+    expect(vp.restoreViewAnimated).toHaveBeenCalledWith(
+      expect.objectContaining({ n: 1 }),
+      expect.objectContaining({ duration: 300 }),
+    );
     expect(result.current.hasSnapshot()).toBe(false);
   });
 
@@ -170,6 +174,52 @@ describe('usePlaceFocusSequence', () => {
     act(() => second.result.current.focusThenOpen({ kind: 'zone', points: '[]' }, open));
     expect(open).toHaveBeenCalledTimes(2);
     expect(vp.flyToPctBounds).not.toHaveBeenCalled();
+  });
+
+  test('effets : vol aller puis retour annoncés avec le lieu et les échelles', async () => {
+    const vp = fakeViewport();
+    vp.flyToPctBounds.mockImplementation((_pts, opts) => {
+      opts.onPlan?.({ fromScale: 1, toScale: 3, durationMs: 300 });
+      const d = deferred();
+      vp.flights.push(d);
+      return d.promise;
+    });
+    vp.restoreViewAnimated.mockImplementation((_snap, opts) => {
+      opts.onPlan?.({ fromScale: 3, toScale: 1, durationMs: 300 });
+      return Promise.resolve(true);
+    });
+    const onFx = vi.fn();
+    const { result } = setup(vp, { onFx });
+    act(() => result.current.focusThenOpen(zone, () => {}));
+    expect(onFx).toHaveBeenLastCalledWith({
+      type: 'in',
+      place: zone,
+      fromScale: 1,
+      toScale: 3,
+      durationMs: 300,
+    });
+    await act(async () => vp.flights[0].resolve(true));
+    act(() => result.current.restore());
+    expect(onFx).toHaveBeenLastCalledWith({
+      type: 'out',
+      place: zone,
+      fromScale: 3,
+      toScale: 1,
+      durationMs: 300,
+    });
+  });
+
+  test('effets : retour sans animation ou « Y aller » éteignent les effets', async () => {
+    const vp = fakeViewport();
+    const onFx = vi.fn();
+    const { result } = setup(vp, { onFx });
+    act(() => result.current.focusThenOpen(zone, () => {}));
+    await act(async () => vp.flights[0].resolve(true));
+    act(() => result.current.restore());
+    expect(onFx).toHaveBeenLastCalledWith({ type: 'cancel' });
+    onFx.mockClear();
+    act(() => result.current.forget());
+    expect(onFx).toHaveBeenCalledWith({ type: 'cancel' });
   });
 });
 

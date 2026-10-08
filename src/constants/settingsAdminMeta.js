@@ -597,6 +597,36 @@ export const KEY_META = {
     section: 'place_focus',
     order: 60,
   },
+  'ui.place_focus.fx_emoji_work': {
+    label: 'Carte de travail : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 70,
+  },
+  'ui.place_focus.fx_spotlight_work': {
+    label: 'Carte de travail : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 75,
+  },
+  'ui.place_focus.fx_emoji_visit': {
+    label: 'Visite : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 80,
+  },
+  'ui.place_focus.fx_spotlight_visit': {
+    label: 'Visite : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 85,
+  },
+  'ui.place_focus.fx_emoji_plan': {
+    label: 'Plans : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 90,
+  },
+  'ui.place_focus.fx_spotlight_plan': {
+    label: 'Plans : assombrir le reste du plan pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 95,
+  },
   'privacy.external_assets_mode': {
     label:
       'Polices et images de sites tiers. En mode local, rien n’est demandé à Google ni à Wikimedia depuis le navigateur des élèves.',

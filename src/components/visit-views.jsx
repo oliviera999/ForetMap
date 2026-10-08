@@ -54,6 +54,7 @@ import {
 import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
 import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -624,6 +625,7 @@ function VisitViewImpl({
   );
   const getVisitViewport = useCallback(() => visitViewportApiRef.current, []);
   const visitPlaceFocusActive = placeFocusSettings.visitEnabled && mode === 'view' && !activeRoute;
+  const visitPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.visit);
   const placeFocus = usePlaceFocusSequence({
     getViewport: getVisitViewport,
     enabled: visitPlaceFocusActive,
@@ -631,6 +633,7 @@ function VisitViewImpl({
     maxZoom: placeFocusSettings.maxZoom,
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: String(mapId || ''),
+    onFx: visitPlaceFx.onFx,
   });
   /** Bords recouverts (barre de guidage) : lus à l'ouverture, calculés plus bas. */
   const visitMapFocusInsetsRef = useRef(null);
@@ -1179,6 +1182,7 @@ function VisitViewImpl({
                     selected && selectedType ? { ...selected, kind: selectedType } : null
                   }
                   autoFocusSelected={!visitPlaceFocusActive}
+                  placeFocusFx={visitPlaceFx.fx}
                   onSelectPlace={onSelectPlaceFromStage}
                   seen={showVisitSeenStatus ? seen : null}
                   position={visitPosition}

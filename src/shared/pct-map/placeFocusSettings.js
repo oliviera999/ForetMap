@@ -13,6 +13,12 @@ export const PLACE_FOCUS_SETTINGS_DEFAULTS = Object.freeze({
   /** Zoom maximal, en multiple de la carte entière. */
   maxZoom: 4,
   restoreOnClose: true,
+  /** Effets visuels par surface : emoji qui s'envole / atterrit, projecteur. */
+  fx: Object.freeze({
+    work: Object.freeze({ emoji: true, spotlight: true }),
+    visit: Object.freeze({ emoji: true, spotlight: true }),
+    plan: Object.freeze({ emoji: true, spotlight: true }),
+  }),
 });
 
 function readBool(value, fallback) {
@@ -43,5 +49,18 @@ export function resolvePlaceFocusSettings(raw) {
     durationMs: readNumber(src.duration_ms, d.durationMs, 150, 800),
     maxZoom: readNumber(src.max_zoom_percent, d.maxZoom * 100, 150, 800) / 100,
     restoreOnClose: readBool(src.restore_on_close, d.restoreOnClose),
+    fx: {
+      work: readFx(src, 'work'),
+      visit: readFx(src, 'visit'),
+      plan: readFx(src, 'plan'),
+    },
+  };
+}
+
+function readFx(src, surface) {
+  const d = PLACE_FOCUS_SETTINGS_DEFAULTS.fx[surface];
+  return {
+    emoji: readBool(src[`fx_emoji_${surface}`], d.emoji),
+    spotlight: readBool(src[`fx_spotlight_${surface}`], d.spotlight),
   };
 }

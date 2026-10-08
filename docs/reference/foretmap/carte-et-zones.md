@@ -383,12 +383,21 @@ carte, à la Visite et aux plans) :
 - **Zoom maximal** (en % de la carte entière, 400 % par défaut) : une petite zone ou un
   repère ne grossissent pas au-delà ;
 - **Revenir à la vue d'avant à la fermeture** (actif par défaut) — désactivé, la carte reste
-  sur le lieu après la fermeture de la fiche.
+  sur le lieu après la fermeture de la fiche ;
+- deux **effets visuels**, réglables **par surface** (carte de travail, Visite, plans ; tous
+  actifs par défaut) :
+  - **l'emoji qui s'envole** : pendant le zoom, l'emoji de la zone ou du repère grossit très
+    vite en s'effaçant, comme s'il passait devant les yeux ; au retour, il fait l'inverse et
+    « atterrit » à sa place au moment où la carte retrouve sa vue d'avant. Une zone sans emoji
+    n'a pas cet effet ;
+  - **le projecteur** : pendant le zoom, le reste de la carte s'assombrit et seul le lieu
+    reste éclairé (la forme de la zone, ou un cercle autour du repère) ; le voile s'allège
+    tant que la fiche est ouverte et disparaît au retour.
 
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
->   et le retour sont instantanés.
+>   et le retour sont instantanés, et aucun effet visuel ne s'affiche.
 > - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
 >   visé, c'est là que le guidage commence.
 > - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la
