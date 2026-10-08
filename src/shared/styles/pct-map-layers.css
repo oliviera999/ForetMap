@@ -28,9 +28,15 @@
   stroke-width: calc(1.5px * var(--pct-inv, 1));
   vector-effect: non-scaling-stroke;
   transition:
-    fill-opacity 0.18s ease,
-    stroke-opacity 0.18s ease,
-    stroke-width 0.18s ease;
+    fill-opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    stroke-opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    stroke-width var(--motion-fast, 0.16s) var(--ease-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-zone__poly {
+    transition: none;
+  }
 }
 
 /* Fiche ouverte : zone affirmée, voisines estompées (pas de rectangle de focus noir). */
@@ -60,7 +66,7 @@
 
 /* Halo bref « à découvrir » : quelques non-vus proches du centre, une seule fois. */
 .fm-pct-zone.is-discover-halo:not(.is-active) .fm-pct-zone__poly {
-  animation: fmPctDiscoverHalo 2.6s ease-out 1 forwards;
+  animation: fmPctDiscoverHalo var(--motion-map-discover-halo, 2600ms) ease-out 1 forwards;
 }
 
 @keyframes fmPctDiscoverHalo {
@@ -270,13 +276,62 @@
     rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
   /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
-     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
-     transition, et le zoom reste instantané. */
-  transition: var(--pct-orient-transition, none);
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : le repli
+     `transform 0s` garde le zoom instantané (`none` serait invalide dans une liste). L'opacité
+     suit la sélection d'un lieu. */
+  transition:
+    opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    var(--pct-orient-transition, transform 0s);
 }
 
 .fm-pct-marker.is-seen {
   opacity: 0.42;
+}
+
+/* Lieu ouvert (repère ou zone) : les autres repères s'estompent, comme les zones voisines
+   (`.fm-pct-zones.has-selection`). Les repères sont enfants directs du calque. */
+:has(> .fm-pct-marker.is-active) > .fm-pct-marker:not(.is-active):not(.is-highlight),
+:has(> .fm-pct-zones .fm-pct-zone.is-active) > .fm-pct-marker:not(.is-highlight) {
+  opacity: 0.55;
+}
+
+:has(> .fm-pct-marker.is-active) > .fm-pct-marker.is-seen:not(.is-active),
+:has(> .fm-pct-zones .fm-pct-zone.is-active) > .fm-pct-marker.is-seen {
+  opacity: 0.3;
+}
+
+/* Repère ouvert : pastille de fond qui s'ouvre (transform + opacité, sans repeinte). */
+.fm-pct-marker.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border: 2px solid var(--leaf);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--leaf) 26%, transparent);
+  pointer-events: none;
+  animation: fmPctMarkerActiveIn var(--motion-base, 0.24s) var(--ease-out, ease-out) both;
+}
+
+@keyframes fmPctMarkerActiveIn {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-marker {
+    transition: var(--pct-orient-transition, none);
+  }
+
+  .fm-pct-marker.is-active::after {
+    animation: none;
+  }
 }
 
 .fm-pct-marker.is-unseen {
@@ -284,7 +339,7 @@
 }
 
 .fm-pct-marker.is-discover-halo {
-  animation: fmPctDiscoverMarkerHalo 2.6s ease-out 1 forwards;
+  animation: fmPctDiscoverMarkerHalo var(--motion-map-discover-halo, 2600ms) ease-out 1 forwards;
 }
 
 @keyframes fmPctDiscoverMarkerHalo {
@@ -433,12 +488,15 @@
   height: 22px;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  /* Le repère n'est publié qu'une douzaine de fois par seconde (`useMapPosition`) : la
-     transition relie deux publications sur le compositeur, sans rendu supplémentaire. Elle
-     dure un peu plus que l'intervalle, pour qu'il n'y ait jamais de temps mort. */
-  transition:
-    left 90ms linear,
-    top 90ms linear;
+  /* Le repère est publié toutes les 80 ms (`useMapPosition`) et déplacé par `transform`
+     (`usePctAnchorTransform`) : la transition relie deux publications sur le compositeur,
+     sans recalcul de mise en page. Elle dure un peu plus que l'intervalle, pour qu'il n'y ait
+     jamais de temps mort. */
+  transition: transform var(--motion-map-position, 90ms) linear;
+}
+
+.fm-pct-position.is-settling {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -673,28 +731,40 @@
 }
 
 .fm-pct-route-badge.is-current .fm-pct-route-badge__number {
+  position: relative;
   min-width: 32px;
   height: 32px;
   font-size: var(--text-base);
-  animation: fm-route-badge-pulse 1.8s ease-out infinite;
+}
+
+/* Onde de l'étape courante : un anneau qui grandit et s'efface, animé en `transform` /
+   `opacity` (compositeur) plutôt qu'un `box-shadow` repeint à chaque image. */
+.fm-pct-route-badge.is-current .fm-pct-route-badge__number::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--leaf) 55%, transparent);
+  pointer-events: none;
+  z-index: -1;
+  animation: fm-route-badge-pulse var(--motion-map-pulse, 1.8s) var(--ease-out, ease-out) infinite;
 }
 
 @keyframes fm-route-badge-pulse {
   0% {
-    box-shadow:
-      0 1px 4px rgba(0, 0, 0, 0.35),
-      0 0 0 0 color-mix(in srgb, var(--leaf) 55%, transparent);
+    transform: scale(1);
+    opacity: 1;
   }
   100% {
-    box-shadow:
-      0 1px 4px rgba(0, 0, 0, 0.35),
-      0 0 0 12px transparent;
+    transform: scale(1.75);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fm-pct-route-badge.is-current .fm-pct-route-badge__number {
+  .fm-pct-route-badge.is-current .fm-pct-route-badge__number::after {
     animation: none;
+    opacity: 0;
   }
 }
 

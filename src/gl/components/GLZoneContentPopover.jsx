@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
+import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { createPortal } from 'react-dom';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLButton } from './ui/GLButton.jsx';
@@ -17,15 +18,13 @@ export function GLZoneContentPopover({
   glossaryLinkItems = [],
   themeStyle = null,
 }) {
-  useOverlayHistoryBack(open, onClose);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  const { closing, runExit, onAnimationEnd } = useExitAnimation({
+    animationName: 'fmExitFadeShrink',
+  });
+  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
+  // Échap par la pile des surcouches, focus initial, piège de tabulation, focus rendu au
+  // plateau à la fermeture, retour navigateur.
+  const dialogRef = useDialogA11y(closeAnimated, { active: open });
 
   useBodyScrollLock(open);
 
@@ -36,24 +35,27 @@ export function GLZoneContentPopover({
 
   return createPortal(
     <div
-      className="gl-zone-content-popover-overlay"
+      className={`gl-zone-content-popover-overlay${closing ? ' fm-is-exiting' : ''}`}
       role="presentation"
       style={themeStyle || undefined}
-      onClick={() => onClose?.()}
+      onClick={closeAnimated}
     >
       <div
-        className="gl-zone-content-popover"
+        ref={dialogRef}
+        className={`gl-zone-content-popover${closing ? ' fm-is-exiting' : ''}`}
         role="dialog"
         aria-label={zone?.label ? `Zone : ${zone.label}` : 'Contenu de zone'}
         aria-modal="true"
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
+        onAnimationEnd={onAnimationEnd}
       >
         <header className="gl-zone-content-popover__head">
           <h3>{zone?.label || 'Zone'}</h3>
           <button
             type="button"
             className="gl-zone-content-popover__close"
-            onClick={() => onClose?.()}
+            onClick={closeAnimated}
             aria-label="Fermer"
           >
             ✕
@@ -93,7 +95,7 @@ export function GLZoneContentPopover({
         )}
 
         <footer className="gl-zone-content-popover__foot">
-          <GLButton type="button" variant="secondary" onClick={() => onClose?.()}>
+          <GLButton type="button" variant="secondary" onClick={closeAnimated}>
             Fermer
           </GLButton>
         </footer>

@@ -18,6 +18,8 @@ function Harness({
   prefersReducedMotion = false,
   setSelected = () => {},
   setSelectedType = () => {},
+  openSelection = null,
+  openSelectionInParallel = false,
 }) {
   const visitMapFitRef = useRef({ height: 600 });
   apiRef.current = useVisitMapMascotController({
@@ -30,6 +32,8 @@ function Harness({
     viewportFitHeight: 600,
     setSelected,
     setSelectedType,
+    openSelection,
+    openSelectionInParallel,
   });
   return null;
 }
@@ -133,6 +137,40 @@ describe('useVisitMapMascotController', () => {
     });
     act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS + 10));
     expect(cancelled).not.toHaveBeenCalled();
+  });
+
+  it('scheduleVisitDetailPanelOpen : zoom sur le lieu lancé dès le clic avec openSelectionInParallel', () => {
+    const openSelection = vi.fn();
+    const { apiRef } = renderHarness({ openSelection, openSelectionInParallel: true });
+    const fromPct = { ...apiRef.current.visitMapMascotPctRef.current };
+    const item = { id: 7 };
+    act(() => {
+      apiRef.current.moveVisitMapMascotTo(80, 60);
+      apiRef.current.scheduleVisitDetailPanelOpen(item, 'marker', 80, 60, fromPct);
+    });
+    // La marche continue pendant que la carte zoome sur le lieu.
+    expect(openSelection).toHaveBeenCalledWith(item, 'marker');
+    expect(apiRef.current.visitMapMascotWalking).toBe(true);
+  });
+
+  it('scheduleVisitDetailPanelOpen : sans parallélisme, openSelection attend la fin de la marche', () => {
+    const openSelection = vi.fn();
+    const { apiRef } = renderHarness({ openSelection });
+    const fromPct = { ...apiRef.current.visitMapMascotPctRef.current };
+    act(() => {
+      apiRef.current.moveVisitMapMascotTo(80, 60);
+      apiRef.current.scheduleVisitDetailPanelOpen({ id: 8 }, 'zone', 80, 60, fromPct);
+    });
+    expect(openSelection).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(VISIT_MAP_MASCOT_MOVE_MS));
+    expect(openSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('onMascotSeenCelebration : pas de joie en mouvement réduit, la bulle reste', () => {
+    const { apiRef } = renderHarness({ prefersReducedMotion: true });
+    act(() => apiRef.current.onMascotSeenCelebration());
+    expect(apiRef.current.visitMapMascotHappy).toBe(false);
+    expect(apiRef.current.visitMascotDialogVisible).toBe(true);
   });
 
   it('onMascotSeenCelebration : joie pendant VISIT_MAP_MASCOT_HAPPY_MS + bulle forcée « mark_seen »', () => {

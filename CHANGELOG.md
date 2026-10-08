@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
+
+- Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.
+- **Fermeture animée** (150 ms, fondu + léger rétrécissement) des fiches de lieu, du panneau de Visite et des popovers GL de zone, de QCM et de dés ; hook partagé `useExitAnimation`, immédiat en mouvement réduit.
+- **Visite** : avec le zoom sur le lieu, la carte zoome pendant la marche de la mascotte et la fiche s'ouvre ~0,6 s après le clic ; plus de saut de joie en mouvement réduit.
+- **Repère ouvert** : `aria-current`, pastille sous le repère, autres repères estompés.
+- **Popovers GL** : focus initial, piège et retour du focus, Échap par la pile des surcouches (`useDialogA11y`).
+- **Coût de rendu** : onde de l'étape courante en `transform` / `opacity` (`::after`) ; point GPS et mascottes déplacés par `transform` (hook `usePctAnchorTransform`) au lieu de `left` / `top`.
+- **Durées** : jetons `--motion-exit`, `--motion-map-*`, `--ease-in`, `--ease-map-move` dans `motion.css` ; durée de marche unique (550 ms, `MAP_VIEW_MASCOT_MOVE_MS`, aussi lue par les e2e), joie = trois rebonds (1,26 s), halo « à découvrir » 2,6 s des deux côtés.
+
 ### Corrigé — Animations de carte : audit des parcours et de l'ouverture / fermeture des lieux
 
 - Audit daté `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` (25 constats ANIM-01 à ANIM-25) ; les 9 constats prioritaires sont traités dans ce lot, le reste (coût de rendu, accessibilité, dette) est consigné.

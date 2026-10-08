@@ -46,6 +46,7 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
         highlighted ? ' is-highlight' : ''
       }`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
+      aria-current={isActive ? 'true' : undefined}
       aria-label={`${accessibleName || 'Lieu'}${highlightSuffix}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}
       onClick={handleClick}
     >

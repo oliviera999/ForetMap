@@ -5454,6 +5454,17 @@
       from { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 10px); }
       to { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
     }
+    /* Fermeture (`useExitAnimation`) : même décalage de centrage que l'ouverture. */
+    .visit-detail-panel.fm-is-exiting {
+      animation:visitDetailPanelOut var(--motion-exit) var(--ease-in) forwards;
+    }
+    .visit-detail-panel__scrim.fm-is-exiting {
+      animation:overlayFadeOut var(--motion-exit) var(--ease-in) forwards;
+    }
+    @keyframes visitDetailPanelOut {
+      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(1); }
+      to { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(.96); }
+    }
     .visit-detail-panel__handle {
       display:none;
       height:5px;

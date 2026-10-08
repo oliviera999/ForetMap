@@ -6,11 +6,13 @@
   width: 0;
   height: 0;
   pointer-events: none;
-  transition:
-    left 0.55s cubic-bezier(0.25, 0.8, 0.25, 1),
-    top 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* Déplacement par `transform` en pixels (`usePctAnchorTransform`), sur le compositeur.
+     Durée : `MAP_VIEW_MASCOT_MOVE_MS` côté JS (fin de marche, ouverture de la fiche). */
+  transition: transform var(--motion-map-mascot-move, 550ms)
+    var(--ease-map-move, cubic-bezier(0.25, 0.8, 0.25, 1));
 }
-.visit-map-mascot--reduced-motion {
+.visit-map-mascot--reduced-motion,
+.visit-map-mascot--settling {
   transition: none;
 }
 .visit-map-mascot-inner {
@@ -148,6 +150,7 @@
 .visit-map-mascot--walking .visit-gnome-leg--back {
   animation: visitGnomeLegBackStep 0.36s ease-in-out infinite;
 }
+/* 0,42 s × 3 = `MAP_VIEW_MASCOT_HAPPY_MS` (durée de la classe `--happy` côté JS). */
 .visit-map-mascot--happy .visit-map-mascot-rive-shell,
 .visit-map-mascot--happy .visit-map-mascot-spritesheet-shell {
   animation: visitMascotHappyBounce 0.42s ease-in-out 3;
@@ -186,7 +189,7 @@
   text-align: center;
   box-shadow: 0 6px 14px rgba(26, 71, 49, 0.2);
   padding: 6px 9px;
-  animation: visitMascotDialogPop 0.22s ease-out;
+  animation: visitMascotDialogPop var(--motion-base, 0.24s) var(--ease-out, ease-out);
 }
 .visit-map-mascot-dialog::after {
   content: '';

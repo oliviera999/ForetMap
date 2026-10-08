@@ -1,11 +1,13 @@
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { usePctAnchorTransform } from '../shared/hooks/usePctAnchorTransform.js';
 
 /**
  * Mascotte (présentation) posée sur le plan de visite — extraite de `VisitView`
  * (O6). Affiche la mascotte animée à sa position (en %), orientée gauche/droite,
  * avec ses états visuels (marche / contente / mouvement réduit) et la bulle de
  * dialogue optionnelle. Le calcul de position, des états et du dialogue est
- * délégué au parent. DOM/classes/styles inline/attributs strictement inchangés.
+ * délégué au parent. Le déplacement passe par `transform` (`usePctAnchorTransform`) ; la
+ * position en % reste lisible dans `data-pct-x` / `data-pct-y`.
  *
  * @param {object} props
  * @param {{ xp: number, yp: number }} props.renderPct position d'affichage (en % du plan)
@@ -34,10 +36,14 @@ export function VisitMapMascot({
   onMascotTap,
 }) {
   const tappable = typeof onMascotTap === 'function';
+  const anchor = usePctAnchorTransform(renderPct.xp, renderPct.yp);
   return (
     <div
-      className={`visit-map-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
-      style={{ left: `${renderPct.xp}%`, top: `${renderPct.yp}%` }}
+      ref={anchor.ref}
+      className={`visit-map-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}${anchor.measured && anchor.settling ? ' visit-map-mascot--settling' : ''}`}
+      style={anchor.style}
+      data-pct-x={renderPct.xp}
+      data-pct-y={renderPct.yp}
       aria-hidden="true"
     >
       <div

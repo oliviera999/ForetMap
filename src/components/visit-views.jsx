@@ -616,7 +616,7 @@ function VisitViewImpl({
   const visitMapFitRef = useRef(visitMapFit);
   visitMapFitRef.current = visitMapFit;
 
-  // Zoom sur le lieu avant sa fiche (après l'arrivée de la mascotte), puis retour à la vue
+  // Zoom sur le lieu avant sa fiche (pendant la marche de la mascotte), puis retour à la vue
   // d'avant. Pendant un parcours, la caméra guidée garde la main.
   const placeFocusSettings = useMemo(
     () => resolvePlaceFocusSettings(publicSettings?.place_focus),
@@ -687,6 +687,8 @@ function VisitViewImpl({
     setSelected,
     setSelectedType,
     openSelection: openVisitSelection,
+    // Zoom sur le lieu pendant la marche de la mascotte, pas après.
+    openSelectionInParallel: visitPlaceFocusActive,
   });
 
   const closeVisitSelection = useCallback(() => {

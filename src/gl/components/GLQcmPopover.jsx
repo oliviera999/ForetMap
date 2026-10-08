@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
+import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -55,15 +56,13 @@ export function GLQcmPopover({
     }
   }, [open, questionCode, presentation?.presentationToken]);
 
-  useOverlayHistoryBack(open, onClose);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  const { closing, runExit, onAnimationEnd } = useExitAnimation({
+    animationName: 'fmExitFadeShrink',
+  });
+  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
+  // Échap par la pile des surcouches, focus initial, piège de tabulation, focus rendu au
+  // plateau à la fermeture, retour navigateur.
+  const dialogRef = useDialogA11y(closeAnimated, { active: open });
 
   useBodyScrollLock(open);
 
@@ -134,17 +133,20 @@ export function GLQcmPopover({
 
   return createPortal(
     <div
-      className="gl-qcm-popover-overlay"
+      className={`gl-qcm-popover-overlay${closing ? ' fm-is-exiting' : ''}`}
       role="presentation"
       style={themeStyle || undefined}
-      onClick={() => onClose?.()}
+      onClick={closeAnimated}
     >
       <div
-        className="gl-qcm-popover"
+        ref={dialogRef}
+        className={`gl-qcm-popover${closing ? ' fm-is-exiting' : ''}`}
         role="dialog"
         aria-label="Question"
         aria-modal="true"
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
+        onAnimationEnd={onAnimationEnd}
       >
         <div className="gl-qcm-popover__body">
           <header className="gl-qcm-popover__header">
@@ -231,7 +233,7 @@ export function GLQcmPopover({
                   <GLButton type="button" variant="ghost" onClick={onReshuffle}>
                     Re-mélanger
                   </GLButton>
-                  <GLButton type="button" variant="ghost" onClick={onClose}>
+                  <GLButton type="button" variant="ghost" onClick={closeAnimated}>
                     Fermer
                   </GLButton>
                 </div>
@@ -284,7 +286,7 @@ export function GLQcmPopover({
                       Réessayer
                     </GLButton>
                   ) : null}
-                  <GLButton type="button" onClick={onClose}>
+                  <GLButton type="button" onClick={closeAnimated}>
                     Fermer
                   </GLButton>
                 </div>

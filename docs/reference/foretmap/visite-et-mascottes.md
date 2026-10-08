@@ -22,11 +22,14 @@ familles.
   l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
-  ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis la carte
-  fait un **zoom bref et fluide** sur le lieu, et **ensuite seulement** sa fiche s'ouvre.
+  ⊡ le réajuste. **Cliquer un lieu envoie la mascotte s'y rendre et, en même temps**, la
+  carte fait un **zoom bref et fluide** sur le lieu : sa fiche s'ouvre environ une demi-seconde
+  après le clic, sans attendre la fin de la marche (sans le zoom, la fiche s'ouvre quand la
+  mascotte arrive). Le lieu ouvert est **mis en évidence** (petite pastille sous son repère,
+  autres repères estompés).
   Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur »).
-  Refermer la fiche ramène doucement le plan au **zoom et au centrage d'avant**, et l'emoji
-  revient se poser à sa place (effets et comportement réglables :
+  Refermer la fiche la fait **disparaître en fondu**, ramène doucement le plan au **zoom et au
+  centrage d'avant**, et l'emoji revient se poser à sa place (effets et comportement réglables :
   _Réglages → Zoom sur le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif
   pendant un parcours). Sur téléphone, la fiche occupe tout l'écran : le projecteur, qui reste
   pendant qu'elle est ouverte, y est donc masqué. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
@@ -420,6 +423,10 @@ Format conseillé pour un portrait : **WebP à fond transparent, 256 × 320 px, 
 Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se paie à chaque ouverture.
 
 ## ⚠️ Points d'attention
+
+> ⚠️ **Point d'attention** — Si l'appareil demande de **réduire les animations**, la mascotte
+> se téléporte, la fiche s'ouvre et se referme sans animation, et la mascotte ne saute plus de
+> joie quand on découvre un lieu (sa bulle s'affiche toujours).
 
 > ⚠️ **Point d'attention** — **La mascotte ne suit pas le GPS** : elle se déplace
 > au clic sur le plan (lieu ou point libre). En revanche, si le plan de visite est **calé**, le

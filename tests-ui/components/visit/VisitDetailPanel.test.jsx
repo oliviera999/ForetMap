@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import { VisitDetailPanel } from '../../../src/components/visit/VisitDetailPanel.jsx';
 
@@ -55,26 +55,37 @@ describe('VisitDetailPanel — modalité et accessibilité', () => {
     trigger.remove();
   });
 
-  test('Échap ferme le panneau (via onRequestClose quand il est fourni)', () => {
+  test('Échap ferme le panneau (via onRequestClose quand il est fourni)', async () => {
     const onRequestClose = vi.fn();
     const { props } = setup({ onRequestClose });
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(onRequestClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onRequestClose).toHaveBeenCalledTimes(1));
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
-  test('Échap retombe sur onClose si aucune garde n’est fournie', () => {
+  test('Échap retombe sur onClose si aucune garde n’est fournie', async () => {
     const { props } = setup();
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(props.onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
   });
 
-  test('un voile couvre la carte et la referme au clic', () => {
+  test('un voile couvre la carte et la referme au clic', async () => {
     const { props } = setup();
     const scrim = screen.getByTestId('visit-detail-panel-scrim');
     expect(scrim).toHaveAttribute('aria-hidden', 'true');
     fireEvent.click(scrim);
-    expect(props.onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  test('la fermeture est animée : classe de sortie, puis onClose une seule fois', async () => {
+    const { props } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    expect(screen.getByRole('dialog')).toHaveClass('fm-is-exiting');
+    expect(screen.getByTestId('visit-detail-panel-scrim')).toHaveClass('fm-is-exiting');
+    expect(props.onClose).not.toHaveBeenCalled();
+    // Seconde demande pendant la fermeture : ignorée.
+    fireEvent.click(screen.getByTestId('visit-detail-panel-scrim'));
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
   });
 
   test('le bouton « Aa » porte un nom accessible explicite', () => {

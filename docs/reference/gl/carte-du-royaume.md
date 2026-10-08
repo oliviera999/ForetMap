@@ -73,6 +73,11 @@ Le mode Découverte des invités suit le comportement par défaut (effets compri
 « réduire les animations », ni zoom animé ni effet, et les popovers apparaissent sans
 animation d'entrée.
 
+Les popovers de zone, de QCM et de dés **se referment en fondu** (un bref instant). Ceux de zone
+et de QCM prennent la main au clavier dès leur ouverture et la rendent à l'élément d'origine en
+se fermant ; Échap ferme toujours le popover du dessus. Le popover de dés, lui, laisse le plateau
+utilisable derrière lui. Avec « réduire les animations », la fermeture est immédiate.
+
 Si deux arrivées se chevauchent (une zone qui a à la fois un contenu et un feuillet, par
 exemple), **les deux popovers s'ouvrent** : le plus récent garde le zoom, le précédent
 s'affiche aussitôt, sans attendre.

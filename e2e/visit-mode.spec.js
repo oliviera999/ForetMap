@@ -1,7 +1,9 @@
 const { test, expect } = require('@playwright/test');
 const { loginAsNewStudent, enableTeacherMode, openVisitTab } = require('./fixtures/auth.fixture');
 
-const VISIT_MAP_MASCOT_MOVE_MS = 560;
+const {
+  MAP_VIEW_MASCOT_MOVE_MS: VISIT_MAP_MASCOT_MOVE_MS,
+} = require('./fixtures/mascot-motion.fixture');
 
 /** Clic fiable sur la première zone visite (polygon ou hitbox). */
 async function clickFirstVisitZone(stage) {

@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { loginAsNewStudent, enableTeacherMode } = require('./fixtures/auth.fixture');
+const { readMascotPct } = require('./fixtures/mascot-motion.fixture');
 
 /**
  * Mascotte visible sur les cartes qui servent à gérer les tâches.
@@ -16,13 +17,7 @@ async function expectMascotInsideStage(page) {
   await expect(mascot).toBeAttached({ timeout: 30_000 });
 
   // Position en % : jamais hors du plan (le défaut donnait `top: 7800%`).
-  const topPct = await page
-    .locator('.map-view-forest-mascot')
-    .first()
-    .evaluate((el) => {
-      const m = /^([\d.]+)%$/.exec(String(el.style.top || '').trim());
-      return m ? Number(m[1]) : NaN;
-    });
+  const { yp: topPct } = await readMascotPct(page.locator('.map-view-forest-mascot').first());
   expect(topPct).toBeGreaterThanOrEqual(0);
   expect(topPct).toBeLessThanOrEqual(100);
 

@@ -9,6 +9,16 @@
   --motion-fast: 0.16s;
   --motion-base: 0.24s;
   --motion-slow: 0.34s;
+  /* Animations de carte (Visite, carte de travail, Plan, plateaux GL). Durées fixes : elles
+     sont recopiées côté JS (`EXIT_ANIMATION_MS`, `MAP_VIEW_MASCOT_MOVE_MS`,
+     `DISCOVER_HALO_MS`) et un test vérifie l'égalité. */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-map-move: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --motion-exit: 150ms;
+  --motion-map-mascot-move: 550ms;
+  --motion-map-position: 90ms;
+  --motion-map-pulse: 1.8s;
+  --motion-map-discover-halo: 2600ms;
   /* --font-emoji-stack / --font-sans-with-emoji : définis par produit (src/index.css pour
      ForetMap, gl-base.css pour GL) — plus de troisième copie ici. */
   --attention-pulse-color: rgba(82, 183, 136, 0.45);
@@ -101,6 +111,37 @@
   to {
     opacity: 0;
   }
+}
+
+/* Fermeture des fiches et popovers : fondu + léger rétrécissement (`useExitAnimation`). */
+@keyframes fmExitFadeShrink {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.fm-is-exiting {
+  pointer-events: none;
+}
+
+.log-modal.fm-is-exiting,
+.fm-modal-panel.fm-is-exiting,
+.gl-qcm-popover.fm-is-exiting,
+.gl-zone-content-popover.fm-is-exiting,
+.gl-dice-popover.fm-is-exiting {
+  animation: fmExitFadeShrink var(--motion-exit) var(--ease-in) forwards;
+}
+
+.modal-overlay.fm-is-exiting,
+.fm-modal-overlay.fm-is-exiting,
+.gl-qcm-popover-overlay.fm-is-exiting,
+.gl-zone-content-popover-overlay.fm-is-exiting {
+  animation: overlayFadeOut var(--motion-exit) var(--ease-in) forwards;
 }
 
 @keyframes attentionPulse {

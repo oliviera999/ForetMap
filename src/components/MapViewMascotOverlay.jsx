@@ -1,18 +1,18 @@
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { usePctAnchorTransform } from '../shared/hooks/usePctAnchorTransform.js';
 
 /**
  * Calque mascotte (présentation) de la carte — extrait de `MapView` (O6).
  *
- * Positionne la mascotte sur la carte (`left`/`top` en %), applique la
- * transformation d'échelle/orientation et affiche la bulle de dialogue
- * éventuelle. Ne rend rien si la mascotte n'est pas visible.
- * DOM/classes/styles/textes strictement inchangés.
+ * Positionne la mascotte sur la carte (ancrage en %, déplacé par `transform` :
+ * `usePctAnchorTransform`), applique la transformation d'échelle/orientation et affiche la
+ * bulle de dialogue éventuelle. Ne rend rien si la mascotte n'est pas visible.
  *
  * @param {object} props
  * @param {boolean} props.show affiche le calque mascotte quand vrai
  * @param {string} props.mascotClassName classe racine du calque mascotte
  * @param {boolean} [props.embedded] ajoute la classe variante « embedded »
- * @param {{ xp: number, yp: number }} props.renderPct position en pourcentage (left/top)
+ * @param {{ xp: number, yp: number }} props.renderPct position en pourcentage du calque
  * @param {number} props.fitScale facteur d'échelle appliqué à la mascotte
  * @param {boolean} props.faceRight oriente la mascotte vers la droite quand vrai
  * @param {string} props.animationState état d'animation transmis au renderer
@@ -34,11 +34,17 @@ export function MapViewMascotOverlay({
   dialogVisible,
   dialog,
 }) {
+  const anchor = usePctAnchorTransform(renderPct?.xp, renderPct?.yp);
   if (!show) return null;
   return (
     <div
-      className={`${mascotClassName}${embedded ? ' map-view-forest-mascot--embedded' : ''}`}
-      style={{ left: `${renderPct.xp}%`, top: `${renderPct.yp}%` }}
+      ref={anchor.ref}
+      className={`${mascotClassName}${embedded ? ' map-view-forest-mascot--embedded' : ''}${
+        anchor.measured && anchor.settling ? ' visit-map-mascot--settling' : ''
+      }`}
+      style={anchor.style}
+      data-pct-x={renderPct.xp}
+      data-pct-y={renderPct.yp}
       aria-hidden="true"
     >
       <div

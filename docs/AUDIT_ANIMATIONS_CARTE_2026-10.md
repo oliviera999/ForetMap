@@ -19,11 +19,14 @@ les propriétés animées.
 
 ## Statut
 
-| Priorité | Constats | Traités dans ce lot |
-| -------- | -------- | ------------------- |
-| P1       | 9        | 9                   |
-| P2       | 9        | 0                   |
-| P3       | 7        | 0                   |
+| Priorité | Constats | Traités dans ce lot | Traités au lot suivant |
+| -------- | -------- | ------------------- | ---------------------- |
+| P1       | 9        | 9                   | —                      |
+| P2       | 9        | 0                   | 5                      |
+| P3       | 7        | 0                   | 3                      |
+
+Lot suivant (8 oct. 2026, « fermetures animées et durées partagées ») : ANIM-10, 11, 13, 14, 17,
+19, 20, 23, plus deux améliorations hors constats (§ 5).
 
 ## 1. Verdict général
 
@@ -166,18 +169,39 @@ test `tests/visit-map-animations-css.test.js`.
 
 - **ANIM-10** — Pastille d'étape : `box-shadow` animé en continu ; un pseudo-élément animé en
   `transform` / `opacity` donnerait le même effet sans repeinte.
+  **Traité** : onde portée par `::after` (`transform` + `opacity`), coupée en mouvement réduit ;
+  test `tests/visit-map-animations-css.test.js`.
 - **ANIM-11** — Point GPS et mascotte animent `left` / `top` (mise en page à chaque image) ; le
   commentaire du point parle à tort du compositeur.
+  **Traité** : hook partagé `usePctAnchorTransform` (mesure du conteneur par `ResizeObserver`,
+  conversion % → px dans `translate(...)`, transition coupée une image au premier placement et
+  au redimensionnement, repli `left` / `top` tant que rien n'est mesuré) pour le point GPS, la
+  mascotte de Visite, de la carte de travail et du plateau GL ; le miroir `scaleX` reste sur
+  l'enfant, la bulle n'est pas touchée ; commentaire corrigé. Les e2e lisent la position dans
+  `data-pct-x` / `data-pct-y`. Tests `tests-ui/shared/usePctAnchorTransform.test.jsx`,
+  `tests/visit-map-animations-css.test.js`.
 - **ANIM-12** — Mise en avant e-nov : `stroke-width` en boucle sur un polygone filtré
   (`drop-shadow`), repeinte continue.
 - **ANIM-13** — La fermeture des fiches n'est jamais animée (démontage immédiat), alors que la
   carte, elle, revient en douceur.
+  **Traité** : hook `useExitAnimation` (fondu + léger rétrécissement de 150 ms en `ease-in`,
+  démontage à la fin de l'animation ou par minuterie de secours, immédiat en mouvement réduit)
+  sur les fiches de lieu (`LocationModalShell`), le panneau de Visite et les popovers GL de zone,
+  de QCM et de dés ; Échap, pile des surcouches et retour du focus inchangés. Tests
+  `tests-ui/shared/useExitAnimation.test.jsx`, `VisitDetailPanel.test.jsx`,
+  `GLZoneContentPopover.test.jsx`, `tests/visit-map-animations-css.test.js`.
 - **ANIM-14** — Popovers GL : ni focus initial, ni piège, ni retour du focus ; Échap passe par un
   écouteur `window` hors de la pile des surcouches.
+  **Traité** : le lot « bouton Retour » n'avait ajouté que l'entrée d'historique ; les popovers
+  de zone et de QCM passent par `useDialogA11y` (focus initial, piège, retour du focus, Échap par
+  la pile) ; le popover de dés, non bloquant, n'en prend que l'Échap et l'historique, sans
+  voler le focus. Test `tests-ui/gl/GLZoneContentPopover.test.jsx`.
 - **ANIM-15** — Aucune annonce (`aria-live`) pendant le délai de 350 ms à 1,1 s entre le clic et
   l'ouverture de la fiche.
 - **ANIM-16** — Rive ignore le mouvement réduit.
 - **ANIM-17** — En Visite, la joie de la mascotte se déclenche en mouvement réduit (GL la bloque).
+  **Traité** : `onMascotSeenCelebration` n'émet plus la joie en mouvement réduit (la bulle reste) ;
+  test `tests-ui/hooks/useVisitMapMascotController.test.jsx`.
 - **ANIM-18** — Le projecteur en maintien est invisible sous le panneau plein écran de la Visite
   sur mobile.
 
@@ -186,14 +210,24 @@ test `tests/visit-map-animations-css.test.js`.
 - **ANIM-19** — Durée du déplacement de la mascotte recopiée à quatre endroits (560 ms en JS et
   en e2e, 550 ms en CSS) ; constantes `HAPPY`, `DIALOG`, `COOLDOWN` redéfinies au lieu d'être
   importées ; seuils 15 / 9 / 4 en dur.
+  **Traité** : constante unique `MAP_VIEW_MASCOT_MOVE_MS` = 550 ms (contrôleur de Visite, carte
+  de travail, plateau GL, e2e via `e2e/fixtures/mascot-motion.fixture.js`), alignée sur la
+  variable CSS ; `HAPPY` (= trois rebonds de 0,42 s), `DIALOG`, `COOLDOWN` et les seuils sont
+  importés de `mapViewMascotMotion.js`. Test `tests/visit-map-animations-css.test.js`.
 - **ANIM-20** — Les variables `--motion-*` de `motion.css` ne sont utilisées par aucune animation
   de carte ; nommage des keyframes hétérogène (camelCase et kebab-case).
+  **Traité (durées)** : nouveaux jetons `--motion-exit`, `--motion-map-mascot-move`,
+  `--motion-map-position`, `--motion-map-pulse`, `--motion-map-discover-halo`, `--ease-in`,
+  `--ease-map-move`, utilisés par les animations de carte ; un test vérifie qu'ils égalent les
+  constantes JS. Le nommage des keyframes existants n'a pas été renommé (risque sans gain).
 - **ANIM-21** — Détection du mouvement réduit réimplémentée au moins cinq fois au lieu du hook
   partagé `usePrefersReducedMotion`.
 - **ANIM-22** — `SharedMapStage` pose `translate3d(...)` en style React alors que le moteur écrit
   `translate(...)` : double écriture et alternance 3D / 2D possible à chaque rendu (à vérifier
   en navigateur).
 - **ANIM-23** — Halo « à découvrir » : 2,6 s en CSS contre 2 800 ms de minuterie JS.
+  **Traité** : `DISCOVER_HALO_MS` = 2 600 ms = `--motion-map-discover-halo` ; test
+  `tests/visit-discover-halo.test.js`.
 - **ANIM-24** — Écarts ForetMap / GL non documentés : 📍 par défaut pour un repère sans emoji
   côté ForetMap, aucun emoji côté GL ; pas de zoom maximal réglable côté GL ; booléen illisible
   lu « vrai » d'un côté, « faux » de l'autre.
@@ -207,3 +241,14 @@ test `tests/visit-map-animations-css.test.js`.
 2. Lot accessibilité : ANIM-14, ANIM-15, ANIM-16, ANIM-17.
 3. Lot dette : ANIM-19 à ANIM-23, en centralisant durées et détection du mouvement réduit.
 4. Filet e2e sur le zoom du lieu (phases, mouvement réduit) pour ANIM-25.
+
+## 5. Améliorations hors constats (lot suivant, 8 oct. 2026)
+
+- **Visite plus réactive** : quand le zoom sur le lieu est actif, il part en même temps que la
+  marche de la mascotte au lieu de l'attendre ; la fiche s'ouvre environ 0,6 s après le clic
+  (option `openSelectionInParallel` du contrôleur). Cela raccourcit aussi le délai muet de
+  l'ANIM-15, qui reste ouvert faute d'annonce `aria-live`. La carte de travail garde
+  l'enchaînement mascotte puis zoom. Test `tests-ui/hooks/useVisitMapMascotController.test.jsx`.
+- **Repère ouvert mis en évidence** : `aria-current` sur le repère actif, pastille qui apparaît
+  sous lui, autres repères estompés tant qu'un lieu est ouvert ; transition coupée en mouvement
+  réduit. Tests `tests-ui/shared/PctMarkersLayer.test.jsx`, `tests/visit-map-animations-css.test.js`.

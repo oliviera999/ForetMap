@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
+import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLDiceCube } from './GLDiceCube.jsx';
 import { computeGlDicePopoverPosition } from '../utils/glDicePopoverPosition.js';
@@ -24,9 +25,14 @@ export function GLVirtualDicePopover({
   canRoll = true,
   themeStyle = null,
 }) {
-  const panelRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
-  useOverlayHistoryBack(!!open, onClose);
+  const { closing, runExit, onAnimationEnd } = useExitAnimation({
+    animationName: 'fmExitFadeShrink',
+  });
+  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
+  // Popover non bloquant : Échap par la pile des surcouches et retour navigateur, sans prendre
+  // le focus (le plateau reste utilisable derrière).
+  const panelRef = useDialogA11y(closeAnimated, { active: !!open, manageFocus: false });
 
   const updatePosition = useCallback(() => {
     if (!open || !anchorRef?.current) return;
@@ -44,7 +50,7 @@ export function GLVirtualDicePopover({
       viewportHeight: window.innerHeight,
     });
     setPosition(next);
-  }, [open, anchorRef, avoidRectRef]);
+  }, [open, anchorRef, avoidRectRef, panelRef]);
 
   useLayoutEffect(() => {
     updatePosition();
@@ -58,24 +64,15 @@ export function GLVirtualDicePopover({
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) return undefined;
     const onPointerDown = (event) => {
       const target = event.target;
       if (anchorRef?.current?.contains(target)) return;
       if (panelRef.current?.contains(target)) return;
-      onClose?.();
+      closeAnimated();
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open, onClose, anchorRef]);
+  }, [open, closeAnimated, anchorRef, panelRef]);
 
   if (!open) return null;
 
@@ -85,7 +82,7 @@ export function GLVirtualDicePopover({
   return (
     <div
       ref={panelRef}
-      className="gl-dice-popover"
+      className={`gl-dice-popover${closing ? ' fm-is-exiting' : ''}`}
       role="dialog"
       aria-label="Lanceur de dés"
       data-testid="gl-virtual-dice-popover"
@@ -94,6 +91,7 @@ export function GLVirtualDicePopover({
         top: `${position.top}px`,
         left: `${position.left}px`,
       }}
+      onAnimationEnd={onAnimationEnd}
     >
       <header className="gl-dice-popover__header">
         <h3 className="gl-dice-popover__title">Dés virtuels</h3>
@@ -101,7 +99,7 @@ export function GLVirtualDicePopover({
           type="button"
           className="gl-dice-popover__close"
           aria-label="Fermer"
-          onClick={onClose}
+          onClick={closeAnimated}
         >
           ✕
         </button>

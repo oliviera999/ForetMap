@@ -11,8 +11,11 @@ import { polygonPoleOfInaccessibilityPct } from '../shared/pct-map/pctPolylabel.
 /** Nombre max de lieux mis en halo (densité élevée). */
 export const DISCOVER_HALO_LIMIT = 5;
 
-/** Durée d’affichage du halo (ms), alignée sur l’animation CSS. */
-export const DISCOVER_HALO_MS = 2800;
+/**
+ * Durée d’affichage du halo (ms) : exactement celle de l’animation CSS
+ * (`--motion-map-discover-halo`, `motion.css`) — un test vérifie l’égalité.
+ */
+export const DISCOVER_HALO_MS = 2600;
 
 /** @param {'zone'|'marker'} type @param {string|number} id */
 function seenKey(type, id) {

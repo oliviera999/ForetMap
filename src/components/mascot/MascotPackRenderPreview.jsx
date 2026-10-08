@@ -25,8 +25,7 @@ import {
   VISIT_MASCOT_INTERACTION_LABELS,
 } from '../../utils/visitMascotInteractionEvents.js';
 import { resolveVisitMascotInteraction } from '../../utils/visitMascotInteractionApply.js';
-
-const PREVIEW_HAPPY_MS = 1800;
+import { MAP_VIEW_MASCOT_HAPPY_MS as PREVIEW_HAPPY_MS } from '../../utils/mapViewMascotMotion.js';
 
 function describeInteractionResult(result) {
   if (!result || result.kind === 'none') return 'Désactivé';
