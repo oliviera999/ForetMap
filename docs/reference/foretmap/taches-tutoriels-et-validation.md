@@ -156,11 +156,14 @@ confirme. Deux situations particulières sont annoncées clairement à l'élève
   L'élève lit « … avait déjà été validée entre-temps : ton rapport est bien enregistré » ou
   « … a été mise en pause entre-temps : ton rapport est enregistré, mais la tâche reste en
   pause ». Même message s'il marque la tâche depuis un écran resté ouvert.
-- **Le serveur refuse le marquage** (tâche archivée, inscription retirée…) : l'élève en est
-  prévenu. S'il avait écrit un **commentaire**, celui-ci n'est pas perdu : il reste affiché
-  en haut de la liste des tâches, dans un encadré « Rapports non envoyés », avec le titre de
-  la tâche et la raison du refus. L'élève peut **copier** son commentaire pour le réutiliser,
-  puis **effacer** l'encadré. Un marquage refusé sans commentaire est simplement abandonné.
+- **Le serveur refuse le marquage** (tâche archivée, inscription retirée, tutoriel lié
+  jamais lu…) : l'élève en est prévenu. S'il avait écrit un **commentaire** ou pris une
+  **photo**, ils ne sont pas perdus : le commentaire reste affiché en haut de la liste des
+  tâches, dans un encadré « Rapports non envoyés », avec le titre de la tâche et la raison
+  du refus. L'élève peut **copier** son commentaire pour le réutiliser, puis **effacer**
+  l'encadré. Un marquage refusé sans commentaire ni photo est simplement abandonné. Si le
+  tutoriel a bien été marqué lu sans réseau et que cette lecture n'est pas encore arrivée,
+  le marquage de la tâche **attend** avec elle : il n'est ni abandonné ni affiché comme refusé.
 
 Un marquage envoyé deux fois (réponse perdue,
 appareil qui renvoie) ne publie qu'**un** compte rendu et ne prévient le professeur qu'une
@@ -169,11 +172,12 @@ fois. Sur une tablette partagée, le marquage n'est envoyé que sous le compte d
 
 Ce qui attend le réseau, et pourquoi :
 
-- **la photo** du compte rendu : trop lourde pour être gardée sur l'appareil (et lisible
-  par l'élève suivant sur une tablette partagée). L'élève est prévenu : « la photo ne peut
-  pas être gardée sur l'appareil » ; il peut la retirer pour que la tâche parte seule, ou
-  réessayer plus tard ;
-- **une tâche dont un tutoriel lié reste à lire** : le serveur refuserait le marquage ;
+- **la photo** du compte rendu part avec le marquage : elle est gardée sur l'appareil
+  jusqu'à l'envoi. Si l'appareil ne peut pas la garder, l'élève est prévenu tout de suite
+  et sa saisie reste à l'écran ;
+- **une tâche dont un tutoriel lié n'a pas été lu** : le serveur refuserait le marquage.
+  Une lecture faite sans réseau, elle, part avant la tâche ; tant qu'elle n'est pas
+  arrivée, le marquage reste en attente ;
 - **« Je m'en occupe »** : les places sont comptées par le serveur, une inscription
   différée pourrait être refusée alors que l'élève est déjà parti faire la tâche ;
 - **« Me retirer »** : libérer une place n'a de sens que si elle se libère tout de suite

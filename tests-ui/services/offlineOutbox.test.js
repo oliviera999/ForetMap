@@ -109,6 +109,58 @@ describe('flushOutbox', () => {
     expect(events).toEqual([]);
   });
 
+  test('lecture de tutoriel pas encore partie : le « fait » lié n’est ni jeté ni figé', async () => {
+    enqueueTutorialRead({ user_id: 'u1', tutorial_id: 3, tutorial_title: 'Paillage' });
+    queueDone({ comment: 'Trois arrosoirs', has_photo: true });
+    await putOfflinePhoto('done-0001', { userId: 'u1', dataUrl: JPEG });
+    api.mockImplementation(async (path) => {
+      if (String(path).includes('/acknowledge-read')) {
+        throw Object.assign(new Error('Pas de réseau'), { code: 'NETWORK_FAILURE' });
+      }
+      throw Object.assign(new Error('Lis d’abord les tutoriels liés'), {
+        status: 403,
+        body: { code: 'tutorials_unread', missing_tutorials: [{ id: 3, title: 'Paillage' }] },
+      });
+    });
+    const summary = await outbox.flushOutbox({ userId: 'u1' });
+    expect(summary.refused).toHaveLength(0);
+    expect(summary.dropped).toBe(0);
+    expect(listQueuedTutorialReads('u1')).toHaveLength(1);
+    expect(listQueuedTaskDone('u1')).toMatchObject([
+      { client_uuid: 'done-0001', comment: 'Trois arrosoirs' },
+    ]);
+    expect(listQueuedTaskDone('u1')[0].refused).toBeUndefined();
+    expect(await getOfflinePhoto('done-0001')).toBe(JPEG);
+
+    api.mockImplementation(async (path) =>
+      String(path).includes('/acknowledge-read') ? { success: true } : { status: 'done' },
+    );
+    const retry = await outbox.flushOutbox({ userId: 'u1' });
+    expect(retry.synced).toBe(2);
+    expect(api.mock.calls.map(([path]) => path)).toEqual([
+      '/api/tutorials/3/acknowledge-read',
+      '/api/tasks/t1/done',
+      '/api/tutorials/3/acknowledge-read',
+      '/api/tasks/t1/done',
+    ]);
+    expect(listQueuedTaskDone('u1')).toHaveLength(0);
+    expect(await getOfflinePhoto('done-0001')).toBeNull();
+  });
+
+  test('tutoriel non lu et aucune lecture en attente : le « fait » sans texte est abandonné', async () => {
+    queueDone();
+    api.mockRejectedValue(
+      Object.assign(new Error('Lis d’abord les tutoriels liés'), {
+        status: 403,
+        body: { code: 'tutorials_unread', missing_tutorials: [{ id: 9, title: 'Semis' }] },
+      }),
+    );
+    const summary = await outbox.flushOutbox({ userId: 'u1' });
+    expect(summary.dropped).toBe(1);
+    expect(summary.refused[0]).toMatchObject({ kept: false, code: 'tutorials_unread' });
+    expect(listQueuedTaskDone('u1')).toHaveLength(0);
+  });
+
   test('refus avec code stable : expliqué, texte gardé', async () => {
     queueDone({ comment: 'Trois arrosoirs' });
     api.mockRejectedValue(
