@@ -82,6 +82,8 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
 }
 
 const NO_MAPS = [];
+/** Marge basse avant la première mesure de la barre de parcours (identité stable). */
+const ROUTE_BAR_FALLBACK_INSETS = Object.freeze({ bottom: 96 });
 
 function MapViewImpl({
   maps = NO_MAPS,
@@ -282,6 +284,12 @@ function MapViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    routePhase,
+    beginRouteSteps,
+    showRouteOverview,
+    routeFocusInsets,
+    routeSettings,
+    stageRoute,
   } = useMapViewRoutes({
     activeMapId,
     zonesOnMap: mapZonesOnActiveMap,
@@ -292,6 +300,7 @@ function MapViewImpl({
     setSelectedMarker,
     routeRequest,
     onRouteRequestHandled,
+    routeSettingsRaw: publicSettings?.routes,
   });
   const [commentsFocusKey, setCommentsFocusKey] = useState(null);
   useEffect(() => {
@@ -431,6 +440,16 @@ function MapViewImpl({
     showMapMascot,
     moveMapMascotTo,
   });
+  /** « Commencer le parcours » : première étape (ou celle choisie) et position allumée. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && mapPosition.available && !mapPosition.active) {
+        mapPosition.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, mapPosition],
+  );
   const routeDistanceLabel = useMemo(() => {
     const targetPct = routeEntryFocusPct(currentRouteEntry);
     if (!mapPosition.positionPct || !targetPct || !mapPosition.planSize) return '';
@@ -940,8 +959,9 @@ function MapViewImpl({
                 scaleCompassEffective={scaleCompassPref.effective}
                 onScaleCompassToggle={scaleCompassPref.toggle}
                 fitExtraStyle={workFitExtraStyle}
-                focusInsets={activeRoute ? { bottom: 96 } : null}
+                focusInsets={activeRoute ? routeFocusInsets || ROUTE_BAR_FALLBACK_INSETS : null}
                 targetPct={workTargetPct}
+                route={mode === 'view' ? stageRoute : null}
                 onViewportChange={onWorkViewportChange}
                 initialView={stageInitialView}
                 onBackgroundClick={onWorkBackgroundClick}
@@ -1064,6 +1084,9 @@ function MapViewImpl({
             onResume={resumeRoute}
             steps={routeSteps}
             index={routeIndex}
+            phase={routePhase}
+            onBegin={onBeginRoute}
+            onShowOverview={showRouteOverview}
             onGoToIndex={goToRouteIndex}
             onExit={exitRoute}
             onHeight={setRouteBarHeight}

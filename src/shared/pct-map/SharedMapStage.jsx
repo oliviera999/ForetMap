@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { headingUpOrientationDeg, HEADING_UP_COVER_SCALE } from './pctMapOrientation.js';
 import { MapScaleCompassOverlay } from './MapScaleCompassOverlay.jsx';
@@ -32,8 +32,16 @@ import {
   zoneLabelMaxWidthPx,
   zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
-import { PctDirectLine, PctPositionLayer } from './PctPositionLayer.jsx';
+import { PctPositionLayer } from './PctPositionLayer.jsx';
+import { PctRouteBadges, PctRouteLines } from './PctRouteLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
+import {
+  hasWalkedFrom,
+  routeCameraPlan,
+  routeCameraView,
+  routeStepPoints,
+} from '../map-routes/routeGeometry.js';
+import { ROUTE_SETTINGS_DEFAULTS } from '../map-routes/routeSettings.js';
 import { shouldIgnorePctMapBackgroundClick } from './pctMapBackgroundClick.js';
 
 /** Cibles qui ne démarrent pas un déplacement de carte (commandes superposées). */
@@ -70,6 +78,9 @@ const POSITION_ICONS = Object.freeze({
  * @param {object|null} [props.position]
  * @param {() => void} [props.onLocateToggle]
  * @param {{ xp: number, yp: number }|null} [props.targetPct]
+ * @param {object|null} [props.route] parcours en cours : `{ slug, phase: 'overview'|'steps',
+ *   steps, currentIndex, currentPlaceKey, settings }` (`settings` : `resolveRouteSettings`).
+ *   Présent, il dessine le tracé fléché et ses pastilles, et pilote la caméra guidée.
  * @param {{ top?: number, right?: number, bottom?: number, left?: number }|null} [props.focusInsets]
  * @param {string} [props.className]
  * @param {string} [props.worldClassName]
@@ -117,6 +128,7 @@ export function SharedMapStage({
   position = null,
   onLocateToggle = null,
   targetPct = null,
+  route = null,
   focusInsets = null,
   headingUpAllowed = false,
   headingUpEffective = false,
@@ -172,6 +184,18 @@ export function SharedMapStage({
   positionRef.current = position;
   const stickCameraRef = useRef(() => {});
 
+  /**
+   * Caméra de parcours rendue à la main : un geste sur la carte (ou un bouton de zoom) l'arrête,
+   * pour que la personne puisse regarder ailleurs sans que la vue la ramène aussitôt. Elle
+   * reprend à l'étape suivante, au retour à la vue d'ensemble, ou sur « Me situer ».
+   */
+  const [routeCameraReleased, setRouteCameraReleased] = useState(false);
+  const routeActiveRef = useRef(false);
+  routeActiveRef.current = !!route;
+  const releaseRouteCamera = useCallback(() => {
+    if (routeActiveRef.current) setRouteCameraReleased(true);
+  }, []);
+
   const viewport = usePctMapViewport({
     imageSrc,
     contentMode: 'stage',
@@ -190,6 +214,7 @@ export function SharedMapStage({
       if (!headingUpEffectiveRef.current) {
         positionRef.current?.notifyManualPan?.();
       }
+      releaseRouteCamera();
     },
     onGestureEnd: () => {
       if (headingUpEffectiveRef.current) stickCameraRef.current();
@@ -468,12 +493,80 @@ export function SharedMapStage({
     setMapOrientation,
   ]);
 
+  /* ---- Parcours : tracé, étape courante, caméra guidée ------------------------------------ */
+  const routeSettings = route?.settings || ROUTE_SETTINGS_DEFAULTS;
+  const routePhase = route?.phase === 'overview' ? 'overview' : 'steps';
+  const routeIndex = Number(route?.currentIndex) || 0;
+  const routeSteps = route?.steps;
+  const routePoints = useMemo(() => (routeSteps ? routeStepPoints(routeSteps) : []), [routeSteps]);
+  const routeKey = route ? `${route.slug || ''}:${routePhase}:${routeIndex}` : '';
+  const routeGuideTo = route && routePhase === 'steps' ? targetPct : null;
+  useEffect(() => {
+    setRouteCameraReleased(false);
+  }, [routeKey]);
+  /**
+   * La caméra guidée mène la vue tant que personne ne l'a reprise en main. L'orientation selon
+   * la boussole garde la priorité : elle colle déjà la carte à la personne. En étape, la caméra
+   * se désactive par réglage (`ui.routes.camera_enabled`) ; la vue d'ensemble, elle, cadre
+   * toujours le tracé — sans cela, elle ne montrerait rien de plus que la carte.
+   */
+  const routeCameraOn =
+    !!route &&
+    !routeCameraReleased &&
+    !headingUpEffective &&
+    (routePhase === 'overview' || routeSettings.cameraEnabled);
+
+  /**
+   * Marche détectée : la personne s'est éloignée de plus de `walkingTriggerM` de l'endroit où
+   * elle se trouvait au début de l'étape. On passe alors du cadrage « position + étape » au
+   * zoom de marche, centré sur elle et ouvert vers l'étape.
+   */
+  const routePositionPct = position?.displayPct || null;
+  const walkStartRef = useRef({ key: '', pct: null });
+  const [routeWalking, setRouteWalking] = useState(false);
+  useEffect(() => {
+    if (!route || routePhase !== 'steps') {
+      walkStartRef.current = { key: '', pct: null };
+      setRouteWalking(false);
+      return;
+    }
+    if (walkStartRef.current.key !== routeKey) {
+      walkStartRef.current = { key: routeKey, pct: routePositionPct };
+      setRouteWalking(false);
+      return;
+    }
+    if (!routePositionPct) return;
+    if (!walkStartRef.current.pct) {
+      walkStartRef.current.pct = routePositionPct;
+      return;
+    }
+    if (
+      hasWalkedFrom(
+        walkStartRef.current.pct,
+        routePositionPct,
+        position?.planSize,
+        routeSettings.walkingTriggerM,
+      )
+    ) {
+      setRouteWalking(true);
+    }
+  }, [
+    route,
+    routePhase,
+    routeKey,
+    routePositionPct,
+    position?.planSize,
+    routeSettings.walkingTriggerM,
+  ]);
+
   // Suivi de position : recentrage à chaque nouvelle position en mode « suivi ».
   // Orientation boussole : coller le GPS au centre + grossir assez pour couvrir le
   // viewport après rotation (√2), sinon le plan tourné laisse un fond vide.
+  // Pendant un parcours, la caméra guidée fait déjà mieux que coller au point : elle suit en
+  // gardant l'étape dans le champ.
   const stickPct = headingUpEffective
     ? position?.displayPct
-    : position?.following
+    : position?.following && !routeCameraOn
       ? position.displayPct
       : null;
   useEffect(() => {
@@ -502,11 +595,81 @@ export function SharedMapStage({
       if (!selectedPlace) lastFocusedRef.current = '';
       return;
     }
+    // Le lieu de l'étape courante est cadré par la caméra de parcours, avec la position :
+    // le centrer seul ici défairait ce cadrage.
+    if (
+      routeCameraOn &&
+      route?.currentPlaceKey &&
+      `${selectedPlace.kind}:${selectedPlace.id}` === route.currentPlaceKey
+    ) {
+      lastFocusedRef.current = key;
+      return;
+    }
     const pct = typeof focusPlacePct === 'function' ? focusPlacePct(selectedPlace) : null;
     if (!pct) return;
     lastFocusedRef.current = key;
     focusOnPct(pct, { insets: focusInsets });
-  }, [selectedPlace, focusOnPct, focusInsets, focusInsetsKey, focusPlacePct]);
+  }, [
+    selectedPlace,
+    focusOnPct,
+    focusInsets,
+    focusInsetsKey,
+    focusPlacePct,
+    routeCameraOn,
+    route?.currentPlaceKey,
+  ]);
+
+  /**
+   * Caméra guidée : la décision (`routeCameraPlan`) devient une vue concrète pour cet écran
+   * (`routeCameraView`), confiée au **suivi continu** du moteur de vue — qui la rejoint en
+   * douceur et la borne aux limites du plan. Près d'un bord, la vue se cale donc sur le plan
+   * plutôt que d'en montrer le vide, et la ligne à suivre reste dans le champ.
+   */
+  const routeCamera = useMemo(() => {
+    if (!routeCameraOn) return null;
+    const plan = routeCameraPlan({
+      phase: routePhase,
+      stepPoints: routePoints,
+      currentIndex: routeIndex,
+      positionPct: routePositionPct,
+      targetPct: routeGuideTo,
+      walking: routeWalking,
+    });
+    return routeCameraView(plan, {
+      stage: stageSize,
+      fitRect,
+      insets: focusInsets,
+      fitScale: fitScale || 1,
+      walkingZoom: routeSettings.walkingZoom,
+      lookahead: routeSettings.lookahead,
+    });
+  }, [
+    routeCameraOn,
+    routePhase,
+    routePoints,
+    routeIndex,
+    routePositionPct,
+    routeGuideTo,
+    routeWalking,
+    stageSize,
+    fitRect,
+    focusInsets,
+    fitScale,
+    routeSettings.walkingZoom,
+    routeSettings.lookahead,
+  ]);
+  useEffect(() => {
+    if (!routeCamera) return;
+    followPct(routeCamera.centerPct, { targetScale: routeCamera.scale, insets: focusInsets });
+    // `focusInsets` change d'identité à chaque rendu chez certains appelants : sa clé suffit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    routeCamera?.centerPct?.xp,
+    routeCamera?.centerPct?.yp,
+    routeCamera?.scale,
+    followPct,
+    focusInsetsKey,
+  ]);
 
   /**
    * Contre-échelle des habillages : le calque monde est mis à l'échelle par la vue, donc tout
@@ -769,7 +932,11 @@ export function SharedMapStage({
             testId={tid('locate')}
             active={position.active}
             ariaPressed={position.active}
-            onClick={onLocateToggle || position.toggle}
+            onClick={() => {
+              // Pendant un parcours, « Me situer » rend aussi la main à la caméra guidée.
+              setRouteCameraReleased(false);
+              (onLocateToggle || position.toggle)();
+            }}
           />
         ) : null}
         {headingUpAllowed && position?.available && position?.active ? (
@@ -814,21 +981,30 @@ export function SharedMapStage({
           icon="＋"
           label="Zoomer"
           testId={tid('zoom-in')}
-          onClick={() => zoomBy(1.2)}
+          onClick={() => {
+            releaseRouteCamera();
+            zoomBy(1.2);
+          }}
         />
         <MapActionButton
           tone="display"
           icon="－"
           label="Dézoomer"
           testId={tid('zoom-out')}
-          onClick={() => zoomBy(0.84)}
+          onClick={() => {
+            releaseRouteCamera();
+            zoomBy(0.84);
+          }}
         />
         <MapActionButton
           tone="display"
           icon="⊡"
           label="Voir tout le plan"
           testId={tid('zoom-reset')}
-          onClick={fitMapAnimated}
+          onClick={() => {
+            releaseRouteCamera();
+            fitMapAnimated();
+          }}
         />
       </div>
 
@@ -864,8 +1040,29 @@ export function SharedMapStage({
             onLabelClick={labelsClickable ? onZoneLabelClick : null}
           />
           <PctStatusDotsLayer anchors={zoneStatusAnchors} />
-          {position?.displayPct && targetPct ? (
-            <PctDirectLine from={position.displayPct} to={targetPct} />
+          {route ? (
+            <PctRouteLines
+              points={routePoints}
+              phase={routePhase}
+              currentIndex={routeIndex}
+              showFullPath={routePhase === 'overview' || routeSettings.showFullPath}
+              guideFrom={routeGuideTo ? position?.displayPct || null : null}
+              guideTo={routeGuideTo}
+              widthPx={fitRect.width}
+              heightPx={fitRect.height}
+              scale={committed.s}
+              animated={routeSettings.lineAnimated}
+            />
+          ) : position?.displayPct && targetPct ? (
+            // « Y aller » : même ligne fléchée, sans tracé de parcours.
+            <PctRouteLines
+              guideFrom={position.displayPct}
+              guideTo={targetPct}
+              widthPx={fitRect.width}
+              heightPx={fitRect.height}
+              scale={committed.s}
+              className="fm-pct-direct-line"
+            />
           ) : null}
           {clusteringEnabled ? (
             <PctClusterLayer
@@ -888,6 +1085,14 @@ export function SharedMapStage({
               highlightLabel={highlightLabel}
             />
           )}
+          {route ? (
+            <PctRouteBadges
+              points={routePoints}
+              phase={routePhase}
+              currentIndex={routeIndex}
+              total={routeSteps?.length || 0}
+            />
+          ) : null}
           {position?.displayPct ? (
             <PctPositionLayer
               position={position.displayPct}

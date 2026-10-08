@@ -40,6 +40,7 @@ test('le registre est l’agrégat des domaines, dans l’ordre de la liste', ()
       'moodle',
       'lti',
       'confidentialité',
+      'parcours',
     ],
   );
 });

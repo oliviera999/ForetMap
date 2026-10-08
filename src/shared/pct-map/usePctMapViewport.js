@@ -774,7 +774,10 @@ export function usePctMapViewport({
           return;
         }
         // Onglet revenu au premier plan : un `dt` d'une minute ferait un saut. Plafonné.
-        const dt = Math.max(0, Math.min(100, now - last));
+        // Horloge figée (rAF synchrone, sous 1 ms d'écart) : compter une image à 60 Hz, sinon
+        // la boucle tournerait sans jamais avancer.
+        const elapsed = now - last;
+        const dt = elapsed < 1 ? 16 : Math.min(100, elapsed);
         last = now;
         const target = resolveTarget(f);
         const k = 1 - Math.exp(-dt / f.tauMs);

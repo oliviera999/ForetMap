@@ -147,6 +147,9 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
   assert.equal(typeof res.body.map.scale_compass_enabled, 'boolean');
   assert.equal(res.body.settings.map_id, undefined);
   assert.equal(typeof res.body.settings.title, 'string');
+  // Réglages des parcours guidés (vue d'ensemble, caméra, tracé) : servis avec le contenu.
+  assert.equal(res.body.settings.routes?.overview_enabled, true);
+  assert.equal(res.body.settings.routes?.walking_zoom_percent, 300);
 
   const zoneIds = res.body.zones.map((z) => z.id);
   assert.ok(zoneIds.includes(visible.id), 'zone visible attendue');

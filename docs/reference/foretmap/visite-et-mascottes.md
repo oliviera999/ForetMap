@@ -32,9 +32,14 @@ familles.
   désactiver pour cette carte dans le calage GPS.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
   case « Visite », sur **la même carte** que celle ouverte ici), une puce **« Parcours »** les
-  liste à côté des filtres de catégories. En choisir un affiche une barre d'étape
-  en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
-  n'est enregistré côté serveur — comme sur le Plan Lyautey. On peut quitter, puis **reprendre à
+  liste à côté des filtres de catégories. En choisir un montre d'abord une **vue d'ensemble** :
+  tout le trajet sur la carte, fléché dans le sens de marche, avec les étapes numérotées. Puis
+  **« Commencer le parcours »** ouvre la barre d'étape en bas (Précédent / Suivant) et allume
+  « Me situer » si la carte est calée : la vue montre la position et l'étape, puis zoome sur la
+  position une fois la marche commencée, toujours ouverte vers l'étape. La carte reste
+  utilisable, et rien n'est enregistré côté serveur — comme sur le Plan Lyautey. Le détail et
+  les réglages (_Réglages → Parcours guidés_) sont décrits dans « Carte et zones », section
+  « Suivre un parcours ». On peut quitter, puis **reprendre à
   l'étape où l'on s'était arrêté** (« Reprendre le parcours »), même après avoir rechargé la
   page : la position est retenue sur l'appareil, et sur lui seul. Relancer le parcours depuis la
   puce repart du début. Quand le plan est

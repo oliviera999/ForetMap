@@ -402,12 +402,20 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
         onRouteRequestHandled,
       });
       await waitForToolbar(view);
+      // Vue d'ensemble d'abord : tout le tracé, aucune fiche ouverte, puis « Commencer ».
+      const overview = await screen.findByRole(
+        'complementary',
+        { name: 'Parcours Tour du verger — vue d’ensemble' },
+        MOUNT_TIMEOUT,
+      );
+      expect(onRouteRequestHandled).toHaveBeenCalledWith(5);
+      expect(screen.queryByRole('dialog', { name: 'Zone Verger' })).toBeNull();
+      fireEvent.click(within(overview).getByRole('button', { name: 'Commencer le parcours' }));
       const bar = await screen.findByRole(
         'complementary',
         { name: 'Parcours Tour du verger' },
         MOUNT_TIMEOUT,
       );
-      expect(onRouteRequestHandled).toHaveBeenCalledWith(5);
       expect(within(bar).getByText('Le verger')).toBeInTheDocument();
       // Première étape : la fiche de la zone est ouverte.
       expect(await screen.findByRole('dialog', { name: 'Zone Verger' })).toBeInTheDocument();

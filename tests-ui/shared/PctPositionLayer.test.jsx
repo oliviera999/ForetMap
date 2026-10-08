@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-import { PctDirectLine, PctPositionLayer } from '../../src/shared/pct-map/PctPositionLayer.jsx';
+import { PctPositionLayer } from '../../src/shared/pct-map/PctPositionLayer.jsx';
 
 /**
  * Le calque de position n'était couvert par aucun test : c'est ce qui a laissé passer un halo
@@ -91,25 +91,5 @@ describe('PctPositionLayer', () => {
   test('sans position : rien du tout', () => {
     const { container } = render(<PctPositionLayer position={null} haloPx={20} />);
     expect(container.querySelector('.fm-pct-position')).toBe(null);
-  });
-});
-
-describe('PctDirectLine', () => {
-  test('trace le segment entre les deux points, en unités de pourcentage', () => {
-    const { container } = render(
-      <PctDirectLine from={{ xp: 10, yp: 20 }} to={{ xp: 70, yp: 80 }} />,
-    );
-    const line = container.querySelector('line');
-    expect([
-      line.getAttribute('x1'),
-      line.getAttribute('y1'),
-      line.getAttribute('x2'),
-      line.getAttribute('y2'),
-    ]).toEqual(['10', '20', '70', '80']);
-  });
-
-  test('une extrémité manquante : pas de trait inventé', () => {
-    const { container } = render(<PctDirectLine from={{ xp: 10, yp: 20 }} to={null} />);
-    expect(container.querySelector('svg')).toBe(null);
   });
 });

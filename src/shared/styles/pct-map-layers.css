@@ -512,8 +512,16 @@
   text-shadow: 0 0 3px var(--surface-plain);
 }
 
-/* Direction « Y aller » : trait droit, jamais un itinéraire. */
-.fm-pct-direct-line {
+/* --- Parcours : tracé fléché et ligne de guidage (`PctRouteLayer.jsx`) ----------------------
+   Calque SVG en pixels du rectangle image : les épaisseurs sont contre-échelonnées par
+   `--pct-inv` pour garder une taille constante à l'écran. Chaque trait porte un liseré clair
+   qui le détache du fond de plan, quel qu'il soit. « Y aller » réutilise la ligne de guidage
+   (classe additionnelle `fm-pct-direct-line`) : une direction, jamais un itinéraire. */
+.fm-pct-route {
+  --fm-route-path: var(--forest);
+  --fm-route-current: var(--leaf);
+  --fm-route-done: var(--ink-lichen);
+  --fm-route-guide: var(--accent-info-solid);
   position: absolute;
   inset: 0;
   width: 100%;
@@ -522,12 +530,269 @@
   overflow: visible;
 }
 
-.fm-pct-direct-line__stroke {
-  stroke: var(--accent-info-solid);
-  stroke-width: calc(2px * var(--pct-inv, 1));
-  stroke-dasharray: calc(6px * var(--pct-inv, 1)) calc(5px * var(--pct-inv, 1));
+.fm-pct-route line {
+  fill: none;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
+}
+
+.fm-pct-route__casing {
+  stroke: var(--surface-plain);
+  stroke-width: calc(9px * var(--pct-inv, 1));
+  stroke-opacity: 0.9;
+}
+
+.fm-pct-route__casing.is-upcoming,
+.fm-pct-route__casing.is-done {
+  stroke-opacity: 0.55;
+}
+
+.fm-pct-route__stroke {
+  stroke: var(--fm-route-path);
+  stroke-width: calc(5px * var(--pct-inv, 1));
+}
+
+.fm-pct-route__stroke.is-current {
+  stroke: var(--fm-route-current);
+}
+
+.fm-pct-route__stroke.is-upcoming {
+  stroke-opacity: 0.5;
+}
+
+.fm-pct-route__stroke.is-done {
+  stroke: var(--fm-route-done);
+  stroke-width: calc(4px * var(--pct-inv, 1));
+  stroke-dasharray: calc(1px * var(--pct-inv, 1)) calc(8px * var(--pct-inv, 1));
+}
+
+/* Chevrons : dessinés autour de l'origine de leur groupe, puis contre-échelonnés. */
+.fm-pct-route__chevron path,
+.fm-pct-route__guide-chevron path {
+  fill: none;
+  stroke: var(--surface-plain);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: scale(var(--pct-inv, 1));
+}
+
+.fm-pct-route__chevron.is-upcoming {
+  opacity: 0.75;
+}
+
+.fm-pct-route__chevron.is-done {
+  display: none;
+}
+
+.fm-pct-route__guide-casing {
+  stroke: var(--surface-plain);
+  stroke-width: calc(12px * var(--pct-inv, 1));
+  stroke-opacity: 0.95;
+}
+
+.fm-pct-route__guide-stroke {
+  stroke: var(--fm-route-guide);
+  stroke-width: calc(7px * var(--pct-inv, 1));
+}
+
+/* Filet clair qui « coule » vers la cible : le sens se lit même d'un coup d'œil. */
+.fm-pct-route__guide-flow {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: calc(2px * var(--pct-inv, 1));
+  stroke-dasharray: calc(3px * var(--pct-inv, 1)) calc(9px * var(--pct-inv, 1));
+}
+
+.fm-pct-route.is-animated .fm-pct-route__guide-flow {
+  animation: fm-route-flow 900ms linear infinite;
+}
+
+@keyframes fm-route-flow {
+  to {
+    stroke-dashoffset: calc(-12px * var(--pct-inv, 1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-route.is-animated .fm-pct-route__guide-flow {
+    animation: none;
+  }
+}
+
+/* Pastilles numérotées des étapes : au-dessus des repères, décalées en haut à droite du lieu,
+   transparentes au toucher (le lieu reste ouvrable dessous). */
+.fm-pct-route-badges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fm-pct-route-badge {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.fm-pct-route-badge.is-current {
+  z-index: 2;
+}
+
+.fm-pct-route-badge__inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: scale(var(--pct-inv, 1)) rotate(calc(-1 * var(--pct-orient, 0deg)))
+    translate(8px, -32px);
+  transform-origin: 0 0;
+  transition: var(--pct-orient-transition, none);
+  white-space: nowrap;
+}
+
+.fm-pct-route-badge__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--surface-plain);
+  border-radius: 999px;
+  background: var(--fm-route-badge-bg, var(--forest));
+  color: var(--fm-route-badge-fg, var(--surface-plain));
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.fm-pct-route-badge.is-upcoming {
+  --fm-route-badge-bg: var(--surface-plain);
+  --fm-route-badge-fg: var(--forest);
+}
+
+.fm-pct-route-badge.is-upcoming .fm-pct-route-badge__number {
+  border-color: var(--forest);
+}
+
+.fm-pct-route-badge.is-done {
+  --fm-route-badge-bg: var(--ink-lichen);
+}
+
+.fm-pct-route-badge.is-current {
+  --fm-route-badge-bg: var(--leaf);
+}
+
+.fm-pct-route-badge.is-current .fm-pct-route-badge__number {
+  min-width: 32px;
+  height: 32px;
+  font-size: var(--text-base);
+  animation: fm-route-badge-pulse 1.8s ease-out infinite;
+}
+
+@keyframes fm-route-badge-pulse {
+  0% {
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.35),
+      0 0 0 0 color-mix(in srgb, var(--leaf) 55%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.35),
+      0 0 0 12px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-route-badge.is-current .fm-pct-route-badge__number {
+    animation: none;
+  }
+}
+
+.fm-pct-route-badge__tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-plain);
+  color: var(--forest);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Barre de parcours : vue d'ensemble (`MapRouteBar`, phase « overview ») -------------- */
+.fm-route-overview__summary {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.fm-route-overview__description {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.fm-route-overview__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(30vh, 260px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.fm-route-overview__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fm-route-overview__step:hover,
+.fm-route-overview__step:focus-visible {
+  background: color-mix(in srgb, var(--leaf) 12%, transparent);
+}
+
+.fm-route-overview__step-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-route-overview__arrow {
+  margin-left: auto;
+  color: var(--ink-soft);
+}
+
+.fm-route-bar__overview-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fm-route-bar__head-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
 }
 
 /* Pastille d'un groupe de repères (désencombrement). */

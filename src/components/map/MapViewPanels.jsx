@@ -110,6 +110,9 @@ export function MapViewRouteControls({
   onResume,
   steps,
   index,
+  phase,
+  onBegin,
+  onShowOverview,
   onGoToIndex,
   onExit,
   onHeight,
@@ -135,6 +138,9 @@ export function MapViewRouteControls({
           route={activeRoute}
           steps={steps}
           index={index}
+          phase={phase}
+          onBegin={onBegin}
+          onShowOverview={onShowOverview}
           onGoToIndex={onGoToIndex}
           onExit={onExit}
           onHeight={onHeight}

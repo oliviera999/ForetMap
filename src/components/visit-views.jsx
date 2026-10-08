@@ -46,10 +46,12 @@ import { MAP_GUIDE_BAR_FOCUS_INSET_PX, MapGuideBar } from '../shared/map-guide/M
 import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
 import { mapPlaceKey } from '../shared/map-guide/mapGuidePlace.js';
 import {
+  buildStageRoute,
   mapRouteResumeStorageKey,
   placesFromZonesAndMarkers,
   routeEntryFocusPct,
 } from '../shared/map-routes/mapRouteSteps.js';
+import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -497,25 +499,36 @@ function VisitViewImpl({
     () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
     [routeBarHeight],
   );
+  /** Réglages du mode parcours (`ui.routes.*`), bornés. */
+  const routeSettings = useMemo(
+    () => resolveRouteSettings(publicSettings?.routes),
+    [publicSettings?.routes],
+  );
   const onRouteStepPlace = useCallback(
     (entry) => {
       if (!entry?.place) return;
       const place = entry.place;
+      // Caméra guidée : c'est la scène qui cadre l'étape, avec la position.
       const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
+      const recenter = !routeSettings.cameraEnabled;
       if (place.kind === 'zone') {
         setSelected(place);
         setSelectedType('zone');
-        const c = visitZoneCentroidPct(place);
+        const c = recenter ? visitZoneCentroidPct(place) : null;
         if (c) focusOnPct({ xp: c.xp, yp: c.yp }, focusOptions);
       } else {
         setSelected(place);
         setSelectedType('marker');
-        if (Number.isFinite(Number(place.x_pct)) && Number.isFinite(Number(place.y_pct))) {
+        if (
+          recenter &&
+          Number.isFinite(Number(place.x_pct)) &&
+          Number.isFinite(Number(place.y_pct))
+        ) {
           focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) }, focusOptions);
         }
       }
     },
-    [setSelected, setSelectedType, focusOnPct, routeFocusInsets],
+    [setSelected, setSelectedType, focusOnPct, routeFocusInsets, routeSettings.cameraEnabled],
   );
   const onRouteExitExtra = useCallback(() => {
     setSelected(null);
@@ -525,6 +538,7 @@ function VisitViewImpl({
     activeRoute,
     routeSteps,
     routeIndex,
+    routePhase,
     currentRouteEntry,
     routePickerOpen,
     setRoutePickerOpen,
@@ -533,16 +547,32 @@ function VisitViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    beginRouteSteps,
+    showRouteOverview,
     resetForMapChange,
   } = useMapRouteMode({
     routes: content.routes || [],
     places: routePlaces,
     onStepPlace: onRouteStepPlace,
     onExitExtra: onRouteExitExtra,
+    onOverviewExtra: onRouteExitExtra,
     // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
     // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     storageKey: mapRouteResumeStorageKey('visit', mapId),
+    overviewEnabled: routeSettings.overviewEnabled,
   });
+  const visitStageRoute = useMemo(
+    () =>
+      buildStageRoute({
+        route: activeRoute,
+        phase: routePhase,
+        steps: routeSteps,
+        index: routeIndex,
+        entry: currentRouteEntry,
+        settings: routeSettings,
+      }),
+    [activeRoute, routePhase, routeSteps, routeIndex, currentRouteEntry, routeSettings],
+  );
   useEffect(() => {
     resetForMapChange();
   }, [mapId, resetForMapChange]);
@@ -561,6 +591,16 @@ function VisitViewImpl({
     allowed: visitHeadingUpAllowed,
   });
   const visitHeadingUpEffective = visitHeadingUpPref.effective && visitPosition.active;
+  /** « Commencer le parcours » : première étape (ou celle choisie) et position allumée. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && visitPosition.available && !visitPosition.active) {
+        visitPosition.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, visitPosition],
+  );
   const visitScaleCompassAllowed =
     !!currentMap?.georef && !!currentMap?.scale_compass_enabled && mode === 'view';
   const visitScaleCompassPref = useScaleCompassPreference({
@@ -673,9 +713,9 @@ function VisitViewImpl({
   }, [visitTargetPct, visitPosition.positionPct, visitPosition.planSize]);
   /** Recadrage de la carte au-dessus de la barre affichée (étape de parcours ou guidage). */
   const visitMapFocusInsets = useMemo(() => {
-    if (activeRoute) return { bottom: 96 };
+    if (activeRoute) return routeFocusInsets || { bottom: 96 };
     return visitGuidedPlace ? { bottom: MAP_GUIDE_BAR_FOCUS_INSET_PX } : null;
-  }, [activeRoute, visitGuidedPlace]);
+  }, [activeRoute, routeFocusInsets, visitGuidedPlace]);
   /**
    * Le lieu visé reste dessiné même si les filtres de catégories l'excluent : sans cela, « Y
    * aller » guidait vers un repère invisible (même constat que `shownPlaces` côté Plan).
@@ -1116,6 +1156,7 @@ function VisitViewImpl({
                   fitExtraStyle={visitFitExtraStyle}
                   focusInsets={visitMapFocusInsets}
                   targetPct={visitTargetPct}
+                  route={mode === 'view' ? visitStageRoute : null}
                   onViewportChange={onVisitViewportChange}
                   onBackgroundClick={onMapBackgroundClick}
                   onMapImageError={() =>
@@ -1180,6 +1221,9 @@ function VisitViewImpl({
                     route={activeRoute}
                     steps={routeSteps}
                     index={routeIndex}
+                    phase={routePhase}
+                    onBegin={onBeginRoute}
+                    onShowOverview={showRouteOverview}
                     onGoToIndex={goToRouteIndex}
                     onExit={exitRoute}
                     onHeight={setRouteBarHeight}

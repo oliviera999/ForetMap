@@ -1032,6 +1032,52 @@
       "maxLength": 160,
       "default": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
     },
+    "ui.routes.auto_locate": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.routes.camera_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.routes.line_animated": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.routes.lookahead_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 0,
+      "max": 90,
+      "default": 60
+    },
+    "ui.routes.overview_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.routes.show_full_path": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
+    "ui.routes.walking_trigger_m": {
+      "scope": "public",
+      "type": "number",
+      "min": 2,
+      "max": 100,
+      "default": 8
+    },
+    "ui.routes.walking_zoom_percent": {
+      "scope": "public",
+      "type": "number",
+      "min": 150,
+      "max": 800,
+      "default": 300
+    },
     "ui.staff_plan.access_mode": {
       "scope": "public",
       "type": "enum",
@@ -1174,6 +1220,16 @@
         },
         "reactions": {
           "allowed_emojis": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
+        },
+        "routes": {
+          "overview_enabled": true,
+          "auto_locate": true,
+          "camera_enabled": true,
+          "walking_zoom_percent": 300,
+          "walking_trigger_m": 8,
+          "lookahead_percent": 60,
+          "show_full_path": true,
+          "line_animated": true
         }
       },
       "content": {
@@ -4315,6 +4371,134 @@
       "updated_by_user_id": null
     },
     {
+      "key": "ui.routes.auto_locate",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.camera_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.line_animated",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.lookahead_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 60,
+      "default_value": 60,
+      "constraints": {
+        "min": 0,
+        "max": 90,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.overview_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.show_full_path",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.walking_trigger_m",
+      "scope": "public",
+      "type": "number",
+      "value": 8,
+      "default_value": 8,
+      "constraints": {
+        "min": 2,
+        "max": 100,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.routes.walking_zoom_percent",
+      "scope": "public",
+      "type": "number",
+      "value": 300,
+      "default_value": 300,
+      "constraints": {
+        "min": 150,
+        "max": 800,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "ui.staff_plan.access_mode",
       "scope": "public",
       "type": "enum",
@@ -4759,6 +4943,16 @@
         },
         "reactions": {
           "allowed_emojis": "👍 ❤️ 😂 😮 😢 😡 🔥 👏"
+        },
+        "routes": {
+          "overview_enabled": true,
+          "auto_locate": true,
+          "camera_enabled": true,
+          "walking_zoom_percent": 300,
+          "walking_trigger_m": 8,
+          "lookahead_percent": 60,
+          "show_full_path": true,
+          "line_animated": true
         }
       },
       "content": {

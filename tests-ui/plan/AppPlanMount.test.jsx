@@ -82,6 +82,7 @@ const viewportStub = vi.hoisted(() => {
     fitMapAnimated: noop,
     zoomBy: noop,
     focusOnPct: noop,
+    followPct: noop,
     consumeSkipClick: () => false,
     touchAction: 'none',
     setMapOrientation: noop,
@@ -529,7 +530,15 @@ describe('AppPlan — montage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
 
     const sheet = await screen.findByTestId('plan-route-sheet');
+    // Vue d'ensemble d'abord : les deux étapes numérotées, sur la barre comme sur la carte.
+    expect(sheet.getAttribute('data-phase')).toBe('overview');
+    expect(sheet.textContent).toContain('Vue d’ensemble — 2 étapes');
     expect(sheet.textContent).toContain('Le CDI');
+    expect(
+      document.querySelectorAll('[data-testid="map-route-badges"] [data-step-number]'),
+    ).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Commencer le parcours' }));
+    await waitFor(() => expect(sheet.getAttribute('data-phase')).toBe('steps'));
     expect(sheet.textContent).toContain('Étape 1 sur 2');
     // Le mode parcours passe désormais par le noyau partagé, qui reçoit la mesure d'usage en
     // rappel : le plan lui joint sa **variante** (public / personnels), comme les autres
@@ -595,7 +604,8 @@ describe('AppPlan — montage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Parcours/ }));
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
     const sheet = await screen.findByTestId('plan-route-sheet');
-    expect(sheet.textContent).toContain('Le gymnase');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Commencer le parcours' }));
+    await waitFor(() => expect(sheet.textContent).toContain('Le gymnase'));
 
     // Un autre lieu, cherché puis ouvert : la barre d'étape ne bouge pas.
     fireEvent.change(screen.getByLabelText('Rechercher un lieu'), {
@@ -611,6 +621,38 @@ describe('AppPlan — montage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Revenir à l’étape' }));
     await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBeNull());
     expect(screen.getByTestId('plan-route-sheet').textContent).toContain('Le gymnase');
+  });
+
+  test('« Commencer le parcours » allume « Me situer » quand le plan est géolocalisable', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValueOnce({
+      ...content,
+      routes: [
+        {
+          id: 'r1',
+          slug: 'tour',
+          title: 'Tour du lycée',
+          audience: '',
+          description: '',
+          steps: [{ position: 0, target_type: 'zone', target_id: 'z-cdi', step_title: 'Le CDI' }],
+        },
+      ],
+    });
+    positionStub.available = true;
+    try {
+      window.history.replaceState(null, '', '/?parcours=tour');
+      render(<AppPlan />);
+      const sheet = await screen.findByTestId('plan-route-sheet');
+      expect(positionStub.toggle).not.toHaveBeenCalled();
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Commencer le parcours' }));
+      expect(positionStub.toggle).toHaveBeenCalledTimes(1);
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+        'locate',
+        'on',
+        expect.objectContaining({ id: 'plan' }),
+      );
+    } finally {
+      positionStub.available = false;
+    }
   });
 
   test('lien profond ?parcours= : ouvre le parcours annoncé par le QR code', async () => {
@@ -632,7 +674,10 @@ describe('AppPlan — montage', () => {
 
     const sheet = await screen.findByTestId('plan-route-sheet');
     expect(sheet.textContent).toContain('Le CDI');
-    expect(sheet.textContent).toContain('Étape 1 sur 1');
+    // Le visiteur qui scanne l'affiche voit d'abord tout le parcours, puis commence.
+    expect(sheet.getAttribute('data-phase')).toBe('overview');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Commencer le parcours' }));
+    await waitFor(() => expect(sheet.textContent).toContain('Étape 1 sur 1'));
   });
 
   test('lien profond vers un parcours disparu : le visiteur l’apprend', async () => {

@@ -53,6 +53,8 @@ import { buildMapUrl, readMapIdFromLocation } from './utils/planMaps.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { buildStageRoute } from '../shared/map-routes/mapRouteSteps.js';
+import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
 /**
@@ -485,9 +487,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     setSelectedPlace(null);
     resetGuidanceRef.current?.();
   }, []);
+  const onRouteOverviewExtra = useCallback(() => setSelectedPlace(null), []);
   const onRouteExit = useCallback(() => {
     setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
   }, [setRouteToast]);
+  /** Réglages « Parcours guidés » (vue d'ensemble, caméra, tracé), servis avec le contenu. */
+  const routeSettings = useMemo(() => resolveRouteSettings(settings?.routes), [settings]);
   const onRouteUsage = useCallback(
     (event, detail) => reportPlanUsage(event, detail, variant),
     [variant],
@@ -504,10 +509,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     peekPlace: routePeekPlace,
     setPeekPlace: setRoutePeekPlace,
     startRoute,
-    startRouteAt,
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    routePhase,
+    beginRouteSteps,
+    showRouteOverview,
     resetForMapChange,
   } = useMapRouteMode({
     routes,
@@ -515,10 +522,26 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     onStepPlace: onRouteStepPlace,
     onStartExtra: onRouteStartExtra,
     onExitExtra: onRouteExitExtra,
+    onOverviewExtra: onRouteOverviewExtra,
     onExit: onRouteExit,
     onUsage: onRouteUsage,
     storageKey: ROUTE_RESUME_STORAGE_KEY,
+    overviewEnabled: routeSettings.overviewEnabled,
   });
+
+  /** Habillage du parcours sur la carte : tracé fléché, étapes numérotées, caméra. */
+  const stageRoute = useMemo(
+    () =>
+      buildStageRoute({
+        route: activeRoute,
+        phase: routePhase,
+        steps: routeSteps,
+        index: routeIndex,
+        entry: currentRouteEntry,
+        settings: routeSettings,
+      }),
+    [activeRoute, routePhase, routeSteps, routeIndex, currentRouteEntry, routeSettings],
+  );
 
   activeRouteSlugRef.current = activeRouteSlug;
 
@@ -699,6 +722,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * C'est tout l'objet du geste — voir où l'on est par rapport au lieu, ce qu'une feuille
    * couvrant 55 % de l'écran interdisait (B4).
    */
+  /** « Commencer le parcours » : l'étape choisie, et « Me situer » allumé si possible. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && position.available && !position.active) {
+        reportPlanUsage('locate', 'on', variant);
+        position.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, position, variant],
+  );
   const onGuidanceStart = useCallback(
     (place) => {
       reportPlanUsage('go', String(place.id), variant);
@@ -827,11 +861,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (!wanted) return;
     const found = routes.find((route) => route.slug === wanted);
     if (found) {
-      startRouteAt(found, 0);
+      // Comme depuis la puce : vue d'ensemble d'abord si le réglage le prévoit.
+      startRoute(found);
       return;
     }
     setRouteToast('Ce parcours n’est plus disponible.');
-  }, [content, routes, setRouteToast, startRouteAt]);
+  }, [content, routes, setRouteToast, startRoute]);
 
   /**
    * Aligne `?parcours=` après les history.back() des feuilles qui se ferment au démarrage.
@@ -1158,6 +1193,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             onScaleCompassToggle={scaleCompassPref.toggle}
             targetPct={targetPct}
             focusInsets={mapFocusInsets}
+            route={stageRoute}
             attribution={settings?.attribution || ''}
             schoolLogoUrl={PLAN_SCHOOL_LOGO_URL}
             /* Feuille ouverte : la colonne de commandes ne tient pas dans la bande de carte
@@ -1219,6 +1255,9 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           route={activeRoute}
           steps={routeSteps}
           index={routeIndex}
+          phase={routePhase}
+          onBegin={onBeginRoute}
+          onShowOverview={showRouteOverview}
           onGoToIndex={goToRouteIndex}
           onExit={exitRoute}
           onHeight={setRouteBarHeight}

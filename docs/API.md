@@ -1420,6 +1420,24 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.map.show_tutorial_dots`    | boolean | `false`                            | Pastilles violettes tutoriel sur zones/repères (carte)  |
 | `ui.visit.heading_up_enabled`  | boolean | `false`                            | Idem sur la Visite                                      |
 
+**Parcours guidés** (`lib/settings/routes.js`, portée publique) — communs à la Visite, à la carte
+de travail et aux plans. Côté ForêtMap, `GET /api/settings/public` les sert sous `ui.routes`
+(repliés en `routes` par `mergePublicSettings`) ; côté plans, `GET /api/plan/content` (et
+`/api/staff-plan/content`) les joint à `settings.routes`. Le client les borne à nouveau
+(`src/shared/map-routes/routeSettings.js`) : une valeur absente ou incohérente retombe sur le
+défaut.
+
+| Clé                                | Type    | Défaut | Effet                                                                                   |
+| ---------------------------------- | ------- | ------ | --------------------------------------------------------------------------------------- |
+| `ui.routes.overview_enabled`       | boolean | `true` | Un parcours démarre par sa vue d'ensemble (tracé fléché, étapes numérotées, « Commencer ») |
+| `ui.routes.auto_locate`            | boolean | `true` | « Commencer le parcours » allume « Me situer » si la carte est géolocalisable           |
+| `ui.routes.camera_enabled`         | boolean | `true` | Caméra guidée en étape (position + étape, puis zoom de marche) ; sinon simple recentrage |
+| `ui.routes.walking_zoom_percent`   | number  | `300`  | Zoom de marche en % de la carte entière (150 → 800)                                     |
+| `ui.routes.walking_trigger_m`      | number  | `8`    | Distance parcourue (m) qui déclenche le zoom de marche (2 → 100)                        |
+| `ui.routes.lookahead_percent`      | number  | `60`   | Ouverture de la vue vers l'étape, en % de la demi-vue (0 → 90 ; 0 = centrée)           |
+| `ui.routes.show_full_path`         | boolean | `true` | Tracé complet en fond pendant les étapes (la vue d'ensemble le montre toujours)        |
+| `ui.routes.line_animated`          | boolean | `true` | Ligne de guidage animée (figée de toute façon si mouvement réduit)                     |
+
 | Clé                                   | Type    | Défaut  | Effet                                                         |
 | ------------------------------------- | ------- | ------- | ------------------------------------------------------------- |
 | `ui.biodiv.determination_always_open` | boolean | `false` | Section « Détermination » des fiches espèces dépliée d’office |
@@ -2620,7 +2638,9 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
   - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies dans le catalogue),
-    `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage).
+    `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage),
+    `routes` (réglages `ui.routes.*` des parcours guidés, sans le préfixe — voir le tableau
+    « Parcours guidés » des réglages publics).
     `ui.plan.map_id` et `ui.plan.selectable_map_ids` ne sont **pas** repris ici (l'identifiant
     servi est déjà dans `map`, les plans proposés dans `maps`).
   - `categories` : catégories **actives**, globales ou de la carte, qui apparaissent sur la

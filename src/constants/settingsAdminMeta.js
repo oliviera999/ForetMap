@@ -11,6 +11,7 @@ export const SECTION_DEFS = {
   modules: { title: 'Modules UI', order: 20 },
   content: { title: 'Contenus du site', order: 22 },
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
+  routes: { title: 'Parcours guidés (Visite, carte, plans)', order: 24 },
   progression: { title: 'Progression n3beurs', order: 25 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
@@ -521,6 +522,52 @@ export const KEY_META = {
       assignees: 'Les inscrits de la tâche seulement',
       group: 'Les entrées de ses camarades de groupe et les siennes',
     },
+  },
+  'ui.routes.overview_enabled': {
+    label:
+      'Commencer un parcours par une vue d’ensemble (tout le tracé, étapes numérotées et fléchées)',
+    section: 'routes',
+    order: 10,
+  },
+  'ui.routes.auto_locate': {
+    label:
+      'Activer « Me situer » au bouton « Commencer le parcours » (si la carte est géolocalisable)',
+    section: 'routes',
+    order: 20,
+  },
+  'ui.routes.camera_enabled': {
+    label:
+      'Caméra guidée pendant les étapes (position + étape, puis zoom sur la personne en marche) ; décoché : la carte centre seulement le lieu de chaque étape',
+    section: 'routes',
+    order: 30,
+  },
+  'ui.routes.walking_zoom_percent': {
+    label:
+      'Zoom de marche (% de la carte entière : 100 = carte entière, 300 = défaut, 800 = très près)',
+    section: 'routes',
+    order: 40,
+  },
+  'ui.routes.walking_trigger_m': {
+    label: 'Distance parcourue avant de zoomer sur la personne (mètres, 8 = défaut)',
+    section: 'routes',
+    order: 50,
+  },
+  'ui.routes.lookahead_percent': {
+    label:
+      'Anticipation en marche : part de la vue ouverte devant soi, vers l’étape (% : 0 = personne au centre, 60 = défaut)',
+    section: 'routes',
+    order: 60,
+  },
+  'ui.routes.show_full_path': {
+    label: 'Garder le tracé complet en fond pendant les étapes (étapes passées grisées)',
+    section: 'routes',
+    order: 70,
+  },
+  'ui.routes.line_animated': {
+    label:
+      'Animer les chevrons de la ligne de guidage (toujours figés si l’appareil demande moins d’animations)',
+    section: 'routes',
+    order: 80,
   },
   'privacy.external_assets_mode': {
     label:

@@ -1,7 +1,7 @@
 /**
  * Parcours de la carte de travail : chargement des parcours de la carte active, mode
- * parcours (étape courante, reprise mémorisée), recadrage sur le lieu de chaque étape, et
- * demande d'ouverture venue d'une séance pédagogique.
+ * parcours (vue d'ensemble, étape courante, reprise mémorisée), recadrage sur le lieu de
+ * chaque étape, et demande d'ouverture venue d'une séance pédagogique.
  *
  * Extrait de `MapViewImpl` (`src/components/map-views.jsx`, étape B4 de l'audit du
  * 25/09/2026, § 3.3 ligne 5 — patron O6), sans changement de comportement.
@@ -10,9 +10,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useMapRouteMode } from '../../shared/map-routes/useMapRouteMode.js';
 import {
+  buildStageRoute,
   mapRouteResumeStorageKey,
   placesFromZonesAndMarkers,
 } from '../../shared/map-routes/mapRouteSteps.js';
+import { resolveRouteSettings } from '../../shared/map-routes/routeSettings.js';
 import { markerFocusPct, zoneFocusPctFromPoints } from '../../utils/mapFocusLocation.js';
 
 /**
@@ -26,6 +28,7 @@ import { markerFocusPct, zoneFocusPctFromPoints } from '../../utils/mapFocusLoca
  * @param {Function} options.setSelectedMarker sélection de repère de la carte
  * @param {{ slug: string, nonce: * }|null} options.routeRequest « ouvrir le parcours X »
  * @param {Function|null} options.onRouteRequestHandled accusé de la demande (nonce)
+ * @param {object|null} [options.routeSettingsRaw] réglages `ui.routes` (section `routes`).
  */
 export function useMapViewRoutes({
   activeMapId,
@@ -37,7 +40,9 @@ export function useMapViewRoutes({
   setSelectedMarker,
   routeRequest,
   onRouteRequestHandled,
+  routeSettingsRaw = null,
 }) {
+  const routeSettings = useMemo(() => resolveRouteSettings(routeSettingsRaw), [routeSettingsRaw]);
   const [mapRoutes, setMapRoutes] = useState([]);
   useEffect(() => {
     let cancelled = false;
@@ -77,18 +82,26 @@ export function useMapViewRoutes({
       if (!entry?.place) return;
       const place = entry.place;
       const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
+      // Caméra guidée : la scène cadre elle-même l'étape avec la position.
+      const recenter = !routeSettings.cameraEnabled;
       if (place.kind === 'zone') {
         setSelectedMarker(null);
         setSelectedZone(place);
-        const pct = zoneFocusPctFromPoints(place.points);
+        const pct = recenter ? zoneFocusPctFromPoints(place.points) : null;
         if (pct) focusMapPct(pct, focusOptions);
       } else {
         setSelectedZone(null);
         setSelectedMarker(place);
-        focusMapPct(markerFocusPct(place), focusOptions);
+        if (recenter) focusMapPct(markerFocusPct(place), focusOptions);
       }
     },
-    [focusMapPct, routeFocusInsets, setSelectedZone, setSelectedMarker],
+    [
+      focusMapPct,
+      routeFocusInsets,
+      routeSettings.cameraEnabled,
+      setSelectedZone,
+      setSelectedMarker,
+    ],
   );
   const onRouteExitExtra = useCallback(() => {
     setSelectedZone(null);
@@ -99,11 +112,22 @@ export function useMapViewRoutes({
     places: routePlaces,
     onStepPlace: onRouteStepPlace,
     onExitExtra: onRouteExitExtra,
+    onOverviewExtra: onRouteExitExtra,
     // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
     // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     storageKey: mapRouteResumeStorageKey('map', activeMapId),
+    overviewEnabled: routeSettings.overviewEnabled,
   });
-  const { activeRoute, startRoute, exitRoute, resetForMapChange } = routeMode;
+  const {
+    activeRoute,
+    routePhase,
+    routeSteps,
+    routeIndex,
+    currentRouteEntry,
+    startRoute,
+    exitRoute,
+    resetForMapChange,
+  } = routeMode;
   useEffect(() => {
     resetForMapChange();
   }, [activeMapId, resetForMapChange]);
@@ -123,5 +147,26 @@ export function useMapViewRoutes({
     if (mode !== 'view' && activeRoute) exitRoute();
   }, [mode, activeRoute, exitRoute]);
 
-  return { ...routeMode, mapRoutes, routePlaces, setRouteBarHeight };
+  const stageRoute = useMemo(
+    () =>
+      buildStageRoute({
+        route: activeRoute,
+        phase: routePhase,
+        steps: routeSteps,
+        index: routeIndex,
+        entry: currentRouteEntry,
+        settings: routeSettings,
+      }),
+    [activeRoute, routePhase, routeSteps, routeIndex, currentRouteEntry, routeSettings],
+  );
+
+  return {
+    ...routeMode,
+    mapRoutes,
+    routePlaces,
+    setRouteBarHeight,
+    routeFocusInsets,
+    routeSettings,
+    stageRoute,
+  };
 }

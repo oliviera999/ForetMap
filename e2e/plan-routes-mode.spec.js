@@ -125,6 +125,14 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
 
   const sheet = page.getByTestId('plan-route-sheet');
   await expect(sheet).toBeVisible({ timeout: 15_000 });
+  // Vue d'ensemble d'abord (réglage `ui.routes.overview_enabled`, actif par défaut) : tout le
+  // tracé fléché, les étapes numérotées sur la carte et dans la barre.
+  await expect(sheet).toHaveAttribute('data-phase', 'overview');
+  await expect(sheet.getByText(/Vue d’ensemble — 2 étapes/)).toBeVisible();
+  await expect(page.getByTestId('map-route-lines')).toBeAttached();
+  await expect(page.locator('[data-testid="map-route-badges"] [data-step-number]')).toHaveCount(2);
+  await sheet.getByRole('button', { name: 'Commencer le parcours' }).click();
+  await expect(sheet).toHaveAttribute('data-phase', 'steps');
   await expect(sheet.getByText('Première étape')).toBeVisible();
   await expect(sheet.getByText('Étape 1 sur 2')).toBeVisible();
   // L'URL porte le parcours : c'est elle qu'on imprime sous forme de QR code.

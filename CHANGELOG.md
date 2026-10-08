@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Parcours guidés : vue d'ensemble, tracé fléché et caméra qui suit la marche
+
+- **Vue d'ensemble** au démarrage d'un parcours (Visite, carte de travail, plans — puce, QR code ou séance) : la carte se cadre sur tout le trajet, tracé d'une ligne **fléchée dans le sens de marche**, avec une **pastille numérotée** par étape (« Départ », « Arrivée 🏁 ») ; la barre liste les étapes, « Commencer le parcours » ou un appui sur une étape lance la suite. Bouton 🗺️ en cours de route pour y revenir ; « Reprendre le parcours » va toujours droit à l'étape quittée (`useMapRouteMode` : `routePhase`, `beginRouteSteps`, `showRouteOverview`, `onOverviewExtra` ; `MapRouteBar`).
+- **« Me situer » allumé automatiquement** à « Commencer » quand la carte est géolocalisable.
+- **Caméra guidée** (`SharedMapStage`, `src/shared/map-routes/routeGeometry.js`) : d'abord la position **et** l'étape, puis, une fois la marche détectée, un zoom sur la position ouvert vers l'étape ; le suivi continu du moteur de vue cale la vue contre les bords du plan pour montrer le maximum de carte et de trajet. Un geste (glisser, zoomer, « Voir tout le plan ») rend la main jusqu'à l'étape suivante ou « Me situer ». Sans position : cadrage étape précédente + étape courante.
+- **Tracé redessiné** (`src/shared/pct-map/PctRouteLayer.jsx`, remplace `PctDirectLine`) : dessiné en pixels du calque (les chevrons ne se déforment plus sur un plan non carré), liseré clair, chevrons de sens, trajet complet en fond (étapes faites grisées et cochées), ligne de guidage animée position → étape (figée si mouvement réduit). « Y aller » profite du même trait.
+- **Réglages** (_Réglages → Parcours guidés_, `lib/settings/routes.js`, portée publique) : `ui.routes.overview_enabled`, `auto_locate`, `camera_enabled`, `walking_zoom_percent`, `walking_trigger_m`, `lookahead_percent`, `show_full_path`, `line_animated`. Servis sous `ui.routes` par `GET /api/settings/public` (portée ForêtMap) et sous `settings.routes` par `GET /api/plan/content` / `/api/staff-plan/content` ; bornés côté client (`src/shared/map-routes/routeSettings.js`).
+- Moteur de vue : le suivi continu `followPct` compte une image à 60 Hz quand l'horloge ne progresse pas (rAF synchrone), au lieu de boucler sans avancer.
+- Tests : `tests/route-geometry.test.js`, `tests/plan-content.test.js`, `tests/security-public-surface.test.js`, fixture `settings-registry-characterization.golden.json`, `tests-ui/shared/useMapRouteMode.test.jsx`, `MapRouteBar.test.jsx`, `PctRouteLayer.test.jsx`, `tests-ui/plan/AppPlanMount.test.jsx`, `tests-ui/components/map/MapViewImpl.mount.test.jsx`, `e2e/plan-routes-mode.spec.js`. Doc : `docs/reference/foretmap/carte-et-zones.md` (« Suivre un parcours »), `visite-et-mascottes.md`, `docs/reference/plan/presentation.md`, `docs/API.md`.
+
 ### Modifié — Carte : résultats repliés quand seules les catégories par défaut sont cochées
 
 - **Carte de travail** : quand les filtres sont exactement les catégories cochées d'office de la carte (réglage « Cartographie → Cartes »), la liste « Résultats » s'affiche repliée ; elle se déplie dès que l'utilisateur change un filtre, et reste dépliable à la main (`MapLocationFilterResults`, `useMapViewLocationFilters` → `mapFiltersAtDefaults`).

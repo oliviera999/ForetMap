@@ -240,11 +240,26 @@ lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 ### Les parcours
 
 Un **parcours** est une liste ordonnée de lieux : « le tour des nouveaux professeurs », « la
-visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés ; en
-choisir un affiche une **barre d'étape en bas d'écran**, avec « Précédent » et « Suivant ». La
-carte reste utilisable (on peut la déplacer et zoomer) et se recentre sur chaque étape, au-dessus
-de la barre, pour que le lieu reste visible. Sans calage GPS, on se repère sur le plan puis on
-avance avec « Suivant » ; avec le calage, « Y aller » vise l'étape en cours.
+visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés.
+
+En choisir un (ou scanner son QR code) affiche d'abord une **vue d'ensemble** : le plan se cadre
+sur tout le trajet, tracé d'une ligne **fléchée dans le sens de marche**, avec une **pastille
+numérotée** sur chaque étape (« Départ », « Arrivée 🏁 »). La barre du bas liste les étapes ; en
+toucher une démarre directement à cette étape.
+
+**« Commencer le parcours »** affiche ensuite la **barre d'étape**, avec « Précédent » et
+« Suivant », et allume **« Me situer »** si le plan est calé. La vue montre alors votre position
+**et** l'étape à atteindre ; dès que vous marchez, elle zoome sur vous tout en restant ouverte
+vers l'étape, et se cale contre le bord du plan plutôt que de montrer du vide. Le trajet complet
+reste en fond (étapes faites grisées et cochées), et une ligne animée relie votre position à
+l'étape en cours. Déplacer ou zoomer la carte reprend la main jusqu'à l'étape suivante ; le
+bouton 🗺️ ramène à la vue d'ensemble. Sans calage GPS, la vue d'étape montre l'étape précédente
+et la suivante pour indiquer le sens, et on avance avec « Suivant ».
+
+Ces comportements se règlent dans ForetMap, _Réglages → **Parcours guidés**_ (communs à la carte,
+à la Visite et aux plans) : vue d'ensemble au démarrage, « Me situer » automatique, caméra
+guidée, zoom et distance de déclenchement de la marche, anticipation vers l'étape, trajet
+complet visible, ligne animée.
 
 Pendant un parcours, le plan reste **explorable** : toucher un autre lieu (sur la carte ou dans
 les résultats de recherche) ouvre sa fiche **en aperçu bas**, avec un bouton **« Revenir à
@@ -259,7 +274,7 @@ début —, et la puce **Parcours** reste une autre entrée (un court message le
 position est mémorisée sur l'appareil, et sur lui seul : elle survit à la fermeture de la page,
 elle ne quitte jamais le téléphone. Démarrer un parcours depuis la puce repart de l'étape 1 ;
 un parcours dépublié entre-temps ne laisse pas de bouton qui ne mènerait nulle part. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
-un **QR code** à l'accueil : le visiteur scanne et démarre le parcours. Si l'affiche a survécu au
+un **QR code** à l'accueil : le visiteur scanne et arrive sur la vue d'ensemble du parcours. Si l'affiche a survécu au
 parcours — dépublié, supprimé, renommé — le plan le **dit** (« Ce parcours n'est plus
 disponible. ») plutôt que de s'ouvrir sans rien annoncer.
 

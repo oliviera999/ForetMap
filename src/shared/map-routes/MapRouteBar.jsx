@@ -16,9 +16,87 @@ import { routeStepTitle } from './mapRouteSteps.js';
  */
 export const MAP_ROUTE_BAR_FOCUS_INSET_PX = 148;
 
+/** Description de parcours affichée en vue d'ensemble avant « Lire plus ». */
+const OVERVIEW_DESCRIPTION_MAX = 140;
+
+/**
+ * Vue d'ensemble d'un parcours : sa description, ses étapes numérotées (un appui démarre à
+ * l'étape choisie) et « Commencer ». La carte, au-dessus, montre tout le tracé fléché.
+ */
+function MapRouteOverview({ route, steps, onBegin, resumeIndex }) {
+  const [expanded, setExpanded] = useState(false);
+  const description = String(route?.description || '').trim();
+  const longDescription = description.length > OVERVIEW_DESCRIPTION_MAX;
+  const total = steps.length;
+  const canResume = resumeIndex > 0 && resumeIndex < total;
+  return (
+    <>
+      <p className="fm-route-overview__summary">
+        {total > 0
+          ? `Vue d’ensemble — ${total} étape${total > 1 ? 's' : ''}, à suivre dans l’ordre des flèches.`
+          : 'Ce parcours n’a pas encore d’étape affichable.'}
+      </p>
+      {description ? (
+        <p className="fm-route-overview__description">
+          {longDescription && !expanded
+            ? `${description.slice(0, OVERVIEW_DESCRIPTION_MAX - 10).trim()}…`
+            : description}
+          {longDescription ? (
+            <button
+              type="button"
+              className="map-route-bar__more plan-route-bar__more"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? 'Réduire' : 'Lire plus'}
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+      {total > 0 ? (
+        <ol className="fm-route-overview__list" aria-label="Étapes du parcours">
+          {steps.map((entry) => (
+            <li key={`${entry.place?.kind}:${entry.place?.id}:${entry.index}`}>
+              <button
+                type="button"
+                className="fm-route-overview__step"
+                onClick={() => onBegin?.(entry.index)}
+                aria-label={`Commencer à l’étape ${entry.number} : ${routeStepTitle(entry)}`}
+              >
+                <span className="map-route__step-number plan-route__step-number" aria-hidden>
+                  {entry.number}
+                </span>
+                <span className="fm-route-overview__step-name">{routeStepTitle(entry)}</span>
+                <span className="fm-route-overview__arrow" aria-hidden>
+                  ›
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      <div className="map-route__actions plan-route__actions">
+        {canResume ? (
+          <Button variant="secondary" onClick={() => onBegin?.(resumeIndex)}>
+            Reprendre à l’étape {resumeIndex + 1}
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button variant="primary" disabled={total === 0} onClick={() => onBegin?.(0)}>
+          Commencer le parcours
+        </Button>
+      </div>
+    </>
+  );
+}
+
 /**
  * Barre d'étape du mode parcours : ancrée en bas, carte restée utilisable.
  * Dual-class `map-*` / `plan-*` : le Plan n'importe pas index.css.
+ *
+ * Deux phases (`phase`) : `overview` — tout le parcours, étapes numérotées, « Commencer » —
+ * puis `steps` — une étape à la fois, avec un retour possible à la vue d'ensemble
+ * (`onShowOverview`).
  */
 export function MapRouteBar({
   route,
@@ -26,6 +104,9 @@ export function MapRouteBar({
   index,
   onGoToIndex,
   onExit,
+  phase = 'steps',
+  onBegin,
+  onShowOverview,
   distanceLabel = '',
   canLocate = false,
   hintLocate = 'Le lieu est mis en avant sur le plan. Utilisez « Me situer » puis avancez.',
@@ -57,16 +138,44 @@ export function MapRouteBar({
     };
   }, [onHeight, reportHeight]);
   const total = steps.length;
+  const isOverview = phase === 'overview';
   const entry = steps[index] || null;
   const title = entry ? routeStepTitle(entry) : route.title;
   const stepText = entry?.step?.step_text ? String(entry.step.step_text).trim() : '';
   const longText = stepText.length > 120;
+
+  if (isOverview) {
+    return (
+      <aside
+        ref={barRef}
+        className="map-route-bar plan-route-bar is-overview"
+        data-testid={testId}
+        data-phase="overview"
+        aria-label={`Parcours ${route.title} — vue d’ensemble`}
+      >
+        <div className="map-route-bar__head plan-route-bar__head">
+          <div className="map-route-bar__titles plan-route-bar__titles">
+            <h2 className="map-route-bar__step plan-route-bar__step">{route.title}</h2>
+          </div>
+          <button
+            type="button"
+            className="map-route-bar__quit plan-route-bar__quit"
+            onClick={onExit}
+          >
+            Quitter
+          </button>
+        </div>
+        <MapRouteOverview route={route} steps={steps} onBegin={onBegin} resumeIndex={index} />
+      </aside>
+    );
+  }
 
   return (
     <aside
       ref={barRef}
       className="map-route-bar plan-route-bar"
       data-testid={testId}
+      data-phase="steps"
       aria-label={`Parcours ${route.title}`}
     >
       <div className="map-route-bar__head plan-route-bar__head">
@@ -85,9 +194,26 @@ export function MapRouteBar({
             </p>
           )}
         </div>
-        <button type="button" className="map-route-bar__quit plan-route-bar__quit" onClick={onExit}>
-          Quitter
-        </button>
+        <div className="fm-route-bar__head-actions">
+          {onShowOverview ? (
+            <button
+              type="button"
+              className="fm-route-bar__overview-btn"
+              onClick={onShowOverview}
+              aria-label="Revoir la vue d’ensemble du parcours"
+              title="Vue d’ensemble"
+            >
+              🗺️
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="map-route-bar__quit plan-route-bar__quit"
+            onClick={onExit}
+          >
+            Quitter
+          </button>
+        </div>
       </div>
       {stepText ? (
         <p

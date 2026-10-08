@@ -103,24 +103,6 @@ function PctPositionLayerImpl({
 export const PctPositionLayer = React.memo(PctPositionLayerImpl);
 PctPositionLayer.displayName = 'PctPositionLayer';
 
-/**
- * Trait « en ligne droite » entre la position et un lieu visé (« Y aller », §8.5). Ce n'est
- * pas un itinéraire : c'est une direction et une distance, honnêtes. Le vrai routage demande
- * un graphe de chemins, décision laissée à un lot ultérieur.
- *
- * @param {object} props
- * @param {{ xp: number, yp: number }|null} props.from
- * @param {{ xp: number, yp: number }|null} props.to
- * @param {string} [props.className]
- */
-function PctDirectLineImpl({ from, to, className = 'fm-pct-direct-line' }) {
-  if (!from || !to) return null;
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={className} aria-hidden>
-      <line x1={from.xp} y1={from.yp} x2={to.xp} y2={to.yp} className={`${className}__stroke`} />
-    </svg>
-  );
-}
-
-export const PctDirectLine = React.memo(PctDirectLineImpl);
-PctDirectLine.displayName = 'PctDirectLine';
+// Le trait « Y aller » (ligne droite position → lieu, §8.5) vit dans `PctRouteLayer.jsx`
+// (`PctRouteLines`), commun avec la ligne de guidage des parcours. Ce n'est toujours pas un
+// itinéraire : une direction et une distance, honnêtes.

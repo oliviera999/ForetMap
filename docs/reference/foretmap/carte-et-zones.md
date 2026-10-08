@@ -311,6 +311,54 @@ Composer un parcours :
 - Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
   aucune progression, aucun suivi individuel.
 
+#### Suivre un parcours (carte, Visite, plans)
+
+Le déroulé est le même sur les trois surfaces :
+
+1. **Vue d'ensemble.** Ouvrir un parcours (depuis la liste, « Reprendre » mis à part, ou en
+   scannant le QR code d'une affiche) montre d'abord **tout le trajet** : la carte se cadre sur
+   l'ensemble des étapes, reliées par une ligne munie de **flèches qui indiquent le sens de
+   marche**, avec une **pastille numérotée** sur chaque lieu (« Départ » sur la première,
+   « Arrivée 🏁 » sur la dernière). La barre du bas résume le parcours et liste ses étapes ;
+   toucher l'une d'elles démarre directement à cette étape.
+2. **« Commencer le parcours ».** La première étape s'ouvre. Si la carte permet de se situer,
+   **« Me situer » s'allume tout seul**. La vue montre alors **à la fois votre position et
+   l'étape à atteindre**.
+3. **En marchant.** Dès que vous vous êtes éloigné de quelques mètres de votre point de départ,
+   la carte **zoome sur votre position** et reste ouverte **vers l'étape** : vous voyez où vous
+   êtes, et la ligne fléchée qui mène à l'étape. Près d'un bord du plan, la vue se cale contre
+   ce bord plutôt que d'afficher du vide, pour montrer le plus de carte et de trajet possible.
+4. Le trajet complet reste dessiné **en fond, discret** : les étapes déjà faites sont grisées
+   et cochées ✓, l'étape en cours est mise en avant, et une ligne animée relie votre position
+   à cette étape.
+
+Toucher la carte (glisser, zoomer, « Voir tout le plan ») reprend la main : la vue cesse de
+suivre jusqu'à l'étape suivante, ou jusqu'à un appui sur « Me situer ». Le bouton 🗺️ de la
+barre d'étape ramène à la vue d'ensemble, d'où « Reprendre à l'étape N » revient où l'on en
+était. « Reprendre le parcours » (après « Quitter ») va, lui, directement à l'étape quittée.
+
+Ce comportement se règle dans _Réglages → **Parcours guidés**_ (s'applique à la carte, à la
+Visite et aux plans) :
+
+- **Vue d'ensemble au démarrage** — sinon le parcours s'ouvre directement sur l'étape 1 ;
+- **« Me situer » automatique** au moment de commencer ;
+- **Caméra guidée** pendant les étapes — désactivée, la carte se recentre seulement sur chaque
+  nouvelle étape, comme auparavant (la vue d'ensemble, elle, montre toujours tout le trajet) ;
+- **Zoom pendant la marche** (en % de la carte entière, 300 % par défaut) ;
+- **Distance de déclenchement du zoom de marche** (8 m par défaut) ;
+- **Anticipation vers l'étape** : à quel point la vue s'ouvre devant soi plutôt que de rester
+  centrée sur la position (60 % par défaut, 0 % = toujours centrée) ;
+- **Trajet complet visible pendant les étapes** ;
+- **Ligne animée** vers l'étape (elle reste fixe de toute façon pour les personnes qui ont
+  demandé à leur appareil de réduire les animations).
+
+> ⚠️ **Points d'attention**
+>
+> - Quand la carte est orientée selon la boussole, c'est l'orientation qui mène la vue : la
+>   caméra guidée se met en retrait.
+> - Sans position (carte non calée, ou « Me situer » refusé), la vue d'étape cadre l'étape
+>   précédente et l'étape en cours, pour montrer le sens à suivre.
+
 ### Se situer sur la carte
 
 Quand le plan affiché est **calé** (points de repère GPS posés par un professeur), le bouton
