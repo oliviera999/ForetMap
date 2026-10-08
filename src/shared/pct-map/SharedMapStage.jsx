@@ -79,6 +79,8 @@ const POSITION_ICONS = Object.freeze({
  * @param {object|null} [props.position]
  * @param {() => void} [props.onLocateToggle]
  * @param {{ xp: number, yp: number }|null} [props.targetPct]
+ * @param {boolean} [props.routeLineAnimated=true] réglage `ui.routes.line_animated`, pour la
+ *   ligne « Y aller » (hors parcours, `route.settings` n'existe pas).
  * @param {object|null} [props.route] parcours en cours : `{ slug, phase: 'overview'|'steps',
  *   steps, currentIndex, currentPlaceKey, settings }` (`settings` : `resolveRouteSettings`).
  *   Présent, il dessine le tracé fléché et ses pastilles, et pilote la caméra guidée.
@@ -130,6 +132,7 @@ export function SharedMapStage({
   position = null,
   onLocateToggle = null,
   targetPct = null,
+  routeLineAnimated = true,
   route = null,
   focusInsets = null,
   headingUpAllowed = false,
@@ -1099,6 +1102,7 @@ export function SharedMapStage({
               widthPx={fitRect.width}
               heightPx={fitRect.height}
               scale={committed.s}
+              animated={routeLineAnimated}
               className="fm-pct-direct-line"
             />
           ) : null}

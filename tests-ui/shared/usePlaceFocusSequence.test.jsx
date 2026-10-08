@@ -108,6 +108,52 @@ describe('usePlaceFocusSequence', () => {
     expect(result.current.hasSnapshot()).toBe(false);
   });
 
+  test('un lieu touché pendant le retour reprend la vue d’origine, pas la vue à mi-chemin', async () => {
+    const vp = fakeViewport();
+    const restoring = deferred();
+    vp.restoreViewAnimated.mockImplementation(() => restoring.promise);
+    const { result } = setup(vp);
+    act(() => result.current.focusThenOpen(zone, () => {}));
+    await act(async () => vp.flights[0].resolve(true));
+    act(() => result.current.restore());
+    act(() => result.current.focusThenOpen(marker, () => {}));
+    await act(async () => {
+      restoring.resolve(false);
+      vp.flights[1].resolve(true);
+    });
+    expect(vp.getViewSnapshot).toHaveBeenCalledTimes(1);
+    vp.restoreViewAnimated.mockImplementation(() => Promise.resolve(true));
+    act(() => result.current.restore());
+    expect(vp.restoreViewAnimated).toHaveBeenLastCalledWith(
+      expect.objectContaining({ n: 1 }),
+      expect.anything(),
+    );
+  });
+
+  test('retour terminé : le clic suivant mémorise la vue du moment', async () => {
+    const vp = fakeViewport();
+    const { result } = setup(vp);
+    act(() => result.current.focusThenOpen(zone, () => {}));
+    await act(async () => vp.flights[0].resolve(true));
+    await act(async () => result.current.restore());
+    act(() => result.current.focusThenOpen(marker, () => {}));
+    expect(vp.getViewSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  test('onSuperseded : appelé quand un clic suivant rend l’ouverture caduque, pas à la fermeture', async () => {
+    const vp = fakeViewport();
+    const { result } = setup(vp);
+    const superseded = vi.fn();
+    act(() => result.current.focusThenOpen(zone, () => {}, { onSuperseded: superseded }));
+    act(() => result.current.focusThenOpen(marker, () => {}));
+    expect(superseded).toHaveBeenCalledTimes(1);
+    const dropped = vi.fn();
+    act(() => result.current.focusThenOpen(zone, () => {}, { onSuperseded: dropped }));
+    act(() => result.current.restore());
+    act(() => result.current.focusThenOpen(marker, () => {}));
+    expect(dropped).not.toHaveBeenCalled();
+  });
+
   test('fermer pendant le zoom annule l’ouverture', async () => {
     const vp = fakeViewport();
     const { result } = setup(vp);
@@ -248,6 +294,20 @@ describe('plateau GL : useGLBoardFocus', () => {
     expect(vp.restoreViewAnimated).not.toHaveBeenCalled();
     rerender({ open: false });
     expect(vp.restoreViewAnimated).toHaveBeenCalledTimes(1);
+  });
+
+  test('deux arrivées qui se chevauchent : les deux popovers sont présentés', async () => {
+    const vp = fakeViewport();
+    const { result } = renderHook(() => useGLBoardFocus({ mapGestures: vp }));
+    const presented = [];
+    act(() => {
+      result.current.beforePresent(zone).then(() => presented.push('contenu'));
+      result.current.beforePresent(marker).then(() => presented.push('feuillet'));
+    });
+    await act(async () => {});
+    expect(presented).toEqual(['contenu']);
+    await act(async () => vp.flights[1].resolve(true));
+    expect(presented).toEqual(['contenu', 'feuillet']);
   });
 
   test('désactivé par le MJ : présentation immédiate', async () => {

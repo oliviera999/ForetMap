@@ -1197,6 +1197,7 @@ function VisitViewImpl({
                   fitExtraStyle={visitFitExtraStyle}
                   focusInsets={visitMapFocusInsets}
                   targetPct={visitTargetPct}
+                  routeLineAnimated={routeSettings.lineAnimated}
                   route={mode === 'view' ? visitStageRoute : null}
                   onViewportChange={onVisitViewportChange}
                   onBackgroundClick={onMapBackgroundClick}

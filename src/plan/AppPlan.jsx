@@ -575,6 +575,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   });
   /** Le lien direct `?lieu=` a cadré un lieu sans vue d'avant : fermer revient au plan entier. */
   const deepLinkFocusedRef = useRef(false);
+  const deepLinkTimerRef = useRef(null);
   /** Marges de recadrage courantes (barres basses), calculées plus bas. */
   const mapFocusInsetsRef = useRef(null);
 
@@ -697,7 +698,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       deepLinkFocusedRef.current = true;
       const pct = planPlaceFocusPct(found, parsePctPolygonPoints);
       if (pct) {
-        setTimeout(() => {
+        deepLinkTimerRef.current = setTimeout(() => {
+          deepLinkTimerRef.current = null;
           planViewportApiRef.current.focusOnPct?.(pct, {
             insets: mapFocusInsetsRef.current,
           });
@@ -705,6 +707,14 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       }
     }
   }, [places, planPlaceFocusActive]);
+  // Annulée au démontage seulement : l'effet ci-dessus se relance (et sort aussitôt) à chaque
+  // changement de `places`, ce qui ne doit pas perdre le centrage en attente.
+  useEffect(
+    () => () => {
+      if (deepLinkTimerRef.current != null) clearTimeout(deepLinkTimerRef.current);
+    },
+    [],
+  );
 
   // Recherche : compteur d'usage (mots tapés) + recherche vide (mots manquants au plan).
   const searchReportedRef = useRef('');
@@ -1264,6 +1274,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             scaleCompassEffective={scaleCompassPref.effective}
             onScaleCompassToggle={scaleCompassPref.toggle}
             targetPct={targetPct}
+            routeLineAnimated={routeSettings.lineAnimated}
             focusInsets={mapFocusInsets}
             route={stageRoute}
             attribution={settings?.attribution || ''}

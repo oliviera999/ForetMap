@@ -9,8 +9,8 @@ import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
  * vue d'avant (`useGLBoardFocusRestore`) quand les popovers d'arrivée sont refermés.
  *
  * `beforePresent(target)` est passé aux hooks d'arrivée : ils l'attendent avant d'afficher leur
- * popover. Une séquence rendue caduque (nouvelle arrivée) laisse sa promesse en suspens : la
- * présentation la plus récente l'emporte.
+ * popover. Deux arrivées qui se chevauchent (zone avec contenu **et** feuillet) présentent
+ * toutes les deux : la plus récente garde le zoom, la précédente s'affiche sans attendre.
  *
  * `fx` est l'état des effets du zoom (emoji, projecteur, étincelles), à rendre par
  * `PctPlaceFocusFx` dans le calque du plateau.
@@ -36,7 +36,8 @@ export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, 
   });
 
   const beforePresent = useCallback(
-    (target) => new Promise((resolve) => focus.focusThenOpen(target, resolve)),
+    (target) =>
+      new Promise((resolve) => focus.focusThenOpen(target, resolve, { onSuperseded: resolve })),
     [focus],
   );
 

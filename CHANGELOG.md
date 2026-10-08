@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Animations de carte : audit des parcours et de l'ouverture / fermeture des lieux
+
+- Audit daté `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` (25 constats ANIM-01 à ANIM-25) ; les 9 constats prioritaires sont traités dans ce lot, le reste (coût de rendu, accessibilité, dette) est consigné.
+- **Bulle de la mascotte** : elle ne s'affiche plus en miroir pendant son apparition quand la mascotte regarde à gauche (`visitMascotDialogPop` garde le `scaleX`).
+- **Point de position** : il ne grossit plus avec le zoom sur la carte de travail et en Visite (copie des règles `.fm-pct-position*` retirée de `index.css`, qui écrasait le contre-échelonnement partagé).
+- **Zoom sur le lieu** : fermer une fiche puis toucher un autre lieu pendant le retour garde la vue d'origine (plus de vue à mi-chemin) ; sur ForetMap, le projecteur s'allège dès la fin du vol au lieu d'attendre 700 ms (délai réservé aux étincelles GL).
+- **GL** : deux arrivées qui se chevauchent (zone avec contenu et feuillet) présentent les deux popovers ; le précédent restait en suspens (option `onSuperseded` de `usePlaceFocusSequence`).
+- **Ligne « Y aller »** : respecte le réglage `ui.routes.line_animated` (nouvelle prop `routeLineAnimated` de `SharedMapStage`).
+- **Mouvement réduit** : popovers GL (contenu de zone, QCM, dés) sans animation d'entrée, mascotte spritesheet figée. Minuterie du lien direct `?lieu=` du Plan annulée au démontage.
+- Tests : `tests/visit-map-animations-css.test.js`, `tests-ui/shared/usePlaceFocusSequence.test.jsx`, `PctPlaceFocusFx.test.jsx`, `PctRouteLayer.test.jsx`. Doc : `docs/reference/gl/carte-du-royaume.md`, `docs/reference/foretmap/visite-et-mascottes.md`.
+
 ### Corrigé — Bouton Retour (navigateur / smartphone) : il referme la fenêtre, le popover ou la vue précédente
 
 - Le retour arrière ne fermait que les fenêtres qui s'y étaient abonnées une à une ; beaucoup (confirmations, fenêtres d'administration, bulles de glossaire, sorts GL, centre hors-ligne, dialogues GL…) le laissaient filer vers l'onglet précédent, voire hors de l'application.

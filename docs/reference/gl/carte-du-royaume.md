@@ -70,14 +70,20 @@ accompagnent ce zoom, chacun désactivable au même endroit (tous actifs par dé
 - **les étincelles** : une couronne d'étincelles dorées jaillit du lieu pendant le zoom.
 
 Le mode Découverte des invités suit le comportement par défaut (effets compris). Avec
-« réduire les animations », ni zoom animé ni effet.
+« réduire les animations », ni zoom animé ni effet, et les popovers apparaissent sans
+animation d'entrée.
+
+Si deux arrivées se chevauchent (une zone qui a à la fois un contenu et un feuillet, par
+exemple), **les deux popovers s'ouvrent** : le plus récent garde le zoom, le précédent
+s'affiche aussitôt, sans attendre.
 
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, la
 >   mascotte se téléporte, le popover n'attend plus son trajet et le zoom est instantané.
-> - Si une nouvelle arrivée survient pendant un zoom, c'est elle qui l'emporte : le popover
->   précédent ne s'ouvre pas.
+> - Contrairement à ForetMap, le **zoom maximal** du plateau n'est pas réglable : il est fixe.
+> - Une zone n'a jamais d'emoji qui s'envole, et un repère sans emoji non plus (ForetMap, lui,
+>   montre alors une épingle 📍).
 
 ## Qui déplace les mascottes
 

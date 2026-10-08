@@ -158,9 +158,15 @@
 }
 .visit-map-mascot--reduced-motion .visit-map-mascot-rive-shell,
 .visit-map-mascot--reduced-motion .visit-map-mascot-spritesheet-shell,
-.visit-map-mascot--reduced-motion .visit-map-mascot-dialog {
+.visit-map-mascot--reduced-motion .visit-map-mascot-dialog,
+.visit-map-mascot--reduced-motion .visit-map-mascot-spritesheet {
   animation: none !important;
   transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .visit-map-mascot-spritesheet {
+    animation: none;
+  }
 }
 .visit-map-mascot-dialog {
   position: absolute;
@@ -263,11 +269,11 @@
 @keyframes visitMascotDialogPop {
   from {
     opacity: 0;
-    transform: translateX(-50%) scale(0.86);
+    transform: translateX(-50%) scaleX(var(--visit-mascot-dialog-x, 1)) scale(0.86);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) scale(1);
+    transform: translateX(-50%) scaleX(var(--visit-mascot-dialog-x, 1)) scale(1);
   }
 }
 @keyframes visitMascotSpriteFrames {

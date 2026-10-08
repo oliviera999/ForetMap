@@ -427,6 +427,8 @@
 .fm-pct-position {
   position: absolute;
   z-index: 2;
+  /* Une boîte réelle, de la taille du point : à 0 × 0, le conteneur serait muet pour un lecteur
+     d'écran malgré son `role="img"`. */
   width: 22px;
   height: 22px;
   pointer-events: none;

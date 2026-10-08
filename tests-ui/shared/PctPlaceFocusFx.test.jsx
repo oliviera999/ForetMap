@@ -42,6 +42,28 @@ describe('usePlaceFocusFx', () => {
     expect(result.current.fx).toBeNull();
   });
 
+  test('sans étincelles (ForetMap) : le projecteur s’allège dès la fin du vol', () => {
+    const { result } = renderHook(() => usePlaceFocusFx({ emoji: true, spotlight: true }));
+    act(() =>
+      result.current.onFx({ type: 'in', place: zone, fromScale: 1, toScale: 3, durationMs: 300 }),
+    );
+    act(() => vi.advanceTimersByTime(299));
+    expect(result.current.fx.phase).toBe('in');
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.fx.phase).toBe('hold');
+  });
+
+  test('avec étincelles (GL) : la phase de zoom attend la fin des étincelles', () => {
+    const { result } = renderHook(() => usePlaceFocusFx(ALL));
+    act(() =>
+      result.current.onFx({ type: 'in', place: zone, fromScale: 1, toScale: 3, durationMs: 300 }),
+    );
+    act(() => vi.advanceTimersByTime(699));
+    expect(result.current.fx.phase).toBe('in');
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.fx.phase).toBe('hold');
+  });
+
   test('annulation : tout s’éteint', () => {
     const { result } = renderHook(() => usePlaceFocusFx(ALL));
     act(() =>

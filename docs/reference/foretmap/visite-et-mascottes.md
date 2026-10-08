@@ -28,7 +28,8 @@ familles.
   Refermer la fiche ramène doucement le plan au **zoom et au centrage d'avant**, et l'emoji
   revient se poser à sa place (effets et comportement réglables :
   _Réglages → Zoom sur le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif
-  pendant un parcours). Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  pendant un parcours). Sur téléphone, la fiche occupe tout l'écran : le projecteur, qui reste
+  pendant qu'elle est ouverte, y est donc masqué. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
   travail et le Plan Lyautey : la vue reste **centrée sur votre position** et un peu

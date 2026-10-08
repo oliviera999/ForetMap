@@ -59,8 +59,8 @@ export function usePlaceFocusFx({ emoji = false, spotlight = false, sparkles = f
             return event.type === 'in' ? { ...cur, phase: 'hold' } : null;
           });
         },
-        // Les étincelles débordent un peu le vol.
-        event.type === 'in' ? Math.max(durationMs, 700) : durationMs,
+        // Les étincelles (700 ms dans `placeFocusFx.css`) débordent un peu le vol.
+        event.type === 'in' && effects.sparkles ? Math.max(durationMs, 700) : durationMs,
       );
     },
     [clearTimer],
