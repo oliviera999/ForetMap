@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
 import { hasDiscoveryTour } from '../constants/discoveryTour';
 import { useTour } from '../contexts/TourContext.jsx';
@@ -21,7 +20,6 @@ function HelpPanel({
   onDismiss,
 }) {
   const [open, setOpen] = useState(false);
-  useOverlayHistoryBack(open, () => setOpen(false));
   const tour = useTour();
   // Portrait d'en-tête du narrateur (§4.5) : décoratif, jamais dans le nom accessible
   // du dialogue — `ariaLabel={title}` reste inchangé.

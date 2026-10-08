@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
@@ -20,6 +21,7 @@ export function GLFeuilletDiscoveryPopover({
   themeStyle = null,
   showMarkRead = true,
 }) {
+  useOverlayHistoryBack(open, onClose);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {

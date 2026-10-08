@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { ContextComments } from '../context-comments';
@@ -303,7 +302,6 @@ export function PlantCatalogPreviewModal({
     // Présence déjà connue de l'écran appelant (contenu de visite, `site_species`).
     mapSpeciesPresence = null,
   } = useData();
-  useOverlayHistoryBack(!!plant, onClose);
   // Présence sur la carte active : même définition que le catalogue (serveur). Rafraîchie
   // quand zones, repères ou fiches sont rechargés ; partagée avec le catalogue ouvert.
   const presence = useMapSpeciesPresence(activeMapId, {

@@ -638,7 +638,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * Réaffirme `?lieu=` après un retour d'historique.
    *
    * Les feuilles basses empilent une entrée d'historique à l'ouverture et la dépilent à la
-   * fermeture (`useOverlayHistoryBack`). Or `openPlace` écrit l'URL **sur l'entrée courante**,
+   * fermeture (`useDialogA11y`). Or `openPlace` écrit l'URL **sur l'entrée courante**,
    * qui est justement celle de la feuille de résultats : la fermer déclenche `history.back()`,
    * et l'adresse revient à celle d'avant — sans le lieu. Conséquence visible : après avoir
    * tapé un résultat de recherche, l'adresse ne portait plus le lieu, donc recharger la page

@@ -262,8 +262,17 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 > dans un menu bas.
 >
 > Le bouton **Retour** du navigateur ou du téléphone suit la navigation dans l'app :
-> il ferme d'abord une fenêtre ouverte (fiche, formulaire…), puis revient à l'onglet
-> précédent, et seulement ensuite quitte l'application.
+> il ferme d'abord ce qui est ouvert par-dessus l'écran — fenêtre, fiche, menu bas,
+> bulle de glossaire, quiz, visionneuse photo, panneau d'aide ou de notifications — en
+> commençant par le plus récent (une photo agrandie depuis une fiche se ferme avant la
+> fiche). Ensuite il revient à l'onglet précédent, et seulement après quitte
+> l'application. Dans la Visite, il referme aussi la fiche du lieu sélectionné.
+>
+> ⚠️ Exception volontaire : les formulaires de **création / modification de tâche** et de
+> **déclaration de tâche réalisée** ne se ferment pas avec Retour. Sur téléphone, revenir
+> de l'appareil photo ou de la galerie produit le même signal qu'un appui sur Retour : le
+> formulaire se serait refermé en perdant la photo et la saisie. Ils se ferment par leur
+> croix ou leur bouton « Annuler ».
 >
 > Les demandes de confirmation et de saisie (« Supprimer… ? », titre d'un élément…)
 > s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —

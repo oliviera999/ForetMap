@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { api, saveStoredSession } from '../../services/api';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { DialogShell } from '../DialogShell';
 import { startGoogleAuth } from './startGoogleAuth.js';
@@ -12,7 +11,6 @@ import { IconKey } from '../../shared/icons.jsx';
  * (l'élévation par PIN a été supprimée).
  */
 function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
-  useOverlayHistoryBack(true, onClose);
   const roleTerms = getRoleTerms(isN3Affiliated);
   const fieldIdPrefix = useId();
   const fieldIds = {

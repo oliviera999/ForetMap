@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell';
 
 /**
@@ -7,8 +6,6 @@ import { DialogShell } from './DialogShell';
  */
 export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
   const closeBtnRef = useRef(null);
-  useOverlayHistoryBack(!!data, onClose);
-
   useEffect(() => {
     closeBtnRef.current?.focus();
   }, []);

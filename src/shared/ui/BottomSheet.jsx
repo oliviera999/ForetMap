@@ -2,7 +2,6 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 
 import { useDialogA11y } from '../platform/useDialogA11y.js';
-import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack.js';
 import { useBodyScrollLock } from '../platform/bodyScrollLock.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
@@ -111,8 +110,6 @@ function BottomSheetSurface({
   const snapRef = useRef(snap);
   snapRef.current = snap;
   const reducedMotion = usePrefersReducedMotion();
-
-  useOverlayHistoryBack(true, () => onCloseRef.current?.());
   // Sans blocage d'arrière-plan : pas de verrou de scroll (la carte doit pan/zoom).
   useBodyScrollLock(blockBackground);
   useInertSiblings(overlayRef, blockBackground);
@@ -327,7 +324,7 @@ function BottomSheetSurface({
  * convergence `docs/AUDIT_CONVERGENCE_APPS_2026-09.md` §5.2).
  *
  * - portail sous `document.body`, `role="dialog" aria-modal="true"`, piège de focus + Échap +
- *   restauration du focus (`useDialogA11y`), retour navigateur/Android (`useOverlayHistoryBack`),
+ *   restauration du focus et retour navigateur/Android (`useDialogA11y`),
  *   verrou du défilement du body, `inert` sur les frères de la surcouche (sauf si
  *   `blockBackground=false`) ;
  * - crans `peek` (≈ 30 dvh), `half` (≈ 55 dvh), `full` (viewport − zone sûre − 24 px), poignée

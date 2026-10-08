@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import { LearningGatingStateIcon } from './LearningGatingStateIcon.jsx';
@@ -121,10 +120,6 @@ export function LearningAcknowledgeButton({
   const [error, setError] = useState('');
 
   const busy = saving;
-
-  useOverlayHistoryBack(modalOpen, () => {
-    if (!busy) setModalOpen(false);
-  });
 
   const resetModal = useCallback(() => {
     setChecked(false);

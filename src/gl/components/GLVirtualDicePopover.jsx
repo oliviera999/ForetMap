@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLDiceCube } from './GLDiceCube.jsx';
 import { computeGlDicePopoverPosition } from '../utils/glDicePopoverPosition.js';
@@ -25,6 +26,7 @@ export function GLVirtualDicePopover({
 }) {
   const panelRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  useOverlayHistoryBack(!!open, onClose);
 
   const updatePosition = useCallback(() => {
     if (!open || !anchorRef?.current) return;

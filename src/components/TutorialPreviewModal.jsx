@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 import { IconClose, IconTuto } from '../shared/icons.jsx';
@@ -99,8 +98,6 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
     return Number.isFinite(n) && n > 0 ? [n] : [];
   }, [tutorial?.id]);
   const { summaries: gatingSummaries } = useGatingSummary('tutorial', previewTutorialIds);
-  useOverlayHistoryBack(!!tutorial, onClose);
-
   // Fiche de notre origine : les scripts sont désactivés dans l'iframe (cf.
   // `isAppOriginPreviewSource`), c'est donc le PARENT qui intercepte les clics —
   // auto-liens de glossaire (même message `foretmap:glossary` que l'ancien script

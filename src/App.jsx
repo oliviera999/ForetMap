@@ -113,7 +113,6 @@ import {
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
 import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
 import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
-import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
 import { useTabBrowserHistory } from './shared/platform/useTabBrowserHistory';
 import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
@@ -1053,12 +1052,6 @@ function App() {
       setBiodivGroupCurriculumNiveaux([]);
     },
     [clearLocalDataOnLogout, studentRef],
-  );
-
-  useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
-  useOverlayHistoryBack(
-    showProfile && canOpenUserDialogs && !!profileTargetUser,
-    handleCloseProfileDialog,
   );
 
   const isCombinedMapTasksTab = tab === 'maptasks';

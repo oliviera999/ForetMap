@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { createPortal } from 'react-dom';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLButton } from './ui/GLButton.jsx';
@@ -16,6 +17,7 @@ export function GLZoneContentPopover({
   glossaryLinkItems = [],
   themeStyle = null,
 }) {
+  useOverlayHistoryBack(open, onClose);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
 import { useBodyScrollLock } from '../../shared/platform/bodyScrollLock.js';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -54,6 +55,7 @@ export function GLQcmPopover({
     }
   }, [open, questionCode, presentation?.presentationToken]);
 
+  useOverlayHistoryBack(open, onClose);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {

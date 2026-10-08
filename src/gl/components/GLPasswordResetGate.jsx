@@ -7,6 +7,7 @@ export function GLPasswordResetGate({ open, onCompleted }) {
       open={open}
       onClose={() => {}}
       closeOnOverlay={false}
+      historyBack={false}
       overlayClassName="fm-modal-overlay"
       dialogClassName="fm-modal-panel gl-profile-gate animate-pop"
       ariaLabel="Mise a jour mot de passe obligatoire"

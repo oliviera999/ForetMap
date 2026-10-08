@@ -11,6 +11,7 @@ import {
 } from '../../utils/visitMascotPackManager.js';
 import { findContiguousFilenameBlock } from '../../utils/mascotPackEditorFrames.js';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import MascotPackImagesBulkBar from './MascotPackImagesBulkBar.jsx';
 import MascotPackInteractionBulkDialog from './MascotPackInteractionBulkDialog.jsx';
 
@@ -69,6 +70,7 @@ export default function MascotPackImagesPanel({
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [interactionOpen, setInteractionOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  useOverlayHistoryBack(renameOpen, () => setRenameOpen(false));
   const [renamePrefix, setRenamePrefix] = useState('');
   const [renameSuffix, setRenameSuffix] = useState('');
   const [renameFind, setRenameFind] = useState('');

@@ -18,7 +18,6 @@ import {
 import { ZONE_COLORS } from '../../constants/garden';
 import { ColorPaletteField } from '../ColorPaletteField.jsx';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import {
   nextLivingBeingsFromMultiSelect,
   orderedLivingBeingsForForm,
@@ -112,7 +111,6 @@ function ZoneInfoModal({
 }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
 
   // Liste zones allégée : corps visite complet via GET /api/zones/:id. (L'historique de
   // cultures n'est plus servi : piste C de l'audit du 25/09/2026, § 3.5.)

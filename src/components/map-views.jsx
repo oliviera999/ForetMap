@@ -73,7 +73,7 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { pointsSurfaceLabel } from '../utils/zoneSurface.js';
 
-function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
+function Lightbox({ src, caption, onClose, useOverlayHistory = true }) {
   return (
     <ImageLightbox
       src={src}
@@ -1008,6 +1008,7 @@ function MapViewImpl({
                 fitExtraStyle={workFitExtraStyle}
                 focusInsets={activeRoute ? routeFocusInsets || ROUTE_BAR_FALLBACK_INSETS : null}
                 targetPct={workTargetPct}
+                routeLineAnimated={routeSettings.lineAnimated}
                 route={mode === 'view' ? stageRoute : null}
                 onViewportChange={onWorkViewportChange}
                 initialView={stageInitialView}

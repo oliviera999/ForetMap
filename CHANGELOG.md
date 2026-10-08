@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Bouton Retour (navigateur / smartphone) : il referme la fenêtre, le popover ou la vue précédente
+
+- Le retour arrière ne fermait que les fenêtres qui s'y étaient abonnées une à une ; beaucoup (confirmations, fenêtres d'administration, bulles de glossaire, sorts GL, centre hors-ligne, dialogues GL…) le laissaient filer vers l'onglet précédent, voire hors de l'application.
+- `useDialogA11y` pose désormais l'entrée d'historique lui-même (option `historyBack`, active par défaut) : toute surcouche qui passe par lui — `DialogShell`, `BottomSheet`, `ImageLightbox`, popovers — se ferme au retour, de la plus récente à la plus ancienne. Une seule entrée par surcouche, même quand un composant fournit son propre `dialogRef` à `DialogShell` ; les ~20 appels manuels à `useOverlayHistoryBack` devenus doublons sont retirés.
+- Popovers GL « maison » (zone, repère, quiz, feuillet découvert, dés, notifications) et dialogues du studio mascotte branchés sur `useOverlayHistoryBack`. Visionneuse photo : retour actif par défaut, y compris dans la visite connectée (auparavant visite invité seulement).
+- Exceptions conservées : formulaires tâche avec appareil photo (`historyBack: false`, le retour caméra émet un `popstate`) et porte obligatoire de changement de mot de passe GL.
+- Test : `tests-ui/shared/useDialogA11yHistory.test.jsx`. Docs : `docs/reference/foretmap/presentation.md`, `docs/reference/gl/presentation.md`.
+
 ### Corrigé — Popovers et modales : une sélection relâchée hors du cadre ne les ferme plus
 
 - Sélectionner du texte à la souris dans un champ (ou dans le contenu) d'un popover puis relâcher le bouton sur le fond fermait la fenêtre : le navigateur envoie alors le `click` à l'ancêtre commun, c'est-à-dire le fond. Un vrai clic sur le fond (appui **et** relâchement dehors) ferme toujours.

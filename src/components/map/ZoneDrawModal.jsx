@@ -9,7 +9,6 @@ import {
 } from '../../constants/emojis';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { IconCheck, IconClose, IconDrawZone } from '../../shared/icons.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -26,7 +25,6 @@ function ZoneDrawModal({
   emojiParsingList = MARKER_EMOJIS,
 }) {
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
   const [form, setForm] = useState({
     name: '',
     zone_emoji: markerEmojis[0] || '📍',

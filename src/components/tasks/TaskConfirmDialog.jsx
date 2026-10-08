@@ -1,6 +1,5 @@
 import { DialogShell } from '../DialogShell';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 
 /**
  * Dialogue de confirmation des actions sensibles sur tâches / projets (suppression,
@@ -14,7 +13,6 @@ export function TaskConfirmDialog({ confirmTask, onClose }) {
   // Monté en permanence : sans `active`, l'accessibilité clavier (Échap, focus initial, piège
   // de tabulation) ne s'armerait jamais — `docs/AUDIT_UI_2026-09-16.md` B1.
   const confirmDialogRef = useDialogA11y(onClose, { active: !!confirmTask });
-  useOverlayHistoryBack(!!confirmTask, onClose);
   if (!confirmTask) return null;
   return (
     <DialogShell

@@ -28,7 +28,6 @@ import {
   tutorialPreviewPayload,
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { rememberLastViewedMapId } from '../utils/lastViewedMap.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
@@ -696,9 +695,6 @@ function VisitViewImpl({
     setSelectedType(null);
     placeFocus.restore();
   }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType, placeFocus]);
-  useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
-  useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
-
   /**
    * Guidage « Y aller » : depuis la fiche d'un lieu, la carte trace une **ligne droite** entre
    * la position et ce lieu, avec la distance. Ce n'est pas un itinéraire — la visite ne connaît

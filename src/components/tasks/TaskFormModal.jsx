@@ -57,9 +57,9 @@ function TaskFormModal({
   /** Ouvre une nouvelle tâche avec ce projet déjà choisi (ex. projet en attente). */
   defaultProjectId = null,
 }) {
-  const dialogRef = useDialogA11y(onClose);
-  // Pas de useOverlayHistoryBack ici : le retour caméra / fichier déclenche des popstate qui
+  // Pas d'entrée d'historique ici : le retour caméra / fichier déclenche des popstate qui
   // dépilent l’entrée history de la surcouche et ferment la modale avant le `change` de l’input.
+  const dialogRef = useDialogA11y(onClose, { historyBack: false });
   const terms = roleTerms || getRoleTerms(false);
   const defaultProjectForNew =
     !editTask && !isProposal && defaultProjectId

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
@@ -66,7 +65,6 @@ function TaskProjectFormModal({
   onSave,
 }) {
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
   const defaultMapId = activeMapId || maps[0]?.id || '';
   const {
     search: tutorialSearch,
