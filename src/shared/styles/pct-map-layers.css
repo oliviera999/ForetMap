@@ -520,7 +520,7 @@
 .fm-pct-route {
   --fm-route-path: var(--forest);
   --fm-route-current: var(--leaf);
-  --fm-route-done: var(--ink-lichen);
+  --fm-route-done: var(--ink-muted);
   --fm-route-guide: var(--accent-info-solid);
   position: absolute;
   inset: 0;
@@ -541,11 +541,9 @@
   stroke-opacity: 0.9;
 }
 
-.fm-pct-route__casing.is-upcoming,
-.fm-pct-route__casing.is-done {
-  stroke-opacity: 0.55;
-}
-
+/* Les étapes restent reliées d'un bout à l'autre du parcours : à venir dans la couleur du
+   parcours, déjà parcourues dans une autre couleur (trait plein, pas un pointillé qu'on ne
+   distingue plus du fond), tronçon en cours mis en avant. */
 .fm-pct-route__stroke {
   stroke: var(--fm-route-path);
   stroke-width: calc(5px * var(--pct-inv, 1));
@@ -553,16 +551,11 @@
 
 .fm-pct-route__stroke.is-current {
   stroke: var(--fm-route-current);
-}
-
-.fm-pct-route__stroke.is-upcoming {
-  stroke-opacity: 0.5;
+  stroke-width: calc(6px * var(--pct-inv, 1));
 }
 
 .fm-pct-route__stroke.is-done {
   stroke: var(--fm-route-done);
-  stroke-width: calc(4px * var(--pct-inv, 1));
-  stroke-dasharray: calc(1px * var(--pct-inv, 1)) calc(8px * var(--pct-inv, 1));
 }
 
 /* Chevrons : dessinés autour de l'origine de leur groupe, puis contre-échelonnés. */
@@ -574,14 +567,6 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   transform: scale(var(--pct-inv, 1));
-}
-
-.fm-pct-route__chevron.is-upcoming {
-  opacity: 0.75;
-}
-
-.fm-pct-route__chevron.is-done {
-  display: none;
 }
 
 .fm-pct-route__guide-casing {
@@ -678,7 +663,7 @@
 }
 
 .fm-pct-route-badge.is-done {
-  --fm-route-badge-bg: var(--ink-lichen);
+  --fm-route-badge-bg: var(--ink-muted);
 }
 
 .fm-pct-route-badge.is-current {
@@ -731,50 +716,6 @@
 .fm-route-overview__description {
   margin: 0;
   line-height: 1.5;
-}
-
-.fm-route-overview__list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: min(30vh, 260px);
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.fm-route-overview__step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.fm-route-overview__step:hover,
-.fm-route-overview__step:focus-visible {
-  background: color-mix(in srgb, var(--leaf) 12%, transparent);
-}
-
-.fm-route-overview__step-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fm-route-overview__arrow {
-  margin-left: auto;
-  color: var(--ink-soft);
 }
 
 .fm-route-bar__overview-btn {

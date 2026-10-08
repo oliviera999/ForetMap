@@ -1059,11 +1059,6 @@
       "type": "boolean",
       "default": true
     },
-    "ui.routes.show_full_path": {
-      "scope": "public",
-      "type": "boolean",
-      "default": true
-    },
     "ui.routes.walking_trigger_m": {
       "scope": "public",
       "type": "number",
@@ -1228,7 +1223,6 @@
           "walking_zoom_percent": 300,
           "walking_trigger_m": 8,
           "lookahead_percent": 60,
-          "show_full_path": true,
           "line_animated": true
         }
       },
@@ -4451,22 +4445,6 @@
       "updated_by_user_id": null
     },
     {
-      "key": "ui.routes.show_full_path",
-      "scope": "public",
-      "type": "boolean",
-      "value": true,
-      "default_value": true,
-      "constraints": {
-        "min": null,
-        "max": null,
-        "maxLength": null,
-        "values": null
-      },
-      "updated_at": null,
-      "updated_by_user_type": null,
-      "updated_by_user_id": null
-    },
-    {
       "key": "ui.routes.walking_trigger_m",
       "scope": "public",
       "type": "number",
@@ -4951,7 +4929,6 @@
           "walking_zoom_percent": 300,
           "walking_trigger_m": 8,
           "lookahead_percent": 60,
-          "show_full_path": true,
           "line_animated": true
         }
       },

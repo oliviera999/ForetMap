@@ -317,10 +317,10 @@ Le déroulé est le même sur les trois surfaces :
 
 1. **Vue d'ensemble.** Ouvrir un parcours (depuis la liste, « Reprendre » mis à part, ou en
    scannant le QR code d'une affiche) montre d'abord **tout le trajet** : la carte se cadre sur
-   l'ensemble des étapes, reliées par une ligne munie de **flèches qui indiquent le sens de
-   marche**, avec une **pastille numérotée** sur chaque lieu (« Départ » sur la première,
-   « Arrivée 🏁 » sur la dernière). La barre du bas résume le parcours et liste ses étapes ;
-   toucher l'une d'elles démarre directement à cette étape.
+   l'ensemble des étapes, **reliées les unes aux autres dans l'ordre de passage** par une ligne
+   munie de **flèches qui indiquent le sens de marche**, avec une **pastille numérotée** sur
+   chaque lieu (« Départ » sur la première, « Arrivée 🏁 » sur la dernière). La barre du bas ne
+   porte qu'un court résumé et « Commencer le parcours » : aucune liste ne masque le tracé.
 2. **« Commencer le parcours ».** La première étape s'ouvre. Si la carte permet de se situer,
    **« Me situer » s'allume tout seul**. La vue montre alors **à la fois votre position et
    l'étape à atteindre**.
@@ -328,9 +328,10 @@ Le déroulé est le même sur les trois surfaces :
    la carte **zoome sur votre position** et reste ouverte **vers l'étape** : vous voyez où vous
    êtes, et la ligne fléchée qui mène à l'étape. Près d'un bord du plan, la vue se cale contre
    ce bord plutôt que d'afficher du vide, pour montrer le plus de carte et de trajet possible.
-4. Le trajet complet reste dessiné **en fond, discret** : les étapes déjà faites sont grisées
-   et cochées ✓, l'étape en cours est mise en avant, et une ligne animée relie votre position
-   à cette étape.
+4. Les étapes **restent reliées** du début à la fin : les tronçons **déjà parcourus** passent
+   dans **une autre couleur** (gris, étapes cochées ✓), ceux à venir gardent la couleur du
+   parcours, le tronçon en cours est mis en avant, et une ligne animée relie votre position à
+   l'étape en cours.
 
 Toucher la carte (glisser, zoomer, « Voir tout le plan ») reprend la main : la vue cesse de
 suivre jusqu'à l'étape suivante, ou jusqu'à un appui sur « Me situer ». Le bouton 🗺️ de la
@@ -348,7 +349,6 @@ Visite et aux plans) :
 - **Distance de déclenchement du zoom de marche** (8 m par défaut) ;
 - **Anticipation vers l'étape** : à quel point la vue s'ouvre devant soi plutôt que de rester
   centrée sur la position (60 % par défaut, 0 % = toujours centrée) ;
-- **Trajet complet visible pendant les étapes** ;
 - **Ligne animée** vers l'étape (elle reste fixe de toute façon pour les personnes qui ont
   demandé à leur appareil de réduire les animations).
 

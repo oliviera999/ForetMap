@@ -530,10 +530,12 @@ describe('AppPlan — montage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tour du lycée/ }));
 
     const sheet = await screen.findByTestId('plan-route-sheet');
-    // Vue d'ensemble d'abord : les deux étapes numérotées, sur la barre comme sur la carte.
+    // Vue d'ensemble d'abord : les deux étapes numérotées et reliées sur la carte, la barre ne
+    // portant qu'un résumé.
     expect(sheet.getAttribute('data-phase')).toBe('overview');
     expect(sheet.textContent).toContain('Vue d’ensemble — 2 étapes');
-    expect(sheet.textContent).toContain('Le CDI');
+    expect(sheet.textContent).not.toContain('Le CDI');
+    expect(screen.getByTestId('map-route-lines')).toBeTruthy();
     expect(
       document.querySelectorAll('[data-testid="map-route-badges"] [data-step-number]'),
     ).toHaveLength(2);
@@ -673,11 +675,11 @@ describe('AppPlan — montage', () => {
     render(<AppPlan />);
 
     const sheet = await screen.findByTestId('plan-route-sheet');
-    expect(sheet.textContent).toContain('Le CDI');
     // Le visiteur qui scanne l'affiche voit d'abord tout le parcours, puis commence.
     expect(sheet.getAttribute('data-phase')).toBe('overview');
     fireEvent.click(within(sheet).getByRole('button', { name: 'Commencer le parcours' }));
     await waitFor(() => expect(sheet.textContent).toContain('Étape 1 sur 1'));
+    expect(sheet.textContent).toContain('Le CDI');
   });
 
   test('lien profond vers un parcours disparu : le visiteur l’apprend', async () => {

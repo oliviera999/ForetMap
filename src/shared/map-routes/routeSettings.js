@@ -15,7 +15,6 @@ export const ROUTE_SETTINGS_DEFAULTS = Object.freeze({
   walkingTriggerM: 8,
   /** Anticipation vers l'étape, en fraction de la demi-vue (0 → 0,9). */
   lookahead: 0.6,
-  showFullPath: true,
   lineAnimated: true,
 });
 
@@ -47,7 +46,6 @@ export function resolveRouteSettings(raw) {
     walkingZoom: readNumber(src.walking_zoom_percent, d.walkingZoom * 100, 150, 800) / 100,
     walkingTriggerM: readNumber(src.walking_trigger_m, d.walkingTriggerM, 2, 100),
     lookahead: readNumber(src.lookahead_percent, d.lookahead * 100, 0, 90) / 100,
-    showFullPath: readBool(src.show_full_path, d.showFullPath),
     lineAnimated: readBool(src.line_animated, d.lineAnimated),
   };
 }

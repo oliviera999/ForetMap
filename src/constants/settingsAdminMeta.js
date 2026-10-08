@@ -558,11 +558,6 @@ export const KEY_META = {
     section: 'routes',
     order: 60,
   },
-  'ui.routes.show_full_path': {
-    label: 'Garder le tracé complet en fond pendant les étapes (étapes passées grisées)',
-    section: 'routes',
-    order: 70,
-  },
   'ui.routes.line_animated': {
     label:
       'Animer les chevrons de la ligne de guidage (toujours figés si l’appareil demande moins d’animations)',

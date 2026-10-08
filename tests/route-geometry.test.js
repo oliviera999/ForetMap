@@ -226,7 +226,6 @@ describe('route geometry (mode parcours)', () => {
       walking_zoom_percent: 9999,
       walking_trigger_m: 1,
       lookahead_percent: 45,
-      show_full_path: 0,
       line_animated: 'n’importe quoi',
     });
     assert.equal(custom.overviewEnabled, false);
@@ -235,7 +234,6 @@ describe('route geometry (mode parcours)', () => {
     assert.equal(custom.walkingZoom, 8);
     assert.equal(custom.walkingTriggerM, 2);
     assert.equal(custom.lookahead, 0.45);
-    assert.equal(custom.showFullPath, false);
     assert.equal(custom.lineAnimated, true);
   });
 

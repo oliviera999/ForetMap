@@ -167,6 +167,8 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
   await page.goto(`/?parcours=${slug}`);
   const deepSheet = page.getByTestId('plan-route-sheet');
   await expect(deepSheet).toBeVisible({ timeout: 30_000 });
+  await expect(deepSheet).toHaveAttribute('data-phase', 'overview');
+  await deepSheet.getByRole('button', { name: 'Commencer le parcours' }).click();
   await expect(deepSheet.getByText('Première étape')).toBeVisible();
 
   // 3) Affiche périmée : le visiteur l'apprend au lieu d'arriver sur un plan nu.

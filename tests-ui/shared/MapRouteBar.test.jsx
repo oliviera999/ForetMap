@@ -13,7 +13,7 @@ const steps = [
 ];
 
 describe('MapRouteBar', () => {
-  test('la vue d’ensemble liste les étapes numérotées et lance « Commencer »', () => {
+  test('la vue d’ensemble résume le parcours sans lister les étapes, et lance « Commencer »', () => {
     const onBegin = vi.fn();
     render(
       <MapRouteBar
@@ -29,13 +29,13 @@ describe('MapRouteBar', () => {
     const bar = screen.getByTestId('map-route-bar');
     expect(bar.getAttribute('data-phase')).toBe('overview');
     expect(screen.getByText(/Vue d’ensemble — 3 étapes/)).toBeTruthy();
-    expect(screen.getByRole('list', { name: 'Étapes du parcours' }).children).toHaveLength(3);
+    // Les étapes se lisent sur la carte (reliées et numérotées), pas dans une liste qui la masque.
+    expect(screen.queryByRole('list')).toBe(null);
+    expect(screen.queryByText('Compost')).toBe(null);
     expect(screen.queryByText('Précédent')).toBe(null);
 
     fireEvent.click(screen.getByRole('button', { name: 'Commencer le parcours' }));
     expect(onBegin).toHaveBeenLastCalledWith(0);
-    fireEvent.click(screen.getByRole('button', { name: /Commencer à l’étape 3/ }));
-    expect(onBegin).toHaveBeenLastCalledWith(2);
   });
 
   test('revenir à la vue d’ensemble en cours de route propose de reprendre l’étape', () => {

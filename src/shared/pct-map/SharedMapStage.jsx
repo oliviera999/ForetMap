@@ -1045,7 +1045,6 @@ export function SharedMapStage({
               points={routePoints}
               phase={routePhase}
               currentIndex={routeIndex}
-              showFullPath={routePhase === 'overview' || routeSettings.showFullPath}
               guideFrom={routeGuideTo ? position?.displayPct || null : null}
               guideTo={routeGuideTo}
               widthPx={fitRect.width}

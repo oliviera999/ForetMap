@@ -243,23 +243,24 @@ Un **parcours** est une liste ordonnée de lieux : « le tour des nouveaux profe
 visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés.
 
 En choisir un (ou scanner son QR code) affiche d'abord une **vue d'ensemble** : le plan se cadre
-sur tout le trajet, tracé d'une ligne **fléchée dans le sens de marche**, avec une **pastille
-numérotée** sur chaque étape (« Départ », « Arrivée 🏁 »). La barre du bas liste les étapes ; en
-toucher une démarre directement à cette étape.
+sur tout le trajet : les étapes, chacune marquée d'une **pastille numérotée** (« Départ »,
+« Arrivée 🏁 »), sont **reliées les unes aux autres dans l'ordre de passage** par une ligne
+**fléchée dans le sens de marche**. La barre du bas ne porte qu'un court résumé : aucune liste
+ne vient masquer le tracé.
 
 **« Commencer le parcours »** affiche ensuite la **barre d'étape**, avec « Précédent » et
 « Suivant », et allume **« Me situer »** si le plan est calé. La vue montre alors votre position
 **et** l'étape à atteindre ; dès que vous marchez, elle zoome sur vous tout en restant ouverte
-vers l'étape, et se cale contre le bord du plan plutôt que de montrer du vide. Le trajet complet
-reste en fond (étapes faites grisées et cochées), et une ligne animée relie votre position à
-l'étape en cours. Déplacer ou zoomer la carte reprend la main jusqu'à l'étape suivante ; le
+vers l'étape, et se cale contre le bord du plan plutôt que de montrer du vide. Les étapes
+**restent reliées** tout au long du parcours : les tronçons **déjà parcourus** passent dans
+**une autre couleur** (gris, étapes cochées ✓), le tronçon en cours est mis en avant, et une
+ligne animée relie votre position à l'étape en cours. Déplacer ou zoomer la carte reprend la main jusqu'à l'étape suivante ; le
 bouton 🗺️ ramène à la vue d'ensemble. Sans calage GPS, la vue d'étape montre l'étape précédente
 et la suivante pour indiquer le sens, et on avance avec « Suivant ».
 
 Ces comportements se règlent dans ForetMap, _Réglages → **Parcours guidés**_ (communs à la carte,
 à la Visite et aux plans) : vue d'ensemble au démarrage, « Me situer » automatique, caméra
-guidée, zoom et distance de déclenchement de la marche, anticipation vers l'étape, trajet
-complet visible, ligne animée.
+guidée, zoom et distance de déclenchement de la marche, anticipation vers l'étape, ligne animée.
 
 Pendant un parcours, le plan reste **explorable** : toucher un autre lieu (sur la carte ou dans
 les résultats de recherche) ouvre sa fiche **en aperçu bas**, avec un bouton **« Revenir à

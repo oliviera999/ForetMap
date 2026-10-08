@@ -1435,7 +1435,6 @@ défaut.
 | `ui.routes.walking_zoom_percent`   | number  | `300`  | Zoom de marche en % de la carte entière (150 → 800)                                     |
 | `ui.routes.walking_trigger_m`      | number  | `8`    | Distance parcourue (m) qui déclenche le zoom de marche (2 → 100)                        |
 | `ui.routes.lookahead_percent`      | number  | `60`   | Ouverture de la vue vers l'étape, en % de la demi-vue (0 → 90 ; 0 = centrée)           |
-| `ui.routes.show_full_path`         | boolean | `true` | Tracé complet en fond pendant les étapes (la vue d'ensemble le montre toujours)        |
 | `ui.routes.line_animated`          | boolean | `true` | Ligne de guidage animée (figée de toute façon si mouvement réduit)                     |
 
 | Clé                                   | Type    | Défaut  | Effet                                                         |

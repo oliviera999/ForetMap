@@ -20,8 +20,9 @@ export const MAP_ROUTE_BAR_FOCUS_INSET_PX = 148;
 const OVERVIEW_DESCRIPTION_MAX = 140;
 
 /**
- * Vue d'ensemble d'un parcours : sa description, ses étapes numérotées (un appui démarre à
- * l'étape choisie) et « Commencer ». La carte, au-dessus, montre tout le tracé fléché.
+ * Vue d'ensemble d'un parcours : un résumé et « Commencer ». Les étapes ne sont **pas**
+ * listées ici : c'est la carte, au-dessus, qui les montre — numérotées et reliées dans l'ordre
+ * de passage —, et une liste masquerait justement ce tracé.
  */
 function MapRouteOverview({ route, steps, onBegin, resumeIndex }) {
   const [expanded, setExpanded] = useState(false);
@@ -33,7 +34,7 @@ function MapRouteOverview({ route, steps, onBegin, resumeIndex }) {
     <>
       <p className="fm-route-overview__summary">
         {total > 0
-          ? `Vue d’ensemble — ${total} étape${total > 1 ? 's' : ''}, à suivre dans l’ordre des flèches.`
+          ? `Vue d’ensemble — ${total} étape${total > 1 ? 's' : ''}, reliées sur la carte dans l’ordre de passage.`
           : 'Ce parcours n’a pas encore d’étape affichable.'}
       </p>
       {description ? (
@@ -51,28 +52,6 @@ function MapRouteOverview({ route, steps, onBegin, resumeIndex }) {
             </button>
           ) : null}
         </p>
-      ) : null}
-      {total > 0 ? (
-        <ol className="fm-route-overview__list" aria-label="Étapes du parcours">
-          {steps.map((entry) => (
-            <li key={`${entry.place?.kind}:${entry.place?.id}:${entry.index}`}>
-              <button
-                type="button"
-                className="fm-route-overview__step"
-                onClick={() => onBegin?.(entry.index)}
-                aria-label={`Commencer à l’étape ${entry.number} : ${routeStepTitle(entry)}`}
-              >
-                <span className="map-route__step-number plan-route__step-number" aria-hidden>
-                  {entry.number}
-                </span>
-                <span className="fm-route-overview__step-name">{routeStepTitle(entry)}</span>
-                <span className="fm-route-overview__arrow" aria-hidden>
-                  ›
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
       ) : null}
       <div className="map-route__actions plan-route__actions">
         {canResume ? (
