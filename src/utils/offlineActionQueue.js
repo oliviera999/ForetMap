@@ -117,9 +117,10 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
    * @param {(item: T) => Promise<unknown>} send envoi d'une écriture (lève en cas d'échec)
    * @param {string|null|undefined} userId compte connecté ; aucun rejeu sans compte
    * @param {object} [options]
-   * @param {'drop'|'keep'|((item: T) => 'drop'|'keep')} [options.onRefusal='drop'] sort d'une
-   *   écriture refusée définitivement ; `keep` la garde avec `refused: true` et le message du
-   *   serveur (`error`) ; une fonction choisit écriture par écriture
+   * @param {'drop'|'keep'|'defer'|((item: T, info: { code: string, status: number, body: unknown }) => 'drop'|'keep'|'defer')} [options.onRefusal='drop']
+   *   sort d'une écriture refusée définitivement ; `keep` la garde avec `refused: true` et le
+   *   message du serveur (`error`) ; `defer` la laisse telle quelle (réessai plus tard) et
+   *   passe à la suivante ; une fonction choisit écriture par écriture
    * @param {(item: T) => boolean} [options.eligible] filtre des écritures à rejouer maintenant
    * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean, code: string, status: number }>, remaining: number }>}
    */
@@ -153,9 +154,16 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
           const message = String(err?.message || 'Refusé par le serveur');
           // Code stable du refus (`body.code`) : l'écran explique le conflit sans lire le texte.
           const code = typeof err?.body?.code === 'string' ? err.body.code : '';
-          const policy = typeof onRefusal === 'function' ? onRefusal(item) : onRefusal;
+          const status = Number(err?.status) || 0;
+          const policy =
+            typeof onRefusal === 'function'
+              ? onRefusal(item, { code, status, body: err?.body })
+              : onRefusal;
+          // `defer` : le refus n'est pas définitif (une écriture préalable n'est pas encore
+          // arrivée). On ne marque pas, on ne jette pas, et on continue avec les suivantes.
+          if (policy === 'defer') continue;
           const kept = policy === 'keep';
-          refused.push({ item, message, kept, code, status: Number(err?.status) || 0 });
+          refused.push({ item, message, kept, code, status });
           if (kept) {
             update(item.client_uuid, {
               refused: true,

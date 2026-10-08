@@ -9,6 +9,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Hors ligne : un « fait » n'est plus perdu si la lecture du tutoriel n'est pas encore partie
+
+- Au retour d'un réseau instable, la lecture de tutoriel peut échouer alors que le marquage « tâche faite » qui en dépend atteint le serveur et reçoit « tutoriel pas encore lu ». Ce refus n'est plus traité comme définitif tant que la lecture est encore sur l'appareil : le marquage (commentaire et photo compris) reste en file et repart au passage suivant. Un vrai refus (tutoriel jamais lu, ou lecture déjà abandonnée) continue d'avertir l'élève, ou d'abandonner un marquage sans texte.
+
 ### Ajouté — Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant
 
 - **Séquence commune** à la carte de travail, à la Visite, aux plans et aux plateaux GL : au clic sur une zone ou un repère (ou à l'arrivée d'une équipe en GL), la mascotte arrive d'abord quand la surface en a une, puis la carte fait un **zoom bref et fluide** sur le lieu (zone cadrée en entier avec marge, repère à zoom fixe, plafonnés), et **ensuite seulement** la fiche / le popover s'ouvre ; à la fermeture, retour animé au **zoom et au centrage d'avant**. Enchaîner plusieurs lieux garde la vue d'origine ; un geste pendant le zoom n'empêche pas l'ouverture ; « Y aller » ne restaure pas ; inactif pendant un parcours guidé ; instantané en mouvement réduit.

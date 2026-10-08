@@ -501,7 +501,8 @@ l'application le reconnaît et ne se comporte plus comme pendant une panne.
   pendant la visite.
 - **Marquer un tutoriel comme lu**, s'il n'y a pas de quiz de compréhension à passer : la
   lecture compte tout de suite (les tâches liées deviennent marquables) et part au retour du
-  réseau, avant les tâches qui en dépendent.
+  réseau, avant les tâches qui en dépendent. Si cette lecture n'est pas encore arrivée, la
+  tâche notée faite attend le prochain essai : elle n'est pas refusée ni effacée.
 
 **L'écran « Hors ligne »** (bouton nuage de l'en-tête, avec une pastille quand des envois
 attendent ; ou bouton du bandeau) rassemble :

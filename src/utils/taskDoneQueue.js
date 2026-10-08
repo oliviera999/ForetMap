@@ -20,6 +20,7 @@
  */
 
 import { createOfflineQueue, newClientUuid } from './offlineActionQueue.js';
+import { queuedTutorialReadIds } from './tutorialReadQueue.js';
 
 export const TASK_DONE_QUEUE_STORAGE_KEY = 'foretmap_task_done_queue';
 /** Borne de sécurité : une file qui grossit sans fin signale un autre problème. */
@@ -104,8 +105,26 @@ export function refusedTaskDoneItems(userId) {
 /** Efface un « fait » refusé (l'élève a récupéré son commentaire). */
 export const dismissTaskDone = (clientUuid) => queue.remove(clientUuid);
 
+/**
+ * Un « fait » refusé parce qu'un tutoriel lié n'est pas encore enregistré, alors que cette
+ * lecture est encore dans la file (envoi précédent tombé, réseau revenu entre les deux) :
+ * on réessaiera. Le jeter ou le figer « refusé » perdrait le marquage, le commentaire et la
+ * photo — la lecture, elle, partira au prochain passage.
+ * @param {TaskDoneQueueItem} item
+ * @param {{ code?: string, body?: { missing_tutorials?: Array<{ id?: number }> } }} [info]
+ */
+function tutorialReadStillQueued(item, info) {
+  if (info?.code !== 'tutorials_unread') return false;
+  const pending = queuedTutorialReadIds(item?.user_id);
+  if (pending.size === 0) return false;
+  const missing = info?.body?.missing_tutorials;
+  if (!Array.isArray(missing) || missing.length === 0) return true;
+  return missing.some((row) => pending.has(Number(row?.id)));
+}
+
 /** Un commentaire ou une photo de l'élève ne se jettent pas : sans eux, rien à garder. */
-function refusalPolicy(item) {
+function refusalPolicy(item, info) {
+  if (tutorialReadStillQueued(item, info)) return 'defer';
   return String(item?.comment || '').trim() || item?.has_photo ? 'keep' : 'drop';
 }
 
@@ -131,10 +150,12 @@ export function liveTaskDoneKeys() {
 }
 
 /**
- * Rejoue les « faits » du compte connecté. Un refus définitif (tâche archivée, tutoriel à lire,
- * inscription retirée…) n'est plus renvoyé : sans commentaire il sort de la file, avec un
- * commentaire il y reste marqué refusé pour que l'élève le récupère. L'appelant prévient
- * l'élève avec `refused` et lit les réponses dans `sent` (`already_closed`).
+ * Rejoue les « faits » du compte connecté. Un refus définitif (tâche archivée, tutoriel à lire
+ * et qui ne partira pas, inscription retirée…) n'est plus renvoyé : sans commentaire il sort
+ * de la file, avec un commentaire il y reste marqué refusé pour que l'élève le récupère.
+ * Un refus « tutoriel pas encore lu » alors que la lecture est encore en file est reporté,
+ * pas abandonné. L'appelant prévient l'élève avec `refused` et lit les réponses dans `sent`
+ * (`already_closed`).
  * @param {(item: TaskDoneQueueItem) => Promise<unknown>} send
  * @param {string|null|undefined} userId
  */
