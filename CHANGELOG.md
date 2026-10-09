@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — GL : une arrivée n'est plus perdue si un autre popover se ferme pendant le zoom
+
+- Refermer un popover (zone, QCM, effet, feuillet) pendant le zoom d'une **autre** arrivée annulait ce zoom et laissait sa promesse en suspens. L'arrivée était déjà marquée comme récente : le popover ne s'ouvrait pas, et l'appel au serveur (question, effet, contenu, feuillet) n'était jamais fait. Il fallait quitter le lieu et y revenir après quelques secondes.
+- `restore()` prévient désormais l'attente (`onAbandoned`) sans ouvrir une fiche de carte annulée par l'utilisateur. Les deux arrivées qui se chevauchent continuent de s'afficher toutes les deux.
+
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
 - Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.

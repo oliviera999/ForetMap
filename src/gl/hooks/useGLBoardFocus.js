@@ -11,6 +11,8 @@ import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
  * `beforePresent(target)` est passé aux hooks d'arrivée : ils l'attendent avant d'afficher leur
  * popover. Deux arrivées qui se chevauchent (zone avec contenu **et** feuillet) présentent
  * toutes les deux : la plus récente garde le zoom, la précédente s'affiche sans attendre.
+ * Refermer un popover pendant le zoom d'une autre arrivée n'abandonne pas celle-ci
+ * (`onAbandoned`) : sinon la promesse restait en suspens et le contenu ne s'ouvrait jamais.
  *
  * `fx` est l'état des effets du zoom (emoji, projecteur, étincelles), à rendre par
  * `PctPlaceFocusFx` dans le calque du plateau.
@@ -37,7 +39,15 @@ export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, 
 
   const beforePresent = useCallback(
     (target) =>
-      new Promise((resolve) => focus.focusThenOpen(target, resolve, { onSuperseded: resolve })),
+      new Promise((resolve) =>
+        focus.focusThenOpen(target, resolve, {
+          onSuperseded: resolve,
+          // Refermer un autre popover appelle `restore()`, qui annule ce zoom. Sans
+          // `onAbandoned`, la promesse ne se résolvait jamais : l'arrivée avait déjà été
+          // marquée « récente » et le QCM, l'effet ou le feuillet ne s'ouvrait pas.
+          onAbandoned: resolve,
+        }),
+      ),
     [focus],
   );
 

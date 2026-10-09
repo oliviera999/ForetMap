@@ -80,7 +80,8 @@ utilisable derrière lui. Avec « réduire les animations », la fermeture est i
 
 Si deux arrivées se chevauchent (une zone qui a à la fois un contenu et un feuillet, par
 exemple), **les deux popovers s'ouvrent** : le plus récent garde le zoom, le précédent
-s'affiche aussitôt, sans attendre.
+s'affiche aussitôt, sans attendre. Refermer un popover pendant qu'une autre arrivée est
+encore en train de zoomer n'annule pas cette arrivée : son popover s'ouvre quand même.
 
 > ⚠️ **Points d'attention**
 >
