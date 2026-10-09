@@ -154,6 +154,19 @@ describe('usePlaceFocusSequence', () => {
     expect(dropped).not.toHaveBeenCalled();
   });
 
+  test('onAbandoned : la fermeture pendant le zoom prévient l’attente, sans ouvrir la fiche', async () => {
+    const vp = fakeViewport();
+    const { result } = setup(vp);
+    const open = vi.fn();
+    const abandoned = vi.fn();
+    act(() => result.current.focusThenOpen(zone, open, { onAbandoned: abandoned }));
+    act(() => result.current.restore());
+    expect(abandoned).toHaveBeenCalledTimes(1);
+    expect(open).not.toHaveBeenCalled();
+    await act(async () => vp.flights[0].resolve(true));
+    expect(open).not.toHaveBeenCalled();
+  });
+
   test('fermer pendant le zoom annule l’ouverture', async () => {
     const vp = fakeViewport();
     const { result } = setup(vp);
@@ -294,6 +307,30 @@ describe('plateau GL : useGLBoardFocus', () => {
     expect(vp.restoreViewAnimated).not.toHaveBeenCalled();
     rerender({ open: false });
     expect(vp.restoreViewAnimated).toHaveBeenCalledTimes(1);
+  });
+
+  test('refermer un popover pendant le zoom d’une autre arrivée présente quand même', async () => {
+    const vp = fakeViewport();
+    const { result, rerender } = renderHook(
+      ({ open }) => {
+        const focus = useGLBoardFocus({ mapGestures: vp });
+        useGLBoardFocusRestore(open, focus.restore);
+        return focus;
+      },
+      { initialProps: { open: true } },
+    );
+    let presented = 0;
+    act(() => {
+      result.current.beforePresent(marker).then(() => {
+        presented += 1;
+      });
+    });
+    expect(presented).toBe(0);
+    rerender({ open: false });
+    await act(async () => {});
+    expect(presented).toBe(1);
+    await act(async () => vp.flights[0].resolve(true));
+    expect(presented).toBe(1);
   });
 
   test('deux arrivées qui se chevauchent : les deux popovers sont présentés', async () => {
