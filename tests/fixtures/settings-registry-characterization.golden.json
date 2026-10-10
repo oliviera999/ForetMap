@@ -612,6 +612,12 @@
       "maxLength": 120,
       "default": ""
     },
+    "security.totp.enforcement": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["off", "enroll", "required"],
+      "default": "enroll"
+    },
     "students.import.allow_weak_passwords": {
       "scope": "admin",
       "type": "boolean",
@@ -3253,6 +3259,22 @@
         "max": null,
         "maxLength": 120,
         "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.totp.enforcement",
+      "scope": "admin",
+      "type": "enum",
+      "value": "enroll",
+      "default_value": "enroll",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["off", "enroll", "required"]
       },
       "updated_at": null,
       "updated_by_user_type": null,

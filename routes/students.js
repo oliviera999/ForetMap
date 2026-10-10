@@ -51,6 +51,7 @@ const {
   applyEmailChangeEffects,
 } = require('../lib/accounts/emailChange');
 const { buildSessionPayload } = require('../lib/auth/sessionPayload');
+const { carryMfaClaims } = require('../lib/auth/mfaClaims');
 const { exposeAuth } = require('../lib/authRouteHelpers');
 
 const router = express.Router();
@@ -465,9 +466,11 @@ router.patch(
       });
       const session = await buildSessionPayload(auth.userType, student.id);
       if (session) {
+        // Marqueur « second facteur validé » reconduit (compte élève promu n3boss).
+        const tokenPayload = carryMfaClaims(session.tokenPayload, auth);
         freshSession = {
-          authToken: await signAuthToken(session.tokenPayload),
-          auth: exposeAuth(session.tokenPayload),
+          authToken: await signAuthToken(tokenPayload),
+          auth: exposeAuth(tokenPayload),
         };
       }
     }
