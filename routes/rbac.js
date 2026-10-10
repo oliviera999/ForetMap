@@ -1398,27 +1398,17 @@ router.delete(
     if (String(req.auth.userId) === userId) {
       return res.status(403).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     }
-    const teacher = await queryOne(
-      "SELECT id, avatar_path FROM users WHERE id = ? AND user_type = 'teacher' LIMIT 1",
-      [userId],
-    );
-    if (!teacher) return res.status(404).json({ error: 'Enseignant introuvable' });
-    const role = await getPrimaryRoleForUser('teacher', userId);
-    if (role?.slug === 'admin' && (await countPrimaryAdmins()) <= 1) {
+    // Effacement partagé avec la purge planifiée (lib/teacherDeletion.js) ; `require` local :
+    // il ne sert qu'à ce gestionnaire.
+    const { deleteTeacherById } = require('../lib/teacherDeletion');
+    const result = await deleteTeacherById(userId);
+    if (!result.ok && result.reason === 'not_found') {
+      return res.status(404).json({ error: 'Enseignant introuvable' });
+    }
+    if (!result.ok && result.reason === 'last_admin') {
       return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
     }
-    // `require` locaux : l'effacement ne touche que ce gestionnaire.
-    const { eraseAccountJournalTraces } = require('../lib/accounts/identityAccountCleaners');
-    const { deleteFile } = require('../lib/uploads');
-    await withTransaction(async (tx) => {
-      await tx.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
-      // IP et navigateur de ses événements de sécurité, libellés d'audit qui le nomment
-      // (RG3, audit RGPD du 30/09/2026) — mêmes règles que l'effacement d'un élève.
-      await eraseAccountJournalTraces(tx, userId, 'teacher');
-      await tx.execute("DELETE FROM users WHERE id = ? AND user_type = 'teacher'", [userId]);
-    });
-    // Avatar : supprimé du disque après validation (il restait servi sous /uploads).
-    if (teacher.avatar_path) deleteFile(teacher.avatar_path);
+    if (!result.ok) return res.status(400).json({ error: 'Suppression impossible' });
     // Identifiant seulement : ni nom ni e-mail dans le journal de l'effacement.
     await logAudit('delete_teacher', 'user', userId, userId, { req });
     res.json({ ok: true, deleted: userId });
