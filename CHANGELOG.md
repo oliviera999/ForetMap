@@ -44,6 +44,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
 - Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
 - Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+### Corrigé — Cron de déploiement : un `git fetch` refusé ne passe plus inaperçu
+
+- `scripts/auto-deploy-cron.sh` : un `git fetch` en échec (dépôt passé en privé alors que le
+  serveur tire en HTTPS anonyme, clé de déploiement retirée, réseau) arrêtait le script en
+  silence. Il envoie désormais l'alerte « Déploiement bloqué (git fetch refusé) », au plus toutes
+  les 6 h, avec le message de git (identifiants d'URL masqués), et vérifie que le front reste
+  servi. Test : `tests/deploy-cron-fetch-failure.test.js` (script réellement exécuté).
+
 ### Sécurité — Garde-fou contre la fuite de dumps, de hachages et de secrets dans le dépôt
 
 - Nouveau `scripts/check-sensitive-files.js` (`npm run check:sensitive`), sans dépendance :

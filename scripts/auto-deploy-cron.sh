@@ -324,7 +324,18 @@ if [[ -n "$DIRTY_TREE" ]]; then
 fi
 
 log "Fetch de origin/$DEPLOY_BRANCH..."
-git fetch origin "$DEPLOY_BRANCH" --quiet
+# Un fetch refusé (dépôt passé en privé alors que `origin` est en HTTPS anonyme, clé de
+# déploiement retirée, réseau) arrêtait le script en silence sous `set -e` : plus aucun
+# déploiement, sans alerte. On alerte (au plus toutes les 6 h) et on garde le site servi.
+# Identifiants éventuels de l'URL masqués avant journalisation (`https://jeton@github.com/…`).
+if ! FETCH_ERR="$(git fetch origin "$DEPLOY_BRANCH" --quiet 2>&1)"; then
+  FETCH_ERR="$(printf '%s\n' "$FETCH_ERR" | sed -E 's#://[^/@[:space:]]+@#://****@#g' | sed -n '1,3p' | tr '\n' ' ')"
+  log "ÉCHEC du git fetch origin/$DEPLOY_BRANCH : $FETCH_ERR"
+  alert_throttled fetch-failed 360 "Déploiement bloqué (git fetch refusé)" \
+    "git fetch origin $DEPLOY_BRANCH en échec sur $APP_DIR : aucun nouveau commit ne sera déployé. Dépôt privé : vérifier la clé de déploiement en lecture seule (docs/EXPLOITATION.md § 11.1). Message de git : $FETCH_ERR"
+  ensure_frontend_served
+  exit 1
+fi
 
 LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse "origin/$DEPLOY_BRANCH")"
