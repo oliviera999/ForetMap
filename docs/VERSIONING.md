@@ -28,7 +28,7 @@ Sur ce dépôt, chaque **lot livré** (correctif ou fonctionnalité prête à ê
 2. un **commit** puis un **`git push`** de tous les fichiers concernés.
 
 L’incrément de **`package.json`** n’est plus à faire à la main : le workflow
-**`.github/workflows/version-bump.yml`** s’en charge après la fusion.
+**`.github/workflows/release.yml`** s’en charge après la fusion.
 
 ### Le bump se fait à la fusion
 
@@ -47,7 +47,9 @@ main : une vigilance que rien n’outillait.
    `BREAKING CHANGE` ou `type!:` → **majeur**, tout le reste → **correctif** ;
 3. commite `chore(release): vX.Y.Z [skip bump]` et le pousse sur `main`.
 
-Ce commit déclenche à son tour **`release-tag.yml`**, qui crée le tag `vX.Y.Z` et la release.
+Dans le **même job**, `release.yml` crée ensuite le tag `vX.Y.Z` et la release **sur ce commit
+de bump**, puis publie l’artefact de déploiement. (Jusqu’au 10/10/2026, `release-tag.yml` tournait
+sur le commit de fusion, avant le bump : chaque tag arrivait une fusion en retard.)
 
 **Choisir un autre niveau que celui déduit** — bumper explicitement dans la PR
 (`npm run bump:minor`) : le workflow voit que la version a bougé et ne fait rien. Les scripts
@@ -120,11 +122,10 @@ npm run release:patch   # ou release:minor / release:major
 
 ## Tag & release automatiques sur `main`
 
-Le workflow **`.github/workflows/release-tag.yml`** crée, à chaque push sur `main`, le tag
-**`v<version de package.json>`** s'il n'existe pas encore, avec une **GitHub Release** dont les
+Le workflow **`.github/workflows/release.yml`** crée, après le bump d'une fusion sur `main`, le
+tag **`v<version de package.json>`** s'il n'existe pas encore, avec une **GitHub Release** dont les
 notes sont extraites du `CHANGELOG.md` (section `[X.Y.Z]` datée si présente, sinon `[Non publié]`).
-C'est **idempotent** : un push sans changement de version (ex. auto-commit `dist/` du bot
-`frontend-dist`) ne crée aucun tag.
+C'est **idempotent** : son passage quotidien pose un tag manquant et ne fait rien sinon.
 
 > **Panne du 11/09/2026 — à connaître.** Quand les notes dépassent `MAX_BYTES`, elles sont tronquées
 > à l'octet par `head -c`, ce qui peut trancher un caractère UTF-8 en deux. `iconv -c` retire bien la
@@ -162,8 +163,9 @@ ces conflits récurrents :
 - **`.gitattributes`** déclare `CHANGELOG.md merge=union` → lors d’un merge, Git
   conserve les entrées des **deux** côtés au lieu de produire un conflit (vaut
   aussi pour les merges locaux).
-- **Workflow** `.github/workflows/auto-resolve-conflicts.yml` (push sur `main`,
-  cron horaire, déclenchement manuel) exécute `scripts/auto-resolve-conflicts.js`
+- **Workflow** `.github/workflows/auto-resolve-conflicts.yml` (**à la demande seulement**
+  depuis le 10/10/2026 : les agents fusionnent déjà `main` dans leurs PR, cf.
+  `docs/EXPLOITATION.md` § 11.2) exécute `scripts/auto-resolve-conflicts.js`
   qui, pour chaque PR ouverte vers `main` :
   - tente le merge de `main` ; si propre, ne touche à rien ;
   - en cas de conflit, résout **automatiquement** `CHANGELOG.md` (union) et la

@@ -13,9 +13,10 @@ description: Versionnage SemVer, CHANGELOG et workflow Git ForetMap (bump, commi
    `type!:` / `BREAKING CHANGE` → majeur, le reste → correctif).
 3. **Push** immédiat.
 
-> **Ne pas bumper dans la PR.** Depuis le 27/08/2026, `.github/workflows/version-bump.yml`
-> incrémente `package.json` **après** la fusion sur `main`, puis `release-tag.yml` crée le tag
-> et la release. Bumper dans la branche revendiquait un numéro avant de savoir quand elle
+> **Ne pas bumper dans la PR.** `.github/workflows/release.yml` incrémente `package.json`
+> **après** la fusion sur `main`, puis, dans le même job, crée le tag et la release sur le commit
+> de bump et publie l'artefact de déploiement (ex-`version-bump.yml` + `release-tag.yml` +
+> `dist-publish.yml`, fondus le 10/10/2026). Bumper dans la branche revendiquait un numéro avant de savoir quand elle
 > fusionnerait : deux PR parallèles prenaient le même, et le conflit était garanti.
 >
 > **Forcer un niveau** (rare) : `npm run bump:minor` dans la PR. Le workflow détecte que la
@@ -26,6 +27,9 @@ description: Versionnage SemVer, CHANGELOG et workflow Git ForetMap (bump, commi
 - **SemVer** ; source de vérité = `"version"` dans `package.json`.
 - Commits : Conventional Commits (`feat`, `fix`, `chore`, `docs`, `style`…) ; scope `gl` si lot GL exclusif.
 - Avant push : `npm run lint` et `npm run format:check` doivent passer (étapes CI). Tests : `npm test`.
+- **Avant de fusionner : CI de la PR verte.** Plus aucun test ne tourne sur `main` après la
+  fusion (quota Actions du dépôt privé, `docs/EXPLOITATION.md` § 11.2) ; une PR en brouillon n'a
+  pas de CI — la passer en « Ready for review » pour la lancer.
 
 ## Release formelle
 

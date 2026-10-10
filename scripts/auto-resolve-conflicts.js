@@ -21,8 +21,8 @@
  * Un fichier n'est auto-résolu QUE si ses seuls conflits relèvent de ces cas
  * (pour package.json/lock : différences limitées à une ligne `"version"`).
  *
- * Utilisé par .github/workflows/auto-resolve-conflicts.yml (push sur main + cron
- * + déclenchement manuel). Les fonctions pures sont exportées et testées dans
+ * Utilisé par .github/workflows/auto-resolve-conflicts.yml (déclenchement manuel seulement
+ * depuis le 10/10/2026 ; avant : aussi push sur main + cron). Les fonctions pures sont exportées et testées dans
  * tests/auto-resolve-conflicts.test.js.
  *
  * Variables d'environnement :

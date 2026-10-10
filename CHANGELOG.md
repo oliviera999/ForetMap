@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
+
+- **Constat** (3 → 10/10) : ~2 230 min/mois estimées, dont 60 % sur `main` — chaque fusion déclenchait sept workflows (~13 min facturées), plus deux crons toutes les 6 h.
+- **`release.yml`** remplace `version-bump.yml`, `release-tag.yml`, `dist-publish.yml` et la CI rejouée sur `main` : un job par fusion (données sensibles, numéros de migration, bump, tag + release, build, contrôle des miroirs CJS, artefact), ~2–3 min. Le tag est désormais posé **sur le commit de bump** (il arrivait une fusion en retard, sur le mauvais commit). Passage quotidien : artefact manquant, tag manquant, `npm audit`.
+- **`ci.yml`** ne tourne plus que sur les PR (et à la demande). Le job `contenu` devient une étape du job `test` ; `frontend-dist.yml` disparaît, sa vérification des miroirs CJS passe dans `test` — une dérive fait échouer la PR (`npm run build` puis recommit), plus de recommit automatique par un job en écriture.
+- **`auto-resolve-conflicts.yml`** : à la demande seulement (les agents fusionnent déjà `main` dans leurs PR ; chaque résolution poussée relançait la CI complète de la PR).
+- Doc : `docs/EXPLOITATION.md` § 11.2, `docs/VERSIONING.md`, `docs/DEPLOY_DIST_ARTIFACT.md`, `CLAUDE.md`, skill `foretmap-release`.
+
 ### Corrigé — Couleurs : le centre hors ligne et les effets de carte passent par les jetons
 
 - `src/components/offline/offlineCenter.css` : les 11 couleurs écrites en dur (replis de variables

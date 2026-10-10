@@ -4,7 +4,7 @@ Ce document décrit pourquoi le build frontend cesse d'être versionné, comment
 la place, et **dans quel ordre basculer** sans fenêtre d'indisponibilité.
 
 - Mécanisme serveur : [`scripts/fetch-dist-artifact.js`](../scripts/fetch-dist-artifact.js)
-- Publication CI : [`.github/workflows/dist-publish.yml`](../.github/workflows/dist-publish.yml)
+- Publication CI : [`.github/workflows/release.yml`](../.github/workflows/release.yml) (ex-`dist-publish.yml`, fondu le 10/10/2026)
 - Déploiement : [`scripts/auto-deploy-cron.sh`](../scripts/auto-deploy-cron.sh)
 - Tests : [`tests/fetch-dist-artifact.test.js`](../tests/fetch-dist-artifact.test.js)
 
@@ -121,22 +121,23 @@ plus versionné — puis `--mode restore-previous`, qui remet `dist.prev/` en pl
 accès réseau**. Un `dist.prev/` incomplet est refusé : poser un build tronqué est pire que ne
 rien poser.
 
-### Pourquoi quatre déclencheurs de publication
+### Déclencheurs de publication
 
-`dist-publish.yml` écoute `push` sur `main`, `workflow_run` après « Version bump on merge », un
-`schedule` toutes les 6 heures et `workflow_dispatch`. Le deuxième n'est pas un luxe :
+Depuis le 10/10/2026, l'artefact est publié par **`release.yml`**, dans le même job que le bump
+de version : fusion sur `main` → bump `chore(release): vX [skip bump]` → tag → build → artefact.
+Le build part donc **du commit de bump**, qui est la tête de `main` : le serveur, qui attend un
+artefact du commit qu'il vient de tirer, n'a plus à attendre un second workflow.
 
-> `version-bump.yml` pousse `chore(release): vX [skip bump]` sur `main` **avec le
-> `GITHUB_TOKEN`**, et un push par `GITHUB_TOKEN` ne déclenche aucun workflow (anti-boucle
-> GitHub). La tête de `main` est donc presque toujours un commit que `push` n'a jamais vu.
+> **Avant** (`dist-publish.yml`) : quatre déclencheurs — `push`, `workflow_run` après « Version
+> bump on merge », un cron de 6 h et `workflow_dispatch`. Le `workflow_run` était indispensable
+> parce que le bump, poussé avec le `GITHUB_TOKEN`, ne déclenche aucun workflow (anti-boucle
+> GitHub) ; mais le run `push` partait aussi à chaque fusion, pour être annulé par le suivant
+> après avoir payé sa minute. Les faire tenir dans un seul job supprime le problème.
 
-Sans ce crochet, l'artefact serait en permanence un commit en retard sur `main` et le serveur
-reporterait son déploiement **indéfiniment**. Le `schedule` est le filet de sécurité si un
-déclencheur est manqué (`[skip ci]` dans un message, run annulé, incident Actions) : au pire, le
-déploiement attend six heures au lieu d'une minute — `workflow_dispatch` (onglet Actions →
-_Publish dist artifact_ → _Run workflow_) republie tout de suite si c'est pressant. Il était
-horaire à l'origine ; il a été espacé pour le dépôt privé sur le plan Free, où chaque exécution,
-même sans rien à publier, coûte au moins une minute facturée (voir `docs/EXPLOITATION.md` § 11.2).
+Restent un passage **quotidien** (filet si un run a été manqué : il republie un artefact absent ou
+périmé, et ne fait rien sinon) et `workflow_dispatch` (onglet Actions → _Release_ → _Run workflow_,
+option `force`) pour republier tout de suite. Sur le plan Free d'un dépôt privé, chaque exécution
+coûte au moins une minute facturée : voir `docs/EXPLOITATION.md` § 11.2.
 
 Le job construit toujours la tête courante de `main`, pas le SHA déclencheur, et s'abstient si
 l'artefact publié correspond déjà — le passage programmé ne republie donc pas 32 Mo pour rien.
@@ -208,6 +209,9 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
 > aucun recommit de `dist/`), parce que son job `dist` est attendu par la protection de branche
 > et qu'il est le seul à contrôler les miroirs `lib/visit-pack/`, `lib/gl-pack/`,
 > `lib/term-autolink/`. Le défaut de `DEPLOY_DIST_SOURCE` dans le cron passe à `branch`.
+> **Mise à jour du 10/10/2026** : `frontend-dist.yml` est finalement supprimé ; le build de
+> contrôle et la vérification des miroirs vivent dans le job `test` de `ci.yml` (PR) et dans
+> `release.yml` (fusion).
 
 **Dans cet ordre, sans inverser.**
 
@@ -242,7 +246,7 @@ Nettoyer ensuite : `rm -rf dist.candidate`.
      `main`, et le run `1079` est repassé au vert une fois le build de production reposé. Ce
      workflow fait son travail — le retirer fait perdre le seul filet qui rattrape un `dist/`
      commité non conforme aux sources. C'est acceptable **parce que** `dist/` cesse au même
-     moment d'être servi depuis le dépôt : après l'étape 3, c'est `dist-publish.yml` qui
+     moment d'être servi depuis le dépôt : après l'étape 3, c'est `dist-publish.yml` (aujourd'hui `release.yml`) qui
      construit, et son artefact ne peut pas être construit à la main dans un mauvais mode ;
    - retire la garde `dist/` de `.githooks/pre-push` ;
    - retire du `README`/`docs` les consignes « lancer `npm run build` avant de pousser ».

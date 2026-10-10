@@ -1,23 +1,19 @@
 name: CI
 
-# Coût en minutes Actions (dépôt privé, plan Free : 2 000 min/mois). Le quota a été épuisé en
-# ~48 h fin septembre 2026 : un run complet coûtait ~40 min facturées (somme des jobs, chacune
-# arrondie à la minute) et tournait deux fois par changement (PR puis push `main`), sans
-# annulation des runs dépassés. D'où, dans ce fichier :
-#   - `concurrency` : un nouveau push sur la même PR (ou sur `main`) annule le run en cours ;
-#   - PR en brouillon : aucun job (les jobs passent en « skipped ») — la CI part au passage
-#     « Ready for review » (`ready_for_review`) ou à la main (Actions → CI → Run workflow) ;
-#   - push `main` : `quality` seul, sans Vitest. La PR a déjà passé la CI complète ; ce qui
-#     peut casser à la fusion, c'est surtout la collision de numéros de migration, que
-#     `quality` vérifie en une minute ;
+# Validation des **pull requests** — et d'elles seules. Le dépôt est privé (plan Free :
+# 2 000 min Actions/mois, facturées par job arrondi à la minute) ; architecture et chiffres :
+# docs/EXPLOITATION.md § 11.2. En bref :
+#   - aucun run sur `main` : la PR fusionnée a déjà passé ce fichier, et ce qui doit tourner à
+#     la fusion (numéros de migration, bump, tag, publication de l'artefact) vit dans
+#     release.yml, en un seul job ;
+#   - `concurrency` : un nouveau push sur la même PR annule le run en cours ;
+#   - PR en brouillon : aucun job (« skipped ») — la CI part au passage « Ready for review »
+#     (`ready_for_review`) ou à la main (Actions → CI → Run workflow) ;
 #   - PR de documentation seule (audits, `.cursor/`, `.claude/`…, cf.
 #     scripts/ci-change-scope.js) : `quality` sans Vitest ;
-#   - suite e2e complète (informative) : sortie dans e2e-full.yml, à la demande.
-# Détail et chiffres : docs/EXPLOITATION.md § 11.2.
+#   - suite e2e complète (informative) : e2e-full.yml, à la demande.
 
 on:
-  push:
-    branches: [main, master]
   pull_request:
     branches: [main, master]
     # `ready_for_review` : une PR sortie du brouillon lance sa première CI.
@@ -68,12 +64,9 @@ jobs:
               echo "Fichiers modifiés : $(wc -l < "$RUNNER_TEMP/files.txt")"
               node scripts/ci-change-scope.js < "$RUNNER_TEMP/files.txt" >> "$GITHUB_OUTPUT"
               ;;
-            workflow_dispatch)
-              echo "full=true" >> "$GITHUB_OUTPUT"
-              ;;
             *)
-              # push sur `main` / `master` : déjà validé sur la PR.
-              echo "full=false" >> "$GITHUB_OUTPUT"
+              # workflow_dispatch : lancement manuel sur une branche → CI complète.
+              echo "full=true" >> "$GITHUB_OUTPUT"
               ;;
           esac
           cat "$GITHUB_OUTPUT"
@@ -121,8 +114,8 @@ jobs:
       - name: Run format check
         run: npm run format:check
 
-      # ~2 min depuis le pool `vmThreads` (vitest.config.js), ~12 min avant. Sauté sur push
-      # `main` et sur une PR de documentation seule (cf. job `changes`).
+      # ~2 min depuis le pool `vmThreads` (vitest.config.js), ~12 min avant. Sauté sur une PR
+      # de documentation seule (cf. job `changes`).
       - name: Run UI tests (Vitest)
         if: needs.changes.outputs.full == 'true'
         run: npm run test:ui
@@ -134,54 +127,9 @@ jobs:
       - name: Audit des dépendances (npm audit, bloquant)
         run: npm audit --omit=dev --audit-level=high
 
-  # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les
-  # migrations — espèces, liaisons trophiques, rattachements QCM. Job séparé depuis le
-  # 11/09/2026, parce qu'une dérive du corpus bloquait jusqu'aux PR de documentation : le
-  # 09/09, `pedago-garden-auxiliaires` (liaison « Hérisson commun → Escargot des bois »
-  # jamais semée, cf. migration 230) a fait échouer quatre PR d'affilée, dont deux qui ne
-  # contenaient que du Markdown. Un contenu incohérent doit tomber — mais sous son propre
-  # nom, sans se confondre avec un échec de code.
-  contenu:
-    needs: changes
-    if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NODE_ENV: test
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_NAME: foretmap_test
-      DB_USER: root
-      DB_PASS: ''
-      JWT_SECRET: 'ci-test-secret-not-for-production'
-    services:
-      mysql:
-        image: mariadb:11.4.10
-        env:
-          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
-          MARIADB_DATABASE: foretmap_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=40s
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Initialize test database
-        run: npm run db:init
-
-      - name: Run content tests
-        run: npm run test:content
-
-  # Conserve le nom `test` : c'est le check requis côté protections de branche.
+  # Conserve le nom `test` : c'est le check requis côté protections de branche. Inclut aussi le
+  # contrôle du build de production (ex-frontend-dist.yml) et le corpus pédagogique (ex-job
+  # `contenu`) : un seul `npm ci`, un seul MariaDB, un seul `db:init` par run.
   test:
     needs: changes
     if: needs.changes.outputs.full == 'true'
@@ -227,6 +175,7 @@ jobs:
         run: npm ci
 
       - name: Initialize test database
+        id: dbinit
         run: npm run db:init
 
       # Une seule passe de la suite backend : `test:coverage` exécute exactement
@@ -235,8 +184,31 @@ jobs:
       - name: Run backend tests (with coverage)
         run: npm run test:coverage
 
+      # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les
+      # migrations — espèces, liaisons trophiques, rattachements QCM. Étape à son propre nom
+      # (un contenu incohérent doit tomber sans se confondre avec un échec de code, cf. le
+      # 09/09 : `pedago-garden-auxiliaires`, migration 230), qui tourne **même si** la suite
+      # backend a échoué. Ex-job `contenu` : il refaisait `npm ci`, MariaDB et `db:init` pour
+      # 3 s de tests. Même ordre que `npm run test:all` (backend, puis contenu).
+      - name: Contenu pédagogique (tests/content)
+        if: ${{ !cancelled() && steps.dbinit.outcome == 'success' }}
+        run: npm run test:content
+
       - name: Build frontend (Vite)
         run: npm run build
+
+      # Miroirs CJS (`lib/visit-pack/`, `lib/gl-pack/`, `lib/term-autolink/`) : requis au
+      # runtime par l'API, qui tourne sans `src/` ; `npm run build` les régénère. Une dérive
+      # veut dire qu'ils n'ont pas été recommités. Ex-workflow frontend-dist.yml, qui les
+      # recommitait lui-même avec un jeton en écriture déclenché par une PR : la correction
+      # revient désormais à l'auteur (agents compris), en une commande.
+      - name: Miroirs CJS à jour
+        run: |
+          if ! git diff --quiet -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/; then
+            git --no-pager diff --stat -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
+            echo "::error::Miroirs CJS périmés : lancer 'npm run build' puis recommiter lib/visit-pack/, lib/gl-pack/ et lib/term-autolink/."
+            exit 1
+          fi
 
       - name: Install Playwright browser
         # Téléchargement du navigateur + paquets système : la seule étape du job qui
