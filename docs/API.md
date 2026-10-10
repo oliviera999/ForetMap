@@ -1292,7 +1292,7 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | GET     | `/api/settings/admin/tour-content`                           | Surcharges de texte des visites guidées (`content.tour.registry`). Réponse `{ registry }` : clés plates `<parcours>.<étape>.<champ>`, avec `<champ>` parmi `title`, `body`, `bodyTeacher`. Le corpus par défaut n'est **pas** renvoyé — il vit dans le bundle client. Permission **`tours.manage`** (distincte de `admin.settings.*`, déléguable à un profil prof)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | PUT     | `/api/settings/admin/tour-content`                           | Remplace les surcharges. Corps `{ registry }`. Une clé mal formée, un texte > 500 caractères ou plus de 200 entrées ⇒ `400`. Une valeur vide ou blanche n'est pas stockée : le parcours revient au texte versionné. Audit `settings_tour_content_update`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | POST    | `/api/settings/admin/tour-content/reset`                     | Efface toutes les surcharges (`registry` vide). Les textes livrés étant en code, il n'y a rien à recopier. Audit `settings_tour_content_reset`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| POST    | `/api/settings/admin/plan-access-code`                       | Définir / effacer le code d’accès du Plan (`{ code }` clair → bcrypt serveur ; `code: ""` efface). Permission `admin.settings.write`. L’écriture directe de `security.plan_access_code_hash` via PUT `:key` est refusée.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| POST    | `/api/settings/admin/plan-access-code`                       | Définir / effacer le code d’accès du Plan (`{ code }` clair → bcrypt serveur ; `code: ""` efface). **12 à 64 caractères** : **400** `Code trop court (12 caractères minimum)` en deçà (un code enregistré auparavant reste valide jusqu’à son remplacement). Permission `admin.settings.write`. L’écriture directe de `security.plan_access_code_hash` via PUT `:key` est refusée.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | POST    | `/api/settings/admin/staff-plan-access-code`                 | Idem pour le **plan des personnels** (`security.staff_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/settings/admin/enov-plan-access-code`                  | Idem pour le **plan e-nov** (`security.enov_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | PUT     | `/api/settings/admin/:key`                                   | Mettre à jour un réglage (`{ value }`) — validation complète (normalisation + cohérence croisée) **avant** persistance : un 400 garantit que rien n’a été enregistré ; panne interne → **500**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -1514,7 +1514,12 @@ Sans les deux (surface + carte), le bouton « Orienter » n'apparaît pas.
 Portée `admin` : `security.plan_access_code_hash` (hachage bcrypt du code d'accès, vide =
 aucun code). **Ne pas** écrire cette clé via `PUT /api/settings/admin/:key` : utiliser
 `POST /api/settings/admin/plan-access-code` avec `{ code }` (clair) — le serveur hashe ; `{ code: "" }`
-efface. La console Réglages → Plan expose ce flux. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+efface. Un code fait **12 caractères au moins** (**400** sinon) ; les codes enregistrés avant
+cette règle restent valides jusqu'à leur remplacement (le serveur n'en connaît que l'empreinte).
+La console Réglages → Plan expose ce flux, avec un **générateur** (bouton « Générer un code ») :
+14 caractères tirés dans le navigateur (`crypto.getRandomValues`, `src/utils/accessCodeGenerator.js`)
+parmi minuscules et chiffres sans caractère ambigu (ni `0`/`o`, ni `1`/`i`/`l`), affichés en
+clair jusqu'à l'enregistrement. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
 chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
 la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
 
@@ -1542,6 +1547,15 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 Portée `admin` : `security.enov_plan_access_code_hash`, écrite **uniquement** par
 `POST /api/settings/admin/enov-plan-access-code` (même contrat que le plan public ; `PUT :key`
 → **400**).
+
+Durée des laissez-passer (portée `admin`, écriture par `PUT /api/settings/admin/:key`, **400**
+hors bornes) — voir « Accès du plan par code » :
+
+| Clé                                     | Type   | Défaut | Bornes  | Plan                  |
+| --------------------------------------- | ------ | ------ | ------- | --------------------- |
+| `security.plan_access_pass_days`        | number | `30`   | 1 à 90  | Plan public           |
+| `security.enov_plan_access_pass_days`   | number | `30`   | 1 à 90  | Plan e-nov            |
+| `security.staff_plan_access_pass_days`  | number | `7`    | 1 à 30  | Plan des personnels   |
 
 ## Zones
 
@@ -2965,6 +2979,16 @@ par lieu**, chacun avec son intitulé et sa propre audience.
 - **Écriture** — `POST` / `PUT` zones, repères carte **et** `/api/visit/zones`,
   `/api/visit/markers` acceptent `notes`. `undefined` (champ omis) = **inchangé** ; `[]` ou
   `null` = **tous retirés**. Remplacement complet, l'ordre du tableau fait le `sort_order`.
+- **Droits sur les routes de la Visite** — `visit.manage` (la couche Visite) ne suffit pas à
+  gérer les compléments réservés. Sur `POST` / `PUT /api/visit/zones(:id)`, envoyer `notes`
+  exige **`zones.manage`** ; sur `POST` / `PUT /api/visit/markers(:id)`, **`map.manage_markers`**
+  (`canManageLocationNotes`, `lib/locationAudience.js`) — sinon **403**
+  `Compléments réservés d’une zone : permission zones.manage requise` (resp. d’un repère :
+  `map.manage_markers`), avant toute écriture. Les réponses de ces routes ne portent tous les
+  compléments, audiences comprises, qu'à qui détient la permission **du type de lieu** ; aux
+  autres, seulement ceux que leur audience (rôle ou groupe) leur ouvre, sans
+  `audience_role_slugs` / `audience_group_ids`. Les profils livrés (administrateur, n3boss)
+  portent les trois permissions : seuls les profils sur mesure sont concernés.
 - **Validation** — `body` requis, 8000 caractères max ; `title` 160 max ; **6 compléments
   max par lieu** (un lien tient sur une ligne, pas une note : le plafond est volontairement
   plus bas que les 12 liens). Rôle hors catalogue ou groupe inexistant → **400**.
@@ -3093,16 +3117,52 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
 
 - `GET /api/plan/content` répond **401** `{ error, access_required: true }` sans laissez-passer ;
 - `POST /api/plan/access` `{ code }` vérifie le code (comparaison bcrypt, limiteur
-  d'authentification) et pose un **cookie signé HMAC** de 30 jours (HttpOnly, SameSite=Lax,
-  Secure en production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux,
-  **400** s'il est absent ;
-- un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
-  internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
-  Cette comparaison bcrypt est soumise au **même limiteur** que `POST /access` (le code en
-  query ne doit pas offrir une porte dérobée au tâtonnement).
+  d'authentification) et pose un **cookie signé HMAC** (HttpOnly, SameSite=Lax, Secure en
+  production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux, **400**
+  s'il est absent ;
+- **échéance signée** : la valeur du laissez-passer porte sa date d'expiration
+  (`code-<empreinte>~<échéance Unix>.<HMAC>`), couverte par la signature (option `expiring`
+  de `createSignedCookieGate`). Le serveur refuse (**401** `access_required`) un laissez-passer
+  échu, dont l'échéance a été modifiée, ou au format antérieur sans échéance — ceux émis avant
+  cette règle sont donc à ressaisir une fois. Durée : `security.plan_access_pass_days`
+  (portée `admin`, **30** jours par défaut, 1 à 90) ; elle fixe le `Max-Age` **et**
+  l'échéance, et vaut pour les laissez-passer émis ensuite (pour fermer la porte à ceux déjà
+  émis, changer le code). Même mécanique pour le plan e-nov
+  (`security.enov_plan_access_pass_days`, 30 j, 1 à 90) et le plan des personnels
+  (`security.staff_plan_access_pass_days`, **7** j, 1 à 30) ;
+- **lien porteur du code** (QR code interne) : l'adresse **du plan** porte `?code=…`. Le front
+  (`src/plan/hooks/usePlanContent.js`, `src/plan/utils/planAccessLink.js`) l'échange au
+  montage par `POST /access` — le code voyage dans le corps — **avant** la première lecture,
+  puis le retire de l'adresse (`history.replaceState`, le reste du lien est conservé), que le
+  code soit accepté ou refusé ; une panne réseau le laisse en place pour « Réessayer ». La
+  charge n'est plus jamais demandée avec le code dans son adresse, et le service worker range
+  ses copies hors ligne sous une clé sans `code` (`src/shared/pwa/swTemplate.js`). Le plan des
+  personnels n'ouvre pas sur un lien : un `?code=` y est seulement retiré de l'adresse ;
+- `GET /api/plan/content?code=…` reste accepté pour les clients antérieurs : la requête est
+  servie et le laissez-passer posé. Cette comparaison bcrypt est soumise au **même limiteur**
+  que `POST /access`. Les journaux de requêtes de l'application n'enregistrent que le chemin
+  (`lib/httpRequestLog.js`), jamais la chaîne de requête.
 
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.
+
+**Journal des saisies de code** (`lib/codeAccessJournal.js`) — plan public, plan e-nov et plan
+des personnels. Chaque saisie est inscrite au journal de sécurité (`security_events`, lu par
+`GET /api/audit/security`), **jamais le code saisi** :
+
+| Champ         | Valeur                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`      | `plan.access.code_granted` / `plan.access.code_refused` ; `enov_plan.access.*` ; `staff_plan.access.*` (aussi au journal d'audit)          |
+| `target_type` | `plan`, `enov_plan`, `staff_plan`                                                                                                          |
+| `result`      | `success` (laissez-passer posé) ou `failure` (refus)                                                                                       |
+| `reason`      | refus seulement : `code_invalid` (code faux), `code_missing` (code absent), `code_disabled` (entrée par code désactivée, plan des personnels), `rate_limited` (limiteur) |
+| `ip_address`  | adresse du client (colonne, plus dans le détail) ; `user_agent` de même                                                                    |
+| `payload_json`| `{ via: 'form' \| 'link', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)                                    |
+
+Rien n'est inscrit quand le plan est ouvert à tous (aucun code demandé). Les refus du
+limiteur strict (`authLimiter`, réponse **429**) sont inscrits **une fois par plan, par adresse
+et par fenêtre de 15 minutes** : un tâtonnement soutenu laisse une trace sans remplir le
+journal. Filtrer : `GET /api/audit/security?action=plan.access&result=failure`.
 
 ---
 
@@ -3152,10 +3212,14 @@ Deux voies, dans cet ordre.
 2. **Code partagé**, seulement si `ui.staff_plan.access_mode` vaut `code` (défaut :
    **`disabled`**) **et** qu'un code est configuré (`security.staff_plan_access_code_hash`,
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les
-   personnels sans compte. Laissez-passer de **7 jours** (contre 30 pour le plan public), rôle
-   endossé réglable (`ui.staff_plan.code_role_slug`, défaut `personnel`), et **chaque ouverture
-   — accordée comme refusée — est inscrite au journal d'audit** (`staff_plan.access.*`) : un
-   code partagé ne dit pas qui entre.
+   personnels sans compte. Laissez-passer à **échéance signée** de **7 jours** par défaut
+   (`security.staff_plan_access_pass_days`, 1 à 30 ; contre 30 pour le plan public), rôle
+   endossé réglable dans une **liste blanche** (`ui.staff_plan.code_role_slug` : `personnel`
+   — défaut — ou `visiteur`), et **chaque saisie
+   — accordée comme refusée — est inscrite au journal d'audit et au journal de sécurité**
+   (`staff_plan.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif
+   du refus dans `reason` : voir « Journal des saisies de code ») : un code partagé ne dit pas
+   qui entre.
 
 Mode `code` **sans** code configuré : la porte reste **fermée**, contrairement au plan public.
 Cette surface n'a pas de version publique acceptable, un réglage à moitié rempli ne doit pas
@@ -3230,7 +3294,12 @@ et ce refus a été levé depuis (réalignement du 22/09/2026) ; la garde de lie
 
 `ui.staff_plan.title`, `welcome_hint`, `attribution`, `default_category_ids`,
 `hidden_category_ids`, `allowed_role_slugs` (portée `admin`), `access_mode`,
-`code_role_slug` (portée `admin`). La **carte** n'a pas de réglage propre : le plan des
+`code_role_slug` (portée `admin`, `enum` : `personnel` ou `visiteur` — liste blanche
+`STAFF_PLAN_CODE_ROLE_SLUGS`, `lib/settings/plan.js`). `PUT /api/settings/admin/ui.staff_plan.code_role_slug`
+refuse tout autre profil (**400** `Profil non autorisé pour l’entrée par code`) ; une valeur hors
+liste déjà enregistrée est ignorée à la lecture (repli sur `personnel`,
+`resolveCodeRoleSlug()`). `security.staff_plan_access_pass_days` : durée du laissez-passer
+(7 j, 1 à 30). La **carte** n'a pas de réglage propre : le plan des
 personnels affiche celle du plan public (`ui.plan.map_id`, `ui.plan.brand`,
 `ui.plan.heading_up_enabled`) — deux réglages à tenir synchronisés à la main seraient une
 source d'erreur pour aucun gain.
@@ -3290,7 +3359,7 @@ en « visiteur » (`PUBLIC_SURFACES`).
 | ------- | --------------------------- | ---- | ----------------------------------------------------------------------------------- |
 | GET     | `/api/enov/content?map_id=` | non  | Charge publique de la surface `enov` (lieux e-nov mis en avant, texte e-nov)        |
 | GET     | `/api/enov/settings`        | non  | Réglages publics `ui.enov_plan.*` + `enov` (mise en avant), sans `map_id`           |
-| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, 30 jours)           |
+| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
 | POST    | `/api/enov/logout`          | non  | Oublie le laissez-passer — toujours **200**                                         |
 
 - **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,
