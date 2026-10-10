@@ -348,7 +348,7 @@ Dans _Réglages → Plan Lyautey_ (portée publique, sauf le code d'accès) :
 | Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
 | Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
-| Code d'accès                | saisi en clair dans les réglages ; seule une empreinte est stockée ; **8 caractères minimum**      |
+| Code d'accès                | saisi ou généré dans les réglages ; seule une empreinte est stockée ; **12 caractères minimum**    |
 | Orienter                    | autorise le bouton « Orienter » (la carte doit aussi l'autoriser dans son calage GPS)              |
 
 L'**apparence du plan** (couleurs, logo) se règle à part, dans _Réglages → Identité visuelle_,
@@ -359,6 +359,13 @@ l'établissement.
 **Changer le code** oblige chaque appareil déjà entré à le ressaisir : l'ancien code cesse
 d'ouvrir le plan immédiatement, y compris sur les téléphones qui l'avaient retenu. C'est le
 moyen de fermer la porte après une diffusion non voulue.
+
+**Le générateur de code.** Le bouton **« Générer un code »** propose un code de 14 caractères
+tirés au hasard, en minuscules et chiffres, sans les caractères qui se confondent (ni `0` ni
+`o`, ni `1`, `i` ou `l`). Il s'affiche en clair : **notez-le avant d'enregistrer**, car seule
+son empreinte est conservée et personne ne pourra plus l'afficher ensuite. Un code choisi à la
+main reste possible, à condition de faire **au moins 12 caractères** ; un code plus court
+enregistré avant cette règle continue de fonctionner jusqu'à ce que vous le remplaciez.
 
 #### Autres plans proposés
 

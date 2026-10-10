@@ -117,10 +117,10 @@ async function setAccessCode(target, code) {
     .send({ code });
 }
 
-test('I1 — un code d’accès de moins de 8 caractères est refusé', async () => {
+test('I1 — un code d’accès trop court est refusé (12 caractères minimum)', async () => {
   const res = await setAccessCode('plan', '1234');
   assert.equal(res.status, 400);
-  assert.match(res.body.error, /8 caractères minimum/);
+  assert.match(res.body.error, /12 caractères minimum/);
   const staff = await setAccessCode('staff-plan', 'court');
   assert.equal(staff.status, 400);
 });

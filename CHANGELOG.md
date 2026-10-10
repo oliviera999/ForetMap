@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Amélioré — Codes d'accès des plans (plan public, plan des personnels, plan e-nov)
+
+- **Générateur de code** dans Réglages → Plan (trois panneaux, champ commun `AccessCodeField`) : bouton « Générer un code », 14 caractères tirés dans le navigateur (`crypto.getRandomValues`, tirage sans biais) parmi minuscules et chiffres sans caractère ambigu, affichés en clair jusqu'à l'enregistrement (`src/utils/accessCodeGenerator.js`).
+- **12 caractères minimum** à l'enregistrement (`POST /api/settings/admin/*-access-code`, **400** en deçà, contre 8 auparavant). Les codes déjà enregistrés restent valides jusqu'à leur remplacement : le serveur n'en garde que l'empreinte bcrypt.
+- Tests : `tests/plan-access-codes.test.js`, `tests-ui/components/settings/AccessCodeGenerator.test.jsx`. Docs : `docs/API.md`, `docs/reference/plan/*.md`, `docs/reference/exploitation/modele-de-securite.md`.
+
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
 - Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.

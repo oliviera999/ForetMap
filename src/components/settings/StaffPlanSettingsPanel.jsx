@@ -1,7 +1,4 @@
-import { useCallback, useState } from 'react';
-
-import { api } from '../../services/api';
-import { Button } from '../../shared/ui/Button.jsx';
+import { AccessCodeField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
@@ -52,44 +49,9 @@ export function StaffPlanSettingsPanel({
   onMessage = null,
   onError = null,
 }) {
-  const [accessCode, setAccessCode] = useState('');
-  const [savingCode, setSavingCode] = useState(false);
   const hasHash = Boolean(String(get('security.staff_plan_access_code_hash', '') || '').trim());
   const accessMode = String(get(STAFF_KEYS.accessMode, 'disabled') || 'disabled');
   const readOnly = !canWrite;
-
-  const saveAccessCode = useCallback(async () => {
-    if (readOnly) return;
-    const code = String(accessCode || '').trim();
-    if (!code) {
-      onError?.('Saisissez un code d’accès.');
-      return;
-    }
-    setSavingCode(true);
-    try {
-      await api('/api/settings/admin/staff-plan-access-code', 'POST', { code });
-      setAccessCode('');
-      onMessage?.('Code d’accès du plan des personnels enregistré.');
-    } catch (err) {
-      onError?.(err?.message || 'Enregistrement du code impossible.');
-    } finally {
-      setSavingCode(false);
-    }
-  }, [accessCode, onError, onMessage, readOnly]);
-
-  const clearAccessCode = useCallback(async () => {
-    if (readOnly) return;
-    setSavingCode(true);
-    try {
-      await api('/api/settings/admin/staff-plan-access-code', 'POST', { code: '' });
-      setAccessCode('');
-      onMessage?.('Code d’accès du plan des personnels effacé.');
-    } catch (err) {
-      onError?.(err?.message || 'Effacement du code impossible.');
-    } finally {
-      setSavingCode(false);
-    }
-  }, [onError, onMessage, readOnly]);
 
   return (
     <div className="plan-settings-panel" data-testid="staff-plan-settings-panel">
@@ -237,35 +199,20 @@ export function StaffPlanSettingsPanel({
         </p>
       </label>
 
-      <div className="field">
-        <span>Code d’accès {hasHash ? '(déjà défini)' : '(aucun)'}</span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="password"
-            autoComplete="new-password"
-            placeholder="Nouveau code (8 caractères minimum)"
-            minLength={8}
-            value={accessCode}
-            onChange={(e) => setAccessCode(e.target.value)}
-            disabled={readOnly || savingCode}
-            style={{ flex: '1 1 12rem' }}
-          />
-          <Button variant="primary" disabled={readOnly || savingCode} onClick={saveAccessCode}>
-            Enregistrer le code
-          </Button>
-          {hasHash ? (
-            <Button variant="secondary" disabled={readOnly || savingCode} onClick={clearAccessCode}>
-              Effacer le code
-            </Button>
-          ) : null}
-        </div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          Le code n’est jamais stocké en clair : seule une empreinte est enregistrée. Contrairement
-          au plan public, le mode « code » <strong>sans</strong> empreinte ne laisse entrer personne
-          — cette surface n’a pas de version publique acceptable. Changer le code oblige chaque
-          appareil déjà entré à le ressaisir.
-        </p>
-      </div>
+      <AccessCodeField
+        endpoint="/api/settings/admin/staff-plan-access-code"
+        targetLabel="du plan des personnels"
+        hasCode={hasHash}
+        readOnly={readOnly}
+        onMessage={onMessage}
+        onError={onError}
+        testId="staff-plan-access-code"
+      >
+        Le code n’est jamais stocké en clair : seule une empreinte est enregistrée. Contrairement au
+        plan public, le mode « code » <strong>sans</strong> empreinte ne laisse entrer personne —
+        cette surface n’a pas de version publique acceptable. Changer le code oblige chaque appareil
+        déjà entré à le ressaisir.
+      </AccessCodeField>
     </div>
   );
 }
