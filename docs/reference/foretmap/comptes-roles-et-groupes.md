@@ -74,6 +74,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   Un compte **Google sans mot de passe** doit d'abord s'en donner un (ou demander le
   changement à un administrateur) ; pendant une **prise de contrôle**, l'e-mail ne se change
   pas.
+- **Avatar par défaut** : un compte sans photo reçoit un avatar dessiné à partir de son
+  pseudo (à défaut, de son prénom et de son nom). Depuis octobre 2026, ce dessin est
+  **produit par le serveur de l'application** : plus aucun service extérieur n'est contacté
+  et le nom n'apparaît dans aucune adresse. Le dessin est le même qu'avant ; changer de pseudo
+  le change. Dans « Mon profil », **Utiliser l'avatar par défaut** retire la photo déposée.
+  Les avatars ne sont visibles que là où le compte l'était déjà (en-tête, fiche, classement
+  de l'encadrement). Le style « Adventurer Neutral » est une œuvre de Lisa Wischofsky,
+  adaptée par DiceBear, sous licence CC BY 4.0 : l'attribution figure dans « Mon profil » et
+  dans **À propos → Crédits graphiques**.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
@@ -180,7 +189,8 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   interne** du site, eux, ne s'affichent que pour les comptes ayant le droit de lecture
   des réglages — administrateurs en pratique — et s'ouvrent directement dans la page.
   Ils recensent des faiblesses techniques connues : ce n'est pas une lecture destinée
-  aux élèves.
+  aux élèves. La carte **Crédits graphiques** y donne l'attribution du dessin des avatars
+  par défaut.
 
 ### Quel profil fait foi ? — « le plus élevé l'emporte »
 

@@ -7,6 +7,7 @@ import { statusBadge } from '../utils/badges';
 import { getDefaultAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
+import { DefaultAvatarCredit } from './DefaultAvatarCredit.jsx';
 import { compressImageWithPreset } from '../shared/platform/image';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import {
@@ -534,7 +535,8 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
           )}
           <div className="profile-avatar-help">
             Par défaut, l&apos;avatar est dessiné par l&apos;application elle-même, sans passer par
-            un service extérieur. Tu peux aussi prendre une photo directement.
+            un service extérieur. Tu peux aussi prendre une photo directement.{' '}
+            <DefaultAvatarCredit compact />
           </div>
         </div>
         <div className="profile-avatar-actions">

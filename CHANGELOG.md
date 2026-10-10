@@ -18,6 +18,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Front** : `StudentAvatar` (en-tête, classement, fiche et profil) affiche l'avatar fourni par le serveur (`default_avatar_url`, seule la route de l'application est acceptée) ; repli en cascade photo → avatar par défaut → silhouette neutre embarquée, sans aucune requête. Le navigateur ne construit plus d'URL d'avatar à partir du pseudo ou du nom. « Mon profil » : bouton « Utiliser l'avatar par défaut ». Le champ suit la session (élève et enseignant).
 - **G&L** inchangé : ses avatars par défaut restent chargés comme avant (constructeur déplacé dans `src/gl/utils/glAvatar.js`, à l'identique).
 - Tests : `tests/no-third-party-avatar-guard.test.js` (aucun fichier livré ni aucune CSP ne référence l'API publique DiceBear ; exception G&L nommée), `tests-ui/components/StudentAvatarDefault.test.jsx`, `tests/avatar-shared-utils.test.js`.
+- **Attribution** (licence CC BY 4.0 de l'œuvre) : carte « Crédits graphiques » dans « À propos » et mention courte sous l'avatar dans « Mon profil » (`src/components/DefaultAvatarCredit.jsx`). Test : `tests-ui/AboutView.test.jsx`.
+- **CSP** : aucune variante ne nommait le service d'avatars (couvert jusqu'ici par `img-src https:`), la garde ci-dessus l'interdit désormais ; `https:` reste nécessaire (photos d'espèces externes, avatars par défaut de G&L, politique commune aux produits) — justification dans `lib/csp.js`.
+- Docs : `docs/reference/exploitation/modele-de-securite.md` (avatars dans « rien ne part chez un tiers », point d'attention G&L), `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 

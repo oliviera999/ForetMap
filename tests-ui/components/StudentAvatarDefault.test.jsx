@@ -112,7 +112,7 @@ describe('<StudentAvatar>', () => {
 });
 
 describe('« Mon profil » — avatar par défaut', () => {
-  it('« Utiliser l’avatar par défaut » montre l’avatar du serveur, sans mention d’un tiers', () => {
+  it('« Utiliser l’avatar par défaut » montre l’avatar du serveur ; attribution affichée', () => {
     render(
       <StudentProfileEditor
         student={{ ...STUDENT, avatar_path: 'students/stu-1/a.png' }}
@@ -120,7 +120,12 @@ describe('« Mon profil » — avatar par défaut', () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.queryByText(/DiceBear/)).toBeNull();
+    // L'ancien libellé (« Utiliser l'avatar DiceBear ») a disparu ; seule l'attribution de
+    // l'œuvre nomme la bibliothèque.
+    expect(screen.queryByRole('button', { name: /DiceBear/ })).toBeNull();
+    expect(screen.getByTestId('default-avatar-credit').textContent).toMatch(
+      /Adventurer Neutral.*Lisa Wischofsky.*CC BY 4\.0/,
+    );
     fireEvent.click(screen.getByRole('button', { name: /Utiliser l.avatar par défaut/ }));
     const preview = screen.getByAltText('Aperçu avatar');
     expect(preview.getAttribute('src')).toBe(SIGNED);
