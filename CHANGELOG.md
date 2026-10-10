@@ -18,6 +18,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `--glow-sparkle`, `--shadow-map-badge` ; repli `--line-soft` redondant retiré.
 - Le cliquet `tests/color-tokens-guard.test.js` repasse au vert (hexadécimal : 674 → 662, plafond
   662 ; `rgb()/rgba()` : 582 → 578, plafond 579). Il était rouge sur `main` depuis le 07/10.
+- e2e `plan-routes-mode` : le parcours de test relie deux lieux **placés** sur la carte. Il
+  prenait la première zone du plan, souvent une zone sans contour laissée par la suite backend
+  dans le même job : le tracé n'avait qu'une étape et `map-route-lines` n'apparaissait pas.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
