@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Dépendances : plus d'avis critique ni haut en production (dossier sûreté)
+
+- `npm audit fix` (sans `--force`, dans les plages déclarées) : `proxy-addr` 2.0.7 → 2.0.8 (critique), `sharp` 0.35.4 → 0.35.5 (haut), `source-map-js` 1.2.1 → 1.2.2 (haut), `dompurify` 3.4.14 → 3.4.16 (bas), plus des correctifs de dépendances de développement. Le contrôle `npm audit --omit=dev --audit-level=high` de la CI repasse.
+- Restent deux avis **modérés** (`uuid` via `exceljs`) : leur correctif impose un changement de version majeure d'`exceljs`, hors de ce lot.
+
 ### Sécurité — Tâches sans compte : plus aucun nom d'élève (dossier sûreté, R9)
 
 - `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session (la Visite liste les tâches d'un lieu). Ils livraient à un anonyme le **prénom et le nom de l'élève qui propose une tâche** (ligne « Proposition n3beur: … » de la description), son identifiant, l'**identité des référents**, et les inscrits quand `tasks.assignees_visibility = all`.
