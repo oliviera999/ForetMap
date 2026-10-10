@@ -134,7 +134,9 @@ Si vous l'activez malgré tout, trois garde-fous s'appliquent :
   son échéance : un laissez-passer échu ne rouvre rien, même recopié ;
 - le porteur du code endosse un **profil que vous choisissez** (par défaut « Personnel »), qui
   décide de ce qu'il voit : laissé bas, il ne verra pas les lieux réservés à l'encadrement ;
-- **chaque ouverture est inscrite au journal d'audit**, réussie comme refusée.
+- **chaque saisie du code est inscrite au journal**, réussie comme refusée — un refus y est
+  bien noté comme un refus, avec son motif (code faux, entrée par code désactivée, trop
+  d'essais) et l'adresse d'origine ; le code saisi, lui, n'est jamais noté.
 
 Le code doit faire **au moins 12 caractères** ; le bouton **« Générer un code »** en propose
 un, tiré au hasard, à noter avant de l'enregistrer (voir la [présentation du plan](presentation.md)).

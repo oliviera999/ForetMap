@@ -8,6 +8,8 @@
  *  - échéance signée dans le laissez-passer (durée réglable, laissez-passer expiré, modifié ou
  *    au format antérieur refusé) ;
  *  - code d'un lien (`?code=`) : jamais recopié dans les journaux de requêtes ;
+ *  - journal des saisies de code (`security_events`) : réussite et refus distingués, motif
+ *    (code faux, absent, entrée désactivée, limiteur), jamais le code saisi ;
  */
 
 require('./helpers/setup');
@@ -19,7 +21,8 @@ const bcrypt = require('bcryptjs');
 const { codePassValue } = require('../lib/accessGate');
 const { planAccessGate, enovPlanAccessGate } = require('../lib/planAccess');
 const { staffPlanAccessGate } = require('../lib/staffPlanAccess');
-const { initSchema, initDatabase, execute } = require('../database');
+const crypto = require('node:crypto');
+const { initSchema, initDatabase, execute, queryAll } = require('../database');
 const { app } = require('../server');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
@@ -275,4 +278,223 @@ test('journal des requêtes HTTP : le code d’un lien n’y figure pas (chemin 
     if (previousMode === undefined) delete process.env.FORETMAP_HTTP_LOG;
     else process.env.FORETMAP_HTTP_LOG = previousMode;
   }
+});
+
+// --- Journal des saisies de code ------------------------------------------------------------
+
+const WRONG_CODE = 'pas-le-bon-code-42';
+
+/** Identifiant de requête propre à un appel : il retrouve la ligne du journal qu'il a écrite. */
+function newRequestId(label) {
+  return `codes-${label}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+/** Lignes `security_events` écrites par la requête `requestId`. */
+async function journalRows(requestId) {
+  return queryAll(
+    `SELECT action, target_type, result, reason, ip_address, payload_json
+       FROM security_events
+      WHERE JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.requestId')) = ?
+      ORDER BY id ASC`,
+    [requestId],
+  );
+}
+
+/** `payload_json` : objet (pilote mysql2, colonne JSON) ou chaîne selon le serveur. */
+function payloadOf(row) {
+  const raw = row?.payload_json;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw || {};
+}
+
+/** Le limiteur journalise sans retenir sa réponse 429 : on attend que la ligne arrive. */
+async function waitForJournalRows(requestId, { attempts = 40 } = {}) {
+  for (let i = 0; i < attempts; i += 1) {
+    const rows = await journalRows(requestId);
+    if (rows.length) return rows;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return [];
+}
+
+async function journalRow(requestId, { wait = false } = {}) {
+  const rows = wait ? await waitForJournalRows(requestId) : await journalRows(requestId);
+  assert.equal(rows.length, 1, `une ligne attendue pour ${requestId}, ${rows.length} trouvée(s)`);
+  const row = rows[0];
+  const serialized = JSON.stringify(row);
+  assert.ok(!serialized.includes(PLAN_CODE), 'le code saisi n’est jamais journalisé');
+  assert.ok(!serialized.includes(WRONG_CODE), 'un code faux non plus');
+  return row;
+}
+
+const JOURNAL_SURFACES = Object.freeze([
+  { ...SURFACES[0], prefix: 'plan.access', targetType: 'plan' },
+  { ...SURFACES[1], prefix: 'enov_plan.access', targetType: 'enov_plan' },
+]);
+
+test('journal des saisies (plan public, plan e-nov) : réussite et refus, motif, jamais le code', async () => {
+  for (const surface of JOURNAL_SURFACES) {
+    await closeWithCode(surface);
+    try {
+      const wrong = newRequestId(`${surface.id}-faux`);
+      await request(app)
+        .post(`${surface.base}/access`)
+        .set('X-Request-Id', wrong)
+        .send({ code: WRONG_CODE })
+        .expect(401);
+      const refused = await journalRow(wrong);
+      assert.equal(refused.action, `${surface.prefix}.code_refused`, surface.id);
+      assert.equal(refused.target_type, surface.targetType);
+      assert.equal(refused.result, 'failure');
+      assert.equal(refused.reason, 'code_invalid');
+      assert.ok(refused.ip_address, 'adresse IP dans sa colonne');
+
+      const empty = newRequestId(`${surface.id}-vide`);
+      await request(app)
+        .post(`${surface.base}/access`)
+        .set('X-Request-Id', empty)
+        .send({})
+        .expect(400);
+      const missing = await journalRow(empty);
+      assert.equal(missing.result, 'failure');
+      assert.equal(missing.reason, 'code_missing');
+
+      const good = newRequestId(`${surface.id}-bon`);
+      await request(app)
+        .post(`${surface.base}/access`)
+        .set('X-Request-Id', good)
+        .send({ code: PLAN_CODE })
+        .expect(200);
+      const granted = await journalRow(good);
+      assert.equal(granted.action, `${surface.prefix}.code_granted`);
+      assert.equal(granted.result, 'success');
+      assert.equal(granted.reason, null);
+
+      // Lien porteur du code (clients antérieurs) : même journal, voie « link ».
+      const linkWrong = newRequestId(`${surface.id}-lien-faux`);
+      await request(app)
+        .get(`${surface.base}/content?code=${WRONG_CODE}`)
+        .set('X-Request-Id', linkWrong)
+        .expect(401);
+      const linkRefused = await journalRow(linkWrong);
+      assert.equal(linkRefused.reason, 'code_invalid');
+      assert.equal(payloadOf(linkRefused).via, 'link');
+
+      const linkGood = newRequestId(`${surface.id}-lien-bon`);
+      await request(app)
+        .get(`${surface.base}/content?code=${PLAN_CODE}`)
+        .set('X-Request-Id', linkGood)
+        .expect(200);
+      const linkGranted = await journalRow(linkGood);
+      assert.equal(linkGranted.result, 'success');
+      assert.equal(payloadOf(linkGranted).via, 'link');
+    } finally {
+      await reopen(surface);
+    }
+  }
+});
+
+test('journal des saisies (plan des personnels) : refus en échec, avec motif', async () => {
+  const staff = SURFACES[2];
+  // Entrée par code désactivée : refus « code_disabled ».
+  await reopen(staff);
+  const disabled = newRequestId('staff-desactive');
+  await request(app)
+    .post(`${staff.base}/access`)
+    .set('X-Request-Id', disabled)
+    .send({ code: PLAN_CODE })
+    .expect(403);
+  const off = await journalRow(disabled);
+  assert.equal(off.action, 'staff_plan.access.code_refused');
+  assert.equal(off.result, 'failure');
+  assert.equal(off.reason, 'code_disabled');
+
+  await closeWithCode(staff);
+  try {
+    const wrong = newRequestId('staff-faux');
+    await request(app)
+      .post(`${staff.base}/access`)
+      .set('X-Request-Id', wrong)
+      .send({ code: WRONG_CODE })
+      .expect(401);
+    const refused = await journalRow(wrong);
+    assert.equal(refused.action, 'staff_plan.access.code_refused');
+    assert.equal(refused.result, 'failure', 'un refus n’est plus inscrit comme une réussite');
+    assert.equal(refused.reason, 'code_invalid');
+    assert.ok(refused.ip_address, 'adresse IP dans sa colonne, plus dans le détail');
+    assert.equal(payloadOf(refused).ip, undefined);
+    // Le journal d'audit (lu par `audit.read`) porte le même résultat.
+    const audit = await queryAll(
+      `SELECT result FROM audit_log
+        WHERE action = 'staff_plan.access.code_refused'
+          AND JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.requestId')) = ?`,
+      [wrong],
+    );
+    assert.deepEqual(
+      audit.map((r) => r.result),
+      ['failure'],
+    );
+
+    const good = newRequestId('staff-bon');
+    await request(app)
+      .post(`${staff.base}/access`)
+      .set('X-Request-Id', good)
+      .send({ code: PLAN_CODE })
+      .expect(200);
+    const granted = await journalRow(good);
+    assert.equal(granted.action, 'staff_plan.access.code_granted');
+    assert.equal(granted.result, 'success');
+  } finally {
+    await reopen(staff);
+  }
+});
+
+test('journal des saisies : un refus du limiteur est inscrit (une fois par fenêtre)', async () => {
+  const express = require('express');
+  const rateLimit = require('express-rate-limit');
+  const { authLimiterHandler } = require('../lib/rateLimit');
+  const { resetCodeAccessLimiterJournal } = require('../lib/codeAccessJournal');
+  resetCodeAccessLimiterJournal();
+  // Un limiteur par chemin : ils compteraient sinon la même adresse ensemble.
+  const strictLimiter = () =>
+    rateLimit({
+      windowMs: 60_000,
+      limit: 1,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: authLimiterHandler,
+    });
+  const probe = express();
+  probe.use(require('../lib/requestId').assignRequestId);
+  // Comme `server.js` (plan des personnels, plan e-nov) et comme les routeurs (plan public).
+  probe.use('/api/staff-plan/access', strictLimiter());
+  probe.post('/api/plan/access', strictLimiter(), (req, res) => res.json({ ok: true }));
+  probe.post('/api/staff-plan/access', (req, res) => res.json({ ok: true }));
+
+  for (const [path, action] of [
+    ['/api/plan/access', 'plan.access.code_refused'],
+    ['/api/staff-plan/access', 'staff_plan.access.code_refused'],
+  ]) {
+    await request(probe).post(path).send({ code: WRONG_CODE }).expect(200);
+    const limited = newRequestId('limiteur');
+    await request(probe)
+      .post(path)
+      .set('X-Request-Id', limited)
+      .send({ code: WRONG_CODE })
+      .expect(429);
+    const row = await journalRow(limited, { wait: true });
+    assert.equal(row.action, action);
+    assert.equal(row.result, 'failure');
+    assert.equal(row.reason, 'rate_limited');
+
+    // Les refus suivants de la même fenêtre ne remplissent pas le journal.
+    const again = newRequestId('limiteur-bis');
+    await request(probe)
+      .post(path)
+      .set('X-Request-Id', again)
+      .send({ code: WRONG_CODE })
+      .expect(429);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.equal((await journalRows(again)).length, 0);
+  }
+  resetCodeAccessLimiterJournal();
 });

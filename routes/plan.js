@@ -24,6 +24,7 @@ const bcrypt = require('bcryptjs');
 const { getDataWriteVersion } = require('../database');
 const { planAccessGate, grantPlanAccess, isPlanAccessGranted } = require('../lib/planAccess');
 const { authLimiter } = require('../lib/rateLimit');
+const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue } = require('../lib/settings');
@@ -83,10 +84,23 @@ router.post(
     const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
     if (!hash) return res.json({ ok: true, required: false });
     const code = String(req.body?.code || '').trim();
-    if (!code) return res.status(400).json({ error: 'Code requis' });
+    if (!code) {
+      await logCodeAccessAttempt(req, PLAN_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+      });
+      return res.status(400).json({ error: 'Code requis' });
+    }
     const valid = await bcrypt.compare(code, hash).catch(() => false);
-    if (!valid) return res.status(401).json({ error: 'Code incorrect' });
+    if (!valid) {
+      await logCodeAccessAttempt(req, PLAN_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+      });
+      return res.status(401).json({ error: 'Code incorrect' });
+    }
     await grantPlanAccess(res, hash);
+    await logCodeAccessAttempt(req, PLAN_SURFACE, { granted: true });
     res.json({ ok: true, required: true });
   }),
 );
@@ -133,6 +147,13 @@ router.get(
         // Le cookie vient d'être posé sur la réponse : il n'est pas encore dans la requête,
         // et cette requête-ci doit déjà être servie.
         grantedInline = true;
+        await logCodeAccessAttempt(req, PLAN_SURFACE, { granted: true, via: 'link' });
+      } else if (hash) {
+        await logCodeAccessAttempt(req, PLAN_SURFACE, {
+          granted: false,
+          reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+          via: 'link',
+        });
       }
     }
     const access = grantedInline ? { ok: true } : await checkPlanAccess(req, settings);

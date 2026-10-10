@@ -3057,6 +3057,24 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.
 
+**Journal des saisies de code** (`lib/codeAccessJournal.js`) — plan public, plan e-nov et plan
+des personnels. Chaque saisie est inscrite au journal de sécurité (`security_events`, lu par
+`GET /api/audit/security`), **jamais le code saisi** :
+
+| Champ         | Valeur                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`      | `plan.access.code_granted` / `plan.access.code_refused` ; `enov_plan.access.*` ; `staff_plan.access.*` (aussi au journal d'audit)          |
+| `target_type` | `plan`, `enov_plan`, `staff_plan`                                                                                                          |
+| `result`      | `success` (laissez-passer posé) ou `failure` (refus)                                                                                       |
+| `reason`      | refus seulement : `code_invalid` (code faux), `code_missing` (code absent), `code_disabled` (entrée par code désactivée, plan des personnels), `rate_limited` (limiteur) |
+| `ip_address`  | adresse du client (colonne, plus dans le détail) ; `user_agent` de même                                                                    |
+| `payload_json`| `{ via: 'form' \| 'link', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)                                    |
+
+Rien n'est inscrit quand le plan est ouvert à tous (aucun code demandé). Les refus du
+limiteur strict (`authLimiter`, réponse **429**) sont inscrits **une fois par plan, par adresse
+et par fenêtre de 15 minutes** : un tâtonnement soutenu laisse une trace sans remplir le
+journal. Filtrer : `GET /api/audit/security?action=plan.access&result=failure`.
+
 ---
 
 ## Plan des personnels (`/api/staff-plan`)
@@ -3107,9 +3125,11 @@ Deux voies, dans cet ordre.
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les
    personnels sans compte. Laissez-passer à **échéance signée** de **7 jours** par défaut
    (`security.staff_plan_access_pass_days`, 1 à 30 ; contre 30 pour le plan public), rôle
-   endossé réglable (`ui.staff_plan.code_role_slug`, défaut `personnel`), et **chaque ouverture
-   — accordée comme refusée — est inscrite au journal d'audit** (`staff_plan.access.*`) : un
-   code partagé ne dit pas qui entre.
+   endossé réglable (`ui.staff_plan.code_role_slug`, défaut `personnel`), et **chaque saisie
+   — accordée comme refusée — est inscrite au journal d'audit et au journal de sécurité**
+   (`staff_plan.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif
+   du refus dans `reason` : voir « Journal des saisies de code ») : un code partagé ne dit pas
+   qui entre.
 
 Mode `code` **sans** code configuré : la porte reste **fermée**, contrairement au plan public.
 Cette surface n'a pas de version publique acceptable, un réglage à moitié rempli ne doit pas

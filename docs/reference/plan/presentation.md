@@ -368,6 +368,13 @@ appareil : c'est le serveur qui vérifie l'échéance, plus seulement le navigat
 durée vaut pour les entrées suivantes ; pour refermer tout de suite, changez le code. Les
 appareils entrés avant la mise en place de cette échéance ont dû ressaisir le code une fois.
 
+**Le journal des saisies de code.** Chaque saisie du code — réussie ou refusée — est notée
+dans le journal de sécurité (Réglages → Journal de sécurité, réservé à l'administrateur) :
+la date, l'adresse d'origine, le résultat et, pour un refus, son motif (code faux, code
+absent, trop d'essais). Le code saisi n'y figure jamais. Une série de refus depuis la même
+adresse est le signe qu'il est temps de changer le code. Le plan e-nov et le plan des
+personnels ont le même journal.
+
 **Le lien qui porte le code.** Un QR code peut mener au plan avec le code dans le lien
 (`…/?code=…`) : le plan s'ouvre sans saisie. Le code sert alors une fois, puis disparaît de la
 barre d'adresse — il ne reste ni dans l'historique, ni dans un lien recopié depuis le
