@@ -86,9 +86,18 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
-  sans rien redonner, ou passer par « mot de passe oublié ». Un mot de
-  passe **provisoire** (posé par un responsable ou par le jeu) est signalé à la connexion :
-  l'application invite à en choisir un nouveau.
+  sans rien redonner, ou passer par « mot de passe oublié ».
+- **Mot de passe provisoire ou à renouveler** : quand un mot de passe est **provisoire** (posé
+  par un responsable ou par le jeu) ou doit être remplacé par mesure de sécurité, la personne
+  peut se connecter, mais l'application ouvre aussitôt « **Mon profil** » avec le message « Ton
+  mot de passe est provisoire : choisis-en un nouveau ci-dessous. » — élève comme enseignant.
+  **Tant que le mot de passe n'est pas changé, rien d'autre n'est possible** : les écrans qui
+  demandent d'être connecté refusent avec « Changement de mot de passe requis » et ramènent à
+  « Mon profil » ; seuls les contenus publics (ceux qu'un visiteur non connecté voit) restent
+  affichés, sans le temps réel. Une fois le nouveau mot de passe enregistré (avec le mot de
+  passe actuel), tout redevient normal sur cet appareil ; les autres appareils sont
+  déconnectés. Un administrateur qui **prend la main** sur ce compte pour l'aider n'est pas
+  bloqué (mais ne peut pas changer le mot de passe à sa place).
 - **Connexion refusée** : un seul message (« Identifiant ou mot de passe incorrect »), que le
   compte existe ou non ; après cinq échecs sur un même compte, quel que soit l'identifiant
   utilisé (pseudo, e-mail, pseudo de jeu), la connexion est bloquée quelques dizaines de

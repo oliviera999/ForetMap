@@ -11,6 +11,7 @@ import {
   clearStoredSession,
 } from '../services/api';
 import { isOfflineError, subscribeNetworkStatus } from '../shared/networkStatus.js';
+import { isPasswordChangeRequiredError } from '../utils/passwordChangeRequired.js';
 
 /** Toast de la déconnexion forcée par défaut (401 `deleted: true`). */
 export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
@@ -320,6 +321,10 @@ export function useAuthSession({
           forceLogout();
           return;
         }
+        // Mot de passe provisoire ou compromis à changer : la session est valide, mais tout
+        // attend le changement. `api()` a déjà prévenu le shell, qui ouvre « Mon profil » —
+        // pas d'alerte « connexion instable ».
+        if (isPasswordChangeRequiredError(err)) return;
         if (isOfflineError(err)) {
           // Ouverture en mode avion : la session locale suffit pour travailler. La
           // vérification attend le retour du réseau, sans alerte « connexion instable ».

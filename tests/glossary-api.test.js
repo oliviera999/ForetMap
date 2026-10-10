@@ -46,7 +46,9 @@ test('GET /api/glossary/terms/:code — détail avec liens', async () => {
 });
 
 test('GET /api/glossary/terms/inconnu — 404', async () => {
-  await request(app).get('/api/glossary/terms/FM9999').expect(404);
+  // Code hors du schéma `FM` + 4 chiffres : `FM9999` coïncidait avec le terme créé plus haut
+  // quand `Date.now()` finissait par 9999 (1 exécution sur 10 000).
+  await request(app).get('/api/glossary/terms/FM-INCONNU').expect(404);
 });
 
 test('GET /api/glossary/terms/:code — linkedQuizQuestions lus depuis resource_question_links', async () => {

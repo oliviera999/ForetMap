@@ -11,7 +11,7 @@ const {
   requireAuth,
   requirePermission,
   parseBearerToken,
-  hydrateAuthFromTokenClaims,
+  hydrateOptionalAuthFromTokenClaims,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
@@ -63,13 +63,16 @@ function quizHandler(fn) {
   });
 }
 
-/** Authentification facultative (routes publiques) : `null` si absente ou invalide. */
+/**
+ * Authentification facultative (routes publiques) : `null` si absente ou invalide, ou si le
+ * compte doit changer son mot de passe (il voit alors le catalogue comme un anonyme).
+ */
 async function tryHydrateAuth(req) {
   if (!JWT_SECRET) return null;
   const token = parseBearerToken(req);
   if (!token) return null;
   try {
-    return await hydrateAuthFromTokenClaims(verifyJwtToken(token, JWT_SECRET));
+    return await hydrateOptionalAuthFromTokenClaims(verifyJwtToken(token, JWT_SECRET));
   } catch (_) {
     return null;
   }
