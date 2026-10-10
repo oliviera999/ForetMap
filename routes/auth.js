@@ -188,7 +188,13 @@ async function resolveLoginUserType(user) {
 }
 
 router.get('/me', requireAuth, async (req, res) => {
-  const body = { auth: exposeAuth(req.auth) };
+  const body = {
+    auth: exposeAuth(req.auth),
+    // Mot de passe provisoire ou compromis à changer (relu en base, toujours `false` en prise
+    // de contrôle) : à la restauration de session, le client ouvre « Mon profil ». Route de la
+    // liste blanche de `resolveAuthOrRespond`, comme `POST /me/password`.
+    passwordMustReset: !!req.auth?.passwordMustReset,
+  };
   // Claims du jeton présenté, partagés par les deux chemins de ré-émission ci-dessous
   // (renouvellement / resynchronisation de groupe) pour leur reconduire `sessionStartedAt`.
   let tokenClaims = null;

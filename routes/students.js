@@ -13,6 +13,7 @@ const { logAudit } = require('../lib/auditLog');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser } = require('../lib/rbac');
+const { checkRoleGrantAllowed } = require('../lib/rbacRoleAssignment');
 const { recomputeUsersRoles } = require('../lib/effectiveRole');
 const {
   canBypassGroupScope,
@@ -232,6 +233,14 @@ router.post(
       logRouteError(new Error('Profil RBAC introuvable (eleve_novice)'), req);
       return res.status(500).json({ error: 'Profil RBAC introuvable' });
     }
+    // Même garde « acteur → profil » que la création unitaire et l'import : dupliquer un compte
+    // ne doit pas permettre d'attribuer un profil que l'acteur ne pourrait pas attribuer
+    // lui-même (dossier sûreté d'octobre 2026, constat B03).
+    const copiedRole = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ? LIMIT 1', [
+      roleId,
+    ]);
+    const grant = checkRoleGrantAllowed(req.auth, copiedRole);
+    if (!grant.ok) return res.status(grant.status).json({ error: grant.error });
 
     const description = normalizeOptionalString(source.description);
 
