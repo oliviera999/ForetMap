@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Dossier sûreté d'octobre 2026 — filet de non-régression des constats confirmés par sonde
- * locale avant la demande d'avis à l'officier de sécurité :
+ * Contrôle d'accès des lieux, des parcours, de la Visite et des tâches — filet de
+ * non-régression :
  *
  * - **R1** — `GET /api/zones/:id/photos` et `GET /api/map/markers/:id/photos` servaient
  *   photos et légendes de n'importe quel lieu, sans session ni code : lieu retiré du plan

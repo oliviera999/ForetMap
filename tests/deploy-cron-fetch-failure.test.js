@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Cron de déploiement (scripts/auto-deploy-cron.sh) : `git fetch` refusé — dossier sûreté 2026-10.
+ * Cron de déploiement (scripts/auto-deploy-cron.sh) : `git fetch` refusé.
  *
  * Passer le dépôt GitHub en privé coupe le `git fetch` du serveur tant que son `origin` est en
  * HTTPS anonyme. Sous `set -e`, le script s'arrêtait alors sans alerte : plus aucun

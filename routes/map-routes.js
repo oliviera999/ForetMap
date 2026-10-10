@@ -271,7 +271,7 @@ router.get(
     // et session), jamais « toutes » : auparavant, la seule garde était celle du plan et
     // aucun filtre de surface ne s'appliquait, si bien qu'un anonyme sur un plan ouvert — ou
     // le porteur du code du plan — recevait les parcours réservés aux personnels et à la
-    // carte de travail (dossier sûreté d'octobre 2026, constat R2).
+    // carte de travail.
     const surface = surfaceQuery.value || resolveSurfaceForRequest(req);
     if (!(await guardSurfaceRead(req, res, surface))) return;
 
