@@ -178,11 +178,11 @@ jobs:
         id: dbinit
         run: npm run db:init
 
-      # Une seule passe de la suite backend : `test:coverage` exécute exactement
-      # la même commande que `npm run test` + la couverture (le double run
-      # doublait la durée du job).
-      - name: Run backend tests (with coverage)
-        run: npm run test:coverage
+      # `npm test` et non plus `test:coverage` (10/10/2026) : la couverture n'était lue par
+      # rien (ni envoi, ni seuil) et coûtait +27 % sur la suite (917 s → 1 162 s en local),
+      # soit ~2 min facturées par run. Elle reste disponible en local : `npm run test:coverage`.
+      - name: Run backend tests
+        run: npm test
 
       # Corpus pédagogique (`tests/content/`) : assertions sur les **données** semées par les
       # migrations — espèces, liaisons trophiques, rattachements QCM. Étape à son propre nom

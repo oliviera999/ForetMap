@@ -123,7 +123,7 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   Bumper explicitement dans la PR reste possible pour forcer un niveau SemVer — le workflow
   le détecte et s'abstient. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
-- CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test` → `test:ui` → `test:coverage`.
+- CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test:ui` → `test` → `test:content` → build → smokes e2e.
   **Dépôt privé = minutes Actions comptées** (2 000/mois en Free, épuisées en 48 h le 30/09) :
   4 workflows — `ci.yml` (PR seulement, rien sur une PR **brouillon** : elle part au passage
   « Ready for review » ; `quality` seul sur une PR de doc), `release.yml` (un job par fusion :
