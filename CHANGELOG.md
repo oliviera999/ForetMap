@@ -21,6 +21,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - e2e `plan-routes-mode` : le parcours de test relie deux lieux **placés** sur la carte. Il
   prenait la première zone du plan, souvent une zone sans contour laissée par la suite backend
   dans le même job : le tracé n'avait qu'une étape et `map-route-lines` n'apparaissait pas.
+- Ces changements sont entrés dans `main` avec la PR #585, qui les reprenait pour sa propre CI.
+
 ### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
 
 - `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
