@@ -163,7 +163,10 @@ s'annule pas.
   dans ForetMap. Les réglages livrés couvrent : les niveaux (pas de création de compte), les
   n3beurs (rôle élève, poussée vers Moodle — **toute cohorte dont le code contient « n3 »**,
   préfixe d'année facultatif), les sixièmes (visiteur + classe G&L), les autres
-  classes (visiteur).
+  classes (visiteur). Le **rôle** d'une politique est forcément un **profil élève** (visiteur
+  ou palier n3beur) : l'enregistrement refuse un profil d'encadrement (n3boss, administrateur,
+  prof de classe, personnel). Une politique plus ancienne qui en nommerait un crée son groupe
+  **sans** profil par défaut, et le rapport le signale (« n'est pas un profil élève »).
 - **Préfixe d'année** (« 26 ») : à changer chaque rentrée ; les cohortes de classes et de
   niveaux qui ne commencent pas par ce préfixe sont ignorées. **Exception n3beurs** : toute
   cohorte dont le code contient « n3 » (par exemple `26#n3`, `n3` ou `club-n3`) peut être

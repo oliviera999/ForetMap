@@ -14,6 +14,7 @@ const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { toPublicUserRow } = require('../lib/publicUser');
+const { defaultAvatarUrlFor } = require('../lib/defaultAvatar');
 const {
   parseDiscoveryTourSeen,
   normalizeDiscoveryTourSeenInput,
@@ -293,7 +294,8 @@ router.get('/me', requireAuth, async (req, res) => {
   // valeurs vides et les renvoyait à l'enregistrement (pseudo, description, niveau effacés).
   if (req.auth?.userType === 'teacher' && req.auth?.userId) {
     const row = await queryOne(
-      `SELECT pseudo, email, description, avatar_path, visit_mascot_catalog_id, biodiv_pedago_level
+      `SELECT id, pseudo, first_name, last_name, email, description, avatar_path,
+              visit_mascot_catalog_id, biodiv_pedago_level
          FROM users WHERE id = ? LIMIT 1`,
       [req.auth.userId],
     );
@@ -303,6 +305,8 @@ router.get('/me', requireAuth, async (req, res) => {
         email: row.email ?? null,
         description: row.description ?? null,
         avatar_path: row.avatar_path ?? null,
+        // Avatar par défaut (URL signée renouvelée à chaque `/me`) : `lib/defaultAvatar.js`.
+        default_avatar_url: defaultAvatarUrlFor(row),
         visit_mascot_catalog_id: row.visit_mascot_catalog_id ?? null,
         biodiv_pedago_level: row.biodiv_pedago_level ?? null,
       };

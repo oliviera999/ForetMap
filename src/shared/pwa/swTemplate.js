@@ -253,8 +253,13 @@ function authorizationOf(request) {
  */
 function cacheKeyFor(request) {
   const auth = authorizationOf(request);
-  if (!auth) return request;
   const url = new URL(request.url);
+  // Code d'accès d'un lien de plan (\`?code=\`, QR code interne) : il ouvre le plan une fois,
+  // puis quitte l'adresse ; il n'a rien à faire dans la clé d'une copie hors ligne, qui le
+  // garderait sur l'appareil. La requête réseau, elle, part telle quelle.
+  const hadCode = url.searchParams.has('code');
+  if (hadCode) url.searchParams.delete('code');
+  if (!auth) return hadCode ? url.toString() : request;
   url.searchParams.set('__fm_sw_user', authCachePartition(auth));
   return url.toString();
 }

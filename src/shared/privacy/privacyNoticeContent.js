@@ -54,10 +54,18 @@ export const PRIVACY_RETENTION = Object.freeze({
   passwordResetMinutes: 60,
   /** `ANON_TTL_SECONDS` (24 h), `routes/visit.js` — progression de la visite sans compte. */
   guestVisitHours: 24,
-  /** `PLAN_ACCESS_TTL_SECONDS` (30 j), `lib/planAccess.js`. */
+  /**
+   * `PLAN_ACCESS_TTL_SECONDS` (30 j), `lib/planAccess.js` — durée par défaut, réglable jusqu'à
+   * `security.plan_access_pass_days.max` (`lib/settings/plan.js`).
+   */
   planAccessDays: 30,
-  /** `STAFF_PLAN_ACCESS_TTL_SECONDS` (7 j), `lib/staffPlanAccess.js`. */
+  planAccessMaxDays: 90,
+  /**
+   * `STAFF_PLAN_ACCESS_TTL_SECONDS` (7 j), `lib/staffPlanAccess.js` — par défaut, réglable
+   * jusqu'à `security.staff_plan_access_pass_days.max`.
+   */
   staffPlanAccessDays: 7,
+  staffPlanAccessMaxDays: 30,
 });
 
 function clean(value) {
@@ -313,13 +321,13 @@ export function buildPrivacyNotice({
       `un lien de réinitialisation du mot de passe : ${R.passwordResetMinutes === 60 ? '1 heure' : `${R.passwordResetMinutes} minutes`}.`,
     ],
     plan: [
-      `le cookie du code d’accès, s’il y en a un : ${R.planAccessDays} jours ;`,
+      `le cookie du code d’accès, s’il y en a un : ${R.planAccessDays} jours par défaut (${R.planAccessMaxDays} au plus, selon le réglage de l’établissement) ;`,
       `les compteurs anonymes (nombre d’ouvertures, recherches) : ${R.usageCountersDays === 365 ? '1 an' : `${R.usageCountersDays} jours`}.`,
     ],
     staff: [
       `votre compte : jusqu’à ${afterDeparture} après votre départ (compte désactivé par l’établissement) ;`,
       session,
-      `le laissez-passer du plan des personnels : ${R.staffPlanAccessDays} jours ;`,
+      `le laissez-passer du plan des personnels : ${R.staffPlanAccessDays} jours par défaut (${R.staffPlanAccessMaxDays} au plus, selon le réglage de l’établissement) ;`,
       securityYear,
     ],
   };

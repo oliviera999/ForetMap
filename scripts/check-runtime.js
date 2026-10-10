@@ -121,6 +121,16 @@ async function main() {
         'retrait des métadonnées (GPS) et vignettes ; sans lui, les images sont refusées — ' +
         'voir docs/EXPLOITATION.md § 8',
     }),
+    checkModule('@dicebear/core', {
+      required: false,
+      purpose:
+        'avatars par défaut dessinés par le serveur ; sans lui, une silhouette neutre est ' +
+        'affichée — `npm ci --omit=dev`',
+    }),
+    checkModule('@dicebear/adventurer-neutral', {
+      required: false,
+      purpose: 'style « Adventurer Neutral » des avatars par défaut',
+    }),
     checkFile('build du front', 'dist/index.vite.html', {
       required: true,
       hint: 'le cron le récupère sur la branche dist-artifact/main (docs/DEPLOY_DIST_ARTIFACT.md)',

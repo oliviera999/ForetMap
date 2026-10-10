@@ -63,11 +63,11 @@ function CreateUserPanel({
       setErr('Seul un admin peut créer un admin');
       return;
     }
-    if (
-      (createRole === 'prof' || createRole === 'prof_classe') &&
-      !isAdmin &&
-      !canCreateTeacherRoles
-    ) {
+    if (createRole === 'prof' && !isAdmin) {
+      setErr('Seul un administrateur peut créer un compte n3boss');
+      return;
+    }
+    if (createRole === 'prof_classe' && !isAdmin && !canCreateTeacherRoles) {
       setErr('Seuls n3boss et administrateur peuvent créer un compte enseignant');
       return;
     }
