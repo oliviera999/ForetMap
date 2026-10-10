@@ -26,6 +26,9 @@ const GUEST_VISIT_TUTORIALS = [];
  * @param {() => void} props.onToastDone Fin d'affichage du toast.
  * @param {string|null} [props.oauthFeedback] Message OAuth long (bandeau persistant).
  * @param {() => void} [props.onOauthFeedbackDismiss] Fermeture du bandeau OAuth.
+ * @param {object|null} [props.mfaChallenge] Étape « second facteur » transmise par un retour
+ *   Google / Moodle (double authentification d'un compte administrateur ou n3boss).
+ * @param {() => void} [props.onMfaChallengeConsumed] L'écran de connexion a repris l'étape.
  * @param {boolean} props.showPublicVisit Visite invitée active (sinon écran de connexion).
  * @param {string} props.visitInitialMapId Carte initiale de la visite invitée.
  * @param {boolean} props.guestVisitNeedsMascotChoice Onboarding mascotte invité en attente.
@@ -43,6 +46,8 @@ export function UnauthenticatedShell({
   onToastDone,
   oauthFeedback = null,
   onOauthFeedbackDismiss,
+  mfaChallenge = null,
+  onMfaChallengeConsumed,
   showPublicVisit,
   visitInitialMapId,
   guestVisitNeedsMascotChoice,
@@ -89,6 +94,8 @@ export function UnauthenticatedShell({
               isN3Affiliated={isN3Affiliated}
               oauthFeedback={oauthFeedback}
               onOauthFeedbackDismiss={onOauthFeedbackDismiss}
+              initialMfaChallenge={mfaChallenge}
+              onMfaChallengeConsumed={onMfaChallengeConsumed}
             />
           )}
         </>

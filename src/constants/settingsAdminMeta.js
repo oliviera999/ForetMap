@@ -695,6 +695,17 @@ export const KEY_META = {
     section: 'security',
     order: 50,
   },
+  'security.totp.enforcement': {
+    label:
+      'Double authentification des comptes administrateur et n3boss (code à 6 chiffres sur téléphone, en plus du mot de passe)',
+    section: 'security',
+    order: 5,
+    optionLabels: {
+      off: 'Désactivée (secours uniquement)',
+      enroll: 'Transition : comptes activés vérifiés, activation proposée aux autres',
+      required: 'Obligatoire : aucune connexion sans second facteur',
+    },
+  },
 
   // Verrou pédagogique « lu / appris » : sans ces libellés, la grille affichait le dernier
   // segment de la clé — un interrupteur nommé « Enabled » perdu dans « Autres paramètres ».

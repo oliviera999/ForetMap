@@ -231,6 +231,8 @@ function App() {
   const [toast, setToast] = useState(null);
   /** Feedback OAuth long (erreurs / avertissement création visiteur) — bandeau sur l’écran de connexion. */
   const [oauthFeedback, setOauthFeedback] = useState(null);
+  /** Retour Google / Moodle d'un compte soumis à la double authentification : étape à finir. */
+  const [oauthMfaChallenge, setOauthMfaChallenge] = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -356,6 +358,7 @@ function App() {
     setAuthClaims,
     setIsTeacher: syncAuthClaimsFromStoredToken,
     setStudent,
+    onMfaChallenge: setOauthMfaChallenge,
   });
 
   // Called from anywhere when a 401-deleted is detected
@@ -1552,6 +1555,8 @@ function App() {
         onToastDone={handleToastDone}
         oauthFeedback={oauthFeedback}
         onOauthFeedbackDismiss={() => setOauthFeedback(null)}
+        mfaChallenge={oauthMfaChallenge}
+        onMfaChallengeConsumed={() => setOauthMfaChallenge(null)}
         showPublicVisit={showPublicVisit}
         visitInitialMapId={visitInitialMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}

@@ -630,6 +630,36 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   -- d'un compte reste portée par `lib/studentDeletion.js` (audit §4.2).
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Double authentification (migration 320) : secret TOTP chiffré au repos
+-- (`lib/auth/totpCrypto.js`), anti-rejeu, limiteur d'essais ; codes de secours hachés.
+-- La vue de statut sans secret `v_user_totp_status` est créée par la migration 320.
+CREATE TABLE IF NOT EXISTS user_totp (
+  user_id VARCHAR(64) NOT NULL PRIMARY KEY,
+  secret_enc VARCHAR(255) DEFAULT NULL,
+  secret_key_id VARCHAR(32) DEFAULT NULL,
+  enabled_at DATETIME DEFAULT NULL,
+  pending_secret_enc VARCHAR(255) DEFAULT NULL,
+  pending_key_id VARCHAR(32) DEFAULT NULL,
+  pending_created_at DATETIME DEFAULT NULL,
+  last_used_step BIGINT UNSIGNED DEFAULT NULL,
+  last_used_at DATETIME DEFAULT NULL,
+  failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  locked_until DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_totp_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_totp_backup_codes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  code_hash VARCHAR(100) NOT NULL,
+  used_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_user_totp_backup_codes_user (user_id, used_at),
+  CONSTRAINT fk_user_totp_backup_codes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- RBAC: profils et permissions configurables
 CREATE TABLE IF NOT EXISTS roles (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

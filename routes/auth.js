@@ -106,6 +106,10 @@ const OAUTH_ORIGIN_COOKIE = 'foretmap_oauth_origin';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const googleAuthService = require('../lib/auth/googleAuthService');
 const { buildSessionPayload } = require('../lib/auth/sessionPayload');
+const { gateLoginSession } = require('../lib/auth/mfaLogin');
+const { carryMfaClaims, markSessionMfa } = require('../lib/auth/mfaClaims');
+const { getMfaEnforcement } = require('../lib/auth/mfaPolicy');
+const { buildLoginResponseBody, recordLoginTouch } = require('../lib/auth/loginResponse');
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
@@ -557,9 +561,10 @@ async function reissueSessionAfterEmailChange({ req, account, nextEmail }) {
   });
   const session = await buildSessionPayload(req.auth.userType, account.id);
   if (!session) return null;
+  const tokenPayload = carryMfaClaims(session.tokenPayload, req.auth);
   return {
-    authToken: await signAuthToken(session.tokenPayload),
-    auth: exposeAuth(session.tokenPayload),
+    authToken: await signAuthToken(tokenPayload),
+    auth: exposeAuth(tokenPayload),
   };
 }
 
@@ -782,7 +787,18 @@ router.post(
     if (!session) {
       return res.status(403).json({ error: 'Aucun profil attribué' });
     }
-    const token = session ? await signAuthToken(session.tokenPayload) : null;
+    // Double authentification (administrateur, n3boss) : selon le réglage et l'état du
+    // compte, la session n'est pas émise ici mais après le second facteur
+    // (`/api/auth/totp/verify` ou `/api/auth/totp/enroll/*`).
+    const gate = await gateLoginSession({
+      session,
+      userId: account.id,
+      via: 'password',
+      next: session.tokenPayload.userType,
+      req,
+    });
+    if (gate.kind === 'challenge') return res.json(gate.challenge);
+    const token = await signAuthToken(session.tokenPayload);
     await logSecurityEvent('auth.login', {
       req,
       actorUserType: session.tokenPayload.userType,
@@ -791,40 +807,10 @@ router.post(
       targetId: account.id,
       payload: { via: 'identifier' },
     });
-    try {
-      const { recordAuthenticatedTouch } = require('../lib/userTracking');
-      const productHeader = String(req.headers['x-foretmap-product'] || '')
-        .trim()
-        .toLowerCase();
-      void recordAuthenticatedTouch({
-        product: productHeader || 'foret',
-        userType: session.tokenPayload.userType,
-        userId: account.id,
-        action: 'login',
-      });
-    } catch (_) {
-      /* ignore */
-    }
+    recordLoginTouch(req, session.tokenPayload.userType, account.id);
     res.json({
-      ...toPublicUserRow(account),
-      discoveryTourSeen: parseDiscoveryTourSeen(account.discovery_tour_seen_json),
-      // Mot de passe provisoire (posé par un responsable ou le jeu G&L) : le client invite
-      // à en choisir un nouveau (`POST /api/auth/me/password`).
-      passwordMustReset: !!Number(account.password_must_reset || 0),
-      authToken: token,
-      auth: session ? exposeAuth(session.tokenPayload) : null,
-      ...(await (async () => {
-        try {
-          const { loadUserGroupPedagoProfile } = require('../lib/biodivPedagoLevel');
-          const profile = await loadUserGroupPedagoProfile(account.id);
-          return {
-            biodivGroupPedagoLevels: profile.levels,
-            biodivGroupCurriculumNiveaux: profile.curriculumNiveaux,
-          };
-        } catch (_) {
-          return { biodivGroupPedagoLevels: [], biodivGroupCurriculumNiveaux: [] };
-        }
-      })()),
+      ...(await buildLoginResponseBody({ account, tokenPayload: session.tokenPayload, token })),
+      ...(gate.suggestSetup ? { mfaSetupSuggested: true } : {}),
     });
   }),
 );
@@ -1043,10 +1029,13 @@ router.post(
     });
     const session = await buildSessionPayload(req.auth.userType, account.id);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    // La session courante reste « second facteur validé » : sinon elle tomberait à la
+    // requête suivante dès que la double authentification est obligatoire.
+    const tokenPayload = carryMfaClaims(session.tokenPayload, req.auth);
     res.json({
       ok: true,
-      authToken: await signAuthToken(session.tokenPayload),
-      auth: exposeAuth(session.tokenPayload),
+      authToken: await signAuthToken(tokenPayload),
+      auth: exposeAuth(tokenPayload),
     });
   }),
 );
@@ -1221,6 +1210,15 @@ router.post(
   '/admin/impersonate',
   requirePermission('admin.impersonate'),
   asyncHandler(async (req, res) => {
+    // Seul un administrateur dont la session a validé le second facteur prend la main sur
+    // un autre compte (réglage `security.totp.enforcement` différent de `off`).
+    if (!req.auth?.mfa && (await getMfaEnforcement()) !== 'off') {
+      return res.status(403).json({
+        error:
+          'Prise de contrôle réservée à une session validée par la double authentification : reconnectez-vous avec votre code.',
+        code: 'MFA_REQUIRED',
+      });
+    }
     const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
     const rawId = req.body?.userId;
     const targetUserId = rawId == null ? '' : String(rawId).trim();
@@ -1276,6 +1274,7 @@ router.post(
       actorUserType: req.auth.userType,
       actorUserId: req.auth.userId,
       actorTokenEpoch: await getUserTokenEpoch(req.auth.userId),
+      ...(req.auth.mfa ? { actorMfa: true } : {}),
     };
     const token = await signAuthToken(tokenPayload);
     let hydrated;
@@ -1319,8 +1318,9 @@ router.post(
     }
     const tokenIn = parseBearerToken(req);
     if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
+    let claimsIn;
     try {
-      verifyJwtToken(tokenIn, JWT_SECRET);
+      claimsIn = verifyJwtToken(tokenIn, JWT_SECRET);
     } catch (_) {
       return res.status(401).json({ error: 'Token invalide ou expiré' });
     }
@@ -1331,7 +1331,11 @@ router.post(
     }
     const session = await buildSessionPayload(actor.userType, actor.userId);
     if (!session) return res.status(403).json({ error: 'Session administrateur introuvable' });
-    const token = await signAuthToken(session.tokenPayload);
+    // L'administrateur retrouve une session « second facteur validé » s'il l'avait à
+    // l'ouverture : sans cela, la double authentification obligatoire le déconnecterait.
+    const token = await signAuthToken(
+      claimsIn.actorMfa ? markSessionMfa(session.tokenPayload, 'totp') : session.tokenPayload,
+    );
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(verifyJwtToken(token, JWT_SECRET));
@@ -1383,6 +1387,9 @@ router.get(
     return sendExportArchive(res, archive);
   }),
 );
+
+// Second facteur (TOTP) : vérification, enrôlement, codes de secours, administration.
+router.use('/totp', require('./authTotp'));
 
 // Crochets de test (échange du code, vérification du jeton) : portés par le service Google.
 router.__setGoogleOAuthHooks = googleAuthService.setGoogleOAuthHooks;

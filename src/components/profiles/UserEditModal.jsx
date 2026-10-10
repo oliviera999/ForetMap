@@ -9,6 +9,8 @@ import { IconWarning } from '../../shared/icons.jsx';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { personalDataExportFilename } from '../../shared/personalDataExport.js';
 import { UserIdentitySummary } from './UserIdentitySummary.jsx';
+import { UserTotpAdminPanel } from './UserTotpAdminPanel.jsx';
+import { api } from '../../services/api';
 
 const EMPTY_FIELDS = {
   firstName: '',
@@ -357,6 +359,10 @@ function UserEditModal({
                   orange en haut pour retrouver ta session administrateur.
                 </p>
               </div>
+            )}
+
+            {authPerms.includes('admin.users.assign_roles') && !isSelf && user?.id && (
+              <UserTotpAdminPanel userId={user.id} request={api} />
             )}
 
             {authPerms.includes('admin.users.export') && user?.id && (

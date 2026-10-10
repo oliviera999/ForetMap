@@ -344,6 +344,7 @@ compte : adressez-vous à l'administrateur de l'établissement pour :
 | Un lieu n'apparaît pas pour les élèves          | Réglage « Qui peut voir ce lieu » restrictif                        | Ouvrir le lieu et élargir sa visibilité.                                                                                                                                                  |
 | Une observation a été écartée par erreur        | « Ne pas retenir » est définitif                                    | Demander à l'élève de refaire l'observation.                                                                                                                                              |
 | Un message déplacé sur le forum                 | —                                                                   | Le retirer via « Signalements (n) » et verrouiller la discussion si besoin.                                                                                                               |
+| L'application demande un code à 6 chiffres      | Double authentification des comptes n3boss                          | Saisir le code de l'application du téléphone ; sans téléphone, un code de secours ; sinon demander une réinitialisation à l'administrateur ([détail](double-authentification.md)).        |
 
 En cas de doute, le bouton **« ? »** de l'écran concerné donne l'aide contextuelle. Pour tout ce
 qui touche aux comptes au-delà de vos droits, aux réglages de l'établissement ou à une panne,

@@ -79,6 +79,7 @@
     "learning:suggest-links": "node scripts/suggest-learning-links.js",
     "learning:generate-questions": "node scripts/generate-linked-questions.js",
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",
+    "totp:admin": "node scripts/totp-admin.js",
     "db:import:dump": "node scripts/import-foretmap-dump.js",
     "db:anonymize:dry": "node scripts/anonymize-local-db.js --dry-run",
     "db:anonymize": "node scripts/anonymize-local-db.js --apply",

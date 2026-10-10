@@ -17,6 +17,9 @@ import { isPasswordChangeRequiredError } from '../utils/passwordChangeRequired.j
 export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
 /** Toast d'une session expirée ou révoquée (mot de passe changé, compte désactivé…). */
 export const SESSION_EXPIRED_MESSAGE = 'Session expirée : veuillez vous reconnecter.';
+/** Session fermée parce que la double authentification est désormais exigée pour ce compte. */
+export const MFA_REQUIRED_MESSAGE =
+  'La double authentification est désormais exigée pour votre compte : reconnectez-vous avec votre code.';
 
 /**
  * Cycle de vie de la session utilisateur (extrait de App.jsx, D3) : restauration
