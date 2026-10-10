@@ -52,6 +52,7 @@ import {
 import { buildMapUrl, readMapIdFromLocation } from './utils/planMaps.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
+import { readLinkCodeFromSearch, stripLinkCodeFromAddress } from './utils/planAccessLink.js';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
 import { buildStageRoute } from '../shared/map-routes/mapRouteSteps.js';
 import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
@@ -98,11 +99,13 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * **avant** de savoir quelle carte le serveur va servir — c'est elle qui le décide.
    */
   const MAP_ID_STORAGE_KEY = useMemo(() => planStorageKeys(variant).mapId, [variant]);
-  /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
-  const [accessCode, setAccessCode] = useState(() =>
-    typeof window === 'undefined'
-      ? ''
-      : String(new URLSearchParams(window.location.search).get('code') || '').trim(),
+  /**
+   * Code d'accès porté par un lien (`?code=`, QR code interne) — lu une fois au montage,
+   * échangé contre un laissez-passer avant la première lecture, puis retiré de l'adresse
+   * (`src/plan/utils/planAccessLink.js`).
+   */
+  const [linkCode] = useState(() =>
+    typeof window === 'undefined' ? '' : readLinkCodeFromSearch(window.location.search),
   );
   /**
    * Plan affiché quand l'établissement en publie plusieurs (« Réglages → Plan affiché »).
@@ -132,7 +135,11 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     codeAvailable,
     viewer,
     reload,
-  } = usePlanContent(mapId, accessCode, variant);
+    forgetLinkCode,
+  } = usePlanContent(mapId, variant, {
+    linkCode,
+    onLinkCodeSettled: stripLinkCodeFromAddress,
+  });
   /**
    * Clés de stockage **de la carte réellement servie**, et non de celle demandée : `mapId`
    * vaut `''` quand on laisse le serveur choisir, et deux plans partageraient alors la même
@@ -979,11 +986,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const submitAccessCode = useCallback(
     async (code) => {
       await submitPlanAccessCode(code, variant);
-      // Le laissez-passer est posé : on relance la charge avec le code, pour ne pas dépendre
-      // de l'ordre d'écriture du cookie.
-      setAccessCode(code);
+      // Le laissez-passer (cookie) est posé par la réponse du `POST` : la charge se relit sans
+      // le code, qui n'a rien à faire dans l'adresse d'une lecture (cache du service worker,
+      // journaux de requêtes).
+      reload();
     },
-    [variant],
+    [reload, variant],
   );
 
   const dismissWelcome = useCallback(() => {
@@ -1039,30 +1047,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * requise » et l'écran d'entrée revient de lui-même. Pas de `location.reload()` — le plan
    * doit aussi se déconnecter hors ligne, sans dépendre d'un chargement de page.
    *
-   * Le code d'un lien profond (`?code=`) part avec la session, adresse comprise : conservé,
-   * il reposerait le laissez-passer à la requête suivante et la déconnexion n'aurait rien
-   * déconnecté. Effacer le code suffit à relancer la charge — d'où le `reload()` réservé au
-   * cas contraire.
+   * Le code d'un lien (`?code=`) a quitté l'adresse dès son échange. S'il est encore en
+   * attente (échange interrompu par le réseau), il part avec la session : rejoué au
+   * rechargement, il reposerait le laissez-passer et la déconnexion n'aurait rien déconnecté.
    */
   const logout = useCallback(async () => {
     await submitPlanLogout(variant);
     variant.clearToken?.();
-    if (accessCode) {
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('code');
-        const query = params.toString();
-        window.history.replaceState(
-          null,
-          '',
-          `${window.location.pathname}${query ? `?${query}` : ''}`,
-        );
-      }
-      setAccessCode('');
-      return;
-    }
+    forgetLinkCode();
+    stripLinkCodeFromAddress();
     reload();
-  }, [accessCode, reload, variant]);
+  }, [forgetLinkCode, reload, variant]);
 
   /**
    * Un plan mémorisé qui n'est plus proposé (retiré des réglages, dépublié) répond `400`.

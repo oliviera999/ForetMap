@@ -34,9 +34,23 @@ const {
 const { parseOptionalForetAuth, verifyJwtToken } = require('../lib/auth/jwtPipeline');
 const { recomputeUserRole, setAssignedRole } = require('../lib/effectiveRole');
 const { initRealtime, shutdownRealtime } = require('../lib/realtime');
+const { setSetting } = require('../lib/settings');
+const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot');
+
+// Ces tests portent sur le mot de passe à changer, pas sur le second facteur : la double
+// authentification est coupée le temps du fichier, sans quoi la prise de contrôle exigerait
+// une session d'administrateur validée par un code (couvert par tests/auth-totp-admin.test.js).
+const TOTP_ENFORCEMENT_KEY = 'security.totp.enforcement';
+let totpEnforcementSnapshot;
 
 test.before(async () => {
   await initSchema();
+  totpEnforcementSnapshot = await snapshotSetting(TOTP_ENFORCEMENT_KEY);
+  await setSetting(TOTP_ENFORCEMENT_KEY, 'off', {});
+});
+
+test.after(async () => {
+  await restoreSetting(totpEnforcementSnapshot);
 });
 
 async function createAccount({ userType, password, mustReset = false }) {

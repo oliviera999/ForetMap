@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   normalizeProfilesPayload,
   filterGroupDefaultRoles,
+  isGroupDefaultRoleInert,
 } from '../../src/utils/groupDefaultRoleOptions.js';
 
 describe('normalizeProfilesPayload', () => {
@@ -46,26 +47,42 @@ describe('filterGroupDefaultRoles', () => {
     ).toEqual(['jardinier']);
   });
 
-  test('repli sans le champ : tous les profils ForetMap sauf G&L, du plus élevé au plus bas', () => {
+  test('repli sans le champ : profils élèves seulement, du plus élevé au plus bas', () => {
     const legacy = [
       { slug: 'visiteur', rank: 50 },
-      { slug: 'personnel', rank: 50 },
+      { slug: 'personnel', rank: 320 },
       { slug: 'eleve_avance', rank: 200 },
+      { slug: 'jardinier', rank: 150 },
+      { slug: 'prof_classe', rank: 350 },
       { slug: 'prof', rank: 400 },
       { slug: 'admin', rank: 500 },
       { slug: 'gl_player', rank: 120 },
     ];
     expect(filterGroupDefaultRoles(legacy).map((r) => r.slug)).toEqual([
-      'admin',
-      'prof',
       'eleve_avance',
+      'jardinier',
       'visiteur',
-      'personnel',
     ]);
   });
 
   test('entrée non tabulaire → liste vide', () => {
     expect(filterGroupDefaultRoles(null)).toEqual([]);
     expect(filterGroupDefaultRoles({ roles: [] })).toEqual([]);
+  });
+});
+
+describe('isGroupDefaultRoleInert', () => {
+  test('signale un profil par défaut enregistré qui n’est pas un profil élève', () => {
+    expect(isGroupDefaultRoleInert({ default_role_id: 4, default_role_conferrable: false })).toBe(
+      true,
+    );
+    expect(isGroupDefaultRoleInert({ default_role_id: 4, default_role_conferrable: true })).toBe(
+      false,
+    );
+    expect(isGroupDefaultRoleInert({ default_role_id: null, default_role_conferrable: null })).toBe(
+      false,
+    );
+    expect(isGroupDefaultRoleInert({ default_role_id: 4 })).toBe(false);
+    expect(isGroupDefaultRoleInert(null)).toBe(false);
   });
 });

@@ -4,11 +4,13 @@ import { api } from '../services/api';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { personalDataExportFilename } from '../shared/personalDataExport.js';
 import { statusBadge } from '../utils/badges';
-import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
+import { getDefaultAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
+import { DefaultAvatarCredit } from './DefaultAvatarCredit.jsx';
 import { compressImageWithPreset } from '../shared/platform/image';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { TotpProfileSection } from './auth/TotpProfileSection.jsx';
 import {
   estimateDataUrlBytes,
   deriveProfileTypeLabel,
@@ -533,8 +535,9 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
             <StudentAvatar student={student} size={52} style={{ border: '1px solid #ddd' }} />
           )}
           <div className="profile-avatar-help">
-            Par défaut, l&apos;avatar est généré automatiquement via DiceBear. Tu peux aussi prendre
-            une photo directement.
+            Par défaut, l&apos;avatar est dessiné par l&apos;application elle-même, sans passer par
+            un service extérieur. Tu peux aussi prendre une photo directement.{' '}
+            <DefaultAvatarCredit compact />
           </div>
         </div>
         <div className="profile-avatar-actions">
@@ -583,12 +586,12 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
             onClick={() => {
               setAvatarData(null);
               setRemoveAvatar(true);
-              setAvatarPreview(getDicebearAvatarUrl(student));
+              setAvatarPreview(getDefaultAvatarUrl(student));
               setErr('');
             }}
             disabled={loading || avatarProcessing}
           >
-            Utiliser l&apos;avatar DiceBear
+            Utiliser l&apos;avatar par défaut
           </button>
         </div>
         {avatarProcessing && (
@@ -747,6 +750,9 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       >
         {passwordLoading ? 'Changement…' : 'Changer le mot de passe'}
       </button>
+
+      {/* Comptes administrateur et n3boss seulement (rien pour un élève). */}
+      <TotpProfileSection account={student} request={api} onUpdated={onUpdated} />
 
       <h3 className="section-title" style={{ marginTop: 18 }}>
         Mes données

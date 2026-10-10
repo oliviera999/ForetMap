@@ -69,6 +69,9 @@ async function ensureAdminTeacherAuthToken(options = {}) {
   );
   await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [adminRole.id, teacher.id]);
 
+  // Session d'administrateur complète, double authentification validée (`mfa`) : c'est ce
+  // qu'obtient un administrateur après son code, et ce qu'exigent la prise de contrôle et la
+  // réinitialisation du second facteur d'un compte.
   return signAuthToken({
     userType: 'teacher',
     userId: teacher.id,
@@ -76,6 +79,8 @@ async function ensureAdminTeacherAuthToken(options = {}) {
     roleId: adminRole.id,
     roleSlug: 'admin',
     roleDisplayName: 'Administrateur',
+    mfa: true,
+    mfaMethod: 'totp',
   });
 }
 

@@ -209,7 +209,7 @@ function withVisitLocationSpecies(row, speciesRows) {
  * personnels sur la carte l'est aussi en Visite. Avant ce contrôle, le `COALESCE` laissait
  * l'audience de la Visite remplacer celle de la carte — et l'éditeur de Visite écrit `'[]'`
  * pour « aucune restriction », si bien qu'un lieu réservé sur la carte était servi à
- * l'anonyme (dossier sûreté d'octobre 2026, constat R4).
+ * l'anonyme.
  */
 function mapAudienceAllows(row, auth) {
   return canViewLocation(

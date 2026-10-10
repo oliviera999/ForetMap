@@ -607,7 +607,7 @@ test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refus
     assert.match(String(denied.body.error || ''), /plan-access-code/);
 
     const set = await auth(request(app).post('/api/settings/admin/plan-access-code'))
-      .send({ code: 'SECRET-PLAN' })
+      .send({ code: 'SECRET-PLAN-2026' })
       .expect(200);
     assert.equal(set.body.hasCode, true);
     invalidateSettingsCache();
@@ -615,7 +615,7 @@ test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refus
     const stored = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
     assert.ok(stored.startsWith('$2'), 'empreinte bcrypt attendue');
     const bcrypt = require('bcryptjs');
-    assert.equal(await bcrypt.compare('SECRET-PLAN', stored), true);
+    assert.equal(await bcrypt.compare('SECRET-PLAN-2026', stored), true);
 
     await auth(request(app).post('/api/settings/admin/plan-access-code'))
       .send({ code: '' })

@@ -53,7 +53,7 @@ router.post(
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
     const audience = resolveAudienceForInsert(req.body);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
-    const notesInput = await readVisitNotesInput(req, res);
+    const notesInput = await readVisitNotesInput(req, res, 'marker');
     if (!notesInput) return undefined;
     // La Visite reflète la carte (`lib/visitMapMirror.js`) : un repère posé ici est d'abord
     // un repère de la carte, avec le même identifiant.
@@ -101,7 +101,9 @@ router.post(
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
     await applyVisitNotes('marker', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
-    res.status(201).json(await withVisitNotes('marker', id, withLocationAudienceFields(row)));
+    res
+      .status(201)
+      .json(await withVisitNotes('marker', id, withLocationAudienceFields(row), req.auth));
   }),
 );
 
@@ -120,7 +122,7 @@ router.put(
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
     const audience = resolveAudienceForUpdate(req.body, exists);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
-    const notesInput = await readVisitNotesInput(req, res);
+    const notesInput = await readVisitNotesInput(req, res, 'marker');
     if (!notesInput) return undefined;
     const emoji =
       req.body.emoji !== undefined
@@ -283,7 +285,7 @@ router.put(
       : mapMarker
         ? Number(mapMarker.edit_revision) || 0
         : null;
-    res.json(await withVisitNotes('marker', markerId, withLocationAudienceFields(row)));
+    res.json(await withVisitNotes('marker', markerId, withLocationAudienceFields(row), req.auth));
   }),
 );
 

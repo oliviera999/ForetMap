@@ -159,7 +159,6 @@ describe('AppPlan — réglages : plan affiché', () => {
     await waitFor(() =>
       expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith(
         'annexe',
-        '',
         expect.objectContaining({ apiBase: '/api/plan' }),
       ),
     );
@@ -193,7 +192,6 @@ describe('AppPlan — réglages : plan affiché', () => {
 
     await waitFor(() =>
       expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith(
-        '',
         '',
         expect.objectContaining({ apiBase: '/api/plan' }),
       ),
@@ -234,7 +232,7 @@ describe('AppPlan — réglages : déconnexion', () => {
     expect(await screen.findByLabelText('Code d’accès')).toBeTruthy();
   });
 
-  test('code d’un lien profond : il part avec la session, adresse comprise', async () => {
+  test('code d’un lien profond : échangé au montage, il a déjà quitté l’adresse', async () => {
     window.history.replaceState(null, '', '/?code=secret');
     const gated = {
       ...CONTENT_LYAUTEY,
@@ -243,7 +241,10 @@ describe('AppPlan — réglages : déconnexion', () => {
     planApiMock.fetchPlanContent.mockResolvedValue(gated);
     render(<AppPlan />);
     await screen.findByRole('button', { name: 'Gymnase' });
-    expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith('', 'secret', expect.anything());
+    // Le code part dans le corps du `POST /access`, jamais dans l'adresse de la charge.
+    expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('secret', expect.anything());
+    expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith('', expect.anything());
+    expect(window.location.search).not.toContain('code=');
 
     await openSettings();
     planApiMock.fetchPlanContent.mockRejectedValue(
@@ -257,9 +258,8 @@ describe('AppPlan — réglages : déconnexion', () => {
     await waitFor(() => expect(planApiMock.submitPlanLogout).toHaveBeenCalledTimes(1));
     // Le code ne repart pas avec la requête suivante : sinon le laissez-passer serait reposé
     // aussitôt et la déconnexion n'aurait rien déconnecté.
-    await waitFor(() =>
-      expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith('', '', expect.anything()),
-    );
+    await waitFor(() => expect(planApiMock.fetchPlanContent.mock.calls.length).toBeGreaterThan(1));
+    expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledTimes(1);
     expect(window.location.search).not.toContain('code=');
   });
 

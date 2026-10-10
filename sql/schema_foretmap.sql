@@ -574,6 +574,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) DEFAULT NULL,
   auth_provider VARCHAR(32) NOT NULL DEFAULT 'local',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  -- Date de désactivation = départ constaté (migration 319) : la purge planifiée supprime le
+  -- compte 12 mois après (scripts/retention-purge.js, lib/accounts/deactivation.js).
+  deactivated_at DATETIME NULL DEFAULT NULL COMMENT 'Date de désactivation du compte (départ constaté, purge planifiée)',
   -- Hors synchronisation Moodle (migration 219, section 11 du chantier Moodle).
   sync_exempt TINYINT(1) NOT NULL DEFAULT 0,
   last_seen VARCHAR(32) DEFAULT NULL,
@@ -586,6 +589,7 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_email (email),
   UNIQUE KEY uq_users_pseudo (pseudo),
   INDEX idx_users_type_active (user_type, is_active),
+  INDEX idx_users_type_deactivated (user_type, is_active, deactivated_at),
   INDEX idx_users_display_name (display_name),
   INDEX idx_users_assigned_role (assigned_role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -624,6 +628,36 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   -- (routes/gl/auth.js). La 185 avait posé cette clé, la 189 la retire — elle rendait
   -- toute réinitialisation de mot de passe impossible côté GL. La purge à la suppression
   -- d'un compte reste portée par `lib/studentDeletion.js` (audit §4.2).
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Double authentification (migration 320) : secret TOTP chiffré au repos
+-- (`lib/auth/totpCrypto.js`), anti-rejeu, limiteur d'essais ; codes de secours hachés.
+-- La vue de statut sans secret `v_user_totp_status` est créée par la migration 320.
+CREATE TABLE IF NOT EXISTS user_totp (
+  user_id VARCHAR(64) NOT NULL PRIMARY KEY,
+  secret_enc VARCHAR(255) DEFAULT NULL,
+  secret_key_id VARCHAR(32) DEFAULT NULL,
+  enabled_at DATETIME DEFAULT NULL,
+  pending_secret_enc VARCHAR(255) DEFAULT NULL,
+  pending_key_id VARCHAR(32) DEFAULT NULL,
+  pending_created_at DATETIME DEFAULT NULL,
+  last_used_step BIGINT UNSIGNED DEFAULT NULL,
+  last_used_at DATETIME DEFAULT NULL,
+  failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  locked_until DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_totp_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_totp_backup_codes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  code_hash VARCHAR(100) NOT NULL,
+  used_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_user_totp_backup_codes_user (user_id, used_at),
+  CONSTRAINT fk_user_totp_backup_codes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- RBAC: profils et permissions configurables
@@ -744,6 +778,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
   INDEX idx_audit_actor (actor_user_type, actor_user_id, id),
   INDEX idx_audit_log_created (created_at),
   INDEX idx_audit_action (action, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- retention_purge_runs (journal de purge planifiée, migration 319) : une ligne par exécution,
+-- comptages par catégorie seulement (aucune donnée de personne).
+CREATE TABLE IF NOT EXISTS retention_purge_runs (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  started_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  finished_at DATETIME(3) DEFAULT NULL,
+  mode ENUM('simulation','apply') NOT NULL,
+  outcome ENUM('running','success','blocked','failure','interrupted') NOT NULL DEFAULT 'running',
+  duration_ms INT UNSIGNED DEFAULT NULL,
+  counts_json JSON DEFAULT NULL,
+  options_json JSON DEFAULT NULL,
+  error_message VARCHAR(500) DEFAULT NULL,
+  INDEX idx_retention_purge_runs_started (started_at),
+  INDEX idx_retention_purge_runs_outcome (outcome, started_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- observation_logs (ancien carnet d'observation élève, hors tâches). Retrait en trois temps
