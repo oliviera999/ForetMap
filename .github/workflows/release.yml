@@ -1,0 +1,323 @@
+name: Release
+
+# Tout ce qui doit se passer quand `main` avance, en **un seul job** (depuis le 10/10/2026) :
+#
+#   1. garde-fous de l'arbre fusionné : données sensibles, numéros de migration ;
+#   2. bump de version (`package.json`), commit `chore(release): vX [skip bump]` poussé sur main ;
+#   3. tag `vX` + GitHub Release, posés sur **ce** commit de bump ;
+#   4. build de production, contrôles (entrées produit, miroirs CJS), publication de l'artefact
+#      sur la branche `dist-artifact/main` que le cron du serveur récupère.
+#
+# Il remplace version-bump.yml, release-tag.yml, dist-publish.yml et la CI rejouée sur `main`.
+# Ces quatre workflows coûtaient ~13 min facturées par fusion (sept runs, une minute minimum
+# chacun, deux builds) ; celui-ci ~2–3. Il répare aussi un décalage : `release-tag` tournait
+# sur le commit de fusion, AVANT le bump (le push du bump par GITHUB_TOKEN ne déclenche aucun
+# workflow) ; chaque tag arrivait donc une fusion en retard, posé sur le mauvais commit.
+#
+# Ce qui ne tourne PAS ici : lint, Prettier, tests. La PR les a passés (ci.yml) ; rien ne
+# l'impose techniquement en Free privé, d'où la règle « CI verte avant de fusionner ».
+#
+# Déclencheurs :
+#   - `push` sur main : le cas courant (une fusion) ;
+#   - `schedule` quotidien : filet — republie l'artefact s'il manque, pose un tag manquant, et
+#     lance `npm audit` (une faille nouvelle arrive sans fusion). Aucun bump ;
+#   - `workflow_dispatch` : republication manuelle (option `force`).
+#
+# Pas de boucle : le commit de bump est poussé avec le GITHUB_TOKEN, qui ne déclenche aucun
+# workflow ; il porte en outre `[skip bump]`, et l'étape de bump voit que `version` a déjà changé.
+#
+# Architecture et chiffres : docs/EXPLOITATION.md § 11.2 ; artefact : docs/DEPLOY_DIST_ARTIFACT.md ;
+# versions : docs/VERSIONING.md.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '25 5 * * *' # chaque jour, 05:25 UTC
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Republier l’artefact même s’il est déjà à jour'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# File d'attente, jamais d'annulation : couper un run au milieu d'un bump laisserait la version
+# poussée sans tag ni artefact. Un run en attente plus récent remplace un plus ancien ; il
+# traite la tête courante de main, donc rien n'est perdu.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DIST_BRANCH: dist-artifact/main
+    steps:
+      # Toujours la tête courante de `main` (pas le SHA déclencheur) : si une autre fusion est
+      # arrivée entre-temps, autant bumper et publier le plus récent.
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 2 # le commit précédent sert à savoir si `version` a déjà bougé
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # --- 1. Garde-fous de l'arbre fusionné (Node seul, sans `npm ci`) ---------------------
+
+      - name: Garde-fou données sensibles
+        if: github.event_name == 'push'
+        run: node scripts/check-sensitive-files.js --all
+
+      # Deux PR parallèles peuvent apporter le même `NNN_` sans qu'aucune ne soit en collision
+      # au moment de sa propre CI (vécu le 26/08). Un doublon fait échouer le **démarrage** du
+      # serveur : on arrête tout, rien n'est bumpé ni publié.
+      - name: Numéros de migration uniques
+        run: node --test --test-force-exit tests/migrations-unique-numbers.test.js
+
+      # --- 2. Bump de version ----------------------------------------------------------------
+
+      - name: Bump de version
+        id: bump
+        if: >-
+          github.event_name == 'push' &&
+          github.event.head_commit.author.name != 'github-actions[bot]' &&
+          !contains(github.event.head_commit.message, '[skip bump]')
+        # Un échec (push refusé…) ne doit pas priver le serveur de son artefact : on publie
+        # quand même, et la dernière étape fait tomber le job.
+        continue-on-error: true
+        env:
+          # Par l'environnement, jamais par interpolation dans le script : un message de commit
+          # est du texte libre, et une expression GitHub est substituée dans le TEXTE du script.
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          before="$(git show HEAD^:package.json 2>/dev/null | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version' 2>/dev/null || true)"
+          after="$(node -p 'require("./package.json").version')"
+          if [ -n "$before" ] && [ "$before" != "$after" ]; then
+            echo "Version déjà bumpée par la PR ($before → $after) — rien à faire."
+            exit 0
+          fi
+
+          # Conventional commits : `feat(...)` → mineure, `!:` ou BREAKING CHANGE → majeure.
+          level=patch
+          if printf '%s' "$MSG" | grep -qiE 'BREAKING[ -]CHANGE|^[a-z]+(\([^)]*\))?!:'; then
+            level=major
+          elif printf '%s' "$MSG" | grep -qE '(^|[^a-z])feat(\([^)]*\))?:'; then
+            level=minor
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$level" --no-git-tag-version >/dev/null
+          new="$(node -p 'require("./package.json").version')"
+          git add package.json package-lock.json
+          git commit -q -m "chore(release): v$new [skip bump]"
+
+          # `main` peut avoir bougé pendant le job : on rejoue le bump par-dessus.
+          for attempt in 1 2 3; do
+            if git push -q origin HEAD:main; then
+              echo "Version portée à $new ($level)."
+              exit 0
+            fi
+            echo "Push refusé (tentative $attempt) — rebase sur la tête courante puis nouvel essai."
+            git pull -q --rebase origin main || break
+          done
+          {
+            echo "### Bump de version non appliqué"
+            echo
+            echo "Le push de \`chore(release): v$new\` sur \`main\` a été refusé. Cause la plus"
+            echo "probable : une protection de branche qui n'autorise pas \`github-actions[bot]\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Bump non poussé — voir le résumé du job."
+          git reset -q --hard origin/main
+          exit 1
+
+      # --- 3. Tag + GitHub Release (idempotent : tous déclencheurs) ---------------------------
+
+      - name: Tag et release
+        id: tag
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+            echo "Tag v$version déjà présent — rien à faire."
+            exit 0
+          fi
+
+          # Priorité à une section datée « ## [X.Y.Z] - … » ; sinon « ## [Non publié] ».
+          notes="$(awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {grab=1; next}
+            grab && /^## / {exit}
+            grab {print}
+          ' CHANGELOG.md)"
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            notes="$(awk '
+              /^## \[Non publié\]/ {grab=1; next}
+              grab && /^## / {exit}
+              grab {print}
+            ' CHANGELOG.md)"
+          fi
+          [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ] && notes="Release v$version."
+
+          # `[Non publié]` est un accumulateur sans limite : on borne le corps (plafond GitHub
+          # 125 000). `iconv -c` retire le caractère coupé par `head -c` — et sort en 1 dans ce
+          # cas précis, d'où le `|| true` (vécu le 11/09/2026).
+          MAX_BYTES=60000
+          if [ "$(printf '%s' "$notes" | wc -c)" -gt "$MAX_BYTES" ]; then
+            notes="$(printf '%s' "$notes" | head -c "$MAX_BYTES" | iconv -c -f UTF-8 -t UTF-8 || true)
+
+          ---
+
+          _Notes tronquées à $MAX_BYTES octets. Journal complet :
+          [CHANGELOG.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/v$version/CHANGELOG.md)._"
+          fi
+          # Le corps passe par un fichier, jamais par une expression GitHub interpolée : c'est du
+          # texte de CHANGELOG (accents graves, `>`, `*`…), que bash relirait comme du code.
+          printf '%s\n' "$notes" > "$RUNNER_TEMP/notes.md"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$version" -m "v$version"
+          git push -q origin "v$version"
+          gh release create "v$version" --title "v$version" --notes-file "$RUNNER_TEMP/notes.md"
+          echo "Tag et release v$version posés sur $(git rev-parse --short HEAD)."
+
+      # --- 4. Artefact de déploiement ----------------------------------------------------------
+
+      - name: L’artefact est-il déjà à jour ?
+        id: state
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+        run: |
+          source_sha="$(git rev-parse HEAD)"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+          published=""
+          if git fetch --force --quiet origin "$DIST_BRANCH:refs/remotes/origin/$DIST_BRANCH" 2>/dev/null; then
+            published="$(git show "origin/$DIST_BRANCH:BUILD_INFO.json" 2>/dev/null |
+              node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).sourceCommit||""))}catch{}})' || true)"
+          fi
+
+          if [ "$published" = "$source_sha" ] && [ "$FORCE" != "true" ]; then
+            echo "Artefact déjà publié pour $source_sha — rien à faire."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            [ -n "$published" ] && echo "Artefact publié : $published → à reconstruire pour $source_sha."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.state.outputs.skip == 'false'
+        run: npm ci
+
+      - name: Build (front + miroirs CJS)
+        if: steps.state.outputs.skip == 'false'
+        run: npm run build
+
+      # Une entrée produit manquante ne casse rien de visible : le repli SPA servirait ForetMap
+      # en silence sur gl.* et planlyautey.*. Mieux vaut ne rien publier.
+      - name: Contrôler l’intégrité du build
+        if: steps.state.outputs.skip == 'false'
+        run: |
+          node -e '
+            const { findDistGaps } = require("./scripts/fetch-dist-artifact.js");
+            const gaps = findDistGaps("dist");
+            if (gaps.length) {
+              console.error("Build incomplet, publication annulée. Manque : " + gaps.join(", "));
+              process.exit(1);
+            }
+            console.log("Build complet.");
+          '
+
+      # Les miroirs CJS servent à l'API **depuis git** (le serveur tire `main`) : périmés sur
+      # main, ils ne sont pas réparés par l'artefact. On publie quand même le front (il est
+      # juste), et la dernière étape fait tomber le job pour que la dérive se voie.
+      - name: Miroirs CJS à jour sur main
+        id: mirrors
+        if: steps.state.outputs.skip == 'false'
+        continue-on-error: true
+        run: |
+          if ! git diff --quiet -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/; then
+            git --no-pager diff --stat -- lib/visit-pack/ lib/gl-pack/ lib/term-autolink/
+            echo "::error::Miroirs CJS périmés sur main : lancer 'npm run build' et recommiter lib/visit-pack/, lib/gl-pack/, lib/term-autolink/."
+            exit 1
+          fi
+
+      - name: Publier sur la branche d’artefacts
+        if: steps.state.outputs.skip == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_SHA: ${{ steps.state.outputs.source_sha }}
+          APP_VERSION: ${{ steps.state.outputs.version }}
+        run: |
+          stage="$(mktemp -d)"
+          cp -R dist "$stage/dist"
+
+          # `BUILD_INFO.json` vit à la RACINE de la branche, pas dans `dist/` : le serveur le lit
+          # séparément (`git show <ref>:BUILD_INFO.json`) et n'extrait que `dist/`.
+          node -e '
+            const fs = require("fs");
+            fs.writeFileSync(process.argv[1], JSON.stringify({
+              sourceCommit: process.env.SOURCE_SHA,
+              version: process.env.APP_VERSION,
+              builtAt: new Date().toISOString(),
+              branch: "main",
+              runId: process.env.GITHUB_RUN_ID || null,
+            }, null, 2) + "\n");
+          ' "$stage/BUILD_INFO.json"
+
+          cd "$stage"
+          # Dépôt neuf à chaque publication : la branche ne porte qu'UN commit, l'historique du
+          # dépôt ne grossit pas d'un build à l'autre.
+          git init --quiet
+          git checkout --quiet -b artifact
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "build(dist): $SOURCE_SHA (v$APP_VERSION)"
+          git push --force --quiet \
+            "https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git" \
+            "HEAD:refs/heads/$DIST_BRANCH"
+          echo "Artefact publié sur $DIST_BRANCH pour $SOURCE_SHA (v$APP_VERSION)."
+
+      # --- 5. Veille des dépendances (quotidienne, hors fusion) ------------------------------
+
+      # Vulnérabilités connues des dépendances de production, niveau `high` et plus. Lit
+      # `package-lock.json` seul (pas besoin de `npm ci`). Aussi bloquant sur chaque PR
+      # (ci.yml, job `quality`) ; ici pour les failles publiées entre deux PR.
+      - name: Audit des dépendances (npm audit)
+        id: audit
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Bilan
+        if: always()
+        env:
+          BUMP: ${{ steps.bump.outcome }}
+          TAG: ${{ steps.tag.outcome }}
+          MIRRORS: ${{ steps.mirrors.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+        run: |
+          failed=""
+          [ "$BUMP" = "failure" ] && failed="$failed bump"
+          [ "$TAG" = "failure" ] && failed="$failed tag"
+          [ "$MIRRORS" = "failure" ] && failed="$failed miroirs"
+          [ "$AUDIT" = "failure" ] && failed="$failed audit"
+          if [ -n "$failed" ]; then
+            echo "::error::Étapes en échec :$failed (l'artefact a été publié si le build est passé)."
+            exit 1
+          fi
+          echo "Release OK."

@@ -75,7 +75,7 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   flux UI critique → scénario `e2e/`. Lancer au minimum `npm test` avant commit.
 - **Tests de contenu séparés du code** : une assertion qui porte sur les **données** semées par
   les migrations (espèces, liaisons trophiques, rattachements QCM…) va dans `tests/content/`,
-  hors du glob `tests/*.test.js`, et tourne dans le job CI **`contenu`**. Une dérive du corpus
+  hors du glob `tests/*.test.js`, et tourne dans l'étape CI **« Contenu pédagogique »** (job `test`). Une dérive du corpus
   doit tomber sous son propre nom, sans bloquer une PR de documentation (cf. migration `230`).
 - **Doc API** : toute route publique nouvelle/modifiée → `docs/API.md` dans le même lot.
 - **Doc de référence fonctionnelle** (`docs/reference/`, non technique, pour admins/profs/MJ) :
@@ -118,14 +118,18 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 
 - Après chaque lot livrable : `CHANGELOG.md` sous `[Non publié]`, `git add -A`, commit, **push**.
   **Ne pas toucher au champ `version`** : il est incrémenté automatiquement après la fusion
-  (`.github/workflows/version-bump.yml`), ce qui supprime le conflit systématique entre PR.
+  (`.github/workflows/release.yml`, qui pose aussi le tag et publie l'artefact), ce qui supprime
+  le conflit systématique entre PR.
   Bumper explicitement dans la PR reste possible pour forcer un niveau SemVer — le workflow
   le détecte et s'abstient. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
-- CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test` → `test:ui` → `test:coverage`.
+- CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test:ui` → `test` → `test:content` → build → smokes e2e.
   **Dépôt privé = minutes Actions comptées** (2 000/mois en Free, épuisées en 48 h le 30/09) :
-  aucune CI sur une PR **brouillon** (elle part au passage « Ready for review »), `quality` seul
-  sur push `main` et sur une PR de doc seule, e2e complet à la demande (`e2e-full.yml`).
+  4 workflows — `ci.yml` (PR seulement, rien sur une PR **brouillon** : elle part au passage
+  « Ready for review » ; `quality` seul sur une PR de doc), `release.yml` (un job par fusion :
+  migrations, bump, tag, artefact ; + passage quotidien), `e2e-full.yml` et
+  `auto-resolve-conflicts.yml` (à la demande). **Aucun test sur `main`** : la CI de la PR doit
+  être verte avant de fusionner. Miroirs CJS périmés = PR rouge → `npm run build` et recommiter.
   Détail : `docs/EXPLOITATION.md` § 11.2.
   Faire passer `npm run lint` et `npm run format:check` avant de pousser.
 - **Cohérence inter-PR (anti-conflit de merge)** : à **chaque publication ou mise à jour d'une PR**,
