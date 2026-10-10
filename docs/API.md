@@ -2907,6 +2907,16 @@ par lieu**, chacun avec son intitulé et sa propre audience.
 - **Écriture** — `POST` / `PUT` zones, repères carte **et** `/api/visit/zones`,
   `/api/visit/markers` acceptent `notes`. `undefined` (champ omis) = **inchangé** ; `[]` ou
   `null` = **tous retirés**. Remplacement complet, l'ordre du tableau fait le `sort_order`.
+- **Droits sur les routes de la Visite** — `visit.manage` (la couche Visite) ne suffit pas à
+  gérer les compléments réservés. Sur `POST` / `PUT /api/visit/zones(:id)`, envoyer `notes`
+  exige **`zones.manage`** ; sur `POST` / `PUT /api/visit/markers(:id)`, **`map.manage_markers`**
+  (`canManageLocationNotes`, `lib/locationAudience.js`) — sinon **403**
+  `Compléments réservés d’une zone : permission zones.manage requise` (resp. d’un repère :
+  `map.manage_markers`), avant toute écriture. Les réponses de ces routes ne portent tous les
+  compléments, audiences comprises, qu'à qui détient la permission **du type de lieu** ; aux
+  autres, seulement ceux que leur audience (rôle ou groupe) leur ouvre, sans
+  `audience_role_slugs` / `audience_group_ids`. Les profils livrés (administrateur, n3boss)
+  portent les trois permissions : seuls les profils sur mesure sont concernés.
 - **Validation** — `body` requis, 8000 caractères max ; `title` 160 max ; **6 compléments
   max par lieu** (un lien tient sur une ligne, pas une note : le plafond est volontairement
   plus bas que les 12 liens). Rôle hors catalogue ou groupe inexistant → **400**.

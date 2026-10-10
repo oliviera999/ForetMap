@@ -65,7 +65,7 @@ router.post(
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
     const audience = resolveAudienceForInsert(req.body);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
-    const notesInput = await readVisitNotesInput(req, res);
+    const notesInput = await readVisitNotesInput(req, res, 'zone');
     if (!notesInput) return undefined;
     // La Visite reflète la carte (`lib/visitMapMirror.js`) : une zone dessinée ici est d'abord
     // un lieu de la carte, avec le même identifiant.
@@ -117,7 +117,9 @@ router.post(
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     await applyVisitNotes('zone', id, notesInput);
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
-    res.status(201).json(await withVisitNotes('zone', id, withLocationAudienceFields(row)));
+    res
+      .status(201)
+      .json(await withVisitNotes('zone', id, withLocationAudienceFields(row), req.auth));
   }),
 );
 
@@ -137,7 +139,7 @@ router.put(
     }
     const audience = resolveAudienceForUpdate(req.body, exists);
     if (!audience.ok) return res.status(400).json({ error: audience.error });
-    const notesInput = await readVisitNotesInput(req, res);
+    const notesInput = await readVisitNotesInput(req, res, 'zone');
     if (!notesInput) return undefined;
     const subtitle =
       req.body.subtitle !== undefined
@@ -266,7 +268,7 @@ router.put(
       : mapZone
         ? Number(mapZone.edit_revision) || 0
         : null;
-    res.json(await withVisitNotes('zone', zoneId, withLocationAudienceFields(row)));
+    res.json(await withVisitNotes('zone', zoneId, withLocationAudienceFields(row), req.auth));
   }),
 );
 
