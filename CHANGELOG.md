@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Comptes en attente : e-mail retiré de la liste
+
+- `GET /api/groups/pending-visitors` ne renvoie plus l'adresse e-mail des inscrits (champ `email` retiré de la réponse, pour tout acteur) : prénom, nom, pseudo et date d'inscription suffisent au rattachement. L'écran « Comptes en attente » n'affichait pas l'adresse : aucun changement d'interface.
+- Test : `tests/groups.test.js` (F2-B). Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
 ### Sécurité — Suppression d'un compte élève : garde de rang et dernier administrateur
 
 - `DELETE /api/students/:id` vérifie désormais le rang de la cible (`lib/accountDeletionGuard.js`) : **403** si le plus élevé de son profil effectif et de son profil attribué est égal ou supérieur au rang de l'acteur — **administrateur compris**, qui ne supprime pas un autre administrateur par cette route ; **403** sur soi-même ; **409** si la cible est le dernier administrateur actif (tout type de compte).

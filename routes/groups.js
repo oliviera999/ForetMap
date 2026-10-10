@@ -283,13 +283,17 @@ router.get(
  * parce que c'est le profil voulu : il n'y a alors rien à rattacher, et il gonflait pourtant
  * la pastille d'alerte. Ce qui reste à traiter, c'est le compte qui s'est inscrit seul et
  * n'a encore **aucun** groupe.
+ *
+ * Minimisation : identité d'affichage seulement (prénom, nom, pseudo, date d'inscription). Pas
+ * d'adresse e-mail — elle ne sert pas au rattachement, et la liste est ouverte à tout
+ * gestionnaire de groupe.
  */
 router.get(
   '/pending-visitors',
   requireGroupManagement,
   asyncHandler(async (req, res) => {
     const rows = await queryAll(
-      `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.email, u.created_at
+      `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.created_at
          FROM users u
          JOIN user_roles ur ON ur.user_type = 'student' AND ur.user_id = u.id AND ur.is_primary = 1
          JOIN roles r ON r.id = ur.role_id AND r.slug = 'visiteur'

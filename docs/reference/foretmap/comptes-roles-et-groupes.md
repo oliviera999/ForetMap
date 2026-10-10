@@ -420,7 +420,9 @@ Les groupes structurent la vie pédagogique :
   code devient alors invalide) ou supprimable.
 - **Comptes en attente** : le sous-onglet Groupes affiche la liste des visiteurs
   inscrits en autonomie, avec un rattachement unitaire ou **en lot** vers le groupe
-  choisi (le rôle suit automatiquement).
+  choisi (le rôle suit automatiquement). La liste donne le prénom, le nom et le pseudo de
+  chaque inscrit, **jamais son adresse e-mail** (retirée en octobre 2026 : elle ne sert pas
+  au rattachement).
 - **Groupes venus de Moodle** : à la rentrée, l'administrateur peut créer et tenir à jour
   les groupes-classes depuis les cohortes Moodle. Ces groupes se comportent comme les
   autres (rôle par défaut, périmètre, sous-groupes). Moodle est maître des cohortes ; un

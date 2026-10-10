@@ -773,6 +773,29 @@ test('F2-B : GET /api/groups/pending-visitors liste les comptes visiteurs', asyn
   );
 });
 
+test('F2-B : GET /api/groups/pending-visitors ne renvoie pas l’adresse e-mail des inscrits', async () => {
+  const visitor = await createVisitorStudent('SansMail');
+  const email = `attente.${Date.now()}@example.com`;
+  await execute('UPDATE users SET email = ? WHERE id = ?', [email, visitor.id]);
+  const { token: tutorToken } = await createTeacherToken('attente', 'prof_classe');
+
+  for (const token of [await getAdminToken(), tutorToken]) {
+    const res = await request(app)
+      .get('/api/groups/pending-visitors')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const row = res.body.find((r) => String(r.id) === String(visitor.id));
+    assert.ok(row, 'le visiteur reste listé');
+    assert.strictEqual(row.first_name, visitor.firstName);
+    assert.ok(!Object.hasOwn(row, 'email'), 'champ email retiré de la réponse');
+    assert.ok(
+      res.body.every((r) => !Object.hasOwn(r, 'email')),
+      'aucune ligne ne porte d’adresse e-mail',
+    );
+    assert.ok(!JSON.stringify(res.body).includes(email));
+  }
+});
+
 test('F2-B : POST /api/groups/:id/members/:userId rattache et promeut le visiteur si le groupe confère eleve_novice', async () => {
   const token = await getAdminToken();
   const visitor = await createVisitorStudent('Attach');
