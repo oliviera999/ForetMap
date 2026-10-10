@@ -65,6 +65,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `.gitignore` : dumps compressés ou au format `.dump`, clés et certificats, `.env.*`.
 - Rejoué sur un export complet de production : refusé sous son nom, renommé en `.txt`, ou
   substitué à un jeu déclaré.
+### Sécurité — Mot de passe provisoire ou compromis : changement imposé avant tout usage
+
+- Le drapeau `users.password_must_reset` n'était qu'un bandeau dans « Mon profil » : un compte marqué pouvait tout faire sans changer son mot de passe. Il est désormais **appliqué** par le serveur, relu en base à chaque requête (`hydrateAuthFromTokenClaims` → `auth.passwordMustReset`).
+- **Routes à session obligatoire** (`requireAuth`, `requirePermission`) : `403 { code: 'PASSWORD_CHANGE_REQUIRED' }`, contrôlé avant toute permission, sauf la liste blanche minimale de « Mon profil » (`PASSWORD_CHANGE_ALLOWED_ROUTES`) : `GET /api/auth/me` et `POST /api/auth/me/password`. `GET /api/auth/me` renvoie aussi `passwordMustReset`.
+- **Routes à session facultative** (`authenticate`, `parseOptionalForetAuth`, nouveau `hydrateOptionalAuthFromTokenClaims` pour le quiz, les clés, les séances et la garde des modules pédagogiques) : le compte marqué y est anonyme. **Socket.IO** : connexion refusée (`unauthorized`).
+- **Prise de contrôle** : l'administrateur qui assiste un compte marqué n'est pas bloqué (`passwordMustReset: false`).
+- **Client** : à la connexion, à la restauration de session (`/api/auth/me`) et sur ce 403 (événement `foretmap_password_change_required` émis par `api()`), le shell ouvre « Mon profil » avec le bandeau, élève comme enseignant (hook `usePasswordChangeRequired`). La validation de session élève ne signale plus « connexion instable » dans ce cas, et les écritures hors ligne attendent le changement au lieu d'être abandonnées.
+- Tests : `tests/password-must-reset-enforcement.test.js`, `tests-ui/AppShellPasswordChangeRequired.test.jsx`, `tests-ui/api.test.js`, `tests-ui/hooks/useAuthSession.test.jsx`, `tests-ui/utils/offlineActionQueue.test.js`. Docs : `docs/API.md` (§ Auth), `docs/reference/foretmap/comptes-roles-et-groupes.md`.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
