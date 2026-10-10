@@ -38,6 +38,10 @@ test('notice : les durées de conservation affichées sont celles du code', asyn
   assert.equal(R.activityDays, purge.DEFAULT_ACTIVITY_RETENTION_DAYS);
   assert.equal(R.usageCountersDays, purge.DEFAULT_VISITS_RETENTION_DAYS);
   assert.equal(R.ipFullDays, purge.DEFAULT_IP_RETENTION_DAYS);
+  assert.equal(
+    R.accountMonthsAfterDeparture,
+    require('../lib/retention/policy').ACCOUNT_RETENTION_MONTHS,
+  );
   assert.equal(R.sessionMinutes * 60, IDENTITY_SETTINGS['security.jwt_ttl_base_seconds'].default);
   assert.equal(
     R.sessionMaxHours * 3600,
