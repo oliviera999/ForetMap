@@ -2785,7 +2785,11 @@ Migration `236_location_audience_roles.sql` (carte) + `240_visit_location_audien
 - **`GET /api/zones`**, **`GET /api/map/markers`**, **`GET /api/visit/content`** : auth
   optionnelle (`authenticate`) pour appliquer le filtre selon le rôle du jeton.
   Sur la visite, l’audience est lue sur `visit_zones` / `visit_markers` (repli éventuel
-  sur la ligne carte homonyme si pas encore synchronisée).
+  sur la ligne carte homonyme si pas encore synchronisée) **et** celle de la ligne carte
+  s'applique en plus : la Visite peut restreindre un lieu, jamais l'ouvrir au-delà de la carte.
+  Auparavant l'audience de Visite remplaçait celle de la carte, et `'[]'` (« aucune
+  restriction ») écrit par l'éditeur de Visite rendait public un lieu réservé sur la carte
+  (dossier sûreté d'octobre 2026, constat R4).
 - **Écritures** : `POST` / `PUT` zones, repères carte **et** `POST` / `PUT`
   `/api/visit/zones` / `/api/visit/markers` acceptent `visible_role_slugs` /
   `visible_group_ids` ; rôle inconnu → **400** ; omis sur `PUT` = inchangé.

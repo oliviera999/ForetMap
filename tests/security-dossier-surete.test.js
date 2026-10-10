@@ -10,6 +10,9 @@
  * - **R2** — `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan et aucun
  *   filtre de surface : un anonyme (plan ouvert) ou le porteur du code recevait les parcours
  *   réservés aux personnels et à la carte de travail.
+ * - **R4** — la Visite laissait son audience remplacer celle de la carte (`COALESCE`) ; l'éditeur
+ *   écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte
+ *   était servi à l'anonyme par `GET /api/visit/content`.
  *
  * Même montage que `tests/security-surfaces.test.js` : une carte déclarée comme carte du plan
  * public (fermé par code), un terrain public pour la Visite, la surface `plan` simulée par
@@ -31,6 +34,7 @@ const { snapshotSetting, restoreSetting } = require('./helpers/settingsSnapshot'
 const { clearMapAccessCache } = require('../lib/mapAccess');
 const fx = require('./helpers/fmFixtures');
 const { planContentCache } = require('../routes/plan');
+const { visitContentCache } = require('../routes/visit');
 
 const PLAN_CODE = 'code-surete-test-2026';
 
@@ -156,7 +160,31 @@ test.before(async () => {
     );
     created.routes.push(id);
   }
+
+  // Terrain public de la Visite : un lieu réservé aux personnels sur la carte, que l'éditeur de
+  // Visite a laissé « sans restriction » (`'[]'`) ; un lieu ouvert sur la carte mais restreint
+  // en Visite ; un lieu ouvert partout.
+  place.visitMapReserved = (await fx.createZone({ mapId: visitMapId, name: 'Réservé carte' })).id;
+  await execute('UPDATE zones SET visible_role_slugs = ? WHERE id = ?', [
+    JSON.stringify(['personnel']),
+    place.visitMapReserved,
+  ]);
+  await addVisitZone(place.visitMapReserved, visitMapId, '[]');
+  place.visitOnlyReserved = (await fx.createZone({ mapId: visitMapId, name: 'Réservé visite' })).id;
+  await addVisitZone(place.visitOnlyReserved, visitMapId, JSON.stringify(['personnel']));
+  place.visitOpen = (await fx.createZone({ mapId: visitMapId, name: 'Ouvert' })).id;
+  await addVisitZone(place.visitOpen, visitMapId, '[]');
+  created.zones.push(place.visitMapReserved, place.visitOnlyReserved, place.visitOpen);
 });
+
+/** Lieu de Visite (ligne `visit_zones`) recopié d'une zone, avec son audience propre. */
+async function addVisitZone(zoneId, mapId, visitRoleSlugs) {
+  await execute(
+    `INSERT INTO visit_zones (id, map_id, name, points, subtitle, visible_role_slugs, is_active, sort_order)
+     VALUES (?, ?, ?, '[]', '', ?, 1, 0)`,
+    [zoneId, mapId, zoneId, visitRoleSlugs],
+  );
+}
 
 /** Titres des parcours d'une réponse de catalogue. */
 function routeTitles(res) {
@@ -166,6 +194,7 @@ function routeTitles(res) {
 test.beforeEach(async () => {
   adminToken = await ensureAdminTeacherAuthToken({ elevated: true });
   planContentCache.clear();
+  visitContentCache.clear();
 });
 
 test.after(async () => {
@@ -296,4 +325,32 @@ test('R2 — un personnel lit toujours les parcours qui lui sont destinés (?sur
     .set('Authorization', `Bearer ${token}`);
   assert.equal(res.status, 200);
   assert.ok(routeTitles(res).includes('PARCOURS-STAFF'));
+});
+
+/** Identifiants des zones d'une charge de Visite. */
+function visitZoneIds(res) {
+  return (res.body?.zones || []).map((z) => z.id);
+}
+
+test('R4 — Visite sans compte : un lieu réservé sur la carte reste réservé', async () => {
+  const res = await request(app).get(`/api/visit/content?map_id=${visitMapId}`);
+  assert.equal(res.status, 200);
+  const ids = visitZoneIds(res);
+  assert.ok(ids.includes(place.visitOpen), 'le lieu ouvert doit rester servi');
+  assert.ok(!ids.includes(place.visitMapReserved), 'lieu réservé sur la carte servi en Visite');
+  assert.ok(!ids.includes(place.visitOnlyReserved), 'la Visite peut toujours restreindre');
+  for (const zone of res.body.zones) {
+    assert.ok(!('map_visible_role_slugs' in zone), 'l’audience de carte ne sort pas');
+  }
+});
+
+test('R4 — Visite, compte personnel : les deux lieux réservés lui sont servis', async () => {
+  const token = await createAccountToken('personnel');
+  const res = await request(app)
+    .get(`/api/visit/content?map_id=${visitMapId}`)
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 200);
+  const ids = visitZoneIds(res);
+  assert.ok(ids.includes(place.visitMapReserved));
+  assert.ok(ids.includes(place.visitOnlyReserved));
 });

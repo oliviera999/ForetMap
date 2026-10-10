@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Visite : un lieu réservé sur la carte reste réservé (dossier sûreté, R4)
+
+- `GET /api/visit/content` lisait l'audience par `COALESCE(visite, carte)` : celle de la Visite **remplaçait** celle de la carte. L'éditeur de Visite écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte était servi à l'anonyme dès que sa carte figurait dans la Visite (69 lieux dans ce cas dans le jeu anonymisé).
+- L'audience de la carte s'applique désormais **en plus** de celle de la Visite (`mapAudienceAllows`, `routes/visit.js`) : la Visite peut restreindre, jamais ouvrir. Aucune migration : les colonnes d'audience de `visit_*` existent déjà et les anciennes colonnes `restricted_note*` ont été supprimées.
+- Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
 ### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique (dossier sûreté, R2)
 
 - `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan, sans filtre de surface : un anonyme sur un plan ouvert, ou le porteur du code du plan, recevait les parcours publiés **réservés aux personnels** et **à la carte de travail** (titre, description, public visé). Aucun écran n'appelait la route sans `surface`.
