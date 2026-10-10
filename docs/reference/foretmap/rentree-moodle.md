@@ -17,8 +17,10 @@ s'aligne dessus :
 - les élèves déjà connus sont **reconnus** (jamais dupliqués) ;
 - chaque cohorte devient un **groupe** ForetMap (classe, niveau, club…) avec le bon rôle ;
 - pour les sixièmes, une **classe Gnomes & Licornes** est créée avec un joueur par élève ;
-- les élèves qui ont quitté l'établissement sont **désactivés** (jamais supprimés : leurs
-  contributions restent).
+- les élèves qui ont quitté l'établissement sont **désactivés** (la synchronisation ne
+  supprime jamais : leurs contributions restent). La date de désactivation vaut date de
+  départ : si la purge planifiée est activée, le compte est supprimé **un an plus tard**
+  (voir [Durées de conservation](../exploitation/durees-de-conservation.md)).
 
 Moodle est la **source de vérité** pour « qui est dans quelle classe ». ForetMap reste maître
 de tout le reste : rôles fins, sous-groupes faits par les profs, équipes de jeu, tâches,

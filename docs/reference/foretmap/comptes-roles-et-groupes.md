@@ -642,16 +642,21 @@ sous-onglet consulté qui est rouvert.
   **conservé**, l'auteur apparaissant comme « compte supprimé ». Sa **photo de profil** est
   effacée du serveur, et le journal d'audit n'en garde que l'identifiant (ni nom, ni
   e-mail).
-- **Comptes inactifs en fin d'année** : un administrateur technique peut supprimer, par un
-  script lancé à la main en juillet, les comptes élèves sans activité depuis 13 mois (même
-  effacement que ci-dessus). La liste est d'abord affichée sans rien supprimer ; rien n'est
-  automatique.
+- **Comptes des élèves et des personnels partis** : une **purge planifiée** du serveur
+  supprime, avec le même effacement que ci-dessus, le compte d'un élève un an après la fin de
+  sa scolarité (compte désactivé depuis un an, ou aucune activité pendant toute une année
+  scolaire) et celui d'un personnel un an après sa désactivation. Jamais un compte qui a servi
+  dans les 12 derniers mois, jamais un administrateur. Elle ne fait que compter (simulation)
+  tant que l'établissement ne l'a pas activée. Détail :
+  [Durées de conservation et purge planifiée](../exploitation/durees-de-conservation.md).
 - **Désactiver / réactiver** : depuis la fiche, un compte peut être **désactivé** sans
   être supprimé — l'élève ou l'enseignant ne peut plus se connecter, sa session en cours
   est coupée, et tout son historique reste en place ; **réactiver** rouvre l'accès.
   On ne désactive pas son propre compte, ni un compte de rang égal ou supérieur au sien
   (hors administrateur), ni le dernier administrateur actif. Un compte désactivé est
-  signalé dans la liste et sur sa fiche.
+  signalé dans la liste et sur sa fiche. **Désactiver vaut déclaration de départ** :
+  l'application note la date, et la purge planifiée (si elle est activée) supprime le compte
+  **un an plus tard** ; réactiver efface cette date.
 - **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne
   (« Fiche de … »), organisée en trois parties.
   - **Droits & groupes** : son **profil attribué**, son **profil effectif** avec son
