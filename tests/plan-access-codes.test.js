@@ -7,6 +7,7 @@
  *  - longueur minimale d'un code enregistré (12 caractères) ;
  *  - échéance signée dans le laissez-passer (durée réglable, laissez-passer expiré, modifié ou
  *    au format antérieur refusé) ;
+ *  - code d'un lien (`?code=`) : jamais recopié dans les journaux de requêtes ;
  */
 
 require('./helpers/setup');
@@ -237,5 +238,41 @@ test('laissez-passer expiré, ou au format sans échéance : la porte reste ferm
     } finally {
       await reopen(surface);
     }
+  }
+});
+
+// --- Code d'un lien (?code=) et journaux de requêtes ----------------------------------------
+
+test('journal des requêtes HTTP : le code d’un lien n’y figure pas (chemin seul)', async () => {
+  // Garde de non-régression : `lib/httpRequestLog.js` journalise `req.path`, sans la chaîne
+  // de requête. Un passage à `originalUrl` recopierait le code de chaque lien dans les logs.
+  const express = require('express');
+  const logger = require('../lib/logger');
+  const logMetrics = require('../lib/logMetrics');
+  const previousMode = process.env.FORETMAP_HTTP_LOG;
+  process.env.FORETMAP_HTTP_LOG = 'full';
+  const captured = [];
+  const original = { info: logger.info, warn: logger.warn };
+  logger.info = (...args) => captured.push(args);
+  logger.warn = (...args) => captured.push(args);
+  const originalRecord = logMetrics.recordHttpEnd;
+  logMetrics.recordHttpEnd = (payload) => captured.push([payload]);
+  try {
+    const { createHttpRequestLogMiddleware } = require('../lib/httpRequestLog');
+    const probe = express();
+    probe.use(createHttpRequestLogMiddleware());
+    probe.get('/api/plan/content', (req, res) => res.status(401).json({ access_required: true }));
+    await request(probe).get(`/api/plan/content?code=${PLAN_CODE}&map_id=x`).expect(401);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(captured.length > 0, 'la requête est bien journalisée');
+    const serialized = JSON.stringify(captured);
+    assert.ok(serialized.includes('/api/plan/content'));
+    assert.ok(!serialized.includes(PLAN_CODE), 'le code ne figure dans aucune ligne');
+  } finally {
+    logger.info = original.info;
+    logger.warn = original.warn;
+    logMetrics.recordHttpEnd = originalRecord;
+    if (previousMode === undefined) delete process.env.FORETMAP_HTTP_LOG;
+    else process.env.FORETMAP_HTTP_LOG = previousMode;
   }
 });

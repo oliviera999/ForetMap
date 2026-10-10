@@ -3041,10 +3041,18 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
   émis, changer le code). Même mécanique pour le plan e-nov
   (`security.enov_plan_access_pass_days`, 30 j, 1 à 90) et le plan des personnels
   (`security.staff_plan_access_pass_days`, **7** j, 1 à 30) ;
-- un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
-  internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
-  Cette comparaison bcrypt est soumise au **même limiteur** que `POST /access` (le code en
-  query ne doit pas offrir une porte dérobée au tâtonnement).
+- **lien porteur du code** (QR code interne) : l'adresse **du plan** porte `?code=…`. Le front
+  (`src/plan/hooks/usePlanContent.js`, `src/plan/utils/planAccessLink.js`) l'échange au
+  montage par `POST /access` — le code voyage dans le corps — **avant** la première lecture,
+  puis le retire de l'adresse (`history.replaceState`, le reste du lien est conservé), que le
+  code soit accepté ou refusé ; une panne réseau le laisse en place pour « Réessayer ». La
+  charge n'est plus jamais demandée avec le code dans son adresse, et le service worker range
+  ses copies hors ligne sous une clé sans `code` (`src/shared/pwa/swTemplate.js`). Le plan des
+  personnels n'ouvre pas sur un lien : un `?code=` y est seulement retiré de l'adresse ;
+- `GET /api/plan/content?code=…` reste accepté pour les clients antérieurs : la requête est
+  servie et le laissez-passer posé. Cette comparaison bcrypt est soumise au **même limiteur**
+  que `POST /access`. Les journaux de requêtes de l'application n'enregistrent que le chemin
+  (`lib/httpRequestLog.js`), jamais la chaîne de requête.
 
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.

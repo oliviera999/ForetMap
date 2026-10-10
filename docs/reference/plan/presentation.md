@@ -368,6 +368,13 @@ appareil : c'est le serveur qui vérifie l'échéance, plus seulement le navigat
 durée vaut pour les entrées suivantes ; pour refermer tout de suite, changez le code. Les
 appareils entrés avant la mise en place de cette échéance ont dû ressaisir le code une fois.
 
+**Le lien qui porte le code.** Un QR code peut mener au plan avec le code dans le lien
+(`…/?code=…`) : le plan s'ouvre sans saisie. Le code sert alors une fois, puis disparaît de la
+barre d'adresse — il ne reste ni dans l'historique, ni dans un lien recopié depuis le
+téléphone, ni dans la copie hors ligne du plan. Le reste du lien (lieu, parcours) est
+conservé. Préférez tout de même la saisie du code quand c'est possible : un QR code imprimé
+est un lien direct permanent, qu'on photographie et qu'on transmet.
+
 **Le générateur de code.** Le bouton **« Générer un code »** propose un code de 14 caractères
 tirés au hasard, en minuscules et chiffres, sans les caractères qui se confondent (ni `0` ni
 `o`, ni `1`, `i` ou `l`). Il s'affiche en clair : **notez-le avant d'enregistrer**, car seule

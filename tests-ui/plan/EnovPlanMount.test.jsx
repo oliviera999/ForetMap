@@ -145,7 +145,6 @@ describe('AppPlan — variante « plan e-nov »', () => {
     await mountEnov();
     expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith(
       '',
-      '',
       expect.objectContaining({ apiBase: '/api/enov' }),
     );
     expect(ENOV_PLAN_VARIANT.storagePrefix).not.toBe(PLAN_VARIANT.storagePrefix);

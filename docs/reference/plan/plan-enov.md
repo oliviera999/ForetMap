@@ -117,7 +117,8 @@ Par défaut le plan e-nov est **public**. Pour le réserver (visite d'un jury, p
 partenaires), passez le **mode d'accès** sur « Code d'accès » et enregistrez un code d'au moins
 12 caractères (le bouton « Générer un code » en propose un, à noter avant d'enregistrer). Ce code est **propre au plan e-nov** : il n'ouvre pas le plan public, et le code
 du plan public n'ouvre pas le plan e-nov. Un lien du plan peut porter le code (`?code=…`), ce
-qui permet d'imprimer un QR code qui ouvre directement le plan. Un visiteur entré avec le code
+qui permet d'imprimer un QR code qui ouvre directement le plan ; le code disparaît de la barre
+d'adresse dès que le plan est ouvert. Un visiteur entré avec le code
 le reste 30 jours sur son appareil (durée réglable de 1 à 90 jours, vérifiée par le serveur) ;
 changer le code referme la porte à tous.
 
