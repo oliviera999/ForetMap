@@ -44,6 +44,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
 - Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
 - Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+### Sécurité — Garde-fou contre la fuite de dumps, de hachages et de secrets dans le dépôt
+
+- Nouveau `scripts/check-sensitive-files.js` (`npm run check:sensitive`), sans dépendance :
+  refuse les fichiers `.env`, les clés privées, les dumps et sauvegardes (par le nom), les
+  hachages bcrypt, blocs de clé privée, jetons d'API connus, JWT signés et en-têtes de dump (par
+  le contenu), tout `INSERT` dans un fichier SQL hors des jeux déclarés, et toute valeur insérée
+  dans une table personnelle par un jeu de contenu. Le jeu anonymisé doit garder un hachage
+  unique et des adresses en domaine réservé. La sortie ne recopie jamais la valeur trouvée.
+- Branché dans `.githooks/pre-commit` (fichiers indexés, avant lint et format) et dans le job CI
+  `quality` (tout l'arbre, avant `npm ci`).
+- `.gitignore` : dumps compressés ou au format `.dump`, clés et certificats, `.env.*`.
+- Rejoué sur un export complet de production : refusé sous son nom, renommé en `.txt`, ou
+  substitué à un jeu déclaré.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 

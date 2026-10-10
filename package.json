@@ -72,6 +72,7 @@
     "db:status": "node scripts/db-migration-status.js",
     "db:t3-status": "node scripts/db-t3-status.js",
     "check:runtime": "node scripts/check-runtime.js",
+    "check:sensitive": "node scripts/check-sensitive-files.js --all",
     "learning:suggest-links": "node scripts/suggest-learning-links.js",
     "learning:generate-questions": "node scripts/generate-linked-questions.js",
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",

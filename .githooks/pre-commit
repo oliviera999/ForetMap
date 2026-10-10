@@ -1,5 +1,6 @@
 #!/bin/sh
-# Pre-commit ForetMap — bloque les commits non conformes aux étapes CI `lint` et `format:check`.
+# Pre-commit ForetMap — bloque les commits qui portent des données sensibles, et ceux qui ne
+# passeraient pas les étapes CI `lint` et `format:check`.
 # Ne vérifie que les fichiers stagés (rapide). Forcer un commit (déconseillé) : git commit --no-verify
 #
 # Activé via `core.hooksPath=.githooks` (script npm `prepare` → scripts/setup-git-hooks.js).
@@ -8,6 +9,15 @@ staged=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -z "$staged" ] && exit 0
 
 fail=0
+
+# Données sensibles (dumps, hachages de mots de passe, clés, jetons) : bloquant, avant tout le
+# reste. Un export de la base de production a déjà été versionné par erreur ;
+# `.gitignore` ne protège pas d'un `git add -f`. La sortie ne cite jamais la valeur trouvée.
+if ! node scripts/check-sensitive-files.js --staged; then
+  echo "" >&2
+  echo "✖ Commit bloqué : données sensibles dans les fichiers indexés (voir ci-dessus)." >&2
+  exit 1
+fi
 
 # Prettier — mêmes extensions que `prettier --check .` (respecte .prettierignore).
 fmt=$(printf '%s\n' "$staged" | grep -Ei '\.(jsx?|tsx?|css|json|md|html|ya?ml)$' || true)
