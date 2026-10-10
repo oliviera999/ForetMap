@@ -1,4 +1,4 @@
-import { AccessCodeField } from './AccessCodeField.jsx';
+import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
@@ -156,7 +156,7 @@ export function StaffPlanSettingsPanel({
         Voie <strong>secondaire</strong>, désactivée par défaut, pour les personnels sans compte
         (agent, intervenant, remplaçant). Un code partagé ne dit pas qui entre et se transmet d’une
         capture d’écran : il ne remplace pas un compte. Chaque ouverture est inscrite au journal
-        d’audit, et le laissez-passer dure 7 jours.
+        d’audit, et le laissez-passer dure 7 jours par défaut (réglable ci-dessous).
       </p>
 
       <label className="field" data-testid="staff-plan-access-mode">
@@ -198,6 +198,17 @@ export function StaffPlanSettingsPanel({
           lieux réservés à l’encadrement hors de sa portée.
         </p>
       </label>
+
+      <AccessPassDaysField
+        settingKey="security.staff_plan_access_pass_days"
+        defaultDays={7}
+        maxDays={30}
+        get={get}
+        saveSetting={saveSetting}
+        savingKey={savingKey}
+        readOnly={readOnly}
+        testId="staff-plan-access-pass-days"
+      />
 
       <AccessCodeField
         endpoint="/api/settings/admin/staff-plan-access-code"

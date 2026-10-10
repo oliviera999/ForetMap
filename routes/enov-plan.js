@@ -88,7 +88,7 @@ router.post(
     if (!code) return res.status(400).json({ error: 'Code requis' });
     const valid = await bcrypt.compare(code, hash).catch(() => false);
     if (!valid) return res.status(401).json({ error: 'Code incorrect' });
-    grantEnovPlanAccess(res, hash);
+    await grantEnovPlanAccess(res, hash);
     res.json({ ok: true, required: true });
   }),
 );
@@ -125,7 +125,7 @@ router.get(
     if (settings.access_mode === 'code' && inlineCode) {
       const hash = await readAccessCodeHash();
       if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        grantEnovPlanAccess(res, hash);
+        await grantEnovPlanAccess(res, hash);
         grantedInline = true;
       }
     }

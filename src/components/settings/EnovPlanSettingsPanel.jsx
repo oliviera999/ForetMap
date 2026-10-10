@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { AccessCodeField } from './AccessCodeField.jsx';
+import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
@@ -243,6 +243,17 @@ export function EnovPlanSettingsPanel({
           <option value="code">Code d’accès</option>
         </select>
       </label>
+
+      <AccessPassDaysField
+        settingKey="security.enov_plan_access_pass_days"
+        defaultDays={30}
+        maxDays={90}
+        get={get}
+        saveSetting={saveSetting}
+        savingKey={savingKey}
+        readOnly={readOnly}
+        testId="enov-plan-access-pass-days"
+      />
 
       <AccessCodeField
         endpoint="/api/settings/admin/enov-plan-access-code"

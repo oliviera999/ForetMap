@@ -1527,6 +1527,15 @@ Portée `admin` : `security.enov_plan_access_code_hash`, écrite **uniquement** 
 `POST /api/settings/admin/enov-plan-access-code` (même contrat que le plan public ; `PUT :key`
 → **400**).
 
+Durée des laissez-passer (portée `admin`, écriture par `PUT /api/settings/admin/:key`, **400**
+hors bornes) — voir « Accès du plan par code » :
+
+| Clé                                     | Type   | Défaut | Bornes  | Plan                  |
+| --------------------------------------- | ------ | ------ | ------- | --------------------- |
+| `security.plan_access_pass_days`        | number | `30`   | 1 à 90  | Plan public           |
+| `security.enov_plan_access_pass_days`   | number | `30`   | 1 à 90  | Plan e-nov            |
+| `security.staff_plan_access_pass_days`  | number | `7`    | 1 à 30  | Plan des personnels   |
+
 ## Zones
 
 **Emoji de zone (colonne dédiée `zones.emoji`, migration 206 — audit UI 2026-09, C4).**
@@ -3019,9 +3028,19 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
 
 - `GET /api/plan/content` répond **401** `{ error, access_required: true }` sans laissez-passer ;
 - `POST /api/plan/access` `{ code }` vérifie le code (comparaison bcrypt, limiteur
-  d'authentification) et pose un **cookie signé HMAC** de 30 jours (HttpOnly, SameSite=Lax,
-  Secure en production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux,
-  **400** s'il est absent ;
+  d'authentification) et pose un **cookie signé HMAC** (HttpOnly, SameSite=Lax, Secure en
+  production — la garde partagée `lib/accessGate.js`) ; **401** si le code est faux, **400**
+  s'il est absent ;
+- **échéance signée** : la valeur du laissez-passer porte sa date d'expiration
+  (`code-<empreinte>~<échéance Unix>.<HMAC>`), couverte par la signature (option `expiring`
+  de `createSignedCookieGate`). Le serveur refuse (**401** `access_required`) un laissez-passer
+  échu, dont l'échéance a été modifiée, ou au format antérieur sans échéance — ceux émis avant
+  cette règle sont donc à ressaisir une fois. Durée : `security.plan_access_pass_days`
+  (portée `admin`, **30** jours par défaut, 1 à 90) ; elle fixe le `Max-Age` **et**
+  l'échéance, et vaut pour les laissez-passer émis ensuite (pour fermer la porte à ceux déjà
+  émis, changer le code). Même mécanique pour le plan e-nov
+  (`security.enov_plan_access_pass_days`, 30 j, 1 à 90) et le plan des personnels
+  (`security.staff_plan_access_pass_days`, **7** j, 1 à 30) ;
 - un lien profond peut porter le code (`/api/plan/content?code=…`) pour que les QR codes
   internes ouvrent le plan sans saisie ; la requête est servie et le laissez-passer posé.
   Cette comparaison bcrypt est soumise au **même limiteur** que `POST /access` (le code en
@@ -3078,7 +3097,8 @@ Deux voies, dans cet ordre.
 2. **Code partagé**, seulement si `ui.staff_plan.access_mode` vaut `code` (défaut :
    **`disabled`**) **et** qu'un code est configuré (`security.staff_plan_access_code_hash`,
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les
-   personnels sans compte. Laissez-passer de **7 jours** (contre 30 pour le plan public), rôle
+   personnels sans compte. Laissez-passer à **échéance signée** de **7 jours** par défaut
+   (`security.staff_plan_access_pass_days`, 1 à 30 ; contre 30 pour le plan public), rôle
    endossé réglable (`ui.staff_plan.code_role_slug`, défaut `personnel`), et **chaque ouverture
    — accordée comme refusée — est inscrite au journal d'audit** (`staff_plan.access.*`) : un
    code partagé ne dit pas qui entre.
@@ -3216,7 +3236,7 @@ en « visiteur » (`PUBLIC_SURFACES`).
 | ------- | --------------------------- | ---- | ----------------------------------------------------------------------------------- |
 | GET     | `/api/enov/content?map_id=` | non  | Charge publique de la surface `enov` (lieux e-nov mis en avant, texte e-nov)        |
 | GET     | `/api/enov/settings`        | non  | Réglages publics `ui.enov_plan.*` + `enov` (mise en avant), sans `map_id`           |
-| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, 30 jours)           |
+| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
 | POST    | `/api/enov/logout`          | non  | Oublie le laissez-passer — toujours **200**                                         |
 
 - **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,

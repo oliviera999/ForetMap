@@ -86,7 +86,7 @@ router.post(
     if (!code) return res.status(400).json({ error: 'Code requis' });
     const valid = await bcrypt.compare(code, hash).catch(() => false);
     if (!valid) return res.status(401).json({ error: 'Code incorrect' });
-    grantPlanAccess(res, hash);
+    await grantPlanAccess(res, hash);
     res.json({ ok: true, required: true });
   }),
 );
@@ -129,7 +129,7 @@ router.get(
     if (settings.access_mode === 'code' && inlineCode) {
       const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
       if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        grantPlanAccess(res, hash);
+        await grantPlanAccess(res, hash);
         // Le cookie vient d'être posé sur la réponse : il n'est pas encore dans la requête,
         // et cette requête-ci doit déjà être servie.
         grantedInline = true;

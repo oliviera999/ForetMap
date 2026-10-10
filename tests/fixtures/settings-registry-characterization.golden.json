@@ -579,6 +579,13 @@
       "maxLength": 120,
       "default": ""
     },
+    "security.enov_plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 90,
+      "default": 30
+    },
     "security.jwt_sliding_max_seconds": {
       "scope": "teacher",
       "type": "number",
@@ -606,11 +613,25 @@
       "maxLength": 120,
       "default": ""
     },
+    "security.plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 90,
+      "default": 30
+    },
     "security.staff_plan_access_code_hash": {
       "scope": "admin",
       "type": "string",
       "maxLength": 120,
       "default": ""
+    },
+    "security.staff_plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 30,
+      "default": 7
     },
     "students.import.allow_weak_passwords": {
       "scope": "admin",
@@ -3179,6 +3200,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.enov_plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 30,
+      "default_value": 30,
+      "constraints": {
+        "min": 1,
+        "max": 90,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.jwt_sliding_max_seconds",
       "scope": "teacher",
       "type": "number",
@@ -3243,6 +3280,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 30,
+      "default_value": 30,
+      "constraints": {
+        "min": 1,
+        "max": 90,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.staff_plan_access_code_hash",
       "scope": "admin",
       "type": "string",
@@ -3252,6 +3305,22 @@
         "min": null,
         "max": null,
         "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.staff_plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 7,
+      "default_value": 7,
+      "constraints": {
+        "min": 1,
+        "max": 30,
+        "maxLength": null,
         "values": null
       },
       "updated_at": null,

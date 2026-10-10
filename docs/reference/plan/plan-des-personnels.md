@@ -129,7 +129,9 @@ authentification :
 
 Si vous l'activez malgré tout, trois garde-fous s'appliquent :
 
-- le laissez-passer dure **7 jours** (contre 30 jours sur le plan public) ;
+- le laissez-passer dure **7 jours** par défaut (contre 30 jours sur le plan public ;
+  réglable de 1 à 30 jours dans « Durée du laissez-passer »), et c'est le serveur qui vérifie
+  son échéance : un laissez-passer échu ne rouvre rien, même recopié ;
 - le porteur du code endosse un **profil que vous choisissez** (par défaut « Personnel »), qui
   décide de ce qu'il voit : laissé bas, il ne verra pas les lieux réservés à l'encadrement ;
 - **chaque ouverture est inscrite au journal d'audit**, réussie comme refusée.

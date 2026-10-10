@@ -1,4 +1,4 @@
-import { AccessCodeField } from './AccessCodeField.jsx';
+import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
@@ -197,6 +197,17 @@ export function PlanSettingsPanel({
           doit aussi l’autoriser dans son calage GPS.
         </span>
       </label>
+
+      <AccessPassDaysField
+        settingKey="security.plan_access_pass_days"
+        defaultDays={30}
+        maxDays={90}
+        get={get}
+        saveSetting={saveSetting}
+        savingKey={savingKey}
+        readOnly={readOnly}
+        testId="plan-access-pass-days"
+      />
 
       <AccessCodeField
         endpoint="/api/settings/admin/plan-access-code"
