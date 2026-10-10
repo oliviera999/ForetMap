@@ -27,6 +27,10 @@ export function isStudentUnitaryCreateRole(slug) {
 
 /**
  * Options de profil pour le select de création unitaire.
+ *
+ * Hors administrateur, on n'attribue qu'un profil de rang **strictement inférieur** au sien
+ * (garde serveur `lib/rankGuard.js`) : « n3boss » et « Administrateur » ne sont proposés qu'à
+ * l'administrateur ; « Prof de classe » l'est aussi au n3boss (`canCreateTeacherRoles`).
  * @param {{ roles?: Array<{ slug?: string, display_name?: string }>, isAdmin?: boolean, canCreateTeacherRoles?: boolean }} opts
  */
 export function buildUnitaryCreateRoleOptions({
@@ -54,8 +58,8 @@ export function buildUnitaryCreateRoleOptions({
     admin: 'Administrateur',
   };
   return UNITARY_CREATE_ROLE_SLUGS.filter((slug) => {
-    if (slug === 'admin') return !!isAdmin;
-    if (slug === 'prof' || slug === 'prof_classe') return !!canCreateTeacherRoles || !!isAdmin;
+    if (slug === 'admin' || slug === 'prof') return !!isAdmin;
+    if (slug === 'prof_classe') return !!canCreateTeacherRoles || !!isAdmin;
     return true;
   }).map((slug) => ({
     value: slug,

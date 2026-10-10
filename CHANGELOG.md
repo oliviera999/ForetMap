@@ -9,6 +9,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Comptes en attente : e-mail retiré de la liste
+
+- `GET /api/groups/pending-visitors` ne renvoie plus l'adresse e-mail des inscrits (champ `email` retiré de la réponse, pour tout acteur) : prénom, nom, pseudo et date d'inscription suffisent au rattachement. L'écran « Comptes en attente » n'affichait pas l'adresse : aucun changement d'interface.
+- Test : `tests/groups.test.js` (F2-B). Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Sécurité — Suppression d'un compte élève : garde de rang et dernier administrateur
+
+- `DELETE /api/students/:id` vérifie désormais le rang de la cible (`lib/accountDeletionGuard.js`) : **403** si le plus élevé de son profil effectif et de son profil attribué est égal ou supérieur au rang de l'acteur — **administrateur compris**, qui ne supprime pas un autre administrateur par cette route ; **403** sur soi-même ; **409** si la cible est le dernier administrateur actif (tout type de compte).
+- Le profil attribué compte même quand un groupe impose un profil plus bas : un compte élève porteur du profil n3boss reste protégé.
+- Tests : `tests/students-delete-rank-guard.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Sécurité — Profil par défaut d'un groupe borné aux profils élèves
+
+- Un groupe ne confère plus qu'un **profil élève** : `visiteur` ou palier n3beur (`eleve_*`, profil sur mesure de rang < 400 qui ne porte pas `teacher.access`). Ni l'encadrement (`admin`, `prof`, `prof_classe`), ni `personnel`, ni les profils du jeu. Règle unique : `isStudentProfileRole` (noyau partagé `src/shared/n3beurRolesCore.js`) et `isGroupConferrableRole` (`lib/groupDefaultRolePolicy.js`).
+- **Refus à l'écriture** (400, administrateur compris) : `POST`/`PATCH /api/groups`, import de groupes, classe G&L miroir (`POST /api/gl/admin/classes`, fonction partagée), politiques de synchronisation Moodle (rôle d'encadrement refusé à l'enregistrement ; une politique déjà enregistrée qui en nomme un crée son groupe sans profil par défaut, alerte `policy_role_not_student`). `group_default_allowed` (`GET /api/rbac/profiles`) suit la même règle.
+- **Garde à l'application** (`lib/effectiveRole.js`) : un profil par défaut non élève déjà en base n'est conféré à personne, imposé ou non — ni par rattachement, ni par code de classe, ni par synchronisation ou recalcul. Aucune donnée n'est modifiée : les membres concernés retrouvent leur propre profil au prochain recalcul (connexion, `GET /api/auth/me`, changement du profil par défaut du groupe).
+- `GET /api/groups` publie `default_role_conferrable` ; le panneau de réglages d'un groupe rappelle la règle et signale un profil enregistré qui n'est pas un profil élève.
+- Tests : `tests/groups-default-role-student.test.js`, `tests/moodle-group-default-role.test.js`, `tests-ui/components/GroupsAdminDefaultRole.test.jsx`, `tests-ui/utils/groupDefaultRoleOptions.test.js` ; `tests/groups.test.js`, `tests/effective-role.test.js` et `tests/rbac-rank-guards.test.js` alignés. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/rentree-moodle.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
+### Sécurité — Garde de rang : hors administrateur, on n'attribue qu'un profil de rang strictement inférieur au sien
+
+- Règle unique `lib/rankGuard.js` (`canGrantRank`) : l'administrateur attribue tout profil ; hors administrateur, le rang visé doit être **strictement inférieur** à celui de l'acteur. À rang égal, l'attribution est désormais refusée (**403**) : un n3boss ne crée plus d'autre n3boss, un prof de classe pas d'autre prof de classe.
+- Appliquée partout où un profil est attribué : attribution unitaire et en lot (`PUT /api/rbac/users/:t/:id/role`, `POST /api/rbac/users/bulk-role`), création (`POST /api/rbac/users`), import (`POST /api/students/import`), duplication (`POST /api/students/:id/duplicate`, qui n'appliquait pas encore `checkRoleGrantAllowed`), profil par défaut d'un groupe (`POST`/`PATCH /api/groups`, `group_default_allowed` de `GET /api/rbac/profiles`).
+- **Rattacher à un groupe, c'est conférer son profil par défaut** : `addUserToGroup(userId, groupId, { actor })` refuse, hors administrateur, un groupe dont le profil par défaut est de rang égal ou supérieur à celui de l'acteur — rattachement unitaire, en lot, liste des membres (`PUT /api/groups/:id/members`, seulement s'il ajoute un membre), création ou duplication d'un compte avec `group_id` (vérifié avant toute écriture), import. La génération d'un **code de classe** (`POST /api/groups/:id/class-code`) suit la même garde.
+- Interface : la création unitaire ne propose plus « n3boss » qu'à l'administrateur.
+- Tests : `tests/rbac-rank-guards.test.js`, `tests-ui/utils/createUserRoleOptions.test.js`, `tests-ui/components/profiles/CreateUserPanel.test.jsx` ; `tests/rbac-account-lifecycle.test.js` et `tests/students-import.test.js` alignés sur la règle. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
 ### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
 
 - `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
