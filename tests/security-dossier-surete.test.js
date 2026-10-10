@@ -7,6 +7,9 @@
  * - **R1** — `GET /api/zones/:id/photos` et `GET /api/map/markers/:id/photos` servaient
  *   photos et légendes de n'importe quel lieu, sans session ni code : lieu retiré du plan
  *   public, lieu réservé aux personnels, plan fermé par code.
+ * - **R2** — `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan et aucun
+ *   filtre de surface : un anonyme (plan ouvert) ou le porteur du code recevait les parcours
+ *   réservés aux personnels et à la carte de travail.
  *
  * Même montage que `tests/security-surfaces.test.js` : une carte déclarée comme carte du plan
  * public (fermé par code), un terrain public pour la Visite, la surface `plan` simulée par
@@ -35,7 +38,7 @@ let adminToken;
 let planMapId;
 let visitMapId;
 const snapshots = [];
-const created = { zones: [], markers: [], users: [] };
+const created = { zones: [], markers: [], users: [], routes: [] };
 /** Lieux du plan : public, retiré du plan, réservé aux personnels. */
 const place = {};
 
@@ -136,7 +139,29 @@ test.before(async () => {
   await addZonePhoto(place.retired, 'PHOTO-LIEU-RETIRE');
   await addZonePhoto(place.reserved, 'PHOTO-LIEU-RESERVE');
   await addMarkerPhoto(place.retiredMarker, 'PHOTO-REPERE-RETIRE');
+
+  // Un parcours publié par surface : plan, personnels seulement, carte de travail seulement,
+  // Visite (sur le terrain public).
+  for (const [key, mapId, surfaces] of [
+    ['plan', planMapId, 'plan'],
+    ['staff', planMapId, 'staff'],
+    ['map', planMapId, 'map'],
+    ['visit', visitMapId, 'visit'],
+  ]) {
+    const id = `route-surete-${key}-${Date.now()}`;
+    await execute(
+      `INSERT INTO map_routes (id, map_id, slug, title, description, audience, surfaces, is_published, sort_order)
+       VALUES (?, ?, ?, ?, '', '', ?, 1, 1)`,
+      [id, mapId, id, `PARCOURS-${key.toUpperCase()}`, surfaces],
+    );
+    created.routes.push(id);
+  }
 });
+
+/** Titres des parcours d'une réponse de catalogue. */
+function routeTitles(res) {
+  return (Array.isArray(res.body) ? res.body : []).map((r) => r.title).sort();
+}
 
 test.beforeEach(async () => {
   adminToken = await ensureAdminTeacherAuthToken({ elevated: true });
@@ -144,6 +169,10 @@ test.beforeEach(async () => {
 });
 
 test.after(async () => {
+  for (const id of created.routes) {
+    await execute('DELETE FROM map_route_steps WHERE route_id = ?', [id]);
+    await execute('DELETE FROM map_routes WHERE id = ?', [id]);
+  }
   for (const id of created.zones) {
     await execute('DELETE FROM zone_photos WHERE zone_id = ?', [id]);
     await execute('DELETE FROM visit_zones WHERE id = ?', [id]);
@@ -222,4 +251,49 @@ test('R1 — gestionnaire des lieux : la garde ne lui ferme rien', async () => {
     assert.equal(res.status, 200, `l'administrateur doit lire les photos de ${id}`);
     assert.equal(res.body.length, 1);
   }
+});
+
+test('R2 — catalogue des parcours, adresse du plan, porteur du code : parcours du plan seulement', async () => {
+  const cookie = await planCookie();
+  const res = await onPlan(request(app).get('/api/map-routes')).set('Cookie', cookie);
+  assert.equal(res.status, 200);
+  const titles = routeTitles(res);
+  assert.ok(titles.includes('PARCOURS-PLAN'));
+  assert.ok(!titles.includes('PARCOURS-STAFF'), 'parcours des personnels servi au porteur du code');
+  assert.ok(!titles.includes('PARCOURS-MAP'), 'parcours de la carte de travail servi au plan');
+});
+
+test('R2 — catalogue des parcours, adresse du plan ouverte à tous : rien de réservé ne sort', async () => {
+  const by = { userType: 'teacher', userId: 'test' };
+  await setSetting('ui.plan.access_mode', 'public', by);
+  invalidateSettingsCache();
+  try {
+    const res = await onPlan(request(app).get('/api/map-routes'));
+    assert.equal(res.status, 200);
+    const titles = routeTitles(res);
+    assert.ok(!titles.includes('PARCOURS-STAFF'));
+    assert.ok(!titles.includes('PARCOURS-MAP'));
+  } finally {
+    await setSetting('ui.plan.access_mode', 'code', by);
+    invalidateSettingsCache();
+  }
+});
+
+test('R2 — ForêtMap sans compte : seuls les parcours de la Visite sortent', async () => {
+  const res = await request(app).get('/api/map-routes');
+  assert.equal(res.status, 200);
+  const titles = routeTitles(res);
+  assert.ok(titles.includes('PARCOURS-VISIT'));
+  for (const t of ['PARCOURS-PLAN', 'PARCOURS-STAFF', 'PARCOURS-MAP']) {
+    assert.ok(!titles.includes(t), `${t} servi à un anonyme sur ForêtMap`);
+  }
+});
+
+test('R2 — un personnel lit toujours les parcours qui lui sont destinés (?surface=staff)', async () => {
+  const token = await createAccountToken('personnel');
+  const res = await request(app)
+    .get('/api/map-routes?surface=staff')
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 200);
+  assert.ok(routeTitles(res).includes('PARCOURS-STAFF'));
 });

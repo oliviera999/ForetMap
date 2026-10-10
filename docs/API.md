@@ -2932,7 +2932,7 @@ Tables `map_routes` et `map_route_steps` (migration `210`).
 
 | Méthode | URL                         | n3boss | Description                                                                                                                             |
 | ------- | --------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface` (`plan`/`map`/`visit`/`staff`)                                               |
+| GET     | `/api/map-routes`           | non    | Parcours **publiés**, filtrables par `map_id` et `surface` (`plan`/`map`/`visit`/`staff`/`enov`) ; sans `surface`, celle que le serveur décide (host + session) |
 | GET     | `/api/map-routes/manage`    | oui    | Vue de gestion : inclut les brouillons (`zones.manage`)                                                                                 |
 | GET     | `/api/map-routes/:idOrSlug` | non    | Détail **d'un parcours publié**, par identifiant ou par slug (le lien profond porte le slug) ; `?map_id=` lève l'ambiguïté entre cartes |
 | POST    | `/api/map-routes`           | oui    | Créer un parcours (et ses étapes)                                                                                                       |
@@ -3001,6 +3001,13 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   repère est supprimé, masqué (`hidden_surfaces`) ou hors des catégories du plan ne sort pas de
   la charge — ni son identifiant, ni son texte. Les `position` restantes peuvent donc présenter
   des trous ; le client renumérote à l'affichage.
+- **`GET /api/map-routes` sans `?surface=`** : la surface est celle que le serveur décide pour
+  la requête — `plan` sur `planlyautey.*`, `staff` sur `stafflyautey.*` / `proflyautey.*`,
+  `enov` sur `enov.*`, et sur ForêtMap `visit` sans session, `map` avec session — avec sa garde
+  **et** son filtre `FIND_IN_SET(surface, surfaces)`. Auparavant la seule garde était celle du
+  plan et aucun filtre ne s'appliquait : un anonyme sur un plan ouvert, ou le porteur du code
+  du plan, recevait les parcours réservés aux personnels et à la carte de travail (dossier
+  sûreté d'octobre 2026, constat R2).
 - **`GET /api/map-routes`** (toutes surfaces) et **`GET /:idOrSlug`**
   appliquent le même filtre au catalogue public : une étape dont le lieu est hors audience
   (`visible_role_slugs`) ou masqué sur la surface demandée n'est pas renvoyée (`step_text`

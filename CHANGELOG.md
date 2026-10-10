@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique (dossier sûreté, R2)
+
+- `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan, sans filtre de surface : un anonyme sur un plan ouvert, ou le porteur du code du plan, recevait les parcours publiés **réservés aux personnels** et **à la carte de travail** (titre, description, public visé). Aucun écran n'appelait la route sans `surface`.
+- La surface manquante est désormais celle que le serveur décide (`resolveSurfaceForRequest` : host et session), avec sa garde et son filtre SQL. Sur ForêtMap sans compte, seuls les parcours de la Visite sortent.
+- Tests : `tests/security-dossier-surete.test.js` ; `tests/map-routes.test.js` vise désormais l'adresse du plan pour la garde par code. Doc : `docs/API.md`.
+
 ### Sécurité — Photos des lieux : la galerie suit la visibilité du lieu (dossier sûreté, R1)
 
 - `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
