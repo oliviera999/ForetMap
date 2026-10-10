@@ -13,6 +13,8 @@ const { logAudit } = require('../lib/auditLog');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser } = require('../lib/rbac');
+const { checkRoleGrantAllowed } = require('../lib/rbacRoleAssignment');
+const { checkGroupJoinAllowedById } = require('../lib/groupDefaultRolePolicy');
 const { recomputeUsersRoles } = require('../lib/effectiveRole');
 const {
   canBypassGroupScope,
@@ -231,6 +233,20 @@ router.post(
       logRouteError(new Error('Profil RBAC introuvable (eleve_novice)'), req);
       return res.status(500).json({ error: 'Profil RBAC introuvable' });
     }
+    // Dupliquer un compte, c'est attribuer son profil à la copie : même garde « acteur →
+    // profil » que la création unitaire et l'import (rang strictement inférieur hors admin).
+    const copiedRole = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ? LIMIT 1', [
+      roleId,
+    ]);
+    const grant = checkRoleGrantAllowed(req.auth, copiedRole);
+    if (!grant.ok) return res.status(grant.status).json({ error: grant.error });
+    // Le groupe de la copie confère son profil par défaut : même garde, avant toute écriture.
+    if (targetGroupId) {
+      const joinAllowed = await checkGroupJoinAllowedById(req.auth, targetGroupId);
+      if (!joinAllowed.ok && joinAllowed.status === 403) {
+        return res.status(403).json({ error: joinAllowed.error });
+      }
+    }
 
     const description = normalizeOptionalString(source.description);
 
@@ -282,7 +298,7 @@ router.post(
     }
 
     await recomputeUsersRoles([newId]);
-    if (targetGroupId) await addUserToGroup(newId, targetGroupId);
+    if (targetGroupId) await addUserToGroup(newId, targetGroupId, { actor: req.auth });
 
     const created = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       newId,

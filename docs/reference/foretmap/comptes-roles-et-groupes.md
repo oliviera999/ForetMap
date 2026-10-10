@@ -216,9 +216,12 @@ Le **n3boss** est le rôle enseignant « fort » de la forêt (pilotage pédagog
 L'**administrateur** est au-dessus : réglages d'établissement, création et réglage des
 profils de droits, secrets, prise de contrôle temporaire sur un compte. Un n3boss ne
 peut pas se promouvoir administrateur, ni créer ou modifier un compte administrateur.
+Depuis octobre 2026, il ne crée pas non plus d'**autre n3boss** : hors administrateur, on
+n'attribue qu'un profil de rang **strictement inférieur** au sien (un n3boss peut créer un prof
+de classe, un personnel ou un élève). Seul l'administrateur nomme un n3boss.
 
 Aujourd'hui, le n3boss par défaut dispose déjà de pouvoirs sensibles qu'il faut avoir
-en tête avant de distribuer le rôle : créer des comptes professeurs, supprimer des
+en tête avant de distribuer le rôle : créer des comptes prof de classe, supprimer des
 comptes élèves, lire le journal d'audit. Ce n'est pas « toute la gestion pédagogique »
 au sens anodin du terme. Le **journal de sécurité** (adresses IP, navigateur, export
 incident) reste réservé à l'administrateur.
@@ -359,9 +362,16 @@ Les groupes structurent la vie pédagogique :
   aussitôt tous les membres. Ce réglage est réservé à l'**administrateur et au n3boss** ;
   la liste propose **tous les profils** de ForetMap (visiteur, personnel, paliers n3beur,
   prof de classe, n3boss, administrateur, profils sur mesure), sauf ceux du jeu Gnomes &
-  Licornes. Hors administrateur, on ne pose pas sur un groupe un profil de rang supérieur
-  au sien — un n3boss ne peut donc pas conférer « Administrateur ». Un groupe laissé sur
-  « Visiteur » n'a **aucun effet** sur ses membres.
+  Licornes. Hors administrateur, on ne pose sur un groupe qu'un profil de rang
+  **strictement inférieur** au sien — un n3boss ne peut donc conférer ni « Administrateur »
+  ni « n3boss ». Un groupe laissé sur « Visiteur » n'a **aucun effet** sur ses membres.
+  - **Rattacher, c'est conférer** : ajouter un compte à un groupe (un par un, en lot, par la
+    liste des membres, à la création ou à la duplication d'un compte, à l'import) et générer
+    son **code de classe** suivent la même règle. Hors administrateur, si le profil par défaut
+    du groupe est de rang égal ou supérieur au sien, le rattachement est refusé (« rattachement
+    réservé à un profil plus élevé »). Avec les profils livrés, un prof de classe rattache
+    librement à une classe « n3beur novice / avancé / chevronné » ; la règle ne joue que pour un
+    profil sur mesure de rang élevé.
 - **Imposer ce profil** : par défaut, le rôle du groupe n'est qu'un **plancher** — les tâches
   validées font ensuite monter chacun, et un palier déjà acquis n'est jamais repris. La case
   **« Imposer ce profil »** (dans le panneau de réglages du groupe, juste sous le choix du
@@ -494,8 +504,9 @@ sous-onglet consulté qui est rouvert.
     ou retirer un tel profil, demande une confirmation explicite — seul ou en lot. Les
     profils élèves s'appliquent directement, comme avant. Les mêmes gardes s'appliquent
     partout (ligne, lot, création, import) : personne ne modifie **son propre** profil,
-    seul un administrateur attribue ou retire `administrateur`, un n3boss n'attribue pas
-    un profil de rang supérieur au sien, et le **dernier administrateur actif** ne peut
+    seul un administrateur attribue ou retire `administrateur`, hors administrateur on
+    n'attribue qu'un profil de rang **strictement inférieur** au sien (un n3boss ne nomme
+    pas d'autre n3boss, y compris en dupliquant un compte), et le **dernier administrateur actif** ne peut
     être ni rétrogradé, ni désactivé, ni supprimé. Hors administrateur, on ne change pas
     non plus le profil d'un compte **déjà** de rang égal ou supérieur au sien (un délégué
     ne rétrograde pas un supérieur), et on ne modifie pas les permissions d'un profil de
@@ -520,7 +531,9 @@ sous-onglet consulté qui est rouvert.
   un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
   La **création unitaire** et le fichier d'import (CSV ou tableur) permettent de
   choisir **chaque profil** : visiteur, personnel, n3beur novice / avancé / chevronné, prof de
-  classe, n3boss, administrateur. Dans le fichier, la colonne **Rôle** accepte aussi bien
+  classe, n3boss, administrateur — dans la limite de son rang : « n3boss » et
+  « Administrateur » ne sont attribuables que par un administrateur (une ligne d'import qui
+  les demande, venue d'un n3boss, est refusée). Dans le fichier, la colonne **Rôle** accepte aussi bien
   le **nom affiché** du profil — celui du tableau ci-dessus, y compris si un
   administrateur l'a renommé — que son identifiant technique (`eleve_novice`,
   `prof_classe`…) ou un mot courant (tuteur, enseignant, staff, novice…) ; majuscules,
@@ -577,8 +590,8 @@ sous-onglet consulté qui est rouvert.
   pour le reste, message d'info). Les nouveaux sont créés. Pour un **prof de classe**, la
   création / l'import de comptes ne sont disponibles **que si** un administrateur
   a ouvert ces droits sur son profil. Seul un administrateur peut importer un
-  compte administrateur ; seuls n3boss et administrateur peuvent importer un
-  compte enseignant.
+  compte administrateur ou n3boss ; seuls n3boss et administrateur peuvent importer un
+  compte prof de classe.
 - **Supprimer** : la suppression d'un élève (sous-onglet Comptes) retire aussi ses
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. Les **photos** qu'il avait jointes à ses rapports de tâche, à ses messages de

@@ -71,7 +71,8 @@ validées : **avancé à 5 tâches validées**, **chevronné à 10**. Chaque pal
 de possibilités (proposer des tâches, accéder à plus de contenus).
 
 **Créer un compte de collègue.** Vous pouvez aussi créer le compte d'un professeur, par exemple
-un prof de classe (voir la section dédiée plus bas).
+un prof de classe (voir la section dédiée plus bas). Un autre n3boss, en revanche, se demande à
+l'administrateur : on n'attribue qu'un profil de rang inférieur au sien.
 
 ### 2. Préparer les tâches
 

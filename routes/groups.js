@@ -21,6 +21,9 @@ const { addUserToGroup, removeUserFromGroup } = require('../lib/groupMembers');
 const {
   canManageGroupDefaultRole,
   validateGroupDefaultRole,
+  checkGroupJoinAllowed,
+  checkGroupJoinAllowedById,
+  loadGroupWithDefaultRole,
 } = require('../lib/groupDefaultRolePolicy');
 const { logAudit } = require('../lib/auditLog');
 const { slugify } = require('../lib/shared/slug');
@@ -751,7 +754,7 @@ router.put(
       return res.status(403).json({ error: 'Permission insuffisante' });
     }
     const groupId = normalizeId(req.params.id);
-    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [groupId]);
+    const group = await loadGroupWithDefaultRole(groupId);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
@@ -769,6 +772,14 @@ router.put(
     const previousMembers = await queryAll('SELECT user_id FROM group_members WHERE group_id = ?', [
       groupId,
     ]);
+
+    // Ajouter un membre lui fait conférer le profil par défaut du groupe : même garde de rang
+    // que le rattachement unitaire. Réécrire la liste sans nouveau membre reste permis.
+    const previousIds = new Set(previousMembers.map((row) => String(row.user_id)));
+    if (memberUserIds.some((userId) => !previousIds.has(String(userId)))) {
+      const joinAllowed = checkGroupJoinAllowed(req.auth, group);
+      if (!joinAllowed.ok) return res.status(joinAllowed.status).json({ error: joinAllowed.error });
+    }
 
     if (allUserIds.length > 0) {
       const rows = await queryAll(
@@ -886,7 +897,7 @@ router.post(
   requireGroupManagement,
   asyncHandler(async (req, res) => {
     const id = normalizeId(req.params.id);
-    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    const group = await loadGroupWithDefaultRole(id);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
     if (!(await isGroupInManageScope(req.auth, id))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
@@ -899,6 +910,10 @@ router.post(
     if (action !== 'generate') {
       return res.status(400).json({ error: "Action attendue: 'generate' ou 'clear'" });
     }
+    // Un code de classe rattache sans autre contrôle quiconque le saisit : le générer, c'est
+    // déléguer le rattachement. Même garde de rang que l'ajout d'un membre.
+    const joinAllowed = checkGroupJoinAllowed(req.auth, group);
+    if (!joinAllowed.ok) return res.status(joinAllowed.status).json({ error: joinAllowed.error });
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = Array.from(crypto.randomBytes(8))
@@ -949,6 +964,11 @@ router.post(
     if (!(await isGroupInManageScope(req.auth, groupId))) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
+    // Garde de rang sur le profil que le groupe confère : refusée, elle vaut pour tout le lot.
+    const joinAllowed = await checkGroupJoinAllowedById(req.auth, groupId);
+    if (!joinAllowed.ok && joinAllowed.status === 403) {
+      return res.status(403).json({ error: joinAllowed.error });
+    }
 
     const outOfScope = new Set(
       await findUsersOutsideManageScope(
@@ -968,7 +988,7 @@ router.post(
         results.push({ user_id: userId, ok: false, error: 'Utilisateur hors périmètre' });
         continue;
       }
-      const result = await addUserToGroup(userId, groupId);
+      const result = await addUserToGroup(userId, groupId, { actor: req.auth });
       results.push(
         result.ok
           ? { user_id: userId, ok: true }
@@ -1017,7 +1037,7 @@ router.post(
     if ((await findUsersOutsideManageScope(req.auth, groupId, [userId])).length > 0) {
       return res.status(403).json({ error: 'Utilisateur hors périmètre' });
     }
-    const result = await addUserToGroup(userId, groupId);
+    const result = await addUserToGroup(userId, groupId, { actor: req.auth });
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     res.status(201).json({ ok: true, group_id: groupId, user_id: userId, role: result.role });
   }),

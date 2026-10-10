@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Garde de rang : hors administrateur, on n'attribue qu'un profil de rang strictement inférieur au sien
+
+- Règle unique `lib/rankGuard.js` (`canGrantRank`) : l'administrateur attribue tout profil ; hors administrateur, le rang visé doit être **strictement inférieur** à celui de l'acteur. À rang égal, l'attribution est désormais refusée (**403**) : un n3boss ne crée plus d'autre n3boss, un prof de classe pas d'autre prof de classe.
+- Appliquée partout où un profil est attribué : attribution unitaire et en lot (`PUT /api/rbac/users/:t/:id/role`, `POST /api/rbac/users/bulk-role`), création (`POST /api/rbac/users`), import (`POST /api/students/import`), duplication (`POST /api/students/:id/duplicate`, qui n'appliquait pas encore `checkRoleGrantAllowed`), profil par défaut d'un groupe (`POST`/`PATCH /api/groups`, `group_default_allowed` de `GET /api/rbac/profiles`).
+- **Rattacher à un groupe, c'est conférer son profil par défaut** : `addUserToGroup(userId, groupId, { actor })` refuse, hors administrateur, un groupe dont le profil par défaut est de rang égal ou supérieur à celui de l'acteur — rattachement unitaire, en lot, liste des membres (`PUT /api/groups/:id/members`, seulement s'il ajoute un membre), création ou duplication d'un compte avec `group_id` (vérifié avant toute écriture), import. La génération d'un **code de classe** (`POST /api/groups/:id/class-code`) suit la même garde.
+- Interface : la création unitaire ne propose plus « n3boss » qu'à l'administrateur.
+- Tests : `tests/rbac-rank-guards.test.js`, `tests-ui/utils/createUserRoleOptions.test.js`, `tests-ui/components/profiles/CreateUserPanel.test.jsx` ; `tests/rbac-account-lifecycle.test.js` et `tests/students-import.test.js` alignés sur la règle. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
 - Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.

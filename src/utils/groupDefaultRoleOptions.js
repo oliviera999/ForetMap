@@ -23,8 +23,8 @@ export function normalizeProfilesPayload(payload) {
 /**
  * Profils proposables comme profil par défaut d'un groupe : **tous** les profils ForetMap,
  * sauf ceux du jeu Gnomes & Licornes. Le serveur publie `group_default_allowed` par profil
- * pour l'acteur courant (hors administrateur, pas de profil de rang supérieur au sien) : on le
- * suit dès qu'il est présent (`lib/groupDefaultRolePolicy.js`).
+ * pour l'acteur courant (hors administrateur, seulement un profil de rang strictement inférieur
+ * au sien) : on le suit dès qu'il est présent (`lib/groupDefaultRolePolicy.js`).
  *
  * @param {Array<object>} roles
  * @returns {Array<object>}
