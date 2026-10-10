@@ -104,4 +104,10 @@
   --accent-health-solid: #0369a1;
   --tint-health: #f0f9ff;
   --ink-info-deep: #0c4a6e;
+  /* Or des étincelles du zoom sur un lieu (`placeFocusFx.css`), partagé par tous les produits,
+     et son halo. */
+  --accent-sparkle: #ffd76a;
+  --glow-sparkle: 0 0 6px rgba(255, 215, 106, 0.9), 0 0 12px rgba(255, 180, 60, 0.6);
+  /* Ombre des pastilles numérotées des parcours sur la carte (`pct-map-layers.css`). */
+  --shadow-map-badge: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
