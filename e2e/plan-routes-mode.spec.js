@@ -36,6 +36,16 @@ const { test, expect } = require('@playwright/test');
  */
 
 const ADMIN_EMAIL = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
+
+/** Contour d'une zone (`points`, JSON `[{ xp, yp }, …]`) : au moins un sommet chiffré. */
+function hasOutline(points) {
+  try {
+    const pts = typeof points === 'string' ? JSON.parse(points || '[]') : points;
+    return Array.isArray(pts) && pts.some((p) => Number.isFinite(Number(p?.xp)));
+  } catch {
+    return false;
+  }
+}
 const ADMIN_PASSWORD = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
 
 /** Jeton professeur (l'écriture des parcours demande `zones.manage`). */
@@ -81,8 +91,13 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
   expect(contentRes.ok()).toBeTruthy();
   const content = await contentRes.json();
   const mapId = String(content.map?.id || '');
-  const zone = (content.zones || [])[0];
-  const marker = (content.markers || [])[0];
+  // Deux lieux **placés** sur la carte : le tracé relie leurs positions. Une zone sans contour
+  // (la suite backend, lancée avant dans le même job, en laisse) n'a pas de point sur la carte,
+  // et le tracé n'aurait alors qu'une seule étape à relier.
+  const zone = (content.zones || []).find((z) => hasOutline(z.points));
+  const marker = (content.markers || []).find(
+    (m) => Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct)),
+  );
   test.skip(!mapId || !zone || !marker, 'Le plan de cette base locale n’a pas deux lieux.');
 
   const token = await teacherToken(request);
