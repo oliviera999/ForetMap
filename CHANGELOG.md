@@ -20,6 +20,70 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Journaux** : toute durée de journal au-delà de 365 jours est refusée ; ouvertures des applications 12 mois (au lieu de 13) ; **compteurs d'usage** (`usage_counters`) purgés à 12 mois (auparavant sans limite) ; suppression en lots bornés (`DELETE … LIMIT`). IP tronquée à **3 mois** (au lieu de 6), y compris l'IP des données complémentaires (`payload_json.ip`) de `security_events` et d'`audit_log`. L'outil manuel `npm run logs:purge` (et l'ancienne ligne de crontab) applique ces durées dès le déploiement.
 - Notice « Vos données » : durée du compte (scolarité + 1 an, départ + 1 an), IP raccourcie à 3 mois, compteurs anonymes 1 an.
 - Tests : `tests/retention-purge-journal.test.js`, `-journaux`, `-ip`, `-eleves`, `-personnels`, `-cron`. Docs : `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/SCRIPTS.md`, `docs/reference/exploitation/durees-de-conservation.md` (nouveau), `vos-donnees.md`, `foretmap/comptes-roles-et-groupes.md`, `foretmap/rentree-moodle.md`.
+### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
+
+- `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
+- La duplication applique désormais la même garde (`403`). Le reste du constat B03 (attribution d'un profil de rang **égal**, profil par défaut élevé d'un groupe conféré par code de classe) appelle une décision métier, consignée au dossier.
+- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+
+### Sécurité — Dépendances : plus d'avis critique ni haut en production (dossier sûreté)
+
+- `npm audit fix` (sans `--force`, dans les plages déclarées) : `proxy-addr` 2.0.7 → 2.0.8 (critique), `sharp` 0.35.4 → 0.35.5 (haut), `source-map-js` 1.2.1 → 1.2.2 (haut), `dompurify` 3.4.14 → 3.4.16 (bas), plus des correctifs de dépendances de développement. Le contrôle `npm audit --omit=dev --audit-level=high` de la CI repasse.
+- Restent deux avis **modérés** (`uuid` via `exceljs`) : leur correctif impose un changement de version majeure d'`exceljs`, hors de ce lot.
+
+### Sécurité — Tâches sans compte : plus aucun nom d'élève (dossier sûreté, R9)
+
+- `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session (la Visite liste les tâches d'un lieu). Ils livraient à un anonyme le **prénom et le nom de l'élève qui propose une tâche** (ligne « Proposition n3beur: … » de la description), son identifiant, l'**identité des référents**, et les inscrits quand `tasks.assignees_visibility = all`.
+- Sans session, ces champs sont désormais vidés et la ligne du proposant retirée (`redactTaskForAnonymous`, `lib/tasks/assignmentVisibility.js`). Rien ne change pour un compte connecté.
+- Reste ouvert (décision) : le nom du proposant est écrit dans la description et y survit à l'effacement de l'élève.
+- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+
+### Sécurité — Visite : un lieu réservé sur la carte reste réservé (dossier sûreté, R4)
+
+- `GET /api/visit/content` lisait l'audience par `COALESCE(visite, carte)` : celle de la Visite **remplaçait** celle de la carte. L'éditeur de Visite écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte était servi à l'anonyme dès que sa carte figurait dans la Visite (69 lieux dans ce cas dans le jeu anonymisé).
+- L'audience de la carte s'applique désormais **en plus** de celle de la Visite (`mapAudienceAllows`, `routes/visit.js`) : la Visite peut restreindre, jamais ouvrir. Aucune migration : les colonnes d'audience de `visit_*` existent déjà et les anciennes colonnes `restricted_note*` ont été supprimées.
+- Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
+### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique (dossier sûreté, R2)
+
+- `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan, sans filtre de surface : un anonyme sur un plan ouvert, ou le porteur du code du plan, recevait les parcours publiés **réservés aux personnels** et **à la carte de travail** (titre, description, public visé). Aucun écran n'appelait la route sans `surface`.
+- La surface manquante est désormais celle que le serveur décide (`resolveSurfaceForRequest` : host et session), avec sa garde et son filtre SQL. Sur ForêtMap sans compte, seuls les parcours de la Visite sortent.
+- Tests : `tests/security-dossier-surete.test.js` ; `tests/map-routes.test.js` vise désormais l'adresse du plan pour la garde par code. Doc : `docs/API.md`.
+
+### Sécurité — Photos des lieux : la galerie suit la visibilité du lieu (dossier sûreté, R1)
+
+- `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
+- Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
+- Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+### Corrigé — Cron de déploiement : un `git fetch` refusé ne passe plus inaperçu
+
+- `scripts/auto-deploy-cron.sh` : un `git fetch` en échec (dépôt passé en privé alors que le
+  serveur tire en HTTPS anonyme, clé de déploiement retirée, réseau) arrêtait le script en
+  silence. Il envoie désormais l'alerte « Déploiement bloqué (git fetch refusé) », au plus toutes
+  les 6 h, avec le message de git (identifiants d'URL masqués), et vérifie que le front reste
+  servi. Test : `tests/deploy-cron-fetch-failure.test.js` (script réellement exécuté).
+
+### Sécurité — Garde-fou contre la fuite de dumps, de hachages et de secrets dans le dépôt
+
+- Nouveau `scripts/check-sensitive-files.js` (`npm run check:sensitive`), sans dépendance :
+  refuse les fichiers `.env`, les clés privées, les dumps et sauvegardes (par le nom), les
+  hachages bcrypt, blocs de clé privée, jetons d'API connus, JWT signés et en-têtes de dump (par
+  le contenu), tout `INSERT` dans un fichier SQL hors des jeux déclarés, et toute valeur insérée
+  dans une table personnelle par un jeu de contenu. Le jeu anonymisé doit garder un hachage
+  unique et des adresses en domaine réservé. La sortie ne recopie jamais la valeur trouvée.
+- Branché dans `.githooks/pre-commit` (fichiers indexés, avant lint et format) et dans le job CI
+  `quality` (tout l'arbre, avant `npm ci`).
+- `.gitignore` : dumps compressés ou au format `.dump`, clés et certificats, `.env.*`.
+- Rejoué sur un export complet de production : refusé sous son nom, renommé en `.txt`, ou
+  substitué à un jeu déclaré.
+### Sécurité — Mot de passe provisoire ou compromis : changement imposé avant tout usage
+
+- Le drapeau `users.password_must_reset` n'était qu'un bandeau dans « Mon profil » : un compte marqué pouvait tout faire sans changer son mot de passe. Il est désormais **appliqué** par le serveur, relu en base à chaque requête (`hydrateAuthFromTokenClaims` → `auth.passwordMustReset`).
+- **Routes à session obligatoire** (`requireAuth`, `requirePermission`) : `403 { code: 'PASSWORD_CHANGE_REQUIRED' }`, contrôlé avant toute permission, sauf la liste blanche minimale de « Mon profil » (`PASSWORD_CHANGE_ALLOWED_ROUTES`) : `GET /api/auth/me` et `POST /api/auth/me/password`. `GET /api/auth/me` renvoie aussi `passwordMustReset`.
+- **Routes à session facultative** (`authenticate`, `parseOptionalForetAuth`, nouveau `hydrateOptionalAuthFromTokenClaims` pour le quiz, les clés, les séances et la garde des modules pédagogiques) : le compte marqué y est anonyme. **Socket.IO** : connexion refusée (`unauthorized`).
+- **Prise de contrôle** : l'administrateur qui assiste un compte marqué n'est pas bloqué (`passwordMustReset: false`).
+- **Client** : à la connexion, à la restauration de session (`/api/auth/me`) et sur ce 403 (événement `foretmap_password_change_required` émis par `api()`), le shell ouvre « Mon profil » avec le bandeau, élève comme enseignant (hook `usePasswordChangeRequired`). La validation de session élève ne signale plus « connexion instable » dans ce cas, et les écritures hors ligne attendent le changement au lieu d'être abandonnées.
+- Tests : `tests/password-must-reset-enforcement.test.js`, `tests-ui/AppShellPasswordChangeRequired.test.jsx`, `tests-ui/api.test.js`, `tests-ui/hooks/useAuthSession.test.jsx`, `tests-ui/utils/offlineActionQueue.test.js`. Docs : `docs/API.md` (§ Auth), `docs/reference/foretmap/comptes-roles-et-groupes.md`.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 

@@ -97,6 +97,7 @@ const { signUploadRelativePath } = require('../lib/uploadsSignedUrls');
 const {
   filterAssignmentsForViewer,
   sanitizeTaskForViewer,
+  redactTaskForAnonymous,
 } = require('../lib/tasks/assignmentVisibility');
 
 const router = express.Router();
@@ -342,7 +343,8 @@ router.get(
         }
       }
     }
-    res.json(enriched);
+    // Sans compte : aucune identité d'élève ni de référent (dossier sûreté, constat R9).
+    res.json(auth ? enriched : enriched.map(redactTaskForAnonymous));
   }),
 );
 
