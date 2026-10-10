@@ -6,7 +6,7 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
-const { filterLocationsForViewer } = require('../lib/locationAudience');
+const { filterLocationsForViewer, canViewLocation } = require('../lib/locationAudience');
 const {
   loadZoneSpeciesMap,
   loadMarkerSpeciesMap,
@@ -203,11 +203,45 @@ function withVisitLocationSpecies(row, speciesRows) {
   return attachSpeciesToEntity(row, speciesRows || []);
 }
 
+/**
+ * Le lieu de **carte** reste-t-il lisible par ce lecteur ? La Visite peut restreindre un lieu
+ * (audience de `visit_*`), jamais l'ouvrir au-delà de la carte : un lieu réservé aux
+ * personnels sur la carte l'est aussi en Visite. Avant ce contrôle, le `COALESCE` laissait
+ * l'audience de la Visite remplacer celle de la carte — et l'éditeur de Visite écrit `'[]'`
+ * pour « aucune restriction », si bien qu'un lieu réservé sur la carte était servi à
+ * l'anonyme (dossier sûreté d'octobre 2026, constat R4).
+ */
+function mapAudienceAllows(row, auth) {
+  return canViewLocation(
+    {
+      ...row,
+      visible_role_slugs: row.map_visible_role_slugs,
+      visible_group_ids: row.map_visible_group_ids,
+    },
+    auth,
+    { publicSurface: true },
+  );
+}
+
+/** Retire l'audience de carte de la réponse : elle ne sert qu'au filtre ci-dessus. */
+function withoutMapAudience(row) {
+  const { map_visible_role_slugs: _roles, map_visible_group_ids: _groups, ...rest } = row;
+  return rest;
+}
+
 /** Filtre audience par rôle après cache (le cache conserve les champs bruts). */
 function projectVisitContentForViewer(payload, auth) {
   if (!payload || typeof payload !== 'object') return payload;
-  const zones = filterLocationsForViewer(payload.zones || [], auth, { publicSurface: true });
-  const markers = filterLocationsForViewer(payload.markers || [], auth, { publicSurface: true });
+  const zones = filterLocationsForViewer(
+    (payload.zones || []).filter((row) => mapAudienceAllows(row, auth)).map(withoutMapAudience),
+    auth,
+    { publicSurface: true },
+  );
+  const markers = filterLocationsForViewer(
+    (payload.markers || []).filter((row) => mapAudienceAllows(row, auth)).map(withoutMapAudience),
+    auth,
+    { publicSurface: true },
+  );
   const visibleKeys = new Set([
     ...zones.map((z) => `zone:${z.id}`),
     ...markers.map((m) => `marker:${m.id}`),
@@ -265,6 +299,8 @@ router.get(
        zm.hidden_surfaces AS hidden_surfaces,
        COALESCE(z.visible_role_slugs, zm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(z.visible_group_ids, zm.visible_group_ids) AS visible_group_ids,
+       zm.visible_role_slugs AS map_visible_role_slugs,
+       zm.visible_group_ids AS map_visible_group_ids,
        z.subtitle AS visit_subtitle,
        z.short_description AS visit_short_description,
        z.details_title AS visit_details_title,
@@ -286,6 +322,8 @@ router.get(
        mm.hidden_surfaces AS hidden_surfaces,
        COALESCE(m.visible_role_slugs, mm.visible_role_slugs) AS visible_role_slugs,
        COALESCE(m.visible_group_ids, mm.visible_group_ids) AS visible_group_ids,
+       mm.visible_role_slugs AS map_visible_role_slugs,
+       mm.visible_group_ids AS map_visible_group_ids,
        m.subtitle AS visit_subtitle,
        m.short_description AS visit_short_description,
        m.details_title AS visit_details_title,

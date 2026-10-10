@@ -39,6 +39,7 @@ const {
   requirePlanAccess,
 } = require('../lib/planAccess');
 const { resolveStaffPlanViewer } = require('../lib/staffPlanAccess');
+const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
@@ -247,8 +248,9 @@ async function guardSurfaceRead(req, res, surface) {
 /**
  * Catalogue : parcours publiés, filtrables par carte et par surface.
  *
- * Chaque surface porte la garde de sa propre charge (`guardSurfaceRead`). La garde du Plan
- * Lyautey ne s'applique donc qu'au catalogue du plan (surface absente ou `plan`) : `visit`
+ * Chaque surface porte la garde de sa propre charge (`guardSurfaceRead`). Sans `?surface=`,
+ * c'est la surface du serveur (host et session) qui s'applique, garde et filtre compris. La
+ * garde du Plan Lyautey ne s'applique donc qu'au catalogue du plan : `visit`
  * reste ouverte, et les surfaces internes `map` / `staff` demandent ce que demandent leurs
  * écrans. Sans ce partage, un établissement en `access_mode = code` fermait aussi la liste
  * destinée à la Visite (`docs/AUDIT_PARCOURS_2026-09.md` §2.2) — et, dans l'autre sens, les
@@ -265,7 +267,12 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
 
-    const surface = surfaceQuery.value;
+    // Sans `?surface=`, la surface est celle que le serveur décide pour cette requête (host
+    // et session), jamais « toutes » : auparavant, la seule garde était celle du plan et
+    // aucun filtre de surface ne s'appliquait, si bien qu'un anonyme sur un plan ouvert — ou
+    // le porteur du code du plan — recevait les parcours réservés aux personnels et à la
+    // carte de travail (dossier sûreté d'octobre 2026, constat R2).
+    const surface = surfaceQuery.value || resolveSurfaceForRequest(req);
     if (!(await guardSurfaceRead(req, res, surface))) return;
 
     const where = ['is_published = 1'];
@@ -277,12 +284,10 @@ router.get(
       where.push(`map_id IN (${scope.mapIds.map(() => '?').join(',')})`);
       params.push(...scope.mapIds);
     }
-    if (surface) {
-      where.push('FIND_IN_SET(?, surfaces) > 0');
-      params.push(surface);
-    }
+    where.push('FIND_IN_SET(?, surfaces) > 0');
+    params.push(surface);
     const routes = await loadRoutes(where.join(' AND '), params);
-    res.json(await filterPublicRouteSteps(routes, req.auth, { surface: surface || 'plan' }));
+    res.json(await filterPublicRouteSteps(routes, req.auth, { surface }));
   }),
 );
 

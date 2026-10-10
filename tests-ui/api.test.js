@@ -15,6 +15,7 @@ import {
   purgeCachedApiResponses,
   saveStoredSession,
 } from '../src/services/api.js';
+import { isPasswordChangeRequiredError } from '../src/utils/passwordChangeRequired.js';
 
 /** Réponse 401 JSON telle que la renvoie `middleware/requireTeacher.js`. */
 function mock401(body) {
@@ -72,6 +73,62 @@ describe('api ForetMap — session révoquée (CDG-27)', () => {
     const events = listenSessionExpired();
     await expect(api('/api/stats/me/S1')).rejects.toMatchObject({ status: 401 });
     expect(events).toEqual([]);
+  });
+});
+
+/**
+ * Mot de passe provisoire ou compromis : le serveur refuse les routes à session obligatoire
+ * en `403 PASSWORD_CHANGE_REQUIRED`. Ce n'est pas une session morte — elle sert encore à
+ * changer le mot de passe — mais le shell doit être prévenu pour ouvrir « Mon profil ».
+ */
+describe('api ForetMap — mot de passe à changer (403 PASSWORD_CHANGE_REQUIRED)', () => {
+  function mock403(body) {
+    return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 403,
+      headers: {
+        get: (name) => (String(name).toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => body,
+    });
+  }
+
+  test('événement émis, session conservée, erreur reconnaissable', async () => {
+    localStorage.setItem('foretmap_session', JSON.stringify({ token: 'jwt-eleve' }));
+    mock403({ error: 'Changement de mot de passe requis', code: 'PASSWORD_CHANGE_REQUIRED' });
+    let received = 0;
+    const onRequired = () => {
+      received += 1;
+    };
+    window.addEventListener('foretmap_password_change_required', onRequired);
+    try {
+      const err = await api('/api/stats/me/S1').catch((e) => e);
+      expect(err).toMatchObject({ status: 403, code: 'PASSWORD_CHANGE_REQUIRED' });
+      expect(err.message).toContain('Changement de mot de passe requis');
+      expect(isPasswordChangeRequiredError(err)).toBe(true);
+    } finally {
+      window.removeEventListener('foretmap_password_change_required', onRequired);
+    }
+    expect(received).toBe(1);
+    // Pas une session révoquée : le jeton reste, il sert à changer le mot de passe.
+    expect(getAuthToken()).toBe('jwt-eleve');
+  });
+
+  test('un autre 403 ne déclenche rien', async () => {
+    mock403({ error: 'Permission insuffisante' });
+    let received = 0;
+    const onRequired = () => {
+      received += 1;
+    };
+    window.addEventListener('foretmap_password_change_required', onRequired);
+    try {
+      const err = await api('/api/stats/all').catch((e) => e);
+      expect(err.status).toBe(403);
+      expect(isPasswordChangeRequiredError(err)).toBe(false);
+    } finally {
+      window.removeEventListener('foretmap_password_change_required', onRequired);
+    }
+    expect(received).toBe(0);
   });
 });
 
