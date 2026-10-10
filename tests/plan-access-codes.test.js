@@ -10,6 +10,8 @@
  *  - code d'un lien (`?code=`) : jamais recopié dans les journaux de requêtes ;
  *  - journal des saisies de code (`security_events`) : réussite et refus distingués, motif
  *    (code faux, absent, entrée désactivée, limiteur), jamais le code saisi ;
+ *  - profil endossé par le code du plan des personnels : liste blanche (`personnel`,
+ *    `visiteur`), refusée à l'écriture hors liste, ignorée à la lecture.
  */
 
 require('./helpers/setup');
@@ -123,6 +125,7 @@ test.before(async () => {
     'ui.enov_plan.access_mode',
     ...TARGETS.map((t) => t.hashKey),
     ...SURFACES.map((t) => t.daysKey),
+    'ui.staff_plan.code_role_slug',
   ]) {
     snapshots.push(await snapshotSetting(key));
   }
@@ -497,4 +500,71 @@ test('journal des saisies : un refus du limiteur est inscrit (une fois par fenê
     assert.equal((await journalRows(again)).length, 0);
   }
   resetCodeAccessLimiterJournal();
+});
+
+// --- Profil endossé par le code du plan des personnels --------------------------------------
+
+const CODE_ROLE_KEY = 'ui.staff_plan.code_role_slug';
+
+/** Écrit la valeur brute, sans passer par la validation (réglage ancien, base restaurée…). */
+async function storeRawSetting(key, value) {
+  await execute(
+    `INSERT INTO app_settings (\`key\`, scope, value_json) VALUES (?, 'admin', ?)
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json)`,
+    [key, JSON.stringify(value)],
+  );
+  invalidateSettingsCache();
+}
+
+test('profil du code : un profil hors liste blanche est refusé à l’écriture', async () => {
+  try {
+    for (const value of ['admin', 'prof', 'prof_classe', 'eleve_chevronne', 'inconnu']) {
+      const res = await request(app)
+        .put(`/api/settings/admin/${CODE_ROLE_KEY}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ value });
+      assert.equal(res.status, 400, `${value} doit être refusé`);
+    }
+    for (const value of ['visiteur', 'personnel']) {
+      const res = await request(app)
+        .put(`/api/settings/admin/${CODE_ROLE_KEY}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ value });
+      assert.equal(res.status, 200, `${value} doit être accepté`);
+      assert.equal(res.body.value, value);
+    }
+  } finally {
+    await execute('DELETE FROM app_settings WHERE `key` = ?', [CODE_ROLE_KEY]);
+    invalidateSettingsCache();
+  }
+});
+
+test('profil du code : une valeur hors liste déjà enregistrée est ignorée (repli « personnel »)', async () => {
+  const { resolveCodeRoleSlug, STAFF_PLAN_CODE_ROLE_SLUGS } = require('../lib/staffPlanAccess');
+  assert.deepEqual([...STAFF_PLAN_CODE_ROLE_SLUGS], ['personnel', 'visiteur']);
+  const staff = SURFACES[2];
+  await closeWithCode(staff);
+  try {
+    for (const stored of ['admin', 'prof', 'prof_classe']) {
+      await storeRawSetting(CODE_ROLE_KEY, stored);
+      assert.equal(await resolveCodeRoleSlug(), 'personnel', `${stored} ignoré à la lecture`);
+      const granted = await request(app)
+        .post(`${staff.base}/access`)
+        .send({ code: PLAN_CODE })
+        .expect(200);
+      assert.equal(granted.body.role_slug, 'personnel');
+      const content = await request(app)
+        .get(`${staff.base}/content`)
+        .set('Cookie', cookiePair(cookieFrom(granted, staff.cookie)))
+        .expect(200);
+      assert.equal(content.body.viewer.role_slug, 'personnel');
+    }
+    // Un profil de la liste reste honoré.
+    await storeRawSetting(CODE_ROLE_KEY, 'visiteur');
+    assert.equal(await resolveCodeRoleSlug(), 'visiteur');
+  } finally {
+    await reopen(staff);
+    await execute('DELETE FROM app_settings WHERE `key` = ?', [CODE_ROLE_KEY]);
+    invalidateSettingsCache();
+  }
 });

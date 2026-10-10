@@ -3125,7 +3125,8 @@ Deux voies, dans cet ordre.
    bcrypt, posé par `POST /api/settings/admin/staff-plan-access-code`). Prévu pour les
    personnels sans compte. Laissez-passer à **échéance signée** de **7 jours** par défaut
    (`security.staff_plan_access_pass_days`, 1 à 30 ; contre 30 pour le plan public), rôle
-   endossé réglable (`ui.staff_plan.code_role_slug`, défaut `personnel`), et **chaque saisie
+   endossé réglable dans une **liste blanche** (`ui.staff_plan.code_role_slug` : `personnel`
+   — défaut — ou `visiteur`), et **chaque saisie
    — accordée comme refusée — est inscrite au journal d'audit et au journal de sécurité**
    (`staff_plan.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif
    du refus dans `reason` : voir « Journal des saisies de code ») : un code partagé ne dit pas
@@ -3204,7 +3205,12 @@ et ce refus a été levé depuis (réalignement du 22/09/2026) ; la garde de lie
 
 `ui.staff_plan.title`, `welcome_hint`, `attribution`, `default_category_ids`,
 `hidden_category_ids`, `allowed_role_slugs` (portée `admin`), `access_mode`,
-`code_role_slug` (portée `admin`). La **carte** n'a pas de réglage propre : le plan des
+`code_role_slug` (portée `admin`, `enum` : `personnel` ou `visiteur` — liste blanche
+`STAFF_PLAN_CODE_ROLE_SLUGS`, `lib/settings/plan.js`). `PUT /api/settings/admin/ui.staff_plan.code_role_slug`
+refuse tout autre profil (**400** `Profil non autorisé pour l’entrée par code`) ; une valeur hors
+liste déjà enregistrée est ignorée à la lecture (repli sur `personnel`,
+`resolveCodeRoleSlug()`). `security.staff_plan_access_pass_days` : durée du laissez-passer
+(7 j, 1 à 30). La **carte** n'a pas de réglage propre : le plan des
 personnels affiche celle du plan public (`ui.plan.map_id`, `ui.plan.brand`,
 `ui.plan.heading_up_enabled`) — deux réglages à tenir synchronisés à la main seraient une
 source d'erreur pour aucun gain.

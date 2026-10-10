@@ -132,8 +132,11 @@ Si vous l'activez malgré tout, trois garde-fous s'appliquent :
 - le laissez-passer dure **7 jours** par défaut (contre 30 jours sur le plan public ;
   réglable de 1 à 30 jours dans « Durée du laissez-passer »), et c'est le serveur qui vérifie
   son échéance : un laissez-passer échu ne rouvre rien, même recopié ;
-- le porteur du code endosse un **profil que vous choisissez** (par défaut « Personnel »), qui
-  décide de ce qu'il voit : laissé bas, il ne verra pas les lieux réservés à l'encadrement ;
+- le porteur du code endosse un **profil que vous choisissez**, « Personnel » (par défaut) ou
+  « Visiteur », qui décide de ce qu'il voit : il ne verra jamais les lieux ni les compléments
+  réservés à l'encadrement. Les autres profils (professeur, administrateur…) ne sont pas
+  proposés et sont refusés ; un ancien réglage qui en désignerait un est ignoré, et le porteur
+  entre alors comme « Personnel » ;
 - **chaque saisie du code est inscrite au journal**, réussie comme refusée — un refus y est
   bien noté comme un refus, avec son motif (code faux, entrée par code désactivée, trop
   d'essais) et l'adresse d'origine ; le code saisi, lui, n'est jamais noté.

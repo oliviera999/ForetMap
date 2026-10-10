@@ -5,6 +5,12 @@ import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
 import { FORETMAP_AUDIENCE_ROLE_OPTIONS } from '../../shared/ui/LocationAudienceFields.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
 
+/**
+ * Profils qu'un porteur de code peut endosser — miroir de `STAFF_PLAN_CODE_ROLE_SLUGS`
+ * (`lib/settings/plan.js`), qui refuse toute autre valeur. Le premier est le défaut.
+ */
+export const STAFF_PLAN_CODE_ROLE_SLUGS = Object.freeze(['personnel', 'visiteur']);
+
 const STAFF_KEYS = Object.freeze({
   title: 'ui.staff_plan.title',
   welcomeHint: 'ui.staff_plan.welcome_hint',
@@ -52,6 +58,16 @@ export function StaffPlanSettingsPanel({
   const hasHash = Boolean(String(get('security.staff_plan_access_code_hash', '') || '').trim());
   const accessMode = String(get(STAFF_KEYS.accessMode, 'disabled') || 'disabled');
   const readOnly = !canWrite;
+  /** Liste blanche seulement : les autres profils n'ont rien à faire dans ce menu. */
+  const codeRoles = STAFF_PLAN_CODE_ROLE_SLUGS.map(
+    (slug) =>
+      (roles || []).find((role) => role.slug === slug) ||
+      FORETMAP_AUDIENCE_ROLE_OPTIONS.find((role) => role.slug === slug) || { slug },
+  );
+  const storedCodeRole = String(get(STAFF_KEYS.codeRoleSlug, STAFF_PLAN_CODE_ROLE_SLUGS[0]) || '');
+  const codeRoleSlug = STAFF_PLAN_CODE_ROLE_SLUGS.includes(storedCodeRole)
+    ? storedCodeRole
+    : STAFF_PLAN_CODE_ROLE_SLUGS[0];
 
   return (
     <div className="plan-settings-panel" data-testid="staff-plan-settings-panel">
@@ -180,13 +196,14 @@ export function StaffPlanSettingsPanel({
       <label className="field">
         <span>Profil endossé par un porteur de code</span>
         <select
-          value={String(get(STAFF_KEYS.codeRoleSlug, 'personnel') || 'personnel')}
+          aria-label="Profil endossé par un porteur de code"
+          value={codeRoleSlug}
           disabled={readOnly || savingKey === STAFF_KEYS.codeRoleSlug}
           onChange={(e) =>
             saveSetting(STAFF_KEYS.codeRoleSlug, e.target.value, 'Profil du code enregistré')
           }
         >
-          {(roles || []).map((role) => (
+          {codeRoles.map((role) => (
             <option key={role.slug} value={role.slug}>
               {role.label || role.display_name || role.slug}
             </option>
@@ -194,8 +211,8 @@ export function StaffPlanSettingsPanel({
         </select>
         <p className="muted" style={{ marginBottom: 0 }}>
           Un porteur de code n’a pas de compte, donc pas de profil : c’est celui-ci qui décide des
-          lieux et des compléments réservés qu’il voit. Le laisser bas (« Personnel ») garde les
-          lieux réservés à l’encadrement hors de sa portée.
+          lieux et des compléments réservés qu’il voit. Seuls « Personnel » et « Visiteur » sont
+          proposés : un code partagé n’ouvre jamais la vue de l’encadrement.
         </p>
       </label>
 

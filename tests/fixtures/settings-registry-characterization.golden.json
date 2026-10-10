@@ -1178,9 +1178,10 @@
     },
     "ui.staff_plan.code_role_slug": {
       "scope": "admin",
-      "type": "string",
-      "maxLength": 40,
-      "default": "personnel"
+      "type": "enum",
+      "values": ["personnel", "visiteur"],
+      "default": "personnel",
+      "errorMessage": "Profil non autorisé pour l’entrée par code (attendus : personnel, visiteur)"
     },
     "ui.staff_plan.default_category_ids": {
       "scope": "public",
@@ -4866,14 +4867,14 @@
     {
       "key": "ui.staff_plan.code_role_slug",
       "scope": "admin",
-      "type": "string",
+      "type": "enum",
       "value": "personnel",
       "default_value": "personnel",
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 40,
-        "values": null
+        "maxLength": null,
+        "values": ["personnel", "visiteur"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
