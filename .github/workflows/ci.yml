@@ -94,6 +94,13 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # Dumps, hachages de mots de passe, clés et jetons (scripts/check-sensitive-files.js) :
+      # Node seul, sans dépendance, donc avant `npm ci`. Filet de la CI derrière le hook
+      # pre-commit, contournable par `--no-verify`. Les PR en brouillon ne passent pas ici :
+      # le hook reste la seule protection AVANT la publication sur GitHub.
+      - name: Garde-fou données sensibles
+        run: node scripts/check-sensitive-files.js --all
+
       - name: Install dependencies
         run: npm ci
 
