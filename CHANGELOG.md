@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Avatars par défaut générés localement, plus aucun appel à un service tiers
+
+- **Serveur** : nouvelle route `GET /api/users/:id/default-avatar?exp=…&sig=…` (`routes/users.js`, `lib/defaultAvatar.js`) qui dessine l'avatar d'un compte sans photo avec la bibliothèque [DiceBear](https://github.com/dicebear/dicebear) (MIT), style « Adventurer Neutral » de Lisa Wischofsky ([source](https://www.figma.com/community/file/1184595184137881796), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Paquets `@dicebear/core` et `@dicebear/adventurer-neutral` épinglés en 9.4.3 : **même dessin qu'avant** pour un même compte (vérifié octet pour octet).
+- La graine (pseudo, sinon prénom-nom, sinon identifiant) est recalculée côté serveur : elle ne figure ni dans l'URL ni dans le SVG. URL **signée** comme les photos d'élèves (même durée de vie, clé dérivée propre, signature couvrant aussi la graine), émise par les réponses qui exposent déjà le compte : champ `default_avatar_url` (projection publique des comptes, `GET /api/stats/me/:id`, `GET /api/stats/all`, profil de `GET /api/auth/me`).
+- Cache : `Cache-Control: private, max-age=3600` + `ETag` (304), rendu gardé en mémoire (500 entrées). SVG inerte (`Content-Security-Policy` en `sandbox`, garde-fou contre tout élément actif). `npm run check:runtime` signale l'absence des paquets.
+- Tests : `tests/default-avatar.test.js`. Doc : `docs/API.md`.
+
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
 - Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.

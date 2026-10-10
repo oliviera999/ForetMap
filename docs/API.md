@@ -2622,10 +2622,56 @@ vignette manque (fichier antérieur, `sharp` absent) ; rattrapage de l'existant 
 | `/uploads/…` public, nom horodaté de la médiathèque (`<13 chiffres>-<10 hex>.ext`, et sa vignette `media-thumbs/…`) | `public, max-age=31536000, immutable` |
 | `/uploads/…` public, autres fichiers ; `GET /api/tasks/:id/image`, `GET /api/visit/media/…` | `public, max-age=86400` |
 | Images privées : `GET /api/tasks/:id/logs/:logId/image`, `GET /api/user-journal/assets/:assetId/file` | `private, no-store` |
+| Avatar par défaut : `GET /api/users/:id/default-avatar` (URL signée, voir ci-dessous) | `private, max-age=3600` + `ETag` |
 
 Le service worker ne met jamais en cache une réponse `no-store` ; son cache d'images est séparé
 (`<cache>-images`), borné à **200** entrées et **7 jours**, et une entrée est retirée dès que le
 serveur répond 401, 403 ou 404.
+
+## Avatar par défaut d'un compte (`/api/users/:id/default-avatar`)
+
+Un compte sans photo affiche un avatar dessiné **par le serveur** (`lib/defaultAvatar.js`,
+`routes/users.js`) : bibliothèque [DiceBear](https://github.com/dicebear/dicebear) (MIT),
+style « Adventurer Neutral » de Lisa Wischofsky
+([source](https://www.figma.com/community/file/1184595184137881796), licence
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), attribution affichée dans
+« À propos »). Le navigateur ne contacte plus aucun service tiers pour ces avatars.
+
+| Méthode | Route                                           | Auth                  | Réponse                                    |
+| ------- | ----------------------------------------------- | --------------------- | ------------------------------------------ |
+| GET     | `/api/users/:id/default-avatar?exp=…&sig=…`     | URL signée (sans jeton) | `200` SVG (`image/svg+xml; charset=utf-8`) ; `304` si `If-None-Match` correspond ; `404 { error }` sinon |
+
+- **Où trouver l'URL** : champ calculé **`default_avatar_url`** (chemin relatif à la racine de
+  l'application, à préfixer de la base de déploiement) dans toute projection publique d'un
+  compte (`toPublicUserRow` : connexion, inscription, `POST /api/students/register`,
+  `PATCH /api/auth/me`, `/api/students/*`…), dans `GET /api/stats/me/:id` et
+  `GET /api/stats/all` (`students[]`), et dans `profile` de `GET /api/auth/me` (compte
+  enseignant). Absent si la ligne ne porte pas `id`, `pseudo`, `first_name`, `last_name`.
+- **Graine** : pseudo, sinon « prénom-nom », sinon identifiant — règle de l'ancien client,
+  donc **le même dessin qu'avant** pour un même compte (vérifié octet pour octet contre
+  l'API publique DiceBear 9.x, `tests/default-avatar.test.js` ; paquets épinglés en 9.4.3).
+  Elle est recalculée en base et n'apparaît **ni dans l'URL ni dans le SVG**.
+- **Signature** : HMAC-SHA256 (128 bits, base64url) de l'identifiant, de l'échéance **et de
+  la graine**, clé dérivée de `JWT_SECRET` (étiquette propre, distincte des médias
+  `/uploads`). Même durée de vie et même arrondi horaire que les médias signés
+  (`FORETMAP_UPLOADS_SIGNED_URL_TTL_SECONDS`). Changer de pseudo change donc l'URL (le cache
+  du navigateur ne ressert pas l'ancien visage) et invalide l'ancienne.
+- **La signature vaut autorisation** : elle n'est émise que par les routes qui exposent déjà
+  le compte. Signature absente, altérée, empruntée à un autre compte, échéance dépassée ou
+  compte inexistant → **404** (`{ "error": "Avatar introuvable" }`), avant toute lecture en
+  base pour une requête mal formée.
+- **En-têtes** : `Cache-Control: private, max-age=3600`, `ETag` (empreinte du SVG),
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`,
+  `X-Content-Type-Options: nosniff`, `X-Robots-Tag: noindex, nofollow`. Le SVG ne contient
+  que des formes et les métadonnées de licence ; un garde-fou refuse tout élément actif ou
+  référence externe.
+- **Cache serveur** : rendu gardé en mémoire (500 entrées au plus, 24 h, clé = empreinte de
+  la graine). Route volontairement **sans** extension `.svg` : le service worker ne range donc
+  pas ces réponses dans son cache d'images (pas de doublon horaire, rien à purger à la
+  déconnexion) ; le cache HTTP du navigateur suffit.
+- **Indisponible** (paquet DiceBear absent après un déploiement incomplet) : **503**
+  `{ "error": "Avatar par défaut indisponible" }`, `Cache-Control: no-store` ; le client
+  affiche une silhouette neutre embarquée.
 
 ---
 
