@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
-import { api } from '../../services/api';
-import { Button } from '../../shared/ui/Button.jsx';
+import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
@@ -54,8 +53,6 @@ export function EnovPlanSettingsPanel({
   onMessage = null,
   onError = null,
 }) {
-  const [accessCode, setAccessCode] = useState('');
-  const [savingCode, setSavingCode] = useState(false);
   /**
    * Couleur en cours de choix : le sélecteur émet un événement à chaque déplacement du
    * curseur, on n'enregistre qu'à la sortie du champ (sinon une écriture par pixel parcouru).
@@ -66,39 +63,6 @@ export function EnovPlanSettingsPanel({
   const storedColor = String(get(ENOV_KEYS.highlightColor, DEFAULT_HIGHLIGHT_COLOR) || '');
   const highlightColor = HEX_COLOR_RE.test(storedColor) ? storedColor : DEFAULT_HIGHLIGHT_COLOR;
   const readOnly = !canWrite;
-
-  const saveAccessCode = useCallback(async () => {
-    if (readOnly) return;
-    const code = String(accessCode || '').trim();
-    if (!code) {
-      onError?.('Saisissez un code d’accès.');
-      return;
-    }
-    setSavingCode(true);
-    try {
-      await api('/api/settings/admin/enov-plan-access-code', 'POST', { code });
-      setAccessCode('');
-      onMessage?.('Code d’accès du plan e-nov enregistré.');
-    } catch (err) {
-      onError?.(err?.message || 'Enregistrement du code impossible.');
-    } finally {
-      setSavingCode(false);
-    }
-  }, [accessCode, onError, onMessage, readOnly]);
-
-  const clearAccessCode = useCallback(async () => {
-    if (readOnly) return;
-    setSavingCode(true);
-    try {
-      await api('/api/settings/admin/enov-plan-access-code', 'POST', { code: '' });
-      setAccessCode('');
-      onMessage?.('Code d’accès du plan e-nov effacé.');
-    } catch (err) {
-      onError?.(err?.message || 'Effacement du code impossible.');
-    } finally {
-      setSavingCode(false);
-    }
-  }, [onError, onMessage, readOnly]);
 
   return (
     <div className="plan-settings-panel" data-testid="enov-plan-settings-panel">
@@ -280,34 +244,30 @@ export function EnovPlanSettingsPanel({
         </select>
       </label>
 
-      <div className="field">
-        <span>Code d’accès {hasHash ? '(déjà défini)' : '(aucun)'}</span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="password"
-            autoComplete="new-password"
-            placeholder="Nouveau code (8 caractères minimum)"
-            minLength={8}
-            value={accessCode}
-            onChange={(e) => setAccessCode(e.target.value)}
-            disabled={readOnly || savingCode}
-            style={{ flex: '1 1 12rem' }}
-          />
-          <Button variant="primary" disabled={readOnly || savingCode} onClick={saveAccessCode}>
-            Enregistrer le code
-          </Button>
-          {hasHash ? (
-            <Button variant="secondary" disabled={readOnly || savingCode} onClick={clearAccessCode}>
-              Effacer le code
-            </Button>
-          ) : null}
-        </div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          Code propre au plan e-nov : il n’ouvre pas le plan public, et inversement. Il n’est jamais
-          stocké en clair. En mode « code » sans code défini, le plan reste ouvert. Le lien du plan
-          peut porter le code (<code>?code=…</code>) pour un QR code remis à un jury.
-        </p>
-      </div>
+      <AccessPassDaysField
+        settingKey="security.enov_plan_access_pass_days"
+        defaultDays={30}
+        maxDays={90}
+        get={get}
+        saveSetting={saveSetting}
+        savingKey={savingKey}
+        readOnly={readOnly}
+        testId="enov-plan-access-pass-days"
+      />
+
+      <AccessCodeField
+        endpoint="/api/settings/admin/enov-plan-access-code"
+        targetLabel="du plan e-nov"
+        hasCode={hasHash}
+        readOnly={readOnly}
+        onMessage={onMessage}
+        onError={onError}
+        testId="enov-plan-access-code"
+      >
+        Code propre au plan e-nov : il n’ouvre pas le plan public, et inversement. Il n’est jamais
+        stocké en clair. En mode « code » sans code défini, le plan reste ouvert. Le lien du plan
+        peut porter le code (<code>?code=…</code>) pour un QR code remis à un jury.
+      </AccessCodeField>
     </div>
   );
 }

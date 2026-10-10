@@ -94,6 +94,7 @@ export function useOauthRedirectSession({
               'Utilisateur',
             email: nextStudent?.email || null,
             avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
+            default_avatar_url: nextStudent?.default_avatar_url ?? null,
           },
           student: nextStudent,
         });

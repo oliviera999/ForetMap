@@ -144,6 +144,7 @@ function AuthScreen({
           (isTeacher ? roleTerms.teacherSingular : roleTerms.studentSingular),
         email: student?.email || null,
         avatar_path: student?.avatar_path || null,
+        default_avatar_url: student?.default_avatar_url || null,
       },
       student: isTeacher ? null : student,
     });

@@ -265,11 +265,14 @@ const ACCESS_CODE_SETTINGS = Object.freeze({
 });
 
 /**
- * Longueur minimale d'un code d'accès. La seule défense contre le tâtonnement est `authLimiter`
- * (plafond par adresse IP) : un code de 4 chiffres tombait en quelques jours depuis une seule
- * adresse. Les codes déjà enregistrés restent valides ; la règle s'applique à l'enregistrement.
+ * Longueur minimale d'un code d'accès : 12 caractères. La seule défense contre le tâtonnement
+ * est `authLimiter` (plafond par adresse IP) ; 12 caractères tirés au hasard (le générateur de
+ * l'écran de réglages, `src/utils/accessCodeGenerator.js`) mettent le code hors de portée.
+ * Les codes déjà enregistrés restent valides jusqu'à leur remplacement : la règle s'applique à
+ * l'enregistrement, et un code n'est connu du serveur que par son empreinte bcrypt — sa
+ * longueur ne peut pas être relue.
  */
-const ACCESS_CODE_MIN_LENGTH = 8;
+const ACCESS_CODE_MIN_LENGTH = 12;
 
 function accessCodeHandler(target) {
   const { key, label } = ACCESS_CODE_SETTINGS[target];

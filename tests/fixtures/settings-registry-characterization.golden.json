@@ -579,6 +579,13 @@
       "maxLength": 120,
       "default": ""
     },
+    "security.enov_plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 90,
+      "default": 30
+    },
     "security.jwt_sliding_max_seconds": {
       "scope": "teacher",
       "type": "number",
@@ -606,11 +613,25 @@
       "maxLength": 120,
       "default": ""
     },
+    "security.plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 90,
+      "default": 30
+    },
     "security.staff_plan_access_code_hash": {
       "scope": "admin",
       "type": "string",
       "maxLength": 120,
       "default": ""
+    },
+    "security.staff_plan_access_pass_days": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 30,
+      "default": 7
     },
     "security.totp.enforcement": {
       "scope": "admin",
@@ -1163,9 +1184,10 @@
     },
     "ui.staff_plan.code_role_slug": {
       "scope": "admin",
-      "type": "string",
-      "maxLength": 40,
-      "default": "personnel"
+      "type": "enum",
+      "values": ["personnel", "visiteur"],
+      "default": "personnel",
+      "errorMessage": "Profil non autorisé pour l’entrée par code (attendus : personnel, visiteur)"
     },
     "ui.staff_plan.default_category_ids": {
       "scope": "public",
@@ -3185,6 +3207,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.enov_plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 30,
+      "default_value": 30,
+      "constraints": {
+        "min": 1,
+        "max": 90,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.jwt_sliding_max_seconds",
       "scope": "teacher",
       "type": "number",
@@ -3249,6 +3287,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 30,
+      "default_value": 30,
+      "constraints": {
+        "min": 1,
+        "max": 90,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.staff_plan_access_code_hash",
       "scope": "admin",
       "type": "string",
@@ -3258,6 +3312,22 @@
         "min": null,
         "max": null,
         "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.staff_plan_access_pass_days",
+      "scope": "admin",
+      "type": "number",
+      "value": 7,
+      "default_value": 7,
+      "constraints": {
+        "min": 1,
+        "max": 30,
+        "maxLength": null,
         "values": null
       },
       "updated_at": null,
@@ -4819,14 +4889,14 @@
     {
       "key": "ui.staff_plan.code_role_slug",
       "scope": "admin",
-      "type": "string",
+      "type": "enum",
       "value": "personnel",
       "default_value": "personnel",
       "constraints": {
         "min": null,
         "max": null,
-        "maxLength": 40,
-        "values": null
+        "maxLength": null,
+        "values": ["personnel", "visiteur"]
       },
       "updated_at": null,
       "updated_by_user_type": null,

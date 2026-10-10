@@ -14,6 +14,7 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser } = require('../lib/rbac');
 const { checkRoleGrantAllowed } = require('../lib/rbacRoleAssignment');
+const { checkGroupJoinAllowedById } = require('../lib/groupDefaultRolePolicy');
 const { recomputeUsersRoles } = require('../lib/effectiveRole');
 const {
   canBypassGroupScope,
@@ -22,6 +23,7 @@ const {
 } = require('../lib/groupScope');
 const { addUserToGroup } = require('../lib/groupMembers');
 const { deleteStudentById } = require('../lib/studentDeletion');
+const { checkStudentDeletionAllowed } = require('../lib/accountDeletionGuard');
 const { getPasswordMinLength } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { importStudentAccounts } = require('../lib/students/studentImportService');
@@ -233,14 +235,20 @@ router.post(
       logRouteError(new Error('Profil RBAC introuvable (eleve_novice)'), req);
       return res.status(500).json({ error: 'Profil RBAC introuvable' });
     }
-    // Même garde « acteur → profil » que la création unitaire et l'import : dupliquer un compte
-    // ne doit pas permettre d'attribuer un profil que l'acteur ne pourrait pas attribuer
-    // lui-même (dossier sûreté d'octobre 2026, constat B03).
+    // Dupliquer un compte, c'est attribuer son profil à la copie : même garde « acteur →
+    // profil » que la création unitaire et l'import (rang strictement inférieur hors admin).
     const copiedRole = await queryOne('SELECT id, slug, `rank` FROM roles WHERE id = ? LIMIT 1', [
       roleId,
     ]);
     const grant = checkRoleGrantAllowed(req.auth, copiedRole);
     if (!grant.ok) return res.status(grant.status).json({ error: grant.error });
+    // Le groupe de la copie confère son profil par défaut : même garde, avant toute écriture.
+    if (targetGroupId) {
+      const joinAllowed = await checkGroupJoinAllowedById(req.auth, targetGroupId);
+      if (!joinAllowed.ok && joinAllowed.status === 403) {
+        return res.status(403).json({ error: joinAllowed.error });
+      }
+    }
 
     const description = normalizeOptionalString(source.description);
 
@@ -292,7 +300,7 @@ router.post(
     }
 
     await recomputeUsersRoles([newId]);
-    if (targetGroupId) await addUserToGroup(newId, targetGroupId);
+    if (targetGroupId) await addUserToGroup(newId, targetGroupId, { actor: req.auth });
 
     const created = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       newId,
@@ -495,6 +503,10 @@ router.delete(
     if (!canBypassGroupScope(req.auth) && !(await canAccessStudentId(req.auth, req.params.id))) {
       return res.status(403).json({ error: 'n3beur hors périmètre de groupe' });
     }
+    // Garde de rang : on ne supprime qu'un compte de rang (effectif ou attribué) strictement
+    // inférieur au sien, administrateur compris, et jamais le dernier administrateur actif.
+    const deletion = await checkStudentDeletionAllowed(req.auth, req.params.id);
+    if (!deletion.ok) return res.status(deletion.status).json({ error: deletion.error });
     const result = await deleteStudentById(req.params.id);
     if (!result.ok) {
       if (result.reason === 'not_found' || result.reason === 'missing_id') {
