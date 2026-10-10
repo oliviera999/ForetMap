@@ -15,18 +15,18 @@
   padding: 8px 10px;
   border-radius: 8px;
   font-size: var(--text-sm);
-  background: var(--surface-muted, #f1f5f1);
+  background: var(--surface-pedago-soft);
 }
 
 .offline-center__network--offline,
 .offline-center__network--unreachable {
-  background: #fff7e6;
+  background: var(--tint-warning);
 }
 
 .offline-center__section {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid var(--border, #e2e8e2);
+  border-top: 1px solid var(--line-sage);
 }
 
 .offline-center__section .btn {
@@ -44,12 +44,12 @@
 
 .offline-center__item {
   padding: 8px 10px;
-  border: 1px solid var(--border, #e2e8e2);
+  border: 1px solid var(--line-sage);
   border-radius: 8px;
 }
 
 .offline-center__item.is-refused {
-  border-color: var(--ink-alert, #b91c1c);
+  border-color: var(--ink-alert);
 }
 
 .offline-center__item-head {
@@ -63,7 +63,7 @@
   font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ink-faint, #667);
+  color: var(--ink-faint);
 }
 
 .offline-center__photo {
@@ -71,7 +71,7 @@
   align-items: center;
   gap: 3px;
   font-size: var(--text-2xs);
-  color: var(--ink-faint, #667);
+  color: var(--ink-faint);
 }
 
 .offline-center__detail {
@@ -87,17 +87,17 @@
 .offline-center__empty {
   margin: 4px 0 8px;
   font-size: var(--text-sm);
-  color: var(--ink-faint, #667);
+  color: var(--ink-faint);
 }
 
 .offline-center__item.is-refused .offline-center__meta,
 .offline-center__warn {
-  color: var(--ink-alert, #b91c1c);
+  color: var(--ink-alert);
   font-size: var(--text-sm);
 }
 
 .offline-center__ok {
-  color: var(--forest, #1f5130);
+  color: var(--forest);
   font-size: var(--text-sm);
 }
 
@@ -114,5 +114,5 @@
 }
 
 .offline-center-btn .notif-badge.is-refused {
-  background: var(--ink-alert, #b91c1c);
+  background: var(--ink-alert);
 }
