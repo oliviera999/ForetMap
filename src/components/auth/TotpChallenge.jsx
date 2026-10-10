@@ -19,7 +19,7 @@ function groupSecret(secret) {
 }
 
 /** Champ « code à 6 chiffres » : clavier numérique, autocomplétion des codes à usage unique. */
-function OtpInput({ id, label, value, onChange, onEnter, disabled, autoFocus = false }) {
+function OtpInput({ id, label, value, onChange, onEnter, disabled }) {
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -34,7 +34,6 @@ function OtpInput({ id, label, value, onChange, onEnter, disabled, autoFocus = f
         maxLength={7}
         placeholder="123 456"
         disabled={disabled}
-        autoFocus={autoFocus}
       />
     </div>
   );
@@ -233,7 +232,6 @@ export function TotpEnrollment({
         onChange={setCode}
         onEnter={confirm}
         disabled={busy}
-        autoFocus
       />
       <button type="button" className="btn btn-primary btn-full" onClick={confirm} disabled={busy}>
         {busy ? '…' : 'Activer'}
@@ -300,7 +298,6 @@ function TotpVerifyForm({ request, mfaToken, onComplete, onCancel }) {
             spellCheck={false}
             placeholder="xxxxx-xxxxx"
             disabled={busy}
-            autoFocus
           />
         </div>
       ) : (
@@ -311,7 +308,6 @@ function TotpVerifyForm({ request, mfaToken, onComplete, onCancel }) {
           onChange={setCode}
           onEnter={submit}
           disabled={busy}
-          autoFocus
         />
       )}
       <button type="button" className="btn btn-primary btn-full" onClick={submit} disabled={busy}>
