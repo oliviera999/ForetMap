@@ -9,6 +9,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 import { compressImageWithPreset } from '../shared/platform/image';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { TotpProfileSection } from './auth/TotpProfileSection.jsx';
 import {
   estimateDataUrlBytes,
   deriveProfileTypeLabel,
@@ -747,6 +748,9 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
       >
         {passwordLoading ? 'Changement…' : 'Changer le mot de passe'}
       </button>
+
+      {/* Comptes administrateur et n3boss seulement (rien pour un élève). */}
+      <TotpProfileSection account={student} request={api} onUpdated={onUpdated} />
 
       <h3 className="section-title" style={{ marginTop: 18 }}>
         Mes données

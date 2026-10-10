@@ -112,6 +112,17 @@ describe('useOauthRedirectSession', () => {
     expect(String(h.onToast.mock.calls[0][0])).toMatch(/enseignant/i);
   });
 
+  it('étape de double authentification : transmise à l’écran de connexion, aucune session posée', () => {
+    const onMfaChallenge = vi.fn();
+    const payload = { type: 'mfa', mfaToken: 'mfa-g', stage: 'verify', next: 'teacher' };
+    const h = renderWithHash(`#oauth=${encodePayload(payload)}`, { onMfaChallenge });
+    expect(onMfaChallenge).toHaveBeenCalledWith(payload);
+    expect(apiMocks.saveStoredSession).not.toHaveBeenCalled();
+    expect(h.setSessionUser).not.toHaveBeenCalled();
+    expect(h.onToast).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe('');
+  });
+
   it('toaste un message d’erreur sur payload illisible', () => {
     const h = renderWithHash('#oauth=not-valid-base64!!!');
     expect(h.onToast).toHaveBeenCalled();

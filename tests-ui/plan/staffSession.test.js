@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   consumeStaffOauthHash,
   getStaffToken,
+  saveStaffToken,
   clearStaffToken,
   forgetRefusedStaffToken,
   STAFF_TOKEN_REFUSED_MESSAGE,
@@ -47,6 +48,16 @@ describe('staffSession — retour Google', () => {
     expect(getStaffToken()).toBe('jeton-staff');
     // Le fragment est retiré de l'URL : un jeton n'a rien à faire dans la barre d'adresse.
     expect(window.location.hash).toBe('');
+  });
+
+  it('retour exigeant la double authentification : étape transmise, aucun jeton mémorisé', () => {
+    const payload = { type: 'mfa', mfaToken: 'mfa-staff', stage: 'verify', next: 'staff' };
+    landOn(oauthHash(payload));
+    expect(consumeStaffOauthHash()).toEqual({ status: 'mfa', challenge: payload });
+    expect(getStaffToken()).toBe('');
+    expect(window.location.hash).toBe('');
+    saveStaffToken('jeton-apres-code');
+    expect(getStaffToken()).toBe('jeton-apres-code');
   });
 
   it('accepte encore un retour `teacher` (onglet ouvert avant déploiement)', () => {
