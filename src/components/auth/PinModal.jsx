@@ -62,6 +62,7 @@ function PinModal({ onSuccess, onClose, uiSettings, isN3Affiliated = false }) {
             email.trim(),
           email: data?.email || email.trim(),
           avatar_path: data?.avatar_path || null,
+          default_avatar_url: data?.default_avatar_url || null,
         },
       });
       onSuccess();

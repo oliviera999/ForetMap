@@ -13,16 +13,17 @@ const {
   isGroupInManageScope,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
-const {
-  isGlRoleSlug,
-  isReservedRoleSlug,
-  normalizeRoleSlug,
-} = require('../lib/shared/n3beurRolesCore');
+const { isReservedRoleSlug, normalizeRoleSlug } = require('../lib/shared/n3beurRolesCore');
 const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
+const {
+  checkGroupJoinAllowedById,
+  isGroupConferrableRole,
+} = require('../lib/groupDefaultRolePolicy');
+const { canGrantRank } = require('../lib/rankGuard');
 const {
   assignRole,
   checkRoleGrantAllowed,
@@ -199,6 +200,15 @@ router.post(
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
+    // Le groupe demandé confère son profil par défaut : garde de rang vérifiée **avant** de
+    // créer le compte, plutôt qu'un compte créé puis laissé hors de son groupe.
+    const requestedGroupId = String(req.body?.group_id || '').trim() || null;
+    if (requestedGroupId) {
+      const joinAllowed = await checkGroupJoinAllowedById(req.auth, requestedGroupId);
+      if (!joinAllowed.ok && joinAllowed.status === 403) {
+        return res.status(403).json({ error: joinAllowed.error });
+      }
+    }
 
     if (userType === 'student') {
       const existingByName = await queryOne(
@@ -267,7 +277,7 @@ router.post(
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res.status(403).json({ error: 'Groupe hors périmètre' });
         }
-        const attach = await addUserToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId, { actor: req.auth });
         if (!attach.ok) {
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res
@@ -276,7 +286,7 @@ router.post(
         }
         effective = attach.role;
       } else if (groupId) {
-        const attach = await addUserToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId, { actor: req.auth });
         if (attach.ok) effective = attach.role;
       }
     }
@@ -320,17 +330,15 @@ router.get(
       });
     }
     // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe,
-    // **pour l'acteur courant** ? Tous les profils sauf ceux du jeu G&L ; hors administrateur,
-    // pas de profil de rang supérieur au sien (même règle que `lib/groupDefaultRolePolicy.js`).
-    const actorIsAdmin = normalizeRoleSlug(req.auth?.roleSlug) === 'admin';
-    const actorRank = Number(req.auth?.roleRank || 0);
+    // **pour l'acteur courant** ? Seulement un profil élève (visiteur, palier n3beur — même
+    // règle que `lib/groupDefaultRolePolicy.js`) ; hors administrateur, de rang strictement
+    // inférieur au sien (`lib/rankGuard.js`).
     const rolesPayload = rolesWithProgression
       .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
       .map((r) => ({
         ...r,
         catalog: perms,
-        group_default_allowed:
-          !isGlRoleSlug(r.slug) && (actorIsAdmin || Number(r.rank) <= actorRank),
+        group_default_allowed: isGroupConferrableRole(r) && canGrantRank(req.auth, r.rank),
       }));
     const progressionByValidatedTasksEnabled = await getSettingValue(
       'rbac.progression_by_validated_tasks',
