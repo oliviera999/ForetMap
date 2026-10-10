@@ -94,7 +94,10 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Le seul jeu SQL versionné est
   `sql/biodiv_pedago_seed.sql` (contenu biodiversité/glossaire uniquement, régénéré par
   `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`, qui refuse d'écrire s'il détecte un
-  email ou un hachage bcrypt). Secrets dans `.env` (non versionné).
+  email ou un hachage bcrypt). Secrets dans `.env` (non versionné). Garde-fou
+  `scripts/check-sensitive-files.js` (hook pre-commit + job CI `quality`) : un nouveau jeu SQL
+  avec `INSERT` doit être déclaré dans `DECLARED_SQL_SETS` ; une valeur factice de test
+  (hachage, jeton) se construit à l'exécution, jamais en clair.
 - **Inspiration externe encouragée, avec citation** : libre de s'inspirer de dépôts GitHub connus /
   bibliothèques éprouvées, à condition de **citer la source** (nom + lien) et de respecter les
   licences. Règle détaillée : `.cursor/rules/foretmap-external-inspiration.mdc`.
