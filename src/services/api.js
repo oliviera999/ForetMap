@@ -9,6 +9,10 @@ import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 // préserver la compatibilité des importateurs ForetMap existants.
 import { API, withAppBase } from '../shared/appBase.js';
 import { configureReachabilityProbe } from '../shared/networkStatus.js';
+import {
+  PASSWORD_CHANGE_REQUIRED_CODE,
+  PASSWORD_CHANGE_REQUIRED_EVENT,
+} from '../utils/passwordChangeRequired.js';
 
 export { API, withAppBase };
 
@@ -540,6 +544,12 @@ export async function api(path, method = 'GET', body, requestOptions = {}) {
         ex.body = errBody;
         if (reqId) ex.requestId = reqId;
         if (res.status === 429) ex.rateLimited = true;
+        if (res.status === 403 && errBody.code === PASSWORD_CHANGE_REQUIRED_CODE) {
+          // Mot de passe provisoire ou compromis à changer : la session n'est pas close (elle
+          // sert au changement), mais le shell ouvre « Mon profil » (`usePasswordChangeRequired`).
+          ex.code = PASSWORD_CHANGE_REQUIRED_CODE;
+          window.dispatchEvent(new CustomEvent(PASSWORD_CHANGE_REQUIRED_EVENT));
+        }
         return ex;
       },
     },

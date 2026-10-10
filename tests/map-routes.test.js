@@ -250,15 +250,20 @@ test('garde d’accès du plan : le catalogue des parcours se ferme avec le plan
   await setSetting('security.plan_access_code_hash', hash, { userType: 'admin', userId: 'test' });
   invalidateSettingsCache();
   try {
-    // Sans laissez-passer, le catalogue répond comme la charge du plan.
-    const denied = await request(app).get('/api/map-routes').expect(401);
+    // Sur l'adresse du plan, sans laissez-passer, le catalogue répond comme la charge du plan.
+    // (La surface vient du host — simulé ici par `X-Foretmap-Product`, honoré hors production —
+    // et non plus d'un défaut « plan » appliqué à toute requête sans `?surface=` : dossier
+    // sûreté d'octobre 2026, constat R2.)
+    const onPlan = (req) => req.set('X-Foretmap-Product', 'plan');
+    const denied = await onPlan(request(app).get('/api/map-routes')).expect(401);
     assert.equal(denied.body.access_required, true);
     await request(app).get(`/api/map-routes/${route.body.id}`).expect(401);
 
     // Le laissez-passer obtenu sur le plan ouvre aussi les parcours : c'est la même garde.
     const agent = request.agent(app);
-    await agent.post('/api/plan/access').send({ code: 'OUVRE-TOI' }).expect(200);
-    await agent.get('/api/map-routes').expect(200);
+    await onPlan(agent.post('/api/plan/access')).send({ code: 'OUVRE-TOI' }).expect(200);
+    const opened = await onPlan(agent.get('/api/map-routes')).expect(200);
+    assert.ok(opened.body.some((r) => r.id === route.body.id));
 
     // La vue de gestion reste accessible au professeur : elle ne dépend pas du code visiteur.
     await auth(request(app).get('/api/map-routes/manage')).expect(200);

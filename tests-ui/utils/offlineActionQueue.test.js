@@ -46,6 +46,12 @@ describe('file hors ligne générique (piste D)', () => {
     expect(isDefinitiveRefusal(new Error('réseau'))).toBe(false);
   });
 
+  test('403 PASSWORD_CHANGE_REQUIRED : refus passager, l’écriture attend le changement', () => {
+    const passwordChange = Object.assign(httpError(403), { code: 'PASSWORD_CHANGE_REQUIRED' });
+    expect(isDefinitiveRefusal(passwordChange)).toBe(false);
+    expect(isDefinitiveRefusal(httpError(403))).toBe(true);
+  });
+
   test('ajout sans doublon de clé ; entrées invalides refusées ; file bornée', () => {
     const q = makeQueue(3);
     expect(q.enqueue({ user_id: 'u1', client_uuid: 'cle-000001' })).toBe(true);

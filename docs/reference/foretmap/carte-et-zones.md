@@ -461,6 +461,11 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
 - la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
   **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
   concernés).
+- **la Visite ne peut que restreindre davantage, jamais ouvrir.** Depuis octobre 2026, un
+  lieu réservé sur la carte reste réservé en Visite, même si sa fiche de Visite indique
+  « tout le monde ». Le réglage de la fiche de Visite peut seulement réserver encore plus un
+  lieu ouvert sur la carte. Auparavant, une fiche de Visite laissée sans restriction rendait
+  public un lieu réservé sur la carte.
 
 ### Compléments réservés : un texte par public
 
