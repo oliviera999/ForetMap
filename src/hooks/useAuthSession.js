@@ -152,6 +152,7 @@ export function useAuthSession({
             displayName,
             email: p.email || null,
             avatar_path: p.avatar_path || null,
+            default_avatar_url: p.default_avatar_url || null,
           },
           student: null,
         });
@@ -202,6 +203,7 @@ export function useAuthSession({
             'Utilisateur',
           email: null,
           avatar_path: null,
+          default_avatar_url: null,
         },
         student: null,
       });
@@ -271,6 +273,8 @@ export function useAuthSession({
           displayName: auth.displayName || prev?.displayName || 'Utilisateur',
           email: pick('email', prev),
           avatar_path: pick('avatar_path', prev),
+          // URL signée renouvelée à chaque `/api/auth/me` (avatar par défaut dessiné par le serveur).
+          default_avatar_url: pick('default_avatar_url', prev),
           pseudo: pick('pseudo', prev),
           description: pick('description', prev),
           visit_mascot_catalog_id: pick('visit_mascot_catalog_id', prev),

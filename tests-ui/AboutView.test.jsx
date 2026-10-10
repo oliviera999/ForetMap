@@ -99,3 +99,25 @@ describe('AboutView — rapports d’audit interne', () => {
     expect(alert.textContent).not.toMatch(/Token requis/);
   });
 });
+
+describe('AboutView — crédits des avatars par défaut (licence CC BY 4.0)', () => {
+  test('tout lecteur voit l’attribution : œuvre, autrice, licence et bibliothèque', () => {
+    const { container } = render(<AboutView appVersion="1.0.0" />);
+    const card = screen.getByTestId('about-credits');
+    expect(card.textContent).toMatch(/Adventurer Neutral/);
+    expect(card.textContent).toMatch(/Lisa Wischofsky/);
+    expect(card.textContent).toMatch(/CC BY 4\.0/);
+    expect(card.textContent).toMatch(/DiceBear/);
+    const hrefs = [...card.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('https://www.figma.com/community/file/1184595184137881796');
+    expect(hrefs).toContain('https://creativecommons.org/licenses/by/4.0/deed.fr');
+    for (const a of card.querySelectorAll('a')) {
+      expect(a.getAttribute('target')).toBe('_blank');
+      expect(a.getAttribute('rel')).toMatch(/noopener/);
+    }
+    // Une mention, pas un chargement : aucune image ni script tiers dans la page.
+    for (const img of container.querySelectorAll('img')) {
+      expect(img.getAttribute('src') || '').not.toMatch(/^https?:/);
+    }
+  });
+});

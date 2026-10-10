@@ -7,6 +7,7 @@ import { getAuthToken, withAppBase } from '../services/api';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
 import { privacyNoticeHref } from '../shared/privacy/privacyNoticePath.js';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
+import { DefaultAvatarCredit } from './DefaultAvatarCredit.jsx';
 
 /**
  * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
@@ -232,6 +233,12 @@ function AboutView({
             <ForetMapReferenceDocsPanel />
           </div>
         )}
+
+        {/* Attribution exigée par la licence CC BY 4.0 du dessin des avatars par défaut. */}
+        <div className="fm-panel about-card" data-testid="about-credits">
+          <h3>Crédits graphiques</h3>
+          <DefaultAvatarCredit />
+        </div>
 
         <div className="fm-panel about-card">
           <h3>{aboutHelpTitle}</h3>

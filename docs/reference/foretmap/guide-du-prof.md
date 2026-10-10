@@ -198,7 +198,8 @@ Dans **Biodiversité** :
 | Corriger le nom d'un élève, désactiver un compte | Demander à l'administrateur.                                                                         |
 
 L'élève modifie lui-même certaines informations de son profil (pseudo, avatar) depuis son
-propre compte.
+propre compte. Sans photo, son avatar est dessiné par l'application à partir de son pseudo
+(ou de son nom) : rien n'est envoyé à un service extérieur.
 
 ---
 

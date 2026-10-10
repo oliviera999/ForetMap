@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Avatars par défaut générés localement, plus aucun appel à un service tiers
+
+- **Serveur** : nouvelle route `GET /api/users/:id/default-avatar?exp=…&sig=…` (`routes/users.js`, `lib/defaultAvatar.js`) qui dessine l'avatar d'un compte sans photo avec la bibliothèque [DiceBear](https://github.com/dicebear/dicebear) (MIT), style « Adventurer Neutral » de Lisa Wischofsky ([source](https://www.figma.com/community/file/1184595184137881796), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Paquets `@dicebear/core` et `@dicebear/adventurer-neutral` épinglés en 9.4.3 : **même dessin qu'avant** pour un même compte (vérifié octet pour octet).
+- La graine (pseudo, sinon prénom-nom, sinon identifiant) est recalculée côté serveur : elle ne figure ni dans l'URL ni dans le SVG. URL **signée** comme les photos d'élèves (même durée de vie, clé dérivée propre, signature couvrant aussi la graine), émise par les réponses qui exposent déjà le compte : champ `default_avatar_url` (projection publique des comptes, `GET /api/stats/me/:id`, `GET /api/stats/all`, profil de `GET /api/auth/me`).
+- Cache : `Cache-Control: private, max-age=3600` + `ETag` (304), rendu gardé en mémoire (500 entrées). SVG inerte (`Content-Security-Policy` en `sandbox`, garde-fou contre tout élément actif). `npm run check:runtime` signale l'absence des paquets.
+- Tests : `tests/default-avatar.test.js`. Doc : `docs/API.md`.
+- **Front** : `StudentAvatar` (en-tête, classement, fiche et profil) affiche l'avatar fourni par le serveur (`default_avatar_url`, seule la route de l'application est acceptée) ; repli en cascade photo → avatar par défaut → silhouette neutre embarquée, sans aucune requête. Le navigateur ne construit plus d'URL d'avatar à partir du pseudo ou du nom. « Mon profil » : bouton « Utiliser l'avatar par défaut ». Le champ suit la session (élève et enseignant).
+- **G&L** inchangé : ses avatars par défaut restent chargés comme avant (constructeur déplacé dans `src/gl/utils/glAvatar.js`, à l'identique).
+- Tests : `tests/no-third-party-avatar-guard.test.js` (aucun fichier livré ni aucune CSP ne référence l'API publique DiceBear ; exception G&L nommée), `tests-ui/components/StudentAvatarDefault.test.jsx`, `tests/avatar-shared-utils.test.js`.
+- **Attribution** (licence CC BY 4.0 de l'œuvre) : carte « Crédits graphiques » dans « À propos » et mention courte sous l'avatar dans « Mon profil » (`src/components/DefaultAvatarCredit.jsx`). Test : `tests-ui/AboutView.test.jsx`.
+- **CSP** : aucune variante ne nommait le service d'avatars (couvert jusqu'ici par `img-src https:`), la garde ci-dessus l'interdit désormais ; `https:` reste nécessaire (photos d'espèces externes, avatars par défaut de G&L, politique commune aux produits) — justification dans `lib/csp.js`.
+- Docs : `docs/reference/exploitation/modele-de-securite.md` (avatars dans « rien ne part chez un tiers », point d'attention G&L), `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
 ### Sécurité — Comptes en attente : e-mail retiré de la liste
 
 - `GET /api/groups/pending-visitors` ne renvoie plus l'adresse e-mail des inscrits (champ `email` retiré de la réponse, pour tout acteur) : prénom, nom, pseudo et date d'inscription suffisent au rattachement. L'écran « Comptes en attente » n'affichait pas l'adresse : aucun changement d'interface.
