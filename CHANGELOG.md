@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Couleurs : le centre hors ligne et les effets de carte passent par les jetons
+
+- `src/components/offline/offlineCenter.css` : les 11 couleurs écrites en dur (replis de variables
+  inexistantes ou redondants) passent par les jetons de `color-tokens.css` (`--surface-pedago-soft`,
+  `--tint-warning`, `--line-sage`, encres existantes) ; rendu inchangé à l'œil.
+- Étincelles du zoom sur un lieu et pastilles de parcours : nouveaux jetons `--accent-sparkle`,
+  `--glow-sparkle`, `--shadow-map-badge` ; repli `--line-soft` redondant retiré.
+- Le cliquet `tests/color-tokens-guard.test.js` repasse au vert (hexadécimal : 674 → 662, plafond
+  662 ; `rgb()/rgba()` : 582 → 578, plafond 579). Il était rouge sur `main` depuis le 07/10.
+
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 
 - Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.
