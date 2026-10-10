@@ -112,7 +112,7 @@ async function createAccount(slug, { login = false } = {}) {
       .expect(200);
     return { userId, token: res.body.authToken };
   }
-  const token = signAuthToken({
+  const token = await signAuthToken({
     userType: 'student',
     userId,
     canonicalUserId: userId,
@@ -441,4 +441,23 @@ test('R9 — référents : un anonyme ne reçoit pas leur identité', async () =
     .expect(200);
   const staffRow = staff.body.find((t) => t.id === created1.body.id);
   assert.ok((staffRow.referent_user_ids || []).includes(referent.userId));
+});
+
+test('B03 — dupliquer un compte n’attribue pas un profil que l’acteur ne peut pas attribuer', async () => {
+  // Compte de type élève portant le profil administrateur : la création RBAC laisse choisir
+  // le type, et la duplication recopiait le profil attribué sans la garde de la création.
+  const source = await createAccount('admin');
+  const n3boss = await createAccount('prof');
+  const stamp = Date.now();
+  const res = await request(app)
+    .post(`/api/students/${source.userId}/duplicate`)
+    .set('Authorization', `Bearer ${n3boss.token}`)
+    .send({
+      first_name: 'Copie',
+      last_name: `Surete${stamp}`,
+      password: 'mot-de-passe-copie-2026',
+    });
+  assert.equal(res.status, 403, JSON.stringify(res.body));
+  const leaked = await queryOne('SELECT id FROM users WHERE last_name = ?', [`Surete${stamp}`]);
+  assert.ok(!leaked, 'aucun compte ne doit être créé');
 });

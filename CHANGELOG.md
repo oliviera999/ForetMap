@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
+
+- `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
+- La duplication applique désormais la même garde (`403`). Le reste du constat B03 (attribution d'un profil de rang **égal**, profil par défaut élevé d'un groupe conféré par code de classe) appelle une décision métier, consignée au dossier.
+- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+
 ### Sécurité — Dépendances : plus d'avis critique ni haut en production (dossier sûreté)
 
 - `npm audit fix` (sans `--force`, dans les plages déclarées) : `proxy-addr` 2.0.7 → 2.0.8 (critique), `sharp` 0.35.4 → 0.35.5 (haut), `source-map-js` 1.2.1 → 1.2.2 (haut), `dompurify` 3.4.14 → 3.4.16 (bas), plus des correctifs de dépendances de développement. Le contrôle `npm audit --omit=dev --audit-level=high` de la CI repasse.
