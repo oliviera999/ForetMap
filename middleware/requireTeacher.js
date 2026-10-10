@@ -10,6 +10,7 @@ const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { queryOne } = require('../database');
 const { tokenEpochMatches } = require('../lib/auth/tokenEpoch');
 const { getAuthJwtTtls } = require('../lib/settings');
+const { getMfaEnforcement, sessionLacksRequiredMfa } = require('../lib/auth/mfaPolicy');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
 const logger = require('../lib/logger');
 
@@ -119,12 +120,22 @@ async function hydrateAuthFromTokenClaims(claims) {
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
+    // Prise de contrôle réservée à un administrateur qui a validé son second facteur : une
+    // prise de contrôle ouverte sans lui (avant l'activation de la double authentification)
+    // ne survit pas.
+    if (!claims.actorMfa && (await getMfaEnforcement()) !== 'off') {
+      throw new AuthRevokedError('actor_mfa_required');
+    }
   }
   // État de compte relu à chaque requête : un compte désactivé ou dont le mot de passe a
   // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration ;
   // un compte **supprimé** répond 401 `deleted: true`, que le client sait traiter (CDG-26).
+  // La jointure (clé primaire) lit aussi l'état de la double authentification du compte.
   const account = await queryOne(
-    'SELECT is_active, token_epoch, password_must_reset FROM users WHERE id = ? LIMIT 1',
+    `SELECT u.is_active, u.token_epoch, u.password_must_reset,
+            (t.enabled_at IS NOT NULL) AS totp_enabled
+       FROM users u LEFT JOIN user_totp t ON t.user_id = u.id
+      WHERE u.id = ? LIMIT 1`,
     [String(claims.userId)],
   );
   if (!account) throw new AuthRevokedError('account_deleted');
@@ -136,6 +147,20 @@ async function hydrateAuthFromTokenClaims(claims) {
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId);
   if (!authz) return null;
+  // Double authentification : une session sans second facteur validé d'un compte
+  // administrateur ou n3boss tombe dès que le réglage l'exige (ou que le compte est enrôlé).
+  // En prise de contrôle, c'est l'acteur qui a validé le sien (contrôle plus haut).
+  if (
+    !impersonating &&
+    sessionLacksRequiredMfa({
+      authz,
+      totpEnabled: !!Number(account.totp_enabled || 0),
+      enforcement: await getMfaEnforcement(),
+      mfa: !!claims.mfa,
+    })
+  ) {
+    throw new AuthRevokedError('mfa_required');
+  }
   const groupIds = await getUserAccessibleGroupIds({
     userId: claims.userId,
     roleSlug: authz.roleSlug,
@@ -153,6 +178,8 @@ async function hydrateAuthFromTokenClaims(claims) {
     elevatedPermissions: authz.elevatedPermissions,
     nativePrivileged: !!authz.nativePrivileged,
     groupIds,
+    mfa: !!claims.mfa,
+    mfaMethod: claims.mfa ? claims.mfaMethod || 'totp' : null,
     // Mot de passe provisoire ou compromis, relu en base à chaque requête (jamais dans le
     // jeton) : il est levé dès le changement. Pas en prise de contrôle — l'administrateur
     // qui assiste ce compte ne doit pas être bloqué par le mot de passe d'un autre.
@@ -327,6 +354,7 @@ module.exports = {
   isPasswordChangeAllowedRoute,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
+  resolveAuthOrRespond,
   hydrateOptionalAuthFromTokenClaims,
   authenticate,
   requireAuth,

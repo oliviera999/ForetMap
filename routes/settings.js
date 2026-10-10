@@ -2,6 +2,9 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryOne } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
+const { MFA_ENFORCEMENT_KEY } = require('../lib/auth/mfaPolicy');
+const { isTotpKeyConfigured } = require('../lib/auth/totpCrypto');
+const { isTotpEnabled } = require('../lib/auth/totpStore');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -262,11 +265,14 @@ const ACCESS_CODE_SETTINGS = Object.freeze({
 });
 
 /**
- * Longueur minimale d'un code d'accès. La seule défense contre le tâtonnement est `authLimiter`
- * (plafond par adresse IP) : un code de 4 chiffres tombait en quelques jours depuis une seule
- * adresse. Les codes déjà enregistrés restent valides ; la règle s'applique à l'enregistrement.
+ * Longueur minimale d'un code d'accès : 12 caractères. La seule défense contre le tâtonnement
+ * est `authLimiter` (plafond par adresse IP) ; 12 caractères tirés au hasard (le générateur de
+ * l'écran de réglages, `src/utils/accessCodeGenerator.js`) mettent le code hors de portée.
+ * Les codes déjà enregistrés restent valides jusqu'à leur remplacement : la règle s'applique à
+ * l'enregistrement, et un code n'est connu du serveur que par son empreinte bcrypt — sa
+ * longueur ne peut pas être relue.
  */
-const ACCESS_CODE_MIN_LENGTH = 8;
+const ACCESS_CODE_MIN_LENGTH = 12;
 
 function accessCodeHandler(target) {
   const { key, label } = ACCESS_CODE_SETTINGS[target];
@@ -339,6 +345,25 @@ router.put(
       });
     }
     const value = req.body?.value;
+    // Double authentification obligatoire : jamais sans clé de chiffrement (personne ne
+    // pourrait s'enrôler), et seulement par un administrateur qui a lui-même activé et validé
+    // son second facteur — sinon il s'enfermerait dehors avec tous les autres.
+    if (key === MFA_ENFORCEMENT_KEY && String(value ?? '').trim() === 'required') {
+      if (!isTotpKeyConfigured()) {
+        return res.status(400).json({
+          error:
+            'Clé de chiffrement TOTP_ENCRYPTION_KEY absente ou invalide : la double authentification ne peut pas être rendue obligatoire.',
+          code: 'TOTP_KEY_MISSING',
+        });
+      }
+      if (req.auth?.impersonating || !req.auth?.mfa || !(await isTotpEnabled(req.auth?.userId))) {
+        return res.status(403).json({
+          error:
+            'Activez d’abord votre propre double authentification et reconnectez-vous avec votre code.',
+          code: 'MFA_SESSION_REQUIRED',
+        });
+      }
+    }
     // Couleur du halo e-nov : un `#rrggbb` ou rien — une valeur quelconque serait injectée
     // telle quelle dans le style du plan.
     if (

@@ -151,14 +151,21 @@ test('attribution unitaire : gardes soi-même / rang / admin / G&L', async () =>
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ role_id: glMj.id })
     .expect(400);
-  // Un n3boss peut attribuer un profil de rang ≤ au sien.
-  const ok = await request(app)
+  // Un n3boss n'attribue qu'un profil de rang strictement inférieur au sien : pas `prof`.
+  await request(app)
     .put(`/api/rbac/users/teacher/${cible.id}/role`)
     .set('Authorization', `Bearer ${n3boss.token}`)
     .send({ role_id: prof.id })
+    .expect(403);
+  assert.strictEqual(await effectiveSlug('teacher', cible.id), 'prof_classe');
+  const personnel = await roleBySlug('personnel');
+  const ok = await request(app)
+    .put(`/api/rbac/users/teacher/${cible.id}/role`)
+    .set('Authorization', `Bearer ${n3boss.token}`)
+    .send({ role_id: personnel.id })
     .expect(200);
-  assert.strictEqual(ok.body.effective.roleSlug, 'prof');
-  assert.strictEqual(await effectiveSlug('teacher', cible.id), 'prof');
+  assert.strictEqual(ok.body.effective.roleSlug, 'personnel');
+  assert.strictEqual(await effectiveSlug('teacher', cible.id), 'personnel');
   // Un n3boss ne touche pas un compte admin, même pour lui donner un profil plus bas.
   await setAssignedRole(cible.id, admin.id);
   await request(app)

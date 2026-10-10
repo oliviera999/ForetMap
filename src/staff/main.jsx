@@ -26,6 +26,7 @@ import './styles/staff-plan.css';
 import { AppPlan } from '../plan/AppPlan.jsx';
 import { STAFF_PLAN_VARIANT } from '../plan/utils/planVariants.js';
 import { consumeStaffOauthHash, staffOauthErrorMessage } from '../plan/staffSession.js';
+import { StaffMfaGate } from '../plan/StaffMfaGate.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
@@ -57,7 +58,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <PrivacyNoticePage product="staff" />
     ) : (
       <AppDialogsProvider>
-        <AppPlan variant={STAFF_PLAN_VARIANT} />
+        {/* Compte administrateur ou n3boss : double authentification avant le plan. */}
+        <StaffMfaGate challenge={oauth.status === 'mfa' ? oauth.challenge : null}>
+          <AppPlan variant={STAFF_PLAN_VARIANT} />
+        </StaffMfaGate>
       </AppDialogsProvider>
     )}
   </ErrorBoundary>,

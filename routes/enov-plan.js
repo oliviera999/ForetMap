@@ -29,6 +29,7 @@ const {
   isEnovPlanAccessGranted,
 } = require('../lib/planAccess');
 const { authLimiter } = require('../lib/rateLimit');
+const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue } = require('../lib/settings');
@@ -85,10 +86,23 @@ router.post(
     const hash = await readAccessCodeHash();
     if (!hash) return res.json({ ok: true, required: false });
     const code = String(req.body?.code || '').trim();
-    if (!code) return res.status(400).json({ error: 'Code requis' });
+    if (!code) {
+      await logCodeAccessAttempt(req, ENOV_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+      });
+      return res.status(400).json({ error: 'Code requis' });
+    }
     const valid = await bcrypt.compare(code, hash).catch(() => false);
-    if (!valid) return res.status(401).json({ error: 'Code incorrect' });
-    grantEnovPlanAccess(res, hash);
+    if (!valid) {
+      await logCodeAccessAttempt(req, ENOV_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+      });
+      return res.status(401).json({ error: 'Code incorrect' });
+    }
+    await grantEnovPlanAccess(res, hash);
+    await logCodeAccessAttempt(req, ENOV_SURFACE, { granted: true });
     res.json({ ok: true, required: true });
   }),
 );
@@ -125,8 +139,15 @@ router.get(
     if (settings.access_mode === 'code' && inlineCode) {
       const hash = await readAccessCodeHash();
       if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        grantEnovPlanAccess(res, hash);
+        await grantEnovPlanAccess(res, hash);
         grantedInline = true;
+        await logCodeAccessAttempt(req, ENOV_SURFACE, { granted: true, via: 'link' });
+      } else if (hash) {
+        await logCodeAccessAttempt(req, ENOV_SURFACE, {
+          granted: false,
+          reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+          via: 'link',
+        });
       }
     }
     const granted =

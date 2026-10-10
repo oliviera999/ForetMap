@@ -138,6 +138,28 @@ export function isN3beurTierSlug(slug, rank) {
 }
 
 /**
+ * Profil **élève** : profil d'un compte élève sans aucun rôle d'encadrement — `visiteur`
+ * (profil par défaut d'un élève) et les paliers n3beur (`eleve_*`, profil sur mesure de rang
+ * strictement inférieur à l'encadrement). Ni l'encadrement (`admin`, `prof`, `prof_classe`), ni
+ * `personnel` (compte enseignant), ni les profils du jeu (`gl_*`).
+ *
+ * C'est la seule famille de profils qu'un **groupe** peut conférer (profil par défaut) : un
+ * code de classe ou un rattachement ne doit jamais transmettre un profil d'encadrement. Côté
+ * serveur, `lib/groupDefaultRolePolicy.js` y ajoute une exclusion qui demande la base : un
+ * profil sur mesure qui ouvre l'interface n3boss (`teacher.access`) n'est pas un profil élève.
+ *
+ * @param {{ slug?: string, rank?: number }|string|null} role ligne `roles` ou slug seul
+ */
+export function isStudentProfileRole(role) {
+  if (!role) return false;
+  const raw = typeof role === 'string' ? { slug: role } : role;
+  const s = normalizeRoleSlug(raw.slug);
+  if (!s) return false;
+  if (s === 'visiteur') return true;
+  return isN3beurTierSlug(s, raw.rank);
+}
+
+/**
  * Profil par défaut d'un compte qui n'en a aucun : le moins puissant de son type. Un
  * enseignant créé sans profil (ou dont le profil a été retiré) est **prof de classe**, jamais
  * n3boss ; un élève est visiteur (docs/AUDIT_COMPTES_DROITS_GROUPES_2026-09-18.md, CDG-40/46).

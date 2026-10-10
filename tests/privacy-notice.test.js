@@ -36,6 +36,12 @@ test('notice : les durées de conservation affichées sont celles du code', asyn
   assert.equal(R.securityDays, purge.DEFAULT_RETENTION_DAYS);
   assert.equal(R.historyDays, purge.DEFAULT_HISTORY_RETENTION_DAYS);
   assert.equal(R.activityDays, purge.DEFAULT_ACTIVITY_RETENTION_DAYS);
+  assert.equal(R.usageCountersDays, purge.DEFAULT_VISITS_RETENTION_DAYS);
+  assert.equal(R.ipFullDays, purge.DEFAULT_IP_RETENTION_DAYS);
+  assert.equal(
+    R.accountMonthsAfterDeparture,
+    require('../lib/retention/policy').ACCOUNT_RETENTION_MONTHS,
+  );
   assert.equal(R.sessionMinutes * 60, IDENTITY_SETTINGS['security.jwt_ttl_base_seconds'].default);
   assert.equal(
     R.sessionMaxHours * 3600,
@@ -52,6 +58,15 @@ test('notice : les durées de conservation affichées sont celles du code', asyn
     R.staffPlanAccessDays * 86400,
     readConst('lib/staffPlanAccess.js', 'STAFF_PLAN_ACCESS_TTL_SECONDS'),
   );
+  // Durées des laissez-passer réglables : défaut et plafond du registre (`lib/settings/plan.js`).
+  const { PLAN_SETTINGS } = require('../lib/settings/plan');
+  for (const key of ['security.plan_access_pass_days', 'security.enov_plan_access_pass_days']) {
+    assert.equal(PLAN_SETTINGS[key].default, R.planAccessDays, key);
+    assert.equal(PLAN_SETTINGS[key].max, R.planAccessMaxDays, key);
+  }
+  const staffDays = PLAN_SETTINGS['security.staff_plan_access_pass_days'];
+  assert.equal(staffDays.default, R.staffPlanAccessDays);
+  assert.equal(staffDays.max, R.staffPlanAccessMaxDays);
 });
 
 test('réglage privacy.data_contact : public, texte borné, vide par défaut', async () => {

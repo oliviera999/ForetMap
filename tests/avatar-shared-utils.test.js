@@ -20,9 +20,27 @@ describe('avatar shared utils', () => {
     assert.equal(avatarShared.normalizeAvatarPath('   '), null);
   });
 
-  it('construit une URL Dicebear stable', () => {
-    const url = avatarShared.buildDicebearAvatarUrl('eleve-42');
-    assert.ok(url.includes('dicebear.com/9.x/adventurer-neutral/svg'));
-    assert.ok(url.includes('seed=eleve-42'));
+  it('le module partagé ne construit plus d’URL vers un service d’avatars tiers', () => {
+    // Avatars par défaut ForetMap : dessinés par le serveur (`GET /api/users/:id/default-avatar`).
+    assert.equal(avatarShared.buildDicebearAvatarUrl, undefined);
+    assert.equal(
+      avatarShared.buildUploadedAvatarUrl('students/1/a.png'),
+      '/uploads/students/1/a.png',
+    );
+    assert.equal(avatarShared.buildUploadedAvatarUrl(null), null);
+  });
+
+  it('G&L (hors périmètre) garde son avatar par défaut à l’identique', async () => {
+    const { getGlAvatarUrl } = await import(
+      pathToFileURL(join(__dirname, '../src/gl/utils/glAvatar.js')).href
+    );
+    assert.equal(
+      getGlAvatarUrl({ pseudo: 'eleve-42' }),
+      'https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=eleve-42&radius=50',
+    );
+    assert.equal(
+      getGlAvatarUrl({ avatar_path: 'gl_players/1/a.png' }),
+      '/uploads/gl_players/1/a.png',
+    );
   });
 });

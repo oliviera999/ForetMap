@@ -610,9 +610,11 @@ test('POST /api/students/import : un n3boss ne peut pas modifier un administrate
     },
     false,
   );
+  // Profil de rang inférieur au n3boss (attribuable par lui) : c'est la garde « compte
+  // administrateur » qui doit refuser la ligne, pas la garde de rang du profil demandé.
   const csv = [
     IMPORT_CSV_HEADER,
-    `prof;Cible;Admin-${unique};NouveauMdp12!;;hacked_${unique};hacked_${unique}@example.com;Prise de controle`,
+    `prof_classe;Cible;Admin-${unique};NouveauMdp12!;;hacked_${unique};hacked_${unique}@example.com;Prise de controle`,
   ].join('\n');
   const res = await request(app)
     .post('/api/students/import')

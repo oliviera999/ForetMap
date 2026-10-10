@@ -25,6 +25,9 @@ import {
  * @param {(claims: object | null) => void} handlers.setAuthClaims
  * @param {(isTeacher: boolean) => void} handlers.setIsTeacher
  * @param {(student: object | null) => void} handlers.setStudent
+ * @param {(challenge: object) => void} [handlers.onMfaChallenge] Étape « second facteur »
+ *   (double authentification d'un compte administrateur ou n3boss) : aucune session n'est
+ *   posée, l'écran de connexion prend le relais avec le jeton intermédiaire.
  */
 export function useOauthRedirectSession({
   onToast,
@@ -33,6 +36,7 @@ export function useOauthRedirectSession({
   setAuthClaims,
   setIsTeacher,
   setStudent,
+  onMfaChallenge,
 }) {
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -56,6 +60,11 @@ export function useOauthRedirectSession({
     }
     try {
       const payload = decodeBase64UrlJson(oauthPayload);
+      if (payload?.type === 'mfa' && payload?.mfaToken) {
+        if (typeof onMfaChallenge === 'function') onMfaChallenge(payload);
+        else reportFeedback('Double authentification requise : reconnectez-vous.');
+        return;
+      }
       if (payload?.type === 'teacher' && payload?.token) {
         saveStoredSession({
           token: payload.token,
@@ -85,6 +94,7 @@ export function useOauthRedirectSession({
               'Utilisateur',
             email: nextStudent?.email || null,
             avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
+            default_avatar_url: nextStudent?.default_avatar_url ?? null,
           },
           student: nextStudent,
         });

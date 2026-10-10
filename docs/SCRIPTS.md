@@ -237,6 +237,7 @@ Toujours le dry-run d’abord.
 | Comptes e2e / clones de tâches récurrentes | `npm run db:cleanup:dev:dry`                       | `npm run db:cleanup:dev`                                |
 | Fichiers `uploads/` orphelins              | `npm run db:uploads:reconcile:dry`                 | `npm run db:uploads:reconcile`                          |
 | Journaux trop vieux (IP, audit, events GL) | `node scripts/purge-audit-logs.js`                 | `npm run logs:purge -- --apply`                         |
+| Durées de conservation (comptes, journaux) | `npm run retention:purge`                          | `RETENTION_PURGE_APPLY=1` + `--apply` (ligne 5)         |
 | Bulles d’aide figées (Foret / GL)          | `npm run help:compact:dry` / `gl:help:compact:dry` | même commande sans `:dry`                               |
 | Tutoriels HTML identiques                  | `node scripts/merge-duplicate-tutorials.js`        | `npm run tutorials:dedup -- --apply`                    |
 | Tables `collective_*` obsolètes            | `npm run db:collective:cleanup:audit:dry`          | `npm run db:collective:cleanup:audit`                   |
@@ -283,6 +284,7 @@ modifies la validation pack **sans** rebuild.
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
 | `npm run db:import:dump`                 | Recrée la base cible (DROP).                                                          |
 | `npm run logs:purge -- --apply`          | Efface des journaux (dont IP d’élèves).                                               |
+| `npm run retention:purge -- --apply`     | Avec `RETENTION_PURGE_APPLY=1` : supprime des comptes d’élèves et de personnels.      |
 | `npm run db:uploads:reconcile`           | Supprime des fichiers disque.                                                         |
 | `npm run db:migrate:images:clear`        | Vide `image_data` après bascule disque.                                               |
 | `npm run tutorials:dedup -- --apply`     | Supprime des lignes pédagogiques (contenu identique, métadonnées du doublon perdues). |

@@ -498,6 +498,14 @@ Un lieu n'a qu'**un seul jeu** de compléments : celui qu'on modifie depuis la f
 visite est le même que celui de la fiche de carte. Copier un lieu de la carte vers la visite
 ne recopie donc plus rien, et ne peut plus placer un complément dans un texte public.
 
+**Qui gère les compléments.** Lire tous les compléments d'un lieu, ou les modifier, demande
+la permission qui gère ce lieu sur la carte : « Gestion zones » pour une zone, « Gestion
+repères » pour un repère. La permission « Gestion visite » seule — utile pour confier les
+textes et photos de la visite guidée à un profil sur mesure — ne la remplace pas : un tel
+profil ne lit que les compléments qui lui sont destinés (par son rôle ou ses groupes), comme
+tout lecteur, et ne peut pas les modifier. Les profils livrés (administrateur, n3boss) ont
+les trois permissions : rien ne change pour eux.
+
 ### Restreindre à une classe ou à un club (groupes)
 
 À côté des rôles, chaque réglage d'audience propose les **groupes** : classes, clubs,

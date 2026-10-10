@@ -1,7 +1,14 @@
 import { useEffect } from 'react';
 
 import { getAuthClaims, getStoredSession } from '../services/api';
-import { ACCOUNT_DELETED_MESSAGE, SESSION_EXPIRED_MESSAGE } from './useAuthSession';
+import {
+  ACCOUNT_DELETED_MESSAGE,
+  MFA_REQUIRED_MESSAGE,
+  SESSION_EXPIRED_MESSAGE,
+} from './useAuthSession';
+
+/** Raisons de révocation liées à la double authentification (`middleware/requireTeacher.js`). */
+const MFA_REVOCATION_REASONS = new Set(['mfa_required', 'actor_mfa_required']);
 
 /**
  * Synchronisation des états de session React depuis les évènements `window`
@@ -43,7 +50,11 @@ export function useSessionWindowSync({
 }) {
   useEffect(() => {
     const onExpired = (event) => {
-      const message = event?.detail?.deleted ? ACCOUNT_DELETED_MESSAGE : SESSION_EXPIRED_MESSAGE;
+      const message = event?.detail?.deleted
+        ? ACCOUNT_DELETED_MESSAGE
+        : MFA_REVOCATION_REASONS.has(event?.detail?.reason)
+          ? MFA_REQUIRED_MESSAGE
+          : SESSION_EXPIRED_MESSAGE;
       setIsTeacher(false);
       if (typeof forceLogout === 'function') {
         forceLogout({ message });

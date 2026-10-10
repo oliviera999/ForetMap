@@ -15,6 +15,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Un seul écran de connexion** pour tout le monde : identifiant (e-mail ou pseudo) +
   mot de passe, ou compte Google. Le système reconnaît automatiquement s'il s'agit d'un
   élève, d'un professeur ou d'un administrateur.
+- **Double authentification des comptes admin et n3boss** : après le mot de passe (ou Google,
+  ou l'arrivée depuis un cours Moodle), ces comptes donnent un code à 6 chiffres affiché par
+  une application sur leur téléphone. Les élèves, personnels et profs de classe ne sont pas
+  concernés. Activation, codes de secours, téléphone perdu et réglage :
+  [double-authentification.md](double-authentification.md).
 - **Bas de l'écran de connexion** : sous le lien « Vos données » s'affichent l'auteur et
   le ou les contributeurs du projet, puis un message libre facultatif. Un administrateur
   les modifie dans **Réglages → Accueil & modules → Contenus du site** (« Auteur »,
@@ -74,6 +79,15 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   Un compte **Google sans mot de passe** doit d'abord s'en donner un (ou demander le
   changement à un administrateur) ; pendant une **prise de contrôle**, l'e-mail ne se change
   pas.
+- **Avatar par défaut** : un compte sans photo reçoit un avatar dessiné à partir de son
+  pseudo (à défaut, de son prénom et de son nom). Depuis octobre 2026, ce dessin est
+  **produit par le serveur de l'application** : plus aucun service extérieur n'est contacté
+  et le nom n'apparaît dans aucune adresse. Le dessin est le même qu'avant ; changer de pseudo
+  le change. Dans « Mon profil », **Utiliser l'avatar par défaut** retire la photo déposée.
+  Les avatars ne sont visibles que là où le compte l'était déjà (en-tête, fiche, classement
+  de l'encadrement). Le style « Adventurer Neutral » est une œuvre de Lisa Wischofsky,
+  adaptée par DiceBear, sous licence CC BY 4.0 : l'attribution figure dans « Mon profil » et
+  dans **À propos → Crédits graphiques**.
 - **Changer son mot de passe** : depuis « Mon profil », élève comme enseignant, en redonnant
   le mot de passe actuel (12 caractères minimum pour un enseignant). Les autres appareils
   sont déconnectés. Un compte **Google** sans mot de passe peut se donner un mot de passe
@@ -189,7 +203,8 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
   interne** du site, eux, ne s'affichent que pour les comptes ayant le droit de lecture
   des réglages — administrateurs en pratique — et s'ouvrent directement dans la page.
   Ils recensent des faiblesses techniques connues : ce n'est pas une lecture destinée
-  aux élèves.
+  aux élèves. La carte **Crédits graphiques** y donne l'attribution du dessin des avatars
+  par défaut.
 
 ### Quel profil fait foi ? — « le plus élevé l'emporte »
 
@@ -213,6 +228,9 @@ rang égal, le profil attribué. Concrètement :
   son profil attribué compte. Sans cette règle, un prof de classe membre d'une classe dont
   le profil par défaut était « n3boss » devenait n3boss — avec la vue sur tout
   l'établissement.
+- **Un groupe ne confère qu'un profil élève** (visiteur ou palier n3beur), à ses élèves :
+  rattachement, code de classe ou synchronisation ne transmettent jamais un profil
+  d'encadrement ni « Personnel ».
 - un enseignant **sans profil** reçoit **« Prof de classe »** (jamais n3boss) ; un élève
   sans profil est **visiteur**.
 
@@ -225,9 +243,12 @@ Le **n3boss** est le rôle enseignant « fort » de la forêt (pilotage pédagog
 L'**administrateur** est au-dessus : réglages d'établissement, création et réglage des
 profils de droits, secrets, prise de contrôle temporaire sur un compte. Un n3boss ne
 peut pas se promouvoir administrateur, ni créer ou modifier un compte administrateur.
+Depuis octobre 2026, il ne crée pas non plus d'**autre n3boss** : hors administrateur, on
+n'attribue qu'un profil de rang **strictement inférieur** au sien (un n3boss peut créer un prof
+de classe, un personnel ou un élève). Seul l'administrateur nomme un n3boss.
 
 Aujourd'hui, le n3boss par défaut dispose déjà de pouvoirs sensibles qu'il faut avoir
-en tête avant de distribuer le rôle : créer des comptes professeurs, supprimer des
+en tête avant de distribuer le rôle : créer des comptes prof de classe, supprimer des
 comptes élèves, lire le journal d'audit. Ce n'est pas « toute la gestion pédagogique »
 au sens anodin du terme. Le **journal de sécurité** (adresses IP, navigateur, export
 incident) reste réservé à l'administrateur.
@@ -366,11 +387,25 @@ Les groupes structurent la vie pédagogique :
   « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en élève dès son
   rattachement, selon la règle « le plus élevé l'emporte ». Changer ce profil réaligne
   aussitôt tous les membres. Ce réglage est réservé à l'**administrateur et au n3boss** ;
-  la liste propose **tous les profils** de ForetMap (visiteur, personnel, paliers n3beur,
-  prof de classe, n3boss, administrateur, profils sur mesure), sauf ceux du jeu Gnomes &
-  Licornes. Hors administrateur, on ne pose pas sur un groupe un profil de rang supérieur
-  au sien — un n3boss ne peut donc pas conférer « Administrateur ». Un groupe laissé sur
-  « Visiteur » n'a **aucun effet** sur ses membres.
+  depuis octobre 2026, la liste ne propose que les **profils élèves** : visiteur, paliers
+  n3beur et paliers sur mesure. Un groupe ne confère **jamais** un profil d'encadrement
+  (n3boss, administrateur, prof de classe), ni « Personnel », ni un profil du jeu Gnomes &
+  Licornes — pas même posé par un administrateur, par un fichier d'import de groupes ou par
+  la synchronisation Moodle. Un groupe qui en portait un avant cette date le garde affiché,
+  mais **ne le confère plus à personne** : le panneau de réglages du groupe le signale
+  (« n'est pas un profil élève : il n'est conféré à aucun membre »), et les membres qui
+  l'avaient reçu retrouvent leur propre profil à leur prochaine connexion, ou dès que le
+  profil par défaut du groupe est changé. Pour donner un profil d'encadrement, on l'**attribue au compte**
+  (Profils & utilisateurs → Comptes). Hors administrateur, on ne pose sur un groupe qu'un
+  profil de rang **strictement inférieur** au sien. Un groupe laissé sur « Visiteur » n'a
+  **aucun effet** sur ses membres.
+  - **Rattacher, c'est conférer** : ajouter un compte à un groupe (un par un, en lot, par la
+    liste des membres, à la création ou à la duplication d'un compte, à l'import) et générer
+    son **code de classe** suivent la même règle. Hors administrateur, si le profil par défaut
+    du groupe est de rang égal ou supérieur au sien, le rattachement est refusé (« rattachement
+    réservé à un profil plus élevé »). Avec les profils livrés, un prof de classe rattache
+    librement à une classe « n3beur novice / avancé / chevronné » ; la règle ne joue que pour un
+    profil sur mesure de rang élevé.
 - **Imposer ce profil** : par défaut, le rôle du groupe n'est qu'un **plancher** — les tâches
   validées font ensuite monter chacun, et un palier déjà acquis n'est jamais repris. La case
   **« Imposer ce profil »** (dans le panneau de réglages du groupe, juste sous le choix du
@@ -409,7 +444,9 @@ Les groupes structurent la vie pédagogique :
   code devient alors invalide) ou supprimable.
 - **Comptes en attente** : le sous-onglet Groupes affiche la liste des visiteurs
   inscrits en autonomie, avec un rattachement unitaire ou **en lot** vers le groupe
-  choisi (le rôle suit automatiquement).
+  choisi (le rôle suit automatiquement). La liste donne le prénom, le nom et le pseudo de
+  chaque inscrit, **jamais son adresse e-mail** (retirée en octobre 2026 : elle ne sert pas
+  au rattachement).
 - **Groupes venus de Moodle** : à la rentrée, l'administrateur peut créer et tenir à jour
   les groupes-classes depuis les cohortes Moodle. Ces groupes se comportent comme les
   autres (rôle par défaut, périmètre, sous-groupes). Moodle est maître des cohortes ; un
@@ -503,8 +540,9 @@ sous-onglet consulté qui est rouvert.
     ou retirer un tel profil, demande une confirmation explicite — seul ou en lot. Les
     profils élèves s'appliquent directement, comme avant. Les mêmes gardes s'appliquent
     partout (ligne, lot, création, import) : personne ne modifie **son propre** profil,
-    seul un administrateur attribue ou retire `administrateur`, un n3boss n'attribue pas
-    un profil de rang supérieur au sien, et le **dernier administrateur actif** ne peut
+    seul un administrateur attribue ou retire `administrateur`, hors administrateur on
+    n'attribue qu'un profil de rang **strictement inférieur** au sien (un n3boss ne nomme
+    pas d'autre n3boss, y compris en dupliquant un compte), et le **dernier administrateur actif** ne peut
     être ni rétrogradé, ni désactivé, ni supprimé. Hors administrateur, on ne change pas
     non plus le profil d'un compte **déjà** de rang égal ou supérieur au sien (un délégué
     ne rétrograde pas un supérieur), et on ne modifie pas les permissions d'un profil de
@@ -529,7 +567,9 @@ sous-onglet consulté qui est rouvert.
   un (sous-onglet Comptes) ou importer une liste (sous-onglet Imports & exports, rentrée).
   La **création unitaire** et le fichier d'import (CSV ou tableur) permettent de
   choisir **chaque profil** : visiteur, personnel, n3beur novice / avancé / chevronné, prof de
-  classe, n3boss, administrateur. Dans le fichier, la colonne **Rôle** accepte aussi bien
+  classe, n3boss, administrateur — dans la limite de son rang : « n3boss » et
+  « Administrateur » ne sont attribuables que par un administrateur (une ligne d'import qui
+  les demande, venue d'un n3boss, est refusée). Dans le fichier, la colonne **Rôle** accepte aussi bien
   le **nom affiché** du profil — celui du tableau ci-dessus, y compris si un
   administrateur l'a renommé — que son identifiant technique (`eleve_novice`,
   `prof_classe`…) ou un mot courant (tuteur, enseignant, staff, novice…) ; majuscules,
@@ -586,8 +626,8 @@ sous-onglet consulté qui est rouvert.
   pour le reste, message d'info). Les nouveaux sont créés. Pour un **prof de classe**, la
   création / l'import de comptes ne sont disponibles **que si** un administrateur
   a ouvert ces droits sur son profil. Seul un administrateur peut importer un
-  compte administrateur ; seuls n3boss et administrateur peuvent importer un
-  compte enseignant.
+  compte administrateur ou n3boss ; seuls n3boss et administrateur peuvent importer un
+  compte prof de classe.
 - **Supprimer** : la suppression d'un élève (sous-onglet Comptes) retire aussi ses
   affectations et son historique de tâches, et recalcule les statuts des tâches
   concernées. Les **photos** qu'il avait jointes à ses rapports de tâche, à ses messages de
@@ -596,22 +636,32 @@ sous-onglet consulté qui est rouvert.
   traces techniques sont effacées aussi : journal d'activité, adresse IP et navigateur de
   ses connexions ; le journal d'audit ne garde de la suppression que l'**identifiant** du
   compte, jamais son nom. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
-  prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
+  prof de classe. Depuis octobre 2026, on ne supprime ainsi qu'un compte de **rang inférieur**
+  au sien : un n3boss ne supprime ni un autre n3boss ni un administrateur, même rangé parmi
+  les élèves, et un administrateur ne supprime pas un autre administrateur par cette voie. Le
+  rang retenu est le plus élevé entre le profil du compte et celui qui lui est attribué (un
+  groupe qui impose « Visiteur » ne le fait pas passer pour un simple élève). Le **dernier
+  administrateur actif** ne peut jamais être supprimé. La suppression d'un **enseignant** se fait depuis sa fiche, par un
   **administrateur seulement** (jamais sur son propre compte, jamais le dernier
   administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est
   **conservé**, l'auteur apparaissant comme « compte supprimé ». Sa **photo de profil** est
   effacée du serveur, et le journal d'audit n'en garde que l'identifiant (ni nom, ni
   e-mail).
-- **Comptes inactifs en fin d'année** : un administrateur technique peut supprimer, par un
-  script lancé à la main en juillet, les comptes élèves sans activité depuis 13 mois (même
-  effacement que ci-dessus). La liste est d'abord affichée sans rien supprimer ; rien n'est
-  automatique.
+- **Comptes des élèves et des personnels partis** : une **purge planifiée** du serveur
+  supprime, avec le même effacement que ci-dessus, le compte d'un élève un an après la fin de
+  sa scolarité (compte désactivé depuis un an, ou aucune activité pendant toute une année
+  scolaire) et celui d'un personnel un an après sa désactivation. Jamais un compte qui a servi
+  dans les 12 derniers mois, jamais un administrateur. Elle ne fait que compter (simulation)
+  tant que l'établissement ne l'a pas activée. Détail :
+  [Durées de conservation et purge planifiée](../exploitation/durees-de-conservation.md).
 - **Désactiver / réactiver** : depuis la fiche, un compte peut être **désactivé** sans
   être supprimé — l'élève ou l'enseignant ne peut plus se connecter, sa session en cours
   est coupée, et tout son historique reste en place ; **réactiver** rouvre l'accès.
   On ne désactive pas son propre compte, ni un compte de rang égal ou supérieur au sien
   (hors administrateur), ni le dernier administrateur actif. Un compte désactivé est
-  signalé dans la liste et sur sa fiche.
+  signalé dans la liste et sur sa fiche. **Désactiver vaut déclaration de départ** :
+  l'application note la date, et la purge planifiée (si elle est activée) supprime le compte
+  **un an plus tard** ; réactiver efface cette date.
 - **Fiche d'un compte** : le bouton « Modifier » ouvre la fiche de la personne
   (« Fiche de … »), organisée en trois parties.
   - **Droits & groupes** : son **profil attribué**, son **profil effectif** avec son

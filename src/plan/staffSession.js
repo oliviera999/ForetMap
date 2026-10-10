@@ -33,6 +33,12 @@ export function getStaffToken() {
   return String(safeLocalStorageGetItem(TOKEN_STORAGE_KEY, '') || '');
 }
 
+/** Jeton remis après l'étape de double authentification (`/api/auth/totp/verify`). */
+export function saveStaffToken(token) {
+  const value = String(token || '').trim();
+  if (value) safeLocalStorageSetItem(TOKEN_STORAGE_KEY, value);
+}
+
 export function clearStaffToken() {
   safeLocalStorageRemoveItem(TOKEN_STORAGE_KEY);
 }
@@ -87,6 +93,11 @@ export function consumeStaffOauthHash() {
   }
   try {
     const payload = decodeOAuthPayload(payloadRaw);
+    // Compte administrateur ou n3boss : pas encore de jeton, mais l'étape du second facteur
+    // (double authentification), affichée avant le plan (`src/staff/main.jsx`).
+    if (payload?.type === 'mfa' && payload?.mfaToken) {
+      return { status: 'mfa', challenge: payload };
+    }
     // `staff` est le retour du mode dédié à ce produit (`/api/auth/google/start?mode=staff`) :
     // il porte un jeton, que le compte soit enseignant ou non — un « Personnel » est un compte
     // de type élève. `teacher` reste accepté pour un retour émis par une version antérieure

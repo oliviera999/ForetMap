@@ -43,12 +43,13 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Transverse
 
-| Document                                                                 | Contenu                                                                                                                                       | Statut    |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [INCOHERENCES.md](INCOHERENCES.md)                                       | Registre d'arbitrage : incohérences relevées, options de correction                                                                           | ✅ Rédigé |
-| [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md) | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage | ✅ Rédigé |
-| [exploitation/modele-de-securite.md](exploitation/modele-de-securite.md) | Qui voit quoi, sur quelle adresse : les six publics, les trois règles invariantes, ce que vous réglez vous-même                               | ✅ Rédigé |
-| [exploitation/vos-donnees.md](exploitation/vos-donnees.md)               | Page « Vos données » (information RGPD) des cinq applications : contenu, liens, contact DPO à renseigner, limites                             | ✅ Rédigé |
+| Document                                                                         | Contenu                                                                                                                                        | Statut    |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [INCOHERENCES.md](INCOHERENCES.md)                                               | Registre d'arbitrage : incohérences relevées, options de correction                                                                            | ✅ Rédigé |
+| [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md)         | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage  | ✅ Rédigé |
+| [exploitation/modele-de-securite.md](exploitation/modele-de-securite.md)         | Qui voit quoi, sur quelle adresse : les six publics, les trois règles invariantes, ce que vous réglez vous-même                                | ✅ Rédigé |
+| [exploitation/vos-donnees.md](exploitation/vos-donnees.md)                       | Page « Vos données » (information RGPD) des cinq applications : contenu, liens, contact DPO à renseigner, limites                              | ✅ Rédigé |
+| [exploitation/durees-de-conservation.md](exploitation/durees-de-conservation.md) | Durées de conservation (comptes, journaux, adresses IP), départ d'un élève ou d'un personnel, purge planifiée : simulation, activation, alerte | ✅ Rédigé |
 
 ### ForetMap
 
@@ -61,6 +62,7 @@ Il poursuit trois objectifs, dans l'ordre :
 | [foretmap/niveaux-pedagogiques-biodiversite.md](foretmap/niveaux-pedagogiques-biodiversite.md) | Niveaux Collège / Lycée / Université ; onglet Séances (A/B/C/D, séance libre, QR code, suivi par élève, prérequis, badges)                                         | ✅        |
 | [foretmap/taches-tutoriels-et-validation.md](foretmap/taches-tutoriels-et-validation.md)       | Tâches, tutoriels, prise en charge par les élèves, validation profs                                                                                                | ✅ Rédigé |
 | [foretmap/comptes-roles-et-groupes.md](foretmap/comptes-roles-et-groupes.md)                   | Inscription (code de classe), rôles et paliers (dont **Prof de classe**), groupes, gestion profs                                                                   | ✅ Rédigé |
+| [foretmap/double-authentification.md](foretmap/double-authentification.md)                     | Double authentification des comptes admin et n3boss : activer, codes de secours, téléphone perdu, réglage                                                          | ✅ Rédigé |
 | [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                             | Parcours de visite grand public, mascottes                                                                                                                         | ✅ Rédigé |
 | [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md)     | Quiz, glossaire, réseau trophique, carnet d'observation                                                                                                            | ✅ Rédigé |
 | [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                           | Statistiques, classement, forum, notifications ciblées et liens directs, audit                                                                                     | ✅ Rédigé |
