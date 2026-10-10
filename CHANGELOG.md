@@ -9,41 +9,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
+### Maintenance — Commentaires des contrôles d'accès allégés
+
+- Commentaires du code, `docs/API.md` et titres du journal ramenés à la description du comportement ; le test de non-régression des contrôles d'accès s'appelle désormais `tests/security-access-controls.test.js`. Aucun changement de comportement.
+
+### Sécurité — Duplication de compte : même garde de profil que la création
 
 - `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
-- La duplication applique désormais la même garde (`403`). Le reste du constat B03 (attribution d'un profil de rang **égal**, profil par défaut élevé d'un groupe conféré par code de classe) appelle une décision métier, consignée au dossier.
-- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+- La duplication applique désormais la même garde (`403`). L'attribution d'un profil de rang **égal** et le profil par défaut élevé d'un groupe conféré par code de classe sont traités séparément.
+- Tests : `tests/security-access-controls.test.js`. Doc : `docs/API.md`.
 
-### Sécurité — Dépendances : plus d'avis critique ni haut en production (dossier sûreté)
+### Sécurité — Dépendances : plus d'avis critique ni haut en production
 
 - `npm audit fix` (sans `--force`, dans les plages déclarées) : `proxy-addr` 2.0.7 → 2.0.8 (critique), `sharp` 0.35.4 → 0.35.5 (haut), `source-map-js` 1.2.1 → 1.2.2 (haut), `dompurify` 3.4.14 → 3.4.16 (bas), plus des correctifs de dépendances de développement. Le contrôle `npm audit --omit=dev --audit-level=high` de la CI repasse.
 - Restent deux avis **modérés** (`uuid` via `exceljs`) : leur correctif impose un changement de version majeure d'`exceljs`, hors de ce lot.
 
-### Sécurité — Tâches sans compte : plus aucun nom d'élève (dossier sûreté, R9)
+### Sécurité — Tâches sans compte : plus aucun nom d'élève
 
 - `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session (la Visite liste les tâches d'un lieu). Ils livraient à un anonyme le **prénom et le nom de l'élève qui propose une tâche** (ligne « Proposition n3beur: … » de la description), son identifiant, l'**identité des référents**, et les inscrits quand `tasks.assignees_visibility = all`.
 - Sans session, ces champs sont désormais vidés et la ligne du proposant retirée (`redactTaskForAnonymous`, `lib/tasks/assignmentVisibility.js`). Rien ne change pour un compte connecté.
 - Reste ouvert (décision) : le nom du proposant est écrit dans la description et y survit à l'effacement de l'élève.
-- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+- Tests : `tests/security-access-controls.test.js`. Doc : `docs/API.md`.
 
-### Sécurité — Visite : un lieu réservé sur la carte reste réservé (dossier sûreté, R4)
+### Sécurité — Visite : un lieu réservé sur la carte reste réservé
 
 - `GET /api/visit/content` lisait l'audience par `COALESCE(visite, carte)` : celle de la Visite **remplaçait** celle de la carte. L'éditeur de Visite écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte était servi à l'anonyme dès que sa carte figurait dans la Visite (69 lieux dans ce cas dans le jeu anonymisé).
 - L'audience de la carte s'applique désormais **en plus** de celle de la Visite (`mapAudienceAllows`, `routes/visit.js`) : la Visite peut restreindre, jamais ouvrir. Aucune migration : les colonnes d'audience de `visit_*` existent déjà et les anciennes colonnes `restricted_note*` ont été supprimées.
-- Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+- Tests : `tests/security-access-controls.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
 
-### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique (dossier sûreté, R2)
+### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique
 
 - `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan, sans filtre de surface : un anonyme sur un plan ouvert, ou le porteur du code du plan, recevait les parcours publiés **réservés aux personnels** et **à la carte de travail** (titre, description, public visé). Aucun écran n'appelait la route sans `surface`.
 - La surface manquante est désormais celle que le serveur décide (`resolveSurfaceForRequest` : host et session), avec sa garde et son filtre SQL. Sur ForêtMap sans compte, seuls les parcours de la Visite sortent.
-- Tests : `tests/security-dossier-surete.test.js` ; `tests/map-routes.test.js` vise désormais l'adresse du plan pour la garde par code. Doc : `docs/API.md`.
+- Tests : `tests/security-access-controls.test.js` ; `tests/map-routes.test.js` vise désormais l'adresse du plan pour la garde par code. Doc : `docs/API.md`.
 
-### Sécurité — Photos des lieux : la galerie suit la visibilité du lieu (dossier sûreté, R1)
+### Sécurité — Photos des lieux : la galerie suit la visibilité du lieu
 
 - `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
 - Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
-- Tests : `tests/security-dossier-surete.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+- Tests : `tests/security-access-controls.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
 ### Corrigé — Cron de déploiement : un `git fetch` refusé ne passe plus inaperçu
 
 - `scripts/auto-deploy-cron.sh` : un `git fetch` en échec (dépôt passé en privé alors que le

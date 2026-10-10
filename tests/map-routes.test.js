@@ -252,8 +252,7 @@ test('garde d’accès du plan : le catalogue des parcours se ferme avec le plan
   try {
     // Sur l'adresse du plan, sans laissez-passer, le catalogue répond comme la charge du plan.
     // (La surface vient du host — simulé ici par `X-Foretmap-Product`, honoré hors production —
-    // et non plus d'un défaut « plan » appliqué à toute requête sans `?surface=` : dossier
-    // sûreté d'octobre 2026, constat R2.)
+    // et non plus d'un défaut « plan » appliqué à toute requête sans `?surface=`.)
     const onPlan = (req) => req.set('X-Foretmap-Product', 'plan');
     const denied = await onPlan(request(app).get('/api/map-routes')).expect(401);
     assert.equal(denied.body.access_required, true);

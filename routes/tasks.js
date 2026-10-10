@@ -343,7 +343,7 @@ router.get(
         }
       }
     }
-    // Sans compte : aucune identité d'élève ni de référent (dossier sûreté, constat R9).
+    // Sans compte : aucune identité d'élève ni de référent.
     res.json(auth ? enriched : enriched.map(redactTaskForAnonymous));
   }),
 );
