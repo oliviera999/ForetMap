@@ -9,11 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Couleurs : le centre hors ligne et les effets de carte passent par les jetons
+
+- `src/components/offline/offlineCenter.css` : les 11 couleurs écrites en dur (replis de variables
+  inexistantes ou redondants) passent par les jetons de `color-tokens.css` (`--surface-pedago-soft`,
+  `--tint-warning`, `--line-sage`, encres existantes) ; rendu inchangé à l'œil.
+- Étincelles du zoom sur un lieu et pastilles de parcours : nouveaux jetons `--accent-sparkle`,
+  `--glow-sparkle`, `--shadow-map-badge` ; repli `--line-soft` redondant retiré.
+- Le cliquet `tests/color-tokens-guard.test.js` repasse au vert (hexadécimal : 674 → 662, plafond
+  662 ; `rgb()/rgba()` : 582 → 578, plafond 579). Il était rouge sur `main` depuis le 07/10.
+- e2e `plan-routes-mode` : le parcours de test relie deux lieux **placés** sur la carte. Il
+  prenait la première zone du plan, souvent une zone sans contour laissée par la suite backend
+  dans le même job : le tracé n'avait qu'une étape et `map-route-lines` n'apparaissait pas.
+- Ces changements sont entrés dans `main` avec la PR #585, qui les reprenait pour sa propre CI.
+
 ### Maintenance — Commentaires des contrôles d'accès allégés
 
 - Commentaires du code, `docs/API.md` et titres du journal ramenés à la description du comportement ; le test de non-régression des contrôles d'accès s'appelle désormais `tests/security-access-controls.test.js`. Aucun changement de comportement.
 
-### Sécurité — Duplication de compte : même garde de profil que la création
 ### Ajouté — Double authentification (TOTP) des comptes administrateur et n3boss
 
 - **Second facteur** à la connexion des comptes de profil effectif `admin`, `prof` (n3boss) ou de rang ≥ 400 : code à 6 chiffres d'une application d'authentification (RFC 6238, HMAC-SHA-1, 30 s, fenêtre ±1 pas), implémenté en `node:crypto` (`lib/auth/totp.js`), aucune dépendance nouvelle (QR code par `qrcode`, déjà présent). Élèves, personnels, profs de classe et profils G&L ne sont jamais concernés.
@@ -88,7 +101,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Rattacher à un groupe, c'est conférer son profil par défaut** : `addUserToGroup(userId, groupId, { actor })` refuse, hors administrateur, un groupe dont le profil par défaut est de rang égal ou supérieur à celui de l'acteur — rattachement unitaire, en lot, liste des membres (`PUT /api/groups/:id/members`, seulement s'il ajoute un membre), création ou duplication d'un compte avec `group_id` (vérifié avant toute écriture), import. La génération d'un **code de classe** (`POST /api/groups/:id/class-code`) suit la même garde.
 - Interface : la création unitaire ne propose plus « n3boss » qu'à l'administrateur.
 - Tests : `tests/rbac-rank-guards.test.js`, `tests-ui/utils/createUserRoleOptions.test.js`, `tests-ui/components/profiles/CreateUserPanel.test.jsx` ; `tests/rbac-account-lifecycle.test.js` et `tests/students-import.test.js` alignés sur la règle. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
-### Sécurité — Duplication de compte : même garde de profil que la création (dossier sûreté, B03 partiel)
+### Sécurité — Duplication de compte : même garde de profil que la création
 
 - `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
 - La duplication applique désormais la même garde (`403`). L'attribution d'un profil de rang **égal** et le profil par défaut élevé d'un groupe conféré par code de classe sont traités séparément.
