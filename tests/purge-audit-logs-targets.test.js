@@ -44,7 +44,7 @@ test('les tables sont couvertes, réparties sur leurs rétentions', () => {
     'sync_pending_matches',
     'sync_conflicts',
   ]);
-  assert.deepStrictEqual(byRetention.get('visits'), ['user_product_visits']);
+  assert.deepStrictEqual(byRetention.get('visits'), ['user_product_visits', 'usage_counters']);
   assert.deepStrictEqual(byRetention.get('guest'), ['gl_qcm_attempts']);
   assert.strictEqual(TRANSIENT_RETENTION_DAYS, 1);
   assert.strictEqual(DEFAULT_ACTIVITY_RETENTION_DAYS, 90);
@@ -99,7 +99,7 @@ test('parseArgs : rétentions indépendantes, défauts, variables d’environnem
     historyDays: 365,
     activityDays: 90,
     syncDays: 365,
-    visitsDays: 395,
+    visitsDays: 365,
     guestDays: 30,
     ipDays: 183,
   };

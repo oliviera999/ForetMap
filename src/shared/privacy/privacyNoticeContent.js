@@ -41,6 +41,8 @@ export const PRIVACY_RETENTION = Object.freeze({
   securityDays: 365,
   /** `DEFAULT_HISTORY_RETENTION_DAYS` (historiques de jeu et de jardin), même script. */
   historyDays: 365,
+  /** `DEFAULT_VISITS_RETENTION_DAYS` (compteurs d'usage anonymes), même script. */
+  usageCountersDays: 365,
   /** `PASSWORD_RESET_TTL_MINUTES`, `lib/passwordReset.js`. */
   passwordResetMinutes: 60,
   /** `ANON_TTL_SECONDS` (24 h), `routes/visit.js` — progression de la visite sans compte. */
@@ -303,7 +305,7 @@ export function buildPrivacyNotice({
     ],
     plan: [
       `le cookie du code d’accès, s’il y en a un : ${R.planAccessDays} jours ;`,
-      'les compteurs anonymes : sans limite, car ils ne concernent personne.',
+      `les compteurs anonymes (nombre d’ouvertures, recherches) : ${R.usageCountersDays === 365 ? '1 an' : `${R.usageCountersDays} jours`}.`,
     ],
     staff: [
       'votre accès : tant que votre compte existe ;',

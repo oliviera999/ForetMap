@@ -28,8 +28,8 @@
  *                      `sync_actions`, `sync_pending_matches` et `sync_conflicts` résolus,
  *                      qui portent des fiches Moodle complètes) — défaut 365 j (12 mois)
  *                      (FORETMAP_RETENTION_SYNC_DAYS) ;
- *   --visits-days=N    ouvertures des applications (`user_product_visits`) — défaut 395 j
- *                      (13 mois, durée CNIL des traceurs de mesure d'audience)
+ *   --visits-days=N    ouvertures des applications (`user_product_visits`) et compteurs
+ *                      d'usage anonymes (`usage_counters`) — défaut 365 j (12 mois)
  *                      (FORETMAP_RETENTION_VISITS_DAYS) ;
  *   --guest-days=N     réponses QCM des **invités** G&L (`gl_qcm_attempts`, lecteur
  *                      `gl_guest`) — défaut 30 j (FORETMAP_RETENTION_GUEST_DAYS) ;
@@ -42,6 +42,19 @@
  *
  * Une table absente (`elevation_audit`, supprimée par la migration 164 et au démarrage ;
  * installation en retard de migration) est signalée et ignorée, sans faire échouer la purge.
+ *
+ * JOURNAUX : 12 MOIS AU PLUS. Les durées des journaux et traces d'activité (sécurité, activité,
+ * synchronisation, visites, invités, IP complètes) sont refusées au-delà de 365 jours
+ * ({@link MAX_JOURNAL_RETENTION_DAYS}) : un réglage plus long dans le `.env` fait échouer la
+ * purge (et alerter) plutôt que de conserver en silence. Les historiques de contenu
+ * (`--history-days`) ne sont pas des journaux et restent réglables librement.
+ *
+ * LOTS BORNÉS : chaque suppression est une suite de `DELETE … LIMIT n` (défaut
+ * {@link DEFAULT_DELETE_BATCH_SIZE}), chacun sa propre transaction courte — jamais un verrou
+ * sur toute une table, et une interruption laisse un état cohérent.
+ *
+ * La purge planifiée (`scripts/retention-purge.js`, catégorie `journaux`) appelle
+ * {@link purgeTargets} ; ce script reste l'outil manuel.
  *
  * À BLANC PAR DÉFAUT : une purge est irréversible. Prévu pour un cron mensuel une fois la
  * durée validée (voir docs/CRONTAB.md — la ligne de purge n'y est PAS optionnelle).
@@ -57,10 +70,13 @@ const DEFAULT_RETENTION_DAYS = 365;
 const DEFAULT_HISTORY_RETENTION_DAYS = 365;
 const DEFAULT_ACTIVITY_RETENTION_DAYS = 90;
 const DEFAULT_SYNC_RETENTION_DAYS = 365;
-const DEFAULT_VISITS_RETENTION_DAYS = 395;
+const DEFAULT_VISITS_RETENTION_DAYS = 365;
 const DEFAULT_GUEST_RETENTION_DAYS = 30;
 const DEFAULT_IP_RETENTION_DAYS = 183;
 const MIN_RETENTION_DAYS = 30;
+/** Plafond des journaux et traces d'activité : 12 mois. */
+const MAX_JOURNAL_RETENTION_DAYS = 365;
+const DEFAULT_DELETE_BATCH_SIZE = 5000;
 
 /** Option CLI → clé de résultat, variable d'environnement, défaut. */
 const RETENTION_OPTIONS = Object.freeze([
@@ -69,6 +85,7 @@ const RETENTION_OPTIONS = Object.freeze([
     key: 'days',
     env: 'FORETMAP_RETENTION_SECURITY_DAYS',
     def: DEFAULT_RETENTION_DAYS,
+    journal: true,
   },
   {
     flag: '--history-days=',
@@ -81,30 +98,35 @@ const RETENTION_OPTIONS = Object.freeze([
     key: 'activityDays',
     env: 'FORETMAP_RETENTION_ACTIVITY_DAYS',
     def: DEFAULT_ACTIVITY_RETENTION_DAYS,
+    journal: true,
   },
   {
     flag: '--sync-days=',
     key: 'syncDays',
     env: 'FORETMAP_RETENTION_SYNC_DAYS',
     def: DEFAULT_SYNC_RETENTION_DAYS,
+    journal: true,
   },
   {
     flag: '--visits-days=',
     key: 'visitsDays',
     env: 'FORETMAP_RETENTION_VISITS_DAYS',
     def: DEFAULT_VISITS_RETENTION_DAYS,
+    journal: true,
   },
   {
     flag: '--guest-days=',
     key: 'guestDays',
     env: 'FORETMAP_RETENTION_GUEST_DAYS',
     def: DEFAULT_GUEST_RETENTION_DAYS,
+    journal: true,
   },
   {
     flag: '--ip-days=',
     key: 'ipDays',
     env: 'FORETMAP_RETENTION_IP_DAYS',
     def: DEFAULT_IP_RETENTION_DAYS,
+    journal: true,
   },
 ]);
 
@@ -220,6 +242,13 @@ const TARGETS = [
     where: 'last_seen_at < (NOW() - INTERVAL ? DAY)',
   },
   {
+    // Compteurs quotidiens anonymes (mesure d'usage) — la clé libre peut porter le texte d'une
+    // recherche : mêmes 12 mois que les ouvertures des applications.
+    table: 'usage_counters',
+    retention: 'visits',
+    where: 'day < (CURDATE() - INTERVAL ? DAY)',
+  },
+  {
     // Invités G&L (GL8) : aucune raison de garder leurs réponses au-delà d'un mois.
     table: 'gl_qcm_attempts',
     retention: 'guest',
@@ -263,12 +292,44 @@ function paramsFor(where, retentionDays) {
   return Array.from({ length: count }, () => retentionDays);
 }
 
-function assertRetention(label, days) {
+function assertRetention(label, days, { max = null } = {}) {
   if (!Number.isFinite(days) || days < MIN_RETENTION_DAYS) {
     throw new Error(
       `Durée de conservation ${label} invalide (${days}). Minimum ${MIN_RETENTION_DAYS} jours — ` +
         'une purge plus agressive effacerait des traces encore utiles à une investigation.',
     );
+  }
+  if (max != null && days > max) {
+    throw new Error(
+      `Durée de conservation ${label} invalide (${days}). Maximum ${max} jours : les journaux ` +
+        'et traces d’activité ne sont pas conservés plus de 12 mois.',
+    );
+  }
+}
+
+/** Libellés des durées (messages d'erreur). */
+const RETENTION_LABELS = Object.freeze({
+  days: 'sécurité (--days)',
+  historyDays: 'historiques (--history-days)',
+  activityDays: 'activité (--activity-days)',
+  syncDays: 'synchronisation (--sync-days)',
+  visitsDays: 'visites (--visits-days)',
+  guestDays: 'invités G&L (--guest-days)',
+  ipDays: 'troncature IP (--ip-days)',
+});
+
+/** Contrôle toutes les durées : minimum partout, 12 mois au plus pour les journaux. */
+function assertRetentions(options) {
+  for (const opt of RETENTION_OPTIONS) {
+    assertRetention(RETENTION_LABELS[opt.key], options[opt.key], {
+      max: opt.journal ? MAX_JOURNAL_RETENTION_DAYS : null,
+    });
+  }
+}
+
+function assertBatchSize(batchSize) {
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error(`Taille de lot invalide (${batchSize}).`);
   }
 }
 
@@ -351,30 +412,21 @@ function isMissingTableError(err) {
 }
 
 /**
- * Purge et anonymisation, sur des accès base injectés (tests) ou ceux de `database.js`.
+ * Suppression des lignes au-delà de leur durée de conservation, table par table, en lots
+ * bornés (`DELETE … LIMIT n`). Sans `apply`, compte seulement.
+ * @param {object} options durées (voir `parseArgs`), `apply`, `batchSize`
+ * @param {{ queryOne: Function, execute: Function }} db
+ * @param {(text: string) => void} say journal (préfixe déjà posé)
  * @returns {Promise<{ deleted: Record<string, number>, purgeable: Record<string, number>,
- *   missing: string[], ipRows: number }>}
+ *   missing: string[] }>}
  */
-async function runPurge(options, db, log = (line) => console.log(line)) {
-  const { apply, days, historyDays, activityDays, syncDays, visitsDays, guestDays, ipDays } =
-    options;
-  assertRetention('sécurité (--days)', days);
-  assertRetention('historiques (--history-days)', historyDays);
-  assertRetention('activité (--activity-days)', activityDays);
-  assertRetention('synchronisation (--sync-days)', syncDays);
-  assertRetention('visites (--visits-days)', visitsDays);
-  assertRetention('invités G&L (--guest-days)', guestDays);
-  assertRetention('troncature IP (--ip-days)', ipDays);
+async function purgeTargets(options, db, say) {
+  const { apply } = options;
+  const batchSize = options.batchSize ?? DEFAULT_DELETE_BATCH_SIZE;
+  assertRetentions(options);
+  assertBatchSize(batchSize);
 
-  log(
-    `[purge-logs] Conservation : sécurité ${days} j, historiques ${historyDays} j, ` +
-      `activité ${activityDays} j, synchro ${syncDays} j, visites ${visitsDays} j, ` +
-      `invités G&L ${guestDays} j, IP complètes ${ipDays} j. ` +
-      `Mode : ${apply ? 'APPLICATION' : 'à blanc'}.`,
-  );
-
-  const report = { deleted: {}, purgeable: {}, missing: [], ipRows: 0 };
-  let totalDeleted = 0;
+  const report = { deleted: {}, purgeable: {}, missing: [] };
   for (const target of TARGETS) {
     const retentionDays = retentionDaysFor(target, options);
     const params = paramsFor(target.where, retentionDays);
@@ -388,36 +440,66 @@ async function runPurge(options, db, log = (line) => console.log(line)) {
     } catch (err) {
       if (!isMissingTableError(err)) throw err;
       report.missing.push(target.table);
-      log(`[purge-logs] ${target.table} : table absente, ignorée.`);
+      say(`${target.table} : table absente, ignorée.`);
       continue;
     }
     report.purgeable[target.table] = (report.purgeable[target.table] || 0) + count;
     if (count === 0) {
-      log(`[purge-logs] ${target.table} : rien à purger.`);
+      say(`${target.table} : rien à purger.`);
       continue;
     }
     if (!apply) {
-      log(`[purge-logs] ${target.table} : ${count} ligne(s) purgeable(s).`);
+      say(`${target.table} : ${count} ligne(s) purgeable(s).`);
       continue;
     }
-    const result = await db.execute(`DELETE FROM ${target.table} WHERE ${target.where}`, params);
-    const deleted = Number(result?.affectedRows || 0);
+    let deleted = 0;
+    for (;;) {
+      const result = await db.execute(
+        `DELETE FROM ${target.table} WHERE ${target.where} LIMIT ${batchSize}`,
+        params,
+      );
+      const affected = Number(result?.affectedRows || 0);
+      deleted += affected;
+      if (affected < batchSize) break;
+    }
     report.deleted[target.table] = (report.deleted[target.table] || 0) + deleted;
-    totalDeleted += deleted;
-    log(`[purge-logs] ${target.table} : ${deleted} ligne(s) supprimée(s).`);
+    say(`${target.table} : ${deleted} ligne(s) supprimée(s).`);
   }
+  return report;
+}
+
+/**
+ * Purge et anonymisation, sur des accès base injectés (tests) ou ceux de `database.js`.
+ * @returns {Promise<{ deleted: Record<string, number>, purgeable: Record<string, number>,
+ *   missing: string[], ipRows: number }>}
+ */
+async function runPurge(options, db, log = (line) => console.log(line)) {
+  const { apply, days, historyDays, activityDays, syncDays, visitsDays, guestDays, ipDays } =
+    options;
+  const say = (text) => log(`[purge-logs] ${text}`);
+  assertRetentions(options);
+
+  say(
+    `Conservation : sécurité ${days} j, historiques ${historyDays} j, ` +
+      `activité ${activityDays} j, synchro ${syncDays} j, visites ${visitsDays} j, ` +
+      `invités G&L ${guestDays} j, IP complètes ${ipDays} j. ` +
+      `Mode : ${apply ? 'APPLICATION' : 'à blanc'}.`,
+  );
+
+  const report = { ...(await purgeTargets(options, db, say)), ipRows: 0 };
+  const totalDeleted = Object.values(report.deleted).reduce((a, b) => a + b, 0);
 
   report.ipRows = await truncateSecurityEventIps(db, ipDays, apply);
-  log(
-    `[purge-logs] security_events : ${report.ipRows} ligne(s) ` +
+  say(
+    `security_events : ${report.ipRows} ligne(s) ` +
       `${apply ? 'anonymisée(s)' : 'à anonymiser'} (IP tronquée, navigateur effacé).`,
   );
 
   if (!apply) {
-    log('[purge-logs] Exécution à blanc — rien n’a été supprimé.');
-    log('[purge-logs] Relancer avec --apply pour purger.');
+    say('Exécution à blanc — rien n’a été supprimé.');
+    say('Relancer avec --apply pour purger.');
   } else {
-    log(`[purge-logs] Terminé — ${totalDeleted} ligne(s) supprimée(s).`);
+    say(`Terminé — ${totalDeleted} ligne(s) supprimée(s).`);
   }
   return report;
 }
@@ -453,14 +535,18 @@ module.exports = {
   DEFAULT_GUEST_RETENTION_DAYS,
   DEFAULT_IP_RETENTION_DAYS,
   MIN_RETENTION_DAYS,
+  MAX_JOURNAL_RETENTION_DAYS,
+  DEFAULT_DELETE_BATCH_SIZE,
   RETENTION_OPTIONS,
   parseArgs,
   TARGETS,
   assertRetention,
+  assertRetentions,
   TRANSIENT_RETENTION_DAYS,
   retentionDaysFor,
   paramsFor,
   truncateIp,
   truncateSecurityEventIps,
+  purgeTargets,
   runPurge,
 };
