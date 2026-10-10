@@ -27,6 +27,7 @@ const { getBrand } = require('../lib/brand');
 const { exposeAuth } = require('../lib/authRouteHelpers');
 const {
   requireAuth,
+  requirePermission,
   resolveAuthOrRespond,
   signAuthToken,
 } = require('../middleware/requireTeacher');
@@ -40,7 +41,8 @@ const { buildLoginResponseBody, recordLoginTouch } = require('../lib/auth/loginR
 const { isTotpKeyConfigured } = require('../lib/auth/totpCrypto');
 const { buildOtpauthUri, base32Encode } = require('../lib/auth/totp');
 const store = require('../lib/auth/totpStore');
-const { buildAuthzPayload } = require('../lib/rbac');
+const { buildAuthzPayload, getPrimaryRoleForUser } = require('../lib/rbac');
+const { resetUserSecondFactor } = require('../lib/auth/totpReset');
 
 const router = express.Router();
 
@@ -411,6 +413,78 @@ router.post(
     notifyTotpChange(userId, 'backup_codes_regenerated');
     noStore(res);
     res.json({ backupCodes });
+  }),
+);
+
+/** Compte visé par une route d'administration, avec son profil effectif. */
+async function loadAdminTarget(rawUserId) {
+  const userId = String(rawUserId ?? '').trim();
+  if (!userId) return null;
+  const target = await queryOne('SELECT id, user_type FROM users WHERE id = ? LIMIT 1', [userId]);
+  if (!target) return null;
+  const role = await getPrimaryRoleForUser(target.user_type, target.id);
+  return { ...target, role };
+}
+
+/** État du second facteur d'un compte (administration) : jamais de secret ni de code. */
+router.get(
+  '/users/:userId',
+  requirePermission('admin.users.assign_roles'),
+  asyncHandler(async (req, res) => {
+    const target = await loadAdminTarget(req.params.userId);
+    if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const status = await store.getTotpStatus(target.id);
+    res.json({
+      userId: String(target.id),
+      enforcement: await getMfaEnforcement(),
+      subject: isMfaSubjectRole({ roleSlug: target.role?.slug, roleRank: target.role?.rank }),
+      enrolled: status.enabled,
+      enabledAt: status.enabledAt,
+      lastUsedAt: status.lastUsedAt,
+      locked: status.locked,
+      pendingSince: status.pendingSince,
+      backupCodesRemaining: status.backupCodesRemaining,
+    });
+  }),
+);
+
+/**
+ * Réinitialisation par un administrateur (téléphone perdu, enrôlement douteux) : session de
+ * l'administrateur validée par son propre second facteur, hors prise de contrôle, jamais sur
+ * son propre compte, profil visé de rang inférieur ou égal au sien.
+ */
+router.post(
+  '/users/:userId/reset',
+  requirePermission('admin.users.assign_roles'),
+  asyncHandler(async (req, res) => {
+    if (req.auth.impersonating) {
+      return res.status(403).json({ error: 'Indisponible pendant une prise de contrôle' });
+    }
+    if (!req.auth.mfa && (await getMfaEnforcement()) !== 'off') {
+      return res.status(403).json({
+        error:
+          'Validez d’abord votre propre double authentification (reconnectez-vous avec votre code).',
+        code: 'MFA_SESSION_REQUIRED',
+      });
+    }
+    const target = await loadAdminTarget(req.params.userId);
+    if (!target) return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (String(target.id) === String(req.auth.userId)) {
+      return res.status(400).json({
+        error:
+          'Pas sur votre propre compte : utilisez « Mon profil » (changement d’appareil), un autre administrateur, ou le script serveur.',
+      });
+    }
+    if (Number(target.role?.rank || 0) > Number(req.auth.roleRank || 0)) {
+      return res.status(403).json({ error: 'Profil de rang supérieur au vôtre' });
+    }
+    const result = await resetUserSecondFactor({
+      userId: target.id,
+      actor: { userType: req.auth.userType, userId: req.auth.userId },
+      via: 'admin',
+      req,
+    });
+    res.json({ ok: true, hadTotp: result.wasEnabled });
   }),
 );
 

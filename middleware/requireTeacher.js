@@ -77,6 +77,12 @@ async function hydrateAuthFromTokenClaims(claims) {
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
+    // Prise de contrôle réservée à un administrateur qui a validé son second facteur : une
+    // prise de contrôle ouverte sans lui (avant l'activation de la double authentification)
+    // ne survit pas.
+    if (!claims.actorMfa && (await getMfaEnforcement()) !== 'off') {
+      throw new AuthRevokedError('actor_mfa_required');
+    }
   }
   // État de compte relu à chaque requête : un compte désactivé ou dont le mot de passe a
   // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration ;

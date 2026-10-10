@@ -36,7 +36,7 @@ async function createAccount({ userType, password, provider = 'local' }) {
   return { id, email, pseudo: `pwd_${stamp}` };
 }
 
-async function tokenFor(userType, userId) {
+async function tokenFor(userType, userId, extraClaims = {}) {
   const role = await queryOne(
     `SELECT r.id, r.slug, r.\`rank\` FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id
       WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
@@ -50,6 +50,7 @@ async function tokenFor(userType, userId) {
     roleSlug: role.slug,
     roleRank: role.rank,
     tokenEpoch: Number(epoch?.token_epoch || 0),
+    ...extraClaims,
   });
 }
 
@@ -234,7 +235,9 @@ test('CDG-08 : changer le mot de passe de l’acteur coupe la prise de contrôle
   assert.ok(adminRole?.id);
   const actor = await createAccount({ userType: 'teacher', password: 'ActeurImpersonate12' });
   await setAssignedRole(actor.id, adminRole.id);
-  const actorToken = await tokenFor('teacher', actor.id);
+  // Session administrateur validée par la double authentification : seule à pouvoir
+  // ouvrir une prise de contrôle.
+  const actorToken = await tokenFor('teacher', actor.id, { mfa: true });
   const cible = await createAccount({ userType: 'student', password: 'cible1234' });
 
   const imp = await request(app)
