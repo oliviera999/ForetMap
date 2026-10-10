@@ -2,6 +2,9 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { queryOne } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
+const { MFA_ENFORCEMENT_KEY } = require('../lib/auth/mfaPolicy');
+const { isTotpKeyConfigured } = require('../lib/auth/totpCrypto');
+const { isTotpEnabled } = require('../lib/auth/totpStore');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -339,6 +342,25 @@ router.put(
       });
     }
     const value = req.body?.value;
+    // Double authentification obligatoire : jamais sans clé de chiffrement (personne ne
+    // pourrait s'enrôler), et seulement par un administrateur qui a lui-même activé et validé
+    // son second facteur — sinon il s'enfermerait dehors avec tous les autres.
+    if (key === MFA_ENFORCEMENT_KEY && String(value ?? '').trim() === 'required') {
+      if (!isTotpKeyConfigured()) {
+        return res.status(400).json({
+          error:
+            'Clé de chiffrement TOTP_ENCRYPTION_KEY absente ou invalide : la double authentification ne peut pas être rendue obligatoire.',
+          code: 'TOTP_KEY_MISSING',
+        });
+      }
+      if (req.auth?.impersonating || !req.auth?.mfa || !(await isTotpEnabled(req.auth?.userId))) {
+        return res.status(403).json({
+          error:
+            'Activez d’abord votre propre double authentification et reconnectez-vous avec votre code.',
+          code: 'MFA_SESSION_REQUIRED',
+        });
+      }
+    }
     // Couleur du halo e-nov : un `#rrggbb` ou rien — une valeur quelconque serait injectée
     // telle quelle dans le style du plan.
     if (

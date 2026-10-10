@@ -286,6 +286,19 @@ describe('App — session élève expirée ou révoquée (CDG-27)', () => {
     expect(toast).toBe('Session expirée : veuillez vous reconnecter.');
   });
 
+  test('401 mfa_required (double authentification devenue obligatoire) : message dédié', async () => {
+    await renderAppWith(TEACHER_SESSION);
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('foretmap_teacher_expired', {
+          detail: { deleted: false, reason: 'mfa_required' },
+        }),
+      );
+    });
+    await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
+    expect(probes.unauthenticated.at(-1).toast).toMatch(/double authentification/i);
+  });
+
   test('401 deleted:true (compte supprimé) : fermeture avec le message « compte supprimé »', async () => {
     await renderAppWith(STUDENT_SESSION);
     await act(async () => {

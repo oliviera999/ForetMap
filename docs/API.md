@@ -1118,6 +1118,85 @@ Chaque jeton porte le claim **`sessionStartedAt`** (seconde epoch), posé à la 
 - **Profil effectif d’un enseignant** : seul son profil attribué compte — un profil par défaut de groupe (conféré ou imposé) ne s’applique jamais à un compte `teacher` (`lib/effectiveRole.js`).
 - **`autoProfilePromotion`** (objet, **consommé** à la première réponse qui l’inclut) : affichage côté client après progression automatique par tâches validées. Champs : `kind` (`progression`), `roleSlug`, `roleDisplayName`, `roleEmoji` (optionnel), `validatedTaskCount` (nombre de tâches validées pris en compte pour la sync), `highlights` (tableau de courtes phrases décrivant les droits, forum / commentaires contextuels, plafond d’inscriptions actives le cas échéant).
 
+### Double authentification (`/api/auth/totp`)
+
+Second facteur **TOTP** (RFC 6238 : HMAC-SHA-1, 30 s, 6 chiffres, fenêtre ±1 pas) des comptes
+dont le **profil effectif** est `admin`, `prof` (n3boss) ou de rang ≥ 400. Un élève, un
+« personnel », un « prof de classe » ou un profil G&L n'est jamais concerné. Implémentation :
+`lib/auth/totp.js`, `lib/auth/totpStore.js`, `lib/auth/mfaPolicy.js`, routes `routes/authTotp.js`.
+
+**Réglage `security.totp.enforcement`** (portée admin, Réglages → Sécurité) :
+
+| Valeur             | Compte soumis enrôlé | Compte soumis non enrôlé                                          |
+| ------------------ | -------------------- | ----------------------------------------------------------------- |
+| `off`              | session directe      | session directe (mode de secours)                                 |
+| `enroll` (défaut)  | étape TOTP           | session + `mfaSetupSuggested: true` (activation proposée)         |
+| `required`         | étape TOTP           | **enrôlement imposé** avant toute session                         |
+
+`PUT /api/settings/admin/security.totp.enforcement` avec `required` est refusé —
+`400 { code: 'TOTP_KEY_MISSING' }` sans clé `TOTP_ENCRYPTION_KEY`, `403 { code:
+'MFA_SESSION_REQUIRED' }` si l'administrateur qui le demande n'a pas lui-même activé et validé
+son second facteur.
+
+**Parcours de connexion** — quand l'étape est requise, `POST /api/auth/login` (mot de passe
+correct) répond **200 sans `authToken`** :
+
+```json
+{ "mfaRequired": true, "mfaToken": "…", "stage": "verify", "next": "teacher",
+  "expiresInSeconds": 300, "displayName": "…", "setupAvailable": true }
+```
+
+`mfaToken` est un **jeton intermédiaire** (5 min pour `verify`, 15 min pour `enroll`), signé
+avec une clé dérivée de `JWT_SECRET` : il n'est accepté par **aucune** route de session
+(`401`), seulement par les routes ci-dessous. Le succès renvoie le **même corps que
+`/api/auth/login`** (`authToken`, `auth` avec `mfa: true`, profil public…), plus
+`sessionKind` (`teacher` | `student` | `staff`) et `mfaMethod` (`totp` | `backup_code`).
+Après **Google** (`GET /api/auth/google/callback`, tous modes) et **Moodle/LTI**
+(`POST /api/lti/session`, destination ForetMap), la charge `#oauth=` devient
+`{ type: 'mfa', mfaToken, stage, next, expiresInSeconds, displayName, setupAvailable }` au
+lieu d'un jeton de session.
+
+| Méthode | URL                                      | Auth                                   | Body                                         | Description                                                                                                                                                       |
+| ------- | ---------------------------------------- | -------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/auth/totp/status`                  | session                                | —                                            | `{ enforcement, subject, required, enrolled, enabledAt, backupCodesRemaining, keyConfigured, setupAvailable, sessionValidated }`                                   |
+| POST    | `/api/auth/totp/verify`                  | `mfaToken` (étape `verify`)            | `{ mfaToken, code }` ou `{ mfaToken, backupCode }` | Vérifie le code (ou consomme un code de secours, `backupCodesRemaining` en retour) et émet la session                                                        |
+| POST    | `/api/auth/totp/enroll/start`            | `mfaToken` (étape `enroll`) ou session | `{ mfaToken? , code? \| backupCode? }`       | Secret proposé (en attente, chiffré) : `{ secret, otpauthUri, qrDataUrl, issuer, accountName, expiresInSeconds }`, `no-store`. Changement d'appareil : code actuel exigé |
+| POST    | `/api/auth/totp/enroll/confirm`          | `mfaToken` (étape `enroll`) ou session | `{ mfaToken?, code }`                        | Active le secret après un premier code valide : `{ backupCodes[10], authToken, auth, … }` (`no-store`) ; **toutes les autres sessions du compte sont révoquées**   |
+| POST    | `/api/auth/totp/backup-codes`            | session                                | `{ code }`                                   | Nouveau lot de 10 codes de secours (code TOTP actuel exigé), l'ancien lot est invalidé                                                                           |
+| GET     | `/api/auth/totp/users/:userId`           | `admin.users.assign_roles`             | —                                            | État du second facteur d'un compte (jamais de secret) : `{ subject, enrolled, enabledAt, lastUsedAt, locked, backupCodesRemaining, … }`                           |
+| POST    | `/api/auth/totp/users/:userId/reset`     | `admin.users.assign_roles`             | —                                            | Réinitialisation (téléphone perdu) : secret et codes supprimés, sessions du compte révoquées, `auth.totp.reset` journalisé, e-mail au titulaire                   |
+
+Réinitialisation : session de l'administrateur **validée par son propre second facteur**
+(sinon `403 MFA_SESSION_REQUIRED`), hors prise de contrôle, jamais sur son propre compte
+(`400`), profil visé de rang ≤ au sien. Dernier administrateur : script serveur
+`node scripts/totp-admin.js reset --user <email> --yes` (voir `docs/EXPLOITATION.md`).
+
+**Erreurs** : `401 MFA_TOKEN_INVALID` (étape périmée, déjà utilisée, ou compte modifié entre-
+temps : se reconnecter), `401 MFA_CODE_INVALID` (code faux **ou déjà utilisé** — anti-rejeu),
+`400 MFA_CODE_REQUIRED`, `429 MFA_LOCKED` + `Retry-After` (5 échecs → verrou 30 s doublé,
+plafonné à 15 min, **par compte et persistant**, codes TOTP et de secours confondus),
+`403 MFA_DISABLED` / `MFA_NOT_SUBJECT`, `409 MFA_ALREADY_ENROLLED` / `MFA_NOT_ENROLLED` /
+`MFA_ENROLL_NOT_STARTED`, `400 MFA_ENROLL_EXPIRED` (QR code de plus de 15 min),
+`503 TOTP_KEY_MISSING`. Les routes `verify`, `enroll/*` et `backup-codes` sont aussi sous le
+limiteur strict d'IP (`authLimiter`).
+
+**Session et révocation** — le jeton émis après le second facteur porte `mfa: true` ;
+`GET /api/auth/me`, le changement de mot de passe et d'e-mail le reconduisent. À chaque
+requête, une session **sans** `mfa` d'un compte soumis est refusée
+`401 { code: 'SESSION_REVOKED', reason: 'mfa_required' }` quand le réglage vaut `required`, ou
+quand le compte est enrôlé (réglage ≠ `off`).
+
+**Prise de contrôle** — `POST /api/auth/admin/impersonate` exige une session administrateur
+validée par le second facteur (`403 { code: 'MFA_REQUIRED' }` sinon, réglage ≠ `off`) ; le
+jeton porte `actorMfa`, vérifié à chaque requête (`reason: 'actor_mfa_required'`), et
+`…/impersonate/stop` rend une session administrateur toujours validée.
+
+**Journal de sécurité** (`security_events`) : `auth.totp.challenge`, `auth.totp.enroll_start`,
+`auth.totp.enroll`, `auth.totp.verify` (succès / échec avec `reason`), `auth.totp.backup_code_used`,
+`auth.totp.backup_codes_regenerate`, `auth.totp.reset` (aussi dans `audit_log`),
+`auth.totp.enforcement_change` et `auth.totp.key_rotation` (script serveur, auteur `cli`) ;
+la connexion finale reste `auth.login` (`payload.mfa`). Aucun code ni secret n'y figure.
+
 ---
 
 ## RBAC (admin)

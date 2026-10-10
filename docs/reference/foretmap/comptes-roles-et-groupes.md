@@ -15,6 +15,11 @@ chaque rôle a le droit de faire, comment les élèves sont organisés en groupe
 - **Un seul écran de connexion** pour tout le monde : identifiant (e-mail ou pseudo) +
   mot de passe, ou compte Google. Le système reconnaît automatiquement s'il s'agit d'un
   élève, d'un professeur ou d'un administrateur.
+- **Double authentification des comptes admin et n3boss** : après le mot de passe (ou Google,
+  ou l'arrivée depuis un cours Moodle), ces comptes donnent un code à 6 chiffres affiché par
+  une application sur leur téléphone. Les élèves, personnels et profs de classe ne sont pas
+  concernés. Activation, codes de secours, téléphone perdu et réglage :
+  [double-authentification.md](double-authentification.md).
 - **Bas de l'écran de connexion** : sous le lien « Vos données » s'affichent l'auteur et
   le ou les contributeurs du projet, puis un message libre facultatif. Un administrateur
   les modifie dans **Réglages → Accueil & modules → Contenus du site** (« Auteur »,
