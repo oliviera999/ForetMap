@@ -63,7 +63,7 @@ Tout se passe dans « n3boss & utilisateurs », sous-onglets **Comptes** et **Gr
    liste des **comptes en attente** du sous-onglet Groupes : rattachez-les un par un ou
    sélectionnez-en plusieurs pour un rattachement en lot.
 4. **Choisir le profil par défaut du groupe.** Les élèves de ce groupe reçoivent ce profil
-   (novice, avancé, chevronné…). Cochez « Imposer ce profil » pour qu'il s'applique à toute la
+   (visiteur, novice, avancé, chevronné… : un groupe ne confère qu'un profil élève). Cochez « Imposer ce profil » pour qu'il s'applique à toute la
    classe, quel que soit le palier atteint par chacun.
 
 **Les paliers.** Un élève commence novice et monte automatiquement de palier avec ses tâches

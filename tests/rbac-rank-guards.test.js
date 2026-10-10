@@ -245,7 +245,9 @@ test('profil par défaut d’un groupe : un n3boss ne pose pas un profil de son 
     .patch(`/api/groups/${groupId}`)
     .set('Authorization', `Bearer ${boss.token}`)
     .send({ default_role_id: prof.id });
-  assert.equal(res.status, 403, JSON.stringify(res.body));
+  // Refusé d'abord parce que « n3boss » n'est pas un profil élève (400) ; la garde de rang
+  // (403) le refusait déjà.
+  assert.ok([400, 403].includes(res.status), JSON.stringify(res.body));
   const row = await queryOne('SELECT default_role_id FROM `groups` WHERE id = ?', [groupId]);
   assert.equal(row.default_role_id, null);
 

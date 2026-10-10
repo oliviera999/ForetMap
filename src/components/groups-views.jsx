@@ -12,6 +12,7 @@ import { GROUP_KIND_LABELS } from '../utils/profilesRoleForm.js';
 import {
   normalizeProfilesPayload,
   filterGroupDefaultRoles,
+  isGroupDefaultRoleInert,
 } from '../utils/groupDefaultRoleOptions.js';
 import { IconClock, IconWarning } from '../shared/icons.jsx';
 import { LEARNER_NIVEAUX } from '../utils/curriculumNotions.js';
@@ -283,6 +284,19 @@ function GroupSettingsPanel({
           <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
             Seuls un administrateur ou un n3boss règlent le profil conféré par un groupe.
           </small>
+        )}
+        <small style={{ display: 'block', opacity: 0.75, marginTop: 4 }}>
+          Un groupe ne confère qu’un profil élève (visiteur ou palier n3beur).
+        </small>
+        {isGroupDefaultRoleInert(group) && (
+          <p
+            data-testid="group-default-role-inert"
+            style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--ink-warning)' }}
+          >
+            <IconWarning size={14} /> Le profil enregistré («{' '}
+            {group.default_role_display_name || group.default_role_slug} ») n’est pas un profil
+            élève : il n’est conféré à aucun membre. Choisissez un profil élève ou « Aucun ».
+          </p>
         )}
         {groupRoles.length === 0 && (
           <p

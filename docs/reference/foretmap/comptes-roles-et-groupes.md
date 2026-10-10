@@ -204,6 +204,9 @@ rang égal, le profil attribué. Concrètement :
   son profil attribué compte. Sans cette règle, un prof de classe membre d'une classe dont
   le profil par défaut était « n3boss » devenait n3boss — avec la vue sur tout
   l'établissement.
+- **Un groupe ne confère qu'un profil élève** (visiteur ou palier n3beur), à ses élèves :
+  rattachement, code de classe ou synchronisation ne transmettent jamais un profil
+  d'encadrement ni « Personnel ».
 - un enseignant **sans profil** reçoit **« Prof de classe »** (jamais n3boss) ; un élève
   sans profil est **visiteur**.
 
@@ -360,11 +363,18 @@ Les groupes structurent la vie pédagogique :
   « n3beur novice » pour une classe) — c'est ce qui promeut un visiteur en élève dès son
   rattachement, selon la règle « le plus élevé l'emporte ». Changer ce profil réaligne
   aussitôt tous les membres. Ce réglage est réservé à l'**administrateur et au n3boss** ;
-  la liste propose **tous les profils** de ForetMap (visiteur, personnel, paliers n3beur,
-  prof de classe, n3boss, administrateur, profils sur mesure), sauf ceux du jeu Gnomes &
-  Licornes. Hors administrateur, on ne pose sur un groupe qu'un profil de rang
-  **strictement inférieur** au sien — un n3boss ne peut donc conférer ni « Administrateur »
-  ni « n3boss ». Un groupe laissé sur « Visiteur » n'a **aucun effet** sur ses membres.
+  depuis octobre 2026, la liste ne propose que les **profils élèves** : visiteur, paliers
+  n3beur et paliers sur mesure. Un groupe ne confère **jamais** un profil d'encadrement
+  (n3boss, administrateur, prof de classe), ni « Personnel », ni un profil du jeu Gnomes &
+  Licornes — pas même posé par un administrateur, par un fichier d'import de groupes ou par
+  la synchronisation Moodle. Un groupe qui en portait un avant cette date le garde affiché,
+  mais **ne le confère plus à personne** : le panneau de réglages du groupe le signale
+  (« n'est pas un profil élève : il n'est conféré à aucun membre »), et les membres qui
+  l'avaient reçu retrouvent leur propre profil à leur prochaine connexion, ou dès que le
+  profil par défaut du groupe est changé. Pour donner un profil d'encadrement, on l'**attribue au compte**
+  (Profils & utilisateurs → Comptes). Hors administrateur, on ne pose sur un groupe qu'un
+  profil de rang **strictement inférieur** au sien. Un groupe laissé sur « Visiteur » n'a
+  **aucun effet** sur ses membres.
   - **Rattacher, c'est conférer** : ajouter un compte à un groupe (un par un, en lot, par la
     liste des membres, à la création ou à la duplication d'un compte, à l'import) et générer
     son **code de classe** suivent la même règle. Hors administrateur, si le profil par défaut

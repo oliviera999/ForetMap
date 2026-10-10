@@ -13,17 +13,16 @@ const {
   isGroupInManageScope,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
-const {
-  isGlRoleSlug,
-  isReservedRoleSlug,
-  normalizeRoleSlug,
-} = require('../lib/shared/n3beurRolesCore');
+const { isReservedRoleSlug, normalizeRoleSlug } = require('../lib/shared/n3beurRolesCore');
 const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
-const { checkGroupJoinAllowedById } = require('../lib/groupDefaultRolePolicy');
+const {
+  checkGroupJoinAllowedById,
+  isGroupConferrableRole,
+} = require('../lib/groupDefaultRolePolicy');
 const { canGrantRank } = require('../lib/rankGuard');
 const {
   assignRole,
@@ -331,15 +330,15 @@ router.get(
       });
     }
     // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe,
-    // **pour l'acteur courant** ? Tous les profils sauf ceux du jeu G&L ; hors administrateur,
-    // seulement un profil de rang strictement inférieur au sien (`lib/rankGuard.js`, même règle
-    // que `lib/groupDefaultRolePolicy.js`).
+    // **pour l'acteur courant** ? Seulement un profil élève (visiteur, palier n3beur — même
+    // règle que `lib/groupDefaultRolePolicy.js`) ; hors administrateur, de rang strictement
+    // inférieur au sien (`lib/rankGuard.js`).
     const rolesPayload = rolesWithProgression
       .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
       .map((r) => ({
         ...r,
         catalog: perms,
-        group_default_allowed: !isGlRoleSlug(r.slug) && canGrantRank(req.auth, r.rank),
+        group_default_allowed: isGroupConferrableRole(r) && canGrantRank(req.auth, r.rank),
       }));
     const progressionByValidatedTasksEnabled = await getSettingValue(
       'rbac.progression_by_validated_tasks',

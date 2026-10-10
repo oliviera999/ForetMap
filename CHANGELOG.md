@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Profil par défaut d'un groupe borné aux profils élèves
+
+- Un groupe ne confère plus qu'un **profil élève** : `visiteur` ou palier n3beur (`eleve_*`, profil sur mesure de rang < 400 qui ne porte pas `teacher.access`). Ni l'encadrement (`admin`, `prof`, `prof_classe`), ni `personnel`, ni les profils du jeu. Règle unique : `isStudentProfileRole` (noyau partagé `src/shared/n3beurRolesCore.js`) et `isGroupConferrableRole` (`lib/groupDefaultRolePolicy.js`).
+- **Refus à l'écriture** (400, administrateur compris) : `POST`/`PATCH /api/groups`, import de groupes, classe G&L miroir (`POST /api/gl/admin/classes`, fonction partagée), politiques de synchronisation Moodle (rôle d'encadrement refusé à l'enregistrement ; une politique déjà enregistrée qui en nomme un crée son groupe sans profil par défaut, alerte `policy_role_not_student`). `group_default_allowed` (`GET /api/rbac/profiles`) suit la même règle.
+- **Garde à l'application** (`lib/effectiveRole.js`) : un profil par défaut non élève déjà en base n'est conféré à personne, imposé ou non — ni par rattachement, ni par code de classe, ni par synchronisation ou recalcul. Aucune donnée n'est modifiée : les membres concernés retrouvent leur propre profil au prochain recalcul (connexion, `GET /api/auth/me`, changement du profil par défaut du groupe).
+- `GET /api/groups` publie `default_role_conferrable` ; le panneau de réglages d'un groupe rappelle la règle et signale un profil enregistré qui n'est pas un profil élève.
+- Tests : `tests/groups-default-role-student.test.js`, `tests/moodle-group-default-role.test.js`, `tests-ui/components/GroupsAdminDefaultRole.test.jsx`, `tests-ui/utils/groupDefaultRoleOptions.test.js` ; `tests/groups.test.js`, `tests/effective-role.test.js` et `tests/rbac-rank-guards.test.js` alignés. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/rentree-moodle.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
 ### Sécurité — Garde de rang : hors administrateur, on n'attribue qu'un profil de rang strictement inférieur au sien
 
 - Règle unique `lib/rankGuard.js` (`canGrantRank`) : l'administrateur attribue tout profil ; hors administrateur, le rang visé doit être **strictement inférieur** à celui de l'acteur. À rang égal, l'attribution est désormais refusée (**403**) : un n3boss ne crée plus d'autre n3boss, un prof de classe pas d'autre prof de classe.

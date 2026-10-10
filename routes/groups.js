@@ -24,6 +24,8 @@ const {
   checkGroupJoinAllowed,
   checkGroupJoinAllowedById,
   loadGroupWithDefaultRole,
+  isGroupConferrableRole,
+  ROLE_OPENS_TEACHER_ACCESS_SQL,
 } = require('../lib/groupDefaultRolePolicy');
 const { logAudit } = require('../lib/auditLog');
 const { slugify } = require('../lib/shared/slug');
@@ -100,7 +102,9 @@ async function enrichGroupRows(rows) {
   const [roleRows, glClassRows] = await Promise.all([
     roleIds.length
       ? queryAll(
-          `SELECT id, slug, display_name, \`rank\` FROM roles WHERE id IN (${roleIds.map(() => '?').join(',')})`,
+          `SELECT r.id, r.slug, r.display_name, r.\`rank\`,
+                  ${ROLE_OPENS_TEACHER_ACCESS_SQL} AS opens_teacher_access
+             FROM roles r WHERE r.id IN (${roleIds.map(() => '?').join(',')})`,
           roleIds,
         )
       : [],
@@ -125,6 +129,9 @@ async function enrichGroupRows(rows) {
       default_role_slug: role?.slug ?? row.default_role_slug ?? null,
       default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
       default_role_rank: role?.rank != null ? Number(role.rank) : null,
+      // Faux pour un profil par défaut hors profils élèves (donnée antérieure à la garde
+      // d'écriture) : il n'est conféré à aucun membre (`lib/effectiveRole.js`).
+      default_role_conferrable: role ? isGroupConferrableRole(role) : null,
       force_default_role: Number(row.force_default_role) !== 0,
       gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
       gl_class_name: glClass?.name ?? null,
