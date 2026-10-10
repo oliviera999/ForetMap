@@ -65,7 +65,7 @@ describe('CreateUserPanel', () => {
     expect(screen.getByRole('button', { name: 'Créer' })).toBeTruthy();
   });
 
-  test('propose visiteur, personnel, paliers n3beur, prof de classe et n3boss', () => {
+  test('n3boss : propose visiteur, personnel, paliers n3beur et prof de classe, pas n3boss', () => {
     renderPanel({ isAdmin: false, canCreateTeacherRoles: true });
     expect(screen.getByRole('option', { name: 'Visiteur' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Personnel' })).toBeTruthy();
@@ -73,6 +73,12 @@ describe('CreateUserPanel', () => {
     expect(screen.getByRole('option', { name: 'n3beur avancé' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'n3beur chevronné' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Prof de classe' })).toBeTruthy();
+    // Garde de rang : hors administrateur, pas de profil de rang égal au sien.
+    expect(screen.queryByRole('option', { name: 'n3boss' })).toBeNull();
+  });
+
+  test('admin : propose aussi n3boss', () => {
+    renderPanel({ isAdmin: true });
     expect(screen.getByRole('option', { name: 'n3boss' })).toBeTruthy();
   });
 
