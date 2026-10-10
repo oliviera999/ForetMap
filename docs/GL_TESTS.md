@@ -2,7 +2,8 @@
 
 Ce document centralise les commandes et la matrice de couverture pour Gnomes & Licornes.
 
-**Inventaire (août 2026)** : **166** fichiers `tests/gl-*.test.js`, **153** fichiers `tests-ui/gl/**`, **21** scénarios `e2e/gl-*.spec.js`.
+**Inventaire (octobre 2026)** : **201** fichiers `tests/gl-*.test.js`, **177** fichiers
+`tests-ui/gl/**`, **22** scénarios `e2e/gl-*.spec.js`.
 
 ## Commandes
 
@@ -92,9 +93,25 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 ### Admin, réglages, RBAC
 
 - `gl-admin-classes-players.test.js`, `gl-admin-helpers.test.js`, `gl-admin-query-validation.test.js`
-- `gl-players-admin.test.js`, `gl-players-import.test.js`, `gl-player-journal.test.js`, `gl-player-journal-lib.test.js`, `gl-player-stats.test.js`, `gl-voyageur.test.js` (Le Seuil : niveau, grimoire), `gl-voyageur-suite.test.js` (« +1 », traversées, Loupe, vue MJ, gestes)
+- `gl-players-admin.test.js`, `gl-players-import.test.js`, `gl-player-journal.test.js`, `gl-player-journal-lib.test.js`, `gl-player-stats.test.js`
 - `gl-settings.test.js`, `gl-settings-cache.test.js`, `gl-rbac.test.js`, `gl-permissions-catalog-alignment.test.js`, `gl-brand.test.js`
 - `gl-diagnostics.test.js`, `gl-realtime.test.js`, `gl-product-routing.test.js`
+
+### Le Seuil / voyageur
+
+- `gl-voyageur.test.js` — règles pures (`pointsForLevel`, `levelForPoints`, penchant, charge),
+  route `GET /api/gl/voyageur/me`, refus sans jeton / MJ, module coupé (`503`), expédition active,
+  joueur sans équipe, sortilèges `seconde_chance` et `memoire`, erreurs de cible sans consommation
+  de charge.
+- `gl-voyageur-suite.test.js` — suite S1-S6 : `voyageurGainFor`, premier acquis et première bonne
+  réponse seulement, module coupé, traversées terminées, sortilège `loupe` sans consommation du
+  jeton de présentation, niveau visible dans les stats classe, gestes de mascotte.
+- UI : `GLSeuilView.test.jsx` (deux regards, expédition, traversées, suggestions, lancement,
+  célébration, sons, Loupe), `GLVoyageurGainToast.test.jsx` (pastilles `+1`),
+  `GLLoupeButton.test.jsx` (cache court, lancement, état déchargé) et
+  `glVoyageurSounds.test.js` (partitions Web Audio, coupures admin / élève).
+- E2E : `e2e/gl-seuil.spec.js` — accueil joueur, niveau du voyageur, expédition, sortilège
+  lancé depuis le Seuil et affichage du `+1` immédiat.
 
 ### Validation Zod (O7) et utilitaires
 
@@ -103,7 +120,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-marker-appearance.test.js`, `gl-marker-effects.test.js`, `gl-marker-lore-question-pool.test.js`, `gl-marker-present-question.test.js`, `gl-marker-question-pool.test.js`
 - `gl-norm-map-coords.test.js`, `gl-point-in-polygon.test.js`, `gl-pack-lib-mirror.test.js`, `gl-collab-extensions.test.js`
 
-## UI Vitest (`tests-ui/gl/` — 153 fichiers)
+## UI Vitest (`tests-ui/gl/` — 177 fichiers)
 
 Principales zones :
 
@@ -113,6 +130,8 @@ Principales zones :
 - **Espèces / sorts** : `GLSpeciesCatalog.test.jsx`, `GLSpeciesDetailModal.test.jsx`, `glSpeciesEditorForm.test.js`, `GLSpellCastWizard.test.jsx`, `glSpellsEditorForm.test.js`
 - **Admin contenus** : `GLContentLibraryView.test.jsx`, `GLContentLibraryAuditPanel.test.jsx`, `GLChapterMapStudio.test.jsx`, `glChapterRecitConvention.test.js`, `glStorySceneRefs.test.js`, `glChapterIllustration.test.js`
 - **MJ / feuillets** : `GLGameMasterConsole.test.jsx`, `GLFeuilletDiscoveryPopover.test.jsx`, `GLSeleneCarnetView.test.jsx`, `GLVirtualDicePopover.test.jsx`
+- **Le Seuil / voyageur** : `GLSeuilView.test.jsx`, `GLVoyageurGainToast.test.jsx`,
+  `GLLoupeButton.test.jsx`, `glVoyageurSounds.test.js`
 - **API client** : `apiGL.test.js`
 
 Liste complète : `Get-ChildItem tests-ui/gl -Recurse -Include *.test.js,*.test.jsx`.
