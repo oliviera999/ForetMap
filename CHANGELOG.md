@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Tâches sans compte : plus aucun nom d'élève (dossier sûreté, R9)
+
+- `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session (la Visite liste les tâches d'un lieu). Ils livraient à un anonyme le **prénom et le nom de l'élève qui propose une tâche** (ligne « Proposition n3beur: … » de la description), son identifiant, l'**identité des référents**, et les inscrits quand `tasks.assignees_visibility = all`.
+- Sans session, ces champs sont désormais vidés et la ligne du proposant retirée (`redactTaskForAnonymous`, `lib/tasks/assignmentVisibility.js`). Rien ne change pour un compte connecté.
+- Reste ouvert (décision) : le nom du proposant est écrit dans la description et y survit à l'effacement de l'élève.
+- Tests : `tests/security-dossier-surete.test.js`. Doc : `docs/API.md`.
+
 ### Sécurité — Visite : un lieu réservé sur la carte reste réservé (dossier sûreté, R4)
 
 - `GET /api/visit/content` lisait l'audience par `COALESCE(visite, carte)` : celle de la Visite **remplaçait** celle de la carte. L'éditeur de Visite écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte était servi à l'anonyme dès que sa carte figurait dans la Visite (69 lieux dans ce cas dans le jeu anonymisé).

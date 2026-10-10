@@ -13,6 +13,9 @@
  * - **R4** — la Visite laissait son audience remplacer celle de la carte (`COALESCE`) ; l'éditeur
  *   écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte
  *   était servi à l'anonyme par `GET /api/visit/content`.
+ * - **R9** — `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session ; ils livraient le
+ *   prénom et le nom de l'élève qui propose une tâche (écrits dans la description), son
+ *   identifiant et l'identité des référents.
  *
  * Même montage que `tests/security-surfaces.test.js` : une carte déclarée comme carte du plan
  * public (fermé par code), un terrain public pour la Visite, la surface `plan` simulée par
@@ -37,12 +40,13 @@ const { planContentCache } = require('../routes/plan');
 const { visitContentCache } = require('../routes/visit');
 
 const PLAN_CODE = 'code-surete-test-2026';
+const ACCOUNT_PASSWORD = 'mot-de-passe-surete-2026';
 
 let adminToken;
 let planMapId;
 let visitMapId;
 const snapshots = [];
-const created = { zones: [], markers: [], users: [], routes: [] };
+const created = { zones: [], markers: [], users: [], routes: [], tasks: [] };
 /** Lieux du plan : public, retiré du plan, réservé aux personnels. */
 const place = {};
 
@@ -75,6 +79,10 @@ async function addMarkerPhoto(markerId, caption) {
 
 /** Compte connecté de profil `slug`, sans groupe (donc sans périmètre de carte). */
 async function createAccountToken(slug) {
+  return (await createAccount(slug)).token;
+}
+
+async function createAccount(slug, { login = false } = {}) {
   const { signAuthToken } = require('../middleware/requireTeacher');
   const role = await queryOne('SELECT id, display_name FROM roles WHERE slug = ? LIMIT 1', [slug]);
   assert.ok(role?.id, `rôle ${slug} requis`);
@@ -82,7 +90,7 @@ async function createAccountToken(slug) {
   const userId = `u-surete-${stamp}`;
   await execute(
     `INSERT INTO users (id, user_type, email, pseudo, password_hash, display_name, first_name, last_name, is_active)
-     VALUES (?, 'student', ?, ?, 'x', 'Lecteur sûreté', 'L', 'S', 1)`,
+     VALUES (?, 'student', ?, ?, 'x', 'Lecteur sûreté', 'Prenomsurete', 'Nomsurete', 1)`,
     [userId, `surete.${stamp}@test.local`, `surete_${stamp}`],
   );
   created.users.push(userId);
@@ -92,7 +100,19 @@ async function createAccountToken(slug) {
   );
   await execute('UPDATE users SET assigned_role_id = ? WHERE id = ?', [role.id, userId]);
   clearMapAccessCache();
-  return signAuthToken({
+  if (login) {
+    // Jeton réel (époque, produit) : les routes d'action élève le relisent intégralement.
+    await execute('UPDATE users SET password_hash = ? WHERE id = ?', [
+      await bcrypt.hash(ACCOUNT_PASSWORD, 4),
+      userId,
+    ]);
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: `surete.${stamp}@test.local`, password: ACCOUNT_PASSWORD })
+      .expect(200);
+    return { userId, token: res.body.authToken };
+  }
+  const token = signAuthToken({
     userType: 'student',
     userId,
     canonicalUserId: userId,
@@ -100,6 +120,7 @@ async function createAccountToken(slug) {
     roleSlug: slug,
     roleDisplayName: role.display_name,
   });
+  return { userId, token };
 }
 
 test.before(async () => {
@@ -198,6 +219,10 @@ test.beforeEach(async () => {
 });
 
 test.after(async () => {
+  for (const id of created.tasks) {
+    await execute('DELETE FROM task_referents WHERE task_id = ?', [id]).catch(() => {});
+    await execute('DELETE FROM tasks WHERE id = ?', [id]);
+  }
   for (const id of created.routes) {
     await execute('DELETE FROM map_route_steps WHERE route_id = ?', [id]);
     await execute('DELETE FROM map_routes WHERE id = ?', [id]);
@@ -353,4 +378,67 @@ test('R4 — Visite, compte personnel : les deux lieux réservés lui sont servi
   const ids = visitZoneIds(res);
   assert.ok(ids.includes(place.visitMapReserved));
   assert.ok(ids.includes(place.visitOnlyReserved));
+});
+
+test('R9 — tâche proposée par un élève : un anonyme n’apprend ni son nom ni son identifiant', async () => {
+  const student = await createAccount('eleve_avance', { login: true });
+  const proposal = await request(app)
+    .post('/api/tasks/proposals')
+    .set('Authorization', `Bearer ${student.token}`)
+    .send({
+      title: 'TACHE-PROPOSEE-SURETE',
+      description: 'Idée de tâche',
+      map_id: visitMapId,
+      studentId: student.userId,
+    });
+  assert.equal(proposal.status, 201, JSON.stringify(proposal.body));
+  const taskId = proposal.body.id || proposal.body.task?.id;
+  assert.ok(taskId, 'identifiant de la tâche proposée');
+  created.tasks.push(taskId);
+
+  const list = await request(app).get('/api/tasks').expect(200);
+  const listed = list.body.find((t) => t.id === taskId);
+  assert.ok(listed, 'la tâche reste listée');
+  assert.ok(!JSON.stringify(listed).includes('Nomsurete'), 'nom de l’élève servi à un anonyme');
+  assert.equal(listed.proposed_by_student_id, null);
+  assert.equal(listed.description, 'Idée de tâche');
+
+  const detail = await request(app).get(`/api/tasks/${taskId}`).expect(200);
+  assert.ok(!JSON.stringify(detail.body).includes('Nomsurete'));
+  assert.equal(detail.body.proposed_by_student_id, null);
+
+  // Rien ne change pour un compte connecté : le gestionnaire voit toujours le proposant.
+  const staff = await request(app)
+    .get(`/api/tasks/${taskId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(String(staff.body.description).includes('Nomsurete'));
+  assert.equal(staff.body.proposed_by_student_id, student.userId);
+});
+
+test('R9 — référents : un anonyme ne reçoit pas leur identité', async () => {
+  const referent = await createAccount('eleve_chevronne');
+  const created1 = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      title: 'TACHE-REFERENT-SURETE',
+      map_id: visitMapId,
+      referent_user_ids: [referent.userId],
+    });
+  assert.equal(created1.status, 201, JSON.stringify(created1.body));
+  created.tasks.push(created1.body.id);
+
+  const list = await request(app).get('/api/tasks').expect(200);
+  const listed = list.body.find((t) => t.id === created1.body.id);
+  assert.ok(listed);
+  assert.deepEqual(listed.referents_linked, []);
+  assert.deepEqual(listed.referent_user_ids, []);
+
+  const staff = await request(app)
+    .get('/api/tasks')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const staffRow = staff.body.find((t) => t.id === created1.body.id);
+  assert.ok((staffRow.referent_user_ids || []).includes(referent.userId));
 });
