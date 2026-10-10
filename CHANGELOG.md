@@ -15,6 +15,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - La graine (pseudo, sinon prénom-nom, sinon identifiant) est recalculée côté serveur : elle ne figure ni dans l'URL ni dans le SVG. URL **signée** comme les photos d'élèves (même durée de vie, clé dérivée propre, signature couvrant aussi la graine), émise par les réponses qui exposent déjà le compte : champ `default_avatar_url` (projection publique des comptes, `GET /api/stats/me/:id`, `GET /api/stats/all`, profil de `GET /api/auth/me`).
 - Cache : `Cache-Control: private, max-age=3600` + `ETag` (304), rendu gardé en mémoire (500 entrées). SVG inerte (`Content-Security-Policy` en `sandbox`, garde-fou contre tout élément actif). `npm run check:runtime` signale l'absence des paquets.
 - Tests : `tests/default-avatar.test.js`. Doc : `docs/API.md`.
+- **Front** : `StudentAvatar` (en-tête, classement, fiche et profil) affiche l'avatar fourni par le serveur (`default_avatar_url`, seule la route de l'application est acceptée) ; repli en cascade photo → avatar par défaut → silhouette neutre embarquée, sans aucune requête. Le navigateur ne construit plus d'URL d'avatar à partir du pseudo ou du nom. « Mon profil » : bouton « Utiliser l'avatar par défaut ». Le champ suit la session (élève et enseignant).
+- **G&L** inchangé : ses avatars par défaut restent chargés comme avant (constructeur déplacé dans `src/gl/utils/glAvatar.js`, à l'identique).
+- Tests : `tests/no-third-party-avatar-guard.test.js` (aucun fichier livré ni aucune CSP ne référence l'API publique DiceBear ; exception G&L nommée), `tests-ui/components/StudentAvatarDefault.test.jsx`, `tests/avatar-shared-utils.test.js`.
 
 ### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
 

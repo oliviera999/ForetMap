@@ -836,6 +836,7 @@ function App() {
       pseudo: sessionUser?.pseudo || null,
       email: sessionUser?.email || null,
       avatar_path: sessionUser?.avatar_path || null,
+      default_avatar_url: sessionUser?.default_avatar_url || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
       description: sessionUser?.description || '',
@@ -855,6 +856,7 @@ function App() {
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.biodiv_pedago_level,
+    sessionUser?.default_avatar_url,
     sessionUser?.description,
     sessionUser?.displayName,
     sessionUser?.email,
@@ -920,6 +922,7 @@ function App() {
               : (prev?.description ?? null),
           avatar_path:
             updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+          default_avatar_url: updatedUser?.default_avatar_url ?? prev?.default_avatar_url ?? null,
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
           biodiv_pedago_level:
@@ -976,6 +979,7 @@ function App() {
           pseudo: session?.pseudo || null,
           description: session?.description || null,
           avatar_path: session?.avatar_path || null,
+          default_avatar_url: session?.default_avatar_url || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
           biodiv_pedago_level: session?.biodiv_pedago_level || null,
         });

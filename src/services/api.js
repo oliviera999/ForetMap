@@ -32,6 +32,9 @@ const STUDENT_SESSION_FIELDS = [
   'email',
   'avatar_path',
   'avatarPath',
+  // URL signée de l'avatar par défaut (serveur) : reprise au rechargement, renouvelée par la
+  // validation de session.
+  'default_avatar_url',
   'authToken',
   'taskEnrollment',
   'forumParticipate',
