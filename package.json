@@ -21,7 +21,7 @@
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.2",
     "cors": "^2.8.5",
-    "dotenv": "^18.0.4",
+    "dotenv": "^18.0.5",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
@@ -31,8 +31,8 @@
     "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
-    "mysql2": "^3.24.3",
-    "nodemailer": "^10.0.10",
+    "mysql2": "^3.24.5",
+    "nodemailer": "^10.0.13",
     "on-finished": "^2.4.1",
     "pdfkit": "^0.20.2",
     "pino": "^10.3.1",
@@ -41,7 +41,7 @@
     "zod": "^4.6.5"
   },
   "optionalDependencies": {
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.5"
   },
   "overrides": {
     "eslint-plugin-jsx-a11y": {
@@ -222,16 +222,16 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@fontsource/noto-color-emoji": "^5.3.2",
-    "@modelcontextprotocol/sdk": "^1.30.1",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@playwright/test": "^1.63.0",
-    "@rive-app/react-canvas": "^4.35.0",
+    "@rive-app/react-canvas": "^4.36.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@vitejs/plugin-react": "^6.1.1",
-    "@vitest/coverage-v8": "^5.0.2",
-    "@vitest/ui": "^5.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/ui": "^5.0.3",
     "artillery": "^2.0.34",
     "better-sqlite3": "^13.0.3",
     "cross-env": "^10.1.0",
@@ -241,7 +241,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.12.0",
     "jsdom": "^30.1.0",
-    "lucide-react": "^1.48.0",
+    "lucide-react": "^1.49.0",
     "marked": "^18.0.13",
     "nodemon": "^3.0.2",
     "prettier": "^3.9.9",
@@ -251,7 +251,7 @@
     "supertest": "^7.3.0",
     "turndown": "^7.2.4",
     "vite": "^8.3.1",
-    "vitest": "^5.0.2",
+    "vitest": "^5.0.3",
     "xlsx": "^0.18.5"
   }
 }
