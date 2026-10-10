@@ -1,6 +1,7 @@
 const express = require('express');
 const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const { emailWillChange, applyEmailChangeEffects } = require('../lib/accounts/emailChange');
+const { ACTIVE_STATE_SET_SQL, activeStateParams } = require('../lib/accounts/deactivation');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
@@ -1214,9 +1215,10 @@ router.patch(
 
     try {
       await execute(
+        // `deactivated_at` suit `is_active` (date de départ, purge planifiée — migration 319).
         `UPDATE users
              SET first_name = ?, last_name = ?, display_name = ?, pseudo = ?, email = ?, description = ?,
-                 password_hash = ?, is_active = ?, updated_at = NOW()
+                 password_hash = ?, ${ACTIVE_STATE_SET_SQL}, updated_at = NOW()
            WHERE id = ? AND user_type = ?`,
         [
           firstName,
@@ -1226,7 +1228,7 @@ router.patch(
           email,
           description,
           passwordHash,
-          nextIsActive,
+          ...activeStateParams(user.is_active, nextIsActive),
           resolvedUserId,
           resolvedUserType,
         ],
