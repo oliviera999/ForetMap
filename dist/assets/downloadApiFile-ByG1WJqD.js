@@ -1,0 +1,1 @@
+import{Fn as e,xn as t}from"./VisitMascotFallbackSvg-DvkFty0O.js";import{a as n}from"./useAppVersion-BhaFUAK9.js";async function r(r,i){return n(r,i,{resolveUrl:e,getToken:t,messages:{unauthorized:`Session expirée — reconnectez-vous.`,forbidden:`Permission insuffisante pour cette action.`,notFound:`Route introuvable — déployez la dernière version du serveur.`}})}export{r as t};
