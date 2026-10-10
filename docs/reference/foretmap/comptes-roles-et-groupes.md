@@ -610,7 +610,12 @@ sous-onglet consulté qui est rouvert.
   traces techniques sont effacées aussi : journal d'activité, adresse IP et navigateur de
   ses connexions ; le journal d'audit ne garde de la suppression que l'**identifiant** du
   compte, jamais son nom. C'est un pouvoir sensible ; il ne fait pas partie du socle minimal du
-  prof de classe. La suppression d'un **enseignant** se fait depuis sa fiche, par un
+  prof de classe. Depuis octobre 2026, on ne supprime ainsi qu'un compte de **rang inférieur**
+  au sien : un n3boss ne supprime ni un autre n3boss ni un administrateur, même rangé parmi
+  les élèves, et un administrateur ne supprime pas un autre administrateur par cette voie. Le
+  rang retenu est le plus élevé entre le profil du compte et celui qui lui est attribué (un
+  groupe qui impose « Visiteur » ne le fait pas passer pour un simple élève). Le **dernier
+  administrateur actif** ne peut jamais être supprimé. La suppression d'un **enseignant** se fait depuis sa fiche, par un
   **administrateur seulement** (jamais sur son propre compte, jamais le dernier
   administrateur) : ce qu'il a créé (groupes, tâches, contenus, messages) est
   **conservé**, l'auteur apparaissant comme « compte supprimé ». Sa **photo de profil** est

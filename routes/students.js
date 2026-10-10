@@ -23,6 +23,7 @@ const {
 } = require('../lib/groupScope');
 const { addUserToGroup } = require('../lib/groupMembers');
 const { deleteStudentById } = require('../lib/studentDeletion');
+const { checkStudentDeletionAllowed } = require('../lib/accountDeletionGuard');
 const { getPasswordMinLength } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { importStudentAccounts } = require('../lib/students/studentImportService');
@@ -499,6 +500,10 @@ router.delete(
     if (!canBypassGroupScope(req.auth) && !(await canAccessStudentId(req.auth, req.params.id))) {
       return res.status(403).json({ error: 'n3beur hors périmètre de groupe' });
     }
+    // Garde de rang : on ne supprime qu'un compte de rang (effectif ou attribué) strictement
+    // inférieur au sien, administrateur compris, et jamais le dernier administrateur actif.
+    const deletion = await checkStudentDeletionAllowed(req.auth, req.params.id);
+    if (!deletion.ok) return res.status(deletion.status).json({ error: deletion.error });
     const result = await deleteStudentById(req.params.id);
     if (!result.ok) {
       if (result.reason === 'not_found' || result.reason === 'missing_id') {

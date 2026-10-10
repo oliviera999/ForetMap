@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Suppression d'un compte élève : garde de rang et dernier administrateur
+
+- `DELETE /api/students/:id` vérifie désormais le rang de la cible (`lib/accountDeletionGuard.js`) : **403** si le plus élevé de son profil effectif et de son profil attribué est égal ou supérieur au rang de l'acteur — **administrateur compris**, qui ne supprime pas un autre administrateur par cette route ; **403** sur soi-même ; **409** si la cible est le dernier administrateur actif (tout type de compte).
+- Le profil attribué compte même quand un groupe impose un profil plus bas : un compte élève porteur du profil n3boss reste protégé.
+- Tests : `tests/students-delete-rank-guard.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
 ### Sécurité — Profil par défaut d'un groupe borné aux profils élèves
 
 - Un groupe ne confère plus qu'un **profil élève** : `visiteur` ou palier n3beur (`eleve_*`, profil sur mesure de rang < 400 qui ne porte pas `teacher.access`). Ni l'encadrement (`admin`, `prof`, `prof_classe`), ni `personnel`, ni les profils du jeu. Règle unique : `isStudentProfileRole` (noyau partagé `src/shared/n3beurRolesCore.js`) et `isGroupConferrableRole` (`lib/groupDefaultRolePolicy.js`).
