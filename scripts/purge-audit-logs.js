@@ -34,8 +34,10 @@
  *   --guest-days=N     réponses QCM des **invités** G&L (`gl_qcm_attempts`, lecteur
  *                      `gl_guest`) — défaut 30 j (FORETMAP_RETENTION_GUEST_DAYS) ;
  *   --ip-days=N        au-delà, l'IP de `security_events` est **tronquée** (IPv4 → /24,
- *                      IPv6 → /48) et le user-agent effacé — défaut 183 j (6 mois)
- *                      (FORETMAP_RETENTION_IP_DAYS). `audit_log` ne stocke ni IP ni UA.
+ *                      IPv6 → /48) et le user-agent effacé ; l'IP recopiée dans les données
+ *                      complémentaires (`payload_json.ip`) de `security_events` et
+ *                      d'`audit_log` est tronquée de même — défaut 90 j (3 mois)
+ *                      (FORETMAP_RETENTION_IP_DAYS). `audit_log` n'a pas de colonne IP.
  * Rétention fixe d'un jour pour les traces transitoires : jetons QCM consommés
  * (`gl_qcm_presentation_uses`, invités compris — la table ne porte pas de lecteur) et jetons de
  * réinitialisation de mot de passe (`password_reset_tokens`) utilisés ou expirés.
@@ -72,7 +74,7 @@ const DEFAULT_ACTIVITY_RETENTION_DAYS = 90;
 const DEFAULT_SYNC_RETENTION_DAYS = 365;
 const DEFAULT_VISITS_RETENTION_DAYS = 365;
 const DEFAULT_GUEST_RETENTION_DAYS = 30;
-const DEFAULT_IP_RETENTION_DAYS = 183;
+const DEFAULT_IP_RETENTION_DAYS = 90;
 const MIN_RETENTION_DAYS = 30;
 /** Plafond des journaux et traces d'activité : 12 mois. */
 const MAX_JOURNAL_RETENTION_DAYS = 365;
@@ -407,6 +409,74 @@ async function truncateSecurityEventIps({ queryAll, queryOne, execute }, ipDays,
   return total;
 }
 
+/**
+ * Journaux dont les données complémentaires (`payload_json`) peuvent porter une IP sous la clé
+ * `ip` (entrées par code du plan des personnels, `routes/staff-plan.js`), chacun dans son
+ * référentiel de temps (voir `TARGETS`).
+ */
+const PAYLOAD_IP_TABLES = Object.freeze([
+  { table: 'security_events', dateWhere: 'occurred_at < (NOW() - INTERVAL ? DAY)' },
+  {
+    table: 'audit_log',
+    dateWhere:
+      "created_at < DATE_FORMAT(UTC_TIMESTAMP() - INTERVAL ? DAY, '%Y-%m-%dT%H:%i:%s.000Z')",
+  },
+]);
+
+const PAYLOAD_IP_EXPR = "JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.ip'))";
+/** IP encore complète dans `payload_json.ip` (une valeur tronquée finit par `.0` ou `::`). */
+const PAYLOAD_IP_STALE =
+  "JSON_TYPE(JSON_EXTRACT(payload_json, '$.ip')) = 'STRING' " +
+  `AND ${PAYLOAD_IP_EXPR} NOT LIKE '%.0' AND ${PAYLOAD_IP_EXPR} NOT LIKE '%::'`;
+
+/**
+ * Au-delà de `ipDays` : IP de `payload_json.ip` tronquée (illisible → `null`), dans chaque
+ * table de {@link PAYLOAD_IP_TABLES}. Idempotent : une IP déjà tronquée n'est plus relue.
+ * @returns {Promise<Record<string, number>>} lignes concernées (à blanc) ou modifiées, par table
+ */
+async function truncatePayloadIps({ queryAll, queryOne, execute }, ipDays, apply) {
+  const out = {};
+  for (const { table, dateWhere } of PAYLOAD_IP_TABLES) {
+    const stale = `${dateWhere} AND ${PAYLOAD_IP_STALE}`;
+    if (!apply) {
+      const row = await queryOne(`SELECT COUNT(*) AS n FROM ${table} WHERE ${stale}`, [ipDays]);
+      out[table] = Number(row?.n || 0);
+      continue;
+    }
+    let total = 0;
+    let lastId = 0;
+    for (;;) {
+      const rows = await queryAll(
+        `SELECT id, ${PAYLOAD_IP_EXPR} AS ip FROM ${table} WHERE ${stale} AND id > ? ORDER BY id LIMIT ${IP_BATCH_SIZE}`,
+        [ipDays, lastId],
+      );
+      if (!rows.length) break;
+      for (const row of rows) {
+        await execute(
+          `UPDATE ${table} SET payload_json = JSON_SET(payload_json, '$.ip', ?) WHERE id = ?`,
+          [truncateIp(row.ip), row.id],
+        );
+        lastId = Number(row.id);
+      }
+      total += rows.length;
+    }
+    out[table] = total;
+  }
+  return out;
+}
+
+/**
+ * Toutes les IP des journaux au-delà de `ipDays` : colonne `security_events.ip_address`
+ * (et navigateur), puis `payload_json.ip` de `security_events` et d'`audit_log`.
+ * @returns {Promise<{ securityEvents: number, payloads: Record<string, number>, total: number }>}
+ */
+async function truncateJournalIps(db, ipDays, apply) {
+  const securityEvents = await truncateSecurityEventIps(db, ipDays, apply);
+  const payloads = await truncatePayloadIps(db, ipDays, apply);
+  const total = securityEvents + Object.values(payloads).reduce((a, b) => a + b, 0);
+  return { securityEvents, payloads, total };
+}
+
 function isMissingTableError(err) {
   return err?.code === 'ER_NO_SUCH_TABLE' || err?.errno === 1146;
 }
@@ -486,14 +556,19 @@ async function runPurge(options, db, log = (line) => console.log(line)) {
       `Mode : ${apply ? 'APPLICATION' : 'à blanc'}.`,
   );
 
-  const report = { ...(await purgeTargets(options, db, say)), ipRows: 0 };
+  const report = { ...(await purgeTargets(options, db, say)), ipRows: 0, payloadIpRows: {} };
   const totalDeleted = Object.values(report.deleted).reduce((a, b) => a + b, 0);
 
-  report.ipRows = await truncateSecurityEventIps(db, ipDays, apply);
+  const ips = await truncateJournalIps(db, ipDays, apply);
+  report.ipRows = ips.securityEvents;
+  report.payloadIpRows = ips.payloads;
   say(
     `security_events : ${report.ipRows} ligne(s) ` +
       `${apply ? 'anonymisée(s)' : 'à anonymiser'} (IP tronquée, navigateur effacé).`,
   );
+  for (const [table, n] of Object.entries(ips.payloads)) {
+    say(`${table} : ${n} IP de données complémentaires ${apply ? 'tronquée(s)' : 'à tronquer'}.`);
+  }
 
   if (!apply) {
     say('Exécution à blanc — rien n’a été supprimé.');
@@ -547,6 +622,9 @@ module.exports = {
   paramsFor,
   truncateIp,
   truncateSecurityEventIps,
+  PAYLOAD_IP_TABLES,
+  truncatePayloadIps,
+  truncateJournalIps,
   purgeTargets,
   runPurge,
 };

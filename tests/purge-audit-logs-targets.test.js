@@ -101,7 +101,7 @@ test('parseArgs : rétentions indépendantes, défauts, variables d’environnem
     syncDays: 365,
     visitsDays: 365,
     guestDays: 30,
-    ipDays: 183,
+    ipDays: 90,
   };
   assert.deepStrictEqual(parseArgs([]), defaults);
   assert.strictEqual(DEFAULT_RETENTION_DAYS, 365);
