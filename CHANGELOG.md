@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Réglages publics et secours TOTP
+
+- `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,
+  affichage et masquage) utilisées par l'écran de connexion et la page « À propos ».
+- `docs/SCRIPTS.md` ajoute le réflexe opérationnel en cas de dernier administrateur bloqué par
+  la double authentification : `totp:admin status`, exemples `reset` / `enforcement off`, et
+  rappel des garde-fous `--yes`, `.env` serveur et journaux d'audit.
+
 ### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
 
 - **Constat** (3 → 10/10) : ~2 230 min/mois estimées, dont 60 % sur `main` — chaque fusion déclenchait sept workflows (~13 min facturées), plus deux crons toutes les 6 h.
