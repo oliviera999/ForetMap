@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Parcours : le texte d'une étape ne sort plus si le lieu est réservé
+
+- Le catalogue des parcours (`GET /api/map-routes` et le lien profond) ne tenait compte que
+  des rôles du lieu. Une étape pointant vers un lieu réservé à une classe, ou qui n'héritait
+  sa réserve que de sa catégorie, livrait quand même son texte à un élève d'une autre classe
+  et à un visiteur — alors que le lieu lui-même restait masqué sur la carte, la Visite et le
+  plan. Le filtre reprend la même décision que ces charges (groupes, héritage, surfaces).
+
 ### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
 
 - **Constat** (3 → 10/10) : ~2 230 min/mois estimées, dont 60 % sur `main` — chaque fusion déclenchait sept workflows (~13 min facturées), plus deux crons toutes les 6 h.

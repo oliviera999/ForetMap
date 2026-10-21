@@ -3181,11 +3181,12 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   plan et aucun filtre ne s'appliquait : un anonyme sur un plan ouvert, ou le porteur du code
   du plan, recevait les parcours réservés aux personnels et à la carte de travail.
 - **`GET /api/map-routes`** (toutes surfaces) et **`GET /:idOrSlug`**
-  appliquent le même filtre au catalogue public : une étape dont le lieu est hors audience
-  (`visible_role_slugs`) ou masqué sur la surface demandée n'est pas renvoyée (`step_text`
-  compris). `authenticate` est optionnel pour appliquer le rôle du jeton ; un gestionnaire
-  (`zones.manage` / `map.manage_markers`) reçoit toutes les étapes. La vue `/manage` n'est
-  pas filtrée.
+  appliquent le même filtre au catalogue public que la charge de la surface : une étape dont
+  le lieu est hors audience — rôles **ou** groupes du lieu, ou audience **héritée** de ses
+  catégories — masqué sur la surface (`hidden_surfaces`), ou dont aucune catégorie n'apparaît
+  sur cette surface, n'est pas renvoyée (`step_text` compris). `authenticate` est optionnel
+  pour appliquer le rôle et les groupes du jeton ; un gestionnaire (`zones.manage` /
+  `map.manage_markers`) reçoit toutes les étapes. La vue `/manage` n'est pas filtrée.
 
 ### Accès du plan par code
 
