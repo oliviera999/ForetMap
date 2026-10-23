@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { countUpValue } from '../utils/motionMath.js';
+import { getPrefersReducedMotion } from './usePrefersReducedMotion.js';
 import { useScrollReveal } from './useScrollReveal.js';
 
 /**
@@ -23,7 +24,7 @@ export function useCountUp(end, options = {}) {
       setValue(start);
       return undefined;
     }
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (getPrefersReducedMotion()) {
       setValue(endNum);
       return undefined;
     }

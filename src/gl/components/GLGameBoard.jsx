@@ -14,6 +14,7 @@ import { MapFullscreenShell } from '../../shared/components/MapFullscreenShell.j
 import { useMapFullscreen } from '../../shared/hooks/useMapFullscreen.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLBoardFocusFx } from './GLBoardFocusFx.jsx';
+import { PlaceFocusStatusLive } from '../../shared/pct-map/PlaceFocusStatusLive.jsx';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLBoardAmbientBehavior } from '../hooks/useGLBoardAmbientBehavior.js';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
@@ -180,6 +181,7 @@ export function GLGameBoard({
     beforePresent: boardFocusBeforePresent,
     restore: restoreBoardFocus,
     fx: boardFocusFx,
+    statusMessage: boardFocusStatus,
   } = useGLBoardFocus({
     mapGestures,
     settings: boardFocus,
@@ -531,6 +533,7 @@ export function GLGameBoard({
       ) : null}
 
       {feuilletZoneEditMode ? null : <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />}
+      {feuilletZoneEditMode ? null : <PlaceFocusStatusLive message={boardFocusStatus} />}
 
       {teamList.map((team) => {
         const position = getPositionForTeam(team.id);

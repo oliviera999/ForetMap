@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Animations de carte : coût e-nov, a11y zoom, Rive, moteur de vue (ANIM-12…25)
+
+- Mise en avant e-nov : respiration en opacité (plus de `stroke-width` en boucle).
+- Annonce `aria-live` pendant le zoom sur le lieu ; Rive respecte le mouvement réduit.
+- Détection `prefers-reduced-motion` centralisée ; `SharedMapStage` ne réécrit plus `translate3d`.
+- Écarts ForetMap / GL documentés ; booléens GL alignés ; tests moteur de vue + e2e `data-phase`.
+- Audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : 25/25 traités.
+
 ### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
 
 - **Constat** (3 → 10/10) : ~2 230 min/mois estimées, dont 60 % sur `main` — chaque fusion déclenchait sept workflows (~13 min facturées), plus deux crons toutes les 6 h.

@@ -301,12 +301,30 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     await expect(mascot).toHaveClass(/visit-map-mascot--happy/, { timeout: 2000 });
     await expect(page.locator('.visit-map-mascot-dialog')).toBeVisible({ timeout: 2000 });
   });
+
+  test('ANIM-25 : zoom sur le lieu expose data-phase in puis hold', async ({ page }) => {
+    const stage = page.locator('.visit-map-stage');
+    const fx = page.getByTestId('place-focus-fx');
+    await stage
+      .getByRole('button', { name: `E2E mascotte B ${seededSuffix}` })
+      .click({ force: true });
+    await expect(fx).toBeAttached({ timeout: 5_000 });
+    await expect
+      .poll(async () => (await fx.getAttribute('data-phase')) || '', { timeout: 5_000 })
+      .toMatch(/^(in|hold)$/);
+    await expect(fx).toHaveAttribute('data-phase', 'hold', { timeout: 3_000 });
+    await expect(page.getByTestId('visit-detail-panel')).toBeVisible({
+      timeout: VISIT_MAP_MASCOT_MOVE_MS + 10_000,
+    });
+  });
 });
 
 test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
   /** @type {{ n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } } | null} */
   let seededIds = null;
   let teacherToken = '';
+  /** @type {string} */
+  let seededSuffix = '';
 
   test.beforeEach(async ({ page }) => {
     // [#54] beforeEach lourd : budget aligné sur les attentes internes (cf. ci-dessus).
@@ -314,6 +332,7 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     seededIds = null;
     teacherToken = '';
+    seededSuffix = '';
     if (
       await page
         .getByRole('button', { name: /Déconnexion/ })
@@ -327,6 +346,7 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     await enableTeacherMode(page);
     const seeded = await seedVisitMascotContent(page);
     teacherToken = seeded.token;
+    seededSuffix = seeded.suffix;
     seededIds = { n3: seeded.n3 };
     await disableTeacherMode(page, student);
     await dismissProfilePromotionModalIfPresent(page);
@@ -346,6 +366,15 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     await expect(mascot).toHaveClass(/visit-map-mascot--reduced-motion/);
     await clickVisitMapAtPct(page, 88, 50);
     await expect(mascot).not.toHaveClass(/visit-map-mascot--walking/);
+  });
+
+  test('ANIM-25 : mouvement réduit — pas d effet place-focus-fx au clic lieu', async ({ page }) => {
+    const stage = page.locator('.visit-map-stage');
+    await stage
+      .getByRole('button', { name: `E2E mascotte B ${seededSuffix}` })
+      .click({ force: true });
+    await expect(page.getByTestId('place-focus-fx')).toHaveCount(0);
+    await expect(page.getByTestId('visit-detail-panel')).toBeVisible({ timeout: 8_000 });
   });
 });
 

@@ -162,3 +162,41 @@ test('mouvement réduit : spritesheet de mascotte et popovers GL figés', () => 
     /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.gl-qcm-popover,\s*\.gl-zone-content-popover,\s*\.gl-dice-popover\s*\{\s*animation:\s*none/,
   );
 });
+
+test('ANIM-12 : mise en avant e-nov sans stroke-width animé (opacité / transform)', () => {
+  const css = read('src/shared/styles/pct-map-layers.css');
+  const zoneKf = keyframesBody(css, 'fmPctHighlightZone');
+  assert.doesNotMatch(zoneKf, /stroke-width/);
+  assert.match(zoneKf, /fill-opacity/);
+  assert.match(zoneKf, /stroke-opacity/);
+  const ringKf = keyframesBody(css, 'fmPctHighlightRing');
+  assert.match(ringKf, /transform:\s*scale/);
+  assert.match(ringKf, /opacity/);
+});
+
+test('ANIM-21 : détection mouvement réduit centralisée (plus de matchMedia dupliqué hors hook)', () => {
+  const hook = read('src/shared/hooks/usePrefersReducedMotion.js');
+  assert.match(hook, /export function getPrefersReducedMotion/);
+  assert.match(hook, /export function subscribePrefersReducedMotion/);
+  for (const rel of [
+    'src/hooks/useMapViewMascot.js',
+    'src/components/visit/VisitMapStage.jsx',
+    'src/shared/pct-map/useMapPosition.js',
+    'src/shared/pct-map/usePctMapViewport.js',
+    'src/shared/hooks/useCountUp.js',
+    'src/shared/hooks/useScrollReveal.js',
+  ]) {
+    assert.doesNotMatch(
+      read(rel),
+      /matchMedia\(['"]\(prefers-reduced-motion/,
+      `${rel} ne doit plus appeler matchMedia(prefers-reduced-motion) directement`,
+    );
+  }
+});
+
+test('ANIM-22 : SharedMapStage ne pose plus translate3d en style React', () => {
+  const src = read('src/shared/pct-map/SharedMapStage.jsx');
+  assert.doesNotMatch(src, /translate3d\(/);
+  assert.match(src, /transformOrigin:\s*['"]0 0['"]/);
+  assert.match(read('src/shared/pct-map/usePctMapViewport.js'), /translate\(\$\{x\}px,\$\{y\}px\)/);
+});

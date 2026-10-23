@@ -1245,6 +1245,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             selectedPlace={routePeekPlace || selectedPlace || guidedPlace}
             autoFocusSelected={!planPlaceFocusActive}
             placeFocusFx={planPlaceFx.fx}
+            placeFocusStatus={placeFocus.statusMessage}
             onViewportChange={onPlanViewportChange}
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
