@@ -1,5 +1,6 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { Button } from '../../shared/ui/Button.jsx';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { placeDisplayParts } from '../utils/planPlaces.js';
 import { PlanLinkedText } from '../utils/planLinkedText.jsx';
 import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
@@ -176,7 +177,7 @@ export function PlanPlaceSheet({
       {photo?.image_url ? (
         <img
           className="plan-place__photo"
-          src={photo.thumb_url || photo.image_url}
+          src={resolveExternalImageUrl(photo.thumb_url || photo.image_url)}
           alt={photo.caption || `Photo de ${name}`}
           loading="lazy"
         />

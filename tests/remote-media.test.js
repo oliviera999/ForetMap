@@ -94,16 +94,20 @@ describe('Relais média — purge du cache disque', () => {
 });
 
 describe('Relais média — validation des URL', () => {
-  it('seuls les hôtes Wikimedia en HTTPS sont acceptés', () => {
+  it('accepte Wikimedia et les hôtes publics HTTPS ; refuse http, credentials, IP privée', () => {
     assert.ok(normalizeRemoteMediaUrl('https://upload.wikimedia.org/x.png'));
     assert.ok(normalizeRemoteMediaUrl('https://commons.wikimedia.org/wiki/Special:FilePath/x.png'));
+    assert.ok(normalizeRemoteMediaUrl('https://cdn.example.org/photo.png'));
     for (const bad of [
       'http://upload.wikimedia.org/x.png',
-      'https://example.org/x.png',
-      'https://upload.wikimedia.org.evil.test/x.png',
       'https://user:pw@upload.wikimedia.org/x.png',
       'https://upload.wikimedia.org:8443/x.png',
       'https://127.0.0.1/x.png',
+      'https://10.0.0.1/x.png',
+      'https://192.168.1.1/x.png',
+      'https://169.254.1.1/x.png',
+      'https://100.64.0.1/x.png',
+      'https://2130706433/x.png',
       'file:///etc/passwd',
       '',
     ]) {
@@ -111,7 +115,32 @@ describe('Relais média — validation des URL', () => {
     }
   });
 
-  it('GET /api/media/remote refuse un hôte hors liste sans rien télécharger', async () => {
+  it('mode allowlist : refuse un hôte hors liste (sauf Wikimedia)', () => {
+    assert.strictEqual(
+      normalizeRemoteMediaUrl('https://cdn.example.org/a.png', {
+        hostsMode: 'allowlist',
+        allowHosts: ['images.example.com'],
+      }),
+      null,
+    );
+    assert.ok(
+      normalizeRemoteMediaUrl('https://upload.wikimedia.org/a.png', {
+        hostsMode: 'allowlist',
+        allowHosts: [],
+      }),
+    );
+  });
+
+  it('liste noire : refuse même en any_public', () => {
+    assert.strictEqual(
+      normalizeRemoteMediaUrl('https://evil.example/a.png', {
+        blockedHosts: ['evil.example'],
+      }),
+      null,
+    );
+  });
+
+  it('GET /api/media/remote refuse un hôte non-Wikimedia sans same-origin (anti-relais ouvert)', async () => {
     let called = 0;
     setRemoteMediaFetchForTests(async () => {
       called += 1;
@@ -120,8 +149,32 @@ describe('Relais média — validation des URL', () => {
     const res = await request(app)
       .get('/api/media/remote')
       .query({ url: 'https://example.org/tracker.png' });
-    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.status, 403);
     assert.strictEqual(called, 0);
+  });
+
+  it('GET /api/media/remote accepte un hôte public avec Sec-Fetch-Site same-origin', async () => {
+    const url = `https://cdn.example.org/ok-${Date.now()}.png`;
+    setRemoteMediaFetchForTests(async () =>
+      fakeResponse({ headers: { 'content-type': 'image/png' } }),
+    );
+    try {
+      const res = await request(app)
+        .get('/api/media/remote')
+        .set('Sec-Fetch-Site', 'same-origin')
+        .query({ url });
+      assert.strictEqual(res.status, 200);
+    } finally {
+      clearCacheFor(url);
+    }
+  });
+
+  it('refuse Sec-Fetch-Site cross-site pour un hôte non-Wikimedia', async () => {
+    const res = await request(app)
+      .get('/api/media/remote')
+      .set('Sec-Fetch-Site', 'cross-site')
+      .query({ url: 'https://cdn.example.org/cross.png' });
+    assert.strictEqual(res.status, 403);
   });
 });
 
@@ -269,6 +322,16 @@ describe('Fiches tutoriels — ressources tierces', () => {
       ),
     );
     assert.ok(out.includes('src="/uploads/b.jpg"'));
+  });
+
+  it('mode local : srcset, poster, style url() et <style> sont relayés', () => {
+    const rich =
+      '<img srcset="https://cdn.example/a.jpg 1x, https://cdn.example/b.jpg 2x" poster="https://cdn.example/p.jpg" style="background:url(https://cdn.example/bg.jpg)">' +
+      '<style>.x{background-image:url("https://cdn.example/s.jpg")}</style>';
+    const out = localizeTutorialExternalAssets(rich, 'local');
+    assert.ok(out.includes('/api/media/remote?url='));
+    assert.ok(!out.includes('srcset="https://cdn.example'));
+    assert.ok(!out.includes('url(https://cdn.example'));
   });
 
   it('mode external : seules les polices locales sont ajoutées', () => {

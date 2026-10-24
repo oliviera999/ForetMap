@@ -15,7 +15,7 @@ import { withAppBase } from '../appBase.js';
 
 export const EXTERNAL_ASSETS_MODES = Object.freeze(['local', 'external']);
 
-/** Hôtes dont les images sont relayées par le serveur en mode `local`. */
+/** Hôtes Wikimedia (historique) — en mode `local`, **toute** URL `https:` tierce est relayée. */
 export const PROXIED_IMAGE_HOSTS = Object.freeze(['upload.wikimedia.org', 'commons.wikimedia.org']);
 
 /** Familles embarquées par l'application (`src/shared/fonts/`, `/fonts/local-fonts.css`). */
@@ -92,8 +92,9 @@ export function wikimediaThumbUrl(url, width) {
 
 /**
  * URL à donner à une balise `<img>` pour une image éventuellement hébergée chez un tiers.
- * En mode `local`, une image Wikimedia passe par le relais du serveur ; toute autre URL
- * (relative, data:, blob:, autre hôte) est rendue telle quelle. `width` demande une vignette
+ * En mode `local`, toute URL `https:` d'une autre origine passe par le relais du serveur ;
+ * relatives, `data:`, `blob:` et même origine restent telles quelles. Les URL `http:` ne sont
+ * jamais chargées (chaîne vide → repli `FallbackImage`). `width` demande une vignette
  * Wikimedia plutôt que l'original (tuiles, catalogues).
  * @param {string} url
  * @param {{ mode?: 'local'|'external', width?: number }} [options]
@@ -101,9 +102,19 @@ export function wikimediaThumbUrl(url, width) {
 export function resolveExternalImageUrl(url, { mode, width } = {}) {
   if (width) url = wikimediaThumbUrl(url, width);
   const effective = normalizeExternalAssetsMode(mode ?? currentMode);
-  if (effective === 'external') return url;
-  const parsed = parseHttpsUrl(url);
-  if (!parsed || !PROXIED_IMAGE_HOSTS.includes(parsed.hostname.toLowerCase())) return url;
+  const text = String(url || '').trim();
+  if (!text) return '';
+  if (/^http:\/\//i.test(text)) return '';
+  if (effective === 'external') return text;
+  const parsed = parseHttpsUrl(text);
+  if (!parsed) return text;
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    try {
+      if (parsed.origin === window.location.origin) return text;
+    } catch {
+      /* ignore */
+    }
+  }
   return withAppBase(`/api/media/remote?url=${encodeURIComponent(parsed.toString())}`);
 }
 

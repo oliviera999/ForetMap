@@ -17,6 +17,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Client : purge systématique des copies d'API `__fm_sw_user` ; plans : purge content/settings
   hors ligne au rendu du laissez-passer.
 
+### Sécurité — Lot B traceurs RGPD : relais d'images généralisé et CSP par produit
+
+- `GET /api/media/remote` accepte tout hôte HTTPS public (garde SSRF, octets magiques,
+  Sec-Fetch-Site same-origin hors Wikimedia).
+- Mode `local` : le client relaie toute image tierce ; CSP `img-src` sans `https:` pour
+  foret/plan/staff/enov ; produit `gl` inchangé.
+- Script `scripts/inventory-remote-media-hosts.js` (lecture seule, hors tables `gl_*`).
+
 ### Corrigé — Mode Découverte GL et tests Windows (e2e / CI locale)
 
 - Plateau découverte : jets ignorés pendant un trajet ; index avancé seulement si le

@@ -68,12 +68,28 @@ describe('CSP — politique', () => {
     assert.ok(!policy.includes('jsdelivr'), 'jsdelivr ne doit pas être nécessaire');
   });
 
-  it('frame-src autorise https : un tutoriel « lien » embarque une URL externe', () => {
+  it('frame-src autorise https pour foret : un tutoriel « lien » embarque une URL externe', () => {
     // `TutorialPreviewModal` affiche `tutorial.source_url`, saisie par un professeur.
     // Restreindre à 'self' casserait la fonctionnalité — d'où l'exception, documentée.
-    const frame = directives(buildEnforcedPolicy()).get('frame-src');
+    const frame = directives(buildEnforcedPolicy({ productId: 'foret' })).get('frame-src');
     assert.ok(frame.includes("'self'"));
     assert.ok(frame.includes('https:'));
+  });
+
+  it('lot B : img-src sans https: pour foret/plan en local ; gl inchangé ; frame-src plans = self', () => {
+    const { buildPolicyTable } = require('../lib/csp');
+    const table = buildPolicyTable();
+    for (const product of ['foret', 'plan', 'staff', 'enov']) {
+      const img = directives(table[product].local.default).get('img-src');
+      assert.ok(!img.includes('https:'), product);
+      assert.ok(img.includes("'self'"));
+    }
+    const glImg = directives(table.gl.local.default).get('img-src');
+    assert.ok(glImg.includes('https:'), 'GL conserve https: (DiceBear)');
+    for (const product of ['plan', 'staff', 'enov']) {
+      const frame = directives(table[product].local.default).get('frame-src');
+      assert.deepStrictEqual(frame, ["'self'"]);
+    }
   });
 
   it('le report-uri pointe vers le collecteur monté', () => {

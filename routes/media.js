@@ -1,22 +1,24 @@
 'use strict';
 
 /**
- * Ressources tierces servies depuis notre origine (audit RGPD du 28/09/2026, § 7) :
- *  - `GET /api/media/remote?url=…` — relais + cache des images Wikimedia ;
+ * Ressources tierces servies depuis notre origine (audit RGPD du 28/09/2026, § 7 ;
+ * lot B traceurs 24/10/2026) :
+ *  - `GET /api/media/remote?url=…` — relais + cache des images HTTPS publiques ;
  *  - `GET /api/media/commons-preview?category=…` — première image d'une catégorie Commons ;
  *  - `GET /fonts/local-fonts.css` et `GET /fonts/files/:pkg/:file` — polices des fiches
  *    tutoriels (Fontsource, OFL-1.1).
- *
- * Routes publiques : elles ne servent que du contenu libre déjà public chez Wikimedia ou dans
- * les paquets de polices, jamais une donnée de l'établissement.
  */
 
 const express = require('express');
 const asyncHandler = require('../lib/asyncHandler');
+const { getSettingValue } = require('../lib/settings');
 const {
   RemoteMediaError,
   getRemoteMedia,
   fetchCommonsCategoryPreviewUrl,
+  normalizeRemoteMediaUrl,
+  normalizeHostList,
+  isRemoteMediaRequestAllowed,
 } = require('../lib/remoteMedia');
 const { buildLocalFontsCss, resolveLocalFontFile } = require('../lib/localFonts');
 
@@ -39,11 +41,33 @@ function sendRemoteMediaError(res, err) {
   throw err;
 }
 
+async function loadRemoteMediaPolicy() {
+  const [hostsMode, allowRaw, blockedRaw] = await Promise.all([
+    getSettingValue('privacy.remote_media_hosts_mode', 'any_public'),
+    getSettingValue('privacy.remote_media_hosts', ''),
+    getSettingValue('privacy.remote_media_blocked_hosts', ''),
+  ]);
+  return {
+    hostsMode: hostsMode === 'allowlist' ? 'allowlist' : 'any_public',
+    allowHosts: normalizeHostList(allowRaw),
+    blockedHosts: normalizeHostList(blockedRaw),
+  };
+}
+
 mediaRouter.get(
   '/remote',
   asyncHandler(async (req, res) => {
     try {
-      const media = await getRemoteMedia(req.query.url, { clientKey: req.ip || null });
+      const policy = await loadRemoteMediaPolicy();
+      const normalized = normalizeRemoteMediaUrl(req.query.url, policy);
+      if (!normalized) throw new RemoteMediaError(400, 'URL non autorisée');
+      if (!isRemoteMediaRequestAllowed(req, normalized)) {
+        throw new RemoteMediaError(403, 'Relais refusé depuis une origine tierce');
+      }
+      const media = await getRemoteMedia(normalized, {
+        clientKey: req.ip || null,
+        policy,
+      });
       setInertImageHeaders(res, media.contentType);
       return res.sendFile(media.filePath, { dotfiles: 'deny' });
     } catch (err) {

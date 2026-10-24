@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 
 /**
  * Barre haute flottante du plan (lot 4) : titre du lieu et **champ de recherche**, toujours
@@ -34,13 +35,15 @@ export function PlanTopBar({
   return (
     <header className="plan-topbar">
       <div className="plan-topbar__identity">
-        {logoUrl ? <img className="plan-topbar__logo" src={logoUrl} alt="" /> : null}
+        {logoUrl ? (
+          <img className="plan-topbar__logo" src={resolveExternalImageUrl(logoUrl)} alt="" />
+        ) : null}
         <h1 className="plan-topbar__title">{title}</h1>
         {labelLogo?.url ? (
           <span className="plan-topbar__label">
             <img
               className="plan-topbar__label-logo"
-              src={labelLogo.url}
+              src={resolveExternalImageUrl(labelLogo.url)}
               alt={labelLogo.alt || ''}
               width={48}
               height={40}

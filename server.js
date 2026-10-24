@@ -320,8 +320,10 @@ function resolveExternalAssetsModeForCsp() {
 }
 app.use((req, res, next) => {
   const variant = resolveCspVariant(req.path);
+  const productId = resolveSecureProductId(req);
   resolveExternalAssetsModeForCsp().then((mode) => {
-    res.setHeader('Content-Security-Policy', CSP_POLICIES[mode][variant]);
+    const byProduct = CSP_POLICIES[productId] || CSP_POLICIES.foret;
+    res.setHeader('Content-Security-Policy', byProduct[mode][variant]);
     next();
   });
 });

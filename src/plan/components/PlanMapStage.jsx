@@ -1,5 +1,6 @@
 import { parsePctPolygonPoints } from '../../shared/pct-map/pctPolygon.js';
 import { SharedMapStage } from '../../shared/pct-map/SharedMapStage.jsx';
+import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { planPlaceFocusPct, splitNameEmoji } from '../utils/planPlaces.js';
 import { getBrandOrgName } from '../../shared/brand/brandNames.js';
 
@@ -37,7 +38,7 @@ export function PlanMapStage({ attribution = '', schoolLogoUrl = '', ...rest }) 
             {schoolLogoUrl ? (
               <img
                 className="plan-map__school-logo"
-                src={schoolLogoUrl}
+                src={resolveExternalImageUrl(schoolLogoUrl)}
                 alt={getBrandOrgName() ? `Logo ${getBrandOrgName()}` : 'Logo de l’établissement'}
                 width={120}
                 height={36}

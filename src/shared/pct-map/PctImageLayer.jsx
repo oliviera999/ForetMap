@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
 
 /**
  * Image de fond d'une carte « % image » (noyau carte partagé, lot 4).
@@ -20,7 +21,7 @@ export const PctImageLayer = forwardRef(function PctImageLayer(
   return (
     <img
       ref={ref}
-      src={src}
+      src={resolveExternalImageUrl(src)}
       alt={alt}
       className={className}
       draggable={false}

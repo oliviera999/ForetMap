@@ -662,6 +662,26 @@ export const KEY_META = {
     section: 'privacy',
     order: 30,
   },
+  'privacy.remote_media_hosts_mode': {
+    label:
+      'Relais d’images distantes : hôtes autorisés. « Tout hôte public » (recommandé) ou liste blanche.',
+    section: 'privacy',
+    order: 40,
+    optionLabels: {
+      any_public: 'Tout hôte HTTPS public (recommandé)',
+      allowlist: 'Liste blanche seulement',
+    },
+  },
+  'privacy.remote_media_hosts': {
+    label: 'Hôtes autorisés pour le relais (mode liste blanche), séparés par virgule.',
+    section: 'privacy',
+    order: 41,
+  },
+  'privacy.remote_media_blocked_hosts': {
+    label: 'Hôtes interdits pour le relais (toujours), séparés par virgule.',
+    section: 'privacy',
+    order: 42,
+  },
 
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',

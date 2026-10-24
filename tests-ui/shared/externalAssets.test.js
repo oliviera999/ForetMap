@@ -37,18 +37,17 @@ describe('resolveExternalImageUrl', () => {
     expect(resolveExternalImageUrl(COMMONS)).toBe(COMMONS);
   });
 
-  test('les autres URL ne sont jamais réécrites', () => {
-    for (const url of [
-      '/uploads/plants/1.jpg',
+  test('relatives, data et blob restent ; http: vidé ; https: tiers relayé', () => {
+    expect(resolveExternalImageUrl('/uploads/plants/1.jpg')).toBe('/uploads/plants/1.jpg');
+    expect(resolveExternalImageUrl('data:image/png;base64,AAAA')).toBe(
       'data:image/png;base64,AAAA',
-      'http://upload.wikimedia.org/x.jpg',
-      'https://example.org/x.jpg',
-      'https://upload.wikimedia.org.evil.test/x.jpg',
-      '',
-      null,
-    ]) {
-      expect(resolveExternalImageUrl(url)).toBe(url);
-    }
+    );
+    expect(resolveExternalImageUrl('http://upload.wikimedia.org/x.jpg')).toBe('');
+    expect(resolveExternalImageUrl('')).toBe('');
+    expect(resolveExternalImageUrl(null)).toBe('');
+    const relayed = resolveExternalImageUrl('https://example.org/x.jpg');
+    expect(relayed).toMatch(/\/api\/media\/remote\?url=/);
+    expect(decodeURIComponent(relayed.split('url=')[1])).toBe('https://example.org/x.jpg');
   });
 });
 
