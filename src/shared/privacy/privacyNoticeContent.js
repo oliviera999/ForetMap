@@ -66,6 +66,11 @@ export const PRIVACY_RETENTION = Object.freeze({
    */
   staffPlanAccessDays: 7,
   staffPlanAccessMaxDays: 30,
+  /**
+   * Cookies techniques de connexion Google (`OAUTH_STATE_TTL_MS`, `routes/auth.js`) et LTI
+   * Moodle (`TTL_MS`, `lib/lti/oidc.js`) — 10 minutes.
+   */
+  oauthLtiMinutes: 10,
 });
 
 function clean(value) {
@@ -101,6 +106,7 @@ export function privacyProductName(product, brand = {}) {
  * @param {string} [options.contact] coordonnées « données personnelles » saisies par un admin.
  * @param {string} [options.externalAssetsMode] `privacy.external_assets_mode` (`local` par défaut).
  * @param {boolean} [options.clearLocalDataOnLogout] `privacy.clear_local_data_on_logout`.
+ * @param {'cache'|'cache_storage'} [options.logoutClearSiteDataScope]
  * @returns {{ product: string, productName: string, title: string, intro: string,
  *   highlight: string, sections: Array<{ id: string, title: string, paragraphs: string[], items: string[] }> }}
  */
@@ -110,6 +116,7 @@ export function buildPrivacyNotice({
   contact = '',
   externalAssetsMode = 'local',
   clearLocalDataOnLogout = true,
+  logoutClearSiteDataScope = 'cache',
 } = {}) {
   const requested = PRIVACY_NOTICE_PRODUCTS.includes(product) ? product : 'foret';
   // Plan e-nov : le plan public, mis en avant autrement — il ne garde rien de plus. Son code de
@@ -391,18 +398,34 @@ export function buildPrivacyNotice({
           'Certaines polices et images sont chargées chez Google Fonts et Wikimedia : ces services voient alors l’adresse IP de votre appareil.',
         )
       : t(
-          'Les polices et les images sont servies par le site lui-même : ton navigateur ne contacte ni Google ni Wikimedia.',
-          'Les polices et les images sont servies par le site lui-même : votre navigateur ne contacte ni Google ni Wikimedia.',
+          'Les polices sont servies par le site. Les images d’autres sites passent par le serveur de l’application : ton navigateur ne contacte pas ces sites.',
+          'Les polices sont servies par le site. Les images d’autres sites passent par le serveur de l’application : votre navigateur ne contacte pas ces sites.',
         );
   const offline = clearLocalDataOnLogout
     ? 'elles sont effacées quand tu te déconnectes'
     : 'elles attendent ta prochaine connexion, même après une déconnexion';
+  const logoutExtra =
+    logoutClearSiteDataScope === 'cache_storage'
+      ? t(
+          'En mode borne, la déconnexion efface aussi tout le stockage de ce site sur l’appareil.',
+          'En mode borne, la déconnexion efface aussi tout le stockage de ce site sur l’appareil.',
+        )
+      : t(
+          'À la déconnexion, les copies de l’appareil liées à ton compte (dont les réponses d’API gardées hors ligne) sont effacées.',
+          'À la déconnexion, les copies de l’appareil liées à votre compte (dont les réponses d’API gardées hors ligne) sont effacées.',
+        );
+  const embedFacade = t(
+    'Un tutoriel qui pointe vers une vidéo ou un document en ligne ne se charge chez le tiers qu’après un clic « Afficher ici ».',
+    'Un tutoriel qui pointe vers une vidéo ou un document en ligne ne se charge chez le tiers qu’après un clic « Afficher ici ».',
+  );
+  const oauthCookies = `cookies techniques de connexion Google (« foretmap_oauth_state », « foretmap_oauth_mode », « foretmap_oauth_origin ») et Moodle (« foretmap_lti_oidc »), ${R.oauthLtiMinutes} minutes, seulement pendant la connexion ;`;
   const storage = {
     foret: [
       '« foretmap_session » : ta session de connexion, effacée quand tu te déconnectes ;',
+      oauthCookies,
       'tes préférences : dernier onglet ouvert, carte choisie, aides déjà vues, taille du texte ;',
       `les actions faites sans connexion (tâche faite, observation, brouillon de carnet) en attente d’envoi, et les photos gardées pour un usage hors ligne : ${offline} ;`,
-      `pendant une visite sans compte, un cookie retient ta progression ${R.guestVisitHours} heures.`,
+      `pendant une visite sans compte, le cookie « anon_visit_token » retient ta progression ${R.guestVisitHours} heures.`,
     ],
     gl: [
       '« gl_session » : ta session de jeu, effacée quand tu te déconnectes ;',
@@ -410,25 +433,31 @@ export function buildPrivacyNotice({
     ],
     plan: [
       'vos préférences : plan choisi, catégories affichées, aide déjà vue, orientation de la carte ;',
-      'le cookie du code d’accès, seulement si le plan en demande un.',
+      'le cookie « plan_access » (ou « enov_plan_access ») du code d’accès, seulement si le plan en demande un.',
     ],
     staff: [
       '« staffplan_auth_token » : votre session, effacée quand vous vous déconnectez ;',
-      'le cookie du laissez-passer du plan des personnels ;',
+      oauthCookies,
+      'le cookie « staff_plan_access » du laissez-passer du plan des personnels ;',
       'vos préférences : plan choisi, catégories affichées, aide déjà vue.',
     ],
   };
+  const appareilParas = [
+    t(
+      'Le site range quelques informations dans ton navigateur pour fonctionner :',
+      'Le site range quelques informations dans votre navigateur pour fonctionner :',
+    ),
+    'Aucun traceur publicitaire ni outil de mesure d’audience d’une autre entreprise n’est utilisé.',
+    assets,
+  ];
+  if (kind === 'foret' || kind === 'staff') {
+    appareilParas.push(logoutExtra);
+  }
+  if (kind === 'foret') appareilParas.push(embedFacade);
   section(
     'appareil',
     t('Ce qui est gardé sur ton appareil', 'Ce qui est gardé sur votre appareil'),
-    [
-      t(
-        'Le site range quelques informations dans ton navigateur pour fonctionner :',
-        'Le site range quelques informations dans votre navigateur pour fonctionner :',
-      ),
-      'Aucun traceur publicitaire ni outil de mesure d’audience d’une autre entreprise n’est utilisé.',
-      assets,
-    ],
+    appareilParas,
     storage[kind],
   );
 

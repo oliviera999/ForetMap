@@ -54,6 +54,8 @@ export function PrivacyNoticePage({ product, privacySettings = null, backHref })
         contact: settings?.data_contact || '',
         externalAssetsMode: settings?.external_assets_mode || 'local',
         clearLocalDataOnLogout: settings?.clear_local_data_on_logout !== false,
+        logoutClearSiteDataScope:
+          settings?.logout_clear_site_data_scope === 'cache_storage' ? 'cache_storage' : 'cache',
       }),
     [product, settings],
   );

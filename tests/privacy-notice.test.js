@@ -60,6 +60,8 @@ test('notice : les durées de conservation affichées sont celles du code', asyn
     R.staffPlanAccessDays * 86400,
     readConst('lib/staffPlanAccess.js', 'STAFF_PLAN_ACCESS_TTL_SECONDS'),
   );
+  assert.equal(R.oauthLtiMinutes * 60 * 1000, readConst('routes/auth.js', 'OAUTH_STATE_TTL_MS'));
+  assert.equal(R.oauthLtiMinutes * 60 * 1000, readConst('lib/lti/oidc.js', 'TTL_MS'));
   // Durées des laissez-passer réglables : défaut et plafond du registre (`lib/settings/plan.js`).
   const { PLAN_SETTINGS } = require('../lib/settings/plan');
   for (const key of ['security.plan_access_pass_days', 'security.enov_plan_access_pass_days']) {

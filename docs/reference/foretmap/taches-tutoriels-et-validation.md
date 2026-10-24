@@ -474,7 +474,10 @@ transformés en liens vers leur définition, et chaque fiche peut être téléch
 ou PDF). Ces liens apparaissent sur **toutes les fiches affichées dans l'application** —
 qu'elles aient été rédigées ici ou importées d'un fichier de page web. Deux exceptions,
 par nature : un **lien externe** (le site d'un tiers, que ForetMap n'a pas à réécrire) et
-un **document PDF joint**, affiché tel quel.
+un **document PDF joint**, affiché tel quel. Pour un tutoriel de type **lien**, l'aperçu
+n'embarque pas la vidéo ou le document d'office : une façade demande d'abord « Afficher
+ici » (ou d'ouvrir dans un nouvel onglet), afin que le service tiers ne dépose pas ses
+cookies sans action explicite.
 
 - Un tutoriel se **relie** aux tâches et aux zones/repères concernés : l'élève le trouve
   directement depuis la tâche ou le lieu. Depuis la fiche d'un lieu, la liste propose

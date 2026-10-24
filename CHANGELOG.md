@@ -31,6 +31,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - YouTube réécrit vers `youtube-nocookie.com` ; `referrerPolicy=no-referrer` ; consentement
   par hôte en `sessionStorage` seulement.
 
+### Documentation — Lot D traceurs RGPD : notice et docs alignées
+
+- Notice « Vos données » : cookies OAuth/LTI (10 min), relais généralisé, façade, déconnexion /
+  mode borne ; docs `vos-donnees`, `modele-de-securite`, tutoriels ; `AUDIT_TRACEURS_2026-10-24`.
+
 ### Corrigé — Mode Découverte GL et tests Windows (e2e / CI locale)
 
 - Plateau découverte : jets ignorés pendant un trajet ; index avancé seulement si le
