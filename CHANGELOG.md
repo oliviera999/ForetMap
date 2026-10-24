@@ -25,6 +25,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   foret/plan/staff/enov ; produit `gl` inchangé.
 - Script `scripts/inventory-remote-media-hosts.js` (lecture seule, hors tables `gl_*`).
 
+### Sécurité — Lot C traceurs RGPD : façade « cliquer pour charger » des tutoriels-lien
+
+- Avant toute iframe tierce : façade avec hôte, « Afficher ici », nouvel onglet, lien notice.
+- YouTube réécrit vers `youtube-nocookie.com` ; `referrerPolicy=no-referrer` ; consentement
+  par hôte en `sessionStorage` seulement.
+
 ### Corrigé — Mode Découverte GL et tests Windows (e2e / CI locale)
 
 - Plateau découverte : jets ignorés pendant un trajet ; index avancé seulement si le

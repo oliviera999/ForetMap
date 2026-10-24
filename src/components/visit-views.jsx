@@ -1025,6 +1025,7 @@ function VisitViewImpl({
           <TutorialPreviewModal
             tutorial={visitTutorialPreview}
             onClose={() => setVisitTutorialPreview(null)}
+            addressing={isGuestPublicVisit ? 'vous' : 'tu'}
             readAcknowledge={{
               isRead: tutorialReadIds.has(Number(visitTutorialPreview.id)),
               onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),

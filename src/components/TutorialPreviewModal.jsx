@@ -1,8 +1,11 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 import { IconClose, IconTuto } from '../shared/icons.jsx';
 import { useGatingSummary } from '../hooks/useGatingSummary';
+import { privacyNoticeHref } from '../shared/privacy/privacyNoticePath.js';
+import { grantEmbedConsentForHost, hasEmbedConsentForHost } from '../utils/embedConsent.js';
+import { toYoutubeNocookieEmbed } from '../utils/youtubeNocookie.js';
 
 /**
  * Vrai si la source de l'aperçu est servie par NOTRE origine (chemin relatif ou URL
@@ -49,9 +52,6 @@ function isNonHtmlLocalFilePath(filePath) {
  * - tout autre contenu local (`html_content` en base ou fichier `.html` / `.htm`)
  *   → `/api/tutorials/:id/view`, seul chemin qui pose les auto-liens de glossaire.
  *
- * `html_content` n’étant pas exposé par la charge utile de liste (`toPublicTutorialRow`),
- * la décision ne repose que sur `type`, `source_file_path` et son extension.
- *
  * @param {object} t
  * @returns {object|null}
  */
@@ -71,8 +71,6 @@ export function tutorialPreviewPayload(t) {
 
 /**
  * Indique si la modale peut afficher un document (iframe non vide).
- * Cohérent par construction avec `tutorialPreviewPayload` : hors `type === 'link'`,
- * un tutoriel a toujours une URL d’aperçu (`/view` ou fichier statique non-HTML).
  */
 export function tutorialPreviewCanEmbed(t) {
   const p = tutorialPreviewPayload(t);
@@ -84,32 +82,61 @@ export function tutorialPreviewCanEmbed(t) {
   return !!source;
 }
 
+function hostOf(url, appOrigin) {
+  try {
+    return new URL(url, appOrigin).hostname;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * @param {object} props
  * @param {object|null} props.tutorial
  * @param {() => void} props.onClose
- * @param {{ isRead: boolean, onAcknowledged: (id: number) => void, onForceLogout?: () => void }|null} [props.readAcknowledge] — pied de modale : marquage « lu » avec confirmation (même flux que l’onglet Tutoriels).
+ * @param {{ isRead: boolean, onAcknowledged: (id: number) => void, onForceLogout?: () => void }|null} [props.readAcknowledge]
+ * @param {'tu'|'vous'} [props.addressing] tutoiement (élèves) ou vouvoiement (visite / personnels)
  */
-export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null }) {
-  // L'aperçu ne disait rien du contrôle de compréhension : l'élève cliquait
-  // « Marquer comme lu » sans savoir qu'une question l'attendait.
+export function TutorialPreviewModal({
+  tutorial,
+  onClose,
+  readAcknowledge = null,
+  addressing = 'tu',
+}) {
   const previewTutorialIds = useMemo(() => {
     const n = Number(tutorial?.id);
     return Number.isFinite(n) && n > 0 ? [n] : [];
   }, [tutorial?.id]);
   const { summaries: gatingSummaries } = useGatingSummary('tutorial', previewTutorialIds);
-  // Fiche de notre origine : les scripts sont désactivés dans l'iframe (cf.
-  // `isAppOriginPreviewSource`), c'est donc le PARENT qui intercepte les clics —
-  // auto-liens de glossaire (même message `foretmap:glossary` que l'ancien script
-  // injecté : le récepteur d'App.jsx ne change pas) et liens `target="_blank"` ramenés
-  // dans l'iframe (comportement historique de la modale).
+
+  const rawSource =
+    (tutorial?.preview_url && String(tutorial.preview_url).trim()) ||
+    tutorial?.source_file_path ||
+    (tutorial?.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
+    '';
+  const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const appOriginSource = isAppOriginPreviewSource(rawSource, appOrigin);
+  const embedSource = appOriginSource ? rawSource : toYoutubeNocookieEmbed(rawSource);
+  const thirdPartyHost = appOriginSource ? '' : hostOf(embedSource, appOrigin);
+
+  const [consentTick, setConsentTick] = useState(0);
+  // consentTick force la relecture de sessionStorage après « Afficher ici ».
+  const consentedThirdParty =
+    Boolean(thirdPartyHost) && consentTick >= 0 && hasEmbedConsentForHost(thirdPartyHost);
+  const showFacade = Boolean(rawSource) && !appOriginSource && !consentedThirdParty;
+
+  const handleGrant = useCallback(() => {
+    if (thirdPartyHost) grantEmbedConsentForHost(thirdPartyHost);
+    setConsentTick((n) => n + 1);
+  }, [thirdPartyHost]);
+
   const handleAppOriginFrameLoad = useCallback((event) => {
     const frame = event.currentTarget;
     let doc = null;
     try {
       doc = frame.contentDocument;
     } catch (_) {
-      return; // Origine inattendue : rien à câbler.
+      return;
     }
     if (!doc) return;
     doc.addEventListener('click', (ev) => {
@@ -137,15 +164,14 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
   }, []);
 
   if (!tutorial) return null;
-  const source =
-    (tutorial.preview_url && String(tutorial.preview_url).trim()) ||
-    tutorial.source_file_path ||
-    (tutorial.type === 'link' ? String(tutorial.source_url || '').trim() : '') ||
-    '';
-  const canEmbed = !!source;
-  const appOriginSource = isAppOriginPreviewSource(source, window.location.origin);
+  const canEmbed = !!rawSource;
   const tutoIdNum = Number(tutorial.id);
   const showReadFooter = readAcknowledge && Number.isFinite(tutoIdNum) && tutoIdNum > 0;
+  const vous = addressing === 'vous';
+  const facadeText = vous
+    ? `Ce contenu est hébergé par ${thirdPartyHost}. L’afficher ici permet à ce service de déposer ses propres cookies et de connaître votre adresse IP.`
+    : `Ce contenu est hébergé par ${thirdPartyHost}. L’afficher ici permet à ce service de déposer ses propres cookies et de connaître ton adresse IP.`;
+
   return (
     <DialogShell
       open={!!tutorial}
@@ -170,17 +196,49 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
       </div>
       {canEmbed ? (
         <div className="tuto-preview-modal__body">
-          <iframe
-            title={`Aperçu : ${tutorial.title}`}
-            src={source}
-            className="tuto-preview-frame"
-            sandbox={
-              appOriginSource
-                ? 'allow-same-origin allow-popups'
-                : 'allow-same-origin allow-scripts allow-popups allow-forms'
-            }
-            onLoad={appOriginSource ? handleAppOriginFrameLoad : undefined}
-          />
+          {showFacade ? (
+            <div className="tuto-preview-facade" data-testid="tuto-embed-facade">
+              <p>{facadeText}</p>
+              <div className="tuto-preview-facade__actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ minHeight: 44 }}
+                  onClick={handleGrant}
+                  data-testid="tuto-embed-show"
+                >
+                  Afficher ici
+                </button>
+                <a
+                  href={embedSource}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
+                >
+                  Ouvrir dans un nouvel onglet
+                </a>
+              </div>
+              <p className="tuto-preview-facade__notice">
+                <a href={privacyNoticeHref()} target="_blank" rel="noopener noreferrer">
+                  Vos données
+                </a>
+              </p>
+            </div>
+          ) : (
+            <iframe
+              title={`Aperçu : ${tutorial.title}`}
+              src={embedSource}
+              className="tuto-preview-frame"
+              referrerPolicy={appOriginSource ? undefined : 'no-referrer'}
+              sandbox={
+                appOriginSource
+                  ? 'allow-same-origin allow-popups'
+                  : 'allow-same-origin allow-scripts allow-popups allow-forms'
+              }
+              onLoad={appOriginSource ? handleAppOriginFrameLoad : undefined}
+            />
+          )}
         </div>
       ) : (
         <div className="tuto-preview-modal__body tuto-preview-modal__body--empty">

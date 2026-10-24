@@ -56,8 +56,16 @@ describe('TutorialPreviewModal — bac à sable', () => {
     expect(sandbox).not.toContain('allow-forms');
   });
 
-  it('site externe (type link) : les scripts restent permis (origine propre)', () => {
-    mountModal({ id: 5, title: 'Externe', type: 'link', source_url: 'https://exemple.org/x' });
+  it('site externe (type link) : façade puis scripts permis (origine propre)', () => {
+    mountModal({
+      id: 5,
+      title: 'Externe',
+      type: 'link',
+      source_url: 'https://exemple.org/x',
+      preview_url: 'https://exemple.org/x',
+    });
+    expect(screen.getByTestId('tuto-embed-facade')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('tuto-embed-show'));
     const sandbox = getFrame().getAttribute('sandbox');
     expect(sandbox).toContain('allow-scripts');
   });
