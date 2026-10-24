@@ -166,6 +166,7 @@ import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
 import { useActiveMapVisibilityReconciler } from './hooks/useActiveMapVisibilityReconciler';
 import { useStudentSessionRef } from './hooks/useStudentSessionRef';
+import { usePasswordChangeRequired } from './hooks/usePasswordChangeRequired';
 
 /**
  * Pont vers les dialogues applicatifs pour App lui-même : App monte
@@ -201,6 +202,10 @@ function App() {
   const [biodivGroupCurriculumNiveaux, setBiodivGroupCurriculumNiveaux] = useState([]);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  /** Mot de passe provisoire ou compromis à changer : « Mon profil » s'ouvre à chaque signal. */
+  const { passwordChangeRequired, markPasswordChangeRequired } = usePasswordChangeRequired({
+    setShowProfile,
+  });
   const [tab, setTab] = useState(() => readStoredTab());
   const isKnownForetTab = useCallback((id) => KNOWN_TAB_VALUES.has(id), []);
   /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
@@ -226,6 +231,8 @@ function App() {
   const [toast, setToast] = useState(null);
   /** Feedback OAuth long (erreurs / avertissement création visiteur) — bandeau sur l’écran de connexion. */
   const [oauthFeedback, setOauthFeedback] = useState(null);
+  /** Retour Google / Moodle d'un compte soumis à la double authentification : étape à finir. */
+  const [oauthMfaChallenge, setOauthMfaChallenge] = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -351,6 +358,7 @@ function App() {
     setAuthClaims,
     setIsTeacher: syncAuthClaimsFromStoredToken,
     setStudent,
+    onMfaChallenge: setOauthMfaChallenge,
   });
 
   // Called from anywhere when a 401-deleted is detected
@@ -441,8 +449,12 @@ function App() {
       if (Array.isArray(d.biodivGroupCurriculumNiveaux)) {
         setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(d.biodivGroupCurriculumNiveaux));
       }
+      // Restauration / rafraîchissement de session : le serveur relit le drapeau en base.
+      if (typeof d.passwordMustReset === 'boolean') {
+        markPasswordChangeRequired(d.passwordMustReset);
+      }
     },
-    [mergeAuthMeResponseBase],
+    [markPasswordChangeRequired, mergeAuthMeResponseBase],
   );
 
   const forceLogout = useCallback(
@@ -451,9 +463,10 @@ function App() {
       setDiscoveryTourSeenReady(false);
       setBiodivGroupPedagoLevels([]);
       setBiodivGroupCurriculumNiveaux([]);
+      markPasswordChangeRequired(false);
       forceLogoutBase(options);
     },
-    [forceLogoutBase],
+    [forceLogoutBase, markPasswordChangeRequired],
   );
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
@@ -822,7 +835,13 @@ function App() {
   const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
-    if (!effectiveIsTeacher && !isTeacherAccount && student) return student;
+    // `passwordMustReset` porte le bandeau « mot de passe provisoire » de l'éditeur : c'est le
+    // drapeau du shell qui fait foi (connexion, `/api/auth/me`, refus 403), élève comme prof.
+    if (!effectiveIsTeacher && !isTeacherAccount && student) {
+      return !!student.passwordMustReset === passwordChangeRequired
+        ? student
+        : { ...student, passwordMustReset: passwordChangeRequired };
+    }
     const fallbackName = resolveSessionDisplayName(
       sessionUser?.displayName,
       authClaims?.roleDisplayName,
@@ -836,9 +855,11 @@ function App() {
       pseudo: sessionUser?.pseudo || null,
       email: sessionUser?.email || null,
       avatar_path: sessionUser?.avatar_path || null,
+      default_avatar_url: sessionUser?.default_avatar_url || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
       description: sessionUser?.description || '',
+      passwordMustReset: passwordChangeRequired,
       auth: {
         roleSlug: authClaims?.roleSlug || null,
         roleDisplayName: authClaims?.roleDisplayName || null,
@@ -852,9 +873,11 @@ function App() {
     canOpenUserDialogs,
     effectiveIsTeacher,
     isTeacherAccount,
+    passwordChangeRequired,
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.biodiv_pedago_level,
+    sessionUser?.default_avatar_url,
     sessionUser?.description,
     sessionUser?.displayName,
     sessionUser?.email,
@@ -920,6 +943,7 @@ function App() {
               : (prev?.description ?? null),
           avatar_path:
             updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+          default_avatar_url: updatedUser?.default_avatar_url ?? prev?.default_avatar_url ?? null,
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
           biodiv_pedago_level:
@@ -940,13 +964,15 @@ function App() {
   /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
   const handleProfileUpdated = useCallback(
     (updated) => {
+      // Mot de passe changé (`POST /api/auth/me/password`) : le drapeau du shell retombe.
+      if (updated?.passwordMustReset === false) markPasswordChangeRequired(false);
       if (isTeacherAccount) {
         updateTeacherSession(updated);
         return;
       }
       updateStudentSession(updated);
     },
-    [isTeacherAccount, updateStudentSession, updateTeacherSession],
+    [isTeacherAccount, markPasswordChangeRequired, updateStudentSession, updateTeacherSession],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
@@ -976,6 +1002,7 @@ function App() {
           pseudo: session?.pseudo || null,
           description: session?.description || null,
           avatar_path: session?.avatar_path || null,
+          default_avatar_url: session?.default_avatar_url || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
           biodiv_pedago_level: session?.biodiv_pedago_level || null,
         });
@@ -1003,8 +1030,10 @@ function App() {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
         setTab(visitOk ? 'visit' : 'plants');
       }
+      // Mot de passe provisoire ou compromis : « Mon profil » s'ouvre dès l'entrée.
+      markPasswordChangeRequired(!!session?.passwordMustReset);
     },
-    [publicSettings?.modules?.visit_enabled, updateStudentSession],
+    [markPasswordChangeRequired, publicSettings?.modules?.visit_enabled, updateStudentSession],
   );
 
   /** Entrée en visite publique invitée (avec onboarding mascotte si jamais confirmé). */
@@ -1050,8 +1079,9 @@ function App() {
       setDiscoveryTourSeenReady(false);
       setBiodivGroupPedagoLevels([]);
       setBiodivGroupCurriculumNiveaux([]);
+      markPasswordChangeRequired(false);
     },
-    [clearLocalDataOnLogout, studentRef],
+    [clearLocalDataOnLogout, markPasswordChangeRequired, studentRef],
   );
 
   const isCombinedMapTasksTab = tab === 'maptasks';
@@ -1525,6 +1555,8 @@ function App() {
         onToastDone={handleToastDone}
         oauthFeedback={oauthFeedback}
         onOauthFeedbackDismiss={() => setOauthFeedback(null)}
+        mfaChallenge={oauthMfaChallenge}
+        onMfaChallengeConsumed={() => setOauthMfaChallenge(null)}
         showPublicVisit={showPublicVisit}
         visitInitialMapId={visitInitialMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}

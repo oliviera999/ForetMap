@@ -67,6 +67,18 @@ describe('usePlaceFocusSequence', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  test('ANIM-15 : annonce aria-live pendant le zoom, vidée à l’ouverture', async () => {
+    const vp = fakeViewport();
+    const labeled = { ...zone, label: 'Potager nord' };
+    const { result } = setup(vp);
+    const open = vi.fn();
+    act(() => result.current.focusThenOpen(labeled, open));
+    expect(result.current.statusMessage).toBe('Ouverture de Potager nord');
+    await act(async () => vp.flights[0].resolve(true));
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(result.current.statusMessage).toBe('');
+  });
+
   test('un zoom interrompu par un geste ouvre quand même la fiche', async () => {
     const vp = fakeViewport();
     const { result } = setup(vp);

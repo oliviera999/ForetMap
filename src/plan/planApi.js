@@ -42,13 +42,15 @@ export async function planApi(path, method = 'GET', body, getToken = null) {
 /**
  * Charge du plan (carte, réglages, catégories, lieux, parcours), pour la variante demandée
  * (`src/plan/utils/planVariants.js` : plan public ou plan des personnels).
- * `code` : laissez-passer porté par un lien profond (`?code=`), pour que les QR codes
- * internes ouvrent le plan sans saisie quand l'accès est restreint (lot 8).
+ *
+ * Jamais de code d'accès dans cette adresse : un lien porteur du code (`?code=`, QR code
+ * interne) est d'abord échangé par `submitPlanAccessCode` — le code voyage dans le corps d'un
+ * `POST` —, puis la charge est lue avec le seul laissez-passer. Une lecture `?code=` finissait
+ * dans le cache du service worker et dans les journaux de requêtes.
  */
-export async function fetchPlanContent(mapId = '', code = '', variant = PLAN_VARIANT) {
+export async function fetchPlanContent(mapId = '', variant = PLAN_VARIANT) {
   const params = new URLSearchParams();
   if (mapId) params.set('map_id', mapId);
-  if (code) params.set('code', code);
   const suffix = params.toString() ? `?${params}` : '';
   return planApi(`${variant.apiBase}/content${suffix}`, 'GET', undefined, variant.getToken);
 }

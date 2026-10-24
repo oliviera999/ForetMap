@@ -63,7 +63,7 @@ Tout se passe dans « n3boss & utilisateurs », sous-onglets **Comptes** et **Gr
    liste des **comptes en attente** du sous-onglet Groupes : rattachez-les un par un ou
    sélectionnez-en plusieurs pour un rattachement en lot.
 4. **Choisir le profil par défaut du groupe.** Les élèves de ce groupe reçoivent ce profil
-   (novice, avancé, chevronné…). Cochez « Imposer ce profil » pour qu'il s'applique à toute la
+   (visiteur, novice, avancé, chevronné… : un groupe ne confère qu'un profil élève). Cochez « Imposer ce profil » pour qu'il s'applique à toute la
    classe, quel que soit le palier atteint par chacun.
 
 **Les paliers.** Un élève commence novice et monte automatiquement de palier avec ses tâches
@@ -71,7 +71,8 @@ validées : **avancé à 5 tâches validées**, **chevronné à 10**. Chaque pal
 de possibilités (proposer des tâches, accéder à plus de contenus).
 
 **Créer un compte de collègue.** Vous pouvez aussi créer le compte d'un professeur, par exemple
-un prof de classe (voir la section dédiée plus bas).
+un prof de classe (voir la section dédiée plus bas). Un autre n3boss, en revanche, se demande à
+l'administrateur : on n'attribue qu'un profil de rang inférieur au sien.
 
 ### 2. Préparer les tâches
 
@@ -197,7 +198,8 @@ Dans **Biodiversité** :
 | Corriger le nom d'un élève, désactiver un compte | Demander à l'administrateur.                                                                         |
 
 L'élève modifie lui-même certaines informations de son profil (pseudo, avatar) depuis son
-propre compte.
+propre compte. Sans photo, son avatar est dessiné par l'application à partir de son pseudo
+(ou de son nom) : rien n'est envoyé à un service extérieur.
 
 ---
 
@@ -342,6 +344,7 @@ compte : adressez-vous à l'administrateur de l'établissement pour :
 | Un lieu n'apparaît pas pour les élèves          | Réglage « Qui peut voir ce lieu » restrictif                        | Ouvrir le lieu et élargir sa visibilité.                                                                                                                                                  |
 | Une observation a été écartée par erreur        | « Ne pas retenir » est définitif                                    | Demander à l'élève de refaire l'observation.                                                                                                                                              |
 | Un message déplacé sur le forum                 | —                                                                   | Le retirer via « Signalements (n) » et verrouiller la discussion si besoin.                                                                                                               |
+| L'application demande un code à 6 chiffres      | Double authentification des comptes n3boss                          | Saisir le code de l'application du téléphone ; sans téléphone, un code de secours ; sinon demander une réinitialisation à l'administrateur ([détail](double-authentification.md)).        |
 
 En cas de doute, le bouton **« ? »** de l'écran concerné donne l'aide contextuelle. Pour tout ce
 qui touche aux comptes au-delà de vos droits, aux réglages de l'établissement ou à une panne,

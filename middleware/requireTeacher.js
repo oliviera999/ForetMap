@@ -4,11 +4,13 @@ const {
   verifyJwtToken,
   verifyJwtForProduct,
   checkClaimsProduct,
+  asOptionalSession,
 } = require('../lib/auth/jwtPipeline');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { queryOne } = require('../database');
 const { tokenEpochMatches } = require('../lib/auth/tokenEpoch');
 const { getAuthJwtTtls } = require('../lib/settings');
+const { getMfaEnforcement, sessionLacksRequiredMfa } = require('../lib/auth/mfaPolicy');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
 const logger = require('../lib/logger');
 
@@ -26,6 +28,48 @@ class AuthRevokedError extends Error {
     this.name = 'AuthRevokedError';
     this.reason = reason;
   }
+}
+
+/**
+ * Mot de passe provisoire ou compromis à changer (`users.password_must_reset = 1`).
+ *
+ * Tant que le drapeau est levé, une session **obligatoire** est refusée en `403` avec ce code,
+ * sauf sur la liste blanche ci-dessous ; une session **facultative** vaut anonyme
+ * (`asOptionalSession`, `lib/auth/jwtPipeline.js`). Le client ouvre alors « Mon profil ».
+ */
+const PASSWORD_CHANGE_REQUIRED_CODE = 'PASSWORD_CHANGE_REQUIRED';
+const PASSWORD_CHANGE_REQUIRED_MESSAGE =
+  'Changement de mot de passe requis : choisissez un nouveau mot de passe dans « Mon profil ».';
+
+/**
+ * Liste blanche **minimale** d'une session qui doit changer son mot de passe : ce dont
+ * « Mon profil » a strictement besoin pour s'afficher et changer le mot de passe.
+ *
+ * - `GET /api/auth/me` : restauration de session (identité, permissions) et lecture du
+ *   drapeau (`passwordMustReset`), qui conduit le client à « Mon profil » ;
+ * - `POST /api/auth/me/password` : le changement lui-même (mot de passe actuel exigé), qui
+ *   lève le drapeau, révoque les autres sessions et renvoie un jeton neuf.
+ *
+ * Le reste de l'écran est public (registre des mascottes) ou attend le changement
+ * (enregistrement du profil, export des données). Chemins en minuscules, sans barre finale.
+ */
+const PASSWORD_CHANGE_ALLOWED_ROUTES = Object.freeze([
+  Object.freeze({ method: 'GET', path: '/api/auth/me' }),
+  Object.freeze({ method: 'POST', path: '/api/auth/me/password' }),
+]);
+
+/**
+ * Vrai si la requête vise une route de la liste blanche. Compare la méthode et le chemin
+ * monté (`req.baseUrl + req.path`, sans la chaîne de requête), normalisé comme le routeur
+ * Express le tolère : casse ignorée, barre finale facultative.
+ * @param {{ method?: string, baseUrl?: string, path?: string }} req
+ */
+function isPasswordChangeAllowedRoute(req) {
+  const method = String(req?.method || '').toUpperCase();
+  const path = `${req?.baseUrl || ''}${req?.path || ''}`.toLowerCase().replace(/\/+$/, '') || '/';
+  return PASSWORD_CHANGE_ALLOWED_ROUTES.some(
+    (route) => route.method === method && route.path === path,
+  );
 }
 
 function requireJwtConfigured(res) {
@@ -76,13 +120,24 @@ async function hydrateAuthFromTokenClaims(claims) {
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
+    // Prise de contrôle réservée à un administrateur qui a validé son second facteur : une
+    // prise de contrôle ouverte sans lui (avant l'activation de la double authentification)
+    // ne survit pas.
+    if (!claims.actorMfa && (await getMfaEnforcement()) !== 'off') {
+      throw new AuthRevokedError('actor_mfa_required');
+    }
   }
   // État de compte relu à chaque requête : un compte désactivé ou dont le mot de passe a
   // changé (`token_epoch` incrémenté) perd sa session immédiatement, pas à l'expiration ;
   // un compte **supprimé** répond 401 `deleted: true`, que le client sait traiter (CDG-26).
-  const account = await queryOne('SELECT is_active, token_epoch FROM users WHERE id = ? LIMIT 1', [
-    String(claims.userId),
-  ]);
+  // La jointure (clé primaire) lit aussi l'état de la double authentification du compte.
+  const account = await queryOne(
+    `SELECT u.is_active, u.token_epoch, u.password_must_reset,
+            (t.enabled_at IS NOT NULL) AS totp_enabled
+       FROM users u LEFT JOIN user_totp t ON t.user_id = u.id
+      WHERE u.id = ? LIMIT 1`,
+    [String(claims.userId)],
+  );
   if (!account) throw new AuthRevokedError('account_deleted');
   if (account.is_active != null && !Number(account.is_active)) {
     throw new AuthRevokedError('account_inactive');
@@ -92,6 +147,20 @@ async function hydrateAuthFromTokenClaims(claims) {
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId);
   if (!authz) return null;
+  // Double authentification : une session sans second facteur validé d'un compte
+  // administrateur ou n3boss tombe dès que le réglage l'exige (ou que le compte est enrôlé).
+  // En prise de contrôle, c'est l'acteur qui a validé le sien (contrôle plus haut).
+  if (
+    !impersonating &&
+    sessionLacksRequiredMfa({
+      authz,
+      totpEnabled: !!Number(account.totp_enabled || 0),
+      enforcement: await getMfaEnforcement(),
+      mfa: !!claims.mfa,
+    })
+  ) {
+    throw new AuthRevokedError('mfa_required');
+  }
   const groupIds = await getUserAccessibleGroupIds({
     userId: claims.userId,
     roleSlug: authz.roleSlug,
@@ -109,6 +178,12 @@ async function hydrateAuthFromTokenClaims(claims) {
     elevatedPermissions: authz.elevatedPermissions,
     nativePrivileged: !!authz.nativePrivileged,
     groupIds,
+    mfa: !!claims.mfa,
+    mfaMethod: claims.mfa ? claims.mfaMethod || 'totp' : null,
+    // Mot de passe provisoire ou compromis, relu en base à chaque requête (jamais dans le
+    // jeton) : il est levé dès le changement. Pas en prise de contrôle — l'administrateur
+    // qui assiste ce compte ne doit pas être bloqué par le mot de passe d'un autre.
+    passwordMustReset: !impersonating && !!Number(account.password_must_reset || 0),
     ...(impersonating
       ? {
           impersonating: true,
@@ -122,9 +197,21 @@ async function hydrateAuthFromTokenClaims(claims) {
 }
 
 /**
+ * Hydratation d'une session **facultative** (routes publiques qui lisent le jeton sans
+ * l'exiger) : comme `hydrateAuthFromTokenClaims`, mais un compte qui doit changer son mot de
+ * passe vaut anonyme (`null`). Lève les mêmes erreurs (révocation, panne BDD).
+ * @param {object} claims claims d'un jeton déjà vérifié
+ * @returns {Promise<object|null>}
+ */
+async function hydrateOptionalAuthFromTokenClaims(claims) {
+  return asOptionalSession(await hydrateAuthFromTokenClaims(claims));
+}
+
+/**
  * Pipeline commun des middlewares stricts (requireAuth / requirePermission / requireProduct) :
  * JWT configuré → bootstrap RBAC → token Bearer requis (401) → vérification JWT
- * (contrainte produit si `product` fourni) → hydratation (403 « Aucun profil attribué »).
+ * (contrainte produit si `product` fourni) → hydratation (403 « Aucun profil attribué ») →
+ * mot de passe à changer (403 `PASSWORD_CHANGE_REQUIRED`, hors liste blanche).
  * Répond soi-même en cas d'échec (mêmes statuts/messages qu'avant factorisation) et
  * retourne `null` ; sinon renseigne `req.auth` et le retourne.
  */
@@ -190,6 +277,15 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     res.status(403).json({ error: 'Aucun profil attribué' });
     return null;
   }
+  // Mot de passe provisoire ou compromis : la session ne sert qu'à le changer. Contrôlé
+  // avant toute permission, pour qu'un compte privilégié marqué ne puisse rien faire d'autre.
+  if (req.auth.passwordMustReset && !isPasswordChangeAllowedRoute(req)) {
+    res.status(403).json({
+      error: PASSWORD_CHANGE_REQUIRED_MESSAGE,
+      code: PASSWORD_CHANGE_REQUIRED_CODE,
+    });
+    return null;
+  }
   return req.auth;
 }
 
@@ -203,7 +299,8 @@ async function authenticate(req, res, next) {
   }
   try {
     const claims = verifyJwtToken(token, JWT_SECRET);
-    req.auth = await hydrateAuthFromTokenClaims(claims);
+    // Session facultative : un compte qui doit changer son mot de passe y est anonyme.
+    req.auth = await hydrateOptionalAuthFromTokenClaims(claims);
   } catch (_) {
     req.auth = null;
   }
@@ -251,8 +348,14 @@ const requireTeacher = requirePermission('teacher.access');
 module.exports = {
   JWT_SECRET,
   AuthRevokedError,
+  PASSWORD_CHANGE_REQUIRED_CODE,
+  PASSWORD_CHANGE_REQUIRED_MESSAGE,
+  PASSWORD_CHANGE_ALLOWED_ROUTES,
+  isPasswordChangeAllowedRoute,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
+  resolveAuthOrRespond,
+  hydrateOptionalAuthFromTokenClaims,
   authenticate,
   requireAuth,
   requirePermission,

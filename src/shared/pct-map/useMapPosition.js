@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  getPrefersReducedMotion,
+  subscribePrefersReducedMotion,
+} from '../hooks/usePrefersReducedMotion.js';
 import { useGeolocation } from '../platform/useGeolocation.js';
 import {
   applyGeoTransform,
@@ -103,14 +107,11 @@ export function useMapPosition({
    */
   const reducedMotionRef = useRef(false);
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => {
-      reducedMotionRef.current = !!media.matches;
+    const apply = (reduced) => {
+      reducedMotionRef.current = !!reduced;
     };
-    apply();
-    media.addEventListener?.('change', apply);
-    return () => media.removeEventListener?.('change', apply);
+    apply(getPrefersReducedMotion());
+    return subscribePrefersReducedMotion(apply);
   }, []);
   /** Cap lissé courant (géographique), sa version écran continue, et la source retenue. */
   const headingRef = useRef({ geoDeg: null, unwrapped: null, source: null, at: 0 });

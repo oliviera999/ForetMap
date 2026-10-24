@@ -62,7 +62,7 @@ const { listHtmlEntryBasenames } = require('../lib/products');
 
 const TAG = '[fetch-dist]';
 
-/** Branche d'artefacts par défaut (publiée par .github/workflows/dist-publish.yml). */
+/** Branche d'artefacts par défaut (publiée par .github/workflows/release.yml). */
 const DEFAULT_BRANCH = 'dist-artifact/main';
 /** Code de sortie « rien à faire pour l'instant, repasse plus tard » (sysexits EX_TEMPFAIL). */
 const EXIT_DEFER = 75;

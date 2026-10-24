@@ -338,8 +338,12 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // Les trois tables des observations d'espèces (migration 307) ne sont lues que par
 // `/api/species-observations` (listes de l'élève et de l'enseignant), hors cycle : une
 // observation soumise par un élève ne doit pas faire recharger le catalogue de toute la classe.
+//
+// Les deux tables de la double authentification (migration 320) ne sont lues que par
+// `/api/auth/totp/*` : chaque connexion d'un administrateur ou d'un n3boss y écrit (pas
+// consommé, compteur d'échecs) sans rien changer aux données du cycle.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence|user_totp|user_totp_backup_codes)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );

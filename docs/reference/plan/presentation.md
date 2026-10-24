@@ -347,8 +347,9 @@ Dans _Réglages → Plan Lyautey_ (portée publique, sauf le code d'accès) :
 | Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                                              |
 | Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
-| Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
-| Code d'accès                | saisi en clair dans les réglages ; seule une empreinte est stockée ; **8 caractères minimum**      |
+| Mode d'accès                | `public` (par défaut) ou `code` — un code partagé, retenu 30 jours par défaut                      |
+| Code d'accès                | saisi ou généré dans les réglages ; seule une empreinte est stockée ; **12 caractères minimum**    |
+| Durée du laissez-passer     | combien de jours un appareil reste ouvert après la saisie du code (30 par défaut, 90 au plus)      |
 | Orienter                    | autorise le bouton « Orienter » (la carte doit aussi l'autoriser dans son calage GPS)              |
 
 L'**apparence du plan** (couleurs, logo) se règle à part, dans _Réglages → Identité visuelle_,
@@ -359,6 +360,34 @@ l'établissement.
 **Changer le code** oblige chaque appareil déjà entré à le ressaisir : l'ancien code cesse
 d'ouvrir le plan immédiatement, y compris sur les téléphones qui l'avaient retenu. C'est le
 moyen de fermer la porte après une diffusion non voulue.
+
+**L'échéance des laissez-passer.** Après la saisie du code, l'appareil reçoit un laissez-passer
+qui porte sa propre date d'échéance (30 jours par défaut, réglable de 1 à 90 jours). Passé
+cette date, le code est redemandé — même si le laissez-passer a été recopié sur un autre
+appareil : c'est le serveur qui vérifie l'échéance, plus seulement le navigateur. Changer la
+durée vaut pour les entrées suivantes ; pour refermer tout de suite, changez le code. Les
+appareils entrés avant la mise en place de cette échéance ont dû ressaisir le code une fois.
+
+**Le journal des saisies de code.** Chaque saisie du code — réussie ou refusée — est notée
+dans le journal de sécurité (Réglages → Journal de sécurité, réservé à l'administrateur) :
+la date, l'adresse d'origine, le résultat et, pour un refus, son motif (code faux, code
+absent, trop d'essais). Le code saisi n'y figure jamais. Une série de refus depuis la même
+adresse est le signe qu'il est temps de changer le code. Le plan e-nov et le plan des
+personnels ont le même journal.
+
+**Le lien qui porte le code.** Un QR code peut mener au plan avec le code dans le lien
+(`…/?code=…`) : le plan s'ouvre sans saisie. Le code sert alors une fois, puis disparaît de la
+barre d'adresse — il ne reste ni dans l'historique, ni dans un lien recopié depuis le
+téléphone, ni dans la copie hors ligne du plan. Le reste du lien (lieu, parcours) est
+conservé. Préférez tout de même la saisie du code quand c'est possible : un QR code imprimé
+est un lien direct permanent, qu'on photographie et qu'on transmet.
+
+**Le générateur de code.** Le bouton **« Générer un code »** propose un code de 14 caractères
+tirés au hasard, en minuscules et chiffres, sans les caractères qui se confondent (ni `0` ni
+`o`, ni `1`, `i` ou `l`). Il s'affiche en clair : **notez-le avant d'enregistrer**, car seule
+son empreinte est conservée et personne ne pourra plus l'afficher ensuite. Un code choisi à la
+main reste possible, à condition de faire **au moins 12 caractères** ; un code plus court
+enregistré avant cette règle continue de fonctionner jusqu'à ce que vous le remplaciez.
 
 #### Autres plans proposés
 
@@ -427,8 +456,8 @@ sur l'écran de saisie du code et sur l'écran de connexion du plan des personne
   commandes s'effacent : elles reviennent dès qu'on la redescend.
 - **En intérieur, le signal est mauvais.** Le halo le dit honnêtement ; les QR codes aux
   portes restent le moyen le plus fiable de savoir où l'on est.
-- **Le code d'accès n'est pas un mot de passe.** Il est court, partagé, et retenu 30 jours par
-  appareil : il décourage la diffusion large, il ne protège pas des données sensibles — et le
+- **Le code d'accès n'est pas un mot de passe.** Il est partagé, et retenu 30 jours par
+  appareil (durée réglable) : il décourage la diffusion large, il ne protège pas des données sensibles — et le
   plan n'en contient pas.
 - **Un lieu masqué sur toutes les surfaces disparaît partout**, y compris de la carte des
   élèves. L'avertissement dans la fiche le signale, mais rien ne l'interdit.

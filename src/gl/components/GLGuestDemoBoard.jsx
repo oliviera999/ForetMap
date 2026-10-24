@@ -11,6 +11,7 @@ import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLBoardFocusFx } from './GLBoardFocusFx.jsx';
+import { PlaceFocusStatusLive } from '../../shared/pct-map/PlaceFocusStatusLive.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
@@ -104,6 +105,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     beforePresent: boardFocusBeforePresent,
     restore: restoreBoardFocus,
     fx: boardFocusFx,
+    statusMessage: boardFocusStatus,
   } = useGLBoardFocus({
     mapGestures,
   });
@@ -209,6 +211,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
             watchPosition={watchPosition}
           />
           <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />
+          <PlaceFocusStatusLive message={boardFocusStatus} />
           <GLBoardMascot
             team={DEMO_TEAM}
             position={watchPosition}

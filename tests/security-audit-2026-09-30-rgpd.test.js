@@ -335,7 +335,7 @@ test('RG5 — sections ajoutées, chaque requête du registre s’exécute sur l
 
 // --- RG2 — conservation ---------------------------------------------------------------------
 
-test('RG2 — purge : jetons, synchro, visites, invités G&L ; IP tronquées à 6 mois', async () => {
+test('RG2 — purge : jetons, synchro, visites, invités G&L ; IP tronquées à 3 mois', async () => {
   const { runPurge, parseArgs } = require('../scripts/purge-audit-logs');
   const user = await registerStudent('Purge');
   const tag = `rgpd-${STAMP}`;

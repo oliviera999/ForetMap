@@ -60,11 +60,15 @@ export function readPlateauMarkerNumbersVisibleSetting(settings) {
   return value === true || value === 'true';
 }
 
-/** Lit un drapeau gameplay **actif par défaut** (absent = vrai). */
+/**
+ * Lit un drapeau gameplay **actif par défaut** (absent / illisible = vrai),
+ * aligné sur ForetMap `placeFocusSettings.readBool` (ANIM-24).
+ */
 function readGameplayFlagDefaultOn(settings, key) {
   const value = settings?.[key];
-  if (value == null) return true;
-  return value === true || value === 'true';
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return true;
 }
 
 /** Zoom sur le repère / la zone avant le popover d'arrivée (défaut : actif). */

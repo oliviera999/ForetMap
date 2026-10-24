@@ -129,3 +129,83 @@ test('Secure suit l’environnement de production', () => {
   gate.set(res, 'v');
   assert.match(res.headers[0][1], /; Secure$/);
 });
+
+// --- Échéance signée (laissez-passer des plans) ---------------------------------------------
+
+function expiringGate(extra = {}) {
+  return createSignedCookieGate({
+    name: 'pass_test',
+    ttlSeconds: 3600,
+    secret: () => 'secret-echeance',
+    bindName: true,
+    expiring: true,
+    ...extra,
+  });
+}
+
+function cookieValueFrom(res) {
+  return decodeURIComponent(cookieHeaderFrom(res).split('=').slice(1).join('='));
+}
+
+const NOW = Date.UTC(2026, 9, 10, 12, 0, 0);
+
+test('échéance signée : le laissez-passer porte sa date d’expiration, couverte par la signature', () => {
+  const gate = expiringGate();
+  const res = fakeRes();
+  gate.set(res, 'code-abc', { now: NOW });
+  assert.match(res.headers[0][1], /Max-Age=3600;/);
+  const raw = cookieValueFrom(res);
+  const expected = Math.floor(NOW / 1000) + 3600;
+  assert.match(raw, new RegExp(`^code-abc~${expected}\\.`), 'échéance lisible dans la valeur');
+  const req = { headers: { cookie: cookieHeaderFrom(res) } };
+  assert.strictEqual(gate.read(req, { now: NOW }), 'code-abc');
+  assert.strictEqual(gate.read(req, { now: NOW + 3599 * 1000 }), 'code-abc');
+});
+
+test('échéance signée : un laissez-passer expiré est refusé', () => {
+  const gate = expiringGate();
+  const res = fakeRes();
+  gate.set(res, 'code-abc', { now: NOW });
+  const req = { headers: { cookie: cookieHeaderFrom(res) } };
+  assert.strictEqual(gate.read(req, { now: NOW + 3600 * 1000 }), null);
+  assert.strictEqual(gate.read(req, { now: NOW + 40 * 24 * 3600 * 1000 }), null);
+});
+
+test('échéance signée : une échéance modifiée invalide la signature', () => {
+  const gate = expiringGate();
+  const res = fakeRes();
+  gate.set(res, 'code-abc', { now: NOW });
+  const raw = cookieValueFrom(res);
+  const pushed = raw.replace(/~(\d+)\./, (_m, exp) => `~${Number(exp) + 365 * 24 * 3600}.`);
+  assert.notStrictEqual(pushed, raw);
+  assert.strictEqual(gate.verify(pushed, { now: NOW }), null);
+  // Retirer l'échéance ne marche pas mieux : la signature couvrait la valeur complète.
+  const stripped = raw.replace(/~\d+\./, '.');
+  assert.strictEqual(gate.verify(stripped, { now: NOW }), null);
+});
+
+test('échéance signée : un laissez-passer sans échéance (format antérieur) est refusé', () => {
+  const gate = expiringGate();
+  // Format émis avant l'échéance signée : `<valeur>.<HMAC(nom + valeur)>`, signature valide.
+  const legacy = `code-abc.${gate.sign('code-abc')}`;
+  assert.strictEqual(gate.verify(legacy, { now: NOW }), null);
+});
+
+test('échéance signée : la durée se règle à l’émission (Max-Age et échéance suivent)', () => {
+  const gate = expiringGate();
+  const res = fakeRes();
+  gate.set(res, 'code-abc', { now: NOW, ttlSeconds: 2 * 24 * 3600 });
+  assert.match(res.headers[0][1], /Max-Age=172800;/);
+  const req = { headers: { cookie: cookieHeaderFrom(res) } };
+  assert.strictEqual(gate.read(req, { now: NOW + 47 * 3600 * 1000 }), 'code-abc');
+  assert.strictEqual(gate.read(req, { now: NOW + 49 * 3600 * 1000 }), null);
+});
+
+test('garde sans échéance : comportement inchangé (progression Visite)', () => {
+  const gate = createSignedCookieGate({ name: 'anon', ttlSeconds: 60, secret: () => 's' });
+  const res = fakeRes();
+  gate.set(res, 'uuid-1');
+  const req = { headers: { cookie: cookieHeaderFrom(res) } };
+  assert.strictEqual(gate.read(req, { now: NOW + 10 * 365 * 24 * 3600 * 1000 }), 'uuid-1');
+  assert.doesNotMatch(cookieValueFrom(res), /~/);
+});

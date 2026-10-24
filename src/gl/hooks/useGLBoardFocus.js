@@ -51,7 +51,13 @@ export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, 
     [focus],
   );
 
-  return { beforePresent, restore: focus.restore, forget: focus.forget, fx: placeFx.fx };
+  return {
+    beforePresent,
+    restore: focus.restore,
+    forget: focus.forget,
+    fx: placeFx.fx,
+    statusMessage: focus.statusMessage,
+  };
 }
 
 /**

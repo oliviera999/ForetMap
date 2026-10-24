@@ -427,7 +427,7 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 **Ne pas** lancer seulement **`npx playwright test …`** si un **`npm start`** « normal » occupe déjà le port : Playwright peut réutiliser ce serveur **sans** bypass → échecs **429** ou code périmé.
 
-**CI** (`.github/workflows/ci.yml`) : `npm run lint` → `npm test` → **`npm run test:ui`** → `npm run test:coverage` → `npm run build` → serveur **`npm run start:e2e`** → **`npm run test:e2e`** (`E2E_BASE_URL`). Pas de **`webServer`** Playwright quand **`CI=true`**.
+**CI** (`.github/workflows/ci.yml`) : `npm run lint` → **`npm run test:ui`** → `npm test` → `npm run test:content` → `npm run build` → serveur **`npm run start:e2e`** → **`npm run test:e2e`** (`E2E_BASE_URL`). Pas de **`webServer`** Playwright quand **`CI=true`**.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 

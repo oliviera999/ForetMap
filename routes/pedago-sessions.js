@@ -14,7 +14,7 @@ const {
   requirePermission,
   hasPermission,
   parseBearerToken,
-  hydrateAuthFromTokenClaims,
+  hydrateOptionalAuthFromTokenClaims,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
@@ -70,7 +70,7 @@ async function tryResolveAuth(req) {
     const token = parseBearerToken(req);
     if (!token) return null;
     const claims = verifyJwtToken(token, JWT_SECRET);
-    return await hydrateAuthFromTokenClaims(claims);
+    return await hydrateOptionalAuthFromTokenClaims(claims);
   } catch {
     return null;
   }

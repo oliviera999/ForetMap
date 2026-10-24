@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { placeFocusTarget } from './placeFocusTarget.js';
+
+/** Libellé court pour l'annonce aria-live pendant le zoom (ANIM-15). */
+function placeFocusLabel(place) {
+  const raw = place?.label || place?.name || place?.title || '';
+  const s = String(raw).trim();
+  return s || 'ce lieu';
+}
 
 /**
  * Séquence « zoom sur le lieu, puis fiche, puis retour à la vue d'avant », commune aux cartes
@@ -58,6 +65,8 @@ export function usePlaceFocusSequence({
   const pendingSupersededRef = useRef(null);
   /** `onAbandoned` de l'ouverture en attente (annulation par `restore`, pas par un nouveau clic). */
   const pendingAbandonedRef = useRef(null);
+  /** Annonce aria-live pendant le vol (ANIM-15). */
+  const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
     snapshotRef.current = null;
@@ -66,6 +75,7 @@ export function usePlaceFocusSequence({
     pendingSupersededRef.current = null;
     pendingAbandonedRef.current = null;
     tokenRef.current += 1;
+    setStatusMessage('');
     optsRef.current.onFx?.({ type: 'cancel' });
   }, [resetKey]);
 
@@ -90,6 +100,7 @@ export function usePlaceFocusSequence({
         if (token !== tokenRef.current) return;
         pendingSupersededRef.current = null;
         pendingAbandonedRef.current = null;
+        setStatusMessage('');
         open?.();
       };
       if (!o.enabled) {
@@ -114,8 +125,10 @@ export function usePlaceFocusSequence({
         onPlan: (plan) => o.onFx?.({ type: 'in', place, ...plan }),
       });
       // Rien à animer (cadre non mesuré, mouvement réduit) : la fiche s'ouvre dans le même tour.
-      if (flight && typeof flight.then === 'function') flight.then(run, run);
-      else run();
+      if (flight && typeof flight.then === 'function') {
+        setStatusMessage(`Ouverture de ${placeFocusLabel(place)}`);
+        flight.then(run, run);
+      } else run();
     },
     [],
   );
@@ -126,6 +139,7 @@ export function usePlaceFocusSequence({
     pendingSupersededRef.current = null;
     const abandoned = pendingAbandonedRef.current;
     pendingAbandonedRef.current = null;
+    setStatusMessage('');
     const snapshot = snapshotRef.current;
     const place = placeRef.current;
     snapshotRef.current = null;
@@ -165,13 +179,14 @@ export function usePlaceFocusSequence({
     snapshotRef.current = null;
     placeRef.current = null;
     restoringRef.current = null;
+    setStatusMessage('');
     optsRef.current.onFx?.({ type: 'cancel' });
   }, []);
 
   const hasSnapshot = useCallback(() => snapshotRef.current != null, []);
 
   return useMemo(
-    () => ({ focusThenOpen, restore, forget, hasSnapshot }),
-    [focusThenOpen, restore, forget, hasSnapshot],
+    () => ({ focusThenOpen, restore, forget, hasSnapshot, statusMessage }),
+    [focusThenOpen, restore, forget, hasSnapshot, statusMessage],
   );
 }

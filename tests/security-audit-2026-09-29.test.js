@@ -117,10 +117,10 @@ async function setAccessCode(target, code) {
     .send({ code });
 }
 
-test('I1 — un code d’accès de moins de 8 caractères est refusé', async () => {
+test('I1 — un code d’accès trop court est refusé (12 caractères minimum)', async () => {
   const res = await setAccessCode('plan', '1234');
   assert.equal(res.status, 400);
-  assert.match(res.body.error, /8 caractères minimum/);
+  assert.match(res.body.error, /12 caractères minimum/);
   const staff = await setAccessCode('staff-plan', 'court');
   assert.equal(staff.status, 400);
 });
@@ -169,7 +169,9 @@ test('C1/I2 — un laissez-passer « ok » de l’ancien format est refusé', as
   assert.equal((await setAccessCode('staff-plan', 'code-personnels-2')).status, 200);
   invalidateSettingsCache();
   const { staffPlanAccessGate } = require('../lib/staffPlanAccess');
-  const forged = `staff_plan_access=${encodeURIComponent(staffPlanAccessGate.build('ok'))}`;
+  // Échéance à venir et signature valide : seule la valeur « ok » de l'ancien format est en cause.
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+  const forged = `staff_plan_access=${encodeURIComponent(staffPlanAccessGate.build('ok', { expiresAt }))}`;
   await request(app).get('/api/staff-plan/content').set('Cookie', forged).expect(401);
 });
 

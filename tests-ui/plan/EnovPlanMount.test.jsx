@@ -145,15 +145,17 @@ describe('AppPlan — variante « plan e-nov »', () => {
     await mountEnov();
     expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith(
       '',
-      '',
       expect.objectContaining({ apiBase: '/api/enov' }),
     );
     expect(ENOV_PLAN_VARIANT.storagePrefix).not.toBe(PLAN_VARIANT.storagePrefix);
     expect(ENOV_PLAN_VARIANT.storagePrefix).not.toBe(STAFF_PLAN_VARIANT.storagePrefix);
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
-      'open',
-      'lyautey',
-      expect.objectContaining({ usageProduct: 'enov' }),
+    // Compteur posé par un effet, à l'arrivée du contenu : le titre peut s'afficher avant.
+    await waitFor(() =>
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+        'open',
+        'lyautey',
+        expect.objectContaining({ usageProduct: 'enov' }),
+      ),
     );
   });
 

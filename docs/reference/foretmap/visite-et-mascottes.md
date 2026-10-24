@@ -27,12 +27,14 @@ familles.
   après le clic, sans attendre la fin de la marche (sans le zoom, la fiche s'ouvre quand la
   mascotte arrive). Le lieu ouvert est **mis en évidence** (petite pastille sous son repère,
   autres repères estompés).
-  Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur »).
-  Refermer la fiche la fait **disparaître en fondu**, ramène doucement le plan au **zoom et au
-  centrage d'avant**, et l'emoji revient se poser à sa place (effets et comportement réglables :
-  _Réglages → Zoom sur le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif
-  pendant un parcours). Sur téléphone, la fiche occupe tout l'écran : le projecteur, qui reste
-  pendant qu'elle est ouverte, y est donc masqué. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur ») ;
+  un lecteur d'écran reçoit une courte annonce pendant ce délai. Refermer la fiche la fait
+  **disparaître en fondu**, ramène doucement le plan au **zoom et au centrage d'avant**, et
+  l'emoji revient se poser à sa place (effets et comportement réglables : _Réglages → Zoom sur
+  le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif pendant un parcours). Sur
+  téléphone, la fiche occupe tout l'écran : le projecteur, qui reste pendant qu'elle est
+  ouverte, y est donc masqué (comportement voulu). Si l'appareil demande de **réduire les
+  animations**, la mascotte Rive reste figée sur sa silhouette (comme les autres rendus). Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
   travail et le Plan Lyautey : la vue reste **centrée sur votre position** et un peu

@@ -11,11 +11,15 @@ import {
   clearStoredSession,
 } from '../services/api';
 import { isOfflineError, subscribeNetworkStatus } from '../shared/networkStatus.js';
+import { isPasswordChangeRequiredError } from '../utils/passwordChangeRequired.js';
 
 /** Toast de la déconnexion forcée par défaut (401 `deleted: true`). */
 export const ACCOUNT_DELETED_MESSAGE = 'Votre compte a été supprimé par un responsable.';
 /** Toast d'une session expirée ou révoquée (mot de passe changé, compte désactivé…). */
 export const SESSION_EXPIRED_MESSAGE = 'Session expirée : veuillez vous reconnecter.';
+/** Session fermée parce que la double authentification est désormais exigée pour ce compte. */
+export const MFA_REQUIRED_MESSAGE =
+  'La double authentification est désormais exigée pour votre compte : reconnectez-vous avec votre code.';
 
 /**
  * Cycle de vie de la session utilisateur (extrait de App.jsx, D3) : restauration
@@ -151,6 +155,7 @@ export function useAuthSession({
             displayName,
             email: p.email || null,
             avatar_path: p.avatar_path || null,
+            default_avatar_url: p.default_avatar_url || null,
           },
           student: null,
         });
@@ -201,6 +206,7 @@ export function useAuthSession({
             'Utilisateur',
           email: null,
           avatar_path: null,
+          default_avatar_url: null,
         },
         student: null,
       });
@@ -270,6 +276,8 @@ export function useAuthSession({
           displayName: auth.displayName || prev?.displayName || 'Utilisateur',
           email: pick('email', prev),
           avatar_path: pick('avatar_path', prev),
+          // URL signée renouvelée à chaque `/api/auth/me` (avatar par défaut dessiné par le serveur).
+          default_avatar_url: pick('default_avatar_url', prev),
           pseudo: pick('pseudo', prev),
           description: pick('description', prev),
           visit_mascot_catalog_id: pick('visit_mascot_catalog_id', prev),
@@ -316,6 +324,10 @@ export function useAuthSession({
           forceLogout();
           return;
         }
+        // Mot de passe provisoire ou compromis à changer : la session est valide, mais tout
+        // attend le changement. `api()` a déjà prévenu le shell, qui ouvre « Mon profil » —
+        // pas d'alerte « connexion instable ».
+        if (isPasswordChangeRequiredError(err)) return;
         if (isOfflineError(err)) {
           // Ouverture en mode avion : la session locale suffit pour travailler. La
           // vérification attend le retour du réseau, sans alerte « connexion instable ».

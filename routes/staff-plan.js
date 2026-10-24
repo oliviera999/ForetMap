@@ -22,6 +22,7 @@ const express = require('express');
 const { authLimiter } = require('../lib/rateLimit');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
+const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const {
   loadPlanSettings,
   resolvePlanMap,
@@ -121,7 +122,9 @@ router.get(
 /**
  * Saisie du code partagé : pose le laissez-passer si le code est bon. Sous `authLimiter` —
  * c'est un secret court, il doit résister au tâtonnement — et journalisé : un code partagé ne
- * dit pas qui entre, le journal dit au moins quand et depuis où.
+ * dit pas qui entre, le journal dit au moins quand et depuis où. Chaque issue est inscrite
+ * (`lib/codeAccessJournal.js`) : réussite, ou refus avec son motif — entrée désactivée, code
+ * absent, code faux (le limiteur inscrit les siens).
  */
 router.post(
   '/access',
@@ -130,21 +133,30 @@ router.post(
   asyncHandler(async (req, res) => {
     setPrivateHeaders(res);
     if (!(await isCodeAccessEnabled())) {
+      await logCodeAccessAttempt(req, STAFF_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.disabled,
+      });
       return res.status(403).json({ error: 'Entrée par code désactivée' });
     }
     const code = String(req.body?.code || '').trim();
-    if (!code) return res.status(400).json({ error: 'Code requis' });
+    if (!code) {
+      await logCodeAccessAttempt(req, STAFF_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+      });
+      return res.status(400).json({ error: 'Code requis' });
+    }
     if (!(await verifyStaffPlanCode(code))) {
-      await logAudit('staff_plan.access.code_refused', 'staff_plan', null, 'Code refusé', {
-        payload: { ip: req.ip, requestId: req.requestId },
+      await logCodeAccessAttempt(req, STAFF_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
       });
       return res.status(401).json({ error: 'Code incorrect' });
     }
     await grantStaffPlanCodeAccess(res);
     const roleSlug = await resolveCodeRoleSlug();
-    await logAudit('staff_plan.access.code_granted', 'staff_plan', null, 'Entrée par code', {
-      payload: { ip: req.ip, requestId: req.requestId, roleSlug },
-    });
+    await logCodeAccessAttempt(req, STAFF_SURFACE, { granted: true, payload: { roleSlug } });
     res.json({ ok: true, role_slug: roleSlug });
   }),
 );
@@ -175,9 +187,9 @@ router.post(
         'staff_plan',
         null,
         'Laissez-passer rendu',
-        {
-          payload: { ip: req.ip, requestId: req.requestId },
-        },
+        // IP et navigateur dans leurs colonnes du journal de sécurité (`req`), pas dans le
+        // détail lisible par `audit.read`.
+        { req, payload: { requestId: req.requestId } },
       );
     }
     res.json({ ok: true });

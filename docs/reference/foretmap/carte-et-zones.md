@@ -397,7 +397,13 @@ carte, à la Visite et aux plans) :
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
->   et le retour sont instantanés, et aucun effet visuel ne s'affiche.
+>   et le retour sont instantanés, et aucun effet visuel ne s'affiche. Sinon, un lecteur d'écran
+>   entend une brève annonce (« Ouverture de … ») pendant le zoom, avant que la fiche soit
+>   lisible.
+> - Un **repère sans emoji** affiche une épingle 📍 sur ForetMap (carte, Visite, plans). Sur le
+>   plateau Gnomes & Licornes, un repère sans emoji n'en invente pas un pour l'envol — voir
+>   [Carte du royaume](../gl/carte-du-royaume.md).
+> - Le **zoom maximal** est réglable ici ; côté G&L il est fixe (pas de réglage équivalent).
 > - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
 >   visé, c'est là que le guidage commence.
 > - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la
@@ -461,6 +467,11 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
 - la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
   **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
   concernés).
+- **la Visite ne peut que restreindre davantage, jamais ouvrir.** Depuis octobre 2026, un
+  lieu réservé sur la carte reste réservé en Visite, même si sa fiche de Visite indique
+  « tout le monde ». Le réglage de la fiche de Visite peut seulement réserver encore plus un
+  lieu ouvert sur la carte. Auparavant, une fiche de Visite laissée sans restriction rendait
+  public un lieu réservé sur la carte.
 
 ### Compléments réservés : un texte par public
 
@@ -492,6 +503,14 @@ recevait sans jamais les montrer.
 Un lieu n'a qu'**un seul jeu** de compléments : celui qu'on modifie depuis la fiche de
 visite est le même que celui de la fiche de carte. Copier un lieu de la carte vers la visite
 ne recopie donc plus rien, et ne peut plus placer un complément dans un texte public.
+
+**Qui gère les compléments.** Lire tous les compléments d'un lieu, ou les modifier, demande
+la permission qui gère ce lieu sur la carte : « Gestion zones » pour une zone, « Gestion
+repères » pour un repère. La permission « Gestion visite » seule — utile pour confier les
+textes et photos de la visite guidée à un profil sur mesure — ne la remplace pas : un tel
+profil ne lit que les compléments qui lui sont destinés (par son rôle ou ses groupes), comme
+tout lecteur, et ne peut pas les modifier. Les profils livrés (administrateur, n3boss) ont
+les trois permissions : rien ne change pour eux.
 
 ### Restreindre à une classe ou à un club (groupes)
 

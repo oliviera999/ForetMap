@@ -46,11 +46,17 @@ describe('createUserRoleOptions', () => {
       roles: [{ slug: 'prof_classe', display_name: 'Tuteur' }],
     });
     expect(withTeachers.map((o) => o.value)).toContain('prof_classe');
-    expect(withTeachers.map((o) => o.value)).toContain('prof');
     expect(withTeachers.find((o) => o.value === 'prof_classe')?.label).toBe('Tuteur');
     expect(withTeachers.map((o) => o.value)).not.toContain('admin');
 
     const admin = buildUnitaryCreateRoleOptions({ isAdmin: true });
     expect(admin.map((o) => o.value)).toEqual(UNITARY_CREATE_ROLE_SLUGS);
+  });
+
+  it('hors administrateur, pas de profil de rang égal au n3boss : « n3boss » réservé à l’admin', () => {
+    const n3boss = buildUnitaryCreateRoleOptions({ isAdmin: false, canCreateTeacherRoles: true });
+    expect(n3boss.map((o) => o.value)).not.toContain('prof');
+    expect(n3boss.map((o) => o.value)).not.toContain('admin');
+    expect(buildUnitaryCreateRoleOptions({ isAdmin: true }).map((o) => o.value)).toContain('prof');
   });
 });
