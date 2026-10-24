@@ -8,6 +8,8 @@ import { useId } from 'react';
  * @param {object} props
  * @param {string} props.title titre du plan (réglage `ui.plan.title`).
  * @param {string} [props.logoUrl] logo de l'établissement (réglage `ui.plan.brand`, lot 7).
+ * @param {{ url: string, alt: string }|null} [props.labelLogo] logo d'un label porté par la
+ *   variante (plan e-nov), posé après le titre.
  * @param {string} props.query saisie courante.
  * @param {(next: string) => void} props.onQueryChange
  * @param {() => void} [props.onFocusSearch] ouverture de la feuille de résultats.
@@ -24,6 +26,7 @@ export function PlanTopBar({
   onFocusSearch,
   resultCount = null,
   logoUrl = '',
+  labelLogo = null,
   help = null,
   tools = null,
 }) {
@@ -33,6 +36,19 @@ export function PlanTopBar({
       <div className="plan-topbar__identity">
         {logoUrl ? <img className="plan-topbar__logo" src={logoUrl} alt="" /> : null}
         <h1 className="plan-topbar__title">{title}</h1>
+        {labelLogo?.url ? (
+          <span className="plan-topbar__label">
+            <img
+              className="plan-topbar__label-logo"
+              src={labelLogo.url}
+              alt={labelLogo.alt || ''}
+              width={48}
+              height={40}
+              decoding="async"
+              data-testid="plan-label-logo"
+            />
+          </span>
+        ) : null}
       </div>
       <div className="plan-topbar__search">
         <label className="fm-visually-hidden" htmlFor={inputId}>

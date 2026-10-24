@@ -63,8 +63,46 @@ const FORET_STATIC_ASSETS = Object.freeze([
 const PWA_PROFILES = Object.freeze({
   foret: Object.freeze({
     staticPrecache: FORET_STATIC_ASSETS,
+    /**
+     * Écrans chargés à la demande (stats, plantes, carnet, tutoriels, forum, pédagogie…)
+     * précachés eux aussi (~1,3 Mo, une fois par version). Sans eux, ouvrir hors ligne un
+     * écran jamais visité échouait : l'élève sur le terrain, en mode avion, perdait la page.
+     */
+    precacheDynamicImports: true,
     apiStaleWhileRevalidate: Object.freeze(['/api/maps', '/api/visit/content']),
-    apiNetworkFirst: Object.freeze(['/api/zones', '/api/plants', '/api/map/markers', '/api/tasks']),
+    /**
+     * `/api/settings/public` : sans copie, un démarrage hors ligne attendait l'échec de cette
+     * requête avant de charger les données. `/api/task-projects` et `/api/tutorials` sont
+     * lus à chaque cycle de synchronisation. `/api/sync-state` n'y figure **jamais** : la
+     * sonde doit refléter l'état réel du serveur.
+     */
+    apiNetworkFirst: Object.freeze([
+      '/api/zones',
+      '/api/plants',
+      '/api/map/markers',
+      '/api/tasks',
+      '/api/task-projects',
+      '/api/tutorials',
+      '/api/settings/public',
+      // Sans elles, hors ligne : tutoriels liés vus « non lus » (la tâche ne pouvait plus être
+      // marquée faite sans réseau) et « Mes observations » en erreur.
+      '/api/tutorials/me/read-ids',
+      '/api/species-observations/me',
+    ]),
+    /**
+     * Lectures par lieu ou par document, gardées pour la sortie terrain
+     * (`src/services/fieldTripPrep.js`) : listes de photos des zones et repères, aperçu d'un
+     * tutoriel, documents PDF déposés ou fournis avec les tutoriels.
+     */
+    apiNetworkFirstPatterns: Object.freeze([
+      '^/api/zones/[^/]+/photos$',
+      '^/api/map/markers/[^/]+/photos$',
+      '^/api/tutorials/\\d+/view$',
+      '^/uploads/.+\\.pdf$',
+      '^/tutos/.+\\.pdf$',
+    ]),
+    // Rejeu en arrière-plan des écritures gardées hors ligne (Background Sync).
+    outboxSync: true,
   }),
   gl: Object.freeze({
     staticPrecache: Object.freeze(['/gl/favicon.svg', '/gl/logo.png']),
@@ -115,6 +153,7 @@ const PWA_PROFILES = Object.freeze({
     // Icônes partagées avec le plan public (`assetsDir: 'plan'`) ; SVG enov = copie du plan.
     staticPrecache: Object.freeze([
       '/enov/favicon.svg',
+      '/enov/logo-enov.png',
       '/plan/favicon.ico',
       ...ICON_CANDIDATES.map((icon) => `/plan/${icon.file}`),
     ]),
@@ -133,13 +172,15 @@ function htmlEntriesForProduct(product) {
 }
 
 /**
- * Fichiers (JS + CSS) d'une entrée du manifeste Vite, imports statiques suivis récursivement,
- * chunks dynamiques ignorés (chargés à la demande, mis en cache-first au premier accès).
+ * Fichiers (JS + CSS) d'une entrée du manifeste Vite, imports statiques suivis récursivement.
+ * Par défaut les chunks dynamiques sont ignorés (chargés à la demande, mis en cache-first au
+ * premier accès) ; `includeDynamic` les suit aussi, récursivement.
  * @param {Record<string, { file: string, css?: string[], imports?: string[], dynamicImports?: string[] }>} viteManifest
  * @param {string} entryKey Clé du manifeste (ex. `gl.html`).
+ * @param {{ includeDynamic?: boolean }} [options]
  * @returns {string[]} URLs absolues (`/assets/...`), sans doublon, entrée en premier.
  */
-function collectEntryFiles(viteManifest, entryKey) {
+function collectEntryFiles(viteManifest, entryKey, { includeDynamic = false } = {}) {
   const manifest = viteManifest && typeof viteManifest === 'object' ? viteManifest : {};
   const entry = manifest[entryKey];
   if (!entry) return [];
@@ -153,6 +194,7 @@ function collectEntryFiles(viteManifest, entryKey) {
     files.push(url);
   };
   const visited = new Set();
+  const dynamicQueue = [];
   const visit = (key) => {
     if (visited.has(key)) return;
     visited.add(key);
@@ -161,8 +203,12 @@ function collectEntryFiles(viteManifest, entryKey) {
     push(chunk.file);
     for (const css of chunk.css || []) push(css);
     for (const imported of chunk.imports || []) visit(imported);
+    if (includeDynamic) dynamicQueue.push(...(chunk.dynamicImports || []));
   };
   visit(entryKey);
+  // Les chunks dynamiques après tout le graphe statique : l'ordre du précache reste lisible
+  // (coquille d'abord) et identique à celui d'avant pour la partie statique.
+  while (dynamicQueue.length > 0) visit(dynamicQueue.shift());
   return files;
 }
 
@@ -195,6 +241,9 @@ function precacheHash(product, precache, apiPolicy) {
       `swr:${[...(apiPolicy.apiStaleWhileRevalidate || [])].join(',')}`,
       `nf:${[...(apiPolicy.apiNetworkFirst || [])].join(',')}`,
     );
+    if (apiPolicy.apiNetworkFirstPatterns?.length) {
+      parts.push(`nfp:${[...apiPolicy.apiNetworkFirstPatterns].join(',')}`);
+    }
   }
   return crypto.createHash('sha256').update(parts.join('\n')).digest('hex').slice(0, 8);
 }
@@ -214,7 +263,9 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
     apiNetworkFirst: [],
   };
   const htmlEntries = htmlEntriesForProduct(product);
-  const bundles = collectEntryFiles(viteManifest, product.htmlEntry);
+  const bundles = collectEntryFiles(viteManifest, product.htmlEntry, {
+    includeDynamic: !!profile.precacheDynamicImports,
+  });
   const staticPrecache = profile.staticPrecache.filter(
     (url) =>
       url === '/' || url === '/manifest.json' || url.endsWith('.html') || exists(url.slice(1)),
@@ -225,6 +276,7 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
   const cacheName = `foretmap-${product.id}-${precacheHash(product.id, precache, {
     apiStaleWhileRevalidate: profile.apiStaleWhileRevalidate,
     apiNetworkFirst: profile.apiNetworkFirst,
+    apiNetworkFirstPatterns: profile.apiNetworkFirstPatterns,
   })}`;
   const serviceWorker = renderServiceWorker({
     product: product.id,
@@ -233,6 +285,8 @@ function buildProductPwa(product, { viteManifest, exists, foretManifestExtra }) 
     htmlEntries,
     apiStaleWhileRevalidate: [...profile.apiStaleWhileRevalidate],
     apiNetworkFirst: [...profile.apiNetworkFirst],
+    apiNetworkFirstPatterns: [...(profile.apiNetworkFirstPatterns || [])],
+    outboxSync: !!profile.outboxSync,
     offlinePath: OFFLINE_PATH,
   });
   const icons = listProductIcons(product, { exists });

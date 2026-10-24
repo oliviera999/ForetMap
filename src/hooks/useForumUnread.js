@@ -2,8 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '../services/api';
 import {
+  EMPTY_FORUM_MARKER,
   FORUM_READ_EVENT,
+  forumReadCursorKey,
   hasUnreadForumPosts,
+  normalizeForumMarker,
   readForumReadCursor,
   writeForumReadCursor,
 } from '../utils/forumUnread.js';
@@ -16,9 +19,13 @@ const POLL_INTERVAL_MS = 120_000;
 /**
  * Point rouge « messages non lus » sur l'onglet Forum.
  *
- * Rafraîchi par l'événement temps réel `forum`, au retour de l'onglet navigateur au premier
- * plan, et par une relève lente quand le socket n'est pas vivant. Tant que l'onglet Forum
- * est ouvert, tout ce qui arrive est considéré comme lu.
+ * Rafraîchi par l'événement temps réel `forum`, à l'ouverture de l'onglet Forum, au retour de
+ * l'onglet navigateur au premier plan, et par une relève lente quand le socket n'est pas vivant.
+ * Tant que l'onglet Forum est ouvert, tout ce qui arrive est considéré comme lu.
+ *
+ * Première consultation sur l'appareil (aucun curseur) : ce qui existe déjà compte comme lu,
+ * comme pour les pastilles par sujet — sinon le point s'allumait sans qu'aucun sujet ne soit
+ * signalé dans la liste.
  *
  * @param {{
  *   enabled: boolean,
@@ -37,10 +44,11 @@ export function useForumUnread({
   rtStatus,
   isTabVisible = true,
 }) {
-  const [latestPostId, setLatestPostId] = useState('');
+  const [latest, setLatest] = useState(EMPTY_FORUM_MARKER);
   const [cursor, setCursor] = useState(() => readForumReadCursor(userType, userId));
   const debounceRef = useRef(null);
   const mountedRef = useRef(true);
+  const requestSeqRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -51,27 +59,39 @@ export function useForumUnread({
   }, []);
 
   useEffect(() => {
+    requestSeqRef.current += 1;
+    setLatest(EMPTY_FORUM_MARKER);
     setCursor(readForumReadCursor(userType, userId));
   }, [userType, userId]);
 
   const reload = useCallback(async () => {
     if (!enabled) return;
+    const seq = ++requestSeqRef.current;
     try {
       const data = await api('/api/forum/unread-marker');
-      if (!mountedRef.current) return;
-      setLatestPostId(String(data?.latest_post_id || ''));
+      // Réponse d'un compte précédent ou dépassée par une relève plus récente.
+      if (!mountedRef.current || seq !== requestSeqRef.current) return;
+      const next = normalizeForumMarker(data);
+      if (next.id && !readForumReadCursor(userType, userId).id) {
+        setCursor(writeForumReadCursor(userType, userId, next));
+      }
+      setLatest(next);
     } catch (_) {
       /* indicateur non critique : on garde le dernier état connu */
     }
-  }, [enabled]);
+  }, [enabled, userType, userId]);
 
   useEffect(() => {
     if (!enabled) {
-      setLatestPostId('');
+      setLatest(EMPTY_FORUM_MARKER);
       return;
     }
     if (isTabVisible) reload();
   }, [enabled, isTabVisible, reload]);
+
+  useEffect(() => {
+    if (enabled && isForumOpen) reload();
+  }, [enabled, isForumOpen, reload]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -96,19 +116,30 @@ export function useForumUnread({
   useEffect(() => {
     const onRead = (event) => {
       const next = event?.detail?.marker;
-      setCursor(typeof next === 'string' ? next : readForumReadCursor(userType, userId));
+      setCursor(next ? normalizeForumMarker(next) : readForumReadCursor(userType, userId));
+    };
+    // Autre onglet (ou application installée) : le stockage change sans événement local.
+    const key = forumReadCursorKey(userType, userId);
+    const onStorage = (event) => {
+      if (event?.key === key) setCursor(readForumReadCursor(userType, userId));
     };
     window.addEventListener(FORUM_READ_EVENT, onRead);
-    return () => window.removeEventListener(FORUM_READ_EVENT, onRead);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(FORUM_READ_EVENT, onRead);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [userType, userId]);
 
+  const unread = hasUnreadForumPosts(latest, cursor);
+
   useEffect(() => {
-    if (!enabled || !isForumOpen || !latestPostId || latestPostId === cursor) return;
-    setCursor(writeForumReadCursor(userType, userId, latestPostId));
-  }, [enabled, isForumOpen, latestPostId, cursor, userType, userId]);
+    if (!enabled || !isForumOpen || !unread) return;
+    setCursor(writeForumReadCursor(userType, userId, latest));
+  }, [enabled, isForumOpen, unread, latest, userType, userId]);
 
   return {
-    hasUnread: enabled && !isForumOpen && hasUnreadForumPosts(latestPostId, cursor),
+    hasUnread: enabled && !isForumOpen && unread,
     reload,
   };
 }

@@ -52,7 +52,14 @@ import {
 import { buildMapUrl, readMapIdFromLocation } from './utils/planMaps.js';
 import { PLAN_POSITION_MESSAGES } from './utils/planPositionMessages.js';
 import { buildRouteUrl, readRouteSlugFromLocation } from './utils/planRoutes.js';
+import { readLinkCodeFromSearch, stripLinkCodeFromAddress } from './utils/planAccessLink.js';
 import { useMapRouteMode } from '../shared/map-routes/useMapRouteMode.js';
+import { buildStageRoute } from '../shared/map-routes/mapRouteSteps.js';
+import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
+import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
+import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
+import { computeSnapHeights } from '../shared/ui/bottomSheetSnap.js';
 import { PrivacyNoticeLink } from '../shared/privacy/PrivacyNoticeLink.jsx';
 
 /**
@@ -92,11 +99,13 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * **avant** de savoir quelle carte le serveur va servir — c'est elle qui le décide.
    */
   const MAP_ID_STORAGE_KEY = useMemo(() => planStorageKeys(variant).mapId, [variant]);
-  /** Code d'accès porté par un lien profond (`?code=`, QR interne) — lot 8. */
-  const [accessCode, setAccessCode] = useState(() =>
-    typeof window === 'undefined'
-      ? ''
-      : String(new URLSearchParams(window.location.search).get('code') || '').trim(),
+  /**
+   * Code d'accès porté par un lien (`?code=`, QR code interne) — lu une fois au montage,
+   * échangé contre un laissez-passer avant la première lecture, puis retiré de l'adresse
+   * (`src/plan/utils/planAccessLink.js`).
+   */
+  const [linkCode] = useState(() =>
+    typeof window === 'undefined' ? '' : readLinkCodeFromSearch(window.location.search),
   );
   /**
    * Plan affiché quand l'établissement en publie plusieurs (« Réglages → Plan affiché »).
@@ -126,7 +135,11 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     codeAvailable,
     viewer,
     reload,
-  } = usePlanContent(mapId, accessCode, variant);
+    forgetLinkCode,
+  } = usePlanContent(mapId, variant, {
+    linkCode,
+    onLinkCodeSettled: stripLinkCodeFromAddress,
+  });
   /**
    * Clés de stockage **de la carte réellement servie**, et non de celle demandée : `mapId`
    * vaut `''` quand on laisse le serveur choisir, et deux plans partageraient alors la même
@@ -485,9 +498,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     setSelectedPlace(null);
     resetGuidanceRef.current?.();
   }, []);
+  const onRouteOverviewExtra = useCallback(() => setSelectedPlace(null), []);
   const onRouteExit = useCallback(() => {
     setRouteToast('Pour reprendre : puce Parcours, ou Reprendre.');
   }, [setRouteToast]);
+  /** Réglages « Parcours guidés » (vue d'ensemble, caméra, tracé), servis avec le contenu. */
+  const routeSettings = useMemo(() => resolveRouteSettings(settings?.routes), [settings]);
   const onRouteUsage = useCallback(
     (event, detail) => reportPlanUsage(event, detail, variant),
     [variant],
@@ -504,10 +520,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     peekPlace: routePeekPlace,
     setPeekPlace: setRoutePeekPlace,
     startRoute,
-    startRouteAt,
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    routePhase,
+    beginRouteSteps,
+    showRouteOverview,
     resetForMapChange,
   } = useMapRouteMode({
     routes,
@@ -515,12 +533,58 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     onStepPlace: onRouteStepPlace,
     onStartExtra: onRouteStartExtra,
     onExitExtra: onRouteExitExtra,
+    onOverviewExtra: onRouteOverviewExtra,
     onExit: onRouteExit,
     onUsage: onRouteUsage,
     storageKey: ROUTE_RESUME_STORAGE_KEY,
+    overviewEnabled: routeSettings.overviewEnabled,
   });
 
+  /** Habillage du parcours sur la carte : tracé fléché, étapes numérotées, caméra. */
+  const stageRoute = useMemo(
+    () =>
+      buildStageRoute({
+        route: activeRoute,
+        phase: routePhase,
+        steps: routeSteps,
+        index: routeIndex,
+        entry: currentRouteEntry,
+        settings: routeSettings,
+      }),
+    [activeRoute, routePhase, routeSteps, routeIndex, currentRouteEntry, routeSettings],
+  );
+
   activeRouteSlugRef.current = activeRouteSlug;
+
+  /**
+   * Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant à la fermeture
+   * (`ui.place_focus.*`). Pendant un parcours, la caméra guidée garde la main.
+   */
+  const placeFocusSettings = useMemo(
+    () => resolvePlaceFocusSettings(settings?.place_focus),
+    [settings],
+  );
+  const planViewportApiRef = useRef({});
+  const onPlanViewportChange = useCallback((api) => {
+    planViewportApiRef.current = api || {};
+  }, []);
+  const getPlanViewport = useCallback(() => planViewportApiRef.current, []);
+  const planPlaceFocusActive = placeFocusSettings.planEnabled && !activeRoute;
+  const planPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.plan);
+  const placeFocus = usePlaceFocusSequence({
+    getViewport: getPlanViewport,
+    enabled: planPlaceFocusActive,
+    durationMs: placeFocusSettings.durationMs,
+    maxZoom: placeFocusSettings.maxZoom,
+    restoreOnClose: placeFocusSettings.restoreOnClose,
+    resetKey: mapId,
+    onFx: planPlaceFx.onFx,
+  });
+  /** Le lien direct `?lieu=` a cadré un lieu sans vue d'avant : fermer revient au plan entier. */
+  const deepLinkFocusedRef = useRef(false);
+  const deepLinkTimerRef = useRef(null);
+  /** Marges de recadrage courantes (barres basses), calculées plus bas. */
+  const mapFocusInsetsRef = useRef(null);
 
   const openPlace = useCallback(
     (place) => {
@@ -534,7 +598,6 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         reportPlanUsage('place_open', String(place?.id || ''), variant);
         return;
       }
-      setSelectedPlace(place);
       setResultsOpen(false);
       setGroupPlaces(null);
       setInnovationsOpen(false);
@@ -542,8 +605,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       if (typeof window !== 'undefined' && window.history?.replaceState) {
         window.history.replaceState(null, '', buildPlaceUrl(window.location, String(place.id)));
       }
+      // La fiche s'ouvre à mi-hauteur : le lieu est cadré dans la bande qui restera visible.
+      const halfSheetPx =
+        typeof window !== 'undefined'
+          ? computeSnapHeights({ viewportHeight: window.innerHeight || 0 }).half || 0
+          : 0;
+      const bottom = Math.max(Math.round(halfSheetPx), mapFocusInsetsRef.current?.bottom || 0);
+      placeFocus.focusThenOpen(place, () => setSelectedPlace(place), {
+        insets: bottom > 0 ? { bottom } : null,
+      });
     },
-    [setRoutePeekPlace, variant],
+    [setRoutePeekPlace, variant, placeFocus],
   );
 
   /**
@@ -558,13 +630,23 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       window.history.replaceState(null, '', buildPlaceUrl(window.location, ''));
     }
-  }, []);
+    if (placeFocus.hasSnapshot()) {
+      placeFocus.restore();
+    } else if (
+      deepLinkFocusedRef.current &&
+      planPlaceFocusActive &&
+      placeFocusSettings.restoreOnClose
+    ) {
+      planViewportApiRef.current.fitMapAnimated?.();
+    }
+    deepLinkFocusedRef.current = false;
+  }, [placeFocus, planPlaceFocusActive, placeFocusSettings.restoreOnClose]);
 
   /**
    * Réaffirme `?lieu=` après un retour d'historique.
    *
    * Les feuilles basses empilent une entrée d'historique à l'ouverture et la dépilent à la
-   * fermeture (`useOverlayHistoryBack`). Or `openPlace` écrit l'URL **sur l'entrée courante**,
+   * fermeture (`useDialogA11y`). Or `openPlace` écrit l'URL **sur l'entrée courante**,
    * qui est justement celle de la feuille de résultats : la fermer déclenche `history.back()`,
    * et l'adresse revient à celle d'avant — sans le lieu. Conséquence visible : après avoir
    * tapé un résultat de recherche, l'adresse ne portait plus le lieu, donc recharger la page
@@ -615,8 +697,31 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     );
     if (!wanted) return;
     const found = places.find((place) => String(place.id) === wanted);
-    if (found) setSelectedPlace(found);
-  }, [places]);
+    if (!found) return;
+    setSelectedPlace(found);
+    // Le cadrage automatique est coupé quand le zoom sur le lieu est actif : c'est donc ici
+    // qu'on centre le lieu, une fois le plan mesuré (première charge).
+    if (planPlaceFocusActive) {
+      deepLinkFocusedRef.current = true;
+      const pct = planPlaceFocusPct(found, parsePctPolygonPoints);
+      if (pct) {
+        deepLinkTimerRef.current = setTimeout(() => {
+          deepLinkTimerRef.current = null;
+          planViewportApiRef.current.focusOnPct?.(pct, {
+            insets: mapFocusInsetsRef.current,
+          });
+        }, 250);
+      }
+    }
+  }, [places, planPlaceFocusActive]);
+  // Annulée au démontage seulement : l'effet ci-dessus se relance (et sort aussitôt) à chaque
+  // changement de `places`, ce qui ne doit pas perdre le centrage en attente.
+  useEffect(
+    () => () => {
+      if (deepLinkTimerRef.current != null) clearTimeout(deepLinkTimerRef.current);
+    },
+    [],
+  );
 
   // Recherche : compteur d'usage (mots tapés) + recherche vide (mots manquants au plan).
   const searchReportedRef = useRef('');
@@ -699,13 +804,27 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * C'est tout l'objet du geste — voir où l'on est par rapport au lieu, ce qu'une feuille
    * couvrant 55 % de l'écran interdisait (B4).
    */
+  /** « Commencer le parcours » : l'étape choisie, et « Me situer » allumé si possible. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && position.available && !position.active) {
+        reportPlanUsage('locate', 'on', variant);
+        position.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, position, variant],
+  );
   const onGuidanceStart = useCallback(
     (place) => {
       reportPlanUsage('go', String(place.id), variant);
       if (!position.active) position.toggle();
+      // « Y aller » : la carte reste sur le lieu visé, pas sur la vue d'avant le zoom.
+      placeFocus.forget();
+      deepLinkFocusedRef.current = false;
       if (!activeRouteSlugRef.current) closePlace();
     },
-    [position, closePlace, variant],
+    [position, closePlace, variant, placeFocus],
   );
   const onGuidanceStop = useCallback(() => {
     reportPlanUsage('go_stop', '', variant);
@@ -791,6 +910,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     const bottom = Math.max(bars, Math.round(sheetInsetPx) || 0);
     return bottom > 0 ? { bottom } : null;
   }, [activeRoute, guidedPlace, sheetInsetPx, routeBarHeight]);
+  mapFocusInsetsRef.current = mapFocusInsets;
 
   /**
    * Distance à vol d'oiseau d'un lieu quelconque, formatée — pour la liste de résultats
@@ -827,11 +947,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     if (!wanted) return;
     const found = routes.find((route) => route.slug === wanted);
     if (found) {
-      startRouteAt(found, 0);
+      // Comme depuis la puce : vue d'ensemble d'abord si le réglage le prévoit.
+      startRoute(found);
       return;
     }
     setRouteToast('Ce parcours n’est plus disponible.');
-  }, [content, routes, setRouteToast, startRouteAt]);
+  }, [content, routes, setRouteToast, startRoute]);
 
   /**
    * Aligne `?parcours=` après les history.back() des feuilles qui se ferment au démarrage.
@@ -865,11 +986,12 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
   const submitAccessCode = useCallback(
     async (code) => {
       await submitPlanAccessCode(code, variant);
-      // Le laissez-passer est posé : on relance la charge avec le code, pour ne pas dépendre
-      // de l'ordre d'écriture du cookie.
-      setAccessCode(code);
+      // Le laissez-passer (cookie) est posé par la réponse du `POST` : la charge se relit sans
+      // le code, qui n'a rien à faire dans l'adresse d'une lecture (cache du service worker,
+      // journaux de requêtes).
+      reload();
     },
-    [variant],
+    [reload, variant],
   );
 
   const dismissWelcome = useCallback(() => {
@@ -925,30 +1047,17 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * requise » et l'écran d'entrée revient de lui-même. Pas de `location.reload()` — le plan
    * doit aussi se déconnecter hors ligne, sans dépendre d'un chargement de page.
    *
-   * Le code d'un lien profond (`?code=`) part avec la session, adresse comprise : conservé,
-   * il reposerait le laissez-passer à la requête suivante et la déconnexion n'aurait rien
-   * déconnecté. Effacer le code suffit à relancer la charge — d'où le `reload()` réservé au
-   * cas contraire.
+   * Le code d'un lien (`?code=`) a quitté l'adresse dès son échange. S'il est encore en
+   * attente (échange interrompu par le réseau), il part avec la session : rejoué au
+   * rechargement, il reposerait le laissez-passer et la déconnexion n'aurait rien déconnecté.
    */
   const logout = useCallback(async () => {
     await submitPlanLogout(variant);
     variant.clearToken?.();
-    if (accessCode) {
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('code');
-        const query = params.toString();
-        window.history.replaceState(
-          null,
-          '',
-          `${window.location.pathname}${query ? `?${query}` : ''}`,
-        );
-      }
-      setAccessCode('');
-      return;
-    }
+    forgetLinkCode();
+    stripLinkCodeFromAddress();
     reload();
-  }, [accessCode, reload, variant]);
+  }, [forgetLinkCode, reload, variant]);
 
   /**
    * Un plan mémorisé qui n'est plus proposé (retiré des réglages, dépublié) répond `400`.
@@ -1030,6 +1139,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       <PlanTopBar
         title={title}
         logoUrl={brand.logoUrl}
+        labelLogo={variant.labelLogo || null}
         query={query}
         onQueryChange={onQueryChange}
         onFocusSearch={() => setResultsOpen(true)}
@@ -1133,6 +1243,10 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             /* Le lieu visé reste mis en avant même fiche refermée : pendant le guidage, la
                carte doit montrer *où l'on va*, pas seulement d'où part le trait (B4). */
             selectedPlace={routePeekPlace || selectedPlace || guidedPlace}
+            autoFocusSelected={!planPlaceFocusActive}
+            placeFocusFx={planPlaceFx.fx}
+            placeFocusStatus={placeFocus.statusMessage}
+            onViewportChange={onPlanViewportChange}
             onSelectPlace={openPlace}
             onOpenGroup={openGroup}
             labelsClickable
@@ -1156,7 +1270,9 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             scaleCompassEffective={scaleCompassPref.effective}
             onScaleCompassToggle={scaleCompassPref.toggle}
             targetPct={targetPct}
+            routeLineAnimated={routeSettings.lineAnimated}
             focusInsets={mapFocusInsets}
+            route={stageRoute}
             attribution={settings?.attribution || ''}
             schoolLogoUrl={PLAN_SCHOOL_LOGO_URL}
             /* Feuille ouverte : la colonne de commandes ne tient pas dans la bande de carte
@@ -1218,6 +1334,9 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           route={activeRoute}
           steps={routeSteps}
           index={routeIndex}
+          phase={routePhase}
+          onBegin={onBeginRoute}
+          onShowOverview={showRouteOverview}
           onGoToIndex={goToRouteIndex}
           onExit={exitRoute}
           onHeight={setRouteBarHeight}

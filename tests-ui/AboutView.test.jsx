@@ -4,9 +4,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 // Le composant lit le jeton et résout l'URL via le service API : on neutralise le
 // stockage local et la base d'URL pour ne tester que le comportement du composant.
+const apiMock = vi.fn();
 vi.mock('../src/services/api', () => ({
   getAuthToken: () => 'jeton-test',
   withAppBase: (path) => path,
+  api: (...args) => apiMock(...args),
 }));
 vi.mock('../src/hooks/useHelp', () => ({
   useHelp: () => ({ resetHelp() {}, metrics: {}, resetHelpMetrics() {} }),
@@ -71,6 +73,21 @@ describe('AboutView — rapports d’audit interne', () => {
     });
   });
 
+  test('sans le droit, pas de carte « Guide du prof »', () => {
+    render(<AboutView appVersion="1.0.0" />);
+    expect(screen.queryByTestId('about-teacher-guide')).toBeNull();
+  });
+
+  test('un n3boss voit la carte « Guide du prof » et son sommaire', async () => {
+    apiMock.mockResolvedValue({
+      docs: [{ slug: 'guide-du-prof', title: 'Guide du prof (n3boss)', summary: 'Pratique.' }],
+    });
+    render(<AboutView appVersion="1.0.0" canReadTeacherGuide />);
+    expect(screen.getByRole('heading', { name: 'Guide du prof' })).toBeTruthy();
+    expect(await screen.findByText('Guide du prof (n3boss)')).toBeTruthy();
+    expect(apiMock).toHaveBeenCalledWith('/api/admin/reference-docs');
+  });
+
   test('un refus affiche un message lisible, jamais le JSON brut de l’API', async () => {
     global.fetch.mockResolvedValue({ ok: false, status: 403, text: async () => '' });
     render(<AboutView appVersion="1.0.0" canReadSiteIssues />);
@@ -80,5 +97,27 @@ describe('AboutView — rapports d’audit interne', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/droit de lecture des réglages/);
     expect(alert.textContent).not.toMatch(/Token requis/);
+  });
+});
+
+describe('AboutView — crédits des avatars par défaut (licence CC BY 4.0)', () => {
+  test('tout lecteur voit l’attribution : œuvre, autrice, licence et bibliothèque', () => {
+    const { container } = render(<AboutView appVersion="1.0.0" />);
+    const card = screen.getByTestId('about-credits');
+    expect(card.textContent).toMatch(/Adventurer Neutral/);
+    expect(card.textContent).toMatch(/Lisa Wischofsky/);
+    expect(card.textContent).toMatch(/CC BY 4\.0/);
+    expect(card.textContent).toMatch(/DiceBear/);
+    const hrefs = [...card.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('https://www.figma.com/community/file/1184595184137881796');
+    expect(hrefs).toContain('https://creativecommons.org/licenses/by/4.0/deed.fr');
+    for (const a of card.querySelectorAll('a')) {
+      expect(a.getAttribute('target')).toBe('_blank');
+      expect(a.getAttribute('rel')).toMatch(/noopener/);
+    }
+    // Une mention, pas un chargement : aucune image ni script tiers dans la page.
+    for (const img of container.querySelectorAll('img')) {
+      expect(img.getAttribute('src') || '').not.toMatch(/^https?:/);
+    }
   });
 });

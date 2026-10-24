@@ -10,21 +10,30 @@
  */
 
 const express = require('express');
-const { requirePermission } = require('../middleware/requireTeacher');
+const { requireAuth, hasPermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
-const { listReferenceDocs, getReferenceDoc } = require('../lib/foretmapReferenceDocs');
+const {
+  listReferenceDocs,
+  getReferenceDoc,
+  referenceDocsScopeFor,
+} = require('../lib/foretmapReferenceDocs');
 
 const router = express.Router();
 
-// Documentation destinée aux professeurs et administrateurs : même droit de lecture
-// que les réglages d'administration. Non exposée aux élèves.
-router.use(requirePermission('admin.settings.read'));
+// Tout le sommaire pour `admin.settings.read` ; le seul guide du prof pour
+// `reference_docs.teacher_guide.read`. Non exposée aux élèves.
+router.use(requireAuth, (req, res, next) => {
+  const scope = referenceDocsScopeFor((key) => hasPermission(req.auth, key));
+  if (!scope) return res.status(403).json({ error: 'Permission insuffisante' });
+  req.referenceDocsScope = scope;
+  return next();
+});
 
 /** GET /api/admin/reference-docs → sommaire (slug, titre, résumé, date de fichier). */
 router.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json({ docs: listReferenceDocs() });
+  asyncHandler(async (req, res) => {
+    res.json({ docs: listReferenceDocs({ scope: req.referenceDocsScope }) });
   }),
 );
 
@@ -32,7 +41,7 @@ router.get(
 router.get(
   '/:slug',
   asyncHandler(async (req, res) => {
-    const doc = getReferenceDoc(req.params.slug);
+    const doc = getReferenceDoc(req.params.slug, { scope: req.referenceDocsScope });
     if (!doc) return res.status(404).json({ error: 'Document introuvable' });
     res.json({ doc });
   }),

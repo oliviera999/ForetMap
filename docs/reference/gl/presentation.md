@@ -68,8 +68,82 @@ réglages. Voici ce que contient le jeu, regroupé comme dans la navigation :
 > Sur téléphone, les onglets principaux tiennent dans la barre du bas ; le bouton « Plus »
 > ouvre les autres dans une **feuille basse** commune à toutes les applications de la
 > plateforme (poignée pour l'agrandir, glisser vers le bas ou bouton retour pour la
-> refermer). Le bouton **Retour** du navigateur ou du téléphone ferme d'abord une feuille
-> ou une fenêtre ouverte, puis revient à l'onglet précédent, avant de quitter le jeu.
+> refermer). Le bouton **Retour** du navigateur ou du téléphone ferme d'abord ce qui est
+> ouvert par-dessus l'écran — feuille, fenêtre, bulle d'une zone ou d'un repère, quiz,
+> sort, feuillet découvert, dés virtuels, centre de notifications, photo agrandie — en
+> commençant par le plus récent, puis revient à l'onglet précédent, avant de quitter le
+> jeu. Seule la fenêtre obligatoire de changement de mot de passe ne se ferme pas ainsi.
+
+### Le Seuil (l'accueil des joueurs)
+
+À la connexion, un élève arrive sur **Le Seuil**. C'est son point de départ, et il
+fonctionne **à tout moment, même entre deux séances et sans aucune action du professeur** :
+
+- **Moi, voyageur** : le **niveau** de l'élève (de _Graine_ à _Forêt ancienne_) et ses
+  **deux regards**, tirés du récit des deux peuples :
+  - le **regard du proche** (côté gnome, l'observation) grandit quand il étudie une
+    espèce, apprend un mot du glossaire scientifique, explore un écosystème ou réussit
+    une question des biomes ;
+  - le **regard du loin** (côté licorne, le récit) grandit quand il trouve ou lit un
+    feuillet de Sélène, apprend un mot du lexique lore, lit une page du monde, réussit
+    une question du lore ou écrit dans « Mon journal » (deux articles comptés par semaine
+    au plus, d'au moins quelques lignes).
+
+  Chaque élément compte une fois et ne se perd jamais. L'élève voit de quel côté il
+  penche (_regard du proche_, _regard du loin_, ou _pacte du seuil_ quand les deux sont
+  équilibrés) et combien de points le séparent du niveau suivant. Quand il monte de
+  niveau, un message le lui annonce à sa prochaine visite.
+
+- **Mon expédition** : son équipe actuelle, sa mascotte, son peuple, ses coéquipiers et
+  une phrase honnête sur l'état de la partie (séance en cours, expédition qui campe entre
+  deux séances, partie pas encore commencée ou terminée). Sans équipe, l'écran le dit :
+  _« Ton compagnon t'attend à la prochaine traversée »_. À partir du niveau 5, l'élève
+  débloque des **gestes** (saluer, puis danser au niveau 6, puis le cri du peuple au
+  niveau 7) qu'il peut faire faire **à la mascotte de son équipe** sur cet écran : le geste
+  est à lui, la mascotte reste celle de l'équipe. C'est un effet visuel, sur son écran
+  seulement.
+- **Ce soir, tu peux…** : trois propositions qui l'envoient vers le regard qu'il a le
+  moins exercé, puis vers l'autre, puis vers un sortilège prêt.
+- **Le grimoire du voyageur** : des sortilèges **personnels**, hors des chapitres, qui
+  s'ouvrent avec le niveau et que l'élève lance seul, quand il veut :
+  - 🔁 **Seconde chance** (niveau 2) lève le délai d'attente posé après une mauvaise
+    réponse sur une fiche : il peut retenter tout de suite ;
+  - 🪶 **Mémoire** (niveau 3) rend lisible un feuillet de son carnet effacé par le Souffle ;
+  - 🔍 **Loupe** (niveau 4) se lance **pendant une question** (contrôle de compréhension
+    avant « appris », question d'un repère ou d'une zone) : un bouton _Loupe_ apparaît
+    au-dessus des réponses et écarte une mauvaise réponse. Elle ne donne jamais la bonne :
+    elle refuse de servir quand il ne reste que deux réponses.
+
+  Un sortilège lancé se **recharge** quand l'élève a gagné 5 nouveaux points : on
+  apprend pour pouvoir le relancer. Pas de minuteur, rien à valider par le MJ. Ces
+  sortilèges ne coûtent ni cœur ni gemme et ne touchent pas le plateau.
+
+- **Mes traversées** : la liste de ses expéditions terminées (mascotte, chapitre, date,
+  coéquipiers). Comme les équipes changent d'une partie à l'autre, l'élève construit au fil
+  de l'année une collection de compagnons et de compagnons de route.
+
+**Le « +1 » au moment où l'on apprend.** Où qu'il soit dans le jeu, quand l'élève marque
+« appris » une ressource pour la première fois ou réussit une question pour la première
+fois, une pastille _« +1 regard du proche »_ ou _« +1 regard du loin »_ s'envole en bas de
+l'écran. Il voit ainsi tout de suite que son geste compte.
+
+**Ce que voit le MJ.** Dans les statistiques de classe, chaque élève porte une pastille avec
+son stade, son niveau et son penchant (le détail des deux regards au survol) : un repère pour
+l'accompagner. Les élèves, eux, ne voient que leur propre niveau : il n'y a pas de
+classement entre élèves.
+
+**Les sons.** Les « +1 », le passage de niveau, les sortilèges et les gestes de mascotte
+s'accompagnent de petits sons courts, à volume bas, fabriqués par le navigateur (aucun fichier
+audio). Chaque élève peut les couper avec le bouton **Sons activés / Sons coupés** en haut du
+Seuil ; l'admin peut les couper pour toute la plateforme (module **Sons du voyageur**), ce qui est
+utile en classe.
+
+**Visite guidée.** À la première ouverture, OLU présente le Seuil en trois bulles (le point
+de départ, les deux façons de grandir, le grimoire).
+
+L'admin peut éteindre le module (**Le Seuil**, dans les modules) : les élèves arrivent alors
+sur Cartes, comme avant, et le « +1 », la Loupe et la pastille des statistiques
+disparaissent avec lui.
 
 ### Cartes (le plateau de jeu)
 
@@ -128,7 +202,9 @@ distinct du glossaire scientifique) et tutoriels.
   jusqu'à **trois photos** à un message, **réagir** avec un emoji, **citer** un message dans
   sa réponse, **corriger** son propre message (mention « modifié le … ») et **signaler** un
   message déplacé. Une **pastille** signale les sujets où quelqu'un d'autre a écrit depuis
-  la dernière lecture (mémorisée sur l'appareil). Le forum se met à jour **tout seul**
+  la dernière lecture (mémorisée sur l'appareil, partagée entre les onglets) ; sur grand
+  écran, le sujet affiché d'office garde sa pastille tant qu'on ne l'a pas choisi. Le forum
+  se met à jour **tout seul**
   quand quelqu'un publie, sans recharger la page.
 - **Rôle du MJ au forum** : il peut supprimer n'importe quel message, **épingler** un sujet
   (il reste en tête de liste) et le **verrouiller** — il reste alors le seul à pouvoir y
@@ -194,8 +270,8 @@ qui ne se confond pas avec les cœurs et les gemmes.
 
 L'admin dispose d'un écran de réglages complet :
 
-- **Modules** : activer/désactiver chaque brique (marché, forum, sorts, journaux,
-  intro, aide, tutoriels, musique de zone, dé virtuel, notifications…).
+- **Modules** : activer/désactiver chaque brique (Le Seuil, marché, forum, sorts,
+  journaux, intro, aide, tutoriels, musique de zone, dé virtuel, notifications…).
 - **Gameplay** : tours de jeu, narration, actions des joueurs, score, vitalité (et
   valeurs de départ des cœurs/gemmes), qui peut déplacer les mascottes, qui peut lancer
   les QCM, comportement des feuillets de Sélène (coûts, récompenses, aperçus),
@@ -249,8 +325,9 @@ Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
 - ✅ **Vocabulaire harmonisé** : l'interface dit Écosystèmes/Biodiversité ; les termes
   scientifiques biotope/biocénose restent dans les contenus pédagogiques, définis au
   glossaire scientifique.
-- ✅ **Mots de passe du personnel renforcés** : 8 caractères minimum pour les comptes
-  MJ/Admin (les joueurs restent à 4).
+- ✅ **Mots de passe renforcés** : 8 caractères minimum pour les comptes MJ/Admin, et
+  désormais aussi pour les joueurs (passés de 4 à 8 caractères le 30/09/2026 ; les mots de
+  passe déjà en place continuent de fonctionner).
 - ✅ **Scories internes nettoyées** (réglage en double, listes désynchronisées).
 
 ## Pour aller plus loin

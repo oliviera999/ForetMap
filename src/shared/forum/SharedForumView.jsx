@@ -15,7 +15,8 @@ import {
   forumPageCount,
   sameForumId,
 } from './forumHelpers.js';
-import { forumBtn, isForumNarrowViewport } from './forumUi.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
+import { FORUM_NARROW_QUERY, forumBtn, isForumNarrowViewport } from './forumUi.js';
 import { useForumThreads } from './useForumThreads.js';
 import { useForumThreadUnread } from './useForumThreadUnread.js';
 
@@ -84,6 +85,11 @@ export function SharedForumView({
   // Écran étroit : liste OU discussion. Sans cette bascule, choisir un sujet ne changeait
   // rien à l'écran (la discussion était sous toute la liste).
   const [mobilePane, setMobilePane] = useState('list');
+  const isNarrow = useMediaQuery(FORUM_NARROW_QUERY);
+  // Le sujet affiché d'office sur grand écran n'est pas « lu » : seul un sujet choisi (clic,
+  // notification, réponse) l'est. Sinon le sujet le plus actif — souvent celui qui vient de
+  // recevoir le message — perdait sa pastille dès l'ouverture du forum.
+  const [threadPickedByUser, setThreadPickedByUser] = useState(false);
 
   const threadDetailRequestSeqRef = useRef(0);
   const reactionInFlightRef = useRef(new Set());
@@ -187,7 +193,7 @@ export function SharedForumView({
   }, [toast]);
 
   const readingThreadId =
-    mobilePane === 'detail' || !isForumNarrowViewport() ? selectedThreadId : null;
+    threadPickedByUser && (mobilePane === 'detail' || !isNarrow) ? selectedThreadId : null;
   const { isUnread } = useForumThreadUnread({
     storageKey: unreadStorageKey,
     threads,
@@ -205,6 +211,7 @@ export function SharedForumView({
 
   const openThread = (threadId) => {
     setSelectedThreadId(threadId);
+    setThreadPickedByUser(true);
     setMobilePane('detail');
     setReportsOpen(false);
     scrollViewTopOnNarrow();
@@ -230,6 +237,7 @@ export function SharedForumView({
     if (!threadRequest?.id || handledThreadRequestRef.current === threadRequest.nonce) return;
     handledThreadRequestRef.current = threadRequest.nonce;
     setSelectedThreadId(threadRequest.id);
+    setThreadPickedByUser(true);
     setMobilePane('detail');
     setReportsOpen(false);
     setPendingPostId(threadRequest.postId ? String(threadRequest.postId) : '');
@@ -302,6 +310,7 @@ export function SharedForumView({
       const payload = { body: replyBody.trim() || undefined };
       if (replyImages.length > 0) payload.images = replyImages;
       await adapter.reply(selectedThreadId, payload);
+      setThreadPickedByUser(true);
       setReplyBody('');
       setReplyImages([]);
       setToast('Réponse publiée');

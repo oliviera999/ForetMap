@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { buildMarkerPayload, markerFormFromMarker } from '../../utils/markerModalForm.js';
@@ -79,7 +78,6 @@ function MarkerModal({
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const { confirm } = useAppDialogs();
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
   const commentsRef = useScrollIntoViewOnMount(focusComments && !isNew);
   const [form, setForm] = useState(() => markerFormFromMarker(marker));

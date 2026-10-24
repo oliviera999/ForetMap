@@ -17,6 +17,12 @@ function categoryMatchesSurface(cat, surface) {
   return list.map(String).includes(String(surface));
 }
 
+/** Catégorie utilisable sur la carte : globale (`map_id` vide) ou propre à cette carte. */
+function categoryMatchesMap(cat, mapId) {
+  if (!mapId) return true;
+  return cat?.map_id == null || cat.map_id === '' || String(cat.map_id) === String(mapId);
+}
+
 /**
  * Multi-sélection de catégories de lieux (ids stockés en chaîne `;`-séparée).
  *
@@ -29,6 +35,8 @@ function categoryMatchesSurface(cat, surface) {
  * @param {string} [props.testId]
  * @param {string} [props.requireSurface] ex. `plan` / `staff` — n'affiche que ces catégories
  * @param {Iterable<string>|null} [props.excludeIds] ids déjà pris ailleurs (exclusion mutuelle)
+ * @param {string} [props.mapId] n'affiche que les catégories globales et celles de cette carte
+ * @param {object[]|null} [props.categories] catalogue déjà chargé (évite un appel par instance)
  */
 export function CategoryIdsMultiSelect({
   label,
@@ -39,8 +47,11 @@ export function CategoryIdsMultiSelect({
   testId = 'category-ids-multi-select',
   requireSurface = '',
   excludeIds = null,
+  mapId = '',
+  categories: providedCategories = null,
 }) {
-  const [categories, setCategories] = useState([]);
+  const [fetchedCategories, setCategories] = useState([]);
+  const categories = providedCategories ?? fetchedCategories;
   const [loadErr, setLoadErr] = useState('');
   const [selected, setSelected] = useState(() => new Set(parseCategoryIdsSetting(value)));
   const selectedRef = useRef(selected);
@@ -76,7 +87,9 @@ export function CategoryIdsMultiSelect({
     setSelected(new Set(parseCategoryIdsSetting(value)));
   }, [value]);
 
+  const hasProvidedCategories = providedCategories != null;
   useEffect(() => {
+    if (hasProvidedCategories) return undefined;
     let cancelled = false;
     (async () => {
       try {
@@ -97,19 +110,20 @@ export function CategoryIdsMultiSelect({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasProvidedCategories]);
 
   const shown = useMemo(() => {
     return (categories || []).filter((cat) => {
       if (cat && cat.is_active === false) return false;
       if (!categoryMatchesSurface(cat, requireSurface)) return false;
+      if (!categoryMatchesMap(cat, mapId)) return false;
       const id = String(cat.id);
       // Déjà sélectionné : rester visible même si désormais exclu (pour pouvoir décocher).
       if (selected.has(id)) return true;
       if (excluded.has(id)) return false;
       return true;
     });
-  }, [categories, requireSurface, excluded, selected]);
+  }, [categories, requireSurface, mapId, excluded, selected]);
 
   const toggle = (id) => {
     if (disabled) return;
@@ -166,7 +180,7 @@ export function CategoryIdsMultiSelect({
         })}
         {!shown.length && !loadErr ? (
           <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
-            Aucune catégorie définie.
+            {mapId ? 'Aucune catégorie pour cette carte.' : 'Aucune catégorie définie.'}
           </span>
         ) : null}
       </div>

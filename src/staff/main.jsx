@@ -26,10 +26,14 @@ import './styles/staff-plan.css';
 import { AppPlan } from '../plan/AppPlan.jsx';
 import { STAFF_PLAN_VARIANT } from '../plan/utils/planVariants.js';
 import { consumeStaffOauthHash, staffOauthErrorMessage } from '../plan/staffSession.js';
+import { StaffMfaGate } from '../plan/StaffMfaGate.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
+import { installDragReleaseClickGuard } from '../shared/platform/dragReleaseClickGuard.js';
+
+installDragReleaseClickGuard();
 
 // Le retour Google dépose le jeton dans `#oauth=` : on le recueille **avant** de monter
 // l'application, pour que le premier appel à `/api/staff-plan/content` parte déjà signé et
@@ -54,7 +58,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <PrivacyNoticePage product="staff" />
     ) : (
       <AppDialogsProvider>
-        <AppPlan variant={STAFF_PLAN_VARIANT} />
+        {/* Compte administrateur ou n3boss : double authentification avant le plan. */}
+        <StaffMfaGate challenge={oauth.status === 'mfa' ? oauth.challenge : null}>
+          <AppPlan variant={STAFF_PLAN_VARIANT} />
+        </StaffMfaGate>
       </AppDialogsProvider>
     )}
   </ErrorBoundary>,

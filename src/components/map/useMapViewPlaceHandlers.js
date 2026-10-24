@@ -34,7 +34,17 @@ export function useMapViewPlaceHandlers({
   mapFilterActive,
   matchingZoneIds,
   matchingMarkerIds,
+  openZone = null,
+  openMarker = null,
+  placeFocusActive = false,
 }) {
+  /**
+   * Ouverture d'une fiche depuis la scène partagée ou la recherche : `openZone` / `openMarker`
+   * cadrent d'abord le lieu (`usePlaceFocusSequence`) ; à défaut, la fiche s'ouvre tout de suite.
+   */
+  const openZoneDetail = openZone || setSelectedZone;
+  const openMarkerDetail = openMarker || setSelectedMarker;
+
   /** Centre la carte sur un lieu (résultat de recherche) — moteur partagé, animé et borné. */
   const focusMapOnLocation = useCallback((focusPct) => focusMapPct(focusPct), [focusMapPct]);
 
@@ -42,13 +52,13 @@ export function useMapViewPlaceHandlers({
     (row) => {
       if (!row?.item) return;
       if (row.kind === 'zone') {
-        if (showMapMascot) onMapMascotZoneClick(row.item, setSelectedZone);
-        else setSelectedZone(row.item);
-        focusMapOnLocation(zoneFocusPctFromPoints(row.item.points));
+        if (showMapMascot) onMapMascotZoneClick(row.item, openZoneDetail);
+        else openZoneDetail(row.item);
+        if (!placeFocusActive) focusMapOnLocation(zoneFocusPctFromPoints(row.item.points));
       } else {
-        if (showMapMascot) onMapMascotMarkerClick(row.item, setSelectedMarker);
-        else setSelectedMarker(row.item);
-        focusMapOnLocation(markerFocusPct(row.item));
+        if (showMapMascot) onMapMascotMarkerClick(row.item, openMarkerDetail);
+        else openMarkerDetail(row.item);
+        if (!placeFocusActive) focusMapOnLocation(markerFocusPct(row.item));
       }
     },
     [
@@ -56,8 +66,9 @@ export function useMapViewPlaceHandlers({
       onMapMascotZoneClick,
       onMapMascotMarkerClick,
       focusMapOnLocation,
-      setSelectedZone,
-      setSelectedMarker,
+      openZoneDetail,
+      openMarkerDetail,
+      placeFocusActive,
     ],
   );
 
@@ -127,13 +138,13 @@ export function useMapViewPlaceHandlers({
       }
       if (place.kind === 'zone') {
         setSelectedMarker(null);
-        if (showMapMascot) onMapMascotZoneClick(place, setSelectedZone);
-        else setSelectedZone(place);
+        if (showMapMascot) onMapMascotZoneClick(place, openZoneDetail);
+        else openZoneDetail(place);
         return;
       }
       setSelectedZone(null);
-      if (showMapMascot) onMapMascotMarkerClick(place, setSelectedMarker);
-      else setSelectedMarker(place);
+      if (showMapMascot) onMapMascotMarkerClick(place, openMarkerDetail);
+      else openMarkerDetail(place);
     },
     [
       mapFilterActive,
@@ -144,6 +155,8 @@ export function useMapViewPlaceHandlers({
       onMapMascotMarkerClick,
       setSelectedZone,
       setSelectedMarker,
+      openZoneDetail,
+      openMarkerDetail,
     ],
   );
 
@@ -151,9 +164,9 @@ export function useMapViewPlaceHandlers({
   const onOpenGroupFromStage = useCallback(
     (groupMarkers) => {
       const lead = Array.isArray(groupMarkers) && groupMarkers.length ? groupMarkers[0] : null;
-      if (lead) setSelectedMarker(lead);
+      if (lead) openMarkerDetail(lead);
     },
-    [setSelectedMarker],
+    [openMarkerDetail],
   );
 
   const onWorkBackgroundClick = useCallback(

@@ -145,15 +145,17 @@ describe('AppPlan — variante « plan e-nov »', () => {
     await mountEnov();
     expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith(
       '',
-      '',
       expect.objectContaining({ apiBase: '/api/enov' }),
     );
     expect(ENOV_PLAN_VARIANT.storagePrefix).not.toBe(PLAN_VARIANT.storagePrefix);
     expect(ENOV_PLAN_VARIANT.storagePrefix).not.toBe(STAFF_PLAN_VARIANT.storagePrefix);
-    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
-      'open',
-      'lyautey',
-      expect.objectContaining({ usageProduct: 'enov' }),
+    // Compteur posé par un effet, à l'arrivée du contenu : le titre peut s'afficher avant.
+    await waitFor(() =>
+      expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+        'open',
+        'lyautey',
+        expect.objectContaining({ usageProduct: 'enov' }),
+      ),
     );
   });
 
@@ -173,6 +175,17 @@ describe('AppPlan — variante « plan e-nov »', () => {
     expect(
       container.querySelector('.plan-shell').style.getPropertyValue('--pct-highlight-color'),
     ).toBe('#22aa88');
+  });
+
+  test('logo du label e-nov dans la barre haute, logo du lycée conservé sur la carte', async () => {
+    const { container } = await mountEnov();
+    const label = screen.getByTestId('plan-label-logo');
+    expect(label.getAttribute('src')).toBe('/enov/logo-enov.png');
+    expect(label.getAttribute('alt')).toMatch(/Label e-nov/);
+    expect(container.querySelector('.plan-topbar').contains(label)).toBe(true);
+    expect(container.querySelector('.plan-map__school-logo')?.getAttribute('src')).toBe(
+      '/plan/logo-lyautey.png',
+    );
   });
 
   test('sans pastille réglée : le halo seul', async () => {
@@ -232,6 +245,7 @@ describe('AppPlan — plan public : aucune mise en avant', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan e-nov' })).toBeTruthy());
     // Le drapeau `map_highlight` vient de la charge ; c'est la variante qui allume le reste.
     expect(screen.queryByTestId('plan-innovations-button')).toBeNull();
+    expect(screen.queryByTestId('plan-label-logo')).toBeNull();
     expect(container.querySelector('.fm-pct-highlight-badge')).toBeNull();
     expect(
       container.querySelector('.plan-shell').style.getPropertyValue('--pct-highlight-color'),

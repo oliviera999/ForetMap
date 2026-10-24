@@ -19,6 +19,8 @@ const { LogModal, TASK_DONE_OFFLINE_PHOTO_MESSAGE } =
 const { TASK_DONE_QUEUE_STORAGE_KEY, loadTaskDoneQueue } =
   await import('../../../src/utils/taskDoneQueue.js');
 const { taskLogCommentDraftKey } = await import('../../../src/utils/taskLogDraft.js');
+const { getOfflinePhoto } = await import('../../../src/utils/offlinePhotoStore.js');
+const { compressImageWithPreset } = await import('../../../src/shared/platform/image');
 
 const TASK = { id: 'task-7', title: 'Désherber le potager' };
 const STUDENT = { id: 'u1', first_name: 'Nour', last_name: 'B.' };
@@ -85,7 +87,24 @@ describe('LogModal sans réseau', () => {
     expect(api.mock.calls[1][2].client_uuid).toBe(api.mock.calls[0][2].client_uuid);
   });
 
-  test('photo jointe : rien n’est gardé, l’élève est prévenu et garde sa saisie', async () => {
+  test('photo jointe : gardée sur l’appareil avec le marquage', async () => {
+    api.mockRejectedValue(networkError());
+    const { onQueued, onClose } = renderModal();
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
+    });
+    await screen.findByAltText('Aperçu de la pièce jointe');
+    submit();
+    await waitFor(() => expect(onQueued).toHaveBeenCalledWith(TASK));
+    expect(onClose).toHaveBeenCalled();
+    const [queued] = loadTaskDoneQueue();
+    expect(queued.has_photo).toBe(true);
+    expect(await getOfflinePhoto(queued.client_uuid)).toBe('data:image/jpeg;base64,AAAA');
+  });
+
+  test('photo impossible à garder : rien n’est gardé, l’élève est prévenu et garde sa saisie', async () => {
+    compressImageWithPreset.mockResolvedValueOnce('data:application/octet-stream;base64,AAAA');
     api.mockRejectedValue(networkError());
     const { onQueued, onClose } = renderModal();
     const input = document.querySelector('input[type="file"]');

@@ -97,8 +97,8 @@ test('decideAction pose l’artefact quand il correspond au commit déployé', (
 });
 
 test('decideAction reporte (et n’échoue pas) quand l’artefact vient d’un ancêtre', () => {
-  // Cas courant : `version-bump.yml` pousse `chore(release)` sur main avec le GITHUB_TOKEN,
-  // ce qui ne déclenche aucun workflow ; l'artefact est donc brièvement un commit en retard.
+  // Cas courant : le serveur a tiré la fusion avant que `release.yml` n'ait poussé le bump et
+  // publié l'artefact correspondant ; l'artefact est donc brièvement un commit en retard.
   const decision = decideAction({
     buildInfo: { sourceCommit: SHA_B },
     expectedSource: SHA_A,

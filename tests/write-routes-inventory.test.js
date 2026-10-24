@@ -141,6 +141,14 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/auth/reset-password':
     'publique : réinitialisation par jeton à usage unique (limiteur authLimiter)',
   'POST /api/auth/teacher': 'publique : ancienne élévation par PIN, répond 410 Gone',
+  'POST /api/auth/totp/backup-codes': 'auth',
+  'POST /api/auth/totp/enroll/confirm':
+    'garde interne : jeton intermédiaire de connexion (étape enroll) ou session (resolveEnrollmentContext, routes/authTotp.js) ; limiteur authLimiter',
+  'POST /api/auth/totp/enroll/start':
+    'garde interne : jeton intermédiaire de connexion (étape enroll) ou session (resolveEnrollmentContext, routes/authTotp.js) ; limiteur authLimiter',
+  'POST /api/auth/totp/users/:userId/reset': 'permission:admin.users.assign_roles',
+  'POST /api/auth/totp/verify':
+    'garde interne : jeton intermédiaire de connexion (étape verify, loadPendingContext, routes/authTotp.js) ; limiteur authLimiter',
   'POST /api/auth/teacher/forgot-password':
     'publique : demande de réinitialisation (limiteur authLimiter)',
   'POST /api/auth/teacher/login': 'publique : ancienne route, répond 410 Gone',

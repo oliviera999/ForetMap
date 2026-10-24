@@ -2,6 +2,7 @@ const express = require('express');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { signUploadRelativePath } = require('../lib/uploadsSignedUrls');
+const { defaultAvatarUrlFor } = require('../lib/defaultAvatar');
 const { z, validate } = require('../lib/validate');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
@@ -115,6 +116,7 @@ async function userStats(userId, options = {}) {
     pseudo: s.pseudo,
     description: s.description,
     avatar_path: signUploadRelativePath(s.avatar_path),
+    default_avatar_url: defaultAvatarUrlFor(s),
     last_seen: s.last_seen,
     is_n3beur: isN3beur,
     stats: {
@@ -205,6 +207,7 @@ router.get(
         pseudo: s.pseudo,
         description: s.description,
         avatar_path: signUploadRelativePath(s.avatar_path),
+        default_avatar_url: defaultAvatarUrlFor(s),
         last_seen: s.last_seen,
         stats: {
           total: agg.total,

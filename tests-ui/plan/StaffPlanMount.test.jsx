@@ -102,7 +102,6 @@ describe('AppPlan — variante « plan des personnels »', () => {
     await waitFor(() =>
       expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith(
         '',
-        '',
         expect.objectContaining({ apiBase: '/api/staff-plan' }),
       ),
     );

@@ -91,6 +91,23 @@ export function routeEntryFocusPct(entry) {
 }
 
 /**
+ * Prop `route` de la scène carte partagée (`SharedMapStage`) : ce qu'il faut pour dessiner le
+ * tracé et piloter la caméra guidée. `null` hors parcours.
+ */
+export function buildStageRoute({ route, phase, steps, index, entry, settings }) {
+  if (!route) return null;
+  const place = entry?.place;
+  return {
+    slug: String(route.slug || ''),
+    phase: phase === 'overview' ? 'overview' : 'steps',
+    steps: steps || [],
+    currentIndex: Number(index) || 0,
+    currentPlaceKey: place ? `${place.kind}:${place.id}` : '',
+    settings,
+  };
+}
+
+/**
  * Clé de reprise d'un parcours sur l'appareil, par surface **et par carte** : un slug n'est
  * unique que sur sa carte, et les trois surfaces peuvent vivre dans le même navigateur.
  *

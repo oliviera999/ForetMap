@@ -576,4 +576,62 @@ describe('usePctMapViewport', () => {
       expect(apiRef.current.committed).toEqual({ x: 0, y: 50, s: 0.4 });
     });
   });
+
+  describe('ANIM-25 : flyToPctBounds / restoreViewAnimated / mouvement réduit', () => {
+    it('flyToPctBounds anime puis se pose sur les bornes', async () => {
+      const { apiRef } = setup({ contentMode: 'stage' });
+      let settled;
+      await act(async () => {
+        settled = apiRef.current.flyToPctBounds(
+          [
+            { xp: 40, yp: 40 },
+            { xp: 60, yp: 60 },
+          ],
+          { duration: 200, maxZoom: 4 },
+        );
+      });
+      expect(settled).toBeInstanceOf(Promise);
+      now += 200;
+      await act(async () => {
+        flushRaf(8);
+        await settled;
+      });
+      expect(apiRef.current.committed.s).toBeGreaterThan(1);
+    });
+
+    it('restoreViewAnimated ramène une vue capturée', async () => {
+      const { apiRef } = setup({ contentMode: 'stage' });
+      act(() => {
+        apiRef.current.commit({ x: -80, y: -40, s: 2 });
+      });
+      const snap = apiRef.current.getViewSnapshot();
+      act(() => {
+        apiRef.current.fitMap();
+      });
+      expect(apiRef.current.committed.s).toBe(1);
+      let settled;
+      await act(async () => {
+        settled = apiRef.current.restoreViewAnimated(snap, { duration: 200 });
+      });
+      now += 200;
+      await act(async () => {
+        flushRaf(8);
+        await settled;
+      });
+      expect(apiRef.current.getViewSnapshot().zoom).toBeCloseTo(snap.zoom);
+    });
+
+    it('durée 0 (équivalent mouvement réduit) : pose immédiate sans promesse', () => {
+      const { apiRef } = setup({ contentMode: 'stage' });
+      let result;
+      act(() => {
+        result = apiRef.current.flyToPctBounds([{ xp: 50, yp: 50 }], {
+          duration: 0,
+          maxZoom: 4,
+        });
+      });
+      expect(result === true || result === false).toBe(true);
+      expect(apiRef.current.committed.s).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

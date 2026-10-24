@@ -60,6 +60,42 @@ export function readPlateauMarkerNumbersVisibleSetting(settings) {
   return value === true || value === 'true';
 }
 
+/**
+ * Lit un drapeau gameplay **actif par défaut** (absent / illisible = vrai),
+ * aligné sur ForetMap `placeFocusSettings.readBool` (ANIM-24).
+ */
+function readGameplayFlagDefaultOn(settings, key) {
+  const value = settings?.[key];
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return true;
+}
+
+/** Zoom sur le repère / la zone avant le popover d'arrivée (défaut : actif). */
+export function readBoardFocusEnabledSetting(settings) {
+  return readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_enabled');
+}
+
+/** Retour à la vue d'avant à la fermeture du popover (défaut : actif). */
+export function readBoardFocusRestoreSetting(settings) {
+  return readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_restore_on_close');
+}
+
+/** Durées proposées pour le zoom du plateau (ms, bornes serveur 150..800). */
+export const BOARD_FOCUS_DURATION_OPTIONS = Object.freeze([
+  { value: 200, label: 'Rapide (0,2 s)' },
+  { value: 350, label: 'Normal (0,35 s, défaut)' },
+  { value: 500, label: 'Doux (0,5 s)' },
+  { value: 800, label: 'Lent (0,8 s)' },
+]);
+
+/** Durée du zoom du plateau, bornée 150..800 (défaut 350). */
+export function readBoardFocusDurationSetting(settings) {
+  const n = Number(settings?.['gameplay.board_focus_duration_ms']);
+  if (!Number.isFinite(n)) return 350;
+  return Math.min(800, Math.max(150, Math.round(n)));
+}
+
 /** Toggles d'affichage repères / zones feuillets sur la carte en partie. */
 export const MAP_DISPLAY_TOGGLES = [
   {
@@ -85,6 +121,38 @@ export const MAP_DISPLAY_TOGGLES = [
     label: 'Déplacement auto (effet de case)',
     hint: "En parcours numéroté, applique automatiquement le delta de cases des repères (sans effet sur la case d'arrivée).",
     readChecked: readGameplayFlag,
+  },
+  {
+    key: 'gameplay.board_focus_enabled',
+    label: 'Zoom sur le repère ou la zone avant le popover',
+    hint: "À l'arrivée de la mascotte, la carte zoome brièvement sur le repère ou la zone, puis ouvre le popover (question, effet, contenu, feuillet). Défaut : actif.",
+    readChecked: readBoardFocusEnabledSetting,
+  },
+  {
+    key: 'gameplay.board_focus_restore_on_close',
+    label: 'Revenir à la vue d’avant à la fermeture du popover',
+    hint: 'La carte reprend son zoom et son centrage d’avant le zoom (défaut : actif).',
+    readChecked: readBoardFocusRestoreSetting,
+  },
+  {
+    key: 'gameplay.board_focus_fx_emoji',
+    label: 'Effet : l’emoji du lieu s’envole pendant le zoom',
+    hint: 'L’emoji du repère ou de la zone grossit très vite en s’effaçant pendant le zoom, et atterrit au retour (défaut : actif).',
+    readChecked: (settings) => readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_emoji'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_spotlight',
+    label: 'Effet : projecteur sur le lieu',
+    hint: 'Le reste du plateau s’assombrit pendant le zoom et tant que le popover est ouvert (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_spotlight'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_sparkles',
+    label: 'Effet : étincelles à l’arrivée',
+    hint: 'Une couronne d’étincelles dorées jaillit du lieu pendant le zoom (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_sparkles'),
   },
 ];
 
@@ -178,6 +246,16 @@ export const MODULE_TOGGLES = [
     key: 'modules.journal_enabled',
     label: 'Journal/Histoire',
     hint: 'Affiche l’onglet Histoire et la timeline évènements de partie.',
+  },
+  {
+    key: 'modules.voyageur_enabled',
+    label: 'Le Seuil (niveau du voyageur)',
+    hint: 'Onglet d’accueil des joueurs : niveau à deux regards (proche / loin), expédition en cours et grimoire personnel (sortilèges lançables hors séance). Éteint, les joueurs arrivent sur Cartes.',
+  },
+  {
+    key: 'modules.voyageur_sounds_enabled',
+    label: 'Sons du voyageur',
+    hint: 'Petits sons synthétisés (« +1 », niveau atteint, sortilèges, gestes de mascotte), à volume bas. Chaque élève peut aussi les couper depuis le Seuil. Éteindre ici les coupe pour toute la plateforme (utile en classe).',
   },
   {
     key: 'modules.player_journal_enabled',

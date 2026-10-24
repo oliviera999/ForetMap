@@ -13,8 +13,8 @@ familles.
 
 ## Ce que vit le visiteur
 
-- **Entrer** : depuis l'écran d'accueil, un bouton « Visiter en invité » (activable
-  dans les réglages) ouvre la visite sans créer de compte. À la première venue, une
+- **Entrer** : depuis l'écran d'accueil, un bouton « Visiter sans compte » (libellé
+  par défaut, modifiable ; bouton activable dans les réglages) ouvre la visite sans créer de compte. À la première venue, une
   fenêtre de bienvenue propose de **choisir sa mascotte guide** ; ce choix est retenu
   pour les fois suivantes et reste modifiable pendant la visite.
 - **Explorer** : un plan du jardin avec zones et repères, que l'on parcourt en
@@ -22,8 +22,19 @@ familles.
   l'application : pincer pour zoomer et déplacer d'un seul geste, double-tap sur un point,
   glisser lancé, butée souple qui empêche le plan de sortir du cadre. Le plan peut être
   **dézoomé un peu sous le cadre** (jusqu'à la moitié) pour prendre du recul ; le bouton
-  ⊡ le réajuste. **Cliquer un lieu envoie d'abord la mascotte s'y rendre**, puis ouvre
-  sa fiche. Quand le plan de visite est **calé GPS** et que l'orientation boussole est
+  ⊡ le réajuste. **Cliquer un lieu envoie la mascotte s'y rendre et, en même temps**, la
+  carte fait un **zoom bref et fluide** sur le lieu : sa fiche s'ouvre environ une demi-seconde
+  après le clic, sans attendre la fin de la marche (sans le zoom, la fiche s'ouvre quand la
+  mascotte arrive). Le lieu ouvert est **mis en évidence** (petite pastille sous son repère,
+  autres repères estompés).
+  Pendant le zoom, l'emoji du lieu s'envole et le reste du plan s'assombrit (« projecteur ») ;
+  un lecteur d'écran reçoit une courte annonce pendant ce délai. Refermer la fiche la fait
+  **disparaître en fondu**, ramène doucement le plan au **zoom et au centrage d'avant**, et
+  l'emoji revient se poser à sa place (effets et comportement réglables : _Réglages → Zoom sur
+  le lieu avant sa fiche_, décrit dans « Carte et zones » ; inactif pendant un parcours). Sur
+  téléphone, la fiche occupe tout l'écran : le projecteur, qui reste pendant qu'elle est
+  ouverte, y est donc masqué (comportement voulu). Si l'appareil demande de **réduire les
+  animations**, la mascotte Rive reste figée sur sa silhouette (comme les autres rendus). Quand le plan de visite est **calé GPS** et que l'orientation boussole est
   autorisée (réglage Visite **et** case sur la carte), **« Me situer »** place un point
   de position et **« Orienter »** aligne le plan sur le regard — comme sur la carte de
   travail et le Plan Lyautey : la vue reste **centrée sur votre position** et un peu
@@ -32,9 +43,14 @@ familles.
   désactiver pour cette carte dans le calage GPS.
 - **Parcours fléchés** : si des parcours ont été publiés pour la Visite (_Réglages → Parcours_,
   case « Visite », sur **la même carte** que celle ouverte ici), une puce **« Parcours »** les
-  liste à côté des filtres de catégories. En choisir un affiche une barre d'étape
-  en bas (Précédent / Suivant) : la carte se recentre sur chaque lieu, reste utilisable, et rien
-  n'est enregistré côté serveur — comme sur le Plan Lyautey. On peut quitter, puis **reprendre à
+  liste à côté des filtres de catégories. En choisir un montre d'abord une **vue d'ensemble** :
+  tout le trajet sur la carte, fléché dans le sens de marche, avec les étapes numérotées. Puis
+  **« Commencer le parcours »** ouvre la barre d'étape en bas (Précédent / Suivant) et allume
+  « Me situer » si la carte est calée : la vue montre la position et l'étape, puis zoome sur la
+  position une fois la marche commencée, toujours ouverte vers l'étape. La carte reste
+  utilisable, et rien n'est enregistré côté serveur — comme sur le Plan Lyautey. Le détail et
+  les réglages (_Réglages → Parcours guidés_) sont décrits dans « Carte et zones », section
+  « Suivre un parcours ». On peut quitter, puis **reprendre à
   l'étape où l'on s'était arrêté** (« Reprendre le parcours »), même après avoir rechargé la
   page : la position est retenue sur l'appareil, et sur lui seul. Relancer le parcours depuis la
   puce repart du début. Quand le plan est
@@ -104,8 +120,9 @@ familles.
   visite les mêmes cartes que sur la carte de travail (celles de ses classes, ou toutes pour
   un prof) — y compris une carte aussi proposée sur le plan de l'établissement, comme le
   complexe sportif ; **sans compte**, seules les cartes ouvertes à la visite publique sont
-  servies — toutes les cartes actives sauf le plan de l'établissement, même quand un plan
-  les propose aussi, et toujours la carte de visite par défaut ; si la carte retenue par
+  servies — par défaut, toutes les cartes actives sauf le plan de l'établissement, même
+  quand un plan les propose aussi, et toujours la carte de visite par défaut (voir le point
+  d'attention plus bas sur la liste des cartes ouvertes aux invités) ; si la carte retenue par
   l'appareil n'est plus ouverte au public, la visite ouvre la première carte disponible au
   lieu d'afficher « Carte introuvable » ; à droite, un petit bloc encadré rassemble les trois réglages d'affichage : **plein écran**,
   **taille du texte** et **choix de la mascotte** (bouton à patte 🐾 qui ouvre un menu
@@ -209,7 +226,7 @@ familles.
   résultat ne convient pas, **« Réinitialiser depuis l'origine »** défait l'import.
 - **Une archive OLU prête à importer est fournie.** Elle couvre ses **vingt et un états**
   (repos, marche, course, parole, désignation, joie, saut, célébration, tour sur soi,
-  examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
+  observation attentive, examen de carte, recherche, salut, mise en garde, surprise, gravité, affection,
   contrariété, sommeil, repas, danse). Importée **en remplacement** de la mascotte livrée
   « OLU » depuis l'onglet « Packs mascotte », OLU cesse d'être une silhouette et s'anime partout
   où il apparaît. L'archive se refabrique à la demande à partir du dépôt ; demander à l'équipe
@@ -409,6 +426,10 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 
 ## ⚠️ Points d'attention
 
+> ⚠️ **Point d'attention** — Si l'appareil demande de **réduire les animations**, la mascotte
+> se téléporte, la fiche s'ouvre et se referme sans animation, et la mascotte ne saute plus de
+> joie quand on découvre un lieu (sa bulle s'affiche toujours).
+
 > ⚠️ **Point d'attention** — **La mascotte ne suit pas le GPS** : elle se déplace
 > au clic sur le plan (lieu ou point libre). En revanche, si le plan de visite est **calé**, le
 > bouton **« Me situer »** peut afficher la position réelle (et **« Orienter »** /
@@ -443,11 +464,19 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > carte comme accroche. Les photos de ces fiches supprimées ne sont plus affichées nulle
 > part, mais leurs fichiers restent sur le serveur.
 
-> ⚠️ **Point d'attention** — Un lieu **sans catégorie** n'apparaît pas en visite dès que
-> la carte a des catégories affichées par défaut, alors que la page Carte et zones indique
-> qu'un lieu sans catégorie reste visible partout. Donner une catégorie aux lieux à
+> ⚠️ **Point d'attention** — La Visite a **son propre** réglage de catégories affichées par
+> défaut (Paramètres → Visite), commun à toutes les cartes de la visite ; les catégories
+> affichées par défaut ou cachées **par carte** (Paramètres → Cartographie → Cartes) ne
+> concernent que la carte de travail. Dès que des catégories sont cochées d'office pour la
+> Visite, un lieu **sans catégorie** n'y apparaît plus, alors que la page Carte et zones
+> indique qu'un lieu sans catégorie reste visible partout. Donner une catégorie aux lieux à
 > montrer en visite évite la surprise ; l'harmonisation des deux comportements est une
 > évolution à demander.
+
+> ⚠️ **Point d'attention** — « Toutes les cartes actives sauf le plan de l'établissement »
+> est le comportement quand la **liste des cartes ouvertes aux invités** est vide, ce qui est
+> le cas par défaut. Une liste explicite peut remplacer ce choix automatique, mais ce
+> réglage **n'a pas d'écran** dans les Paramètres : le modifier demande l'équipe technique.
 
 En visite invitée, l’affichage biodiversité est **toujours Collège** (pas d’outils lycée /
 université), quel que soit le réglage de la carte — voir

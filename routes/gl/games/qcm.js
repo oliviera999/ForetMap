@@ -19,6 +19,7 @@ const {
 const { loadAnyActiveQuestion, isLoreQuestionCode } = require('../../../lib/glQcmResolve');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { recordGlQcmAttemptForReader } = require('../../../lib/learningGatingRuntime');
+const { voyageurGainFor } = require('../../../lib/glVoyageur');
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const {
   QCM_SCORE_REASON,
@@ -248,7 +249,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   // Après consommation seulement : un rejeu refusé ne doit pas peser sur le gating
   // (tentative comptée, verrou de re-tentative posé) alors qu'il n'a rien joué.
-  await recordGlQcmAttemptForReader(
+  const attempt = await recordGlQcmAttemptForReader(
     { queryAll, queryOne, execute },
     {
       glAuth: req.glAuth,
@@ -289,6 +290,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     qcmSet: isLore ? 'lore' : 'biome',
     glossaryTerms: !isLore && verification.correct ? glossaryTerms : undefined,
     loreGlossaryTerms: isLore && verification.correct ? glossaryTerms : undefined,
+    voyageurGain: attempt?.firstCorrect
+      ? (await voyageurGainFor(req.glAuth, [isLore ? 'qcm_lore' : 'qcm'])) || undefined
+      : undefined,
   });
 });
 

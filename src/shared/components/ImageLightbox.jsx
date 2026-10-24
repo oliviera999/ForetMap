@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../platform/useDialogA11y.js';
-import { useOverlayHistoryBack } from '../platform/useOverlayHistoryBack.js';
 import { lockBodyScroll } from '../platform/bodyScrollLock.js';
 import { IconClose } from '../icons.jsx';
 import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
@@ -33,7 +32,7 @@ export function ImageLightbox({
   src,
   caption = '',
   onClose,
-  useOverlayHistory = false,
+  useOverlayHistory = true,
   gallery = null,
   index = 0,
 }) {
@@ -45,8 +44,7 @@ export function ImageLightbox({
   const [position, setPosition] = useState(start);
   const [loadState, setLoadState] = useState({ src: '', status: 'loading' });
   const [zoomedSrc, setZoomedSrc] = useState('');
-  const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(useOverlayHistory, onClose);
+  const dialogRef = useDialogA11y(onClose, { historyBack: useOverlayHistory });
 
   const current = items[Math.min(position, items.length - 1)] || items[0];
   const currentCaption = String(current?.caption || '').trim();

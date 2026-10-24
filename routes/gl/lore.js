@@ -6,6 +6,7 @@ const {
   recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
+const { voyageurGainFor } = require('../../lib/glVoyageur');
 const {
   requireGlAuth,
   requireGlPermission,
@@ -1537,12 +1538,15 @@ router.post(
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
       const dbHandle = { queryAll, queryOne, execute };
-      await recordGlQcmAttemptForReader(dbHandle, {
+      const attempt = await recordGlQcmAttemptForReader(dbHandle, {
         glAuth: req.glAuth,
         dataset: 'qcm_lore',
         questionCode: code,
         isCorrect: result.correct,
       });
+      const voyageurGain = attempt?.firstCorrect
+        ? await voyageurGainFor(req.glAuth, ['qcm_lore'])
+        : null;
       // Contexte ressource : celui du JETON ; le corps n'est honoré qu'en sévérité `advisory`.
       const context = await resolveAnswerContext(dbHandle, {
         product: 'gl',
@@ -1565,6 +1569,7 @@ router.post(
         qcmSet: 'lore',
         loreGlossaryTerms: result.correct ? loreGlossaryTerms : undefined,
         cooldown: cooldown || undefined,
+        voyageurGain: voyageurGain || undefined,
       });
     } catch (err) {
       // AP2 : seul un refus métier (jeton, choix) renvoie son message ; une panne → 500.

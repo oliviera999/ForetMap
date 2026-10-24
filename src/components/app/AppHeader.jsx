@@ -3,11 +3,58 @@ import { StudentAvatar } from '../student-avatar';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import { withAppBase } from '../../services/api';
 import { resolveRealtimeTooltip } from '../../utils/helpResolve';
-import { IconDownload, IconEdit, IconKey, IconLogout } from '../../shared/icons.jsx';
+import {
+  IconDownload,
+  IconEdit,
+  IconKey,
+  IconLogout,
+  IconOffline,
+  IconOutbox,
+} from '../../shared/icons.jsx';
 import { AppPreviewMenu } from './AppPreviewMenu.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 // Pastille `.app-version-badge` : feuille partagée avec G&L (voir `GLAppVersionBadge`).
 import '../../shared/styles/version-badge.css';
+
+/**
+ * Bouton de l'écran « Hors ligne » : nuage barré sans réseau, pastille du nombre d'envois en
+ * attente (rouge si l'un d'eux a été refusé).
+ */
+export function OfflineCenterButton({
+  pendingCount = 0,
+  refusedCount = 0,
+  networkMode = 'online',
+  onOpen,
+}) {
+  const total = pendingCount + refusedCount;
+  const offline = networkMode !== 'online';
+  const label = [
+    offline
+      ? networkMode === 'unreachable'
+        ? 'Réseau trop faible'
+        : 'Hors ligne'
+      : 'Hors ligne et envois',
+    total > 0 ? `${total} envoi${total > 1 ? 's' : ''} en attente` : null,
+  ]
+    .filter(Boolean)
+    .join(' — ');
+  return (
+    <button
+      type="button"
+      className={`lock-btn notif-bell offline-center-btn${offline || total > 0 ? ' has-unread' : ''}`}
+      aria-label={label}
+      title={label}
+      onClick={onOpen}
+    >
+      {offline ? <IconOffline /> : <IconOutbox />}
+      {total > 0 ? (
+        <span className={`notif-badge${refusedCount > 0 ? ' is-refused' : ''}`}>
+          {total > 99 ? '99+' : total}
+        </span>
+      ) : null}
+    </button>
+  );
+}
 
 /**
  * En-tête applicatif — extrait de `src/App.jsx` (audit §6.1, étape 1).
@@ -63,6 +110,8 @@ export function AppHeader({
   onLogout,
   // Aide contextuelle
   helpText,
+  // Écran « Hors ligne » (envois en attente, sortie terrain, stockage)
+  offlineCenter = null,
 }) {
   // `App` rend le fournisseur de dialogues sous lui : la confirmation de déconnexion (actions
   // hors ligne non envoyées) est donc demandée d'ici et passée au gestionnaire.
@@ -119,6 +168,7 @@ export function AppHeader({
             <span className={`realtime-dot realtime-dot--${teacherSyncStatus}`} aria-hidden />
           </span>
         )}
+        {offlineCenter ? <OfflineCenterButton {...offlineCenter} /> : null}
         <NotificationCenter
           roleKey={notificationRoleKey}
           unreadCount={notificationsUnreadCount}

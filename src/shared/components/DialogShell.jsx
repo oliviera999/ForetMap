@@ -8,6 +8,7 @@ import { joinClassNames } from '../utils/classNames.js';
  * - portal sous body (évite les problèmes de clipping parent)
  * - fermeture overlay + Escape
  * - focus trap / restauration du focus via useDialogA11y
+ * - bouton « retour » navigateur / smartphone = fermeture (`historyBack`, actif par défaut)
  *
  * `open` est transmis à `useDialogA11y` (`active`) : la coque reste souvent montée pendant que
  * la modale est fermée, et sans cela l'accessibilité clavier ne s'armait jamais à l'ouverture
@@ -27,6 +28,7 @@ export function DialogShell({
   closeButtonClassName = 'modal-close',
   closeButtonDisabled = false,
   closeOnOverlay = true,
+  historyBack = true,
   dialogRef: externalDialogRef = null,
   children,
 }) {
@@ -34,7 +36,7 @@ export function DialogShell({
     () => {
       onClose?.();
     },
-    { active: open },
+    { active: open, historyBack },
   );
   const dialogRef = externalDialogRef || internalDialogRef;
 

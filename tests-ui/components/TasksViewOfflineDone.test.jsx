@@ -3,8 +3,9 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 
 /**
  * « Tâche faite » gardée sans réseau (piste D) : à l'ouverture de la vue Tâches — et au retour
- * du réseau — la file du compte connecté est rejouée, la liste rafraîchie, l'élève prévenu.
- * Test de montage de `TasksView` (contextes et API bouchonnés).
+ * du réseau — la vue sollicite la boîte d'envoi commune (`services/offlineOutbox.js`) et suit
+ * l'état des cartes. Les messages à l'élève sont testés avec la boîte d'envoi
+ * (`tests-ui/services/offlineOutbox.test.js`). Test de montage de `TasksView`.
  */
 
 const dataState = {
@@ -38,6 +39,7 @@ const { api, NETWORK_FAILURE_CODE } = await import('../../src/services/api');
 const { TasksView } = await import('../../src/components/tasks-views.jsx');
 const { TASK_DONE_QUEUE_STORAGE_KEY, enqueueTaskDone, loadTaskDoneQueue } =
   await import('../../src/utils/taskDoneQueue.js');
+const { OUTBOX_CHANGED_EVENT } = await import('../../src/services/offlineOutbox.js');
 
 const STUDENT = { id: 's1', first_name: 'Léa', last_name: 'Martin' };
 const TASK = {
@@ -86,19 +88,30 @@ const queueTask = (overrides = {}) =>
   });
 
 describe('TasksView — file « tâche faite » hors ligne', () => {
-  test('à l’ouverture, le « fait » gardé part avec sa clé, la liste est rafraîchie', async () => {
+  test('à l’ouverture, le « fait » gardé part avec sa clé (boîte d’envoi commune)', async () => {
     queueTask();
-    const onRefresh = renderView();
-    await waitFor(() => expect(onRefresh).toHaveBeenCalled());
-    expect(api).toHaveBeenCalledWith('/api/tasks/task-9/done', 'POST', {
-      comment: 'Trois sacs',
-      client_uuid: 'done-test-0001',
-      studentId: 's1',
-      firstName: 'Léa',
-      lastName: 'Martin',
-    });
-    expect(await screen.findByText(/Ta tâche notée sans réseau est bien partie/)).toBeTruthy();
+    const events = [];
+    const onChange = (e) => events.push(e.detail);
+    window.addEventListener(OUTBOX_CHANGED_EVENT, onChange);
+    renderView();
+    await waitFor(() => expect(events.some((d) => d?.reason === 'flushed')).toBe(true));
+    window.removeEventListener(OUTBOX_CHANGED_EVENT, onChange);
     expect(loadTaskDoneQueue()).toHaveLength(0);
+    expect(api).toHaveBeenCalledWith(
+      '/api/tasks/task-9/done',
+      'POST',
+      {
+        comment: 'Trois sacs',
+        client_uuid: 'done-test-0001',
+        studentId: 's1',
+        firstName: 'Léa',
+        lastName: 'Martin',
+      },
+      { headers: expect.objectContaining({ 'X-Foretmap-Replay': 'page' }) },
+    );
+    // Le message de succès est émis par l'application (useOfflineOutbox), à partir du bilan.
+    const flushed = events.find((d) => d?.reason === 'flushed');
+    expect(flushed.summary.synced).toBe(1);
   });
 
   test('toujours pas de réseau : la carte montre l’attente, la file est intacte', async () => {
@@ -122,22 +135,20 @@ describe('TasksView — file « tâche faite » hors ligne', () => {
     await waitFor(() => expect(loadTaskDoneQueue()).toHaveLength(0));
   });
 
-  test('refus définitif sans commentaire : l’élève est prévenu, la tâche redevient marquable', async () => {
+  test('refus définitif sans commentaire : la tâche redevient marquable, sans encart', async () => {
     queueTask({ comment: '' });
     api.mockImplementation(async (path) => {
       if (String(path).endsWith('/done')) {
-        throw Object.assign(new Error('Tâche archivée : action indisponible'), { status: 400 });
+        throw Object.assign(new Error('Tâche archivée : action indisponible'), {
+          status: 400,
+          body: { code: 'task_archived' },
+        });
       }
       return {};
     });
     renderView();
-    expect(
-      await screen.findByText(
-        /« Ramasser les feuilles » n’a pas pu être marquée faite : Tâche archivée/,
-      ),
-    ).toBeTruthy();
-    expect(loadTaskDoneQueue()).toHaveLength(0);
-    expect(screen.getByRole('button', { name: /Marquer termin/ })).toBeTruthy();
+    await waitFor(() => expect(loadTaskDoneQueue()).toHaveLength(0));
+    expect(await screen.findByRole('button', { name: /Marquer termin/ })).toBeTruthy();
     expect(screen.queryByRole('region', { name: 'Rapports non envoyés' })).toBeNull();
   });
 
@@ -163,27 +174,11 @@ describe('TasksView — file « tâche faite » hors ligne', () => {
     expect(loadTaskDoneQueue()).toHaveLength(0);
   });
 
-  test('« fait » arrivé sur une tâche validée entre-temps : l’élève le sait', async () => {
-    queueTask();
-    api.mockImplementation(async (path) =>
-      String(path).endsWith('/done') ? { status: 'validated', already_closed: 'validated' } : {},
-    );
-    renderView();
-    expect(
-      await screen.findByText(/« Ramasser les feuilles » avait déjà été validée entre-temps/),
-    ).toBeTruthy();
-    expect(loadTaskDoneQueue()).toHaveLength(0);
-  });
-
   test('le « fait » d’un autre compte n’est jamais rejoué ici (tablette partagée)', async () => {
     queueTask({ user_id: 's2', student_id: 's2', client_uuid: 'done-other-001' });
     renderView();
     await act(async () => {});
-    expect(api).not.toHaveBeenCalledWith(
-      expect.stringContaining('/done'),
-      expect.anything(),
-      expect.anything(),
-    );
+    expect(api.mock.calls.filter(([path]) => String(path).endsWith('/done'))).toHaveLength(0);
     expect(loadTaskDoneQueue()).toHaveLength(1);
   });
 

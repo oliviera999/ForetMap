@@ -29,16 +29,19 @@ const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const {
   isPublicSurface,
-  parseSurfaceSet,
+  isVisibleOnSurface,
   readSurfaceQuery,
   normalizeSurfaceInput,
+  stripDistinctionCategoriesOffSurface,
 } = require('../lib/locationSurfaces');
+const { attachCategoriesToEntity, loadCategoriesMap } = require('../lib/locationCategories');
 const {
   isPlanAccessGranted,
   isEnovPlanAccessGranted,
   requirePlanAccess,
 } = require('../lib/planAccess');
 const { resolveStaffPlanViewer } = require('../lib/staffPlanAccess');
+const { resolveSurfaceForRequest } = require('../lib/surfaceAccess');
 const {
   ROUTE_AUDIENCE_MAX,
   ROUTE_TITLE_MAX,
@@ -82,10 +85,12 @@ async function loadRoutes(where, params) {
 }
 
 /**
- * Catalogue public : ne sert que les étapes dont le lieu est visible pour le lecteur
- * (audience + `hidden_surfaces` de la surface demandée). Aligné sur `plan/content`
- * et `visit/content` — sans ce filtre, `step_text` d'un lieu staff/masqué fuitait
- * via `GET /api/map-routes?surface=map|visit`.
+ * Catalogue public : ne sert que les étapes dont le lieu est visible pour le lecteur.
+ * Même décision que `plan/content` et `visit/content` : audience du lieu (rôles **et**
+ * groupes), audience héritée de ses catégories, masquage et catégories de la surface.
+ * Sans les groupes et les catégories, `step_text` d'un lieu réservé à une classe — ou
+ * seulement par sa catégorie — sortait de `GET /api/map-routes` alors que le lieu
+ * lui-même restait absent de la carte.
  * Les gestionnaires (`zones.manage` / `map.manage_markers`) voient toutes les étapes.
  */
 async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
@@ -100,34 +105,43 @@ async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
       else if (step.target_type === 'marker') markerIds.add(String(step.target_id));
     }
   }
-  const [zones, markers] = await Promise.all([
-    zoneIds.size
+  const zoneIdList = [...zoneIds];
+  const markerIdList = [...markerIds];
+  const db = { queryAll };
+  const [zones, markers, zoneCategories, markerCategories] = await Promise.all([
+    zoneIdList.length
       ? queryAll(
-          `SELECT id, visible_role_slugs, hidden_surfaces
-             FROM zones WHERE id IN (${[...zoneIds].map(() => '?').join(',')})`,
-          [...zoneIds],
+          `SELECT id, visible_role_slugs, visible_group_ids, hidden_surfaces
+             FROM zones WHERE id IN (${zoneIdList.map(() => '?').join(',')})`,
+          zoneIdList,
         )
       : [],
-    markerIds.size
+    markerIdList.length
       ? queryAll(
-          `SELECT id, visible_role_slugs, hidden_surfaces
-             FROM map_markers WHERE id IN (${[...markerIds].map(() => '?').join(',')})`,
-          [...markerIds],
+          `SELECT id, visible_role_slugs, visible_group_ids, hidden_surfaces
+             FROM map_markers WHERE id IN (${markerIdList.map(() => '?').join(',')})`,
+          markerIdList,
         )
       : [],
+    loadCategoriesMap(db, 'zone', zoneIdList),
+    loadCategoriesMap(db, 'marker', markerIdList),
   ]);
   const publicSurface = !surface || isPublicSurface(surface);
   const visible = new Set();
-  for (const row of zones) {
-    if (!canViewLocation(row, auth, { publicSurface })) continue;
-    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
-    visible.add(`zone:${row.id}`);
+
+  /** Lieu tel que la surface le voit, puis audience effective (lieu, sinon catégories). */
+  function consider(row, kind, categories) {
+    let entity = attachCategoriesToEntity(row, categories.get(String(row.id)) || []);
+    if (surface) {
+      entity = stripDistinctionCategoriesOffSurface(entity, surface);
+      if (!isVisibleOnSurface(entity, surface)) return;
+    }
+    if (!canViewLocation(entity, auth, { publicSurface })) return;
+    visible.add(`${kind}:${row.id}`);
   }
-  for (const row of markers) {
-    if (!canViewLocation(row, auth, { publicSurface })) continue;
-    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
-    visible.add(`marker:${row.id}`);
-  }
+  for (const row of zones) consider(row, 'zone', zoneCategories);
+  for (const row of markers) consider(row, 'marker', markerCategories);
+
   return routes.map((route) => ({
     ...route,
     steps: (route.steps || []).filter((step) =>
@@ -247,8 +261,9 @@ async function guardSurfaceRead(req, res, surface) {
 /**
  * Catalogue : parcours publiés, filtrables par carte et par surface.
  *
- * Chaque surface porte la garde de sa propre charge (`guardSurfaceRead`). La garde du Plan
- * Lyautey ne s'applique donc qu'au catalogue du plan (surface absente ou `plan`) : `visit`
+ * Chaque surface porte la garde de sa propre charge (`guardSurfaceRead`). Sans `?surface=`,
+ * c'est la surface du serveur (host et session) qui s'applique, garde et filtre compris. La
+ * garde du Plan Lyautey ne s'applique donc qu'au catalogue du plan : `visit`
  * reste ouverte, et les surfaces internes `map` / `staff` demandent ce que demandent leurs
  * écrans. Sans ce partage, un établissement en `access_mode = code` fermait aussi la liste
  * destinée à la Visite (`docs/AUDIT_PARCOURS_2026-09.md` §2.2) — et, dans l'autre sens, les
@@ -265,7 +280,12 @@ router.get(
     const surfaceQuery = readSurfaceQuery(req.query.surface);
     if (!surfaceQuery.ok) return res.status(400).json({ error: surfaceQuery.error });
 
-    const surface = surfaceQuery.value;
+    // Sans `?surface=`, la surface est celle que le serveur décide pour cette requête (host
+    // et session), jamais « toutes » : auparavant, la seule garde était celle du plan et
+    // aucun filtre de surface ne s'appliquait, si bien qu'un anonyme sur un plan ouvert — ou
+    // le porteur du code du plan — recevait les parcours réservés aux personnels et à la
+    // carte de travail.
+    const surface = surfaceQuery.value || resolveSurfaceForRequest(req);
     if (!(await guardSurfaceRead(req, res, surface))) return;
 
     const where = ['is_published = 1'];
@@ -277,12 +297,10 @@ router.get(
       where.push(`map_id IN (${scope.mapIds.map(() => '?').join(',')})`);
       params.push(...scope.mapIds);
     }
-    if (surface) {
-      where.push('FIND_IN_SET(?, surfaces) > 0');
-      params.push(surface);
-    }
+    where.push('FIND_IN_SET(?, surfaces) > 0');
+    params.push(surface);
     const routes = await loadRoutes(where.join(' AND '), params);
-    res.json(await filterPublicRouteSteps(routes, req.auth, { surface: surface || 'plan' }));
+    res.json(await filterPublicRouteSteps(routes, req.auth, { surface }));
   }),
 );
 

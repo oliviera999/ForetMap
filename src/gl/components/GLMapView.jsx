@@ -50,6 +50,7 @@ export function GLMapView({
   vitalityEnabled = false,
   vitalityByPlayerId = null,
   playerId = null,
+  boardFocus,
 }) {
   const mjTeamSelection = canMoveMascot || boardMovement?.isNumberedPath;
   const watchTeamId = useMemo(() => {
@@ -115,6 +116,7 @@ export function GLMapView({
       vitalityEnabled={vitalityEnabled}
       vitalityByPlayerId={vitalityByPlayerId}
       playerId={playerId}
+      boardFocus={boardFocus}
     />
   );
 }

@@ -49,6 +49,7 @@ test('la documentation liste bien des lignes de crontab (le contrôle porte sur 
     'auto-deploy-cron.sh',
     'db-backup.sh',
     'moodle-sync-cron.sh',
+    'retention-purge-cron.sh',
     'uptime-check.sh',
     'with-app-node.sh',
   ]);
@@ -111,7 +112,12 @@ test('auto-deploy-cron.sh : sans DEPLOY_SECRET, le déploiement n’est plus aba
 
 test('scripts de la crontab qui lancent node : ils prennent celui de l’application (app-node.sh)', () => {
   // Sur o2switch, node et npm ne sont pas dans le PATH du cron (docs/EXPLOITATION.md, § 1 bis).
-  for (const name of ['auto-deploy-cron.sh', 'moodle-sync-cron.sh', 'uptime-check.sh']) {
+  for (const name of [
+    'auto-deploy-cron.sh',
+    'moodle-sync-cron.sh',
+    'retention-purge-cron.sh',
+    'uptime-check.sh',
+  ]) {
     const text = fs.readFileSync(path.join(ROOT, 'scripts', name), 'utf8');
     assert.match(text, /scripts\/lib\/app-node\.sh/, name);
     assert.match(text, /use_app_node/, name);

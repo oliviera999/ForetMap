@@ -144,6 +144,42 @@ describe('useAuthSession', () => {
     spy.mockRestore();
   });
 
+  it('validateStudentSession hors ligne : aucune alerte, nouvelle vérification au retour du réseau', async () => {
+    const { params, result } = renderAuthSession();
+    const offlineErr = new Error('Pas de réseau pour l’instant.');
+    offlineErr.offline = true;
+    apiMocks.api.mockRejectedValueOnce(offlineErr);
+    await act(() => result.current.validateStudentSession({ id: 'S1' }));
+    expect(params.setSessionValidationError).not.toHaveBeenCalledWith(true);
+    expect(params.setToast).not.toHaveBeenCalled();
+
+    apiMocks.getStoredSession.mockReturnValue({ student: { id: 'S1' } });
+    apiMocks.api.mockResolvedValueOnce({ id: 'S1', first_name: 'Léa' });
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() =>
+      expect(apiMocks.api).toHaveBeenLastCalledWith('/api/students/register', 'POST', {
+        studentId: 'S1',
+      }),
+    );
+  });
+
+  it('validateStudentSession : mot de passe à changer → ni alerte ni drapeau (le shell ouvre « Mon profil »)', async () => {
+    const { params, result } = renderAuthSession();
+    const err = Object.assign(new Error('Changement de mot de passe requis'), {
+      status: 403,
+      code: 'PASSWORD_CHANGE_REQUIRED',
+    });
+    apiMocks.api.mockRejectedValue(err);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await act(() => result.current.validateStudentSession({ id: 'S1' }));
+    expect(params.setSessionValidationError).not.toHaveBeenCalledWith(true);
+    expect(params.setToast).not.toHaveBeenCalled();
+    expect(apiMocks.clearStoredSession).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it('validateStudentSession : compte supprimé → forceLogout', async () => {
     const { params, result } = renderAuthSession();
     apiMocks.api.mockRejectedValue(new AccountDeletedErrorMock());

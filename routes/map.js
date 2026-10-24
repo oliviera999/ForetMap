@@ -14,6 +14,7 @@ const {
 const {
   locationKind,
   listLocations,
+  checkLocationReadable,
   createLocation,
   updateLocation,
   deleteLocation,
@@ -49,6 +50,14 @@ registerEntityPhotoRoutes(router, {
     add: 'add_marker_photo',
     delete: 'delete_marker_photo',
   },
+  // Une photo se lit aux conditions de son repère (surface, laissez-passer, périmètre, audience).
+  optionalAuth: authenticate,
+  surfaceGuard: withLocationSurface,
+  canRead: (req, markerId) =>
+    checkLocationReadable('marker', markerId, {
+      auth: req.auth || null,
+      locationSurface: req.locationSurface,
+    }),
 });
 
 // `authenticate` : session facultative, hydratée quand elle existe — c'est elle qui porte

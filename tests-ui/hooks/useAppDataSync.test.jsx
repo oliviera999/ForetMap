@@ -232,6 +232,74 @@ describe('useAppDataSync — coupure serveur', () => {
 });
 
 /**
+ * Mode avion : l'appareil n'a plus de réseau. Ce n'est pas une panne du serveur — avant ce
+ * lot, chaque cycle comptait pourtant ses échecs et levait « Serveur indisponible ».
+ */
+describe('useAppDataSync — appareil hors ligne', () => {
+  function setOnline(value) {
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => value });
+  }
+  function offlineError() {
+    const err = new Error('Pas de réseau pour l’instant.');
+    err.offline = true;
+    return err;
+  }
+
+  beforeEach(() => setOnline(true));
+
+  it('des échecs hors ligne ne lèvent jamais « serveur indisponible » et gardent les données', async () => {
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.zones).toEqual(ZONES));
+
+    setOnline(false);
+    api.mockImplementation(async () => {
+      throw offlineError();
+    });
+    for (let i = 0; i < 4; i += 1) {
+      await act(async () => {
+        await result.current.fetchAll();
+      });
+    }
+
+    expect(result.current.serverDown).toBe(false);
+    expect(result.current.zones).toEqual(ZONES);
+    expect(result.current.plants).toEqual(PLANTS);
+    // Hors ligne, la sonde (jamais en cache) n'est même pas tentée.
+    expect(api.mock.calls.some(([path]) => path.startsWith('/api/sync-state'))).toBe(false);
+  });
+
+  it('mémorise l’heure de la dernière synchronisation en ligne, pas celle d’un cycle hors ligne', async () => {
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.lastSyncAt).not.toBeNull());
+    const syncedAt = result.current.lastSyncAt;
+    expect(Number(window.localStorage.getItem('foretmap_last_data_sync_at'))).toBe(syncedAt);
+
+    // Cycle hors ligne servi par les copies du service worker : il ne date pas les données.
+    setOnline(false);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await act(async () => {
+      await result.current.fetchAll();
+    });
+    expect(result.current.lastSyncAt).toBe(syncedAt);
+  });
+
+  it('le retour du réseau relance immédiatement une synchronisation', async () => {
+    const { result } = mountSync();
+    await waitFor(() => expect(result.current.zones).toEqual(ZONES));
+    setOnline(false);
+    api.mockClear();
+
+    setOnline(true);
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() =>
+      expect(api.mock.calls.some(([path]) => path.startsWith('/api/maps'))).toBe(true),
+    );
+  });
+});
+
+/**
  * Porte des réglages publics (`contextReady`) avant tout chargement.
  *
  * `fetchAll` résout la carte active à partir des cartes par défaut du contexte. Tant que

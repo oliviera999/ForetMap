@@ -227,18 +227,32 @@ test('Groupes: un groupe sans profil par défaut ne confère rien (le membre res
   assert.strictEqual(await getPrimaryRoleSlug(student.id), 'visiteur');
 });
 
-test('Groupes: un administrateur pose tout profil non GL ; un profil Gnomes & Licornes est refusé', async () => {
+test('Groupes: même un administrateur ne pose qu’un profil élève ; un profil Gnomes & Licornes est refusé', async () => {
   const token = await getAdminToken();
   const stamp = Date.now();
 
-  // Plus de refus « profil admin/prof interdit pour les élèves » : l'administrateur choisit.
+  // Un groupe ne confère qu'un profil élève (visiteur, palier n3beur) : un profil
+  // d'encadrement est refusé, administrateur compris.
+  await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Unité n3boss ${stamp}`,
+      slug: `unite-n3boss-${stamp}`,
+      kind: 'unit',
+      default_role_id: await getRoleId('prof'),
+    })
+    .expect(400)
+    .expect((res) => {
+      assert.match(String(res.body?.error || ''), /profil élève/);
+    });
   const created = await createGroupViaApi(token, {
-    name: `Unité n3boss ${stamp}`,
-    slug: `unite-n3boss-${stamp}`,
+    name: `Unité chevronnée ${stamp}`,
+    slug: `unite-chevronnee-${stamp}`,
     kind: 'unit',
-    default_role_id: await getRoleId('prof'),
+    default_role_id: await getRoleId('eleve_chevronne'),
   });
-  assert.strictEqual(created.default_role_slug, 'prof');
+  assert.strictEqual(created.default_role_slug, 'eleve_chevronne');
 
   await request(app)
     .post('/api/groups')
@@ -759,6 +773,29 @@ test('F2-B : GET /api/groups/pending-visitors liste les comptes visiteurs', asyn
   );
 });
 
+test('F2-B : GET /api/groups/pending-visitors ne renvoie pas l’adresse e-mail des inscrits', async () => {
+  const visitor = await createVisitorStudent('SansMail');
+  const email = `attente.${Date.now()}@example.com`;
+  await execute('UPDATE users SET email = ? WHERE id = ?', [email, visitor.id]);
+  const { token: tutorToken } = await createTeacherToken('attente', 'prof_classe');
+
+  for (const token of [await getAdminToken(), tutorToken]) {
+    const res = await request(app)
+      .get('/api/groups/pending-visitors')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const row = res.body.find((r) => String(r.id) === String(visitor.id));
+    assert.ok(row, 'le visiteur reste listé');
+    assert.strictEqual(row.first_name, visitor.firstName);
+    assert.ok(!Object.hasOwn(row, 'email'), 'champ email retiré de la réponse');
+    assert.ok(
+      res.body.every((r) => !Object.hasOwn(r, 'email')),
+      'aucune ligne ne porte d’adresse e-mail',
+    );
+    assert.ok(!JSON.stringify(res.body).includes(email));
+  }
+});
+
 test('F2-B : POST /api/groups/:id/members/:userId rattache et promeut le visiteur si le groupe confère eleve_novice', async () => {
   const token = await getAdminToken();
   const visitor = await createVisitorStudent('Attach');
@@ -1034,7 +1071,7 @@ test('F2-B : un visiteur déjà membre d’un groupe n’est plus « en attente 
   assert.ok(pendingAfter.body.some((row) => String(row.id) === String(visitor.id)));
 });
 
-test('GET /api/rbac/profiles : `group_default_allowed` cadre le sélecteur de profil de groupe (admin : tout sauf GL)', async () => {
+test('GET /api/rbac/profiles : `group_default_allowed` cadre le sélecteur de profil de groupe (admin : profils élèves)', async () => {
   const token = await getAdminToken();
   const res = await request(app)
     .get('/api/rbac/profiles')
@@ -1047,24 +1084,19 @@ test('GET /api/rbac/profiles : `group_default_allowed` cadre le sélecteur de pr
   assert.ok(Array.isArray(res.body.roles));
 
   const bySlug = new Map(res.body.roles.map((r) => [r.slug, r]));
-  for (const slug of [
-    'visiteur',
-    'personnel',
-    'eleve_novice',
-    'eleve_avance',
-    'eleve_chevronne',
-    'prof_classe',
-    'prof',
-    'admin',
-  ]) {
+  for (const slug of ['visiteur', 'eleve_novice', 'eleve_avance', 'eleve_chevronne']) {
     assert.strictEqual(bySlug.get(slug)?.group_default_allowed, true, `${slug} doit être proposé`);
+  }
+  // Un groupe ne confère qu'un profil élève : ni l'encadrement, ni le personnel.
+  for (const slug of ['personnel', 'prof_classe', 'prof', 'admin']) {
+    assert.strictEqual(bySlug.get(slug)?.group_default_allowed, false, `${slug} doit être exclu`);
   }
   for (const role of res.body.roles.filter((r) => String(r.slug).startsWith('gl_'))) {
     assert.strictEqual(role.group_default_allowed, false, `${role.slug} doit être exclu`);
   }
 });
 
-test('PATCH /api/groups/:id accepte « personnel » comme profil par défaut', async () => {
+test('PATCH /api/groups/:id refuse « personnel » comme profil par défaut (pas un profil élève)', async () => {
   const token = await getAdminToken();
   const group = await createGroupViaApi(token, { name: `Personnel ${Date.now()}`, kind: 'unit' });
   const personnelId = await getRoleId('personnel');
@@ -1073,10 +1105,10 @@ test('PATCH /api/groups/:id accepte « personnel » comme profil par défaut', a
     .patch(`/api/groups/${encodeURIComponent(group.id)}`)
     .set('Authorization', `Bearer ${token}`)
     .send({ default_role_id: personnelId })
-    .expect(200);
+    .expect(400);
 
   const row = await queryOne('SELECT default_role_id FROM `groups` WHERE id = ? LIMIT 1', [
     group.id,
   ]);
-  assert.strictEqual(Number(row?.default_role_id), Number(personnelId));
+  assert.strictEqual(row?.default_role_id ?? null, null);
 });

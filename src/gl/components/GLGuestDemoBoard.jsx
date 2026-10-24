@@ -6,8 +6,12 @@ import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLGuestFeuilletArrival } from '../hooks/useGLGuestFeuilletArrival.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
+import { useGLBoardFocus, useGLBoardFocusRestore } from '../hooks/useGLBoardFocus.js';
+import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
+import { GLBoardFocusFx } from './GLBoardFocusFx.jsx';
+import { PlaceFocusStatusLive } from '../../shared/pct-map/PlaceFocusStatusLive.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
@@ -96,6 +100,16 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     });
   }, []);
 
+  // Découverte : réglages de partie par défaut (pas de partie, donc pas de réglage MJ).
+  const {
+    beforePresent: boardFocusBeforePresent,
+    restore: restoreBoardFocus,
+    fx: boardFocusFx,
+    statusMessage: boardFocusStatus,
+  } = useGLBoardFocus({
+    mapGestures,
+  });
+
   const {
     popover: feuilletZonePopover,
     closePopover: closeFeuilletZonePopover,
@@ -105,7 +119,9 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     watchTeamId: DEMO_TEAM_ID,
     presentedZoneIds,
     enabled: !showWall && demoFeuillets.length > 0,
+    moveDelayMs: prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS,
     onZonePresented: handleZonePresented,
+    beforePresent: boardFocusBeforePresent,
   });
 
   const watchPosition = getPositionForTeam(DEMO_TEAM_ID);
@@ -161,6 +177,8 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     }
   }, [discoveryZone]);
 
+  useGLBoardFocusRestore(Boolean(feuilletZonePopover || discoveryZone), restoreBoardFocus);
+
   const handleFeuilletPopoverClose = useCallback(() => {
     const zone = feuilletZonePopover?.zone;
     closeFeuilletZonePopover();
@@ -192,6 +210,8 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
             presentedZoneIds={presentedZoneIds}
             watchPosition={watchPosition}
           />
+          <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />
+          <PlaceFocusStatusLive message={boardFocusStatus} />
           <GLBoardMascot
             team={DEMO_TEAM}
             position={watchPosition}

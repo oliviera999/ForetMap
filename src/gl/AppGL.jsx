@@ -24,6 +24,7 @@ import { useTabBrowserHistory } from '../shared/platform/useTabBrowserHistory.js
 import { computePlayerVitality, findPlayerMascotId } from './utils/glGameplayRules.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
+import { resolveBoardFocusSettings } from './utils/glBoardFocus.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { AppStatusSticky } from '../shared/components/AppStatusSticky.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
@@ -67,8 +68,13 @@ const GLJournalView = lazy(() =>
 const GLPlayerJournalView = lazy(() =>
   import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })),
 );
+const GLSeuilView = lazy(() =>
+  import('./components/GLSeuilView.jsx').then((m) => ({ default: m.GLSeuilView })),
+);
 import { FloatingDock } from '../shared/components/FloatingDock.jsx';
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
+import { GLVoyageurGainToast } from './components/GLVoyageurGainToast.jsx';
+import { setVoyageurSoundsAllowed } from './utils/glVoyageurSounds.js';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
@@ -270,6 +276,10 @@ export function AppGL() {
       ...markerBackgroundStyleFromSettings(gameplaySettings),
     }),
     [glBrandStyle, gameplaySettings],
+  );
+  const boardFocusSettings = useMemo(
+    () => resolveBoardFocusSettings(gameplaySettings),
+    [gameplaySettings],
   );
 
   const chapterBiomeSlugs = useMemo(() => {
@@ -587,9 +597,14 @@ export function AppGL() {
       }
     }
     if (!isGlTabVisibleInNav(tab, tabs, modules, joueursNavOptions)) {
-      setTab(defaultTabForGlAuth(auth));
+      setTab(defaultTabForGlAuth(auth, modules));
     }
   }, [tabs, tab, auth, modules, joueursNavOptions]);
+
+  // Sons du voyageur : l'admin peut les couper pour toute la plateforme (module).
+  useEffect(() => {
+    setVoyageurSoundsAllowed(isModuleEnabled(modules, 'voyageurSoundsEnabled'));
+  }, [modules]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();
@@ -796,8 +811,12 @@ export function AppGL() {
               appVersion={appVersion}
             />
 
+            {showsPlayerChrome && !isGuest && isModuleEnabled(modules, 'voyageurEnabled') ? (
+              <GLVoyageurGainToast />
+            ) : null}
             <GLAppBanners
               error={error}
+              onDismissError={() => setError('')}
               isGuestMode={isGuest}
               onQuitGuest={quitGuestMode}
               onGuestLogin={quitGuestMode}
@@ -820,7 +839,16 @@ export function AppGL() {
                 id={`${GL_TABPANEL_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
                 aria-labelledby={`${GL_TAB_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
               >
-                <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+                <Suspense
+                  fallback={
+                    <div
+                      className="gl-tab-loading"
+                      role="status"
+                      aria-busy="true"
+                      aria-label="Chargement"
+                    />
+                  }
+                >
                   {resolveGlNavActiveTab(tab) === 'monde-gl' ? (
                     <GLMondeView
                       activeSubTab={mondeSubTab}
@@ -926,6 +954,7 @@ export function AppGL() {
                         showPlateauMarkers={plateauMapVisibility.markersVisible}
                         showPlateauZones={plateauMapVisibility.zonesVisible}
                         showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
+                        boardFocus={boardFocusSettings}
                         roster={gameState?.roster || []}
                         vitalityEnabled={!!gameplaySettings.vitalityEnabled}
                         vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}
@@ -1039,6 +1068,9 @@ export function AppGL() {
                       defaultTeamId={selectedTeamId}
                       narrationEnabled={!!gameplaySettings.narrationEnabled}
                     />
+                  )}
+                  {tab === 'seuil' && isModuleEnabled(modules, 'voyageurEnabled') && (
+                    <GLSeuilView onNavigateTab={navigateTab} modules={modules} />
                   )}
                   {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
                     <GLPlayerJournalView

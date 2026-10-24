@@ -29,6 +29,9 @@ import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
+import { installDragReleaseClickGuard } from '../shared/platform/dragReleaseClickGuard.js';
+
+installDragReleaseClickGuard();
 
 document.body.classList.add(...ENOV_PLAN_VARIANT.bodyClass.split(' ').filter(Boolean));
 

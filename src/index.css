@@ -2480,6 +2480,30 @@
       background:#ecfdf3; color:var(--ink-success); border-radius:8px;
       padding:10px 14px; font-size:var(--text-sm); margin-bottom:12px;
     }
+    /* Double authentification (TOTP) : étape de connexion, enrôlement, codes de secours. */
+    .totp-challenge { text-align:left; display:flex; flex-direction:column; gap:8px; }
+    .totp-challenge h2 { margin:0; font-size:var(--text-lg); }
+    .totp-challenge .btn + .btn { margin-top:0; }
+    .totp-enroll, .totp-verify { display:flex; flex-direction:column; gap:8px; }
+    .totp-enroll__qr {
+      display:block; margin:4px auto; width:200px; height:200px;
+      image-rendering:pixelated; border-radius:8px;
+    }
+    .totp-enroll__manual { font-size:var(--text-sm); color:var(--ink-soft); overflow-wrap:anywhere; }
+    .totp-enroll__manual code,
+    .totp-backup-codes__list code { font-family:'DM Mono', ui-monospace, monospace; letter-spacing:0.04em; }
+    .totp-backup-codes { display:flex; flex-direction:column; gap:8px; }
+    .totp-backup-codes h3 { margin:0; }
+    .totp-backup-codes__list {
+      list-style:none; margin:0; padding:10px; display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(8.5rem, 1fr)); gap:6px;
+      background:var(--parchment, transparent); border:1px solid var(--line); border-radius:8px;
+    }
+    .totp-backup-codes__confirm { display:flex; align-items:center; gap:8px; min-height:44px; }
+    .totp-backup-codes__confirm input { width:22px; height:22px; }
+    .totp-profile { margin-top:18px; display:flex; flex-direction:column; gap:8px; }
+    .totp-profile h4 { margin:0; }
+    .totp-profile__warning { color:var(--ink-warning, var(--ink-soft)); font-weight:var(--fw-medium); margin:0; }
     .auth-home-credit {
       margin-top:16px;
       margin-bottom:0;
@@ -2490,6 +2514,7 @@
       font-size:var(--text-xs);
       line-height:1.25;
     }
+    .auth-home-credit--message { margin-top:6px; white-space:pre-line; }
     .auth-version { font-size:var(--text-xs); color:var(--ink-muted); margin-top:8px; margin-bottom:0; text-align:center; }
     /* Notice « Vos données » (audit RGPD du 30/09/2026, RG1) : phrase d'information avant
        « Créer le compte », et lien permanent en bas de la carte de connexion. */
@@ -5452,6 +5477,17 @@
     @keyframes visitDetailPanelIn {
       from { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 10px); }
       to { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0); }
+    }
+    /* Fermeture (`useExitAnimation`) : même décalage de centrage que l'ouverture. */
+    .visit-detail-panel.fm-is-exiting {
+      animation:visitDetailPanelOut var(--motion-exit) var(--ease-in) forwards;
+    }
+    .visit-detail-panel__scrim.fm-is-exiting {
+      animation:overlayFadeOut var(--motion-exit) var(--ease-in) forwards;
+    }
+    @keyframes visitDetailPanelOut {
+      from { opacity:1; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(1); }
+      to { opacity:0; transform:translate(var(--visit-detail-panel-x, 0px), 0) scale(.96); }
     }
     .visit-detail-panel__handle {
       display:none;
@@ -10877,96 +10913,6 @@ header .lock-btn::after,
 
 .map-marker-cluster__count {
   font-size: var(--text-sm);
-}
-
-/* Position sur la carte de travail (lot 6) : mêmes classes que le Plan Lyautey. */
-.fm-pct-position {
-  position: absolute;
-  z-index: 2;
-  /* Une boîte réelle, de la taille du point : tous les enfants étant `position: absolute`, le
-     conteneur se calculait à 0 × 0 — donc muet pour un lecteur d'écran malgré son `role="img"`.
-     Les enfants restent centrés sur le point, qui est le centre de cette boîte. */
-  width: 22px;
-  height: 22px;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  /* Le repère n'est publié qu'une douzaine de fois par seconde (`useMapPosition`) : la
-     transition relie deux publications sur le compositeur, sans rendu supplémentaire. */
-  transition:
-    left 90ms linear,
-    top 90ms linear;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fm-pct-position {
-    transition: none;
-  }
-}
-
-.fm-pct-position__halo {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  border-radius: 50%;
-  background: rgba(37, 99, 235, 0.18);
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  transform: translate(-50%, -50%);
-}
-
-.fm-pct-position__dot {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  border: 3px solid var(--surface-plain);
-  border-radius: 50%;
-  background: var(--accent-info-solid);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  transform: translate(-50%, -50%);
-}
-
-.fm-pct-position__bearing {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 26px;
-  height: 26px;
-  transform-origin: 50% 50%;
-  /* Le cap n'est publié que huit fois par seconde : la transition relie deux angles successifs
-     sans rendu supplémentaire. L'angle reçu est continu, jamais replié sur [0, 360[ — sans quoi
-     le passage de 359° à 1° ferait tourner la flèche d'un tour complet, à l'envers. */
-  transition: transform 180ms linear;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
-}
-
-.fm-pct-position__bearing svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.fm-pct-position__bearing path {
-  fill: var(--accent-info-solid);
-  stroke: var(--surface-plain);
-  stroke-width: 1.8;
-  stroke-linejoin: round;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fm-pct-position__bearing {
-    transition: none;
-  }
-}
-
-.fm-pct-position__arrow {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  color: var(--accent-info-solid);
-  font-size: var(--text-lg);
-  line-height: 1;
-  text-shadow: 0 0 3px var(--surface-plain);
 }
 
 .journal-embed.journal-embed--plate::before,

@@ -451,7 +451,7 @@
         {
           "row": 4,
           "field": "role",
-          "error": "Vous ne pouvez pas attribuer un profil de rang supérieur au vôtre"
+          "error": "Vous ne pouvez attribuer qu’un profil de rang inférieur au vôtre"
         },
         {
           "row": 6,
@@ -531,7 +531,7 @@
         {
           "row": 4,
           "field": "role",
-          "error": "Vous ne pouvez pas attribuer un profil de rang supérieur au vôtre"
+          "error": "Vous ne pouvez attribuer qu’un profil de rang inférieur au vôtre"
         },
         {
           "row": 6,

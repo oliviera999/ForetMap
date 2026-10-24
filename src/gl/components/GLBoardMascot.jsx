@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { resolveVisitMascotState } from '../../utils/visitMascotState.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
+import { usePctAnchorTransform } from '../../shared/hooks/usePctAnchorTransform.js';
 
 /**
- * Mascotte d’équipe sur le plateau : même ancrage et classes CSS que la visite ForetMap.
+ * Mascotte d’équipe sur le plateau : même ancrage (déplacé par `transform`) et classes CSS
+ * que la visite ForetMap.
  */
 export function GLBoardMascot({
   team,
@@ -33,6 +35,7 @@ export function GLBoardMascot({
   const happy = Boolean(motion?.happy);
   const faceRight = motion?.faceRight !== false;
   const snapCenter = Boolean(motion?.snapCenter);
+  const anchor = usePctAnchorTransform(position.xp, position.yp);
 
   const className = [
     'visit-map-mascot',
@@ -43,13 +46,15 @@ export function GLBoardMascot({
     snapCenter ? 'gl-board-mascot--on-marker' : '',
     selectable ? 'gl-board-mascot--selectable' : '',
     isSelected ? 'is-selected' : '',
+    anchor.measured && anchor.settling ? 'visit-map-mascot--settling' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
   const sharedProps = {
+    ref: anchor.ref,
     className,
-    style: { left: `${position.xp}%`, top: `${position.yp}%`, zIndex },
+    style: { ...anchor.style, zIndex },
     'data-team-id': team.id,
     'data-gl-board-mascot': '',
   };

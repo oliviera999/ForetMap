@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  getPrefersReducedMotion,
+  subscribePrefersReducedMotion,
+} from '../hooks/usePrefersReducedMotion.js';
 import { pointToContainedRectPct } from './pctMapPointer.js';
 import { mapOrientationStyle } from './pctMapOrientation.js';
 import {
@@ -9,6 +13,7 @@ import {
   clampPctMapScale,
   clampPctMapTransform,
   elasticPctMapTransform,
+  fitPctBoundsView,
   fitPctMapTransform,
   pctMapInertiaStep,
   pctMapReleaseVelocity,
@@ -106,6 +111,35 @@ function useElementRef() {
  */
 export const PCT_MAP_FOLLOW_TAU_MS = 380;
 
+/** Courbes d'animation de `animateTo`. */
+/**
+ * Lance `animateTo` et rend son issue : booléen si elle est déjà connue (pas d'animation),
+ * promesse sinon — `true` à l'arrivée, `false` si un geste l'interrompt.
+ */
+function animateSettled(animateTo, target, { duration, easing }) {
+  let settled = null;
+  let resolveLater = null;
+  const finish = (value) => {
+    if (resolveLater) resolveLater(value);
+    else settled = value;
+  };
+  animateTo(target, {
+    duration,
+    easing,
+    onDone: () => finish(true),
+    onCancel: () => finish(false),
+  });
+  if (settled !== null) return settled;
+  return new Promise((resolve) => {
+    resolveLater = resolve;
+  });
+}
+
+const EASINGS = Object.freeze({
+  out: (u) => 1 - (1 - u) ** 3,
+  inOut: (u) => (u < 0.5 ? 4 * u ** 3 : 1 - (-2 * u + 2) ** 3 / 2),
+});
+
 /** Annulation d'un rAF tolérante aux environnements sans `cancelAnimationFrame` (SSR, jsdom nu). */
 function cancelRaf(id) {
   if (id != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
@@ -164,6 +198,8 @@ export function usePctMapViewport({
   const pinchStart = useRef(null);
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const animRafRef = useRef(null);
+  /** Rappel d'annulation de l'animation ponctuelle en vol (`animateTo({ onCancel })`). */
+  const animCancelRef = useRef(null);
   const followRafRef = useRef(null);
   const followRef = useRef(null);
   const applyRafRef = useRef(null);
@@ -341,12 +377,19 @@ export function usePctMapViewport({
       animRafRef.current = null;
       cancelled = true;
     }
+    const onCancel = animCancelRef.current;
+    animCancelRef.current = null;
+    onCancel?.();
     return cancelled;
   }, []);
 
-  /** Animation courte (200 ms, ease-out cubique) entre deux transformations, puis commit. */
+  /**
+   * Animation courte entre deux transformations, puis commit. `onCancel` est appelé si un
+   * geste (ou une autre animation) l'interrompt avant la fin — jamais en plus de `onDone`.
+   * `easing` : `'out'` (défaut, ease-out cubique) ou `'inOut'` (ease-in-out cubique).
+   */
   const animateTo = useCallback(
-    (target, { duration = 200, onDone = null } = {}) => {
+    (target, { duration = 200, onDone = null, onCancel = null, easing = 'out' } = {}) => {
       cancelAnimation();
       const start = { ...tx.current };
       const end = { ...target };
@@ -362,11 +405,12 @@ export function usePctMapViewport({
         return;
       }
       setWorldWillChange(true);
+      animCancelRef.current = onCancel;
       const t0 = performance.now();
-      const easeOutCubic = (u) => 1 - (1 - u) ** 3;
+      const ease = EASINGS[easing] || EASINGS.out;
       const step = (now) => {
         const t = Math.min(1, (now - t0) / ms);
-        const u = easeOutCubic(t);
+        const u = ease(t);
         tx.current = {
           x: start.x + (end.x - start.x) * u,
           y: start.y + (end.y - start.y) * u,
@@ -377,6 +421,7 @@ export function usePctMapViewport({
           animRafRef.current = requestAnimationFrame(step);
         } else {
           animRafRef.current = null;
+          animCancelRef.current = null;
           commit(end);
           onDone?.();
         }
@@ -404,7 +449,9 @@ export function usePctMapViewport({
   useEffect(() => {
     if (settledInsetsRef.current === insetsKey) return;
     settledInsetsRef.current = insetsKey;
-    if (bounds) settle();
+    // Une animation en vol (cadrage d'un lieu, retour à la vue d'avant) vise déjà une vue
+    // valable : la remettre en butée ici l'interromprait à mi-course.
+    if (bounds && animRafRef.current == null) settle();
   }, [insetsKey, bounds, settle]);
 
   /** Vue courante indépendante du cadre (`pctMapViewSnapshot`) ; `null` tant que rien n'est mesuré. */
@@ -546,23 +593,24 @@ export function usePctMapViewport({
     return undefined;
   }, [animateTo, contentSize, fitMap]);
 
-  /* Préférences système : mouvement réduit, pointeur grossier. */
+  /* Préférences système : mouvement réduit (source partagée ANIM-21), pointeur grossier. */
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const coarse = window.matchMedia('(pointer: coarse)');
-    const applyMotion = () => {
-      reducedMotionRef.current = !!motion.matches;
+    const applyMotion = (reduced) => {
+      reducedMotionRef.current = !!reduced;
     };
+    applyMotion(getPrefersReducedMotion());
+    const unsubMotion = subscribePrefersReducedMotion(applyMotion);
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return () => unsubMotion();
+    }
+    const coarse = window.matchMedia('(pointer: coarse)');
     const applyCoarse = () => setIsCoarsePointer(!!coarse.matches);
-    applyMotion();
     applyCoarse();
-    motion.addEventListener?.('change', applyMotion);
     if (typeof coarse.addEventListener === 'function')
       coarse.addEventListener('change', applyCoarse);
     else coarse.addListener?.(applyCoarse);
     return () => {
-      motion.removeEventListener?.('change', applyMotion);
+      unsubMotion();
       if (typeof coarse.removeEventListener === 'function')
         coarse.removeEventListener('change', applyCoarse);
       else coarse.removeListener?.(applyCoarse);
@@ -718,6 +766,110 @@ export function usePctMapViewport({
   );
 
   /**
+   * Cadre un ensemble de points (% image) — contour d'une zone, repère seul — dans la partie
+   * visible du cadre, animé. Les zooms sont **relatifs à l'échelle d'ajustement** (1 = carte
+   * entière). Un point seul prend `maxZoom`.
+   *
+   * @returns {boolean|Promise<boolean>} `true` une fois la vue posée, `false` si rien n'est
+   *   mesuré ou si un geste a interrompu l'animation : la suite (ouverture d'une fiche) ne doit
+   *   pas dépendre de ce que la main fait de la carte. Booléen immédiat quand il n'y a rien à
+   *   animer (cadre non mesuré, mouvement réduit) : la fiche s'ouvre alors dans le même tour.
+   */
+  /**
+   * Annonce un vol **qui va réellement s'animer** (`onPlan({ fromScale, toScale, durationMs })`),
+   * avant sa première image : les effets visuels qui l'accompagnent (emoji, projecteur) se
+   * calent sur les échelles de départ et d'arrivée. Rien n'est annoncé sans animation (vue déjà
+   * en place, mouvement réduit, durée nulle).
+   */
+  const announcePlan = useCallback((onPlan, target, duration) => {
+    if (typeof onPlan !== 'function') return;
+    if (reducedMotionRef.current || !(Number(duration) > 0)) return;
+    const from = tx.current;
+    if (pctMapTransformEquals(from, target, { epsilon: 0.01 })) return;
+    onPlan({ fromScale: from.s, toScale: target.s, durationMs: Number(duration) });
+  }, []);
+
+  const flyToPctBounds = useCallback(
+    (
+      points,
+      {
+        insets = null,
+        paddingPx = 48,
+        minZoom = 1,
+        maxZoom = 4,
+        duration = 350,
+        easing = 'inOut',
+        onPlan = null,
+      } = {},
+    ) => {
+      const st = stageRef.current;
+      if (!(st.w > 0) || !(st.h > 0)) return false;
+      const isStage = optionsRef.current.contentMode === 'stage';
+      const fr = isStage
+        ? fitRectRef.current
+        : { offsetX: 0, offsetY: 0, width: imgSizeRef.current.w, height: imgSizeRef.current.h };
+      const fit = fitScaleRef.current || 1;
+      const visibleW = Math.max(
+        1,
+        st.w - Math.max(0, Number(insets?.left) || 0) - Math.max(0, Number(insets?.right) || 0),
+      );
+      const visibleH = Math.max(
+        1,
+        st.h - Math.max(0, Number(insets?.top) || 0) - Math.max(0, Number(insets?.bottom) || 0),
+      );
+      const lo = Math.max(0.1, Number(minZoom) || 1);
+      const view = fitPctBoundsView(points, {
+        visibleW,
+        visibleH,
+        fitRect: fr,
+        paddingPx,
+        minScale: fit * lo,
+        maxScale: fit * Math.max(lo, Number(maxZoom) || lo),
+      });
+      if (!view) return false;
+      // Les bords que va recouvrir la fiche (pas encore ouverte) comptent déjà dans les
+      // bornes : sinon un lieu du bas du plan ne pourrait pas remonter au-dessus d'elle.
+      const b = currentBounds();
+      const merged = insets
+        ? {
+            top: Math.max(Number(b.insets?.top) || 0, Number(insets.top) || 0),
+            right: Math.max(Number(b.insets?.right) || 0, Number(insets.right) || 0),
+            bottom: Math.max(Number(b.insets?.bottom) || 0, Number(insets.bottom) || 0),
+            left: Math.max(Number(b.insets?.left) || 0, Number(insets.left) || 0),
+          }
+        : b.insets;
+      const target = centerPctMapTransformOnPct(
+        view.centerPct,
+        view.scale,
+        { ...b, insets: merged },
+        isStage ? fr : null,
+        insets,
+      );
+      announcePlan(onPlan, target, duration);
+      return animateSettled(animateTo, target, { duration, easing });
+    },
+    [animateTo, currentBounds, announcePlan],
+  );
+
+  /**
+   * Retour animé à une vue capturée par `getViewSnapshot` (même cadre ou non).
+   * @returns {boolean|Promise<boolean>} cf. `flyToPctBounds`.
+   */
+  const restoreViewAnimated = useCallback(
+    (snapshot, { duration = 350, easing = 'inOut', onPlan = null } = {}) => {
+      if (!snapshot) return false;
+      const target = pctMapTransformFromViewSnapshot(snapshot, currentBounds(), {
+        fitScale: fitScaleRef.current,
+        fitRect: fitRectRef.current,
+      });
+      if (!target) return false;
+      announcePlan(onPlan, target, duration);
+      return animateSettled(animateTo, target, { duration, easing });
+    },
+    [animateTo, currentBounds, announcePlan],
+  );
+
+  /**
    * Suivi **continu** d'un point mobile (navigation GPS) : la caméra glisse en permanence vers
    * la cible, façon ressort amorti, au lieu de jouer une animation de 200 ms à chaque mesure
    * puis de s'arrêter net jusqu'à la suivante — c'est ce « stop-and-go », une saccade par point
@@ -764,6 +916,9 @@ export function usePctMapViewport({
         cancelRaf(animRafRef.current);
         animRafRef.current = null;
       }
+      const onCancel = animCancelRef.current;
+      animCancelRef.current = null;
+      onCancel?.();
       setWorldWillChange(true);
       let last = performance.now();
       const step = (now) => {
@@ -774,7 +929,10 @@ export function usePctMapViewport({
           return;
         }
         // Onglet revenu au premier plan : un `dt` d'une minute ferait un saut. Plafonné.
-        const dt = Math.max(0, Math.min(100, now - last));
+        // Horloge figée (rAF synchrone, sous 1 ms d'écart) : compter une image à 60 Hz, sinon
+        // la boucle tournerait sans jamais avancer.
+        const elapsed = now - last;
+        const dt = elapsed < 1 ? 16 : Math.min(100, elapsed);
         last = now;
         const target = resolveTarget(f);
         const k = 1 - Math.exp(-dt / f.tauMs);
@@ -1211,6 +1369,8 @@ export function usePctMapViewport({
       animateZoomTowardScale,
       zoomBy,
       focusOnPct,
+      flyToPctBounds,
+      restoreViewAnimated,
       followPct,
       animateTo,
       cancelAnimation,
@@ -1252,6 +1412,8 @@ export function usePctMapViewport({
       animateZoomTowardScale,
       zoomBy,
       focusOnPct,
+      flyToPctBounds,
+      restoreViewAnimated,
       followPct,
       animateTo,
       cancelAnimation,

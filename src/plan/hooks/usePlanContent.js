@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchPlanContent } from '../planApi.js';
+import { fetchPlanContent, submitPlanAccessCode } from '../planApi.js';
 import { planPlacesFromContent } from '../utils/planPlaces.js';
 import { PLAN_VARIANT } from '../utils/planVariants.js';
 
@@ -10,16 +10,46 @@ const EMPTY_REPORTS = Object.freeze([]);
 /** Idem pour « un seul plan publié » : pas de sélecteur à afficher. */
 const EMPTY_MAPS = Object.freeze([]);
 
+/** Refus définitifs d'un code de lien : faux, absent, ou entrée par code fermée. */
+const LINK_CODE_REFUSALS = new Set([400, 401, 403]);
+
+/**
+ * Échange le code d'un lien (`?code=`) contre un laissez-passer : `POST /access`, le code dans
+ * le corps. Rend `'granted'`, `'refused'` (refus définitif), ou `'ignored'` quand la variante
+ * n'ouvre pas sur un lien (plan des personnels). Une panne réseau est relancée : le code reste
+ * en attente, et « Réessayer » le rejouera.
+ */
+async function exchangeLinkCode(code, variant) {
+  if (!variant?.acceptsLinkCode) return 'ignored';
+  try {
+    await submitPlanAccessCode(code, variant);
+    return 'granted';
+  } catch (err) {
+    if (LINK_CODE_REFUSALS.has(err?.status)) return 'refused';
+    throw err;
+  }
+}
+
 /**
  * Charge publique du plan (lot 4) : un seul appel au montage, pas de polling — le contenu
  * d'un plan d'établissement change quelques fois par an, et le produit doit rester utilisable
  * dans un couloir avec un réseau médiocre. `reload()` permet un rechargement explicite.
  *
  * @param {string} [mapId] carte demandée (`?map_id=`) ; vide = carte réglée côté serveur.
- * @param {string} [accessCode] code porté par un lien profond.
  * @param {object} [variant] variante de plan (`src/plan/utils/planVariants.js`).
+ * @param {object} [options]
+ * @param {string} [options.linkCode] code porté par un lien (`?code=`, QR code interne), lu
+ *   une fois au montage. Il est échangé **avant** la première lecture, dans le corps d'un
+ *   `POST /access` ; la charge, elle, n'est jamais demandée avec le code dans l'adresse.
+ * @param {(outcome: 'granted'|'refused'|'ignored') => void} [options.onLinkCodeSettled]
+ *   appelé quand le code a servi (ou a été écarté) : l'appelant le retire de l'adresse.
+ *   Identité stable attendue (fonction de module ou `useCallback`).
  */
-export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIANT) {
+export function usePlanContent(
+  mapId = '',
+  variant = PLAN_VARIANT,
+  { linkCode = '', onLinkCodeSettled = null } = {},
+) {
   const [content, setContent] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,12 +62,23 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
   const [accessRequired, setAccessRequired] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
   const [codeAvailable, setCodeAvailable] = useState(false);
+  /**
+   * Code de lien en attente d'échange. Une référence et non un état : il ne sert qu'une fois,
+   * et le consommer ne doit pas relancer la charge.
+   */
+  const pendingLinkCodeRef = useRef(String(linkCode || '').trim());
 
   const load = useCallback(
     async (signal) => {
       setLoading(true);
       try {
-        const data = await fetchPlanContent(mapId, accessCode, variant);
+        const pendingLinkCode = pendingLinkCodeRef.current;
+        if (pendingLinkCode) {
+          const outcome = await exchangeLinkCode(pendingLinkCode, variant);
+          pendingLinkCodeRef.current = '';
+          onLinkCodeSettled?.(outcome);
+        }
+        const data = await fetchPlanContent(mapId, variant);
         if (signal?.aborted) return;
         setContent(data);
         setError(null);
@@ -61,7 +102,7 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [mapId, accessCode, variant],
+    [mapId, onLinkCodeSettled, variant],
   );
 
   useEffect(() => {
@@ -94,6 +135,11 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
     });
   }, []);
 
+  /** Oublie un code de lien encore en attente (déconnexion). */
+  const forgetLinkCode = useCallback(() => {
+    pendingLinkCodeRef.current = '';
+  }, []);
+
   return {
     content,
     places,
@@ -112,5 +158,6 @@ export function usePlanContent(mapId = '', accessCode = '', variant = PLAN_VARIA
     loading,
     error,
     reload: useCallback(() => load(null), [load]),
+    forgetLinkCode,
   };
 }

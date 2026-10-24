@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import {
   buildStateOptions,
   INTERACTION_EVENT_OPTIONS,
@@ -45,6 +46,7 @@ export default function MascotPackInteractionBulkDialog({
   const clearKeys = () => setSelectedKeys(new Set());
 
   const selectedList = useMemo(() => [...selectedKeys], [selectedKeys]);
+  useOverlayHistoryBack(!!open, onClose);
 
   if (!open) return null;
 

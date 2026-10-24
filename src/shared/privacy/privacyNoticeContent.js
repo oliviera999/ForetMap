@@ -41,14 +41,31 @@ export const PRIVACY_RETENTION = Object.freeze({
   securityDays: 365,
   /** `DEFAULT_HISTORY_RETENTION_DAYS` (historiques de jeu et de jardin), même script. */
   historyDays: 365,
+  /** `DEFAULT_VISITS_RETENTION_DAYS` (compteurs d'usage anonymes), même script. */
+  usageCountersDays: 365,
+  /** `DEFAULT_IP_RETENTION_DAYS` (adresse IP complète, puis raccourcie), même script. */
+  ipFullDays: 90,
+  /**
+   * `ACCOUNT_RETENTION_MONTHS`, `lib/retention/policy.js` : compte supprimé un an après le
+   * départ (désactivation, ou année scolaire entière sans connexion pour un élève).
+   */
+  accountMonthsAfterDeparture: 12,
   /** `PASSWORD_RESET_TTL_MINUTES`, `lib/passwordReset.js`. */
   passwordResetMinutes: 60,
   /** `ANON_TTL_SECONDS` (24 h), `routes/visit.js` — progression de la visite sans compte. */
   guestVisitHours: 24,
-  /** `PLAN_ACCESS_TTL_SECONDS` (30 j), `lib/planAccess.js`. */
+  /**
+   * `PLAN_ACCESS_TTL_SECONDS` (30 j), `lib/planAccess.js` — durée par défaut, réglable jusqu'à
+   * `security.plan_access_pass_days.max` (`lib/settings/plan.js`).
+   */
   planAccessDays: 30,
-  /** `STAFF_PLAN_ACCESS_TTL_SECONDS` (7 j), `lib/staffPlanAccess.js`. */
+  planAccessMaxDays: 90,
+  /**
+   * `STAFF_PLAN_ACCESS_TTL_SECONDS` (7 j), `lib/staffPlanAccess.js` — par défaut, réglable
+   * jusqu'à `security.staff_plan_access_pass_days.max`.
+   */
   staffPlanAccessDays: 7,
+  staffPlanAccessMaxDays: 30,
 });
 
 function clean(value) {
@@ -282,10 +299,12 @@ export function buildPrivacyNotice({
 
   // --- Durées ---------------------------------------------------------------------------------
   const session = `la session de connexion : ${R.sessionMinutes / 60 === 1.5 ? '1 h 30' : `${R.sessionMinutes} minutes`}, prolongée tant que ${t('tu utilises', 'vous utilisez')} l’application, ${R.sessionMaxHours} heures au plus ;`;
-  const securityYear = `les journaux de sécurité (connexions, adresses IP) : ${R.securityDays === 365 ? '1 an' : `${R.securityDays} jours`} ; l’adresse IP y est raccourcie au bout de 6 mois ;`;
+  const securityYear = `les journaux de sécurité (connexions, adresses IP) : ${R.securityDays === 365 ? '1 an' : `${R.securityDays} jours`} ; l’adresse IP y est raccourcie au bout de ${R.ipFullDays === 90 ? '3 mois' : `${R.ipFullDays} jours`} ;`;
+  const afterDeparture =
+    R.accountMonthsAfterDeparture === 12 ? '1 an' : `${R.accountMonthsAfterDeparture} mois`;
   const durations = {
     foret: [
-      'ton compte et tes productions : tant que ton compte existe. Quand il est supprimé (à ta demande ou par l’établissement), ton profil, tes tâches, observations, messages et photos sont effacés ;',
+      `ton compte et tes productions : pendant ta scolarité, puis ${afterDeparture} après ton départ de l’établissement (ou après une année scolaire entière sans te connecter). Quand ton compte est supprimé (à ta demande, par l’établissement ou au bout de cette durée), ton profil, tes tâches, observations, messages et photos sont effacés ;`,
       session,
       `les notifications : ${R.notificationsDays} jours ;`,
       `le journal d’activité : ${R.activityDays} jours ;`,
@@ -302,13 +321,13 @@ export function buildPrivacyNotice({
       `un lien de réinitialisation du mot de passe : ${R.passwordResetMinutes === 60 ? '1 heure' : `${R.passwordResetMinutes} minutes`}.`,
     ],
     plan: [
-      `le cookie du code d’accès, s’il y en a un : ${R.planAccessDays} jours ;`,
-      'les compteurs anonymes : sans limite, car ils ne concernent personne.',
+      `le cookie du code d’accès, s’il y en a un : ${R.planAccessDays} jours par défaut (${R.planAccessMaxDays} au plus, selon le réglage de l’établissement) ;`,
+      `les compteurs anonymes (nombre d’ouvertures, recherches) : ${R.usageCountersDays === 365 ? '1 an' : `${R.usageCountersDays} jours`}.`,
     ],
     staff: [
-      'votre accès : tant que votre compte existe ;',
+      `votre compte : jusqu’à ${afterDeparture} après votre départ (compte désactivé par l’établissement) ;`,
       session,
-      `le laissez-passer du plan des personnels : ${R.staffPlanAccessDays} jours ;`,
+      `le laissez-passer du plan des personnels : ${R.staffPlanAccessDays} jours par défaut (${R.staffPlanAccessMaxDays} au plus, selon le réglage de l’établissement) ;`,
       securityYear,
     ],
   };

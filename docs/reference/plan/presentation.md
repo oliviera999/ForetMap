@@ -69,8 +69,16 @@ du lycée apparaît aussi discrètement en bas à gauche du plan.
    au-delà, il est raccourci et la fiche du lieu en donne toujours le nom complet. Le nom
    écrit sur le plan est aussi une **cible tactile** : le toucher ouvre son lieu, ce qui rend
    les petits bâtiments atteignables au pouce.
-6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste ouvre une fiche en
-   bas d'écran : nom, sous-titre, photo, description, horaires ou précisions. Elle s'ouvre à
+6. **La fiche d'un lieu.** Toucher un lieu sur le plan ou dans la liste fait d'abord un
+   **zoom bref et fluide** sur ce lieu — cadré dans la partie du plan qui restera visible
+   au-dessus de la fiche —, **puis** ouvre une fiche en bas d'écran : nom, sous-titre, photo,
+   description, horaires ou précisions. **Refermer la fiche** ramène le plan au **zoom et au
+   centrage d'avant** ; après un lien direct, il revient au plan entier. « Y aller » laisse
+   le plan sur le lieu, et pendant un parcours la caméra du parcours garde la main. Le
+   comportement se règle dans l'administration ForetMap (_Réglages → Zoom sur le lieu avant
+   sa fiche_ : interrupteur « plans », durée, zoom maximal, retour à la vue d'avant, et deux
+   effets : l'emoji du lieu qui s'envole pendant le zoom puis revient se poser au retour, et
+   le « projecteur » qui assombrit le reste du plan). Elle s'ouvre à
    **mi-hauteur**, assez haut pour qu'on lise l'essentiel sans rien faire ; on la fait
    glisser vers le haut pour tout lire, vers le bas pour la réduire puis la refermer.
    **Le plan reste vivant derrière elle** : on peut le déplacer et le zoomer sans fermer la
@@ -179,7 +187,7 @@ Un même lieu peut être montré sur plusieurs « surfaces » :
 
 Deux réglages se combinent :
 
-- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+- **Par catégorie** — dans _Réglages → Cartographie → Catégories_, chaque catégorie porte une case
   par surface (« Visible sur »). Décocher **Plan** pour la catégorie « Cultures » retire d'un
   coup toutes les cultures du plan de l'établissement, sans toucher à la carte des élèves.
 - **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, un bloc
@@ -206,7 +214,7 @@ culture, commentaires) ne sort sur le plan.
 
 ### Rendre le plan lisible quand il est dense
 
-Trois réglages, dans _Réglages → Catégories de lieux_ :
+Trois réglages, dans _Réglages → Cartographie → Catégories_ :
 
 - **L'ordre des catégories** sert de **priorité**. Quand deux noms se disputent la même place,
   celui de la catégorie placée en tête est écrit et l'autre attend le zoom ; c'est aussi la
@@ -240,11 +248,27 @@ lecture seule, lancé côté serveur (`scripts/report-marker-density.js`).
 ### Les parcours
 
 Un **parcours** est une liste ordonnée de lieux : « le tour des nouveaux professeurs », « la
-visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés ; en
-choisir un affiche une **barre d'étape en bas d'écran**, avec « Précédent » et « Suivant ». La
-carte reste utilisable (on peut la déplacer et zoomer) et se recentre sur chaque étape, au-dessus
-de la barre, pour que le lieu reste visible. Sans calage GPS, on se repère sur le plan puis on
-avance avec « Suivant » ; avec le calage, « Y aller » vise l'étape en cours.
+visite des portes ouvertes ». Sur le plan, une puce **« Parcours »** liste ceux publiés.
+
+En choisir un (ou scanner son QR code) affiche d'abord une **vue d'ensemble** : le plan se cadre
+sur tout le trajet : les étapes, chacune marquée d'une **pastille numérotée** (« Départ »,
+« Arrivée 🏁 »), sont **reliées les unes aux autres dans l'ordre de passage** par une ligne
+**fléchée dans le sens de marche**. La barre du bas ne porte qu'un court résumé : aucune liste
+ne vient masquer le tracé.
+
+**« Commencer le parcours »** affiche ensuite la **barre d'étape**, avec « Précédent » et
+« Suivant », et allume **« Me situer »** si le plan est calé. La vue montre alors votre position
+**et** l'étape à atteindre ; dès que vous marchez, elle zoome sur vous tout en restant ouverte
+vers l'étape, et se cale contre le bord du plan plutôt que de montrer du vide. Les étapes
+**restent reliées** tout au long du parcours : les tronçons **déjà parcourus** passent dans
+**une autre couleur** (gris, étapes cochées ✓), le tronçon en cours est mis en avant, et une
+ligne animée relie votre position à l'étape en cours. Déplacer ou zoomer la carte reprend la main jusqu'à l'étape suivante ; le
+bouton 🗺️ ramène à la vue d'ensemble. Sans calage GPS, la vue d'étape montre l'étape précédente
+et la suivante pour indiquer le sens, et on avance avec « Suivant ».
+
+Ces comportements se règlent dans ForetMap, _Réglages → **Parcours guidés**_ (communs à la carte,
+à la Visite et aux plans) : vue d'ensemble au démarrage, « Me situer » automatique, caméra
+guidée, zoom et distance de déclenchement de la marche, anticipation vers l'étape, ligne animée.
 
 Pendant un parcours, le plan reste **explorable** : toucher un autre lieu (sur la carte ou dans
 les résultats de recherche) ouvre sa fiche **en aperçu bas**, avec un bouton **« Revenir à
@@ -259,17 +283,17 @@ début —, et la puce **Parcours** reste une autre entrée (un court message le
 position est mémorisée sur l'appareil, et sur lui seul : elle survit à la fermeture de la page,
 elle ne quitte jamais le téléphone. Démarrer un parcours depuis la puce repart de l'étape 1 ;
 un parcours dépublié entre-temps ne laisse pas de bouton qui ne mènerait nulle part. Un lien direct par parcours (`?parcours=…`) permet d'imprimer
-un **QR code** à l'accueil : le visiteur scanne et démarre le parcours. Si l'affiche a survécu au
+un **QR code** à l'accueil : le visiteur scanne et arrive sur la vue d'ensemble du parcours. Si l'affiche a survécu au
 parcours — dépublié, supprimé, renommé — le plan le **dit** (« Ce parcours n'est plus
 disponible. ») plutôt que de s'ouvrir sans rien annoncer.
 
 Quand le plan est protégé par un **code d'accès**, les parcours le sont avec lui : rien de leur
 contenu ne sort avant la saisie du code.
 
-Les parcours se créent dans ForetMap, dans _Réglages → Parcours_ (voir la documentation de la
-carte) : on cherche les lieux, on les ordonne au glisser-déposer, on **publie**, et on coche les
-surfaces (**Plan public**, **Plan personnels**, **Visite**, **carte de travail**) où ils doivent
-apparaître. Un parcours brouillon n'apparaît nulle part, pas même via son lien. Un parcours
+Les parcours se créent dans ForetMap, dans _Réglages → Cartographie → Parcours_ (voir la
+documentation de la carte) : on cherche les lieux, on les ordonne au glisser-déposer, on
+**publie**, et on coche les cinq surfaces possibles (**Plan public**, **Plan personnels**,
+**Plan e-nov**, **Visite**, **carte de travail**) où ils doivent apparaître. Un parcours brouillon n'apparaît nulle part, pas même via son lien. Un parcours
 publié sur les seules surfaces internes — **Plan personnels** ou **carte de travail** — ne
 s'ouvre pas non plus par lien direct : il n'est lisible que depuis l'écran auquel il est
 destiné, et par qui y a accès. Le QR code d'une affiche n'a donc de sens que pour un parcours
@@ -311,7 +335,7 @@ quelque chose à y faire, donc jamais sur un plan public à carte unique.
 
 ### Réglages d'établissement
 
-Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
+Dans _Réglages → Plan Lyautey_ (portée publique, sauf le code d'accès) :
 
 | Réglage                     | Effet                                                                                              |
 | --------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -323,12 +347,47 @@ Dans _Réglages → Plan_ (portée publique, sauf le code d'accès) :
 | Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                                              |
 | Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
-| Mode d'accès                | `public` (par défaut) ou `code` — un code court partagé, retenu 30 jours                           |
-| Code d'accès                | saisi en clair dans les réglages ; seule une empreinte est stockée ; **8 caractères minimum**      |
+| Mode d'accès                | `public` (par défaut) ou `code` — un code partagé, retenu 30 jours par défaut                      |
+| Code d'accès                | saisi ou généré dans les réglages ; seule une empreinte est stockée ; **12 caractères minimum**    |
+| Durée du laissez-passer     | combien de jours un appareil reste ouvert après la saisie du code (30 par défaut, 90 au plus)      |
+| Orienter                    | autorise le bouton « Orienter » (la carte doit aussi l'autoriser dans son calage GPS)              |
+
+L'**apparence du plan** (couleurs, logo) se règle à part, dans _Réglages → Identité visuelle_,
+bloc « Marque Plan Lyautey ». Elle vaut aussi pour le plan des personnels et le plan e-nov ; sur
+ce dernier, les couleurs du label e-nov priment, et le logo du label s'ajoute à celui de
+l'établissement.
 
 **Changer le code** oblige chaque appareil déjà entré à le ressaisir : l'ancien code cesse
 d'ouvrir le plan immédiatement, y compris sur les téléphones qui l'avaient retenu. C'est le
 moyen de fermer la porte après une diffusion non voulue.
+
+**L'échéance des laissez-passer.** Après la saisie du code, l'appareil reçoit un laissez-passer
+qui porte sa propre date d'échéance (30 jours par défaut, réglable de 1 à 90 jours). Passé
+cette date, le code est redemandé — même si le laissez-passer a été recopié sur un autre
+appareil : c'est le serveur qui vérifie l'échéance, plus seulement le navigateur. Changer la
+durée vaut pour les entrées suivantes ; pour refermer tout de suite, changez le code. Les
+appareils entrés avant la mise en place de cette échéance ont dû ressaisir le code une fois.
+
+**Le journal des saisies de code.** Chaque saisie du code — réussie ou refusée — est notée
+dans le journal de sécurité (Réglages → Journal de sécurité, réservé à l'administrateur) :
+la date, l'adresse d'origine, le résultat et, pour un refus, son motif (code faux, code
+absent, trop d'essais). Le code saisi n'y figure jamais. Une série de refus depuis la même
+adresse est le signe qu'il est temps de changer le code. Le plan e-nov et le plan des
+personnels ont le même journal.
+
+**Le lien qui porte le code.** Un QR code peut mener au plan avec le code dans le lien
+(`…/?code=…`) : le plan s'ouvre sans saisie. Le code sert alors une fois, puis disparaît de la
+barre d'adresse — il ne reste ni dans l'historique, ni dans un lien recopié depuis le
+téléphone, ni dans la copie hors ligne du plan. Le reste du lien (lieu, parcours) est
+conservé. Préférez tout de même la saisie du code quand c'est possible : un QR code imprimé
+est un lien direct permanent, qu'on photographie et qu'on transmet.
+
+**Le générateur de code.** Le bouton **« Générer un code »** propose un code de 14 caractères
+tirés au hasard, en minuscules et chiffres, sans les caractères qui se confondent (ni `0` ni
+`o`, ni `1`, `i` ou `l`). Il s'affiche en clair : **notez-le avant d'enregistrer**, car seule
+son empreinte est conservée et personne ne pourra plus l'afficher ensuite. Un code choisi à la
+main reste possible, à condition de faire **au moins 12 caractères** ; un code plus court
+enregistré avant cette règle continue de fonctionner jusqu'à ce que vous le remplaciez.
 
 #### Autres plans proposés
 
@@ -397,8 +456,8 @@ sur l'écran de saisie du code et sur l'écran de connexion du plan des personne
   commandes s'effacent : elles reviennent dès qu'on la redescend.
 - **En intérieur, le signal est mauvais.** Le halo le dit honnêtement ; les QR codes aux
   portes restent le moyen le plus fiable de savoir où l'on est.
-- **Le code d'accès n'est pas un mot de passe.** Il est court, partagé, et retenu 30 jours par
-  appareil : il décourage la diffusion large, il ne protège pas des données sensibles — et le
+- **Le code d'accès n'est pas un mot de passe.** Il est partagé, et retenu 30 jours par
+  appareil (durée réglable) : il décourage la diffusion large, il ne protège pas des données sensibles — et le
   plan n'en contient pas.
 - **Un lieu masqué sur toutes les surfaces disparaît partout**, y compris de la carte des
   élèves. L'avertissement dans la fiche le signale, mais rien ne l'interdit.

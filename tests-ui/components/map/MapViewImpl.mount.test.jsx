@@ -116,7 +116,7 @@ const MARKERS = [
 
 function renderMapView(
   props = {},
-  { isTeacher = false, settings = { modules: {}, ui: { map: {} } } } = {},
+  { isTeacher = false, settings = { modules: {}, ui: { map: {} } }, data = {} } = {},
 ) {
   const dataValue = {
     zones: ZONES,
@@ -125,6 +125,7 @@ function renderMapView(
     tutorials: [],
     plants: [],
     activeMapId: 'foret',
+    ...data,
   };
   const handlers = {
     onMapChange: vi.fn(),
@@ -258,7 +259,56 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
     await waitFor(() => expect(view.container.querySelector('.map-view-stage')).not.toBeNull());
   });
 
-  test('catégories cochées d’office : les lieux hors catégorie sont atténués', async () => {
+  test('catégories cochées d’office (réglage de la carte) : lieux hors catégorie atténués', async () => {
+    const saved = stubs.categories;
+    stubs.categories = {
+      ...saved,
+      categories: [{ id: 'cat-verger', label: 'Verger', emoji: '🍎', applies_to: 'both' }],
+    };
+    try {
+      const { view } = renderMapView({
+        maps: MAPS.map((m) =>
+          m.id === 'foret' ? { ...m, default_category_ids: ['cat-verger'] } : m,
+        ),
+      });
+      await waitForToolbar(view);
+      await waitFor(() =>
+        expect(view.container.querySelector('.fm-pct-zone.is-seen')).not.toBeNull(),
+      );
+      expect(view.container.querySelector('.fm-pct-marker.is-seen')).not.toBeNull();
+    } finally {
+      stubs.categories = saved;
+    }
+  });
+
+  test('catégories cochées d’office : liste des résultats repliée, dépliable', async () => {
+    const saved = stubs.categories;
+    stubs.categories = {
+      ...saved,
+      categories: [{ id: 'cat-verger', label: 'Verger', emoji: '🍎', applies_to: 'both' }],
+    };
+    try {
+      const { view } = renderMapView(
+        {
+          maps: MAPS.map((m) =>
+            m.id === 'foret' ? { ...m, default_category_ids: ['cat-verger'] } : m,
+          ),
+        },
+        { data: { markers: [{ ...MARKERS[0], category_ids: ['cat-verger'] }, MARKERS[1]] } },
+      );
+      await waitForToolbar(view);
+      const toggle = await screen.findByRole('button', { name: /Résultats \(1\)/ }, MOUNT_TIMEOUT);
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('listbox', { name: 'Lieux correspondants' })).toBeNull();
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('listbox', { name: 'Lieux correspondants' })).toBeInTheDocument();
+    } finally {
+      stubs.categories = saved;
+    }
+  });
+
+  test('réglage global obsolète : n’impose plus de catégories d’office', async () => {
     const saved = stubs.categories;
     stubs.categories = {
       ...saved,
@@ -268,21 +318,66 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
       const { view } = renderMapView(
         {},
         {
-          settings: {
-            modules: {},
-            ui: { map: {} },
-            map: { default_category_ids: 'cat-verger' },
-          },
+          settings: { modules: {}, ui: { map: {} }, map: { default_category_ids: 'cat-verger' } },
         },
       );
       await waitForToolbar(view);
       await waitFor(() =>
-        expect(view.container.querySelector('.fm-pct-zone.is-seen')).not.toBeNull(),
+        expect(view.container.querySelectorAll('.fm-pct-marker')).toHaveLength(1),
       );
-      expect(view.container.querySelector('.fm-pct-marker.is-seen')).not.toBeNull();
+      expect(view.container.querySelector('.fm-pct-zone.is-seen')).toBeNull();
+      expect(view.container.querySelector('.fm-pct-marker.is-seen')).toBeNull();
     } finally {
       stubs.categories = saved;
     }
+  });
+
+  test('catégories cachées de la carte : un lieu qui n’a qu’elles disparaît', async () => {
+    const markers = [
+      { ...MARKERS[0], category_ids: ['cat-compost'] },
+      {
+        id: 13,
+        map_id: 'foret',
+        label: 'Mare',
+        x_pct: 70,
+        y_pct: 70,
+        category_ids: ['cat-compost', 'cat-eau'],
+      },
+    ];
+    const maps = MAPS.map((m) =>
+      m.id === 'foret' ? { ...m, hidden_category_ids: ['cat-compost'] } : m,
+    );
+    const view = render(
+      <PublicSettingsProvider value={{ modules: {}, ui: { map: {} } }}>
+        <SessionProvider value={{ isN3Affiliated: false, canParticipateContextComments: true }}>
+          <DataProvider
+            value={{
+              zones: ZONES,
+              markers,
+              tasks: [],
+              tutorials: [],
+              plants: [],
+              activeMapId: 'foret',
+            }}
+          >
+            <MapView
+              maps={maps}
+              isTeacher={false}
+              student={{ id: 'S1', first_name: 'Ada' }}
+              onMapChange={vi.fn()}
+              onZoneUpdate={vi.fn(async () => {})}
+              onRefresh={vi.fn(async () => {})}
+              onForceLogout={vi.fn()}
+            />
+          </DataProvider>
+        </SessionProvider>
+      </PublicSettingsProvider>,
+    );
+    await waitForToolbar(view);
+    // « Compost » n'a que la catégorie cachée ; « Mare » garde « cat-eau ».
+    await waitFor(() => expect(view.container.querySelectorAll('.fm-pct-marker')).toHaveLength(1));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Compost' } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Compost/ })).toBeNull());
   });
 
   test('parcours demandé par une séance : barre d’étape, puis reprise après sortie', async () => {
@@ -307,12 +402,20 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
         onRouteRequestHandled,
       });
       await waitForToolbar(view);
+      // Vue d'ensemble d'abord : tout le tracé, aucune fiche ouverte, puis « Commencer ».
+      const overview = await screen.findByRole(
+        'complementary',
+        { name: 'Parcours Tour du verger — vue d’ensemble' },
+        MOUNT_TIMEOUT,
+      );
+      expect(onRouteRequestHandled).toHaveBeenCalledWith(5);
+      expect(screen.queryByRole('dialog', { name: 'Zone Verger' })).toBeNull();
+      fireEvent.click(within(overview).getByRole('button', { name: 'Commencer le parcours' }));
       const bar = await screen.findByRole(
         'complementary',
         { name: 'Parcours Tour du verger' },
         MOUNT_TIMEOUT,
       );
-      expect(onRouteRequestHandled).toHaveBeenCalledWith(5);
       expect(within(bar).getByText('Le verger')).toBeInTheDocument();
       // Première étape : la fiche de la zone est ouverte.
       expect(await screen.findByRole('dialog', { name: 'Zone Verger' })).toBeInTheDocument();

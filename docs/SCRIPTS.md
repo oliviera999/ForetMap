@@ -210,15 +210,25 @@ ou `npm run deploy:check -- --base-url http://127.0.0.1:3000`.
 Prérequis : `DEPLOY_SECRET` (ou `FORETMAP_DEPLOY_CHECK_SECRET` /
 `FORETMAP_DEPLOY_SECRET`) dans le `.env` **local**.
 
-| Symptôme                              | Lancer                                                                     |
-| ------------------------------------- | -------------------------------------------------------------------------- |
-| « C’est debout ? »                    | `npm run deploy:check:prod`                                                |
-| « Pourquoi ça a redémarré ? »         | `npm run prod:uptime-report` (`-- --hours=168` pour une semaine)           |
-| JSON diagnostics complet              | `npm run prod:admin-diagnostics`                                           |
-| Dernières lignes Pino + snapshot      | `npm run prod:admin-tail`                                                  |
-| Check **puis** logs (un seul geste)   | `npm run prod:remote-debug`                                                |
-| Chrome `ERR_HTTP2_PROTOCOL_ERROR`     | `npm run prod:transport-probe`                                             |
-| Depuis Cursor (MCP, secret hors chat) | `npm run mcp:diag` — voir [MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md) |
+| Symptôme                              | Lancer                                                                      |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| « C’est debout ? »                    | `npm run deploy:check:prod`                                                 |
+| « Pourquoi ça a redémarré ? »         | `npm run prod:uptime-report` (`-- --hours=168` pour une semaine)            |
+| JSON diagnostics complet              | `npm run prod:admin-diagnostics`                                            |
+| Dernières lignes Pino + snapshot      | `npm run prod:admin-tail`                                                   |
+| Check **puis** logs (un seul geste)   | `npm run prod:remote-debug`                                                 |
+| Chrome `ERR_HTTP2_PROTOCOL_ERROR`     | `npm run prod:transport-probe`                                              |
+| Dernier admin bloqué par TOTP         | `npm run totp:admin -- status`, puis `reset` ou `enforcement off` si besoin |
+| Depuis Cursor (MCP, secret hors chat) | `npm run mcp:diag` — voir [MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md)  |
+
+Secours TOTP : `status` est en lecture seule ; les commandes qui écrivent exigent
+`--yes`, utilisent le `.env` du serveur et sont journalisées comme actions `cli`
+([EXPLOITATION.md](EXPLOITATION.md#double-authentification-totp-des-comptes-administrateur-et-n3boss)).
+
+```bash
+npm run totp:admin -- reset --user admin@exemple.fr --yes
+npm run totp:admin -- enforcement off --yes
+```
 
 Alerte e-mail (cron, **ne fait jamais échouer** la chaîne si SMTP est down) :
 
@@ -237,6 +247,7 @@ Toujours le dry-run d’abord.
 | Comptes e2e / clones de tâches récurrentes | `npm run db:cleanup:dev:dry`                       | `npm run db:cleanup:dev`                                |
 | Fichiers `uploads/` orphelins              | `npm run db:uploads:reconcile:dry`                 | `npm run db:uploads:reconcile`                          |
 | Journaux trop vieux (IP, audit, events GL) | `node scripts/purge-audit-logs.js`                 | `npm run logs:purge -- --apply`                         |
+| Durées de conservation (comptes, journaux) | `npm run retention:purge`                          | `RETENTION_PURGE_APPLY=1` + `--apply` (ligne 5)         |
 | Bulles d’aide figées (Foret / GL)          | `npm run help:compact:dry` / `gl:help:compact:dry` | même commande sans `:dry`                               |
 | Tutoriels HTML identiques                  | `node scripts/merge-duplicate-tutorials.js`        | `npm run tutorials:dedup -- --apply`                    |
 | Tables `collective_*` obsolètes            | `npm run db:collective:cleanup:audit:dry`          | `npm run db:collective:cleanup:audit`                   |
@@ -279,14 +290,17 @@ modifies la validation pack **sans** rebuild.
 
 ## 8. Ne pas lancer à la légère
 
-| Commande                                 | Pourquoi                                                                              |
-| ---------------------------------------- | ------------------------------------------------------------------------------------- |
-| `npm run db:import:dump`                 | Recrée la base cible (DROP).                                                          |
-| `npm run logs:purge -- --apply`          | Efface des journaux (dont IP d’élèves).                                               |
-| `npm run db:uploads:reconcile`           | Supprime des fichiers disque.                                                         |
-| `npm run db:migrate:images:clear`        | Vide `image_data` après bascule disque.                                               |
-| `npm run tutorials:dedup -- --apply`     | Supprime des lignes pédagogiques (contenu identique, métadonnées du doublon perdues). |
-| `node scripts/auto-resolve-conflicts.js` | Outil **CI** : ne résout que CHANGELOG / version. Pas un jouet local.                 |
+| Commande                                      | Pourquoi                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `npm run db:import:dump`                      | Recrée la base cible (DROP).                                                          |
+| `npm run logs:purge -- --apply`               | Efface des journaux (dont IP d’élèves).                                               |
+| `npm run retention:purge -- --apply`          | Avec `RETENTION_PURGE_APPLY=1` : supprime des comptes d’élèves et de personnels.      |
+| `npm run totp:admin -- reset … --yes`         | Réinitialise le second facteur d'un compte et ferme toutes ses sessions.              |
+| `npm run totp:admin -- enforcement off --yes` | Coupe la double authentification de secours pour les comptes admin / n3boss.          |
+| `npm run db:uploads:reconcile`                | Supprime des fichiers disque.                                                         |
+| `npm run db:migrate:images:clear`             | Vide `image_data` après bascule disque.                                               |
+| `npm run tutorials:dedup -- --apply`          | Supprime des lignes pédagogiques (contenu identique, métadonnées du doublon perdues). |
+| `node scripts/auto-resolve-conflicts.js`      | Outil **CI** : ne résout que CHANGELOG / version. Pas un jouet local.                 |
 
 ---
 

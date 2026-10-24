@@ -38,7 +38,7 @@ d'autres points voisins sur les images (suppression, accès).
   documenter noir sur blanc. Aucun effort, mais le risque demeure et grandit avec
   l'ouverture de l'application (visite publique, inscription libre).
 
-**Décision :** ✅ **Livré** (2026-07-08, option A) — vérification faite : la quasi-totalité des actions élèves étaient déjà corrigées depuis l'audit ; la dernière route ouverte (proposition de tâche) exige désormais le jeton de session, rejette toute identité divergente et journalise l'acteur réel. Les points images (R1-R3 de l'audit technique) restent ouverts, à traiter séparément.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — vérification faite : la quasi-totalité des actions élèves étaient déjà corrigées depuis l'audit ; la dernière route ouverte (proposition de tâche) exige désormais le jeton de session, rejette toute identité divergente et journalise l'acteur réel. Les points images (R1-R3 de l'audit technique) restaient ouverts ; ✅ **soldés depuis** (septembre 2026, audits sécurité du 22/09 et sécurité/RGPD du 30/09) : la suppression d'une zone efface aussi ses photos du disque (R1) ; toute image déposée est contrôlée (vrai contenu d'image, taille bornée) et débarrassée de ses métadonnées, GPS compris (R2) ; les photos d'élèves (avatars, forum, commentaires, tâches, carnets) ne s'ouvrent plus par lien direct mais par un lien signé valable quelques heures ou via un contrôle des droits (R3). Les photos des lieux restent publiques : ce sont des contenus publiés par l'équipe.
 
 ### F2 — 🔴 Parcours du nouvel inscrit : un compte auto-créé reste « visiteur » sans explication
 
@@ -333,7 +333,7 @@ peuvent tout administrer.
 - **B** — 8+ pour tout le monde. Plus sûr mais pénible pour les plus jeunes.
 - **C** — Statu quo documenté.
 
-**Décision :** ✅ **Livré** (2026-07-08, option A) — 8 caractères minimum pour les comptes MJ/Admin (changement et réinitialisation), les joueurs restent à 4.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — 8 caractères minimum pour les comptes MJ/Admin (changement et réinitialisation), les joueurs restaient à 4. ⚠️ **Dépassé le 2026-09-30** (audit sécurité/RGPD) : le minimum est désormais de **8 caractères pour tout le monde**, élèves et joueurs compris (réglable vers le haut, jamais en dessous), et de **12 caractères** pour les comptes professeur et administrateur quand le mot de passe est choisi dans ForetMap. Les mots de passe existants restent valables jusqu'au prochain changement.
 
 ### G8 — 🟡 Sorts : qui lance, en temps normal ?
 

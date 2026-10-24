@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { Tooltip } from '../../shared/components/Tooltip.jsx';
 import {
   formatNotificationDateFr,
@@ -26,6 +27,7 @@ const GL_CATEGORY_LABELS = Object.freeze({
 export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onClear }) {
   const groups = useMemo(() => groupNotificationsByCategory(items, GL_CATEGORY_LABELS), [items]);
   const [open, setOpen] = useState(false);
+  useOverlayHistoryBack(open, () => setOpen(false));
   return (
     <div className="gl-notifications">
       <Tooltip

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { POLLING_COARSE_TABS } from '../constants/app-runtime';
+import { isDeviceOffline } from '../shared/networkStatus.js';
 
 /** Intervalle plancher quand le temps réel Socket.IO est actif (filet REST si un événement a été manqué). */
 export const LIVE_MIN_INTERVAL_MS = 90000;
@@ -46,6 +47,8 @@ export function useAppDataPolling({
     const id = setInterval(() => {
       if (pauseRef.current) return;
       if (document.visibilityState === 'hidden') return;
+      // Hors ligne : rien à rafraîchir ; `useAppDataSync` relance un cycle au retour du réseau.
+      if (isDeviceOffline()) return;
       fetchAll();
     }, pollingIntervalMs);
     return () => clearInterval(id);

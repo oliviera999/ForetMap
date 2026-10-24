@@ -24,6 +24,8 @@ export const PLAN_VARIANT = Object.freeze({
   bodyClass: 'plan-body',
   /** L'entrée demande-t-elle un compte ForetMap ? */
   requiresAccount: false,
+  /** Un lien `?code=` (QR code interne) ouvre-t-il ce plan ? (`src/plan/utils/planAccessLink.js`) */
+  acceptsLinkCode: true,
   accessIntro:
     'Ce plan est réservé à l’établissement. Saisissez le code qui vous a été communiqué.',
 });
@@ -61,6 +63,9 @@ export const STAFF_PLAN_VARIANT = Object.freeze({
  * `highlightPlaces` n'est posé que sur cette variante : c'est lui qui allume la mise en avant
  * dans `AppPlan`, sur la foi des champs `is_enov` que seule la charge `/api/enov/content`
  * renvoie.
+ *
+ * `labelLogo` : logo du label (AEFE), affiché dans la barre haute **en plus** du logo de
+ * l'établissement, qui reste sur la carte comme sur les autres plans.
  */
 export const ENOV_PLAN_VARIANT = Object.freeze({
   id: 'enov',
@@ -70,8 +75,13 @@ export const ENOV_PLAN_VARIANT = Object.freeze({
   defaultTitle: 'Plan e-nov',
   bodyClass: 'plan-body enov-plan-body',
   requiresAccount: false,
+  acceptsLinkCode: true,
   accessIntro: 'Ce plan est réservé aux invités du label e-nov. Saisissez le code communiqué.',
   highlightPlaces: true,
+  labelLogo: Object.freeze({
+    url: '/enov/logo-enov.png',
+    alt: 'Label e-nov — Établissements innovants (AEFE)',
+  }),
 });
 
 /**

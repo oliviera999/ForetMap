@@ -28,9 +28,15 @@
   stroke-width: calc(1.5px * var(--pct-inv, 1));
   vector-effect: non-scaling-stroke;
   transition:
-    fill-opacity 0.18s ease,
-    stroke-opacity 0.18s ease,
-    stroke-width 0.18s ease;
+    fill-opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    stroke-opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    stroke-width var(--motion-fast, 0.16s) var(--ease-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-zone__poly {
+    transition: none;
+  }
 }
 
 /* Fiche ouverte : zone affirmée, voisines estompées (pas de rectangle de focus noir). */
@@ -60,7 +66,7 @@
 
 /* Halo bref « à découvrir » : quelques non-vus proches du centre, une seule fois. */
 .fm-pct-zone.is-discover-halo:not(.is-active) .fm-pct-zone__poly {
-  animation: fmPctDiscoverHalo 2.6s ease-out 1 forwards;
+  animation: fmPctDiscoverHalo var(--motion-map-discover-halo, 2600ms) ease-out 1 forwards;
 }
 
 @keyframes fmPctDiscoverHalo {
@@ -270,13 +276,62 @@
     rotate(calc(-1 * var(--pct-orient, 0deg)));
   transform-origin: 50% 50%;
   /* Carte orientée : même transition que le calque, pour que le texte reste droit pendant la
-     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : aucune
-     transition, et le zoom reste instantané. */
-  transition: var(--pct-orient-transition, none);
+     rotation (`mapOrientationStyle`). Hors orientation, la variable n'existe pas : le repli
+     `transform 0s` garde le zoom instantané (`none` serait invalide dans une liste). L'opacité
+     suit la sélection d'un lieu. */
+  transition:
+    opacity var(--motion-fast, 0.16s) var(--ease-out, ease),
+    var(--pct-orient-transition, transform 0s);
 }
 
 .fm-pct-marker.is-seen {
   opacity: 0.42;
+}
+
+/* Lieu ouvert (repère ou zone) : les autres repères s'estompent, comme les zones voisines
+   (`.fm-pct-zones.has-selection`). Les repères sont enfants directs du calque. */
+:has(> .fm-pct-marker.is-active) > .fm-pct-marker:not(.is-active):not(.is-highlight),
+:has(> .fm-pct-zones .fm-pct-zone.is-active) > .fm-pct-marker:not(.is-highlight) {
+  opacity: 0.55;
+}
+
+:has(> .fm-pct-marker.is-active) > .fm-pct-marker.is-seen:not(.is-active),
+:has(> .fm-pct-zones .fm-pct-zone.is-active) > .fm-pct-marker.is-seen {
+  opacity: 0.3;
+}
+
+/* Repère ouvert : pastille de fond qui s'ouvre (transform + opacité, sans repeinte). */
+.fm-pct-marker.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border: 2px solid var(--leaf);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--leaf) 26%, transparent);
+  pointer-events: none;
+  animation: fmPctMarkerActiveIn var(--motion-base, 0.24s) var(--ease-out, ease-out) both;
+}
+
+@keyframes fmPctMarkerActiveIn {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-marker {
+    transition: var(--pct-orient-transition, none);
+  }
+
+  .fm-pct-marker.is-active::after {
+    animation: none;
+  }
 }
 
 .fm-pct-marker.is-unseen {
@@ -284,7 +339,7 @@
 }
 
 .fm-pct-marker.is-discover-halo {
-  animation: fmPctDiscoverMarkerHalo 2.6s ease-out 1 forwards;
+  animation: fmPctDiscoverMarkerHalo var(--motion-map-discover-halo, 2600ms) ease-out 1 forwards;
 }
 
 @keyframes fmPctDiscoverMarkerHalo {
@@ -315,7 +370,8 @@
 .fm-pct-zone.is-highlight .fm-pct-zone__poly {
   stroke: var(--pct-highlight-color, var(--accent-warning-solid));
   stroke-opacity: 1;
-  stroke-width: calc(3.5px * var(--pct-inv, 1));
+  /* Contour fixe : la respiration passe par opacité (compositeur), pas stroke-width (ANIM-12). */
+  stroke-width: calc(4px * var(--pct-inv, 1));
   fill-opacity: 0.85;
   filter: drop-shadow(0 0 4px var(--pct-highlight-color, var(--accent-warning-solid)));
   animation: fmPctHighlightZone 2.4s ease-in-out infinite;
@@ -324,10 +380,12 @@
 @keyframes fmPctHighlightZone {
   0%,
   100% {
-    stroke-width: calc(3px * var(--pct-inv, 1));
+    fill-opacity: 0.68;
+    stroke-opacity: 0.75;
   }
   50% {
-    stroke-width: calc(5.5px * var(--pct-inv, 1));
+    fill-opacity: 0.95;
+    stroke-opacity: 1;
   }
 }
 
@@ -427,16 +485,21 @@
 .fm-pct-position {
   position: absolute;
   z-index: 2;
+  /* Une boîte réelle, de la taille du point : à 0 × 0, le conteneur serait muet pour un lecteur
+     d'écran malgré son `role="img"`. */
   width: 22px;
   height: 22px;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  /* Le repère n'est publié qu'une douzaine de fois par seconde (`useMapPosition`) : la
-     transition relie deux publications sur le compositeur, sans rendu supplémentaire. Elle
-     dure un peu plus que l'intervalle, pour qu'il n'y ait jamais de temps mort. */
-  transition:
-    left 90ms linear,
-    top 90ms linear;
+  /* Le repère est publié toutes les 80 ms (`useMapPosition`) et déplacé par `transform`
+     (`usePctAnchorTransform`) : la transition relie deux publications sur le compositeur,
+     sans recalcul de mise en page. Elle dure un peu plus que l'intervalle, pour qu'il n'y ait
+     jamais de temps mort. */
+  transition: transform var(--motion-map-position, 90ms) linear;
+}
+
+.fm-pct-position.is-settling {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -512,8 +575,16 @@
   text-shadow: 0 0 3px var(--surface-plain);
 }
 
-/* Direction « Y aller » : trait droit, jamais un itinéraire. */
-.fm-pct-direct-line {
+/* --- Parcours : tracé fléché et ligne de guidage (`PctRouteLayer.jsx`) ----------------------
+   Calque SVG en pixels du rectangle image : les épaisseurs sont contre-échelonnées par
+   `--pct-inv` pour garder une taille constante à l'écran. Chaque trait porte un liseré clair
+   qui le détache du fond de plan, quel qu'il soit. « Y aller » réutilise la ligne de guidage
+   (classe additionnelle `fm-pct-direct-line`) : une direction, jamais un itinéraire. */
+.fm-pct-route {
+  --fm-route-path: var(--forest);
+  --fm-route-current: var(--leaf);
+  --fm-route-done: var(--ink-muted);
+  --fm-route-guide: var(--accent-info-solid);
   position: absolute;
   inset: 0;
   width: 100%;
@@ -522,12 +593,222 @@
   overflow: visible;
 }
 
-.fm-pct-direct-line__stroke {
-  stroke: var(--accent-info-solid);
-  stroke-width: calc(2px * var(--pct-inv, 1));
-  stroke-dasharray: calc(6px * var(--pct-inv, 1)) calc(5px * var(--pct-inv, 1));
+.fm-pct-route line {
+  fill: none;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
+}
+
+.fm-pct-route__casing {
+  stroke: var(--surface-plain);
+  stroke-width: calc(9px * var(--pct-inv, 1));
+  stroke-opacity: 0.9;
+}
+
+/* Les étapes restent reliées d'un bout à l'autre du parcours : à venir dans la couleur du
+   parcours, déjà parcourues dans une autre couleur (trait plein, pas un pointillé qu'on ne
+   distingue plus du fond), tronçon en cours mis en avant. */
+.fm-pct-route__stroke {
+  stroke: var(--fm-route-path);
+  stroke-width: calc(5px * var(--pct-inv, 1));
+}
+
+.fm-pct-route__stroke.is-current {
+  stroke: var(--fm-route-current);
+  stroke-width: calc(6px * var(--pct-inv, 1));
+}
+
+.fm-pct-route__stroke.is-done {
+  stroke: var(--fm-route-done);
+}
+
+/* Chevrons : dessinés autour de l'origine de leur groupe, puis contre-échelonnés. */
+.fm-pct-route__chevron path,
+.fm-pct-route__guide-chevron path {
+  fill: none;
+  stroke: var(--surface-plain);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: scale(var(--pct-inv, 1));
+}
+
+.fm-pct-route__guide-casing {
+  stroke: var(--surface-plain);
+  stroke-width: calc(12px * var(--pct-inv, 1));
+  stroke-opacity: 0.95;
+}
+
+.fm-pct-route__guide-stroke {
+  stroke: var(--fm-route-guide);
+  stroke-width: calc(7px * var(--pct-inv, 1));
+}
+
+/* Filet clair qui « coule » vers la cible : le sens se lit même d'un coup d'œil. */
+.fm-pct-route__guide-flow {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: calc(2px * var(--pct-inv, 1));
+  stroke-dasharray: calc(3px * var(--pct-inv, 1)) calc(9px * var(--pct-inv, 1));
+}
+
+.fm-pct-route.is-animated .fm-pct-route__guide-flow {
+  animation: fm-route-flow 900ms linear infinite;
+}
+
+@keyframes fm-route-flow {
+  to {
+    stroke-dashoffset: calc(-12px * var(--pct-inv, 1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-route.is-animated .fm-pct-route__guide-flow {
+    animation: none;
+  }
+}
+
+/* Pastilles numérotées des étapes : au-dessus des repères, décalées en haut à droite du lieu,
+   transparentes au toucher (le lieu reste ouvrable dessous). */
+.fm-pct-route-badges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fm-pct-route-badge {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.fm-pct-route-badge.is-current {
+  z-index: 2;
+}
+
+.fm-pct-route-badge__inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: scale(var(--pct-inv, 1)) rotate(calc(-1 * var(--pct-orient, 0deg)))
+    translate(8px, -32px);
+  transform-origin: 0 0;
+  transition: var(--pct-orient-transition, none);
+  white-space: nowrap;
+}
+
+.fm-pct-route-badge__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--surface-plain);
+  border-radius: 999px;
+  background: var(--fm-route-badge-bg, var(--forest));
+  color: var(--fm-route-badge-fg, var(--surface-plain));
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: var(--shadow-map-badge);
+}
+
+.fm-pct-route-badge.is-upcoming {
+  --fm-route-badge-bg: var(--surface-plain);
+  --fm-route-badge-fg: var(--forest);
+}
+
+.fm-pct-route-badge.is-upcoming .fm-pct-route-badge__number {
+  border-color: var(--forest);
+}
+
+.fm-pct-route-badge.is-done {
+  --fm-route-badge-bg: var(--ink-muted);
+}
+
+.fm-pct-route-badge.is-current {
+  --fm-route-badge-bg: var(--leaf);
+}
+
+.fm-pct-route-badge.is-current .fm-pct-route-badge__number {
+  position: relative;
+  min-width: 32px;
+  height: 32px;
+  font-size: var(--text-base);
+}
+
+/* Onde de l'étape courante : un anneau qui grandit et s'efface, animé en `transform` /
+   `opacity` (compositeur) plutôt qu'un `box-shadow` repeint à chaque image. */
+.fm-pct-route-badge.is-current .fm-pct-route-badge__number::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--leaf) 55%, transparent);
+  pointer-events: none;
+  z-index: -1;
+  animation: fm-route-badge-pulse var(--motion-map-pulse, 1.8s) var(--ease-out, ease-out) infinite;
+}
+
+@keyframes fm-route-badge-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-pct-route-badge.is-current .fm-pct-route-badge__number::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.fm-pct-route-badge__tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-plain);
+  color: var(--forest);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Barre de parcours : vue d'ensemble (`MapRouteBar`, phase « overview ») -------------- */
+.fm-route-overview__summary {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.fm-route-overview__description {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.fm-route-bar__overview-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fm-route-bar__head-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
 }
 
 /* Pastille d'un groupe de repères (désencombrement). */

@@ -11,6 +11,7 @@ import { FixedToast } from '../../shared/components/FixedToast.jsx';
  */
 export function GLAppBanners({
   error,
+  onDismissError,
   isStaffPlayerPreview,
   isGuestMode = false,
   onQuitGuest,
@@ -25,7 +26,17 @@ export function GLAppBanners({
 }) {
   return (
     <>
-      {error ? <div className="gl-error-banner">{error}</div> : null}
+      {error ? (
+        // `role="alert"` : la seule bannière qui compte doit être annoncée (audit août § 5.2.4).
+        <div className="gl-error-banner" role="alert">
+          <span>{error}</span>
+          {typeof onDismissError === 'function' ? (
+            <GLButton type="button" variant="ghost" size="sm" onClick={onDismissError}>
+              Fermer
+            </GLButton>
+          ) : null}
+        </div>
+      ) : null}
 
       {isGuestMode ? (
         <div className="role-preview-banner role-preview-banner--guest fade-in" role="status">

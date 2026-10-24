@@ -36,6 +36,16 @@ const { test, expect } = require('@playwright/test');
  */
 
 const ADMIN_EMAIL = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
+
+/** Contour d'une zone (`points`, JSON `[{ xp, yp }, …]`) : au moins un sommet chiffré. */
+function hasOutline(points) {
+  try {
+    const pts = typeof points === 'string' ? JSON.parse(points || '[]') : points;
+    return Array.isArray(pts) && pts.some((p) => Number.isFinite(Number(p?.xp)));
+  } catch {
+    return false;
+  }
+}
 const ADMIN_PASSWORD = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
 
 /** Jeton professeur (l'écriture des parcours demande `zones.manage`). */
@@ -81,8 +91,13 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
   expect(contentRes.ok()).toBeTruthy();
   const content = await contentRes.json();
   const mapId = String(content.map?.id || '');
-  const zone = (content.zones || [])[0];
-  const marker = (content.markers || [])[0];
+  // Deux lieux **placés** sur la carte : le tracé relie leurs positions. Une zone sans contour
+  // (la suite backend, lancée avant dans le même job, en laisse) n'a pas de point sur la carte,
+  // et le tracé n'aurait alors qu'une seule étape à relier.
+  const zone = (content.zones || []).find((z) => hasOutline(z.points));
+  const marker = (content.markers || []).find(
+    (m) => Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct)),
+  );
   test.skip(!mapId || !zone || !marker, 'Le plan de cette base locale n’a pas deux lieux.');
 
   const token = await teacherToken(request);
@@ -125,6 +140,14 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
 
   const sheet = page.getByTestId('plan-route-sheet');
   await expect(sheet).toBeVisible({ timeout: 15_000 });
+  // Vue d'ensemble d'abord (réglage `ui.routes.overview_enabled`, actif par défaut) : tout le
+  // tracé fléché, les étapes numérotées sur la carte et dans la barre.
+  await expect(sheet).toHaveAttribute('data-phase', 'overview');
+  await expect(sheet.getByText(/Vue d’ensemble — 2 étapes/)).toBeVisible();
+  await expect(page.getByTestId('map-route-lines')).toBeAttached();
+  await expect(page.locator('[data-testid="map-route-badges"] [data-step-number]')).toHaveCount(2);
+  await sheet.getByRole('button', { name: 'Commencer le parcours' }).click();
+  await expect(sheet).toHaveAttribute('data-phase', 'steps');
   await expect(sheet.getByText('Première étape')).toBeVisible();
   await expect(sheet.getByText('Étape 1 sur 2')).toBeVisible();
   // L'URL porte le parcours : c'est elle qu'on imprime sous forme de QR code.
@@ -159,6 +182,8 @@ test('plan : parcours par la puce, par lien profond, et sortie', async ({ page, 
   await page.goto(`/?parcours=${slug}`);
   const deepSheet = page.getByTestId('plan-route-sheet');
   await expect(deepSheet).toBeVisible({ timeout: 30_000 });
+  await expect(deepSheet).toHaveAttribute('data-phase', 'overview');
+  await deepSheet.getByRole('button', { name: 'Commencer le parcours' }).click();
   await expect(deepSheet.getByText('Première étape')).toBeVisible();
 
   // 3) Affiche périmée : le visiteur l'apprend au lieu d'arriver sur un plan nu.

@@ -128,6 +128,7 @@ async function seedGlGlossaryTerm(label = 'journal-import') {
 /** Clés des parcours guidés GL (`gl_discovery_seen_v1`). */
 const GL_DISCOVERY_TOUR_TAB_KEYS = [
   'welcome',
+  'seuil',
   'discovery',
   'maps',
   'ecosystemes',

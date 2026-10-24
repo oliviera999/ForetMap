@@ -28,7 +28,6 @@ import {
   tutorialPreviewPayload,
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { rememberLastViewedMapId } from '../utils/lastViewedMap.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
@@ -46,10 +45,15 @@ import { MAP_GUIDE_BAR_FOCUS_INSET_PX, MapGuideBar } from '../shared/map-guide/M
 import { useMapGuidance } from '../shared/map-guide/useMapGuidance.js';
 import { mapPlaceKey } from '../shared/map-guide/mapGuidePlace.js';
 import {
+  buildStageRoute,
   mapRouteResumeStorageKey,
   placesFromZonesAndMarkers,
   routeEntryFocusPct,
 } from '../shared/map-routes/mapRouteSteps.js';
+import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
+import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
+import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -497,25 +501,36 @@ function VisitViewImpl({
     () => (routeBarHeight > 0 ? { bottom: routeBarHeight } : null),
     [routeBarHeight],
   );
+  /** Réglages du mode parcours (`ui.routes.*`), bornés. */
+  const routeSettings = useMemo(
+    () => resolveRouteSettings(publicSettings?.routes),
+    [publicSettings?.routes],
+  );
   const onRouteStepPlace = useCallback(
     (entry) => {
       if (!entry?.place) return;
       const place = entry.place;
+      // Caméra guidée : c'est la scène qui cadre l'étape, avec la position.
       const focusOptions = routeFocusInsets ? { insets: routeFocusInsets } : undefined;
+      const recenter = !routeSettings.cameraEnabled;
       if (place.kind === 'zone') {
         setSelected(place);
         setSelectedType('zone');
-        const c = visitZoneCentroidPct(place);
+        const c = recenter ? visitZoneCentroidPct(place) : null;
         if (c) focusOnPct({ xp: c.xp, yp: c.yp }, focusOptions);
       } else {
         setSelected(place);
         setSelectedType('marker');
-        if (Number.isFinite(Number(place.x_pct)) && Number.isFinite(Number(place.y_pct))) {
+        if (
+          recenter &&
+          Number.isFinite(Number(place.x_pct)) &&
+          Number.isFinite(Number(place.y_pct))
+        ) {
           focusOnPct({ xp: Number(place.x_pct), yp: Number(place.y_pct) }, focusOptions);
         }
       }
     },
-    [setSelected, setSelectedType, focusOnPct, routeFocusInsets],
+    [setSelected, setSelectedType, focusOnPct, routeFocusInsets, routeSettings.cameraEnabled],
   );
   const onRouteExitExtra = useCallback(() => {
     setSelected(null);
@@ -525,6 +540,7 @@ function VisitViewImpl({
     activeRoute,
     routeSteps,
     routeIndex,
+    routePhase,
     currentRouteEntry,
     routePickerOpen,
     setRoutePickerOpen,
@@ -533,16 +549,32 @@ function VisitViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    beginRouteSteps,
+    showRouteOverview,
     resetForMapChange,
   } = useMapRouteMode({
     routes: content.routes || [],
     places: routePlaces,
     onStepPlace: onRouteStepPlace,
     onExitExtra: onRouteExitExtra,
+    onOverviewExtra: onRouteExitExtra,
     // Reprise mémorisée sur l'appareil : « Reprendre » rend la main à l'étape quittée, même
     // après un rechargement (`docs/AUDIT_PARCOURS_2026-09-17.md` §2.2).
     storageKey: mapRouteResumeStorageKey('visit', mapId),
+    overviewEnabled: routeSettings.overviewEnabled,
   });
+  const visitStageRoute = useMemo(
+    () =>
+      buildStageRoute({
+        route: activeRoute,
+        phase: routePhase,
+        steps: routeSteps,
+        index: routeIndex,
+        entry: currentRouteEntry,
+        settings: routeSettings,
+      }),
+    [activeRoute, routePhase, routeSteps, routeIndex, currentRouteEntry, routeSettings],
+  );
   useEffect(() => {
     resetForMapChange();
   }, [mapId, resetForMapChange]);
@@ -561,6 +593,16 @@ function VisitViewImpl({
     allowed: visitHeadingUpAllowed,
   });
   const visitHeadingUpEffective = visitHeadingUpPref.effective && visitPosition.active;
+  /** « Commencer le parcours » : première étape (ou celle choisie) et position allumée. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && visitPosition.available && !visitPosition.active) {
+        visitPosition.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, visitPosition],
+  );
   const visitScaleCompassAllowed =
     !!currentMap?.georef && !!currentMap?.scale_compass_enabled && mode === 'view';
   const visitScaleCompassPref = useScaleCompassPreference({
@@ -573,6 +615,43 @@ function VisitViewImpl({
   /** Rect « contain » courant en lecture impérative (contrôleur de la mascotte). */
   const visitMapFitRef = useRef(visitMapFit);
   visitMapFitRef.current = visitMapFit;
+
+  // Zoom sur le lieu avant sa fiche (pendant la marche de la mascotte), puis retour à la vue
+  // d'avant. Pendant un parcours, la caméra guidée garde la main.
+  const placeFocusSettings = useMemo(
+    () => resolvePlaceFocusSettings(publicSettings?.place_focus),
+    [publicSettings?.place_focus],
+  );
+  const getVisitViewport = useCallback(() => visitViewportApiRef.current, []);
+  const visitPlaceFocusActive = placeFocusSettings.visitEnabled && mode === 'view' && !activeRoute;
+  const visitPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.visit);
+  const placeFocus = usePlaceFocusSequence({
+    getViewport: getVisitViewport,
+    enabled: visitPlaceFocusActive,
+    durationMs: placeFocusSettings.durationMs,
+    maxZoom: placeFocusSettings.maxZoom,
+    restoreOnClose: placeFocusSettings.restoreOnClose,
+    resetKey: String(mapId || ''),
+    onFx: visitPlaceFx.onFx,
+  });
+  /** Bords recouverts (barre de guidage) : lus à l'ouverture, calculés plus bas. */
+  const visitMapFocusInsetsRef = useRef(null);
+  const openVisitSelection = useCallback(
+    (item, itemType) => {
+      placeFocus.focusThenOpen(
+        { ...item, kind: itemType },
+        () => {
+          setSelected(item);
+          setSelectedType(itemType);
+        },
+        { insets: visitMapFocusInsetsRef.current },
+      );
+    },
+    [placeFocus, setSelected, setSelectedType],
+  );
+  useEffect(() => {
+    if (!visitPlaceFocusActive) placeFocus.forget();
+  }, [visitPlaceFocusActive, placeFocus]);
 
   // Mascotte du plan : états, minuteries, placement par carte, dialogues et
   // interactions data-driven regroupés dans le contrôleur dédié (timings identiques).
@@ -607,16 +686,17 @@ function VisitViewImpl({
     viewportFitHeight: visitMapFit.height,
     setSelected,
     setSelectedType,
+    openSelection: openVisitSelection,
+    // Zoom sur le lieu pendant la marche de la mascotte, pas après.
+    openSelectionInParallel: visitPlaceFocusActive,
   });
 
   const closeVisitSelection = useCallback(() => {
     cancelScheduledDetailPanelOpen();
     setSelected(null);
     setSelectedType(null);
-  }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType]);
-  useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
-  useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
-
+    placeFocus.restore();
+  }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType, placeFocus]);
   /**
    * Guidage « Y aller » : depuis la fiche d'un lieu, la carte trace une **ligne droite** entre
    * la position et ce lieu, avec la distance. Ce n'est pas un itinéraire — la visite ne connaît
@@ -629,8 +709,10 @@ function VisitViewImpl({
    */
   const onVisitGuidanceStart = useCallback(() => {
     if (visitPosition.available && !visitPosition.active) visitPosition.toggle();
+    // « Y aller » : la carte cadre le guidage, pas la vue d'avant le zoom.
+    placeFocus.forget();
     closeVisitSelection();
-  }, [visitPosition, closeVisitSelection]);
+  }, [visitPosition, closeVisitSelection, placeFocus]);
   const {
     guidedPlace: visitGuidedPlaceRaw,
     goTo: goToVisitPlace,
@@ -673,9 +755,10 @@ function VisitViewImpl({
   }, [visitTargetPct, visitPosition.positionPct, visitPosition.planSize]);
   /** Recadrage de la carte au-dessus de la barre affichée (étape de parcours ou guidage). */
   const visitMapFocusInsets = useMemo(() => {
-    if (activeRoute) return { bottom: 96 };
+    if (activeRoute) return routeFocusInsets || { bottom: 96 };
     return visitGuidedPlace ? { bottom: MAP_GUIDE_BAR_FOCUS_INSET_PX } : null;
-  }, [activeRoute, visitGuidedPlace]);
+  }, [activeRoute, routeFocusInsets, visitGuidedPlace]);
+  visitMapFocusInsetsRef.current = visitMapFocusInsets;
   /**
    * Le lieu visé reste dessiné même si les filtres de catégories l'excluent : sans cela, « Y
    * aller » guidait vers un repère invisible (même constat que `shownPlaces` côté Plan).
@@ -728,10 +811,7 @@ function VisitViewImpl({
           emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
           showMascotDialog('map_read');
           if (c) scheduleVisitDetailPanelOpen(place, 'zone', c.xp, c.yp, fromPct);
-          else {
-            setSelected(place);
-            setSelectedType('zone');
-          }
+          else openVisitSelection(place, 'zone');
         } else {
           moveVisitMapMascotTo(Number(place.x_pct), Number(place.y_pct));
           emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
@@ -756,6 +836,7 @@ function VisitViewImpl({
       emitMascotEvent,
       showMascotDialog,
       scheduleVisitDetailPanelOpen,
+      openVisitSelection,
       setSelected,
       setSelectedType,
       visitMapMascotPctRef,
@@ -1098,6 +1179,9 @@ function VisitViewImpl({
                   selectedPlace={
                     selected && selectedType ? { ...selected, kind: selectedType } : null
                   }
+                  autoFocusSelected={!visitPlaceFocusActive}
+                  placeFocusFx={visitPlaceFx.fx}
+                  placeFocusStatus={placeFocus.statusMessage}
                   onSelectPlace={onSelectPlaceFromStage}
                   seen={showVisitSeenStatus ? seen : null}
                   position={visitPosition}
@@ -1116,6 +1200,8 @@ function VisitViewImpl({
                   fitExtraStyle={visitFitExtraStyle}
                   focusInsets={visitMapFocusInsets}
                   targetPct={visitTargetPct}
+                  routeLineAnimated={routeSettings.lineAnimated}
+                  route={mode === 'view' ? visitStageRoute : null}
                   onViewportChange={onVisitViewportChange}
                   onBackgroundClick={onMapBackgroundClick}
                   onMapImageError={() =>
@@ -1180,6 +1266,9 @@ function VisitViewImpl({
                     route={activeRoute}
                     steps={routeSteps}
                     index={routeIndex}
+                    phase={routePhase}
+                    onBegin={onBeginRoute}
+                    onShowOverview={showRouteOverview}
                     onGoToIndex={goToRouteIndex}
                     onExit={exitRoute}
                     onHeight={setRouteBarHeight}
@@ -1196,10 +1285,12 @@ function VisitViewImpl({
                     positionActive={!!visitPosition.active}
                     canLocate={!!visitPosition.available}
                     onStop={stopVisitGuidance}
-                    onOpenPlace={() => {
-                      setSelected(visitGuidedPlace);
-                      setSelectedType(visitGuidedPlace.kind === 'marker' ? 'marker' : 'zone');
-                    }}
+                    onOpenPlace={() =>
+                      openVisitSelection(
+                        visitGuidedPlace,
+                        visitGuidedPlace.kind === 'marker' ? 'marker' : 'zone',
+                      )
+                    }
                     onLocate={visitPosition.toggle}
                     unavailableHint="Le lieu est mis en avant sur la carte ; la localisation n’est pas disponible ici."
                     testId="visit-guide-bar"

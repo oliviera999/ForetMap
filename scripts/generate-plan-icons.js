@@ -66,7 +66,7 @@ ${svg.replace(/^<\?xml[^>]*>\r?\n/, '')}`,
     `<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Même favicon que le plan public (logo officiel Lycée Lyautey).
-  La distinction d’onglet repose sur le titre et theme-color (#7a4a00) — plan e-nov.
+  La distinction d’onglet repose sur le titre et theme-color (#365f85) — plan e-nov.
 -->
 ${svg.replace(/^<\?xml[^>]*>\r?\n/, '')}`,
     'utf8',

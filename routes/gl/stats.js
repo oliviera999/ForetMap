@@ -3,7 +3,8 @@
 const express = require('express');
 const { queryOne, queryAll } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
-const { getGameplaySettings } = require('../../lib/glSettings');
+const { getGameplaySettings, getGlModulesSettings } = require('../../lib/glSettings');
+const { loadVoyageurCountsForPlayers, summarizeVoyageur } = require('../../lib/glVoyageur');
 const { buildClassStats, buildPlayerStats } = require('../../lib/glPlayerStats');
 const { getOnlineUserIdSet } = require('../../lib/realtime');
 const { attachPresenceStatus } = require('../../lib/shared/presenceCore');
@@ -90,6 +91,19 @@ router.get(
     }
     const vitalityEnabled = await resolveVitalityEnabled();
     const data = await buildClassStats(db, classId, { vitalityEnabled });
+    // Le Seuil (S5) : stade et penchant de chaque élève, pour l'accompagner — lus par le MJ,
+    // jamais montrés aux autres élèves (pas de classement côté joueur).
+    const modules = await getGlModulesSettings();
+    if (modules.voyageurEnabled && Array.isArray(data.players) && data.players.length) {
+      const countsById = await loadVoyageurCountsForPlayers(
+        db,
+        data.players.map((p) => p.id),
+      );
+      data.players = data.players.map((p) => ({
+        ...p,
+        voyageur: summarizeVoyageur(countsById.get(Number(p.id)) || {}),
+      }));
+    }
     if (await isModuleEnabled('gl', 'presence')) {
       data.players = attachPresenceStatus(data.players || [], {
         onlineIds: getOnlineUserIdSet('gl'),

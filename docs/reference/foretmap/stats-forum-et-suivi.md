@@ -22,8 +22,10 @@ commentaires) et rester informé (notifications, temps réel).
   apostrophe : le tableur l'affiche comme du texte au lieu de l'exécuter comme une
   formule. Cela vaut pour tous les exports CSV (statistiques, journal de sécurité,
   identifiants G&L).
-- **Côté élève** : chacun voit sa propre progression ; l'accès aux statistiques
-  générales est un réglage (activable ou non par l'administrateur).
+- **Côté élève** : chacun voit sa propre progression. Le tableau de bord et le
+  classement de tous les élèves demandent un droit de lecture des statistiques, qu'aucun
+  profil élève ne possède : un élève ne les voit jamais. Le seul réglage est
+  l'interrupteur du module **Statistiques**, qui l'éteint pour tout le monde.
 - **Fiche « Mes statistiques » d'un compte hors groupe n3beur** (visiteur, membre du
   personnel, professeur, administrateur) : ni badge de palier, ni barre de progression,
   ni compteurs de tâches, ni « Activité récente » — ces rubriques n'ont pas de sens pour
@@ -45,21 +47,29 @@ commentaires) et rester informé (notifications, temps réel).
   moins un groupe, puisque le forum est cloisonné par groupe : pensez à rattacher les
   personnels à un groupe (par exemple « Personnels ») si vous voulez qu'ils puissent lancer
   des discussions et pas seulement répondre.
+- **Anti-flood** : il faut attendre **10 secondes** entre deux nouveaux sujets et
+  **5 secondes** entre deux messages ; un envoi trop rapproché est refusé avec un message.
 - **Messages non lus** : un **point rouge** s'allume sur l'onglet **Forum** dès qu'une autre
   personne publie un message (nouveau sujet ou réponse) que vous n'avez pas encore vu. Sur
   téléphone, quand le Forum est rangé dans le menu, le point apparaît aussi sur le bouton
   « Plus » ; côté professeur, il apparaît aussi sur le pôle **Suivi**. Ouvrir le forum
-  éteint le point. Vos propres messages ne l'allument jamais.
+  éteint le point. Vos propres messages ne l'allument jamais, et la suppression d'un
+  message ne le rallume pas. La toute première fois qu'un compte ouvre l'application sur
+  un appareil, les messages déjà publiés comptent comme lus : pas de point « de
+  bienvenue », comme pour les pastilles des sujets.
 
   > ⚠️ **Point d'attention** — La lecture est mémorisée **sur l'appareil** : un message lu
-  > sur l'ordinateur de la salle peut encore apparaître comme non lu sur le téléphone. La
-  > toute première fois qu'un compte ouvre l'application sur un appareil, le point s'allume
-  > s'il existe déjà des messages, puisque rien n'y a encore été lu.
+  > sur l'ordinateur de la salle peut encore apparaître comme non lu sur le téléphone.
+  > Entre deux onglets (ou l'application installée et le navigateur) du même appareil, en
+  > revanche, la lecture est partagée.
 
 - **Non lus sujet par sujet** : dans la liste, une **pastille** devant le titre signale les
-  sujets où quelqu'un d'autre a écrit depuis votre dernière lecture. Ouvrir le sujet
-  l'éteint. Là aussi, la lecture est mémorisée sur l'appareil ; la toute première fois,
-  tout ce qui est déjà visible compte comme lu (aucune pastille « de bienvenue »).
+  sujets où quelqu'un d'autre a écrit depuis votre dernière lecture. **Choisir** le sujet
+  l'éteint. Sur grand écran, le premier sujet de la liste s'affiche d'office à côté de la
+  liste, mais il garde sa pastille tant qu'on ne l'a pas choisi : on voit ainsi d'un coup
+  d'œil où se trouve la nouveauté. Répondre dans un sujet le marque aussi comme lu. Là
+  aussi, la lecture est mémorisée sur l'appareil ; la toute première fois, tout ce qui est
+  déjà visible compte comme lu (aucune pastille « de bienvenue »).
 - **Sujets épinglés** : les professeurs peuvent **épingler** un sujet important (consignes,
   règles de la classe). Il reste en tête de liste, avec la mention « Épinglé », avant les
   sujets triés par dernier message. Le même bouton le « désépingle ».
@@ -90,7 +100,8 @@ commentaires) et rester informé (notifications, temps réel).
   signalé classe automatiquement ses signalements comme traités. Les professeurs peuvent
   aussi **verrouiller** un sujet (plus de réponses) et l'**épingler**.
 - **Commentaires contextuels** : des commentaires attachés directement à une tâche, un
-  projet ou une zone — la discussion reste au plus près du travail concerné. Mêmes
+  projet, une zone, un repère, une fiche espèce ou un tutoriel — la discussion reste au
+  plus près du travail concerné. Mêmes
   participants que le forum : tout le monde sauf les visiteurs. Depuis le **Plan des
   personnels**, le bouton « Signaler ou proposer » d'une fiche de lieu écrit dans ces mêmes
   commentaires, et le message ressort dans « Messages reçus sur les lieux ». À côté du
@@ -115,6 +126,11 @@ commentaires) et rester informé (notifications, temps réel).
   > nombre, lui, a toujours été juste. Au premier chargement suivant la correction, les fils
   > déjà lus paraîtront **une fois** non lus : les repères de lecture enregistrés par les
   > navigateurs ne valaient rien et sont repris de zéro.
+
+- **Réglages** (Paramètres → Accueil & modules, section « Modules UI ») : en plus de
+  l'interrupteur du forum, l'administrateur peut **désactiver les signalements** (forum et
+  commentaires), **désactiver les commentaires contextuels**, et choisir la **liste des
+  emojis** proposés pour les réactions.
 
 ## Notifications et temps réel
 
@@ -236,7 +252,8 @@ retenu : il s'ouvre juste après la connexion.
   automatiquement allégées avant l'envoi ; un fichier refusé est signalé **par son nom**
   et n'interrompt pas l'import des autres.
 - **Formats acceptés** : images JPEG, PNG, WebP, GIF, SVG ; audio MP3, WAV, OGG, M4A ;
-  vidéo MP4, WebM, MOV. Taille maximale : 15 Mo par média.
+  vidéo MP4, WebM, MOV. Taille maximale : **8 Mo par image** ; **15 Mo** par son ou
+  vidéo.
 - **Photos jointes à un message** (forum, commentaires) : jusqu'à **trois** par message, et
   **8 Mo par photo**. Au-delà, l'envoi est refusé avec un message qui le dit — les photos
   jointes sont elles aussi **allégées automatiquement** avant l'envoi, si bien que la limite

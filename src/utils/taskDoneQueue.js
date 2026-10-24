@@ -5,10 +5,13 @@
  * commentaire) est gardé sur l'appareil et envoyé tout seul au retour du réseau. La clé
  * `client_uuid` (migration 299) garantit qu'un renvoi ne publie pas deux fois le rapport.
  *
+ * La **photo** du rapport n'entre pas dans cette file (plusieurs centaines de Ko dans un
+ * stockage local limité à ~5 Mo) : elle est gardée à part dans IndexedDB
+ * (`offlinePhotoStore.js`), sous la même clé `client_uuid`, et jointe à l'envoi. L'entrée de
+ * la file ne porte que `has_photo`. La déconnexion efface la photo avec le reste des données
+ * de l'élève sur une tablette partagée.
+ *
  * Ce qui N'entre PAS dans la file, et pourquoi :
- *   - la **photo** du rapport : plusieurs centaines de Ko par image dans un stockage local
- *     limité (≈ 5 Mo, partagé avec le reste de l'application) et lisible par l'élève suivant
- *     sur une tablette partagée — l'élève est prévenu et peut envoyer sans la photo ;
  *   - l'**inscription** (« Je m'en occupe ») : les places sont comptées par le serveur ; une
  *     inscription rejouée plus tard pourrait être refusée alors que l'élève est parti faire
  *     la tâche, et prendrait une place qu'un camarade croyait libre ;
@@ -17,6 +20,7 @@
  */
 
 import { createOfflineQueue, newClientUuid } from './offlineActionQueue.js';
+import { queuedTutorialReadIds } from './tutorialReadQueue.js';
 
 export const TASK_DONE_QUEUE_STORAGE_KEY = 'foretmap_task_done_queue';
 /** Borne de sécurité : une file qui grossit sans fin signale un autre problème. */
@@ -29,7 +33,8 @@ const TASK_DONE_ERROR_MAX = 500;
 /**
  * @typedef {{ user_id: string, task_id: string, task_title: string, client_uuid: string,
  *   comment: string, student_id: string, first_name: string, last_name: string,
- *   queued_at: number, refused?: boolean, error?: string }} TaskDoneQueueItem
+ *   has_photo?: boolean, queued_at: number, refused?: boolean, error?: string,
+ *   error_code?: string }} TaskDoneQueueItem
  */
 
 function normalize(raw) {
@@ -47,9 +52,14 @@ function normalize(raw) {
     student_id: String(raw.student_id ?? ''),
     first_name: String(raw.first_name ?? ''),
     last_name: String(raw.last_name ?? ''),
+    ...(raw.has_photo === true ? { has_photo: true } : {}),
     queued_at: Number.isFinite(Number(raw.queued_at)) ? Number(raw.queued_at) : 0,
     ...(raw.refused === true
-      ? { refused: true, error: String(raw.error || '').slice(0, TASK_DONE_ERROR_MAX) }
+      ? {
+          refused: true,
+          error: String(raw.error || '').slice(0, TASK_DONE_ERROR_MAX),
+          ...(raw.error_code ? { error_code: String(raw.error_code).slice(0, 64) } : {}),
+        }
       : {}),
   };
 }
@@ -95,15 +105,38 @@ export function refusedTaskDoneItems(userId) {
 /** Efface un « fait » refusé (l'élève a récupéré son commentaire). */
 export const dismissTaskDone = (clientUuid) => queue.remove(clientUuid);
 
-/** Un commentaire écrit par l'élève ne se jette pas : sans texte, rien à garder. */
-function refusalPolicy(item) {
-  return String(item?.comment || '').trim() ? 'keep' : 'drop';
+/**
+ * Un « fait » refusé parce qu'un tutoriel lié n'est pas encore enregistré, alors que cette
+ * lecture est encore dans la file (envoi précédent tombé, réseau revenu entre les deux) :
+ * on réessaiera. Le jeter ou le figer « refusé » perdrait le marquage, le commentaire et la
+ * photo — la lecture, elle, partira au prochain passage.
+ * @param {TaskDoneQueueItem} item
+ * @param {{ code?: string, body?: { missing_tutorials?: Array<{ id?: number }> } }} [info]
+ */
+function tutorialReadStillQueued(item, info) {
+  if (info?.code !== 'tutorials_unread') return false;
+  const pending = queuedTutorialReadIds(item?.user_id);
+  if (pending.size === 0) return false;
+  const missing = info?.body?.missing_tutorials;
+  if (!Array.isArray(missing) || missing.length === 0) return true;
+  return missing.some((row) => pending.has(Number(row?.id)));
 }
 
-/** Corps de `POST /api/tasks/:id/done` pour une entrée de la file. */
-export function taskDoneRequestBody(item) {
+/** Un commentaire ou une photo de l'élève ne se jettent pas : sans eux, rien à garder. */
+function refusalPolicy(item, info) {
+  if (tutorialReadStillQueued(item, info)) return 'defer';
+  return String(item?.comment || '').trim() || item?.has_photo ? 'keep' : 'drop';
+}
+
+/**
+ * Corps de `POST /api/tasks/:id/done` pour une entrée de la file.
+ * @param {TaskDoneQueueItem} item
+ * @param {string|null} [imageData] photo gardée hors ligne (data URL), si elle existe encore
+ */
+export function taskDoneRequestBody(item, imageData = null) {
   return {
     comment: item.comment || '',
+    ...(imageData ? { imageData } : {}),
     client_uuid: item.client_uuid,
     studentId: item.student_id || undefined,
     firstName: item.first_name || undefined,
@@ -111,16 +144,26 @@ export function taskDoneRequestBody(item) {
   };
 }
 
+/** Clés des « faits » encore en file, tous comptes confondus (photos à garder). */
+export function liveTaskDoneKeys() {
+  return new Set(queue.load().map((q) => q.client_uuid));
+}
+
 /**
- * Rejoue les « faits » du compte connecté. Un refus définitif (tâche archivée, tutoriel à lire,
- * inscription retirée…) n'est plus renvoyé : sans commentaire il sort de la file, avec un
- * commentaire il y reste marqué refusé pour que l'élève le récupère. L'appelant prévient
- * l'élève avec `refused` et lit les réponses dans `sent` (`already_closed`).
+ * Rejoue les « faits » du compte connecté. Un refus définitif (tâche archivée, tutoriel à lire
+ * et qui ne partira pas, inscription retirée…) n'est plus renvoyé : sans commentaire il sort
+ * de la file, avec un commentaire il y reste marqué refusé pour que l'élève le récupère.
+ * Un refus « tutoriel pas encore lu » alors que la lecture est encore en file est reporté,
+ * pas abandonné. L'appelant prévient l'élève avec `refused` et lit les réponses dans `sent`
+ * (`already_closed`).
  * @param {(item: TaskDoneQueueItem) => Promise<unknown>} send
  * @param {string|null|undefined} userId
  */
 export const flushTaskDoneQueue = (send, userId) =>
   queue.flush(send, userId, { onRefusal: refusalPolicy });
+
+/** Liste de la file d'un compte (écran « En attente d'envoi »). */
+export const listQueuedTaskDone = (userId) => queue.listFor(userId);
 
 /**
  * Message à l'élève quand son « fait » est arrivé sur une tâche déjà validée ou en pause : le

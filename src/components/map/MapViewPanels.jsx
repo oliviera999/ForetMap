@@ -76,6 +76,7 @@ export function MapViewLocationSearch({
   markerMatchCount,
   searchInputRef,
   resultItems,
+  resultsCollapsedByDefault = false,
   onSelectItem,
 }) {
   if (!visible) return null;
@@ -91,7 +92,11 @@ export function MapViewLocationSearch({
         searchInputRef={searchInputRef}
       />
       {isMapLocationFilterActive(filters) && resultItems.length > 0 ? (
-        <MapLocationFilterResults items={resultItems} onSelectItem={onSelectItem} />
+        <MapLocationFilterResults
+          items={resultItems}
+          collapsedByDefault={resultsCollapsedByDefault}
+          onSelectItem={onSelectItem}
+        />
       ) : null}
     </>
   );
@@ -105,6 +110,9 @@ export function MapViewRouteControls({
   onResume,
   steps,
   index,
+  phase,
+  onBegin,
+  onShowOverview,
   onGoToIndex,
   onExit,
   onHeight,
@@ -130,6 +138,9 @@ export function MapViewRouteControls({
           route={activeRoute}
           steps={steps}
           index={index}
+          phase={phase}
+          onBegin={onBegin}
+          onShowOverview={onShowOverview}
           onGoToIndex={onGoToIndex}
           onExit={onExit}
           onHeight={onHeight}

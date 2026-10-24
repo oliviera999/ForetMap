@@ -1,6 +1,7 @@
 const express = require('express');
 const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
 const { emailWillChange, applyEmailChangeEffects } = require('../lib/accounts/emailChange');
+const { ACTIVE_STATE_SET_SQL, activeStateParams } = require('../lib/accounts/deactivation');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
@@ -13,16 +14,17 @@ const {
   isGroupInManageScope,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
-const {
-  isGlRoleSlug,
-  isReservedRoleSlug,
-  normalizeRoleSlug,
-} = require('../lib/shared/n3beurRolesCore');
+const { isReservedRoleSlug, normalizeRoleSlug } = require('../lib/shared/n3beurRolesCore');
 const { recomputeStudentProfilesFromValidatedTasks } = require('../lib/studentProgressionSync');
 const { getSettingValue, setSetting } = require('../lib/settings');
 const { getPasswordMinLengthFor } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveGroupVisibility, fetchGroupsByUserId } = require('../lib/rbacUserGroups');
+const {
+  checkGroupJoinAllowedById,
+  isGroupConferrableRole,
+} = require('../lib/groupDefaultRolePolicy');
+const { canGrantRank } = require('../lib/rankGuard');
 const {
   assignRole,
   checkRoleGrantAllowed,
@@ -199,6 +201,15 @@ router.post(
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
+    // Le groupe demandé confère son profil par défaut : garde de rang vérifiée **avant** de
+    // créer le compte, plutôt qu'un compte créé puis laissé hors de son groupe.
+    const requestedGroupId = String(req.body?.group_id || '').trim() || null;
+    if (requestedGroupId) {
+      const joinAllowed = await checkGroupJoinAllowedById(req.auth, requestedGroupId);
+      if (!joinAllowed.ok && joinAllowed.status === 403) {
+        return res.status(403).json({ error: joinAllowed.error });
+      }
+    }
 
     if (userType === 'student') {
       const existingByName = await queryOne(
@@ -267,7 +278,7 @@ router.post(
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res.status(403).json({ error: 'Groupe hors périmètre' });
         }
-        const attach = await addUserToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId, { actor: req.auth });
         if (!attach.ok) {
           await execute('DELETE FROM users WHERE id = ?', [id]);
           return res
@@ -276,7 +287,7 @@ router.post(
         }
         effective = attach.role;
       } else if (groupId) {
-        const attach = await addUserToGroup(id, groupId);
+        const attach = await addUserToGroup(id, groupId, { actor: req.auth });
         if (attach.ok) effective = attach.role;
       }
     }
@@ -320,17 +331,15 @@ router.get(
       });
     }
     // `group_default_allowed` : ce profil peut-il servir de profil par défaut d'un groupe,
-    // **pour l'acteur courant** ? Tous les profils sauf ceux du jeu G&L ; hors administrateur,
-    // pas de profil de rang supérieur au sien (même règle que `lib/groupDefaultRolePolicy.js`).
-    const actorIsAdmin = normalizeRoleSlug(req.auth?.roleSlug) === 'admin';
-    const actorRank = Number(req.auth?.roleRank || 0);
+    // **pour l'acteur courant** ? Seulement un profil élève (visiteur, palier n3beur — même
+    // règle que `lib/groupDefaultRolePolicy.js`) ; hors administrateur, de rang strictement
+    // inférieur au sien (`lib/rankGuard.js`).
     const rolesPayload = rolesWithProgression
       .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
       .map((r) => ({
         ...r,
         catalog: perms,
-        group_default_allowed:
-          !isGlRoleSlug(r.slug) && (actorIsAdmin || Number(r.rank) <= actorRank),
+        group_default_allowed: isGroupConferrableRole(r) && canGrantRank(req.auth, r.rank),
       }));
     const progressionByValidatedTasksEnabled = await getSettingValue(
       'rbac.progression_by_validated_tasks',
@@ -1214,9 +1223,10 @@ router.patch(
 
     try {
       await execute(
+        // `deactivated_at` suit `is_active` (date de départ, purge planifiée — migration 319).
         `UPDATE users
              SET first_name = ?, last_name = ?, display_name = ?, pseudo = ?, email = ?, description = ?,
-                 password_hash = ?, is_active = ?, updated_at = NOW()
+                 password_hash = ?, ${ACTIVE_STATE_SET_SQL}, updated_at = NOW()
            WHERE id = ? AND user_type = ?`,
         [
           firstName,
@@ -1226,7 +1236,7 @@ router.patch(
           email,
           description,
           passwordHash,
-          nextIsActive,
+          ...activeStateParams(user.is_active, nextIsActive),
           resolvedUserId,
           resolvedUserType,
         ],
@@ -1396,27 +1406,17 @@ router.delete(
     if (String(req.auth.userId) === userId) {
       return res.status(403).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     }
-    const teacher = await queryOne(
-      "SELECT id, avatar_path FROM users WHERE id = ? AND user_type = 'teacher' LIMIT 1",
-      [userId],
-    );
-    if (!teacher) return res.status(404).json({ error: 'Enseignant introuvable' });
-    const role = await getPrimaryRoleForUser('teacher', userId);
-    if (role?.slug === 'admin' && (await countPrimaryAdmins()) <= 1) {
+    // Effacement partagé avec la purge planifiée (lib/teacherDeletion.js) ; `require` local :
+    // il ne sert qu'à ce gestionnaire.
+    const { deleteTeacherById } = require('../lib/teacherDeletion');
+    const result = await deleteTeacherById(userId);
+    if (!result.ok && result.reason === 'not_found') {
+      return res.status(404).json({ error: 'Enseignant introuvable' });
+    }
+    if (!result.ok && result.reason === 'last_admin') {
       return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
     }
-    // `require` locaux : l'effacement ne touche que ce gestionnaire.
-    const { eraseAccountJournalTraces } = require('../lib/accounts/identityAccountCleaners');
-    const { deleteFile } = require('../lib/uploads');
-    await withTransaction(async (tx) => {
-      await tx.execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [userId]);
-      // IP et navigateur de ses événements de sécurité, libellés d'audit qui le nomment
-      // (RG3, audit RGPD du 30/09/2026) — mêmes règles que l'effacement d'un élève.
-      await eraseAccountJournalTraces(tx, userId, 'teacher');
-      await tx.execute("DELETE FROM users WHERE id = ? AND user_type = 'teacher'", [userId]);
-    });
-    // Avatar : supprimé du disque après validation (il restait servi sous /uploads).
-    if (teacher.avatar_path) deleteFile(teacher.avatar_path);
+    if (!result.ok) return res.status(400).json({ error: 'Suppression impossible' });
     // Identifiant seulement : ni nom ni e-mail dans le journal de l'effacement.
     await logAudit('delete_teacher', 'user', userId, userId, { req });
     res.json({ ok: true, deleted: userId });

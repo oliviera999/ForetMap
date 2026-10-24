@@ -44,6 +44,14 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
   const first = places[0];
   const name = String(first.name || first.label || '').trim();
 
+  /** Échelle courante du plan (transform du calque monde), pour le retour à la vue d'avant. */
+  const worldScale = () =>
+    page.locator('.plan-map__world').evaluate((el) => {
+      const m = /scale\(([-\d.e]+)\)/.exec(el.style.transform || '');
+      return m ? Number(m[1]) : NaN;
+    });
+  const scaleBefore = await worldScale();
+
   /**
    * Frappe **réelle** : toucher le champ puis taper, comme un visiteur.
    *
@@ -79,6 +87,17 @@ test('plan : coquille, recherche et fiche d’un lieu', async ({ page, request }
 
   await placeSheet.getByRole('button', { name: 'Fermer la fiche du lieu' }).click();
   await expect(placeSheet).toBeHidden({ timeout: 15_000 });
+
+  // Zoom sur le lieu avant sa fiche (`ui.place_focus.*`, actif par défaut) : fermer la fiche
+  // ramène le zoom d'avant. Une très grande zone peut ne pas zoomer du tout : seul le retour
+  // est vérifié, il vaut dans les deux cas.
+  if (Number.isFinite(scaleBefore)) {
+    await expect
+      .poll(async () => Math.abs((await worldScale()) - scaleBefore) / scaleBefore, {
+        timeout: 5_000,
+      })
+      .toBeLessThan(0.02);
+  }
 
   /**
    * Fermer cette fiche ne doit pas **quitter le plan**. Les feuilles empilent une entrée

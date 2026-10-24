@@ -225,6 +225,61 @@ export function centerPctMapTransformOnPct(pct, scale, bounds, fitRect = null, i
 }
 
 /**
+ * Cadrage d'un ensemble de points (% image) dans une zone visible : centre de leur boîte
+ * englobante et plus grande échelle qui la fait tenir, marges comprises, bornée par
+ * `[minScale, maxScale]`. Un point seul (ou des points confondus) prend `maxScale`.
+ *
+ * Ne calcule pas de translation : le centrage et la butée sur les bords du plan restent le
+ * travail de `centerPctMapTransformOnPct`, appelé ensuite avec cette échelle.
+ *
+ * @param {Array<{ xp: number, yp: number }>} points
+ * @param {{ visibleW: number, visibleH: number, fitRect: { width: number, height: number },
+ *   paddingPx?: number, minScale?: number, maxScale?: number }} options
+ * @returns {{ centerPct: { xp: number, yp: number }, scale: number }|null}
+ */
+export function fitPctBoundsView(
+  points,
+  {
+    visibleW,
+    visibleH,
+    fitRect,
+    paddingPx = 48,
+    minScale = 1,
+    maxScale = PCT_MAP_SCALE_MAX_DEFAULT,
+  },
+) {
+  const pts = (points || []).filter(
+    (p) => Number.isFinite(Number(p?.xp)) && Number.isFinite(Number(p?.yp)),
+  );
+  if (!pts.length) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of pts) {
+    const x = Number(p.xp);
+    const y = Number(p.yp);
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const fw = Math.max(1, num(fitRect?.width, 1));
+  const fh = Math.max(1, num(fitRect?.height, 1));
+  const pad = Math.max(0, num(paddingPx));
+  const availW = Math.max(1, num(visibleW, 1) - 2 * pad);
+  const availH = Math.max(1, num(visibleH, 1) - 2 * pad);
+  const boxW = ((maxX - minX) / 100) * fw;
+  const boxH = ((maxY - minY) / 100) * fh;
+  const sx = boxW > 1e-6 ? availW / boxW : Infinity;
+  const sy = boxH > 1e-6 ? availH / boxH : Infinity;
+  const lo = num(minScale, 1) > 0 ? Number(minScale) : 1;
+  const hi = Math.max(lo, num(maxScale, PCT_MAP_SCALE_MAX_DEFAULT));
+  const scale = Math.min(hi, Math.max(lo, Math.min(sx, sy)));
+  return { centerPct: { xp: (minX + maxX) / 2, yp: (minY + maxY) / 2 }, scale };
+}
+
+/**
  * Vue courante exprimée **indépendamment du cadre** : point du plan au centre du cadre (% du
  * rectangle image) et zoom relatif à l'échelle d'ajustement. C'est ce qui permet de passer la
  * vue d'un moteur à un autre (consultation ↔ édition de la carte de travail) ou d'un cadre à un

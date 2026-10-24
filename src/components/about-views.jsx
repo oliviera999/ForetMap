@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
+import { getAppCredits } from '../utils/appCredits.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { getAuthToken, withAppBase } from '../services/api';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
 import { privacyNoticeHref } from '../shared/privacy/privacyNoticePath.js';
+import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
+import { DefaultAvatarCredit } from './DefaultAvatarCredit.jsx';
 
 /**
  * Rapports d'audit interne, servis par des routes protégées par `admin.settings.read`
@@ -34,7 +37,12 @@ const SITE_ISSUES_DOCS = [
   },
 ];
 
-function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false }) {
+function AboutView({
+  appVersion,
+  isTeacher = false,
+  canReadSiteIssues = false,
+  canReadTeacherGuide = false,
+}) {
   const publicSettings = usePublicSettings();
   // Rapport d'audit affiché en place (pas d'onglet : voir SITE_ISSUES_DOCS).
   const [siteIssuesDoc, setSiteIssuesDoc] = useState(null);
@@ -69,6 +77,7 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
   // Replis affichés seulement si le réglage correspondant est vide en base : ils suivent la
   // marque du build (`lib/brand.js`) plutôt que d'y réécrire « ForetMap » et l'établissement.
   const { appName: brandAppName, orgName: brandOrgName } = getBuildBrand();
+  const credits = getAppCredits(publicSettings);
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
   const aboutSubtitle = getContentText(
     publicSettings,
@@ -130,8 +139,10 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
           <p>{aboutPurposeBody}</p>
           <div className="about-meta">
             <span className="about-chip">Version: {appVersion || 'indisponible'}</span>
-            <span className="about-chip">Auteur: Mohammed El Farrai</span>
-            <span className="about-chip">Contributeur : Olivier Arnould-Laurent</span>
+            {credits.author && <span className="about-chip">Auteur : {credits.author}</span>}
+            {credits.contributor && (
+              <span className="about-chip">Contributeur : {credits.contributor}</span>
+            )}
           </div>
         </div>
 
@@ -212,6 +223,21 @@ function AboutView({ appVersion, isTeacher = false, canReadSiteIssues = false })
               )}
             </div>
           )}
+        </div>
+
+        {/* Le serveur filtre le sommaire : guide du prof seul pour un n3boss, tous les
+            documents pour un détenteur de `admin.settings.read`. */}
+        {canReadTeacherGuide && (
+          <div className="fm-panel about-card" data-testid="about-teacher-guide">
+            <h3>{canReadSiteIssues ? 'Documentation de référence' : 'Guide du prof'}</h3>
+            <ForetMapReferenceDocsPanel />
+          </div>
+        )}
+
+        {/* Attribution exigée par la licence CC BY 4.0 du dessin des avatars par défaut. */}
+        <div className="fm-panel about-card" data-testid="about-credits">
+          <h3>Crédits graphiques</h3>
+          <DefaultAvatarCredit />
         </div>
 
         <div className="fm-panel about-card">

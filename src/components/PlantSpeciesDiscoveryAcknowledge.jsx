@@ -7,7 +7,6 @@ import {
   getAuthToken,
   isLikelyNetworkTransportFailure,
 } from '../services/api';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -24,6 +23,7 @@ import {
   flushPlantObservationQueue,
   newObservationClientUuid,
 } from '../utils/plantObservationQueue.js';
+import { notifyOutboxChanged, sendQueuedPlantObservation } from '../services/offlineOutbox.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -36,16 +36,9 @@ function currentUserId() {
   return id == null ? '' : String(id);
 }
 
-function sendQueuedObservation(item) {
-  return api(`/api/plants/${item.plant_id}/acknowledge-discovery`, 'POST', {
-    confirm: true,
-    client_uuid: item.client_uuid,
-  });
-}
-
 /** Rejoue les observations mises en file sans réseau (un seul rejeu à la fois). */
 function flushQueuedObservations() {
-  return flushPlantObservationQueue(sendQueuedObservation, currentUserId()).catch(() => null);
+  return flushPlantObservationQueue(sendQueuedPlantObservation, currentUserId()).catch(() => null);
 }
 
 /**
@@ -117,10 +110,6 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   );
   const busy = enrichSaving;
 
-  useOverlayHistoryBack(enrichOpen, () => {
-    if (!busy) setEnrichOpen(false);
-  });
-
   useEffect(() => {
     if (!enrichOpen) {
       setEnrichBody('');
@@ -154,6 +143,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
         throw err;
       }
       enqueuePlantObservation({ user_id: userId, plant_id: pid, client_uuid: clientUuid });
+      notifyOutboxChanged({ reason: 'queued', kind: 'plant_observation' });
       setQueuedNotice('Pas de réseau : ton observation est gardée et partira toute seule.');
       onAcknowledged?.(pid, { my_observation_count: my + 1, site_observation_count: site + 1 });
       return;

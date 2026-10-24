@@ -4,6 +4,7 @@ const {
   recordGlQcmAttemptForReader,
   registerGlCooldownOnWrongIfGating,
 } = require('../../lib/learningGatingRuntime');
+const { voyageurGainFor } = require('../../lib/glVoyageur');
 const { requireGlPermission, hasGlPermission } = require('../../middleware/requireGlAuth');
 const {
   resolveImportRows,
@@ -325,12 +326,15 @@ router.post(
       // Tentative par lecteur, enregistree meme conditionnement eteint : une bonne reponse
       // donnee aujourd'hui doit compter le jour ou l'interrupteur sera allume (audit F3).
       const dbHandle = { queryAll, queryOne, execute };
-      await recordGlQcmAttemptForReader(dbHandle, {
+      const attempt = await recordGlQcmAttemptForReader(dbHandle, {
         glAuth: req.glAuth,
         dataset: 'qcm',
         questionCode: code,
         isCorrect: result.correct,
       });
+      const voyageurGain = attempt?.firstCorrect
+        ? await voyageurGainFor(req.glAuth, ['qcm'])
+        : null;
       // Contexte ressource : celui du JETON (flux « Marquer comme acquis ») ; le corps n'est
       // honoré qu'en sévérité `advisory` (lib/learningGatingLockMode.js).
       const context = await resolveAnswerContext(dbHandle, {
@@ -353,6 +357,7 @@ router.post(
         correctChoiceId: result.correct ? result.correctChoiceId : undefined,
         glossaryTerms: result.correct ? glossaryTerms : undefined,
         cooldown: cooldown || undefined,
+        voyageurGain: voyageurGain || undefined,
       });
     } catch (err) {
       // AP2 : seul un refus métier (jeton, choix) renvoie son message ; une panne → 500.

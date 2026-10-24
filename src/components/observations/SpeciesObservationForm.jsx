@@ -9,11 +9,14 @@ import {
   uploadSpeciesObservationPhoto,
 } from '../../services/observationsApi';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image';
+import { isDeviceOffline } from '../../shared/networkStatus.js';
 import {
   enqueueSpeciesObservation,
   newSpeciesObservationClientUuid,
   SPECIES_OBSERVATION_TEXT_MAX,
 } from '../../utils/speciesObservationQueue.js';
+import { deleteOfflinePhoto, putOfflinePhoto } from '../../utils/offlinePhotoStore.js';
+import { notifyOutboxChanged } from '../../services/offlineOutbox.js';
 import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { DETECTION_MODE_OPTIONS, OBSERVATION_TEXTS as T } from './observationTexts.js';
 import './speciesObservations.css';
@@ -32,7 +35,7 @@ export function todayLocalDate(now = new Date()) {
 }
 
 function isOffline() {
-  return typeof navigator !== 'undefined' && navigator.onLine === false;
+  return isDeviceOffline();
 }
 
 function placeValue(kind, id) {
@@ -50,7 +53,7 @@ function parsePlaceValue(value) {
  * Formulaire « Signaler une observation » : espèce, lieu, date, mode de détection, texte et
  * photo facultative. En ligne, l'observation part tout de suite (puis sa photo) ; sans réseau,
  * elle est gardée sur l'appareil avec sa clé `client_uuid` et partira toute seule
- * (`utils/speciesObservationQueue.js`) — sans la photo, trop lourde pour le stockage local.
+ * (`utils/speciesObservationQueue.js`), sa photo gardée à part (`utils/offlinePhotoStore.js`).
  *
  * @param {object} props
  * @param {string} props.mapId carte de l'observation
@@ -140,19 +143,29 @@ export function SpeciesObservationForm({
     return body;
   };
 
-  const queueOffline = (body) => {
+  const queueOffline = async (body) => {
+    const userId = currentObservationUserId();
+    const photoKept = photo
+      ? await putOfflinePhoto(clientUuid, { userId, dataUrl: photo, kind: 'species_observation' })
+      : false;
     const kept = enqueueSpeciesObservation({
       ...body,
       text: body.text || '',
-      user_id: currentObservationUserId(),
+      user_id: userId,
       plant_label: plantLabel(),
       place_label: placeLabel(),
+      has_photo: photoKept,
     });
     if (!kept) {
+      if (photoKept) await deleteOfflinePhoto(clientUuid);
       setError(T.queueFailed);
       return;
     }
-    onDone?.({ queued: true, message: T.queued });
+    notifyOutboxChanged({ reason: 'queued', kind: 'species_observation' });
+    onDone?.({
+      queued: true,
+      message: photo && !photoKept ? T.queuedWithoutPhoto : T.queued,
+    });
   };
 
   const submit = async (e) => {
@@ -165,7 +178,9 @@ export function SpeciesObservationForm({
     setError('');
     const body = buildBody();
     if (isOffline()) {
-      queueOffline(body);
+      setSaving(true);
+      await queueOffline(body);
+      setSaving(false);
       return;
     }
     setSaving(true);
@@ -186,7 +201,7 @@ export function SpeciesObservationForm({
         return;
       }
       if (isLikelyNetworkTransportFailure(err)) {
-        queueOffline(body);
+        await queueOffline(body);
         return;
       }
       setError(err?.message || 'Envoi impossible');

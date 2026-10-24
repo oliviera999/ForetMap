@@ -11,9 +11,19 @@ describe('GLAppBanners', () => {
     expect(container.querySelector('.gl-turn-toast')).toBeNull();
   });
 
-  test('affiche la bannière d’erreur globale', () => {
+  test('affiche la bannière d’erreur globale, annoncée (role="alert")', () => {
     render(<GLAppBanners error="Chargement partie impossible" />);
-    expect(screen.getByText('Chargement partie impossible')).toHaveClass('gl-error-banner');
+    const banner = screen.getByRole('alert');
+    expect(banner).toHaveClass('gl-error-banner');
+    expect(banner).toHaveTextContent('Chargement partie impossible');
+    expect(screen.queryByRole('button', { name: 'Fermer' })).toBeNull();
+  });
+
+  test('la bannière d’erreur se ferme quand onDismissError est fourni', () => {
+    const onDismissError = vi.fn();
+    render(<GLAppBanners error="Oups" onDismissError={onDismissError} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    expect(onDismissError).toHaveBeenCalledTimes(1);
   });
 
   test('aperçu vue joueur du staff', () => {

@@ -22,6 +22,9 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 const { createPlant, createZone } = require('./helpers/fmFixtures');
 
+/** Forme de l'URL signée de l'avatar par défaut (`lib/defaultAvatar.js`). */
+const DEFAULT_AVATAR_URL_RE = /^\/api\/users\/[^/]+\/default-avatar\?exp=\d+&sig=[\w-]+$/;
+
 let adminToken;
 let groupId;
 let siteBefore;
@@ -152,7 +155,9 @@ describe('GET /api/stats/all — instantané', () => {
     const { students, site } = res.body;
     assert.deepEqual(Object.keys(res.body).sort(), ['site', 'students']);
     const stripped = students.map((s) => {
-      const { progression, ...rest } = s;
+      // `default_avatar_url` : URL signée à échéance horaire, vérifiée dans sa forme seulement.
+      const { progression, default_avatar_url: avatarUrl, ...rest } = s;
+      assert.match(avatarUrl, DEFAULT_AVATAR_URL_RE);
       assert.deepEqual(Object.keys(progression).sort(), PROGRESSION_KEYS_ALL);
       assert.equal(typeof progression.roleSlug, 'string');
       return rest;
@@ -239,7 +244,8 @@ describe('GET /api/stats/me/:studentId — instantané', () => {
       .get(`/api/stats/me/${people.alix.id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    const { progression, assignments, ...rest } = res.body;
+    const { progression, assignments, default_avatar_url: avatarUrl, ...rest } = res.body;
+    assert.match(avatarUrl, DEFAULT_AVATAR_URL_RE);
     assert.deepEqual(rest, {
       id: people.alix.id,
       user_type: 'student',

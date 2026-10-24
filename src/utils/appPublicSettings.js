@@ -70,6 +70,10 @@ export const DEFAULT_PUBLIC_SETTINGS = {
       default_id: '',
     },
   },
+  // Mode parcours (`ui.routes`) : vide = défauts de `shared/map-routes/routeSettings.js`.
+  routes: {},
+  // Zoom sur le lieu (`ui.place_focus`) : vide = défauts de `shared/pct-map/placeFocusSettings.js`.
+  place_focus: {},
   realtime: {
     allow_websocket: false,
   },
@@ -108,6 +112,12 @@ export function mergePublicSettings(prev, settings) {
     }
     if (ui.visit && typeof ui.visit === 'object') {
       next.visit = { ...prev.visit, ...ui.visit };
+    }
+    if (ui.routes && typeof ui.routes === 'object') {
+      next.routes = { ...(prev.routes || {}), ...ui.routes };
+    }
+    if (ui.place_focus && typeof ui.place_focus === 'object') {
+      next.place_focus = { ...(prev.place_focus || {}), ...ui.place_focus };
     }
     if (ui.biodiv && typeof ui.biodiv === 'object') {
       next.biodiv = { ...(prev.biodiv || {}), ...ui.biodiv };

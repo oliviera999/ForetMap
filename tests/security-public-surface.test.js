@@ -53,6 +53,11 @@ test('chaque produit ne reçoit que son périmètre déclaré', async () => {
   const foret = await publicSettings('foret');
   assert.ok(foret.ui?.auth, 'ForêtMap a besoin de ui.auth');
   assert.ok(foret.ui?.map, 'ForêtMap a besoin de ui.map');
+  assert.equal(
+    foret.ui?.routes?.overview_enabled,
+    true,
+    'ForêtMap a besoin des réglages de parcours (Visite, carte)',
+  );
   assert.ok(foret.content, 'ForêtMap a besoin des contenus');
   assert.ok(foret.runtime, 'ForêtMap a besoin de runtime');
   assert.equal(foret.ui?.plan, undefined, 'ForêtMap ne lit pas ui.plan');

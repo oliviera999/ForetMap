@@ -29,7 +29,7 @@ leurs permissions sont configurables par les administrateurs) :
 | **Visiteur**            | Compte non promu (classe sans tâches, passage…) | Essentiellement la Visite et la Biodiversité — pas d'accès à la carte de travail ni aux tâches                                                                                    |
 | **Personnel**           | Staff non enseignant (AED, vie scolaire…)       | Même parcours que le visiteur — Visite et Biodiversité seulement                                                                                                                  |
 | **n3beur novice** 🪨    | Un élève débutant (0 tâche validée)             | Consulter la carte, prendre des tâches, les marquer faites, observer des espèces, tenir son carnet, participer au forum et aux quiz                                               |
-| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice (le palier récompense la progression)                                                                                                                             |
+| **n3beur avancé** 🌿    | Un élève avec 5 tâches validées                 | Comme le novice, et en plus **proposer** ses propres idées de tâches au professeur                                                                                                |
 | **n3beur chevronné** 🏆 | Un élève avec 10 tâches validées                | Comme l'avancé                                                                                                                                                                    |
 | **Prof de classe**      | Enseignant tuteur d'une ou plusieurs classes    | Gérer les élèves **de ses groupes** seulement — pas les tâches ni le jardin                                                                                                       |
 | **n3boss**              | Animateur / responsable pédagogique forêt       | Gestion pédagogique large : zones, plantes, tâches et validation, visite, quiz, élèves, stats, **carnet personnel** — **ce n'est pas** l'administrateur                           |
@@ -113,8 +113,8 @@ Le moteur pédagogique de l'application :
    difficulté et d'importance, le nombre d'élèves requis, ses échéances, ses tutoriels
    et son professeur référent.
 2. **L'élève se positionne lui-même** sur une tâche disponible (il peut aussi se
-   retirer tant qu'il n'a pas commencé, et même **proposer** ses propres idées de
-   tâches au professeur).
+   retirer tant que la tâche n'est ni terminée ni validée, et, à partir du palier
+   « avancé », **proposer** ses propres idées de tâches au professeur).
 3. Une fois le travail fait, l'élève le **marque comme réalisé**, avec un commentaire
    et une photo en guise de preuve.
 4. Le professeur **valide** (ou pas). Chaque validation fait progresser l'élève vers
@@ -151,10 +151,12 @@ existe, lui, sur la carte de travail des élèves.
 
 - **Forum** : fils de discussion avec réactions, images, signalements et modération ;
   il peut être cloisonné par groupe. Des **commentaires contextuels** peuvent aussi
-  être attachés à une tâche, un projet ou une zone.
+  être attachés à une tâche, un projet, une zone, un repère, une fiche espèce ou un
+  tutoriel.
 - **Statistiques** (professeur) : tableau de bord par élève et par statut de tâche,
-  classement, progression, export tableur. L'accès des élèves aux statistiques
-  générales est réglable.
+  classement, progression, export tableur. Le seul réglage est l'interrupteur du module ;
+  tableau de bord et classement demandent un droit de lecture des statistiques, qu'aucun
+  profil élève ne possède.
 - **Notifications**, **visite guidée** de prise en main et **panneau d'aide** : l'écran
   se met à jour en temps réel (une validation, une observation, un message forum
   apparaissent sans recharger). Si la connexion live est coupée, les listes se
@@ -227,9 +229,10 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 - **Le professeur** navigue par une barre en haut, organisée en **trois pôles** qui
   déploient chacun leur rangée d'onglets :
   - **Contenus** — Carte & Zones, Biodiversité, Quiz, Glossaire, Réseau trophique,
-    Tuto, Visite, Packs mascotte, Médiathèque ;
-  - **Suivi** — Tâches, Stats, Carnet, Forum, Audit (le nombre de tâches « à valider »
-    s'affiche en pastille sur le pôle et sur l'onglet) ;
+    Groupes emboîtés, Clés d'identification, Séances, Tuto, Visite, Packs mascotte,
+    Médiathèque ;
+  - **Suivi** — Individus, Tâches, Stats, Carnet, Forum, Audit (le nombre de tâches
+    « à valider » s'affiche en pastille sur le pôle et sur l'onglet) ;
   - **Administration** — Profils & utilisateurs, Paramètres, À propos.
 
   Dans **Paramètres**, une **barre de recherche** en tête de page filtre tous les
@@ -238,7 +241,7 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
   recherche est active, les résultats s’affichent à la place des sous-onglets ; les
   sections trouvées s’ouvrent d’elles-mêmes. La console reste découpée en sous-onglets
   hors recherche : Accueil & modules, Pédagogie, Cartographie (cartes, zones &
-  repères, catégories, parcours), Plan Lyautey, Identité visuelle, Visite,
+  repères, catégories, parcours, messages), Plan Lyautey, Identité visuelle, Visite,
   Intégrations (Moodle), Aide & découverte, Usage & exploitation. Un professeur avec
   seulement la gestion des zones y voit la Cartographie ; un délégué « visites
   guidées » n’y voit que l’aide dédiée.
@@ -259,8 +262,17 @@ onglet** pour continuer à préparer ; un bandeau les prévient : « module dés
 > dans un menu bas.
 >
 > Le bouton **Retour** du navigateur ou du téléphone suit la navigation dans l'app :
-> il ferme d'abord une fenêtre ouverte (fiche, formulaire…), puis revient à l'onglet
-> précédent, et seulement ensuite quitte l'application.
+> il ferme d'abord ce qui est ouvert par-dessus l'écran — fenêtre, fiche, menu bas,
+> bulle de glossaire, quiz, visionneuse photo, panneau d'aide ou de notifications — en
+> commençant par le plus récent (une photo agrandie depuis une fiche se ferme avant la
+> fiche). Ensuite il revient à l'onglet précédent, et seulement après quitte
+> l'application. Dans la Visite, il referme aussi la fiche du lieu sélectionné.
+>
+> ⚠️ Exception volontaire : les formulaires de **création / modification de tâche** et de
+> **déclaration de tâche réalisée** ne se ferment pas avec Retour. Sur téléphone, revenir
+> de l'appareil photo ou de la galerie produit le même signal qu'un appui sur Retour : le
+> formulaire se serait refermé en perdant la photo et la saisie. Ils se ferment par leur
+> croix ou leur bouton « Annuler ».
 >
 > Les demandes de confirmation et de saisie (« Supprimer… ? », titre d'un élément…)
 > s'affichent désormais dans des fenêtres au thème de l'application, non bloquantes —
@@ -451,6 +463,101 @@ Au-delà de la pastille, l'application protège ce qui est déjà affiché :
   qui donne les pistes : vérifier la connexion de l'établissement, maintenance possible
   du site.
 
+### Sans réseau du tout (mode avion, Wi-Fi coupé)
+
+Quand c'est **l'appareil** qui n'a plus de réseau, le serveur n'est pas en cause :
+l'application le reconnaît et ne se comporte plus comme pendant une panne.
+
+- **Un bandeau bleu le dit clairement** : « Hors ligne — données de la dernière
+  synchronisation (à 10:42). Tâches terminées, observations, lectures et carnet sont gardés
+  et partiront au retour du réseau. » L'heure indiquée est celle du dernier chargement réussi
+  avec le serveur, même si l'application a été rouverte entre-temps sans réseau. Un bouton
+  **« En attente (3) »** (ou **« Détails »** s'il n'y a rien à envoyer) ouvre l'écran
+  « Hors ligne » décrit plus bas.
+- **Réseau présent mais inutilisable** (une barre, Wi-Fi saturé, portail Wi-Fi qui demande
+  une connexion) : après **trois requêtes de suite restées sans réponse**, l'application se
+  comporte comme en mode avion et le bandeau commence par **« Réseau trop faible »**. Elle
+  vérifie toutes les 15 secondes si le serveur répond de nouveau ; la première réponse fait
+  disparaître le bandeau et relance les envois.
+- **Plus de « reconnexion en cours » en boucle.** L'application n'essaie plus de joindre le
+  serveur à répétition : elle affiche tout de suite ce qu'elle a gardé sur l'appareil, et le
+  rafraîchissement automatique se met en pause. Le bandeau « Serveur indisponible » ne
+  s'affiche pas non plus.
+- **Tous les écrans s'ouvrent**, y compris ceux qu'on n'avait pas encore visités (statistiques,
+  biodiversité, carnet, tutoriels, quiz, glossaire…) : l'appareil les garde dès la première
+  ouverture de l'application en ligne. Auparavant, ouvrir hors ligne un écran jamais visité
+  rechargeait toute la page.
+- **Ouvrir l'application sans réseau** fonctionne : la carte, les zones, les tâches, les
+  fiches et les repères du dernier chargement s'affichent sans attente. La vérification de
+  la session de l'élève se fait au retour du réseau, sans alerte « connexion instable ».
+- **Au retour du réseau**, le bandeau disparaît, une synchronisation complète part aussitôt
+  et les actions gardées sont envoyées — **quel que soit l'écran ouvert** (auparavant, une
+  tâche notée faite sans réseau attendait qu'on rouvre l'onglet Tâches). L'application
+  réessaie aussi quand on revient sur elle, et toutes les minutes tant qu'il reste quelque
+  chose à envoyer. Un seul message résume l'envoi (« Ta tâche notée sans réseau est bien
+  partie ✓ », « 3 envois gardés sans réseau sont bien partis ✓ »).
+- **Même application fermée** (Chrome sur Android et ordinateur) : les actions gardées
+  partent dès que le réseau revient, sans attendre que l'élève rouvre l'application.
+
+**Ce qui peut être fait sans réseau**
+
+- **Marquer une tâche terminée, avec ou sans photo.** La photo, déjà réduite par
+  l'application, est gardée sur l'appareil avec le commentaire et part avec eux. Si
+  l'appareil est plein, l'élève en est prévenu tout de suite et garde sa saisie.
+- **Signaler une observation d'espèce, avec ou sans photo** : l'observation part d'abord, puis
+  sa photo.
+- **Confirmer avoir vu une espèce**, **écrire dans le carnet**, **marquer un lieu « vu »**
+  pendant la visite.
+- **Marquer un tutoriel comme lu**, s'il n'y a pas de quiz de compréhension à passer : la
+  lecture compte tout de suite (les tâches liées deviennent marquables) et part au retour du
+  réseau, avant les tâches qui en dépendent. Si cette lecture n'est pas encore arrivée, la
+  tâche notée faite attend le prochain essai : elle n'est pas refusée ni effacée.
+
+**L'écran « Hors ligne »** (bouton nuage de l'en-tête, avec une pastille quand des envois
+attendent ; ou bouton du bandeau) rassemble :
+
+- l'**état du réseau** ;
+- la liste **« En attente d'envoi »** : chaque action gardée, son heure, une mention
+  « photo » le cas échéant. Un bouton **« Envoyer maintenant »** relance l'envoi. Une action
+  peut être **supprimée** de l'appareil (après confirmation : elle ne sera jamais envoyée) ;
+- les **actions refusées** au retour du réseau, avec la raison en clair (« la tâche a été
+  archivée entre-temps », « tu n'es plus inscrit·e sur cette tâche », « un tutoriel lié doit
+  d'abord être lu »…) et un bouton **« Copier le texte »** pour ne pas perdre un commentaire ;
+- **« Préparer la sortie terrain »** : à faire avec du Wi-Fi avant de partir. L'application
+  garde d'un geste la carte active, les photos des zones et repères, les fiches espèces et
+  les tutoriels, avec une barre d'avancement puis un bilan (« Prêt pour la sortie ✓ (124
+  éléments gardés) »). Chaque préparation remplace la précédente ;
+- le **stockage de l'appareil** : place utilisée, bouton **« Protéger les données hors
+  ligne »** (le navigateur s'engage alors à ne pas effacer les actions en attente pour faire
+  de la place), alerte quand l'appareil est presque plein. L'application fait aussi cette
+  demande d'elle-même la première fois qu'une action est gardée sans réseau.
+
+> ⚠️ **Points d'attention**
+>
+> - Les autres actions (créer une tâche, modifier une fiche, écrire dans le forum, s'inscrire
+>   sur une tâche…) demandent le réseau et affichent « Pas de réseau pour l'instant ».
+> - **Les quiz ne se passent pas sans réseau** : les questions sont tirées et corrigées par le
+>   serveur. Un tutoriel qui exige un quiz ne peut donc pas être marqué lu hors ligne.
+> - Une action refusée au retour du réseau (tâche archivée ou supprimée entre-temps,
+>   inscription retirée…) n'est jamais forcée : l'élève est prévenu, son texte reste
+>   copiable jusqu'à ce qu'il le supprime.
+> - Les brouillons du carnet apparaissent dans « En attente d'envoi » mais se gèrent depuis
+>   le carnet (ils partent quand on l'ouvre en ligne).
+> - « Préparer la sortie terrain » ne peut pas garder les photos d'espèces hébergées sur un
+>   autre site (Wikimedia…) : elles sont seulement préchargées, sans garantie. Les tutoriels
+>   « lien » vers un site extérieur ne sont pas copiés.
+> - L'envoi **application fermée** n'existe que sur Chrome (Android, ordinateur). Sur
+>   iPhone, iPad et Firefox, les actions partent à la prochaine ouverture de l'application.
+>   Les actions avec photo partent toujours à l'ouverture de l'application.
+> - **iPhone et iPad** : Safari efface les données d'un site non installé après quelques jours
+>   sans visite. L'écran « Hors ligne » le rappelle : il faut ajouter l'application à l'écran
+>   d'accueil pour une sortie terrain.
+> - Un écran que l'appareil n'a pas encore pu garder (première ouverture de l'application
+>   interrompue, par exemple) affiche « Cet écran n'est pas encore disponible hors ligne » et
+>   s'ouvre tout seul au retour du réseau.
+> - Le « réseau trop faible » n'est reconnu qu'après trois requêtes sans réponse : les
+>   toutes premières secondes peuvent encore ressembler à une attente.
+
 ### Quand une nouvelle version est publiée
 
 L'application est mise à jour plusieurs fois par jour. Ce qu'un utilisateur en voit :
@@ -508,7 +615,20 @@ d'inscription, rubrique **À propos**. Détail et contact DPO à renseigner :
 Documents spécifiques (produits au fur et à mesure — voir le
 [sommaire](../README.md)) : carte et zones · plantes et biodiversité · tâches,
 tutoriels et validation · comptes, rôles et groupes · visite et mascottes · pédagogie
-(quiz, glossaire, réseau trophique) · stats, forum et suivi.
+(quiz, glossaire, réseau trophique) · stats, forum et suivi. Les professeurs disposent en
+plus d'un **guide pratique** qui leur est propre : le **Guide du prof (n3boss)**.
+
+Cette documentation se lit aussi **dans l'application**, en lecture seule :
+
+- les **n3boss** lisent le **Guide du prof** depuis la page **À propos** (carte « Guide du
+  prof ») ; c'est le seul document qui leur est ouvert, car les autres décrivent aussi des
+  points d'attention d'exploitation réservés à l'administration ;
+- les **administrateurs** lisent tous les documents ForetMap, depuis **Paramètres → Aide &
+  découverte → Doc de référence** ou depuis la page **À propos**.
+
+Le droit « Lecture du guide du prof » est accordé par défaut aux profils **n3boss** et
+**Administrateur** ; un administrateur peut le retirer ou l'accorder à un autre profil dans
+**Profils & utilisateurs**. Le prof de classe et les élèves n'y ont pas accès.
 
 ## Identité visuelle de l'établissement
 

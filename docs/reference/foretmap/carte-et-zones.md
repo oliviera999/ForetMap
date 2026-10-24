@@ -213,7 +213,14 @@ Cartographie.
    gardent le point visé sous le pointeur. Si une **mascotte** est affichée, un clic sur le
    plan — y compris **hors** de toute zone ou repère — la fait marcher jusqu'au point
    touché ; un clic sur un lieu l'y amène aussi en ouvrant la fiche.
-2. Il **touche une zone ou un repère** : la fiche s'ouvre avec ses onglets — Tâches,
+2. Il **touche une zone ou un repère** : la carte fait d'abord un **zoom bref et fluide** sur
+   le lieu (une zone est cadrée en entier avec une marge, un repère est grossi à un niveau
+   fixe ; le zoom est plafonné), **puis seulement** la fiche s'ouvre. Quand il **referme la
+   fiche**, la carte revient doucement au **zoom et au centrage d'avant**. Passer d'un lieu
+   à un autre sans refermer garde la vue d'origine : c'est elle qui revient à la fin. En
+   mode parcours, la caméra du parcours garde la main et ce zoom ne s'applique pas. Le
+   comportement se règle dans l'administration (voir « Zoom sur le lieu avant sa fiche »
+   plus bas). La fiche s'ouvre avec ses onglets — Tâches,
    Tutoriels, Info, Photos (l'onglet Tâches ou Tutoriels n'apparaît que s'il y a
    quelque chose à montrer). Tant que la fiche d'une **zone** est ouverte, cette zone
    reste **mise en avant** sur le plan (remplissage plus marqué) et les autres zones
@@ -295,10 +302,12 @@ Composer un parcours :
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
-  ses surfaces, sa catégorie, ou parce qu'il est réservé à certains profils) n'est pas
-  affichée : le compte d'étapes annoncé est celui des étapes réellement visibles, et le texte
-  de l'étape masquée n'est pas transmis. Un parcours dont plus aucune étape n'est visible n'est
-  pas proposé du tout. L'affiche PDF du professeur continue de lister toutes les étapes.
+  ses surfaces, sa catégorie, ou parce qu'il est réservé à certains profils ou à une classe)
+  n'est pas affichée : le compte d'étapes annoncé est celui des étapes réellement visibles, et
+  le texte de l'étape masquée n'est pas transmis. Cela vaut aussi quand la réserve vient
+  seulement de la catégorie du lieu, et pas d'un réglage posé sur le lieu lui-même. Un
+  parcours dont plus aucune étape n'est visible n'est pas proposé du tout. L'affiche PDF du
+  professeur continue de lister toutes les étapes.
 - Un parcours ne peut pas dépasser **60 étapes**. La description est limitée à 2 000 caractères,
   le texte d'une étape à 4 000.
 - Changer l'**identifiant du lien** d'un parcours déjà publié périme les affiches imprimées :
@@ -306,10 +315,101 @@ Composer un parcours :
 - Un parcours reste sur **sa** carte : pour le déplacer, il faut le recréer.
 - Le bouton **« Affiche PDF »** télécharge une page imprimable : la liste des étapes et un
   **QR code** vers le parcours, à afficher à l'accueil. Pour que ce QR code mène au plan et non
-  à la console, renseigner l'URL publique du plan dans _Réglages → Général_
-  (`ui.plan.public_base_url`, par exemple `https://planlyautey.<domaine>`).
+  à la console, renseigner l'adresse publique du plan dans l'onglet _Réglages → Plan Lyautey_
+  (par exemple l'adresse « planlyautey » de l'établissement).
 - Rien n'est enregistré du côté des personnes qui suivent un parcours : aucune validation,
   aucune progression, aucun suivi individuel.
+
+#### Suivre un parcours (carte, Visite, plans)
+
+Le déroulé est le même sur les trois surfaces :
+
+1. **Vue d'ensemble.** Ouvrir un parcours (depuis la liste, « Reprendre » mis à part, ou en
+   scannant le QR code d'une affiche) montre d'abord **tout le trajet** : la carte se cadre sur
+   l'ensemble des étapes, **reliées les unes aux autres dans l'ordre de passage** par une ligne
+   munie de **flèches qui indiquent le sens de marche**, avec une **pastille numérotée** sur
+   chaque lieu (« Départ » sur la première, « Arrivée 🏁 » sur la dernière). La barre du bas ne
+   porte qu'un court résumé et « Commencer le parcours » : aucune liste ne masque le tracé.
+2. **« Commencer le parcours ».** La première étape s'ouvre. Si la carte permet de se situer,
+   **« Me situer » s'allume tout seul**. La vue montre alors **à la fois votre position et
+   l'étape à atteindre**.
+3. **En marchant.** Dès que vous vous êtes éloigné de quelques mètres de votre point de départ,
+   la carte **zoome sur votre position** et reste ouverte **vers l'étape** : vous voyez où vous
+   êtes, et la ligne fléchée qui mène à l'étape. Près d'un bord du plan, la vue se cale contre
+   ce bord plutôt que d'afficher du vide, pour montrer le plus de carte et de trajet possible.
+4. Les étapes **restent reliées** du début à la fin : les tronçons **déjà parcourus** passent
+   dans **une autre couleur** (gris, étapes cochées ✓), ceux à venir gardent la couleur du
+   parcours, le tronçon en cours est mis en avant, et une ligne animée relie votre position à
+   l'étape en cours.
+
+Toucher la carte (glisser, zoomer, « Voir tout le plan ») reprend la main : la vue cesse de
+suivre jusqu'à l'étape suivante, ou jusqu'à un appui sur « Me situer ». Le bouton 🗺️ de la
+barre d'étape ramène à la vue d'ensemble, d'où « Reprendre à l'étape N » revient où l'on en
+était. « Reprendre le parcours » (après « Quitter ») va, lui, directement à l'étape quittée.
+
+Ce comportement se règle dans _Réglages → **Parcours guidés**_ (s'applique à la carte, à la
+Visite et aux plans) :
+
+- **Vue d'ensemble au démarrage** — sinon le parcours s'ouvre directement sur l'étape 1 ;
+- **« Me situer » automatique** au moment de commencer ;
+- **Caméra guidée** pendant les étapes — désactivée, la carte se recentre seulement sur chaque
+  nouvelle étape, comme auparavant (la vue d'ensemble, elle, montre toujours tout le trajet) ;
+- **Zoom pendant la marche** (en % de la carte entière, 300 % par défaut) ;
+- **Distance de déclenchement du zoom de marche** (8 m par défaut) ;
+- **Anticipation vers l'étape** : à quel point la vue s'ouvre devant soi plutôt que de rester
+  centrée sur la position (60 % par défaut, 0 % = toujours centrée) ;
+- **Ligne animée** vers l'étape (elle reste fixe de toute façon pour les personnes qui ont
+  demandé à leur appareil de réduire les animations).
+
+> ⚠️ **Points d'attention**
+>
+> - Quand la carte est orientée selon la boussole, c'est l'orientation qui mène la vue : la
+>   caméra guidée se met en retrait.
+> - Sans position (carte non calée, ou « Me situer » refusé), la vue d'étape cadre l'étape
+>   précédente et l'étape en cours, pour montrer le sens à suivre.
+
+### Zoom sur le lieu avant sa fiche
+
+Toucher une zone ou un repère (sur la carte, dans la liste de recherche ou par une pastille de
+groupe) enchaîne trois temps : la mascotte arrive si la surface en a une, la carte **zoome
+brièvement** sur le lieu, puis sa **fiche s'ouvre**. À la fermeture, la carte **revient au
+zoom et au centrage d'avant**. Si l'on bouge la carte pendant le zoom, la fiche s'ouvre quand
+même.
+
+Ce comportement se règle dans _Réglages → **Zoom sur le lieu avant sa fiche**_ (commun à la
+carte, à la Visite et aux plans) :
+
+- un interrupteur **par surface** : carte de travail, Visite, plans (tous actifs par défaut) —
+  désactivé, la fiche s'ouvre tout de suite et la carte se recentre comme auparavant ;
+- **Durée du zoom** (0,35 s par défaut, de 0,15 à 0,8 s), utilisée aussi pour le retour ;
+- **Zoom maximal** (en % de la carte entière, 400 % par défaut) : une petite zone ou un
+  repère ne grossissent pas au-delà ;
+- **Revenir à la vue d'avant à la fermeture** (actif par défaut) — désactivé, la carte reste
+  sur le lieu après la fermeture de la fiche ;
+- deux **effets visuels**, réglables **par surface** (carte de travail, Visite, plans ; tous
+  actifs par défaut) :
+  - **l'emoji qui s'envole** : pendant le zoom, l'emoji de la zone ou du repère grossit très
+    vite en s'effaçant, comme s'il passait devant les yeux ; au retour, il fait l'inverse et
+    « atterrit » à sa place au moment où la carte retrouve sa vue d'avant. Une zone sans emoji
+    n'a pas cet effet ;
+  - **le projecteur** : pendant le zoom, le reste de la carte s'assombrit et seul le lieu
+    reste éclairé (la forme de la zone, ou un cercle autour du repère) ; le voile s'allège
+    tant que la fiche est ouverte et disparaît au retour.
+
+> ⚠️ **Points d'attention**
+>
+> - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
+>   et le retour sont instantanés, et aucun effet visuel ne s'affiche. Sinon, un lecteur d'écran
+>   entend une brève annonce (« Ouverture de … ») pendant le zoom, avant que la fiche soit
+>   lisible.
+> - Un **repère sans emoji** affiche une épingle 📍 sur ForetMap (carte, Visite, plans). Sur le
+>   plateau Gnomes & Licornes, un repère sans emoji n'en invente pas un pour l'envol — voir
+>   [Carte du royaume](../gl/carte-du-royaume.md).
+> - Le **zoom maximal** est réglable ici ; côté G&L il est fixe (pas de réglage équivalent).
+> - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
+>   visé, c'est là que le guidage commence.
+> - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la
+>   main.
 
 ### Se situer sur la carte
 
@@ -369,6 +469,11 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
 - la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
   **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
   concernés).
+- **la Visite ne peut que restreindre davantage, jamais ouvrir.** Depuis octobre 2026, un
+  lieu réservé sur la carte reste réservé en Visite, même si sa fiche de Visite indique
+  « tout le monde ». Le réglage de la fiche de Visite peut seulement réserver encore plus un
+  lieu ouvert sur la carte. Auparavant, une fiche de Visite laissée sans restriction rendait
+  public un lieu réservé sur la carte.
 
 ### Compléments réservés : un texte par public
 
@@ -400,6 +505,14 @@ recevait sans jamais les montrer.
 Un lieu n'a qu'**un seul jeu** de compléments : celui qu'on modifie depuis la fiche de
 visite est le même que celui de la fiche de carte. Copier un lieu de la carte vers la visite
 ne recopie donc plus rien, et ne peut plus placer un complément dans un texte public.
+
+**Qui gère les compléments.** Lire tous les compléments d'un lieu, ou les modifier, demande
+la permission qui gère ce lieu sur la carte : « Gestion zones » pour une zone, « Gestion
+repères » pour un repère. La permission « Gestion visite » seule — utile pour confier les
+textes et photos de la visite guidée à un profil sur mesure — ne la remplace pas : un tel
+profil ne lit que les compléments qui lui sont destinés (par son rôle ou ses groupes), comme
+tout lecteur, et ne peut pas les modifier. Les profils livrés (administrateur, n3boss) ont
+les trois permissions : rien ne change pour eux.
 
 ### Restreindre à une classe ou à un club (groupes)
 
@@ -498,7 +611,7 @@ lieux ne sont jamais dupliqués : c'est le même lieu, montré ou non à chaque 
 
 Deux réglages se combinent :
 
-- **Par catégorie** — dans _Réglages → Catégories de lieux_, chaque catégorie porte une case
+- **Par catégorie** — dans _Réglages → Cartographie → Catégories_, chaque catégorie porte une case
   par surface (« Visible sur »). Décocher **Plan** pour « Cultures » retire d'un coup toutes
   les cultures du plan d'établissement, sans rien changer pour les élèves.
 - **Par lieu** — dans la fiche d'une zone ou d'un repère, onglet _Modifier_, le bloc
@@ -508,8 +621,9 @@ Deux réglages se combinent :
 le lieu y restait affiché).
 
 Un lieu **sans catégorie** reste visible partout où il n'est pas explicitement masqué
-(exception à ce jour : la Visite le cache dès que la carte a des catégories affichées par
-défaut — voir les points d'attention de la page Visite). Si
+(exception à ce jour : la Visite le cache dès que des catégories affichées par défaut sont
+choisies pour la Visite elle-même, dans Paramètres → Visite — voir les points d'attention de
+la page Visite). Si
 toutes les surfaces sont cochées dans « Masquer sur », un avertissement prévient que le
 lieu ne sera visible nulle part.
 
@@ -618,6 +732,44 @@ En **mode consultation** (carte ouverte sans tracé ni édition de contour), une
   Contrairement à l'ancien filtre « état », les catégories s'appliquent **aussi aux
   repères** : cocher une catégorie ne fait plus disparaître les repères de la carte.
 
+### Catégories affichées par défaut et catégories cachées (par carte)
+
+Dans **Paramètres → Cartographie → Cartes**, chaque carte de la liste porte deux choix de
+catégories. Seules sont proposées les catégories **qui concernent cette carte** : celles
+créées pour toutes les cartes et celles créées pour cette carte-là (et visibles sur la
+carte de travail). Ce sous-onglet « Cartes » demande le droit de **consulter les
+réglages** : une personne qui gère seulement les zones ou les repères ne le voit pas.
+
+- **Catégories affichées par défaut** : elles sont cochées d'office dans les filtres à
+  l'ouverture de la carte — les lieux qui n'en portent aucune apparaissent estompés.
+  Chacun peut ensuite changer ses filtres librement. Aucune case cochée = tous les lieux
+  sont mis en avant. Le choix est refait à chaque changement de carte : passer de la
+  Forêt au N3 applique les catégories du N3.
+- **Catégories cachées** : elles disparaissent des filtres de cette carte, et un lieu qui
+  **n'a que** des catégories cachées n'apparaît plus du tout sur cette carte de travail
+  (ni sur le plan, ni dans la recherche). Un lieu qui garde au moins une autre catégorie
+  reste affiché ; un lieu sans catégorie aussi.
+
+Une même catégorie ne peut pas être à la fois affichée par défaut et cachée : une fois
+cochée d'un côté, elle n'est plus proposée de l'autre.
+
+Ces deux réglages ne concernent que la **carte de travail** (onglet Carte). La Visite garde
+son propre choix de catégories affichées par défaut (Paramètres → Visite), et les plans
+(Plan Lyautey, plan des personnels, plan e-nov) leurs propres catégories cochées et
+masquées.
+
+> ⚠️ **Points d'attention**
+>
+> - Cacher une catégorie retire ses lieux de la carte **pour tout le monde**, gestionnaires
+>   compris : un lieu qui n'a que des catégories cachées ne se modifie plus depuis la carte.
+>   Pour le retoucher, décocher la catégorie cachée le temps de la modification, ou passer
+>   par l'inventaire « Zones & repères ».
+> - Cacher n'est pas protéger : c'est un désencombrement de l'affichage. Pour réserver un
+>   lieu à certains publics, utiliser l'audience du lieu ou de sa catégorie.
+> - L'ancien réglage unique « Catégories de lieux affichées par défaut sur la carte » (commun
+>   à toutes les cartes) a été remplacé : sa valeur a été recopiée sur chaque carte, en n'y
+>   gardant que les catégories qui la concernent.
+
 > L'**affichage** du plan en consultation (zones, repères, regroupements au dézoom,
 > boutons zoom / « Me suivre ») est aligné sur le Plan Lyautey et la Visite. La carte de
 > travail garde en revanche sa **barre d'outils** et ses **filtres de lieux** — sans les
@@ -656,7 +808,7 @@ Sur la carte, un **petit point violet** peut signaler qu'une zone ou un repère 
 au moins un tutoriel (en bas à gauche du repère, ou à côté du nom de la zone).
 
 Ce témoin est **éteint par défaut**. Un administrateur l'allume dans
-_Réglages → Cartes & plans_ (« Afficher le point violet sur les zones et repères liés à un
+_Réglages → Cartographie → Cartes_ (« Afficher le point violet sur les zones et repères liés à un
 tutoriel »). Les liens tutoriel ↔ lieu restent inchangés : seuls le filtre « tutoriels liés »
 et l'onglet Tutoriels de la fiche permettent de les retrouver quand le point est masqué.
 
@@ -668,8 +820,9 @@ Quand un filtre est actif :
 - les lieux **correspondants** restent visibles normalement ;
 - les autres lieux sont **atténués** sur le plan (ils restent visibles mais moins
   lisibles, et ne s'ouvrent plus au clic) ;
-- une **liste de résultats** sous la barre permet de **cliquer** sur un lieu : la
-  fiche s'ouvre et la carte se **centre** doucement sur ce point.
+- une **liste de résultats** sous la barre permet de **cliquer** sur un lieu : la carte
+  **zoome** d'abord brièvement sur ce lieu, puis la fiche s'ouvre ; la refermer ramène la
+  vue d'avant (même séquence qu'un clic sur la carte).
 
 Le compteur indique combien de zones et de repères correspondent. Un bouton ✕ ou
 « Tout effacer » remet la carte en vue complète. Élèves et professeurs utilisent
@@ -682,7 +835,8 @@ liste **toutes les zones et tous les repères, toutes cartes confondues** — l�
 recherche de la carte ne couvre que le plan affiché. C'est l'outil de relecture
 d'ensemble : repérer les doublons, les fiches sans description, les lieux restés sur
 la mauvaise carte. Les personnes qui ont seulement le droit de gérer les zones ou les
-repères voient cet onglet Cartographie (sans les réglages généraux).
+repères voient cet onglet Cartographie et cet inventaire (sans les réglages généraux ni le
+sous-onglet « Cartes »).
 
 - **Recherche libre** : même moteur que la barre de la carte (nom, espèces,
   catégories, textes de visite, note d'un repère — plusieurs mots combinables).
@@ -732,9 +886,9 @@ Le bouton « Appliquer » annonce **combien de lieux sont réellement concernés
 d'agir, une progression s'affiche pendant le traitement, et le bilan distingue les
 lieux mis à jour, ceux déjà conformes et les éventuels échecs.
 
-L'accès au sous-onglet suit celui des Réglages administrateur (permission « Lecture
-paramètres admin ») ; l'enregistrement demande en plus « Gestion zones » pour une
-zone et « Gestion repères » pour un repère.
+Le sous-onglet est ouvert à qui peut consulter les réglages **ou** gérer les zones ou les
+repères ; l'enregistrement demande « Gestion zones » pour une zone et « Gestion repères »
+pour un repère.
 
 ## « Messages reçus sur les lieux »
 

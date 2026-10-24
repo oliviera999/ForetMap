@@ -74,13 +74,17 @@ import {
 
 import { formatTaskActionError, filterTeacherStatusActions } from '../utils/taskActionErrors.js';
 import {
-  dismissTaskDone,
-  flushTaskDoneQueue,
   queuedTaskDoneIds,
   refusedTaskDoneItems,
   taskDoneAlreadyClosedMessage,
-  taskDoneRequestBody,
 } from '../utils/taskDoneQueue.js';
+import {
+  OUTBOX_CHANGED_EVENT,
+  OUTBOX_KINDS,
+  dismissOutboxEntry,
+  flushOutbox,
+} from '../services/offlineOutbox.js';
+import { isDeviceOffline } from '../shared/networkStatus.js';
 import { TaskDoneRefusedNotice } from './tasks/TaskDoneRefusedNotice.jsx';
 import { useEditConflictConfirm } from '../hooks/useEditConflictConfirm.js';
 import { createEditRevisionSession, withExpectedRevision } from '../utils/editRevision.js';
@@ -120,15 +124,6 @@ function offlineActionError(err, message) {
 function hasUnreadLinkedTutorials(task, readIds) {
   return (task?.tutorials_linked || []).some(
     (tu) => tu.is_active !== false && !(readIds && readIds.has(Number(tu.id))),
-  );
-}
-
-/** Envoi d'un « fait » gardé hors ligne. */
-function sendQueuedTaskDone(item) {
-  return api(
-    `/api/tasks/${encodeURIComponent(item.task_id)}/done`,
-    'POST',
-    taskDoneRequestBody(item),
   );
 }
 
@@ -281,48 +276,23 @@ function TasksViewImpl({
   }, [offlineAccountId]);
   const dismissRefusedDone = useCallback(
     (clientUuid) => {
-      dismissTaskDone(clientUuid);
+      void dismissOutboxEntry(OUTBOX_KINDS.taskDone, clientUuid);
       refreshQueuedDone();
     },
     [refreshQueuedDone],
   );
-  const onRefreshRef = useRef(onRefresh);
-  onRefreshRef.current = onRefresh;
+  // Le rejeu (et ses messages) appartient à la boîte d'envoi commune, montée par l'application
+  // pour tous les écrans (`services/offlineOutbox.js`, `useOfflineOutbox`) ; la vue la sollicite
+  // à son ouverture et suit ses changements pour l'état des cartes.
   useEffect(() => {
     refreshQueuedDone();
     if (!offlineAccountId || typeof window === 'undefined') return undefined;
-    let cancelled = false;
-    const flush = async () => {
-      const out = await flushTaskDoneQueue(sendQueuedTaskDone, offlineAccountId).catch(() => null);
-      if (cancelled || !out) return;
-      refreshQueuedDone();
-      if (out.synced > 0) {
-        await onRefreshRef.current?.();
-        const closed = out.sent
-          .map(({ item, response }) =>
-            taskDoneAlreadyClosedMessage(item.task_title, response?.already_closed),
-          )
-          .find(Boolean);
-        setToast(
-          closed ||
-            (out.synced > 1
-              ? `${out.synced} tâches notées sans réseau sont bien parties ✓`
-              : 'Ta tâche notée sans réseau est bien partie ✓'),
-        );
-      }
-      if (out.refused.length > 0) {
-        const { item, message, kept } = out.refused[0];
-        setToast(
-          `« ${item.task_title || 'Tâche'} » n’a pas pu être marquée faite : ${message}${
-            kept ? ' — ton commentaire est gardé en haut de la liste.' : ''
-          }`,
-        );
-      }
-    };
-    if (typeof navigator === 'undefined' || navigator.onLine !== false) void flush();
+    const flush = () => void flushOutbox({ userId: offlineAccountId });
+    window.addEventListener(OUTBOX_CHANGED_EVENT, refreshQueuedDone);
     window.addEventListener('online', flush);
+    if (!isDeviceOffline()) flush();
     return () => {
-      cancelled = true;
+      window.removeEventListener(OUTBOX_CHANGED_EVENT, refreshQueuedDone);
       window.removeEventListener('online', flush);
     };
   }, [offlineAccountId, refreshQueuedDone]);

@@ -12,18 +12,41 @@ import { buildMapImageCandidates } from '../../utils/mapImageCandidates';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
+import {
+  filterPlacesByHiddenCategories,
+  hiddenCategoryIdsByMap,
+} from '../../utils/mapCategoryIds.js';
 
-/** Données du jardin et lieux de la carte active. */
-export function useMapViewData() {
+const NO_MAPS = [];
+
+/**
+ * Données du jardin et lieux de la carte active.
+ *
+ * Les lieux dont toutes les catégories sont cachées sur leur carte
+ * (`maps[].hidden_category_ids`, réglage « Cartographie → Cartes ») sont retirés ici, en
+ * amont de tout le reste de la carte de travail (scène, recherche, parcours, badges).
+ *
+ * @param {object[]} [maps] catalogue des cartes (`GET /api/maps`)
+ */
+export function useMapViewData(maps = NO_MAPS) {
   const { canParticipateContextComments = true } = useSession();
   const {
-    zones = [],
-    markers = [],
+    zones: allZones = [],
+    markers: allMarkers = [],
     tasks = [],
     tutorials = [],
     plants = [],
     activeMapId = '',
   } = useData();
+  const hiddenByMap = useMemo(() => hiddenCategoryIdsByMap(maps), [maps]);
+  const zones = useMemo(
+    () => filterPlacesByHiddenCategories(allZones, hiddenByMap),
+    [allZones, hiddenByMap],
+  );
+  const markers = useMemo(
+    () => filterPlacesByHiddenCategories(allMarkers, hiddenByMap),
+    [allMarkers, hiddenByMap],
+  );
   const markersOnActiveMap = useMemo(
     () => (markers || []).filter((m) => m.map_id === activeMapId),
     [markers, activeMapId],

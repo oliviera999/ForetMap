@@ -31,6 +31,7 @@ const {
 } = require('../../lib/shared/resourceQuestionGatingCore');
 const { GL_MARKABLE } = require('../../lib/learningGatingRuntime');
 const { resourceExists } = require('../../lib/glLearnableResources');
+const { voyageurGainFor } = require('../../lib/glVoyageur');
 
 const router = express.Router();
 
@@ -212,6 +213,11 @@ async function handleAcknowledge(req, res, { targetType, resolveTarget, skipGati
       sourceRef: code,
     });
     if (feuilletRevealed) response.feuilletRevealed = feuilletRevealed;
+    const gain = await voyageurGainFor(req.glAuth, [
+      targetType,
+      ...(feuilletRevealed ? ['feuillets_found'] : []),
+    ]);
+    if (gain) response.voyageurGain = gain;
   }
   return res.json(response);
 }
@@ -294,6 +300,11 @@ router.post(
           }
         }
       }
+      const gain = await voyageurGainFor(req.glAuth, [
+        'species',
+        ...(response.feuilletRevealed ? ['feuillets_found'] : []),
+      ]);
+      if (gain) response.voyageurGain = gain;
     }
 
     return res.json(response);
@@ -402,6 +413,11 @@ router.post(
         sourceRef: ref,
       });
       if (feuilletRevealed) response.feuilletRevealed = feuilletRevealed;
+      const gain = await voyageurGainFor(req.glAuth, [
+        resourceType,
+        ...(feuilletRevealed ? ['feuillets_found'] : []),
+      ]);
+      if (gain) response.voyageurGain = gain;
     }
     return res.json(response);
   }),

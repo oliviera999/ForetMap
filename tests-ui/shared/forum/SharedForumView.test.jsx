@@ -196,6 +196,27 @@ describe('SharedForumView — non-lus par sujet', () => {
     const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
     expect(stored.threads.b).toBe('2026-09-03T10:00:00.000Z');
   });
+
+  test('grand écran : le sujet ouvert d’office garde sa pastille tant qu’on ne le choisit pas', async () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ baseline: '2026-09-01T10:00:00.000Z', threads: {} }),
+    );
+    const adapter = fakeAdapter({ threads: [THREAD_B, THREAD_A] });
+    renderView(adapter);
+    await waitFor(() => expect(adapter.getThread).toHaveBeenCalledWith('b', expect.anything()));
+
+    const itemB = screen.getByRole('button', { name: /Sujet B/ });
+    expect(itemB.getAttribute('aria-current')).toBe('true');
+    expect(within(itemB).getByLabelText('Nouveaux messages')).toBeTruthy();
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).threads.b).toBeUndefined();
+
+    fireEvent.click(itemB);
+    await waitFor(() => expect(within(itemB).queryByLabelText('Nouveaux messages')).toBeNull());
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)).threads.b).toBe(
+      '2026-09-03T10:00:00.000Z',
+    );
+  });
 });
 
 describe('SharedForumView — panneau Signalements', () => {

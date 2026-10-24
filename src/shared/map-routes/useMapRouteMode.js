@@ -47,6 +47,11 @@ function readStoredResume(storageKey) {
  * @param {(slug: string) => void} [options.onExit] appelé après la sortie (toast de rappel)
  * @param {(event: 'route_start'|'route_step', detail: string) => void} [options.onUsage] mesure d'usage
  * @param {string} [options.storageKey] clé de persistance de la reprise ; absente = mémoire seule
+ * @param {boolean} [options.overviewEnabled=false] démarrer un parcours par sa **vue
+ *   d'ensemble** (`routePhase: 'overview'`) : tout le tracé, aucune étape sélectionnée, jusqu'à
+ *   « Commencer » (`beginRouteSteps`). Une reprise va toujours droit à l'étape quittée.
+ * @param {() => void} [options.onOverviewExtra] nettoyage UI à l'entrée en vue d'ensemble
+ *   (désélectionner le lieu de l'étape quittée : sa fiche masquerait le tracé).
  */
 export function useMapRouteMode({
   routes = [],
@@ -57,9 +62,13 @@ export function useMapRouteMode({
   onExit,
   onUsage,
   storageKey = '',
+  overviewEnabled = false,
+  onOverviewExtra,
 } = {}) {
   const [activeRouteSlug, setActiveRouteSlug] = useState('');
   const [routeIndex, setRouteIndex] = useState(0);
+  /** `overview` (tout le tracé) ou `steps` (une étape à la fois). */
+  const [routePhase, setRoutePhase] = useState('steps');
   const [routePickerOpen, setRoutePickerOpen] = useState(false);
   const [resume, setResume] = useState(() => readStoredResume(storageKey));
   /** Lieu consulté **pendant** un parcours : l'étape courante garde la sélection. */
@@ -73,7 +82,8 @@ export function useMapRouteMode({
     () => (activeRoute ? resolveRouteSteps(activeRoute, places) : []),
     [activeRoute, places],
   );
-  const currentRouteEntry = routeSteps[routeIndex] || null;
+  /** En vue d'ensemble, aucune étape n'est « courante » : rien n'est sélectionné ni visé. */
+  const currentRouteEntry = routePhase === 'steps' ? routeSteps[routeIndex] || null : null;
 
   /**
    * Un rafraîchissement du contenu peut raccourcir un parcours en cours (une étape dont le
@@ -84,6 +94,12 @@ export function useMapRouteMode({
   useEffect(() => {
     setRouteIndex((current) => nextRouteIndex(current, routeSteps.length, 0));
   }, [routeSteps.length]);
+
+  useEffect(() => {
+    if (activeRouteSlug && routePhase === 'overview') onOverviewExtra?.();
+    // Seulement à l'entrée en vue d'ensemble, pas à chaque nouvelle identité du rappel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRouteSlug, routePhase]);
 
   useEffect(() => {
     onStepPlace?.(currentRouteEntry || null);
@@ -101,9 +117,12 @@ export function useMapRouteMode({
     [storageKey],
   );
 
-  /** Démarre un parcours à une étape donnée (0 depuis la puce, la position mémorisée à la reprise). */
+  /**
+   * Démarre un parcours à une étape donnée (0 depuis la puce, la position mémorisée à la
+   * reprise). `overview` : passer d'abord par la vue d'ensemble.
+   */
   const startRouteAt = useCallback(
-    (route, index) => {
+    (route, index, { overview = false } = {}) => {
       if (!route?.slug) return;
       setRoutePickerOpen(false);
       setPeekPlace(null);
@@ -111,13 +130,17 @@ export function useMapRouteMode({
       persistResume(null);
       onStartExtra?.();
       setRouteIndex(Math.max(0, Number(index) || 0));
+      setRoutePhase(overview ? 'overview' : 'steps');
       setActiveRouteSlug(route.slug);
       onUsage?.('route_start', route.slug);
     },
     [onStartExtra, onUsage, persistResume],
   );
 
-  const startRoute = useCallback((route) => startRouteAt(route, 0), [startRouteAt]);
+  const startRoute = useCallback(
+    (route) => startRouteAt(route, 0, { overview: overviewEnabled }),
+    [startRouteAt, overviewEnabled],
+  );
 
   /** Index courant lu au moment de la sortie, sans faire dépendre `exitRoute` du rendu. */
   const routeIndexRef = useRef(0);
@@ -128,6 +151,7 @@ export function useMapRouteMode({
     const index = routeIndexRef.current;
     setActiveRouteSlug('');
     setRouteIndex(0);
+    setRoutePhase('steps');
     setPeekPlace(null);
     onExitExtra?.();
     if (!slug) return;
@@ -151,6 +175,25 @@ export function useMapRouteMode({
     [routeSteps.length, activeRouteSlug, onUsage],
   );
 
+  /** Quitte la vue d'ensemble pour l'étape voulue (la première par défaut). */
+  const beginRouteSteps = useCallback(
+    (index = 0) => {
+      if (!activeRouteSlug) return;
+      const next = nextRouteIndex(index, routeSteps.length, 0);
+      setRouteIndex(next);
+      setRoutePhase('steps');
+      onUsage?.('route_step', `${activeRouteSlug}#${next + 1}`);
+    },
+    [activeRouteSlug, routeSteps.length, onUsage],
+  );
+
+  /** Revient au tracé complet ; l'étape en cours est gardée pour « Reprendre ici ». */
+  const showRouteOverview = useCallback(() => {
+    if (!activeRouteSlug) return;
+    setPeekPlace(null);
+    setRoutePhase('overview');
+  }, [activeRouteSlug]);
+
   /**
    * Quitte le parcours si la carte change (évite un slug d'une autre carte) et **relit** la
    * reprise mémorisée pour la carte désormais affichée.
@@ -162,6 +205,7 @@ export function useMapRouteMode({
   const resetForMapChange = useCallback(() => {
     setActiveRouteSlug('');
     setRouteIndex(0);
+    setRoutePhase('steps');
     setRoutePickerOpen(false);
     setPeekPlace(null);
     setResume(readStoredResume(storageKey));
@@ -196,6 +240,7 @@ export function useMapRouteMode({
     activeRouteSlug,
     routeSteps,
     routeIndex,
+    routePhase: activeRouteSlug ? routePhase : 'steps',
     currentRouteEntry,
     routePickerOpen,
     setRoutePickerOpen,
@@ -208,6 +253,8 @@ export function useMapRouteMode({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    beginRouteSteps,
+    showRouteOverview,
     resetForMapChange,
   };
 }

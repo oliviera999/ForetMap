@@ -204,4 +204,59 @@ describe('useMapRouteMode', () => {
     act(() => result.current.exitRoute());
     expect(onExit).toHaveBeenCalledWith('tour-du-jardin');
   });
+
+  describe('vue d’ensemble (réglage « ui.routes.overview_enabled »)', () => {
+    test('le démarrage montre tout le tracé, sans étape courante', () => {
+      const onStepPlace = vi.fn();
+      const { result } = setup({ overviewEnabled: true, onStepPlace });
+      act(() => result.current.startRoute(route));
+      expect(result.current.routePhase).toBe('overview');
+      expect(result.current.currentRouteEntry).toBe(null);
+      expect(onStepPlace).toHaveBeenLastCalledWith(null);
+    });
+
+    test('« Commencer » ouvre l’étape voulue et la compte comme une étape', () => {
+      const onUsage = vi.fn();
+      const { result } = setup({ overviewEnabled: true, onUsage });
+      act(() => result.current.startRoute(route));
+      act(() => result.current.beginRouteSteps());
+      expect(result.current.routePhase).toBe('steps');
+      expect(result.current.currentRouteEntry?.place).toBe(places[0]);
+      expect(onUsage).toHaveBeenLastCalledWith('route_step', 'tour-du-jardin#1');
+
+      act(() => result.current.showRouteOverview());
+      act(() => result.current.beginRouteSteps(2));
+      expect(result.current.routeIndex).toBe(2);
+    });
+
+    test('revenir à la vue d’ensemble garde l’étape et laisse l’appelant désélectionner', () => {
+      const onOverviewExtra = vi.fn();
+      const { result } = setup({ overviewEnabled: true, onOverviewExtra });
+      act(() => result.current.startRoute(route));
+      expect(onOverviewExtra).toHaveBeenCalledTimes(1);
+      act(() => result.current.beginRouteSteps(1));
+      act(() => result.current.showRouteOverview());
+      expect(result.current.routePhase).toBe('overview');
+      expect(result.current.routeIndex).toBe(1);
+      expect(onOverviewExtra).toHaveBeenCalledTimes(2);
+    });
+
+    test('une reprise va droit à l’étape quittée, sans vue d’ensemble', () => {
+      const { result } = setup({ overviewEnabled: true });
+      act(() => result.current.startRoute(route));
+      act(() => result.current.beginRouteSteps(2));
+      act(() => result.current.exitRoute());
+      expect(result.current.routePhase).toBe('steps');
+      act(() => result.current.resumeRoute());
+      expect(result.current.routePhase).toBe('steps');
+      expect(result.current.routeIndex).toBe(2);
+    });
+
+    test('sans le réglage, le parcours démarre directement à l’étape 1', () => {
+      const { result } = setup();
+      act(() => result.current.startRoute(route));
+      expect(result.current.routePhase).toBe('steps');
+      expect(result.current.currentRouteEntry?.place).toBe(places[0]);
+    });
+  });
 });

@@ -147,6 +147,9 @@ test('GET /api/plan/content : carte réglée, lieux visibles sur le plan seuleme
   assert.equal(typeof res.body.map.scale_compass_enabled, 'boolean');
   assert.equal(res.body.settings.map_id, undefined);
   assert.equal(typeof res.body.settings.title, 'string');
+  // Réglages des parcours guidés (vue d'ensemble, caméra, tracé) : servis avec le contenu.
+  assert.equal(res.body.settings.routes?.overview_enabled, true);
+  assert.equal(res.body.settings.routes?.walking_zoom_percent, 300);
 
   const zoneIds = res.body.zones.map((z) => z.id);
   assert.ok(zoneIds.includes(visible.id), 'zone visible attendue');
@@ -604,7 +607,7 @@ test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refus
     assert.match(String(denied.body.error || ''), /plan-access-code/);
 
     const set = await auth(request(app).post('/api/settings/admin/plan-access-code'))
-      .send({ code: 'SECRET-PLAN' })
+      .send({ code: 'SECRET-PLAN-2026' })
       .expect(200);
     assert.equal(set.body.hasCode, true);
     invalidateSettingsCache();
@@ -612,7 +615,7 @@ test('POST /api/settings/admin/plan-access-code : hash serveur, PUT direct refus
     const stored = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
     assert.ok(stored.startsWith('$2'), 'empreinte bcrypt attendue');
     const bcrypt = require('bcryptjs');
-    assert.equal(await bcrypt.compare('SECRET-PLAN', stored), true);
+    assert.equal(await bcrypt.compare('SECRET-PLAN-2026', stored), true);
 
     await auth(request(app).post('/api/settings/admin/plan-access-code'))
       .send({ code: '' })

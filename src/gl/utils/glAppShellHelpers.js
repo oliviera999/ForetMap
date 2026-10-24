@@ -201,10 +201,16 @@ export function isGlAdminRole(auth) {
   return auth?.userType === 'gl_admin';
 }
 
-/** Onglet d'atterrissage : console MJ pour le staff, découverte pour invité, cartes pour les joueurs. */
-export function defaultTabForGlAuth(auth) {
+/**
+ * Onglet d'atterrissage : console MJ pour le staff, découverte pour invité, « Le Seuil » pour
+ * les joueurs (cartes si le module est éteint). `modules` absent (connexion, avant le premier
+ * chargement de la config) = défauts : la garde de visibilité d'AppGL corrige ensuite.
+ */
+export function defaultTabForGlAuth(auth, modules = null) {
   if (isGlGuest(auth)) return 'discovery';
-  return isGlAdminRole(auth) ? 'mj' : 'maps';
+  if (isGlAdminRole(auth)) return 'mj';
+  if (modules && !isModuleEnabled(modules, 'voyageurEnabled')) return 'maps';
+  return 'seuil';
 }
 
 /** Normalise la réponse `/api/gl/games/:id` en view model stable pour l'UI. */
@@ -272,6 +278,7 @@ export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi, isGue
     }
     if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
     if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
+    if (tab.id === 'seuil') return isModuleEnabled(modules, 'voyageurEnabled');
     return true;
   });
   return showStaffAdminUi ? [...playerTabs, ...GL_ADMIN_EXTRA_TABS] : playerTabs;

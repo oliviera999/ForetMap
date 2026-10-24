@@ -17,8 +17,10 @@ s'aligne dessus :
 - les élèves déjà connus sont **reconnus** (jamais dupliqués) ;
 - chaque cohorte devient un **groupe** ForetMap (classe, niveau, club…) avec le bon rôle ;
 - pour les sixièmes, une **classe Gnomes & Licornes** est créée avec un joueur par élève ;
-- les élèves qui ont quitté l'établissement sont **désactivés** (jamais supprimés : leurs
-  contributions restent).
+- les élèves qui ont quitté l'établissement sont **désactivés** (la synchronisation ne
+  supprime jamais : leurs contributions restent). La date de désactivation vaut date de
+  départ : si la purge planifiée est activée, le compte est supprimé **un an plus tard**
+  (voir [Durées de conservation](../exploitation/durees-de-conservation.md)).
 
 Moodle est la **source de vérité** pour « qui est dans quelle classe ». ForetMap reste maître
 de tout le reste : rôles fins, sous-groupes faits par les profs, équipes de jeu, tâches,
@@ -60,7 +62,8 @@ l'**état du lien** :
   restent éditables.
 
 Puis, en sections repliables : **Synchroniser**, **Rapprochements en attente**, **Conflits à
-trancher**, **Historique**, **Politiques par cohorte**, **Chapitres → cours**, **Seuils de
+trancher**, **Historique des exécutions**, **Politiques par cohorte**, **Chapitres G&L →
+cours Moodle**, **Seuils de
 sécurité**, **Entrée depuis le cours**, **Outils**.
 
 ## Synchroniser, pas à pas
@@ -160,7 +163,10 @@ s'annule pas.
   dans ForetMap. Les réglages livrés couvrent : les niveaux (pas de création de compte), les
   n3beurs (rôle élève, poussée vers Moodle — **toute cohorte dont le code contient « n3 »**,
   préfixe d'année facultatif), les sixièmes (visiteur + classe G&L), les autres
-  classes (visiteur).
+  classes (visiteur). Le **rôle** d'une politique est forcément un **profil élève** (visiteur
+  ou palier n3beur) : l'enregistrement refuse un profil d'encadrement (n3boss, administrateur,
+  prof de classe, personnel). Une politique plus ancienne qui en nommerait un crée son groupe
+  **sans** profil par défaut, et le rapport le signale (« n'est pas un profil élève »).
 - **Préfixe d'année** (« 26 ») : à changer chaque rentrée ; les cohortes de classes et de
   niveaux qui ne commencent pas par ce préfixe sont ignorées. **Exception n3beurs** : toute
   cohorte dont le code contient « n3 » (par exemple `26#n3`, `n3` ou `club-n3`) peut être
@@ -169,7 +175,7 @@ s'annule pas.
   dans ces domaines est **laissé de côté** (les autres membres de la cohorte sont quand même
   traités). Même principe pour un membre sans e-mail, ou deux membres Moodle qui partagent le
   même e-mail : le rapport les liste, l'exécution continue.
-- **Chapitres → cours** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
+- **Chapitres G&L → cours Moodle** : quel cours Moodle porte quel chapitre de Gnomes & Licornes. Le **nom
   du cours** s'affiche à côté de son identifiant pour éviter une erreur d'année. Sert aux miroirs
   d'équipes et à l'entrée depuis le cours.
 - **Seuils de sécurité** : les cinq garde-fous décrits plus haut, en pourcentage ou en nombre.
@@ -240,7 +246,7 @@ réutiliser un lien copié, affiche un refus — il suffit de recliquer sur l'ac
   gestion des tâches) ; détail dans
   [Comptes, rôles et groupes](comptes-roles-et-groupes.md).
 - La **création manuelle** de comptes par un prof de classe n'est pas obligatoire si Moodle
-  peupple déjà les classes : ce droit reste **paramétrable** pour ce profil.
+  peuple déjà les classes : ce droit reste **paramétrable** pour ce profil.
 
 ## Procédure de rentrée (administrateur)
 
@@ -248,7 +254,7 @@ réutiliser un lien copié, affiche un refus — il suffit de recliquer sur l'ac
    des élèves existants (export, complétion par les profs, réimport) — l'e-mail est la clé de
    reconnaissance la plus sûre.
 2. Mettre à jour le **préfixe d'année** et relire les **politiques**.
-3. Mettre à jour la table **Chapitres → cours** (les cours changent d'identifiant chaque année)
+3. Mettre à jour la table **Chapitres G&L → cours Moodle** (les cours changent d'identifiant chaque année)
    et vérifier les **noms affichés**.
 4. Demander une **sauvegarde** de la base (geste technique, voir l'encadré).
 5. **Contrôler la connexion**.

@@ -12,8 +12,10 @@ import {
  * Pastilles « non lu » par sujet, mémorisées sur l'appareil (clé par produit et par compte).
  *
  * - À la toute première ouverture (aucun état stocké), tout ce qui est visible est lu.
- * - Le sujet ouvert est marqué lu à chaque rafraîchissement de la liste : un message arrivé
- *   pendant qu'on lit la discussion ne rallume pas sa pastille.
+ * - Le sujet en cours de lecture (`activeThreadId`) est marqué lu à chaque rafraîchissement de
+ *   la liste : un message arrivé pendant qu'on lit la discussion ne rallume pas sa pastille.
+ * - Chaque écriture fusionne avec l'état déjà enregistré, et un changement fait dans un autre
+ *   onglet est relu : deux onglets ne s'effacent plus leurs lectures.
  *
  * @param {{ storageKey: string, threads: object[], loaded: boolean, activeThreadId?: string|number|null }} params
  */
@@ -22,13 +24,17 @@ export function useForumThreadUnread({ storageKey, threads, loaded, activeThread
 
   useEffect(() => {
     setState(readThreadReadState(storageKey));
+    if (!storageKey || typeof window === 'undefined') return undefined;
+    const onStorage = (event) => {
+      if (event?.key === storageKey) setState(readThreadReadState(storageKey));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [storageKey]);
 
   useEffect(() => {
     if (!storageKey || !loaded || state) return;
-    const initial = initialThreadReadState(threads);
-    writeThreadReadState(storageKey, initial);
-    setState(initial);
+    setState(writeThreadReadState(storageKey, initialThreadReadState(threads)));
   }, [loaded, state, storageKey, threads]);
 
   useEffect(() => {
@@ -37,8 +43,7 @@ export function useForumThreadUnread({ storageKey, threads, loaded, activeThread
     if (!thread) return;
     const next = markThreadRead(state, thread);
     if (next === state) return;
-    writeThreadReadState(storageKey, next);
-    setState(next);
+    setState(writeThreadReadState(storageKey, next));
   }, [activeThreadId, state, storageKey, threads]);
 
   const isUnread = useCallback(

@@ -9,7 +9,8 @@
  *   - succès (ou réponse rejouée par le serveur) → l'écriture sort de la file ;
  *   - refus définitif (4xx hors 401, 408, 429) → elle sort (`drop`) ou reste marquée en échec
  *     (`keep`, pour un texte que l'élève a écrit et qu'on ne jette pas) ;
- *   - réseau absent, 5xx, 401 (session à rouvrir), 408, 429 → elle reste, et le rejeu s'arrête :
+ *   - réseau absent, 5xx, 401 (session à rouvrir), 403 `PASSWORD_CHANGE_REQUIRED` (mot de
+ *     passe à changer), 408, 429 → elle reste, et le rejeu s'arrête :
  *     inutile d'insister sur les suivantes.
  * Sur une tablette partagée, une écriture n'est jamais rejouée sous la session d'un autre
  * compte : elle attend que son auteur se reconnecte.
@@ -19,6 +20,7 @@ import {
   safeLocalStorageReadJson,
   safeLocalStorageWriteJson,
 } from '../shared/platform/browserStorage.js';
+import { isPasswordChangeRequiredError } from './passwordChangeRequired.js';
 
 /** Format accepté par le serveur (migrations 296 et 299). */
 export const CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
@@ -36,6 +38,9 @@ export function newClientUuid(prefix = 'op') {
 
 /** Refus définitif du serveur (l'écriture ne passera jamais telle quelle). */
 export function isDefinitiveRefusal(err) {
+  // Mot de passe à changer (403 dédié) : refus passager, comme une session à rouvrir —
+  // l'écriture attend le changement au lieu d'être perdue.
+  if (isPasswordChangeRequiredError(err)) return false;
   const status = Number(err?.status);
   return status >= 400 && status < 500 && !RETRYABLE_CLIENT_STATUSES.has(status);
 }
@@ -117,11 +122,12 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
    * @param {(item: T) => Promise<unknown>} send envoi d'une écriture (lève en cas d'échec)
    * @param {string|null|undefined} userId compte connecté ; aucun rejeu sans compte
    * @param {object} [options]
-   * @param {'drop'|'keep'|((item: T) => 'drop'|'keep')} [options.onRefusal='drop'] sort d'une
-   *   écriture refusée définitivement ; `keep` la garde avec `refused: true` et le message du
-   *   serveur (`error`) ; une fonction choisit écriture par écriture
+   * @param {'drop'|'keep'|'defer'|((item: T, info: { code: string, status: number, body: unknown }) => 'drop'|'keep'|'defer')} [options.onRefusal='drop']
+   *   sort d'une écriture refusée définitivement ; `keep` la garde avec `refused: true` et le
+   *   message du serveur (`error`) ; `defer` la laisse telle quelle (réessai plus tard) et
+   *   passe à la suivante ; une fonction choisit écriture par écriture
    * @param {(item: T) => boolean} [options.eligible] filtre des écritures à rejouer maintenant
-   * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean }>, remaining: number }>}
+   * @returns {Promise<{ synced: number, dropped: number, sent: Array<{ item: T, response: unknown }>, refused: Array<{ item: T, message: string, kept: boolean, code: string, status: number }>, remaining: number }>}
    */
   function flush(send, userId, { onRefusal = 'drop', eligible = () => true } = {}) {
     const uid = String(userId ?? '').trim();
@@ -151,11 +157,24 @@ export function createOfflineQueue({ storageKey, max, normalize }) {
         } catch (err) {
           if (!isDefinitiveRefusal(err)) break; // réseau toujours absent ou serveur en difficulté
           const message = String(err?.message || 'Refusé par le serveur');
-          const policy = typeof onRefusal === 'function' ? onRefusal(item) : onRefusal;
+          // Code stable du refus (`body.code`) : l'écran explique le conflit sans lire le texte.
+          const code = typeof err?.body?.code === 'string' ? err.body.code : '';
+          const status = Number(err?.status) || 0;
+          const policy =
+            typeof onRefusal === 'function'
+              ? onRefusal(item, { code, status, body: err?.body })
+              : onRefusal;
+          // `defer` : le refus n'est pas définitif (une écriture préalable n'est pas encore
+          // arrivée). On ne marque pas, on ne jette pas, et on continue avec les suivantes.
+          if (policy === 'defer') continue;
           const kept = policy === 'keep';
-          refused.push({ item, message, kept });
+          refused.push({ item, message, kept, code, status });
           if (kept) {
-            update(item.client_uuid, { refused: true, error: message });
+            update(item.client_uuid, {
+              refused: true,
+              error: message,
+              ...(code ? { error_code: code } : {}),
+            });
           } else {
             dropped += 1;
             remove(item.client_uuid);

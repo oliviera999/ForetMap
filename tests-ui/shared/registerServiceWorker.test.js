@@ -177,6 +177,22 @@ describe('registerServiceWorker', () => {
     expect(win2.location.reload).not.toHaveBeenCalled();
   });
 
+  it('hors ligne, `vite:preloadError` ne recharge pas la page (le chunk manque faute de réseau)', async () => {
+    const nav = { ...makeNavigator({ controller: {} }), onLine: false };
+    const win = makeWindow();
+    registerServiceWorker({ swUrl: '/sw.js', nav, win, doc: null });
+    await Promise.resolve();
+
+    const preventDefault = vi.fn();
+    win.emit('vite:preloadError', { preventDefault });
+
+    // L'erreur doit remonter à l'écran concerné, qui affiche « indisponible hors ligne ».
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(win.location.reload).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(SW_UPDATED_FLAG)).toBeNull();
+    expect(sessionStorage.getItem(SW_PRELOAD_RELOAD_FLAG)).toBeNull();
+  });
+
   it('ne fait rien sans support service worker', () => {
     const win = makeWindow();
     expect(registerServiceWorker({ swUrl: '/sw.js', nav: {}, win, doc: null })).toBe(false);

@@ -11,6 +11,8 @@ export const SECTION_DEFS = {
   modules: { title: 'Modules UI', order: 20 },
   content: { title: 'Contenus du site', order: 22 },
   tasks: { title: 'Tâches & inscriptions n3beurs', order: 23 },
+  routes: { title: 'Parcours guidés (Visite, carte, plans)', order: 24 },
+  place_focus: { title: 'Zoom sur le lieu avant sa fiche (carte, Visite, plans)', order: 24.5 },
   progression: { title: 'Progression n3beurs', order: 25 },
   imports: { title: 'Imports de comptes', order: 28 },
   security: { title: 'Sécurité', order: 30 },
@@ -47,6 +49,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.plan.access_mode',
   'ui.plan.heading_up_enabled',
   'security.plan_access_code_hash',
+  'security.plan_access_pass_days',
   // Plan des personnels (StaffPlanSettingsPanel) — sans ça, la grille générique montrait un
   // champ texte pour `allowed_role_slugs` : le vider au blur fermait proflyautey à tout le monde.
   'ui.staff_plan.title',
@@ -59,6 +62,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.staff_plan.access_mode',
   'ui.staff_plan.code_role_slug',
   'security.staff_plan_access_code_hash',
+  'security.staff_plan_access_pass_days',
   // Plan e-nov (EnovPlanSettingsPanel) : couleur, catégories et case à cocher n'ont pas
   // d'éditeur générique adapté (une couleur saisie en texte libre serait refusée).
   'ui.enov_plan.title',
@@ -73,6 +77,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.enov_plan.innovations_label',
   'ui.enov_plan.access_mode',
   'security.enov_plan_access_code_hash',
+  'security.enov_plan_access_pass_days',
   'content.visit.mascot_dialog.defaults',
   'content.visit.mascot_dialog.catalog_overrides',
   'ops.visit_mascot_unrenderable_aligned_at',
@@ -151,6 +156,22 @@ export const KEY_META = {
     label: 'Bouton visite sans compte',
     section: 'content',
     order: 50,
+  },
+  'content.auth.credit_author': {
+    label: 'Auteur (bas de l’écran de connexion et page À propos ; vide = masqué)',
+    section: 'content',
+    order: 52,
+  },
+  'content.auth.credit_contributor': {
+    label: 'Contributeur(s) (bas de l’écran de connexion et page À propos ; vide = masqué)',
+    section: 'content',
+    order: 54,
+  },
+  'content.auth.credit_message': {
+    label: 'Message au bas de l’écran de connexion (vide = masqué)',
+    section: 'content',
+    order: 56,
+    multiline: true,
   },
   'content.app.loader': { label: 'Message global de chargement', section: 'content', order: 60 },
   'content.app.server_down_notice': {
@@ -506,6 +527,109 @@ export const KEY_META = {
       group: 'Les entrées de ses camarades de groupe et les siennes',
     },
   },
+  'ui.routes.overview_enabled': {
+    label:
+      'Commencer un parcours par une vue d’ensemble (tout le tracé, étapes numérotées et fléchées)',
+    section: 'routes',
+    order: 10,
+  },
+  'ui.routes.auto_locate': {
+    label:
+      'Activer « Me situer » au bouton « Commencer le parcours » (si la carte est géolocalisable)',
+    section: 'routes',
+    order: 20,
+  },
+  'ui.routes.camera_enabled': {
+    label:
+      'Caméra guidée pendant les étapes (position + étape, puis zoom sur la personne en marche) ; décoché : la carte centre seulement le lieu de chaque étape',
+    section: 'routes',
+    order: 30,
+  },
+  'ui.routes.walking_zoom_percent': {
+    label:
+      'Zoom de marche (% de la carte entière : 100 = carte entière, 300 = défaut, 800 = très près)',
+    section: 'routes',
+    order: 40,
+  },
+  'ui.routes.walking_trigger_m': {
+    label: 'Distance parcourue avant de zoomer sur la personne (mètres, 8 = défaut)',
+    section: 'routes',
+    order: 50,
+  },
+  'ui.routes.lookahead_percent': {
+    label:
+      'Anticipation en marche : part de la vue ouverte devant soi, vers l’étape (% : 0 = personne au centre, 60 = défaut)',
+    section: 'routes',
+    order: 60,
+  },
+  'ui.routes.line_animated': {
+    label:
+      'Animer les chevrons de la ligne de guidage (toujours figés si l’appareil demande moins d’animations)',
+    section: 'routes',
+    order: 80,
+  },
+  'ui.place_focus.work_enabled': {
+    label:
+      'Carte de travail : au clic sur une zone ou un repère, zoomer dessus avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 10,
+  },
+  'ui.place_focus.visit_enabled': {
+    label: 'Visite : zoomer sur la zone ou le repère avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 20,
+  },
+  'ui.place_focus.plan_enabled': {
+    label: 'Plans : zoomer sur le lieu avant d’ouvrir sa fiche',
+    section: 'place_focus',
+    order: 30,
+  },
+  'ui.place_focus.duration_ms': {
+    label: 'Durée du zoom et du retour (millisecondes : 150 à 800, 350 = défaut)',
+    section: 'place_focus',
+    order: 40,
+  },
+  'ui.place_focus.max_zoom_percent': {
+    label:
+      'Zoom maximal sur un lieu (% de la carte entière : 100 = carte entière, 400 = défaut, 800 = très près)',
+    section: 'place_focus',
+    order: 50,
+  },
+  'ui.place_focus.restore_on_close': {
+    label: 'À la fermeture de la fiche, revenir au zoom et au centrage d’avant',
+    section: 'place_focus',
+    order: 60,
+  },
+  'ui.place_focus.fx_emoji_work': {
+    label: 'Carte de travail : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 70,
+  },
+  'ui.place_focus.fx_spotlight_work': {
+    label: 'Carte de travail : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 75,
+  },
+  'ui.place_focus.fx_emoji_visit': {
+    label: 'Visite : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 80,
+  },
+  'ui.place_focus.fx_spotlight_visit': {
+    label: 'Visite : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 85,
+  },
+  'ui.place_focus.fx_emoji_plan': {
+    label: 'Plans : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 90,
+  },
+  'ui.place_focus.fx_spotlight_plan': {
+    label: 'Plans : assombrir le reste du plan pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 95,
+  },
   'privacy.external_assets_mode': {
     label:
       'Polices et images de sites tiers. En mode local, rien n’est demandé à Google ni à Wikimedia depuis le navigateur des élèves.',
@@ -570,6 +694,17 @@ export const KEY_META = {
     label: 'Autoriser OAuth Google côté serveur',
     section: 'security',
     order: 50,
+  },
+  'security.totp.enforcement': {
+    label:
+      'Double authentification des comptes administrateur et n3boss (code à 6 chiffres sur téléphone, en plus du mot de passe)',
+    section: 'security',
+    order: 5,
+    optionLabels: {
+      off: 'Désactivée (secours uniquement)',
+      enroll: 'Transition : comptes activés vérifiés, activation proposée aux autres',
+      required: 'Obligatoire : aucune connexion sans second facteur',
+    },
   },
 
   // Verrou pédagogique « lu / appris » : sans ces libellés, la grille affichait le dernier

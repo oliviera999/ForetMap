@@ -44,6 +44,9 @@ import { useMapViewRoutes } from './map/useMapViewRoutes.js';
 import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { useMapViewBadges } from './map/useMapViewBadges.js';
 import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
+import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
+import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
 import { useMapViewHandoff } from './map/useMapViewHandoff.js';
 import { useTutorialReadIds } from './map/useTutorialReadIds.js';
@@ -70,7 +73,7 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { pointsSurfaceLabel } from '../utils/zoneSurface.js';
 
-function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
+function Lightbox({ src, caption, onClose, useOverlayHistory = true }) {
   return (
     <ImageLightbox
       src={src}
@@ -81,8 +84,12 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   );
 }
 
+const NO_MAPS = [];
+/** Marge basse avant la première mesure de la barre de parcours (identité stable). */
+const ROUTE_BAR_FALLBACK_INSETS = Object.freeze({ bottom: 96 });
+
 function MapViewImpl({
-  maps = [],
+  maps = NO_MAPS,
   onMapChange,
   isTeacher,
   student,
@@ -111,7 +118,7 @@ function MapViewImpl({
     activeMapId,
     markersOnActiveMap: mapMarkersOnActiveMap,
     zonesOnActiveMap: mapZonesOnActiveMap,
-  } = useMapViewData();
+  } = useMapViewData(maps);
   const {
     publicSettings,
     markerEmojis,
@@ -280,6 +287,12 @@ function MapViewImpl({
     exitRoute,
     resumeRoute,
     goToRouteIndex,
+    routePhase,
+    beginRouteSteps,
+    showRouteOverview,
+    routeFocusInsets,
+    routeSettings,
+    stageRoute,
   } = useMapViewRoutes({
     activeMapId,
     zonesOnMap: mapZonesOnActiveMap,
@@ -290,6 +303,7 @@ function MapViewImpl({
     setSelectedMarker,
     routeRequest,
     onRouteRequestHandled,
+    routeSettingsRaw: publicSettings?.routes,
   });
   const [commentsFocusKey, setCommentsFocusKey] = useState(null);
   useEffect(() => {
@@ -429,6 +443,16 @@ function MapViewImpl({
     showMapMascot,
     moveMapMascotTo,
   });
+  /** « Commencer le parcours » : première étape (ou celle choisie) et position allumée. */
+  const onBeginRoute = useCallback(
+    (index) => {
+      beginRouteSteps(index);
+      if (routeSettings.autoLocate && mapPosition.available && !mapPosition.active) {
+        mapPosition.toggle();
+      }
+    },
+    [beginRouteSteps, routeSettings.autoLocate, mapPosition],
+  );
   const routeDistanceLabel = useMemo(() => {
     const targetPct = routeEntryFocusPct(currentRouteEntry);
     if (!mapPosition.positionPct || !targetPct || !mapPosition.planSize) return '';
@@ -663,18 +687,18 @@ function MapViewImpl({
     matchingMarkerIds,
     mapFilterResultItems,
     mapFilterActive,
+    mapFiltersAtDefaults,
     dimmedZoneIds,
     dimmedMarkerIds,
     getFilterDimSeen,
   } = useMapViewLocationFilters({
     activeMapId,
+    activeMap,
     mode,
-    publicSettings,
     zones,
     markersOnMap: mapMarkersOnActiveMap,
     parsedZones,
     categoryCatalog: mapCategoryCatalog,
-    categoriesById: mapCategoriesById,
     badges: {
       zoneTaskVisualById,
       markerTaskVisualById,
@@ -683,6 +707,45 @@ function MapViewImpl({
       emojiParsingList,
     },
   });
+
+  // Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant (scène partagée seulement ;
+  // pendant un parcours, la caméra guidée garde la main).
+  const placeFocusSettings = useMemo(
+    () => resolvePlaceFocusSettings(publicSettings?.place_focus),
+    [publicSettings?.place_focus],
+  );
+  const workPlaceFocusActive = useSharedViewStage && placeFocusSettings.workEnabled && !activeRoute;
+  const getWorkViewport = useCallback(() => workViewportApiRef.current, []);
+  const workPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.work);
+  const placeFocus = usePlaceFocusSequence({
+    getViewport: getWorkViewport,
+    enabled: workPlaceFocusActive,
+    durationMs: placeFocusSettings.durationMs,
+    maxZoom: placeFocusSettings.maxZoom,
+    restoreOnClose: placeFocusSettings.restoreOnClose,
+    resetKey: String(activeMapId || ''),
+    onFx: workPlaceFx.onFx,
+  });
+  const openZoneFocused = useCallback(
+    (zone) => placeFocus.focusThenOpen({ ...zone, kind: 'zone' }, () => setSelectedZone(zone)),
+    [placeFocus],
+  );
+  const openMarkerFocused = useCallback(
+    (marker) =>
+      placeFocus.focusThenOpen({ ...marker, kind: 'marker' }, () => setSelectedMarker(marker)),
+    [placeFocus],
+  );
+  // Fermeture d'une fiche (quel qu'en soit le bouton) : retour à la vue d'avant le zoom. Hors
+  // consultation (passage à l'édition des sommets), la vue mémorisée est simplement oubliée.
+  const hadPlaceDetailRef = useRef(false);
+  useEffect(() => {
+    const hasDetail = !!(selectedZone || selectedMarker);
+    if (hadPlaceDetailRef.current && !hasDetail) {
+      if (mode === 'view' && useSharedViewStage) placeFocus.restore();
+      else placeFocus.forget();
+    }
+    hadPlaceDetailRef.current = hasDetail;
+  }, [selectedZone, selectedMarker, mode, useSharedViewStage, placeFocus]);
 
   // Ouverture d'un lieu : toucher (scène, canevas, groupe), résultat de recherche, fond.
   const {
@@ -713,6 +776,9 @@ function MapViewImpl({
     mapFilterActive,
     matchingZoneIds,
     matchingMarkerIds,
+    openZone: openZoneFocused,
+    openMarker: openMarkerFocused,
+    placeFocusActive: workPlaceFocusActive,
   });
 
   const workTargetPct = useMemo(
@@ -902,6 +968,7 @@ function MapViewImpl({
             markerMatchCount={matchingMarkerIds.size}
             searchInputRef={mapLocationSearchRef}
             resultItems={mapFilterResultItems}
+            resultsCollapsedByDefault={mapFiltersAtDefaults}
             onSelectItem={onSelectMapFilterResult}
           />
           <div className="map-view-canvas-slot">
@@ -918,6 +985,9 @@ function MapViewImpl({
                 markers={mapMarkersOnActiveMap}
                 categoriesById={mapCategoriesById}
                 selectedPlace={selectedPlaceForStage}
+                autoFocusSelected={!workPlaceFocusActive}
+                placeFocusFx={workPlaceFx.fx}
+                placeFocusStatus={placeFocus.statusMessage}
                 onSelectPlace={onSelectPlaceFromStage}
                 onOpenGroup={onOpenGroupFromStage}
                 position={mapPosition}
@@ -937,8 +1007,10 @@ function MapViewImpl({
                 scaleCompassEffective={scaleCompassPref.effective}
                 onScaleCompassToggle={scaleCompassPref.toggle}
                 fitExtraStyle={workFitExtraStyle}
-                focusInsets={activeRoute ? { bottom: 96 } : null}
+                focusInsets={activeRoute ? routeFocusInsets || ROUTE_BAR_FALLBACK_INSETS : null}
                 targetPct={workTargetPct}
+                routeLineAnimated={routeSettings.lineAnimated}
+                route={mode === 'view' ? stageRoute : null}
                 onViewportChange={onWorkViewportChange}
                 initialView={stageInitialView}
                 onBackgroundClick={onWorkBackgroundClick}
@@ -1061,6 +1133,9 @@ function MapViewImpl({
             onResume={resumeRoute}
             steps={routeSteps}
             index={routeIndex}
+            phase={routePhase}
+            onBegin={onBeginRoute}
+            onShowOverview={showRouteOverview}
             onGoToIndex={goToRouteIndex}
             onExit={exitRoute}
             onHeight={setRouteBarHeight}

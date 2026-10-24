@@ -16,10 +16,11 @@ const BASE = '/api/species-observations';
  * crée pas de doublon : le serveur rejoue la première réponse (`replayed: true`).
  * @param {{ client_uuid?: string, map_id: string, zone_id?: string|null, marker_id?: string|null,
  *   plant_id?: number|null, observed_at?: string, detection_mode?: string|null, text?: string }} body
+ * @param {{ headers?: Record<string, string> }} [requestOptions] en-têtes d'un rejeu hors ligne
  * @returns {Promise<{ observation: object, replayed: boolean }>}
  */
-export function createSpeciesObservation(body) {
-  return api(BASE, 'POST', body);
+export function createSpeciesObservation(body, requestOptions) {
+  return requestOptions ? api(BASE, 'POST', body, requestOptions) : api(BASE, 'POST', body);
 }
 
 /** @returns {Promise<{ items: object[] }>} mes observations, les plus récentes d'abord */

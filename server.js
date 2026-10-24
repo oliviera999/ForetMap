@@ -62,6 +62,7 @@ const enovPlanRouter = require('./routes/enov-plan');
 const mapRoutesRouter = require('./routes/map-routes');
 const statsRouter = require('./routes/stats');
 const studentsRouter = require('./routes/students');
+const usersRouter = require('./routes/users');
 const observationsRouter = require('./routes/observations');
 const speciesObservationsRouter = require('./routes/species-observations');
 const userJournalRouter = require('./routes/user-journal');
@@ -99,6 +100,7 @@ const glLearningRouter = require('./routes/gl/learning');
 const glLearningLinksRouter = require('./routes/gl/learning-links');
 const glLoreRouter = require('./routes/gl/lore').router;
 const glStatsRouter = require('./routes/gl/stats');
+const glVoyageurRouter = require('./routes/gl/voyageur');
 const glossaryRouter = require('./routes/glossary');
 const quizRouter = require('./routes/quiz');
 const curriculumRouter = require('./routes/curriculum');
@@ -540,6 +542,7 @@ app.use('/api/gl/market', glMarketRouter);
 app.use('/api/gl/learning', glLearningRouter);
 app.use('/api/gl/learning-links', glLearningLinksRouter);
 app.use('/api/gl/stats', glStatsRouter);
+app.use('/api/gl/voyageur', glVoyageurRouter);
 app.use('/api/gl/tutorials', glTutorialsRouter);
 app.use('/api/gl/journal', glJournalRouter);
 app.use('/api/gl/player-journal', glPlayerJournalRouter);
@@ -610,6 +613,8 @@ app.use('/api/staff-plan', staffPlanRouter);
 app.use('/api/enov', enovPlanRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/students', studentsRouter);
+// Avatar par défaut d'un compte (SVG généré par le serveur, URL signée) — `lib/defaultAvatar.js`.
+app.use('/api/users', usersRouter);
 // Ancien carnet (`observation_logs`) : 410 Gone depuis la migration 307 (retrait, temps 1 et 2).
 app.use('/api/observations', observationsRouter);
 // Observations d'espèces validées par un enseignant (migration 307).

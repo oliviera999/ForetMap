@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { lazyScreen } from './shared/lazyScreen.jsx';
 import {
   api,
   getAuthClaims,
@@ -11,10 +12,15 @@ import {
 } from './services/api';
 import {
   clearLocalDataForAccount,
+  clearOfflinePhotosForAccount,
   countPendingLocalActions,
   pendingLossConfirmationMessage,
   purgeCachedUserMedia,
 } from './utils/localDataCleanup';
+import { clearOutboxMirror } from './services/offlineOutboxMirror.js';
+import { prepareFieldTrip } from './services/fieldTripPrep.js';
+import { useOfflineOutbox } from './hooks/useOfflineOutbox.js';
+import { OfflineCenterDialog } from './components/offline/OfflineCenterDialog.jsx';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useConsumableRequest } from './hooks/useConsumableRequest';
 import { clearPendingDeepLink, consumeDeepLinkFromLocation } from './utils/deepLinkTarget.js';
@@ -38,50 +44,52 @@ import { AppStatusSticky } from './shared/components/AppStatusSticky.jsx';
 import { oauthFeedbackDurationMs } from './utils/appShellHelpers';
 import { readLastViewedMapId, rememberLastViewedMapId } from './utils/lastViewedMap.js';
 import { PinModal } from './components/auth-views';
-const StudentStatsLazy = lazy(() =>
+const StudentStatsLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
 );
-const StudentProfileEditorLazy = lazy(() =>
+const StudentProfileEditorLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })),
 );
 import { TabSuspense } from './components/TabSuspense.jsx';
 import { GlossaryPopover, readGlossaryTermMessage } from './components/pedago/GlossaryPopover.jsx';
 
-const PlantManagerLazy = lazy(() =>
+const PlantManagerLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantManager })),
 );
-const PlantViewerLazy = lazy(() =>
+const PlantViewerLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantViewer })),
 );
-const ObservationNotebookLazy = lazy(() =>
+const ObservationNotebookLazy = lazyScreen(() =>
   import('./components/journal/UserJournalView.jsx').then((m) => ({ default: m.UserJournalView })),
 );
 // Modale a la demande : lazy pour que foretmap-views (PlantManager/Viewer/Notebook ~52 Ko) quitte le chunk main.
-const PlantCatalogPreviewModalLazy = lazy(() =>
+const PlantCatalogPreviewModalLazy = lazyScreen(() =>
   import('./components/foretmap-views').then((m) => ({ default: m.PlantCatalogPreviewModal })),
 );
-const TutorialsViewLazy = lazy(() =>
+const TutorialsViewLazy = lazyScreen(() =>
   import('./components/tutorials-views').then((m) => ({ default: m.TutorialsView })),
 );
-const TeacherStatsLazy = lazy(() =>
+const TeacherStatsLazy = lazyScreen(() =>
   import('./components/stats-views').then((m) => ({ default: m.TeacherStats })),
 );
-const ProfilesAdminViewLazy = lazy(() =>
+const ProfilesAdminViewLazy = lazyScreen(() =>
   import('./components/profiles-views').then((m) => ({ default: m.ProfilesAdminView })),
 );
-const AuditLogLazy = lazy(() =>
+const AuditLogLazy = lazyScreen(() =>
   import('./components/audit-views').then((m) => ({ default: m.AuditLog })),
 );
-const SettingsAdminViewLazy = lazy(() =>
+const SettingsAdminViewLazy = lazyScreen(() =>
   import('./components/settings-admin-views').then((m) => ({ default: m.SettingsAdminView })),
 );
-const MediaLibraryViewLazy = lazy(() =>
+const MediaLibraryViewLazy = lazyScreen(() =>
   import('./components/media-library-views').then((m) => ({ default: m.MediaLibraryView })),
 );
-const ForumViewLazy = lazy(() =>
+const ForumViewLazy = lazyScreen(() =>
   import('./components/forum-views').then((m) => ({ default: m.ForumView })),
 );
-const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
+const VisitMascotPackManagerLazy = lazyScreen(
+  () => import('./components/VisitMascotPackManager.jsx'),
+);
 
 /** Style du loader de l'éditeur packs mascotte (constante : évite un objet recréé à chaque rendu). */
 const MASCOT_PACK_LOADER_STYLE = { padding: '24px 16px', minHeight: 120 };
@@ -105,7 +113,6 @@ import {
 import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
 import { saveDiscoveryTourSeen } from './services/discoveryTourSeen.js';
 import { mergeDiscoveryTourSeenMaps } from './shared/tour/mergeDiscoveryTourSeenMaps.js';
-import { useOverlayHistoryBack } from './shared/platform/useOverlayHistoryBack';
 import { useTabBrowserHistory } from './shared/platform/useTabBrowserHistory';
 import { abandonAllOverlays, pushOverlayClose } from './shared/platform/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
@@ -149,6 +156,9 @@ import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useAuthTokenRenewal } from './hooks/useAuthTokenRenewal';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { useDeviceOnline } from './shared/hooks/useDeviceOnline.js';
+import { useNetworkMode } from './shared/hooks/useNetworkMode.js';
+import { offlineBannerText } from './utils/lastDataSync.js';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
@@ -156,6 +166,7 @@ import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
 import { useActiveMapVisibilityReconciler } from './hooks/useActiveMapVisibilityReconciler';
 import { useStudentSessionRef } from './hooks/useStudentSessionRef';
+import { usePasswordChangeRequired } from './hooks/usePasswordChangeRequired';
 
 /**
  * Pont vers les dialogues applicatifs pour App lui-même : App monte
@@ -191,6 +202,10 @@ function App() {
   const [biodivGroupCurriculumNiveaux, setBiodivGroupCurriculumNiveaux] = useState([]);
   const [showStats, setShowStats] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  /** Mot de passe provisoire ou compromis à changer : « Mon profil » s'ouvre à chaque signal. */
+  const { passwordChangeRequired, markPasswordChangeRequired } = usePasswordChangeRequired({
+    setShowProfile,
+  });
   const [tab, setTab] = useState(() => readStoredTab());
   const isKnownForetTab = useCallback((id) => KNOWN_TAB_VALUES.has(id), []);
   /** Retour navigateur / smartphone → onglet précédent (après fermeture des surcouches). */
@@ -216,6 +231,8 @@ function App() {
   const [toast, setToast] = useState(null);
   /** Feedback OAuth long (erreurs / avertissement création visiteur) — bandeau sur l’écran de connexion. */
   const [oauthFeedback, setOauthFeedback] = useState(null);
+  /** Retour Google / Moodle d'un compte soumis à la double authentification : étape à finir. */
+  const [oauthMfaChallenge, setOauthMfaChallenge] = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
@@ -341,6 +358,7 @@ function App() {
     setAuthClaims,
     setIsTeacher: syncAuthClaimsFromStoredToken,
     setStudent,
+    onMfaChallenge: setOauthMfaChallenge,
   });
 
   // Called from anywhere when a 401-deleted is detected
@@ -431,8 +449,12 @@ function App() {
       if (Array.isArray(d.biodivGroupCurriculumNiveaux)) {
         setBiodivGroupCurriculumNiveaux(sortLearnerNiveaux(d.biodivGroupCurriculumNiveaux));
       }
+      // Restauration / rafraîchissement de session : le serveur relit le drapeau en base.
+      if (typeof d.passwordMustReset === 'boolean') {
+        markPasswordChangeRequired(d.passwordMustReset);
+      }
     },
-    [mergeAuthMeResponseBase],
+    [markPasswordChangeRequired, mergeAuthMeResponseBase],
   );
 
   const forceLogout = useCallback(
@@ -441,9 +463,10 @@ function App() {
       setDiscoveryTourSeenReady(false);
       setBiodivGroupPedagoLevels([]);
       setBiodivGroupCurriculumNiveaux([]);
+      markPasswordChangeRequired(false);
       forceLogoutBase(options);
     },
-    [forceLogoutBase],
+    [forceLogoutBase, markPasswordChangeRequired],
   );
   /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
      (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
@@ -532,8 +555,10 @@ function App() {
     loading,
     refreshMs,
     serverDown,
+    lastSyncAt,
     retryingServer,
     fetchAll,
+    fetchAllFull,
     retryServerNow,
     loadArchivedTasks,
   } = useAppDataSync({
@@ -585,6 +610,31 @@ function App() {
 
   // Mise à jour de l'app prête à être appliquée : proposée en bandeau, jamais imposée.
   const swUpdate = useServiceWorkerUpdate();
+  const deviceOnline = useDeviceOnline();
+  const networkMode = useNetworkMode();
+
+  // Boîte d'envoi hors ligne : rejouée quel que soit l'écran ouvert, messages centralisés.
+  const outboxUserId = hasAuthenticatedShell ? getAuthUserId() : '';
+  const offlineOutbox = useOfflineOutbox({
+    userId: outboxUserId,
+    enabled: hasAuthenticatedShell,
+    onToast: setToast,
+    onSynced: fetchAll,
+  });
+  const [offlineCenterOpen, setOfflineCenterOpen] = useState(false);
+  const fieldTripDataRef = useRef({});
+  useEffect(() => {
+    fieldTripDataRef.current = { maps, zones, markers, plants, tutorials, activeMapId };
+  });
+  const prepareFieldTripNow = useCallback(
+    (onProgress) =>
+      prepareFieldTrip({
+        refreshAll: fetchAllFull,
+        getData: () => fieldTripDataRef.current,
+        onProgress,
+      }),
+    [fetchAllFull],
+  );
 
   useDefaultActiveMapFromSettings({
     publicSettingsReady,
@@ -785,7 +835,13 @@ function App() {
   const canOpenUserDialogs = !!profileTargetUserId && !isPreviewStudentView;
   const profileTargetUser = useMemo(() => {
     if (!canOpenUserDialogs) return null;
-    if (!effectiveIsTeacher && !isTeacherAccount && student) return student;
+    // `passwordMustReset` porte le bandeau « mot de passe provisoire » de l'éditeur : c'est le
+    // drapeau du shell qui fait foi (connexion, `/api/auth/me`, refus 403), élève comme prof.
+    if (!effectiveIsTeacher && !isTeacherAccount && student) {
+      return !!student.passwordMustReset === passwordChangeRequired
+        ? student
+        : { ...student, passwordMustReset: passwordChangeRequired };
+    }
     const fallbackName = resolveSessionDisplayName(
       sessionUser?.displayName,
       authClaims?.roleDisplayName,
@@ -799,9 +855,11 @@ function App() {
       pseudo: sessionUser?.pseudo || null,
       email: sessionUser?.email || null,
       avatar_path: sessionUser?.avatar_path || null,
+      default_avatar_url: sessionUser?.default_avatar_url || null,
       visit_mascot_catalog_id: sessionUser?.visit_mascot_catalog_id || null,
       biodiv_pedago_level: sessionUser?.biodiv_pedago_level || null,
       description: sessionUser?.description || '',
+      passwordMustReset: passwordChangeRequired,
       auth: {
         roleSlug: authClaims?.roleSlug || null,
         roleDisplayName: authClaims?.roleDisplayName || null,
@@ -815,9 +873,11 @@ function App() {
     canOpenUserDialogs,
     effectiveIsTeacher,
     isTeacherAccount,
+    passwordChangeRequired,
     profileTargetUserId,
     sessionUser?.avatar_path,
     sessionUser?.biodiv_pedago_level,
+    sessionUser?.default_avatar_url,
     sessionUser?.description,
     sessionUser?.displayName,
     sessionUser?.email,
@@ -883,6 +943,7 @@ function App() {
               : (prev?.description ?? null),
           avatar_path:
             updatedUser?.avatar_path ?? updatedUser?.avatarPath ?? prev?.avatar_path ?? null,
+          default_avatar_url: updatedUser?.default_avatar_url ?? prev?.default_avatar_url ?? null,
           visit_mascot_catalog_id:
             updatedUser?.visit_mascot_catalog_id ?? prev?.visit_mascot_catalog_id ?? null,
           biodiv_pedago_level:
@@ -903,13 +964,15 @@ function App() {
   /** Profil enregistré : la session prof et la session élève ne se mettent pas à jour pareil. */
   const handleProfileUpdated = useCallback(
     (updated) => {
+      // Mot de passe changé (`POST /api/auth/me/password`) : le drapeau du shell retombe.
+      if (updated?.passwordMustReset === false) markPasswordChangeRequired(false);
       if (isTeacherAccount) {
         updateTeacherSession(updated);
         return;
       }
       updateStudentSession(updated);
     },
-    [isTeacherAccount, updateStudentSession, updateTeacherSession],
+    [isTeacherAccount, markPasswordChangeRequired, updateStudentSession, updateTeacherSession],
   );
 
   /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
@@ -939,6 +1002,7 @@ function App() {
           pseudo: session?.pseudo || null,
           description: session?.description || null,
           avatar_path: session?.avatar_path || null,
+          default_avatar_url: session?.default_avatar_url || null,
           visit_mascot_catalog_id: session?.visit_mascot_catalog_id || null,
           biodiv_pedago_level: session?.biodiv_pedago_level || null,
         });
@@ -966,8 +1030,10 @@ function App() {
         const visitOk = publicSettings?.modules?.visit_enabled !== false;
         setTab(visitOk ? 'visit' : 'plants');
       }
+      // Mot de passe provisoire ou compromis : « Mon profil » s'ouvre dès l'entrée.
+      markPasswordChangeRequired(!!session?.passwordMustReset);
     },
-    [publicSettings?.modules?.visit_enabled, updateStudentSession],
+    [markPasswordChangeRequired, publicSettings?.modules?.visit_enabled, updateStudentSession],
   );
 
   /** Entrée en visite publique invitée (avec onboarding mascotte si jamais confirmé). */
@@ -996,9 +1062,14 @@ function App() {
           if (!ok) return;
         }
         // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues.
-        if (!message || typeof confirm === 'function') clearLocalDataForAccount(userId);
+        if (!message || typeof confirm === 'function') {
+          clearLocalDataForAccount(userId);
+          void clearOfflinePhotosForAccount(userId);
+        }
         void purgeCachedUserMedia();
       }
+      // Toujours : la copie pour la synchronisation en arrière-plan porte le jeton de session.
+      void clearOutboxMirror();
       clearStoredSession();
       studentRef.current = null;
       setStudent(null);
@@ -1008,14 +1079,9 @@ function App() {
       setDiscoveryTourSeenReady(false);
       setBiodivGroupPedagoLevels([]);
       setBiodivGroupCurriculumNiveaux([]);
+      markPasswordChangeRequired(false);
     },
-    [clearLocalDataOnLogout, studentRef],
-  );
-
-  useOverlayHistoryBack(showStats && canOpenUserDialogs, handleCloseStatsDialog);
-  useOverlayHistoryBack(
-    showProfile && canOpenUserDialogs && !!profileTargetUser,
-    handleCloseProfileDialog,
+    [clearLocalDataOnLogout, markPasswordChangeRequired, studentRef],
   );
 
   const isCombinedMapTasksTab = tab === 'maptasks';
@@ -1489,6 +1555,8 @@ function App() {
         onToastDone={handleToastDone}
         oauthFeedback={oauthFeedback}
         onOauthFeedbackDismiss={() => setOauthFeedback(null)}
+        mfaChallenge={oauthMfaChallenge}
+        onMfaChallengeConsumed={() => setOauthMfaChallenge(null)}
         showPublicVisit={showPublicVisit}
         visitInitialMapId={visitInitialMapId}
         guestVisitNeedsMascotChoice={guestVisitNeedsMascotChoice}
@@ -1621,7 +1689,28 @@ function App() {
                       </button>
                     </div>
                   )}
-                  {serverDown && (
+                  {!deviceOnline && (
+                    <NoticeBanner tone="info">
+                      {offlineBannerText(
+                        lastSyncAt,
+                        Date.now(),
+                        networkMode === 'unreachable' ? 'unreachable' : 'offline',
+                      )}
+                      {hasAuthenticatedShell ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                          onClick={() => setOfflineCenterOpen(true)}
+                        >
+                          {offlineOutbox.entries.length > 0
+                            ? `En attente (${offlineOutbox.entries.length})`
+                            : 'Détails'}
+                        </button>
+                      ) : null}
+                    </NoticeBanner>
+                  )}
+                  {deviceOnline && serverDown && (
                     <NoticeBanner tone="warning">
                       {appServerDownNotice}
                       {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver
@@ -1684,6 +1773,17 @@ function App() {
                     </NoticeBanner>
                   )}
                   <AppStatusSticky />
+                  {offlineCenterOpen && hasAuthenticatedShell ? (
+                    <OfflineCenterDialog
+                      onClose={() => setOfflineCenterOpen(false)}
+                      entries={offlineOutbox.entries}
+                      networkMode={networkMode}
+                      lastSyncAt={lastSyncAt}
+                      onFlushNow={offlineOutbox.flushNow}
+                      onPrepareFieldTrip={prepareFieldTripNow}
+                      onToast={setToast}
+                    />
+                  ) : null}
                   {toast && (
                     <Toast
                       msg={toast}
@@ -1777,6 +1877,16 @@ function App() {
                     onRequestPin={handleRequestPin}
                     onLogout={handleLogout}
                     helpText={helpText}
+                    offlineCenter={
+                      hasAuthenticatedShell
+                        ? {
+                            pendingCount: offlineOutbox.pendingCount,
+                            refusedCount: offlineOutbox.refusedCount,
+                            networkMode,
+                            onOpen: () => setOfflineCenterOpen(true),
+                          }
+                        : null
+                    }
                   />
 
                   <RolePreviewBanners
@@ -2027,6 +2137,10 @@ function App() {
                             canMeasureIndividuals={canMeasureIndividuals}
                             appVersion={appVersion}
                             canReadSiteIssues={hasPermissionInRole('admin.settings.read')}
+                            canReadTeacherGuide={
+                              hasPermissionInRole('reference_docs.teacher_guide.read') ||
+                              hasPermissionInRole('admin.settings.read')
+                            }
                             onOpenSettingsLearning={handleOpenSettingsLearning}
                             sessionsProps={sessionsProps}
                             pedagoEntry={pedagoEntry}
