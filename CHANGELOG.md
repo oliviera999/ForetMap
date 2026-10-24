@@ -22,6 +22,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   6.16.0 → 6.16.1, `zod` 4.6.5 → 4.6.7. Reste `uuid` sous `exceljs` (modéré, correctif
   uniquement par une version majeure régressive d'`exceljs`), sous le seuil bloquant.
 
+### Corrigé — Mouvement réduit : `matchMedia` relu s'il est remplacé (tests UI rouges sur `main`)
+
+- Depuis la centralisation de `prefers-reduced-motion` (ANIM-21, 23/10), `usePrefersReducedMotion`
+  gardait au niveau du module la **première** `MediaQueryList` obtenue : un `window.matchMedia`
+  remplacé ensuite (polyfill posé tard, doublure de test) n'était jamais relu. Deux tests UI
+  échouaient sur `main` (`BottomSheet` et `SpeechBubble` sous mouvement réduit), ce qui rendait
+  rouge le job `quality` de toute PR de code.
+- La requête est refaite quand `window.matchMedia` change d'identité, et l'écouteur `change` de
+  l'ancienne requête est détaché. En navigateur, `matchMedia` ne change pas : comportement
+  inchangé. Test : `tests-ui/shared/usePrefersReducedMotion.test.jsx`.
+
 ### Corrigé — Animations de carte : coût e-nov, a11y zoom, Rive, moteur de vue (ANIM-12…25)
 
 - Mise en avant e-nov : respiration en opacité (plus de `stroke-width` en boucle).
