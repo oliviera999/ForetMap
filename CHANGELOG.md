@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — Réglages publics et secours TOTP
+
+- `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,
+  affichage et masquage) utilisées par l'écran de connexion et la page « À propos ».
+- `docs/SCRIPTS.md` ajoute le réflexe opérationnel en cas de dernier administrateur bloqué par
+  la double authentification : `totp:admin status`, exemples `reset` / `enforcement off`, et
+  rappel des garde-fous `--yes`, `.env` serveur et journaux d'audit.
+
 ### Sécurité — Dépendances de production : failles publiées le 23/10 corrigées
 
 - `npm audit --omit=dev --audit-level=high`, bloquant en CI (job `quality`) et dans le passage
