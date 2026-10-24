@@ -9,30 +9,16 @@ import { useEffect, useState } from 'react';
 const QUERY = '(prefers-reduced-motion: reduce)';
 
 let mediaQuery = null;
-/**
- * `window.matchMedia` qui a produit `mediaQuery`. S'il est remplacé (polyfill posé après le
- * premier appel, doublure de test), la requête est refaite : sans cela, la première
- * `MediaQueryList` restait servie pour toute la durée de la page, et un remplacement de
- * `matchMedia` n'était jamais vu.
- */
-let mediaSource = null;
-/** Détache l'écouteur `change` de la `MediaQueryList` courante. */
-let detachMedia = null;
 let cached = false;
 const listeners = new Set();
 
 function ensureMedia() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null;
-  if (mediaQuery && mediaSource === window.matchMedia) return mediaQuery;
-  detachMedia?.();
-  detachMedia = null;
-  mediaSource = window.matchMedia;
-  const mq = window.matchMedia(QUERY) || null;
-  mediaQuery = mq;
-  cached = Boolean(mq?.matches);
-  if (!mq) return null;
+  if (mediaQuery) return mediaQuery;
+  mediaQuery = window.matchMedia(QUERY);
+  cached = Boolean(mediaQuery.matches);
   const apply = () => {
-    cached = Boolean(mq.matches);
+    cached = Boolean(mediaQuery.matches);
     listeners.forEach((fn) => {
       try {
         fn(cached);
@@ -41,14 +27,19 @@ function ensureMedia() {
       }
     });
   };
-  if (typeof mq.addEventListener === 'function') {
-    mq.addEventListener('change', apply);
-    detachMedia = () => mq.removeEventListener?.('change', apply);
-  } else if (typeof mq.addListener === 'function') {
-    mq.addListener(apply);
-    detachMedia = () => mq.removeListener?.(apply);
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', apply);
+  } else {
+    mediaQuery.addListener?.(apply);
   }
-  return mq;
+  return mediaQuery;
+}
+
+/** Remet le cache module (tests qui remplacent `window.matchMedia`). */
+export function resetPrefersReducedMotionForTests() {
+  mediaQuery = null;
+  cached = false;
+  listeners.clear();
 }
 
 /** Lecture synchrone (effets one-shot, garde-fous hors React). */

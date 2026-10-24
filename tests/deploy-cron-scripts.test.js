@@ -20,9 +20,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
+const { resolveBash, linkDirectory } = require('./helpers/resolveBash');
 
 const ROOT = path.join(__dirname, '..');
+const BASH = resolveBash();
 const CRONTAB_DOCS = ['docs/CRONTAB.md', 'docs/EXPLOITATION.md'];
+
+function readLf(relativePath) {
+  return fs.readFileSync(path.join(ROOT, relativePath), 'utf8').replace(/\r\n/g, '\n');
+}
 
 /** Lignes de crontab (5 champs de planification) qui lancent un script `.sh` du dépôt. */
 function crontabScriptLines(relativeDoc) {
@@ -75,12 +81,16 @@ test('chaque script appelé par la crontab est suivi exécutable par git (100755
   }
 });
 
-test('auto-deploy-cron.sh : syntaxe bash valide', () => {
-  execFileSync('bash', ['-n', path.join(ROOT, 'scripts', 'auto-deploy-cron.sh')]);
+test('auto-deploy-cron.sh : syntaxe bash valide', (t) => {
+  if (!BASH) {
+    t.skip('bash introuvable (installez Git Bash sous Windows)');
+    return;
+  }
+  execFileSync(BASH, ['-n', path.join(ROOT, 'scripts', 'auto-deploy-cron.sh')]);
 });
 
 test('auto-deploy-cron.sh : front vérifié sans déploiement, y compris arbre non propre', () => {
-  const cron = fs.readFileSync(path.join(ROOT, 'scripts', 'auto-deploy-cron.sh'), 'utf8');
+  const cron = readLf('scripts/auto-deploy-cron.sh');
   // Les deux chemins qui sortaient tôt vérifient maintenant que le front est posé ET servi.
   const dirty = cron.slice(
     cron.indexOf('DIRTY_TREE="$(git status --porcelain --untracked-files=no)"'),
@@ -100,7 +110,7 @@ test('roue de secours : tmp/restart.txt est ignoré par git (sinon l’arbre dev
 });
 
 test('auto-deploy-cron.sh : sans DEPLOY_SECRET, le déploiement n’est plus abandonné', () => {
-  const cron = fs.readFileSync(path.join(ROOT, 'scripts', 'auto-deploy-cron.sh'), 'utf8');
+  const cron = readLf('scripts/auto-deploy-cron.sh');
   const guard = cron.slice(
     cron.indexOf('if [[ "$DO_DEPLOY_RESTART" == "1" ]] && [[ -z "${DEPLOY_SECRET:-}" ]]; then'),
   );
@@ -118,7 +128,7 @@ test('scripts de la crontab qui lancent node : ils prennent celui de l’applica
     'retention-purge-cron.sh',
     'uptime-check.sh',
   ]) {
-    const text = fs.readFileSync(path.join(ROOT, 'scripts', name), 'utf8');
+    const text = readLf(`scripts/${name}`);
     assert.match(text, /scripts\/lib\/app-node\.sh/, name);
     assert.match(text, /use_app_node/, name);
   }
@@ -147,7 +157,7 @@ test('.gitignore : les fichiers que l’hébergement pose à la racine ne saliss
     fs.copyFileSync(path.join(ROOT, '.gitignore'), path.join(repo, '.gitignore'));
     git('add', '.gitignore');
     fs.mkdirSync(path.join(repo, 'venv-modules'));
-    fs.symlinkSync(path.join(repo, 'venv-modules'), path.join(repo, 'node_modules'));
+    linkDirectory(path.join(repo, 'venv-modules'), path.join(repo, 'node_modules'));
     fs.writeFileSync(path.join(repo, '.htaccess'), 'PassengerAppType node\n');
     fs.writeFileSync(path.join(repo, '.env.bak-20260927'), 'X=1\n');
     fs.writeFileSync(path.join(repo, '.env'), 'X=1\n');

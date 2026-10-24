@@ -11,6 +11,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -25,7 +26,8 @@ function readConst(file, name) {
 }
 
 async function loadNotice() {
-  return import(path.join(ROOT, 'src/shared/privacy/privacyNoticeContent.js'));
+  // Windows : `import()` exige une URL `file://`, pas un chemin `C:\…`.
+  return import(pathToFileURL(path.join(ROOT, 'src/shared/privacy/privacyNoticeContent.js')).href);
 }
 
 test('notice : les durées de conservation affichées sont celles du code', async () => {

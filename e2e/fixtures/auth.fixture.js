@@ -550,40 +550,78 @@ async function syncStudentSessionToken(page) {
   }
 }
 
-async function assignStudentToTaskAsTeacher(page, taskId) {
-  const result = await page.evaluate(async (id) => {
-    const pickToken = () => {
-      const elevated = localStorage.getItem('foretmap_teacher_token');
-      if (elevated) return elevated;
+/**
+ * Affecte l’élève courant à une tâche (JWT professeur).
+ * Après `enableTeacherMode`, la session élève a disparu du localStorage : passer le profil
+ * renvoyé par `loginAsNewStudent` (firstName / lastName / email) pour le retrouver via l’API.
+ */
+async function assignStudentToTaskAsTeacher(page, taskId, studentHint = null) {
+  const result = await page.evaluate(
+    async ({ id, hint }) => {
+      const pickToken = () => {
+        const elevated = localStorage.getItem('foretmap_teacher_token');
+        if (elevated) return elevated;
+        try {
+          const session = JSON.parse(localStorage.getItem('foretmap_session') || 'null');
+          return session?.token || null;
+        } catch (_) {
+          return null;
+        }
+      };
+      let student = null;
       try {
-        const session = JSON.parse(localStorage.getItem('foretmap_session') || 'null');
-        return session?.token || null;
+        student = JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.student || null;
       } catch (_) {
-        return null;
+        student = null;
       }
-    };
-    let student = null;
-    try {
-      student = JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.student || null;
-    } catch (_) {
-      student = null;
-    }
-    const token = pickToken();
-    if (!token || !student?.id || !student?.first_name) {
-      return { ok: false, status: 0, error: 'session prof/élève incomplète pour affectation' };
-    }
-    const r = await fetch(`/api/tasks/${id}/assign`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        firstName: student.first_name,
-        lastName: student.last_name,
-        studentId: student.id,
-      }),
-    });
-    const text = await r.text();
-    return { ok: r.ok, status: r.status, error: text.slice(0, 240) };
-  }, taskId);
+      const token = pickToken();
+      if (!token) {
+        return { ok: false, status: 0, error: 'jeton professeur absent' };
+      }
+      const firstName = student?.first_name || hint?.first_name || hint?.firstName || '';
+      const lastName = student?.last_name || hint?.last_name || hint?.lastName || '';
+      let studentId = student?.id || hint?.id || null;
+      if (!studentId && (hint?.email || firstName)) {
+        // Pas de GET /api/students générique : la liste d’affectation porte id + noms.
+        const listResp = await fetch('/api/tasks/assignable-students', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (listResp.ok) {
+          const body = await listResp.json().catch(() => null);
+          const rows = Array.isArray(body) ? body : body?.students || [];
+          const emailHint = String(hint?.email || '').toLowerCase();
+          const match = rows.find(
+            (s) =>
+              (emailHint && String(s.email || '').toLowerCase() === emailHint) ||
+              (firstName &&
+                lastName &&
+                String(s.first_name || '') === firstName &&
+                String(s.last_name || '') === lastName),
+          );
+          if (match?.id) studentId = match.id;
+        }
+      }
+      if (!studentId || !firstName) {
+        return {
+          ok: false,
+          status: 0,
+          error: 'session prof/élève incomplète pour affectation',
+        };
+      }
+      const r = await fetch(`/api/tasks/${id}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          studentId,
+        }),
+      });
+      const text = await r.text();
+      return { ok: r.ok, status: r.status, error: text.slice(0, 240) };
+    },
+    { id: taskId, hint: studentHint },
+  );
   if (!result.ok) {
     throw new Error(
       `Affectation prof→élève refusée (HTTP ${result.status}). ${result.error || ''}`,

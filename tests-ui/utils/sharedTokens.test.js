@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(__dirname, '../..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8');
+// Checkout Windows = CRLF : normaliser pour les assertions multi-lignes.
+const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
 
 /**
  * Cliquet du kit d'interface (lot 3) : les feuilles de tokens communes sont chargées par les

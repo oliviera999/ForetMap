@@ -14,21 +14,30 @@ const { spawnSync } = require('node:child_process');
 
 const { initSchema, execute } = require('../database');
 const { createDatedAccount } = require('./helpers/retentionFixtures');
+const { resolveBash } = require('./helpers/resolveBash');
 
 const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'retention-purge-cron.sh');
+const BASH = resolveBash();
 
 test.before(async () => {
   await initSchema();
 });
 
-test('cron : syntaxe bash valide', () => {
-  const run = spawnSync('bash', ['-n', SCRIPT], { encoding: 'utf8' });
+test('cron : syntaxe bash valide', (t) => {
+  if (!BASH) {
+    t.skip('bash introuvable (installez Git Bash sous Windows)');
+    return;
+  }
+  const run = spawnSync(BASH, ['-n', SCRIPT], { encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr);
 });
 
 function runCron(args, extraEnv = {}) {
-  return spawnSync('bash', [SCRIPT, ...args], {
+  if (!BASH) {
+    return { status: null, stdout: '', stderr: 'bash introuvable' };
+  }
+  return spawnSync(BASH, [SCRIPT, ...args], {
     cwd: ROOT,
     encoding: 'utf8',
     env: {

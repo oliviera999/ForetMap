@@ -88,7 +88,9 @@ test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', asy
   if ((await mapBtn.count()) > 0) await mapBtn.click();
   const canvas = page.locator(MAP_STAGE).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
-  const world = canvas.locator(':scope > div').first();
+  // Le premier enfant du plateau est la barre de commandes ; la caméra écrit
+  // `translate(...) scale(...)` sur `.map-view-world` (ANIM-22 / SharedMapStage).
+  const world = canvas.locator('.map-view-world, .visit-map-world').first();
   const readScale = async () => {
     const t = await world.evaluate((el) => el.style.transform || '');
     const m = /scale\(([\d.]+)\)/.exec(t);
@@ -107,6 +109,8 @@ test('mobile : double-tap zoome la carte, le bouton recentrer la réajuste', asy
   await page.touchscreen.tap(x, y);
   await expect.poll(readScale, { timeout: 5_000 }).toBeGreaterThan(fitScale * 1.8);
 
-  await page.getByRole('button', { name: 'Recentrer la carte', exact: true }).click();
+  // SharedMapStage (carte élève) : libellé « Voir tout le plan » ; l’ancienne barre
+  // MapViewToolbar gardait « Recentrer la carte ».
+  await page.getByTestId('map-zoom-reset').click();
   await expect.poll(readScale, { timeout: 5_000 }).toBeCloseTo(fitScale, 2);
 });

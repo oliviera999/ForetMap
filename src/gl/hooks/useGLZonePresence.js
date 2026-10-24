@@ -81,6 +81,8 @@ export function useGLZonePresence({
 }) {
   const { trackTeamPosition } = useGLTeamPositionTracker();
   const pendingTimerRef = useRef(null);
+  /** Zone dont l’arrivée est encore en délai — à présenter tout de suite si une autre la remplace. */
+  const pendingEnterRef = useRef(null);
 
   const clearPendingTimer = useCallback(() => {
     if (pendingTimerRef.current) {
@@ -89,23 +91,50 @@ export function useGLZonePresence({
     }
   }, []);
 
+  const flushPendingEnter = useCallback(() => {
+    const pending = pendingEnterRef.current;
+    pendingEnterRef.current = null;
+    clearPendingTimer();
+    if (pending?.zone != null && pending.teamId != null) {
+      onEnter?.(pending.zone, Number(pending.teamId));
+    }
+  }, [clearPendingTimer, onEnter]);
+
   const scheduleOnMove = useCallback(
     (prev, next, teamId) => {
       if (!enabled || teamId == null) return undefined;
       const zone = resolveZoneOnMove?.(prev, next, teamId);
       if (!zone) return undefined;
+      // Un trajet multi-étapes annulait le timer précédent : seules les zones finales
+      // d’un déplacement étaient présentées. On présente immédiatement la zone en attente.
+      if (pendingEnterRef.current) flushPendingEnter();
       const delay = Math.max(0, Number(moveDelayMs) || 0);
-      clearPendingTimer();
+      pendingEnterRef.current = { zone, teamId };
+      if (delay <= 0) {
+        pendingEnterRef.current = null;
+        onEnter?.(zone, Number(teamId));
+        return undefined;
+      }
       pendingTimerRef.current = window.setTimeout(() => {
         pendingTimerRef.current = null;
-        onEnter?.(zone, Number(teamId));
+        const pending = pendingEnterRef.current;
+        pendingEnterRef.current = null;
+        if (pending?.zone) onEnter?.(pending.zone, Number(pending.teamId));
       }, delay);
-      return clearPendingTimer;
+      // Ne pas renvoyer clearPendingTimer : les effets React qui s’en servaient en
+      // cleanup à chaque pas de mascotte annulaient le délai avant la présentation.
+      return undefined;
     },
-    [enabled, resolveZoneOnMove, moveDelayMs, onEnter, clearPendingTimer],
+    [enabled, resolveZoneOnMove, moveDelayMs, onEnter, flushPendingEnter],
   );
 
-  useEffect(() => clearPendingTimer, [clearPendingTimer]);
+  useEffect(
+    () => () => {
+      clearPendingTimer();
+      pendingEnterRef.current = null;
+    },
+    [clearPendingTimer],
+  );
 
   const handlePositionChange = useCallback(
     (pct) => {

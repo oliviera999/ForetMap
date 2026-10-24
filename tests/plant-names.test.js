@@ -35,9 +35,11 @@ const MIGRATION = path.join(__dirname, '..', 'migrations', '304_plant_name_alias
  * migration (sous-requête `s` de l'étape 1).
  */
 function t3ControlSql() {
-  const sql = fs.readFileSync(MIGRATION, 'utf8');
+  // Checkout Windows = CRLF : normaliser avant de découper le fragment SQL.
+  const sql = fs.readFileSync(MIGRATION, 'utf8').replace(/\r\n/g, '\n');
   const start = sql.indexOf('      FROM (\n        SELECT p.id AS plant_id');
   const end = sql.indexOf('     GROUP BY s.plant_id, s.part', start);
+  assert.ok(start >= 0 && end > start, 'fragment de contrôle T3 introuvable dans la migration 304');
   const parts = sql.slice(start, end);
   return `SELECT s.plant_id, s.part ${parts}
        AND NOT EXISTS (SELECT 1 FROM plant_name_aliases a

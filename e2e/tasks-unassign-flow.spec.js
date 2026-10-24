@@ -18,9 +18,19 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   const student = await loginAsNewStudent(page);
+  const studentSnap = await page.evaluate(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('foretmap_session') || 'null')?.student;
+      return s
+        ? { id: s.id, first_name: s.first_name, last_name: s.last_name, email: s.email }
+        : null;
+    } catch (_) {
+      return null;
+    }
+  });
   await enableTeacherMode(page);
   const taskId = await createTeacherTask(page, taskTitle);
-  await assignStudentToTaskAsTeacher(page, taskId);
+  await assignStudentToTaskAsTeacher(page, taskId, studentSnap || student);
 
   await disableTeacherMode(page, student);
   await waitForStudentAssignedTask(page, taskTitle);

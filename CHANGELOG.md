@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Mode Découverte GL et tests Windows (e2e / CI locale)
+
+- Plateau découverte : jets ignorés pendant un trajet ; index avancé seulement si le
+  déplacement aboutit ; position de repos alignée sur le waypoint (un re-mesure ne
+  ramène plus la mascotte au départ).
+- Arrivées en zone : un trajet multi-étapes ne perd plus les zones intermédiaires
+  (flush du délai en attente ; plus de `clearPendingTimer` en cleanup à chaque pas).
+- `awaitBeforePresent` : délai de sécurité pour ne jamais bloquer l’arrivée.
+- Tests Windows : résolution Git Bash / CRLF / `pathToFileURL` ; e2e guest, mobile map,
+  tâches (assignation, commentaires). Doc : `docs/reference/gl/roles-et-connexion.md`.
+
 ### Corrigé — GL : une arrivée n'est plus perdue si un autre popover se ferme pendant le zoom
 
 - Refermer un popover (zone, QCM, effet, feuillet) pendant le zoom d'une **autre** arrivée annulait ce zoom et laissait sa promesse en suspens. L'arrivée était déjà marquée comme récente : le popover ne s'ouvrait pas, et l'appel au serveur (question, effet, contenu, feuillet) n'était jamais fait. Il fallait quitter le lieu et y revenir après quelques secondes.

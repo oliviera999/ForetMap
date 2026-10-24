@@ -24,10 +24,16 @@ test('onglet Tâches : commentaires chargés seulement à l’ouverture', async 
   // Laisse retomber d’éventuels effets différés (polling, rendu tuiles).
   await page.waitForTimeout(1500);
 
-  const commentsBefore = apiCalls.filter((u) => u.includes('/api/context-comments'));
+  // Les compteurs (`/counts`) peuvent être préchargés pour les pastilles ; le fil
+  // complet (`/api/context-comments?…` hors counts) ne doit pas l’être.
+  const commentThreads = (urls) =>
+    urls.filter(
+      (u) => u.includes('/api/context-comments') && !u.includes('/api/context-comments/counts'),
+    );
+  const commentsBefore = commentThreads(apiCalls);
   expect(
     commentsBefore,
-    `aucun GET commentaires à l’ouverture des tâches, vu : ${commentsBefore.join(', ')}`,
+    `aucun GET fil de commentaires à l’ouverture des tâches, vu : ${commentsBefore.join(', ')}`,
   ).toEqual([]);
 
   const taskCard = page.locator('.task-card').first();
@@ -45,18 +51,18 @@ test('onglet Tâches : commentaires chargés seulement à l’ouverture', async 
   const commentsToggle = taskCard.locator('button.context-comments-toggle').first();
   await expect(commentsToggle).toBeVisible({ timeout: 15_000 });
 
-  const beforeOpen = apiCalls.filter((u) => u.includes('/api/context-comments')).length;
+  const beforeOpen = commentThreads(apiCalls).length;
   await commentsToggle.click();
 
   await expect
-    .poll(() => apiCalls.filter((u) => u.includes('/api/context-comments')).length, {
+    .poll(() => commentThreads(apiCalls).length, {
       timeout: 15_000,
     })
     .toBe(beforeOpen + 1);
 
-  const commentsAfter = apiCalls.filter((u) => u.includes('/api/context-comments'));
+  const commentsAfter = commentThreads(apiCalls);
   expect(
     commentsAfter.length,
-    `exactement 1 appel commentaires après ouverture, vu : ${commentsAfter.join(', ')}`,
+    `exactement 1 appel fil de commentaires après ouverture, vu : ${commentsAfter.join(', ')}`,
   ).toBe(1);
 });

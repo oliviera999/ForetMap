@@ -14,25 +14,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
+const { resolveBash, bashPath } = require('./helpers/resolveBash');
 
 const ROOT = path.join(__dirname, '..');
 const EMAIL = 'eleve.test@example.org';
-
-function resolveBash() {
-  if (process.platform === 'win32') {
-    const gitBash = 'C:\\Program Files\\Git\\bin\\bash.exe';
-    return fs.existsSync(gitBash) ? gitBash : null;
-  }
-  return 'bash';
-}
-
 const BASH = resolveBash();
-
-/** Chemin lisible par bash (Git Bash attend /c/… sous Windows). */
-function bashPath(p) {
-  if (process.platform !== 'win32') return p;
-  return p.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`).replace(/\\/g, '/');
-}
 
 function toolsAvailable() {
   if (!BASH) return false;

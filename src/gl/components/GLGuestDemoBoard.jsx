@@ -52,15 +52,28 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const boardShellRef = useRef(null);
   const [presentedZoneIds, setPresentedZoneIds] = useState([]);
-  const [pathIndex, setPathIndex] = useState(0);
   const pathIndexRef = useRef(0);
+  const [pathIndex, setPathIndex] = useState(0);
+  /** Empêche un second jet d’annuler le trajet en cours (sinon les zones sont sautées). */
+  const movingRef = useRef(false);
   const [demoFeuillets, setDemoFeuillets] = useState([]);
   const [discoveryFeuillet, setDiscoveryFeuillet] = useState(null);
   const [discoveryZone, setDiscoveryZone] = useState(null);
   const [showWall, setShowWall] = useState(false);
   const [loadError, setLoadError] = useState('');
 
-  const teams = useMemo(() => [DEMO_TEAM], []);
+  // Position de repos = waypoint courant : sinon un re-mesure du plateau (`boardHeightPx`)
+  // remettait la mascotte au départ via `useGLBoardMascotMotion` alors que l’index avait avancé.
+  const teams = useMemo(() => {
+    const point = pathWaypoints[pathIndex] || pathWaypoints[0] || { xp: 10, yp: 72 };
+    return [
+      {
+        ...DEMO_TEAM,
+        position_x_pct: point.xp,
+        position_y_pct: point.yp,
+      },
+    ];
+  }, [pathIndex, pathWaypoints]);
   const { getPositionForTeam, getMotionForTeam, moveTeamAlongPath } = useGLBoardMascotMotion({
     teams,
     boardHeightPx,
@@ -118,7 +131,8 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     feuilletZones,
     watchTeamId: DEMO_TEAM_ID,
     presentedZoneIds,
-    enabled: !showWall && demoFeuillets.length > 0,
+    // Les popovers de zone viennent du JSON local ; l’API ne sert que le texte du carnet.
+    enabled: !showWall && feuilletZones.length > 0,
     moveDelayMs: prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS,
     onZonePresented: handleZonePresented,
     beforePresent: boardFocusBeforePresent,
@@ -128,14 +142,18 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
 
   useEffect(() => {
     if (!watchPosition) return undefined;
-    return handleFeuilletZonePositionChange({
+    // Ne pas utiliser le cleanup renvoyé (clearPendingTimer) : chaque pas du trajet
+    // re-exécute cet effet et annulait le délai d’arrivée avant présentation.
+    handleFeuilletZonePositionChange({
       xp: watchPosition.xp,
       yp: watchPosition.yp,
     });
+    return undefined;
   }, [watchPosition?.xp, watchPosition?.yp, handleFeuilletZonePositionChange]);
 
   const advanceAlongPath = useCallback(
     async (steps) => {
+      if (movingRef.current) return;
       const delta = Math.max(1, Number(steps) || 1);
       const start = pathIndexRef.current;
       const end = Math.min(start + delta, pathWaypoints.length - 1);
@@ -144,9 +162,16 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
         y_pct: point.yp,
       }));
       if (!waypoints.length) return;
-      await moveTeamAlongPath(DEMO_TEAM_ID, waypoints, { triggerHappy: true });
-      pathIndexRef.current = end;
-      setPathIndex(end);
+      movingRef.current = true;
+      try {
+        const ok = await moveTeamAlongPath(DEMO_TEAM_ID, waypoints, { triggerHappy: true });
+        if (ok) {
+          pathIndexRef.current = end;
+          setPathIndex(end);
+        }
+      } finally {
+        movingRef.current = false;
+      }
     },
     [moveTeamAlongPath, pathWaypoints],
   );

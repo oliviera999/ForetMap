@@ -11,8 +11,10 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const { spawn, execFileSync } = require('node:child_process');
+const { resolveBash, bashPath } = require('./resolveBash');
 
 const ROOT = path.join(__dirname, '..', '..');
+const BASH = resolveBash();
 
 function gitEnv() {
   return {
@@ -98,24 +100,28 @@ function pushRemoteCommit(sandbox, files) {
 }
 
 function runCron(sandbox, baseUrl, extraEnv = {}) {
+  if (!BASH) {
+    return Promise.reject(new Error('bash introuvable (installez Git Bash sous Windows)'));
+  }
   const alertLog = path.join(sandbox.root, 'alerts.log');
   const env = {
     ...process.env,
-    APP_DIR: sandbox.app,
+    // Chemins en notation Git Bash sous Windows (`/c/...`), sinon `cd "$APP_DIR"` casse.
+    APP_DIR: bashPath(sandbox.app),
     DEPLOY_BRANCH: sandbox.branch,
     DEPLOY_BASE_URL: baseUrl,
-    DEPLOY_ENV_FILE: path.join(sandbox.root, 'absent.env'),
-    DEPLOY_LOCK_DIR: path.join(sandbox.root, 'lock'),
-    DEPLOY_STAMP_DIR: sandbox.root,
+    DEPLOY_ENV_FILE: bashPath(path.join(sandbox.root, 'absent.env')),
+    DEPLOY_LOCK_DIR: bashPath(path.join(sandbox.root, 'lock')),
+    DEPLOY_STAMP_DIR: bashPath(sandbox.root),
     DEPLOY_AUTO_MIGRATE: '0',
-    TEST_ALERT_LOG: alertLog,
+    TEST_ALERT_LOG: bashPath(alertLog),
     ...extraEnv,
   };
   for (const key of ['DEPLOY_SECRET', 'DEPLOY_NODE_BIN_DIR']) {
     if (!(key in extraEnv)) delete env[key];
   }
   return new Promise((resolve, reject) => {
-    const child = spawn('bash', [path.join(sandbox.app, 'scripts', 'auto-deploy-cron.sh')], {
+    const child = spawn(BASH, [path.join(sandbox.app, 'scripts', 'auto-deploy-cron.sh')], {
       env,
       cwd: sandbox.app,
     });
@@ -130,4 +136,12 @@ function runCron(sandbox, baseUrl, extraEnv = {}) {
   });
 }
 
-module.exports = { ROOT, gitEnv, startFakeServer, makeSandbox, pushRemoteCommit, runCron };
+module.exports = {
+  ROOT,
+  BASH,
+  gitEnv,
+  startFakeServer,
+  makeSandbox,
+  pushRemoteCommit,
+  runCron,
+};

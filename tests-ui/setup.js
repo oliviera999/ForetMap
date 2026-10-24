@@ -46,9 +46,26 @@ function installLocalStoragePolyfill() {
       store.set(String(key), String(value));
     },
   };
-  globalThis.localStorage = polyfill;
+  try {
+    globalThis.localStorage = polyfill;
+  } catch {
+    // Node ≥25 peut exposer un localStorage natif en lecture seule (--localstorage-file).
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: polyfill,
+      writable: true,
+      configurable: true,
+    });
+  }
   if (typeof window !== 'undefined') {
-    window.localStorage = polyfill;
+    try {
+      window.localStorage = polyfill;
+    } catch {
+      Object.defineProperty(window, 'localStorage', {
+        value: polyfill,
+        writable: true,
+        configurable: true,
+      });
+    }
   }
 }
 

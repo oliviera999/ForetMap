@@ -102,9 +102,11 @@ Trois façons d'entrer :
 Quand le **mode découverte est activé** (réglage de la plateforme, à la main de
 l'Admin — il est activé par défaut), l'écran de connexion propose un bouton
 « Découvrir sans compte ». L'invité navigue alors en lecture seule : plateau de
-démonstration, contenus « nature », extraits du lore. Un bandeau « Mode découverte »
-reste affiché, avec un bouton pour se connecter ou quitter. Dès qu'une action
-demande un compte, le jeu la refuse poliment.
+démonstration (lancer le dé, découvrir les premiers feuillets, puis un message
+invitant à créer un compte), contenus « nature », extraits du lore. Un bandeau
+« Mode découverte » reste affiché, avec un bouton pour se connecter ou quitter.
+Dès qu'une action demande un compte, le jeu la refuse poliment. Un nouveau jet
+pendant que la mascotte avance est ignoré : elle termine d'abord son trajet.
 
 ### Les mots de passe
 

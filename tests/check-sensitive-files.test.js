@@ -189,7 +189,10 @@ test('.gitignore : dumps, sauvegardes, clés et fichiers .env sont ignorés', ()
 test('branchement : hook pre-commit et job CI quality appellent le garde-fou', () => {
   const hook = fs.readFileSync(path.join(ROOT, '.githooks', 'pre-commit'), 'utf8');
   assert.match(hook, /node scripts\/check-sensitive-files\.js --staged/);
-  const ci = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+  // Checkout Windows = CRLF : normaliser avant de découper le job `quality`.
+  const ci = fs
+    .readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
+    .replace(/\r\n/g, '\n');
   const start = ci.indexOf('\n  quality:');
   const quality = ci.slice(start, start + 1 + ci.slice(start + 1).search(/\n {2}[\w-]+:\n/));
   assert.match(quality, /node scripts\/check-sensitive-files\.js --all/);

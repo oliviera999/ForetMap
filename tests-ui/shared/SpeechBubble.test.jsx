@@ -2,11 +2,13 @@ import { createRef } from 'react';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act, fireEvent } from '@testing-library/react';
 import { SpeechBubble } from '../../src/shared/components/SpeechBubble.jsx';
+import { resetPrefersReducedMotionForTests } from '../../src/shared/hooks/usePrefersReducedMotion.js';
 
 const TEXT = 'Voilà la carte.';
 
 /** Pilote `prefers-reduced-motion` pour le hook partagé usePrefersReducedMotion. */
 function mockReducedMotion(reduce) {
+  resetPrefersReducedMotionForTests();
   window.matchMedia = vi.fn().mockImplementation((query) => ({
     matches: query === '(prefers-reduced-motion: reduce)' ? reduce : false,
     media: query,

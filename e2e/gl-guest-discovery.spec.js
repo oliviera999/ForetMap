@@ -101,18 +101,33 @@ test.describe('Gnomes & Licornes — Mode Découverte', () => {
 
     await closeFeuilletOverlays();
 
-    for (let attempt = 0; attempt < 50 && !(await wallTitle.isVisible()); attempt += 1) {
+    // Après un jet : attendre popover/mur (trajet mascotte + zoom), puis fermer les feuillets.
+    // Les jets pendant un trajet en cours sont ignorés côté plateau.
+    for (let attempt = 0; attempt < 30 && !(await wallTitle.isVisible()); attempt += 1) {
       await ensureDicePopoverOpen();
       const popover = page.getByTestId('gl-virtual-dice-popover');
       const rerollBtn = popover.getByTestId('gl-dice-reroll');
       const rollBtn = popover.getByTestId('gl-dice-roll');
       if (await rerollBtn.isVisible().catch(() => false)) {
         await rerollBtn.click({ force: true });
-      } else {
+      } else if (await rollBtn.isVisible().catch(() => false)) {
         await rollBtn.click({ force: true });
+      } else {
+        await page.waitForTimeout(500);
+        await closeFeuilletOverlays();
+        continue;
       }
 
-      await page.waitForTimeout(1_200);
+      const zonePopover = page.locator('.gl-feuillet-popover');
+      const discoveryDialog = page
+        .getByRole('dialog')
+        .filter({ hasText: /Feuillet|Carnet de voyage/i });
+      await Promise.race([
+        zonePopover.waitFor({ state: 'visible', timeout: 10_000 }),
+        discoveryDialog.first().waitFor({ state: 'visible', timeout: 10_000 }),
+        wallTitle.waitFor({ state: 'visible', timeout: 10_000 }),
+        page.waitForTimeout(4_500),
+      ]).catch(() => {});
       await closeFeuilletOverlays();
       if (await wallTitle.isVisible()) break;
     }

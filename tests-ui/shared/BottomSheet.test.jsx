@@ -9,9 +9,11 @@ import {
   resolveInitialSnap,
   resolveSnapRelease,
 } from '../../src/shared/ui/bottomSheetSnap.js';
+import { resetPrefersReducedMotionForTests } from '../../src/shared/hooks/usePrefersReducedMotion.js';
 
 /** matchMedia contrôlé : `reduced` pilote `prefers-reduced-motion`, `wide` la requête ≥ 1024 px. */
 function mockMatchMedia({ reduced = false, wide = false } = {}) {
+  resetPrefersReducedMotionForTests();
   window.matchMedia = vi.fn().mockImplementation((query) => ({
     matches: /reduced-motion/.test(query)
       ? reduced

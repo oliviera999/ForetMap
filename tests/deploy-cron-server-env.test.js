@@ -17,14 +17,16 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawnSync, execFileSync } = require('node:child_process');
 const {
   ROOT,
+  BASH,
   startFakeServer,
   makeSandbox,
   pushRemoteCommit,
   runCron,
 } = require('./helpers/deployCronSandbox');
+const { linkDirectory, linkOrCopyFile, bashPath } = require('./helpers/resolveBash');
 
 const NODE_NAMES = new Set(['node', 'nodejs', 'npm', 'npx', 'corepack']);
 
@@ -45,30 +47,47 @@ function pathWithoutNode(root) {
     for (const name of names) {
       const target = path.join(dir, name);
       if (NODE_NAMES.has(name) || fs.existsSync(target)) continue;
-      fs.symlinkSync(path.join(source, name), target);
+      linkOrCopyFile(path.join(source, name), target);
     }
   }
-  return dir;
+  // Sous Git Bash, préférer la notation `/c/...` pour éviter un PATH Windows (`C:\...`).
+  return bashPath(dir);
 }
 
 /** Faux virtualenv CloudLinux : `<root>/nodevenv/<rel>/<version>/bin` avec node et npm. */
 function makeNodeVenv(root, rel, version) {
   const bin = path.join(root, 'nodevenv', rel, version, 'bin');
   fs.mkdirSync(bin, { recursive: true });
-  fs.symlinkSync(process.execPath, path.join(bin, 'node'));
+  if (process.platform === 'win32') {
+    // Git Bash : `[[ -x node ]]` échoue sur une copie nue de node.exe sans shebang.
+    fs.copyFileSync(process.execPath, path.join(bin, 'node.exe'));
+    fs.writeFileSync(path.join(bin, 'node'), '#!/bin/sh\nexec "$(dirname "$0")/node.exe" "$@"\n', {
+      mode: 0o755,
+    });
+  } else {
+    linkOrCopyFile(process.execPath, path.join(bin, 'node'));
+  }
   fs.writeFileSync(path.join(bin, 'npm'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  if (BASH && process.platform === 'win32') {
+    execFileSync(BASH, [
+      '-c',
+      `chmod +x "${bashPath(path.join(bin, 'node'))}" "${bashPath(path.join(bin, 'npm'))}"`,
+    ]);
+  }
   return bin;
 }
 
 /** `.htaccess` tel que cPanel le génère pour une application Node. */
 function writeHtaccess(app, nodePath) {
+  const appPosix = bashPath(app);
+  const nodePosix = nodePath ? bashPath(nodePath) : '';
   fs.writeFileSync(
     path.join(app, '.htaccess'),
     [
       '# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN',
-      `PassengerAppRoot "${app}"`,
+      `PassengerAppRoot "${appPosix}"`,
       'PassengerBaseURI "/"',
-      nodePath ? `PassengerNodejs "${nodePath}"` : '',
+      nodePosix ? `PassengerNodejs "${nodePosix}"` : '',
       'PassengerAppType node',
       'PassengerStartupFile server.js',
       '# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END',
@@ -92,7 +111,7 @@ test('fichiers non suivis de l’hébergement (.htaccess, lien node_modules, .en
   await withSandbox('dist', async (sandbox, server) => {
     writeHtaccess(sandbox.app, null);
     fs.mkdirSync(path.join(sandbox.root, 'venv-modules'));
-    fs.symlinkSync(path.join(sandbox.root, 'venv-modules'), path.join(sandbox.app, 'node_modules'));
+    linkDirectory(path.join(sandbox.root, 'venv-modules'), path.join(sandbox.app, 'node_modules'));
     fs.writeFileSync(path.join(sandbox.app, '.env.bak-20260927'), 'X=1\n');
 
     const run = await runCron(sandbox, server.baseUrl);
@@ -139,10 +158,10 @@ test('node hors du PATH : celui de PassengerNodejs (.htaccess cPanel)', async ()
     writeHtaccess(sandbox.app, path.join(bin, 'node'));
     const run = await runCron(sandbox, server.baseUrl, {
       PATH: pathWithoutNode(sandbox.root),
-      HOME: sandbox.root,
+      HOME: bashPath(sandbox.root),
     });
     assert.equal(run.code, 0, run.out);
-    assert.ok(run.out.includes(`Node de l'application : ${bin}`), run.out);
+    assert.ok(run.out.includes(`Node de l'application : ${bashPath(bin)}`), run.out);
     assert.match(run.out, /Aucune mise à jour/);
   });
 });
@@ -153,10 +172,10 @@ test('node hors du PATH, sans .htaccess : virtualenv ~/nodevenv/<app>, version l
     const bin22 = makeNodeVenv(sandbox.root, 'app', '22');
     const run = await runCron(sandbox, server.baseUrl, {
       PATH: pathWithoutNode(sandbox.root),
-      HOME: sandbox.root,
+      HOME: bashPath(sandbox.root),
     });
     assert.equal(run.code, 0, run.out);
-    assert.ok(run.out.includes(`Node de l'application : ${bin22}`), run.out);
+    assert.ok(run.out.includes(`Node de l'application : ${bashPath(bin22)}`), run.out);
   });
 });
 
@@ -165,25 +184,28 @@ test('DEPLOY_NODE_BIN_DIR prime sur le .htaccess ; invalide, il est signalé pui
     const fromHtaccess = makeNodeVenv(sandbox.root, 'htaccess', '22');
     const explicit = makeNodeVenv(sandbox.root, 'explicite', '22');
     writeHtaccess(sandbox.app, path.join(fromHtaccess, 'node'));
-    const env = { PATH: pathWithoutNode(sandbox.root), HOME: sandbox.root };
+    const env = { PATH: pathWithoutNode(sandbox.root), HOME: bashPath(sandbox.root) };
 
     const chosen = await runCron(sandbox, server.baseUrl, {
       ...env,
-      DEPLOY_NODE_BIN_DIR: explicit,
+      DEPLOY_NODE_BIN_DIR: bashPath(explicit),
     });
     assert.equal(chosen.code, 0, chosen.out);
-    assert.ok(chosen.out.includes(`Node de l'application : ${explicit}`), chosen.out);
+    assert.ok(chosen.out.includes(`Node de l'application : ${bashPath(explicit)}`), chosen.out);
 
     const invalid = await runCron(sandbox, server.baseUrl, {
       ...env,
-      DEPLOY_NODE_BIN_DIR: path.join(sandbox.root, 'nulle-part'),
+      DEPLOY_NODE_BIN_DIR: bashPath(path.join(sandbox.root, 'nulle-part')),
     });
     assert.equal(invalid.code, 0, invalid.out);
     assert.match(
       invalid.out,
       /DEPLOY_NODE_BIN_DIR=.* ne contient pas node et npm exécutables : ignoré/,
     );
-    assert.ok(invalid.out.includes(`Node de l'application : ${fromHtaccess}`), invalid.out);
+    assert.ok(
+      invalid.out.includes(`Node de l'application : ${bashPath(fromHtaccess)}`),
+      invalid.out,
+    );
   });
 });
 
@@ -193,7 +215,7 @@ test('node introuvable : arrêt net, avant tout contrôle ni pull', async () => 
     pushRemoteCommit(sandbox, { 'nouveau.txt': 'x\n' });
     const run = await runCron(sandbox, server.baseUrl, {
       PATH: pathWithoutNode(sandbox.root),
-      HOME: sandbox.root,
+      HOME: bashPath(sandbox.root),
       DEPLOY_QUIET_SECONDS: '0',
     });
     assert.equal(run.code, 1, run.out);
@@ -204,29 +226,40 @@ test('node introuvable : arrêt net, avant tout contrôle ni pull', async () => 
   });
 });
 
-test('with-app-node.sh : lance la commande avec le node de l’application, depuis la racine', () => {
+test('with-app-node.sh : lance la commande avec le node de l’application, depuis la racine', (t) => {
+  if (!BASH) {
+    t.skip('bash introuvable (installez Git Bash sous Windows)');
+    return;
+  }
   const sandbox = makeSandbox();
   try {
     fs.copyFileSync(
       path.join(ROOT, 'scripts', 'with-app-node.sh'),
       path.join(sandbox.app, 'scripts', 'with-app-node.sh'),
     );
-    const bin = makeNodeVenv(sandbox.root, 'app', '22');
-    const env = { ...process.env, PATH: pathWithoutNode(sandbox.root), HOME: sandbox.root };
+    makeNodeVenv(sandbox.root, 'app', '22');
+    const env = {
+      ...process.env,
+      PATH: pathWithoutNode(sandbox.root),
+      HOME: bashPath(sandbox.root),
+    };
     delete env.APP_DIR;
     delete env.DEPLOY_NODE_BIN_DIR;
     const script = path.join(sandbox.app, 'scripts', 'with-app-node.sh');
 
+    // Ne pas découper PATH sur `:` : sous Windows un chemin `C:\…` contient déjà des `:`.
     const ok = spawnSync(
-      'bash',
-      [script, 'node', '-e', 'console.log(process.cwd() + "|" + process.env.PATH.split(":")[0])'],
+      BASH,
+      [script, 'node', '-e', 'console.log(process.cwd() + "|" + process.execPath)'],
       { cwd: sandbox.root, env, encoding: 'utf8' },
     );
     assert.equal(ok.status, 0, ok.stderr);
-    assert.equal(ok.stdout.trim(), `${fs.realpathSync(sandbox.app)}|${bin}`);
+    const [cwdOut, execOut] = ok.stdout.trim().split('|');
+    assert.equal(cwdOut, fs.realpathSync(sandbox.app));
+    assert.match(execOut.replace(/\\/g, '/'), /nodevenv\/app\/22\/bin/);
 
     fs.rmSync(path.join(sandbox.root, 'nodevenv'), { recursive: true });
-    const missing = spawnSync('bash', [script, 'npm', 'run', 'logs:purge'], {
+    const missing = spawnSync(BASH, [script, 'npm', 'run', 'logs:purge'], {
       cwd: sandbox.root,
       env,
       encoding: 'utf8',
