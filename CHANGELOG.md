@@ -16,6 +16,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   sa réserve que de sa catégorie, livrait quand même son texte à un élève d'une autre classe
   et à un visiteur — alors que le lieu lui-même restait masqué sur la carte, la Visite et le
   plan. Le filtre reprend la même décision que ces charges (groupes, héritage, surfaces).
+
 ### Documentation — Réglages publics et secours TOTP
 
 - `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,
