@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isElementScrollRevealVisible } from '../utils/motionMath.js';
+import { getPrefersReducedMotion } from './usePrefersReducedMotion.js';
 
 /**
  * Révèle un élément au scroll (remplacement léger d'AOS).
@@ -21,7 +22,7 @@ export function useScrollReveal(options = {}) {
       disconnectObserver();
       if (!el) return;
 
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (getPrefersReducedMotion()) {
         setVisible(true);
         return;
       }

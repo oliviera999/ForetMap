@@ -89,6 +89,10 @@ s'affiche aussitôt, sans attendre.
 > - Contrairement à ForetMap, le **zoom maximal** du plateau n'est pas réglable : il est fixe.
 > - Une zone n'a jamais d'emoji qui s'envole, et un repère sans emoji non plus (ForetMap, lui,
 >   montre alors une épingle 📍).
+> - Pendant le zoom animé, un lecteur d'écran entend une brève annonce (« Ouverture de … »)
+>   avant l'ouverture du popover — comme sur ForetMap.
+> - Un interrupteur de zoom mal orthographié ou illisible retombe sur **actif** (même règle
+>   que ForetMap), pas sur « coupé ».
 
 ## Qui déplace les mascottes
 

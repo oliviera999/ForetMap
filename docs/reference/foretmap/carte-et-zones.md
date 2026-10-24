@@ -397,7 +397,13 @@ carte, à la Visite et aux plans) :
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
->   et le retour sont instantanés, et aucun effet visuel ne s'affiche.
+>   et le retour sont instantanés, et aucun effet visuel ne s'affiche. Sinon, un lecteur d'écran
+>   entend une brève annonce (« Ouverture de … ») pendant le zoom, avant que la fiche soit
+>   lisible.
+> - Un **repère sans emoji** affiche une épingle 📍 sur ForetMap (carte, Visite, plans). Sur le
+>   plateau Gnomes & Licornes, un repère sans emoji n'en invente pas un pour l'envol — voir
+>   [Carte du royaume](../gl/carte-du-royaume.md).
+> - Le **zoom maximal** est réglable ici ; côté G&L il est fixe (pas de réglage équivalent).
 > - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
 >   visé, c'est là que le guidage commence.
 > - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la

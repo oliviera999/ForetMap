@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  getPrefersReducedMotion,
+  subscribePrefersReducedMotion,
+} from '../hooks/usePrefersReducedMotion.js';
 import { pointToContainedRectPct } from './pctMapPointer.js';
 import { mapOrientationStyle } from './pctMapOrientation.js';
 import {
@@ -589,23 +593,24 @@ export function usePctMapViewport({
     return undefined;
   }, [animateTo, contentSize, fitMap]);
 
-  /* Préférences système : mouvement réduit, pointeur grossier. */
+  /* Préférences système : mouvement réduit (source partagée ANIM-21), pointeur grossier. */
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const coarse = window.matchMedia('(pointer: coarse)');
-    const applyMotion = () => {
-      reducedMotionRef.current = !!motion.matches;
+    const applyMotion = (reduced) => {
+      reducedMotionRef.current = !!reduced;
     };
+    applyMotion(getPrefersReducedMotion());
+    const unsubMotion = subscribePrefersReducedMotion(applyMotion);
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return () => unsubMotion();
+    }
+    const coarse = window.matchMedia('(pointer: coarse)');
     const applyCoarse = () => setIsCoarsePointer(!!coarse.matches);
-    applyMotion();
     applyCoarse();
-    motion.addEventListener?.('change', applyMotion);
     if (typeof coarse.addEventListener === 'function')
       coarse.addEventListener('change', applyCoarse);
     else coarse.addListener?.(applyCoarse);
     return () => {
-      motion.removeEventListener?.('change', applyMotion);
+      unsubMotion();
       if (typeof coarse.removeEventListener === 'function')
         coarse.removeEventListener('change', applyCoarse);
       else coarse.removeListener?.(applyCoarse);

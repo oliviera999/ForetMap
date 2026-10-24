@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { configureRiveRuntime } from '../utils/riveRuntime.js';
+import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import {
   VisitMascotFallbackSvg,
   DefaultVisitMascotStaticSvg,
@@ -94,6 +95,7 @@ function VisitMapMascotRive({
   fallback = null,
   mascotId = '',
 }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [riveError, setRiveError] = useState(false);
   const [status, setStatus] = useState('loading');
   const riveSrc = String(mascotConfig?.rive?.src || '').trim();
@@ -110,9 +112,10 @@ function VisitMapMascotRive({
     setStatus('loading');
   }, [riveSrc, mascotId]);
 
+  // Mouvement réduit (ANIM-16) : pas de lecture Rive — silhouette statique seule, comme sprite_cut.
   const { rive, RiveComponent } = useRive({
     src: riveSrc,
-    autoplay: true,
+    autoplay: !prefersReducedMotion,
     layout,
     onLoad: () => {
       setStatus('loaded');
@@ -126,6 +129,15 @@ function VisitMapMascotRive({
 
   useEffect(() => {
     if (!rive || riveError) return;
+    if (prefersReducedMotion) {
+      try {
+        rive.stop();
+      } catch (_) {
+        /* ignore */
+      }
+      setStatus('reduced-motion-static');
+      return;
+    }
     const names = rive.animationNames || [];
     const selected = pickAnimationName(names, mascotState, stateAnimations);
     if (!selected) {
@@ -140,22 +152,25 @@ function VisitMapMascotRive({
       setStatus('fallback-play-error');
       setRiveError(true);
     }
-  }, [rive, riveError, mascotState, stateAnimations]);
+  }, [rive, riveError, mascotState, stateAnimations, prefersReducedMotion]);
+
+  const showRive = !riveError && !prefersReducedMotion;
 
   return (
     <div
       className="visit-map-mascot-rive-shell"
-      data-renderer={riveError ? 'fallback-static' : 'rive'}
+      data-renderer={showRive ? 'rive' : 'fallback-static'}
       data-rive-status={status}
       data-mascot-state={mascotState}
       data-mascot-id={mascotId}
       data-mascot-shape={fallbackSilhouette}
+      data-reduced-motion={prefersReducedMotion ? 'true' : 'false'}
       aria-hidden="true"
     >
       <div className="visit-map-mascot-static" aria-hidden="true">
         {resolvedFallback}
       </div>
-      {!riveError ? (
+      {showRive ? (
         <div className="visit-map-mascot-rive" aria-hidden="true">
           <RiveComponent />
         </div>

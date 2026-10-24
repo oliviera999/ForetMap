@@ -987,6 +987,7 @@ function MapViewImpl({
                 selectedPlace={selectedPlaceForStage}
                 autoFocusSelected={!workPlaceFocusActive}
                 placeFocusFx={workPlaceFx.fx}
+                placeFocusStatus={placeFocus.statusMessage}
                 onSelectPlace={onSelectPlaceFromStage}
                 onOpenGroup={onOpenGroupFromStage}
                 position={mapPosition}
