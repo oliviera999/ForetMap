@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Parcours : le texte d'une étape ne sort plus si le lieu est réservé
+
+- Le catalogue des parcours (`GET /api/map-routes` et le lien profond) ne tenait compte que
+  des rôles du lieu. Une étape pointant vers un lieu réservé à une classe, ou qui n'héritait
+  sa réserve que de sa catégorie, livrait quand même son texte à un élève d'une autre classe
+  et à un visiteur — alors que le lieu lui-même restait masqué sur la carte, la Visite et le
+  plan. Le filtre reprend la même décision que ces charges (groupes, héritage, surfaces).
+
 ### Documentation — Réglages publics et secours TOTP
 
 - `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,

@@ -29,10 +29,12 @@ const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
 const {
   isPublicSurface,
-  parseSurfaceSet,
+  isVisibleOnSurface,
   readSurfaceQuery,
   normalizeSurfaceInput,
+  stripDistinctionCategoriesOffSurface,
 } = require('../lib/locationSurfaces');
+const { attachCategoriesToEntity, loadCategoriesMap } = require('../lib/locationCategories');
 const {
   isPlanAccessGranted,
   isEnovPlanAccessGranted,
@@ -83,10 +85,12 @@ async function loadRoutes(where, params) {
 }
 
 /**
- * Catalogue public : ne sert que les étapes dont le lieu est visible pour le lecteur
- * (audience + `hidden_surfaces` de la surface demandée). Aligné sur `plan/content`
- * et `visit/content` — sans ce filtre, `step_text` d'un lieu staff/masqué fuitait
- * via `GET /api/map-routes?surface=map|visit`.
+ * Catalogue public : ne sert que les étapes dont le lieu est visible pour le lecteur.
+ * Même décision que `plan/content` et `visit/content` : audience du lieu (rôles **et**
+ * groupes), audience héritée de ses catégories, masquage et catégories de la surface.
+ * Sans les groupes et les catégories, `step_text` d'un lieu réservé à une classe — ou
+ * seulement par sa catégorie — sortait de `GET /api/map-routes` alors que le lieu
+ * lui-même restait absent de la carte.
  * Les gestionnaires (`zones.manage` / `map.manage_markers`) voient toutes les étapes.
  */
 async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
@@ -101,34 +105,43 @@ async function filterPublicRouteSteps(routes, auth, { surface } = {}) {
       else if (step.target_type === 'marker') markerIds.add(String(step.target_id));
     }
   }
-  const [zones, markers] = await Promise.all([
-    zoneIds.size
+  const zoneIdList = [...zoneIds];
+  const markerIdList = [...markerIds];
+  const db = { queryAll };
+  const [zones, markers, zoneCategories, markerCategories] = await Promise.all([
+    zoneIdList.length
       ? queryAll(
-          `SELECT id, visible_role_slugs, hidden_surfaces
-             FROM zones WHERE id IN (${[...zoneIds].map(() => '?').join(',')})`,
-          [...zoneIds],
+          `SELECT id, visible_role_slugs, visible_group_ids, hidden_surfaces
+             FROM zones WHERE id IN (${zoneIdList.map(() => '?').join(',')})`,
+          zoneIdList,
         )
       : [],
-    markerIds.size
+    markerIdList.length
       ? queryAll(
-          `SELECT id, visible_role_slugs, hidden_surfaces
-             FROM map_markers WHERE id IN (${[...markerIds].map(() => '?').join(',')})`,
-          [...markerIds],
+          `SELECT id, visible_role_slugs, visible_group_ids, hidden_surfaces
+             FROM map_markers WHERE id IN (${markerIdList.map(() => '?').join(',')})`,
+          markerIdList,
         )
       : [],
+    loadCategoriesMap(db, 'zone', zoneIdList),
+    loadCategoriesMap(db, 'marker', markerIdList),
   ]);
   const publicSurface = !surface || isPublicSurface(surface);
   const visible = new Set();
-  for (const row of zones) {
-    if (!canViewLocation(row, auth, { publicSurface })) continue;
-    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
-    visible.add(`zone:${row.id}`);
+
+  /** Lieu tel que la surface le voit, puis audience effective (lieu, sinon catégories). */
+  function consider(row, kind, categories) {
+    let entity = attachCategoriesToEntity(row, categories.get(String(row.id)) || []);
+    if (surface) {
+      entity = stripDistinctionCategoriesOffSurface(entity, surface);
+      if (!isVisibleOnSurface(entity, surface)) return;
+    }
+    if (!canViewLocation(entity, auth, { publicSurface })) return;
+    visible.add(`${kind}:${row.id}`);
   }
-  for (const row of markers) {
-    if (!canViewLocation(row, auth, { publicSurface })) continue;
-    if (surface && parseSurfaceSet(row.hidden_surfaces).includes(surface)) continue;
-    visible.add(`marker:${row.id}`);
-  }
+  for (const row of zones) consider(row, 'zone', zoneCategories);
+  for (const row of markers) consider(row, 'marker', markerCategories);
+
   return routes.map((route) => ({
     ...route,
     steps: (route.steps || []).filter((step) =>
