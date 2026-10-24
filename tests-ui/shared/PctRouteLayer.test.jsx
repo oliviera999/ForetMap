@@ -58,6 +58,26 @@ describe('PctRouteLines', () => {
     expect(container.querySelectorAll('.fm-pct-route__stroke')).toHaveLength(0);
   });
 
+  test('animation coupée par le réglage admin : pas de filet qui coule', () => {
+    const guide = { guideFrom: { xp: 0, yp: 0 }, guideTo: { xp: 50, yp: 50 } };
+    const { rerender } = render(
+      <PctRouteLines showFullPath={false} {...guide} widthPx={400} heightPx={300} />,
+    );
+    expect(screen.getByTestId('map-route-lines').getAttribute('class')).toContain('is-animated');
+    rerender(
+      <PctRouteLines
+        showFullPath={false}
+        {...guide}
+        widthPx={400}
+        heightPx={300}
+        animated={false}
+      />,
+    );
+    expect(screen.getByTestId('map-route-lines').getAttribute('class')).not.toContain(
+      'is-animated',
+    );
+  });
+
   test('rien à dessiner : aucun SVG', () => {
     render(<PctRouteLines points={[]} widthPx={100} heightPx={100} />);
     expect(screen.queryByTestId('map-route-lines')).toBe(null);

@@ -5,8 +5,15 @@
 import { VISIT_MASCOT_STATE } from './visitMascotState.js';
 import { VISIT_MASCOT_INTERACTION_EVENT } from './visitMascotInteractionEvents.js';
 
-export const MAP_VIEW_MASCOT_MOVE_MS = 560;
-export const MAP_VIEW_MASCOT_HAPPY_MS = 1800;
+/**
+ * Durée du déplacement de la mascotte — **source unique** côté JS (Visite, carte de travail,
+ * plateaux GL, e2e) ; miroir de `--motion-map-mascot-move` (`motion.css`), qui pilote la
+ * transition CSS. Un test vérifie l'égalité.
+ */
+export const MAP_VIEW_MASCOT_MOVE_MS = 550;
+/** Joie : `visitMascotHappyBounce` dure 0,42 s et se joue trois fois (`visit-map-mascot.css`). */
+export const MAP_VIEW_MASCOT_HAPPY_BOUNCE_MS = 420;
+export const MAP_VIEW_MASCOT_HAPPY_MS = MAP_VIEW_MASCOT_HAPPY_BOUNCE_MS * 3;
 export const MAP_VIEW_MASCOT_DIALOG_MS = 2600;
 export const MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
 export const MAP_VIEW_MASCOT_ESTIMATED_HEIGHT_PX = 78;

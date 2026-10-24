@@ -7,7 +7,6 @@ import {
 } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../shared/platform/image';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import {
   armNativeFilePickerGuard,
   disarmNativeFilePickerGuard,
@@ -56,8 +55,8 @@ function LogModal({
   offlineAllowed = false,
   onQueued = null,
 }) {
-  const dialogRef = useDialogA11y(onClose);
-  // Pas de useOverlayHistoryBack : même conflit popstate / caméra native que le formulaire tâche.
+  // Pas d'entrée d'historique : même conflit popstate / caméra native que le formulaire tâche.
+  const dialogRef = useDialogA11y(onClose, { historyBack: false });
   const commentFieldId = useId();
   const [comment, setComment] = useState(() => readTaskLogCommentDraft(task?.id));
   const [imageData, setImageData] = useState(null);
@@ -317,7 +316,6 @@ function LogModal({
 function TaskLogsViewer({ task, onClose }) {
   const { confirm } = useAppDialogs();
   const dialogRef = useDialogA11y(onClose);
-  useOverlayHistoryBack(true, onClose);
   const [logs, setLogs] = useState([]);
   const [toast, setToast] = useState(null);
 

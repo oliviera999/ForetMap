@@ -32,6 +32,8 @@ import {
   zoneLabelMaxWidthPx,
   zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
+import { PctPlaceFocusFx } from './PctPlaceFocusFx.jsx';
+import { PlaceFocusStatusLive } from './PlaceFocusStatusLive.jsx';
 import { PctPositionLayer } from './PctPositionLayer.jsx';
 import { PctRouteBadges, PctRouteLines } from './PctRouteLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
@@ -78,6 +80,8 @@ const POSITION_ICONS = Object.freeze({
  * @param {object|null} [props.position]
  * @param {() => void} [props.onLocateToggle]
  * @param {{ xp: number, yp: number }|null} [props.targetPct]
+ * @param {boolean} [props.routeLineAnimated=true] réglage `ui.routes.line_animated`, pour la
+ *   ligne « Y aller » (hors parcours, `route.settings` n'existe pas).
  * @param {object|null} [props.route] parcours en cours : `{ slug, phase: 'overview'|'steps',
  *   steps, currentIndex, currentPlaceKey, settings }` (`settings` : `resolveRouteSettings`).
  *   Présent, il dessine le tracé fléché et ses pastilles, et pilote la caméra guidée.
@@ -108,6 +112,8 @@ const POSITION_ICONS = Object.freeze({
  *   (« Innovation e-nov ») : le halo ne se voit pas au lecteur d'écran.
  * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
  *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
+ * @param {object|null} [props.placeFocusFx] effets du zoom sur le lieu (`usePlaceFocusFx`)
+ * @param {string} [props.placeFocusStatus] annonce aria-live pendant le zoom (`usePlaceFocusSequence`)
  * @param {import('react').ReactNode} [props.overlaySlot]
  * @param {import('react').ReactNode} [props.chromeSlot]
  * @param {import('react').ReactNode} [props.emptySlot]
@@ -128,6 +134,7 @@ export function SharedMapStage({
   position = null,
   onLocateToggle = null,
   targetPct = null,
+  routeLineAnimated = true,
   route = null,
   focusInsets = null,
   headingUpAllowed = false,
@@ -162,6 +169,10 @@ export function SharedMapStage({
   highlightLabel = '',
   splitNameEmoji,
   focusPlacePct,
+  /** Effets du « zoom sur le lieu » (état `usePlaceFocusFx`) ; `null` : aucun. */
+  placeFocusFx = null,
+  /** Annonce aria-live pendant le zoom (`usePlaceFocusSequence.statusMessage`). */
+  placeFocusStatus = '',
   overlaySlot = null,
   chromeSlot = null,
   emptySlot = null,
@@ -829,6 +840,25 @@ export function SharedMapStage({
     }
     return anchors;
   }, [visibleZones, getZoneStatusDots, zoneLabelSpecs, labelPlacements, labelAspect]);
+  /** Emoji et point d'ancrage d'un lieu, pour les effets du zoom sur le lieu. */
+  const placeFxEmojiOf = useCallback(
+    (place) => {
+      if (place?.kind === 'marker') return place.emoji || '📍';
+      const spec = zoneLabelSpecs.find((s) => s.id === String(place?.id));
+      return spec?.emoji || '';
+    },
+    [zoneLabelSpecs],
+  );
+  const placeFxAnchorOf = useCallback(
+    (place) => {
+      if (place?.kind === 'marker') return null;
+      const id = String(place?.id);
+      const spec = zoneLabelSpecs.find((s) => s.id === id);
+      return labelPlacements.get(id) || spec?.anchor || null;
+    },
+    [zoneLabelSpecs, labelPlacements],
+  );
+
   /** Tap sur l'étiquette d'une zone → même effet qu'un tap sur son polygone (N12). */
   const onZoneLabelClick = useCallback(
     (zoneId) => {
@@ -1024,14 +1054,13 @@ export function SharedMapStage({
         />
       </div>
 
-      <div
-        ref={worldRef}
-        className={worldClassName}
-        style={{
-          transform: `translate3d(${committed.x}px, ${committed.y}px, 0) scale(${committed.s})`,
-          transformOrigin: '0 0',
-        }}
-      >
+      {/*
+        La caméra (`usePctMapViewport.applyTransform`) écrit seule `translate(...) scale(...)`
+        en rAF / layout. Ne pas poser de `transform` React ici : un `translate3d` écrasait
+        le moteur à chaque rendu (ANIM-22). `transformOrigin` suffit ; l'écriture initiale
+        vient du `useLayoutEffect` du moteur.
+      */}
+      <div ref={worldRef} className={worldClassName} style={{ transformOrigin: '0 0' }}>
         <div className={fitClassName} style={{ ...fitStyle, ...orientStyle }}>
           <PctImageLayer
             ref={imgRef}
@@ -1076,6 +1105,7 @@ export function SharedMapStage({
               widthPx={fitRect.width}
               heightPx={fitRect.height}
               scale={committed.s}
+              animated={routeLineAnimated}
               className="fm-pct-direct-line"
             />
           ) : null}
@@ -1100,6 +1130,16 @@ export function SharedMapStage({
               highlightLabel={highlightLabel}
             />
           )}
+          {placeFocusFx ? (
+            <PctPlaceFocusFx
+              fx={placeFocusFx}
+              fitWidth={fitRect.width}
+              fitHeight={fitRect.height}
+              emojiOf={placeFxEmojiOf}
+              anchorOf={placeFxAnchorOf}
+            />
+          ) : null}
+          <PlaceFocusStatusLive message={placeFocusStatus} />
           {route ? (
             <PctRouteBadges
               points={routePoints}

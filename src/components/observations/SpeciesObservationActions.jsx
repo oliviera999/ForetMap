@@ -3,7 +3,6 @@ import { getAuthToken } from '../../services/api';
 import { useData } from '../../contexts/DataContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
-import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { IconCamera, IconNotebook } from '../../shared/icons.jsx';
 import { DialogShell } from '../DialogShell';
@@ -42,9 +41,6 @@ export function SpeciesObservationActions({
   const [toast, setToast] = useState('');
   const closeForm = () => setFormOpen(false);
   const closeMine = () => setMineOpen(false);
-  useOverlayHistoryBack(formOpen, closeForm);
-  useOverlayHistoryBack(mineOpen, closeMine);
-
   const hasSession = typeof getAuthToken === 'function' && !!getAuthToken();
   if (!hasSession || !mapId) return null;
   // Interrupteur `ui.modules.species_observations_enabled` : éteint, seul le validateur garde

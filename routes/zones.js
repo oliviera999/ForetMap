@@ -23,6 +23,7 @@ const {
   ZONES_DETAIL_SQL,
   locationKind,
   listLocations,
+  checkLocationReadable,
   createLocation,
   updateLocation,
   deleteLocation,
@@ -132,6 +133,14 @@ registerEntityPhotoRoutes(router, {
     add: 'add_zone_photo',
     delete: 'delete_zone_photo',
   },
+  // Une photo se lit aux conditions de sa zone (surface, laissez-passer, périmètre, audience).
+  optionalAuth: authenticate,
+  surfaceGuard: withLocationSurface,
+  canRead: (req, zoneId) =>
+    checkLocationReadable('zone', zoneId, {
+      auth: req.auth || null,
+      locationSurface: req.locationSurface,
+    }),
 });
 
 router.post(

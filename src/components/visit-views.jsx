@@ -28,7 +28,6 @@ import {
   tutorialPreviewPayload,
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { rememberLastViewedMapId } from '../utils/lastViewedMap.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
@@ -54,6 +53,7 @@ import {
 import { resolveRouteSettings } from '../shared/map-routes/routeSettings.js';
 import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { distanceMetersBetweenPct, formatDistanceFr } from '../shared/pct-map/positionGeometry.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -616,7 +616,7 @@ function VisitViewImpl({
   const visitMapFitRef = useRef(visitMapFit);
   visitMapFitRef.current = visitMapFit;
 
-  // Zoom sur le lieu avant sa fiche (après l'arrivée de la mascotte), puis retour à la vue
+  // Zoom sur le lieu avant sa fiche (pendant la marche de la mascotte), puis retour à la vue
   // d'avant. Pendant un parcours, la caméra guidée garde la main.
   const placeFocusSettings = useMemo(
     () => resolvePlaceFocusSettings(publicSettings?.place_focus),
@@ -624,6 +624,7 @@ function VisitViewImpl({
   );
   const getVisitViewport = useCallback(() => visitViewportApiRef.current, []);
   const visitPlaceFocusActive = placeFocusSettings.visitEnabled && mode === 'view' && !activeRoute;
+  const visitPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.visit);
   const placeFocus = usePlaceFocusSequence({
     getViewport: getVisitViewport,
     enabled: visitPlaceFocusActive,
@@ -631,6 +632,7 @@ function VisitViewImpl({
     maxZoom: placeFocusSettings.maxZoom,
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: String(mapId || ''),
+    onFx: visitPlaceFx.onFx,
   });
   /** Bords recouverts (barre de guidage) : lus à l'ouverture, calculés plus bas. */
   const visitMapFocusInsetsRef = useRef(null);
@@ -685,6 +687,8 @@ function VisitViewImpl({
     setSelected,
     setSelectedType,
     openSelection: openVisitSelection,
+    // Zoom sur le lieu pendant la marche de la mascotte, pas après.
+    openSelectionInParallel: visitPlaceFocusActive,
   });
 
   const closeVisitSelection = useCallback(() => {
@@ -693,9 +697,6 @@ function VisitViewImpl({
     setSelectedType(null);
     placeFocus.restore();
   }, [cancelScheduledDetailPanelOpen, setSelected, setSelectedType, placeFocus]);
-  useOverlayHistoryBack(isGuestPublicVisit && !!selected, closeVisitSelection);
-  useOverlayHistoryBack(!!visitMediaLightbox, () => setVisitMediaLightbox(null));
-
   /**
    * Guidage « Y aller » : depuis la fiche d'un lieu, la carte trace une **ligne droite** entre
    * la position et ce lieu, avec la distance. Ce n'est pas un itinéraire — la visite ne connaît
@@ -1179,6 +1180,8 @@ function VisitViewImpl({
                     selected && selectedType ? { ...selected, kind: selectedType } : null
                   }
                   autoFocusSelected={!visitPlaceFocusActive}
+                  placeFocusFx={visitPlaceFx.fx}
+                  placeFocusStatus={placeFocus.statusMessage}
                   onSelectPlace={onSelectPlaceFromStage}
                   seen={showVisitSeenStatus ? seen : null}
                   position={visitPosition}
@@ -1197,6 +1200,7 @@ function VisitViewImpl({
                   fitExtraStyle={visitFitExtraStyle}
                   focusInsets={visitMapFocusInsets}
                   targetPct={visitTargetPct}
+                  routeLineAnimated={routeSettings.lineAnimated}
                   route={mode === 'view' ? visitStageRoute : null}
                   onViewportChange={onVisitViewportChange}
                   onBackgroundClick={onMapBackgroundClick}

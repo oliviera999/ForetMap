@@ -24,6 +24,8 @@ export const PLAN_VARIANT = Object.freeze({
   bodyClass: 'plan-body',
   /** L'entrée demande-t-elle un compte ForetMap ? */
   requiresAccount: false,
+  /** Un lien `?code=` (QR code interne) ouvre-t-il ce plan ? (`src/plan/utils/planAccessLink.js`) */
+  acceptsLinkCode: true,
   accessIntro:
     'Ce plan est réservé à l’établissement. Saisissez le code qui vous a été communiqué.',
 });
@@ -73,6 +75,7 @@ export const ENOV_PLAN_VARIANT = Object.freeze({
   defaultTitle: 'Plan e-nov',
   bodyClass: 'plan-body enov-plan-body',
   requiresAccount: false,
+  acceptsLinkCode: true,
   accessIntro: 'Ce plan est réservé aux invités du label e-nov. Saisissez le code communiqué.',
   highlightPlaces: true,
   labelLogo: Object.freeze({

@@ -8,16 +8,23 @@ export const BOARD_FOCUS_DEFAULTS = Object.freeze({
   enabled: true,
   durationMs: 350,
   restoreOnClose: true,
+  fx: Object.freeze({ emoji: true, spotlight: true, sparkles: true }),
 });
 
+/**
+ * Booléen « actif par défaut » aligné sur ForetMap (`placeFocusSettings.readBool`) :
+ * `false` / `'false'` / `0` / `'0'` → faux ; valeur absente ou illisible → vrai (ANIM-24).
+ */
 function flagDefaultOn(value) {
-  if (value == null) return true;
-  return value === true || value === 'true' || value === 1 || value === '1';
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return true;
 }
 
 /**
  * @param {object} [gameplaySettings]
- * @returns {{ enabled: boolean, durationMs: number, restoreOnClose: boolean }}
+ * @returns {{ enabled: boolean, durationMs: number, restoreOnClose: boolean,
+ *   fx: { emoji: boolean, spotlight: boolean, sparkles: boolean } }}
  */
 export function resolveBoardFocusSettings(gameplaySettings = {}) {
   const s = gameplaySettings && typeof gameplaySettings === 'object' ? gameplaySettings : {};
@@ -30,5 +37,10 @@ export function resolveBoardFocusSettings(gameplaySettings = {}) {
     restoreOnClose: flagDefaultOn(
       s.boardFocusRestoreOnClose ?? s['gameplay.board_focus_restore_on_close'],
     ),
+    fx: {
+      emoji: flagDefaultOn(s.boardFocusFxEmoji ?? s['gameplay.board_focus_fx_emoji']),
+      spotlight: flagDefaultOn(s.boardFocusFxSpotlight ?? s['gameplay.board_focus_fx_spotlight']),
+      sparkles: flagDefaultOn(s.boardFocusFxSparkles ?? s['gameplay.board_focus_fx_sparkles']),
+    },
   };
 }

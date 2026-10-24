@@ -61,6 +61,9 @@ const HISTORICAL_GAMEPLAY_KEYS = [
   'gameplay.board_focus_enabled',
   'gameplay.board_focus_duration_ms',
   'gameplay.board_focus_restore_on_close',
+  'gameplay.board_focus_fx_emoji',
+  'gameplay.board_focus_fx_spotlight',
+  'gameplay.board_focus_fx_sparkles',
 ];
 
 const HISTORICAL_MODULE_KEYS = [
@@ -171,6 +174,9 @@ test('messages historiques — booléens stricts (un booléen JSON, pas « true 
     'gameplay.team_composition_profile_recipes_enabled',
     'gameplay.board_focus_enabled',
     'gameplay.board_focus_restore_on_close',
+    'gameplay.board_focus_fx_emoji',
+    'gameplay.board_focus_fx_spotlight',
+    'gameplay.board_focus_fx_sparkles',
     // Les cinq interrupteurs autrefois sans validateur rejoignent la même règle.
     'gameplay.turns_enabled',
     'gameplay.narration_enabled',

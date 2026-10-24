@@ -45,6 +45,7 @@ import { useMapViewTypography } from './map/useMapViewTypography.js';
 import { useMapViewBadges } from './map/useMapViewBadges.js';
 import { useMapViewPlaceHandlers } from './map/useMapViewPlaceHandlers.js';
 import { usePlaceFocusSequence } from '../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../shared/pct-map/usePlaceFocusFx.js';
 import { resolvePlaceFocusSettings } from '../shared/pct-map/placeFocusSettings.js';
 import { useMapViewEdgeSnap } from './map/useMapViewEdgeSnap.js';
 import { useMapViewHandoff } from './map/useMapViewHandoff.js';
@@ -72,7 +73,7 @@ import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx'
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { pointsSurfaceLabel } from '../utils/zoneSurface.js';
 
-function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
+function Lightbox({ src, caption, onClose, useOverlayHistory = true }) {
   return (
     <ImageLightbox
       src={src}
@@ -715,6 +716,7 @@ function MapViewImpl({
   );
   const workPlaceFocusActive = useSharedViewStage && placeFocusSettings.workEnabled && !activeRoute;
   const getWorkViewport = useCallback(() => workViewportApiRef.current, []);
+  const workPlaceFx = usePlaceFocusFx(placeFocusSettings.fx.work);
   const placeFocus = usePlaceFocusSequence({
     getViewport: getWorkViewport,
     enabled: workPlaceFocusActive,
@@ -722,6 +724,7 @@ function MapViewImpl({
     maxZoom: placeFocusSettings.maxZoom,
     restoreOnClose: placeFocusSettings.restoreOnClose,
     resetKey: String(activeMapId || ''),
+    onFx: workPlaceFx.onFx,
   });
   const openZoneFocused = useCallback(
     (zone) => placeFocus.focusThenOpen({ ...zone, kind: 'zone' }, () => setSelectedZone(zone)),
@@ -983,6 +986,8 @@ function MapViewImpl({
                 categoriesById={mapCategoriesById}
                 selectedPlace={selectedPlaceForStage}
                 autoFocusSelected={!workPlaceFocusActive}
+                placeFocusFx={workPlaceFx.fx}
+                placeFocusStatus={placeFocus.statusMessage}
                 onSelectPlace={onSelectPlaceFromStage}
                 onOpenGroup={onOpenGroupFromStage}
                 position={mapPosition}
@@ -1004,6 +1009,7 @@ function MapViewImpl({
                 fitExtraStyle={workFitExtraStyle}
                 focusInsets={activeRoute ? routeFocusInsets || ROUTE_BAR_FALLBACK_INSETS : null}
                 targetPct={workTargetPct}
+                routeLineAnimated={routeSettings.lineAnimated}
                 route={mode === 'view' ? stageRoute : null}
                 onViewportChange={onWorkViewportChange}
                 initialView={stageInitialView}

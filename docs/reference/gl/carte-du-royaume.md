@@ -59,15 +59,40 @@ termine d'abord son trajet, puis le plateau fait un **zoom bref et fluide** sur 
 sur toute la zone, et **ensuite seulement** le popover s'ouvre. Quand le dernier popover
 d'arrivée est refermé, le plateau revient au **zoom et au centrage d'avant**. Le MJ/admin
 règle ce comportement dans _Réglages plateforme → Gameplay → Affichage carte plateau_ : l'activer ou non,
-revenir ou non à la vue d'avant, et la durée du zoom (0,35 s par défaut). Le mode Découverte
-des invités suit le comportement par défaut.
+revenir ou non à la vue d'avant, et la durée du zoom (0,35 s par défaut). Trois **effets**
+accompagnent ce zoom, chacun désactivable au même endroit (tous actifs par défaut) :
+
+- **l'emoji qui s'envole** : l'emoji du repère grossit très vite en s'effaçant pendant le
+  zoom, et revient se poser à sa place au retour (seuls les repères affichés en emoji en ont
+  un) ;
+- **le projecteur** : le reste du plateau s'assombrit, seul le lieu reste éclairé, tant que le
+  popover est ouvert ;
+- **les étincelles** : une couronne d'étincelles dorées jaillit du lieu pendant le zoom.
+
+Le mode Découverte des invités suit le comportement par défaut (effets compris). Avec
+« réduire les animations », ni zoom animé ni effet, et les popovers apparaissent sans
+animation d'entrée.
+
+Les popovers de zone, de QCM et de dés **se referment en fondu** (un bref instant). Ceux de zone
+et de QCM prennent la main au clavier dès leur ouverture et la rendent à l'élément d'origine en
+se fermant ; Échap ferme toujours le popover du dessus. Le popover de dés, lui, laisse le plateau
+utilisable derrière lui. Avec « réduire les animations », la fermeture est immédiate.
+
+Si deux arrivées se chevauchent (une zone qui a à la fois un contenu et un feuillet, par
+exemple), **les deux popovers s'ouvrent** : le plus récent garde le zoom, le précédent
+s'affiche aussitôt, sans attendre.
 
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, la
 >   mascotte se téléporte, le popover n'attend plus son trajet et le zoom est instantané.
-> - Si une nouvelle arrivée survient pendant un zoom, c'est elle qui l'emporte : le popover
->   précédent ne s'ouvre pas.
+> - Contrairement à ForetMap, le **zoom maximal** du plateau n'est pas réglable : il est fixe.
+> - Une zone n'a jamais d'emoji qui s'envole, et un repère sans emoji non plus (ForetMap, lui,
+>   montre alors une épingle 📍).
+> - Pendant le zoom animé, un lecteur d'écran entend une brève annonce (« Ouverture de … »)
+>   avant l'ouverture du popover — comme sur ForetMap.
+> - Un interrupteur de zoom mal orthographié ou illisible retombe sur **actif** (même règle
+>   que ForetMap), pas sur « coupé ».
 
 ## Qui déplace les mascottes
 

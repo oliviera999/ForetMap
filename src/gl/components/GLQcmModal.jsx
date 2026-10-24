@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QcmQuestionPhoto } from '../../shared/qcm/QcmQuestionPhoto.jsx';
+import { useOverlayHistoryBack } from '../../shared/platform/useOverlayHistoryBack.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
@@ -44,6 +45,7 @@ export function GLQcmModal({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [eliminatedIds, setEliminatedIds] = useState(() => new Set());
+  useOverlayHistoryBack(open, onClose);
 
   const slugsKey = Array.isArray(biomeSlugs) ? biomeSlugs.join(',') : '';
   const chapitreSlugsKey = Array.isArray(chapitreSlugs) ? chapitreSlugs.join(',') : '';

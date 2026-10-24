@@ -8,6 +8,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const request = require('supertest');
 
 const { initSchema, initDatabase, execute, queryAll } = require('../database');
@@ -41,13 +42,18 @@ function auth(req) {
   return req.set('Authorization', 'Bearer ' + teacherToken);
 }
 
-/** Jeton d'un compte élève fraîchement inscrit : un lecteur identifié sans aucune permission. */
-async function registerStudentToken(tag) {
+/** Compte élève fraîchement inscrit : un lecteur identifié sans aucune permission. */
+async function registerStudent(tag) {
   const res = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Parcours', lastName: `${tag}${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  return res.body.authToken;
+  return { id: res.body.id, token: res.body.authToken };
+}
+
+/** Jeton d'un compte élève fraîchement inscrit : un lecteur identifié sans aucune permission. */
+async function registerStudentToken(tag) {
+  return (await registerStudent(tag)).token;
 }
 
 test.before(async () => {
@@ -250,15 +256,19 @@ test('garde d’accès du plan : le catalogue des parcours se ferme avec le plan
   await setSetting('security.plan_access_code_hash', hash, { userType: 'admin', userId: 'test' });
   invalidateSettingsCache();
   try {
-    // Sans laissez-passer, le catalogue répond comme la charge du plan.
-    const denied = await request(app).get('/api/map-routes').expect(401);
+    // Sur l'adresse du plan, sans laissez-passer, le catalogue répond comme la charge du plan.
+    // (La surface vient du host — simulé ici par `X-Foretmap-Product`, honoré hors production —
+    // et non plus d'un défaut « plan » appliqué à toute requête sans `?surface=`.)
+    const onPlan = (req) => req.set('X-Foretmap-Product', 'plan');
+    const denied = await onPlan(request(app).get('/api/map-routes')).expect(401);
     assert.equal(denied.body.access_required, true);
     await request(app).get(`/api/map-routes/${route.body.id}`).expect(401);
 
     // Le laissez-passer obtenu sur le plan ouvre aussi les parcours : c'est la même garde.
     const agent = request.agent(app);
-    await agent.post('/api/plan/access').send({ code: 'OUVRE-TOI' }).expect(200);
-    await agent.get('/api/map-routes').expect(200);
+    await onPlan(agent.post('/api/plan/access')).send({ code: 'OUVRE-TOI' }).expect(200);
+    const opened = await onPlan(agent.get('/api/map-routes')).expect(200);
+    assert.ok(opened.body.some((r) => r.id === route.body.id));
 
     // La vue de gestion reste accessible au professeur : elle ne dépend pas du code visiteur.
     await auth(request(app).get('/api/map-routes/manage')).expect(200);
@@ -575,6 +585,125 @@ test('GET /api/map-routes?surface=map — étape hors audience / masquée absent
     assert.ok(teacherTexts.includes('SECRET_HIDDEN_MAP_STEP'));
   } finally {
     await execute('DELETE FROM zones WHERE id IN (?, ?)', [restricted.id, hiddenOnMap.id]);
+  }
+});
+
+/**
+ * Le catalogue ne lisait que `visible_role_slugs`. Un lieu réservé à une classe (groupes
+ * seuls) ou qui n'hérite sa restriction que de sa catégorie passait pour public : le texte
+ * de l'étape sortait sur la carte (`?surface=map`) et sur le lien profond, alors que le
+ * lieu lui-même restait absent de la charge du plan et de la visite.
+ */
+test('GET /api/map-routes : groupe et audience héritée retirent le texte de l’étape', async () => {
+  const groupId = crypto.randomUUID();
+  await execute(
+    "INSERT INTO `groups` (id, slug, name, kind, is_active) VALUES (?, ?, ?, 'class', 1)",
+    [groupId, `parcours-${groupId.slice(0, 8)}`, 'Classe du parcours'],
+  );
+  const reserved = await fx.createZone({ mapId: map.id, name: 'Parcelle de la classe' });
+  const inherited = await fx.createZone({ mapId: map.id, name: 'Local hérité' });
+  const staffOnly = await fx.createZone({ mapId: map.id, name: 'Local personnels' });
+  await execute('UPDATE zones SET visible_group_ids = ? WHERE id = ?', [
+    JSON.stringify([groupId]),
+    reserved.id,
+  ]);
+  const category = await fx.createLocationCategory({
+    mapId: map.id,
+    label: 'Réservée à la classe',
+    zoneIds: [inherited.id],
+  });
+  await execute('UPDATE location_categories SET visible_group_ids = ? WHERE id = ?', [
+    JSON.stringify([groupId]),
+    category.id,
+  ]);
+  const staffCategory = await fx.createLocationCategory({
+    mapId: map.id,
+    label: 'Personnels seulement',
+    surfaces: ['staff'],
+    zoneIds: [staffOnly.id],
+  });
+
+  const route = await auth(request(app).post('/api/map-routes'))
+    .send({
+      map_id: map.id,
+      title: 'Parcelle et locaux',
+      is_published: true,
+      surfaces: ['map', 'visit', 'plan'],
+      steps: [
+        { target_type: 'zone', target_id: zone.id, step_text: 'Accueil public' },
+        { target_type: 'zone', target_id: reserved.id, step_text: 'SECRET_GROUPE_STEP' },
+        { target_type: 'zone', target_id: inherited.id, step_text: 'SECRET_HERITAGE_STEP' },
+        { target_type: 'zone', target_id: staffOnly.id, step_text: 'SECRET_SURFACE_STEP' },
+      ],
+    })
+    .expect(201);
+  createdRouteIds.push(route.body.id);
+
+  const member = await registerStudent('Membre');
+  await execute(
+    "INSERT IGNORE INTO group_members (group_id, user_id, user_type) VALUES (?, ?, 'student')",
+    [groupId, member.id],
+  );
+  const outsider = await registerStudent('Exterieur');
+
+  try {
+    const anon = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=visit`)
+      .expect(200);
+    const anonTexts = (anon.body.find((r) => r.id === route.body.id)?.steps || []).map(
+      (s) => s.step_text,
+    );
+    assert.deepEqual(anonTexts, ['Accueil public']);
+
+    const bySlug = await request(app).get(`/api/map-routes/${route.body.slug}`).expect(200);
+    assert.deepEqual(
+      (bySlug.body.steps || []).map((s) => s.step_text),
+      ['Accueil public'],
+      'le lien profond ne livre pas non plus le texte réservé',
+    );
+
+    const asOutsider = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=map`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .expect(200);
+    const outsiderTexts = (asOutsider.body.find((r) => r.id === route.body.id)?.steps || []).map(
+      (s) => s.step_text,
+    );
+    assert.deepEqual(outsiderTexts, ['Accueil public']);
+
+    const asMember = await request(app)
+      .get(`/api/map-routes?map_id=${map.id}&surface=map`)
+      .set('Authorization', `Bearer ${member.token}`)
+      .expect(200);
+    const memberTexts = (asMember.body.find((r) => r.id === route.body.id)?.steps || []).map(
+      (s) => s.step_text,
+    );
+    assert.ok(memberTexts.includes('Accueil public'));
+    assert.ok(memberTexts.includes('SECRET_GROUPE_STEP'), 'la classe visée lit son étape');
+    assert.ok(
+      memberTexts.includes('SECRET_HERITAGE_STEP'),
+      'l’héritage de catégorie suit le groupe',
+    );
+    assert.ok(
+      !memberTexts.includes('SECRET_SURFACE_STEP'),
+      'une catégorie absente de la carte ne laisse pas passer son étape',
+    );
+  } finally {
+    await execute('DELETE FROM group_members WHERE group_id = ?', [groupId]);
+    await execute('DELETE FROM `groups` WHERE id = ?', [groupId]);
+    await execute('DELETE FROM zone_categories WHERE category_id IN (?, ?)', [
+      category.id,
+      staffCategory.id,
+    ]);
+    await execute('DELETE FROM location_categories WHERE id IN (?, ?)', [
+      category.id,
+      staffCategory.id,
+    ]);
+    await execute('DELETE FROM zones WHERE id IN (?, ?, ?)', [
+      reserved.id,
+      inherited.id,
+      staffOnly.id,
+    ]);
   }
 });
 

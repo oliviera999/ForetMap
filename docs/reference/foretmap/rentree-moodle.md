@@ -17,8 +17,10 @@ s'aligne dessus :
 - les élèves déjà connus sont **reconnus** (jamais dupliqués) ;
 - chaque cohorte devient un **groupe** ForetMap (classe, niveau, club…) avec le bon rôle ;
 - pour les sixièmes, une **classe Gnomes & Licornes** est créée avec un joueur par élève ;
-- les élèves qui ont quitté l'établissement sont **désactivés** (jamais supprimés : leurs
-  contributions restent).
+- les élèves qui ont quitté l'établissement sont **désactivés** (la synchronisation ne
+  supprime jamais : leurs contributions restent). La date de désactivation vaut date de
+  départ : si la purge planifiée est activée, le compte est supprimé **un an plus tard**
+  (voir [Durées de conservation](../exploitation/durees-de-conservation.md)).
 
 Moodle est la **source de vérité** pour « qui est dans quelle classe ». ForetMap reste maître
 de tout le reste : rôles fins, sous-groupes faits par les profs, équipes de jeu, tâches,
@@ -161,7 +163,10 @@ s'annule pas.
   dans ForetMap. Les réglages livrés couvrent : les niveaux (pas de création de compte), les
   n3beurs (rôle élève, poussée vers Moodle — **toute cohorte dont le code contient « n3 »**,
   préfixe d'année facultatif), les sixièmes (visiteur + classe G&L), les autres
-  classes (visiteur).
+  classes (visiteur). Le **rôle** d'une politique est forcément un **profil élève** (visiteur
+  ou palier n3beur) : l'enregistrement refuse un profil d'encadrement (n3boss, administrateur,
+  prof de classe, personnel). Une politique plus ancienne qui en nommerait un crée son groupe
+  **sans** profil par défaut, et le rapport le signale (« n'est pas un profil élève »).
 - **Préfixe d'année** (« 26 ») : à changer chaque rentrée ; les cohortes de classes et de
   niveaux qui ne commencent pas par ce préfixe sont ignorées. **Exception n3beurs** : toute
   cohorte dont le code contient « n3 » (par exemple `26#n3`, `n3` ou `club-n3`) peut être

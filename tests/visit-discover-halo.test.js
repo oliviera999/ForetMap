@@ -5,10 +5,12 @@ const { before, describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { pathToFileURL } = require('url');
 const { join } = require('path');
+const { readFileSync } = require('fs');
 
 let pickDiscoverHaloKeys;
 let discoverPlaceAnchorPct;
 let DISCOVER_HALO_LIMIT;
+let DISCOVER_HALO_MS;
 
 before(async () => {
   const mod = await import(
@@ -17,6 +19,7 @@ before(async () => {
   pickDiscoverHaloKeys = mod.pickDiscoverHaloKeys;
   discoverPlaceAnchorPct = mod.discoverPlaceAnchorPct;
   DISCOVER_HALO_LIMIT = mod.DISCOVER_HALO_LIMIT;
+  DISCOVER_HALO_MS = mod.DISCOVER_HALO_MS;
 });
 
 function zoneAt(id, xp, yp) {
@@ -81,5 +84,13 @@ describe('visitDiscoverHalo', () => {
     const zones = Array.from({ length: 12 }, (_, i) => zoneAt(i + 1, 10 + i * 5, 50));
     const keys = pickDiscoverHaloKeys({ zones, markers: [], seen: new Set() });
     assert.equal(keys.size, DISCOVER_HALO_LIMIT);
+  });
+
+  it('la durée JS du halo égale celle de l’animation CSS (ANIM-23)', () => {
+    const motion = readFileSync(join(__dirname, '../src/shared/styles/motion.css'), 'utf8');
+    const m = /--motion-map-discover-halo:\s*(\d+)ms;/.exec(motion);
+    assert.ok(m, '--motion-map-discover-halo absent de motion.css');
+    assert.equal(DISCOVER_HALO_MS, Number(m[1]));
+    assert.equal(DISCOVER_HALO_MS, 2600);
   });
 });

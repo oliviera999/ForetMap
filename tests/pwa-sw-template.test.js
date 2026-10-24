@@ -880,3 +880,44 @@ test('SW du mode dev (public/sw.js) : même délai réseau que le gabarit', asyn
   timers.fire();
   assert.deepStrictEqual(await responded, { ok: true, body: 'zones en cache' });
 });
+
+test('clé de cache : le code d’accès d’un lien (?code=) n’y entre jamais', () => {
+  const source = renderServiceWorker({
+    ...BASE_OPTIONS,
+    product: 'plan',
+    htmlEntries: ['/', '/plan.html'],
+    apiStaleWhileRevalidate: ['/api/plan/content'],
+    apiNetworkFirst: [],
+  });
+  const { context } = loadServiceWorker(source, { origin: 'https://plan.test' });
+  const noHeaders = { get: () => '' };
+
+  // Page ouverte par un QR code porteur du code : la copie hors ligne est rangée sans lui.
+  const page = context.cacheKeyFor({
+    url: 'https://plan.test/?code=code-du-qr-2026&lieu=m-gym',
+    headers: noHeaders,
+  });
+  assert.strictEqual(typeof page, 'string');
+  assert.doesNotMatch(page, /code-du-qr-2026|[?&]code=/);
+  assert.match(page, /lieu=m-gym/);
+
+  // Lecture d'API d'un client antérieur qui portait encore le code dans l'adresse.
+  const api = context.cacheKeyFor({
+    url: 'https://plan.test/api/plan/content?map_id=lyautey&code=code-du-qr-2026',
+    headers: noHeaders,
+  });
+  assert.doesNotMatch(api, /code-du-qr-2026|[?&]code=/);
+  assert.match(api, /map_id=lyautey/);
+
+  // Avec jeton : partition par compte, toujours sans le code.
+  const signed = context.cacheKeyFor({
+    url: 'https://plan.test/api/plan/content?code=code-du-qr-2026',
+    headers: { get: (name) => (/authorization/i.test(name) ? 'Bearer abc' : '') },
+  });
+  assert.doesNotMatch(signed, /code-du-qr-2026/);
+  assert.match(signed, /__fm_sw_user=/);
+
+  // Sans code : la requête elle-même, comme avant.
+  const plain = { url: 'https://plan.test/api/plan/content', headers: noHeaders };
+  assert.strictEqual(context.cacheKeyFor(plain), plain);
+});

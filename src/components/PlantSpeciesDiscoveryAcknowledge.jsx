@@ -7,7 +7,6 @@ import {
   getAuthToken,
   isLikelyNetworkTransportFailure,
 } from '../services/api';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -110,10 +109,6 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     [plantId],
   );
   const busy = enrichSaving;
-
-  useOverlayHistoryBack(enrichOpen, () => {
-    if (!busy) setEnrichOpen(false);
-  });
 
   useEffect(() => {
     if (!enrichOpen) {

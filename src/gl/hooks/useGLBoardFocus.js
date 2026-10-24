@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import { usePlaceFocusSequence } from '../../shared/pct-map/usePlaceFocusSequence.js';
+import { usePlaceFocusFx } from '../../shared/pct-map/usePlaceFocusFx.js';
 import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
 
 /**
@@ -8,32 +9,45 @@ import { BOARD_FOCUS_DEFAULTS } from '../utils/glBoardFocus.js';
  * vue d'avant (`useGLBoardFocusRestore`) quand les popovers d'arrivée sont refermés.
  *
  * `beforePresent(target)` est passé aux hooks d'arrivée : ils l'attendent avant d'afficher leur
- * popover. Une séquence rendue caduque (nouvelle arrivée) laisse sa promesse en suspens : la
- * présentation la plus récente l'emporte.
+ * popover. Deux arrivées qui se chevauchent (zone avec contenu **et** feuillet) présentent
+ * toutes les deux : la plus récente garde le zoom, la précédente s'affiche sans attendre.
+ *
+ * `fx` est l'état des effets du zoom (emoji, projecteur, étincelles), à rendre par
+ * `PctPlaceFocusFx` dans le calque du plateau.
  *
  * @param {object} options
  * @param {object} options.mapGestures moteur du plateau (`useGlPctMapGestures`)
- * @param {{ enabled?: boolean, durationMs?: number, restoreOnClose?: boolean }} [options.settings]
+ * @param {{ enabled?: boolean, durationMs?: number, restoreOnClose?: boolean,
+ *   fx?: { emoji?: boolean, spotlight?: boolean, sparkles?: boolean } }} [options.settings]
  * @param {string|number} [options.resetKey] changement de plateau : la vue mémorisée est oubliée.
  */
 export function useGLBoardFocus({ mapGestures, settings = BOARD_FOCUS_DEFAULTS, resetKey = '' }) {
   const gesturesRef = useRef(mapGestures);
   gesturesRef.current = mapGestures;
   const getViewport = useCallback(() => gesturesRef.current || null, []);
+  const placeFx = usePlaceFocusFx(settings?.fx ?? BOARD_FOCUS_DEFAULTS.fx);
   const focus = usePlaceFocusSequence({
     getViewport,
     enabled: settings?.enabled !== false,
     durationMs: settings?.durationMs ?? BOARD_FOCUS_DEFAULTS.durationMs,
     restoreOnClose: settings?.restoreOnClose !== false,
     resetKey: String(resetKey ?? ''),
+    onFx: placeFx.onFx,
   });
 
   const beforePresent = useCallback(
-    (target) => new Promise((resolve) => focus.focusThenOpen(target, resolve)),
+    (target) =>
+      new Promise((resolve) => focus.focusThenOpen(target, resolve, { onSuperseded: resolve })),
     [focus],
   );
 
-  return { beforePresent, restore: focus.restore, forget: focus.forget };
+  return {
+    beforePresent,
+    restore: focus.restore,
+    forget: focus.forget,
+    fx: placeFx.fx,
+    statusMessage: focus.statusMessage,
+  };
 }
 
 /**

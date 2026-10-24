@@ -12,6 +12,9 @@ import { withAppBase } from './services/api';
 import { registerServiceWorker } from './shared/pwa/registerServiceWorker.js';
 import { isPrivacyNoticePath } from './shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from './shared/privacy/PrivacyNoticePage.jsx';
+import { installDragReleaseClickGuard } from './shared/platform/dragReleaseClickGuard.js';
+
+installDragReleaseClickGuard();
 
 // Notice « Vos données » (`/confidentialite`) : page publique, montée à la place de
 // l'application pour être lisible sans compte ni session (audit RGPD du 30/09/2026, RG1).

@@ -220,6 +220,42 @@ describe('App — câblage de la persistance mascotte visite', () => {
 });
 
 /**
+ * Double authentification : un retour Google ou Moodle d'un compte administrateur ou n3boss
+ * ne porte pas de session mais l'étape du second facteur. `App` doit la remettre à l'écran de
+ * connexion (et non la traiter comme une « réponse Google invalide »), sans poser de session.
+ */
+describe('App — retour Google / Moodle exigeant le second facteur', () => {
+  test('l’étape est transmise au shell invité, aucune session n’est enregistrée', async () => {
+    const { saveStoredSession } = await import('../src/services/api');
+    saveStoredSession.mockClear();
+    const payload = {
+      type: 'mfa',
+      mfaToken: 'jeton-intermediaire',
+      stage: 'verify',
+      next: 'teacher',
+    };
+    const raw = btoa(JSON.stringify(payload))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    window.history.replaceState({}, '', `/#oauth=${raw}`);
+    session.stored = null;
+    session.claims = null;
+    try {
+      render(<App />);
+      await waitFor(() =>
+        expect(probes.unauthenticated.at(-1)?.mfaChallenge?.mfaToken).toBe('jeton-intermediaire'),
+      );
+      expect(typeof probes.unauthenticated.at(-1)?.onMfaChallengeConsumed).toBe('function');
+      expect(saveStoredSession).not.toHaveBeenCalled();
+      expect(window.location.hash).toBe('');
+    } finally {
+      window.history.replaceState({}, '', '/');
+    }
+  });
+});
+
+/**
  * CDG-27 — session élève expirée ou révoquée. Sur 401 `SESSION_REVOKED`, `api()` vide le
  * stockage et émet `foretmap_teacher_expired` ; l'écouteur ne vidait que `authClaims` /
  * `sessionUser`, or la porte d'entrée est `student || isTeacherAccount` : un élève restait
@@ -248,6 +284,19 @@ describe('App — session élève expirée ou révoquée (CDG-27)', () => {
     // Le toast est porté par le shell invité (sonde) : message générique, sans « n3boss ».
     const toast = probes.unauthenticated.at(-1).toast;
     expect(toast).toBe('Session expirée : veuillez vous reconnecter.');
+  });
+
+  test('401 mfa_required (double authentification devenue obligatoire) : message dédié', async () => {
+    await renderAppWith(TEACHER_SESSION);
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent('foretmap_teacher_expired', {
+          detail: { deleted: false, reason: 'mfa_required' },
+        }),
+      );
+    });
+    await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
+    expect(probes.unauthenticated.at(-1).toast).toMatch(/double authentification/i);
   });
 
   test('401 deleted:true (compte supprimé) : fermeture avec le message « compte supprimé »', async () => {

@@ -278,8 +278,11 @@ test('comparaison à trois : retrait côté Moodle retire l’appartenance posé
   // Annulation : la réactivation est rejouée à l'envers comme les autres écritures.
   const undone = await undoRun(back.runId, { client });
   assert.ok(undone.undone >= 2);
-  const neoUndone = await queryOne('SELECT is_active FROM users WHERE id = ?', [neo.user_id]);
+  const neoUndone = await queryOne('SELECT is_active, deactivated_at FROM users WHERE id = ?', [
+    neo.user_id,
+  ]);
   assert.strictEqual(Number(neoUndone.is_active), 0, 'réactivation annulée');
+  assert.ok(neoUndone.deactivated_at instanceof Date, 'annulation : désactivation datée');
   const again = await apply([603]);
   assert.strictEqual(again.status, 'succeeded');
   assert.strictEqual(again.report.totals.reactivations, 1);
@@ -375,8 +378,12 @@ test('changement de cohorte vers une cohorte jamais synchronisée : désactivé 
     ),
     'limite documentée : la cohorte 651 n’est pas encore connue',
   );
-  const afterMove = await queryOne('SELECT is_active FROM users WHERE id = ?', [moved.user_id]);
+  const afterMove = await queryOne('SELECT is_active, deactivated_at FROM users WHERE id = ?', [
+    moved.user_id,
+  ]);
   assert.strictEqual(Number(afterMove.is_active), 0);
+  // Date de départ constaté (purge planifiée, migration 319).
+  assert.ok(afterMove.deactivated_at instanceof Date, 'désactivation datée');
 
   // Synchronisation de 651 : le compte est réactivé et rattaché au nouveau groupe.
   const third = await apply([651]);
@@ -390,8 +397,11 @@ test('changement de cohorte vers une cohorte jamais synchronisée : désactivé 
   );
   assert.strictEqual(third.report.totals.reactivations, 1);
   assert.strictEqual(third.report.totals.deactivations, 0);
-  const afterBack = await queryOne('SELECT is_active FROM users WHERE id = ?', [moved.user_id]);
+  const afterBack = await queryOne('SELECT is_active, deactivated_at FROM users WHERE id = ?', [
+    moved.user_id,
+  ]);
   assert.strictEqual(Number(afterBack.is_active), 1, 'compte réactivé');
+  assert.strictEqual(afterBack.deactivated_at, null, 'date de départ effacée à la réactivation');
   const eg651 = await queryOne("SELECT * FROM external_groups WHERE external_id = '651'");
   assert.ok(
     await queryOne('SELECT 1 AS x FROM group_members WHERE group_id = ? AND user_id = ?', [

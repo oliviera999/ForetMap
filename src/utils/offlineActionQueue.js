@@ -9,7 +9,8 @@
  *   - succès (ou réponse rejouée par le serveur) → l'écriture sort de la file ;
  *   - refus définitif (4xx hors 401, 408, 429) → elle sort (`drop`) ou reste marquée en échec
  *     (`keep`, pour un texte que l'élève a écrit et qu'on ne jette pas) ;
- *   - réseau absent, 5xx, 401 (session à rouvrir), 408, 429 → elle reste, et le rejeu s'arrête :
+ *   - réseau absent, 5xx, 401 (session à rouvrir), 403 `PASSWORD_CHANGE_REQUIRED` (mot de
+ *     passe à changer), 408, 429 → elle reste, et le rejeu s'arrête :
  *     inutile d'insister sur les suivantes.
  * Sur une tablette partagée, une écriture n'est jamais rejouée sous la session d'un autre
  * compte : elle attend que son auteur se reconnecte.
@@ -19,6 +20,7 @@ import {
   safeLocalStorageReadJson,
   safeLocalStorageWriteJson,
 } from '../shared/platform/browserStorage.js';
+import { isPasswordChangeRequiredError } from './passwordChangeRequired.js';
 
 /** Format accepté par le serveur (migrations 296 et 299). */
 export const CLIENT_UUID_RE = /^[A-Za-z0-9-]{8,64}$/;
@@ -36,6 +38,9 @@ export function newClientUuid(prefix = 'op') {
 
 /** Refus définitif du serveur (l'écriture ne passera jamais telle quelle). */
 export function isDefinitiveRefusal(err) {
+  // Mot de passe à changer (403 dédié) : refus passager, comme une session à rouvrir —
+  // l'écriture attend le changement au lieu d'être perdue.
+  if (isPasswordChangeRequiredError(err)) return false;
   const status = Number(err?.status);
   return status >= 400 && status < 500 && !RETRYABLE_CLIENT_STATUSES.has(status);
 }

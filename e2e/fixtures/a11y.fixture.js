@@ -36,7 +36,8 @@ const NORMES = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'];
  * ici plutôt que de la laisser disparaître dans un inventaire.
  */
 const REGLES_ECARTEES = {
-  // Les polices Google et les avatars Dicebear sont injoignables depuis l'environnement de
+  // Les polices Google (et, côté G&L, les avatars par défaut du service DiceBear — ceux de
+  // ForetMap sont dessinés par le serveur) sont injoignables depuis l'environnement de
   // test : les repli de police faussent la mesure de contraste sur du texte qui, en
   // production, est rendu avec DM Sans. Mesure à refaire dans un environnement en ligne.
   'color-contrast': 'polices externes injoignables en environnement de test',

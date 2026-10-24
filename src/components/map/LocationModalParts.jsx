@@ -9,7 +9,9 @@
  * Le rendu est celui d'avant la mise en commun, au nœud près
  * (`tests-ui/components/map/LocationModals.mount.test.jsx`).
  */
+import { useCallback } from 'react';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
+import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { DialogShell } from '../DialogShell';
 import { ContextComments } from '../context-comments';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
@@ -84,7 +86,12 @@ export function buildLocationModalTabs({ showTasksTab, showTutorialsTab, isTeach
   ];
 }
 
-/** Coque de la fenêtre : dialogue accessible, message éphémère, croix de fermeture. */
+/**
+ * Coque de la fenêtre : dialogue accessible, message éphémère, croix de fermeture.
+ * Croix, voile, Échap et retour navigateur referment la fiche en fondu (`useExitAnimation`) ;
+ * les fermetures décidées par la modale elle-même (enregistrement, suppression) restent
+ * immédiates.
+ */
 export function LocationModalShell({
   ariaLabel,
   onClose,
@@ -94,19 +101,21 @@ export function LocationModalShell({
   onToastDone,
   children,
 }) {
+  const { closing, runExit } = useExitAnimation();
+  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
   return (
     <DialogShell
       open
-      onClose={onClose}
-      overlayClassName="modal-overlay"
-      dialogClassName="log-modal fade-in"
+      onClose={closeAnimated}
+      overlayClassName={`modal-overlay${closing ? ' fm-is-exiting' : ''}`}
+      dialogClassName={`log-modal ${closing ? 'fm-is-exiting' : 'fade-in'}`}
       dialogStyle={dialogStyle}
       ariaLabel={ariaLabel}
       closeOnOverlay
       dialogRef={dialogRef}
     >
       {toast && <TimedToast msg={toast} onDone={onToastDone} />}
-      <button className="modal-close" aria-label="Fermer" onClick={onClose}>
+      <button className="modal-close" aria-label="Fermer" onClick={closeAnimated}>
         <IconClose size={16} />
       </button>
       {children}

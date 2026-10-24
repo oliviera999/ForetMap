@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { pushOverlayClose, removeOverlayClose } from './overlayHistory';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -37,14 +38,22 @@ function isTopOverlay(token) {
  * et se désarme à la fermeture, en rendant le focus au déclencheur. Valeur par défaut `true`
  * (comportement inchangé) pour les surcouches qui ne sont montées que lorsqu'elles s'affichent.
  *
+ * `historyBack` (vrai par défaut) : le bouton « retour » du navigateur ou du smartphone ferme
+ * la surcouche au lieu de quitter l'écran (une entrée d'historique par surcouche ouverte).
+ * À désactiver seulement quand un `popstate` parasite fermerait la fenêtre à tort (retour de
+ * l'appareil photo natif dans les formulaires tâche) ou pour une fenêtre qu'on ne peut pas
+ * fermer (porte de changement de mot de passe obligatoire).
+ *
  * @param {() => void} onClose
- * @param {{ manageFocus?: boolean, active?: boolean }} [options]
+ * @param {{ manageFocus?: boolean, active?: boolean, historyBack?: boolean }} [options]
  */
 function useDialogA11y(onClose, options = {}) {
-  const { manageFocus = true, active = true } = options;
+  const { manageFocus = true, active = true, historyBack = true } = options;
   const dialogRef = useRef(null);
   const manageFocusRef = useRef(manageFocus);
   manageFocusRef.current = manageFocus;
+  const historyBackRef = useRef(historyBack);
+  historyBackRef.current = historyBack;
   // Ne pas mettre onClose dans les deps de l'effet ci-dessous : les parents passent souvent
   // une fonction inline, donc chaque re-render réexécutait le focus initial (1er focusable)
   // et faisait remonter le défilement des modales longues pendant la saisie.
@@ -66,6 +75,12 @@ function useDialogA11y(onClose, options = {}) {
 
     const token = {};
     overlayStack.push(token);
+
+    // Posé ici, et non dans un hook à part : un composant qui passe son propre `dialogRef` à
+    // `DialogShell` laisse le hook interne de la coque sans élément — il sort plus haut, et la
+    // surcouche n'empile qu'une seule entrée d'historique.
+    const historyCloseFn = historyBackRef.current ? () => onCloseRef.current?.() : null;
+    if (historyCloseFn) pushOverlayClose(historyCloseFn);
 
     const onKeyDown = (e) => {
       if (!isTopOverlay(token)) return;
@@ -101,6 +116,7 @@ function useDialogA11y(onClose, options = {}) {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      if (historyCloseFn) removeOverlayClose(historyCloseFn);
       const index = overlayStack.indexOf(token);
       if (index >= 0) overlayStack.splice(index, 1);
       if (previousActive && typeof previousActive.focus === 'function') {

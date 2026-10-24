@@ -165,6 +165,21 @@ describe('useAuthSession', () => {
     );
   });
 
+  it('validateStudentSession : mot de passe à changer → ni alerte ni drapeau (le shell ouvre « Mon profil »)', async () => {
+    const { params, result } = renderAuthSession();
+    const err = Object.assign(new Error('Changement de mot de passe requis'), {
+      status: 403,
+      code: 'PASSWORD_CHANGE_REQUIRED',
+    });
+    apiMocks.api.mockRejectedValue(err);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await act(() => result.current.validateStudentSession({ id: 'S1' }));
+    expect(params.setSessionValidationError).not.toHaveBeenCalledWith(true);
+    expect(params.setToast).not.toHaveBeenCalled();
+    expect(apiMocks.clearStoredSession).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it('validateStudentSession : compte supprimé → forceLogout', async () => {
     const { params, result } = renderAuthSession();
     apiMocks.api.mockRejectedValue(new AccountDeletedErrorMock());

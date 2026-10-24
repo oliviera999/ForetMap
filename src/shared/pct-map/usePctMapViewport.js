@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  getPrefersReducedMotion,
+  subscribePrefersReducedMotion,
+} from '../hooks/usePrefersReducedMotion.js';
 import { pointToContainedRectPct } from './pctMapPointer.js';
 import { mapOrientationStyle } from './pctMapOrientation.js';
 import {
@@ -589,23 +593,24 @@ export function usePctMapViewport({
     return undefined;
   }, [animateTo, contentSize, fitMap]);
 
-  /* Préférences système : mouvement réduit, pointeur grossier. */
+  /* Préférences système : mouvement réduit (source partagée ANIM-21), pointeur grossier. */
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const coarse = window.matchMedia('(pointer: coarse)');
-    const applyMotion = () => {
-      reducedMotionRef.current = !!motion.matches;
+    const applyMotion = (reduced) => {
+      reducedMotionRef.current = !!reduced;
     };
+    applyMotion(getPrefersReducedMotion());
+    const unsubMotion = subscribePrefersReducedMotion(applyMotion);
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return () => unsubMotion();
+    }
+    const coarse = window.matchMedia('(pointer: coarse)');
     const applyCoarse = () => setIsCoarsePointer(!!coarse.matches);
-    applyMotion();
     applyCoarse();
-    motion.addEventListener?.('change', applyMotion);
     if (typeof coarse.addEventListener === 'function')
       coarse.addEventListener('change', applyCoarse);
     else coarse.addListener?.(applyCoarse);
     return () => {
-      motion.removeEventListener?.('change', applyMotion);
+      unsubMotion();
       if (typeof coarse.removeEventListener === 'function')
         coarse.removeEventListener('change', applyCoarse);
       else coarse.removeListener?.(applyCoarse);
@@ -770,6 +775,20 @@ export function usePctMapViewport({
    *   pas dépendre de ce que la main fait de la carte. Booléen immédiat quand il n'y a rien à
    *   animer (cadre non mesuré, mouvement réduit) : la fiche s'ouvre alors dans le même tour.
    */
+  /**
+   * Annonce un vol **qui va réellement s'animer** (`onPlan({ fromScale, toScale, durationMs })`),
+   * avant sa première image : les effets visuels qui l'accompagnent (emoji, projecteur) se
+   * calent sur les échelles de départ et d'arrivée. Rien n'est annoncé sans animation (vue déjà
+   * en place, mouvement réduit, durée nulle).
+   */
+  const announcePlan = useCallback((onPlan, target, duration) => {
+    if (typeof onPlan !== 'function') return;
+    if (reducedMotionRef.current || !(Number(duration) > 0)) return;
+    const from = tx.current;
+    if (pctMapTransformEquals(from, target, { epsilon: 0.01 })) return;
+    onPlan({ fromScale: from.s, toScale: target.s, durationMs: Number(duration) });
+  }, []);
+
   const flyToPctBounds = useCallback(
     (
       points,
@@ -780,6 +799,7 @@ export function usePctMapViewport({
         maxZoom = 4,
         duration = 350,
         easing = 'inOut',
+        onPlan = null,
       } = {},
     ) => {
       const st = stageRef.current;
@@ -825,9 +845,10 @@ export function usePctMapViewport({
         isStage ? fr : null,
         insets,
       );
+      announcePlan(onPlan, target, duration);
       return animateSettled(animateTo, target, { duration, easing });
     },
-    [animateTo, currentBounds],
+    [animateTo, currentBounds, announcePlan],
   );
 
   /**
@@ -835,16 +856,17 @@ export function usePctMapViewport({
    * @returns {boolean|Promise<boolean>} cf. `flyToPctBounds`.
    */
   const restoreViewAnimated = useCallback(
-    (snapshot, { duration = 350, easing = 'inOut' } = {}) => {
+    (snapshot, { duration = 350, easing = 'inOut', onPlan = null } = {}) => {
       if (!snapshot) return false;
       const target = pctMapTransformFromViewSnapshot(snapshot, currentBounds(), {
         fitScale: fitScaleRef.current,
         fitRect: fitRectRef.current,
       });
       if (!target) return false;
+      announcePlan(onPlan, target, duration);
       return animateSettled(animateTo, target, { duration, easing });
     },
-    [animateTo, currentBounds],
+    [animateTo, currentBounds, announcePlan],
   );
 
   /**

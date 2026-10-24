@@ -49,6 +49,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.plan.access_mode',
   'ui.plan.heading_up_enabled',
   'security.plan_access_code_hash',
+  'security.plan_access_pass_days',
   // Plan des personnels (StaffPlanSettingsPanel) — sans ça, la grille générique montrait un
   // champ texte pour `allowed_role_slugs` : le vider au blur fermait proflyautey à tout le monde.
   'ui.staff_plan.title',
@@ -61,6 +62,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.staff_plan.access_mode',
   'ui.staff_plan.code_role_slug',
   'security.staff_plan_access_code_hash',
+  'security.staff_plan_access_pass_days',
   // Plan e-nov (EnovPlanSettingsPanel) : couleur, catégories et case à cocher n'ont pas
   // d'éditeur générique adapté (une couleur saisie en texte libre serait refusée).
   'ui.enov_plan.title',
@@ -75,6 +77,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.enov_plan.innovations_label',
   'ui.enov_plan.access_mode',
   'security.enov_plan_access_code_hash',
+  'security.enov_plan_access_pass_days',
   'content.visit.mascot_dialog.defaults',
   'content.visit.mascot_dialog.catalog_overrides',
   'ops.visit_mascot_unrenderable_aligned_at',
@@ -597,6 +600,36 @@ export const KEY_META = {
     section: 'place_focus',
     order: 60,
   },
+  'ui.place_focus.fx_emoji_work': {
+    label: 'Carte de travail : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 70,
+  },
+  'ui.place_focus.fx_spotlight_work': {
+    label: 'Carte de travail : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 75,
+  },
+  'ui.place_focus.fx_emoji_visit': {
+    label: 'Visite : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 80,
+  },
+  'ui.place_focus.fx_spotlight_visit': {
+    label: 'Visite : assombrir le reste de la carte pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 85,
+  },
+  'ui.place_focus.fx_emoji_plan': {
+    label: 'Plans : l’emoji du lieu s’envole pendant le zoom et atterrit au retour',
+    section: 'place_focus',
+    order: 90,
+  },
+  'ui.place_focus.fx_spotlight_plan': {
+    label: 'Plans : assombrir le reste du plan pendant le zoom (projecteur)',
+    section: 'place_focus',
+    order: 95,
+  },
   'privacy.external_assets_mode': {
     label:
       'Polices et images de sites tiers. En mode local, rien n’est demandé à Google ni à Wikimedia depuis le navigateur des élèves.',
@@ -661,6 +694,17 @@ export const KEY_META = {
     label: 'Autoriser OAuth Google côté serveur',
     section: 'security',
     order: 50,
+  },
+  'security.totp.enforcement': {
+    label:
+      'Double authentification des comptes administrateur et n3boss (code à 6 chiffres sur téléphone, en plus du mot de passe)',
+    section: 'security',
+    order: 5,
+    optionLabels: {
+      off: 'Désactivée (secours uniquement)',
+      enroll: 'Transition : comptes activés vérifiés, activation proposée aux autres',
+      required: 'Obligatoire : aucune connexion sans second facteur',
+    },
   },
 
   // Verrou pédagogique « lu / appris » : sans ces libellés, la grille affichait le dernier

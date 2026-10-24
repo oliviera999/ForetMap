@@ -1,5 +1,6 @@
-import { useId, useMemo } from 'react';
+import { useCallback, useId, useMemo } from 'react';
 import { useDialogA11y } from '../../shared/platform/useDialogA11y.js';
+import { useExitAnimation } from '../../shared/hooks/useExitAnimation.js';
 import { GlossaryMarkdown } from '../GlossaryMarkdown.jsx';
 import { normalizeEditorialBlocks } from '../../utils/visitEditorialBlocks.js';
 import { computeVisitLocationAside } from '../../utils/visitLocationAside.js';
@@ -189,7 +190,11 @@ export function VisitDetailPanel({
    * Même coque a11y que les autres dialogues (`useDialogA11y` : focus initial, piège Tab,
    * Échap, restitution du focus).
    */
-  const dialogRef = useDialogA11y(() => (onRequestClose || onClose)?.());
+  const { closing, runExit, onAnimationEnd } = useExitAnimation({
+    animationName: 'visitDetailPanelOut',
+  });
+  const closeAnimated = useCallback(() => runExit(onClose), [runExit, onClose]);
+  const dialogRef = useDialogA11y(() => runExit(onRequestClose || onClose));
 
   /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
   const visitLocationAside = useMemo(
@@ -253,9 +258,9 @@ export function VisitDetailPanel({
           restait cliquable sous un dialogue `aria-modal` (un clic ouvrait une autre zone
           ou déplaçait la mascotte derrière le panneau). */}
       <div
-        className="visit-detail-panel__scrim"
+        className={`visit-detail-panel__scrim${closing ? ' fm-is-exiting' : ''}`}
         data-testid="visit-detail-panel-scrim"
-        onClick={onClose}
+        onClick={closeAnimated}
         aria-hidden="true"
       />
       <div
@@ -265,7 +270,8 @@ export function VisitDetailPanel({
         aria-labelledby={visitDetailPanelTitleId}
         tabIndex={-1}
         data-testid="visit-detail-panel"
-        className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
+        className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper${closing ? ' fm-is-exiting' : ''}`}
+        onAnimationEnd={onAnimationEnd}
       >
         <div className="visit-detail-panel__handle" aria-hidden="true" />
         <div className="visit-detail-panel__head">
@@ -282,7 +288,7 @@ export function VisitDetailPanel({
           >
             Aa
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={closeAnimated}>
             Fermer
           </button>
         </div>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
-import { useOverlayHistoryBack } from '../shared/platform/useOverlayHistoryBack';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { useGatingSummary } from '../hooks/useGatingSummary';
@@ -57,7 +56,6 @@ function downloadUrl(url) {
 }
 
 function TutorialLinkedTasksModal({ state, onClose }) {
-  useOverlayHistoryBack(!!state?.tutorial, onClose);
   if (!state?.tutorial) return null;
   const { tutorial, loading, error, tasks } = state;
   return (
@@ -204,16 +202,12 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     setReorderDraft([]);
   };
 
-  useOverlayHistoryBack(showReorder, closeReorder);
-
   const closeImportModal = useCallback(() => {
     setShowImportModal(false);
     setImportScan(null);
     setImportDryRun(false);
     setImportError('');
   }, []);
-
-  useOverlayHistoryBack(showImportModal, closeImportModal);
 
   /**
    * Relance l'analyse du dossier serveur. Extrait de `openImportModal` pour que la fenêtre

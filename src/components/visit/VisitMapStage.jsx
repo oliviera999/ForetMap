@@ -4,6 +4,7 @@ import { detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constan
 import { SharedMapStage } from '../../shared/pct-map/SharedMapStage.jsx';
 import { parsePctPolygonPoints } from '../../shared/pct-map/pctPolygon.js';
 import { polygonPoleOfInaccessibilityPct } from '../../shared/pct-map/pctPolylabel.js';
+import { getPrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { DISCOVER_HALO_MS, pickDiscoverHaloKeys } from '../../utils/visitDiscoverHalo.js';
 import { itemSeenKey } from '../../utils/visitMediaGallery.js';
 
@@ -96,11 +97,7 @@ export function VisitMapStage({
     }
     if (haloPlayedForMapRef.current === mapId) return undefined;
 
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
+    if (getPrefersReducedMotion()) {
       haloPlayedForMapRef.current = mapId;
       setHaloActive(false);
       setHaloKeys(new Set());

@@ -40,7 +40,8 @@ function Chevrons({ a, b, spacingPx, minLengthPx, className }) {
  *     marche. En vue d'ensemble il est plein ; pendant les étapes, il passe en fond — tronçons
  *     déjà faits grisés, tronçon menant à l'étape courante mis en avant ;
  *   - la **ligne de guidage** position → étape courante (ou lieu visé par « Y aller ») : plus
- *     épaisse, chevrons qui défilent vers la cible (figés si animation coupée).
+ *     épaisse, chevrons fixes et filet pointillé qui coule vers la cible (figé si animation
+ *     coupée).
  *
  * @param {object} props
  * @param {Array<{ xp: number, yp: number, index: number }>} [props.points] étapes dessinables.

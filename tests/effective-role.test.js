@@ -147,13 +147,21 @@ test('pickEffectiveRole : un enseignant ne monte jamais par un groupe (même au 
   });
   assert.strictEqual(noAssigned.source, 'default');
   assert.strictEqual(noAssigned.role.slug, 'prof_classe');
+  // Un élève non plus : un groupe ne confère qu'un profil élève (visiteur, palier n3beur).
   const student = pickEffectiveRole({
     userType: 'student',
     assigned: r(1, 'visiteur', 50),
     conferred: [lift],
   });
-  assert.strictEqual(student.source, 'group');
-  assert.strictEqual(student.role.slug, 'prof');
+  assert.strictEqual(student.source, 'assigned');
+  assert.strictEqual(student.role.slug, 'visiteur');
+  const pupil = pickEffectiveRole({
+    userType: 'student',
+    assigned: r(1, 'visiteur', 50),
+    conferred: [conferredBy('g2', r(7, 'eleve_novice', 100))],
+  });
+  assert.strictEqual(pupil.source, 'group');
+  assert.strictEqual(pupil.role.slug, 'eleve_novice');
 });
 
 test('pickEffectiveRole : entre deux groupes imposants, le plus élevé ; les profils gl_* sont ignorés', () => {

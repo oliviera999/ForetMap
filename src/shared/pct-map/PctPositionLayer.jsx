@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePctAnchorTransform } from '../hooks/usePctAnchorTransform.js';
 
 /**
  * Position de la personne sur une carte « % image » (lot 6, `docs/AUDIT_PLAN_LYAUTEY_2026-09.md`
@@ -22,6 +23,10 @@ import React from 'react';
  * lot 6 (`docs/AUDIT_PLAN_AFFICHAGE_2026-09.md` C8). Le repère, lui, garde une taille écran
  * fixe (un point de position qui grossit avec le zoom se lit mal).
  *
+ * Le repère se déplace par `transform` (pixels calculés depuis la taille du calque,
+ * `usePctAnchorTransform`) et non par `left` / `top` : la transition entre deux publications
+ * de `useMapPosition` ne recalcule pas la mise en page.
+ *
  * Carte orientée (heading-up) : le calque entier tourne de `−cap`, la flèche de `+cap` — elle
  * pointe donc vers le haut de l'écran, ce qui est exactement ce que l'on veut d'un repère de
  * navigation.
@@ -44,8 +49,9 @@ function PctPositionLayerImpl({
   accuracyM = null,
   className = 'fm-pct-position',
 }) {
+  const anchor = usePctAnchorTransform(position?.xp, position?.yp, 'translate(-50%, -50%)');
   if (!position) return null;
-  const { xp, yp, offMap = false, bearingDeg = 0 } = position;
+  const { offMap = false, bearingDeg = 0 } = position;
   const accuracyLabel =
     accuracyM != null && Number.isFinite(Number(accuracyM))
       ? ` à ${Math.round(Number(accuracyM))} mètres près`
@@ -53,8 +59,11 @@ function PctPositionLayerImpl({
   const bearing = !offMap && headingDeg != null && Number.isFinite(Number(headingDeg));
   return (
     <div
-      className={`${className}${offMap ? ' is-off-map' : ''}${bearing ? ' has-bearing' : ''}`}
-      style={{ left: `${xp}%`, top: `${yp}%` }}
+      ref={anchor.ref}
+      className={`${className}${offMap ? ' is-off-map' : ''}${bearing ? ' has-bearing' : ''}${
+        anchor.settling ? ' is-settling' : ''
+      }`}
+      style={anchor.style}
       data-heading-source={bearing ? headingSource || 'unknown' : undefined}
       role="img"
       aria-label={

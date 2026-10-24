@@ -14,11 +14,26 @@ import {
 } from '../utils/visitMascotPositionPersistence.js';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { clampVisitMascotPctForViewport } from '../utils/visitMascotGeometry.js';
+import {
+  MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS as VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
+  MAP_VIEW_MASCOT_DIALOG_MS as VISIT_MASCOT_DIALOG_MS,
+  MAP_VIEW_MASCOT_HAPPY_MS as VISIT_MAP_MASCOT_HAPPY_MS,
+  MAP_VIEW_MASCOT_MOVE_MS as VISIT_MAP_MASCOT_MOVE_MS,
+  MAP_VIEW_MASCOT_RUN_DIST_PCT,
+  MAP_VIEW_MASCOT_SURPRISE_DIST_PCT,
+} from '../utils/mapViewMascotMotion.js';
 
-export const VISIT_MAP_MASCOT_MOVE_MS = 560;
-export const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
-export const VISIT_MASCOT_DIALOG_MS = 2600;
-export const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
+// Durées communes à toutes les cartes (`mapViewMascotMotion.js`), ré-exportées sous leur nom
+// historique pour les tests du contrôleur.
+export {
+  VISIT_MAP_MASCOT_MOVE_MS,
+  VISIT_MAP_MASCOT_HAPPY_MS,
+  VISIT_MASCOT_DIALOG_MS,
+  VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
+};
+
+/** Au-delà de ce déplacement (% du plan), la mascotte annonce qu'elle bouge. */
+const VISIT_MASCOT_MOVE_DIALOG_DIST_PCT = 4;
 
 /**
  * Contrôleur de la mascotte du plan de visite.
@@ -45,6 +60,9 @@ export const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
  * @param {((item: object, itemType: 'zone'|'marker') => void)|null} [params.openSelection]
  *   ouverture du panneau à l'arrivée de la mascotte (ex. zoom sur le lieu puis sélection) ;
  *   à défaut, la sélection est posée directement.
+ * @param {boolean} [params.openSelectionInParallel] lance `openSelection` dès le clic, en même
+ *   temps que la marche (zoom sur le lieu actif) : la fiche est lisible ~0,6 s après le clic au
+ *   lieu de ~1,1 s.
  */
 export function useVisitMapMascotController({
   mapId,
@@ -58,6 +76,7 @@ export function useVisitMapMascotController({
   setSelected,
   setSelectedType,
   openSelection = null,
+  openSelectionInParallel = false,
 }) {
   const publicSettings = usePublicSettings();
   // Vide = mascotte par défaut livrée : `normalizeVisitMascotId` s'en charge (pas d'id en dur ici).
@@ -292,14 +311,14 @@ export function useVisitMapMascotController({
         setVisitMapMascotWalking(false);
       } else {
         setVisitMapMascotWalking(true);
-        if (dist > 15) {
+        if (dist > MAP_VIEW_MASCOT_RUN_DIST_PCT) {
           emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_VERY_LARGE);
           showMascotDialog('running');
-        } else if (dist > 9) {
+        } else if (dist > MAP_VIEW_MASCOT_SURPRISE_DIST_PCT) {
           emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_LARGE);
           showMascotDialog('surprise');
         }
-        if (dist > 4) showMascotDialog('move');
+        if (dist > VISIT_MASCOT_MOVE_DIALOG_DIST_PCT) showMascotDialog('move');
         visitMapMascotMoveTimeoutRef.current = window.setTimeout(() => {
           setVisitMapMascotWalking(false);
           visitMapMascotMoveTimeoutRef.current = null;
@@ -314,7 +333,9 @@ export function useVisitMapMascotController({
   );
 
   /**
-   * Ouvre le panneau lieu une fois le déplacement mascotte terminé (même durée que `VISIT_MAP_MASCOT_MOVE_MS`).
+   * Ouvre le panneau lieu une fois le déplacement mascotte terminé (même durée que `VISIT_MAP_MASCOT_MOVE_MS`),
+   * ou tout de suite avec `openSelectionInParallel` : le zoom sur le lieu (`openSelection`)
+   * accompagne alors la marche au lieu de l'attendre.
    * @param {{ xp: number, yp: number }} moveFromPct position mascotte **avant** `moveVisitMapMascotTo` (snapshot ref).
    */
   const scheduleVisitDetailPanelOpen = useCallback(
@@ -333,7 +354,8 @@ export function useVisitMapMascotController({
         visitMapFitRef.current?.height || 0,
       );
       const dist = Math.hypot(target.xp - prev.xp, target.yp - prev.yp);
-      const delay = dist < 0.08 || prefersReducedMotion ? 0 : VISIT_MAP_MASCOT_MOVE_MS;
+      const parallel = openSelectionInParallel && typeof openSelection === 'function';
+      const delay = dist < 0.08 || prefersReducedMotion || parallel ? 0 : VISIT_MAP_MASCOT_MOVE_MS;
 
       const applySelection = () => {
         visitDetailPanelAfterMoveTimeoutRef.current = null;
@@ -351,7 +373,14 @@ export function useVisitMapMascotController({
         visitDetailPanelAfterMoveTimeoutRef.current = window.setTimeout(applySelection, delay);
       }
     },
-    [prefersReducedMotion, setSelected, setSelectedType, openSelection, visitMapFitRef],
+    [
+      prefersReducedMotion,
+      setSelected,
+      setSelectedType,
+      openSelection,
+      openSelectionInParallel,
+      visitMapFitRef,
+    ],
   );
 
   /** Annule une ouverture différée du panneau lieu (fermeture de sélection, changement de carte). */
@@ -368,11 +397,14 @@ export function useVisitMapMascotController({
     [visitMapMascotPct.xp, visitMapMascotPct.yp, viewportFitHeight],
   );
 
+  /** « Marquer comme vu » : joie (sauf mouvement réduit, comme sur les plateaux GL) + bulle. */
   const onMascotSeenCelebration = useCallback(() => {
-    emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN_HAPPY);
-    emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN);
+    if (!prefersReducedMotion) {
+      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN_HAPPY);
+      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN);
+    }
     showMascotDialog('mark_seen', { force: true });
-  }, [emitMascotEvent, showMascotDialog]);
+  }, [emitMascotEvent, showMascotDialog, prefersReducedMotion]);
 
   // Comportements ambiants data-driven (déclencheurs `periodic` du pack actif).
   useAmbientMascotBehavior({

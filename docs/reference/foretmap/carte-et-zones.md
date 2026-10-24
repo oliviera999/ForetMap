@@ -302,10 +302,12 @@ Composer un parcours :
 - Rien n'est dupliqué : une étape **pointe** vers un lieu existant. Renommer le lieu renomme
   l'étape ; supprimer le lieu laisse une étape signalée « lieu introuvable », à retirer.
 - Une étape dont le lieu est **masqué** sur la surface consultée (Carte, Visite ou Plan — par
-  ses surfaces, sa catégorie, ou parce qu'il est réservé à certains profils) n'est pas
-  affichée : le compte d'étapes annoncé est celui des étapes réellement visibles, et le texte
-  de l'étape masquée n'est pas transmis. Un parcours dont plus aucune étape n'est visible n'est
-  pas proposé du tout. L'affiche PDF du professeur continue de lister toutes les étapes.
+  ses surfaces, sa catégorie, ou parce qu'il est réservé à certains profils ou à une classe)
+  n'est pas affichée : le compte d'étapes annoncé est celui des étapes réellement visibles, et
+  le texte de l'étape masquée n'est pas transmis. Cela vaut aussi quand la réserve vient
+  seulement de la catégorie du lieu, et pas d'un réglage posé sur le lieu lui-même. Un
+  parcours dont plus aucune étape n'est visible n'est pas proposé du tout. L'affiche PDF du
+  professeur continue de lister toutes les étapes.
 - Un parcours ne peut pas dépasser **60 étapes**. La description est limitée à 2 000 caractères,
   le texte d'une étape à 4 000.
 - Changer l'**identifiant du lien** d'un parcours déjà publié périme les affiches imprimées :
@@ -383,12 +385,27 @@ carte, à la Visite et aux plans) :
 - **Zoom maximal** (en % de la carte entière, 400 % par défaut) : une petite zone ou un
   repère ne grossissent pas au-delà ;
 - **Revenir à la vue d'avant à la fermeture** (actif par défaut) — désactivé, la carte reste
-  sur le lieu après la fermeture de la fiche.
+  sur le lieu après la fermeture de la fiche ;
+- deux **effets visuels**, réglables **par surface** (carte de travail, Visite, plans ; tous
+  actifs par défaut) :
+  - **l'emoji qui s'envole** : pendant le zoom, l'emoji de la zone ou du repère grossit très
+    vite en s'effaçant, comme s'il passait devant les yeux ; au retour, il fait l'inverse et
+    « atterrit » à sa place au moment où la carte retrouve sa vue d'avant. Une zone sans emoji
+    n'a pas cet effet ;
+  - **le projecteur** : pendant le zoom, le reste de la carte s'assombrit et seul le lieu
+    reste éclairé (la forme de la zone, ou un cercle autour du repère) ; le voile s'allège
+    tant que la fiche est ouverte et disparaît au retour.
 
 > ⚠️ **Points d'attention**
 >
 > - Pour les personnes qui ont demandé à leur appareil de **réduire les animations**, le zoom
->   et le retour sont instantanés.
+>   et le retour sont instantanés, et aucun effet visuel ne s'affiche. Sinon, un lecteur d'écran
+>   entend une brève annonce (« Ouverture de … ») pendant le zoom, avant que la fiche soit
+>   lisible.
+> - Un **repère sans emoji** affiche une épingle 📍 sur ForetMap (carte, Visite, plans). Sur le
+>   plateau Gnomes & Licornes, un repère sans emoji n'en invente pas un pour l'envol — voir
+>   [Carte du royaume](../gl/carte-du-royaume.md).
+> - Le **zoom maximal** est réglable ici ; côté G&L il est fixe (pas de réglage équivalent).
 > - « Y aller » referme la fiche **sans** revenir à la vue d'avant : la carte reste sur le lieu
 >   visé, c'est là que le guidage commence.
 > - Pendant un **parcours guidé**, ce zoom ne s'applique pas : la caméra du parcours garde la
@@ -452,6 +469,11 @@ Le professeur peut restreindre la **visibilité du lieu entier** à certains **r
 - la **visite anonyme** et le **Plan Lyautey** ne voient un lieu restreint que si le rôle
   **Visiteur** fait partie de l'audience (sinon le lieu reste réservé aux comptes connectés
   concernés).
+- **la Visite ne peut que restreindre davantage, jamais ouvrir.** Depuis octobre 2026, un
+  lieu réservé sur la carte reste réservé en Visite, même si sa fiche de Visite indique
+  « tout le monde ». Le réglage de la fiche de Visite peut seulement réserver encore plus un
+  lieu ouvert sur la carte. Auparavant, une fiche de Visite laissée sans restriction rendait
+  public un lieu réservé sur la carte.
 
 ### Compléments réservés : un texte par public
 
@@ -483,6 +505,14 @@ recevait sans jamais les montrer.
 Un lieu n'a qu'**un seul jeu** de compléments : celui qu'on modifie depuis la fiche de
 visite est le même que celui de la fiche de carte. Copier un lieu de la carte vers la visite
 ne recopie donc plus rien, et ne peut plus placer un complément dans un texte public.
+
+**Qui gère les compléments.** Lire tous les compléments d'un lieu, ou les modifier, demande
+la permission qui gère ce lieu sur la carte : « Gestion zones » pour une zone, « Gestion
+repères » pour un repère. La permission « Gestion visite » seule — utile pour confier les
+textes et photos de la visite guidée à un profil sur mesure — ne la remplace pas : un tel
+profil ne lit que les compléments qui lui sont destinés (par son rôle ou ses groupes), comme
+tout lecteur, et ne peut pas les modifier. Les profils livrés (administrateur, n3boss) ont
+les trois permissions : rien ne change pour eux.
 
 ### Restreindre à une classe ou à un club (groupes)
 

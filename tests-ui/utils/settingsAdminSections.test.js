@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import {
   resolveSettingLabel,
+  resolveSettingOptionLabel,
   buildSettingSections,
   filterSettingSections,
   countSectionRows,
@@ -36,6 +37,18 @@ describe('resolveSettingLabel', () => {
     expect(resolveSettingLabel('ui.map.default_map_teacher', ROLE_TERMS)).toBe(
       'Carte par défaut (n3boss)',
     );
+  });
+  test('double authentification : libellé et valeurs explicites (section Sécurité)', () => {
+    expect(resolveSettingLabel('security.totp.enforcement', ROLE_TERMS)).toMatch(
+      /Double authentification/,
+    );
+    expect(resolveSettingOptionLabel('security.totp.enforcement', 'required')).toMatch(
+      /Obligatoire/,
+    );
+    expect(resolveSettingOptionLabel('security.totp.enforcement', 'enroll')).toMatch(/Transition/);
+    expect(resolveSettingOptionLabel('security.totp.enforcement', 'off')).toMatch(/Désactivée/);
+    const [section] = buildSettingSections([{ key: 'security.totp.enforcement', type: 'enum' }]);
+    expect(section.id).toBe('security');
   });
   test('clé inconnue → humanisation du dernier segment', () => {
     expect(resolveSettingLabel('xyz.some_new_flag', ROLE_TERMS)).toBe('Some New Flag');

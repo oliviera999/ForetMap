@@ -60,11 +60,15 @@ export function readPlateauMarkerNumbersVisibleSetting(settings) {
   return value === true || value === 'true';
 }
 
-/** Lit un drapeau gameplay **actif par défaut** (absent = vrai). */
+/**
+ * Lit un drapeau gameplay **actif par défaut** (absent / illisible = vrai),
+ * aligné sur ForetMap `placeFocusSettings.readBool` (ANIM-24).
+ */
 function readGameplayFlagDefaultOn(settings, key) {
   const value = settings?.[key];
-  if (value == null) return true;
-  return value === true || value === 'true';
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return true;
 }
 
 /** Zoom sur le repère / la zone avant le popover d'arrivée (défaut : actif). */
@@ -129,6 +133,26 @@ export const MAP_DISPLAY_TOGGLES = [
     label: 'Revenir à la vue d’avant à la fermeture du popover',
     hint: 'La carte reprend son zoom et son centrage d’avant le zoom (défaut : actif).',
     readChecked: readBoardFocusRestoreSetting,
+  },
+  {
+    key: 'gameplay.board_focus_fx_emoji',
+    label: 'Effet : l’emoji du lieu s’envole pendant le zoom',
+    hint: 'L’emoji du repère ou de la zone grossit très vite en s’effaçant pendant le zoom, et atterrit au retour (défaut : actif).',
+    readChecked: (settings) => readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_emoji'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_spotlight',
+    label: 'Effet : projecteur sur le lieu',
+    hint: 'Le reste du plateau s’assombrit pendant le zoom et tant que le popover est ouvert (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_spotlight'),
+  },
+  {
+    key: 'gameplay.board_focus_fx_sparkles',
+    label: 'Effet : étincelles à l’arrivée',
+    hint: 'Une couronne d’étincelles dorées jaillit du lieu pendant le zoom (défaut : actif).',
+    readChecked: (settings) =>
+      readGameplayFlagDefaultOn(settings, 'gameplay.board_focus_fx_sparkles'),
   },
 ];
 

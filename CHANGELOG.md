@@ -12,6 +12,261 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Corrigé — Hors ligne : un « fait » n'est plus perdu si la lecture du tutoriel n'est pas encore partie
 
 - Au retour d'un réseau instable, la lecture de tutoriel peut échouer alors que le marquage « tâche faite » qui en dépend atteint le serveur et reçoit « tutoriel pas encore lu ». Ce refus n'est plus traité comme définitif tant que la lecture est encore sur l'appareil : le marquage (commentaire et photo compris) reste en file et repart au passage suivant. Un vrai refus (tutoriel jamais lu, ou lecture déjà abandonnée) continue d'avertir l'élève, ou d'abandonner un marquage sans texte.
+### Corrigé — Parcours : le texte d'une étape ne sort plus si le lieu est réservé
+
+- Le catalogue des parcours (`GET /api/map-routes` et le lien profond) ne tenait compte que
+  des rôles du lieu. Une étape pointant vers un lieu réservé à une classe, ou qui n'héritait
+  sa réserve que de sa catégorie, livrait quand même son texte à un élève d'une autre classe
+  et à un visiteur — alors que le lieu lui-même restait masqué sur la carte, la Visite et le
+  plan. Le filtre reprend la même décision que ces charges (groupes, héritage, surfaces).
+
+### Documentation — Réglages publics et secours TOTP
+
+- `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,
+  affichage et masquage) utilisées par l'écran de connexion et la page « À propos ».
+- `docs/SCRIPTS.md` ajoute le réflexe opérationnel en cas de dernier administrateur bloqué par
+  la double authentification : `totp:admin status`, exemples `reset` / `enforcement off`, et
+  rappel des garde-fous `--yes`, `.env` serveur et journaux d'audit.
+
+### Sécurité — Dépendances de production : failles publiées le 23/10 corrigées
+
+- `npm audit --omit=dev --audit-level=high`, bloquant en CI (job `quality`) et dans le passage
+  quotidien de `release.yml`, échouait sur `main` depuis le 23/10 sans aucune fusion : avis
+  publiés sur `dompurify` (critique), `body-parser`, `multer`, `undici` (sous `jsdom`) et `zod`
+  (élevés), `nodemailer` et `ip-address` (modérés). Toute PR, documentation comprise, tombait
+  rouge.
+- `npm audit fix --omit=dev`, `package-lock.json` seul (plages de `package.json` inchangées) :
+  `body-parser` 2.3.0 → 2.4.0, `dompurify` 3.4.16 → 3.4.17, `ip-address` 10.7.2 → 10.7.4,
+  `undici` 8.11.0 → 8.12.3, `multer` 2.4.0 → 2.5.0, `nodemailer` 10.0.10 → 10.2.1, `qs`
+  6.16.0 → 6.16.1, `zod` 4.6.5 → 4.6.7. Reste `uuid` sous `exceljs` (modéré, correctif
+  uniquement par une version majeure régressive d'`exceljs`), sous le seuil bloquant.
+
+### Corrigé — Mouvement réduit : `matchMedia` relu s'il est remplacé (tests UI rouges sur `main`)
+
+- Depuis la centralisation de `prefers-reduced-motion` (ANIM-21, 23/10), `usePrefersReducedMotion`
+  gardait au niveau du module la **première** `MediaQueryList` obtenue : un `window.matchMedia`
+  remplacé ensuite (polyfill posé tard, doublure de test) n'était jamais relu. Deux tests UI
+  échouaient sur `main` (`BottomSheet` et `SpeechBubble` sous mouvement réduit), ce qui rendait
+  rouge le job `quality` de toute PR de code.
+- La requête est refaite quand `window.matchMedia` change d'identité, et l'écouteur `change` de
+  l'ancienne requête est détaché. En navigateur, `matchMedia` ne change pas : comportement
+  inchangé. Test : `tests-ui/shared/usePrefersReducedMotion.test.jsx`.
+
+### Corrigé — Animations de carte : coût e-nov, a11y zoom, Rive, moteur de vue (ANIM-12…25)
+
+- Mise en avant e-nov : respiration en opacité (plus de `stroke-width` en boucle).
+- Annonce `aria-live` pendant le zoom sur le lieu ; Rive respecte le mouvement réduit.
+- Détection `prefers-reduced-motion` centralisée ; `SharedMapStage` ne réécrit plus `translate3d`.
+- Écarts ForetMap / GL documentés ; booléens GL alignés ; tests moteur de vue + e2e `data-phase`.
+- Audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : 25/25 traités.
+
+### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
+
+- **Constat** (3 → 10/10) : ~2 230 min/mois estimées, dont 60 % sur `main` — chaque fusion déclenchait sept workflows (~13 min facturées), plus deux crons toutes les 6 h.
+- **`release.yml`** remplace `version-bump.yml`, `release-tag.yml`, `dist-publish.yml` et la CI rejouée sur `main` : un job par fusion (données sensibles, numéros de migration, bump, tag + release, build, contrôle des miroirs CJS, artefact), ~2–3 min. Le tag est désormais posé **sur le commit de bump** (il arrivait une fusion en retard, sur le mauvais commit). Passage quotidien : artefact manquant, tag manquant, `npm audit`.
+- **`ci.yml`** ne tourne plus que sur les PR (et à la demande). Suite backend en `npm test` au lieu de `test:coverage` (couverture lue par rien, +27 % de durée). Le job `contenu` devient une étape du job `test` ; `frontend-dist.yml` disparaît, sa vérification des miroirs CJS passe dans `test` — une dérive fait échouer la PR (`npm run build` puis recommit), plus de recommit automatique par un job en écriture.
+- **`auto-resolve-conflicts.yml`** : à la demande seulement (les agents fusionnent déjà `main` dans leurs PR ; chaque résolution poussée relançait la CI complète de la PR).
+- Doc : `docs/EXPLOITATION.md` § 11.2, `docs/VERSIONING.md`, `docs/DEPLOY_DIST_ARTIFACT.md`, `CLAUDE.md`, skill `foretmap-release`.
+
+### Corrigé — Couleurs : le centre hors ligne et les effets de carte passent par les jetons
+
+- `src/components/offline/offlineCenter.css` : les 11 couleurs écrites en dur (replis de variables
+  inexistantes ou redondants) passent par les jetons de `color-tokens.css` (`--surface-pedago-soft`,
+  `--tint-warning`, `--line-sage`, encres existantes) ; rendu inchangé à l'œil.
+- Étincelles du zoom sur un lieu et pastilles de parcours : nouveaux jetons `--accent-sparkle`,
+  `--glow-sparkle`, `--shadow-map-badge` ; repli `--line-soft` redondant retiré.
+- Le cliquet `tests/color-tokens-guard.test.js` repasse au vert (hexadécimal : 674 → 662, plafond
+  662 ; `rgb()/rgba()` : 582 → 578, plafond 579). Il était rouge sur `main` depuis le 07/10.
+- e2e `plan-routes-mode` : le parcours de test relie deux lieux **placés** sur la carte. Il
+  prenait la première zone du plan, souvent une zone sans contour laissée par la suite backend
+  dans le même job : le tracé n'avait qu'une étape et `map-route-lines` n'apparaissait pas.
+- Ces changements sont entrés dans `main` avec la PR #585, qui les reprenait pour sa propre CI.
+
+### Maintenance — Commentaires des contrôles d'accès allégés
+
+- Commentaires du code, `docs/API.md` et titres du journal ramenés à la description du comportement ; le test de non-régression des contrôles d'accès s'appelle désormais `tests/security-access-controls.test.js`. Aucun changement de comportement.
+
+### Ajouté — Double authentification (TOTP) des comptes administrateur et n3boss
+
+- **Second facteur** à la connexion des comptes de profil effectif `admin`, `prof` (n3boss) ou de rang ≥ 400 : code à 6 chiffres d'une application d'authentification (RFC 6238, HMAC-SHA-1, 30 s, fenêtre ±1 pas), implémenté en `node:crypto` (`lib/auth/totp.js`), aucune dépendance nouvelle (QR code par `qrcode`, déjà présent). Élèves, personnels, profs de classe et profils G&L ne sont jamais concernés.
+- **Parcours** : mot de passe, Google (tous modes) ou Moodle/LTI correct → jeton intermédiaire « mfa pending » (clé dérivée de `JWT_SECRET`, refusé par toute route de session) → `POST /api/auth/totp/verify` (code ou code de secours) → session marquée `mfa`. Enrôlement guidé (QR code, premier code, 10 codes de secours hachés bcrypt, affichés une fois) ; changement d'appareil avec un code actuel ; nouveaux codes de secours.
+- **Réglage `security.totp.enforcement`** (`off` / `enroll` / `required`, défaut **`enroll`** : aucune connexion coupée au déploiement, comptes enrôlés vérifiés, activation proposée aux autres). Passage à `required` refusé sans clé ou par un administrateur non enrôlé ; en `required`, les sessions ouvertes sans second facteur sont révoquées (`401 SESSION_REVOKED`, `reason: 'mfa_required'`).
+- **Sécurité** : secret chiffré au repos en AES-256-GCM avec la clé dédiée **`TOTP_ENCRYPTION_KEY`** (rotation par `TOTP_ENCRYPTION_KEY_PREVIOUS`), anti-rejeu par écriture conditionnelle du dernier pas, limiteur d'essais persistant par compte (5 échecs, verrou progressif ≤ 15 min) en plus du limiteur d'IP, e-mail au titulaire à chaque activation, réinitialisation ou usage d'un code de secours, journal `security_events` (`auth.totp.*`, jamais de code).
+- **Prise de contrôle** réservée à une session administrateur validée par le second facteur (`actorMfa`). **Réinitialisation** par un administrateur (`POST /api/auth/totp/users/:userId/reset`, sessions du compte révoquées) et script serveur du dernier administrateur **`scripts/totp-admin.js`** (`status`, `reset`, `enforcement`, `rotate-key` ; `npm run totp:admin`).
+- **Écrans** : étape du code à la connexion (écran principal, modale enseignant, retour Google / Moodle, plan des personnels), section « Double authentification » de « Mon profil », état et réinitialisation dans la fiche d'un compte, libellés du réglage (Réglages → Sécurité).
+- **Migration `320_user_totp.sql`** : tables `user_totp` et `user_totp_backup_codes`, vue `v_user_totp_status` (`SQL SECURITY INVOKER`, sans secret) ; idempotente (gardes `INFORMATION_SCHEMA`), utf8mb4.
+- Tests : `tests/totp-*.test.js`, `tests/auth-totp-*.test.js`, `tests/migration-320-user-totp.test.js` ; `tests-ui/components/auth/Totp*.test.jsx`, `AuthScreenTotp`, `UserTotpAdminPanel`, `AppShellWiring` (retour `mfa`). Jeton d'administrateur des tests marqué « second facteur validé » (`tests/helpers/adminAuth.js`).
+- Docs : `docs/API.md` (§ Double authentification), `docs/EXPLOITATION.md` (clé, sauvegarde hors serveur, mise en service, script), `docs/reference/foretmap/double-authentification.md` (nouveau), `docs/reference/exploitation/modele-de-securite.md`, `comptes-roles-et-groupes.md`, `guide-du-prof.md`, `.env.example`.
+### Ajouté — Durées de conservation : purge planifiée, journal de purge, alerte
+
+- **Purge planifiée** (`scripts/retention-purge.js`, tâche `scripts/retention-purge-cron.sh`, ligne 5 de `docs/CRONTAB.md`, chaque nuit) : comptes **élèves** supprimés un an après la fin de la scolarité, comptes **personnels** un an après le départ, **journaux** 12 mois au plus, **adresses IP** tronquées à 3 mois. Catégories `desactivations`, `eleves`, `personnels`, `journaux`, `ip` (`--only=`).
+- **Simulation par défaut** : exécution réelle seulement avec `--apply` **et** `RETENTION_PURGE_APPLY=1` dans le `.env` ; options strictes (une faute de frappe échoue) ; sortie limitée aux catégories et comptages (aucun nom, e-mail, IP ni identifiant ; journaux Pino coupés).
+- **Fin de scolarité / départ** : nouvelle colonne `users.deactivated_at` (migration **319**, idempotente) posée au passage actif → inactif (synchronisation Moodle, annulation Moodle, formulaire d'administration) et effacée à la réactivation ; comptes déjà inactifs datés de leur `updated_at`. Élève supprimé si désactivé depuis plus de 12 mois, ou sans aucune activité pendant toute une année scolaire (fin présumée au 31 août de la dernière année active, + 1 an). Personnel supprimé 12 mois après sa désactivation ; un personnel actif mais inactif est compté « à revoir ».
+- **Garde-fous** : jamais un compte actif depuis moins de 12 mois (connexion, joueur G&L lié, ouverture d'application), jamais un profil administrateur ni le dernier administrateur, jamais un personnel lié à un maître du jeu ; suppression par les chemins de l'application (`deleteStudentById`, nouveau `lib/teacherDeletion.js` partagé avec `DELETE /api/rbac/users/teacher/:userId`, comportement inchangé) ; une transaction par compte, revérification avant suppression ; seuil `--max-accounts` (200, `FORETMAP_RETENTION_MAX_ACCOUNTS`) au-delà duquel rien n'est supprimé ; verrou en base (`GET_LOCK`).
+- **Journal de purge** : table `retention_purge_runs` (une ligne par passage, simulation comprise : mode, issue, durée, comptages, durées appliquées) ; exécution interrompue marquée `interrupted` au passage suivant.
+- **Alerte** : `ops-alert` en cas d'échec (code 1) ou de seuil (code 3), rien en cas de succès.
+- **Journaux** : toute durée de journal au-delà de 365 jours est refusée ; ouvertures des applications 12 mois (au lieu de 13) ; **compteurs d'usage** (`usage_counters`) purgés à 12 mois (auparavant sans limite) ; suppression en lots bornés (`DELETE … LIMIT`). IP tronquée à **3 mois** (au lieu de 6), y compris l'IP des données complémentaires (`payload_json.ip`) de `security_events` et d'`audit_log`. L'outil manuel `npm run logs:purge` (et l'ancienne ligne de crontab) applique ces durées dès le déploiement.
+- Notice « Vos données » : durée du compte (scolarité + 1 an, départ + 1 an), IP raccourcie à 3 mois, compteurs anonymes 1 an.
+- Tests : `tests/retention-purge-journal.test.js`, `-journaux`, `-ip`, `-eleves`, `-personnels`, `-cron`. Docs : `docs/CRONTAB.md`, `docs/EXPLOITATION.md`, `docs/SCRIPTS.md`, `docs/reference/exploitation/durees-de-conservation.md` (nouveau), `vos-donnees.md`, `foretmap/comptes-roles-et-groupes.md`, `foretmap/rentree-moodle.md`.
+### Amélioré — Codes d'accès des plans (plan public, plan des personnels, plan e-nov)
+
+- **Générateur de code** dans Réglages → Plan (trois panneaux, champ commun `AccessCodeField`) : bouton « Générer un code », 14 caractères tirés dans le navigateur (`crypto.getRandomValues`, tirage sans biais) parmi minuscules et chiffres sans caractère ambigu, affichés en clair jusqu'à l'enregistrement (`src/utils/accessCodeGenerator.js`).
+- **12 caractères minimum** à l'enregistrement (`POST /api/settings/admin/*-access-code`, **400** en deçà, contre 8 auparavant). Les codes déjà enregistrés restent valides jusqu'à leur remplacement : le serveur n'en garde que l'empreinte bcrypt.
+- **Échéance signée des laissez-passer** : la valeur du cookie porte sa date d'expiration, couverte par la signature HMAC (option `expiring` de `createSignedCookieGate`) ; le serveur refuse un laissez-passer échu, dont l'échéance a été retouchée, ou au format antérieur sans échéance (à ressaisir une fois après déploiement : ces derniers ne portaient aucune limite vérifiable). Durée réglable par plan — `security.plan_access_pass_days` (30 j, 1 à 90), `security.enov_plan_access_pass_days` (30 j, 1 à 90), `security.staff_plan_access_pass_days` (7 j, 1 à 30) —, champ « Durée du laissez-passer » dans les trois panneaux. La notice « Vos données » indique défaut et plafond.
+- **`?code=` retiré de l'adresse après usage** (plan public, plan e-nov) : le code d'un lien est échangé au montage par `POST /access` (dans le corps), avant la première lecture, puis retiré de l'adresse par `history.replaceState` — accepté ou refusé ; une panne réseau le laisse pour « Réessayer ». La charge n'est plus lue avec `?code=` (`fetchPlanContent(mapId, variant)`), un code saisi à l'écran non plus ; le service worker range ses copies sous une clé sans `code`. Sur le plan des personnels, un `?code=` est seulement retiré de l'adresse. `GET /content?code=` reste accepté côté serveur pour les clients antérieurs ; les journaux de requêtes n'enregistrent que le chemin (garde ajoutée).
+- **Journal des saisies de code** (`lib/codeAccessJournal.js`) : plan public, plan e-nov et plan des personnels inscrivent chaque saisie au journal de sécurité (`security_events`) — `<plan>.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif du refus (`code_invalid`, `code_missing`, `code_disabled`, `rate_limited`), IP et navigateur dans leurs colonnes, voie (`form` / `link`) ; jamais le code saisi. Sur le plan des personnels, les refus sont désormais inscrits en `failure` avec leur motif, et l'IP dans sa colonne plutôt que dans le détail (les lignes restent aussi au journal d'audit). Les refus du limiteur strict sont inscrits une fois par plan, adresse et fenêtre de 15 min (`authLimiterHandler`, crochet `onLimited` de `createRateLimitHandler`).
+- **Liste blanche du profil endossé** par le code du plan des personnels : `ui.staff_plan.code_role_slug` devient un `enum` (`personnel` par défaut, `visiteur`) — tout autre profil est refusé à l'écriture (**400**) et, déjà enregistré, ignoré à la lecture (repli `personnel`, `resolveCodeRoleSlug`). Le sélecteur des réglages ne propose plus que ces deux profils.
+- Tests : `tests/plan-access-codes.test.js`, `tests/access-gate.test.js`, `tests/pwa-sw-template.test.js`, `tests-ui/components/settings/StaffPlanCodeRole.test.jsx`, `tests-ui/components/settings/AccessCodeGenerator.test.jsx`, `tests-ui/components/settings/AccessPassDays.test.jsx`, `tests-ui/plan/PlanLinkCode.test.jsx` ; référence du registre de réglages régénérée (trois clés ajoutées). Docs : `docs/API.md`, `docs/reference/plan/*.md`, `docs/reference/exploitation/modele-de-securite.md`, `docs/reference/exploitation/vos-donnees.md`.
+
+### Modifié — Compléments réservés : lecture complète et écriture liées à la gestion du lieu
+
+- Routes de la Visite (`POST` / `PUT /api/visit/zones(:id)`, `/api/visit/markers(:id)`) : envoyer `notes` exige `zones.manage` (zone) ou `map.manage_markers` (repère) — **403** sinon, avant toute écriture ; la réponse ne porte tous les compléments, audiences comprises, qu'à qui gère ce type de lieu, et aux autres seulement ceux que leur audience leur ouvre (`canManageLocationNotes`, option `kind` de `canViewLocationNote` / `projectLocationNotesForViewer`, `lib/visitNotesWrite.js`). Les lecteurs par audience (rôle, groupe) ne changent pas ; les profils livrés portent les trois permissions.
+- Test : `tests/location-notes-visit-permission.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+### Modifié — Avatars par défaut générés localement, plus aucun appel à un service tiers
+
+- **Serveur** : nouvelle route `GET /api/users/:id/default-avatar?exp=…&sig=…` (`routes/users.js`, `lib/defaultAvatar.js`) qui dessine l'avatar d'un compte sans photo avec la bibliothèque [DiceBear](https://github.com/dicebear/dicebear) (MIT), style « Adventurer Neutral » de Lisa Wischofsky ([source](https://www.figma.com/community/file/1184595184137881796), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)). Paquets `@dicebear/core` et `@dicebear/adventurer-neutral` épinglés en 9.4.3 : **même dessin qu'avant** pour un même compte (vérifié octet pour octet).
+- La graine (pseudo, sinon prénom-nom, sinon identifiant) est recalculée côté serveur : elle ne figure ni dans l'URL ni dans le SVG. URL **signée** comme les photos d'élèves (même durée de vie, clé dérivée propre, signature couvrant aussi la graine), émise par les réponses qui exposent déjà le compte : champ `default_avatar_url` (projection publique des comptes, `GET /api/stats/me/:id`, `GET /api/stats/all`, profil de `GET /api/auth/me`).
+- Cache : `Cache-Control: private, max-age=3600` + `ETag` (304), rendu gardé en mémoire (500 entrées). SVG inerte (`Content-Security-Policy` en `sandbox`, garde-fou contre tout élément actif). `npm run check:runtime` signale l'absence des paquets.
+- Tests : `tests/default-avatar.test.js`. Doc : `docs/API.md`.
+- **Front** : `StudentAvatar` (en-tête, classement, fiche et profil) affiche l'avatar fourni par le serveur (`default_avatar_url`, seule la route de l'application est acceptée) ; repli en cascade photo → avatar par défaut → silhouette neutre embarquée, sans aucune requête. Le navigateur ne construit plus d'URL d'avatar à partir du pseudo ou du nom. « Mon profil » : bouton « Utiliser l'avatar par défaut ». Le champ suit la session (élève et enseignant).
+- **G&L** inchangé : ses avatars par défaut restent chargés comme avant (constructeur déplacé dans `src/gl/utils/glAvatar.js`, à l'identique).
+- Tests : `tests/no-third-party-avatar-guard.test.js` (aucun fichier livré ni aucune CSP ne référence l'API publique DiceBear ; exception G&L nommée), `tests-ui/components/StudentAvatarDefault.test.jsx`, `tests/avatar-shared-utils.test.js`.
+- **Attribution** (licence CC BY 4.0 de l'œuvre) : carte « Crédits graphiques » dans « À propos » et mention courte sous l'avatar dans « Mon profil » (`src/components/DefaultAvatarCredit.jsx`). Test : `tests-ui/AboutView.test.jsx`.
+- **CSP** : aucune variante ne nommait le service d'avatars (couvert jusqu'ici par `img-src https:`), la garde ci-dessus l'interdit désormais ; `https:` reste nécessaire (photos d'espèces externes, avatars par défaut de G&L, politique commune aux produits) — justification dans `lib/csp.js`.
+- Docs : `docs/reference/exploitation/modele-de-securite.md` (avatars dans « rien ne part chez un tiers », point d'attention G&L), `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
+### Sécurité — Comptes en attente : e-mail retiré de la liste
+
+- `GET /api/groups/pending-visitors` ne renvoie plus l'adresse e-mail des inscrits (champ `email` retiré de la réponse, pour tout acteur) : prénom, nom, pseudo et date d'inscription suffisent au rattachement. L'écran « Comptes en attente » n'affichait pas l'adresse : aucun changement d'interface.
+- Test : `tests/groups.test.js` (F2-B). Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Sécurité — Suppression d'un compte élève : garde de rang et dernier administrateur
+
+- `DELETE /api/students/:id` vérifie désormais le rang de la cible (`lib/accountDeletionGuard.js`) : **403** si le plus élevé de son profil effectif et de son profil attribué est égal ou supérieur au rang de l'acteur — **administrateur compris**, qui ne supprime pas un autre administrateur par cette route ; **403** sur soi-même ; **409** si la cible est le dernier administrateur actif (tout type de compte).
+- Le profil attribué compte même quand un groupe impose un profil plus bas : un compte élève porteur du profil n3boss reste protégé.
+- Tests : `tests/students-delete-rank-guard.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Sécurité — Profil par défaut d'un groupe borné aux profils élèves
+
+- Un groupe ne confère plus qu'un **profil élève** : `visiteur` ou palier n3beur (`eleve_*`, profil sur mesure de rang < 400 qui ne porte pas `teacher.access`). Ni l'encadrement (`admin`, `prof`, `prof_classe`), ni `personnel`, ni les profils du jeu. Règle unique : `isStudentProfileRole` (noyau partagé `src/shared/n3beurRolesCore.js`) et `isGroupConferrableRole` (`lib/groupDefaultRolePolicy.js`).
+- **Refus à l'écriture** (400, administrateur compris) : `POST`/`PATCH /api/groups`, import de groupes, classe G&L miroir (`POST /api/gl/admin/classes`, fonction partagée), politiques de synchronisation Moodle (rôle d'encadrement refusé à l'enregistrement ; une politique déjà enregistrée qui en nomme un crée son groupe sans profil par défaut, alerte `policy_role_not_student`). `group_default_allowed` (`GET /api/rbac/profiles`) suit la même règle.
+- **Garde à l'application** (`lib/effectiveRole.js`) : un profil par défaut non élève déjà en base n'est conféré à personne, imposé ou non — ni par rattachement, ni par code de classe, ni par synchronisation ou recalcul. Aucune donnée n'est modifiée : les membres concernés retrouvent leur propre profil au prochain recalcul (connexion, `GET /api/auth/me`, changement du profil par défaut du groupe).
+- `GET /api/groups` publie `default_role_conferrable` ; le panneau de réglages d'un groupe rappelle la règle et signale un profil enregistré qui n'est pas un profil élève.
+- Tests : `tests/groups-default-role-student.test.js`, `tests/moodle-group-default-role.test.js`, `tests-ui/components/GroupsAdminDefaultRole.test.jsx`, `tests-ui/utils/groupDefaultRoleOptions.test.js` ; `tests/groups.test.js`, `tests/effective-role.test.js` et `tests/rbac-rank-guards.test.js` alignés. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/rentree-moodle.md`, `docs/reference/foretmap/guide-du-prof.md`.
+
+### Sécurité — Garde de rang : hors administrateur, on n'attribue qu'un profil de rang strictement inférieur au sien
+
+- Règle unique `lib/rankGuard.js` (`canGrantRank`) : l'administrateur attribue tout profil ; hors administrateur, le rang visé doit être **strictement inférieur** à celui de l'acteur. À rang égal, l'attribution est désormais refusée (**403**) : un n3boss ne crée plus d'autre n3boss, un prof de classe pas d'autre prof de classe.
+- Appliquée partout où un profil est attribué : attribution unitaire et en lot (`PUT /api/rbac/users/:t/:id/role`, `POST /api/rbac/users/bulk-role`), création (`POST /api/rbac/users`), import (`POST /api/students/import`), duplication (`POST /api/students/:id/duplicate`, qui n'appliquait pas encore `checkRoleGrantAllowed`), profil par défaut d'un groupe (`POST`/`PATCH /api/groups`, `group_default_allowed` de `GET /api/rbac/profiles`).
+- **Rattacher à un groupe, c'est conférer son profil par défaut** : `addUserToGroup(userId, groupId, { actor })` refuse, hors administrateur, un groupe dont le profil par défaut est de rang égal ou supérieur à celui de l'acteur — rattachement unitaire, en lot, liste des membres (`PUT /api/groups/:id/members`, seulement s'il ajoute un membre), création ou duplication d'un compte avec `group_id` (vérifié avant toute écriture), import. La génération d'un **code de classe** (`POST /api/groups/:id/class-code`) suit la même garde.
+- Interface : la création unitaire ne propose plus « n3boss » qu'à l'administrateur.
+- Tests : `tests/rbac-rank-guards.test.js`, `tests-ui/utils/createUserRoleOptions.test.js`, `tests-ui/components/profiles/CreateUserPanel.test.jsx` ; `tests/rbac-account-lifecycle.test.js` et `tests/students-import.test.js` alignés sur la règle. Docs : `docs/API.md`, `docs/reference/foretmap/comptes-roles-et-groupes.md`, `docs/reference/foretmap/guide-du-prof.md`.
+### Sécurité — Duplication de compte : même garde de profil que la création
+
+- `POST /api/students/:id/duplicate` recopiait le profil attribué de la source **sans** `checkRoleGrantAllowed`, contrairement à la création (`POST /api/rbac/users`) et à l'import. La création RBAC laissant choisir le type de compte, un n3boss pouvait dupliquer un compte de type élève portant le profil administrateur et obtenir un nouvel administrateur.
+- La duplication applique désormais la même garde (`403`). L'attribution d'un profil de rang **égal** et le profil par défaut élevé d'un groupe conféré par code de classe sont traités séparément.
+- Tests : `tests/security-access-controls.test.js`. Doc : `docs/API.md`.
+
+### Sécurité — Dépendances : plus d'avis critique ni haut en production
+
+- `npm audit fix` (sans `--force`, dans les plages déclarées) : `proxy-addr` 2.0.7 → 2.0.8 (critique), `sharp` 0.35.4 → 0.35.5 (haut), `source-map-js` 1.2.1 → 1.2.2 (haut), `dompurify` 3.4.14 → 3.4.16 (bas), plus des correctifs de dépendances de développement. Le contrôle `npm audit --omit=dev --audit-level=high` de la CI repasse.
+- Restent deux avis **modérés** (`uuid` via `exceljs`) : leur correctif impose un changement de version majeure d'`exceljs`, hors de ce lot.
+
+### Sécurité — Tâches sans compte : plus aucun nom d'élève
+
+- `GET /api/tasks` et `GET /api/tasks/:id` répondent sans session (la Visite liste les tâches d'un lieu). Ils livraient à un anonyme le **prénom et le nom de l'élève qui propose une tâche** (ligne « Proposition n3beur: … » de la description), son identifiant, l'**identité des référents**, et les inscrits quand `tasks.assignees_visibility = all`.
+- Sans session, ces champs sont désormais vidés et la ligne du proposant retirée (`redactTaskForAnonymous`, `lib/tasks/assignmentVisibility.js`). Rien ne change pour un compte connecté.
+- Reste ouvert (décision) : le nom du proposant est écrit dans la description et y survit à l'effacement de l'élève.
+- Tests : `tests/security-access-controls.test.js`. Doc : `docs/API.md`.
+
+### Sécurité — Visite : un lieu réservé sur la carte reste réservé
+
+- `GET /api/visit/content` lisait l'audience par `COALESCE(visite, carte)` : celle de la Visite **remplaçait** celle de la carte. L'éditeur de Visite écrivant `'[]'` pour « aucune restriction », un lieu réservé aux personnels sur la carte était servi à l'anonyme dès que sa carte figurait dans la Visite (69 lieux dans ce cas dans le jeu anonymisé).
+- L'audience de la carte s'applique désormais **en plus** de celle de la Visite (`mapAudienceAllows`, `routes/visit.js`) : la Visite peut restreindre, jamais ouvrir. Aucune migration : les colonnes d'audience de `visit_*` existent déjà et les anciennes colonnes `restricted_note*` ont été supprimées.
+- Tests : `tests/security-access-controls.test.js`. Docs : `docs/API.md`, `docs/reference/foretmap/carte-et-zones.md`.
+
+### Sécurité — Parcours : sans `?surface=`, la surface du serveur s'applique
+
+- `GET /api/map-routes` sans `?surface=` n'appliquait que la garde du plan, sans filtre de surface : un anonyme sur un plan ouvert, ou le porteur du code du plan, recevait les parcours publiés **réservés aux personnels** et **à la carte de travail** (titre, description, public visé). Aucun écran n'appelait la route sans `surface`.
+- La surface manquante est désormais celle que le serveur décide (`resolveSurfaceForRequest` : host et session), avec sa garde et son filtre SQL. Sur ForêtMap sans compte, seuls les parcours de la Visite sortent.
+- Tests : `tests/security-access-controls.test.js` ; `tests/map-routes.test.js` vise désormais l'adresse du plan pour la garde par code. Doc : `docs/API.md`.
+
+### Sécurité — Photos des lieux : la galerie suit la visibilité du lieu
+
+- `GET /api/zones/:id/photos`, `GET /api/map/markers/:id/photos` et les routes `…/photos/:pid/data` servaient photos et légendes de **n'importe quel lieu, sans session ni code** : lieu retiré du plan public, réservé aux personnels, ou porté par un plan fermé par code (sonde locale du 10/10/2026).
+- Une photo se lit désormais aux conditions de son lieu : le lieu doit figurer dans la liste servie au lecteur (`checkLocationReadable`, `lib/terrain/locationService.js`, qui réutilise `listLocations` — surface, laissez-passer, périmètre, masquage, audience). Sinon `404`, `401` (plan fermé) ou `403` (hors périmètre).
+- Tests : `tests/security-access-controls.test.js`. Docs : `docs/API.md`, `docs/reference/exploitation/modele-de-securite.md` (les fichiers sous `/uploads/zones/` restent joignables par adresse directe : ne pas photographier de lieu sensible).
+### Corrigé — Cron de déploiement : un `git fetch` refusé ne passe plus inaperçu
+
+- `scripts/auto-deploy-cron.sh` : un `git fetch` en échec (dépôt passé en privé alors que le
+  serveur tire en HTTPS anonyme, clé de déploiement retirée, réseau) arrêtait le script en
+  silence. Il envoie désormais l'alerte « Déploiement bloqué (git fetch refusé) », au plus toutes
+  les 6 h, avec le message de git (identifiants d'URL masqués), et vérifie que le front reste
+  servi. Test : `tests/deploy-cron-fetch-failure.test.js` (script réellement exécuté).
+
+### Sécurité — Garde-fou contre la fuite de dumps, de hachages et de secrets dans le dépôt
+
+- Nouveau `scripts/check-sensitive-files.js` (`npm run check:sensitive`), sans dépendance :
+  refuse les fichiers `.env`, les clés privées, les dumps et sauvegardes (par le nom), les
+  hachages bcrypt, blocs de clé privée, jetons d'API connus, JWT signés et en-têtes de dump (par
+  le contenu), tout `INSERT` dans un fichier SQL hors des jeux déclarés, et toute valeur insérée
+  dans une table personnelle par un jeu de contenu. Le jeu anonymisé doit garder un hachage
+  unique et des adresses en domaine réservé. La sortie ne recopie jamais la valeur trouvée.
+- Branché dans `.githooks/pre-commit` (fichiers indexés, avant lint et format) et dans le job CI
+  `quality` (tout l'arbre, avant `npm ci`).
+- `.gitignore` : dumps compressés ou au format `.dump`, clés et certificats, `.env.*`.
+- Rejoué sur un export complet de production : refusé sous son nom, renommé en `.txt`, ou
+  substitué à un jeu déclaré.
+### Sécurité — Mot de passe provisoire ou compromis : changement imposé avant tout usage
+
+- Le drapeau `users.password_must_reset` n'était qu'un bandeau dans « Mon profil » : un compte marqué pouvait tout faire sans changer son mot de passe. Il est désormais **appliqué** par le serveur, relu en base à chaque requête (`hydrateAuthFromTokenClaims` → `auth.passwordMustReset`).
+- **Routes à session obligatoire** (`requireAuth`, `requirePermission`) : `403 { code: 'PASSWORD_CHANGE_REQUIRED' }`, contrôlé avant toute permission, sauf la liste blanche minimale de « Mon profil » (`PASSWORD_CHANGE_ALLOWED_ROUTES`) : `GET /api/auth/me` et `POST /api/auth/me/password`. `GET /api/auth/me` renvoie aussi `passwordMustReset`.
+- **Routes à session facultative** (`authenticate`, `parseOptionalForetAuth`, nouveau `hydrateOptionalAuthFromTokenClaims` pour le quiz, les clés, les séances et la garde des modules pédagogiques) : le compte marqué y est anonyme. **Socket.IO** : connexion refusée (`unauthorized`).
+- **Prise de contrôle** : l'administrateur qui assiste un compte marqué n'est pas bloqué (`passwordMustReset: false`).
+- **Client** : à la connexion, à la restauration de session (`/api/auth/me`) et sur ce 403 (événement `foretmap_password_change_required` émis par `api()`), le shell ouvre « Mon profil » avec le bandeau, élève comme enseignant (hook `usePasswordChangeRequired`). La validation de session élève ne signale plus « connexion instable » dans ce cas, et les écritures hors ligne attendent le changement au lieu d'être abandonnées.
+- Tests : `tests/password-must-reset-enforcement.test.js`, `tests-ui/AppShellPasswordChangeRequired.test.jsx`, `tests-ui/api.test.js`, `tests-ui/hooks/useAuthSession.test.jsx`, `tests-ui/utils/offlineActionQueue.test.js`. Docs : `docs/API.md` (§ Auth), `docs/reference/foretmap/comptes-roles-et-groupes.md`.
+
+### Amélioré — Animations de carte : fermetures animées, Visite plus réactive, durées partagées
+
+- Suite de l'audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : ANIM-10, 11, 13, 14, 17, 19, 20, 23 traités.
+- **Fermeture animée** (150 ms, fondu + léger rétrécissement) des fiches de lieu, du panneau de Visite et des popovers GL de zone, de QCM et de dés ; hook partagé `useExitAnimation`, immédiat en mouvement réduit.
+- **Visite** : avec le zoom sur le lieu, la carte zoome pendant la marche de la mascotte et la fiche s'ouvre ~0,6 s après le clic ; plus de saut de joie en mouvement réduit.
+- **Repère ouvert** : `aria-current`, pastille sous le repère, autres repères estompés.
+- **Popovers GL** : focus initial, piège et retour du focus, Échap par la pile des surcouches (`useDialogA11y`).
+- **Coût de rendu** : onde de l'étape courante en `transform` / `opacity` (`::after`) ; point GPS et mascottes déplacés par `transform` (hook `usePctAnchorTransform`) au lieu de `left` / `top`.
+- **Durées** : jetons `--motion-exit`, `--motion-map-*`, `--ease-in`, `--ease-map-move` dans `motion.css` ; durée de marche unique (550 ms, `MAP_VIEW_MASCOT_MOVE_MS`, aussi lue par les e2e), joie = trois rebonds (1,26 s), halo « à découvrir » 2,6 s des deux côtés.
+
+### Corrigé — Animations de carte : audit des parcours et de l'ouverture / fermeture des lieux
+
+- Audit daté `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` (25 constats ANIM-01 à ANIM-25) ; les 9 constats prioritaires sont traités dans ce lot, le reste (coût de rendu, accessibilité, dette) est consigné.
+- **Bulle de la mascotte** : elle ne s'affiche plus en miroir pendant son apparition quand la mascotte regarde à gauche (`visitMascotDialogPop` garde le `scaleX`).
+- **Point de position** : il ne grossit plus avec le zoom sur la carte de travail et en Visite (copie des règles `.fm-pct-position*` retirée de `index.css`, qui écrasait le contre-échelonnement partagé).
+- **Zoom sur le lieu** : fermer une fiche puis toucher un autre lieu pendant le retour garde la vue d'origine (plus de vue à mi-chemin) ; sur ForetMap, le projecteur s'allège dès la fin du vol au lieu d'attendre 700 ms (délai réservé aux étincelles GL).
+- **GL** : deux arrivées qui se chevauchent (zone avec contenu et feuillet) présentent les deux popovers ; le précédent restait en suspens (option `onSuperseded` de `usePlaceFocusSequence`).
+- **Ligne « Y aller »** : respecte le réglage `ui.routes.line_animated` (nouvelle prop `routeLineAnimated` de `SharedMapStage`).
+- **Mouvement réduit** : popovers GL (contenu de zone, QCM, dés) sans animation d'entrée, mascotte spritesheet figée. Minuterie du lien direct `?lieu=` du Plan annulée au démontage.
+- Tests : `tests/visit-map-animations-css.test.js`, `tests-ui/shared/usePlaceFocusSequence.test.jsx`, `PctPlaceFocusFx.test.jsx`, `PctRouteLayer.test.jsx`. Doc : `docs/reference/gl/carte-du-royaume.md`, `docs/reference/foretmap/visite-et-mascottes.md`.
+
+### Corrigé — Bouton Retour (navigateur / smartphone) : il referme la fenêtre, le popover ou la vue précédente
+
+- Le retour arrière ne fermait que les fenêtres qui s'y étaient abonnées une à une ; beaucoup (confirmations, fenêtres d'administration, bulles de glossaire, sorts GL, centre hors-ligne, dialogues GL…) le laissaient filer vers l'onglet précédent, voire hors de l'application.
+- `useDialogA11y` pose désormais l'entrée d'historique lui-même (option `historyBack`, active par défaut) : toute surcouche qui passe par lui — `DialogShell`, `BottomSheet`, `ImageLightbox`, popovers — se ferme au retour, de la plus récente à la plus ancienne. Une seule entrée par surcouche, même quand un composant fournit son propre `dialogRef` à `DialogShell` ; les ~20 appels manuels à `useOverlayHistoryBack` devenus doublons sont retirés.
+- Popovers GL « maison » (zone, repère, quiz, feuillet découvert, dés, notifications) et dialogues du studio mascotte branchés sur `useOverlayHistoryBack`. Visionneuse photo : retour actif par défaut, y compris dans la visite connectée (auparavant visite invité seulement).
+- Exceptions conservées : formulaires tâche avec appareil photo (`historyBack: false`, le retour caméra émet un `popstate`) et porte obligatoire de changement de mot de passe GL.
+- Test : `tests-ui/shared/useDialogA11yHistory.test.jsx`. Docs : `docs/reference/foretmap/presentation.md`, `docs/reference/gl/presentation.md`.
+
+### Corrigé — Popovers et modales : une sélection relâchée hors du cadre ne les ferme plus
+
+- Sélectionner du texte à la souris dans un champ (ou dans le contenu) d'un popover puis relâcher le bouton sur le fond fermait la fenêtre : le navigateur envoie alors le `click` à l'ancêtre commun, c'est-à-dire le fond. Un vrai clic sur le fond (appui **et** relâchement dehors) ferme toujours.
+- Garde-fou global unique `src/shared/platform/dragReleaseClickGuard.js` (phase de capture sur `window`, clics clavier non concernés), installé par les cinq points d'entrée (ForetMap, GL, plan, plan personnels, e-nov) : couvre toutes les modales sans les retoucher une à une. Test : `tests-ui/platform/dragReleaseClickGuard.test.jsx`.
+
+### Ajouté — Effets visuels du zoom sur le lieu (emoji qui s'envole, projecteur, étincelles GL)
+
+- **Emoji qui s'envole** : pendant le zoom vers une zone ou un repère, une copie de son emoji grossit très vite (4 à 9 fois sa taille à l'écran) en s'effaçant ; au retour, elle fait l'inverse et « atterrit » à sa place quand la vue d'avant est rétablie.
+- **Projecteur** : le reste de la carte s'assombrit pendant le zoom (voile percé à la forme de la zone, ou en cercle autour du repère), s'allège tant que la fiche est ouverte, disparaît au retour.
+- **Étincelles** (plateaux GL) : couronne d'étincelles dorées qui jaillit du lieu pendant le zoom.
+- Moteur : option `onPlan` de `flyToPctBounds` / `restoreViewAnimated` (annoncée seulement si le vol est réellement animé) ; `usePlaceFocusSequence` émet `onFx` (`in` / `out` / `cancel`). Nouveaux `src/shared/pct-map/placeFocusFxGeometry.js` (échelles caméra compensée, ancre, voile SVG), `usePlaceFocusFx.js`, `PctPlaceFocusFx.jsx` + `placeFocusFx.css` (posé dans le calque « fit » de `SharedMapStage`, prop `placeFocusFx`) ; GL : `GLBoardFocusFx.jsx`, `useGLBoardFocus` expose `fx`. Aucun effet en mouvement réduit.
+- **Réglages par surface** : ForetMap `ui.place_focus.fx_emoji_work|visit|plan` et `fx_spotlight_work|visit|plan` (_Réglages → Zoom sur le lieu avant sa fiche_) ; GL `gameplay.board_focus_fx_emoji`, `board_focus_fx_spotlight`, `board_focus_fx_sparkles` (_Affichage carte plateau_, exposés `boardFocusFx*`). Tous actifs par défaut.
+- Tests : `tests/place-focus.test.js`, `tests/gl-settings-registry.test.js`, `tests/gl-settings.test.js`, fixture golden, `tests-ui/shared/usePlaceFocusSequence.test.jsx`, nouveau `tests-ui/shared/PctPlaceFocusFx.test.jsx`. Doc : `docs/reference` (carte et zones, Visite, plans, carte du royaume GL), `docs/API.md`.
 
 ### Ajouté — Zoom sur le lieu avant sa fiche, puis retour à la vue d'avant
 

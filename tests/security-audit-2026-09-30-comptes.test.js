@@ -602,9 +602,11 @@ test('AC3 + §6 — prise de contrôle : e-mail intouchable, profil en liste bla
     .send({ userType: 'student', userId: user.id });
   assert.equal(imp.status, 200, JSON.stringify(imp.body));
   // §6 a : plus de `SELECT *` moins `password_hash` — aucune colonne hors liste blanche.
-  const { PUBLIC_USER_FIELDS } = require('../lib/publicUser');
+  // Champs calculés déclarés (avatar par défaut) admis : ce ne sont pas des colonnes.
+  const { PUBLIC_USER_FIELDS, PUBLIC_USER_COMPUTED_FIELDS } = require('../lib/publicUser');
+  const allowed = [...PUBLIC_USER_FIELDS, ...PUBLIC_USER_COMPUTED_FIELDS];
   for (const key of Object.keys(imp.body.profile)) {
-    assert.ok(PUBLIC_USER_FIELDS.includes(key), `colonne exposée : ${key}`);
+    assert.ok(allowed.includes(key), `colonne exposée : ${key}`);
   }
   assert.equal(imp.body.profile.token_epoch, undefined);
 
