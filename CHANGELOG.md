@@ -12,6 +12,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Corrigé — Hors ligne : un « fait » n'est plus perdu si la lecture du tutoriel n'est pas encore partie
 
 - Au retour d'un réseau instable, la lecture de tutoriel peut échouer alors que le marquage « tâche faite » qui en dépend atteint le serveur et reçoit « tutoriel pas encore lu ». Ce refus n'est plus traité comme définitif tant que la lecture est encore sur l'appareil : le marquage (commentaire et photo compris) reste en file et repart au passage suivant. Un vrai refus (tutoriel jamais lu, ou lecture déjà abandonnée) continue d'avertir l'élève, ou d'abandonner un marquage sans texte.
+
 ### Corrigé — Parcours : le texte d'une étape ne sort plus si le lieu est réservé
 
 - Le catalogue des parcours (`GET /api/map-routes` et le lien profond) ne tenait compte que
