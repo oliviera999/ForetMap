@@ -103,6 +103,39 @@ Préfixe : `/api/gl`
 - Mascottes (catalogue + assignation, `gl_mascot_assignments`) : `routes/gl/mascots.js`
 - Admin GL : `routes/gl/admin.js`
 
+### Le Seuil / voyageur
+
+Le Seuil est l'accueil joueur GL : il donne une progression personnelle hors séance, sans action
+du MJ, et reste isolé sous `/api/gl/voyageur/*`.
+
+| Couche         | Emplacement                                                                                                                                                                               | Rôle                                                                                                                                                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Module serveur | `lib/glVoyageur.js`                                                                                                                                                                       | Calcule le niveau à chaque lecture. Les points viennent des acquis `gl_learning_acknowledgements`, des QCM réussis distincts (`gl_qcm_attempts`), des feuillets possédés et des articles de journal comptés avec plafond hebdomadaire.            |
+| Routes joueur  | `routes/gl/voyageur.js`                                                                                                                                                                   | `GET /me`, `GET /spells/:code/targets`, `POST /spells/:code/cast` ; JWT GL requis, profil `gl_player` obligatoire, module `modules.voyageur_enabled` obligatoire (`503` si coupé).                                                                |
+| Persistance    | `migrations/317_gl_voyageur.sql`, table `gl_voyageur_spell_uses`                                                                                                                          | Aucune table de points ni monnaie. Seuls les usages de sortilèges sont stockés : `(player_id, spell_code)`, compteur, points au dernier lancer, cible courte. Suppression en cascade avec le joueur.                                              |
+| Branches gain  | `routes/gl/learning.js`, `routes/gl/qcm.js`, `routes/gl/lore.js`, `routes/gl/games/qcm.js`, `lib/glQcmAttempts.js`                                                                        | Le premier acquis ou la première bonne réponse renvoie `voyageurGain: { proche, loin }` quand la source compte et que le module est activé. Les MJ/admins et les sources hors Seuil ne produisent pas de gain.                                    |
+| Front Seuil    | `src/gl/components/GLSeuilView.jsx`, `src/gl/hooks/useGLVoyageur.js`, `src/gl/styles/gl-seuil.css`                                                                                        | Affiche les deux regards, l'expédition active, les traversées terminées, le grimoire, les suggestions et les gestes de mascotte.                                                                                                                  |
+| Front global   | `src/gl/services/apiGL.js`, `src/gl/services/glVoyageurEvents.js`, `src/gl/components/GLVoyageurGainToast.jsx`, `src/gl/components/GLLoupeButton.jsx`, `src/gl/utils/glVoyageurSounds.js` | `apiGL` transforme `voyageurGain` en événement `gl:voyageur-gain`; les pastilles et sons restent côté client. La Loupe lit l'état du grimoire avec un cache court et lance le sort pendant une question, sans consommer le jeton de présentation. |
+| Stats classe   | `lib/glVoyageur.js` (`loadVoyageurCountsForPlayers`, `summarizeVoyageur`), `routes/gl/stats.js`                                                                                           | Le MJ voit un résumé par joueur dans `GET /api/gl/stats/class`, calculé par requêtes groupées pour éviter une requête par élève.                                                                                                                  |
+
+Invariants à préserver :
+
+- deux regards seulement : **proche** (`species`, `glossary`, `ecosystem`, `qcm`) et **loin**
+  (`feuillets_found`, `feuillet`, `lore_glossary`, `content_page`, `qcm_lore`, `journal`) ;
+- paliers de niveau triangulaires (`pointsForLevel`) ; les points ne baissent pas ;
+- sortilèges personnels hors catalogue de chapitre : `seconde_chance`, `memoire`, `loupe` ;
+- une charge revient après `SPELL_RECHARGE_POINTS` nouveaux points, pas après un délai ;
+- un lancer de sort se fait en transaction avec verrou de ligne ; une cible absente ou invalide ne
+  consomme pas la charge ;
+- sons du voyageur : synthèse Web Audio uniquement, sans fichier audio ni dépendance. Deux coupures
+  s'appliquent : réglage admin `modules.voyageur_sounds_enabled` et préférence élève
+  `gl_voyageur_sfx_muted` dans `localStorage`.
+
+Gardes principales : `tests/gl-voyageur.test.js`, `tests/gl-voyageur-suite.test.js`,
+`tests-ui/gl/GLSeuilView.test.jsx`, `tests-ui/gl/GLVoyageurGainToast.test.jsx`,
+`tests-ui/gl/GLLoupeButton.test.jsx`, `tests-ui/gl/glVoyageurSounds.test.js`,
+`e2e/gl-seuil.spec.js`.
+
 Ajouts phase post-fondation :
 
 - `GET /api/gl/admin/content` : listing éditorial (slug, titre, mise à jour), réservé `gl.content.manage`.
