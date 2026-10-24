@@ -1465,6 +1465,14 @@ Contenus éditables du site (micro-CMS texte brut) :
 - Validation serveur : contraintes `maxLength` par clé ; si dépassé, la route renvoie `400`.
 - Fallback frontend : en cas de valeur vide/absente, l’UI conserve un texte de secours local.
 - Exemples de clés : `content.auth.title`, `content.visit.subtitle`, `content.visit.mascot_dialog.defaults`, `content.visit.mascot_dialog.catalog_overrides`, `content.about.help_body`, `content.app.loader`.
+- **Crédits d'accueil** (servis à ForetMap par `GET /api/settings/public` → `settings.content.auth`,
+  repris par l'écran de connexion et la page « À propos ») :
+  - `content.auth.credit_author` — chaîne ≤ 120 caractères, défaut `Mohammed El Farrai` ;
+  - `content.auth.credit_contributor` — chaîne ≤ 200 caractères, défaut
+    `Olivier Arnould-Laurent` ;
+  - `content.auth.credit_message` — chaîne ≤ 240 caractères, défaut vide.
+    Une chaîne vide enregistrée masque la mention correspondante ; une clé absente côté client
+    retombe sur le défaut local aligné sur le registre serveur.
 - **`content.visit.mascot_dialog.defaults`** : JSON string — profil global `{ "move": ["…"], "markerMarkedSeen": ["…"], … }` (clés stables, voir `visitMascotDialogEvents.js`). Exposé côté public sous **`settings.visit.mascot.dialog.defaults`** (objet parsé).
 - **`content.visit.mascot_dialog.catalog_overrides`** : JSON string — `{ "gnome-foret-rive": { "move": ["…"] }, … }`. Exposé sous **`settings.visit.mascot.dialog.catalogOverrides`**.
 
@@ -3181,11 +3189,12 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
   plan et aucun filtre ne s'appliquait : un anonyme sur un plan ouvert, ou le porteur du code
   du plan, recevait les parcours réservés aux personnels et à la carte de travail.
 - **`GET /api/map-routes`** (toutes surfaces) et **`GET /:idOrSlug`**
-  appliquent le même filtre au catalogue public : une étape dont le lieu est hors audience
-  (`visible_role_slugs`) ou masqué sur la surface demandée n'est pas renvoyée (`step_text`
-  compris). `authenticate` est optionnel pour appliquer le rôle du jeton ; un gestionnaire
-  (`zones.manage` / `map.manage_markers`) reçoit toutes les étapes. La vue `/manage` n'est
-  pas filtrée.
+  appliquent le même filtre au catalogue public que la charge de la surface : une étape dont
+  le lieu est hors audience — rôles **ou** groupes du lieu, ou audience **héritée** de ses
+  catégories — masqué sur la surface (`hidden_surfaces`), ou dont aucune catégorie n'apparaît
+  sur cette surface, n'est pas renvoyée (`step_text` compris). `authenticate` est optionnel
+  pour appliquer le rôle et les groupes du jeton ; un gestionnaire (`zones.manage` /
+  `map.manage_markers`) reçoit toutes les étapes. La vue `/manage` n'est pas filtrée.
 
 ### Accès du plan par code
 
