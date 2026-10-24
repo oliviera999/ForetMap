@@ -9,6 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Dépendances de production : failles publiées le 23/10 corrigées
+
+- `npm audit --omit=dev --audit-level=high`, bloquant en CI (job `quality`) et dans le passage
+  quotidien de `release.yml`, échouait sur `main` depuis le 23/10 sans aucune fusion : avis
+  publiés sur `dompurify` (critique), `body-parser`, `multer`, `undici` (sous `jsdom`) et `zod`
+  (élevés), `nodemailer` et `ip-address` (modérés). Toute PR, documentation comprise, tombait
+  rouge.
+- `npm audit fix --omit=dev`, `package-lock.json` seul (plages de `package.json` inchangées) :
+  `body-parser` 2.3.0 → 2.4.0, `dompurify` 3.4.16 → 3.4.17, `ip-address` 10.7.2 → 10.7.4,
+  `undici` 8.11.0 → 8.12.3, `multer` 2.4.0 → 2.5.0, `nodemailer` 10.0.10 → 10.2.1, `qs`
+  6.16.0 → 6.16.1, `zod` 4.6.5 → 4.6.7. Reste `uuid` sous `exceljs` (modéré, correctif
+  uniquement par une version majeure régressive d'`exceljs`), sous le seuil bloquant.
+
 ### Corrigé — Animations de carte : coût e-nov, a11y zoom, Rive, moteur de vue (ANIM-12…25)
 
 - Mise en avant e-nov : respiration en opacité (plus de `stroke-width` en boucle).
