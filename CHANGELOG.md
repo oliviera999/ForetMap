@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — GL : une arrivée n'est plus perdue si un autre popover se ferme pendant le zoom
+
+- Refermer un popover (zone, QCM, effet, feuillet) pendant le zoom d'une **autre** arrivée annulait ce zoom et laissait sa promesse en suspens. L'arrivée était déjà marquée comme récente : le popover ne s'ouvrait pas, et l'appel au serveur (question, effet, contenu, feuillet) n'était jamais fait. Il fallait quitter le lieu et y revenir après quelques secondes.
+- `restore()` prévient désormais l'attente (`onAbandoned`) sans ouvrir une fiche de carte annulée par l'utilisateur. Les deux arrivées qui se chevauchent continuent de s'afficher toutes les deux.
+
 ### Corrigé — Hors ligne : un « fait » n'est plus perdu si la lecture du tutoriel n'est pas encore partie
 
 - Au retour d'un réseau instable, la lecture de tutoriel peut échouer alors que le marquage « tâche faite » qui en dépend atteint le serveur et reçoit « tutoriel pas encore lu ». Ce refus n'est plus traité comme définitif tant que la lecture est encore sur l'appareil : le marquage (commentaire et photo compris) reste en file et repart au passage suivant. Un vrai refus (tutoriel jamais lu, ou lecture déjà abandonnée) continue d'avertir l'élève, ou d'abandonner un marquage sans texte.
