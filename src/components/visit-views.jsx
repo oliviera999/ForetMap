@@ -1181,6 +1181,7 @@ function VisitViewImpl({
                   }
                   autoFocusSelected={!visitPlaceFocusActive}
                   placeFocusFx={visitPlaceFx.fx}
+                  placeFocusStatus={placeFocus.statusMessage}
                   onSelectPlace={onSelectPlaceFromStage}
                   seen={showVisitSeenStatus ? seen : null}
                   position={visitPosition}

@@ -17,6 +17,7 @@ import {
   MAP_VIEW_MASCOT_MOVE_MS,
   pickMapMascotMoveInteraction,
 } from '../utils/mapViewMascotMotion.js';
+import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 
 /**
@@ -39,7 +40,7 @@ function useMapViewMascot({
   const [walking, setWalking] = useState(false);
   const [dialog, setDialog] = useState('');
   const [dialogVisible, setDialogVisible] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const mascotPctRef = useRef({ xp: 50, yp: 50 });
   const moveTimeoutRef = useRef(null);
@@ -103,15 +104,6 @@ function useMapViewMascot({
   useEffect(() => {
     mascotPctRef.current = mascotPct;
   }, [mascotPct]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => setPrefersReducedMotion(!!mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
 
   useEffect(
     () => () => {

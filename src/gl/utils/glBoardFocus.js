@@ -11,9 +11,14 @@ export const BOARD_FOCUS_DEFAULTS = Object.freeze({
   fx: Object.freeze({ emoji: true, spotlight: true, sparkles: true }),
 });
 
+/**
+ * Booléen « actif par défaut » aligné sur ForetMap (`placeFocusSettings.readBool`) :
+ * `false` / `'false'` / `0` / `'0'` → faux ; valeur absente ou illisible → vrai (ANIM-24).
+ */
 function flagDefaultOn(value) {
-  if (value == null) return true;
-  return value === true || value === 'true' || value === 1 || value === '1';
+  if (value === true || value === 1 || value === '1' || value === 'true') return true;
+  if (value === false || value === 0 || value === '0' || value === 'false') return false;
+  return true;
 }
 
 /**

@@ -221,4 +221,7 @@ test('resolveBoardFocusSettings (GL) : clés camelCase ou pointées, bornes', as
     resolveBoardFocusSettings({ 'gameplay.board_focus_duration_ms': '500' }).durationMs,
     500,
   );
+  // ANIM-24 : valeur illisible → défaut « vrai », comme ForetMap `readBool` (plus « faux » silencieux).
+  assert.equal(resolveBoardFocusSettings({ boardFocusEnabled: 'peut-être' }).enabled, true);
+  assert.equal(resolveBoardFocusSettings({ boardFocusFxEmoji: '' }).fx.emoji, true);
 });

@@ -33,6 +33,7 @@ import {
   zoneLabelSideExtraWidthPx,
 } from './pctMapLabels.js';
 import { PctPlaceFocusFx } from './PctPlaceFocusFx.jsx';
+import { PlaceFocusStatusLive } from './PlaceFocusStatusLive.jsx';
 import { PctPositionLayer } from './PctPositionLayer.jsx';
 import { PctRouteBadges, PctRouteLines } from './PctRouteLayer.jsx';
 import { accuracyHaloDiameterPx } from './positionGeometry.js';
@@ -112,6 +113,7 @@ const POSITION_ICONS = Object.freeze({
  * @param {boolean} [props.labelsClickable=false] l'étiquette d'une zone est aussi une cible
  *   tactile pour cette zone (petits polygones : voir `PctLabelsLayer`)
  * @param {object|null} [props.placeFocusFx] effets du zoom sur le lieu (`usePlaceFocusFx`)
+ * @param {string} [props.placeFocusStatus] annonce aria-live pendant le zoom (`usePlaceFocusSequence`)
  * @param {import('react').ReactNode} [props.overlaySlot]
  * @param {import('react').ReactNode} [props.chromeSlot]
  * @param {import('react').ReactNode} [props.emptySlot]
@@ -169,6 +171,8 @@ export function SharedMapStage({
   focusPlacePct,
   /** Effets du « zoom sur le lieu » (état `usePlaceFocusFx`) ; `null` : aucun. */
   placeFocusFx = null,
+  /** Annonce aria-live pendant le zoom (`usePlaceFocusSequence.statusMessage`). */
+  placeFocusStatus = '',
   overlaySlot = null,
   chromeSlot = null,
   emptySlot = null,
@@ -1050,14 +1054,13 @@ export function SharedMapStage({
         />
       </div>
 
-      <div
-        ref={worldRef}
-        className={worldClassName}
-        style={{
-          transform: `translate3d(${committed.x}px, ${committed.y}px, 0) scale(${committed.s})`,
-          transformOrigin: '0 0',
-        }}
-      >
+      {/*
+        La caméra (`usePctMapViewport.applyTransform`) écrit seule `translate(...) scale(...)`
+        en rAF / layout. Ne pas poser de `transform` React ici : un `translate3d` écrasait
+        le moteur à chaque rendu (ANIM-22). `transformOrigin` suffit ; l'écriture initiale
+        vient du `useLayoutEffect` du moteur.
+      */}
+      <div ref={worldRef} className={worldClassName} style={{ transformOrigin: '0 0' }}>
         <div className={fitClassName} style={{ ...fitStyle, ...orientStyle }}>
           <PctImageLayer
             ref={imgRef}
@@ -1136,6 +1139,7 @@ export function SharedMapStage({
               anchorOf={placeFxAnchorOf}
             />
           ) : null}
+          <PlaceFocusStatusLive message={placeFocusStatus} />
           {route ? (
             <PctRouteBadges
               points={routePoints}

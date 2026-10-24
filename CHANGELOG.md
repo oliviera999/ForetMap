@@ -16,6 +16,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   sa réserve que de sa catégorie, livrait quand même son texte à un élève d'une autre classe
   et à un visiteur — alors que le lieu lui-même restait masqué sur la carte, la Visite et le
   plan. Le filtre reprend la même décision que ces charges (groupes, héritage, surfaces).
+### Documentation — Réglages publics et secours TOTP
+
+- `docs/API.md` explicite les trois clés publiques `content.auth.credit_*` (bornes, défauts,
+  affichage et masquage) utilisées par l'écran de connexion et la page « À propos ».
+- `docs/SCRIPTS.md` ajoute le réflexe opérationnel en cas de dernier administrateur bloqué par
+  la double authentification : `totp:admin status`, exemples `reset` / `enforcement off`, et
+  rappel des garde-fous `--yes`, `.env` serveur et journaux d'audit.
+
+### Sécurité — Dépendances de production : failles publiées le 23/10 corrigées
+
+- `npm audit --omit=dev --audit-level=high`, bloquant en CI (job `quality`) et dans le passage
+  quotidien de `release.yml`, échouait sur `main` depuis le 23/10 sans aucune fusion : avis
+  publiés sur `dompurify` (critique), `body-parser`, `multer`, `undici` (sous `jsdom`) et `zod`
+  (élevés), `nodemailer` et `ip-address` (modérés). Toute PR, documentation comprise, tombait
+  rouge.
+- `npm audit fix --omit=dev`, `package-lock.json` seul (plages de `package.json` inchangées) :
+  `body-parser` 2.3.0 → 2.4.0, `dompurify` 3.4.16 → 3.4.17, `ip-address` 10.7.2 → 10.7.4,
+  `undici` 8.11.0 → 8.12.3, `multer` 2.4.0 → 2.5.0, `nodemailer` 10.0.10 → 10.2.1, `qs`
+  6.16.0 → 6.16.1, `zod` 4.6.5 → 4.6.7. Reste `uuid` sous `exceljs` (modéré, correctif
+  uniquement par une version majeure régressive d'`exceljs`), sous le seuil bloquant.
+
+### Corrigé — Mouvement réduit : `matchMedia` relu s'il est remplacé (tests UI rouges sur `main`)
+
+- Depuis la centralisation de `prefers-reduced-motion` (ANIM-21, 23/10), `usePrefersReducedMotion`
+  gardait au niveau du module la **première** `MediaQueryList` obtenue : un `window.matchMedia`
+  remplacé ensuite (polyfill posé tard, doublure de test) n'était jamais relu. Deux tests UI
+  échouaient sur `main` (`BottomSheet` et `SpeechBubble` sous mouvement réduit), ce qui rendait
+  rouge le job `quality` de toute PR de code.
+- La requête est refaite quand `window.matchMedia` change d'identité, et l'écouteur `change` de
+  l'ancienne requête est détaché. En navigateur, `matchMedia` ne change pas : comportement
+  inchangé. Test : `tests-ui/shared/usePrefersReducedMotion.test.jsx`.
+
+### Corrigé — Animations de carte : coût e-nov, a11y zoom, Rive, moteur de vue (ANIM-12…25)
+
+- Mise en avant e-nov : respiration en opacité (plus de `stroke-width` en boucle).
+- Annonce `aria-live` pendant le zoom sur le lieu ; Rive respecte le mouvement réduit.
+- Détection `prefers-reduced-motion` centralisée ; `SharedMapStage` ne réécrit plus `translate3d`.
+- Écarts ForetMap / GL documentés ; booléens GL alignés ; tests moteur de vue + e2e `data-phase`.
+- Audit `docs/AUDIT_ANIMATIONS_CARTE_2026-10.md` : 25/25 traités.
 
 ### Modifié — CI : 7 workflows → 4, un seul job par fusion (quota Actions, 2e passe)
 

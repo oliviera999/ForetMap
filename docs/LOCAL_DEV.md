@@ -301,20 +301,20 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 ### Récapitulatif des commandes de test (référence)
 
-| Commande                                      | Rôle                                                                                                          |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `npm test`                                    | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.)         |
-| `npm run test:content`                        | Corpus pédagogique **`tests/content/*.test.js`** (espèces, liaisons trophiques, liens QCM) — job CI `contenu` |
-| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (job `quality`, PR hors brouillon)                 |
-| `npm run test:all`                            | `npm test`, `npm run test:content` puis `npm run test:ui`                                                     |
-| `npm run test:e2e`                            | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                          |
-| `npm run smoke:local:fast`                    | Smoke applicatif (`scripts/local-smoke.js`)                                                                   |
-| `npm run test:snapshot`                       | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter)                                               |
-| `npm run test:snapshot:gl`                    | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                                |
-| `npm run test:load` (et variantes)            | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                                  |
-| `npm run test:load:gl`                        | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                          |
-| `npx artillery run load/artillery-biodiv.yml` | Charge ciblée Biodiversité : catalogue avant/après correctif (§ **5quinquies**)                               |
-| `npm run test:profile:memory`                 | Profil mémoire local des parcours suspects LVE (`/api/admin/diagnostics`, voir § **5sexies**)                 |
+| Commande                                      | Rôle                                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `npm test`                                    | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.)  |
+| `npm run test:content`                        | Corpus pédagogique **`tests/content/*.test.js`** (espèces, liaisons trophiques, liens QCM)             |
+| `npm run test:ui`                             | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** complète (job `quality`, PR hors brouillon) |
+| `npm run test:all`                            | `npm test`, `npm run test:content` puis `npm run test:ui`                                              |
+| `npm run test:e2e`                            | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                   |
+| `npm run smoke:local:fast`                    | Smoke applicatif (`scripts/local-smoke.js`)                                                            |
+| `npm run test:snapshot`                       | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter)                                        |
+| `npm run test:snapshot:gl`                    | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                         |
+| `npm run test:load` (et variantes)            | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                           |
+| `npm run test:load:gl`                        | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                   |
+| `npx artillery run load/artillery-biodiv.yml` | Charge ciblée Biodiversité : catalogue avant/après correctif (§ **5quinquies**)                        |
+| `npm run test:profile:memory`                 | Profil mémoire local des parcours suspects LVE (`/api/admin/diagnostics`, voir § **5sexies**)          |
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 
@@ -427,7 +427,25 @@ Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.
 
 **Ne pas** lancer seulement **`npx playwright test …`** si un **`npm start`** « normal » occupe déjà le port : Playwright peut réutiliser ce serveur **sans** bypass → échecs **429** ou code périmé.
 
-**CI** (`.github/workflows/ci.yml`) : `npm run lint` → **`npm run test:ui`** → `npm test` → `npm run test:content` → `npm run build` → serveur **`npm run start:e2e`** → **`npm run test:e2e`** (`E2E_BASE_URL`). Pas de **`webServer`** Playwright quand **`CI=true`**.
+**CI de PR** (`.github/workflows/ci.yml`) :
+
+- une PR en brouillon ne lance aucun job ; la validation part au passage **Ready for review** ou
+  par **Actions → CI → Run workflow** ;
+- le job `changes` décide si la PR est légère (documentation racine, audits, règles/skills,
+  `CHANGELOG.md`) ou si elle doit lancer la CI complète ;
+- le job `quality` tourne sur les PR non brouillon : garde-fou données sensibles, numéros de
+  migration uniques, `npm run lint`, `npm run format:check`, puis **`npm run test:ui`** seulement
+  si `changes` demande la CI complète, et `npm audit --omit=dev --audit-level=high` ;
+- le job `test` ne tourne qu'en CI complète : il initialise la base, exécute `npm test`,
+  `npm run test:content` et `npm run build`, puis démarre **`npm run start:e2e`**
+  (`NODE_ENV=production`, `E2E_BASE_URL`) pour les smokes Playwright bloquants
+  **plan-mobile**, **enov-mobile** et **mobile-webkit**. Pas de **`webServer`** Playwright quand
+  **`CI=true`**.
+
+La suite Playwright complète **`npm run test:e2e`** ne fait plus partie de `ci.yml` : elle se lance à
+la demande via **Actions → E2E complet (à la demande) → Run workflow** (`.github/workflows/e2e-full.yml`).
+Le rapport Playwright n'est téléversé qu'en cas d'échec et si l'option `upload_report` est cochée,
+pour préserver le quota de stockage d'artefacts.
 
 Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
