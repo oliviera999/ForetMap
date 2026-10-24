@@ -22,6 +22,8 @@ const express = require('express');
 const { authLimiter } = require('../lib/rateLimit');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('../lib/auditLog');
+const { getSettingValue } = require('../lib/settings');
+const { applyClearSiteData, normalizeLogoutClearSiteDataScope } = require('../lib/clearSiteData');
 const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const {
   loadPlanSettings,
@@ -192,6 +194,10 @@ router.post(
         { req, payload: { requestId: req.requestId } },
       );
     }
+    const scope = normalizeLogoutClearSiteDataScope(
+      await getSettingValue('privacy.logout_clear_site_data_scope', 'cache'),
+    );
+    applyClearSiteData(res, scope);
     res.json({ ok: true });
   }),
 );

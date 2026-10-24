@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
+
+- Nouvelle route publique `POST /api/auth/logout` : `Clear-Site-Data` (`"cache"` ou
+  `"cache", "storage"` selon `privacy.logout_clear_site_data_scope`), jamais `"cookies"`.
+- Même en-tête sur les déconnexions plan / e-nov / personnels.
+- Client : purge systématique des copies d'API `__fm_sw_user` ; plans : purge content/settings
+  hors ligne au rendu du laissez-passer.
+
 ### Corrigé — Mode Découverte GL et tests Windows (e2e / CI locale)
 
 - Plateau découverte : jets ignorés pendant un trajet ; index avancé seulement si le

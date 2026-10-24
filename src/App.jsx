@@ -14,7 +14,9 @@ import {
   clearLocalDataForAccount,
   clearOfflinePhotosForAccount,
   countPendingLocalActions,
+  notifyServerLogout,
   pendingLossConfirmationMessage,
+  purgeCachedAuthenticatedApi,
   purgeCachedUserMedia,
 } from './utils/localDataCleanup';
 import { clearOutboxMirror } from './services/offlineOutboxMirror.js';
@@ -1046,30 +1048,41 @@ function App() {
   }, []);
 
   const clearLocalDataOnLogout = publicSettings?.privacy?.clear_local_data_on_logout !== false;
+  const logoutClearSiteStorage =
+    publicSettings?.privacy?.logout_clear_site_data_scope === 'cache_storage';
 
   /**
    * Déconnexion complète (session locale + états React). Avec le réglage
    * `privacy.clear_local_data_on_logout`, les données du compte gardées sur l'appareil sont
-   * effacées aussi — après confirmation s'il reste des actions non envoyées.
+   * effacées aussi — après confirmation s'il reste des actions non envoyées. Les copies d'API
+   * cloisonnées (`__fm_sw_user`) partent toujours ; le serveur pose `Clear-Site-Data`.
    */
   const handleLogout = useCallback(
     async ({ confirm } = {}) => {
+      const userId = getAuthUserId();
+      const pending = clearLocalDataOnLogout ? countPendingLocalActions(userId) : 0;
+      const message = pendingLossConfirmationMessage(pending, {
+        clearSiteStorage: logoutClearSiteStorage,
+      });
+      if (message && typeof confirm === 'function') {
+        const ok = await confirm({ message, confirmLabel: 'Se déconnecter', danger: true });
+        if (!ok) return;
+      }
       if (clearLocalDataOnLogout) {
-        const userId = getAuthUserId();
-        const message = pendingLossConfirmationMessage(countPendingLocalActions(userId));
-        if (message && typeof confirm === 'function') {
-          const ok = await confirm({ message, confirmLabel: 'Se déconnecter', danger: true });
-          if (!ok) return;
-        }
-        // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues.
-        if (!message || typeof confirm === 'function') {
+        // Sans moyen de confirmer, les actions non envoyées sont gardées plutôt que perdues
+        // (sauf mode borne : le serveur effacera le stockage de toute façon).
+        if (logoutClearSiteStorage || !message || typeof confirm === 'function') {
           clearLocalDataForAccount(userId);
           void clearOfflinePhotosForAccount(userId);
         }
         void purgeCachedUserMedia();
       }
-      // Toujours : la copie pour la synchronisation en arrière-plan porte le jeton de session.
+      // Toujours : copies d'API du compte + miroir outbox + session.
+      void purgeCachedAuthenticatedApi();
       void clearOutboxMirror();
+      // Après confirmation éventuelle : sinon Clear-Site-Data "storage" effacerait les files
+      // non envoyées sans prévenir.
+      void notifyServerLogout('/api/auth/logout');
       clearStoredSession();
       studentRef.current = null;
       setStudent(null);
@@ -1081,7 +1094,7 @@ function App() {
       setBiodivGroupCurriculumNiveaux([]);
       markPasswordChangeRequired(false);
     },
-    [clearLocalDataOnLogout, markPasswordChangeRequired, studentRef],
+    [clearLocalDataOnLogout, logoutClearSiteStorage, markPasswordChangeRequired, studentRef],
   );
 
   const isCombinedMapTasksTab = tab === 'maptasks';

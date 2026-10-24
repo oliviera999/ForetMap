@@ -646,6 +646,16 @@ export const KEY_META = {
     section: 'privacy',
     order: 20,
   },
+  'privacy.logout_clear_site_data_scope': {
+    label:
+      'Mode borne / tablette partagée : à la déconnexion, l’en-tête Clear-Site-Data peut aussi effacer tout le stockage du site sur l’appareil (préférences, actions hors ligne non envoyées de tous les comptes, mode hors ligne jusqu’au prochain chargement).',
+    section: 'privacy',
+    order: 25,
+    optionLabels: {
+      cache: 'Cache HTTP seulement (recommandé)',
+      cache_storage: 'Cache + tout le stockage du site (borne / tablette partagée)',
+    },
+  },
   'privacy.data_contact': {
     label:
       'Contact « données personnelles » affiché dans la page « Vos données » de chaque application (DPO de l’établissement, adresse e-mail ou bureau à contacter). Vide : la page renvoie vers les enseignants et la direction.',

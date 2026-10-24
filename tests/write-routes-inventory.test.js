@@ -134,6 +134,8 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/auth/elevate': 'publique : ancienne élévation par PIN, répond 410 Gone',
   'POST /api/auth/forgot-password': 'publique : demande de réinitialisation (limiteur authLimiter)',
   'POST /api/auth/login': 'publique : connexion (limiteur authLimiter)',
+  'POST /api/auth/logout':
+    'publique : déconnexion + Clear-Site-Data (limiteur authLimiter), toujours 200',
   'POST /api/auth/me/password': 'auth',
   'PATCH /api/auth/me/profile': 'auth',
   'POST /api/auth/register':

@@ -28,6 +28,7 @@ const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/co
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue } = require('../lib/settings');
+const { applyClearSiteData, normalizeLogoutClearSiteDataScope } = require('../lib/clearSiteData');
 const { loadPlanSettings, resolvePlanMap, buildPlanContent } = require('../lib/planContent');
 
 const router = express.Router();
@@ -114,11 +115,17 @@ router.post(
  * partagé ou une borne. Toujours `200`, même sans cookie : une déconnexion n'a pas à dire si
  * quelqu'un était entré.
  */
-router.post('/logout', (req, res) => {
-  planAccessGate.clear(res);
-  res.set('Cache-Control', 'no-store');
-  res.json({ ok: true });
-});
+router.post(
+  '/logout',
+  asyncHandler(async (_req, res) => {
+    planAccessGate.clear(res);
+    const scope = normalizeLogoutClearSiteDataScope(
+      await getSettingValue('privacy.logout_clear_site_data_scope', 'cache'),
+    );
+    applyClearSiteData(res, scope);
+    res.json({ ok: true });
+  }),
+);
 
 /** Réglages publics seuls (coquille : titre, message d'accueil, mode d'accès). */
 router.get(

@@ -100,6 +100,20 @@ export function clearLocalDataForAccount(userId) {
 const USER_MEDIA_PATH_RE = /\/uploads\//;
 
 /**
+ * Paramètre que le service worker ajoute à la clé d'une réponse lue avec un jeton
+ * (`cacheKeyFor`, src/shared/pwa/swTemplate.js) : la copie appartient à un compte.
+ */
+export const SW_ACCOUNT_PARTITION_PARAM = '__fm_sw_user';
+
+/** Chemins d'API des plans publics/e-nov mis en cache (stale-while-revalidate). */
+export const PLAN_CACHED_API_PATHS = Object.freeze([
+  '/api/plan/content',
+  '/api/plan/settings',
+  '/api/enov/content',
+  '/api/enov/settings',
+]);
+
+/**
  * Retire du cache du service worker les photos déposées par les utilisateurs. Les bundles,
  * icônes et polices restent (rien de personnel). Meilleur effort : ne rejette jamais.
  * @returns {Promise<number>} nombre d'entrées retirées
@@ -128,13 +142,101 @@ export async function purgeCachedUserMedia() {
 }
 
 /**
+ * Retire du cache du service worker les réponses d'API propres à un compte (`__fm_sw_user`).
+ * À appeler à **chaque** déconnexion (même si `privacy.clear_local_data_on_logout` est faux) :
+ * ces copies portent des données de compte, pas des préférences. Meilleur effort.
+ * @returns {Promise<number>} nombre d'entrées retirées
+ */
+export async function purgeCachedAuthenticatedApi() {
+  try {
+    if (typeof caches === 'undefined' || typeof caches.keys !== 'function') return 0;
+    let removed = 0;
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        let url;
+        try {
+          url = new URL(request.url);
+        } catch {
+          continue;
+        }
+        if (!url.searchParams.has(SW_ACCOUNT_PARTITION_PARAM)) continue;
+        if (await cache.delete(request)) removed += 1;
+      }
+    }
+    return removed;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Retire du cache les charges des plans publics / e-nov (laissez-passer par code).
+ * Le plan des personnels ne met aucune API en cache (`PWA_PROFILES.staff`).
+ * @returns {Promise<number>}
+ */
+export async function purgeCachedPlanApi() {
+  try {
+    if (typeof caches === 'undefined' || typeof caches.keys !== 'function') return 0;
+    const pathSet = new Set(PLAN_CACHED_API_PATHS);
+    let removed = 0;
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        let url;
+        try {
+          url = new URL(request.url);
+        } catch {
+          continue;
+        }
+        if (!pathSet.has(url.pathname)) continue;
+        if (await cache.delete(request)) removed += 1;
+      }
+    }
+    return removed;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Informe le serveur de la déconnexion pour qu'il pose `Clear-Site-Data`. Hors ligne, la
+ * déconnexion locale aboutit quand même (`keepalive`, erreurs ignorées).
+ * @returns {Promise<Response|null>}
+ */
+export async function notifyServerLogout(logoutUrl = '/api/auth/logout') {
+  try {
+    if (typeof fetch !== 'function') return null;
+    return await fetch(logoutUrl, {
+      method: 'POST',
+      keepalive: true,
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Message de confirmation quand des actions non envoyées seraient perdues, sinon `null`.
  * @param {number} pending
+ * @param {{ clearSiteStorage?: boolean }} [opts] — mode borne (`cache_storage`)
  * @returns {string|null}
  */
-export function pendingLossConfirmationMessage(pending) {
+export function pendingLossConfirmationMessage(pending, opts = {}) {
   const n = Number(pending) || 0;
-  if (n <= 0) return null;
+  const clearSiteStorage = opts.clearSiteStorage === true;
+  if (n <= 0 && !clearSiteStorage) return null;
+  if (clearSiteStorage) {
+    const pendingPart =
+      n <= 0
+        ? ''
+        : n === 1
+          ? ' 1 action non envoyée serait perdue,'
+          : ` ${n} actions non envoyées seraient perdues,`;
+    return `Mode borne : la déconnexion efface aussi tout le stockage de ce site sur l’appareil (préférences, actions hors ligne de tous les comptes, mode hors ligne jusqu’au prochain chargement).${pendingPart} Se déconnecter quand même ?`;
+  }
   const lost =
     n === 1
       ? '1 action n’a pas encore été envoyée (pas de réseau). Si vous vous déconnectez maintenant, elle sera effacée'

@@ -75,6 +75,7 @@ const {
 const { PRODUCTS, PRODUCT_IDS } = require('../lib/products');
 const { exportLimiter } = require('../lib/rateLimit');
 const { buildForetUserExport, sendExportArchive } = require('../lib/accounts/personalDataExport');
+const { applyClearSiteData, normalizeLogoutClearSiteDataScope } = require('../lib/clearSiteData');
 
 /**
  * Préfixes de host déclarés au registre des produits (`gl.`, `planlyautey.`, `proflyautey.`,
@@ -1385,6 +1386,23 @@ router.get(
       },
     );
     return sendExportArchive(res, archive);
+  }),
+);
+
+/**
+ * Déconnexion côté serveur : pose `Clear-Site-Data` pour que le navigateur vide le cache
+ * (et éventuellement le stockage, mode borne). Publique, toujours `200` — ne révèle pas si
+ * quelqu'un était connecté. Le jeton JWT n'est pas révoqué ici (pas de liste noire) : la
+ * session locale est effacée par le client.
+ */
+router.post(
+  '/logout',
+  asyncHandler(async (_req, res) => {
+    const scope = normalizeLogoutClearSiteDataScope(
+      await getSettingValue('privacy.logout_clear_site_data_scope', 'cache'),
+    );
+    applyClearSiteData(res, scope);
+    res.json({ ok: true });
   }),
 );
 

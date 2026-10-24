@@ -33,6 +33,7 @@ const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/co
 const asyncHandler = require('../lib/asyncHandler');
 const { createWriteVersionCache } = require('../lib/shared/writeVersionCache');
 const { getSettingValue } = require('../lib/settings');
+const { applyClearSiteData, normalizeLogoutClearSiteDataScope } = require('../lib/clearSiteData');
 const {
   PLAN_SURFACE_SETTINGS,
   loadPlanSettings,
@@ -108,11 +109,17 @@ router.post(
 );
 
 /** Déconnexion : oublie le laissez-passer (toujours `200`, comme le plan public). */
-router.post('/logout', (req, res) => {
-  enovPlanAccessGate.clear(res);
-  res.set('Cache-Control', 'no-store');
-  res.json({ ok: true });
-});
+router.post(
+  '/logout',
+  asyncHandler(async (_req, res) => {
+    enovPlanAccessGate.clear(res);
+    const scope = normalizeLogoutClearSiteDataScope(
+      await getSettingValue('privacy.logout_clear_site_data_scope', 'cache'),
+    );
+    applyClearSiteData(res, scope);
+    res.json({ ok: true });
+  }),
+);
 
 /** Réglages publics seuls (coquille : titre, message d'accueil, mode d'accès, mise en avant). */
 router.get(

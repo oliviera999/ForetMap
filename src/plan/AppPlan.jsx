@@ -39,6 +39,7 @@ import {
   submitPlanLogout,
   submitPlaceSuggestion,
 } from './planApi.js';
+import { purgeCachedPlanApi } from '../utils/localDataCleanup.js';
 import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
 import { fingerprintCategoryDefaults } from './utils/planCategoryDefaults.js';
 import { PlanAccountGate } from './components/PlanAccountGate.jsx';
@@ -1052,6 +1053,9 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * rechargement, il reposerait le laissez-passer et la déconnexion n'aurait rien déconnecté.
    */
   const logout = useCallback(async () => {
+    // Charge hors ligne du plan/e-nov : ne doit pas survivre au rendu du laissez-passer.
+    // Staff : aucune API en cache (`PWA_PROFILES.staff`) — purge idempotente.
+    void purgeCachedPlanApi();
     await submitPlanLogout(variant);
     variant.clearToken?.();
     forgetLinkCode();

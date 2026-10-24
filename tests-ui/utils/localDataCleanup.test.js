@@ -1,119 +1,98 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
-  clearLocalDataForAccount,
-  countPendingLocalActions,
   pendingLossConfirmationMessage,
+  purgeCachedAuthenticatedApi,
+  purgeCachedPlanApi,
   purgeCachedUserMedia,
+  SW_ACCOUNT_PARTITION_PARAM,
 } from '../../src/utils/localDataCleanup.js';
-import {
-  TASK_DONE_QUEUE_STORAGE_KEY,
-  enqueueTaskDone,
-  loadTaskDoneQueue,
-  newTaskDoneClientUuid,
-} from '../../src/utils/taskDoneQueue.js';
-import { JOURNAL_DRAFT_QUEUE_STORAGE_KEY } from '../../src/utils/journalDraftQueue.js';
-import { VISIT_SEEN_QUEUE_STORAGE_KEY } from '../../src/utils/visitProgressClient.js';
-import { PEDAGO_SESSION_STORAGE_KEY } from '../../src/utils/pedagoSessionScope.js';
 
-const done = (userId) => ({
-  user_id: userId,
-  task_id: `task-${userId}`,
-  task_title: 'Arroser la mare',
-  client_uuid: newTaskDoneClientUuid(),
-  comment: 'Fait avec Léa',
-  student_id: userId,
-  first_name: 'Nour',
-  last_name: 'B.',
+function stubCaches(entriesByCache) {
+  const cachesMap = new Map();
+  for (const [name, urls] of Object.entries(entriesByCache)) {
+    const store = new Map(urls.map((url) => [url, { url }]));
+    cachesMap.set(name, {
+      keys: async () => [...store.values()],
+      delete: async (req) => store.delete(req.url),
+      _store: store,
+    });
+  }
+  vi.stubGlobal('caches', {
+    keys: async () => [...cachesMap.keys()],
+    open: async (name) => cachesMap.get(name),
+  });
+  return cachesMap;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-beforeEach(() => {
-  localStorage.clear();
-  sessionStorage.clear();
+describe('purgeCachedAuthenticatedApi', () => {
+  test('retire __fm_sw_user et laisse bundles / uploads / publics', async () => {
+    const cachesMap = stubCaches({
+      runtime: [
+        'https://foret.example/api/tasks?__fm_sw_user=abc123',
+        'https://foret.example/api/visit/content?__fm_sw_user=abc123',
+        'https://foret.example/api/visit/content',
+        'https://foret.example/assets/main.js',
+        'https://foret.example/uploads/photo.jpg',
+      ],
+    });
+    expect(await purgeCachedAuthenticatedApi()).toBe(2);
+    const left = [...cachesMap.get('runtime')._store.keys()];
+    expect(left).toEqual([
+      'https://foret.example/api/visit/content',
+      'https://foret.example/assets/main.js',
+      'https://foret.example/uploads/photo.jpg',
+    ]);
+    expect(SW_ACCOUNT_PARTITION_PARAM).toBe('__fm_sw_user');
+  });
+
+  test('sans Cache Storage : aucune erreur', async () => {
+    vi.stubGlobal('caches', undefined);
+    expect(await purgeCachedAuthenticatedApi()).toBe(0);
+  });
 });
 
-describe('nettoyage local à la déconnexion (audit RGPD S-8)', () => {
-  test('compte les actions en attente du compte, pas celles des autres', () => {
-    enqueueTaskDone(done('u1'));
-    enqueueTaskDone(done('u2'));
-    localStorage.setItem(
-      JOURNAL_DRAFT_QUEUE_STORAGE_KEY,
-      JSON.stringify([{ user_id: 'u1', client_uuid: 'draft-0001', title: 'Brouillon' }]),
-    );
-    localStorage.setItem(
-      VISIT_SEEN_QUEUE_STORAGE_KEY,
-      JSON.stringify([{ target_type: 'zone', target_id: 'z1', seen: true, updated_at: 1 }]),
-    );
-    expect(countPendingLocalActions('u1')).toBe(3);
-    expect(countPendingLocalActions('u2')).toBe(2);
-    expect(countPendingLocalActions('')).toBe(1);
-  });
-
-  test('efface les données du compte et laisse celles des autres comptes', () => {
-    enqueueTaskDone(done('u1'));
-    enqueueTaskDone(done('u2'));
-    localStorage.setItem(
-      JOURNAL_DRAFT_QUEUE_STORAGE_KEY,
-      JSON.stringify([{ user_id: 'u1', client_uuid: 'draft-0001', title: 'Brouillon' }]),
-    );
-    localStorage.setItem(VISIT_SEEN_QUEUE_STORAGE_KEY, JSON.stringify([{ target_type: 'zone' }]));
-    sessionStorage.setItem(PEDAGO_SESSION_STORAGE_KEY, JSON.stringify({ id: 's1' }));
-    localStorage.setItem('foretmap_active_tab', 'map');
-
-    clearLocalDataForAccount('u1');
-
-    expect(loadTaskDoneQueue().map((q) => q.user_id)).toEqual(['u2']);
-    expect(localStorage.getItem(JOURNAL_DRAFT_QUEUE_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem(VISIT_SEEN_QUEUE_STORAGE_KEY)).toBeNull();
-    expect(sessionStorage.getItem(PEDAGO_SESSION_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem('foretmap_active_tab')).toBe('map');
-    expect(countPendingLocalActions('u1')).toBe(0);
-  });
-
-  test('une file vidée disparaît du stockage', () => {
-    enqueueTaskDone(done('u1'));
-    clearLocalDataForAccount('u1');
-    expect(localStorage.getItem(TASK_DONE_QUEUE_STORAGE_KEY)).toBeNull();
-  });
-
-  test('message de confirmation seulement s’il reste des actions', () => {
-    expect(pendingLossConfirmationMessage(0)).toBeNull();
-    expect(pendingLossConfirmationMessage(1)).toMatch(/^1 action .* elle sera effacée/);
-    expect(pendingLossConfirmationMessage(3)).toMatch(/^3 actions .* elles seront effacées/);
+describe('purgeCachedPlanApi', () => {
+  test('retire content/settings plan et enov', async () => {
+    const cachesMap = stubCaches({
+      plan: [
+        'https://plan.example/api/plan/content',
+        'https://plan.example/api/plan/settings',
+        'https://enov.example/api/enov/content',
+        'https://enov.example/api/enov/settings',
+        'https://plan.example/assets/plan.js',
+      ],
+    });
+    expect(await purgeCachedPlanApi()).toBe(4);
+    expect([...cachesMap.get('plan')._store.keys()]).toEqual([
+      'https://plan.example/assets/plan.js',
+    ]);
   });
 });
 
 describe('purgeCachedUserMedia', () => {
-  let originalCaches;
-  beforeEach(() => {
-    originalCaches = globalThis.caches;
+  test('retire /uploads/ seulement', async () => {
+    const cachesMap = stubCaches({
+      media: ['https://foret.example/uploads/a.jpg', 'https://foret.example/assets/main.js'],
+    });
+    expect(await purgeCachedUserMedia()).toBe(1);
+    expect([...cachesMap.get('media')._store.keys()]).toEqual([
+      'https://foret.example/assets/main.js',
+    ]);
   });
-  afterEach(() => {
-    globalThis.caches = originalCaches;
-  });
+});
 
-  test('retire les photos déposées (/uploads/) et garde bundles et icônes', async () => {
-    const entries = [
-      new Request('https://app.example/uploads/avatars/u1.jpg'),
-      new Request('https://app.example/uploads/tasks/r.webp'),
-      new Request('https://app.example/assets/index-abc.js'),
-      new Request('https://app.example/icon.svg'),
-    ];
-    const deleted = [];
-    const cache = {
-      keys: vi.fn(async () => entries),
-      delete: vi.fn(async (req) => {
-        deleted.push(new URL(req.url).pathname);
-        return true;
-      }),
-    };
-    globalThis.caches = { keys: async () => ['foretmap-v1'], open: async () => cache };
-
-    expect(await purgeCachedUserMedia()).toBe(2);
-    expect(deleted).toEqual(['/uploads/avatars/u1.jpg', '/uploads/tasks/r.webp']);
+describe('pendingLossConfirmationMessage', () => {
+  test('mode borne même sans action en attente', () => {
+    const msg = pendingLossConfirmationMessage(0, { clearSiteStorage: true });
+    expect(msg).toMatch(/Mode borne/);
+    expect(msg).toMatch(/Se déconnecter/);
   });
 
-  test('ne rejette jamais sans Cache Storage', async () => {
-    globalThis.caches = undefined;
-    expect(await purgeCachedUserMedia()).toBe(0);
+  test('sans pending et hors borne : null', () => {
+    expect(pendingLossConfirmationMessage(0)).toBeNull();
   });
 });
