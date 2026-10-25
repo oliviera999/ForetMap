@@ -168,3 +168,21 @@ export const RESOURCE_LINK_ORIGIN_ENUM = defineEnum('RESOURCE_LINK_ORIGIN_ENUM',
   },
   columns: ['resource_question_links.origin'],
 });
+
+/** Propriétaire d'un plateau de fresque (migration 321) : un compte ou une équipe (groupe `team`). */
+export const FRESQUE_OWNER_TYPE_ENUM = defineEnum('FRESQUE_OWNER_TYPE_ENUM', {
+  values: ['user', 'team'],
+  labels: { user: 'Élève', team: 'Équipe' },
+  columns: ['fresque_boards.owner_type'],
+});
+
+/**
+ * Statut d'un plateau de fresque : `completed` dès que toutes les cartes sont posées et la
+ * correction consultée ; `archived` après « Recommencer » (le plateau achevé reste lisible,
+ * puis est purgé par la rétention des historiques).
+ */
+export const FRESQUE_BOARD_STATUS_ENUM = defineEnum('FRESQUE_BOARD_STATUS_ENUM', {
+  values: ['in_progress', 'completed', 'archived'],
+  labels: { in_progress: 'En cours', completed: 'Terminé', archived: 'Archivé' },
+  columns: ['fresque_boards.status'],
+});

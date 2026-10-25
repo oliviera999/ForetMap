@@ -1707,7 +1707,7 @@
     .task-chip.plant-iucn-status--nt {
       background:#fff8e1;
       color:#b45309;
-      border:1px solid #fde68a;
+      border:1px solid var(--tint-note-yellow);
     }
     .task-chip.plant-iucn-status--vu {
       background:#ffedd5;
@@ -1750,7 +1750,7 @@
     .task-assignee-inline {
       background:#eefbf2;
       color:var(--ink-success);
-      border:1px solid #bbf7d0;
+      border:1px solid var(--tint-note-green);
       border-radius:999px;
       padding:2px 8px;
       line-height:var(--lh-normal);
@@ -3352,7 +3352,7 @@
       background:var(--tint-warning); padding:9px 11px; margin:8px 0;
     }
     .plant-hazard--toxique { border-color:#ea580c; background:#fff5ed; }
-    .plant-hazard--mortel { border-color:#b91c1c; background:#fef2f2; }
+    .plant-hazard--mortel { border-color:var(--accent-danger-deep); background:#fef2f2; }
     /* Risque sanitaire : bleu médical, pour qu'un avertissement « porteur de la rage » ne se
        confonde pas avec la gamme ambre → rouge de la toxicité propre à l'espèce. */
     .plant-hazard--sante { border-color:var(--accent-health-solid); background:var(--tint-health); }
@@ -4253,7 +4253,7 @@
     .task-done-refused {
       margin-bottom:16px;
       padding:12px 14px;
-      border:1.5px solid #fed7aa;
+      border:1.5px solid var(--tint-note-orange);
       border-radius:12px;
       background:var(--tint-danger);
       font-size:var(--text-sm);
@@ -4276,7 +4276,7 @@
 
     /* ── URGENCY SECTION ── */
     .urgency-banner {
-      background:linear-gradient(135deg,#fff7ed,var(--tint-danger)); border:1.5px solid #fed7aa;
+      background:linear-gradient(135deg,#fff7ed,var(--tint-danger)); border:1.5px solid var(--tint-note-orange);
       border-radius:12px; padding:14px; margin-bottom:16px;
       animation:fadeIn .3s var(--ease-out);
     }
@@ -4846,7 +4846,7 @@
     }
     .plant-discovery-observed-counts__mine {
       font-weight:var(--fw-semibold);
-      color:#334155;
+      color:var(--accent-slate);
     }
     .plant-discovery-observed-counts__site {
       font-weight:var(--fw-medium);
@@ -6971,7 +6971,7 @@
     }
     .visit-mascot-onboarding__eyebrow {
       margin:0 0 4px;
-      color:#15803d;
+      color:var(--accent-success-deep);
       font-weight:var(--fw-bold);
       text-transform:uppercase;
       letter-spacing:.03em;
@@ -7858,7 +7858,7 @@
 .fm-narrator-framing__label {
   font-size: var(--text-sm);
   font-weight: var(--fw-bold);
-  color: #334155;
+  color: var(--accent-slate);
 }
 .fm-narrator-framing__hint {
   font-size: var(--text-xs);
@@ -8433,7 +8433,7 @@
   padding: 4px 5px 0;
   font-size: var(--text-2xs);
   line-height: var(--lh-tight);
-  color: #334155;
+  color: var(--accent-slate);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8475,7 +8475,7 @@
 }
 
 .media-library-menu__usage--used {
-  color: #15803d;
+  color: var(--accent-success-deep);
 }
 
 .media-library-menu__usage-badge {
@@ -8537,7 +8537,7 @@
 }
 
 .media-library-menu__gallery-remove:hover {
-  background: #b91c1c;
+  background: var(--accent-danger-deep);
 }
 
 .media-library-menu__panel--gallery {
@@ -8719,7 +8719,7 @@
 }
 .profiles-user-chip--group {
   background: var(--tint-warning);
-  border-color: #fde68a;
+  border-color: var(--tint-note-yellow);
   color: #854d0e;
 }
 .profiles-user-chip--inactive {
@@ -9961,7 +9961,7 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-.pedago-qcm-feedback--ok .pedago-qcm-feedback__text { color: #15803d; }
+.pedago-qcm-feedback--ok .pedago-qcm-feedback__text { color: var(--accent-success-deep); }
 .pedago-qcm-feedback--ko .pedago-qcm-feedback__text { color: var(--ink-danger); }
 .pedago-range-gauge { margin: 8px 0; }
 .pedago-range-gauge__label {
@@ -9975,7 +9975,7 @@
   position: relative;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #fde68a 0%, #86efac 40%, #7dd3fc 100%);
+  background: linear-gradient(90deg, var(--tint-note-yellow) 0%, #86efac 40%, #7dd3fc 100%);
   overflow: hidden;
 }
 .pedago-range-gauge__fill {
@@ -10188,7 +10188,7 @@
   stroke-width: 1.5;
 }
 .pedago-foodweb-graph__node.highlight {
-  fill: #bbf7d0;
+  fill: var(--tint-note-green);
   stroke-width: 2.5;
 }
 .pedago-foodweb-graph__label {
@@ -10249,7 +10249,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   background: #fff7ed;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--tint-note-orange);
   color: #7c2d12;
   font-size: var(--text-sm);
 }

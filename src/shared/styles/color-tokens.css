@@ -110,4 +110,40 @@
   --glow-sparkle: 0 0 6px rgba(255, 215, 106, 0.9), 0 0 12px rgba(255, 180, 60, 0.6);
   /* Ombre des pastilles numérotées des parcours sur la carte (`pct-map-layers.css`). */
   --shadow-map-badge: 0 1px 4px rgba(0, 0, 0, 0.35);
+
+  /* ── Fresque (jeu de cartes cause → effet, `src/shared/styles/fresque.css`) ───────────
+     Une table en parchemin, des encres sépia, des flèches classées par catégorie et six
+     post-it. Les valeurs sont posées ici, et non dans la feuille du module, pour que le
+     cliquet des littéraux ne grandisse pas et qu'un second jeu (ou G&L) reprenne les mêmes
+     rôles. Les catégories qui avaient déjà un token exact (`--accent-health-solid` pour le
+     raccourci, `--accent-warning-solid` pour la sélection) le réemploient directement. */
+  --surface-parchment: #f4efe4;
+  --surface-parchment-deep: #efe6d2;
+  --ink-sepia: #2a2620;
+  --ink-sepia-soft: #6b6358;
+  --accent-slate: #334155;
+  --accent-success-deep: #15803d;
+  --accent-violet: #7c3aed;
+  --ink-violet-deep: #4c1d95;
+  --accent-danger-deep: #b91c1c;
+  --accent-warning-deep: #d97706;
+  --line-strong: #9ca3af;
+  --tint-note-yellow: #fde68a;
+  --tint-note-green: #bbf7d0;
+  --tint-note-blue: #bfdbfe;
+  --tint-note-pink: #fbcfe8;
+  --tint-note-orange: #fed7aa;
+  --tint-note-violet: #e9d5ff;
+  /* Filets sur parchemin, teintes des cinq bandes guidées et ombres des cartes / panneaux
+     de la fresque : des translucides, posés ici comme `--shadow-map-badge`. */
+  --line-parchment: rgba(90, 70, 40, 0.14);
+  --line-parchment-strong: rgba(90, 70, 40, 0.25);
+  --tint-band-amber: rgba(251, 191, 36, 0.14);
+  --tint-band-rose: rgba(248, 113, 113, 0.12);
+  --tint-band-sky: rgba(96, 165, 250, 0.12);
+  --tint-band-mint: rgba(52, 211, 153, 0.12);
+  --tint-band-lilac: rgba(167, 139, 250, 0.12);
+  --shadow-card-flat: 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-card-lifted: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --shadow-panel-floating: 0 8px 24px rgba(0, 0, 0, 0.22);
 }

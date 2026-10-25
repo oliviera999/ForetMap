@@ -72,7 +72,7 @@
 @keyframes fmPctDiscoverHalo {
   0%,
   40% {
-    stroke: #d97706;
+    stroke: var(--accent-warning-deep);
     stroke-opacity: 1;
     stroke-width: calc(3px * var(--pct-inv, 1));
     filter: drop-shadow(0 0 5px rgba(217, 119, 6, 0.55));

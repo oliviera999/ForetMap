@@ -80,7 +80,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   en plein lot 2 ; parcours complet en Éclaireur) et `e2e/fresque-team.spec.js` (deux sessions sur
   un plateau d'équipe), doc fonctionnelle `docs/reference/foretmap/fresque-du-climat.md` (+ lien
   depuis le guide du prof, sommaire, durées de conservation), `docs/FRESQUE_ARCHITECTURE.md`
-  (modèle, cœur, composants, API, plan de portage Gnomes & Licornes non codé).
+  (modèle, cœur, composants, API, plan de portage Gnomes & Licornes non codé). Gardes-fous
+  du dépôt : palette de la fresque posée en tokens dans `color-tokens.css` (parchemin, sépia,
+  catégories de flèches, post-it, bandes, ombres) et les mêmes valeurs déjà écrites en dur
+  ailleurs (`index.css`, feuilles GL, trame alimentaire) passent au token — plafond du cliquet
+  abaissé de 662 à 629 ; `fresque_boards.owner_type` / `.status` déclarés dans
+  `src/shared/enums/pedagoEnums.js`.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
