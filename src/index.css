@@ -4495,7 +4495,7 @@
     }
     .tuto-preview-facade__notice {
       margin: 0;
-      font-size: 0.9rem;
+      font-size: var(--text-base);
     }
     .tuto-preview-frame {
       flex:1 1 auto;

@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — suite backend : attentes périmées après les lots RGPD A et B
+
+- `tests/fixtures/settings-registry-characterization.golden.json` régénéré (procédure du
+  test) : il ignorait `privacy.logout_clear_site_data_scope` (lot A), les trois réglages
+  `privacy.remote_media_*` (lot B) et `ui.modules.fresque_enabled`.
+- `tests/plants-security.test.js` et `tests/no-third-party-avatar-guard.test.js` : depuis la
+  CSP par produit (lot B, `privacy.external_assets_mode` = `local` par défaut), `img-src` ne
+  porte plus `https:` pour ForetMap et la table des politiques a trois niveaux
+  (produit → mode → variante) ; les attentes suivent.
+- `src/index.css` : dernier `font-size` littéral (`.tuto-preview-facade__notice`) passé au
+  token `--text-base` (garde `typography-tokens-guard`).
+
 ### Ajouté — Fresque du Climat (version Enfant) : activité « cartes + flèches » en autonomie
 
 - **Lot 1 — contenu.** Jeu `public/fresques/climat-junior-fr-v7-5/` (92 images WebP livrées

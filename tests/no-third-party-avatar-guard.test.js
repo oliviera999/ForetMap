@@ -63,12 +63,19 @@ test('aucun fichier livré ou exécuté ne charge d’avatar chez DiceBear (hors
 });
 
 test('aucune variante de la CSP ne nomme le service d’avatars tiers', () => {
+  // Table produit → mode → variante depuis le lot B RGPD (CSP par produit).
   const table = buildPolicyTable();
-  for (const [mode, variants] of Object.entries(table)) {
-    for (const [variant, policy] of Object.entries(variants)) {
-      assert.doesNotMatch(policy, THIRD_PARTY_AVATAR_RE, `${mode}/${variant}`);
+  let checked = 0;
+  for (const [productId, modes] of Object.entries(table)) {
+    for (const [mode, variants] of Object.entries(modes)) {
+      for (const [variant, policy] of Object.entries(variants)) {
+        assert.equal(typeof policy, 'string', `${productId}/${mode}/${variant}`);
+        assert.doesNotMatch(policy, THIRD_PARTY_AVATAR_RE, `${productId}/${mode}/${variant}`);
+        checked += 1;
+      }
     }
   }
+  assert.ok(checked >= 6, 'table de politiques vide');
 });
 
 test('le front ForetMap ne construit plus d’URL d’avatar à partir d’un nom', () => {
