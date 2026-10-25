@@ -366,6 +366,10 @@ registerPwaRoutes(app, {
   logger,
 });
 const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
+// Jeux de cartes « fresque » (`public/fresques/<deckId>/`, lot 1) : lus et validés une fois au
+// démarrage ; un identifiant hors registre est refusé par `/api/fresques` sans toucher au disque.
+const { loadFresqueDecks } = require('./lib/fresqueDecks');
+logger.info({ decks: [...loadFresqueDecks().keys()] }, 'Jeux de fresque chargés');
 const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
 // L'entrée HTML d'un produit demandée sur le host d'un autre (ex. /index.vite.html sur gl.*,
 // /gl.html sur planlyautey.*) est redirigée vers la racine : chaque host ne sert que son entrée.

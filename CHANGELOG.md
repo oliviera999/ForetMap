@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Fresque du Climat (version Enfant) : activité « cartes + flèches » en autonomie
+
+- **Lot 1 — contenu.** Jeu `public/fresques/climat-junior-fr-v7-5/` (92 images WebP livrées
+  telles quelles, `deck.json`, `correction.json`, `hints.json`, `LICENCE-NOTICE.md`), script
+  d'extraction reproductible `scripts/fresques/extraire_cartes.py`, registre serveur
+  `lib/fresqueDecks.js` (validation zod + cohérence inter-fichiers, chargé au démarrage, aucun
+  chemin construit depuis une saisie), test de contenu `tests/content/fresque-climat-junior.test.js`
+  (lots 5/6/10, 30 flèches, degrés recalculés, pièges, indices, **empreinte SHA-256 de chaque
+  image** — garde-fou CC BY-NC-ND « sans modification »), cache long borné pour `dist/fresques/`.
+  Crédit : La Fresque du Climat — Cédric Ringenbach — fresqueduclimat.org — CC BY-NC-ND.
+
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
 - Nouvelle route publique `POST /api/auth/logout` : `Clear-Site-Data` (`"cache"` ou
