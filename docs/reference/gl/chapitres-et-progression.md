@@ -187,7 +187,9 @@ réinitialiser (voir [presentation.md](presentation.md)).
   le pool du chapitre** — étudier la biodiversité rapporte donc autant dans le premier
   chapitre que dans le dernier. Une découverte peut **coûter des gemmes** et **rapporter des
   cœurs** (réglable) — une seule fois par équipe par défaut, même si deux
-  camarades tapent en même temps. Le texte peut être partiellement « mangé par le Souffle »
+  camarades tapent en même temps. Un passage qui arrive trop tôt (la mascotte n'est pas
+  encore enregistrée dans la zone, par exemple au milieu d'un jet de dés) ne compte pas :
+  le feuillet se propose à nouveau dès que l'équipe y entre pour de vrai. Le texte peut être partiellement « mangé par le Souffle »
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu » — cela ne restaure pas le texte déjà mangé : l'effacement
   reste celui de la découverte. Le MJ, lui, voit tous les feuillets en texte intégral.

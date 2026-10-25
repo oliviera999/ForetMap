@@ -172,6 +172,43 @@ describe('useGLFeuilletZoneArrival', () => {
     expect(onZonePresented).toHaveBeenCalledWith('z1');
   });
 
+  test('un refus « pas dans la zone » ne consomme pas la découverte', async () => {
+    const notHere = new Error('Votre mascotte n’est pas dans cette zone');
+    notHere.status = 409;
+    vi.mocked(apiGL)
+      .mockRejectedValueOnce(notHere)
+      .mockResolvedValue({
+        zone: { titre: 'Bosquet', popover: 'Texte du bosquet' },
+        vitality: null,
+      });
+    const onZonePresented = vi.fn();
+    const { result } = setup({ onZonePresented });
+
+    act(() => {
+      result.current.handlePositionChange(OUTSIDE);
+      result.current.handlePositionChange(INSIDE);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MOVE_MS);
+    });
+
+    expect(apiGL).toHaveBeenCalledTimes(1);
+    expect(onZonePresented).not.toHaveBeenCalled();
+    expect(result.current.popover).toBeNull();
+
+    act(() => {
+      result.current.handlePositionChange(OUTSIDE);
+      result.current.handlePositionChange(INSIDE);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MOVE_MS);
+    });
+
+    expect(apiGL).toHaveBeenCalledTimes(2);
+    expect(onZonePresented).toHaveBeenCalledWith('z1');
+    expect(result.current.popover).toMatchObject({ loading: false, titre: 'Bosquet' });
+  });
+
   test('propage le feuillet au carnet de lore quand loreCarnetEnabled', async () => {
     vi.mocked(apiGL).mockResolvedValue({ zone: {}, vitality: null });
 
