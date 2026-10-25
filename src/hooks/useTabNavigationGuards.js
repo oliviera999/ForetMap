@@ -39,6 +39,7 @@ import { resolvePedagoModuleAccess } from '../utils/appAccess.js';
  * @param {boolean} [params.canManageIdKeys] - `id_keys.manage`.
  * @param {boolean} [params.canManageIndividuals] - `individuals.manage`.
  * @param {boolean} [params.canManagePedagoSessions] - `plants.manage` (gestion des séances).
+ * @param {boolean} [params.canManageFresque] - `plants.manage` (fresques).
  */
 export function useTabNavigationGuards({
   tab,
@@ -55,6 +56,7 @@ export function useTabNavigationGuards({
   canManageIdKeys = false,
   canManageIndividuals = false,
   canManagePedagoSessions = false,
+  canManageFresque = false,
 }) {
   const tutorialsEnabled = modules?.tutorials_enabled;
   const statsEnabled = modules?.stats_enabled;
@@ -66,7 +68,9 @@ export function useTabNavigationGuards({
     canManageIdKeys,
     canManageIndividuals,
     canManagePedagoSessions,
+    canManageFresque,
   });
+  const fresqueAvailable = pedagoAccess.fresque.available;
   const idKeysAvailable = pedagoAccess.idKeys.available;
   const individualsAvailable = pedagoAccess.individuals.available;
   const pedagoSessionsAvailable = pedagoAccess.pedagoSessions.available;
@@ -108,6 +112,7 @@ export function useTabNavigationGuards({
     if (tab === 'id-keys' && !idKeysAvailable) setTab(visitFallback);
     if (tab === 'individuals' && !individualsAvailable) setTab(visitFallback);
     if (tab === 'sessions' && !pedagoSessionsAvailable) setTab(visitFallback);
+    if (tab === 'fresque' && !fresqueAvailable) setTab(visitFallback);
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
   }, [
@@ -120,6 +125,7 @@ export function useTabNavigationGuards({
     idKeysAvailable,
     individualsAvailable,
     pedagoSessionsAvailable,
+    fresqueAvailable,
     canAccessForum,
     canViewGeneralStats,
     canAccessProfiles,

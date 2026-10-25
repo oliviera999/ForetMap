@@ -6,5 +6,7 @@ export { NestedGroupsView } from './pedago/NestedGroupsView.jsx';
 export { IdKeysView } from './pedago/IdKeysView.jsx';
 export { IndividualsView } from './pedago/IndividualsView.jsx';
 export { SessionsView } from './pedago/SessionsView.jsx';
+export { FresqueView } from './pedago/FresqueView.jsx';
+export { FresqueTeacherPanel } from './pedago/FresqueTeacherPanel.jsx';
 export { PedagoSessionBanner } from './pedago/PedagoSessionBanner.jsx';
 export { PlantRangeGauge } from './pedago/PlantRangeGauge.jsx';

@@ -5,6 +5,7 @@ import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildDeckModel } from '../../shared/fresque/fresqueCore.js';
 import { FresqueBoard } from '../../shared/fresque/FresqueBoard.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
+import { FresqueTeacherPanel } from './FresqueTeacherPanel.jsx';
 
 /**
  * Onglet « Fresque » de ForetMap : choix du jeu (un seul aujourd'hui : La Fresque du Climat,
@@ -17,8 +18,8 @@ export function FresqueView({
   canFollow = false,
   moduleOffForLearners = false,
   initialDeckId = null,
+  entryNonce = null,
   subscribeBoard = null,
-  teacherPanel = null,
 }) {
   const [decks, setDecks] = useState(null);
   const [deckId, setDeckId] = useState(initialDeckId);
@@ -30,6 +31,13 @@ export function FresqueView({
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState(canFollow ? 'follow' : 'play');
   const [rewardBanner, setRewardBanner] = useState(null);
+  // Une séance (`open_fresque`) peut demander un jeu précis : on s'y rend à chaque demande.
+  useEffect(() => {
+    if (initialDeckId) {
+      setDeckId(initialDeckId);
+      setMode('play');
+    }
+  }, [initialDeckId, entryNonce]);
   const publicSettings = usePublicSettings();
   // « Ajouter à mon carnet » : réutilise la création d'article + l'envoi d'image du carnet
   // (`POST /api/user-journal/me/articles`, puis `/assets`), si le module carnet est allumé.
@@ -146,7 +154,7 @@ export function FresqueView({
   return (
     <div className="fm-fresque-view" data-testid="fm-fresque-view">
       {moduleOffForLearners ? <ModuleLearnerOffBanner moduleLabel="Fresques" /> : null}
-      {canFollow && teacherPanel ? (
+      {canFollow ? (
         <div
           className="fm-fresque-hand__actions"
           style={{ marginBottom: 8 }}
@@ -175,7 +183,14 @@ export function FresqueView({
           </button>
         </div>
       ) : null}
-      {mode === 'follow' && teacherPanel ? teacherPanel : null}
+      {mode === 'follow' && canFollow ? (
+        <FresqueTeacherPanel
+          deckId={deckId}
+          model={detail?.model || null}
+          publicBase={detail?.publicBase || ''}
+          levels={detail?.model?.hints?.levels || null}
+        />
+      ) : null}
       {mode === 'play' ? (
         <>
           {decks.length > 1 && !board ? (

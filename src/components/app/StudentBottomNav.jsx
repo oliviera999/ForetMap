@@ -24,6 +24,7 @@ import {
   IconBiodiv,
   IconFoodweb,
   IconForum,
+  IconGlobe,
   IconGlossary,
   IconMap,
   IconNotebook,
@@ -95,6 +96,7 @@ export function buildStudentNavItems({
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,
+  fresqueEnabled = true,
 }) {
   const assignedSuffix =
     studentActiveAssignedTasksCount > 0 ? ` (${studentActiveAssignedTasksCount})` : '';
@@ -130,6 +132,9 @@ export function buildStudentNavItems({
   }
   if (pedagoSessionsEnabled) {
     items.push({ id: 'sessions', label: 'Séances', icon: <IconSessions size={20} /> });
+  }
+  if (fresqueEnabled) {
+    items.push({ id: 'fresque', label: 'Fresque', icon: <IconGlobe size={20} /> });
   }
   // Deux conditions cumulées : le niveau pédagogique (masqué au collège) ET l'interrupteur.
   if (showIndividuals && individualsEnabled) {
@@ -182,6 +187,7 @@ export function StudentBottomNav({
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,
+  fresqueEnabled = true,
   /** Point rouge sur l'onglet Forum : message d'autrui non lu. */
   hasForumUnread = false,
   /**
@@ -220,6 +226,7 @@ export function StudentBottomNav({
         idKeysEnabled,
         pedagoSessionsEnabled,
         individualsEnabled,
+        fresqueEnabled,
       }),
     [
       canAccessStudentMapTasks,
@@ -239,6 +246,7 @@ export function StudentBottomNav({
       idKeysEnabled,
       pedagoSessionsEnabled,
       individualsEnabled,
+      fresqueEnabled,
     ],
   );
 

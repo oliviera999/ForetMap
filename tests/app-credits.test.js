@@ -31,3 +31,13 @@ test('réglages absents → défauts ; chaîne vide → mention masquée ; espac
     { author: 'Ada', contributor: '', message: 'Bonjour' },
   );
 });
+
+test('crédits tiers : La Fresque du Climat (CC BY-NC-ND) figure dans « À propos »', async () => {
+  const { THIRD_PARTY_CREDITS } = await import(modUrl);
+  const fresque = THIRD_PARTY_CREDITS.find((c) => c.id === 'fresque-climat-junior');
+  assert.ok(fresque);
+  assert.match(fresque.title, /Fresque du Climat/);
+  assert.equal(fresque.author, 'Cédric Ringenbach');
+  assert.match(fresque.licenceName, /CC BY-NC-ND/);
+  assert.equal(fresque.licenceUrl, 'https://fresqueduclimat.org/licence/');
+});

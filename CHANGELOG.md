@@ -61,6 +61,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ouverte (dialogue de fin, badge annoncé), créativité (titre ≤ 60, palette de 6 couleurs,
   carte marquante), **export PNG avec bande de crédit obligatoire** (`fresqueExport.js`),
   « Ajouter à mon carnet » (article + image du carnet) et « Recommencer » (archive).
+- **Lot 6 — intégration ForetMap.** Onglet « Fresque » (élève : barre basse ; prof : pôle
+  Contenus, visible avec `plants.manage` ou `stats.read.group`), `KNOWN_TAB_VALUES`, gardes de
+  navigation et accès miroir (`resolvePedagoModuleAccess().fresque`), réglage
+  `ui.modules.fresque_enabled` dans la console (section Modules), action de séance
+  `open_fresque` (`deckId` facultatif ; lib, hook, éditeur d'étapes), panneau prof
+  `FresqueTeacherPanel` (filtre par groupe, une ligne par plateau, tri par nom, ouverture en
+  lecture seule), crédit de La Fresque du Climat dans « À propos » (`THIRD_PARTY_CREDITS`).
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

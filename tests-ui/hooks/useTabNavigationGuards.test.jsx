@@ -117,6 +117,19 @@ describe('useTabNavigationGuards', () => {
     for (const tab of ['id-keys', 'individuals', 'sessions']) {
       expect(run({ ...manager, tab })).not.toHaveBeenCalled();
     }
+    // Fresque : même convention (module éteint → repli ; gestionnaire → garde l'onglet).
+    expect(run({ tab: 'fresque', modules: { fresque_enabled: false } })).toHaveBeenCalledWith(
+      'map',
+    );
+    expect(
+      run({
+        tab: 'fresque',
+        effectiveIsTeacher: true,
+        modules: { fresque_enabled: false },
+        canManageFresque: true,
+      }),
+    ).not.toHaveBeenCalled();
+    expect(run({ tab: 'fresque', modules: { fresque_enabled: true } })).not.toHaveBeenCalled();
     // Un droit ne vaut que pour son module : gérer les clés ne garde pas les séances.
     expect(
       run({ tab: 'sessions', effectiveIsTeacher: true, modules: off, canManageIdKeys: true }),

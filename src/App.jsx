@@ -1132,10 +1132,12 @@ function App() {
     canManageIdKeys,
     canManageIndividuals,
     canManagePedagoSessions: canManageFoodWeb,
+    canManageFresque: canManageFoodWeb,
   });
   const idKeysAvailable = pedagoModuleAccess.idKeys.available;
   const individualsAvailable = pedagoModuleAccess.individuals.available;
   const pedagoSessionsAvailable = pedagoModuleAccess.pedagoSessions.available;
+  const fresqueAvailable = pedagoModuleAccess.fresque.available;
   const rewardsModuleEnabled = pedagoModuleAccess.rewards.enabled;
   // Code du terme affiché dans le popover de glossaire (fiche rapide, rendue hors des
   // onglets pour survivre à tout changement de vue — audit A1).
@@ -1207,6 +1209,7 @@ function App() {
       chooseMap,
       idKeysAvailable,
       individualsAvailable,
+      fresqueAvailable,
       setPedagoIdKeysInitialKey,
       setPedagoQuizQuestionCode,
       setPedagoQuizNotionId,
@@ -1251,6 +1254,18 @@ function App() {
       pedagoRunsVersion,
       rewardsModuleEnabled,
     ],
+  );
+
+  // Fresque du Climat (onglet « Fresque ») : suivi pour qui lit les stats de groupe ; l'action
+  // de séance `open_fresque` dépose le jeu demandé dans `pedagoEntry.fresque`.
+  const fresqueProps = useMemo(
+    () => ({
+      isTeacher: effectiveIsTeacher,
+      canFollow: hasPermission('stats.read.group') || hasPermission('stats.read.all'),
+      initialDeckId: pedagoEntry?.fresque?.deckId || null,
+      entryNonce: pedagoEntry?.fresque?.nonce || null,
+    }),
+    [effectiveIsTeacher, hasPermission, pedagoEntry?.fresque?.deckId, pedagoEntry?.fresque?.nonce],
   );
 
   // Clic sur un terme auto-lié dans l'iframe d'un tutoriel : le message n'est accepté que
@@ -1309,6 +1324,7 @@ function App() {
     canManageIdKeys,
     canManageIndividuals,
     canManagePedagoSessions: canManageFoodWeb,
+    canManageFresque: canManageFoodWeb,
   });
 
   useEffect(() => {
@@ -1936,6 +1952,7 @@ function App() {
                         idKeysEnabled={idKeysAvailable}
                         pedagoSessionsEnabled={pedagoSessionsAvailable}
                         individualsEnabled={individualsAvailable}
+                        fresqueEnabled={fresqueAvailable}
                         canAccessForum={canAccessForum}
                         hasForumUnread={hasForumUnread}
                         isN3Affiliated={isN3Affiliated}
@@ -2165,6 +2182,9 @@ function App() {
                             pedagoSessionsOffForLearners={
                               pedagoModuleAccess.pedagoSessions.learnerOff
                             }
+                            fresqueEnabled={fresqueAvailable}
+                            fresqueOffForLearners={pedagoModuleAccess.fresque.learnerOff}
+                            fresqueProps={fresqueProps}
                           />
                         </>
                       )}
@@ -2308,6 +2328,9 @@ function App() {
                               pedagoSessionsOffForLearners={
                                 pedagoModuleAccess.pedagoSessions.learnerOff
                               }
+                              fresqueEnabled={fresqueAvailable}
+                              fresqueOffForLearners={pedagoModuleAccess.fresque.learnerOff}
+                              fresqueProps={fresqueProps}
                             />
                           </>
                         )}
@@ -2331,6 +2354,7 @@ function App() {
                         idKeysEnabled={idKeysAvailable}
                         pedagoSessionsEnabled={pedagoSessionsAvailable}
                         individualsEnabled={individualsAvailable}
+                        fresqueEnabled={fresqueAvailable}
                         canAccessForum={canAccessForum}
                         hasForumUnread={hasForumUnread}
                       />

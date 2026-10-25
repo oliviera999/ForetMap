@@ -72,6 +72,18 @@ test('templates lycée C/D, séance libre et nouvelles actions', () => {
   const nested = d.find((s) => s.action.type === 'open_nested_groups');
   assert.deepEqual(nested.action.payload.plantIds, [1, 2, 3, 4, 5, 6]);
 
+  assert.equal(validateAction({ type: 'open_fresque' }).ok, true);
+  const fresque = resolveSteps(
+    [
+      {
+        id: 'f',
+        title: 'F',
+        action: { type: 'open_fresque', payload: { deckId: ' climat-junior-fr-v7-5 ' } },
+      },
+    ],
+    {},
+  );
+  assert.equal(fresque[0].action.payload.deckId, 'climat-junior-fr-v7-5');
   assert.equal(validateAction({ type: 'open_map_route' }).ok, true);
   const route = resolveSteps(
     [{ id: 'r', title: 'R', action: { type: 'open_map_route', payload: { routeSlug: 'tour' } } }],

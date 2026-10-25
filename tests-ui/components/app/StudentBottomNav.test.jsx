@@ -166,7 +166,11 @@ describe('StudentBottomNav', () => {
   test('chaque interrupteur ne masque que son onglet', () => {
     const ids = (overrides) =>
       buildStudentNavItems({ ...baseProps, ...overrides }).map((item) => item.id);
-    expect(ids({})).toEqual(expect.arrayContaining(['id-keys', 'sessions', 'individuals']));
+    expect(ids({})).toEqual(
+      expect.arrayContaining(['id-keys', 'sessions', 'individuals', 'fresque']),
+    );
+    expect(ids({ fresqueEnabled: false })).not.toContain('fresque');
+    expect(ids({ fresqueEnabled: false })).toContain('sessions');
     expect(ids({ idKeysEnabled: false })).not.toContain('id-keys');
     expect(ids({ idKeysEnabled: false })).toEqual(
       expect.arrayContaining(['sessions', 'individuals']),
