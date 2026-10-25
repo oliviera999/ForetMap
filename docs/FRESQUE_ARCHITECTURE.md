@@ -177,12 +177,13 @@ couleur, clavier complet, `prefers-reduced-motion` (fondu au lieu du `rotateY`),
 
 ## 8. Temps réel
 
-Après `PUT /boards/:id` : `emitFresqueBoardChanged(boardId, { revision, by, clientSeq })` dans le
+Après `PUT /boards/:id` : `emitFresqueBoardChanged(boardId, { revision, by, clientSeq, clientId })` dans le
 salon `fresque:board:<id>`. `subscribe:fresque-board` (`lib/realtime.js`) vérifie
 `canReadBoard` (chargé à la demande pour éviter le cycle d'imports), un seul salon par socket,
 refus `fresque:board:subscription-refused`. Côté client, `useForetmapRealtime` expose sa socket
-au registre ; `subscribeFresqueBoard` (ré)abonne à chaque connexion. Pas de présence, pas de
-curseur : la prod tourne en long-polling.
+au registre ; `subscribeFresqueBoard` (ré)abonne à chaque connexion. Le client ignore l'écho de
+son propre enregistrement (`clientId`) et juge un signal reçu pendant un envoi quand la réponse
+arrive. Pas de présence, pas de curseur : la prod tourne en long-polling.
 
 ## 9. Tests
 

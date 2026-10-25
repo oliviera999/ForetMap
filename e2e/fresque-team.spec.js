@@ -88,11 +88,11 @@ test('équipe : deux sessions sur le même plateau ne s’écrasent jamais', asy
   });
   expect(groupResp.ok()).toBeTruthy();
   const group = await groupResp.json();
-  const membersResp = await page.request.post(
+  const membersResp = await page.request.put(
     `/api/groups/${encodeURIComponent(group.id)}/members`,
     { headers, data: { member_user_ids: [a.id, b.id] } },
   );
-  expect(membersResp.ok()).toBeTruthy();
+  expect(membersResp.ok(), await membersResp.text()).toBeTruthy();
 
   // Session Alice.
   await openTeamBoard(page, teamName);
