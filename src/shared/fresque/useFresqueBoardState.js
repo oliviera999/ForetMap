@@ -72,6 +72,11 @@ export function pickInitialState(board, storage) {
   return { state: server, fromMirror: false, server };
 }
 
+/** Deux états sont « égaux » pour l'enregistrement quand ils portent le même `clientSeq`. */
+function sameClientSeq(a, b) {
+  return (Number(a?.clientSeq) || 0) === (Number(b?.clientSeq) || 0);
+}
+
 function isConflictError(err) {
   return err?.status === 409 && err?.body?.code === 'edit_conflict';
 }
@@ -182,14 +187,19 @@ export function useFresqueBoardState({
     enabled: !readOnly && !conflict && Boolean(boardId),
     debounceMs: FRESQUE_SAVE_DEBOUNCE_MS,
     onSave: doSave,
-    isEqual: (a, b) => (Number(a?.clientSeq) || 0) === (Number(b?.clientSeq) || 0),
+    // Identité stable : une fonction recréée à chaque rendu relancerait l'effet « enregistrer au
+    // démontage » du hook à chaque rendu, d'où une rafale de PUT.
+    isEqual: sameClientSeq,
   });
   const { resetBaseline, flush, isDirty, status: saveStatus, error: saveError } = autosave;
 
   // Miroir plus récent que le serveur : la ligne de base reste l'état serveur, pour que le
   // miroir soit renvoyé.
   useEffect(() => {
-    if (initial.fromMirror && initial.server) resetBaseline(initial.server);
+    if (initial.fromMirror && initial.server) {
+      resetBaseline(initial.server);
+      void flush();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 

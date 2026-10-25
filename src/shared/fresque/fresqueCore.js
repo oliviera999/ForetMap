@@ -892,7 +892,9 @@ export function removeNote(state, noteId, { now } = {}) {
 
 export function setLevel(state, level, { now } = {}) {
   if (!FRESQUE_LEVELS.includes(level) || level === state.level) return state;
-  return touch({ ...state, level, showBands: level === 'eclaireur' ? true : state.showBands }, now);
+  // Les bandes suivent le niveau : toujours en Éclaireur, jamais en Expert, option en Explorateur
+  // (décochée au changement de niveau, l'élève la recoche s'il le souhaite).
+  return touch({ ...state, level, showBands: level === 'eclaireur' }, now);
 }
 
 export function setShowBands(state, showBands, { now } = {}) {

@@ -28,6 +28,7 @@
     @import './shared/styles/forum.css';
     @import './shared/styles/learning-gating.css';
     @import './shared/styles/pedago-sessions.css';
+    @import './shared/styles/fresque.css';
 
     @font-face {
       font-family: 'ForetMapColorEmoji';

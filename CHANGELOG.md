@@ -37,6 +37,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   signal `fresque:board:changed` + abonnement contrôlé `subscribe:fresque-board`, limiteur
   240 enregistrements/min, purge de rétention (journal 12 mois, plateaux archivés 12 mois),
   `docs/API.md`. Tests `tests/fresques-api.test.js`.
+- **Lot 4 — plateau élève.** Composants génériques `src/shared/fresque/` (classes
+  `fm-fresque-*`, couleurs en variables CSS, appel réseau injecté) : `FresqueBoard`
+  (étapes, niveau, enregistrement, dialogue de conflit, visionneuse), `FresqueTable` (scène
+  zoomable sur `usePctMapViewport` en mode `stage`, bandes guidées), `FresqueCard` (recto/verso
+  3D, fondu si mouvement réduit, glisser, appui long / double-toucher → plein écran, bouton
+  « relier » et puce Éclaireur **à côté** de la carte), `FresqueArrowLayer` (SVG bord à bord,
+  marqueur, halo, zone de toucher large, paires décalées, repères icône + couleur),
+  `FresqueHand` (glisser ou toucher-toucher, « Tout poser »), `FresqueStepper`,
+  `FresqueLevelMenu`, `FresqueCreditBar` (crédit permanent), `FresqueNotes` ;
+  `useFresqueBoardState` : miroir `localStorage` (`fm:fresque:<boardId>`) à chaque modification,
+  enregistrement différé 500 ms, `keepalive` sur `visibilitychange`/`pagehide`, reprise du miroir
+  plus récent, 409 → « Reprendre la version enregistrée » / « Garder celle-ci ». Vue produit
+  `src/components/pedago/FresqueView.jsx`. Tests Vitest `tests-ui/shared/fresque/`.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
