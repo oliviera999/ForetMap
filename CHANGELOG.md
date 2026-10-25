@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — texte riche : l'adresse d'origine des images est enregistrée, le relais ne sert qu'à l'affichage
+
+- Depuis le lot B RGPD, l'éditeur riche ForetMap enregistrait l'adresse du relais
+  (`/api/media/remote?url=…`) au lieu de celle de l'image : un contenu gardait l'adresse
+  relayée même en mode « external ». La conversion HTML → Markdown nettoie désormais sans relayer
+  (`sanitizeRichHtml(…, { relayImages: false })`) ; l'affichage relaie toujours selon le mode.
+- Les contenus déjà enregistrés avec l'adresse relayée sont rattrapés sans migration
+  (`unwrapRelayedImageUrl`) : à l'affichage, l'image d'origine est relayée ou non selon le mode ;
+  au prochain enregistrement, l'adresse d'origine est réécrite.
+- G&L inchangé : ses références internes (`scene:N`, clés legacy) gardées dans `data-gl-md-src`
+  ne sont ni lues ni effacées par le nettoyage.
+
 ### Corrigé — tests UI rouges sur `main` depuis les lots RGPD A/B
 
 - `usePrefersReducedMotion` : le correctif de #597 (relire `window.matchMedia` s'il est remplacé,

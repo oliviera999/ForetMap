@@ -54,7 +54,9 @@ export function createRichTextTurndownService() {
  * @returns {string} Markdown rogné
  */
 export function htmlToMarkdownWith(turndownService, html, { allowImages = false } = {}) {
-  const sanitized = sanitizeRichHtml(html, { allowImages });
+  // Le Markdown produit est ENREGISTRÉ : les images y gardent leur adresse d'origine ; le relais
+  // (`/api/media/remote`) ne s'applique qu'à l'affichage, selon le mode du moment.
+  const sanitized = sanitizeRichHtml(html, { allowImages, relayImages: false });
   const markdown = turndownService.turndown(sanitized);
   return String(markdown || '').trim();
 }

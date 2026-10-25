@@ -43,6 +43,29 @@ export function getExternalAssetsMode() {
   return currentMode;
 }
 
+/**
+ * Adresse d'origine d'une image passée par le relais (`…/api/media/remote?url=<https…>`) :
+ * l'URL `https:` encodée dans `url`. Toute autre valeur est rendue telle quelle.
+ *
+ * Un contenu enregistré doit garder l'adresse d'origine — le relais ne s'applique qu'à
+ * l'affichage, selon le mode du moment. Cette fonction rattrape les adresses relayées déjà
+ * écrites dans des contenus (éditeur riche entre le lot B RGPD et sa correction).
+ * @param {string} url
+ * @returns {string}
+ */
+export function unwrapRelayedImageUrl(url) {
+  const text = String(url || '').trim();
+  if (!text || !/\/api\/media\/remote\?/i.test(text)) return text;
+  try {
+    const parsed = new URL(text, 'https://relay.invalid');
+    if (!/\/api\/media\/remote$/i.test(parsed.pathname)) return text;
+    const original = parseHttpsUrl(parsed.searchParams.get('url') || '');
+    return original ? original.toString() : text;
+  } catch {
+    return text;
+  }
+}
+
 /** URL absolue (`http:` ou `https:`) de la même origine que la page. */
 function isSameOrigin(text) {
   if (!/^https?:\/\//i.test(text)) return false;
