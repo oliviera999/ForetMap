@@ -38,6 +38,9 @@ function makeApi({ onPut = null } = {}) {
       revision += 1;
       return { revision, completed: false, rewards: [], clientSeq: body.clientSeq };
     }
+    if (p.startsWith('/api/fresques/boards/')) {
+      return { board: { id: 'b1', revision: 9, readOnly: false, state: lotState() } };
+    }
     return {};
   });
   api.calls = calls;
@@ -263,6 +266,36 @@ describe('FresqueBoard', () => {
         ([p, m]) => p === '/api/fresques/boards/b1' && (m === undefined || m === 'GET'),
       ),
     ).toBe(true);
+  });
+
+  test('signal temps réel : écho de son propre enregistrement ignoré, autre écran → conflit si modifié', async () => {
+    let handler = null;
+    const subscribeBoard = vi.fn((_id, onChanged) => {
+      handler = onChanged;
+      return () => {};
+    });
+    const { api } = renderBoard(lotState(), { subscribeBoard });
+    expect(subscribeBoard).toHaveBeenCalledWith('b1', expect.any(Function));
+    fireEvent.keyDown(screen.getByTestId('fm-fresque-hand-c04'), { key: 'Enter' });
+    await waitFor(() => expect(api.calls.some((c) => c.method === 'PUT')).toBe(true));
+    const put = api.calls.find((c) => c.method === 'PUT');
+    expect(put.body.clientId).toMatch(/^c\d+-/);
+    await waitFor(() =>
+      expect(screen.getByTestId('fm-fresque-save')).toHaveAttribute('data-status', 'saved'),
+    );
+    // Écho de notre propre enregistrement : rien ne se passe.
+    await act(async () => {
+      handler({ boardId: 'b1', revision: 9, clientId: put.body.clientId });
+    });
+    expect(screen.queryByRole('dialog', { name: /Conflit/ })).toBeNull();
+    // Autre écran, rien en attente : rechargement (GET).
+    const getsBefore = api.calls.filter((c) => c.method === 'GET').length;
+    await act(async () => {
+      handler({ boardId: 'b1', revision: 9, clientId: 'autre-ecran' });
+    });
+    await waitFor(() =>
+      expect(api.calls.filter((c) => c.method === 'GET').length).toBeGreaterThan(getsBefore),
+    );
   });
 
   test('lecture seule : pas de main active, pas de bouton relier, indicateur dédié', () => {

@@ -10,6 +10,9 @@
 
 import { CARD_W_PCT, CARD_H_PCT, TABLE_ASPECT } from './fresqueCore.js';
 
+/** Longueur (unités SVG) sous laquelle une flèche bord à bord est remplacée par centre à centre. */
+export const MIN_ARROW_LENGTH = 2;
+
 export const SVG_W = 100 * TABLE_ASPECT;
 export const SVG_H = 100;
 
@@ -63,8 +66,15 @@ export function arrowSegment(fromPos, toPos, { offset = 0 } = {}) {
     ca = { x: ca.x + nx, y: ca.y + ny };
     cb = { x: cb.x + nx, y: cb.y + ny };
   }
-  const p1 = exitPoint(a, ca, cb);
-  const p2 = exitPoint(b, cb, ca);
+  let p1 = exitPoint(a, ca, cb);
+  let p2 = exitPoint(b, cb, ca);
+  // Cartes collées ou superposées : les bords se croisent et la flèche disparaîtrait ; on la
+  // trace alors de centre à centre pour qu'elle reste visible et touchable.
+  const crossed = (p2.x - p1.x) * (cb.x - ca.x) + (p2.y - p1.y) * (cb.y - ca.y) <= 0;
+  if (crossed || Math.hypot(p2.x - p1.x, p2.y - p1.y) < MIN_ARROW_LENGTH) {
+    p1 = ca;
+    p2 = cb;
+  }
   const angle = (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI;
   return {
     x1: p1.x,

@@ -42,6 +42,8 @@ const saveBoardBody = z.object({
   state: z.object({}).passthrough(),
   expected_revision: z.union([z.number().int().nonnegative(), z.string(), z.null()]).optional(),
   clientSeq: z.number().int().nonnegative().optional(),
+  /** Identifiant de l'écran émetteur, renvoyé dans le signal temps réel (écho ignoré côté client). */
+  clientId: z.string().trim().max(64).optional(),
 });
 
 /** Erreur métier (`FresqueError`) → `{ error }` avec son statut ; le reste part au gestionnaire central. */
@@ -160,6 +162,7 @@ router.put(
         revision: result.body.revision,
         by: String(req.auth?.userId || ''),
         clientSeq: result.body.clientSeq,
+        clientId: req.body.clientId || null,
       });
     }
     res.status(result.status).json(result.body);

@@ -76,6 +76,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   client : registre de la socket ForetMap (`foretmapSocketRegistry`) et `subscribeFresqueBoard`
   (réabonnement à la reconnexion) ; un autre client recharge s'il n'a rien en attente, sinon
   dialogue de conflit. Pas de présence ni de curseur (prod en long-polling).
+- **Lot 8 — finitions.** E2e `e2e/fresque-student.spec.js` (lot 1, deux flèches, rechargement
+  en plein lot 2 ; parcours complet en Éclaireur) et `e2e/fresque-team.spec.js` (deux sessions sur
+  un plateau d'équipe), doc fonctionnelle `docs/reference/foretmap/fresque-du-climat.md` (+ lien
+  depuis le guide du prof, sommaire, durées de conservation), `docs/FRESQUE_ARCHITECTURE.md`
+  (modèle, cœur, composants, API, plan de portage Gnomes & Licornes non codé).
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

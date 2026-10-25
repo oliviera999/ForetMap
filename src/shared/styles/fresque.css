@@ -648,7 +648,7 @@
 
 .fm-fresque-hand__ghost {
   position: fixed;
-  z-index: 60;
+  z-index: var(--fm-z-popover);
   width: 96px;
   pointer-events: none;
   opacity: 0.9;
@@ -687,7 +687,7 @@
   padding: 8px;
 }
 
-@media (min-width: 820px) {
+@media (min-width: 768px) {
   .fm-fresque-discover {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     align-items: start;
@@ -753,7 +753,7 @@
   position: sticky;
   bottom: 8px;
   align-self: center;
-  z-index: 40;
+  z-index: var(--fm-z-toast);
   max-width: min(92vw, 520px);
   padding: 10px 14px;
   border-radius: 12px;
@@ -779,7 +779,7 @@
 
 .fm-fresque-popover {
   position: fixed;
-  z-index: 50;
+  z-index: var(--fm-z-popover);
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);

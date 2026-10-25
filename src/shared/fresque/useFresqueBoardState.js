@@ -8,6 +8,17 @@ import { migrateState } from './fresqueCore.js';
 export const FRESQUE_SAVE_DEBOUNCE_MS = 500;
 export const FRESQUE_MIRROR_PREFIX = 'fm:fresque:';
 
+let clientSeqCounter = 0;
+/** Identifiant de cet écran : le signal temps réel qui fait écho à son propre enregistrement est ignoré. */
+export function newClientId() {
+  clientSeqCounter += 1;
+  const rand =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
+  return `c${clientSeqCounter}-${rand}`;
+}
+
 export function mirrorKey(boardId) {
   return `${FRESQUE_MIRROR_PREFIX}${boardId}`;
 }
@@ -131,6 +142,11 @@ export function useFresqueBoardState({
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const callbacksRef = useRef({ onRewards, onCompleted, onToast, api, getAuthToken });
   callbacksRef.current = { onRewards, onCompleted, onToast, api, getAuthToken };
+  const clientIdRef = useRef(null);
+  if (!clientIdRef.current) clientIdRef.current = newClientId();
+  const savingRef = useRef(false);
+  /** Révision annoncée par un autre écran pendant qu'un enregistrement était en vol. */
+  const pendingRemoteRef = useRef(null);
 
   /** Modification locale : nouvel état, `clientSeq` incrémenté, miroir écrit aussitôt. */
   const update = useCallback(
@@ -151,11 +167,13 @@ export function useFresqueBoardState({
     const snapshot = stateRef.current;
     if (!snapshot || !boardId) return snapshot;
     const { api: request, onRewards: rewards, onCompleted: completed } = callbacksRef.current;
+    savingRef.current = true;
     try {
       const res = await request(`/api/fresques/boards/${boardId}`, 'PUT', {
         state: snapshot,
         expected_revision: revisionRef.current,
         clientSeq: snapshot.clientSeq,
+        clientId: clientIdRef.current,
       });
       const nextRevision = Number(res?.revision);
       if (Number.isFinite(nextRevision)) {
@@ -167,6 +185,12 @@ export function useFresqueBoardState({
       setLastSavedAt(new Date().toISOString());
       if (Array.isArray(res?.rewards) && res.rewards.length) rewards?.(res.rewards);
       if (res?.completed) completed?.(res);
+      // Un autre écran a enregistré pendant notre envoi : sa révision dépasse la nôtre.
+      const pending = pendingRemoteRef.current;
+      pendingRemoteRef.current = null;
+      if (pending && pending > revisionRef.current) {
+        setConflict({ currentRevision: pending, remote: true });
+      }
       return snapshot;
     } catch (err) {
       if (isConflictError(err)) {
@@ -178,6 +202,8 @@ export function useFresqueBoardState({
         throw new Error('Hors ligne : gardé sur cet appareil');
       }
       throw err;
+    } finally {
+      savingRef.current = false;
     }
   }, [boardId]);
 
@@ -213,9 +239,13 @@ export function useFresqueBoardState({
     return () => window.removeEventListener('online', onOnline);
   }, [flush, readOnly]);
 
-  /** Dernière chance (onglet caché, page fermée) : requête `keepalive` avec l'état courant. */
+  /**
+   * Dernière chance (page fermée) : requête `keepalive` avec l'état courant. Jamais pendant un
+   * enregistrement en vol : deux envois partis de la même révision, le second serait refusé (409).
+   */
   const sendKeepalive = useCallback(() => {
     if (readOnly || !boardId || typeof fetch !== 'function') return;
+    if (savingRef.current) return;
     const snapshot = stateRef.current;
     if (!snapshot) return;
     const token = callbacksRef.current.getAuthToken?.();
@@ -232,6 +262,7 @@ export function useFresqueBoardState({
           state: snapshot,
           expected_revision: revisionRef.current,
           clientSeq: snapshot.clientSeq,
+          clientId: clientIdRef.current,
         }),
       }).catch(() => {});
     } catch {
@@ -241,13 +272,15 @@ export function useFresqueBoardState({
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
+    // Onglet caché : la page vit encore, l'enregistrement normal part tout de suite (révision
+    // tenue à jour). Page quittée : `keepalive`, dernière chance.
     const onHide = () => {
       if (conflictRef.current) return;
       if (!isDirty) return;
       sendKeepalive();
     };
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') onHide();
+      if (document.visibilityState === 'hidden' && isDirty && !conflictRef.current) void flush();
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onHide);
@@ -255,7 +288,7 @@ export function useFresqueBoardState({
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', onHide);
     };
-  }, [isDirty, sendKeepalive]);
+  }, [isDirty, sendKeepalive, flush]);
 
   /** Recharge l'état serveur (reprise, conflit résolu côté serveur, signal temps réel). */
   const reload = useCallback(async () => {
@@ -292,18 +325,27 @@ export function useFresqueBoardState({
     [flush, reload],
   );
 
-  /** Signal `fresque:board:changed` d'un autre client : recharge si rien n'est en attente. */
+  /**
+   * Signal `fresque:board:changed` d'un autre client : recharge si rien n'est en attente, sinon
+   * dialogue de conflit. L'écho de notre propre enregistrement (même `clientId`) est ignoré ; un
+   * signal reçu pendant un envoi est jugé quand la réponse arrive (révision connue).
+   */
   const applyRemoteChange = useCallback(
     (payload) => {
+      if (payload?.clientId && payload.clientId === clientIdRef.current) return;
       const remoteRevision = Number(payload?.revision);
       if (!Number.isFinite(remoteRevision) || remoteRevision <= revisionRef.current) return;
-      if (isDirty || saveStatus === 'saving') {
+      if (savingRef.current) {
+        pendingRemoteRef.current = Math.max(pendingRemoteRef.current || 0, remoteRevision);
+        return;
+      }
+      if (isDirty) {
         setConflict({ currentRevision: remoteRevision, remote: true });
         return;
       }
       void reload();
     },
-    [isDirty, reload, saveStatus],
+    [isDirty, reload],
   );
 
   let status = 'saved';
@@ -329,5 +371,6 @@ export function useFresqueBoardState({
     applyRemoteChange,
     lastSavedAt,
     fromMirror: initial.fromMirror,
+    clientId: clientIdRef.current,
   };
 }

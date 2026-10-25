@@ -50,6 +50,13 @@ describe('fresqueGeometry', () => {
     expect(arrowSegment(null, b)).toBeNull();
   });
 
+  test('cartes collées : la flèche va de centre à centre, jamais de longueur nulle', () => {
+    const seg = arrowSegment({ x: 0, y: 0 }, { x: CARD_W_PCT + 0.5, y: 0 });
+    expect(Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1)).toBeGreaterThan(10);
+    const same = arrowSegment({ x: 10, y: 10 }, { x: 10, y: 10 });
+    expect(same).not.toBeNull();
+  });
+
   test('markAnchor se place à mi-chemin, hors de la ligne', () => {
     const seg = arrowSegment({ x: 0, y: 0 }, { x: 50, y: 0 });
     const m = markAnchor(seg);
