@@ -38,10 +38,16 @@ sont posées**. Les flèches, elles, se tracent à tout moment entre les cartes 
 - **La main**, en bas de l'écran, contient les cartes du lot ouvert pas encore posées. On
   **glisse** une carte vers la table, ou on la **touche** puis on touche un endroit de la table.
   « Tout poser » place d'un coup les cartes restantes.
+- **La carte choisie** : toucher une carte, dans la main ou sur la table, l'affiche **en grand
+  sous la table**, à la largeur de l'écran. On y lit le recto et le verso (« Voir le verso »),
+  on l'ouvre en plein écran d'un toucher sur l'image, et l'on y trouve « Poser sur une place
+  libre » (carte de la main) ou « Relier à… » (carte posée). Sur téléphone, c'est là qu'on lit
+  les cartes : posées, elles sont trop petites pour être lues sur la table.
 - **La table** se zoome et se déplace (pincement, molette, boutons + / −). Les cartes s'y
   déplacent librement au doigt ou à la souris.
-- **Toucher une carte posée la retourne** (recto illustré ↔ verso explicatif). Un appui long ou
-  un double-toucher l'agrandit en plein écran, recto et verso.
+- **Toucher une carte posée la choisit ; la toucher une seconde fois la retourne** (recto
+  illustré ↔ verso explicatif). Un appui long ou un double-toucher l'agrandit en plein écran,
+  recto et verso.
 - **Relier** : chaque carte posée porte, à côté d'elle, un bouton « relier ». On le touche, puis
   on touche la carte que la première provoque : une flèche apparaît. À la souris, on peut aussi
   glisser depuis ce bouton jusqu'à la carte cible. Toucher la table annule.

@@ -59,6 +59,7 @@ import {
 import { FresqueLevelMenu, FresqueLevelPicker } from './FresqueLevelMenu.jsx';
 import { FresqueStepper, stepLabel } from './FresqueStepper.jsx';
 import { FresqueTable, dropPosition } from './FresqueTable.jsx';
+import { FresqueCardInspector } from './FresqueCardInspector.jsx';
 import { useFresqueBoardState } from './useFresqueBoardState.js';
 
 const TOAST_MS = 4500;
@@ -311,6 +312,11 @@ export function FresqueBoard({
   const inUnderstand = state.step === FRESQUE_STEP_UNDERSTAND;
   const correctionShown = inUnderstand && Boolean(state.correction?.viewedAt);
   const hand = useMemo(() => cardsInHand(model, state), [model, state]);
+  // Carte affichée en grand sous la table : celle de la main qu'on s'apprête à poser, sinon la
+  // carte posée choisie.
+  const inspectedOrigin = armedHandCardId ? 'hand' : 'table';
+  const inspectedCardId =
+    armedHandCardId || (selectedCardId && state.cards?.[selectedCardId] ? selectedCardId : null);
   const evaluation = useMemo(
     () => (isEclaireur || correctionShown ? evaluateBoard(model, state) : null),
     [isEclaireur, correctionShown, model, state],
@@ -442,11 +448,30 @@ export function FresqueBoard({
         createLink(linkSourceId, cardId);
         return;
       }
-      setSelectedCardId(cardId);
+      // Premier toucher : la carte est choisie et s'affiche en grand sous la table (sur téléphone
+      // elle est trop petite pour être lue sur place). Second toucher : elle se retourne.
+      if (selectedCardId !== cardId) {
+        setSelectedCardId(cardId);
+        setArmedHandCardId(null);
+        return;
+      }
       update((s) => flipCard(model, s, cardId));
     },
-    [createLink, linkSourceId, model, update],
+    [createLink, linkSourceId, model, selectedCardId, update],
   );
+  const placeHandCardOnFreeSpot = useCallback(
+    (cardId) => {
+      update((s) => placeAllHandOne(model, s, cardId));
+      setArmedHandCardId(null);
+      setSelectedCardId(cardId);
+      setAnnounce(`Carte « ${model.cardsById[cardId]?.title} » posée sur la table`);
+    },
+    [model, update],
+  );
+  const closeInspector = useCallback(() => {
+    setArmedHandCardId(null);
+    setSelectedCardId(null);
+  }, []);
   const onCardFlip = useCallback(
     (cardId) => update((s) => flipCard(model, s, cardId)),
     [model, update],
@@ -852,6 +877,21 @@ export function FresqueBoard({
                 : null
             }
           />
+          {inspectedCardId ? (
+            <FresqueCardInspector
+              card={model.cardsById[inspectedCardId]}
+              publicBase={publicBase}
+              origin={inspectedOrigin}
+              flipped={Boolean(state.cards?.[inspectedCardId]?.flipped)}
+              readOnly={readOnly}
+              linkActive={linkSourceId === inspectedCardId}
+              onFlip={onCardFlip}
+              onOpenLarge={openCardImage}
+              onPlaceFree={placeHandCardOnFreeSpot}
+              onLink={onLinkButton}
+              onClose={closeInspector}
+            />
+          ) : null}
           <FresqueHand
             model={model}
             publicBase={publicBase}
