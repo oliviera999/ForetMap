@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api, getAuthToken } from '../../services/api.js';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { buildDeckModel } from '../../shared/fresque/fresqueCore.js';
 import { FresqueBoard } from '../../shared/fresque/FresqueBoard.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
@@ -39,6 +40,7 @@ export function FresqueView({
     }
   }, [initialDeckId, entryNonce]);
   const publicSettings = usePublicSettings();
+  const { confirm } = useAppDialogs();
   // « Ajouter à mon carnet » : réutilise la création d'article + l'envoi d'image du carnet
   // (`POST /api/user-journal/me/articles`, puis `/assets`), si le module carnet est allumé.
   const journalEnabled = publicSettings?.modules?.observations_enabled !== false;
@@ -61,16 +63,14 @@ export function FresqueView({
   }, []);
   const restartBoard = useCallback(async () => {
     if (!board?.id) return;
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(
-        'Recommencer une nouvelle fresque ? L’ancienne reste consultable par ton prof.',
-      )
-    )
-      return;
+    const ok = await confirm({
+      message: 'Recommencer une nouvelle fresque ? L’ancienne reste consultable par ton prof.',
+      confirmLabel: 'Recommencer',
+    });
+    if (!ok) return;
     const res = await api(`/api/fresques/boards/${board.id}/restart`, 'POST', {});
     setBoard(res.board);
-  }, [board?.id]);
+  }, [board?.id, confirm]);
 
   useEffect(() => {
     let cancelled = false;

@@ -85,7 +85,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   catégories de flèches, post-it, bandes, ombres) et les mêmes valeurs déjà écrites en dur
   ailleurs (`index.css`, feuilles GL, trame alimentaire) passent au token — plafond du cliquet
   abaissé de 662 à 629 ; `fresque_boards.owner_type` / `.status` déclarés dans
-  `src/shared/enums/pedagoEnums.js`.
+  `src/shared/enums/pedagoEnums.js` ; tailles de police en tokens `--text-*` ; confirmation
+  de « Recommencer » par `useAppDialogs()` ; routes d'écriture `/api/fresques/boards*`
+  déclarées dans l'inventaire figé.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

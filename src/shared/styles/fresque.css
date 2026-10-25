@@ -141,7 +141,7 @@
 }
 
 .fm-fresque-save {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--fm-fresque-muted);
   display: inline-flex;
   align-items: center;
@@ -590,7 +590,7 @@
 .fm-fresque-hand__intro {
   flex: 1 1 100%;
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   color: var(--fm-fresque-muted);
 }
 
@@ -673,7 +673,7 @@
   padding: 6px 10px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--surface-plain) 70%, transparent);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--fm-fresque-muted);
 }
 
@@ -720,7 +720,7 @@
 
 .fm-fresque-discover__panel h2 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
 }
 
 .fm-fresque-tutorial {
@@ -736,7 +736,7 @@
   background: var(--fm-fresque-accent-soft);
   border-radius: 12px;
   padding: 10px 12px;
-  font-size: 1rem;
+  font-size: var(--text-md);
 }
 
 .fm-fresque-tutorial__nav {
@@ -762,7 +762,7 @@
   border-radius: 12px;
   background: var(--ink-strong);
   color: var(--surface-plain);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   box-shadow: var(--shadow-panel-floating);
   display: flex;
   align-items: center;
@@ -794,7 +794,7 @@
 
 .fm-fresque-popover p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .fm-fresque-popover__row {
@@ -815,7 +815,7 @@
 
 .fm-fresque-dialog h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
 }
 
 .fm-fresque-dialog__actions {
@@ -862,7 +862,7 @@
 .fm-fresque-panel__hint {
   margin: 0;
   color: var(--fm-fresque-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .fm-fresque-legend {
