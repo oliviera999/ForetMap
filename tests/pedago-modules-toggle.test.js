@@ -116,6 +116,9 @@ test('registre : quatre interrupteurs publics, allumés par défaut, lus par mod
     // Observations d'espèces (migration 307) : même garde, testée dans
     // `tests/species-observations.test.js`.
     species_observations: 'observations.validate',
+    // Fresques (migration 321) : gardées par `plants.manage`, testées dans
+    // `tests/fresques-api.test.js`.
+    fresque: 'plants.manage',
   });
 
   const res = await request(app).get('/api/settings/public').expect(200);
@@ -124,6 +127,7 @@ test('registre : quatre interrupteurs publics, allumés par défaut, lus par mod
   assert.equal(modules.individuals_enabled, true);
   assert.equal(modules.pedago_sessions_enabled, true);
   assert.equal(modules.rewards_enabled, true);
+  assert.equal(modules.fresque_enabled, true);
 
   const adminList = await request(app).get('/api/settings/admin').set(admin()).expect(200);
   const rows = new Map((adminList.body?.settings || []).map((r) => [r.key, r]));

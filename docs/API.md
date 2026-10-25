@@ -3876,6 +3876,44 @@ séance existante, jamais elle-même ; les gestionnaires (`plants.manage`) ne so
 Lien direct : `/?seance=<slug>` ouvre l’application et démarre la séance (après connexion si
 besoin, le slug est gardé en `sessionStorage`).
 
+### Fresques (`/api/fresques`)
+
+Migration `321`, tables `fresque_boards` / `fresque_board_events`. Moteur générique « cartes +
+flèches cause → effet + correction », alimenté par les jeux de `public/fresques/<deckId>/`
+(registre `lib/fresqueDecks.js`, premier jeu `climat-junior-fr-v7-5` : **La Fresque du Climat –
+version Enfant**, CC BY-NC-ND — crédit obligatoire `attribution.creditLine`). Logique métier dans
+le cœur partagé `lib/shared/fresqueCore.js` (validation de l'état, classement des flèches, fin,
+journal) ; persistance et droits dans `lib/fresqueBoards.js`. Détail : `docs/FRESQUE_ARCHITECTURE.md`.
+
+Toutes les routes exigent un compte connecté. Module `ui.modules.fresque_enabled` éteint :
+**503** `{ error: 'Fresques désactivées' }` sauf pour `plants.manage`. Un `deckId` hors
+registre → 404 (aucun chemin n'est construit depuis la saisie).
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/fresques/decks` | connecté | `{ decks: [{ id, kind, title, shortTitle, audience, edition, cardCount, lotCount, expectedLinks, attribution, publicBase, titleImage }] }` |
+| GET | `/api/fresques/decks/:deckId` | connecté | `{ id, publicBase, deck, correction, hints }` — le front n'a pas à deviner les chemins d'images (`publicBase` + `cards/…`) |
+| GET | `/api/fresques/boards/mine?deckId=` | connecté | `{ boards, teams }` : plateaux **actifs** du compte (le sien et ceux de ses équipes, groupes `kind = 'team'`) et ses équipes |
+| POST | `/api/fresques/boards` | connecté | `{ deckId, ownerType: 'user'\|'team', groupId?, level? }` : crée (201) ou renvoie (200) le plateau actif — `{ board (+ state), created }` ; équipe → appartenance contrôlée (403) |
+| GET | `/api/fresques/boards/:id` | propriétaire, membre de l'équipe, prof dans son périmètre | `{ board }` avec `state` et `readOnly` (vrai pour le prof) ; hors périmètre → 403 |
+| PUT | `/api/fresques/boards/:id` | propriétaire ou membre | `{ state, expected_revision?, clientSeq? }` : validation stricte (bornes du cœur), `by` réécrit avec l'auteur, résumé et journal calculés, fin détectée, badge attribué une seule fois ; réponse `{ board, revision, clientSeq, events, completed, rewards }` ; révision dépassée → **409** `{ error, code: 'edit_conflict', current_revision }` ; plateau archivé → 409 `board_archived` ; état invalide → 400 ; limite 240 enregistrements / min / compte |
+| POST | `/api/fresques/boards/:id/restart` | propriétaire ou membre | Archive le plateau actif (consultable par le prof) et en crée un neuf (201) `{ board, previousBoardId }` |
+| GET | `/api/fresques/boards/:id/events?after=` | lecteurs du plateau | `{ boardId, events: [{ id, by, type, payload, at }] }` (≤ 200, base du mode collectif) |
+| GET | `/api/fresques/overview?deckId=&groupId=` | `stats.read.group` / `stats.read.all` | `{ boards }` : une ligne par plateau (élève ou équipe, niveau, étape, cartes posées, flèches trouvées, indices, statut, dernière activité), périmètre de groupes du prof, tri par nom ; groupe hors périmètre → 403 |
+
+Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq }` dans
+le salon `fresque:board:<id>` ; abonnement `subscribe:fresque-board` `{ boardId }` contrôlé par
+les mêmes droits que `GET /boards/:id` (refus : `fresque:board:subscription-refused`).
+
+État du plateau (`state`, version 1) : `level` (`eclaireur` | `explorateur` | `expert`), `step`
+(`decouvrir`, `lot1`…, `comprendre`), `lotReached`, `tutorialDone`, `showBands`, `cards`
+(`{ x, y, flipped, placedAt }` en % de la table), `links` (`{ id, from, to, color, revealed, by }`),
+`notes` (post-it élève et indices, ≤ 40, texte ≤ 280), `hints.log`, `checks`, `correction`
+(`viewedAt`, `revealedMissing`), `creative` (titre ≤ 60, couleur, carte marquante), `viewport`,
+`clientSeq`. Fin = 21 cartes posées **et** correction ouverte (niveau et score indifférents) →
+badge `fresque_climat_junior`. Conservation : journal 12 mois, plateaux archivés 12 mois sans
+modification (`docs/reference/exploitation/durees-de-conservation.md`).
+
 ### Badges (`/api/rewards`)
 
 Migration `285`, table `user_rewards` (un badge par utilisateur, attribué une seule fois). Les

@@ -27,6 +27,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   évaluation, puces Éclaireur, indices déterministes en post-it (échelle Lire → Structure →
   Piste → Révélation), post-it élève, correction (révélations), créativité, fin, résumé,
   journal des gestes (`diffStates`) et réécriture de l'auteur. 52 tests `tests/fresque-core.test.js`.
+- **Lot 3 — base et API.** Migration `321_fresque_boards.sql` (`fresque_boards` : un plateau
+  actif par propriétaire — élève ou équipe — et par jeu, état JSON ≤ 64 Ko, colonnes de suivi,
+  `edit_revision` ; `fresque_board_events` : journal des gestes calculé côté serveur), routes
+  `/api/fresques` (`decks`, `boards/mine`, `boards`, `boards/:id` GET/PUT, `restart`, `events`,
+  `overview`), module `ui.modules.fresque_enabled` (éteint : 503 élève, `plants.manage` passe),
+  verrou optimiste 409 `edit_conflict` (table ajoutée à `EDIT_REVISION_TABLES`), réécriture de
+  `by`, badge `fresque_climat_junior` 🌍 à la fin (idempotent, aux contributeurs d'une équipe),
+  signal `fresque:board:changed` + abonnement contrôlé `subscribe:fresque-board`, limiteur
+  240 enregistrements/min, purge de rétention (journal 12 mois, plateaux archivés 12 mois),
+  `docs/API.md`. Tests `tests/fresques-api.test.js`.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

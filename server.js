@@ -112,6 +112,7 @@ const idKeysRouter = require('./routes/id-keys');
 const individualsRouter = require('./routes/individuals');
 const pedagoSessionsRouter = require('./routes/pedago-sessions');
 const rewardsRouter = require('./routes/rewards');
+const fresquesRouter = require('./routes/fresques');
 
 const app = express();
 
@@ -606,6 +607,7 @@ app.use('/api/id-keys', idKeysRouter);
 app.use('/api/individuals', individualsRouter);
 app.use('/api/pedago-sessions', pedagoSessionsRouter);
 app.use('/api/rewards', rewardsRouter);
+app.use('/api/fresques', fresquesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/school-calendar', schoolCalendarRouter);
 app.use('/api/task-projects', taskProjectsRouter);

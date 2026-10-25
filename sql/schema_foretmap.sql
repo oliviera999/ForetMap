@@ -1545,4 +1545,52 @@ CREATE TABLE IF NOT EXISTS plant_lookalikes (
     REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Fresques (migration 321) : un plateau par propriétaire (élève ou équipe) et par jeu, état
+-- complet en JSON ; journal des gestes calculé côté serveur. Voir lib/fresqueBoards.js.
+CREATE TABLE IF NOT EXISTS fresque_boards (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  deck_id VARCHAR(64) NOT NULL COMMENT 'Dossier du jeu (public/fresques/<deck_id>/)',
+  owner_type ENUM('user','team') NOT NULL,
+  owner_user_id VARCHAR(64) DEFAULT NULL,
+  owner_group_id VARCHAR(64) DEFAULT NULL,
+  owner_key VARCHAR(80) NOT NULL COMMENT 'user:<id> ou team:<groupId>',
+  active_owner_key VARCHAR(80) DEFAULT NULL COMMENT '= owner_key si actif, NULL si archivé',
+  level VARCHAR(16) NOT NULL DEFAULT 'explorateur',
+  step VARCHAR(16) NOT NULL DEFAULT 'decouvrir',
+  lot_reached TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  state_json MEDIUMTEXT NOT NULL,
+  cards_placed TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  links_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  links_found SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  hints_used SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  status ENUM('in_progress','completed','archived') NOT NULL DEFAULT 'in_progress',
+  edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  completed_at DATETIME(3) DEFAULT NULL,
+  UNIQUE KEY uq_fresque_boards_active_owner (deck_id, active_owner_key),
+  INDEX idx_fresque_boards_owner_user (owner_user_id, deck_id),
+  INDEX idx_fresque_boards_owner_group (owner_group_id, deck_id),
+  INDEX idx_fresque_boards_status_updated (status, updated_at),
+  CONSTRAINT fk_fresque_boards_user FOREIGN KEY (owner_user_id)
+    REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_fresque_boards_group FOREIGN KEY (owner_group_id)
+    REFERENCES `groups` (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fresque_board_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  board_id CHAR(36) NOT NULL,
+  actor_user_id VARCHAR(64) DEFAULT NULL,
+  type VARCHAR(32) NOT NULL,
+  payload_json TEXT DEFAULT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  INDEX idx_fresque_board_events_board (board_id, id),
+  INDEX idx_fresque_board_events_created (created_at),
+  CONSTRAINT fk_fresque_board_events_board FOREIGN KEY (board_id)
+    REFERENCES fresque_boards (id) ON DELETE CASCADE,
+  CONSTRAINT fk_fresque_board_events_actor FOREIGN KEY (actor_user_id)
+    REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

@@ -354,6 +354,12 @@ export const KEY_META = {
     section: 'modules',
     order: 42.2,
   },
+  'ui.modules.fresque_enabled': {
+    label:
+      'Fresques — onglet « Fresque » (Fresque du Climat, version Enfant) et enregistrement des plateaux (éteint : masqué aux élèves ; les profs gardent le suivi, avec un bandeau)',
+    section: 'modules',
+    order: 42.25,
+  },
   'ui.modules.rewards_enabled': {
     label:
       'Récompenses — badges de fin de séance (éteint : rien d’affiché aux élèves, mais les badges mérités sont enregistrés et apparaissent au rallumage)',
