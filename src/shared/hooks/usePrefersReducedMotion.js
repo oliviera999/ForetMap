@@ -9,16 +9,30 @@ import { useEffect, useState } from 'react';
 const QUERY = '(prefers-reduced-motion: reduce)';
 
 let mediaQuery = null;
+/**
+ * `window.matchMedia` qui a produit `mediaQuery`. S'il est remplacé (polyfill posé après le
+ * premier appel, doublure de test), la requête est refaite : sans cela, la première
+ * `MediaQueryList` restait servie pour toute la durée de la page, et un remplacement de
+ * `matchMedia` n'était jamais vu.
+ */
+let mediaSource = null;
+/** Détache l'écouteur `change` de la `MediaQueryList` courante. */
+let detachMedia = null;
 let cached = false;
 const listeners = new Set();
 
 function ensureMedia() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null;
-  if (mediaQuery) return mediaQuery;
-  mediaQuery = window.matchMedia(QUERY);
-  cached = Boolean(mediaQuery.matches);
+  if (mediaQuery && mediaSource === window.matchMedia) return mediaQuery;
+  detachMedia?.();
+  detachMedia = null;
+  mediaSource = window.matchMedia;
+  const mq = window.matchMedia(QUERY) || null;
+  mediaQuery = mq;
+  cached = Boolean(mq?.matches);
+  if (!mq) return null;
   const apply = () => {
-    cached = Boolean(mediaQuery.matches);
+    cached = Boolean(mq.matches);
     listeners.forEach((fn) => {
       try {
         fn(cached);
@@ -27,16 +41,24 @@ function ensureMedia() {
       }
     });
   };
-  if (typeof mediaQuery.addEventListener === 'function') {
-    mediaQuery.addEventListener('change', apply);
-  } else {
-    mediaQuery.addListener?.(apply);
+  if (typeof mq.addEventListener === 'function') {
+    mq.addEventListener('change', apply);
+    detachMedia = () => mq.removeEventListener?.('change', apply);
+  } else if (typeof mq.addListener === 'function') {
+    mq.addListener(apply);
+    detachMedia = () => mq.removeListener?.(apply);
   }
-  return mediaQuery;
+  return mq;
 }
 
-/** Remet le cache module (tests qui remplacent `window.matchMedia`). */
+/**
+ * Remet le cache module (tests qui remplacent `window.matchMedia`) : détache l'écouteur de la
+ * requête courante et oublie les abonnés.
+ */
 export function resetPrefersReducedMotionForTests() {
+  detachMedia?.();
+  detachMedia = null;
+  mediaSource = null;
   mediaQuery = null;
   cached = false;
   listeners.clear();

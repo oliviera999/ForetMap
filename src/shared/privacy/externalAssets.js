@@ -43,6 +43,17 @@ export function getExternalAssetsMode() {
   return currentMode;
 }
 
+/** URL absolue (`http:` ou `https:`) de la même origine que la page. */
+function isSameOrigin(text) {
+  if (!/^https?:\/\//i.test(text)) return false;
+  if (typeof window === 'undefined' || !window.location?.origin) return false;
+  try {
+    return new URL(text).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 function parseHttpsUrl(raw) {
   const text = String(raw || '').trim();
   if (!/^https:\/\//i.test(text)) return null;
@@ -104,17 +115,14 @@ export function resolveExternalImageUrl(url, { mode, width } = {}) {
   const effective = normalizeExternalAssetsMode(mode ?? currentMode);
   const text = String(url || '').trim();
   if (!text) return '';
+  // Une image du site lui-même n'est ni refusée ni relayée, même servie en `http:` (serveur de
+  // développement, déploiement sans TLS) : `img.src` est toujours absolu, et la lightbox ou un
+  // relais repartaient avec l'adresse du site — l'image disparaissait.
+  if (isSameOrigin(text)) return text;
   if (/^http:\/\//i.test(text)) return '';
   if (effective === 'external') return text;
   const parsed = parseHttpsUrl(text);
   if (!parsed) return text;
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    try {
-      if (parsed.origin === window.location.origin) return text;
-    } catch {
-      /* ignore */
-    }
-  }
   return withAppBase(`/api/media/remote?url=${encodeURIComponent(parsed.toString())}`);
 }
 

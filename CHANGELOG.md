@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — tests UI rouges sur `main` depuis les lots RGPD A/B
+
+- `usePrefersReducedMotion` : le correctif de #597 (relire `window.matchMedia` s'il est remplacé,
+  détacher l'écouteur de l'ancienne requête) avait été défait par un commit ultérieur ; il est
+  rétabli, en gardant `resetPrefersReducedMotionForTests`.
+- `resolveExternalImageUrl` : une image **du site lui-même** n'est plus vidée quand le site est
+  servi en `http:` (développement, déploiement sans TLS) ; la lightbox perdait son image.
+- Attentes mises à jour sur le relais d'images tierces (`/api/media/remote`, mode « local » par
+  défaut) et sur le nouveau texte de la notice « Vos données ».
+
 ### Ajouté — OLU accompagne la Fresque du Climat
 
 - **Visite guidée** de l'onglet Fresque à la voix d'OLU (`DISCOVERY_TOURS.fresque` : l'activité,

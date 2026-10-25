@@ -114,7 +114,9 @@ describe('notice « Vos données » — contenu', () => {
       clearLocalDataOnLogout: false,
     });
     const appareil = (n) => JSON.stringify(n.sections.find((s) => s.id === 'appareil'));
-    expect(appareil(local)).toMatch(/ne contacte ni Google ni Wikimedia/);
+    // Mode « local » (lot B RGPD) : polices servies par le site, images tierces relayées.
+    expect(appareil(local)).toMatch(/Les polices sont servies par le site/);
+    expect(appareil(local)).toMatch(/ne contacte pas ces sites/);
     expect(appareil(local)).toMatch(/effacées quand tu te déconnectes/);
     expect(appareil(external)).toMatch(/chargées chez Google Fonts et Wikimedia/);
     expect(appareil(external)).toMatch(/attendent ta prochaine connexion/);

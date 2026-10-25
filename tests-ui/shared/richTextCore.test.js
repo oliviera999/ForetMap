@@ -107,7 +107,10 @@ describe('htmlToMarkdownWith', () => {
   it('transmet `allowImages` à l’assainissement : image conservée quand il est vrai', () => {
     const service = createRichTextTurndownService();
     const html = '<p>a</p><img src="https://ex.org/x.png" alt="img" />';
-    expect(htmlToMarkdownWith(service, html, { allowImages: true })).toContain('ex.org/x.png');
+    const md = htmlToMarkdownWith(service, html, { allowImages: true });
+    // L'image est gardée ; son adresse tierce passe par le relais en mode « local » (lot B RGPD).
+    expect(md).toMatch(/!\[img\]\(/);
+    expect(decodeURIComponent(md)).toContain('ex.org/x.png');
   });
 
   it('renvoie une chaîne vide pour un contenu vide', () => {

@@ -51,6 +51,16 @@ describe('resolveExternalImageUrl', () => {
   });
 });
 
+describe('resolveExternalImageUrl — même origine', () => {
+  test('une image du site, même en http:, n’est ni vidée ni relayée', () => {
+    const own = `${window.location.origin}/uploads/plants/1.jpg`;
+    expect(resolveExternalImageUrl(own)).toBe(own);
+    expect(resolveExternalImageUrl(own, { mode: 'external' })).toBe(own);
+    // Un tiers en http: reste refusé.
+    expect(resolveExternalImageUrl('http://upload.wikimedia.org/x.jpg')).toBe('');
+  });
+});
+
 // Audit photos PH-M1 : les tuiles chargeaient l'original Wikimedia (souvent plusieurs Mo).
 describe('wikimediaThumbUrl', () => {
   test('original → vignette à la largeur standard immédiatement supérieure', () => {

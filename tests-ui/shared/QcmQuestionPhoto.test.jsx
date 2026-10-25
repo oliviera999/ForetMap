@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QcmQuestionPhoto } from '../../src/shared/qcm/QcmQuestionPhoto.jsx';
+import { resolveExternalImageUrl } from '../../src/shared/privacy/externalAssets.js';
 
 const PRESENTATION = {
   photoUrl: 'https://example.test/abeille.jpg',
@@ -17,7 +18,11 @@ describe('QcmQuestionPhoto', () => {
 
   test('affiche le crédit et la licence sous l’image', () => {
     const { container } = render(<QcmQuestionPhoto presentation={PRESENTATION} />);
-    expect(container.querySelector('img')).toHaveAttribute('src', PRESENTATION.photoUrl);
+    // Photo tierce : servie par le relais du serveur en mode « local » (lot B RGPD).
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      resolveExternalImageUrl(PRESENTATION.photoUrl),
+    );
     expect(screen.getByText('Wikimedia Commons — CC BY-SA 4.0')).toBeInTheDocument();
   });
 
