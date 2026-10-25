@@ -10,6 +10,7 @@ import {
   clearStoredSession,
   getAuthUserId,
 } from './services/api';
+import { subscribeFresqueBoard } from './services/fresqueRealtime.js';
 import {
   clearLocalDataForAccount,
   clearOfflinePhotosForAccount,
@@ -1264,6 +1265,7 @@ function App() {
       canFollow: hasPermission('stats.read.group') || hasPermission('stats.read.all'),
       initialDeckId: pedagoEntry?.fresque?.deckId || null,
       entryNonce: pedagoEntry?.fresque?.nonce || null,
+      subscribeBoard: subscribeFresqueBoard,
     }),
     [effectiveIsTeacher, hasPermission, pedagoEntry?.fresque?.deckId, pedagoEntry?.fresque?.nonce],
   );

@@ -68,6 +68,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `open_fresque` (`deckId` facultatif ; lib, hook, éditeur d'étapes), panneau prof
   `FresqueTeacherPanel` (filtre par groupe, une ligne par plateau, tri par nom, ouverture en
   lecture seule), crédit de La Fresque du Climat dans « À propos » (`THIRD_PARTY_CREDITS`).
+- **Lot 7 — bases du collectif.** Plateau d'**équipe** (groupe `kind = 'team'`, un seul
+  plateau actif par équipe et par jeu, ouvert par n'importe quel membre ; sélecteur « Ma fresque /
+  Fresque de l'équipe … »), journal des gestes avec auteur, signal `fresque:board:changed`
+  `{ boardId, revision }` dans le salon `fresque:board:<id>` après chaque enregistrement,
+  abonnement contrôlé `subscribe:fresque-board` (mêmes droits que la lecture, refus explicite),
+  client : registre de la socket ForetMap (`foretmapSocketRegistry`) et `subscribeFresqueBoard`
+  (réabonnement à la reconnexion) ; un autre client recharge s'il n'a rien en attente, sinon
+  dialogue de conflit. Pas de présence ni de curseur (prod en long-polling).
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
