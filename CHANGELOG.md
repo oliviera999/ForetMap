@@ -9,6 +9,98 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — suite backend : attentes périmées après les lots RGPD A et B
+
+- `tests/fixtures/settings-registry-characterization.golden.json` régénéré (procédure du
+  test) : il ignorait `privacy.logout_clear_site_data_scope` (lot A), les trois réglages
+  `privacy.remote_media_*` (lot B) et `ui.modules.fresque_enabled`.
+- `tests/plants-security.test.js` et `tests/no-third-party-avatar-guard.test.js` : depuis la
+  CSP par produit (lot B, `privacy.external_assets_mode` = `local` par défaut), `img-src` ne
+  porte plus `https:` pour ForetMap et la table des politiques a trois niveaux
+  (produit → mode → variante) ; les attentes suivent.
+- `src/index.css` : dernier `font-size` littéral (`.tuto-preview-facade__notice`) passé au
+  token `--text-base` (garde `typography-tokens-guard`).
+
+### Ajouté — Fresque du Climat (version Enfant) : activité « cartes + flèches » en autonomie
+
+- **Lot 1 — contenu.** Jeu `public/fresques/climat-junior-fr-v7-5/` (92 images WebP livrées
+  telles quelles, `deck.json`, `correction.json`, `hints.json`, `LICENCE-NOTICE.md`), script
+  d'extraction reproductible `scripts/fresques/extraire_cartes.py`, registre serveur
+  `lib/fresqueDecks.js` (validation zod + cohérence inter-fichiers, chargé au démarrage, aucun
+  chemin construit depuis une saisie), test de contenu `tests/content/fresque-climat-junior.test.js`
+  (lots 5/6/10, 30 flèches, degrés recalculés, pièges, indices, **empreinte SHA-256 de chaque
+  image** — garde-fou CC BY-NC-ND « sans modification »), cache long borné pour `dist/fresques/`.
+  Crédit : La Fresque du Climat — Cédric Ringenbach — fresqueduclimat.org — CC BY-NC-ND.
+- **Lot 2 — cœur partagé.** `src/shared/fresque/fresqueCore.js` (pur, miroir CJS
+  `lib/shared/fresqueCore.js` via `sync:shared-cores`) : modèle du jeu (adjacence, degrés,
+  accessibilité, rôles carrefour / arrivée / sans conséquence), état du plateau v1
+  (`createInitialState`, `migrateState`, `validateState` avec bornes), lots et étapes,
+  classement d'une flèche (boucle, doublon, trouvée, piège, inversée, raccourci, à discuter),
+  évaluation, puces Éclaireur, indices déterministes en post-it (échelle Lire → Structure →
+  Piste → Révélation), post-it élève, correction (révélations), créativité, fin, résumé,
+  journal des gestes (`diffStates`) et réécriture de l'auteur. 52 tests `tests/fresque-core.test.js`.
+- **Lot 3 — base et API.** Migration `321_fresque_boards.sql` (`fresque_boards` : un plateau
+  actif par propriétaire — élève ou équipe — et par jeu, état JSON ≤ 64 Ko, colonnes de suivi,
+  `edit_revision` ; `fresque_board_events` : journal des gestes calculé côté serveur), routes
+  `/api/fresques` (`decks`, `boards/mine`, `boards`, `boards/:id` GET/PUT, `restart`, `events`,
+  `overview`), module `ui.modules.fresque_enabled` (éteint : 503 élève, `plants.manage` passe),
+  verrou optimiste 409 `edit_conflict` (table ajoutée à `EDIT_REVISION_TABLES`), réécriture de
+  `by`, badge `fresque_climat_junior` 🌍 à la fin (idempotent, aux contributeurs d'une équipe),
+  signal `fresque:board:changed` + abonnement contrôlé `subscribe:fresque-board`, limiteur
+  240 enregistrements/min, purge de rétention (journal 12 mois, plateaux archivés 12 mois),
+  `docs/API.md`. Tests `tests/fresques-api.test.js`.
+- **Lot 4 — plateau élève.** Composants génériques `src/shared/fresque/` (classes
+  `fm-fresque-*`, couleurs en variables CSS, appel réseau injecté) : `FresqueBoard`
+  (étapes, niveau, enregistrement, dialogue de conflit, visionneuse), `FresqueTable` (scène
+  zoomable sur `usePctMapViewport` en mode `stage`, bandes guidées), `FresqueCard` (recto/verso
+  3D, fondu si mouvement réduit, glisser, appui long / double-toucher → plein écran, bouton
+  « relier » et puce Éclaireur **à côté** de la carte), `FresqueArrowLayer` (SVG bord à bord,
+  marqueur, halo, zone de toucher large, paires décalées, repères icône + couleur),
+  `FresqueHand` (glisser ou toucher-toucher, « Tout poser »), `FresqueStepper`,
+  `FresqueLevelMenu`, `FresqueCreditBar` (crédit permanent), `FresqueNotes` ;
+  `useFresqueBoardState` : miroir `localStorage` (`fm:fresque:<boardId>`) à chaque modification,
+  enregistrement différé 500 ms, `keepalive` sur `visibilitychange`/`pagehide`, reprise du miroir
+  plus récent, 409 → « Reprendre la version enregistrée » / « Garder celle-ci ». Vue produit
+  `src/components/pedago/FresqueView.jsx`. Tests Vitest `tests-ui/shared/fresque/`.
+- **Lot 5 — aides et fin.** Points d'étape par niveau (Éclaireur / Explorateur : trouvées sur
+  attendues ; Expert : « Lot terminé ? »), retour immédiat par flèche en Éclaireur (icône +
+  couleur, jamais « faux »), indices gratuits en **post-it « Indice »** (échelle Lire →
+  Structure → Piste → Révélation, cible déterministe ; Expert → proposition de passer en
+  Explorateur), post-it de l'élève (≤ 280 caractères, 5 couleurs, texte brut, jamais sur une
+  carte), étape **Comprendre** (`FresqueCorrectionPanel` : comparer, repères, « Montre-moi une
+  flèche manquante » / « Tout afficher », correction officielle dans la visionneuse,
+  **disposition officielle en aperçu** sans toucher à la fresque), fin = 21 cartes + correction
+  ouverte (dialogue de fin, badge annoncé), créativité (titre ≤ 60, palette de 6 couleurs,
+  carte marquante), **export PNG avec bande de crédit obligatoire** (`fresqueExport.js`),
+  « Ajouter à mon carnet » (article + image du carnet) et « Recommencer » (archive).
+- **Lot 6 — intégration ForetMap.** Onglet « Fresque » (élève : barre basse ; prof : pôle
+  Contenus, visible avec `plants.manage` ou `stats.read.group`), `KNOWN_TAB_VALUES`, gardes de
+  navigation et accès miroir (`resolvePedagoModuleAccess().fresque`), réglage
+  `ui.modules.fresque_enabled` dans la console (section Modules), action de séance
+  `open_fresque` (`deckId` facultatif ; lib, hook, éditeur d'étapes), panneau prof
+  `FresqueTeacherPanel` (filtre par groupe, une ligne par plateau, tri par nom, ouverture en
+  lecture seule), crédit de La Fresque du Climat dans « À propos » (`THIRD_PARTY_CREDITS`).
+- **Lot 7 — bases du collectif.** Plateau d'**équipe** (groupe `kind = 'team'`, un seul
+  plateau actif par équipe et par jeu, ouvert par n'importe quel membre ; sélecteur « Ma fresque /
+  Fresque de l'équipe … »), journal des gestes avec auteur, signal `fresque:board:changed`
+  `{ boardId, revision }` dans le salon `fresque:board:<id>` après chaque enregistrement,
+  abonnement contrôlé `subscribe:fresque-board` (mêmes droits que la lecture, refus explicite),
+  client : registre de la socket ForetMap (`foretmapSocketRegistry`) et `subscribeFresqueBoard`
+  (réabonnement à la reconnexion) ; un autre client recharge s'il n'a rien en attente, sinon
+  dialogue de conflit. Pas de présence ni de curseur (prod en long-polling).
+- **Lot 8 — finitions.** E2e `e2e/fresque-student.spec.js` (lot 1, deux flèches, rechargement
+  en plein lot 2 ; parcours complet en Éclaireur) et `e2e/fresque-team.spec.js` (deux sessions sur
+  un plateau d'équipe), doc fonctionnelle `docs/reference/foretmap/fresque-du-climat.md` (+ lien
+  depuis le guide du prof, sommaire, durées de conservation), `docs/FRESQUE_ARCHITECTURE.md`
+  (modèle, cœur, composants, API, plan de portage Gnomes & Licornes non codé). Gardes-fous
+  du dépôt : palette de la fresque posée en tokens dans `color-tokens.css` (parchemin, sépia,
+  catégories de flèches, post-it, bandes, ombres) et les mêmes valeurs déjà écrites en dur
+  ailleurs (`index.css`, feuilles GL, trame alimentaire) passent au token — plafond du cliquet
+  abaissé de 662 à 629 ; `fresque_boards.owner_type` / `.status` déclarés dans
+  `src/shared/enums/pedagoEnums.js` ; tailles de police en tokens `--text-*` ; confirmation
+  de « Recommencer » par `useAppDialogs()` ; routes d'écriture `/api/fresques/boards*`
+  déclarées dans l'inventaire figé.
+
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
 - Nouvelle route publique `POST /api/auth/logout` : `Clear-Site-Data` (`"cache"` ou

@@ -32,6 +32,7 @@ import {
   IconMascotPacks,
   IconMediaLibrary,
   IconNotebook,
+  IconGlobe,
   IconPoleAdmin,
   IconPoleContents,
   IconPoleTracking,
@@ -98,6 +99,7 @@ export function TeacherTopTabs({
   idKeysEnabled = true,
   pedagoSessionsEnabled = true,
   individualsEnabled = true,
+  fresqueEnabled = true,
   canAccessForum,
   /** Point rouge sur l'onglet Forum (et son pôle) : message d'autrui non lu. */
   hasForumUnread = false,
@@ -182,6 +184,14 @@ export function TeacherTopTabs({
       Icon: IconSessions,
       label: 'Séances',
       visible: pedagoSessionsEnabled && canPlants,
+    },
+    {
+      id: 'fresque',
+      pole: 'contents',
+      Icon: IconGlobe,
+      label: 'Fresque',
+      // Suivi en lecture seule pour qui lit les stats de groupe ; préparation pour `plants.manage`.
+      visible: fresqueEnabled && (canPlants || canStats),
     },
     {
       id: 'individuals',

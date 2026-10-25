@@ -112,6 +112,7 @@ const idKeysRouter = require('./routes/id-keys');
 const individualsRouter = require('./routes/individuals');
 const pedagoSessionsRouter = require('./routes/pedago-sessions');
 const rewardsRouter = require('./routes/rewards');
+const fresquesRouter = require('./routes/fresques');
 
 const app = express();
 
@@ -366,6 +367,10 @@ registerPwaRoutes(app, {
   logger,
 });
 const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
+// Jeux de cartes « fresque » (`public/fresques/<deckId>/`, lot 1) : lus et validés une fois au
+// démarrage ; un identifiant hors registre est refusé par `/api/fresques` sans toucher au disque.
+const { loadFresqueDecks } = require('./lib/fresqueDecks');
+logger.info({ decks: [...loadFresqueDecks().keys()] }, 'Jeux de fresque chargés');
 const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
 // L'entrée HTML d'un produit demandée sur le host d'un autre (ex. /index.vite.html sur gl.*,
 // /gl.html sur planlyautey.*) est redirigée vers la racine : chaque host ne sert que son entrée.
@@ -602,6 +607,7 @@ app.use('/api/id-keys', idKeysRouter);
 app.use('/api/individuals', individualsRouter);
 app.use('/api/pedago-sessions', pedagoSessionsRouter);
 app.use('/api/rewards', rewardsRouter);
+app.use('/api/fresques', fresquesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/school-calendar', schoolCalendarRouter);
 app.use('/api/task-projects', taskProjectsRouter);

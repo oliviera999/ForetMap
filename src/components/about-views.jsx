@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useHelp } from '../hooks/useHelp';
 import { getContentText } from '../utils/content';
-import { getAppCredits } from '../utils/appCredits.js';
+import { getAppCredits, THIRD_PARTY_CREDITS } from '../utils/appCredits.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { getAuthToken, withAppBase } from '../services/api';
 import { getBuildBrand } from '../shared/brand/brandNames.js';
@@ -238,6 +238,21 @@ function AboutView({
         <div className="fm-panel about-card" data-testid="about-credits">
           <h3>Crédits graphiques</h3>
           <DefaultAvatarCredit />
+          <ul className="about-third-party" data-testid="about-third-party-credits">
+            {THIRD_PARTY_CREDITS.map((c) => (
+              <li key={c.id}>
+                <strong>{c.title}</strong> — {c.author} ({c.publisher}),{' '}
+                <a href={c.url} target="_blank" rel="noopener noreferrer">
+                  {c.url.replace(/^https?:\/\//, '')}
+                </a>
+                , licence{' '}
+                <a href={c.licenceUrl} target="_blank" rel="noopener noreferrer">
+                  {c.licenceName}
+                </a>
+                . {c.note}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="fm-panel about-card">

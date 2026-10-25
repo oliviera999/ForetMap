@@ -537,6 +537,30 @@
       "values": ["local", "external"],
       "default": "local"
     },
+    "privacy.logout_clear_site_data_scope": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["cache", "cache_storage"],
+      "default": "cache"
+    },
+    "privacy.remote_media_blocked_hosts": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 2000,
+      "default": ""
+    },
+    "privacy.remote_media_hosts": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 2000,
+      "default": ""
+    },
+    "privacy.remote_media_hosts_mode": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["any_public", "allowlist"],
+      "default": "any_public"
+    },
     "rbac.progression_by_validated_tasks": {
       "scope": "teacher",
       "type": "boolean",
@@ -928,6 +952,11 @@
       "type": "boolean",
       "default": true
     },
+    "ui.modules.fresque_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
     "ui.modules.help_enabled": {
       "scope": "public",
       "type": "boolean",
@@ -1294,7 +1323,8 @@
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
           "rewards_enabled": true,
-          "species_observations_enabled": true
+          "species_observations_enabled": true,
+          "fresque_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,
@@ -1635,6 +1665,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1677,6 +1708,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1710,6 +1742,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1739,6 +1772,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -3095,6 +3129,70 @@
       "updated_by_user_id": null
     },
     {
+      "key": "privacy.logout_clear_site_data_scope",
+      "scope": "public",
+      "type": "enum",
+      "value": "cache",
+      "default_value": "cache",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["cache", "cache_storage"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_blocked_hosts",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 2000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_hosts",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 2000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_hosts_mode",
+      "scope": "admin",
+      "type": "enum",
+      "value": "any_public",
+      "default_value": "any_public",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["any_public", "allowlist"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "rbac.progression_by_validated_tasks",
       "scope": "teacher",
       "type": "boolean",
@@ -4136,6 +4234,22 @@
     },
     {
       "key": "ui.modules.forum_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.fresque_enabled",
       "scope": "public",
       "type": "boolean",
       "value": true,
@@ -5270,7 +5384,8 @@
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
           "rewards_enabled": true,
-          "species_observations_enabled": true
+          "species_observations_enabled": true,
+          "fresque_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,
@@ -5611,6 +5726,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5653,6 +5769,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5686,6 +5803,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5715,6 +5833,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }

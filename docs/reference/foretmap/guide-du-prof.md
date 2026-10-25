@@ -100,6 +100,9 @@ L'onglet **Séances** sert à dérouler une activité étape par étape avec la 
   scannant.
 - Une séance peut être **liée à une tâche** : le bouton « Lancer la séance » apparaît alors
   directement depuis la tâche.
+- L'onglet **Fresque** propose **La Fresque du Climat (version Enfant)** en autonomie : l'élève
+  la fait seul, quand il veut ; vous suivez l'avancement en lecture seule, sans classement. Une
+  étape de séance peut la lancer. Détail : [La Fresque du Climat](fresque-du-climat.md).
 
 ### 4. Préparer les contenus
 

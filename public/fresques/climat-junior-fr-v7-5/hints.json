@@ -1,0 +1,155 @@
+{
+  "schema": "foretmap.fresque.hints/1",
+  "deck": "climat-junior-fr-v7-5",
+  "authorship": "Textes originaux écrits pour ForetMap. Ils guident la lecture des cartes sans en reprendre le texte et ne sont jamais affichés sur une carte.",
+  "tone": "Tutoiement, phrases courtes, jamais « faux » ni « erreur » : on parle de pistes, d'étapes et de flèches à discuter.",
+  "tutorial": [
+    {
+      "id": "deplacer",
+      "text": "Fais glisser une carte de ta main vers la table pour la poser."
+    },
+    {
+      "id": "retourner",
+      "text": "Touche une carte posée pour la retourner et lire son verso."
+    },
+    {
+      "id": "relier",
+      "text": "Touche le bouton « relier » d'une carte, puis la carte qu'elle provoque : une flèche apparaît."
+    },
+    {
+      "id": "retirer",
+      "text": "Touche une flèche pour la retirer si tu changes d'avis."
+    },
+    {
+      "id": "aide",
+      "text": "Coincé ? Le bouton « Un indice » colle un post-it pour t'aider. Ça ne coûte rien."
+    }
+  ],
+  "lotIntros": {
+    "1": "Tout commence par nos gestes du quotidien… et par un gaz invisible.",
+    "2": "La chaleur s'installe : dans l'air, dans l'océan, dans la glace et dans le cycle de l'eau.",
+    "3": "De nouvelles causes, et les conséquences pour le vivant et pour nous. Suis les flèches jusqu'au bout."
+  },
+  "ladder": [
+    {
+      "level": 1,
+      "id": "lire",
+      "label": "Lire",
+      "source": "readingHints"
+    },
+    {
+      "level": 2,
+      "id": "structure",
+      "label": "Structure",
+      "source": "templates.structure"
+    },
+    {
+      "level": 3,
+      "id": "piste",
+      "label": "Piste",
+      "source": "templates.piste"
+    },
+    {
+      "level": 4,
+      "id": "revelation",
+      "label": "Révélation",
+      "source": "templates.revelation"
+    }
+  ],
+  "readingHints": {
+    "c02": "D'où viennent les objets que tu achètes ? Retourne la carte : qui les fabrique, et qu'est-ce que ça rejette ?",
+    "c03": "Pour faire marcher une clim ou un radiateur, il faut de l'énergie. Quel gaz cette énergie libère-t-elle ?",
+    "c04": "Que brûle un moteur de voiture ou d'avion ? Quel gaz sort du pot d'échappement ?",
+    "c07": "Ce gaz invisible s'accumule dans l'air. Quel phénomène renforce-t-il ?",
+    "c08": "Une vache ne rejette pas surtout du CO2… Retourne la carte : quel gaz, et qu'est-ce qu'il renforce ?",
+    "c13": "L'effet de serre existe naturellement. Que se passe-t-il pour la Terre quand il devient plus fort ?",
+    "c16": "Les glaciers sont de la glace posée sur la terre ferme. Quand ils fondent, où va toute cette eau ?",
+    "c17": "Une eau plus chaude prend un peu plus de place, et elle donne de l'énergie au vent. Quelles cartes cela peut-il toucher ?",
+    "c18": "La banquise flotte déjà sur la mer. En fondant, change-t-elle le niveau de l'eau ? Vérifie au verso.",
+    "c20": "Plus de chaleur, plus d'évaporation : trop d'eau à certains endroits, pas assez à d'autres. Quelles cartes parlent de trop ou de pas assez d'eau ?",
+    "c21": "C'est une carte carrefour : beaucoup de conséquences en partent. Cherche tout ce que la chaleur peut faire fondre, chauffer ou dérégler.",
+    "c22": "Quand la mer monte, que deviennent les côtes, les villages et les îles basses ?",
+    "c25": "Si les plantes et les animaux souffrent, que devient ce que nous récoltons et ce que nous pêchons ?",
+    "c26": "Une inondation dans les champs, qu'est-ce que ça abîme ? Et que font les familles dont la maison est sous l'eau ?",
+    "c30": "Sans pluie pendant longtemps, que deviennent les récoltes ?",
+    "c32": "Beaucoup de flèches arrivent ici. Si on produit moins à manger, qu'est-ce qui menace ?",
+    "c33": "Quand la mer envahit les terres, que perd-on ? Les champs ? Les maisons ?",
+    "c34": "Un cyclone pousse la mer vers la côte. Quelle carte parle d'eau de mer qui entre dans les terres ?",
+    "c36": "Des chaleurs extrêmes qui durent : qu'arrive-t-il aux sols et aux rivières ?",
+    "c37": "Quand il n'y a plus assez à manger chez soi, que décident parfois les familles ?",
+    "c39": "C'est une carte d'arrivée : plusieurs chemins y mènent, et aucune flèche n'en repart dans ce jeu."
+  },
+  "templates": {
+    "structure": {
+      "carrefour": "La carte {number} « {title} » est un carrefour : {count} flèches en partent.",
+      "convergence": "{count} flèches arrivent sur la carte {number} « {title} ».",
+      "sansConsequence": "Une carte de ce lot n'a aucune flèche qui part d'elle dans ce jeu. Laquelle ?",
+      "arrivee": "La carte {number} « {title} » est une arrivée : aucune flèche n'en repart.",
+      "resteDuLot": "Il te reste {count} flèche(s) à trouver avec les cartes déjà posées."
+    },
+    "piste": {
+      "depuis": "Cherche ce que provoque la carte {number} « {title} ».",
+      "vers": "Qu'est-ce qui peut causer la carte {number} « {title} » ?"
+    },
+    "revelation": "Voici une flèche que tu n'avais pas encore trouvée : de la carte {fromNumber} vers la carte {toNumber}."
+  },
+  "feedback": {
+    "trouvee": "Bien vu ! Cette flèche est dans la correction.",
+    "inversee": "Les deux cartes sont bien liées… mais dans l'autre sens. Laquelle provoque l'autre ?",
+    "raccourci": "Tu sautes une étape : une autre carte se glisse entre les deux.",
+    "a_discuter": "Cette flèche n'est pas dans la correction officielle. Elle peut se défendre : saurais-tu l'expliquer ?",
+    "doublon": "Cette flèche existe déjà.",
+    "boucle": "Une carte ne peut pas se provoquer elle-même."
+  },
+  "traps": {
+    "c18>c22": {
+      "category": "piege",
+      "text": "La banquise flotte déjà sur la mer : en fondant, elle ne la fait pas monter. Ce sont les glaciers, posés sur la terre, qui font monter le niveau."
+    },
+    "c08>c07": {
+      "category": "piege",
+      "text": "La vache rejette surtout du méthane, pas du CO2. Le méthane renforce lui aussi l'effet de serre."
+    },
+    "c18>c25": {
+      "category": "a_discuter",
+      "text": "La correction officielle ne tire aucune flèche depuis la banquise… mais pense à l'ours polaire ! Garde-la si tu peux l'expliquer."
+    },
+    "c22>c39": {
+      "category": "raccourci",
+      "text": "Presque ! Entre la mer qui monte et les gens qui partent, il y a les inondations de la côte."
+    },
+    "c21>c22": {
+      "category": "raccourci",
+      "text": "Presque ! La chaleur ne fait pas monter la mer directement : elle passe par la glace qui fond et par l'eau qui se réchauffe."
+    },
+    "c07>c21": {
+      "category": "raccourci",
+      "text": "Presque ! Le CO2 réchauffe la Terre en renforçant un phénomène : lequel ?"
+    }
+  },
+  "checkpoint": {
+    "found": "{found} flèche(s) sur {expected} retrouvée(s) avec les cartes posées.",
+    "allFound": "Toutes les flèches de ce lot sont trouvées. Bravo !",
+    "encourage": "Tu peux continuer, demander un indice ou passer au lot suivant : rien n'est perdu.",
+    "nextLot": "Prêt pour le lot suivant ? Les cartes que tu as posées restent à leur place."
+  },
+  "completion": {
+    "title": "Ta fresque est complète !",
+    "text": "Tu as relié les gestes du quotidien jusqu'à leurs conséquences. Et maintenant, qu'est-ce qu'on peut faire ? Colle tes idées en post-it.",
+    "notePrompt": "Une idée d'action, une question, une carte qui t'a marqué ?"
+  },
+  "levels": {
+    "eclaireur": {
+      "label": "Éclaireur",
+      "summary": "Guidé : bandes sur la table, nombre de flèches par carte, chaque flèche vérifiée tout de suite."
+    },
+    "explorateur": {
+      "label": "Explorateur",
+      "summary": "Placement libre. Au point d'étape, tu sais combien de flèches tu as trouvées."
+    },
+    "expert": {
+      "label": "Expert",
+      "summary": "Comme l'atelier officiel : pas d'aide, la correction à la fin."
+    }
+  }
+}

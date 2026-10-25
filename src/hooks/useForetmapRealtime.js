@@ -11,6 +11,7 @@ import { partitionByArchived } from '../utils/taskArchive';
 import { isSocketAuthRejection } from '../utils/realtimeAuthRejection';
 import { jitteredRefreshDelay } from '../utils/realtimeRefreshDelay';
 import { getSocketIoClientOptions } from '../utils/socketIoClientOptions';
+import { setForetmapSocket } from '../services/foretmapSocketRegistry';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -228,6 +229,8 @@ export function useForetmapRealtime({
       ...getSocketIoClientOptions({ allowWebsocket }),
     });
     socketRef.current = socket;
+    // Socket exposée aux abonnements ciblés (plateaux de fresque), sans seconde connexion.
+    setForetmapSocket(socket);
     const OFFLINE_GRACE_MS = 15000;
     const subscribeCurrentMap = () => {
       const mapId = activeMapIdRef.current;
@@ -332,6 +335,7 @@ export function useForetmapRealtime({
 
     return () => {
       socketRef.current = null;
+      setForetmapSocket(null);
       subscribedMapIdRef.current = null;
       clearOfflineTimer();
       socket.io.off('reconnect_attempt', onReconnectAttempt);

@@ -33,6 +33,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'biodivEnums.js',
     'emojiMojibakeCore.js',
     'enumCore.js',
+    'fresqueCore.js',
     'glBiomesRegistryCore.js',
     'glBoardPathCore.js',
     'glImageFrameCore.js',

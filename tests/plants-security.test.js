@@ -139,7 +139,10 @@ test('POST /api/plants/:id/photo-upload peut fusionner sans écraser les photos 
 });
 
 test('GET /api/health expose une CSP avec img-src restreint', async () => {
+  // Mode `privacy.external_assets_mode` = `local` (défaut, lot B RGPD) : les images Wikimedia
+  // passent par le relais serveur, `img-src` ne porte donc plus `https:` pour ForetMap.
   const res = await request(app).get('/api/health').expect(200);
   const csp = res.headers['content-security-policy'] || '';
-  assert.ok(csp.includes("img-src 'self' https: data: blob:;"));
+  assert.ok(csp.includes("img-src 'self' data: blob:;"), csp);
+  assert.ok(!csp.includes("img-src 'self' https:"), csp);
 });

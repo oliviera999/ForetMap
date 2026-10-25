@@ -163,7 +163,15 @@ describe('resolvePedagoModuleAccess (décision du 25/09 révisée)', () => {
       expect(access[key]).toEqual({ enabled: true, available: true, learnerOff: false });
     }
     expect(access.rewards.enabled).toBe(true);
+    expect(access.fresque).toEqual({ enabled: true, available: true, learnerOff: false });
     expect(resolvePedagoModuleAccess().idKeys.available).toBe(true);
+    const fresqueOff = resolvePedagoModuleAccess({ modules: { fresque_enabled: false } });
+    expect(fresqueOff.fresque).toEqual({ enabled: false, available: false, learnerOff: false });
+    const fresqueManager = resolvePedagoModuleAccess({
+      modules: { fresque_enabled: false },
+      canManageFresque: true,
+    });
+    expect(fresqueManager.fresque).toEqual({ enabled: false, available: true, learnerOff: true });
   });
 
   test('module éteint : fermé à qui ne le gère pas', () => {

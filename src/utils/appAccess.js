@@ -116,13 +116,14 @@ export function resolveParticipationFlag({ isTeacher = false, user, camelKey, sn
  *
  * Les récompenses n'ont pas d'écran de gestion : seul `enabled` compte.
  * @param {{ modules?: object|null, canManageIdKeys?: boolean, canManageIndividuals?: boolean,
- *           canManagePedagoSessions?: boolean }} params
+ *           canManagePedagoSessions?: boolean, canManageFresque?: boolean }} params
  */
 export function resolvePedagoModuleAccess({
   modules,
   canManageIdKeys = false,
   canManageIndividuals = false,
   canManagePedagoSessions = false,
+  canManageFresque = false,
 } = {}) {
   const entry = (flag, canManage) => {
     const enabled = flag !== false;
@@ -133,6 +134,7 @@ export function resolvePedagoModuleAccess({
     idKeys: entry(modules?.id_keys_enabled, canManageIdKeys),
     individuals: entry(modules?.individuals_enabled, canManageIndividuals),
     pedagoSessions: entry(modules?.pedago_sessions_enabled, canManagePedagoSessions),
+    fresque: entry(modules?.fresque_enabled, canManageFresque),
     rewards: { enabled: modules?.rewards_enabled !== false },
   };
 }

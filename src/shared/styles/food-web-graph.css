@@ -114,7 +114,7 @@
   stroke-width: 1.5;
 }
 .pedago-foodweb-graph__node.highlight {
-  fill: #bbf7d0;
+  fill: var(--tint-note-green);
   stroke-width: 2.5;
 }
 .pedago-foodweb-graph__label {
@@ -181,7 +181,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   background: #fff7ed;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--tint-note-orange);
   color: #7c2d12;
   font-size: var(--text-sm);
 }

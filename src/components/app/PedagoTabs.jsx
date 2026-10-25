@@ -29,6 +29,9 @@ const IndividualsViewLazy = lazyScreen(() =>
 const SessionsViewLazy = lazyScreen(() =>
   import('../pedago-views').then((m) => ({ default: m.SessionsView })),
 );
+const FresqueViewLazy = lazyScreen(() =>
+  import('../pedago-views').then((m) => ({ default: m.FresqueView })),
+);
 const AboutViewLazy = lazyScreen(() =>
   import('../about-views').then((m) => ({ default: m.AboutView })),
 );
@@ -92,6 +95,10 @@ export function PedagoTabs({
   idKeysOffForLearners = false,
   individualsOffForLearners = false,
   pedagoSessionsOffForLearners = false,
+  /** Fresques (`ui.modules.fresque_enabled`) : même convention que les trois autres modules. */
+  fresqueEnabled = true,
+  fresqueOffForLearners = false,
+  fresqueProps = null,
 }) {
   return (
     <>
@@ -200,6 +207,11 @@ export function PedagoTabs({
             {...sessionsProps}
             moduleOffForLearners={pedagoSessionsOffForLearners}
           />
+        </TabSuspense>
+      )}
+      {fresqueEnabled && tab === 'fresque' && (
+        <TabSuspense>
+          <FresqueViewLazy {...(fresqueProps || {})} moduleOffForLearners={fresqueOffForLearners} />
         </TabSuspense>
       )}
       {tab === 'about' && (

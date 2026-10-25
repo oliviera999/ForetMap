@@ -66,6 +66,18 @@ export function runPedagoSessionStepAction(step, nav) {
     nav.navigateTab('glossary');
     return;
   }
+  if (type === 'open_fresque') {
+    if (!nav.fresqueAvailable) {
+      nav.navigateTab('sessions');
+      return;
+    }
+    nav.setPedagoEntry((prev) => ({
+      ...prev,
+      fresque: { deckId: payload.deckId ? String(payload.deckId).trim() : null, nonce: Date.now() },
+    }));
+    nav.navigateTab('fresque');
+    return;
+  }
   const map = payload.mapId ? String(payload.mapId).trim() : '';
   if (type === 'open_individual') {
     if (!nav.individualsAvailable) {
@@ -126,6 +138,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
     chooseMap,
     idKeysAvailable,
     individualsAvailable,
+    fresqueAvailable = true,
     setPedagoIdKeysInitialKey,
     setPedagoQuizQuestionCode,
     setPedagoQuizNotionId,
@@ -152,6 +165,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
         chooseMap,
         idKeysAvailable,
         individualsAvailable,
+        fresqueAvailable,
         setPedagoIdKeysInitialKey,
         setPedagoQuizQuestionCode,
         setPedagoQuizNotionId,
@@ -168,6 +182,7 @@ export function usePedagoSession({ available, authenticated, onToast, navigation
       chooseMap,
       idKeysAvailable,
       individualsAvailable,
+      fresqueAvailable,
       setPedagoIdKeysInitialKey,
       setPedagoQuizQuestionCode,
       setPedagoQuizNotionId,
