@@ -7,7 +7,11 @@ import {
   FRESQUE_STEP_DISCOVER,
   FRESQUE_STEP_UNDERSTAND,
   LINK_CATEGORY_MARKS,
+  NOTE_H_PCT,
+  NOTE_W_PCT,
+  acceptRevealedLink,
   addLink,
+  addNote,
   canEnterUnderstand,
   canOpenNextLot,
   cardsInHand,
@@ -15,9 +19,12 @@ import {
   classifyLink,
   evaluateBoard,
   flipCard,
+  isComplete,
   isLotComplete,
   lotOfStep,
+  markCorrectionViewed,
   moveCard,
+  nextHint,
   nextLotNumber,
   openNextLot,
   outgoingStats,
@@ -25,6 +32,10 @@ import {
   placeCard,
   recordCheckpoint,
   removeLink,
+  removeNote,
+  revealAllMissing,
+  revealNextMissing,
+  setCreative,
   setLevel,
   setShowBands,
   setStep,
@@ -34,8 +45,17 @@ import {
   updateNote,
 } from './fresqueCore.js';
 import { pctToSvg } from './fresqueGeometry.js';
+import { FresqueCorrectionPanel } from './FresqueCorrectionPanel.jsx';
 import { FresqueCreditBar } from './FresqueCreditBar.jsx';
 import { FresqueHand } from './FresqueHand.jsx';
+import { FresqueHintDialog, FresqueNoteDialog } from './FresqueNoteEditor.jsx';
+import {
+  blobToDataUrl,
+  buildExportScene,
+  downloadBlob,
+  exportFilename,
+  renderFresquePng,
+} from './fresqueExport.js';
 import { FresqueLevelMenu, FresqueLevelPicker } from './FresqueLevelMenu.jsx';
 import { FresqueStepper, stepLabel } from './FresqueStepper.jsx';
 import { FresqueTable, dropPosition } from './FresqueTable.jsx';
@@ -213,7 +233,10 @@ function FresqueDiscover({ model, publicBase, state, readOnly, onLevel, onOpenIm
  * @param {boolean} [props.readOnly]
  * @param {(boardId: string, onChanged: (payload) => void) => (() => void)} [props.subscribeBoard]
  * @param {(rewards: object[]) => void} [props.onRewards]
- * @param {(message: string) => void} [props.onToast]
+ * @param {(result: object) => void} [props.onCompleted]
+ * @param {(payload: { blob: Blob, dataUrl: string, title: string, filename: string }) => Promise<void>}
+ *   [props.onExportToJournal] « Ajouter à mon carnet » (fourni par le produit s'il sait importer une image)
+ * @param {() => void} [props.onRestart] « Recommencer » (le produit archive et recrée le plateau)
  * @param {import('react').ReactNode} [props.headerExtra]
  */
 export function FresqueBoard({
@@ -226,10 +249,31 @@ export function FresqueBoard({
   subscribeBoard = null,
   onRewards = null,
   onCompleted = null,
+  onExportToJournal = null,
+  onRestart = null,
   headerExtra = null,
 }) {
+  const [completionDialog, setCompletionDialog] = useState(null);
+  const completionSeenRef = useRef(Boolean(board?.status === 'completed'));
+  const handleCompleted = useCallback(
+    (res) => {
+      if (!completionSeenRef.current) {
+        completionSeenRef.current = true;
+        setCompletionDialog({ rewards: Array.isArray(res?.rewards) ? res.rewards : [] });
+      }
+      onCompleted?.(res);
+    },
+    [onCompleted],
+  );
   const { state, update, status, conflict, resolveConflict, applyRemoteChange, flush } =
-    useFresqueBoardState({ api, getAuthToken, board, readOnly, onRewards, onCompleted });
+    useFresqueBoardState({
+      api,
+      getAuthToken,
+      board,
+      readOnly,
+      onRewards,
+      onCompleted: handleCompleted,
+    });
 
   const tableApiRef = useRef(null);
   const [selectedCardId, setSelectedCardId] = useState(null);
@@ -242,6 +286,11 @@ export function FresqueBoard({
   const [popover, setPopover] = useState(null);
   const [linkPicker, setLinkPicker] = useState(null);
   const [checkpoint, setCheckpoint] = useState(null);
+  const [noteDialog, setNoteDialog] = useState(null);
+  const [hintDialog, setHintDialog] = useState(null);
+  const [expertHint, setExpertHint] = useState(false);
+  const [previewOfficial, setPreviewOfficial] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const toastTimer = useRef(null);
 
   useEffect(() => {
@@ -477,7 +526,162 @@ export function FresqueBoard({
     (noteId, x, y) => update((s) => updateNote(s, noteId, { x, y })),
     [update],
   );
-  const onNoteTap = useCallback((note) => setPopover({ kind: 'note', note, x: null, y: null }), []);
+  const onNoteTap = useCallback((note) => {
+    setPopover(null);
+    if (note.kind === 'hint') setHintDialog(note);
+    else setNoteDialog({ note });
+  }, []);
+
+  // ----- Indices (post-it) --------------------------------------------------------------------
+  const requestHint = useCallback(() => {
+    if (readOnly) return;
+    if (isExpert) {
+      setExpertHint(true);
+      return;
+    }
+    const probe = nextHint(model, state);
+    if (probe.hint.kind === 'none') {
+      const extra = probe.hint.suggestNextLot
+        ? ` ${model.hints.checkpoint?.nextLot || ''}`
+        : probe.hint.suggestUnderstand
+          ? ' Tu peux passer à l’étape Comprendre.'
+          : '';
+      showToast(`${probe.hint.text}${extra}`.trim(), '✓');
+      return;
+    }
+    update((s) => nextHint(model, s).state);
+    showToast(`Indice (${probe.hint.rungLabel || probe.hint.rung}) : ${probe.hint.text}`, '💡');
+    setAnnounce(
+      `Nouvel indice collé près de la carte « ${model.cardsById[probe.hint.target]?.title} »`,
+    );
+  }, [isExpert, model, readOnly, showToast, state, update]);
+  const acceptHint = useCallback(
+    (note) => {
+      update((s) => acceptRevealedLink(model, s, note.id).state);
+      setHintDialog(null);
+      setAnnounce('Flèche révélée tracée');
+    },
+    [model, update],
+  );
+  const dismissHint = useCallback(
+    (note) => {
+      update((s) => removeNote(s, note.id));
+      setHintDialog(null);
+    },
+    [update],
+  );
+
+  // ----- Post-it de l'élève -------------------------------------------------------------------
+  const centerOfView = useCallback(() => {
+    const snap = tableApiRef.current?.getViewSnapshot?.();
+    const xp = Number.isFinite(snap?.xp) ? snap.xp : 50;
+    const yp = Number.isFinite(snap?.yp) ? snap.yp : 70;
+    return {
+      x: Math.min(100 - NOTE_W_PCT, Math.max(0, xp - NOTE_W_PCT / 2)),
+      y: Math.min(100 - NOTE_H_PCT, Math.max(0, yp - NOTE_H_PCT / 2)),
+    };
+  }, []);
+  const saveNote = useCallback(
+    ({ text, color }) => {
+      const editing = noteDialog?.note || null;
+      if (editing) {
+        update((s) => updateNote(s, editing.id, { text, color }));
+      } else {
+        const pos = centerOfView();
+        update((s) => {
+          const r = addNote(model, s, { text, color, x: pos.x, y: pos.y });
+          if (!r.note) showToast('Tu as déjà 40 post-it : retire-en un pour en coller un autre.');
+          return r.state;
+        });
+      }
+      setNoteDialog(null);
+      setAnnounce(editing ? 'Post-it modifié' : 'Post-it collé sur la table');
+    },
+    [centerOfView, model, noteDialog, showToast, update],
+  );
+  const deleteNote = useCallback(
+    (note) => {
+      update((s) => removeNote(s, note.id));
+      setNoteDialog(null);
+      setAnnounce('Post-it retiré');
+    },
+    [update],
+  );
+
+  // ----- Comprendre : correction, créativité, export ----------------------------------------
+  const compareWithCorrection = useCallback(() => {
+    update((s) => markCorrectionViewed(s));
+    setAnnounce('Correction ouverte : chaque flèche porte maintenant son repère');
+    void flush();
+  }, [flush, update]);
+  const revealNext = useCallback(() => {
+    const probe = revealNextMissing(model, state);
+    update((s) => revealNextMissing(model, s).state);
+    if (probe.revealed) {
+      showToast(
+        `Flèche manquante : ${model.cardsById[probe.revealed.from]?.title} → ${model.cardsById[probe.revealed.to]?.title}`,
+        LINK_CATEGORY_MARKS.manquante.icon,
+      );
+    }
+  }, [model, showToast, state, update]);
+  const revealAll = useCallback(() => update((s) => revealAllMissing(model, s)), [model, update]);
+  const openOfficialCorrection = useCallback(() => {
+    const licence = model.deck.specialCards.licence;
+    setLightbox({
+      gallery: [
+        { src: `${publicBase}${licence.verso}`, caption: 'Correction officielle' },
+        { src: `${publicBase}${licence.recto}`, caption: licence.alt },
+      ],
+      index: 0,
+    });
+  }, [model, publicBase]);
+  const onCreativeChange = useCallback(
+    (patch) => update((s) => setCreative(model, s, patch)),
+    [model, update],
+  );
+  const officialPositions = useMemo(() => {
+    if (!previewOfficial) return null;
+    // Aperçu seulement : la disposition de l'élève n'est pas modifiée. Les coordonnées
+    // officielles sont prises telles quelles (une carte peut déborder légèrement du cadre).
+    const out = {};
+    const layout = model.correction?.officialLayout?.cards || {};
+    for (const [id, pos] of Object.entries(state.cards || {})) {
+      const target = layout[id];
+      out[id] = target ? { ...pos, x: target.x, y: target.y } : pos;
+    }
+    return out;
+  }, [model, previewOfficial, state.cards]);
+  const buildPng = useCallback(async () => {
+    const scene = buildExportScene(model, state, { publicBase, evaluation });
+    const blob = await renderFresquePng(scene, { scale: 1 });
+    return { blob, filename: exportFilename(model, state), title: scene.title };
+  }, [evaluation, model, publicBase, state]);
+  const exportPng = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { blob, filename } = await buildPng();
+      downloadBlob(blob, filename);
+      setAnnounce('Image exportée, avec le crédit de la Fresque du Climat');
+    } catch (err) {
+      showToast(err?.message || 'Export impossible');
+    } finally {
+      setExporting(false);
+    }
+  }, [buildPng, showToast]);
+  const exportToJournal = useCallback(async () => {
+    if (!onExportToJournal) return;
+    setExporting(true);
+    try {
+      const { blob, filename, title } = await buildPng();
+      const dataUrl = await blobToDataUrl(blob);
+      await onExportToJournal({ blob, dataUrl, title, filename });
+      showToast('Ajouté à ton carnet', '✓');
+    } catch (err) {
+      showToast(err?.message || 'Ajout au carnet impossible');
+    } finally {
+      setExporting(false);
+    }
+  }, [buildPng, onExportToJournal, showToast]);
 
   const onViewportCommit = useCallback(
     (snap) => update((s) => setViewport(s, { scale: snap.zoom, tx: snap.xp, ty: snap.yp })),
@@ -544,6 +748,26 @@ export function FresqueBoard({
           Comprendre
         </button>
       ) : null}
+      {!readOnly ? (
+        <button
+          type="button"
+          className="fm-fresque-btn"
+          onClick={requestHint}
+          data-testid="fm-fresque-hint"
+        >
+          💡 Un indice
+        </button>
+      ) : null}
+      {!readOnly ? (
+        <button
+          type="button"
+          className="fm-fresque-btn"
+          onClick={() => setNoteDialog({ note: null })}
+          data-testid="fm-fresque-add-note"
+        >
+          Post-it
+        </button>
+      ) : null}
       {!readOnly && !isEclaireur && model.guideBands.length ? (
         <label className="fm-fresque-btn fm-fresque-btn--ghost">
           <input
@@ -606,6 +830,7 @@ export function FresqueBoard({
             previewLine={previewLine}
             selectedLinkId={popover?.kind === 'link' ? popover.link.id : null}
             arrowColorHex={arrowColorHex}
+            positionsOverride={officialPositions}
             tableApiRef={tableApiRef}
             initialView={initialView}
             onViewportCommit={onViewportCommit}
@@ -639,6 +864,28 @@ export function FresqueBoard({
             onPlaceAll={onPlaceAll}
             actions={handActions}
           />
+          {inUnderstand ? (
+            <FresqueCorrectionPanel
+              model={model}
+              state={state}
+              evaluation={correctionShown ? evaluation : null}
+              readOnly={readOnly}
+              completed={isComplete(model, state)}
+              previewActive={previewOfficial}
+              exporting={exporting}
+              canExportToJournal={Boolean(onExportToJournal)}
+              onCompare={compareWithCorrection}
+              onRevealNext={revealNext}
+              onRevealAll={revealAll}
+              onOpenOfficial={openOfficialCorrection}
+              onTogglePreview={() => setPreviewOfficial((v) => !v)}
+              onCreativeChange={onCreativeChange}
+              onAddNote={() => setNoteDialog({ note: null })}
+              onExport={exportPng}
+              onExportToJournal={exportToJournal}
+              onRestart={onRestart}
+            />
+          ) : null}
         </>
       )}
 
@@ -814,6 +1061,96 @@ export function FresqueBoard({
               </button>
             ) : null}
             <button type="button" className="fm-fresque-btn" onClick={() => setCheckpoint(null)}>
+              Continuer
+            </button>
+          </div>
+        </DialogShell>
+      ) : null}
+
+      <FresqueNoteDialog
+        open={Boolean(noteDialog)}
+        note={noteDialog?.note || null}
+        prompt={noteDialog && !noteDialog.note ? model.hints.completion?.notePrompt || '' : ''}
+        onSave={saveNote}
+        onDelete={deleteNote}
+        onClose={() => setNoteDialog(null)}
+      />
+      {hintDialog ? (
+        <FresqueHintDialog
+          note={hintDialog}
+          model={model}
+          onAccept={!readOnly && hintDialog.link ? acceptHint : null}
+          onDismiss={dismissHint}
+          onClose={() => setHintDialog(null)}
+        />
+      ) : null}
+
+      {expertHint ? (
+        <DialogShell
+          open
+          onClose={() => setExpertHint(false)}
+          dialogClassName="fm-fresque-dialog"
+          ariaLabel="Indices en niveau Expert"
+        >
+          <h2>Niveau Expert : pas d’indice</h2>
+          <p>
+            Comme à l’atelier officiel, la correction vient à la fin. Tu peux passer en Explorateur
+            à tout moment : rien ne sera perdu.
+          </p>
+          <div className="fm-fresque-dialog__actions">
+            <button
+              type="button"
+              className="fm-fresque-btn fm-fresque-btn--primary"
+              onClick={() => {
+                setExpertHint(false);
+                changeLevel('explorateur');
+              }}
+              data-testid="fm-fresque-expert-switch"
+            >
+              Passer en Explorateur
+            </button>
+            <button type="button" className="fm-fresque-btn" onClick={() => setExpertHint(false)}>
+              Rester en Expert
+            </button>
+          </div>
+        </DialogShell>
+      ) : null}
+
+      {completionDialog ? (
+        <DialogShell
+          open
+          onClose={() => setCompletionDialog(null)}
+          dialogClassName="fm-fresque-dialog"
+          ariaLabel="Fresque terminée"
+        >
+          <h2 data-testid="fm-fresque-done-title">{model.hints.completion?.title}</h2>
+          <p>{model.hints.completion?.text}</p>
+          {completionDialog.rewards.length ? (
+            <ul className="fm-fresque-rewards" data-testid="fm-fresque-done-rewards">
+              {completionDialog.rewards.map((r) => (
+                <li key={r.key}>
+                  <span aria-hidden="true">{r.emoji}</span> <strong>{r.title}</strong> —{' '}
+                  {r.description}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="fm-fresque-dialog__actions">
+            <button
+              type="button"
+              className="fm-fresque-btn fm-fresque-btn--primary"
+              onClick={() => {
+                setCompletionDialog(null);
+                setNoteDialog({ note: null });
+              }}
+            >
+              Coller un post-it « que peut-on faire ? »
+            </button>
+            <button
+              type="button"
+              className="fm-fresque-btn"
+              onClick={() => setCompletionDialog(null)}
+            >
               Continuer
             </button>
           </div>

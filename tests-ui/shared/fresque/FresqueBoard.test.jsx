@@ -238,7 +238,7 @@ describe('FresqueBoard', () => {
 
   test('conflit 409 : dialogue, « Reprendre la version enregistrée » recharge le serveur', async () => {
     const serverState = placeCard(model, lotState(), 'c13', { x: 30, y: 30 });
-    const api = vi.fn(async (p, method = 'GET', body) => {
+    const api = vi.fn(async (p, method = 'GET') => {
       if (method === 'PUT') {
         const err = new Error('conflit');
         err.status = 409;

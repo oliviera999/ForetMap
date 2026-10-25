@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api, getAuthToken } from '../../services/api.js';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { buildDeckModel } from '../../shared/fresque/fresqueCore.js';
 import { FresqueBoard } from '../../shared/fresque/FresqueBoard.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
@@ -29,6 +30,39 @@ export function FresqueView({
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState(canFollow ? 'follow' : 'play');
   const [rewardBanner, setRewardBanner] = useState(null);
+  const publicSettings = usePublicSettings();
+  // « Ajouter à mon carnet » : réutilise la création d'article + l'envoi d'image du carnet
+  // (`POST /api/user-journal/me/articles`, puis `/assets`), si le module carnet est allumé.
+  const journalEnabled = publicSettings?.modules?.observations_enabled !== false;
+  const exportToJournal = useCallback(async ({ dataUrl, title }) => {
+    const created = await api('/api/user-journal/me/articles', 'POST', {
+      title: `Fresque : ${title}`.slice(0, 180),
+      bodyMarkdown: [
+        '## Ma fresque',
+        '',
+        'Image exportée depuis l’activité Fresque du Climat.',
+        '',
+        '## Ce que je retiens :',
+        '',
+        '',
+      ].join('\n'),
+    });
+    const articleId = created?.article?.id;
+    if (!articleId) throw new Error('Article du carnet non créé');
+    await api(`/api/user-journal/me/articles/${articleId}/assets`, 'POST', { imageData: dataUrl });
+  }, []);
+  const restartBoard = useCallback(async () => {
+    if (!board?.id) return;
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm(
+        'Recommencer une nouvelle fresque ? L’ancienne reste consultable par ton prof.',
+      )
+    )
+      return;
+    const res = await api(`/api/fresques/boards/${board.id}/restart`, 'POST', {});
+    setBoard(res.board);
+  }, [board?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -229,6 +263,8 @@ export function FresqueView({
                 readOnly={board.readOnly === true}
                 subscribeBoard={subscribeBoard}
                 onRewards={onRewards}
+                onExportToJournal={journalEnabled && !isTeacher ? exportToJournal : null}
+                onRestart={board.readOnly ? null : restartBoard}
                 headerExtra={
                   <button
                     type="button"

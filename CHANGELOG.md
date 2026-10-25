@@ -50,6 +50,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   enregistrement différé 500 ms, `keepalive` sur `visibilitychange`/`pagehide`, reprise du miroir
   plus récent, 409 → « Reprendre la version enregistrée » / « Garder celle-ci ». Vue produit
   `src/components/pedago/FresqueView.jsx`. Tests Vitest `tests-ui/shared/fresque/`.
+- **Lot 5 — aides et fin.** Points d'étape par niveau (Éclaireur / Explorateur : trouvées sur
+  attendues ; Expert : « Lot terminé ? »), retour immédiat par flèche en Éclaireur (icône +
+  couleur, jamais « faux »), indices gratuits en **post-it « Indice »** (échelle Lire →
+  Structure → Piste → Révélation, cible déterministe ; Expert → proposition de passer en
+  Explorateur), post-it de l'élève (≤ 280 caractères, 5 couleurs, texte brut, jamais sur une
+  carte), étape **Comprendre** (`FresqueCorrectionPanel` : comparer, repères, « Montre-moi une
+  flèche manquante » / « Tout afficher », correction officielle dans la visionneuse,
+  **disposition officielle en aperçu** sans toucher à la fresque), fin = 21 cartes + correction
+  ouverte (dialogue de fin, badge annoncé), créativité (titre ≤ 60, palette de 6 couleurs,
+  carte marquante), **export PNG avec bande de crédit obligatoire** (`fresqueExport.js`),
+  « Ajouter à mon carnet » (article + image du carnet) et « Recommencer » (archive).
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

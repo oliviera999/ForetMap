@@ -40,6 +40,8 @@ export function FresqueTable({
   previewLine = null,
   selectedLinkId = null,
   arrowColorHex = null,
+  /** Positions de remplacement (aperçu « disposition officielle ») : lecture seule, animé. */
+  positionsOverride = null,
   tableApiRef,
   initialView = null,
   onViewportCommit = null,
@@ -143,6 +145,8 @@ export function FresqueTable({
     [armedHandCardId, consumeSkipClick, onTapBackground, toImagePct],
   );
 
+  const positions = positionsOverride || state.cards || {};
+  const previewing = Boolean(positionsOverride);
   const placed = Object.keys(state.cards || {});
   const bands = showBands && model.guideBands.length ? model.guideBands : null;
 
@@ -152,7 +156,7 @@ export function FresqueTable({
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- scène
     <div
       ref={containerRef}
-      className="fm-fresque-table"
+      className={`fm-fresque-table${previewing ? ' fm-fresque-table--preview' : ''}`}
       style={{ touchAction }}
       onClick={onBackgroundClick}
       data-testid="fm-fresque-table"
@@ -210,7 +214,7 @@ export function FresqueTable({
           ) : null}
           <FresqueArrowLayer
             links={state.links || []}
-            positions={state.cards || {}}
+            positions={positions}
             categories={linkCategories}
             showMarks={showMarks}
             missing={missingPreview}
@@ -228,9 +232,9 @@ export function FresqueTable({
               <FresqueCard
                 key={id}
                 card={card}
-                pos={state.cards[id]}
+                pos={positions[id] || state.cards[id]}
                 publicBase={publicBase}
-                readOnly={readOnly}
+                readOnly={readOnly || previewing}
                 selected={selectedCardId === id}
                 isLinkSource={linkSourceId === id}
                 linkArmed={Boolean(linkSourceId) && linkSourceId !== id}
