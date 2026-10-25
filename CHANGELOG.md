@@ -19,6 +19,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (lots 5/6/10, 30 flèches, degrés recalculés, pièges, indices, **empreinte SHA-256 de chaque
   image** — garde-fou CC BY-NC-ND « sans modification »), cache long borné pour `dist/fresques/`.
   Crédit : La Fresque du Climat — Cédric Ringenbach — fresqueduclimat.org — CC BY-NC-ND.
+- **Lot 2 — cœur partagé.** `src/shared/fresque/fresqueCore.js` (pur, miroir CJS
+  `lib/shared/fresqueCore.js` via `sync:shared-cores`) : modèle du jeu (adjacence, degrés,
+  accessibilité, rôles carrefour / arrivée / sans conséquence), état du plateau v1
+  (`createInitialState`, `migrateState`, `validateState` avec bornes), lots et étapes,
+  classement d'une flèche (boucle, doublon, trouvée, piège, inversée, raccourci, à discuter),
+  évaluation, puces Éclaireur, indices déterministes en post-it (échelle Lire → Structure →
+  Piste → Révélation), post-it élève, correction (révélations), créativité, fin, résumé,
+  journal des gestes (`diffStates`) et réécriture de l'auteur. 52 tests `tests/fresque-core.test.js`.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 
