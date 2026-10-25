@@ -320,6 +320,54 @@ const DISCOVERY_TOURS = {
       RELAUNCH_STEP,
     ],
   },
+  fresque: {
+    title: 'Découverte · Fresque',
+    steps: [
+      {
+        key: 'intro',
+        target: ACTIVE_NAV,
+        title: 'La Fresque du Climat',
+        body: 'Ici, on reconstruit la Fresque du Climat : 21 cartes à relier de la cause à l’effet. Au bout des flèches, il y a la banquise, l’océan et nous. On part de nos gestes du quotidien — c’est aussi là que sont nos leviers.',
+        bodyTeacher:
+          'Ici, tes n3beurs reconstruisent la Fresque du Climat, seuls ou en équipe, chacun à son rythme. Si ton rôle suit les élèves, « Suivi des élèves » montre leurs plateaux en lecture seule.',
+        placement: 'auto',
+        expression: 'grave',
+      },
+      {
+        key: 'ouvrir',
+        target: '[data-testid="fm-fresque-picker"]',
+        title: 'Ta fresque',
+        body: 'Ouvre ta fresque ici. Elle s’enregistre toute seule : tu peux la quitter en plein lot et la retrouver telle quelle.',
+        placement: 'auto',
+        expression: 'montre',
+      },
+      {
+        key: 'gestes',
+        target: null,
+        title: 'Poser et lire',
+        body: 'Glisse une carte de ta main sur la table, ou touche-la puis touche la table. Touche une carte pour la voir en grand, recto et verso — sur téléphone, c’est là qu’on la lit.',
+        placement: 'center',
+        expression: 'parle',
+      },
+      {
+        key: 'relier',
+        target: null,
+        title: 'Tracer les flèches',
+        body: 'Pour tracer une flèche, touche « Relier à… » puis la carte que la première provoque. Une flèche se retire d’un toucher si tu changes d’avis.',
+        placement: 'center',
+        expression: 'cherche',
+      },
+      {
+        key: 'indice',
+        target: null,
+        title: 'Un indice',
+        body: 'Coincé ? « Un indice » colle un post-it sur la table, autant de fois que tu veux. J’en ai collé trois sur la même carte — le CO2 est plus têtu qu’il n’en a l’air.',
+        placement: 'center',
+        expression: 'complice',
+      },
+      RELAUNCH_STEP,
+    ],
+  },
   forum: {
     title: 'Découverte · Forum',
     steps: [

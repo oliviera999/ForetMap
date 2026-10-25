@@ -29,6 +29,11 @@
 >   `src/shared/`** et servi aux deux produits : GL gagne une aide **appelée** (bouton
 >   « ? » + modale), une variante **MJ** (`bodyMj`), et ses **premières visites guidées**.
 >   Et, des deux côtés, **OLU se présente à la première connexion**. Voir §16.
+> - **Fresque du Climat** — OLU porte la visite guidée de l'onglet `fresque`, son aide « ? »
+>   (panneau `fresque`) et, dans le plateau partagé, le tutoriel des gestes, le point d'étape,
+>   le conseil Expert et l'écran de fin (`src/shared/fresque/FresqueOlu.jsx`, `narrator` passé
+>   en prop). Les retours instantanés sur les flèches restent sans portrait (§4.5). Textes du
+>   jeu tenus à la charte par `tests/content/fresque-climat-junior.test.js`.
 >
 > **Reste à faire : lot 7b (optionnel, suspendu à une planche d'animation).** OLU est à l'écran **et** il parle à la
 > première personne. Le brief de production graphique des portraits est dans

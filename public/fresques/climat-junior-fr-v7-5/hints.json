@@ -6,23 +6,23 @@
   "tutorial": [
     {
       "id": "deplacer",
-      "text": "Fais glisser une carte de ta main vers la table pour la poser."
+      "text": "Glisse une carte de ta main vers la table pour la poser. Tu peux aussi la toucher, puis toucher l'endroit où tu la veux."
     },
     {
       "id": "retourner",
-      "text": "Touche une carte posée pour la retourner et lire son verso."
+      "text": "Touche une carte : elle s'affiche en grand sous la table, recto et verso. Le verso explique — c'est souvent là que se cache la flèche."
     },
     {
       "id": "relier",
-      "text": "Touche le bouton « relier » d'une carte, puis la carte qu'elle provoque : une flèche apparaît."
+      "text": "Touche « Relier à… », puis la carte que la première provoque : une flèche apparaît."
     },
     {
       "id": "retirer",
-      "text": "Touche une flèche pour la retirer si tu changes d'avis."
+      "text": "Tu changes d'avis sur une flèche ? Touche-la pour la retirer, rien n'est gravé."
     },
     {
       "id": "aide",
-      "text": "Coincé ? Le bouton « Un indice » colle un post-it pour t'aider. Ça ne coûte rien."
+      "text": "Coincé ? « Un indice » colle un post-it sur la table, et ça ne coûte rien. Je m'en sers aussi — le CO2 a plus de flèches qu'on ne croit."
     }
   ],
   "lotIntros": {
@@ -94,7 +94,7 @@
     "revelation": "Voici une flèche que tu n'avais pas encore trouvée : de la carte {fromNumber} vers la carte {toNumber}."
   },
   "feedback": {
-    "trouvee": "Bien vu ! Cette flèche est dans la correction.",
+    "trouvee": "Bien vu : cette flèche est dans la correction.",
     "inversee": "Les deux cartes sont bien liées… mais dans l'autre sens. Laquelle provoque l'autre ?",
     "raccourci": "Tu sautes une étape : une autre carte se glisse entre les deux.",
     "a_discuter": "Cette flèche n'est pas dans la correction officielle. Elle peut se défendre : saurais-tu l'expliquer ?",
@@ -129,13 +129,13 @@
   },
   "checkpoint": {
     "found": "{found} flèche(s) sur {expected} retrouvée(s) avec les cartes posées.",
-    "allFound": "Toutes les flèches de ce lot sont trouvées. Bravo !",
+    "allFound": "Toutes les flèches de ce lot sont là. Je les ai recomptées deux fois — rien ne manque.",
     "encourage": "Tu peux continuer, demander un indice ou passer au lot suivant : rien n'est perdu.",
     "nextLot": "Prêt pour le lot suivant ? Les cartes que tu as posées restent à leur place."
   },
   "completion": {
-    "title": "Ta fresque est complète !",
-    "text": "Tu as relié les gestes du quotidien jusqu'à leurs conséquences. Et maintenant, qu'est-ce qu'on peut faire ? Colle tes idées en post-it.",
+    "title": "Ta fresque est complète",
+    "text": "Tu as suivi les flèches de nos gestes du quotidien jusqu'à leurs conséquences, et ça pèse. Les premières cartes sont aussi nos leviers : colle tes idées d'action en post-it.",
     "notePrompt": "Une idée d'action, une question, une carte qui t'a marqué ?"
   },
   "levels": {

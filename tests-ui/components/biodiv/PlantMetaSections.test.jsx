@@ -17,6 +17,7 @@ import {
   PlantMetaSections,
   PlantBiodivHeroPhoto,
 } from '../../../src/components/biodiv/PlantMetaSections.jsx';
+import { resolveExternalImageUrl } from '../../../src/shared/privacy/externalAssets.js';
 
 beforeEach(() => {
   // Aucun appel réseau réel (aperçus de catégorie Commons) : fetch neutralisé.
@@ -134,7 +135,11 @@ describe('PlantBiodivHeroPhoto', () => {
       />,
     );
     const btn = screen.getByRole('button', { name: 'Agrandir la photo de Pommier' });
-    expect(btn.querySelector('img')).toHaveAttribute('src', 'https://exemple.org/pommier.jpg');
+    // Photo tierce : servie par le relais du serveur en mode « local » (lot B RGPD).
+    expect(btn.querySelector('img')).toHaveAttribute(
+      'src',
+      resolveExternalImageUrl('https://exemple.org/pommier.jpg'),
+    );
     fireEvent.click(btn);
     await waitFor(() => expect(screen.getByTestId('lightbox')).toBeInTheDocument());
     expect(screen.getByTestId('lightbox').textContent).toContain('Photo — Pommier');

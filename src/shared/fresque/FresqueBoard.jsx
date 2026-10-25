@@ -60,6 +60,7 @@ import { FresqueLevelMenu, FresqueLevelPicker } from './FresqueLevelMenu.jsx';
 import { FresqueStepper, stepLabel } from './FresqueStepper.jsx';
 import { FresqueTable, dropPosition } from './FresqueTable.jsx';
 import { FresqueCardInspector } from './FresqueCardInspector.jsx';
+import { FresqueOlu } from './FresqueOlu.jsx';
 import { useFresqueBoardState } from './useFresqueBoardState.js';
 
 const TOAST_MS = 4500;
@@ -103,7 +104,16 @@ function viewportToInitialView(viewport) {
 }
 
 /** Étape Découvrir : carte titre (recto / règle au verso), niveau, tutoriel passable. */
-function FresqueDiscover({ model, publicBase, state, readOnly, onLevel, onOpenImage, onStart }) {
+function FresqueDiscover({
+  model,
+  publicBase,
+  state,
+  readOnly,
+  narrator,
+  onLevel,
+  onOpenImage,
+  onStart,
+}) {
   const [flipped, setFlipped] = useState(false);
   const [tutorialIndex, setTutorialIndex] = useState(state.tutorialDone ? -1 : 0);
   const titre = model.deck.specialCards.titre;
@@ -164,9 +174,16 @@ function FresqueDiscover({ model, publicBase, state, readOnly, onLevel, onOpenIm
                 aria-label="Tutoriel des gestes"
                 data-testid="fm-fresque-tutorial"
               >
-                <div className="fm-fresque-tutorial__bubble" aria-live="polite">
-                  {tutorialIndex + 1}/{tutorial.length} — {tutorial[tutorialIndex].text}
-                </div>
+                <p className="fm-fresque-tutorial__count" aria-live="polite">
+                  Geste {tutorialIndex + 1} sur {tutorial.length}
+                </p>
+                <FresqueOlu
+                  narrator={narrator}
+                  expression={tutorialIndex === tutorial.length - 1 ? 'complice' : 'montre'}
+                  text={tutorial[tutorialIndex].text}
+                  compact
+                  testId="fm-fresque-tutorial-olu"
+                />
                 <div className="fm-fresque-tutorial__nav">
                   <button
                     type="button"
@@ -253,6 +270,7 @@ export function FresqueBoard({
   onExportToJournal = null,
   onRestart = null,
   headerExtra = null,
+  narrator = null,
 }) {
   const [completionDialog, setCompletionDialog] = useState(null);
   const completionSeenRef = useRef(Boolean(board?.status === 'completed'));
@@ -833,6 +851,7 @@ export function FresqueBoard({
           publicBase={publicBase}
           state={state}
           readOnly={readOnly}
+          narrator={narrator}
           onLevel={changeLevel}
           onOpenImage={openCardImage}
           onStart={startFromDiscover}
@@ -1078,14 +1097,22 @@ export function FresqueBoard({
         >
           <h2>Point d’étape — {stepLabel(state.step)}</h2>
           {checkpoint.expert ? (
-            <p>
-              Lot terminé ?{' '}
-              {isLotComplete(model, state)
-                ? model.hints.checkpoint?.nextLot
-                : 'Il reste des cartes à poser.'}
-            </p>
+            <FresqueOlu
+              narrator={narrator}
+              expression="parle"
+              text={`Lot terminé ? ${
+                isLotComplete(model, state)
+                  ? model.hints.checkpoint?.nextLot || ''
+                  : 'Il reste des cartes à poser.'
+              }`}
+            />
           ) : (
-            <p data-testid="fm-fresque-checkpoint-text">{checkpoint.text}</p>
+            <FresqueOlu
+              narrator={narrator}
+              expression={checkpoint.allFound ? 'content' : 'parle'}
+              text={checkpoint.text}
+              testId="fm-fresque-checkpoint-text"
+            />
           )}
           <div className="fm-fresque-dialog__actions">
             {canNext ? (
@@ -1133,10 +1160,11 @@ export function FresqueBoard({
           ariaLabel="Indices en niveau Expert"
         >
           <h2>Niveau Expert : pas d’indice</h2>
-          <p>
-            Comme à l’atelier officiel, la correction vient à la fin. Tu peux passer en Explorateur
-            à tout moment : rien ne sera perdu.
-          </p>
+          <FresqueOlu
+            narrator={narrator}
+            expression="complice"
+            text="Comme à l’atelier officiel, la correction vient à la fin. Tu peux passer en Explorateur à tout moment : rien ne sera perdu."
+          />
           <div className="fm-fresque-dialog__actions">
             <button
               type="button"
@@ -1164,7 +1192,12 @@ export function FresqueBoard({
           ariaLabel="Fresque terminée"
         >
           <h2 data-testid="fm-fresque-done-title">{model.hints.completion?.title}</h2>
-          <p>{model.hints.completion?.text}</p>
+          <FresqueOlu
+            narrator={narrator}
+            expression="content"
+            text={model.hints.completion?.text}
+            testId="fm-fresque-done-olu"
+          />
           {completionDialog.rewards.length ? (
             <ul className="fm-fresque-rewards" data-testid="fm-fresque-done-rewards">
               {completionDialog.rewards.map((r) => (

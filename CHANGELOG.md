@@ -9,6 +9,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — texte riche : l'adresse d'origine des images est enregistrée, le relais ne sert qu'à l'affichage
+
+- Depuis le lot B RGPD, l'éditeur riche ForetMap enregistrait l'adresse du relais
+  (`/api/media/remote?url=…`) au lieu de celle de l'image : un contenu gardait l'adresse
+  relayée même en mode « external ». La conversion HTML → Markdown nettoie désormais sans relayer
+  (`sanitizeRichHtml(…, { relayImages: false })`) ; l'affichage relaie toujours selon le mode.
+- Les contenus déjà enregistrés avec l'adresse relayée sont rattrapés sans migration
+  (`unwrapRelayedImageUrl`) : à l'affichage, l'image d'origine est relayée ou non selon le mode ;
+  au prochain enregistrement, l'adresse d'origine est réécrite.
+- G&L inchangé : ses références internes (`scene:N`, clés legacy) gardées dans `data-gl-md-src`
+  ne sont ni lues ni effacées par le nettoyage.
+
+### Corrigé — tests UI rouges sur `main` depuis les lots RGPD A/B
+
+- `usePrefersReducedMotion` : le correctif de #597 (relire `window.matchMedia` s'il est remplacé,
+  détacher l'écouteur de l'ancienne requête) avait été défait par un commit ultérieur ; il est
+  rétabli, en gardant `resetPrefersReducedMotionForTests`.
+- `resolveExternalImageUrl` : une image **du site lui-même** n'est plus vidée quand le site est
+  servi en `http:` (développement, déploiement sans TLS) ; la lightbox perdait son image.
+- Attentes mises à jour sur le relais d'images tierces (`/api/media/remote`, mode « local » par
+  défaut) et sur le nouveau texte de la notice « Vos données ».
+
+### Ajouté — OLU accompagne la Fresque du Climat
+
+- **Visite guidée** de l'onglet Fresque à la voix d'OLU (`DISCOVERY_TOURS.fresque` : l'activité,
+  ouvrir sa fresque, poser et lire, relier, l'indice ; variante prof), relançable par « ? ».
+- **Aide « ? »** de l'onglet : panneau `fresque` (`data/help.default.json` + miroir
+  `src/constants/help.js`, `PANEL_IDS`, libellé admin), variante prof (suivi, séance, réglage).
+- **OLU dans le plateau** (`FresqueOlu` : portrait + bulle) : tutoriel des gestes, point d'étape,
+  conseil du niveau Expert, écran de fin. `narrator` passé par `FresqueView`.
+- Textes du jeu réécrits à la charte (`hints.json`) : plus de « Bravo ! » ni de « ! » dans les
+  bulles d'OLU ; test de contenu dédié. E2e : visite et aide de l'onglet.
+
 ### Corrigé — Fresque du Climat sur téléphone
 
 - « Commencer ma fresque » était invisible (texte blanc sur fond transparent) : les couleurs de

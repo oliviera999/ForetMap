@@ -327,3 +327,30 @@ test('crédit et licence présents (CC BY-NC-ND, auteur, site)', () => {
   assert.match(a.creditLine, /CC BY-NC-ND/);
   assert.ok(fs.existsSync(path.join(DIR, 'LICENCE-NOTICE.md')));
 });
+
+test('voix d’OLU : tutoriel, point d’étape et fin suivent la charte du narrateur', () => {
+  // docs/MASCOT_NARRATEUR_OLU.md §2 : pas de flatterie, pas d'émoji, pas de « ! » sur une
+  // surface d'apprentissage, 1 à 3 phrases par bulle, et les tournures que la charte exclut.
+  const spoken = [
+    ...hints.tutorial.map((s) => s.text),
+    hints.checkpoint.allFound,
+    hints.checkpoint.encourage,
+    hints.checkpoint.nextLot,
+    hints.completion.title,
+    hints.completion.text,
+    hints.feedback.trouvee,
+  ];
+  for (const text of spoken) {
+    assert.ok(!/\b(Bravo|Excellent|Super)\b/i.test(text), `flatterie dans « ${text} »`);
+    assert.ok(!/\p{Extended_Pictographic}/u.test(text), `émoji dans « ${text} »`);
+    assert.ok(!text.includes('!'), `« ! » dans « ${text} »`);
+    assert.ok(
+      !/n[’']hésite pas|Désolé|Tu me suis|C’est clair \?/i.test(text),
+      `tournure exclue : « ${text} »`,
+    );
+  }
+  for (const step of hints.tutorial) {
+    const sentences = step.text.split(/[.!?](?:\s|$)/).filter((x) => x.trim()).length;
+    assert.ok(sentences >= 1 && sentences <= 3, `${step.id} : ${sentences} phrases`);
+  }
+});

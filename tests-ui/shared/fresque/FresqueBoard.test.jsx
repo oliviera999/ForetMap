@@ -337,6 +337,22 @@ describe('FresqueBoard', () => {
     );
   });
 
+  test('OLU raconte le tutoriel : portrait et bulle, nom du narrateur, coupé sur demande', () => {
+    const narrator = { enabled: true, speakerName: 'OLU', portraits: {} };
+    const { unmount } = renderBoard(createInitialState(model), { narrator });
+    const scene = screen.getByTestId('fm-fresque-tutorial-olu');
+    expect(scene.querySelector('.fm-mascot-speaker')).not.toBeNull();
+    expect(scene).toHaveTextContent('OLU');
+    expect(scene).toHaveTextContent(hints.tutorial[0].text);
+    unmount();
+    // Narrateur coupé dans les réglages : la bulle reste, sans portrait ni nom.
+    renderBoard(createInitialState(model), { narrator: { ...narrator, enabled: false } });
+    const quiet = screen.getByTestId('fm-fresque-tutorial-olu');
+    expect(quiet.querySelector('.fm-mascot-speaker')).toBeNull();
+    expect(quiet).not.toHaveTextContent('OLU');
+    expect(quiet).toHaveTextContent(hints.tutorial[0].text);
+  });
+
   test('lecture seule : pas de main active, pas de bouton relier, indicateur dédié', () => {
     const s = placeCard(model, lotState(), 'c04', { x: 10, y: 10 });
     renderBoard(s, { readOnly: true });
