@@ -298,6 +298,45 @@ describe('FresqueBoard', () => {
     );
   });
 
+  test('carte de la main touchée : affichée en grand, verso consultable, pose sur une place libre', () => {
+    renderBoard(lotState());
+    const handCard = screen.getByTestId('fm-fresque-hand-c07');
+    fireEvent.pointerDown(handCard, { pointerId: 7, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerUp(window, { pointerId: 7, clientX: 10, clientY: 10 });
+    const panel = screen.getByTestId('fm-fresque-inspector');
+    expect(panel).toHaveAttribute('data-origin', 'hand');
+    const img = panel.querySelector('img');
+    expect(img.getAttribute('src')).toBe(`${PUBLIC_BASE}${model.cardsById.c07.recto}`);
+    // Licence : l'image est seule dans son bouton, les commandes sont à côté.
+    expect(img.parentElement.children).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('fm-fresque-inspector-flip'));
+    expect(panel.querySelector('img').getAttribute('src')).toBe(
+      `${PUBLIC_BASE}${model.cardsById.c07.verso}`,
+    );
+    expect(screen.getByTestId('fm-fresque-inspector-hint')).toHaveTextContent('Touche la table');
+    fireEvent.click(screen.getByTestId('fm-fresque-inspector-place'));
+    expect(screen.getByTestId('fm-fresque-card-c07')).toBeInTheDocument();
+    expect(screen.queryByTestId('fm-fresque-hand-c07')).toBeNull();
+    // La carte posée reste choisie : le panneau passe en mode « table ».
+    expect(screen.getByTestId('fm-fresque-inspector')).toHaveAttribute('data-origin', 'table');
+    fireEvent.click(screen.getByTestId('fm-fresque-inspector-close'));
+    expect(screen.queryByTestId('fm-fresque-inspector')).toBeNull();
+  });
+
+  test('carte posée choisie : affichée en grand, retournée depuis le panneau', () => {
+    const s = placeCard(model, lotState(), 'c04', { x: 10, y: 10 });
+    renderBoard(s);
+    fireEvent.focus(screen.getByTestId('fm-fresque-card-c04'));
+    const panel = screen.getByTestId('fm-fresque-inspector');
+    expect(panel).toHaveAttribute('data-origin', 'table');
+    expect(screen.getByTestId('fm-fresque-inspector-link')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('fm-fresque-inspector-flip'));
+    expect(screen.getByTestId('fm-fresque-card-c04')).toHaveAttribute('aria-pressed', 'true');
+    expect(panel.querySelector('img').getAttribute('src')).toBe(
+      `${PUBLIC_BASE}${model.cardsById.c04.verso}`,
+    );
+  });
+
   test('lecture seule : pas de main active, pas de bouton relier, indicateur dédié', () => {
     const s = placeCard(model, lotState(), 'c04', { x: 10, y: 10 });
     renderBoard(s, { readOnly: true });

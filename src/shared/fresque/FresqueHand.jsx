@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * La main : cartes du lot ouvert pas encore posées (vignettes). On glisse une carte vers la
@@ -119,15 +120,20 @@ export function FresqueHand({
         ) : null}
         {actions}
       </div>
-      {ghostCard && ghost.x != null ? (
-        <div
-          className="fm-fresque-hand__ghost"
-          style={{ left: ghost.x, top: ghost.y }}
-          aria-hidden="true"
-        >
-          <img src={`${publicBase}${ghostCard.rectoSmall}`} alt="" />
-        </div>
-      ) : null}
+      {/* Le fantôme part dans <body> : un ancêtre transformé (coque de l'application, défilement)
+          ferait de `position: fixed` un repère local et le décalerait du doigt. */}
+      {ghostCard && ghost.x != null && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="fm-fresque-hand__ghost"
+              style={{ left: ghost.x, top: ghost.y }}
+              aria-hidden="true"
+            >
+              <img src={`${publicBase}${ghostCard.rectoSmall}`} alt="" />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

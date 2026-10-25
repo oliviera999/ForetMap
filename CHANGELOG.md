@@ -9,6 +9,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Fresque du Climat sur téléphone
+
+- « Commencer ma fresque » était invisible (texte blanc sur fond transparent) : les couleurs de
+  la fresque n'existaient qu'à l'intérieur du plateau. Elles sont posées à la racine, pour l'écran
+  de choix, le suivi prof et les dialogues.
+- La carte glissée depuis la main s'affichait loin du doigt (plusieurs centaines de pixels) : le
+  fantôme est rendu dans `<body>`, hors de tout ancêtre transformé.
+- **Carte choisie** : toucher une carte (main ou table) l'affiche en grand sous la table, recto
+  et verso, avec « Poser sur une place libre » ou « Relier à… ». Un premier toucher sur une carte
+  posée la choisit, le second la retourne (clavier inchangé : `Entrée` retourne).
+- Boutons de zoom de la table ramenés à 44 px. Scénario e2e `e2e/fresque-phone.spec.js`.
+
 ### Corrigé — suite backend : attentes périmées après les lots RGPD A et B
 
 - `tests/fixtures/settings-registry-characterization.golden.json` régénéré (procédure du

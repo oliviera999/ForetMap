@@ -5,7 +5,11 @@
  * un contour ou une ombre autour de la carte reste permis.
  */
 
-.fm-fresque {
+/* Les variables vivent à la racine : l'écran de choix du jeu, le panneau de suivi prof et les
+   dialogues (rendus dans <body>) sont HORS de `.fm-fresque` et en ont besoin aussi — sans quoi
+   un bouton principal perd son fond (texte blanc sur transparent). G&L peut les surcharger sur
+   son propre conteneur. */
+:root {
   --fm-fresque-bg: var(--surface-parchment);
   --fm-fresque-table: var(--surface-parchment-deep);
   --fm-fresque-table-line: var(--line-parchment);
@@ -33,6 +37,9 @@
   --fm-fresque-band-4: var(--tint-band-mint);
   --fm-fresque-band-5: var(--tint-band-lilac);
   --fm-fresque-tap: 44px;
+}
+
+.fm-fresque {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1025,5 +1032,85 @@
   }
   .fm-fresque-table {
     min-height: 260px;
+  }
+}
+
+/* ----- Boutons de zoom de la table : discrets, la table est petite sur téléphone ----------- */
+.fm-fresque-table__ctl .fm-map-action {
+  width: var(--fm-fresque-tap);
+  height: var(--fm-fresque-tap);
+  min-width: var(--fm-fresque-tap);
+  min-height: var(--fm-fresque-tap);
+  opacity: 0.85;
+}
+
+/* ----- Carte choisie (en grand, sous la table) --------------------------------------------- */
+.fm-fresque-inspector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--surface-plain);
+  border: 2px solid var(--fm-fresque-select);
+  box-shadow: var(--shadow-card-flat);
+}
+
+.fm-fresque-inspector__image {
+  flex: 1 1 260px;
+  max-width: 440px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  border-radius: 8px;
+}
+
+.fm-fresque-inspector__image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card-flat);
+}
+
+.fm-fresque-inspector__body {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fm-fresque-inspector__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.fm-fresque-inspector__face {
+  font-size: var(--text-sm);
+  color: var(--fm-fresque-muted);
+}
+
+.fm-fresque-inspector__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fm-fresque-ink);
+}
+
+.fm-fresque-inspector__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .fm-fresque-inspector__image {
+    max-width: none;
   }
 }
