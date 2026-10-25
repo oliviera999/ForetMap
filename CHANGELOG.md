@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — OLU accompagne la Fresque du Climat
+
+- **Visite guidée** de l'onglet Fresque à la voix d'OLU (`DISCOVERY_TOURS.fresque` : l'activité,
+  ouvrir sa fresque, poser et lire, relier, l'indice ; variante prof), relançable par « ? ».
+- **Aide « ? »** de l'onglet : panneau `fresque` (`data/help.default.json` + miroir
+  `src/constants/help.js`, `PANEL_IDS`, libellé admin), variante prof (suivi, séance, réglage).
+- **OLU dans le plateau** (`FresqueOlu` : portrait + bulle) : tutoriel des gestes, point d'étape,
+  conseil du niveau Expert, écran de fin. `narrator` passé par `FresqueView`.
+- Textes du jeu réécrits à la charte (`hints.json`) : plus de « Bravo ! » ni de « ! » dans les
+  bulles d'OLU ; test de contenu dédié. E2e : visite et aide de l'onglet.
+
 ### Corrigé — Fresque du Climat sur téléphone
 
 - « Commencer ma fresque » était invisible (texte blanc sur fond transparent) : les couleurs de

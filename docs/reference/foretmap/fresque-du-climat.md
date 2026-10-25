@@ -22,7 +22,8 @@ jeux de cartes pourront s'y brancher plus tard (fresque de l'océan, jeux d'esp�
 Un bandeau d'étapes montre où en est l'élève ; il peut toujours revenir voir une étape passée.
 
 1. **Découvrir** — la carte titre (et au verso la règle officielle « Comment y joue-t-on ? »),
-   le choix du niveau et un court tutoriel des gestes (cinq bulles, que l'on peut passer).
+   le choix du niveau et un court tutoriel des gestes : cinq bulles racontées par **OLU**, le
+   narrateur de l'application, que l'on peut passer.
 2. **Lot 1** — 5 cartes : les gestes du quotidien, le CO₂, l'effet de serre, la banquise, la
    Terre qui se réchauffe.
 3. **Lot 2** — 6 cartes.
@@ -148,6 +149,23 @@ retient qui a posé quoi. Le badge de fin va à chaque membre qui a contribué.
 - **« Voir »** ouvre la fresque telle que l'élève l'a laissée, en **lecture seule**.
 - **« Essayer la fresque »** ouvre le plateau personnel du prof, pour se faire la main.
 - Une étape de **séance pédagogique** peut lancer la fresque (action « Fresque du Climat »).
+
+### OLU, le narrateur
+
+OLU accompagne la fresque comme le reste de l'application, avec sa voix (« je », tutoiement, pas
+de « Bravo »). Il apparaît seulement quand on demande de l'aide ou qu'il y a quelque chose à
+raconter, jamais sur une carte :
+
+- **la visite guidée de l'onglet**, à la première ouverture de la Fresque (relançable par le
+  bouton « ? ») ;
+- **l'aide « ? »** de l'onglet, avec une variante pour le professeur ;
+- **le tutoriel des gestes**, le **point d'étape**, le conseil du **niveau Expert** et
+  l'**écran de fin**.
+
+Les retours instantanés sur les flèches restent de simples messages, sans portrait. Le portrait
+et le nom d'OLU se règlent dans **Paramètres → Narrateur OLU** ; narrateur coupé, les bulles
+restent, sans portrait. Les textes de la visite et de l'aide se modifient depuis l'application
+(**Paramètres → Visites guidées** et **Contenus d'aide**).
 
 ## Réglage
 

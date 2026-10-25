@@ -2,6 +2,10 @@ const { test, expect } = require('@playwright/test');
 const {
   loginAsNewStudent,
   dismissProfilePromotionModalIfPresent,
+  createStudentViaAdminImport,
+  buildE2eStudentProfile,
+  markAllDiscoveryToursSeen,
+  loginByIdentifier,
 } = require('./fixtures/auth.fixture');
 
 /**
@@ -124,4 +128,34 @@ test('élève : parcours complet en Éclaireur jusqu’à la fin (badge, crédit
   await expect(page.getByTestId('fm-fresque-export')).toBeVisible();
   await expect(page.getByTestId('fm-fresque-credit')).toContainText('CC BY-NC-ND');
   await waitSaved(page);
+});
+
+test('élève : OLU présente la fresque (visite guidée) et l’aide « ? » de l’onglet', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const profile = await createStudentViaAdminImport(page, buildE2eStudentProfile());
+  await page.goto('/');
+  // Toutes les visites déjà vues… sauf celle de la fresque.
+  await markAllDiscoveryToursSeen(page);
+  await page.evaluate(() => {
+    const seen = JSON.parse(localStorage.getItem('foretmap_discovery_seen_v1') || '{}');
+    delete seen.fresque;
+    localStorage.setItem('foretmap_discovery_seen_v1', JSON.stringify(seen));
+  });
+  await loginByIdentifier(page, profile.email, profile.password);
+  await dismissProfilePromotionModalIfPresent(page);
+  await openFresqueTab(page);
+
+  const tour = page.locator('.discovery-tour');
+  await expect(tour).toBeVisible({ timeout: 20_000 });
+  await expect(tour).toContainText('La Fresque du Climat');
+  await page.keyboard.press('Escape');
+  await expect(tour).toBeHidden();
+
+  // L'aide « ? » de l'onglet, à la voix d'OLU.
+  await page.locator('.fm-fresque-view__help .fm-help-btn').click();
+  const help = page.getByRole('dialog', { name: /Aide fresque/ });
+  await expect(help).toBeVisible();
+  await expect(help).toContainText('Relier à…');
 });

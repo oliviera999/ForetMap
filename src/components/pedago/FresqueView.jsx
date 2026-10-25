@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, getAuthToken } from '../../services/api.js';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { HelpPanel } from '../HelpPanel.jsx';
+import { useHelp } from '../../hooks/useHelp.js';
+import { resolveHelpPanelSection } from '../../utils/helpResolve.js';
 import { buildDeckModel } from '../../shared/fresque/fresqueCore.js';
 import { FresqueBoard } from '../../shared/fresque/FresqueBoard.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
@@ -40,6 +43,11 @@ export function FresqueView({
     }
   }, [initialDeckId, entryNonce]);
   const publicSettings = usePublicSettings();
+  // OLU : narrateur des réglages publics, passé au plateau partagé (qui ne lit pas les contextes).
+  const narrator = publicSettings?.content?.help?.narrator || null;
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({ publicSettings, isTeacher });
+  const helpFresque = resolveHelpPanelSection('fresque', publicSettings);
   const { confirm } = useAppDialogs();
   // « Ajouter à mon carnet » : réutilise la création d'article + l'envoi d'image du carnet
   // (`POST /api/user-journal/me/articles`, puis `/assets`), si le module carnet est allumé.
@@ -154,6 +162,20 @@ export function FresqueView({
   return (
     <div className="fm-fresque-view" data-testid="fm-fresque-view">
       {moduleOffForLearners ? <ModuleLearnerOffBanner moduleLabel="Fresques" /> : null}
+      {isHelpEnabled ? (
+        <div className="fm-fresque-view__help">
+          <HelpPanel
+            sectionId="fresque"
+            title={helpFresque.title}
+            entries={helpFresque.items}
+            isTeacher={isTeacher}
+            isPulsing={!hasSeenSection('fresque')}
+            onMarkSeen={markSectionSeen}
+            onOpen={trackPanelOpen}
+            onDismiss={trackPanelDismiss}
+          />
+        </div>
+      ) : null}
       {canFollow ? (
         <div
           className="fm-fresque-hand__actions"
@@ -280,6 +302,7 @@ export function FresqueView({
                 onRewards={onRewards}
                 onExportToJournal={journalEnabled && !isTeacher ? exportToJournal : null}
                 onRestart={board.readOnly ? null : restartBoard}
+                narrator={narrator}
                 headerExtra={
                   <button
                     type="button"

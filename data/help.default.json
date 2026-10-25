@@ -104,6 +104,18 @@
         { "text": "Épingle ce qui compte, cherche et filtre le reste. Un carnet qu’on relit vaut mieux qu’un carnet qu’on remplit." },
         { "textTeacher": "Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit." }
       ]
+    },
+    "fresque": {
+      "title": "Aide fresque",
+      "items": [
+        { "text": "Glisse une carte de ta main sur la table, ou touche-la puis touche la table. Une carte touchée s’affiche en grand sous la table : c’est là qu’on lit le verso." },
+        { "text": "Pour relier deux cartes, touche « Relier à… » puis la carte provoquée. Une flèche se retire d’un toucher : rien n’est gravé tant que tu n’as pas comparé avec la correction." },
+        { "text": "« Un indice » colle un post-it, gratuit et sans limite. « Point d’étape » fait le compte des flèches retrouvées — je compte, je ne note pas." },
+        { "text": "Ta fresque s’enregistre toute seule, et tu peux changer de niveau à tout moment sans rien perdre. Si la connexion saute, j’en garde une copie sur l’appareil." },
+        { "text": "Les cartes sont celles de La Fresque du Climat, sous licence CC BY-NC-ND : on les montre telles quelles, et leur crédit reste visible en bas du plateau." },
+        { "textTeacher": "« Suivi des élèves » montre les plateaux d’un groupe en lecture seule, avec les flèches retrouvées et les indices demandés. Ton plateau d’essai n’y apparaît pas." },
+        { "textTeacher": "Une séance peut ouvrir la fresque directement (étape « Fresque du Climat »). Le module se coupe dans les paramètres, réglage « Fresques »." }
+      ]
     }
   },
   "quickTips": {

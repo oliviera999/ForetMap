@@ -739,11 +739,33 @@
   border: 1px solid var(--line-soft);
 }
 
-.fm-fresque-tutorial__bubble {
-  background: var(--fm-fresque-accent-soft);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: var(--text-md);
+.fm-fresque-tutorial__count {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fm-fresque-muted);
+}
+
+/* ----- OLU dans la fresque : portrait + bulle, comme la visite guidée --------------------- */
+.fm-fresque-olu {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.fm-fresque-olu.is-compact {
+  gap: 8px;
+}
+
+.fm-fresque-olu__portrait {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.fm-fresque-olu__bubble {
+  flex: 1 1 auto;
+  min-width: 0;
+  --fm-bubble-bg: var(--fm-fresque-accent-soft);
 }
 
 .fm-fresque-tutorial__nav {
@@ -1113,4 +1135,11 @@
   .fm-fresque-inspector__image {
     max-width: none;
   }
+}
+
+/* ----- Aide « ? » de l'onglet (HelpPanel), en haut à droite ------------------------------- */
+.fm-fresque-view__help {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
 }

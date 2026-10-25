@@ -161,6 +161,9 @@ src/shared/fresque/
   FresqueNotes.jsx         post-it élève et indices
   FresqueStepper.jsx, FresqueLevelMenu.jsx, FresqueCreditBar.jsx
   FresqueCorrectionPanel.jsx, FresqueNoteEditor.jsx
+  FresqueCardInspector.jsx carte choisie en grand sous la table (main ou table), recto/verso
+  FresqueOlu.jsx           OLU : MascotSpeaker + SpeechBubble (tutoriel, point d'étape, fin) ;
+                           `narrator` passé en prop par le produit (pas de contexte dans shared)
 src/shared/styles/fresque.css   classes `fm-fresque-*`, couleurs en variables CSS (G&L recolore)
 src/components/pedago/FresqueView.jsx         vue ForetMap (jeux, plateau perso / équipe, carnet)
 src/components/pedago/FresqueTeacherPanel.jsx suivi prof (filtre groupe, lecture seule)

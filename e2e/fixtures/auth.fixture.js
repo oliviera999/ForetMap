@@ -229,6 +229,7 @@ const DISCOVERY_TOUR_TAB_KEYS = [
   'tuto',
   'profiles',
   'settings',
+  'fresque',
 ];
 
 async function markAllDiscoveryToursSeen(page) {
