@@ -117,6 +117,7 @@ function isOfflineError(err) {
  * @param {(rewards: object[]) => void} [options.onRewards]
  * @param {(result: object) => void} [options.onCompleted]
  * @param {(message: string) => void} [options.onToast]
+ * @param {(payload: object) => void} [options.onBoardArchived] plateau archivé (« Recommencer »)
  */
 export function useFresqueBoardState({
   api,
@@ -126,6 +127,7 @@ export function useFresqueBoardState({
   onRewards = null,
   onCompleted = null,
   onToast = null,
+  onBoardArchived = null,
 }) {
   const boardId = board?.id || null;
   const initial = useMemo(() => pickInitialState(board), [board]);
@@ -140,11 +142,24 @@ export function useFresqueBoardState({
   conflictRef.current = conflict;
   const [offline, setOffline] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  const callbacksRef = useRef({ onRewards, onCompleted, onToast, api, getAuthToken });
-  callbacksRef.current = { onRewards, onCompleted, onToast, api, getAuthToken };
+  const callbacksRef = useRef({
+    onRewards,
+    onCompleted,
+    onToast,
+    api,
+    getAuthToken,
+    onBoardArchived,
+  });
+  callbacksRef.current = { onRewards, onCompleted, onToast, api, getAuthToken, onBoardArchived };
   const clientIdRef = useRef(null);
   if (!clientIdRef.current) clientIdRef.current = newClientId();
   const savingRef = useRef(false);
+  /**
+   * Incrémenté quand on recharge ou qu'on tranche un conflit. Un enregistrement parti avant
+   * (souvent le second envoi déclenché en coupant l'enregistrement auto) ne doit plus rouvrir
+   * le dialogue par-dessus la version qu'on vient de reprendre.
+   */
+  const epochRef = useRef(0);
   /** Révision annoncée par un autre écran pendant qu'un enregistrement était en vol. */
   const pendingRemoteRef = useRef(null);
 
@@ -166,6 +181,7 @@ export function useFresqueBoardState({
   const doSave = useCallback(async () => {
     const snapshot = stateRef.current;
     if (!snapshot || !boardId) return snapshot;
+    const epoch = epochRef.current;
     const { api: request, onRewards: rewards, onCompleted: completed } = callbacksRef.current;
     savingRef.current = true;
     try {
@@ -175,12 +191,18 @@ export function useFresqueBoardState({
         clientSeq: snapshot.clientSeq,
         clientId: clientIdRef.current,
       });
+      if (epoch !== epochRef.current) return stateRef.current;
       const nextRevision = Number(res?.revision);
       if (Number.isFinite(nextRevision)) {
         revisionRef.current = nextRevision;
         setRevision(nextRevision);
       }
-      writeMirror(boardId, snapshot, revisionRef.current);
+      // Le geste parti est `snapshot`. Un geste plus récent a pu être posé pendant l'envoi :
+      // le miroir doit le garder (même révision de base), sinon un rechargement le jette.
+      const live = stateRef.current;
+      const liveSeq = Number(live?.clientSeq) || 0;
+      const savedSeq = Number(snapshot?.clientSeq) || 0;
+      writeMirror(boardId, live && liveSeq >= savedSeq ? live : snapshot, revisionRef.current);
       setOffline(false);
       setLastSavedAt(new Date().toISOString());
       if (Array.isArray(res?.rewards) && res.rewards.length) rewards?.(res.rewards);
@@ -193,9 +215,14 @@ export function useFresqueBoardState({
       }
       return snapshot;
     } catch (err) {
+      if (epoch !== epochRef.current) return stateRef.current;
       if (isConflictError(err)) {
         setConflict({ currentRevision: Number(err.body.current_revision) || 0, remote: false });
         throw new Error('Ta fresque a été modifiée sur un autre appareil');
+      }
+      if (err?.status === 409 && err?.body?.code === 'board_archived') {
+        callbacksRef.current.onBoardArchived?.({ boardId, archived: true });
+        throw new Error('Cette fresque a été recommencée');
       }
       if (isOfflineError(err)) {
         setOffline(true);
@@ -293,6 +320,7 @@ export function useFresqueBoardState({
   /** Recharge l'état serveur (reprise, conflit résolu côté serveur, signal temps réel). */
   const reload = useCallback(async () => {
     if (!boardId) return null;
+    epochRef.current += 1;
     const res = await callbacksRef.current.api(`/api/fresques/boards/${boardId}`);
     const fresh = migrateState(res?.board?.state);
     if (!fresh) return null;
@@ -313,6 +341,7 @@ export function useFresqueBoardState({
     async (mode) => {
       const current = conflictRef.current;
       if (!current) return;
+      epochRef.current += 1;
       if (mode === 'keep') {
         revisionRef.current = current.currentRevision;
         setRevision(current.currentRevision);
@@ -332,6 +361,12 @@ export function useFresqueBoardState({
    */
   const applyRemoteChange = useCallback(
     (payload) => {
+      // « Recommencer » : le signal n'a pas de révision (l'ancien plateau est clos). Sans ce
+      // cas, il était ignoré et l'autre écran continuait à jouer sur une table qui refuse tout.
+      if (payload?.archived) {
+        callbacksRef.current.onBoardArchived?.(payload);
+        return;
+      }
       if (payload?.clientId && payload.clientId === clientIdRef.current) return;
       const remoteRevision = Number(payload?.revision);
       if (!Number.isFinite(remoteRevision) || remoteRevision <= revisionRef.current) return;
