@@ -9,12 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — pré-saisie : message prof « photo à confirmer »
+
+- Encadré visible dans le panneau de pré-saisie dès que des photos sont proposées :
+  confirmer visuellement chaque image avant application.
+- Avertissement équivalent aussi dans `warnings` de `GET /api/plants/autofill`.
+
 ### Corrigé — dernier test backend rouge en CI (`with-app-node.sh`)
 
 - `tests/deploy-cron-server-env.test.js` vérifiait `process.execPath`, que Node résout à travers le
   lien symbolique de la sandbox jusqu'au binaire réel : rouge sur toute machine Linux, CI
   comprise (régression de `75dc94d`). Le test revient à vérifier que le `bin/` de l'application
   est en tête du PATH, séparé par `path.delimiter` (Windows et Unix).
+
 ### Ajouté — pré-saisie biodiversité : photos GBIF (`gbif_media`)
 
 - Nouvelle source **`gbif_media`** dans `GET /api/plants/autofill` : images d’occurrences

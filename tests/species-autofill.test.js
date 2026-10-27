@@ -298,6 +298,10 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
         p.license === 'CC BY 4.0',
     ),
   );
+  assert.ok(
+    (result.warnings || []).some((w) => /confirm/i.test(String(w)) && /photo/i.test(String(w))),
+    'avertissement « confirmer les photos » attendu quand des images sont proposées',
+  );
   assert.ok(String(result.fields.second_name || '').includes("Pommier d'amour"));
   assert.ok(String(result.fields.human_utility || '').includes('aliment'));
   assert.ok(String(result.fields.geographic_origin || '').includes('France'));

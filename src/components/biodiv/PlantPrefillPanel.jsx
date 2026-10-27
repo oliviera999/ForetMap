@@ -299,6 +299,22 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
             })()}
             {Object.keys(groupedPrefillPhotos).length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
+                <div
+                  className="plant-prefill-photo-confirm"
+                  role="status"
+                  data-testid="prefill-photo-confirm-notice"
+                >
+                  <strong className="plant-prefill-photo-confirm__title">
+                    À confirmer avant d’appliquer
+                  </strong>
+                  <p className="plant-prefill-photo-confirm__text">
+                    Professeurs : chaque photo proposée doit être{' '}
+                    <strong>confirmée visuellement</strong>. Vérifiez qu’elle montre bien l’espèce
+                    de la fiche (et non un sosie, une planche ancienne, un produit ou une autre
+                    espèce) avant de la cocher. Une photo plausible mais fausse est pire qu’une
+                    fiche sans image.
+                  </p>
+                </div>
                 <div>
                   <strong style={{ fontSize: 'var(--text-base)' }}>
                     Photos proposées (aperçu + crédit / licence)

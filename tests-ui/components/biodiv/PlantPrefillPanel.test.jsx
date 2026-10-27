@@ -5,6 +5,7 @@ import { api } from '../../../src/services/api';
 vi.mock('../../../src/services/api', () => ({ api: vi.fn(async () => ({})) }));
 
 import { PlantPrefillPanel } from '../../../src/components/biodiv/PlantPrefillPanel.jsx';
+import { SPECIES_PREFILL_SOURCE_CHECKBOXES } from '../../../src/components/biodiv/PrefillSourcesSelector.jsx';
 
 function setup(overrides = {}) {
   const props = {
@@ -30,10 +31,11 @@ describe('PlantPrefillPanel', () => {
     expect(screen.getByText('Sources à interroger')).toBeInTheDocument();
     expect(screen.getByText('Wikipedia (FR)')).toBeInTheDocument();
     expect(screen.getByText('OpenAI')).toBeInTheDocument();
-    // 11 sources + la case « écrasement » = 12 checkboxes, sources toutes cochées
+    // sources pré-saisie + la case « écrasement » ; sources toutes cochées par défaut
+    const sourceCount = SPECIES_PREFILL_SOURCE_CHECKBOXES.length;
     const boxes = screen.getAllByRole('checkbox');
-    expect(boxes).toHaveLength(12);
-    expect(boxes.filter((b) => b.checked)).toHaveLength(11);
+    expect(boxes).toHaveLength(sourceCount + 1);
+    expect(boxes.filter((b) => b.checked)).toHaveLength(sourceCount);
   });
 
   test('requête trop courte → toast, aucun appel serveur', () => {
@@ -107,6 +109,9 @@ describe('PlantPrefillPanel', () => {
     setup();
     fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await screen.findByText(/Photos proposées/);
+    expect(screen.getByTestId('prefill-photo-confirm-notice')).toBeInTheDocument();
+    expect(screen.getByText(/À confirmer avant d’appliquer/)).toBeInTheDocument();
+    expect(screen.getByText(/confirmée visuellement/i)).toBeInTheDocument();
     const check = document.querySelector('.plant-prefill-photo-check');
     expect(check.checked).toBe(false);
     const assign = document.querySelector('.plant-prefill-photo-assign');

@@ -562,13 +562,14 @@ en option une intelligence artificielle (OpenAI). Le professeur **choisit les
 sources** à interroger via des cases à cocher.
 
 Le résultat est une **proposition** : chaque champ affiche la valeur trouvée et sa
-source, les photos trouvées sont présentées avec leur crédit. Les photos GBIF
-viennent d'observations terrain (pas de la page taxonomique seule) : seules les
-images sous licence libre (domaine public, CC BY, CC BY-SA) sont proposées, et
-un avertissement rappelle de vérifier que la photo montre bien l'espèce. Le
-professeur **sélectionne** ce qu'il garde, puis **applique** — rien n'est jamais
-enregistré automatiquement. Les liens des sources utilisées sont ajoutés au champ
-« sources » de la fiche.
+source, les photos trouvées sont présentées avec leur crédit. Dès qu'il y a des
+photos, un **message à l'attention des professeurs** rappelle qu'il faut les
+**confirmer visuellement** avant de les appliquer (une image plausible mais fausse
+est pire qu'une fiche sans image). Les photos GBIF viennent d'observations terrain
+(pas de la page taxonomique seule) : seules les images sous licence libre (domaine
+public, CC BY, CC BY-SA) sont proposées. Le professeur **sélectionne** ce qu'il
+garde, puis **applique** — rien n'est jamais enregistré automatiquement. Les liens
+des sources utilisées sont ajoutés au champ « sources » de la fiche.
 
 ### L'identification par photo (Pl@ntNet)
 
