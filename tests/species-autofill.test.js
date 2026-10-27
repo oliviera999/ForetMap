@@ -248,6 +248,26 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
         ],
       });
     }
+    if (raw.includes('api.gbif.org/v1/occurrence/search') && raw.includes('taxon_key=2930132')) {
+      return jsonResponse({
+        results: [
+          {
+            key: 9001,
+            basisOfRecord: 'HUMAN_OBSERVATION',
+            media: [
+              {
+                type: 'StillImage',
+                identifier:
+                  'https://inaturalist-open-data.s3.amazonaws.com/photos/gbif-test/medium.jpg',
+                license: 'https://creativecommons.org/licenses/by/4.0/',
+                rightsHolder: 'Observateur GBIF (test)',
+                references: 'https://www.gbif.org/occurrence/9001',
+              },
+            ],
+          },
+        ],
+      });
+    }
     if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: 'Tomato',
@@ -268,7 +288,16 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
   assert.ok(result.sources.some((s) => s.source === 'catalogue_of_life'));
   assert.ok(result.sources.some((s) => s.source === 'inaturalist'));
   assert.ok(result.sources.some((s) => s.source === 'gbif_vernacular'));
+  assert.ok(result.sources.some((s) => s.source === 'gbif_media'));
   assert.ok(result.sources.some((s) => s.source === 'wikipedia_en'));
+  assert.ok(
+    (result.photos || []).some(
+      (p) =>
+        p.source === 'gbif_media' &&
+        String(p.url || '').includes('gbif-test') &&
+        p.license === 'CC BY 4.0',
+    ),
+  );
   assert.ok(String(result.fields.second_name || '').includes("Pommier d'amour"));
   assert.ok(String(result.fields.human_utility || '').includes('aliment'));
   assert.ok(String(result.fields.geographic_origin || '').includes('France'));
@@ -365,6 +394,9 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
     }
     if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
       return jsonResponse({ results: [{ vernacularName: 'Tomate potagère', language: 'fra' }] });
+    }
+    if (raw.includes('api.gbif.org/v1/occurrence/search')) {
+      return jsonResponse({ results: [] });
     }
     if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({

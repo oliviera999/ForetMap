@@ -556,15 +556,19 @@ voient. Les changements apparaissent en temps réel chez les utilisateurs connec
 Pour éviter la saisie fastidieuse, le formulaire propose un **pré-remplissage** : on
 tape le nom (usuel ou scientifique) et l'application interroge des bases naturalistes
 et encyclopédies de référence — Wikipédia (français, avec secours en anglais),
-Wikidata, GBIF (classification, descriptions, noms vernaculaires), iNaturalist,
-Catalogue of Life, Trefle, et en option une intelligence artificielle (OpenAI). Le
-professeur **choisit les sources** à interroger via des cases à cocher.
+Wikidata, GBIF (classification, descriptions, noms vernaculaires, et photos
+d'observations associées à l'espèce), iNaturalist, Catalogue of Life, Trefle, et
+en option une intelligence artificielle (OpenAI). Le professeur **choisit les
+sources** à interroger via des cases à cocher.
 
 Le résultat est une **proposition** : chaque champ affiche la valeur trouvée et sa
-source, les photos trouvées sont présentées avec leur crédit. Le professeur
-**sélectionne** ce qu'il garde, puis **applique** — rien n'est jamais enregistré
-automatiquement. Les liens des sources utilisées sont ajoutés au champ « sources »
-de la fiche.
+source, les photos trouvées sont présentées avec leur crédit. Les photos GBIF
+viennent d'observations terrain (pas de la page taxonomique seule) : seules les
+images sous licence libre (domaine public, CC BY, CC BY-SA) sont proposées, et
+un avertissement rappelle de vérifier que la photo montre bien l'espèce. Le
+professeur **sélectionne** ce qu'il garde, puis **applique** — rien n'est jamais
+enregistré automatiquement. Les liens des sources utilisées sont ajoutés au champ
+« sources » de la fiche.
 
 ### L'identification par photo (Pl@ntNet)
 

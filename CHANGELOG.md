@@ -15,6 +15,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   lien symbolique de la sandbox jusqu'au binaire réel : rouge sur toute machine Linux, CI
   comprise (régression de `75dc94d`). Le test revient à vérifier que le `bin/` de l'application
   est en tête du PATH, séparé par `path.delimiter` (Windows et Unix).
+### Ajouté — pré-saisie biodiversité : photos GBIF (`gbif_media`)
+
+- Nouvelle source **`gbif_media`** dans `GET /api/plants/autofill` : images d’occurrences
+  GBIF (`/occurrence/search?media_type=StillImage`) lorsque la taxonomie GBIF a fourni un
+  `usageKey`, pour combler les fiches sans image ou enrichir la sélection.
+- Filtre strict : HTTPS image directe, licences **CC0 / CC BY / CC BY-SA** uniquement
+  (hors NC/ND), crédit auteur, priorité aux observations de terrain ; jusqu’à 6
+  propositions ; revue prof inchangée (prévisualiser → appliquer).
+- UI : case « GBIF — photos d’occurrences » ; tests `species-autofill-gbif-media` ;
+  `docs/API.md` et référence plantes/biodiversité.
 
 ### Corrigé — texte riche : l'adresse d'origine des images est enregistrée, le relais ne sert qu'à l'affichage
 
