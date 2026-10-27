@@ -92,6 +92,7 @@ export function applyPrefillToForm(prev, opts = {}) {
           licence: row.licence,
           source: row.source,
           source_url: row.source_url,
+          confirmed: false,
         },
         'append',
       );

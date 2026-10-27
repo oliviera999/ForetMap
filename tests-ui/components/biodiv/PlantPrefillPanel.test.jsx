@@ -110,15 +110,13 @@ describe('PlantPrefillPanel', () => {
     fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
     await screen.findByText(/Photos proposées/);
     expect(screen.getByTestId('prefill-photo-confirm-notice')).toBeInTheDocument();
-    expect(screen.getByText(/À confirmer avant d’appliquer/)).toBeInTheDocument();
-    expect(screen.getByText(/confirmée visuellement/i)).toBeInTheDocument();
+    expect(screen.getByText(/Photos intégrées — à confirmer/)).toBeInTheDocument();
+    expect(screen.getByText(/intégrées d’emblée/i)).toBeInTheDocument();
     const check = document.querySelector('.plant-prefill-photo-check');
-    expect(check.checked).toBe(false);
+    expect(check.checked).toBe(true);
     const assign = document.querySelector('.plant-prefill-photo-assign');
-    expect(assign.disabled).toBe(true);
+    expect(assign.disabled).toBe(false);
     expect(assign.value).toBe('photo_leaf');
-    fireEvent.click(check);
-    expect(document.querySelector('.plant-prefill-photo-assign').disabled).toBe(false);
     expect(screen.getByText(/Crédit : Alice · Licence : CC-BY/)).toBeInTheDocument();
   });
 

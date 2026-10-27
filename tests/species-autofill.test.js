@@ -299,8 +299,8 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
     ),
   );
   assert.ok(
-    (result.warnings || []).some((w) => /confirm/i.test(String(w)) && /photo/i.test(String(w))),
-    'avertissement « confirmer les photos » attendu quand des images sont proposées',
+    (result.warnings || []).some((w) => /À confirmer|a confirmer/i.test(String(w))),
+    'avertissement « À confirmer » attendu quand des images sont proposées',
   );
   assert.ok(String(result.fields.second_name || '').includes("Pommier d'amour"));
   assert.ok(String(result.fields.human_utility || '').includes('aliment'));

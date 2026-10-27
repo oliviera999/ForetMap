@@ -1523,6 +1523,8 @@ CREATE TABLE IF NOT EXISTS plant_photos (
   source VARCHAR(32) DEFAULT NULL COMMENT 'Provenance : televersement, wikimedia_commons, inaturalist…',
   source_url VARCHAR(1024) DEFAULT NULL COMMENT 'Page source de l''image (lien d''attribution)',
   sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Ordre dans l''emplacement (0 = premier)',
+  confirmed TINYINT(1) NOT NULL DEFAULT 1
+    COMMENT '1 = validée par un professeur ; 0 = proposée, visible avec mention À confirmer',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_plant_photos_plant (plant_id, kind, sort_order),

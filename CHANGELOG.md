@@ -9,11 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Ajouté — pré-saisie : message prof « photo à confirmer »
+### Ajouté — photos de pré-saisie intégrées d’emblée (« À confirmer »)
 
-- Encadré visible dans le panneau de pré-saisie dès que des photos sont proposées :
-  confirmer visuellement chaque image avant application.
-- Avertissement équivalent aussi dans `warnings` de `GET /api/plants/autofill`.
+- Colonne `plant_photos.confirmed` : les photos proposées par pré-saisie sont
+  enregistrées tout de suite (`POST /api/plants/:id/photos/propose`) et visibles
+  de tous avec la mention **À confirmer** ; le professeur valide via
+  `POST /api/plants/:id/photos/:photoId/confirm`.
+- UI élève (vignette + fiche) : pastille / encadré ; UI prof : bouton « Confirmer
+  la photo ». Message de pré-saisie aligné sur ce flux.
 
 ### Corrigé — dernier test backend rouge en CI (`with-app-node.sh`)
 

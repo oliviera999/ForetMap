@@ -152,6 +152,54 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
         }),
       );
       setPrefillPhotoSelections(buildInitialPrefillPhotoSelections(data?.photos, PHOTO_FIELD_KEYS));
+
+      // Fiche déjà enregistrée : intégrer les photos d'emblée (visibles, « à confirmer »).
+      const plantId = formRef.current?.id;
+      const proposed = Array.isArray(data?.photos) ? data.photos.filter((p) => p?.url) : [];
+      if (plantId && proposed.length > 0) {
+        try {
+          const body = {
+            photos: proposed.map((p) => ({
+              kind: PHOTO_FIELD_KEYS.has(p.field) ? p.field : 'photo_species',
+              url: p.url,
+              credit: p.credit || null,
+              licence: p.license || p.licence || null,
+              source: p.source || null,
+              source_url: p.source_url || null,
+            })),
+          };
+          const saved = await api(`/api/plants/${plantId}/photos/propose`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (Array.isArray(saved?.photos)) {
+            setForm((prev) => ({
+              ...prev,
+              photos: saved.photos.map((p) => ({
+                id: p.id,
+                kind: p.kind,
+                url: p.url,
+                credit: p.credit || '',
+                licence: p.licence || '',
+                source: p.source || '',
+                source_url: p.source_url || '',
+                confirmed: p.confirmed !== false,
+              })),
+            }));
+          }
+          const n = Number(saved?.inserted) || 0;
+          if (n > 0) {
+            onToast?.(
+              `${n} photo${n > 1 ? 's' : ''} intégrée${n > 1 ? 's' : ''} — visibles avec la mention « À confirmer » jusqu'à validation.`,
+            );
+          }
+        } catch (proposeErr) {
+          onToast?.(
+            proposeErr?.message ||
+              'Pré-saisie OK, mais les photos n’ont pas pu être intégrées immédiatement.',
+          );
+        }
+      }
     } catch (e) {
       setPrefillResult(null);
       setPrefillError(e?.message || 'Erreur de pré-saisie');
@@ -305,14 +353,14 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                   data-testid="prefill-photo-confirm-notice"
                 >
                   <strong className="plant-prefill-photo-confirm__title">
-                    À confirmer avant d’appliquer
+                    Photos intégrées — à confirmer
                   </strong>
                   <p className="plant-prefill-photo-confirm__text">
-                    Professeurs : chaque photo proposée doit être{' '}
-                    <strong>confirmée visuellement</strong>. Vérifiez qu’elle montre bien l’espèce
-                    de la fiche (et non un sosie, une planche ancienne, un produit ou une autre
-                    espèce) avant de la cocher. Une photo plausible mais fausse est pire qu’une
-                    fiche sans image.
+                    Les photos proposées sont <strong>intégrées d’emblée</strong> sur la fiche (déjà
+                    enregistrée) et visibles de tous avec la mention « À confirmer ». Les élèves
+                    voient cette mention ; vous validez chaque image quand vous avez vérifié qu’elle
+                    montre bien l’espèce. Une photo plausible mais fausse est pire qu’une fiche sans
+                    image.
                   </p>
                 </div>
                 <div>
@@ -327,12 +375,10 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                       lineHeight: 1.35,
                     }}
                   >
-                    Cochez les images à ajouter (aucune n’est cochée par défaut). Le menu « Associer
-                    au champ » indique la case photo du formulaire cible ; plusieurs URL sur un même
-                    champ sont listées ligne à ligne. Les photos déjà présentes (ex. prises pour
-                    Pl@ntNet ou importées manuellement) sont conservées : les propositions de
-                    pré-saisie s’ajoutent sans les remplacer, sauf si vous cochez « Autoriser
-                    l’écrasement des champs déjà remplis ».
+                    Les images sont cochées par défaut. Sur une fiche déjà enregistrée, elles sont
+                    aussi enregistrées immédiatement. Le menu « Associer au champ » indique la case
+                    photo du formulaire ; « Appliquer la sélection » reporte aussi les champs texte
+                    et les photos (statut « à confirmer ») dans le formulaire.
                   </p>
                 </div>
                 {Object.entries(groupedPrefillPhotos).map(([field, photos]) => (
