@@ -86,8 +86,18 @@ const SPECIES_PREFILL_FIELD_LABELS = {
  * @param {(updater: Function) => void} props.setForm setter du formulaire parent
  * @param {boolean} [props.saving] enregistrement de la fiche en cours (désactive les actions)
  * @param {(msg: string) => void} [props.onToast] notification utilisateur
+ * @param {string|number|null} [props.plantId] fiche déjà enregistrée (les photos y sont intégrées)
+ * @param {(plantId: string|number, body: object) => Promise<object>} [props.onProposePhotos]
+ *   intégration immédiate ; absente, l’appel API direct est utilisé
  */
-export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
+export function PlantPrefillPanel({
+  form,
+  setForm,
+  saving = false,
+  onToast,
+  plantId = null,
+  onProposePhotos = null,
+}) {
   const formRef = useRef(form);
   formRef.current = form;
   const [prefillLoading, setPrefillLoading] = useState(false);
@@ -154,9 +164,11 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
       setPrefillPhotoSelections(buildInitialPrefillPhotoSelections(data?.photos, PHOTO_FIELD_KEYS));
 
       // Fiche déjà enregistrée : intégrer les photos d'emblée (visibles, « à confirmer »).
-      const plantId = formRef.current?.id;
+      // L’identifiant n’est pas un champ du formulaire : il arrive par `plantId`.
+      const savedPlantId =
+        plantId != null && String(plantId).trim() !== '' ? plantId : formRef.current?.id;
       const proposed = Array.isArray(data?.photos) ? data.photos.filter((p) => p?.url) : [];
-      if (plantId && proposed.length > 0) {
+      if (savedPlantId && proposed.length > 0) {
         try {
           const body = {
             photos: proposed.map((p) => ({
@@ -168,11 +180,12 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
               source_url: p.source_url || null,
             })),
           };
-          const saved = await api(`/api/plants/${plantId}/photos/propose`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          });
-          if (Array.isArray(saved?.photos)) {
+          const saved = onProposePhotos
+            ? await onProposePhotos(savedPlantId, body)
+            : await api(`/api/plants/${savedPlantId}/photos/propose`, 'POST', body);
+          // Le parent qui fournit `onProposePhotos` met le formulaire à jour dans la même
+          // file que l’enregistrement automatique (avant qu’un PUT parti trop tôt n’efface).
+          if (!onProposePhotos && Array.isArray(saved?.photos)) {
             setForm((prev) => ({
               ...prev,
               photos: saved.photos.map((p) => ({
@@ -183,7 +196,8 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                 licence: p.licence || '',
                 source: p.source || '',
                 source_url: p.source_url || '',
-                confirmed: p.confirmed !== false,
+                confirmed:
+                  p.confirmed === false || p.confirmed === 0 || p.confirmed === '0' ? false : true,
               })),
             }));
           }

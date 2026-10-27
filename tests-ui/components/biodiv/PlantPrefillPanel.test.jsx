@@ -120,6 +120,68 @@ describe('PlantPrefillPanel', () => {
     expect(screen.getByText(/Crédit : Alice · Licence : CC-BY/)).toBeInTheDocument();
   });
 
+  test('fiche déjà enregistrée → POST /photos/propose (méthode et corps, pas un objet méthode)', async () => {
+    api.mockResolvedValueOnce({
+      confidence: 0.5,
+      fields: {},
+      photos: [
+        {
+          field: 'photo_species',
+          url: 'https://example.org/a.jpg',
+          credit: 'Alice',
+          license: 'CC BY 4.0',
+        },
+      ],
+    });
+    api.mockResolvedValueOnce({
+      inserted: 1,
+      photos: [
+        {
+          id: 9,
+          kind: 'photo_species',
+          url: 'https://example.org/a.jpg',
+          credit: 'Alice',
+          licence: 'CC BY 4.0',
+          confirmed: false,
+        },
+      ],
+    });
+    const { setForm } = setup({
+      plantId: 12,
+      form: { name: 'Tomate', scientific_name: '' },
+    });
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    expect(api.mock.calls[1][0]).toBe('/api/plants/12/photos/propose');
+    expect(api.mock.calls[1][1]).toBe('POST');
+    expect(api.mock.calls[1][2]).toMatchObject({
+      photos: [{ kind: 'photo_species', url: 'https://example.org/a.jpg', credit: 'Alice' }],
+    });
+    await waitFor(() => expect(setForm).toHaveBeenCalled());
+    const updater = setForm.mock.calls[0][0];
+    expect(updater({ photos: [] }).photos).toMatchObject([{ id: 9, confirmed: false }]);
+  });
+
+  test('onProposePhotos est utilisé à la place de l’appel direct', async () => {
+    api.mockResolvedValueOnce({
+      confidence: 0.4,
+      fields: {},
+      photos: [{ field: 'photo_leaf', url: 'https://example.org/b.jpg' }],
+    });
+    const onProposePhotos = vi.fn(async () => ({ inserted: 1, photos: [] }));
+    const { setForm } = setup({
+      plantId: 3,
+      onProposePhotos,
+      form: { name: 'Tomate', scientific_name: '' },
+    });
+    fireEvent.click(screen.getByText('Pré-saisir depuis sources externes'));
+    await waitFor(() => expect(onProposePhotos).toHaveBeenCalled());
+    expect(onProposePhotos.mock.calls[0][0]).toBe(3);
+    expect(onProposePhotos.mock.calls[0][1].photos[0].url).toBe('https://example.org/b.jpg');
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(setForm).not.toHaveBeenCalled();
+  });
+
   test('erreur serveur → message « Pré-saisie indisponible »', async () => {
     api.mockRejectedValueOnce(new Error('autofill HS'));
     setup();

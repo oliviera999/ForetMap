@@ -568,10 +568,12 @@ déjà enregistrée est pré-remplie : elles apparaissent tout de suite dans le
 catalogue, visibles de tous, avec la mention **« À confirmer »**. Les élèves
 voient cette mention ; le professeur peut **confirmer** chaque photo après
 vérification visuelle (une image plausible mais fausse est pire qu'une fiche sans
-image). Les photos GBIF viennent d'observations terrain (pas de la page
-taxonomique seule) : seules les images sous licence libre (domaine public, CC BY,
-CC BY-SA) sont proposées. Les liens des sources utilisées sont ajoutés au champ
-« sources » de la fiche.
+image). Si la même fiche est encore ouverte dans une autre fenêtre, le prochain
+enregistrement demande confirmation avant de remplacer le travail en cours : les photos
+ajoutées ne disparaissent pas sans cet accord. Les photos GBIF viennent d'observations
+terrain (pas de la page taxonomique seule) : seules les images sous licence libre
+(domaine public, CC BY, CC BY-SA) sont proposées. Les liens des sources utilisées sont
+ajoutés au champ « sources » de la fiche.
 
 ### L'identification par photo (Pl@ntNet)
 

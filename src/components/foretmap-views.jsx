@@ -19,6 +19,7 @@ import {
   extractPlantForm,
   persistPlantMapSiteNotes,
 } from '../utils/plantFormValues.js';
+import { formPhotosFromPlant } from '../utils/plantPhotos.js';
 import { DialogShell } from './DialogShell';
 import { PlantEditForm } from './biodiv/PlantEditForm.jsx';
 import { PlantCatalogTile } from './biodiv/PlantCatalogTile.jsx';
@@ -97,6 +98,8 @@ function PlantManager({
   // Révision de la fiche à l'ouverture du formulaire, avancée par nos propres
   // enregistrements (automatiques ou bouton) — pas par le rafraîchissement de la liste.
   const plantEditSessionRef = useRef(null);
+  const formRef = useRef(form);
+  formRef.current = form;
   const startEdit = (p) => {
     plantEditSessionRef.current = createEditRevisionSession(p.edit_revision, {
       confirmOverwrite: confirmPlantOverwrite,
@@ -105,13 +108,45 @@ function PlantManager({
     setForm(extractPlantForm(p));
     setShowAdd(false);
   };
-  const putPlant = (id, body) => {
+  // Corps relu au moment de l’envoi (pas au moment où le minuteur part) : une intégration
+  // de photos enfilée avant peut avoir mis la liste à jour entre-temps.
+  const commitPlantForm = useCallback(async () => {
+    const id = editId;
+    if (!id) return null;
     const session = plantEditSessionRef.current;
-    if (!session) return api(`/api/plants/${id}`, 'PUT', body);
-    return session.save((expected) =>
-      api(`/api/plants/${id}`, 'PUT', withExpectedRevision(body, expected)),
-    );
-  };
+    let snapshot = formRef.current;
+    const send = async (expected) => {
+      snapshot = formRef.current;
+      const response = await api(
+        `/api/plants/${id}`,
+        'PUT',
+        withExpectedRevision(snapshot, expected),
+      );
+      await persistPlantMapSiteNotes(api, id, snapshot.map_ids, snapshot.map_site_notes);
+      return response;
+    };
+    if (session) await session.save(send);
+    else await send(null);
+    return snapshot;
+  }, [editId]);
+  const proposePhotos = useCallback(async (plantId, body) => {
+    const session = plantEditSessionRef.current;
+    const run = async () => {
+      const saved = await api(`/api/plants/${plantId}/photos/propose`, 'POST', body);
+      if (Array.isArray(saved?.photos)) {
+        const next = {
+          ...formRef.current,
+          photos: formPhotosFromPlant({ photos: saved.photos }),
+        };
+        formRef.current = next;
+        setForm(next);
+      }
+      if (session && Number(saved?.inserted) > 0) session.noteRevision(saved?.plant?.edit_revision);
+      return saved;
+    };
+    if (session?.enqueue) return session.enqueue(run);
+    return run();
+  }, []);
 
   const cancelEdit = () => {
     setEditId(null);
@@ -123,13 +158,14 @@ function PlantManager({
     setSaving(true);
     try {
       let savedId = editId;
-      if (editId) await putPlant(editId, form);
-      else {
+      if (editId) {
+        await commitPlantForm();
+      } else {
         const created = await api('/api/plants', 'POST', form);
         savedId = created?.id;
-      }
-      if (savedId) {
-        await persistPlantMapSiteNotes(api, savedId, form.map_ids, form.map_site_notes);
+        if (savedId) {
+          await persistPlantMapSiteNotes(api, savedId, form.map_ids, form.map_site_notes);
+        }
       }
       await onRefresh();
       setEditId(null);
@@ -143,12 +179,10 @@ function PlantManager({
   };
 
   const autoSavePersist = useCallback(async () => {
-    const sent = form;
-    await putPlant(editId, sent);
-    await persistPlantMapSiteNotes(api, editId, sent.map_ids, sent.map_site_notes);
+    const sent = await commitPlantForm();
     await onRefresh();
     return sent;
-  }, [editId, form, onRefresh]);
+  }, [commitPlantForm, onRefresh]);
 
   const { status: autoSaveStatus, error: autoSaveError } = useDebouncedAutoSave({
     value: form,
@@ -246,6 +280,7 @@ function PlantManager({
           plantId={null}
           onToast={setToast}
           maps={maps}
+          onProposePhotos={proposePhotos}
           onEnsurePlantId={async () => {
             if (!form.name.trim()) {
               setToast("Indique un nom pour la fiche avant d'importer une photo.");
@@ -361,6 +396,7 @@ function PlantManager({
               plantId={editPlant.id}
               onToast={setToast}
               maps={maps}
+              onProposePhotos={proposePhotos}
               autoSaveStatus={autoSaveStatus}
               autoSaveError={autoSaveError}
             />
