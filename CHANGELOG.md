@@ -25,6 +25,50 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `--pct-highlight-pulses`, `--pct-highlight-ring-inset`, en plus de `--pct-highlight-color`.
 - Garde-fou `tests/map-highlight-motion.test.js` : aucune animation de mise en avant infinie,
   chacune coupée sous « réduire les animations ». Doc de référence `plan-enov.md` à jour.
+### Corrigé — Zone-feuillet non consommée si la mascotte n'y est pas encore
+
+- Pendant un jet de dés, la traversée d'une zone-feuillet partait avant l'enregistrement du
+  déplacement. Le refus « pas dans cette zone » était traité comme « déjà vue » : le feuillet,
+  les cœurs et les gemmes ne se proposaient plus pour cette équipe.
+- Ce refus ne marque plus la zone. La découverte se refait à l'entrée réelle.
+### Corrigé — fresque : un geste posé pendant l'enregistrement n'est plus perdu
+
+- Un second geste (carte, flèche, post-it) dont l'envoi tombait pendant qu'un enregistrement
+  était encore en cours était oublié : plus aucun envoi n'était prévu, et le copie locale était
+  réécrite avec l'état déjà parti. Au retour (tablette en veille, réseau coupé juste après),
+  le geste avait disparu. L'envoi est maintenant relancé, et la copie locale garde le geste
+  le plus récent.
+- « Recommencer » prévient les autres écrans, mais ce signal était ignoré (il ne porte pas de
+  numéro de révision). L'autre élève restait sur l'ancienne table : tout ce qu'il posait
+  ensuite était refusé, puis perdu en rouvrant la fresque. L'écran ouvre la nouvelle table.
+  Un enregistrement refusé parce que la table est archivée fait de même.
+### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
+
+- Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage
+  (`plantId` n’est pas un champ du formulaire), et les appels « intégrer » / « confirmer »
+  passaient un objet à la place de la méthode HTTP. Aucune photo n’était donc enregistrée,
+  et le bouton « Confirmer la photo » échouait sans message.
+- Ces écritures font avancer la révision de la fiche. Un formulaire resté ouvert ailleurs
+  ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
+  habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
+  attend la fin de l’intégration et relit la liste à jour.
+### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
+
+- **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
+  `plantPrefillHelpers`) : attentes mises au comportement livré par « photos de pré-saisie
+  intégrées d’emblée » — chaque photo du formulaire porte son `id` en base et son statut
+  `confirmed`, une photo de pré-saisie arrive `confirmed: false`, les propositions sont cochées
+  d’emblée. Aucun changement de code applicatif.
+- **Instantanés `plants-species-characterization`** : la référence enregistre le champ
+  `confirmed` de chaque photo (migration 322) ; aucune autre valeur ne change.
+- **Cliquet des couleurs** (`tests/color-tokens-guard.test.js`, 640 littéraux pour 629) : les
+  11 teintes en dur des encadrés « À confirmer » passent sur des tokens — `--ink-warning`,
+  `--tint-warning`, et deux nouveaux, `--tint-warning-strong` et `--line-warning`.
+- **Inventaire des routes d’écriture** : `POST /api/plants/:id/photos/propose` et
+  `POST /api/plants/:id/photos/:photoId/confirm` déclarées (`plants.manage`).
+- **Plan e-nov** : scénario e2e de la page `/impression` (lieu numéroté, rangé sous son type
+  d’espace) dans le smoke bloquant ; doc de référence — la bascule entre cartes s’affiche
+  jusqu’à quatre cartes.
 
 ### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
 

@@ -88,6 +88,31 @@ test('les autres erreurs passent telles quelles, la session reste utilisable', a
   assert.strictEqual(out.edit_revision, 3);
 });
 
+test('enqueue se termine avant un enregistrement lancé pendant la tâche, qui relit l’état', async () => {
+  const { createEditRevisionSession } = await load();
+  const session = createEditRevisionSession(4);
+  let photos = ['ancienne'];
+  const bodies = [];
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const queued = session.enqueue(async () => {
+    await gate;
+    photos = ['ancienne', 'nouvelle'];
+    session.noteRevision(9);
+  });
+  const saved = session.save(async (expected) => {
+    bodies.push({ expected, photos: [...photos] });
+    return { edit_revision: expected + 1 };
+  });
+  release();
+  await queued;
+  await saved;
+  assert.deepStrictEqual(bodies, [{ expected: 9, photos: ['ancienne', 'nouvelle'] }]);
+  assert.strictEqual(session.revision, 10);
+});
+
 test('withExpectedRevision : ajoute le champ seulement si la révision est connue', async () => {
   const { withExpectedRevision } = await load();
   assert.deepStrictEqual(withExpectedRevision({ a: 1 }, 4), { a: 1, expected_revision: 4 });

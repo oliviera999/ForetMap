@@ -691,21 +691,32 @@ Audit sécurité/RGPD du 30/09/2026, constat RG1 (art. 12 à 14 du RGPD, public 
   d'information avant « Créer le compte »), page « À propos », écran de connexion G&L et panneau
   « Mes données » du profil G&L, aide du plan, écrans de code et de connexion des plans.
 
-## Ressources tierces (RGPD — polices et images Wikimedia)
+## Ressources tierces (RGPD — polices et images tierces)
 
 Réglage **`privacy.external_assets_mode`** (portée `public`, `local` | `external`, défaut
-**`local`**) : en mode `local`, le navigateur ne contacte ni Google Fonts ni Wikimedia (audit
-RGPD du 28/09/2026, § 7). Il est servi dans `GET /api/settings/public` (section `privacy`, tous
-produits), dans `GET /api/gl/auth/config` (champ `externalAssetsMode`) et dans les réglages des
-plans (`GET /api/plan/content`, `GET /api/staff-plan/content` → `settings.external_assets_mode`).
+**`local`**) : en mode `local`, le navigateur ne contacte ni Google Fonts ni les hébergeurs
+d'images tiers (audit RGPD du 28/09/2026, § 7 ; généralisation du 24/10/2026). Il est servi dans
+`GET /api/settings/public` (section `privacy`, tous produits), dans `GET /api/gl/auth/config`
+(champ `externalAssetsMode`) et dans les réglages des plans (`GET /api/plan/content`,
+`GET /api/staff-plan/content` → `settings.external_assets_mode`).
 
 - Les polices des fronts sont embarquées au build (paquets Fontsource, licence OFL-1.1). Les
   familles Google supplémentaires choisies par l'admin dans l'identité visuelle ne sont chargées
   qu'en mode `external`, et seulement si l'application ne les embarque pas déjà.
-- En mode `local`, les images `upload.wikimedia.org` / `commons.wikimedia.org` passent par le relais
-  ci-dessous ; dans une fiche tutoriel (`GET /api/tutorials/:id/view`), les `@import` Google Fonts
-  sont retirés et les images Wikimedia réécrites vers le relais. La feuille des polices locales est
-  ajoutée à toute fiche affichée, quel que soit le mode.
+- En mode `local`, toute image `https:` d'une origine tierce passe par le relais ci-dessous
+  (`upload.wikimedia.org` / `commons.wikimedia.org` inclus). Les URL `http:` externes ne sont pas
+  chargées par les helpers front (`resolveExternalImageUrl`) ; les chemins relatifs, `data:`,
+  `blob:` et les URL de même origine restent tels quels.
+- Le texte riche stocké (descriptions ForetMap, carnet, contenus GL avec images, etc.) garde
+  **l'adresse d'origine** de l'image, jamais `/api/media/remote?url=…`. Le nettoyage HTML →
+  Markdown appelle le sanitizer sans relais (`relayImages: false`) ; l'affichage relaie ensuite
+  selon le mode courant. Une adresse relayée déjà enregistrée est déballée à l'affichage
+  (`unwrapRelayedImageUrl`) puis sera réécrite à l'origine au prochain enregistrement. G&L peut
+  conserver ses références internes (`scene:N`, clés legacy) dans `data-gl-md-src` pour son propre
+  aller-retour.
+- Dans une fiche tutoriel (`GET /api/tutorials/:id/view`), les `@import` Google Fonts sont retirés
+  et les images tierces sont réécrites vers le relais en mode `local`. La feuille des polices
+  locales est ajoutée à toute fiche affichée, quel que soit le mode.
 
 | Méthode | URL                            | Auth | Description                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1900,8 +1911,8 @@ import en transaction) et le SQL dans `lib/biodiv/speciesRepository.js`. Il n'ex
 | POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). **`client_uuid`** facultatif (8 à 64 caractères `[A-Za-z0-9-]`, migration 296) : clé d'idempotence propre à l'utilisateur — un renvoi de la même clé ne crée pas de ligne et rejoue la réponse avec `"replayed": true` (file hors ligne du client, réponse perdue). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count", "replayed"? }` ; `400` si la clé est mal formée ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/:id/validate-hazard`                                          | `plants.hazards.validate` | Confirme la relecture des dangers et du risque sanitaire : `hazard_reviewed = 1`, `hazard_reviewed_by` = compte appelant, `hazard_reviewed_at` = maintenant. Corps optionnel `{ "reviewed": false }` pour **retirer** la validation (les trois colonnes retombent à `0` / `null`). Réponse : la fiche complète ; `400` identifiant invalide, `404` fiche inconnue                                                                                                                                                                                                                                                       |
 | POST    | `/api/plants/:id/photo-upload`                                             | oui             | Uploader une photo locale pour un champ `photo*`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| POST    | `/api/plants/:id/photos/propose`                                           | oui             | Intégrer d’emblée des photos de pré-saisie : corps `{ photos: [{ kind, url, credit?, licence?, source?, source_url? }] }`. Chaque nouvelle photo est enregistrée avec **`confirmed: false`** (visible de tous, mention « À confirmer ») ; les doublons `kind+url` sont ignorés. Réponse : `{ inserted, photos, plant }`.                                                                                                                                                                                                                                                                                                                          |
-| POST    | `/api/plants/:id/photos/:photoId/confirm`                                  | oui             | Valide une photo proposée (`confirmed: true`). Réponse : `{ photo, photos, plant }`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| POST    | `/api/plants/:id/photos/propose`                                           | oui             | Intégrer d’emblée des photos de pré-saisie : corps `{ photos: [{ kind, url, credit?, licence?, source?, source_url? }] }`. Chaque nouvelle photo est enregistrée avec **`confirmed: false`** (visible de tous, mention « À confirmer ») ; les doublons `kind+url` sont ignorés. Réponse : `{ inserted, photos, plant }`. Si `inserted` > 0, **`plant.edit_revision` avance** : un `PUT` de la fiche envoyé avec l’ancienne `expected_revision` reçoit **409** `edit_conflict` et n’efface pas ces photos.                                                                                                                                                                                                                                                         |
+| POST    | `/api/plants/:id/photos/:photoId/confirm`                                  | oui             | Valide une photo proposée (`confirmed: true`). Réponse : `{ photo, photos, plant }`. La révision de la fiche avance (`plant.edit_revision`) quand la photo ne l’était pas encore : un enregistrement périmé reçoit **409** `edit_conflict` au lieu de retirer la validation.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/import`                                                       | oui             | Importer des fiches biodiversité (CSV/XLSX/Google Sheet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 `GET /api/plants` renvoie les champs historiques (`id`, `name`, `emoji`, `description`) et les champs de biodiversité:
@@ -3914,9 +3925,12 @@ registre → 404 (aucun chemin n'est construit depuis la saisie).
 | GET | `/api/fresques/boards/:id/events?after=` | lecteurs du plateau | `{ boardId, events: [{ id, by, type, payload, at }] }` (≤ 200, base du mode collectif) |
 | GET | `/api/fresques/overview?deckId=&groupId=` | `stats.read.group` / `stats.read.all` | `{ boards }` : une ligne par plateau (élève ou équipe, niveau, étape, cartes posées, flèches trouvées, indices, statut, dernière activité), périmètre de groupes du prof, tri par nom ; groupe hors périmètre → 403 |
 
-Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq }` dans
+Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq, clientId? }` dans
 le salon `fresque:board:<id>` ; abonnement `subscribe:fresque-board` `{ boardId }` contrôlé par
 les mêmes droits que `GET /boards/:id` (refus : `fresque:board:subscription-refused`).
+Après `POST …/restart`, le même signal est émis sur l'ancien plateau avec `{ archived: true, nextBoardId }`
+(sans `revision`) : les autres écrans ouvrent ce plateau. Un `PUT` qui arrive trop tard reçoit
+**409** `board_archived` et le client rouvre le plateau actif.
 
 État du plateau (`state`, version 1) : `level` (`eclaireur` | `explorateur` | `expert`), `step`
 (`decouvrir`, `lot1`…, `comprendre`), `lotReached`, `tutorialDone`, `showBands`, `cards`

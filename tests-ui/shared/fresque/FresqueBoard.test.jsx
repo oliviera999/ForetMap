@@ -260,7 +260,7 @@ describe('FresqueBoard', () => {
     });
     await waitFor(() => expect(screen.getByTestId('fm-fresque-card-c13')).toBeInTheDocument());
     expect(screen.queryByTestId('fm-fresque-card-c04')).toBeNull();
-    expect(screen.queryByRole('dialog', { name: /Conflit/ })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Conflit/ })).toBeNull());
     expect(
       api.mock.calls.some(
         ([p, m]) => p === '/api/fresques/boards/b1' && (m === undefined || m === 'GET'),
@@ -351,6 +351,85 @@ describe('FresqueBoard', () => {
     expect(quiet.querySelector('.fm-mascot-speaker')).toBeNull();
     expect(quiet).not.toHaveTextContent('OLU');
     expect(quiet).toHaveTextContent(hints.tutorial[0].text);
+  });
+
+  test('signal « plateau archivé » : le parent est prévenu pour ouvrir la nouvelle fresque', async () => {
+    let handler = null;
+    const subscribeBoard = vi.fn((_id, onChanged) => {
+      handler = onChanged;
+      return () => {};
+    });
+    const onBoardArchived = vi.fn();
+    renderBoard(lotState(), { subscribeBoard, onBoardArchived });
+    await act(async () => {
+      handler({ boardId: 'b1', archived: true, nextBoardId: 'b2' });
+    });
+    expect(onBoardArchived).toHaveBeenCalledWith(
+      expect.objectContaining({ archived: true, nextBoardId: 'b2' }),
+    );
+  });
+
+  test('409 plateau archivé : le parent est prévenu, sans dialogue de conflit', async () => {
+    const onBoardArchived = vi.fn();
+    const api = vi.fn(async (_p, method = 'GET') => {
+      if (method === 'PUT') {
+        const err = new Error('archivé');
+        err.status = 409;
+        err.body = { code: 'board_archived' };
+        throw err;
+      }
+      return {};
+    });
+    renderBoard(lotState(), { api, onBoardArchived });
+    fireEvent.keyDown(screen.getByTestId('fm-fresque-hand-c04'), { key: 'Enter' });
+    await waitFor(() => expect(onBoardArchived).toHaveBeenCalled());
+    expect(onBoardArchived.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ boardId: 'b1', archived: true }),
+    );
+    expect(screen.queryByRole('dialog', { name: /Conflit/ })).toBeNull();
+  });
+
+  test('un geste posé pendant l’enregistrement reste dans le miroir et repart', async () => {
+    let release = () => {};
+    let puts = 0;
+    const api = vi.fn(async (_p, method = 'GET', body) => {
+      if (method === 'PUT') {
+        puts += 1;
+        if (puts === 1)
+          await new Promise((resolve) => {
+            release = resolve;
+          });
+        return { revision: puts, completed: false, rewards: [], clientSeq: body.clientSeq };
+      }
+      return {};
+    });
+    renderBoard(lotState(), { api });
+    fireEvent.keyDown(screen.getByTestId('fm-fresque-hand-c04'), { key: 'Enter' });
+    await waitFor(() => expect(puts).toBe(1), { timeout: 2000 });
+    fireEvent.keyDown(screen.getByTestId('fm-fresque-hand-c07'), { key: 'Enter' });
+    const during = JSON.parse(localStorage.getItem(mirrorKey('b1')));
+    expect(during.state.cards.c04).toBeTruthy();
+    expect(during.state.cards.c07).toBeTruthy();
+    // Le délai d'enregistrement (500 ms) retombe pendant que le premier envoi est encore bloqué.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    expect(puts).toBe(1);
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => {
+      const mirror = JSON.parse(localStorage.getItem(mirrorKey('b1')));
+      expect(mirror.state.cards.c07).toBeTruthy();
+      expect(mirror.state.cards.c04).toBeTruthy();
+    });
+    await waitFor(
+      () => {
+        const sent = api.mock.calls.filter((c) => c[1] === 'PUT');
+        expect(sent.some((c) => c[2]?.state?.cards?.c07)).toBe(true);
+      },
+      { timeout: 2000 },
+    );
   });
 
   test('lecture seule : pas de main active, pas de bouton relier, indicateur dédié', () => {

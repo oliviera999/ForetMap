@@ -44,6 +44,8 @@
   --line-cool: #cbd5e1;
   --line-leaf: #d6e8dc;
   --line-sage: #e2ebe5;
+  /* Filet ambré des encadrés « À confirmer » (photos de pré-saisie en attente). */
+  --line-warning: #e8d4a8;
 
   /* ── Encres de texte ────────────────────────────────────────────────────
      `--ink-soft` (#64748b) et `--ink-faint` (#8a94a0) sont déjà posées par
@@ -63,6 +65,7 @@
   --tint-success-strong: #dcfce7;
   --tint-danger: #fff1f2;
   --tint-warning: #fffbeb;
+  --tint-warning-strong: #fff3cd;
 
   /* ── Couleurs d'état pleines ────────────────────────────────────────────
      Un aplat ou un trait vif — là où `--ink-success` / `--ink-danger` sont des encres de

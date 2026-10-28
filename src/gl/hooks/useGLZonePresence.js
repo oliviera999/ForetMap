@@ -24,7 +24,14 @@ export function useGLRecentPresentation(dedupeMs = PRESENT_DEDUPE_MS) {
     recentPresentRef.current = { key, at: Date.now() };
   }, []);
 
-  return { wasRecentPresentation, markRecentPresentation };
+  /** Oublie la clé si c'est encore la dernière : un refus « pas encore dans la zone » ne doit pas bloquer la vraie entrée. */
+  const forgetRecentPresentation = useCallback((key) => {
+    if (recentPresentRef.current.key === key) {
+      recentPresentRef.current = { key: '', at: 0 };
+    }
+  }, []);
+
+  return { wasRecentPresentation, markRecentPresentation, forgetRecentPresentation };
 }
 
 /**
