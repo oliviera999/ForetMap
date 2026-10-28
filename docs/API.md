@@ -691,21 +691,32 @@ Audit sécurité/RGPD du 30/09/2026, constat RG1 (art. 12 à 14 du RGPD, public 
   d'information avant « Créer le compte »), page « À propos », écran de connexion G&L et panneau
   « Mes données » du profil G&L, aide du plan, écrans de code et de connexion des plans.
 
-## Ressources tierces (RGPD — polices et images Wikimedia)
+## Ressources tierces (RGPD — polices et images tierces)
 
 Réglage **`privacy.external_assets_mode`** (portée `public`, `local` | `external`, défaut
-**`local`**) : en mode `local`, le navigateur ne contacte ni Google Fonts ni Wikimedia (audit
-RGPD du 28/09/2026, § 7). Il est servi dans `GET /api/settings/public` (section `privacy`, tous
-produits), dans `GET /api/gl/auth/config` (champ `externalAssetsMode`) et dans les réglages des
-plans (`GET /api/plan/content`, `GET /api/staff-plan/content` → `settings.external_assets_mode`).
+**`local`**) : en mode `local`, le navigateur ne contacte ni Google Fonts ni les hébergeurs
+d'images tiers (audit RGPD du 28/09/2026, § 7 ; généralisation du 24/10/2026). Il est servi dans
+`GET /api/settings/public` (section `privacy`, tous produits), dans `GET /api/gl/auth/config`
+(champ `externalAssetsMode`) et dans les réglages des plans (`GET /api/plan/content`,
+`GET /api/staff-plan/content` → `settings.external_assets_mode`).
 
 - Les polices des fronts sont embarquées au build (paquets Fontsource, licence OFL-1.1). Les
   familles Google supplémentaires choisies par l'admin dans l'identité visuelle ne sont chargées
   qu'en mode `external`, et seulement si l'application ne les embarque pas déjà.
-- En mode `local`, les images `upload.wikimedia.org` / `commons.wikimedia.org` passent par le relais
-  ci-dessous ; dans une fiche tutoriel (`GET /api/tutorials/:id/view`), les `@import` Google Fonts
-  sont retirés et les images Wikimedia réécrites vers le relais. La feuille des polices locales est
-  ajoutée à toute fiche affichée, quel que soit le mode.
+- En mode `local`, toute image `https:` d'une origine tierce passe par le relais ci-dessous
+  (`upload.wikimedia.org` / `commons.wikimedia.org` inclus). Les URL `http:` externes ne sont pas
+  chargées par les helpers front (`resolveExternalImageUrl`) ; les chemins relatifs, `data:`,
+  `blob:` et les URL de même origine restent tels quels.
+- Le texte riche stocké (descriptions ForetMap, carnet, contenus GL avec images, etc.) garde
+  **l'adresse d'origine** de l'image, jamais `/api/media/remote?url=…`. Le nettoyage HTML →
+  Markdown appelle le sanitizer sans relais (`relayImages: false`) ; l'affichage relaie ensuite
+  selon le mode courant. Une adresse relayée déjà enregistrée est déballée à l'affichage
+  (`unwrapRelayedImageUrl`) puis sera réécrite à l'origine au prochain enregistrement. G&L peut
+  conserver ses références internes (`scene:N`, clés legacy) dans `data-gl-md-src` pour son propre
+  aller-retour.
+- Dans une fiche tutoriel (`GET /api/tutorials/:id/view`), les `@import` Google Fonts sont retirés
+  et les images tierces sont réécrites vers le relais en mode `local`. La feuille des polices
+  locales est ajoutée à toute fiche affichée, quel que soit le mode.
 
 | Méthode | URL                            | Auth | Description                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
