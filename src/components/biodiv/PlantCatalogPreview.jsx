@@ -92,10 +92,7 @@ export function PlantBiodiversityCatalogPreviewCard({
     if (!displayPlant?.id || photoBusy) return;
     setPhotoBusy(true);
     try {
-      const res = await api(`/api/plants/${displayPlant.id}/photos/${photoId}/confirm`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const res = await api(`/api/plants/${displayPlant.id}/photos/${photoId}/confirm`, 'POST', {});
       if (res?.plant) {
         setLocalPlant(res.plant);
         onPlantPhotosUpdated?.(res.plant);

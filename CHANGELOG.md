@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
+
+- Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage
+  (`plantId` n’est pas un champ du formulaire), et les appels « intégrer » / « confirmer »
+  passaient un objet à la place de la méthode HTTP. Aucune photo n’était donc enregistrée,
+  et le bouton « Confirmer la photo » échouait sans message.
+- Ces écritures font avancer la révision de la fiche. Un formulaire resté ouvert ailleurs
+  ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
+  habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
+  attend la fin de l’intégration et relit la liste à jour.
 ### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
 
 - **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
