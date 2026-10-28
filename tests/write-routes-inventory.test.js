@@ -258,6 +258,9 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/plants/:id/acknowledge-discovery': 'auth',
   'PUT /api/plants/:id/map-species/:mapId': 'permission:plants.manage',
   'POST /api/plants/:id/photo-upload': 'permission:plants.manage',
+  // Photos de pré-saisie (migration 322) : proposées « À confirmer », validées par un prof.
+  'POST /api/plants/:id/photos/propose': 'permission:plants.manage',
+  'POST /api/plants/:id/photos/:photoId/confirm': 'permission:plants.manage',
   'POST /api/plants/:id/validate-hazard': 'permission:plants.hazards.validate',
   'POST /api/plants/import': 'permission:plants.manage',
   'POST /api/plants/plantnet-identify': 'permission:plants.manage',

@@ -19,6 +19,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
   habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
   attend la fin de l’intégration et relit la liste à jour.
+### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
+
+- **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
+  `plantPrefillHelpers`) : attentes mises au comportement livré par « photos de pré-saisie
+  intégrées d’emblée » — chaque photo du formulaire porte son `id` en base et son statut
+  `confirmed`, une photo de pré-saisie arrive `confirmed: false`, les propositions sont cochées
+  d’emblée. Aucun changement de code applicatif.
+- **Instantanés `plants-species-characterization`** : la référence enregistre le champ
+  `confirmed` de chaque photo (migration 322) ; aucune autre valeur ne change.
+- **Cliquet des couleurs** (`tests/color-tokens-guard.test.js`, 640 littéraux pour 629) : les
+  11 teintes en dur des encadrés « À confirmer » passent sur des tokens — `--ink-warning`,
+  `--tint-warning`, et deux nouveaux, `--tint-warning-strong` et `--line-warning`.
+- **Inventaire des routes d’écriture** : `POST /api/plants/:id/photos/propose` et
+  `POST /api/plants/:id/photos/:photoId/confirm` déclarées (`plants.manage`).
+- **Plan e-nov** : scénario e2e de la page `/impression` (lieu numéroté, rangé sous son type
+  d’espace) dans le smoke bloquant ; doc de référence — la bascule entre cartes s’affiche
+  jusqu’à quatre cartes.
+
+### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
+
+- **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée
+  (lycée, complexe sportif…), lieux innovants numérotés sur le fond de plan, autres lieux en
+  pointillés pour le repérage, légende rangée par **type d’espace** avec texte court tiré de la
+  description e-nov, date d’état, QR code vers le plan interactif. Même porte d’entrée que le
+  plan (code demandé si le plan est fermé). Réponse au cahier des charges du label (domaine 1,
+  niveau 3 : un plan attestant plusieurs espaces de types différents).
+- **Type d’espace e-nov** (migration `323`, `zones` / `map_markers.enov_space_type`) :
+  sélecteur sous « Description e-nov » dans la fiche d’un lieu, affiché dans la fiche du plan
+  e-nov et servi par `GET /api/enov/content`.
+- **Réglages → Plan Lyautey → Plan e-nov** : boutons « Imprimer » (tous les plans, ou un par
+  carte), adresse déduite de `ui.plan.public_base_url` ou de l’hôte de la console.
+- **Plan e-nov** : bascule visible entre les cartes publiées sous la barre haute (au lieu de
+  « Réglages → Plan affiché » seulement). Plan public et plan des personnels inchangés.
+- Compteur d’usage `enov` : événements `print_open` et `print`.
+
+### Ajouté — dossier d’audit établissement (RGPD / ambassade)
+
+- Fiche synthèse [mesures techniques et organisationnelles](docs/reference/exploitation/mesures-techniques-organisationnelles.md)
+  et [checklists](docs/reference/exploitation/dossier-audit-etablissement.md) (information,
+  gouvernance, purge, sauvegardes, incident Git, droits) — sans changement de comportement
+  métier ; sommaire `docs/reference/README.md` et renvois depuis `vos-donnees.md`.
 
 ### Ajouté — photos de pré-saisie intégrées d’emblée (« À confirmer »)
 

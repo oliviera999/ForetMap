@@ -114,6 +114,7 @@ test.before(async () => {
     'Imprimantes 3D en libre accès.',
     fablab.id,
   ]);
+  await execute('UPDATE zones SET enov_space_type = ? WHERE id = ?', ['pedagogique', cdi.id]);
 
   const res = await request(app)
     .post('/api/auth/register')
@@ -161,6 +162,9 @@ test('GET /api/enov/content : tout le plan, lieux e-nov mis en avant, texte e-no
 
   assert.equal(zones.get(cdi.id).is_enov, true);
   assert.equal(zones.get(cdi.id).enov_description, 'Espace de robotique ouvert aux élèves.');
+  // Type d'espace (migration 323) : servi tel quel, `''` quand il n'est pas renseigné.
+  assert.equal(zones.get(cdi.id).enov_space_type, 'pedagogique');
+  assert.equal(zones.get(hall.id).enov_space_type, '');
   assert.ok(zones.get(cdi.id).category_ids.includes(label.id));
   assert.equal(zones.get(loge.id).is_enov, true, 'un lieu sans autre catégorie est mis en avant');
 
@@ -189,6 +193,7 @@ test('GET /api/plan/content : le label ne retire aucun lieu et ne sort pas', asy
     assert.ok(!zone.category_ids.includes(label.id), `label absent de ${zone.id}`);
     assert.equal(zone.is_enov, undefined);
     assert.equal(zone.enov_description, undefined);
+    assert.equal(zone.enov_space_type, undefined);
   }
   assert.ok(!res.body.categories.some((c) => c.id === label.id));
   assert.equal(res.body.settings.enov, undefined);
@@ -221,6 +226,7 @@ test('texte e-nov : écrit par la console, lu par le gestionnaire, jamais par un
     const seenCdi = student.body.find((z) => z.id === cdi.id);
     assert.ok(seenCdi, 'la zone reste visible');
     assert.equal(seenCdi.enov_description, undefined);
+    assert.equal(seenCdi.enov_space_type, undefined);
     assert.ok(!seenCdi.categories.some((c) => c.id === label.id));
     assert.ok(!seenCdi.category_ids.includes(label.id));
     assert.ok(
@@ -248,6 +254,27 @@ test('texte e-nov : écrit par la console, lu par le gestionnaire, jamais par un
     .send({ enov_description: '' })
     .expect(200);
   assert.equal(cleared.body.enov_description, null);
+});
+
+test('type d’espace e-nov : écrit par la console, valeur inconnue ramenée à vide', async () => {
+  const saved = await auth(request(app).put(`/api/zones/${hall.id}`))
+    .send({ enov_space_type: 'Sportif ' })
+    .expect(200);
+  assert.equal(saved.body.enov_space_type, 'sportif');
+  // Un PUT qui ne cite pas le champ le laisse intact.
+  await auth(request(app).put(`/api/zones/${hall.id}`))
+    .send({ color: '#86efac90' })
+    .expect(200);
+  const kept = await queryOne('SELECT enov_space_type FROM zones WHERE id = ?', [hall.id]);
+  assert.equal(kept.enov_space_type, 'sportif');
+  const unknown = await auth(request(app).put(`/api/zones/${hall.id}`))
+    .send({ enov_space_type: 'piscine-olympique' })
+    .expect(200);
+  assert.equal(unknown.body.enov_space_type, null);
+  const marker = await auth(request(app).put(`/api/map/markers/${fablab.id}`))
+    .send({ enov_space_type: 'exterieur' })
+    .expect(200);
+  assert.equal(marker.body.enov_space_type, 'exterieur');
 });
 
 test('catégorie-label : écrite et relue par la console des catégories', async () => {
@@ -320,5 +347,14 @@ test('compteur d’usage : produit enov et événement innovations_open accepté
     .post('/api/usage')
     .send({ product: 'enov', event: 'innovations_open', key: '3' });
   assert.ok(res.status < 300, `statut ${res.status}`);
+  // Page d'impression des plans annotés (`/impression`).
+  for (const event of ['print_open', 'print']) {
+    const printed = await request(app)
+      .post('/api/usage')
+      .send({ product: 'enov', event, key: 'lyautey,beaulieu' });
+    assert.ok(printed.status < 300, `${event} : statut ${printed.status}`);
+  }
+  // Propres au plan e-nov : refusés au plan public.
+  await request(app).post('/api/usage').send({ product: 'plan', event: 'print' }).expect(400);
   await request(app).post('/api/usage').send({ product: 'enov', event: 'inconnu' }).expect(400);
 });

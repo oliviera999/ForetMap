@@ -78,6 +78,8 @@ export const ENOV_PLAN_VARIANT = Object.freeze({
   acceptsLinkCode: true,
   accessIntro: 'Ce plan est réservé aux invités du label e-nov. Saisissez le code communiqué.',
   highlightPlaces: true,
+  /** Bascule visible entre les cartes publiées (lycée, complexe sportif) sous la barre haute. */
+  mapSwitcher: true,
   labelLogo: Object.freeze({
     url: '/enov/logo-enov.png',
     alt: 'Label e-nov — Établissements innovants (AEFE)',

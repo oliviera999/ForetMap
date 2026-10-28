@@ -101,6 +101,8 @@ export function buildZonePayload(name, form, visitEditorialBlocks, options = {})
     search_aliases: String(form.searchAliases || '').trim(),
     // Texte e-nov (migration 315) : affiché sur le seul plan e-nov.
     enov_description: String(form.enovDescription || '').trim(),
+    // Type d'espace e-nov (migration 323) : légende du plan annoté imprimable.
+    enov_space_type: String(form.enovSpaceType || '').trim(),
     visible_role_slugs: normalizeAudienceRoleList(form.visibleRoleSlugs),
     visible_group_ids: normalizeAudienceGroupList(form.visibleGroupIds),
     notes: buildLocationNotesPayload(form.notes),

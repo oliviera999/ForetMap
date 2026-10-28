@@ -2918,6 +2918,12 @@ ne sont pas reportés.
   (chaîne ; espaces de bord retirés, borné à 4 000 caractères, vide → `null`, omis sur `PUT` =
   inchangé). Renvoyé aux gestionnaires en édition et par `GET /api/enov/content` ; retiré de
   toute autre lecture.
+- **Type d'espace e-nov** (`zones.enov_space_type` / `map_markers.enov_space_type`,
+  VARCHAR(24), migration `323`) : `exterieur`, `pedagogique`, `sportif`, `vie-scolaire`,
+  `administratif`, `restauration` ou `autre` (`lib/enovPlan.js` `ENOV_SPACE_TYPES`). Accepté en
+  `POST` / `PUT` zones et repères ; casse et espaces de bord ignorés ; vide **ou inconnu** →
+  `null` (jamais de 400 pour ce seul champ) ; omis sur `PUT` = inchangé. Même exposition que le
+  texte e-nov.
 - **Écritures** : `POST` / `PUT` de `/api/zones`, `/api/map/markers` acceptent
   `hidden_surfaces` (tableau `['plan']`, chaîne `'map,plan'`, `[]` / `''` / `null` = aucune) ;
   `POST` / `PUT /api/map-categories` accepte `surfaces` (même forme ; omis à la création =
@@ -3455,7 +3461,8 @@ en « visiteur » (`PUBLIC_SURFACES`).
   categories, zones, markers, routes }`), avec en plus :
   - sur chaque zone et chaque repère : **`is_enov`** (booléen — le lieu porte une catégorie de
     `ui.enov_plan.highlight_category_ids`, lue **avant** le masquage des filtres) et
-    **`enov_description`** (chaîne, `''` si vide) ;
+    **`enov_description`** (chaîne, `''` si vide) et **`enov_space_type`** (identifiant de type
+    d'espace, `''` si non renseigné) ;
   - **`settings.enov`** : `{ highlight_category_ids, highlight_color, badge_enabled,
     innovations_label }` — catégories ramenées à celles servies sur cette carte.
   Aucun de ces champs ne sort de `/api/plan/content` ni de `/api/staff-plan/content`.
@@ -3468,6 +3475,10 @@ en « visiteur » (`PUBLIC_SURFACES`).
   limiteur d'authentification. Mode `code` sans code configuré : le plan reste ouvert.
 - **Routes génériques** (`/api/zones`, `/api/map/markers`, `/api/map-categories`, `/api/maps`)
   appelées sur le host `enov.*` : surface `enov`, même laissez-passer (`lib/surfaceAccess.js`).
+- **Page d'impression** `/impression` (front seul, entrée `enov.html`) : une feuille A4 par
+  carte, lue par `GET /api/enov/content?map_id=` (toutes les cartes de `maps` par défaut,
+  `?map_id=a,b` pour restreindre) ; aucune route serveur propre. Compteurs `print_open` et
+  `print` (produit `enov`).
 - **Parcours** : `GET /api/map-routes?surface=enov` suit la garde du plan e-nov. Le détail
   public `GET /api/map-routes/:idOrSlug` ne sert que `visit` / `plan` (sa garde est celle du
   plan public).
@@ -3491,7 +3502,7 @@ event, key, count }] }`, triée par jour décroissant puis produit, événement,
 
 Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`, `staff`, `enov`) ;
 seuls ceux qui déclarent des événements dans `USAGE_EVENTS` sont comptés (`foret`, `gl`,
-`plan`, et `enov` — mêmes événements que le plan, plus `innovations_open`). Le plan des
+`plan`, et `enov` — mêmes événements que le plan, plus `innovations_open`, `print_open` et `print` pour la page d'impression `/impression`). Le plan des
 personnels compte sous `plan`.
 
 ## Suivi utilisateurs admin (présence, activité, passage)
