@@ -9,6 +9,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — Zone-feuillet non consommée si la mascotte n'y est pas encore
+
+- Pendant un jet de dés, la traversée d'une zone-feuillet partait avant l'enregistrement du
+  déplacement. Le refus « pas dans cette zone » était traité comme « déjà vue » : le feuillet,
+  les cœurs et les gemmes ne se proposaient plus pour cette équipe.
+- Ce refus ne marque plus la zone. La découverte se refait à l'entrée réelle.
 ### Corrigé — fresque : un geste posé pendant l'enregistrement n'est plus perdu
 
 - Un second geste (carte, flèche, post-it) dont l'envoi tombait pendant qu'un enregistrement
