@@ -3535,9 +3535,9 @@
     .plant-photo-pending {
       display:flex; flex-direction:column; gap:4px;
       margin-top:6px; padding:8px 10px; border-radius:8px;
-      border:1px solid color-mix(in srgb, var(--alert) 40%, #e8d4a8);
-      background:color-mix(in srgb, #fff9e5 90%, var(--alert));
-      color:var(--ink-warning, #7a5a13);
+      border:1px solid color-mix(in srgb, var(--alert) 40%, var(--line-warning));
+      background:color-mix(in srgb, var(--tint-warning) 90%, var(--alert));
+      color:var(--ink-warning);
     }
     .plant-photo-pending__label {
       font-size:var(--text-xs); font-weight:var(--fw-bold);
@@ -3548,22 +3548,22 @@
     .plant-photo-pending-banner {
       margin:8px 0 0; padding:8px 10px; border-radius:8px;
       font-size:var(--text-sm); line-height:1.35;
-      background:#fff9e5; color:#7a5a13;
-      border:1px solid #e8d4a8;
+      background:var(--tint-warning); color:var(--ink-warning);
+      border:1px solid var(--line-warning);
     }
     .biodiv-tile__pending {
       display:inline-block; margin-top:4px; padding:2px 8px; border-radius:999px;
       font-size:var(--text-xs); font-weight:var(--fw-semibold);
-      background:#fff3cd; color:#7a5a13;
+      background:var(--tint-warning-strong); color:var(--ink-warning);
     }
 
     /* Pré-saisie biodiversité : choix de photo par aperçu (formulaire plante) */
     .plant-prefill-photo-confirm {
-      border:1.5px solid color-mix(in srgb, var(--alert) 45%, #e8d4a8);
+      border:1.5px solid color-mix(in srgb, var(--alert) 45%, var(--line-warning));
       border-radius:10px;
       padding:10px 12px;
-      background:color-mix(in srgb, #fff9e5 88%, var(--alert));
-      color:var(--ink-warning, #7a5a13);
+      background:color-mix(in srgb, var(--tint-warning) 88%, var(--alert));
+      color:var(--ink-warning);
     }
     .plant-prefill-photo-confirm__title {
       display:block;
