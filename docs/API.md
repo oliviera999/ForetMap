@@ -1900,6 +1900,8 @@ import en transaction) et le SQL dans `lib/biodiv/speciesRepository.js`. Il n'ex
 | POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). **`client_uuid`** facultatif (8 à 64 caractères `[A-Za-z0-9-]`, migration 296) : clé d'idempotence propre à l'utilisateur — un renvoi de la même clé ne crée pas de ligne et rejoue la réponse avec `"replayed": true` (file hors ligne du client, réponse perdue). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count", "replayed"? }` ; `400` si la clé est mal formée ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/:id/validate-hazard`                                          | `plants.hazards.validate` | Confirme la relecture des dangers et du risque sanitaire : `hazard_reviewed = 1`, `hazard_reviewed_by` = compte appelant, `hazard_reviewed_at` = maintenant. Corps optionnel `{ "reviewed": false }` pour **retirer** la validation (les trois colonnes retombent à `0` / `null`). Réponse : la fiche complète ; `400` identifiant invalide, `404` fiche inconnue                                                                                                                                                                                                                                                       |
 | POST    | `/api/plants/:id/photo-upload`                                             | oui             | Uploader une photo locale pour un champ `photo*`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| POST    | `/api/plants/:id/photos/propose`                                           | oui             | Intégrer d’emblée des photos de pré-saisie : corps `{ photos: [{ kind, url, credit?, licence?, source?, source_url? }] }`. Chaque nouvelle photo est enregistrée avec **`confirmed: false`** (visible de tous, mention « À confirmer ») ; les doublons `kind+url` sont ignorés. Réponse : `{ inserted, photos, plant }`. Si `inserted` > 0, **`plant.edit_revision` avance** : un `PUT` de la fiche envoyé avec l’ancienne `expected_revision` reçoit **409** `edit_conflict` et n’efface pas ces photos.                                                                                                                                                                                                                                                         |
+| POST    | `/api/plants/:id/photos/:photoId/confirm`                                  | oui             | Valide une photo proposée (`confirmed: true`). Réponse : `{ photo, photos, plant }`. La révision de la fiche avance (`plant.edit_revision`) quand la photo ne l’était pas encore : un enregistrement périmé reçoit **409** `edit_conflict` au lieu de retirer la validation.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/import`                                                       | oui             | Importer des fiches biodiversité (CSV/XLSX/Google Sheet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 `GET /api/plants` renvoie les champs historiques (`id`, `name`, `emoji`, `description`) et les champs de biodiversité:
@@ -2137,7 +2139,7 @@ Réponse:
   - `q` (obligatoire, 2 à 120 caractères) : nom courant ou scientifique recherché.
   - `hint_scientific` (optionnel, max 120 caractères) : nom scientifique déjà saisi dans le formulaire (améliore la graine taxonomique, Catalogue of Life, etc.).
   - `hint_name` (optionnel, max 120 caractères) : nom courant déjà saisi ; injecté dans le contexte OpenAI comme indice utilisateur.
-  - `sources` (optionnel) : liste d’identifiants de sources **séparés par des virgules** (ex. `wikipedia,wikidata,gbif`) ; seuls les ids reconnus sont pris en compte, les autres sont **ignorés**. Valeurs reconnues : `wikipedia`, `wikidata`, `gbif`, `gbif_traits`, `inaturalist`, `catalogue_of_life`, `gbif_vernacular`, `wikipedia_en`, `wikipedia_heuristic`, `trefle`, `openai`. **Défaut** (paramètre absent, vide ou sans aucun id valide) : toutes les sources reconnues. Les extensions **Trefle** / **OpenAI** ne sont interrogées que si leur id figure dans la liste **et** que les variables d’environnement requises sont déjà activées (comportement inchangé si désactivées côté serveur). Les dépendances sont respectées côté agrégateur (ex. `gbif_traits` et `gbif_vernacular` seulement si `gbif` est autorisé et qu’un `usageKey` est disponible ; pas d’appel **Wikipedia EN** si **Wikipedia FR** est exclu).
+  - `sources` (optionnel) : liste d’identifiants de sources **séparés par des virgules** (ex. `wikipedia,wikidata,gbif`) ; seuls les ids reconnus sont pris en compte, les autres sont **ignorés**. Valeurs reconnues : `wikipedia`, `wikidata`, `gbif`, `gbif_traits`, `gbif_media`, `inaturalist`, `catalogue_of_life`, `gbif_vernacular`, `wikipedia_en`, `wikipedia_heuristic`, `trefle`, `openai`. **Défaut** (paramètre absent, vide ou sans aucun id valide) : toutes les sources reconnues. Les extensions **Trefle** / **OpenAI** ne sont interrogées que si leur id figure dans la liste **et** que les variables d’environnement requises sont déjà activées (comportement inchangé si désactivées côté serveur). Les dépendances sont respectées côté agrégateur (ex. `gbif_traits`, `gbif_vernacular` et `gbif_media` seulement si `gbif` est autorisé et qu’un `usageKey` est disponible ; pas d’appel **Wikipedia EN** si **Wikipedia FR** est exclu).
 - **Cache** : la clé de cache inclut `q`, les hints **et** la liste normalisée de `sources` (empreinte SHA-256 tronquée) : deux appels avec le même `q` mais des filtres de sources différents ne partagent pas la même entrée de cache.
 - Réponse JSON:
   - `query`: requête normalisée,
@@ -2146,9 +2148,9 @@ Réponse:
   - `field_sources`: provenance par champ (source, confiance, alternatives éventuelles),
   - `photos`: tableau de propositions `{ field, url, license, credit, source_url, source, confidence }`,
   - `sources`: sources effectivement interrogées `{ source, confidence, source_url }`,
-  - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées...).
+  - `warnings`: avertissements non bloquants (source indisponible, qualité des données, photos filtrées…). Lorsqu’au moins une photo est proposée, un avertissement rappelle qu’elles sont **intégrées d’emblée** avec mention **« À confirmer »** jusqu’à validation professeur.
 - Comportement:
-  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** (dont **P366** / **P183** / **P9714** pour utilité, endémisme / aire d’occurrence, libellés via `wbgetentities`) ; **GBIF** (`species/match`, `usageKey`) ; **GBIF traits** (`/v1/species/{usageKey}` + `/descriptions`, source interne `gbif_traits`, confiance modérée : habit / zone / écologie textuels et avertissements de statut taxonomique) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, résumé Wikipedia, photo HTTPS, indices **extinction / statut de conservation** lorsque présents) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ; **heuristiques** sur l’extrait FR (`wikipedia_heuristic`, faible confiance : température, pH, taille, longévité, indices culture / récolte / plantation) ;
+  - résultats agrégés depuis plusieurs sources externes publiques : **Wikipedia (FR)** avec repli **opensearch** ; **Wikidata** (dont **P366** / **P183** / **P9714** pour utilité, endémisme / aire d’occurrence, libellés via `wbgetentities`) ; **GBIF** (`species/match`, `usageKey`) ; **GBIF traits** (`/v1/species/{usageKey}` + `/descriptions`, source interne `gbif_traits`, confiance modérée : habit / zone / écologie textuels et avertissements de statut taxonomique) ; **GBIF médias** (`/v1/occurrence/search?media_type=StillImage&taxon_key=…`, source `gbif_media` : jusqu’à 6 photos HTTPS d’occurrences, licences **CC0 / CC BY / CC BY-SA** uniquement, crédit `rightsHolder`/`creator`, priorité aux observations de terrain ; les licences NC/ND ou URL non image directe sont filtrées avec avertissement) ; **Catalogue of Life** lorsqu’un nom scientifique est connu ; **iNaturalist** (recherche taxons, résumé Wikipedia, photo HTTPS, indices **extinction / statut de conservation** lorsque présents) ; **noms vernaculaires GBIF** (`/species/{usageKey}/vernacularNames`, langues `fra` / `fre` / `fr`) pour enrichir **`second_name`** ; **Wikipedia EN** (résumé) en secours si l’extrait FR est trop court ; **heuristiques** sur l’extrait FR (`wikipedia_heuristic`, faible confiance : température, pH, taille, longévité, indices culture / récolte / plantation) ;
   - le nom scientifique « graine » pour les requêtes secondaires privilégie **`hint_scientific`** (si forme binomiale plausible), puis **GBIF** puis **Wikidata** (meilleure désambiguïsation quand le nom vulgaire est ambigu) ;
   - avec un filtre **`sources`** restreint (sans GBIF/Wikidata/Wikipedia), le **contexte OpenAI** s’appuie tout de même sur **`q`**, **`hint_name`** et **`hint_scientific`** : le corps envoyé à OpenAI inclut le texte de recherche et les indices formulaire pour limiter les réponses vides lorsque les autres sources ne tournent pas ;
   - après fusion des sources, une passe **« trous uniquement »** : champs texte encore vides peuvent être complétés par une requête **OpenAI ciblée** (`openai_gap`, si `SPECIES_AUTOFILL_OPENAI=1`) sur les seules clés encore vides parmi les champs autorisés LLM, dans la limite du budget temps restant (sinon la passe est ignorée) ;
@@ -2916,6 +2918,12 @@ ne sont pas reportés.
   (chaîne ; espaces de bord retirés, borné à 4 000 caractères, vide → `null`, omis sur `PUT` =
   inchangé). Renvoyé aux gestionnaires en édition et par `GET /api/enov/content` ; retiré de
   toute autre lecture.
+- **Type d'espace e-nov** (`zones.enov_space_type` / `map_markers.enov_space_type`,
+  VARCHAR(24), migration `323`) : `exterieur`, `pedagogique`, `sportif`, `vie-scolaire`,
+  `administratif`, `restauration` ou `autre` (`lib/enovPlan.js` `ENOV_SPACE_TYPES`). Accepté en
+  `POST` / `PUT` zones et repères ; casse et espaces de bord ignorés ; vide **ou inconnu** →
+  `null` (jamais de 400 pour ce seul champ) ; omis sur `PUT` = inchangé. Même exposition que le
+  texte e-nov.
 - **Écritures** : `POST` / `PUT` de `/api/zones`, `/api/map/markers` acceptent
   `hidden_surfaces` (tableau `['plan']`, chaîne `'map,plan'`, `[]` / `''` / `null` = aucune) ;
   `POST` / `PUT /api/map-categories` accepte `surfaces` (même forme ; omis à la création =
@@ -3453,7 +3461,8 @@ en « visiteur » (`PUBLIC_SURFACES`).
   categories, zones, markers, routes }`), avec en plus :
   - sur chaque zone et chaque repère : **`is_enov`** (booléen — le lieu porte une catégorie de
     `ui.enov_plan.highlight_category_ids`, lue **avant** le masquage des filtres) et
-    **`enov_description`** (chaîne, `''` si vide) ;
+    **`enov_description`** (chaîne, `''` si vide) et **`enov_space_type`** (identifiant de type
+    d'espace, `''` si non renseigné) ;
   - **`settings.enov`** : `{ highlight_category_ids, highlight_color, badge_enabled,
     innovations_label }` — catégories ramenées à celles servies sur cette carte.
   Aucun de ces champs ne sort de `/api/plan/content` ni de `/api/staff-plan/content`.
@@ -3466,6 +3475,10 @@ en « visiteur » (`PUBLIC_SURFACES`).
   limiteur d'authentification. Mode `code` sans code configuré : le plan reste ouvert.
 - **Routes génériques** (`/api/zones`, `/api/map/markers`, `/api/map-categories`, `/api/maps`)
   appelées sur le host `enov.*` : surface `enov`, même laissez-passer (`lib/surfaceAccess.js`).
+- **Page d'impression** `/impression` (front seul, entrée `enov.html`) : une feuille A4 par
+  carte, lue par `GET /api/enov/content?map_id=` (toutes les cartes de `maps` par défaut,
+  `?map_id=a,b` pour restreindre) ; aucune route serveur propre. Compteurs `print_open` et
+  `print` (produit `enov`).
 - **Parcours** : `GET /api/map-routes?surface=enov` suit la garde du plan e-nov. Le détail
   public `GET /api/map-routes/:idOrSlug` ne sert que `visit` / `plan` (sa garde est celle du
   plan public).
@@ -3489,7 +3502,7 @@ event, key, count }] }`, triée par jour décroissant puis produit, événement,
 
 Produits reconnus : `lib/products.js` (registre : `foret`, `gl`, `plan`, `staff`, `enov`) ;
 seuls ceux qui déclarent des événements dans `USAGE_EVENTS` sont comptés (`foret`, `gl`,
-`plan`, et `enov` — mêmes événements que le plan, plus `innovations_open`). Le plan des
+`plan`, et `enov` — mêmes événements que le plan, plus `innovations_open`, `print_open` et `print` pour la page d'impression `/impression`). Le plan des
 personnels compte sous `plan`.
 
 ## Suivi utilisateurs admin (présence, activité, passage)
@@ -3875,6 +3888,47 @@ séance existante, jamais elle-même ; les gestionnaires (`plants.manage`) ne so
 
 Lien direct : `/?seance=<slug>` ouvre l’application et démarre la séance (après connexion si
 besoin, le slug est gardé en `sessionStorage`).
+
+### Fresques (`/api/fresques`)
+
+Migration `321`, tables `fresque_boards` / `fresque_board_events`. Moteur générique « cartes +
+flèches cause → effet + correction », alimenté par les jeux de `public/fresques/<deckId>/`
+(registre `lib/fresqueDecks.js`, premier jeu `climat-junior-fr-v7-5` : **La Fresque du Climat –
+version Enfant**, CC BY-NC-ND — crédit obligatoire `attribution.creditLine`). Logique métier dans
+le cœur partagé `lib/shared/fresqueCore.js` (validation de l'état, classement des flèches, fin,
+journal) ; persistance et droits dans `lib/fresqueBoards.js`. Détail : `docs/FRESQUE_ARCHITECTURE.md`.
+
+Toutes les routes exigent un compte connecté. Module `ui.modules.fresque_enabled` éteint :
+**503** `{ error: 'Fresques désactivées' }` sauf pour `plants.manage`. Un `deckId` hors
+registre → 404 (aucun chemin n'est construit depuis la saisie).
+
+| Méthode | URL | Auth | Description |
+| ------- | --- | ---- | ----------- |
+| GET | `/api/fresques/decks` | connecté | `{ decks: [{ id, kind, title, shortTitle, audience, edition, cardCount, lotCount, expectedLinks, attribution, publicBase, titleImage }] }` |
+| GET | `/api/fresques/decks/:deckId` | connecté | `{ id, publicBase, deck, correction, hints }` — le front n'a pas à deviner les chemins d'images (`publicBase` + `cards/…`) |
+| GET | `/api/fresques/boards/mine?deckId=` | connecté | `{ boards, teams }` : plateaux **actifs** du compte (le sien et ceux de ses équipes, groupes `kind = 'team'`) et ses équipes |
+| POST | `/api/fresques/boards` | connecté | `{ deckId, ownerType: 'user'\|'team', groupId?, level? }` : crée (201) ou renvoie (200) le plateau actif — `{ board (+ state), created }` ; équipe → appartenance contrôlée (403) |
+| GET | `/api/fresques/boards/:id` | propriétaire, membre de l'équipe, prof dans son périmètre | `{ board }` avec `state` et `readOnly` (vrai pour le prof) ; hors périmètre → 403 |
+| PUT | `/api/fresques/boards/:id` | propriétaire ou membre | `{ state, expected_revision?, clientSeq?, clientId? }` (`clientId` : écran émetteur, renvoyé dans le signal temps réel pour que l'écho soit ignoré) : validation stricte (bornes du cœur), `by` réécrit avec l'auteur, résumé et journal calculés, fin détectée, badge attribué une seule fois ; réponse `{ board, revision, clientSeq, events, completed, rewards }` ; révision dépassée → **409** `{ error, code: 'edit_conflict', current_revision }` ; plateau archivé → 409 `board_archived` ; état invalide → 400 ; limite 240 enregistrements / min / compte |
+| POST | `/api/fresques/boards/:id/restart` | propriétaire ou membre | Archive le plateau actif (consultable par le prof) et en crée un neuf (201) `{ board, previousBoardId }` |
+| GET | `/api/fresques/boards/:id/events?after=` | lecteurs du plateau | `{ boardId, events: [{ id, by, type, payload, at }] }` (≤ 200, base du mode collectif) |
+| GET | `/api/fresques/overview?deckId=&groupId=` | `stats.read.group` / `stats.read.all` | `{ boards }` : une ligne par plateau (élève ou équipe, niveau, étape, cartes posées, flèches trouvées, indices, statut, dernière activité), périmètre de groupes du prof, tri par nom ; groupe hors périmètre → 403 |
+
+Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq, clientId? }` dans
+le salon `fresque:board:<id>` ; abonnement `subscribe:fresque-board` `{ boardId }` contrôlé par
+les mêmes droits que `GET /boards/:id` (refus : `fresque:board:subscription-refused`).
+Après `POST …/restart`, le même signal est émis sur l'ancien plateau avec `{ archived: true, nextBoardId }`
+(sans `revision`) : les autres écrans ouvrent ce plateau. Un `PUT` qui arrive trop tard reçoit
+**409** `board_archived` et le client rouvre le plateau actif.
+
+État du plateau (`state`, version 1) : `level` (`eclaireur` | `explorateur` | `expert`), `step`
+(`decouvrir`, `lot1`…, `comprendre`), `lotReached`, `tutorialDone`, `showBands`, `cards`
+(`{ x, y, flipped, placedAt }` en % de la table), `links` (`{ id, from, to, color, revealed, by }`),
+`notes` (post-it élève et indices, ≤ 40, texte ≤ 280), `hints.log`, `checks`, `correction`
+(`viewedAt`, `revealedMissing`), `creative` (titre ≤ 60, couleur, carte marquante), `viewport`,
+`clientSeq`. Fin = 21 cartes posées **et** correction ouverte (niveau et score indifférents) →
+badge `fresque_climat_junior`. Conservation : journal 12 mois, plateaux archivés 12 mois sans
+modification (`docs/reference/exploitation/durees-de-conservation.md`).
 
 ### Badges (`/api/rewards`)
 

@@ -43,13 +43,15 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Transverse
 
-| Document                                                                         | Contenu                                                                                                                                        | Statut    |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [INCOHERENCES.md](INCOHERENCES.md)                                               | Registre d'arbitrage : incohérences relevées, options de correction                                                                            | ✅ Rédigé |
-| [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md)         | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage  | ✅ Rédigé |
-| [exploitation/modele-de-securite.md](exploitation/modele-de-securite.md)         | Qui voit quoi, sur quelle adresse : les six publics, les trois règles invariantes, ce que vous réglez vous-même                                | ✅ Rédigé |
-| [exploitation/vos-donnees.md](exploitation/vos-donnees.md)                       | Page « Vos données » (information RGPD) des cinq applications : contenu, liens, contact DPO à renseigner, limites                              | ✅ Rédigé |
-| [exploitation/durees-de-conservation.md](exploitation/durees-de-conservation.md) | Durées de conservation (comptes, journaux, adresses IP), départ d'un élève ou d'un personnel, purge planifiée : simulation, activation, alerte | ✅ Rédigé |
+| Document                                                                                                       | Contenu                                                                                                                                        | Statut    |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [INCOHERENCES.md](INCOHERENCES.md)                                                                             | Registre d'arbitrage : incohérences relevées, options de correction                                                                            | ✅ Rédigé |
+| [exploitation/marque-et-domaines.md](exploitation/marque-et-domaines.md)                                       | Installer l'application pour un autre établissement : nom du logiciel, nom de l'établissement, ce qui reste attaché à Lyautey, droits d'usage  | ✅ Rédigé |
+| [exploitation/modele-de-securite.md](exploitation/modele-de-securite.md)                                       | Qui voit quoi, sur quelle adresse : les six publics, les trois règles invariantes, ce que vous réglez vous-même                                | ✅ Rédigé |
+| [exploitation/vos-donnees.md](exploitation/vos-donnees.md)                                                     | Page « Vos données » (information RGPD) des cinq applications : contenu, liens, contact DPO à renseigner, limites                              | ✅ Rédigé |
+| [exploitation/durees-de-conservation.md](exploitation/durees-de-conservation.md)                               | Durées de conservation (comptes, journaux, adresses IP), départ d'un élève ou d'un personnel, purge planifiée : simulation, activation, alerte | ✅ Rédigé |
+| [exploitation/mesures-techniques-organisationnelles.md](exploitation/mesures-techniques-organisationnelles.md) | Fiche synthèse 1–2 pages (entretien d’audit / ambassade) : mesures techniques et organisationnelles                                            | ✅ Rédigé |
+| [exploitation/dossier-audit-etablissement.md](exploitation/dossier-audit-etablissement.md)                     | Checklists préparatoires (information, gouvernance, purge, sauvegardes, incident Git, droits)                                                  | ✅ Rédigé |
 
 ### ForetMap
 
@@ -65,6 +67,7 @@ Il poursuit trois objectifs, dans l'ordre :
 | [foretmap/double-authentification.md](foretmap/double-authentification.md)                     | Double authentification des comptes admin et n3boss : activer, codes de secours, téléphone perdu, réglage                                                          | ✅ Rédigé |
 | [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                             | Parcours de visite grand public, mascottes                                                                                                                         | ✅ Rédigé |
 | [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md)     | Quiz, glossaire, réseau trophique, carnet d'observation                                                                                                            | ✅ Rédigé |
+| [foretmap/fresque-du-climat.md](foretmap/fresque-du-climat.md)                                 | La Fresque du Climat (version Enfant) en autonomie : étapes, niveaux, indices, retours, fin et badge, suivi prof, licence CC BY-NC-ND                              | ✅ Rédigé |
 | [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                           | Statistiques, classement, forum, notifications ciblées et liens directs, audit                                                                                     | ✅ Rédigé |
 | [foretmap/rentree-moodle.md](foretmap/rentree-moodle.md)                                       | La rentrée avec Moodle : cohortes → groupes et classes G&L, simulation, conflits, entrée depuis un cours (déjà connecté)                                           | ✅ Rédigé |
 

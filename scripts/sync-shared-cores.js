@@ -42,6 +42,8 @@ const PAIRS = Object.freeze([
   ['src/shared/enums/terrainEnums.js', 'terrainEnums.js'],
   ['src/shared/enums/moodleSyncEnums.js', 'moodleSyncEnums.js'],
   ['src/shared/enums/platformEnums.js', 'platformEnums.js'],
+  // Cœur des activités « fresque » (cartes + flèches cause → effet + correction), lot 2.
+  ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
 ]);
 
 function banner(relSrc) {

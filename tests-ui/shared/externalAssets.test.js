@@ -6,6 +6,7 @@ import {
   remoteBrandFontFamilies,
   resolveExternalImageUrl,
   setExternalAssetsMode,
+  unwrapRelayedImageUrl,
   wikimediaThumbUrl,
 } from '../../src/shared/privacy/externalAssets.js';
 
@@ -48,6 +49,31 @@ describe('resolveExternalImageUrl', () => {
     const relayed = resolveExternalImageUrl('https://example.org/x.jpg');
     expect(relayed).toMatch(/\/api\/media\/remote\?url=/);
     expect(decodeURIComponent(relayed.split('url=')[1])).toBe('https://example.org/x.jpg');
+  });
+});
+
+describe('resolveExternalImageUrl — même origine', () => {
+  test('une image du site, même en http:, n’est ni vidée ni relayée', () => {
+    const own = `${window.location.origin}/uploads/plants/1.jpg`;
+    expect(resolveExternalImageUrl(own)).toBe(own);
+    expect(resolveExternalImageUrl(own, { mode: 'external' })).toBe(own);
+    // Un tiers en http: reste refusé.
+    expect(resolveExternalImageUrl('http://upload.wikimedia.org/x.jpg')).toBe('');
+  });
+});
+
+describe('unwrapRelayedImageUrl', () => {
+  test('ramène une adresse relayée à l’image d’origine, laisse le reste tel quel', () => {
+    const relayed = resolveExternalImageUrl(COMMONS, { mode: 'local' });
+    expect(unwrapRelayedImageUrl(relayed)).toBe(COMMONS);
+    expect(unwrapRelayedImageUrl(`/foretmap${relayed}`)).toBe(COMMONS);
+    expect(unwrapRelayedImageUrl(COMMONS)).toBe(COMMONS);
+    expect(unwrapRelayedImageUrl('/uploads/plants/1.jpg')).toBe('/uploads/plants/1.jpg');
+    // Paramètre absent ou non https : rien n'est déballé.
+    expect(unwrapRelayedImageUrl('/api/media/remote?url=http%3A%2F%2Fex.org%2Fx.png')).toBe(
+      '/api/media/remote?url=http%3A%2F%2Fex.org%2Fx.png',
+    );
+    expect(unwrapRelayedImageUrl('')).toBe('');
   });
 });
 

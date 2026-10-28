@@ -1,0 +1,456 @@
+/*
+ * Page d'impression du plan e-nov (`/impression`) : une feuille A4 par carte publiée.
+ *
+ * À l'écran : barre d'options en haut, feuilles présentées comme du papier. À l'impression :
+ * la barre disparaît, chaque feuille occupe une page. Le format (`@page`) est injecté par
+ * `EnovPrintPage` selon l'orientation choisie ; les tailles des feuilles suivent ici la même
+ * orientation (`.enov-print.is-landscape` / `.is-portrait`), marges de 9 mm comprises.
+ *
+ * Couleurs : rôles de l'échelle et charte e-nov (`--enov-*`, `enov-plan.css`) ; la couleur du
+ * halo (`--pct-highlight-color`) est posée par feuille, depuis le réglage du plan e-nov.
+ */
+
+.enov-print {
+  --enov-print-sheet-w: 279mm;
+  --enov-print-sheet-h: 192mm;
+  --enov-print-map-h: 156mm;
+  --enov-print-accent: var(--pct-highlight-color, var(--enov-sun, var(--accent-warning-solid)));
+  --enov-print-ink: var(--enov-blue-deep, var(--ink-strong));
+  min-height: 100vh;
+  background: var(--surface-sunken);
+  color: var(--ink-strong);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.enov-print.is-portrait {
+  --enov-print-sheet-w: 192mm;
+  --enov-print-sheet-h: 279mm;
+  --enov-print-map-h: 158mm;
+}
+
+/* ---- Barre d'options (écran seulement) ---- */
+
+.enov-print-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-end;
+  padding: 16px;
+  background: var(--surface-plain);
+  border-bottom: 4px solid var(--enov-sun, var(--accent-warning-solid));
+}
+
+.enov-print-toolbar__head {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.enov-print-toolbar__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--enov-print-ink);
+}
+
+.enov-print-toolbar__back {
+  color: var(--enov-print-ink);
+}
+
+.enov-print-toolbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+}
+
+.enov-print-toolbar__group legend {
+  padding: 0 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold, 600);
+}
+
+.enov-print-toolbar__check,
+.enov-print-toolbar__field {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--text-sm);
+}
+
+.enov-print-toolbar__hint {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.enov-print-toolbar__print {
+  min-height: 44px;
+}
+
+.enov-print-toolbar__print.shared-btn--primary {
+  border-color: var(--enov-blue-deep);
+  background: var(--enov-blue-deep);
+  color: var(--surface-plain);
+}
+
+/* ---- Feuilles ---- */
+
+.enov-print-sheets {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  padding: 24px 16px 48px;
+  overflow-x: auto;
+}
+
+.enov-print-sheet {
+  --enov-print-accent: var(--pct-highlight-color, var(--enov-sun, var(--accent-warning-solid)));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: var(--enov-print-sheet-w);
+  height: var(--enov-print-sheet-h);
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-plain);
+  box-shadow: var(--shadow-card-lifted);
+  font-size: 8pt;
+  line-height: 1.3;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.enov-print-sheet__header {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+  padding: 0 0 2.5mm;
+  border-bottom: 1.2mm solid var(--enov-print-accent);
+}
+
+.enov-print-sheet__label-logo {
+  height: 13mm;
+  width: auto;
+}
+
+.enov-print-sheet__school-logo {
+  height: 12mm;
+  width: auto;
+  margin-left: auto;
+}
+
+.enov-print-sheet__titles {
+  min-width: 0;
+}
+
+.enov-print-sheet__kicker {
+  margin: 0;
+  font-size: 8pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.enov-print-sheet__title {
+  margin: 0.5mm 0;
+  font-size: 14pt;
+  line-height: 1.15;
+  color: var(--enov-print-ink);
+}
+
+.enov-print-sheet__subtitle {
+  margin: 0;
+  font-size: 8.5pt;
+  color: var(--ink-base);
+}
+
+.enov-print-sheet__body {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 5mm;
+  min-height: 0;
+  padding-top: 3mm;
+}
+
+.enov-print.is-portrait .enov-print-sheet__body {
+  flex-direction: column;
+}
+
+/* ---- Carte annotée ---- */
+
+.enov-print-map {
+  display: flex;
+  flex: 1 1 64%;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+}
+
+.enov-print.is-portrait .enov-print-map {
+  flex: 0 0 auto;
+}
+
+.enov-print-map__frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.enov-print-map__image {
+  display: block;
+  max-width: 100%;
+  max-height: var(--enov-print-map-h);
+  width: auto;
+  height: auto;
+  border: 0.3mm solid var(--line-soft);
+}
+
+.enov-print-map__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.enov-print-map__zone {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+
+.enov-print-map__zone--innovation {
+  fill: color-mix(in srgb, var(--enov-print-accent) 30%, transparent);
+  stroke: var(--enov-print-ink);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+
+.enov-print-map__other-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 22mm;
+  font-size: 6pt;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--ink-base);
+  /* Halo clair : le nom reste lisible sur un fond de plan chargé. */
+  text-shadow:
+    0 0 0.6mm var(--surface-plain),
+    0 0 0.6mm var(--surface-plain),
+    0 0 0.6mm var(--surface-plain);
+  white-space: normal;
+  pointer-events: none;
+}
+
+.enov-print-map__pin {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 5.6mm;
+  height: 5.6mm;
+  padding: 0 1mm;
+  transform: translate(-50%, -50%);
+  border: 0.5mm solid var(--surface-plain);
+  border-radius: 999px;
+  background: var(--enov-print-ink);
+  color: var(--surface-plain);
+  font-size: 8pt;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 0.35mm var(--enov-print-accent);
+}
+
+.enov-print-map__missing {
+  font-size: 10pt;
+  color: var(--ink-muted);
+}
+
+/* ---- Légende ---- */
+
+.enov-print-legend {
+  flex: 1 1 36%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.enov-print.is-portrait .enov-print-legend {
+  flex: 1 1 auto;
+  columns: 2;
+  column-gap: 5mm;
+}
+
+.enov-print-legend__empty {
+  font-size: 9pt;
+  color: var(--ink-muted);
+}
+
+.enov-print-legend__group {
+  break-inside: avoid-column;
+  margin: 0 0 2.5mm;
+}
+
+.enov-print-legend__type {
+  margin: 0 0 1.2mm;
+  padding: 0.6mm 2mm;
+  border-left: 1.2mm solid var(--enov-print-accent);
+  background: color-mix(in srgb, var(--enov-print-accent) 16%, var(--surface-plain));
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--enov-print-ink);
+}
+
+.enov-print-legend__group.is-untyped .enov-print-legend__type {
+  border-left-color: var(--line-strong);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.enov-print-legend__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.enov-print-entry {
+  display: flex;
+  gap: 2mm;
+  margin: 0 0 1.4mm;
+  break-inside: avoid;
+}
+
+.enov-print-entry__number {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.6mm;
+  height: 4.6mm;
+  border-radius: 999px;
+  background: var(--enov-print-ink);
+  color: var(--surface-plain);
+  font-size: 7pt;
+  font-weight: 700;
+}
+
+.enov-print-entry__body {
+  min-width: 0;
+}
+
+.enov-print-entry__name {
+  margin: 0;
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.enov-print-entry__off {
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+.enov-print-entry__text {
+  margin: 0.3mm 0 0;
+  font-size: 7.5pt;
+  color: var(--ink-base);
+}
+
+/* ---- Pied de page ---- */
+
+.enov-print-sheet__footer {
+  display: flex;
+  gap: 4mm;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 2mm;
+  border-top: 0.3mm solid var(--line-soft);
+}
+
+.enov-print-sheet__footnote {
+  margin: 0;
+  font-size: 6.5pt;
+  color: var(--ink-muted);
+}
+
+.enov-print-sheet__qr {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2mm;
+  align-items: center;
+}
+
+.enov-print-sheet__qr-code {
+  display: block;
+  width: 13mm;
+  height: 13mm;
+}
+
+.enov-print-sheet__qr-code svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.enov-print-sheet__qr-caption {
+  font-size: 6pt;
+  line-height: 1.25;
+  color: var(--ink-muted);
+}
+
+/* ---- Écran : marge intérieure simulée (la vraie est celle de `@page`) ---- */
+
+@media screen {
+  .enov-print-sheet {
+    box-sizing: content-box;
+    padding: 9mm;
+  }
+}
+
+/* ---- Impression ---- */
+
+@media print {
+  .enov-print {
+    min-height: 0;
+    background: none;
+  }
+
+  .enov-print-toolbar {
+    display: none;
+  }
+
+  .enov-print-sheets {
+    display: block;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .enov-print-sheet {
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .enov-print-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

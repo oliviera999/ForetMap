@@ -63,6 +63,21 @@ describe('runPedagoSessionStepAction', () => {
     expect(off.navigateTab).toHaveBeenLastCalledWith('sessions');
   });
 
+  it('fresque : onglet dédié avec le jeu demandé, ou Séances si le module est éteint', () => {
+    const nav = fakeNavigation({ fresqueAvailable: true });
+    runPedagoSessionStepAction(step('open_fresque', { deckId: 'climat-junior-fr-v7-5' }), nav);
+    expect(nav.navigateTab).toHaveBeenLastCalledWith('fresque');
+    const updater = nav.setPedagoEntry.mock.calls.at(-1)[0];
+    expect(updater({ other: 1 })).toMatchObject({
+      other: 1,
+      fresque: { deckId: 'climat-junior-fr-v7-5' },
+    });
+    const off = fakeNavigation({ fresqueAvailable: false });
+    runPedagoSessionStepAction(step('open_fresque', {}), off);
+    expect(off.setPedagoEntry).not.toHaveBeenCalled();
+    expect(off.navigateTab).toHaveBeenLastCalledWith('sessions');
+  });
+
   it('fiche : aperçu si l’identifiant est valide, sinon catalogue', () => {
     const nav = fakeNavigation();
     runPedagoSessionStepAction(step('open_plant', { plantId: '12' }), nav);

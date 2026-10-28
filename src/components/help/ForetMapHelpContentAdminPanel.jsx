@@ -26,6 +26,7 @@ const PANEL_LABELS = {
   groups: 'Groupes',
   groupFilters: 'Filtre groupe',
   journal: 'Mon carnet',
+  fresque: 'Fresque',
 };
 
 const MAP_HINT_LABELS = {

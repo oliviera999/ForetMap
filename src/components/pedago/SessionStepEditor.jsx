@@ -11,6 +11,7 @@ export const STEP_ACTION_LABELS = Object.freeze({
   open_individual: 'Arbre suivi',
   open_nested_groups: 'Boîtes emboîtées',
   open_map_route: 'Parcours sur la carte',
+  open_fresque: 'Fresque du Climat (cartes et flèches)',
 });
 
 const MAX_STEPS = 40;
@@ -162,6 +163,18 @@ function PayloadFields({ step, onPayload, plantOptions, idKeys, individuals, map
           </select>
         ))}
       </fieldset>
+    );
+  }
+  if (type === 'open_fresque') {
+    return (
+      <label className="form-field">
+        <span>Jeu de cartes (identifiant, vide = jeu unique)</span>
+        <input
+          value={payload.deckId || ''}
+          onChange={(e) => onPayload({ deckId: e.target.value.trim() || null })}
+          placeholder="climat-junior-fr-v7-5"
+        />
+      </label>
     );
   }
   if (type === 'open_map_route') {

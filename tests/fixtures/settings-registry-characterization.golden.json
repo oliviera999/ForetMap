@@ -537,6 +537,30 @@
       "values": ["local", "external"],
       "default": "local"
     },
+    "privacy.logout_clear_site_data_scope": {
+      "scope": "public",
+      "type": "enum",
+      "values": ["cache", "cache_storage"],
+      "default": "cache"
+    },
+    "privacy.remote_media_blocked_hosts": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 2000,
+      "default": ""
+    },
+    "privacy.remote_media_hosts": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 2000,
+      "default": ""
+    },
+    "privacy.remote_media_hosts_mode": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["any_public", "allowlist"],
+      "default": "any_public"
+    },
     "rbac.progression_by_validated_tasks": {
       "scope": "teacher",
       "type": "boolean",
@@ -928,6 +952,11 @@
       "type": "boolean",
       "default": true
     },
+    "ui.modules.fresque_enabled": {
+      "scope": "public",
+      "type": "boolean",
+      "default": true
+    },
     "ui.modules.help_enabled": {
       "scope": "public",
       "type": "boolean",
@@ -1294,7 +1323,8 @@
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
           "rewards_enabled": true,
-          "species_observations_enabled": true
+          "species_observations_enabled": true,
+          "fresque_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,
@@ -1574,6 +1604,32 @@
                     "textTeacher": "Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit."
                   }
                 ]
+              },
+              "fresque": {
+                "title": "Aide fresque",
+                "items": [
+                  {
+                    "text": "Glisse une carte de ta main sur la table, ou touche-la puis touche la table. Une carte touchée s’affiche en grand sous la table : c’est là qu’on lit le verso."
+                  },
+                  {
+                    "text": "Pour relier deux cartes, touche « Relier à… » puis la carte provoquée. Une flèche se retire d’un toucher : rien n’est gravé tant que tu n’as pas comparé avec la correction."
+                  },
+                  {
+                    "text": "« Un indice » colle un post-it, gratuit et sans limite. « Point d’étape » fait le compte des flèches retrouvées — je compte, je ne note pas."
+                  },
+                  {
+                    "text": "Ta fresque s’enregistre toute seule, et tu peux changer de niveau à tout moment sans rien perdre. Si la connexion saute, j’en garde une copie sur l’appareil."
+                  },
+                  {
+                    "text": "Les cartes sont celles de La Fresque du Climat, sous licence CC BY-NC-ND : on les montre telles quelles, et leur crédit reste visible en bas du plateau."
+                  },
+                  {
+                    "textTeacher": "« Suivi des élèves » montre les plateaux d’un groupe en lecture seule, avec les flèches retrouvées et les indices demandés. Ton plateau d’essai n’y apparaît pas."
+                  },
+                  {
+                    "textTeacher": "Une séance peut ouvrir la fresque directement (étape « Fresque du Climat »). Le module se coupe dans les paramètres, réglage « Fresques »."
+                  }
+                ]
               }
             },
             "quickTips": {
@@ -1635,6 +1691,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1677,6 +1734,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1710,6 +1768,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -1739,6 +1798,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -3095,6 +3155,70 @@
       "updated_by_user_id": null
     },
     {
+      "key": "privacy.logout_clear_site_data_scope",
+      "scope": "public",
+      "type": "enum",
+      "value": "cache",
+      "default_value": "cache",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["cache", "cache_storage"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_blocked_hosts",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 2000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_hosts",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 2000,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "privacy.remote_media_hosts_mode",
+      "scope": "admin",
+      "type": "enum",
+      "value": "any_public",
+      "default_value": "any_public",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["any_public", "allowlist"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "rbac.progression_by_validated_tasks",
       "scope": "teacher",
       "type": "boolean",
@@ -4136,6 +4260,22 @@
     },
     {
       "key": "ui.modules.forum_enabled",
+      "scope": "public",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.modules.fresque_enabled",
       "scope": "public",
       "type": "boolean",
       "value": true,
@@ -5270,7 +5410,8 @@
           "individuals_enabled": true,
           "pedago_sessions_enabled": true,
           "rewards_enabled": true,
-          "species_observations_enabled": true
+          "species_observations_enabled": true,
+          "fresque_enabled": true
         },
         "biodiv": {
           "determination_always_open": false,
@@ -5550,6 +5691,32 @@
                     "textTeacher": "Les carnets se lisent depuis les statistiques, selon ton périmètre, et s’exportent en texte. Lire n’est pas corriger : le carnet reste à celui qui l’écrit."
                   }
                 ]
+              },
+              "fresque": {
+                "title": "Aide fresque",
+                "items": [
+                  {
+                    "text": "Glisse une carte de ta main sur la table, ou touche-la puis touche la table. Une carte touchée s’affiche en grand sous la table : c’est là qu’on lit le verso."
+                  },
+                  {
+                    "text": "Pour relier deux cartes, touche « Relier à… » puis la carte provoquée. Une flèche se retire d’un toucher : rien n’est gravé tant que tu n’as pas comparé avec la correction."
+                  },
+                  {
+                    "text": "« Un indice » colle un post-it, gratuit et sans limite. « Point d’étape » fait le compte des flèches retrouvées — je compte, je ne note pas."
+                  },
+                  {
+                    "text": "Ta fresque s’enregistre toute seule, et tu peux changer de niveau à tout moment sans rien perdre. Si la connexion saute, j’en garde une copie sur l’appareil."
+                  },
+                  {
+                    "text": "Les cartes sont celles de La Fresque du Climat, sous licence CC BY-NC-ND : on les montre telles quelles, et leur crédit reste visible en bas du plateau."
+                  },
+                  {
+                    "textTeacher": "« Suivi des élèves » montre les plateaux d’un groupe en lecture seule, avec les flèches retrouvées et les indices demandés. Ton plateau d’essai n’y apparaît pas."
+                  },
+                  {
+                    "textTeacher": "Une séance peut ouvrir la fresque directement (étape « Fresque du Climat »). Le module se coupe dans les paramètres, réglage « Fresques »."
+                  }
+                ]
               }
             },
             "quickTips": {
@@ -5611,6 +5778,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5653,6 +5821,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5686,6 +5855,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }
@@ -5715,6 +5885,7 @@
       "privacy": {
         "external_assets_mode": "local",
         "clear_local_data_on_logout": true,
+        "logout_clear_site_data_scope": "cache",
         "data_contact": ""
       }
     }

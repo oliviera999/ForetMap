@@ -15,6 +15,232 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   déplacement. Le refus « pas dans cette zone » était traité comme « déjà vue » : le feuillet,
   les cœurs et les gemmes ne se proposaient plus pour cette équipe.
 - Ce refus ne marque plus la zone. La découverte se refait à l'entrée réelle.
+### Corrigé — fresque : un geste posé pendant l'enregistrement n'est plus perdu
+
+- Un second geste (carte, flèche, post-it) dont l'envoi tombait pendant qu'un enregistrement
+  était encore en cours était oublié : plus aucun envoi n'était prévu, et le copie locale était
+  réécrite avec l'état déjà parti. Au retour (tablette en veille, réseau coupé juste après),
+  le geste avait disparu. L'envoi est maintenant relancé, et la copie locale garde le geste
+  le plus récent.
+- « Recommencer » prévient les autres écrans, mais ce signal était ignoré (il ne porte pas de
+  numéro de révision). L'autre élève restait sur l'ancienne table : tout ce qu'il posait
+  ensuite était refusé, puis perdu en rouvrant la fresque. L'écran ouvre la nouvelle table.
+  Un enregistrement refusé parce que la table est archivée fait de même.
+### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
+
+- Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage
+  (`plantId` n’est pas un champ du formulaire), et les appels « intégrer » / « confirmer »
+  passaient un objet à la place de la méthode HTTP. Aucune photo n’était donc enregistrée,
+  et le bouton « Confirmer la photo » échouait sans message.
+- Ces écritures font avancer la révision de la fiche. Un formulaire resté ouvert ailleurs
+  ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
+  habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
+  attend la fin de l’intégration et relit la liste à jour.
+### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
+
+- **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
+  `plantPrefillHelpers`) : attentes mises au comportement livré par « photos de pré-saisie
+  intégrées d’emblée » — chaque photo du formulaire porte son `id` en base et son statut
+  `confirmed`, une photo de pré-saisie arrive `confirmed: false`, les propositions sont cochées
+  d’emblée. Aucun changement de code applicatif.
+- **Instantanés `plants-species-characterization`** : la référence enregistre le champ
+  `confirmed` de chaque photo (migration 322) ; aucune autre valeur ne change.
+- **Cliquet des couleurs** (`tests/color-tokens-guard.test.js`, 640 littéraux pour 629) : les
+  11 teintes en dur des encadrés « À confirmer » passent sur des tokens — `--ink-warning`,
+  `--tint-warning`, et deux nouveaux, `--tint-warning-strong` et `--line-warning`.
+- **Inventaire des routes d’écriture** : `POST /api/plants/:id/photos/propose` et
+  `POST /api/plants/:id/photos/:photoId/confirm` déclarées (`plants.manage`).
+- **Plan e-nov** : scénario e2e de la page `/impression` (lieu numéroté, rangé sous son type
+  d’espace) dans le smoke bloquant ; doc de référence — la bascule entre cartes s’affiche
+  jusqu’à quatre cartes.
+
+### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
+
+- **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée
+  (lycée, complexe sportif…), lieux innovants numérotés sur le fond de plan, autres lieux en
+  pointillés pour le repérage, légende rangée par **type d’espace** avec texte court tiré de la
+  description e-nov, date d’état, QR code vers le plan interactif. Même porte d’entrée que le
+  plan (code demandé si le plan est fermé). Réponse au cahier des charges du label (domaine 1,
+  niveau 3 : un plan attestant plusieurs espaces de types différents).
+- **Type d’espace e-nov** (migration `323`, `zones` / `map_markers.enov_space_type`) :
+  sélecteur sous « Description e-nov » dans la fiche d’un lieu, affiché dans la fiche du plan
+  e-nov et servi par `GET /api/enov/content`.
+- **Réglages → Plan Lyautey → Plan e-nov** : boutons « Imprimer » (tous les plans, ou un par
+  carte), adresse déduite de `ui.plan.public_base_url` ou de l’hôte de la console.
+- **Plan e-nov** : bascule visible entre les cartes publiées sous la barre haute (au lieu de
+  « Réglages → Plan affiché » seulement). Plan public et plan des personnels inchangés.
+- Compteur d’usage `enov` : événements `print_open` et `print`.
+
+### Ajouté — dossier d’audit établissement (RGPD / ambassade)
+
+- Fiche synthèse [mesures techniques et organisationnelles](docs/reference/exploitation/mesures-techniques-organisationnelles.md)
+  et [checklists](docs/reference/exploitation/dossier-audit-etablissement.md) (information,
+  gouvernance, purge, sauvegardes, incident Git, droits) — sans changement de comportement
+  métier ; sommaire `docs/reference/README.md` et renvois depuis `vos-donnees.md`.
+
+### Ajouté — photos de pré-saisie intégrées d’emblée (« À confirmer »)
+
+- Colonne `plant_photos.confirmed` : les photos proposées par pré-saisie sont
+  enregistrées tout de suite (`POST /api/plants/:id/photos/propose`) et visibles
+  de tous avec la mention **À confirmer** ; le professeur valide via
+  `POST /api/plants/:id/photos/:photoId/confirm`.
+- UI élève (vignette + fiche) : pastille / encadré ; UI prof : bouton « Confirmer
+  la photo ». Message de pré-saisie aligné sur ce flux.
+
+### Corrigé — dernier test backend rouge en CI (`with-app-node.sh`)
+
+- `tests/deploy-cron-server-env.test.js` vérifiait `process.execPath`, que Node résout à travers le
+  lien symbolique de la sandbox jusqu'au binaire réel : rouge sur toute machine Linux, CI
+  comprise (régression de `75dc94d`). Le test revient à vérifier que le `bin/` de l'application
+  est en tête du PATH, séparé par `path.delimiter` (Windows et Unix).
+
+### Ajouté — pré-saisie biodiversité : photos GBIF (`gbif_media`)
+
+- Nouvelle source **`gbif_media`** dans `GET /api/plants/autofill` : images d’occurrences
+  GBIF (`/occurrence/search?media_type=StillImage`) lorsque la taxonomie GBIF a fourni un
+  `usageKey`, pour combler les fiches sans image ou enrichir la sélection.
+- Filtre strict : HTTPS image directe, licences **CC0 / CC BY / CC BY-SA** uniquement
+  (hors NC/ND), crédit auteur, priorité aux observations de terrain ; jusqu’à 6
+  propositions ; revue prof inchangée (prévisualiser → appliquer).
+- UI : case « GBIF — photos d’occurrences » ; tests `species-autofill-gbif-media` ;
+  `docs/API.md` et référence plantes/biodiversité.
+
+### Corrigé — texte riche : l'adresse d'origine des images est enregistrée, le relais ne sert qu'à l'affichage
+
+- Depuis le lot B RGPD, l'éditeur riche ForetMap enregistrait l'adresse du relais
+  (`/api/media/remote?url=…`) au lieu de celle de l'image : un contenu gardait l'adresse
+  relayée même en mode « external ». La conversion HTML → Markdown nettoie désormais sans relayer
+  (`sanitizeRichHtml(…, { relayImages: false })`) ; l'affichage relaie toujours selon le mode.
+- Les contenus déjà enregistrés avec l'adresse relayée sont rattrapés sans migration
+  (`unwrapRelayedImageUrl`) : à l'affichage, l'image d'origine est relayée ou non selon le mode ;
+  au prochain enregistrement, l'adresse d'origine est réécrite.
+- G&L inchangé : ses références internes (`scene:N`, clés legacy) gardées dans `data-gl-md-src`
+  ne sont ni lues ni effacées par le nettoyage.
+
+### Corrigé — tests UI rouges sur `main` depuis les lots RGPD A/B
+
+- `usePrefersReducedMotion` : le correctif de #597 (relire `window.matchMedia` s'il est remplacé,
+  détacher l'écouteur de l'ancienne requête) avait été défait par un commit ultérieur ; il est
+  rétabli, en gardant `resetPrefersReducedMotionForTests`.
+- `resolveExternalImageUrl` : une image **du site lui-même** n'est plus vidée quand le site est
+  servi en `http:` (développement, déploiement sans TLS) ; la lightbox perdait son image.
+- Attentes mises à jour sur le relais d'images tierces (`/api/media/remote`, mode « local » par
+  défaut) et sur le nouveau texte de la notice « Vos données ».
+
+### Ajouté — OLU accompagne la Fresque du Climat
+
+- **Visite guidée** de l'onglet Fresque à la voix d'OLU (`DISCOVERY_TOURS.fresque` : l'activité,
+  ouvrir sa fresque, poser et lire, relier, l'indice ; variante prof), relançable par « ? ».
+- **Aide « ? »** de l'onglet : panneau `fresque` (`data/help.default.json` + miroir
+  `src/constants/help.js`, `PANEL_IDS`, libellé admin), variante prof (suivi, séance, réglage).
+- **OLU dans le plateau** (`FresqueOlu` : portrait + bulle) : tutoriel des gestes, point d'étape,
+  conseil du niveau Expert, écran de fin. `narrator` passé par `FresqueView`.
+- Textes du jeu réécrits à la charte (`hints.json`) : plus de « Bravo ! » ni de « ! » dans les
+  bulles d'OLU ; test de contenu dédié. E2e : visite et aide de l'onglet.
+
+### Corrigé — Fresque du Climat sur téléphone
+
+- « Commencer ma fresque » était invisible (texte blanc sur fond transparent) : les couleurs de
+  la fresque n'existaient qu'à l'intérieur du plateau. Elles sont posées à la racine, pour l'écran
+  de choix, le suivi prof et les dialogues.
+- La carte glissée depuis la main s'affichait loin du doigt (plusieurs centaines de pixels) : le
+  fantôme est rendu dans `<body>`, hors de tout ancêtre transformé.
+- **Carte choisie** : toucher une carte (main ou table) l'affiche en grand sous la table, recto
+  et verso, avec « Poser sur une place libre » ou « Relier à… ». Un premier toucher sur une carte
+  posée la choisit, le second la retourne (clavier inchangé : `Entrée` retourne).
+- Boutons de zoom de la table ramenés à 44 px. Scénario e2e `e2e/fresque-phone.spec.js`.
+
+### Corrigé — suite backend : attentes périmées après les lots RGPD A et B
+
+- `tests/fixtures/settings-registry-characterization.golden.json` régénéré (procédure du
+  test) : il ignorait `privacy.logout_clear_site_data_scope` (lot A), les trois réglages
+  `privacy.remote_media_*` (lot B) et `ui.modules.fresque_enabled`.
+- `tests/plants-security.test.js` et `tests/no-third-party-avatar-guard.test.js` : depuis la
+  CSP par produit (lot B, `privacy.external_assets_mode` = `local` par défaut), `img-src` ne
+  porte plus `https:` pour ForetMap et la table des politiques a trois niveaux
+  (produit → mode → variante) ; les attentes suivent.
+- `src/index.css` : dernier `font-size` littéral (`.tuto-preview-facade__notice`) passé au
+  token `--text-base` (garde `typography-tokens-guard`).
+
+### Ajouté — Fresque du Climat (version Enfant) : activité « cartes + flèches » en autonomie
+
+- **Lot 1 — contenu.** Jeu `public/fresques/climat-junior-fr-v7-5/` (92 images WebP livrées
+  telles quelles, `deck.json`, `correction.json`, `hints.json`, `LICENCE-NOTICE.md`), script
+  d'extraction reproductible `scripts/fresques/extraire_cartes.py`, registre serveur
+  `lib/fresqueDecks.js` (validation zod + cohérence inter-fichiers, chargé au démarrage, aucun
+  chemin construit depuis une saisie), test de contenu `tests/content/fresque-climat-junior.test.js`
+  (lots 5/6/10, 30 flèches, degrés recalculés, pièges, indices, **empreinte SHA-256 de chaque
+  image** — garde-fou CC BY-NC-ND « sans modification »), cache long borné pour `dist/fresques/`.
+  Crédit : La Fresque du Climat — Cédric Ringenbach — fresqueduclimat.org — CC BY-NC-ND.
+- **Lot 2 — cœur partagé.** `src/shared/fresque/fresqueCore.js` (pur, miroir CJS
+  `lib/shared/fresqueCore.js` via `sync:shared-cores`) : modèle du jeu (adjacence, degrés,
+  accessibilité, rôles carrefour / arrivée / sans conséquence), état du plateau v1
+  (`createInitialState`, `migrateState`, `validateState` avec bornes), lots et étapes,
+  classement d'une flèche (boucle, doublon, trouvée, piège, inversée, raccourci, à discuter),
+  évaluation, puces Éclaireur, indices déterministes en post-it (échelle Lire → Structure →
+  Piste → Révélation), post-it élève, correction (révélations), créativité, fin, résumé,
+  journal des gestes (`diffStates`) et réécriture de l'auteur. 52 tests `tests/fresque-core.test.js`.
+- **Lot 3 — base et API.** Migration `321_fresque_boards.sql` (`fresque_boards` : un plateau
+  actif par propriétaire — élève ou équipe — et par jeu, état JSON ≤ 64 Ko, colonnes de suivi,
+  `edit_revision` ; `fresque_board_events` : journal des gestes calculé côté serveur), routes
+  `/api/fresques` (`decks`, `boards/mine`, `boards`, `boards/:id` GET/PUT, `restart`, `events`,
+  `overview`), module `ui.modules.fresque_enabled` (éteint : 503 élève, `plants.manage` passe),
+  verrou optimiste 409 `edit_conflict` (table ajoutée à `EDIT_REVISION_TABLES`), réécriture de
+  `by`, badge `fresque_climat_junior` 🌍 à la fin (idempotent, aux contributeurs d'une équipe),
+  signal `fresque:board:changed` + abonnement contrôlé `subscribe:fresque-board`, limiteur
+  240 enregistrements/min, purge de rétention (journal 12 mois, plateaux archivés 12 mois),
+  `docs/API.md`. Tests `tests/fresques-api.test.js`.
+- **Lot 4 — plateau élève.** Composants génériques `src/shared/fresque/` (classes
+  `fm-fresque-*`, couleurs en variables CSS, appel réseau injecté) : `FresqueBoard`
+  (étapes, niveau, enregistrement, dialogue de conflit, visionneuse), `FresqueTable` (scène
+  zoomable sur `usePctMapViewport` en mode `stage`, bandes guidées), `FresqueCard` (recto/verso
+  3D, fondu si mouvement réduit, glisser, appui long / double-toucher → plein écran, bouton
+  « relier » et puce Éclaireur **à côté** de la carte), `FresqueArrowLayer` (SVG bord à bord,
+  marqueur, halo, zone de toucher large, paires décalées, repères icône + couleur),
+  `FresqueHand` (glisser ou toucher-toucher, « Tout poser »), `FresqueStepper`,
+  `FresqueLevelMenu`, `FresqueCreditBar` (crédit permanent), `FresqueNotes` ;
+  `useFresqueBoardState` : miroir `localStorage` (`fm:fresque:<boardId>`) à chaque modification,
+  enregistrement différé 500 ms, `keepalive` sur `visibilitychange`/`pagehide`, reprise du miroir
+  plus récent, 409 → « Reprendre la version enregistrée » / « Garder celle-ci ». Vue produit
+  `src/components/pedago/FresqueView.jsx`. Tests Vitest `tests-ui/shared/fresque/`.
+- **Lot 5 — aides et fin.** Points d'étape par niveau (Éclaireur / Explorateur : trouvées sur
+  attendues ; Expert : « Lot terminé ? »), retour immédiat par flèche en Éclaireur (icône +
+  couleur, jamais « faux »), indices gratuits en **post-it « Indice »** (échelle Lire →
+  Structure → Piste → Révélation, cible déterministe ; Expert → proposition de passer en
+  Explorateur), post-it de l'élève (≤ 280 caractères, 5 couleurs, texte brut, jamais sur une
+  carte), étape **Comprendre** (`FresqueCorrectionPanel` : comparer, repères, « Montre-moi une
+  flèche manquante » / « Tout afficher », correction officielle dans la visionneuse,
+  **disposition officielle en aperçu** sans toucher à la fresque), fin = 21 cartes + correction
+  ouverte (dialogue de fin, badge annoncé), créativité (titre ≤ 60, palette de 6 couleurs,
+  carte marquante), **export PNG avec bande de crédit obligatoire** (`fresqueExport.js`),
+  « Ajouter à mon carnet » (article + image du carnet) et « Recommencer » (archive).
+- **Lot 6 — intégration ForetMap.** Onglet « Fresque » (élève : barre basse ; prof : pôle
+  Contenus, visible avec `plants.manage` ou `stats.read.group`), `KNOWN_TAB_VALUES`, gardes de
+  navigation et accès miroir (`resolvePedagoModuleAccess().fresque`), réglage
+  `ui.modules.fresque_enabled` dans la console (section Modules), action de séance
+  `open_fresque` (`deckId` facultatif ; lib, hook, éditeur d'étapes), panneau prof
+  `FresqueTeacherPanel` (filtre par groupe, une ligne par plateau, tri par nom, ouverture en
+  lecture seule), crédit de La Fresque du Climat dans « À propos » (`THIRD_PARTY_CREDITS`).
+- **Lot 7 — bases du collectif.** Plateau d'**équipe** (groupe `kind = 'team'`, un seul
+  plateau actif par équipe et par jeu, ouvert par n'importe quel membre ; sélecteur « Ma fresque /
+  Fresque de l'équipe … »), journal des gestes avec auteur, signal `fresque:board:changed`
+  `{ boardId, revision }` dans le salon `fresque:board:<id>` après chaque enregistrement,
+  abonnement contrôlé `subscribe:fresque-board` (mêmes droits que la lecture, refus explicite),
+  client : registre de la socket ForetMap (`foretmapSocketRegistry`) et `subscribeFresqueBoard`
+  (réabonnement à la reconnexion) ; un autre client recharge s'il n'a rien en attente, sinon
+  dialogue de conflit. Pas de présence ni de curseur (prod en long-polling).
+- **Lot 8 — finitions.** E2e `e2e/fresque-student.spec.js` (lot 1, deux flèches, rechargement
+  en plein lot 2 ; parcours complet en Éclaireur) et `e2e/fresque-team.spec.js` (deux sessions sur
+  un plateau d'équipe), doc fonctionnelle `docs/reference/foretmap/fresque-du-climat.md` (+ lien
+  depuis le guide du prof, sommaire, durées de conservation), `docs/FRESQUE_ARCHITECTURE.md`
+  (modèle, cœur, composants, API, plan de portage Gnomes & Licornes non codé). Gardes-fous
+  du dépôt : palette de la fresque posée en tokens dans `color-tokens.css` (parchemin, sépia,
+  catégories de flèches, post-it, bandes, ombres) et les mêmes valeurs déjà écrites en dur
+  ailleurs (`index.css`, feuilles GL, trame alimentaire) passent au token — plafond du cliquet
+  abaissé de 662 à 629 ; `fresque_boards.owner_type` / `.status` déclarés dans
+  `src/shared/enums/pedagoEnums.js` ; tailles de police en tokens `--text-*` ; confirmation
+  de « Recommencer » par `useAppDialogs()` ; routes d'écriture `/api/fresques/boards*`
+  déclarées dans l'inventaire figé.
 
 ### Sécurité — Lot A traceurs RGPD : Clear-Site-Data et purge caches à la déconnexion
 

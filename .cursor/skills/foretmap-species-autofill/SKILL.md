@@ -7,7 +7,7 @@ description: Pré-saisie biodiversité multi-sources (GET /api/plants/autofill) 
 
 ## Portée
 
-- **Autofill (texte)** : `lib/speciesAutofill.js` et modules associés (`speciesAutofillGbif*`, `speciesAutofillOpenAi.js`, etc.), `routes/plants.js` (`GET /api/plants/autofill`).
+- **Autofill (texte)** : `lib/speciesAutofill.js` et modules associés (`speciesAutofillGbif*`, dont **`speciesAutofillGbifMedia.js`** / source `gbif_media`, `speciesAutofillOpenAi.js`, etc.), `routes/plants.js` (`GET /api/plants/autofill`).
 - **Identification image (Pl@ntNet)** : `lib/speciesAutofillPlantnet.js` (proxy vers l’API v2 identify), `routes/plants.js` (`POST /api/plants/plantnet-identify`). **Aucune écriture BDD** ; clés **`PLANTNET_API_KEY`** / **`SPECIES_AUTOFILL_PLANTNET`** côté serveur uniquement.
 - **Frontend** : `src/components/foretmap-views.jsx` (pré-saisie, sources `sources=`, UI Pl@ntNet).
 - **Contrats** : `docs/API.md`, extensions et variables : `docs/SPECIES_AUTOFILL_EXTENSIONS.md`, `.env.example`.

@@ -2,6 +2,7 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 import { VisitBiodiversityPanel } from '../../../src/components/visit/VisitBiodiversityPanel.jsx';
+import { resolveExternalImageUrl } from '../../../src/shared/privacy/externalAssets.js';
 
 const PLANTS = [
   {
@@ -64,7 +65,10 @@ describe('VisitBiodiversityPanel', () => {
     const { container } = setup();
     const img = container.querySelector('.visit-biodiv-tile__visual img');
     expect(img).not.toBeNull();
-    expect(img.getAttribute('src')).toBe('https://exemple.test/consoude.jpg');
+    // Photo tierce : servie par le relais du serveur en mode « local » (lot B RGPD).
+    expect(img.getAttribute('src')).toBe(
+      resolveExternalImageUrl('https://exemple.test/consoude.jpg'),
+    );
     expect(container.querySelector('.visit-biodiv-tile__name-emoji')).not.toBeNull();
   });
 

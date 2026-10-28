@@ -155,14 +155,17 @@ describe('TeacherTopTabs — navigation en 3 pôles (audit D-4)', () => {
     // Pôle Contenus (tab = map) : Clés et Séances présentes par défaut.
     expect(screen.getByRole('button', { name: 'Clés d’identification' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Séances' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fresque' })).toBeInTheDocument();
     rerender(
       <TeacherTopTabs
         {...baseProps}
         idKeysEnabled={false}
         pedagoSessionsEnabled={false}
         individualsEnabled={false}
+        fresqueEnabled={false}
       />,
     );
+    expect(screen.queryByRole('button', { name: 'Fresque' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clés d’identification' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Séances' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Biodiversité' })).toBeInTheDocument();

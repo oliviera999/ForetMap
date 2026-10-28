@@ -250,13 +250,22 @@ test('with-app-node.sh : lance la commande avec le node de l’application, depu
     // Ne pas découper PATH sur `:` : sous Windows un chemin `C:\…` contient déjà des `:`.
     const ok = spawnSync(
       BASH,
-      [script, 'node', '-e', 'console.log(process.cwd() + "|" + process.execPath)'],
+      [
+        script,
+        'node',
+        '-e',
+        'console.log(process.cwd() + "|" + process.env.PATH.split(require("path").delimiter)[0])',
+      ],
       { cwd: sandbox.root, env, encoding: 'utf8' },
     );
     assert.equal(ok.status, 0, ok.stderr);
-    const [cwdOut, execOut] = ok.stdout.trim().split('|');
+    const [cwdOut, firstPathEntry] = ok.stdout.trim().split('|');
     assert.equal(cwdOut, fs.realpathSync(sandbox.app));
-    assert.match(execOut.replace(/\\/g, '/'), /nodevenv\/app\/22\/bin/);
+    // Le script place le `bin/` de l'application EN TÊTE du PATH. On ne vérifie pas
+    // `process.execPath` : sous Linux, le `node` de la sandbox est un lien symbolique que Node
+    // résout jusqu'au binaire réel (`/opt/hostedtoolcache/...`), et le test échouait en CI.
+    // `path.delimiter` (côté enfant) sépare correctement le PATH sous Windows comme sous Unix.
+    assert.match(firstPathEntry.replace(/\\/g, '/'), /nodevenv\/app\/22\/bin/);
 
     fs.rmSync(path.join(sandbox.root, 'nodevenv'), { recursive: true });
     const missing = spawnSync(BASH, [script, 'npm', 'run', 'logs:purge'], {

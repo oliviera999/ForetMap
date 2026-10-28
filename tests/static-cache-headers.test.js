@@ -11,12 +11,20 @@ const {
   createDistStaticServeOptions,
   IMMUTABLE_CACHE_CONTROL,
   FONT_CACHE_CONTROL,
+  FRESQUE_CACHE_CONTROL,
 } = require('../lib/staticCacheHeaders');
 
 function buildDistFixture() {
   const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'foretmap-dist-'));
   fs.mkdirSync(path.join(distDir, 'assets'));
   fs.mkdirSync(path.join(distDir, 'fonts'));
+  fs.mkdirSync(path.join(distDir, 'fresques', 'climat-junior-fr-v7-5', 'cards'), {
+    recursive: true,
+  });
+  fs.writeFileSync(
+    path.join(distDir, 'fresques', 'climat-junior-fr-v7-5', 'cards', 'c04-recto.sm.webp'),
+    'RIFF-factice',
+  );
   fs.writeFileSync(path.join(distDir, 'index.vite.html'), '<!doctype html><title>fm</title>');
   fs.writeFileSync(path.join(distDir, 'assets', 'main-AbCd1234.js'), '// hashé par Rollup');
   fs.writeFileSync(path.join(distDir, 'fonts', 'noto-color-emoji.woff2'), 'wOF2-factice');
@@ -69,5 +77,17 @@ test('dist/fonts/* reçoit un cache long borné (30 j), sans immutable', async (
   // (cf. docs/AUDIT_EMOJIS_APPLE_2026-09-17.md, EMO-APL-004 et R6).
   assert.doesNotMatch(String(font.headers['cache-control'] || ''), /immutable/);
 
+  fs.rmSync(distDir, { recursive: true, force: true });
+});
+
+test('dist/fresques/* (cartes des jeux fresque) reçoit un cache long borné, sans immutable', async () => {
+  const distDir = buildDistFixture();
+  const mini = express();
+  mini.use(express.static(distDir, createDistStaticServeOptions(distDir)));
+  const res = await request(mini).get('/fresques/climat-junior-fr-v7-5/cards/c04-recto.sm.webp');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.headers['cache-control'], FRESQUE_CACHE_CONTROL);
+  assert.doesNotMatch(FRESQUE_CACHE_CONTROL, /immutable/);
+  assert.match(FRESQUE_CACHE_CONTROL, /max-age=2592000/);
   fs.rmSync(distDir, { recursive: true, force: true });
 });

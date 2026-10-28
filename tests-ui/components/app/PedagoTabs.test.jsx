@@ -12,6 +12,7 @@ const probes = vi.hoisted(() => ({
   idKeys: [],
   individuals: [],
   sessions: [],
+  fresque: [],
   about: [],
 }));
 vi.mock('../../../src/components/visit-views', () => ({
@@ -48,6 +49,10 @@ vi.mock('../../../src/components/pedago-views', () => ({
   SessionsView: (props) => {
     probes.sessions.push(props);
     return <div data-testid="sessions-view" />;
+  },
+  FresqueView: (props) => {
+    probes.fresque.push(props);
+    return <div data-testid="fresque-view" />;
   },
 }));
 vi.mock('../../../src/components/about-views', () => ({
@@ -129,6 +134,32 @@ describe('PedagoTabs', () => {
     render(<PedagoTabs {...baseProps} tab="sessions" sessionsProps={{ rewardsEnabled: false }} />);
     expect(await screen.findByTestId('sessions-view')).toBeInTheDocument();
     expect(probes.sessions[0].rewardsEnabled).toBe(false);
+  });
+
+  test('fresque : la vue monte avec ses props, bandeau gestionnaire, module éteint → rien', async () => {
+    const { unmount } = render(
+      <PedagoTabs
+        {...baseProps}
+        tab="fresque"
+        fresqueProps={{
+          isTeacher: false,
+          canFollow: false,
+          initialDeckId: 'climat-junior-fr-v7-5',
+        }}
+        fresqueOffForLearners
+      />,
+    );
+    expect(await screen.findByTestId('fresque-view')).toBeInTheDocument();
+    expect(probes.fresque[0]).toMatchObject({
+      canFollow: false,
+      initialDeckId: 'climat-junior-fr-v7-5',
+      moduleOffForLearners: true,
+    });
+    unmount();
+    const { container } = render(
+      <PedagoTabs {...baseProps} tab="fresque" fresqueEnabled={false} />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   test('module éteint pour les élèves, gestionnaire : la vue monte et reçoit le bandeau', async () => {

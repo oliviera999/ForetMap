@@ -29,6 +29,8 @@ test('les tables sont couvertes, réparties sur leurs rétentions', () => {
   assert.deepStrictEqual(byRetention.get('activity'), ['user_activity_events']);
   assert.deepStrictEqual(byRetention.get('history'), [
     'gl_game_events',
+    'fresque_board_events',
+    'fresque_boards',
     'zone_history',
     'resource_gating_cooldowns',
     'gl_resource_gating_cooldowns',

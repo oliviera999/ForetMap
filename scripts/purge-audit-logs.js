@@ -185,6 +185,19 @@ const TARGETS = [
     where: 'created_at < (NOW() - INTERVAL ? DAY)',
   },
   {
+    // Journal des gestes des fresques (migration 321) : 12 mois, comme les parties G&L.
+    table: 'fresque_board_events',
+    retention: 'history',
+    where: 'created_at < (NOW() - INTERVAL ? DAY)',
+  },
+  {
+    // Plateaux de fresque archivés (« Recommencer ») : 12 mois sans modification. Les plateaux
+    // actifs ou terminés suivent le compte de l'élève (suppression en cascade).
+    table: 'fresque_boards',
+    retention: 'history',
+    where: "status = 'archived' AND updated_at < (NOW() - INTERVAL ? DAY)",
+  },
+  {
     table: 'zone_history',
     retention: 'history',
     // DATE `YYYY-MM-DD` dans un VARCHAR : comparaison lexicographique valide.

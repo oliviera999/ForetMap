@@ -47,6 +47,8 @@ import { IconSave } from '../../shared/icons.jsx';
  * @param {string} [props.autoSaveStatus] état de l'enregistrement automatique (édition seule)
  * @param {string} [props.autoSaveError] message d'erreur de l'enregistrement automatique
  * @param {Array<{ id: string, label?: string }>} [props.maps] cartes actives pour le rattachement direct
+ * @param {(plantId: string|number, body: object) => Promise<object>} [props.onProposePhotos]
+ *   intégration des photos de pré-saisie, dans la file d’enregistrement de la fiche
  */
 function PlantEditForm({
   title,
@@ -61,6 +63,7 @@ function PlantEditForm({
   autoSaveStatus = '',
   autoSaveError = '',
   maps = [],
+  onProposePhotos = null,
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   // Chaque libellé est ASSOCIÉ à son champ (`htmlFor`/`id`) : au lecteur d'écran, un
@@ -254,7 +257,14 @@ function PlantEditForm({
             setForm={setForm}
             onToast={onToast}
           />
-          <PlantPrefillPanel form={form} setForm={setForm} saving={saving} onToast={onToast} />
+          <PlantPrefillPanel
+            form={form}
+            setForm={setForm}
+            saving={saving}
+            onToast={onToast}
+            plantId={plantId}
+            onProposePhotos={onProposePhotos}
+          />
           <div className="field">
             <label htmlFor={fieldId('description')} id={fieldId('description-label')}>
               Description d'identification

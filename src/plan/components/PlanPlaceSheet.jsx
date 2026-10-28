@@ -3,6 +3,7 @@ import { Button } from '../../shared/ui/Button.jsx';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
 import { placeDisplayParts } from '../utils/planPlaces.js';
 import { PlanLinkedText } from '../utils/planLinkedText.jsx';
+import { enovSpaceTypeLabel } from '../../shared/enov/enovSpaceTypes.js';
 import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
 import { placeStatusClass, placeStatusLabel } from '../../shared/place-messages/placeStatus.js';
 
@@ -96,6 +97,8 @@ export function PlanPlaceSheet({
    */
   const enovText = String(place.enov_description || '').trim();
   const showEnov = Boolean(highlightTitle) && (place.map_highlight === true || Boolean(enovText));
+  /** Type d'espace (migration 323), dit sous le titre : « Espace sportif », « Restauration »… */
+  const enovTypeLabel = showEnov ? enovSpaceTypeLabel(place.enov_space_type) : '';
   return (
     <BottomSheet
       open
@@ -161,6 +164,11 @@ export function PlanPlaceSheet({
           <h3 className="plan-place__enov-title">
             <span aria-hidden>💡</span> {highlightTitle}
           </h3>
+          {enovTypeLabel ? (
+            <p className="plan-place__enov-type" data-testid="plan-place-enov-type">
+              {enovTypeLabel}
+            </p>
+          ) : null}
           {enovText ? <PlanLinkedText className="plan-place__enov-text" text={enovText} /> : null}
         </section>
       ) : null}

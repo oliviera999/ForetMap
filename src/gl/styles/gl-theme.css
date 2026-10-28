@@ -3613,7 +3613,7 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-player-journal__saved {
-  color: #15803d;
+  color: var(--accent-success-deep);
 }
 
 .gl-player-journal__textarea {
@@ -5322,13 +5322,13 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-qcm-feedback-block--ok {
-  background: color-mix(in srgb, #15803d 8%, var(--surface-plain) 92%);
-  border-color: color-mix(in srgb, #15803d 35%, var(--gl-border) 65%);
+  background: color-mix(in srgb, var(--accent-success-deep) 8%, var(--surface-plain) 92%);
+  border-color: color-mix(in srgb, var(--accent-success-deep) 35%, var(--gl-border) 65%);
 }
 
 .gl-qcm-feedback-block--ko {
-  background: color-mix(in srgb, #b91c1c 8%, var(--surface-plain) 92%);
-  border-color: color-mix(in srgb, #b91c1c 30%, var(--gl-border) 70%);
+  background: color-mix(in srgb, var(--accent-danger-deep) 8%, var(--surface-plain) 92%);
+  border-color: color-mix(in srgb, var(--accent-danger-deep) 30%, var(--gl-border) 70%);
 }
 
 .gl-qcm-feedback {
@@ -5340,7 +5340,7 @@ a.gl-glossary-inline-link:hover,
 }
 
 .gl-qcm-feedback--ok {
-  color: #15803d;
+  color: var(--accent-success-deep);
 }
 
 .gl-qcm-feedback--ko {
@@ -5711,7 +5711,7 @@ body.gl-glossary-popover-open {
   padding: 0.15rem 0.45rem;
   border-radius: var(--gl-radius-pill);
   background: rgba(234, 179, 8, 0.2);
-  color: #fde68a;
+  color: var(--tint-note-yellow);
 }
 
 .gl-market-empty {

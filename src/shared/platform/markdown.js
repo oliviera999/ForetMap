@@ -10,7 +10,7 @@ import {
   parseGlImageFrameAttr,
   serializeGlImageFrameAttr,
 } from '../image-frame/glImageFrame.js';
-import { resolveExternalImageUrl } from '../privacy/externalAssets.js';
+import { resolveExternalImageUrl, unwrapRelayedImageUrl } from '../privacy/externalAssets.js';
 
 const ALLOWED_TAGS = [
   'p',
@@ -303,6 +303,11 @@ export function filterRichInlineStyle(raw) {
 
 /** Vrai pendant un `sanitizeRichHtml` : le hook de style ne touche pas les autres appels. */
 let richSanitizeDepth = 0;
+/**
+ * `false` pendant un nettoyage destiné à l'ENREGISTREMENT (conversion HTML → Markdown) : les
+ * images gardent leur adresse d'origine. `true` (défaut) pour l'affichage : relais selon le mode.
+ */
+let richRelayImages = true;
 
 DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
   if (richSanitizeDepth === 0 || data?.attrName !== 'style') return;
@@ -356,15 +361,18 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     }
   }
   if (node.tagName === 'IMG') {
-    const src = String(node.getAttribute('src') || '').trim();
+    // Adresse d'origine : une adresse déjà relayée (affichage précédent, ou contenu qui l'a
+    // enregistrée) est ramenée à l'image d'origine. `data-gl-md-src` n'est jamais lu ici : G&L y
+    // garde ses références internes (`scene:N`, clés legacy) pour son propre aller-retour.
+    const src = unwrapRelayedImageUrl(String(node.getAttribute('src') || '').trim());
     if (!isAllowedMarkdownImageSrc(src)) {
       node.remove();
       return;
     }
-    const relayed = resolveExternalImageUrl(src);
-    if (relayed !== src) {
-      if (!node.getAttribute('data-gl-md-src')) node.setAttribute('data-gl-md-src', src);
-      node.setAttribute('src', relayed);
+    const shown = richRelayImages ? resolveExternalImageUrl(src) : src;
+    node.setAttribute('src', shown);
+    if (shown !== src && !node.getAttribute('data-gl-md-src')) {
+      node.setAttribute('data-gl-md-src', src);
     }
     if (!node.getAttribute('loading')) node.setAttribute('loading', 'lazy');
     node.setAttribute('decoding', 'async');
@@ -477,11 +485,13 @@ export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref
 
 /**
  * @param {string} html
- * @param {{ allowImages?: boolean }} [options]
+ * @param {{ allowImages?: boolean, relayImages?: boolean }} [options] `relayImages: false` pour
+ *   un HTML destiné à être ENREGISTRÉ : les images gardent leur adresse d'origine.
  * @returns {string}
  */
 export function sanitizeRichHtml(html, options = {}) {
   const allowImages = Boolean(options?.allowImages);
+  const relayImages = options?.relayImages !== false;
   const allowJournalEmbeds = Boolean(options?.allowJournalEmbeds);
   const allowGlossaryLinks = Boolean(options?.allowGlossaryLinks);
   let tags = ALLOWED_TAGS;
@@ -497,6 +507,8 @@ export function sanitizeRichHtml(html, options = {}) {
     attrs = Array.from(new Set([...attrs, ...ALLOWED_ATTR_WITH_GLOSSARY]));
   }
   let sanitized;
+  const previousRelay = richRelayImages;
+  richRelayImages = relayImages;
   richSanitizeDepth += 1;
   try {
     sanitized = DOMPurify.sanitize(html, {
@@ -506,6 +518,7 @@ export function sanitizeRichHtml(html, options = {}) {
     });
   } finally {
     richSanitizeDepth -= 1;
+    richRelayImages = previousRelay;
   }
   if (allowImages) {
     return wrapMarkdownContentImages(sanitized);

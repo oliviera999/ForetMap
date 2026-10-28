@@ -43,8 +43,8 @@ export function buildPrefillFieldSelection(data, latestForm, opts = {}) {
 }
 
 /**
- * Sélections initiales des photos proposées : un emplacement `champ:index` par photo, décoché
- * par défaut (l'utilisateur coche pour ajouter), avec champ cible = champ source s'il appartient
+ * Sélections initiales des photos proposées : un emplacement `champ:index` par photo,
+ * **coché par défaut** (intégration d'emblée), avec champ cible = champ source s'il appartient
  * à `photoFieldKeys`, sinon repli sur `photo_species`.
  *
  * @param {Array<object>} photos photos de la réponse autofill (`data.photos`)
@@ -59,8 +59,7 @@ export function buildInitialPrefillPhotoSelections(photos, photoFieldKeys) {
     (list || []).forEach((_, idx) => {
       const slot = prefillPhotoSlotKey(field, idx);
       const defaultTarget = keys.has(field) ? field : 'photo_species';
-      // Propositions visibles par défaut ; l’utilisateur coche pour ajouter sans remplacer les photos déjà présentes.
-      nextPhotoSel[slot] = { checked: false, assignTo: defaultTarget };
+      nextPhotoSel[slot] = { checked: true, assignTo: defaultTarget };
     });
   }
   return nextPhotoSel;

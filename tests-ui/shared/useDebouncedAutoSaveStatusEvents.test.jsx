@@ -66,3 +66,88 @@ describe('useDebouncedAutoSave — événements de statut globaux', () => {
     }
   });
 });
+
+describe('useDebouncedAutoSave — enregistrement sauté pendant un envoi', () => {
+  test('relance la valeur posée pendant qu’un enregistrement était en cours', async () => {
+    const saved = [];
+    const valueRef = { current: 'a' };
+    let release = () => {};
+    const { result, rerender } = renderHook(
+      ({ value }) => {
+        valueRef.current = value;
+        return useDebouncedAutoSave({
+          value,
+          debounceMs: 60_000,
+          onSave: () => {
+            const seen = valueRef.current;
+            saved.push(seen);
+            return new Promise((resolve) => {
+              release = () => resolve(seen);
+            });
+          },
+        });
+      },
+      { initialProps: { value: 'a' } },
+    );
+
+    rerender({ value: 'b' });
+    let firstDone;
+    await act(async () => {
+      firstDone = result.current.flush();
+      await Promise.resolve();
+    });
+    expect(saved).toEqual(['b']);
+
+    rerender({ value: 'c' });
+    await act(async () => {
+      await result.current.flush();
+    });
+    expect(saved).toEqual(['b']);
+
+    await act(async () => {
+      release();
+      await firstDone;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(saved).toEqual(['b', 'c']);
+    await act(async () => {
+      release();
+    });
+  });
+
+  test('ne relance pas en boucle quand l’enregistrement échoue', async () => {
+    const calls = [];
+    let release = () => {};
+    const { result, rerender } = renderHook(
+      ({ value }) =>
+        useDebouncedAutoSave({
+          value,
+          debounceMs: 60_000,
+          onSave: () => {
+            calls.push(value);
+            return new Promise((_resolve, reject) => {
+              release = () => reject(new Error('réseau'));
+            });
+          },
+        }),
+      { initialProps: { value: 1 } },
+    );
+    rerender({ value: 2 });
+    let firstDone;
+    await act(async () => {
+      firstDone = result.current.flush();
+      await Promise.resolve();
+    });
+    rerender({ value: 3 });
+    await act(async () => {
+      await result.current.flush();
+    });
+    await act(async () => {
+      release();
+      await firstDone.catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(calls).toEqual([2]);
+    expect(result.current.status).toBe('error');
+  });
+});
