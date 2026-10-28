@@ -55,8 +55,9 @@ describe('MarkerCommonFormFields', () => {
     const { container } = render(
       <Harness>{(p) => <MarkerCommonFormFields {...p} plants={PLANTS} />}</Harness>,
     );
-    // pas de panneau catalogue → seul le <select multiple> liste les options
-    expect(container.querySelectorAll('option').length).toBe(PLANTS.length);
+    // pas de panneau catalogue → seul le <select multiple> liste les espèces (le sélecteur du
+    // type d'espace e-nov a ses propres options)
+    expect(container.querySelectorAll('select[multiple] option').length).toBe(PLANTS.length);
   });
 });
 

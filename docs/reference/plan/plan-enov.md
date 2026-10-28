@@ -17,14 +17,17 @@ e-nov** :
 - le **logo du lycée** reste affiché en bas à gauche de la carte, comme sur les autres plans ;
 - les boutons, le fond et les textes passent du bleu marine du lycée aux bleus du label.
 
-Il s'en distingue aussi par trois fonctions :
+Il s'en distingue aussi par quatre fonctions :
 
 - les **lieux innovants ressortent** : un halo coloré les entoure et respire doucement, leur nom
   est écrit en gras et souligné de la même couleur, et **les autres lieux s'estompent** ;
 - une puce **« Innovations »**, la première de la rangée sous la recherche, les **liste** tous
   (avec leur nombre) pour les parcourir un à un ;
 - la fiche d'un lieu innovant s'ouvre sur un encadré **« 💡 Innovation e-nov »** qui dit **en
-  quoi ce lieu est une innovation**, avant tout le reste (sous-titre, photo, description).
+  quoi ce lieu est une innovation** et de **quel type d'espace** il s'agit, avant tout le reste
+  (sous-titre, photo, description) ;
+- quand plusieurs cartes sont publiées (le lycée et le complexe sportif), une **bascule** sous
+  la barre du haut passe de l'une à l'autre d'un seul geste.
 
 Comme le plan public, il ne demande **aucun compte** et ne conserve aucune donnée personnelle ;
 sa page **« Vos données »** (lien dans l'aide et sur l'écran de saisie du code) le dit aux
@@ -72,6 +75,16 @@ Dans la fiche de la zone ou du repère, onglet _Modifier_ :
 Les deux vont ensemble : un texte sans la catégorie ne met pas le lieu en avant, et la
 catégorie sans texte met le lieu en avant avec un encadré « Innovation e-nov » sans
 explication.
+
+### Indiquer le type d'espace
+
+Toujours dans l'onglet _Modifier_, sous la description e-nov, le menu **« Type d'espace
+e-nov »** range le lieu parmi : espace extérieur, espace pédagogique, espace sportif, vie
+scolaire et bien-être, espace administratif, restauration, autre espace. Le label attend, au
+niveau 3, un plan qui montre **plusieurs espaces de types différents** : c'est ce type qui
+range la légende du plan imprimé (voir plus bas), et il s'affiche sous le titre de l'encadré
+« Innovation e-nov » de la fiche. Un lieu sans type reste sur le plan, rangé en fin de légende
+sous « Type d'espace non renseigné ».
 
 ### Une catégorie invisible ailleurs
 
@@ -125,6 +138,35 @@ changer le code referme la porte à tous.
 En mode « code » **sans** code enregistré, le plan reste ouvert à tous (on n'enferme pas les
 visiteurs dehors par un réglage à moitié rempli).
 
+### Imprimer les plans annotés (dossier de labellisation)
+
+Dans _Réglages → Plan Lyautey_, section « Plan e-nov », le bloc **« Plans annotés à
+imprimer »** ouvre la page d'impression du plan e-nov : un bouton pour **tous les plans**, un
+bouton par carte (le lycée, le complexe sportif…). La page est aussi joignable directement à
+l'adresse `enov.olution.info/impression`. Si le plan e-nov est fermé par un code, elle le
+demande, comme le plan.
+
+Chaque carte donne **une feuille A4** :
+
+- en tête, le logo du label, le nom de l'établissement, le titre « Plan annoté des espaces
+  innovants » et le nombre d'espaces et de types d'espace ;
+- la **carte**, sur laquelle chaque lieu innovant est entouré et porte un **numéro** ; les
+  autres lieux apparaissent en pointillés, avec leur nom, pour s'y repérer ;
+- la **légende**, rangée par type d'espace, les numéros se suivant de haut en bas ; chaque
+  entrée reprend le début de la description e-nov ;
+- en pied de page, la date du jour, la mention de pied de page du plan e-nov (source du fond
+  de plan, par exemple) et un **QR code** qui ouvre la carte sur le plan interactif.
+
+Avant d'imprimer, la page propose : les cartes à inclure, l'orientation (A4 paysage ou
+portrait), le détail de la légende (texte court, texte développé, noms seuls), l'affichage des
+autres lieux et du QR code. Rien n'est enregistré : ces choix ne valent que pour l'impression
+en cours. Le bouton **« Imprimer / PDF »** ouvre la fenêtre d'impression du navigateur :
+choisissez « Enregistrer au format PDF », **sans** en-têtes ni pieds de page du navigateur,
+avec les **arrière-plans graphiques** activés (sinon les contours colorés disparaissent).
+
+Pour qu'une carte figure sur la page, elle doit être proposée sur le plan e-nov (« Autres plans
+proposés »), comme pour la bascule.
+
 ### Parcours
 
 Un parcours du plan public **n'est pas repris** automatiquement sur le plan e-nov. Pour un
@@ -146,6 +188,14 @@ Un parcours du plan public **n'est pas repris** automatiquement sur le plan e-no
 > masqué aussi sur le plan e-nov au moment où le plan e-nov a été créé. Si l'une de vos
 > innovations était retirée du plan public, décochez « Plan e-nov » dans son bloc
 > « Masquer sur » pour qu'elle y apparaisse.
+
+> ⚠️ **Point d'attention — message d'accueil.** Depuis l'arrivée de la bascule entre cartes,
+> un message d'accueil qui renvoie à « Réglages → Plan affiché » pour le complexe sportif
+> décrit un chemin devenu inutile : pensez à le reformuler.
+
+> ⚠️ **Point d'attention — numéros superposés.** Sur le plan imprimé, le numéro d'un lieu se
+> pose au centre de sa zone. Deux petites zones très proches peuvent voir leurs numéros se
+> chevaucher : vérifiez l'aperçu avant d'imprimer et, au besoin, retouchez le tracé du lieu.
 
 > ⚠️ **Point d'attention — suivi d'usage.** Les compteurs de fréquentation du plan e-nov sont
 > bien enregistrés, mais l'écran de suivi d'usage ne propose comme filtre que ForetMap,

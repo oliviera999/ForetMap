@@ -1177,6 +1177,32 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       />
 
       {/*
+        Plan e-nov : bascule directe entre les cartes publiées (lycée, complexe sportif…).
+        Ailleurs, le choix reste dans « Réglages → Plan affiché » ; ici, le visiteur (un jury)
+        ne doit pas avoir à deviner qu'un second site existe.
+      */}
+      {variant.mapSwitcher && (maps || []).length > 1 && (maps || []).length <= 4 ? (
+        <nav className="plan-map-switch" aria-label="Plan affiché" data-testid="plan-map-switch">
+          {(maps || []).map((entry) => {
+            const id = String(entry.id);
+            const current = id === String(map?.id || '');
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`plan-map-switch__btn${current ? ' is-active' : ''}`}
+                aria-pressed={current}
+                title={entry.label || id}
+                onClick={() => selectMap(id)}
+              >
+                {entry.label || id}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
+
+      {/*
         La puce Parcours reste hors du bandeau scrollable : `overflow-x: auto` +
         `overflow-y: hidden` y coupait la liste déroulante, qui s'ouvrait alors
         sous la carte (empilement). Les puces de catégories gardent le défilement.

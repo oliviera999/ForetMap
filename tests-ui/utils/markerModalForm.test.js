@@ -23,6 +23,8 @@ describe('markerFormFromMarker', () => {
       search_aliases: '',
       // Texte e-nov (migration 315) : affiché sur le seul plan e-nov.
       enov_description: '',
+      // Type d'espace e-nov (migration 323) : légende du plan annoté imprimable.
+      enov_space_type: '',
       // Cloisonnement d'audience : qui voit le repère.
       visible_role_slugs: [],
       // Audience par groupes (migration 262) : jumelle de chaque liste de rôles.
