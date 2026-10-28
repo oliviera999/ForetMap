@@ -4,6 +4,7 @@ import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
+import { enovOriginFrom, enovPrintUrl } from '../../utils/enovPrintLinks.js';
 
 const ENOV_KEYS = Object.freeze({
   title: 'ui.enov_plan.title',
@@ -64,6 +65,22 @@ export function EnovPlanSettingsPanel({
   const highlightColor = HEX_COLOR_RE.test(storedColor) ? storedColor : DEFAULT_HIGHLIGHT_COLOR;
   const readOnly = !canWrite;
 
+  /**
+   * Plans annotés à imprimer : la carte d'accueil (celle du plan public) puis les cartes
+   * proposées sur le plan e-nov, chacune sur sa feuille A4 (`/impression` sur `enov.*`).
+   */
+  const enovOrigin = enovOriginFrom(
+    String(get('ui.plan.public_base_url', '') || ''),
+    typeof window === 'undefined' ? '' : window.location.origin,
+  );
+  const homeMapId = String(get('ui.plan.map_id', '') || '').trim();
+  const printMapIds = [
+    ...new Set(
+      [homeMapId, ...parseCategoryIdsSetting(get(ENOV_KEYS.selectableMapIds, ''))].filter(Boolean),
+    ),
+  ];
+  const mapLabel = (id) => maps.find((m) => String(m.id) === id)?.label || id;
+
   return (
     <div className="plan-settings-panel" data-testid="enov-plan-settings-panel">
       <p className="muted" style={{ marginTop: 0 }}>
@@ -73,6 +90,47 @@ export function EnovPlanSettingsPanel({
         (par défaut « e-nov », visible sur ce seul plan) ; son texte e-nov se saisit dans sa fiche,
         onglet <em>Modifier</em>, et s’affiche en tête de fiche.
       </p>
+
+      <h4 style={{ margin: '0 0 4px' }}>Plans annotés à imprimer</h4>
+      <div className="field" data-testid="enov-plan-print-links">
+        <p className="muted" style={{ marginTop: 0 }}>
+          Une feuille A4 par carte : lieux innovants numérotés sur le plan, légende rangée par type
+          d’espace (à renseigner dans la fiche de chaque lieu, sous « Description e-nov »), date et
+          QR code du plan interactif. À joindre au dossier de labellisation (domaine 1). La page
+          s’ouvre sur le plan e-nov ; s’il est fermé par un code, elle le demande.
+        </p>
+        {enovOrigin ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {printMapIds.length > 1 ? (
+              <a
+                className="btn btn-primary btn-sm"
+                href={enovPrintUrl(enovOrigin, printMapIds)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                🖨️ Tous les plans ({printMapIds.length})
+              </a>
+            ) : null}
+            {(printMapIds.length ? printMapIds : ['']).map((id) => (
+              <a
+                key={id || 'default'}
+                className="btn btn-secondary btn-sm"
+                href={enovPrintUrl(enovOrigin, id ? [id] : [])}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                🖨️ {id ? mapLabel(id) : 'Plan d’accueil'}
+              </a>
+            ))}
+          </div>
+        ) : null}
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Adresse : <code>{enovPrintUrl(enovOrigin, [])}</code>. Pour ajouter une carte (complexe
+          sportif…), déclarez-la dans « Autres plans proposés » ci-dessous.
+        </p>
+      </div>
+
+      <hr />
 
       <h4 style={{ margin: '0 0 4px' }}>Mise en avant des innovations</h4>
 

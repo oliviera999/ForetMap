@@ -7,11 +7,12 @@ import {
   PlantSpeciesDiscoveryAcknowledgeButton,
   fetchPlantObservationCounts,
 } from '../PlantSpeciesDiscoveryAcknowledge';
-import { getAuthToken } from '../../services/api';
+import { api, getAuthToken } from '../../services/api';
 import { useGatingSummary } from '../../hooks/useGatingSummary';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
+import { plantHasUnconfirmedPhotos } from '../../utils/plantPhotos.js';
 import { normalizedPlantValue, isGenericPotagerLabel } from '../../utils/plantFormValues.js';
 import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../../utils/plantFilters';
 import { describePresenceSources, presenceEntryForPlant } from '../../utils/speciesPresence.js';
@@ -71,13 +72,43 @@ export function PlantBiodiversityCatalogPreviewCard({
    */
   presenceKnown = false,
   presenceEntry = null,
+  /** Mise à jour locale après confirmation d'une photo (optionnel). */
+  onPlantPhotosUpdated = null,
 }) {
   const { visibility, canShow } = useBiodivPedago();
+  const { hasPermission = () => false } = useSession();
+  const canConfirmPhotos = !!hasPermission?.('plants.manage');
   const latinVisibility = visibility('accepted_name_gbif_latin');
   const showClade = canShow('clade_breadcrumb');
-  if (!plant) return null;
-  const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
-  const pMarkers = markers.filter((m) => plantLinkedToMapMarker(plant, m));
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [localPlant, setLocalPlant] = useState(plant);
+  useEffect(() => {
+    setLocalPlant(plant);
+  }, [plant]);
+  if (!localPlant) return null;
+  const displayPlant = localPlant;
+
+  const confirmPhoto = async (photoId) => {
+    if (!displayPlant?.id || photoBusy) return;
+    setPhotoBusy(true);
+    try {
+      const res = await api(`/api/plants/${displayPlant.id}/photos/${photoId}/confirm`, 'POST', {});
+      if (res?.plant) {
+        setLocalPlant(res.plant);
+        onPlantPhotosUpdated?.(res.plant);
+      } else if (Array.isArray(res?.photos)) {
+        const next = { ...displayPlant, photos: res.photos };
+        setLocalPlant(next);
+        onPlantPhotosUpdated?.(next);
+      }
+    } catch {
+      /* toast optionnel côté parent */
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+  const pZones = zones.filter((z) => plantLinkedToMapZone(displayPlant, z));
+  const pMarkers = markers.filter((m) => plantLinkedToMapMarker(displayPlant, m));
   const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
   const presenceLine = presenceKnown && presenceEntry ? describePresenceSources(presenceEntry) : '';
   const showMapSection = hasMapLink || !!presenceLine;
@@ -85,26 +116,26 @@ export function PlantBiodiversityCatalogPreviewCard({
     dataBiodivPlantId != null && dataBiodivPlantId !== ''
       ? { 'data-biodiv-plant-id': dataBiodivPlantId }
       : {};
-  const usageName = normalizedPlantValue(plant.scientific_name);
-  const acceptedName = normalizedPlantValue(plant.accepted_scientific_name);
+  const usageName = normalizedPlantValue(displayPlant.scientific_name);
+  const acceptedName = normalizedPlantValue(displayPlant.accepted_scientific_name);
   const showAccepted = acceptedName && acceptedName.toLowerCase() !== usageName.toLowerCase();
   const gbifKey =
-    plant?.taxonomy?.gbifAcceptedKey ||
-    plant?.taxonomy?.gbifKey ||
-    plant?.gbif_accepted_key ||
-    plant?.gbif_key;
+    displayPlant?.taxonomy?.gbifAcceptedKey ||
+    displayPlant?.taxonomy?.gbifKey ||
+    displayPlant?.gbif_accepted_key ||
+    displayPlant?.gbif_key;
   const gbifHref =
     gbifKey != null && Number(gbifKey) > 0
       ? `https://www.gbif.org/species/${Number(gbifKey)}`
       : null;
-  const previewMapId = activeMapId || plant.preview_map_id || null;
+  const previewMapId = activeMapId || displayPlant.preview_map_id || null;
   return (
     <article className="biodiv-card fade-in" {...dataAttr}>
       <div className="biodiv-card-head">
         <div className="biodiv-card-title-wrap">
-          <span className="biodiv-emoji">{plant.emoji}</span>
+          <span className="biodiv-emoji">{displayPlant.emoji}</span>
           <div className="biodiv-card-title-content">
-            <h3>{plant.name}</h3>
+            <h3>{displayPlant.name}</h3>
             {latinVisibility !== 'hide' ? (
               <>
                 <p className="plant-scientific">{usageName || 'Nom scientifique non renseigne'}</p>
@@ -135,54 +166,70 @@ export function PlantBiodiversityCatalogPreviewCard({
             ) : null}
           </div>
         </div>
-        {normalizedPlantValue(plant.group_2) && <span className="task-chip">{plant.group_2}</span>}
+        {normalizedPlantValue(displayPlant.group_2) && (
+          <span className="task-chip">{displayPlant.group_2}</span>
+        )}
       </div>
 
       <div className="biodiv-card-body">
-        {plant.description ? (
-          <MarkdownContent className="plant-row-desc">{plant.description}</MarkdownContent>
+        {displayPlant.description ? (
+          <MarkdownContent className="plant-row-desc">{displayPlant.description}</MarkdownContent>
         ) : (
           <p className="plant-row-desc">
             <em style={{ color: '#bbb' }}>Pas de description</em>
           </p>
         )}
-        <PlantBiodivHeroPhoto plant={plant} />
+        <PlantBiodivHeroPhoto
+          plant={displayPlant}
+          canConfirmPhotos={canConfirmPhotos && !photoBusy}
+          onConfirmPhoto={confirmPhoto}
+        />
+        {plantHasUnconfirmedPhotos(displayPlant) ? (
+          <p className="plant-photo-pending-banner" role="status">
+            Une ou plusieurs photos de cette fiche attendent une confirmation professeur.
+          </p>
+        ) : null}
         {/* Le danger passe avant tout le reste, et hors d'un <details> : un avertissement
             de toxicité derrière un repli fermé n'avertit personne. */}
-        <PlantHazardSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
+        <PlantHazardSection plant={displayPlant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Risque sanitaire : encadré distinct, pour ne pas faire passer un animal porteur
             de la rage pour un animal toxique. */}
-        <PlantHealthRiskSection plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
+        <PlantHealthRiskSection plant={displayPlant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
         {/* Placée avant l'écologie : devant l'être vivant, on cherche d'abord ce que c'est. */}
         <PlantDeterminationSection
-          plant={plant}
+          plant={displayPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
           onOpenPlant={onOpenPlant}
         />
-        {showClade ? <PlantCladeBreadcrumb plant={plant} /> : null}
-        <PlantEcosystemHumanLead plant={plant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
-        <PlantTaxonomyLine plant={plant} />
-        <PlantSiteNotesBlock plant={plant} activeMapId={previewMapId} maps={maps} />
-        <PlantPedagoTraitBadges plant={plant} />
-        <PlantRangeGauges plant={plant} />
-        <CatalogRemarksSection plant={plant} />
+        {showClade ? <PlantCladeBreadcrumb plant={displayPlant} /> : null}
+        <PlantEcosystemHumanLead plant={displayPlant} onOpenGlossaryTerm={onOpenGlossaryTerm} />
+        <PlantTaxonomyLine plant={displayPlant} />
+        <PlantSiteNotesBlock plant={displayPlant} activeMapId={previewMapId} maps={maps} />
+        <PlantPedagoTraitBadges plant={displayPlant} />
+        <PlantRangeGauges plant={displayPlant} />
+        <CatalogRemarksSection plant={displayPlant} />
         <div className="task-meta">
-          {normalizedPlantValue(plant.habitat) && !isGenericPotagerLabel(plant.habitat) && (
-            <span className="task-chip">
-              <IconHabitat size={12} /> {plant.habitat}
-            </span>
-          )}
-          {normalizedPlantValue(plant.agroecosystem_category) &&
-            !isGenericPotagerLabel(plant.agroecosystem_category) && (
+          {normalizedPlantValue(displayPlant.habitat) &&
+            !isGenericPotagerLabel(displayPlant.habitat) && (
               <span className="task-chip">
-                <IconGlobe size={12} /> {plant.agroecosystem_category}
+                <IconHabitat size={12} /> {displayPlant.habitat}
+              </span>
+            )}
+          {normalizedPlantValue(displayPlant.agroecosystem_category) &&
+            !isGenericPotagerLabel(displayPlant.agroecosystem_category) && (
+              <span className="task-chip">
+                <IconGlobe size={12} /> {displayPlant.agroecosystem_category}
               </span>
             )}
         </div>
-        <PlantSummaryBadges plant={plant} />
-        <PlantMetaSections plant={plant} />
+        <PlantSummaryBadges plant={displayPlant} />
+        <PlantMetaSections
+          plant={displayPlant}
+          canConfirmPhotos={canConfirmPhotos && !photoBusy}
+          onConfirmPhoto={confirmPhoto}
+        />
         <PlantPedagoFetchedSections
-          plantId={plant.id}
+          plantId={displayPlant.id}
           onOpenPlant={onOpenPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
           onOpenQuizQuestion={onOpenQuizQuestion}
@@ -247,8 +294,8 @@ export function PlantBiodiversityCatalogPreviewCard({
           style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
         >
           <PlantSpeciesDiscoveryAcknowledgeButton
-            plantId={plant.id}
-            speciesName={plant.name}
+            plantId={displayPlant.id}
+            speciesName={displayPlant.name}
             myObservationCount={myObservationCount}
             siteObservationCount={siteObservationCount}
             gatingSummary={gatingSummary}
@@ -262,7 +309,7 @@ export function PlantBiodiversityCatalogPreviewCard({
           />
         </div>
         <SpeciesObservationSlot
-          plant={plant}
+          plant={displayPlant}
           presenceEntry={presenceKnown ? presenceEntry : null}
           mapId={previewMapId}
           onForceLogout={onForceLogout}
@@ -270,7 +317,7 @@ export function PlantBiodiversityCatalogPreviewCard({
         {showContextComments && contextCommentsEnabled && (
           <ContextComments
             contextType="plant"
-            contextId={String(plant.id)}
+            contextId={String(displayPlant.id)}
             title="Commentaires sur cette fiche"
             placeholder="Remarque ou question sur cet être vivant…"
             canParticipateContextComments={canParticipateContextComments}

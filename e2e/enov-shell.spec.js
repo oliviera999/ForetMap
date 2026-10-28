@@ -3,7 +3,8 @@ const { test, expect } = require('@playwright/test');
 /**
  * Plan e-nov (migration 315) — filet e2e du produit servi par host : un lieu désigné comme
  * innovation depuis la console ressort sur le plan e-nov, la puce « Innovations » le liste, et
- * sa fiche s'ouvre sur son texte e-nov. Le plan public, lui, n'en montre rien.
+ * sa fiche s'ouvre sur son texte e-nov. Le plan public, lui, n'en montre rien. La page
+ * d'impression (`/impression`, migration 323) le numérote et le range sous son type d'espace.
  *
  * Le produit est résolu par l'en-tête `X-Foretmap-Product: enov` (projet `enov-mobile` de
  * `playwright.config.js`) : en local il n'y a pas de sous-domaine `enov.*`.
@@ -49,32 +50,12 @@ async function teacherToken(api) {
 /** État d'origine du lieu étiqueté, à restaurer quoi qu'il arrive. */
 let restore = null;
 
-test.afterEach(async ({ playwright, baseURL }) => {
-  const pending = restore;
-  restore = null;
-  if (!pending) return;
-  // Contexte neuf, hors fixtures, en ForêtMap : c'est la console qui restaure.
-  const api = await playwright.request.newContext({ baseURL, extraHTTPHeaders: CONSOLE_HEADERS });
-  try {
-    const token = await teacherToken(api);
-    if (!token) return;
-    await api.put(`/api/zones/${pending.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { category_ids: pending.categoryIds, enov_description: pending.enovDescription },
-    });
-  } finally {
-    await api.dispose();
-  }
-});
-
-test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son texte', async ({
-  page,
-  request,
-  playwright,
-  baseURL,
-}) => {
-  test.setTimeout(120_000);
-
+/**
+ * Désigne la première zone dessinée du plan comme innovation (catégorie e-nov, texte, type
+ * d'espace) depuis la console, après avoir noté son état d'origine pour l'`afterEach`.
+ * Saute le test si la base locale n'a ni fond de plan, ni zone tracée, ni compte professeur.
+ */
+async function tagFirstDrawnZone({ request, playwright, baseURL, spaceType = 'pedagogique' }) {
   const contentRes = await request.get('/api/enov/content');
   expect(contentRes.ok()).toBeTruthy();
   const content = await contentRes.json();
@@ -103,18 +84,54 @@ test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son text
       id: zone.id,
       categoryIds,
       enovDescription: original.enov_description || '',
+      enovSpaceType: original.enov_space_type || '',
     };
     const saved = await consoleApi.put(`/api/zones/${zone.id}`, {
       headers,
       data: {
         category_ids: [...new Set([...categoryIds, ENOV_CATEGORY_ID])],
         enov_description: text,
+        enov_space_type: spaceType,
       },
     });
     expect(saved.ok()).toBeTruthy();
   } finally {
     await consoleApi.dispose();
   }
+  return { zone, text };
+}
+
+test.afterEach(async ({ playwright, baseURL }) => {
+  const pending = restore;
+  restore = null;
+  if (!pending) return;
+  // Contexte neuf, hors fixtures, en ForêtMap : c'est la console qui restaure.
+  const api = await playwright.request.newContext({ baseURL, extraHTTPHeaders: CONSOLE_HEADERS });
+  try {
+    const token = await teacherToken(api);
+    if (!token) return;
+    await api.put(`/api/zones/${pending.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        category_ids: pending.categoryIds,
+        enov_description: pending.enovDescription,
+        enov_space_type: pending.enovSpaceType,
+      },
+    });
+  } finally {
+    await api.dispose();
+  }
+});
+
+test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son texte', async ({
+  page,
+  request,
+  playwright,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+
+  const { zone, text } = await tagFirstDrawnZone({ request, playwright, baseURL });
 
   // La charge du plan e-nov le met en avant ; celle du plan public n'en dit rien.
   const enov = await (await request.get('/api/enov/content')).json();
@@ -145,4 +162,36 @@ test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son text
   const placeSheet = page.getByTestId('plan-place-sheet');
   await expect(placeSheet).toBeVisible({ timeout: 15_000 });
   await expect(placeSheet.getByTestId('plan-place-enov')).toBeVisible();
+});
+
+test('plan e-nov : page d’impression, lieu numéroté et rangé sous son type d’espace', async ({
+  page,
+  request,
+  playwright,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+
+  const { zone, text } = await tagFirstDrawnZone({ request, playwright, baseURL });
+  const enov = await (await request.get('/api/enov/content')).json();
+  expect(enov.zones.find((z) => z.id === zone.id)?.enov_space_type).toBe('pedagogique');
+
+  // Sans `?map_id=` : une base locale ne déclare souvent aucune carte dans les réglages du plan,
+  // et le serveur refuse un identifiant explicite non déclaré (liste blanche) — la console ne
+  // propose d'ailleurs le paramètre que pour les cartes déclarées.
+  await page.goto('/impression');
+  const sheet = page.getByRole('region', {
+    name: `Plan annoté des espaces innovants — ${enov.map.label || ''}`,
+  });
+  await expect(sheet).toBeVisible({ timeout: 30_000 });
+  // Le fond de plan est chargé et le lieu porte un numéro dessus.
+  await expect(sheet.locator('.enov-print-map__image')).toBeVisible();
+  await expect(sheet.locator('.enov-print-map__pin').first()).toBeVisible();
+  // Légende : groupe « Espace pédagogique », entrée au nom du lieu avec son texte court.
+  const group = sheet
+    .locator('.enov-print-legend__group')
+    .filter({ has: page.getByRole('heading', { name: 'Espace pédagogique' }) });
+  await expect(group).toBeVisible();
+  await expect(group.locator('.enov-print-entry__text').filter({ hasText: text })).toBeVisible();
+  await expect(page.getByTestId('enov-print-button')).toBeEnabled();
 });

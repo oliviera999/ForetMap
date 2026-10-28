@@ -119,6 +119,24 @@ router.post(
   }),
 );
 
+/** Photos de pré-saisie intégrées d'emblée (visibles, statut « à confirmer »). */
+router.post(
+  '/:id/photos/propose',
+  requirePermission('plants.manage'),
+  asyncHandler(async (req, res) => {
+    send(res, await speciesService.proposePlantPhotos(req.params.id, req.body || {}));
+  }),
+);
+
+/** Validation professeur d'une photo proposée. */
+router.post(
+  '/:id/photos/:photoId/confirm',
+  requirePermission('plants.manage'),
+  asyncHandler(async (req, res) => {
+    send(res, await speciesService.confirmPlantPhoto(req.params.id, req.params.photoId));
+  }),
+);
+
 router.post(
   '/import',
   requirePermission('plants.manage'),

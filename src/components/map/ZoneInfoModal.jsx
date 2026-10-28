@@ -159,6 +159,7 @@ function ZoneInfoModal({
   );
   const [searchAliases, setSearchAliases] = useState(zone.search_aliases || '');
   const [enovDescription, setEnovDescription] = useState(zone.enov_description || '');
+  const [enovSpaceType, setEnovSpaceType] = useState(zone.enov_space_type || '');
   const [visibleRoleSlugs, setVisibleRoleSlugs] = useState(() =>
     normalizeAudienceRoleList(zone.visible_role_slugs),
   );
@@ -252,6 +253,7 @@ function ZoneInfoModal({
     setHiddenSurfaces(normalizeSurfaceList(zone.hidden_surfaces));
     setSearchAliases(zone.search_aliases || '');
     setEnovDescription(zone.enov_description || '');
+    setEnovSpaceType(zone.enov_space_type || '');
     setVisibleRoleSlugs(normalizeAudienceRoleList(zone.visible_role_slugs));
     setLinks(normalizeLocationLinksForForm(zone.links));
     setNotes(normalizeLocationNotesForForm(zone.notes));
@@ -276,6 +278,7 @@ function ZoneInfoModal({
     zone.hidden_surfaces,
     zone.search_aliases,
     zone.enov_description,
+    zone.enov_space_type,
     zone.visible_role_slugs,
     zone.links,
     zone.notes,
@@ -307,6 +310,7 @@ function ZoneInfoModal({
           hiddenSurfaces,
           searchAliases,
           enovDescription,
+          enovSpaceType,
           visibleRoleSlugs,
           visibleGroupIds,
           links,
@@ -473,6 +477,8 @@ function ZoneInfoModal({
             idPrefix="zone"
             value={enovDescription}
             onChange={setEnovDescription}
+            spaceType={enovSpaceType}
+            onSpaceTypeChange={setEnovSpaceType}
           />
           <div className="field">
             <label>Description</label>

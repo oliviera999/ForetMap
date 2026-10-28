@@ -143,6 +143,28 @@ function createAutofillFetchMock(f) {
     }
 
     if (
+      raw.includes('api.gbif.org/v1/occurrence/search') &&
+      raw.includes(`taxon_key=${f.usageKey}`)
+    ) {
+      return jsonResponse({
+        results: [
+          {
+            key: f.usageKey + 1000,
+            basisOfRecord: 'HUMAN_OBSERVATION',
+            media: [
+              {
+                type: 'StillImage',
+                identifier: `https://inaturalist-open-data.s3.amazonaws.com/photos/gbif-${f.usageKey}/medium.jpg`,
+                license: 'https://creativecommons.org/licenses/by/4.0/',
+                rightsHolder: 'Observateur GBIF (test)',
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    if (
       raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') &&
       raw.includes(`q=${encodeURIComponent(sci)}`)
     ) {

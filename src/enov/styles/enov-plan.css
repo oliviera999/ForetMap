@@ -124,6 +124,13 @@
   color: var(--ink-strong);
 }
 
+.plan-place__enov-type {
+  margin: -2px 0 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+
 .plan-place__enov-text {
   margin: 0;
   font-size: var(--text-base);
@@ -144,4 +151,43 @@
   font-weight: 700;
   line-height: 1.5;
   vertical-align: middle;
+}
+
+/* ---- Bascule entre les cartes publiées (lycée, complexe sportif…) ---- */
+
+.plan-map-switch {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px 0;
+  background: var(--plan-bg);
+}
+
+.plan-map-switch__btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--enov-blue) 45%, var(--surface-plain));
+  border-radius: 999px;
+  background: var(--surface-plain);
+  color: var(--enov-blue-deep);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold, 600);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.plan-map-switch__btn.is-active {
+  border-color: var(--enov-blue-deep);
+  background: var(--enov-blue-deep);
+  color: var(--surface-plain);
+  box-shadow: inset 0 -3px 0 var(--enov-sun);
+}
+
+.plan-map-switch__btn:focus-visible {
+  outline: 3px solid var(--enov-sun);
+  outline-offset: 2px;
 }

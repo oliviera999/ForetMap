@@ -12,11 +12,16 @@ import {
 } from '../../utils/plantSourceLinks.js';
 import { normalizedPlantValue, parseLinkCandidates } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
-import { photoAttributionFor, formatPhotoAttribution } from '../../utils/plantPhotos.js';
+import {
+  photoAttributionFor,
+  formatPhotoAttribution,
+  plantPhotoList,
+} from '../../utils/plantPhotos.js';
 import { PLANT_META_SECTIONS, PHOTO_FIELD_KEYS } from '../../constants/plantMetaSections.js';
 import { IconSearch } from '../../shared/icons.jsx';
 import { withAppBase } from '../../shared/appBase.js';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
+import { PlantPhotoPendingBadge } from './PlantPhotoPendingBadge.jsx';
 
 /**
  * Affichage des métadonnées d'une fiche plante — extrait de `foretmap-views.jsx` (O6).
@@ -38,13 +43,22 @@ export async function fetchCommonsCategoryPreview(urlValue) {
 }
 
 /** Photo principale (champ `photo` puis `photo_species`) entre description brève et bloc écologie. */
-export function PlantBiodivHeroPhoto({ plant }) {
+export function PlantBiodivHeroPhoto({ plant, canConfirmPhotos = false, onConfirmPhoto = null }) {
   const [lightbox, setLightbox] = useState(null);
   const candidate = useMemo(() => findFirstBiodivHeroPhotoCandidate(plant), [plant]);
   const [categorySrc, setCategorySrc] = useState(null);
   // 30 fiches du catalogue pointaient une image Wikimedia supprimée depuis (404). Sans ce
   // garde-fou, la fiche affiche une icône d'image cassée ; on préfère ne rien afficher.
   const [broken, setBroken] = useState(false);
+  const heroPhotoMeta = useMemo(() => {
+    if (!candidate?.entry) return null;
+    const list = plantPhotoList(plant);
+    return (
+      list.find((p) => p.kind === candidate.field && p.url === candidate.entry) ||
+      list.find((p) => p.url === candidate.entry) ||
+      null
+    );
+  }, [plant, candidate]);
 
   useEffect(() => {
     setBroken(false);
@@ -100,6 +114,13 @@ export function PlantBiodivHeroPhoto({ plant }) {
           <IconSearch size={14} /> Voir
         </span>
       </button>
+      {heroPhotoMeta?.confirmed === false ? (
+        <PlantPhotoPendingBadge
+          photoId={heroPhotoMeta.id}
+          canConfirm={canConfirmPhotos}
+          onConfirm={onConfirmPhoto}
+        />
+      ) : null}
       {credit || filePage ? (
         <p className="biodiv-card-hero-credit">
           {credit ? <span className="biodiv-card-hero-credit__author">{credit}</span> : null}
@@ -135,9 +156,16 @@ const CREDIT_STYLE = {
   overflowWrap: 'anywhere',
 };
 
-export function PlantMetaSections({ plant }) {
+export function PlantMetaSections({ plant, canConfirmPhotos = false, onConfirmPhoto = null }) {
   const [bigPhoto, setBigPhoto] = useState(null);
   const [commonsPreviewByUrl, setCommonsPreviewByUrl] = useState({});
+  const photosByUrl = useMemo(() => {
+    const map = new Map();
+    for (const p of plantPhotoList(plant)) {
+      if (p?.url && !map.has(p.url)) map.set(p.url, p);
+    }
+    return map;
+  }, [plant]);
 
   const plantPhotoLinks = useMemo(() => {
     const links = [];
@@ -190,6 +218,9 @@ export function PlantMetaSections({ plant }) {
         const attribution = photoAttributionFor(plant, entry.source, item.key);
         const attributionText = formatPhotoAttribution(attribution);
         const filePage = commonsFilePageFromPhotoUrl(entry.source) || attribution?.source_url;
+        const meta =
+          photosByUrl.get(entry.source) ||
+          plantPhotoList(plant).find((p) => p.kind === item.key && p.url === entry.source);
         return (
           <figure key={`${item.key}-${idx}`} className="plant-photo-figure" style={FIGURE_STYLE}>
             <button
@@ -213,6 +244,13 @@ export function PlantMetaSections({ plant }) {
                 <IconSearch size={14} /> Voir
               </span>
             </button>
+            {meta?.confirmed === false ? (
+              <PlantPhotoPendingBadge
+                photoId={meta.id}
+                canConfirm={canConfirmPhotos}
+                onConfirm={onConfirmPhoto}
+              />
+            ) : null}
             {attributionText || filePage ? (
               <figcaption className="plant-photo-credit" style={CREDIT_STYLE}>
                 {attributionText ? <span>{attributionText}</span> : null}

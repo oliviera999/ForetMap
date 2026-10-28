@@ -5,6 +5,7 @@ export const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
   { id: 'gbif', label: 'GBIF (taxonomie)' },
   { id: 'gbif_traits', label: 'GBIF — descriptions / traits' },
   { id: 'gbif_vernacular', label: 'GBIF — noms vernaculaires' },
+  { id: 'gbif_media', label: 'GBIF — photos d’occurrences' },
   { id: 'inaturalist', label: 'iNaturalist' },
   { id: 'catalogue_of_life', label: 'Catalogue of Life' },
   { id: 'wikipedia_en', label: 'Wikipedia (EN, secours)' },

@@ -20,6 +20,84 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   numéro de révision). L'autre élève restait sur l'ancienne table : tout ce qu'il posait
   ensuite était refusé, puis perdu en rouvrant la fresque. L'écran ouvre la nouvelle table.
   Un enregistrement refusé parce que la table est archivée fait de même.
+### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
+
+- Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage
+  (`plantId` n’est pas un champ du formulaire), et les appels « intégrer » / « confirmer »
+  passaient un objet à la place de la méthode HTTP. Aucune photo n’était donc enregistrée,
+  et le bouton « Confirmer la photo » échouait sans message.
+- Ces écritures font avancer la révision de la fiche. Un formulaire resté ouvert ailleurs
+  ne peut plus effacer les photos ajoutées (ni retirer une confirmation) sans le dialogue
+  habituel « fiche modifiée entre-temps ». L’enregistrement automatique de la même fenêtre
+  attend la fin de l’intégration et relit la liste à jour.
+### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
+
+- **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
+  `plantPrefillHelpers`) : attentes mises au comportement livré par « photos de pré-saisie
+  intégrées d’emblée » — chaque photo du formulaire porte son `id` en base et son statut
+  `confirmed`, une photo de pré-saisie arrive `confirmed: false`, les propositions sont cochées
+  d’emblée. Aucun changement de code applicatif.
+- **Instantanés `plants-species-characterization`** : la référence enregistre le champ
+  `confirmed` de chaque photo (migration 322) ; aucune autre valeur ne change.
+- **Cliquet des couleurs** (`tests/color-tokens-guard.test.js`, 640 littéraux pour 629) : les
+  11 teintes en dur des encadrés « À confirmer » passent sur des tokens — `--ink-warning`,
+  `--tint-warning`, et deux nouveaux, `--tint-warning-strong` et `--line-warning`.
+- **Inventaire des routes d’écriture** : `POST /api/plants/:id/photos/propose` et
+  `POST /api/plants/:id/photos/:photoId/confirm` déclarées (`plants.manage`).
+- **Plan e-nov** : scénario e2e de la page `/impression` (lieu numéroté, rangé sous son type
+  d’espace) dans le smoke bloquant ; doc de référence — la bascule entre cartes s’affiche
+  jusqu’à quatre cartes.
+
+### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
+
+- **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée
+  (lycée, complexe sportif…), lieux innovants numérotés sur le fond de plan, autres lieux en
+  pointillés pour le repérage, légende rangée par **type d’espace** avec texte court tiré de la
+  description e-nov, date d’état, QR code vers le plan interactif. Même porte d’entrée que le
+  plan (code demandé si le plan est fermé). Réponse au cahier des charges du label (domaine 1,
+  niveau 3 : un plan attestant plusieurs espaces de types différents).
+- **Type d’espace e-nov** (migration `323`, `zones` / `map_markers.enov_space_type`) :
+  sélecteur sous « Description e-nov » dans la fiche d’un lieu, affiché dans la fiche du plan
+  e-nov et servi par `GET /api/enov/content`.
+- **Réglages → Plan Lyautey → Plan e-nov** : boutons « Imprimer » (tous les plans, ou un par
+  carte), adresse déduite de `ui.plan.public_base_url` ou de l’hôte de la console.
+- **Plan e-nov** : bascule visible entre les cartes publiées sous la barre haute (au lieu de
+  « Réglages → Plan affiché » seulement). Plan public et plan des personnels inchangés.
+- Compteur d’usage `enov` : événements `print_open` et `print`.
+
+### Ajouté — dossier d’audit établissement (RGPD / ambassade)
+
+- Fiche synthèse [mesures techniques et organisationnelles](docs/reference/exploitation/mesures-techniques-organisationnelles.md)
+  et [checklists](docs/reference/exploitation/dossier-audit-etablissement.md) (information,
+  gouvernance, purge, sauvegardes, incident Git, droits) — sans changement de comportement
+  métier ; sommaire `docs/reference/README.md` et renvois depuis `vos-donnees.md`.
+
+### Ajouté — photos de pré-saisie intégrées d’emblée (« À confirmer »)
+
+- Colonne `plant_photos.confirmed` : les photos proposées par pré-saisie sont
+  enregistrées tout de suite (`POST /api/plants/:id/photos/propose`) et visibles
+  de tous avec la mention **À confirmer** ; le professeur valide via
+  `POST /api/plants/:id/photos/:photoId/confirm`.
+- UI élève (vignette + fiche) : pastille / encadré ; UI prof : bouton « Confirmer
+  la photo ». Message de pré-saisie aligné sur ce flux.
+
+### Corrigé — dernier test backend rouge en CI (`with-app-node.sh`)
+
+- `tests/deploy-cron-server-env.test.js` vérifiait `process.execPath`, que Node résout à travers le
+  lien symbolique de la sandbox jusqu'au binaire réel : rouge sur toute machine Linux, CI
+  comprise (régression de `75dc94d`). Le test revient à vérifier que le `bin/` de l'application
+  est en tête du PATH, séparé par `path.delimiter` (Windows et Unix).
+
+### Ajouté — pré-saisie biodiversité : photos GBIF (`gbif_media`)
+
+- Nouvelle source **`gbif_media`** dans `GET /api/plants/autofill` : images d’occurrences
+  GBIF (`/occurrence/search?media_type=StillImage`) lorsque la taxonomie GBIF a fourni un
+  `usageKey`, pour combler les fiches sans image ou enrichir la sélection.
+- Filtre strict : HTTPS image directe, licences **CC0 / CC BY / CC BY-SA** uniquement
+  (hors NC/ND), crédit auteur, priorité aux observations de terrain ; jusqu’à 6
+  propositions ; revue prof inchangée (prévisualiser → appliquer).
+- UI : case « GBIF — photos d’occurrences » ; tests `species-autofill-gbif-media` ;
+  `docs/API.md` et référence plantes/biodiversité.
 
 ### Corrigé — texte riche : l'adresse d'origine des images est enregistrée, le relais ne sert qu'à l'affichage
 

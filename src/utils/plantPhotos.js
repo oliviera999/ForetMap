@@ -75,12 +75,15 @@ export function plantPhotoList(plant) {
       plant.photos
         .filter((p) => p && text(p.url) && PHOTO_KIND_ORDER.includes(p.kind))
         .map((p) => ({
+          id: p.id != null ? Number(p.id) : null,
           kind: p.kind,
           url: text(p.url),
           credit: text(p.credit) || null,
           licence: text(p.licence) || null,
           source: text(p.source) || null,
           source_url: text(p.source_url) || null,
+          confirmed:
+            p.confirmed === false || p.confirmed === 0 || p.confirmed === '0' ? false : true,
         })),
     );
   }
@@ -90,16 +93,23 @@ export function plantPhotoList(plant) {
     for (const url of parseLinkCandidates(plant[kind])) {
       const isMain = mainUrl != null && url === mainUrl;
       out.push({
+        id: null,
         kind,
         url,
         credit: isMain ? text(plant.photo_credit) || null : null,
         licence: isMain ? text(plant.photo_licence) || null : null,
         source: null,
         source_url: null,
+        confirmed: true,
       });
     }
   }
   return out;
+}
+
+/** Au moins une photo de la fiche attend encore une validation professeur. */
+export function plantHasUnconfirmedPhotos(plant) {
+  return plantPhotoList(plant).some((p) => p.confirmed === false);
 }
 
 /**
@@ -120,12 +130,14 @@ export function photoAttributionFor(plant, url, kind = null) {
 /** Liste de formulaire (valeurs texte, jamais `null`) tirée d'une fiche. */
 export function formPhotosFromPlant(plant) {
   return plantPhotoList(plant).map((p) => ({
+    id: p.id,
     kind: p.kind,
     url: p.url,
     credit: p.credit || '',
     licence: p.licence || '',
     source: p.source || '',
     source_url: p.source_url || '',
+    confirmed: p.confirmed !== false,
   }));
 }
 
@@ -140,12 +152,15 @@ export function addFormPhoto(list, entry, position = 'append') {
   if (!url) return current;
   if (current.some((p) => p.kind === kind && text(p.url) === url)) return current;
   const row = {
+    id: entry.id != null ? Number(entry.id) : null,
     kind,
     url,
     credit: text(entry.credit),
     licence: text(entry.licence ?? entry.license),
     source: text(entry.source),
     source_url: text(entry.source_url),
+    confirmed:
+      entry.confirmed === false || entry.confirmed === 0 || entry.confirmed === '0' ? false : true,
   };
   const others = current.filter((p) => p.kind !== kind);
   const sameKind = current.filter((p) => p.kind === kind);
