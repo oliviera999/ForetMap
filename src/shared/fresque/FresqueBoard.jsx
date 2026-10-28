@@ -255,6 +255,7 @@ function FresqueDiscover({
  * @param {(payload: { blob: Blob, dataUrl: string, title: string, filename: string }) => Promise<void>}
  *   [props.onExportToJournal] « Ajouter à mon carnet » (fourni par le produit s'il sait importer une image)
  * @param {() => void} [props.onRestart] « Recommencer » (le produit archive et recrée le plateau)
+ * @param {(payload: object) => void} [props.onBoardArchived] un autre écran a recommencé ce plateau
  * @param {import('react').ReactNode} [props.headerExtra]
  */
 export function FresqueBoard({
@@ -269,6 +270,7 @@ export function FresqueBoard({
   onCompleted = null,
   onExportToJournal = null,
   onRestart = null,
+  onBoardArchived = null,
   headerExtra = null,
   narrator = null,
 }) {
@@ -292,6 +294,7 @@ export function FresqueBoard({
       readOnly,
       onRewards,
       onCompleted: handleCompleted,
+      onBoardArchived,
     });
 
   const tableApiRef = useRef(null);

@@ -42,8 +42,17 @@ export function useDebouncedAutoSave({
   const valueRef = useRef(value);
   const timerRef = useRef(null);
   const savingRef = useRef(false);
+  /**
+   * Un enregistrement a été demandé pendant qu'un autre était encore en vol. Sans ce drapeau,
+   * `executeSave` sortait tout de suite et le minuteur déjà consommé n'était jamais reposé :
+   * la valeur la plus récente restait en mémoire, marquée à tort comme devant partir, jusqu'au
+   * prochain changement. Sur une fresque, le geste (carte, flèche) était perdu si l'écran
+   * s'éteignait entre-temps.
+   */
+  const queuedRef = useRef(false);
   const mountedRef = useRef(true);
   const onSaveRef = useRef(onSave);
+  const executeSaveRef = useRef(async () => {});
   const canSaveRef = useRef(canSave);
   const savedClearTimerRef = useRef(null);
 
@@ -123,7 +132,11 @@ export function useDebouncedAutoSave({
   }, []);
 
   const executeSave = useCallback(async () => {
-    if (!enabled || savingRef.current) return;
+    if (!enabled) return;
+    if (savingRef.current) {
+      queuedRef.current = true;
+      return;
+    }
     const validation = canSaveRef.current?.();
     if (validation === false) return;
     if (typeof validation === 'string' && validation.trim()) {
@@ -134,20 +147,32 @@ export function useDebouncedAutoSave({
     if (equalsBaseline(valueRef.current)) return;
 
     savingRef.current = true;
+    queuedRef.current = false;
     setStatus('saving');
     setError('');
+    let failed = false;
     try {
       const savedValue = await onSaveRef.current();
       if (!mountedRef.current) return;
       markSaved(savedValue !== undefined ? savedValue : valueRef.current);
     } catch (err) {
+      failed = true;
+      // Pas de relance sur erreur : un 409 ou un 400 referait la même requête en boucle.
+      queuedRef.current = false;
       if (!mountedRef.current) return;
       setStatus('error');
       setError(err?.message || 'Enregistrement impossible');
     } finally {
       savingRef.current = false;
+      if (!failed && queuedRef.current && mountedRef.current) {
+        queuedRef.current = false;
+        queueMicrotask(() => {
+          void executeSaveRef.current();
+        });
+      }
     }
   }, [enabled, equalsBaseline, markSaved]);
+  executeSaveRef.current = executeSave;
 
   const flush = useCallback(async () => {
     if (timerRef.current) {

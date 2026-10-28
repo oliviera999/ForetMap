@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — fresque : un geste posé pendant l'enregistrement n'est plus perdu
+
+- Un second geste (carte, flèche, post-it) dont l'envoi tombait pendant qu'un enregistrement
+  était encore en cours était oublié : plus aucun envoi n'était prévu, et le copie locale était
+  réécrite avec l'état déjà parti. Au retour (tablette en veille, réseau coupé juste après),
+  le geste avait disparu. L'envoi est maintenant relancé, et la copie locale garde le geste
+  le plus récent.
+- « Recommencer » prévient les autres écrans, mais ce signal était ignoré (il ne porte pas de
+  numéro de révision). L'autre élève restait sur l'ancienne table : tout ce qu'il posait
+  ensuite était refusé, puis perdu en rouvrant la fresque. L'écran ouvre la nouvelle table.
+  Un enregistrement refusé parce que la table est archivée fait de même.
 ### Corrigé — photos de pré-saisie jamais enregistrées, confirmation sans effet
 
 - Le formulaire d’édition n’envoyait pas l’identifiant de la fiche au pré-remplissage

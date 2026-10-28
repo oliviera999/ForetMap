@@ -3914,9 +3914,12 @@ registre → 404 (aucun chemin n'est construit depuis la saisie).
 | GET | `/api/fresques/boards/:id/events?after=` | lecteurs du plateau | `{ boardId, events: [{ id, by, type, payload, at }] }` (≤ 200, base du mode collectif) |
 | GET | `/api/fresques/overview?deckId=&groupId=` | `stats.read.group` / `stats.read.all` | `{ boards }` : une ligne par plateau (élève ou équipe, niveau, étape, cartes posées, flèches trouvées, indices, statut, dernière activité), périmètre de groupes du prof, tri par nom ; groupe hors périmètre → 403 |
 
-Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq }` dans
+Temps réel : après un `PUT`, `fresque:board:changed` `{ boardId, revision, by, clientSeq, clientId? }` dans
 le salon `fresque:board:<id>` ; abonnement `subscribe:fresque-board` `{ boardId }` contrôlé par
 les mêmes droits que `GET /boards/:id` (refus : `fresque:board:subscription-refused`).
+Après `POST …/restart`, le même signal est émis sur l'ancien plateau avec `{ archived: true, nextBoardId }`
+(sans `revision`) : les autres écrans ouvrent ce plateau. Un `PUT` qui arrive trop tard reçoit
+**409** `board_archived` et le client rouvre le plateau actif.
 
 État du plateau (`state`, version 1) : `level` (`eclaireur` | `explorateur` | `expert`), `step`
 (`decouvrir`, `lot1`…, `comprendre`), `lotReached`, `tutorialDone`, `showBands`, `cards`
