@@ -138,7 +138,9 @@ quelle version garder : rien ne s'écrase en silence.
 Si l'élève appartient à une **équipe** (groupe de type « équipe »), un bouton « Fresque de
 l'équipe … » ouvre un plateau commun : la même fresque pour tous les membres, utilisable sur une
 seule tablette, ou sur plusieurs (chaque enregistrement prévient les autres écrans). Le journal
-retient qui a posé quoi. Le badge de fin va à chaque membre qui a contribué.
+retient qui a posé quoi. Le badge de fin va à chaque membre qui a contribué. Si quelqu'un
+recommence, les autres écrans quittent l'ancienne fresque et ouvrent la nouvelle. Ce qui n'était
+pas encore enregistré sur l'ancienne n'est pas recopié.
 
 ## Ce que voit le professeur
 

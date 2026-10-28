@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { fetchPlantObservationCounts } from '../../../src/components/PlantSpeciesDiscoveryAcknowledge';
 
 vi.mock('../../../src/components/map-views', () => ({
@@ -21,7 +21,14 @@ vi.mock('../../../src/contexts/PublicSettingsContext.jsx', () => ({
   usePublicSettings: () => ({ modules: {} }),
 }));
 vi.mock('../../../src/contexts/SessionContext.jsx', () => ({
-  useSession: () => ({ canParticipateContextComments: true }),
+  useSession: () => ({
+    canParticipateContextComments: true,
+    hasPermission: () => true,
+  }),
+}));
+vi.mock('../../../src/services/api', () => ({
+  api: vi.fn(async () => ({})),
+  getAuthToken: () => 'token',
 }));
 // Données du contexte, modifiables test par test (présence fournie par la visite, carte active).
 const dataState = { current: { zones: [], markers: [] } };
@@ -32,6 +39,7 @@ vi.mock('../../../src/services/biodivApi', () => ({
   fetchMapSpeciesPresence: vi.fn(async () => ({ species: [] })),
 }));
 
+import { api } from '../../../src/services/api';
 import {
   PlantBiodiversityCatalogPreviewCard,
   PlantCatalogPreviewModal,
@@ -51,6 +59,8 @@ beforeEach(() => {
   fetchPlantObservationCounts.mockClear();
   fetchPlantObservationCounts.mockResolvedValue({});
   fetchMapSpeciesPresence.mockClear();
+  api.mockClear();
+  api.mockResolvedValue({});
   dataState.current = { zones: [], markers: [] };
 });
 afterEach(() => vi.restoreAllMocks());
@@ -129,6 +139,44 @@ describe('PlantBiodiversityCatalogPreviewCard', () => {
     );
     expect(screen.getByText('Pas encore signalée sur cette carte')).toBeInTheDocument();
     expect(screen.queryByText('Sur la carte')).not.toBeInTheDocument();
+  });
+
+  test('« Confirmer la photo » envoie POST sur la photo, pas un objet à la place de la méthode', async () => {
+    api.mockResolvedValueOnce({
+      plant: {
+        ...PLANT,
+        photo: 'https://example.org/tomate.jpg',
+        photos: [
+          {
+            id: 4,
+            kind: 'photo',
+            url: 'https://example.org/tomate.jpg',
+            confirmed: true,
+          },
+        ],
+      },
+    });
+    render(
+      <PlantBiodiversityCatalogPreviewCard
+        plant={{
+          ...PLANT,
+          photo: 'https://example.org/tomate.jpg',
+          photos: [
+            {
+              id: 4,
+              kind: 'photo',
+              url: 'https://example.org/tomate.jpg',
+              confirmed: false,
+            },
+          ],
+        }}
+      />,
+    );
+    const confirmButtons = screen.getAllByRole('button', { name: 'Confirmer la photo' });
+    expect(confirmButtons.length).toBeGreaterThan(0);
+    fireEvent.click(confirmButtons[0]);
+    await waitFor(() => expect(api).toHaveBeenCalled());
+    expect(api).toHaveBeenCalledWith('/api/plants/7/photos/4/confirm', 'POST', {});
   });
 
   test('showContextComments=false masque les commentaires ; plant null → rien', () => {

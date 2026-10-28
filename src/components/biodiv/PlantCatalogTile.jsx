@@ -4,6 +4,7 @@ import { PlantSpeciesDiscoveryAcknowledgeButton } from '../PlantSpeciesDiscovery
 import { PlantPedagoTraitBadges } from './PlantSummaryBlocks.jsx';
 import { normalizedPlantValue } from '../../utils/plantFormValues.js';
 import { findFirstBiodivHeroPhotoCandidate } from '../../utils/biodivPlantForm.js';
+import { plantHasUnconfirmedPhotos } from '../../utils/plantPhotos.js';
 import { IconMarker } from '../../shared/icons.jsx';
 
 /** Tuile d'environ 88 px : vignette demandée pour un écran haute densité. */
@@ -91,6 +92,9 @@ export function PlantCatalogTile({
             {name}
           </span>
           {scientific ? <span className="biodiv-tile__scientific">{scientific}</span> : null}
+          {plantHasUnconfirmedPhotos(plant) ? (
+            <span className="biodiv-tile__pending">Photo à confirmer</span>
+          ) : null}
         </span>
       </button>
 

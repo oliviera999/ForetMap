@@ -420,11 +420,12 @@ test('restart : archive l’ancien plateau (consultable par le prof) et en crée
   assert.equal(old.body.board.active, false);
   const active = await createBoard(students.a.auth);
   assert.equal(active.body.board.id, newId, 'le plateau actif est le neuf');
-  await request(app)
+  const refused = await request(app)
     .put(`/api/fresques/boards/${oldId}`)
     .set(students.a.auth)
     .send({ state: body.board.state })
     .expect(409);
+  assert.equal(refused.body.code, 'board_archived');
   await request(app).post(`/api/fresques/boards/${oldId}/restart`).set(students.a.auth).expect(409);
 });
 

@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS zones (
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
+  -- Migration 323 : type d'espace e-nov (légende du plan annoté imprimable).
+  enov_space_type VARCHAR(24) DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1046,6 +1048,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
+  -- Migration 323 : type d'espace e-nov (légende du plan annoté imprimable).
+  enov_space_type VARCHAR(24) DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
@@ -1523,6 +1527,8 @@ CREATE TABLE IF NOT EXISTS plant_photos (
   source VARCHAR(32) DEFAULT NULL COMMENT 'Provenance : televersement, wikimedia_commons, inaturalist…',
   source_url VARCHAR(1024) DEFAULT NULL COMMENT 'Page source de l''image (lien d''attribution)',
   sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Ordre dans l''emplacement (0 = premier)',
+  confirmed TINYINT(1) NOT NULL DEFAULT 1
+    COMMENT '1 = validée par un professeur ; 0 = proposée, visible avec mention À confirmer',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_plant_photos_plant (plant_id, kind, sort_order),

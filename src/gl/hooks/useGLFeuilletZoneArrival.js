@@ -5,6 +5,17 @@ import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
 import { awaitBeforePresent } from '../utils/glBeforePresent.js';
 
+/**
+ * Le serveur refuse la présentation tant que la position enregistrée n'est pas dans le
+ * polygone (anti-récolte). Pendant un jet de dés, le trajet est dessiné avant cet
+ * enregistrement : le refus ne doit pas compter comme « déjà vue ».
+ * @param {{ message?: string, body?: { error?: string } }} err
+ */
+function isMascotNotInZoneError(err) {
+  const message = String(err?.message || err?.body?.error || '').toLowerCase();
+  return message.includes('pas dans cette zone');
+}
+
 function presentationKey(teamId, zoneId) {
   return `${Number(teamId)}:${String(zoneId)}`;
 }
@@ -30,7 +41,8 @@ export function useGLFeuilletZoneArrival({
   onZonePresented,
   beforePresent = null,
 }) {
-  const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
+  const { wasRecentPresentation, markRecentPresentation, forgetRecentPresentation } =
+    useGLRecentPresentation();
   const [popover, setPopover] = useState(null);
   const presentedSet = useRef(new Set(presentedZoneIds.map(String)));
 
@@ -103,6 +115,11 @@ export function useGLFeuilletZoneArrival({
           });
         }
       } catch (err) {
+        if (err?.status === 409 && isMascotNotInZoneError(err)) {
+          forgetRecentPresentation(dedupeKey);
+          setPopover(null);
+          return;
+        }
         if (err?.status === 409) {
           markPresentedLocal(zone.zoneId);
           onZonePresented?.(zone.zoneId);
@@ -129,6 +146,7 @@ export function useGLFeuilletZoneArrival({
       onZonePresented,
       wasRecentPresentation,
       markRecentPresentation,
+      forgetRecentPresentation,
       beforePresent,
     ],
   );

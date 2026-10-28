@@ -88,6 +88,8 @@ const PUT_RESPONSE_KEYS = {
     'emoji',
     // Texte e-nov (migration 315) : lu et écrit par la console (gestionnaire).
     'enov_description',
+    // Type d'espace e-nov (migration 323), même régime que le texte.
+    'enov_space_type',
     'has_visit_body',
     'height',
     'hidden_surfaces',
@@ -122,6 +124,7 @@ const PUT_RESPONSE_KEYS = {
     'edit_revision',
     'emoji',
     'enov_description',
+    'enov_space_type',
     'hidden_surfaces',
     'id',
     'is_infrastructure',

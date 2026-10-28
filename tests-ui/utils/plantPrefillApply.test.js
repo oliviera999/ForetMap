@@ -102,12 +102,15 @@ describe('applyPrefillToForm — photos', () => {
     );
     expect(out.photos).toEqual([
       {
+        id: null,
         kind: 'photo_leaf',
         url: 'https://x/a.jpg',
         credit: 'Anne',
         licence: 'CC BY-SA 4.0',
         source: 'wikipedia',
         source_url: 'https://src/a',
+        // Photo de pré-saisie : intégrée tout de suite, « À confirmer » par un professeur.
+        confirmed: false,
       },
     ]);
     expect(out.sources).toBe('https://src/a');

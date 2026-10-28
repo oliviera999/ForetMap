@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api, getAuthToken } from '../../services/api.js';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
@@ -35,6 +35,12 @@ export function FresqueView({
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState(canFollow ? 'follow' : 'play');
   const [rewardBanner, setRewardBanner] = useState(null);
+  const [restartNotice, setRestartNotice] = useState('');
+  /**
+   * Plateau que NOUS venons d'archiver : le signal en écho et l'enregistrement encore en vol
+   * ne doivent pas réafficher l'avis ni recharger la table.
+   */
+  const ignoredArchiveIdRef = useRef(null);
   // Une séance (`open_fresque`) peut demander un jeu précis : on s'y rend à chaque demande.
   useEffect(() => {
     if (initialDeckId) {
@@ -76,9 +82,47 @@ export function FresqueView({
       confirmLabel: 'Recommencer',
     });
     if (!ok) return;
+    ignoredArchiveIdRef.current = board.id;
     const res = await api(`/api/fresques/boards/${board.id}/restart`, 'POST', {});
     setBoard(res.board);
+    setRestartNotice('');
   }, [board?.id, confirm]);
+  const onBoardArchived = useCallback(
+    async (info) => {
+      const archivedId = info?.boardId ? String(info.boardId) : '';
+      if (archivedId && ignoredArchiveIdRef.current === archivedId) return;
+      const nextId = info?.nextBoardId ? String(info.nextBoardId) : '';
+      if (nextId && nextId === board?.id) return;
+      setError('');
+      try {
+        if (nextId) {
+          const res = await api(`/api/fresques/boards/${encodeURIComponent(nextId)}`);
+          if (res?.board?.id && res.board.id !== board?.id) {
+            setRestartNotice(
+              'Cette fresque a été recommencée. Voici la nouvelle table : ce qui n’était pas encore enregistré sur l’ancienne n’a pas été recopié.',
+            );
+            setBoard(res.board);
+            return;
+          }
+        }
+        if (!deckId) return;
+        const body =
+          owner === 'user'
+            ? { deckId, ownerType: 'user' }
+            : { deckId, ownerType: 'team', groupId: owner };
+        const res = await api('/api/fresques/boards', 'POST', body);
+        if (res?.board?.id && res.board.id !== board?.id) {
+          setRestartNotice(
+            'Cette fresque a été recommencée. Voici la nouvelle table : ce qui n’était pas encore enregistré sur l’ancienne n’a pas été recopié.',
+          );
+          setBoard(res.board);
+        }
+      } catch {
+        setError('Cette fresque a été recommencée. Rouvre-la.');
+      }
+    },
+    [board?.id, deckId, owner],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -274,6 +318,11 @@ export function FresqueView({
           {deckId && !detail && !error ? <p className="section-sub">Chargement du jeu…</p> : null}
           {board && detail ? (
             <>
+              {restartNotice ? (
+                <p className="fm-panel" role="status" data-testid="fm-fresque-restart-notice">
+                  {restartNotice}
+                </p>
+              ) : null}
               {rewardBanner ? (
                 <div className="fm-panel" role="status" data-testid="fm-fresque-reward-banner">
                   {rewardBanner.map((r) => (
@@ -302,6 +351,7 @@ export function FresqueView({
                 onRewards={onRewards}
                 onExportToJournal={journalEnabled && !isTeacher ? exportToJournal : null}
                 onRestart={board.readOnly ? null : restartBoard}
+                onBoardArchived={onBoardArchived}
                 narrator={narrator}
                 headerExtra={
                   <button

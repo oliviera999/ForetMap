@@ -42,6 +42,7 @@ const enovContent = vi.hoisted(() => ({
       visit_short_description: 'Livres, presse et postes de travail.',
       is_enov: true,
       enov_description: 'Espace de robotique ouvert aux élèves.',
+      enov_space_type: 'pedagogique',
     },
     {
       id: 'z-hall',
@@ -224,6 +225,10 @@ describe('AppPlan — variante « plan e-nov »', () => {
     const enovBlock = within(placeSheet).getByTestId('plan-place-enov');
     expect(enovBlock.textContent).toContain('Innovation e-nov');
     expect(enovBlock.textContent).toContain('Espace de robotique ouvert aux élèves.');
+    // Type d'espace (migration 323), dit sous le titre du bloc.
+    expect(within(enovBlock).getByTestId('plan-place-enov-type').textContent).toBe(
+      'Espace pédagogique',
+    );
     // Le bloc e-nov passe AVANT le sous-titre et l'accroche de la fiche.
     const subtitle = within(placeSheet).getByText('Centre de documentation');
     expect(
@@ -236,6 +241,47 @@ describe('AppPlan — variante « plan e-nov »', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Gymnase/ }));
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(within(placeSheet).queryByTestId('plan-place-enov')).toBeNull();
+  });
+});
+
+describe('AppPlan — plan e-nov : bascule entre les cartes publiées', () => {
+  test('une seule carte : pas de bascule', async () => {
+    await mountEnov();
+    expect(screen.queryByTestId('plan-map-switch')).toBeNull();
+  });
+
+  test('lycée et complexe sportif : bascule visible, la carte choisie est rechargée', async () => {
+    const maps = [
+      { id: 'lyautey', label: 'Lycée Lyautey' },
+      { id: 'beaulieu', label: 'Complexe sportif' },
+    ];
+    planApiMock.fetchPlanContent.mockResolvedValue({ ...enovContent, maps });
+    await mountEnov();
+    const nav = screen.getByTestId('plan-map-switch');
+    const current = within(nav).getByRole('button', { name: 'Lycée Lyautey' });
+    expect(current.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(nav).getByRole('button', { name: 'Complexe sportif' }));
+    await waitFor(() =>
+      expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith('beaulieu', ENOV_PLAN_VARIANT),
+    );
+    expect(planApiMock.reportPlanUsage).toHaveBeenCalledWith(
+      'map_switch',
+      'beaulieu',
+      ENOV_PLAN_VARIANT,
+    );
+  });
+
+  test('plan public : jamais de bascule, même avec plusieurs cartes', async () => {
+    planApiMock.fetchPlanContent.mockResolvedValue({
+      ...enovContent,
+      maps: [
+        { id: 'lyautey', label: 'Lycée Lyautey' },
+        { id: 'beaulieu', label: 'Complexe sportif' },
+      ],
+    });
+    render(<AppPlan />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan e-nov' })).toBeTruthy());
+    expect(screen.queryByTestId('plan-map-switch')).toBeNull();
   });
 });
 

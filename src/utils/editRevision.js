@@ -87,8 +87,28 @@ export function createEditRevisionSession(initialRevision, { confirmOverwrite } 
     return run;
   }
 
+  /**
+   * Travail à faire avant le prochain enregistrement (intégration de photos, par exemple).
+   * Il partage la file : un enregistrement déjà parti se termine d’abord, et un enregistrement
+   * demandé pendant le travail attend qu’il ait fini — le corps est alors relu, pas celui
+   * d’avant.
+   */
+  function enqueue(task) {
+    const run = chain.then(() => task());
+    chain = run.catch(() => undefined);
+    return run;
+  }
+
+  /** Adopte une révision déjà posée par une autre écriture de cette même session. */
+  function noteRevision(value) {
+    const next = normalizeRevision(value);
+    if (next !== null) revision = next;
+  }
+
   return {
     save,
+    enqueue,
+    noteRevision,
     get revision() {
       return revision;
     },
