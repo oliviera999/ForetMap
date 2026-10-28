@@ -66,12 +66,16 @@ describe('formPhotosFromPlant / addFormPhoto / photosOfKind', () => {
   test('valeurs texte (jamais null) pour les champs du formulaire', () => {
     expect(formPhotosFromPlant({ photos: [{ kind: 'photo', url: 'https://x/a.jpg' }] })).toEqual([
       {
+        // Identifiant de la photo en base (migration 322) : `null` faute d'`id` dans la fiche.
+        id: null,
         kind: 'photo',
         url: 'https://x/a.jpg',
         credit: '',
         licence: '',
         source: '',
         source_url: '',
+        // Sans `confirmed` explicite, une photo de la fiche est tenue pour validée.
+        confirmed: true,
       },
     ]);
   });

@@ -105,12 +105,15 @@ describe('extractPlantForm', () => {
     });
     expect(fromList.photos).toEqual([
       {
+        // L'identifiant en base suit la photo dans le formulaire (validation professeur).
+        id: 3,
         kind: 'photo_leaf',
         url: 'https://x.fr/l.jpg',
         credit: 'Anne',
         licence: '',
         source: '',
         source_url: '',
+        confirmed: true,
       },
     ]);
     const fromColumns = extractPlantForm({

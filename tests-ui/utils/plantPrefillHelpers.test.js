@@ -89,22 +89,22 @@ describe('buildPrefillFieldSelection', () => {
 describe('buildInitialPrefillPhotoSelections', () => {
   const KEYS = new Set(['photo', 'photo_species', 'photo_leaf']);
 
-  test('un emplacement décoché par photo, champ cible = champ source si valide', () => {
+  test('un emplacement coché d’emblée par photo, champ cible = champ source si valide', () => {
     const photos = [
       { field: 'photo_leaf', url: 'a' },
       { field: 'photo_leaf', url: 'b' },
       { field: 'photo', url: 'c' },
     ];
     expect(buildInitialPrefillPhotoSelections(photos, KEYS)).toEqual({
-      'photo_leaf:0': { checked: false, assignTo: 'photo_leaf' },
-      'photo_leaf:1': { checked: false, assignTo: 'photo_leaf' },
-      'photo:0': { checked: false, assignTo: 'photo' },
+      'photo_leaf:0': { checked: true, assignTo: 'photo_leaf' },
+      'photo_leaf:1': { checked: true, assignTo: 'photo_leaf' },
+      'photo:0': { checked: true, assignTo: 'photo' },
     });
   });
 
   test('champ source hors formulaire → repli sur photo_species', () => {
     const out = buildInitialPrefillPhotoSelections([{ field: 'illustration', url: 'a' }], KEYS);
-    expect(out).toEqual({ 'illustration:0': { checked: false, assignTo: 'photo_species' } });
+    expect(out).toEqual({ 'illustration:0': { checked: true, assignTo: 'photo_species' } });
   });
 
   test('photos sans field ignorées ; entrée nulle → objet vide', () => {
@@ -117,6 +117,6 @@ describe('buildInitialPrefillPhotoSelections', () => {
       [{ field: 'photo_leaf', url: 'a' }],
       ['photo_leaf'],
     );
-    expect(out['photo_leaf:0']).toEqual({ checked: false, assignTo: 'photo_leaf' });
+    expect(out['photo_leaf:0']).toEqual({ checked: true, assignTo: 'photo_leaf' });
   });
 });

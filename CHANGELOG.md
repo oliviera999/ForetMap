@@ -9,6 +9,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — tests rouges sur `main` après les photos de pré-saisie ; suites du plan imprimable
+
+- **Tests UI `plant*`** (`plantFormValues`, `plantPhotos`, `plantPrefillApply`,
+  `plantPrefillHelpers`) : attentes mises au comportement livré par « photos de pré-saisie
+  intégrées d’emblée » — chaque photo du formulaire porte son `id` en base et son statut
+  `confirmed`, une photo de pré-saisie arrive `confirmed: false`, les propositions sont cochées
+  d’emblée. Aucun changement de code applicatif.
+- **Instantanés `plants-species-characterization`** : la référence enregistre le champ
+  `confirmed` de chaque photo (migration 322) ; aucune autre valeur ne change.
+- **Cliquet des couleurs** (`tests/color-tokens-guard.test.js`, 640 littéraux pour 629) : les
+  11 teintes en dur des encadrés « À confirmer » passent sur des tokens — `--ink-warning`,
+  `--tint-warning`, et deux nouveaux, `--tint-warning-strong` et `--line-warning`.
+- **Inventaire des routes d’écriture** : `POST /api/plants/:id/photos/propose` et
+  `POST /api/plants/:id/photos/:photoId/confirm` déclarées (`plants.manage`).
+- **Plan e-nov** : scénario e2e de la page `/impression` (lieu numéroté, rangé sous son type
+  d’espace) dans le smoke bloquant ; doc de référence — la bascule entre cartes s’affiche
+  jusqu’à quatre cartes.
+
 ### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
 
 - **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée

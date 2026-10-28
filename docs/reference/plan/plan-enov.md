@@ -27,7 +27,9 @@ Il s'en distingue aussi par quatre fonctions :
   quoi ce lieu est une innovation** et de **quel type d'espace** il s'agit, avant tout le reste
   (sous-titre, photo, description) ;
 - quand plusieurs cartes sont publiées (le lycée et le complexe sportif), une **bascule** sous
-  la barre du haut passe de l'une à l'autre d'un seul geste.
+  la barre du haut passe de l'une à l'autre d'un seul geste. Elle s'affiche jusqu'à **quatre
+  cartes** ; au-delà, les boutons deviendraient illisibles sur téléphone et le choix se fait
+  dans _Réglages → Plan affiché_, comme sur le plan public.
 
 Comme le plan public, il ne demande **aucun compte** et ne conserve aucune donnée personnelle ;
 sa page **« Vos données »** (lien dans l'aide et sur l'écran de saisie du code) le dit aux
