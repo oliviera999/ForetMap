@@ -1282,6 +1282,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
             labelsClickable
             highlightBadge={enovSettings?.badge_enabled ? HIGHLIGHT_BADGE : ''}
             highlightLabel={enovSettings ? HIGHLIGHT_TITLE : ''}
+            revealOnClose={variant.revealOnClose === true}
             categoriesById={categoriesById}
             position={position}
             onLocateToggle={() => {

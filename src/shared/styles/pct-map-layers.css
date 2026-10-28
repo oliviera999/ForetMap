@@ -361,60 +361,116 @@
 
 /*
  * Lieux MIS EN AVANT (`map_highlight`, plan e-nov) : ils doivent se repérer au premier coup
- * d'œil. Halo coloré qui respire (contour épais pour une zone, anneau pour un repère), nom en
- * gras souligné de la même couleur ; les autres lieux s'estompent (`has-highlight`, posé par
- * `SharedMapStage` sur la coquille dès qu'un lieu est mis en avant). La couleur vient du
- * produit (`--pct-highlight-color`, réglage `ui.enov_plan.highlight_color`). Aucun autre
- * produit ne pose `map_highlight` : ces règles y sont inertes.
+ * d'œil sans couvrir le plan. Contour coloré épais pour une zone, anneau fin pour un repère,
+ * nom en gras souligné de la même couleur ; les autres lieux s'estompent (`has-highlight`,
+ * posé par `SharedMapStage` sur la coquille dès qu'un lieu est mis en avant). Aucun produit
+ * hors plan e-nov ne pose `map_highlight` aujourd'hui : ces règles y sont inertes.
+ *
+ * Le mouvement est BORNÉ : deux respirations à l'ouverture (4,8 s, sous le seuil de 5 s au-delà
+ * duquel une animation automatique doit pouvoir être mise en pause), puis la carte reste
+ * calme. La respiration continue d'avant attirait l'œil partout à la fois, et l'anneau des
+ * repères, grossi à 130 % avec un fond teinté, couvrait les contours et les numéros voisins.
+ * Retrouver un lieu après lecture de sa fiche passe par le halo de fermeture
+ * (`is-discover-halo`, `useRevealOnClose`).
+ *
+ * Réglables par surface, sur la coquille de la carte :
+ *   --pct-highlight-color          couleur (réglage `ui.enov_plan.highlight_color`) ;
+ *   --pct-highlight-fill-opacity   remplissage d'une zone mise en avant (0.8) ;
+ *   --pct-highlight-pulses         nombre de respirations à l'ouverture (2 ; 0 = aucune) ;
+ *   --pct-highlight-ring-inset     retrait de l'anneau d'un repère dans sa cible tactile (8px).
  */
 .fm-pct-zone.is-highlight .fm-pct-zone__poly {
   stroke: var(--pct-highlight-color, var(--accent-warning-solid));
   stroke-opacity: 1;
-  /* Contour fixe : la respiration passe par opacité (compositeur), pas stroke-width (ANIM-12). */
   stroke-width: calc(4px * var(--pct-inv, 1));
-  fill-opacity: 0.85;
-  filter: drop-shadow(0 0 4px var(--pct-highlight-color, var(--accent-warning-solid)));
-  animation: fmPctHighlightZone 2.4s ease-in-out infinite;
+  fill-opacity: var(--pct-highlight-fill-opacity, 0.8);
+  filter: drop-shadow(0 0 3px var(--pct-highlight-color, var(--accent-warning-solid)));
+  animation: fmPctHighlightZone 2.4s ease-in-out var(--pct-highlight-pulses, 2);
 }
 
+/* Respiration de l'opacité du remplissage et du contour : propriétés de peinture, d'où la
+   borne ci-dessus — une respiration sans fin repeignait la carte à chaque image. */
 @keyframes fmPctHighlightZone {
   0%,
   100% {
-    fill-opacity: 0.68;
-    stroke-opacity: 0.75;
+    fill-opacity: var(--pct-highlight-fill-opacity, 0.8);
+    stroke-opacity: 1;
   }
   50% {
-    fill-opacity: 0.95;
-    stroke-opacity: 1;
+    fill-opacity: calc(var(--pct-highlight-fill-opacity, 0.8) * 0.7);
+    stroke-opacity: 0.55;
   }
 }
 
+/* Anneau d'un repère : trait fin, sans fond, serré autour de l'épingle (la cible tactile de
+   44 px reste entière) — il ne déborde plus sur les repères et les contours voisins. */
 .fm-pct-marker.is-highlight::before {
   content: '';
   position: absolute;
-  inset: 3px;
+  inset: var(--pct-highlight-ring-inset, 8px);
   z-index: -1;
-  border: 3px solid var(--pct-highlight-color, var(--accent-warning-solid));
+  border: 2px solid var(--pct-highlight-color, var(--accent-warning-solid));
   border-radius: 50%;
-  background: color-mix(
-    in srgb,
-    var(--pct-highlight-color, var(--accent-warning-solid)) 24%,
-    transparent
-  );
   pointer-events: none;
-  animation: fmPctHighlightRing 2.4s ease-in-out infinite;
+  animation: fmPctHighlightRing 2.4s ease-in-out var(--pct-highlight-pulses, 2);
 }
 
 @keyframes fmPctHighlightRing {
   0%,
   100% {
-    transform: scale(0.9);
+    transform: scale(1);
     opacity: 1;
   }
   50% {
-    transform: scale(1.3);
+    transform: scale(1.15);
+    opacity: 0.5;
+  }
+}
+
+/*
+ * Halo de fermeture sur un lieu mis en avant : il respire dans SA couleur, pas dans l'ambre du
+ * halo « à découvrir ». L'animation d'ouverture reste en tête de liste sous le même nom : elle
+ * est terminée et n'est pas relancée, ni à l'arrivée du halo ni à son retrait.
+ */
+.fm-pct-zone.is-highlight.is-discover-halo:not(.is-active) .fm-pct-zone__poly {
+  animation:
+    fmPctHighlightZone 2.4s ease-in-out var(--pct-highlight-pulses, 2),
+    fmPctHighlightZoneReveal 1.3s ease-in-out 2;
+}
+
+@keyframes fmPctHighlightZoneReveal {
+  0%,
+  100% {
+    fill-opacity: var(--pct-highlight-fill-opacity, 0.8);
+    stroke-opacity: 1;
+  }
+  50% {
+    fill-opacity: calc(var(--pct-highlight-fill-opacity, 0.8) * 0.7);
+    stroke-opacity: 0.55;
+  }
+}
+
+.fm-pct-marker.is-highlight.is-discover-halo::before {
+  animation:
+    fmPctHighlightRing 2.4s ease-in-out var(--pct-highlight-pulses, 2),
+    fmPctHighlightRingReveal 1.3s ease-in-out 2;
+}
+
+@keyframes fmPctHighlightRingReveal {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.25);
     opacity: 0.45;
   }
+}
+
+/* Le repère mis en avant n'a pas, en plus, l'ombre ambrée du halo « à découvrir ». */
+.fm-pct-marker.is-highlight.is-discover-halo {
+  animation: none;
 }
 
 .fm-pct-label.is-highlight .fm-pct-overlay__name,
@@ -459,7 +515,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fm-pct-zone.is-highlight .fm-pct-zone__poly,
-  .fm-pct-marker.is-highlight::before {
+  .fm-pct-zone.is-highlight.is-discover-halo:not(.is-active) .fm-pct-zone__poly,
+  .fm-pct-marker.is-highlight::before,
+  .fm-pct-marker.is-highlight.is-discover-halo::before {
     animation: none;
   }
 }
