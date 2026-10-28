@@ -80,6 +80,11 @@ export const ENOV_PLAN_VARIANT = Object.freeze({
   highlightPlaces: true,
   /** Bascule visible entre les cartes publiées (lycée, complexe sportif) sous la barre haute. */
   mapSwitcher: true,
+  /**
+   * Halo bref sur le lieu dont on referme la fiche (`SharedMapStage` → `revealOnClose`) : la
+   * mise en avant ne respire plus en continu, ce halo dit où était le lieu consulté.
+   */
+  revealOnClose: true,
   labelLogo: Object.freeze({
     url: '/enov/logo-enov.png',
     alt: 'Label e-nov — Établissements innovants (AEFE)',

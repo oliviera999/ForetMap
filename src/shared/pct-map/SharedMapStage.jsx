@@ -18,6 +18,7 @@ import {
   clusterZoomTargetScale,
 } from './clusterMarkers.js';
 import { PctLabelsLayer } from './PctLabelsLayer.jsx';
+import { useRevealOnClose } from './useRevealOnClose.js';
 import {
   LABEL_EMOJI_SIZE_PX,
   LABEL_FONT_SIZE_PX,
@@ -96,6 +97,9 @@ const POSITION_ICONS = Object.freeze({
  * @param {string} [props.locateLabel]
  * @param {(zoneOrMarker: object) => boolean|null} [props.getIsSeen]
  * @param {(zoneOrMarker: object) => boolean} [props.getDiscoverHalo]
+ * @param {boolean} [props.revealOnClose=false] halo bref sur le lieu dont on vient de refermer
+ *   la fiche (`useRevealOnClose`) ; s'ajoute à `getDiscoverHalo`. Désactivé par défaut : chaque
+ *   surface l'allume (plan e-nov d'abord).
  * @param {(zone: object) => Array<object>|null} [props.getZoneStatusDots] pastilles d'état d'une
  *   zone (voir `PctStatusDotsLayer`) — ForetMap y pose l'état des tâches du lieu.
  * @param {(marker: object) => Array<object>|null} [props.getMarkerStatusDots] idem, pour un repère.
@@ -154,6 +158,7 @@ export function SharedMapStage({
   locateLabel = 'Me situer',
   getIsSeen = null,
   getDiscoverHalo = null,
+  revealOnClose = false,
   getZoneStatusDots = null,
   getMarkerStatusDots = null,
   mergeStatusDots = null,
@@ -731,6 +736,24 @@ export function SharedMapStage({
   const selectedZoneId = selectedPlace?.kind === 'zone' ? selectedPlace.id : null;
   const selectedMarkerId = selectedPlace?.kind === 'marker' ? selectedPlace.id : null;
   /**
+   * Halo bref : lieux « à découvrir » du produit (`getDiscoverHalo`), plus, si la surface l'a
+   * demandé, le lieu dont la fiche vient d'être refermée. Sans `revealOnClose`, la fonction du
+   * produit passe telle quelle : rien ne change pour les surfaces qui ne l'activent pas.
+   */
+  const isRevealedOnClose = useRevealOnClose(selectedPlace, revealOnClose);
+  const zoneHaloOf = useMemo(() => {
+    if (!revealOnClose) return getDiscoverHalo;
+    return (zone) =>
+      isRevealedOnClose('zone', zone?.id) ||
+      (typeof getDiscoverHalo === 'function' && Boolean(getDiscoverHalo(zone)));
+  }, [revealOnClose, getDiscoverHalo, isRevealedOnClose]);
+  const markerHaloOf = useMemo(() => {
+    if (!revealOnClose) return getDiscoverHalo;
+    return (marker) =>
+      isRevealedOnClose('marker', marker?.id) ||
+      (typeof getDiscoverHalo === 'function' && Boolean(getDiscoverHalo(marker)));
+  }, [revealOnClose, getDiscoverHalo, isRevealedOnClose]);
+  /**
    * Des lieux sont-ils mis en avant (plan e-nov) ? La coquille le dit en CSS
    * (`has-highlight`) : les autres lieux s'estompent pour leur laisser le contraste.
    */
@@ -930,7 +953,7 @@ export function SharedMapStage({
         marker={marker}
         isActive={selectedMarkerId != null && String(selectedMarkerId) === String(marker.id)}
         isSeen={typeof getIsSeen === 'function' ? getIsSeen(marker) : null}
-        isDiscoverHalo={typeof getDiscoverHalo === 'function' ? !!getDiscoverHalo(marker) : false}
+        isDiscoverHalo={typeof markerHaloOf === 'function' ? !!markerHaloOf(marker) : false}
         statusDots={markerStatusDotsOf(marker)}
         onMarkerClick={onMarkerClick}
         labelOf={markerLabelOf}
@@ -943,7 +966,7 @@ export function SharedMapStage({
       selectedMarkerId,
       markerLabelOf,
       getIsSeen,
-      getDiscoverHalo,
+      markerHaloOf,
       markerStatusDotsOf,
       highlightBadge,
       highlightLabel,
@@ -1075,7 +1098,7 @@ export function SharedMapStage({
             onZoneClick={onZoneClick}
             activeZoneId={selectedZoneId}
             getIsSeen={getIsSeen}
-            getDiscoverHalo={getDiscoverHalo}
+            getDiscoverHalo={zoneHaloOf}
             getStatusLabel={getZoneStatusDots ? zoneStatusLabelOf : null}
             highlightLabel={highlightLabel}
             className="fm-pct-zones plan-map__zones"
@@ -1123,7 +1146,7 @@ export function SharedMapStage({
               onMarkerClick={onMarkerClick}
               activeMarkerId={selectedMarkerId}
               getIsSeen={getIsSeen}
-              getDiscoverHalo={getDiscoverHalo}
+              getDiscoverHalo={markerHaloOf}
               getStatusDots={markerStatusDotsOf}
               labelOf={markerLabelOf}
               highlightBadge={highlightBadge}

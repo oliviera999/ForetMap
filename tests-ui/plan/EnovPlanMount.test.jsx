@@ -236,6 +236,21 @@ describe('AppPlan — variante « plan e-nov »', () => {
     ).toBeTruthy();
   });
 
+  test('fiche refermée : bref halo sur le lieu consulté, puis plus rien', async () => {
+    const { container } = await mountEnov();
+    const cdi = () => container.querySelector('.fm-pct-zone.is-highlight');
+    fireEvent.click(screen.getByRole('button', { name: /^CDI/ }));
+    await screen.findByTestId('plan-place-sheet');
+    expect(cdi().classList.contains('is-discover-halo')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer la fiche du lieu' }));
+    await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBeNull());
+    expect(cdi().classList.contains('is-discover-halo')).toBe(true);
+    // Le halo s'éteint seul : la carte redevient calme.
+    await waitFor(() => expect(cdi().classList.contains('is-discover-halo')).toBe(false), {
+      timeout: 4000,
+    });
+  });
+
   test('un lieu ordinaire n’a pas de bloc e-nov', async () => {
     await mountEnov();
     fireEvent.click(screen.getByRole('button', { name: /^Gymnase/ }));
@@ -299,5 +314,9 @@ describe('AppPlan — plan public : aucune mise en avant', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Fablab/ }));
     const placeSheet = await screen.findByTestId('plan-place-sheet');
     expect(within(placeSheet).queryByTestId('plan-place-enov')).toBeNull();
+    // Halo de fermeture : propre aux surfaces qui l'activent, jamais sur le plan public.
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer la fiche du lieu' }));
+    await waitFor(() => expect(screen.queryByTestId('plan-place-sheet')).toBeNull());
+    expect(container.querySelector('.is-discover-halo')).toBeNull();
   });
 });

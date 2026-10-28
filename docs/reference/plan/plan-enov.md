@@ -19,8 +19,11 @@ e-nov** :
 
 Il s'en distingue aussi par quatre fonctions :
 
-- les **lieux innovants ressortent** : un halo coloré les entoure et respire doucement, leur nom
-  est écrit en gras et souligné de la même couleur, et **les autres lieux s'estompent** ;
+- les **lieux innovants ressortent** : un contour coloré épais entoure chaque zone et un
+  anneau fin chaque repère, leur nom est écrit en gras et souligné de la même couleur, et **les
+  autres lieux s'estompent**. À l'ouverture du plan, ces contours respirent deux fois pour
+  attirer l'œil, puis restent fixes : la carte redevient calme et le fond de plan reste
+  lisible entre les lieux ;
 - une puce **« Innovations »**, la première de la rangée sous la recherche, les **liste** tous
   (avec leur nombre) pour les parcourir un à un ;
 - la fiche d'un lieu innovant s'ouvre sur un encadré **« 💡 Innovation e-nov »** qui dit **en
@@ -54,6 +57,10 @@ plan public.
 Pour un lecteur d'écran, le nom de chaque lieu innovant est suivi de « Innovation e-nov » : le
 halo ne s'entend pas, l'information ne doit pas se perdre pour autant. Si le téléphone est
 réglé en **mouvement réduit**, le halo ne respire plus : il reste affiché, immobile.
+
+Quand on **referme la fiche** d'un lieu, ce lieu respire brièvement, une seule fois : on voit
+d'un coup d'œil où il se trouve sur la carte, même après avoir lu sa fiche en plein écran. En
+mouvement réduit, ce rappel n'est pas animé.
 
 ## Ce que fait un professeur ou un administrateur (dans ForetMap)
 

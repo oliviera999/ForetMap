@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — plan e-nov : mise en avant plus lisible, mouvement borné, halo de fermeture
+
+- **Mouvement borné** : les lieux mis en avant respirent deux fois à l'ouverture du plan (4,8 s,
+  sous le seuil de 5 s des animations automatiques sans pause), puis restent fixes. La
+  respiration sans fin attirait l'œil partout et repeignait la carte à chaque image.
+- **Repères** : l'anneau devient un trait fin, sans fond teinté, serré autour de l'épingle ; il
+  ne grossit plus à 130 % et ne couvre plus les contours et les numéros voisins. La cible
+  tactile de 44 px est inchangée.
+- **Halo de fermeture** : refermer la fiche d'un lieu le fait respirer brièvement, une fois.
+  Fonction générique de la carte partagée (`SharedMapStage`, prop `revealOnClose`, hook
+  `useRevealOnClose`), activée sur le seul plan e-nov (`revealOnClose` de la variante) et prête
+  pour d'autres surfaces.
+- **Réglages par surface** en variables CSS : `--pct-highlight-fill-opacity`,
+  `--pct-highlight-pulses`, `--pct-highlight-ring-inset`, en plus de `--pct-highlight-color`.
+- Garde-fou `tests/map-highlight-motion.test.js` : aucune animation de mise en avant infinie,
+  chacune coupée sous « réduire les animations ». Doc de référence `plan-enov.md` à jour.
+
 ### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
 
 - **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée
