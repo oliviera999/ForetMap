@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — dossier d’audit établissement (RGPD / ambassade)
+
+- Fiche synthèse [mesures techniques et organisationnelles](docs/reference/exploitation/mesures-techniques-organisationnelles.md)
+  et [checklists](docs/reference/exploitation/dossier-audit-etablissement.md) (information,
+  gouvernance, purge, sauvegardes, incident Git, droits) — sans changement de comportement
+  métier ; sommaire `docs/reference/README.md` et renvois depuis `vos-donnees.md`.
+
 ### Ajouté — photos de pré-saisie intégrées d’emblée (« À confirmer »)
 
 - Colonne `plant_photos.confirmed` : les photos proposées par pré-saisie sont
