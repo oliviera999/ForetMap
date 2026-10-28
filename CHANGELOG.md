@@ -9,6 +9,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — plan e-nov : plans annotés imprimables, type d’espace, bascule entre cartes
+
+- **Page `/impression`** sur `enov.*` : une feuille A4 (paysage ou portrait) par carte publiée
+  (lycée, complexe sportif…), lieux innovants numérotés sur le fond de plan, autres lieux en
+  pointillés pour le repérage, légende rangée par **type d’espace** avec texte court tiré de la
+  description e-nov, date d’état, QR code vers le plan interactif. Même porte d’entrée que le
+  plan (code demandé si le plan est fermé). Réponse au cahier des charges du label (domaine 1,
+  niveau 3 : un plan attestant plusieurs espaces de types différents).
+- **Type d’espace e-nov** (migration `323`, `zones` / `map_markers.enov_space_type`) :
+  sélecteur sous « Description e-nov » dans la fiche d’un lieu, affiché dans la fiche du plan
+  e-nov et servi par `GET /api/enov/content`.
+- **Réglages → Plan Lyautey → Plan e-nov** : boutons « Imprimer » (tous les plans, ou un par
+  carte), adresse déduite de `ui.plan.public_base_url` ou de l’hôte de la console.
+- **Plan e-nov** : bascule visible entre les cartes publiées sous la barre haute (au lieu de
+  « Réglages → Plan affiché » seulement). Plan public et plan des personnels inchangés.
+- Compteur d’usage `enov` : événements `print_open` et `print`.
+
 ### Ajouté — dossier d’audit établissement (RGPD / ambassade)
 
 - Fiche synthèse [mesures techniques et organisationnelles](docs/reference/exploitation/mesures-techniques-organisationnelles.md)

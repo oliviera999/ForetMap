@@ -23,12 +23,15 @@ import '../shared/styles/map-category-chips.css';
 import '../shared/styles/bottom-sheet.css';
 import '../plan/styles/plan.css';
 import './styles/enov-plan.css';
+import './print/enov-print.css';
 import { AppPlan } from '../plan/AppPlan.jsx';
 import { ENOV_PLAN_VARIANT } from '../plan/utils/planVariants.js';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { AppDialogsProvider } from '../shared/components/AppDialogsProvider.jsx';
 import { isPrivacyNoticePath } from '../shared/privacy/privacyNoticePath.js';
 import { PrivacyNoticePage } from '../shared/privacy/PrivacyNoticePage.jsx';
+import { EnovPrintPage } from './print/EnovPrintPage.jsx';
+import { isEnovPrintPath } from './print/enovPrintModel.js';
 import { installDragReleaseClickGuard } from '../shared/platform/dragReleaseClickGuard.js';
 
 installDragReleaseClickGuard();
@@ -38,11 +41,16 @@ document.body.classList.add(...ENOV_PLAN_VARIANT.bodyClass.split(' ').filter(Boo
 // Notice « Vos données » (`/confidentialite`), lisible sans code ni compte (audit RGPD du
 // 30/09/2026, RG1) — comme sur les deux autres plans.
 const showPrivacyNotice = isPrivacyNoticePath(window.location.pathname);
+// Plans annotés imprimables (`/impression`) : même porte d'entrée que le plan, une feuille A4
+// par carte publiée, à joindre au dossier de labellisation.
+const showPrintPage = !showPrivacyNotice && isEnovPrintPath(window.location.pathname);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     {showPrivacyNotice ? (
       <PrivacyNoticePage product="enov" />
+    ) : showPrintPage ? (
+      <EnovPrintPage />
     ) : (
       <AppDialogsProvider>
         <AppPlan variant={ENOV_PLAN_VARIANT} />

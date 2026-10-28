@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS zones (
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
+  -- Migration 323 : type d'espace e-nov (légende du plan annoté imprimable).
+  enov_space_type VARCHAR(24) DEFAULT NULL,
   INDEX idx_zones_map_id (map_id),
   CONSTRAINT fk_zones_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1046,6 +1048,8 @@ CREATE TABLE IF NOT EXISTS map_markers (
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
   -- Migration 315 : texte e-nov (plan e-nov seulement).
   enov_description TEXT DEFAULT NULL,
+  -- Migration 323 : type d'espace e-nov (légende du plan annoté imprimable).
+  enov_space_type VARCHAR(24) DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)

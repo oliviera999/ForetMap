@@ -78,6 +78,8 @@ export function MarkerCommonFormFields({
         idPrefix="marker"
         value={form.enov_description || ''}
         onChange={(next) => setForm((f) => ({ ...f, enov_description: next }))}
+        spaceType={form.enov_space_type || ''}
+        onSpaceTypeChange={(next) => setForm((f) => ({ ...f, enov_space_type: next }))}
       />
       <div className="field">
         <label>Description</label>

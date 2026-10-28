@@ -171,6 +171,7 @@ function MarkerModal({
     marker.visit_details_text,
     marker.visit_body_json,
     marker.enov_description,
+    marker.enov_space_type,
   ]);
 
   const buildPayload = () => buildMarkerPayload(marker, form, visitEditorialBlocks);
