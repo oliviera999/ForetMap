@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — pré-saisie : un crédit nettoyé ne revient pas avec les photos
+
+- Intégrer des photos de pré-saisie réécrivait le miroir public depuis les seules lignes
+  de table. Quand les colonnes avaient déjà été nettoyées (adresse retirée du crédit,
+  migration 313) ou portaient un lien absent de la table, cette intégration republiait
+  l’ancienne attribution ou faisait disparaître le lien. Le miroir repart maintenant des
+  photos affichées, comme le téléversement.
+
 ### Modifié — plan e-nov : mise en avant plus lisible, mouvement borné, halo de fermeture
 
 - **Mouvement borné** : les lieux mis en avant respirent deux fois à l'ouverture du plan (4,8 s,

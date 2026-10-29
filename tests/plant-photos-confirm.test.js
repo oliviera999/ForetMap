@@ -130,4 +130,66 @@ describe('plant_photos — propose + confirm', () => {
       .expect(200);
     assert.equal(Number(confirmed.body.plant.edit_revision), before + 2);
   });
+
+  test('une intégration en repli colonnes ne republie pas un crédit retiré ni n’efface un lien de colonne', async () => {
+    const created = await request(app)
+      .post('/api/plants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: `Repli crédit ${STAMP}`, emoji: '🌿' })
+      .expect(201);
+    const plantId = created.body.id;
+    ids.push(plantId);
+
+    const keptUrl = U('kept');
+    const columnOnlyUrl = U('column-only');
+    const addedUrl = U('added');
+    const publicCredit = 'Auteur publié';
+    // Écart voulu : la colonne a été nettoyée (plus d’adresse), la ligne de table garde
+    // l’ancienne attribution, et un second lien n’existe que dans la colonne.
+    await execute('UPDATE plants SET photo = ?, photo_credit = ? WHERE id = ?', [
+      `${keptUrl}\n${columnOnlyUrl}`,
+      publicCredit,
+      plantId,
+    ]);
+    await execute(
+      `INSERT INTO plant_photos (plant_id, kind, url, credit, licence, source, sort_order, confirmed)
+       VALUES (?, 'photo', ?, ?, 'CC BY-SA 3.0', 'wikimedia_commons', 0, 1)`,
+      [plantId, keptUrl, 'Auteur publié auteur@example.test'],
+    );
+
+    const proposed = await request(app)
+      .post(`/api/plants/${plantId}/photos/propose`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        photos: [
+          {
+            kind: 'photo_species',
+            url: addedUrl,
+            credit: 'Observateur',
+            licence: 'CC BY 4.0',
+            source: 'gbif_media',
+          },
+        ],
+      })
+      .expect(200);
+
+    assert.equal(proposed.body.inserted, 1);
+    assert.equal(proposed.body.plant.photo_credit, publicCredit);
+    assert.equal(proposed.body.plant.photo.includes(keptUrl), true);
+    assert.equal(proposed.body.plant.photo.includes(columnOnlyUrl), true);
+    const credits = (proposed.body.photos || []).map((p) => String(p.credit || ''));
+    assert.equal(
+      credits.some((credit) => credit.includes('@')),
+      false,
+    );
+    assert.equal(
+      proposed.body.photos.some((p) => p.url === addedUrl && p.confirmed === false),
+      true,
+    );
+
+    const stored = await queryAll('SELECT photo, photo_credit FROM plants WHERE id = ?', [plantId]);
+    assert.equal(stored[0].photo_credit, publicCredit);
+    assert.equal(String(stored[0].photo).includes(columnOnlyUrl), true);
+    assert.equal(String(stored[0].photo_credit).includes('@'), false);
+  });
 });
