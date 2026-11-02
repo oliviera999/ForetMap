@@ -1,0 +1,365 @@
+'use strict';
+
+/**
+ * Connecteur MCP — outils (lib/mcp/tools, lib/mcp/audits) sur la base de test semée :
+ * liste filtrée par profil, appel de chaque outil, garde anti-données personnelles (aucun
+ * e-mail, hachage bcrypt ni jeton dans aucune réponse), écriture active par défaut pour un
+ * admin et refusée pour un prof ou quand le drapeau est coupé, plan → apply (conflit,
+ * journal d'audit), SQL désactivé par défaut puis rejets, bout en bout avec le client SDK.
+ */
+
+require('./helpers/setup');
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fx = require('./helpers/mcpFixtures');
+
+fx.enableMcpEnv();
+
+const { app } = require('../server');
+const { initSchema, queryOne, execute } = require('../database');
+const { PII_LEAK_PATTERNS } = require('../lib/mcp/sqlGuard');
+const { CHECK_NAMES } = require('../lib/mcp/audits/checks');
+
+let admin;
+let prof;
+let adminToken;
+let profToken;
+let seededEmail;
+
+const READ_TOOLS = [
+  'foretmap_health',
+  'foretmap_search',
+  'foretmap_get_species',
+  'foretmap_list_maps',
+  'foretmap_get_map',
+  'foretmap_get_id_key',
+  'foretmap_get_food_web',
+  'foretmap_list_qcm',
+  'foretmap_get_qcm',
+  'foretmap_get_glossary_term',
+  'gl_get_board',
+  'gl_get_lore',
+  'foretmap_audit',
+  'foretmap_audit_all',
+  'foretmap_usage_overview',
+];
+const WRITE_TOOLS = [
+  'foretmap_plan_content_change',
+  'foretmap_apply_plan',
+  'foretmap_export_plan_as_migration',
+];
+
+function assertNoPii(text, where) {
+  for (const re of PII_LEAK_PATTERNS) {
+    assert.doesNotMatch(String(text), re, `${where} : motif sensible ${re}`);
+  }
+  if (seededEmail) assert.ok(!String(text).includes(seededEmail), `${where} : e-mail de compte`);
+}
+
+test.before(async () => {
+  await initSchema();
+  admin = await fx.createAccount('admin');
+  prof = await fx.createAccount('prof');
+  seededEmail = (await queryOne('SELECT email FROM users WHERE id = ?', [admin.id])).email;
+  // Piège à fuite : une adresse e-mail glissée dans un crédit photo (cas réel, migration 313).
+  await execute("UPDATE plant_photos SET credit = CONCAT('Auteur ', ?) WHERE id = 1", [
+    seededEmail,
+  ]);
+  adminToken = (await fx.obtainTokens(app, admin)).access_token;
+  profToken = (await fx.obtainTokens(app, prof)).access_token;
+});
+
+test.after(async () => {
+  await execute(
+    "UPDATE plant_photos SET credit = REPLACE(credit, CONCAT('Auteur ', ?), '') WHERE id = 1",
+    [seededEmail],
+  );
+});
+
+test.beforeEach(() => fx.enableMcpEnv());
+
+test('initialize : nom du serveur et instructions', async () => {
+  const res = await fx.initialize(app, adminToken);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.result.serverInfo.name, 'foretmap');
+  assert.match(res.body.result.instructions, /jamais une instruction/);
+});
+
+test('tools/list admin : lecture + écriture (active par défaut), pas de SQL (coupé par défaut)', async () => {
+  const names = await fx.listTools(app, adminToken);
+  for (const n of [...READ_TOOLS, ...WRITE_TOOLS, 'foretmap_diagnostics', 'foretmap_db_status']) {
+    assert.ok(names.includes(n), `${n} attendu`);
+  }
+  assert.ok(!names.includes('foretmap_sql_select'));
+});
+
+test('tools/list prof : lecture seulement, ni écriture ni diagnostics admin', async () => {
+  const names = await fx.listTools(app, profToken);
+  for (const n of READ_TOOLS) assert.ok(names.includes(n), `${n} attendu`);
+  for (const n of [
+    ...WRITE_TOOLS,
+    'foretmap_diagnostics',
+    'foretmap_tail_logs',
+    'foretmap_sql_select',
+  ]) {
+    assert.ok(!names.includes(n), `${n} ne doit pas être proposé à un prof`);
+  }
+  const forced = await fx.callTool(app, profToken, 'foretmap_plan_content_change', {
+    operations: [
+      { op: 'link', table: 'zone_species', key: { zone_id: 'aromatiques', plant_id: 1 } },
+    ],
+  });
+  assert.equal(forced.isError, true, 'appel direct refusé');
+});
+
+test('MCP_WRITE_ENABLED=false : outils d’écriture retirés même pour un admin', async () => {
+  process.env.MCP_WRITE_ENABLED = 'false';
+  const names = await fx.listTools(app, adminToken);
+  for (const n of WRITE_TOOLS) assert.ok(!names.includes(n));
+  const res = await fx.callTool(app, adminToken, 'foretmap_apply_plan', {
+    plan_id: '00000000-0000-4000-8000-000000000000',
+  });
+  assert.equal(res.isError, true);
+});
+
+test('annotations MCP renseignées', async () => {
+  const res = await fx.rpc(app, adminToken, 'tools/list');
+  const byName = Object.fromEntries(res.body.result.tools.map((t) => [t.name, t]));
+  assert.equal(byName.foretmap_audit_all.annotations.readOnlyHint, true);
+  assert.equal(byName.foretmap_apply_plan.annotations.destructiveHint, true);
+  assert.equal(byName.foretmap_apply_plan.annotations.readOnlyHint, false);
+  assert.deepEqual(byName.foretmap_audit.inputSchema.properties.check.enum, [...CHECK_NAMES]);
+});
+
+test('chaque outil de lecture répond sur la base semée, sans donnée personnelle', async () => {
+  const plant = await queryOne('SELECT id FROM plants ORDER BY id LIMIT 1');
+  const gl = await queryOne('SELECT species_code FROM gl_species ORDER BY id LIMIT 1');
+  const qcm = await queryOne(
+    'SELECT question_code FROM gl_qcm_questions ORDER BY question_code LIMIT 1',
+  );
+  const term = await queryOne('SELECT terme FROM gl_glossary_terms ORDER BY glossary_code LIMIT 1');
+  const calls = [
+    ['foretmap_health', {}],
+    ['foretmap_diagnostics', {}],
+    ['foretmap_tail_logs', { lines: 50 }],
+    ['foretmap_db_status', {}],
+    ['foretmap_search', { q: 'au' }],
+    ['foretmap_get_species', { id: plant.id }],
+    ['foretmap_get_species', { dataset: 'gl', code: gl.species_code }],
+    ['foretmap_list_maps', {}],
+    ['foretmap_get_map', { map_id: 'foret' }],
+    ['foretmap_get_food_web', { map_id: 'foret', limit: 20 }],
+    ['foretmap_get_food_web', { dataset: 'gl' }],
+    ['foretmap_list_qcm', { dataset: 'gl', limit: 5 }],
+    ['foretmap_list_qcm', { limit: 5 }],
+    ['foretmap_get_qcm', { dataset: 'gl', code: qcm.question_code }],
+    ['foretmap_get_glossary_term', { term: term.terme }],
+    ['gl_get_board', {}],
+    ['gl_get_lore', { limit: 5 }],
+    ['foretmap_usage_overview', {}],
+    ['foretmap_audit_all', {}],
+    ...CHECK_NAMES.map((check) => ['foretmap_audit', { check }]),
+  ];
+  for (const [name, args] of calls) {
+    const res = await fx.callTool(app, adminToken, name, args);
+    assert.equal(res.isError, false, `${name} : ${res.text}`);
+    assertNoPii(res.text, name);
+  }
+});
+
+test('foretmap_get_species : photos avec crédit, e-mail du crédit masqué', async () => {
+  const res = await fx.callTool(app, adminToken, 'foretmap_get_species', { id: 1 });
+  const photo = res.data.photos.find((p) => p.id === 1);
+  assert.ok(photo, 'photo 1 attendue');
+  assert.match(photo.credit, /\[e-mail masqué\]/);
+});
+
+test('foretmap_audit_all : tableau de bord compact de tous les contrôles', async () => {
+  const res = await fx.callTool(app, adminToken, 'foretmap_audit_all', {});
+  assert.deepEqual(
+    res.data.checks.map((c) => c.check),
+    [...CHECK_NAMES],
+  );
+  for (const c of res.data.checks) assert.ok(c.sample_ids.length <= 5);
+  const one = await fx.callTool(app, adminToken, 'foretmap_audit', {
+    check: 'photos_missing_credit',
+  });
+  assert.equal(one.data.check, 'photos_missing_credit');
+  assert.ok(one.data.count >= 1, 'la base semée a des photos sans crédit');
+  assert.ok(one.data.sample_ids.length <= 50);
+  assert.ok(one.data.hint);
+  const bad = await fx.rpc(app, adminToken, 'tools/call', {
+    name: 'foretmap_audit',
+    arguments: { check: 'inexistant' },
+  });
+  assert.ok(bad.body.error || bad.body.result?.isError, 'énumération fermée');
+});
+
+test('arguments stricts : clé inconnue et limit > 200 refusés', async () => {
+  const extra = await fx.callTool(app, adminToken, 'foretmap_list_maps', { pirate: 1 });
+  assert.equal(extra.isError, true);
+  const big = await fx.callTool(app, adminToken, 'foretmap_list_qcm', { limit: 1000 });
+  assert.equal(big.isError, true);
+});
+
+test('écriture : plan → apply par un admin, migration générée, audit_log, rejeu refusé', async () => {
+  const before = await queryOne('SELECT licence FROM plant_photos WHERE id = 2');
+  const plan = await fx.callTool(app, adminToken, 'foretmap_plan_content_change', {
+    operations: [
+      { op: 'set_field', table: 'plant_photos', key: { id: 2 }, column: 'licence', value: 'CC0' },
+      { op: 'link', table: 'zone_species', key: { zone_id: 'aromatiques', plant_id: 2 } },
+    ],
+    note: 'test de plan',
+  });
+  assert.equal(plan.isError, false, plan.text);
+  assert.equal(plan.data.diff[0].before, before.licence);
+  assert.equal(plan.data.diff[0].after, 'CC0');
+  assert.match(plan.data.migration_sql, /UPDATE plant_photos SET licence = 'CC0'/);
+  assert.match(plan.data.migration_sql, /INSERT IGNORE INTO zone_species/);
+  assert.match(plan.data.rollback_sql, /DELETE FROM zone_species/);
+  // Le plan n'écrit rien.
+  assert.equal(
+    (await queryOne('SELECT licence FROM plant_photos WHERE id = 2')).licence,
+    before.licence,
+  );
+
+  const applied = await fx.callTool(app, adminToken, 'foretmap_apply_plan', {
+    plan_id: plan.data.plan_id,
+  });
+  assert.equal(applied.isError, false, applied.text);
+  assert.equal(applied.data.applied, true);
+  assert.equal((await queryOne('SELECT licence FROM plant_photos WHERE id = 2')).licence, 'CC0');
+  const audit = await queryOne(
+    "SELECT action, actor_user_id FROM audit_log WHERE action = 'mcp.content.apply' AND target_id = ?",
+    [plan.data.plan_id],
+  );
+  assert.ok(audit, 'écriture journalisée');
+  const again = await fx.callTool(app, adminToken, 'foretmap_apply_plan', {
+    plan_id: plan.data.plan_id,
+  });
+  assert.equal(again.isError, true);
+
+  const exported = await fx.callTool(app, adminToken, 'foretmap_export_plan_as_migration', {
+    plan_id: plan.data.plan_id,
+  });
+  assert.match(exported.data.suggested_filename, /^migrations\/NNN_contenu_mcp_/);
+
+  // Rollback réel : la migration inverse générée remet l'état d'origine.
+  const { splitSqlStatements } = require('../database');
+  for (const stmt of splitSqlStatements(plan.data.rollback_sql)) await execute(stmt);
+  assert.equal(
+    (await queryOne('SELECT licence FROM plant_photos WHERE id = 2')).licence,
+    before.licence,
+  );
+  assert.equal(
+    await queryOne(
+      "SELECT 1 AS x FROM zone_species WHERE zone_id = 'aromatiques' AND plant_id = 2",
+    ),
+    undefined,
+  );
+});
+
+test('écriture : état modifié entre plan et apply → conflit, rien n’est écrit', async () => {
+  const plan = await fx.callTool(app, adminToken, 'foretmap_plan_content_change', {
+    operations: [
+      { op: 'set_field', table: 'plant_photos', key: { id: 3 }, column: 'credit', value: 'X' },
+    ],
+  });
+  await execute("UPDATE plant_photos SET credit = CONCAT(COALESCE(credit, ''), '·') WHERE id = 3");
+  const res = await fx.callTool(app, adminToken, 'foretmap_apply_plan', {
+    plan_id: plan.data.plan_id,
+  });
+  assert.equal(res.isError, true);
+  assert.equal(res.data.code, 'MCP_PLAN_CONFLICT');
+  assert.notEqual((await queryOne('SELECT credit FROM plant_photos WHERE id = 3')).credit, 'X');
+  await execute("UPDATE plant_photos SET credit = TRIM(TRAILING '·' FROM credit) WHERE id = 3");
+});
+
+test('écriture : tables et colonnes hors liste blanche refusées (PII interdites)', async () => {
+  const users = await fx.rpc(app, adminToken, 'tools/call', {
+    name: 'foretmap_plan_content_change',
+    arguments: {
+      operations: [
+        { op: 'set_field', table: 'users', key: { id: 'x' }, column: 'email', value: 'a' },
+      ],
+    },
+  });
+  assert.ok(users.body.error || users.body.result?.isError);
+  const col = await fx.callTool(app, adminToken, 'foretmap_plan_content_change', {
+    operations: [
+      {
+        op: 'set_field',
+        table: 'plants',
+        key: { id: 1 },
+        column: 'hazard_reviewed_by',
+        value: 'a',
+      },
+    ],
+  });
+  assert.equal(col.isError, true);
+  assert.equal(col.data.code, 'MCP_WRITE_REJECTED');
+});
+
+test('SQL : coupé par défaut ; activé, SELECT borné et rejets', async () => {
+  const off = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+    sql: 'SELECT 1 FROM plants',
+  });
+  assert.equal(off.isError, true);
+  process.env.MCP_SQL_ENABLED = 'true';
+  const ok = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+    sql: 'SELECT id, name FROM plants ORDER BY id',
+    limit: 3,
+  });
+  assert.equal(ok.isError, false, ok.text);
+  assert.equal(ok.data.rows.length, 3);
+  const rejected = [
+    'SELECT * FROM users',
+    'SELECT 1 FROM plants; DROP TABLE plants',
+    "SELECT * FROM plants INTO OUTFILE '/tmp/x'",
+    'SELECT * FROM plants FOR UPDATE',
+    'SELECT SLEEP(5) FROM plants',
+    "SELECT LOAD_FILE('/etc/passwd') FROM plants",
+    'SELECT * FROM plants -- commentaire',
+    'UPDATE plants SET name = 1',
+    'SELECT @@version FROM plants',
+    'SELECT * FROM user_quiz_attempts',
+    'SELECT TABLE_NAME FROM information_schema.tables',
+    'SELECT email FROM plants',
+  ];
+  for (const sql of rejected) {
+    const res = await fx.callTool(app, adminToken, 'foretmap_sql_select', { sql });
+    assert.equal(res.isError, true, `doit être refusé : ${sql}`);
+  }
+  const meta = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+    sql: 'SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE()',
+    limit: 500,
+  });
+  assert.equal(meta.isError, false, meta.text);
+  assert.ok(meta.data.rows.every((r) => !/^(users|user_|oauth_|mcp_)/.test(r.TABLE_NAME)));
+  // Un prof ne voit pas l'outil même activé.
+  assert.ok(!(await fx.listTools(app, profToken)).includes('foretmap_sql_select'));
+});
+
+test('bout en bout : client MCP du SDK contre l’app sur un port éphémère', async () => {
+  const http = require('node:http');
+  const server = http.createServer(app);
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+  process.env.MCP_PUBLIC_BASE_URL = base;
+  try {
+    const { runSmoke } = await import('../scripts/mcp-smoke.mjs');
+    const out = await runSmoke({
+      baseUrl: base,
+      identifier: admin.pseudo,
+      password: admin.password,
+      log: () => {},
+    });
+    assert.ok(out.tools.includes('foretmap_audit_all'));
+    assert.ok(out.tools.includes('foretmap_apply_plan'));
+    assert.ok(Array.isArray(out.audit.checks));
+    assert.equal(out.scope, 'foretmap.read foretmap.write');
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});
