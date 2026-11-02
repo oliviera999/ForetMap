@@ -1,6 +1,10 @@
 import { useState } from 'react';
 
-import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
+import {
+  AccessCodeField,
+  AccessPassDaysField,
+  AccessSecretModeNotice,
+} from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
@@ -60,6 +64,9 @@ export function EnovPlanSettingsPanel({
    */
   const [colorDraft, setColorDraft] = useState(null);
   const hasHash = Boolean(String(get('security.enov_plan_access_code_hash', '') || '').trim());
+  const hasPasswordHash = Boolean(
+    String(get('security.enov_plan_access_password_hash', '') || '').trim(),
+  );
   const accessMode = String(get(ENOV_KEYS.accessMode, 'public') || 'public');
   const storedColor = String(get(ENOV_KEYS.highlightColor, DEFAULT_HIGHLIGHT_COLOR) || '');
   const highlightColor = HEX_COLOR_RE.test(storedColor) ? storedColor : DEFAULT_HIGHLIGHT_COLOR;
@@ -299,8 +306,10 @@ export function EnovPlanSettingsPanel({
         >
           <option value="public">Public</option>
           <option value="code">Code d’accès</option>
+          <option value="password">Mot de passe</option>
         </select>
       </label>
+      <AccessSecretModeNotice mode={accessMode} hasCode={hasHash} hasPassword={hasPasswordHash} />
 
       <AccessPassDaysField
         settingKey="security.enov_plan_access_pass_days"
@@ -317,6 +326,7 @@ export function EnovPlanSettingsPanel({
         endpoint="/api/settings/admin/enov-plan-access-code"
         targetLabel="du plan e-nov"
         hasCode={hasHash}
+        active={accessMode === 'code'}
         readOnly={readOnly}
         onMessage={onMessage}
         onError={onError}
@@ -325,6 +335,22 @@ export function EnovPlanSettingsPanel({
         Code propre au plan e-nov : il n’ouvre pas le plan public, et inversement. Il n’est jamais
         stocké en clair. En mode « code » sans code défini, le plan reste ouvert. Le lien du plan
         peut porter le code (<code>?code=…</code>) pour un QR code remis à un jury.
+      </AccessCodeField>
+
+      <AccessCodeField
+        kind="password"
+        endpoint="/api/settings/admin/enov-plan-access-password"
+        targetLabel="du plan e-nov"
+        hasCode={hasPasswordHash}
+        active={accessMode === 'password'}
+        readOnly={readOnly}
+        onMessage={onMessage}
+        onError={onError}
+        testId="enov-plan-access-password"
+      >
+        Utilisé en mode « Mot de passe » : au moins 12 caractères, lettres <strong>et</strong>{' '}
+        chiffres, casse respectée. Propre au plan e-nov, saisi masqué, il ne s’ouvre jamais par un
+        lien ni un QR code. En mode « mot de passe » sans mot de passe défini, le plan reste ouvert.
       </AccessCodeField>
     </div>
   );

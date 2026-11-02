@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — plans : accès par un vrai mot de passe alphanumérique
+
+- **Nouveau mode d'accès « Mot de passe »** sur le plan public, le plan e-nov et la voie
+  secondaire du plan des personnels (`ui.plan.access_mode`, `ui.enov_plan.access_mode`,
+  `ui.staff_plan.access_mode` : valeur `password`), à côté du code d'accès qui reste inchangé.
+- **Règles** (`lib/accessSecret.js`) : 12 à 64 caractères, au moins une lettre **et** un
+  chiffre, casse respectée. Empreinte bcrypt **distincte** de celle du code
+  (`security.*_access_password_hash`), écrite par `POST /api/settings/admin/*-access-password`
+  (`PUT :key` refusé) : on prépare le mot de passe avant la bascule, et la bascule referme la
+  porte aux appareils entrés avec le code (le laissez-passer est dérivé de l'empreinte en
+  vigueur).
+- **Jamais par un lien** : en mode mot de passe, `?code=` n'ouvre pas le plan et
+  `POST /access` `{ via: 'link' }` répond 403 ; refus journalisé (`link_disabled`). Le journal
+  des saisies porte désormais `kind` (`code` | `password`), et `via: 'link'` pour l'échange d'un
+  lien par le plan.
+- **Écran de saisie** (`AccessCodeGate`, `kind="password"`) : champ masqué avec bouton
+  « Afficher », sans majuscules forcées ni correction, `autocomplete="current-password"` (le
+  gestionnaire de mots de passe du navigateur peut le retenir). Le serveur annonce la nature du
+  secret dans ses refus (`access_kind`), y compris la page d'impression e-nov et la voie
+  secondaire du plan des personnels.
+- **Réglages** : option « Mot de passe » dans chaque mode d'accès, champ dédié avec générateur
+  (14 caractères, majuscules, minuscules et chiffres, sans caractère ambigu), avertissement
+  quand le secret demandé par le mode n'est pas enregistré.
+- Tests : `tests/plan-access-passwords.test.js`, `tests-ui/shared/AccessCodeGate.test.jsx`,
+  générateur et panneaux (`AccessCodeGenerator.test.jsx`), montage du plan. Docs : `docs/API.md`,
+  références `presentation.md`, `plan-enov.md`, `plan-des-personnels.md`,
+  `modele-de-securite.md`.
+
 ### Modifié — plan e-nov : mise en avant plus lisible, mouvement borné, halo de fermeture
 
 - **Mouvement borné** : les lieux mis en avant respirent deux fois à l'ouverture du plan (4,8 s,

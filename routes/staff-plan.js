@@ -25,7 +25,9 @@ const { logAudit } = require('../lib/auditLog');
 const { getSettingValue } = require('../lib/settings');
 const { applyClearSiteData, normalizeLogoutClearSiteDataScope } = require('../lib/clearSiteData');
 const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
+const { accessSecretWording } = require('../lib/accessSecret');
 const {
+  PLAN_SURFACE_SETTINGS,
   loadPlanSettings,
   resolvePlanMap,
   buildPlanContent,
@@ -43,7 +45,8 @@ const { listMyPlaceReports } = require('../lib/placeMessages');
 const { resolveOAuthPublicOrigin } = require('../lib/oauthPublicUrl');
 const {
   staffPlanAccessGate,
-  isCodeAccessEnabled,
+  resolveStaffPlanSecret,
+  resolveStaffPlanSecretKind,
   grantStaffPlanCodeAccess,
   hasValidStaffPlanCodePass,
   resolveCodeRoleSlug,
@@ -60,7 +63,7 @@ const STAFF_SURFACE = 'staff';
 const STAFF_SETTINGS_PREFIX = 'ui.staff_plan.';
 
 /** Modes acceptés pour `ui.staff_plan.access_mode` ; le premier est le repli. */
-const STAFF_ACCESS_MODES = Object.freeze(['disabled', 'code']);
+const STAFF_ACCESS_MODES = PLAN_SURFACE_SETTINGS.staff.accessModes;
 
 /** Bornes du message de « Signaler ou proposer » : celles d'un commentaire de contexte. */
 const { MIN_BODY: MIN_REPORT_BODY, MAX_BODY: MAX_REPORT_BODY } = CONTEXT_COMMENT_LIMITS;
@@ -104,19 +107,22 @@ function setPrivateHeaders(res) {
 
 /**
  * Coquille d'accueil : ce que le front a le droit de savoir **avant** d'être entré — le titre,
- * le message d'accueil, et si la saisie d'un code est proposée à côté du bouton de connexion.
- * Volontairement pauvre : elle est servie à un visiteur qui n'a encore rien prouvé.
+ * le message d'accueil, et si la saisie d'un code (ou d'un mot de passe, `access_kind`) est
+ * proposée à côté du bouton de connexion. Volontairement pauvre : elle est servie à un
+ * visiteur qui n'a encore rien prouvé.
  */
 router.get(
   '/settings',
   asyncHandler(async (req, res) => {
     const settings = await loadStaffPlanSettings();
+    const secret = await resolveStaffPlanSecret();
     setPrivateHeaders(res);
     res.json({
       title: settings.title,
       welcome_hint: settings.welcome_hint,
       attribution: settings.attribution,
-      code_enabled: await isCodeAccessEnabled(),
+      code_enabled: Boolean(secret),
+      access_kind: secret?.kind || 'code',
     });
   }),
 );
@@ -134,31 +140,41 @@ router.post(
   express.json({ limit: '4kb' }),
   asyncHandler(async (req, res) => {
     setPrivateHeaders(res);
-    if (!(await isCodeAccessEnabled())) {
+    const secret = await resolveStaffPlanSecret();
+    if (!secret) {
       await logCodeAccessAttempt(req, STAFF_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.disabled,
+        kind: await resolveStaffPlanSecretKind(),
       });
       return res.status(403).json({ error: 'Entrée par code désactivée' });
     }
+    const { kind } = secret;
+    const wording = accessSecretWording(kind);
     const code = String(req.body?.code || '').trim();
     if (!code) {
       await logCodeAccessAttempt(req, STAFF_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+        kind,
       });
-      return res.status(400).json({ error: 'Code requis' });
+      return res.status(400).json({ error: wording.missing, access_kind: kind });
     }
     if (!(await verifyStaffPlanCode(code))) {
       await logCodeAccessAttempt(req, STAFF_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+        kind,
       });
-      return res.status(401).json({ error: 'Code incorrect' });
+      return res.status(401).json({ error: wording.invalid, access_kind: kind });
     }
     await grantStaffPlanCodeAccess(res);
     const roleSlug = await resolveCodeRoleSlug();
-    await logCodeAccessAttempt(req, STAFF_SURFACE, { granted: true, payload: { roleSlug } });
+    await logCodeAccessAttempt(req, STAFF_SURFACE, {
+      granted: true,
+      kind,
+      payload: { roleSlug },
+    });
     res.json({ ok: true, role_slug: roleSlug });
   }),
 );
@@ -217,6 +233,8 @@ router.get(
         error: 'Connexion requise',
         auth_required: true,
         code_available: viewer.codeAvailable,
+        // Nature du secret de la voie secondaire : le front dit « code » ou « mot de passe ».
+        access_kind: viewer.accessKind || 'code',
       });
     }
     const settings = await loadStaffPlanSettings();

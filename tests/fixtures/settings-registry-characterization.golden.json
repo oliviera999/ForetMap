@@ -610,6 +610,12 @@
       "max": 90,
       "default": 30
     },
+    "security.enov_plan_access_password_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
+    },
     "security.jwt_sliding_max_seconds": {
       "scope": "teacher",
       "type": "number",
@@ -644,6 +650,12 @@
       "max": 90,
       "default": 30
     },
+    "security.plan_access_password_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
+    },
     "security.staff_plan_access_code_hash": {
       "scope": "admin",
       "type": "string",
@@ -656,6 +668,12 @@
       "min": 1,
       "max": 30,
       "default": 7
+    },
+    "security.staff_plan_access_password_hash": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 120,
+      "default": ""
     },
     "security.totp.enforcement": {
       "scope": "admin",
@@ -783,7 +801,7 @@
     "ui.enov_plan.access_mode": {
       "scope": "public",
       "type": "enum",
-      "values": ["public", "code"],
+      "values": ["public", "code", "password"],
       "default": "public"
     },
     "ui.enov_plan.attribution": {
@@ -1084,7 +1102,7 @@
     "ui.plan.access_mode": {
       "scope": "public",
       "type": "enum",
-      "values": ["public", "code"],
+      "values": ["public", "code", "password"],
       "default": "public"
     },
     "ui.plan.attribution": {
@@ -1196,7 +1214,7 @@
     "ui.staff_plan.access_mode": {
       "scope": "public",
       "type": "enum",
-      "values": ["disabled", "code"],
+      "values": ["disabled", "code", "password"],
       "default": "disabled"
     },
     "ui.staff_plan.allowed_role_slugs": {
@@ -3347,6 +3365,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.enov_plan_access_password_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.jwt_sliding_max_seconds",
       "scope": "teacher",
       "type": "number",
@@ -3427,6 +3461,22 @@
       "updated_by_user_id": null
     },
     {
+      "key": "security.plan_access_password_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
       "key": "security.staff_plan_access_code_hash",
       "scope": "admin",
       "type": "string",
@@ -3452,6 +3502,22 @@
         "min": 1,
         "max": 30,
         "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "security.staff_plan_access_password_hash",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 120,
         "values": null
       },
       "updated_at": null,
@@ -3820,7 +3886,7 @@
         "min": null,
         "max": null,
         "maxLength": null,
-        "values": ["public", "code"]
+        "values": ["public", "code", "password"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
@@ -4684,7 +4750,7 @@
         "min": null,
         "max": null,
         "maxLength": null,
-        "values": ["public", "code"]
+        "values": ["public", "code", "password"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
@@ -4988,7 +5054,7 @@
         "min": null,
         "max": null,
         "maxLength": null,
-        "values": ["disabled", "code"]
+        "values": ["disabled", "code", "password"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
@@ -6077,7 +6143,7 @@
         "min": null,
         "max": null,
         "maxLength": null,
-        "values": ["disabled", "code"]
+        "values": ["disabled", "code", "password"]
       },
       "updated_at": "<date>",
       "updated_by_user_type": "teacher",

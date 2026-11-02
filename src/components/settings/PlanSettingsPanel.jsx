@@ -1,4 +1,8 @@
-import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
+import {
+  AccessCodeField,
+  AccessPassDaysField,
+  AccessSecretModeNotice,
+} from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
@@ -39,6 +43,9 @@ export function PlanSettingsPanel({
   onError = null,
 }) {
   const hasHash = Boolean(String(get('security.plan_access_code_hash', '') || '').trim());
+  const hasPasswordHash = Boolean(
+    String(get('security.plan_access_password_hash', '') || '').trim(),
+  );
   const accessMode = String(get(PLAN_KEYS.accessMode, 'public') || 'public');
   const readOnly = !canWrite;
 
@@ -170,8 +177,10 @@ export function PlanSettingsPanel({
         >
           <option value="public">Public</option>
           <option value="code">Code d’accès</option>
+          <option value="password">Mot de passe</option>
         </select>
       </label>
+      <AccessSecretModeNotice mode={accessMode} hasCode={hasHash} hasPassword={hasPasswordHash} />
 
       <label
         className="field"
@@ -213,6 +222,7 @@ export function PlanSettingsPanel({
         endpoint="/api/settings/admin/plan-access-code"
         targetLabel="du plan"
         hasCode={hasHash}
+        active={accessMode === 'code'}
         readOnly={readOnly}
         onMessage={onMessage}
         onError={onError}
@@ -221,6 +231,23 @@ export function PlanSettingsPanel({
         Le code n’est jamais stocké en clair : seule une empreinte est enregistrée. En mode « code »
         sans empreinte, le plan reste ouvert (évite un verrouillage accidentel). Changer le code
         oblige chaque appareil déjà entré à le ressaisir.
+      </AccessCodeField>
+
+      <AccessCodeField
+        kind="password"
+        endpoint="/api/settings/admin/plan-access-password"
+        targetLabel="du plan"
+        hasCode={hasPasswordHash}
+        active={accessMode === 'password'}
+        readOnly={readOnly}
+        onMessage={onMessage}
+        onError={onError}
+        testId="plan-access-password"
+      >
+        Utilisé en mode « Mot de passe » : au moins 12 caractères, lettres <strong>et</strong>{' '}
+        chiffres, majuscules et minuscules distinguées. Saisi masqué par le visiteur, il ne s’ouvre
+        jamais par un lien ni un QR code. Il est distinct du code : vous pouvez le préparer avant de
+        basculer le mode, et la bascule referme la porte aux appareils entrés avec le code.
       </AccessCodeField>
     </div>
   );

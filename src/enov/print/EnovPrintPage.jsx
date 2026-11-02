@@ -8,6 +8,7 @@ import { fetchPlanContent, reportPlanUsage, submitPlanAccessCode } from '../../p
 import { placeDisplayParts, planPlacesFromContent } from '../../plan/utils/planPlaces.js';
 import { PLAN_SCHOOL_LOGO_URL } from '../../plan/utils/planBrand.js';
 import { ENOV_PLAN_VARIANT } from '../../plan/utils/planVariants.js';
+import { accessIntroFor, accessKindFromBody } from '../../plan/utils/planAccessKind.js';
 import {
   buildAnnotatedPlan,
   formatPrintDate,
@@ -300,7 +301,13 @@ export function EnovPrintPage() {
       } catch (err) {
         if (cancelled) return;
         if (err?.status === 401) {
-          setState({ status: 'access', sheets: [], maps: [], error: '' });
+          setState({
+            status: 'access',
+            sheets: [],
+            maps: [],
+            error: '',
+            accessKind: accessKindFromBody(err?.body),
+          });
         } else {
           setState({
             status: 'error',
@@ -366,7 +373,8 @@ export function EnovPrintPage() {
         <AccessCodeGate
           className="plan-access-gate"
           title={SHEET_TITLE}
-          intro={variant.accessIntro}
+          intro={accessIntroFor(variant, state.accessKind)}
+          kind={state.accessKind === 'password' ? 'password' : 'code'}
           onSubmit={submitAccessCode}
         />
       </div>

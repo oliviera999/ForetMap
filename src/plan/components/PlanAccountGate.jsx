@@ -14,18 +14,27 @@ import { startGoogleAuth } from '../../components/auth/startGoogleAuth.js';
  * doit être dans `ui.staff_plan.allowed_role_slugs` — sans quoi le serveur refuse la charge,
  * quel que soit le succès de la connexion Google.
  *
- * La saisie du **code partagé** n'apparaît que si un administrateur l'a activée
- * (`ui.staff_plan.access_mode`), et reste repliée derrière un lien : c'est la voie
+ * La saisie du **code partagé** (ou du mot de passe partagé, `codeKind`) n'apparaît que si un
+ * administrateur l'a activée (`ui.staff_plan.access_mode`), et reste repliée derrière un lien : c'est la voie
  * secondaire, pour les personnels sans compte. L'afficher au même niveau que la connexion
  * inviterait à faire circuler un secret partagé là où un compte nominatif existe.
  *
  * @param {object} props
  * @param {string} props.title
  * @param {string} [props.intro]
- * @param {boolean} [props.codeAvailable] un code est configuré et actif côté serveur.
- * @param {(code: string) => Promise<void>} props.onSubmitCode lève si le code est refusé.
+ * @param {boolean} [props.codeAvailable] un code (ou un mot de passe) est configuré et actif
+ *   côté serveur.
+ * @param {'code'|'password'} [props.codeKind='code'] nature du secret partagé demandé.
+ * @param {(code: string) => Promise<void>} props.onSubmitCode lève si le secret est refusé.
  */
-export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSubmitCode }) {
+export function PlanAccountGate({
+  title,
+  intro = '',
+  codeAvailable = false,
+  codeKind = 'code',
+  onSubmitCode,
+}) {
+  const isPassword = codeKind === 'password';
   const [codeOpen, setCodeOpen] = useState(false);
   /**
    * Message d'un retour Google qui a échoué : déposé par `src/staff/main.jsx` avant le montage
@@ -48,7 +57,12 @@ export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSu
         <AccessCodeGate
           className="plan-access-gate__code"
           title={title}
-          intro="Saisissez le code communiqué par l’établissement."
+          intro={
+            isPassword
+              ? 'Saisissez le mot de passe communiqué par l’établissement.'
+              : 'Saisissez le code communiqué par l’établissement.'
+          }
+          kind={codeKind}
           onSubmit={onSubmitCode}
         />
         <button
@@ -85,7 +99,9 @@ export function PlanAccountGate({ title, intro = '', codeAvailable = false, onSu
           className="plan-access-gate__switch"
           onClick={() => setCodeOpen(true)}
         >
-          Je n’ai pas de compte : entrer un code
+          {isPassword
+            ? 'Je n’ai pas de compte : entrer le mot de passe'
+            : 'Je n’ai pas de compte : entrer un code'}
         </button>
       ) : null}
       {/* Notice publique « Vos données » (audit RGPD du 30/09/2026, RG1). */}

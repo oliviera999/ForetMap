@@ -22,7 +22,13 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 
 const { getDataWriteVersion } = require('../database');
-const { planAccessGate, grantPlanAccess, isPlanAccessGranted } = require('../lib/planAccess');
+const {
+  planAccessGate,
+  grantPlanAccess,
+  isPlanAccessGranted,
+  resolvePublicPlanSecret,
+} = require('../lib/planAccess');
+const { accessSecretKindForMode, accessSecretWording } = require('../lib/accessSecret');
 const { authLimiter } = require('../lib/rateLimit');
 const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const asyncHandler = require('../lib/asyncHandler');
@@ -47,6 +53,9 @@ const planContentCache = createWriteVersionCache({
   name: 'planContentCache',
 });
 
+/** Refus d'un mot de passe présenté par un lien (`?code=`, QR) : un mot de passe se saisit. */
+const PASSWORD_LINK_REFUSED = 'Ce plan est protégé par un mot de passe : saisissez-le.';
+
 /** Le visiteur a-t-il le droit d'obtenir la charge du plan ? */
 async function checkPlanAccess(req, settings) {
   return { ok: await isPlanAccessGranted(req, { accessMode: settings.access_mode }) };
@@ -66,14 +75,18 @@ function limitInlineAccessCode(req, res, next) {
 
 /** Charge gated : jamais `public` — un cache partagé (CDN, proxy) servirait sans cookie. */
 function planContentCacheControl(settings) {
-  const visibility = settings.access_mode === 'code' ? 'private' : 'public';
+  const visibility = accessSecretKindForMode(settings.access_mode) ? 'private' : 'public';
   return `${visibility}, max-age=${PLAN_CONTENT_MAX_AGE_S}`;
 }
 
 /**
- * Saisie du code d'accès : pose le laissez-passer si le code est bon. Limité en fréquence
- * (`authLimiter`) — c'est un secret court, il doit résister au tâtonnement. La comparaison
- * passe par bcrypt : le code n'est stocké que haché (`security.plan_access_code_hash`).
+ * Saisie du code d'accès ou du mot de passe (`ui.plan.access_mode` = `code` | `password`) :
+ * pose le laissez-passer si le secret est bon. Limité en fréquence (`authLimiter`) — le
+ * secret doit résister au tâtonnement. La comparaison passe par bcrypt : le secret n'est
+ * stocké que haché (`lib/accessSecret.js`).
+ *
+ * `via: 'link'` signale un code porté par un lien que le plan échange (`?code=`, QR code) :
+ * accepté pour un code d'accès, refusé (**403**) pour un mot de passe.
  */
 router.post(
   '/access',
@@ -81,27 +94,42 @@ router.post(
   express.json({ limit: '4kb' }),
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings({ prefix: PLAN_SETTINGS_PREFIX });
-    if (settings.access_mode !== 'code') return res.json({ ok: true, required: false });
-    const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
-    if (!hash) return res.json({ ok: true, required: false });
+    const secret = await resolvePublicPlanSecret(PLAN_SURFACE, settings.access_mode);
+    if (!secret) return res.json({ ok: true, required: false });
+    const { kind } = secret;
+    const wording = accessSecretWording(kind);
+    const via = req.body?.via === 'link' ? 'link' : 'form';
+    if (via === 'link' && kind === 'password') {
+      await logCodeAccessAttempt(req, PLAN_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.linkDisabled,
+        via,
+        kind,
+      });
+      return res.status(403).json({ error: PASSWORD_LINK_REFUSED, access_kind: kind });
+    }
     const code = String(req.body?.code || '').trim();
     if (!code) {
       await logCodeAccessAttempt(req, PLAN_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+        via,
+        kind,
       });
-      return res.status(400).json({ error: 'Code requis' });
+      return res.status(400).json({ error: wording.missing, access_kind: kind });
     }
-    const valid = await bcrypt.compare(code, hash).catch(() => false);
+    const valid = await bcrypt.compare(code, secret.hash).catch(() => false);
     if (!valid) {
       await logCodeAccessAttempt(req, PLAN_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+        via,
+        kind,
       });
-      return res.status(401).json({ error: 'Code incorrect' });
+      return res.status(401).json({ error: wording.invalid, access_kind: kind });
     }
-    await grantPlanAccess(res, hash);
-    await logCodeAccessAttempt(req, PLAN_SURFACE, { granted: true });
+    await grantPlanAccess(res, secret.hash);
+    await logCodeAccessAttempt(req, PLAN_SURFACE, { granted: true, via, kind });
     res.json({ ok: true, required: true });
   }),
 );
@@ -144,29 +172,43 @@ router.get(
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings({ prefix: PLAN_SETTINGS_PREFIX });
     // Lien profond porteur du code (`?code=`) : les QR codes internes fonctionnent sans
-    // saisie, et le laissez-passer est posé au passage.
+    // saisie, et le laissez-passer est posé au passage. Un mot de passe, lui, ne s'ouvre
+    // jamais par un lien.
     const inlineCode = String(req.query.code || '').trim();
     let grantedInline = false;
-    if (settings.access_mode === 'code' && inlineCode) {
-      const hash = String((await getSettingValue('security.plan_access_code_hash', '')) || '');
-      if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        await grantPlanAccess(res, hash);
+    if (inlineCode) {
+      const secret = await resolvePublicPlanSecret(PLAN_SURFACE, settings.access_mode);
+      if (
+        secret?.kind === 'code' &&
+        (await bcrypt.compare(inlineCode, secret.hash).catch(() => false))
+      ) {
+        await grantPlanAccess(res, secret.hash);
         // Le cookie vient d'être posé sur la réponse : il n'est pas encore dans la requête,
         // et cette requête-ci doit déjà être servie.
         grantedInline = true;
         await logCodeAccessAttempt(req, PLAN_SURFACE, { granted: true, via: 'link' });
-      } else if (hash) {
+      } else if (secret) {
         await logCodeAccessAttempt(req, PLAN_SURFACE, {
           granted: false,
-          reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+          reason:
+            secret.kind === 'password'
+              ? CODE_ACCESS_REFUSAL_REASONS.linkDisabled
+              : CODE_ACCESS_REFUSAL_REASONS.invalid,
           via: 'link',
+          kind: secret.kind,
         });
       }
     }
     const access = grantedInline ? { ok: true } : await checkPlanAccess(req, settings);
     if (!access.ok) {
+      // Refus : le plan est fermé par un secret ; `access_kind` dit lequel demander.
+      const kind = accessSecretKindForMode(settings.access_mode) || 'code';
       res.set('Cache-Control', 'no-store');
-      return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+      return res.status(401).json({
+        error: accessSecretWording(kind).required,
+        access_required: true,
+        access_kind: kind,
+      });
     }
     const resolved = await resolvePlanMap(req.query.map_id, settings);
     if (!resolved.map) {

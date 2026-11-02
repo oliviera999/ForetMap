@@ -28,6 +28,9 @@ export const PLAN_VARIANT = Object.freeze({
   acceptsLinkCode: true,
   accessIntro:
     'Ce plan est réservé à l’établissement. Saisissez le code qui vous a été communiqué.',
+  /** Même phrase quand le plan est fermé par un mot de passe (`access_kind: 'password'`). */
+  passwordIntro:
+    'Ce plan est réservé à l’établissement. Saisissez le mot de passe qui vous a été communiqué.',
 });
 
 /**
@@ -77,6 +80,8 @@ export const ENOV_PLAN_VARIANT = Object.freeze({
   requiresAccount: false,
   acceptsLinkCode: true,
   accessIntro: 'Ce plan est réservé aux invités du label e-nov. Saisissez le code communiqué.',
+  passwordIntro:
+    'Ce plan est réservé aux invités du label e-nov. Saisissez le mot de passe communiqué.',
   highlightPlaces: true,
   /** Bascule visible entre les cartes publiées (lycée, complexe sportif) sous la barre haute. */
   mapSwitcher: true,

@@ -23,11 +23,12 @@ const bcrypt = require('bcryptjs');
 
 const { getDataWriteVersion } = require('../database');
 const {
-  ENOV_PLAN_ACCESS_CODE_HASH_KEY,
   enovPlanAccessGate,
   grantEnovPlanAccess,
   isEnovPlanAccessGranted,
+  resolvePublicPlanSecret,
 } = require('../lib/planAccess');
+const { accessSecretKindForMode, accessSecretWording } = require('../lib/accessSecret');
 const { authLimiter } = require('../lib/rateLimit');
 const { logCodeAccessAttempt, CODE_ACCESS_REFUSAL_REASONS } = require('../lib/codeAccessJournal');
 const asyncHandler = require('../lib/asyncHandler');
@@ -58,9 +59,8 @@ const enovContentCache = createWriteVersionCache({
   name: 'enovContentCache',
 });
 
-async function readAccessCodeHash() {
-  return String((await getSettingValue(ENOV_PLAN_ACCESS_CODE_HASH_KEY, '')) || '');
-}
+/** Refus d'un mot de passe présenté par un lien (`?code=`, QR) : un mot de passe se saisit. */
+const PASSWORD_LINK_REFUSED = 'Ce plan est protégé par un mot de passe : saisissez-le.';
 
 /** Même limiteur que le plan public pour le code porté en query (`?code=`, QR). */
 function limitInlineAccessCode(req, res, next) {
@@ -72,38 +72,57 @@ function limitInlineAccessCode(req, res, next) {
 
 /** Charge gardée : jamais `public` — un cache partagé servirait sans cookie. */
 function enovContentCacheControl(settings) {
-  const visibility = settings.access_mode === 'code' ? 'private' : 'public';
+  const visibility = accessSecretKindForMode(settings.access_mode) ? 'private' : 'public';
   return `${visibility}, max-age=${ENOV_CONTENT_MAX_AGE_S}`;
 }
 
-/** Saisie du code de diffusion : pose le laissez-passer si le code est bon (bcrypt). */
+/**
+ * Saisie du code de diffusion ou du mot de passe : pose le laissez-passer si le secret est bon
+ * (bcrypt). Même règle que le plan public (`routes/plan.js`) : un mot de passe présenté par un
+ * lien (`via: 'link'`) est refusé.
+ */
 router.post(
   '/access',
   authLimiter,
   express.json({ limit: '4kb' }),
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings(ENOV_SETTINGS);
-    if (settings.access_mode !== 'code') return res.json({ ok: true, required: false });
-    const hash = await readAccessCodeHash();
-    if (!hash) return res.json({ ok: true, required: false });
+    const secret = await resolvePublicPlanSecret(ENOV_SURFACE, settings.access_mode);
+    if (!secret) return res.json({ ok: true, required: false });
+    const { kind } = secret;
+    const wording = accessSecretWording(kind);
+    const via = req.body?.via === 'link' ? 'link' : 'form';
+    if (via === 'link' && kind === 'password') {
+      await logCodeAccessAttempt(req, ENOV_SURFACE, {
+        granted: false,
+        reason: CODE_ACCESS_REFUSAL_REASONS.linkDisabled,
+        via,
+        kind,
+      });
+      return res.status(403).json({ error: PASSWORD_LINK_REFUSED, access_kind: kind });
+    }
     const code = String(req.body?.code || '').trim();
     if (!code) {
       await logCodeAccessAttempt(req, ENOV_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.missing,
+        via,
+        kind,
       });
-      return res.status(400).json({ error: 'Code requis' });
+      return res.status(400).json({ error: wording.missing, access_kind: kind });
     }
-    const valid = await bcrypt.compare(code, hash).catch(() => false);
+    const valid = await bcrypt.compare(code, secret.hash).catch(() => false);
     if (!valid) {
       await logCodeAccessAttempt(req, ENOV_SURFACE, {
         granted: false,
         reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+        via,
+        kind,
       });
-      return res.status(401).json({ error: 'Code incorrect' });
+      return res.status(401).json({ error: wording.invalid, access_kind: kind });
     }
-    await grantEnovPlanAccess(res, hash);
-    await logCodeAccessAttempt(req, ENOV_SURFACE, { granted: true });
+    await grantEnovPlanAccess(res, secret.hash);
+    await logCodeAccessAttempt(req, ENOV_SURFACE, { granted: true, via, kind });
     res.json({ ok: true, required: true });
   }),
 );
@@ -141,27 +160,40 @@ router.get(
   limitInlineAccessCode,
   asyncHandler(async (req, res) => {
     const settings = await loadPlanSettings(ENOV_SETTINGS);
+    // Code porté par un lien (`?code=`, QR remis à un jury) ; jamais un mot de passe.
     const inlineCode = String(req.query.code || '').trim();
     let grantedInline = false;
-    if (settings.access_mode === 'code' && inlineCode) {
-      const hash = await readAccessCodeHash();
-      if (hash && (await bcrypt.compare(inlineCode, hash).catch(() => false))) {
-        await grantEnovPlanAccess(res, hash);
+    if (inlineCode) {
+      const secret = await resolvePublicPlanSecret(ENOV_SURFACE, settings.access_mode);
+      if (
+        secret?.kind === 'code' &&
+        (await bcrypt.compare(inlineCode, secret.hash).catch(() => false))
+      ) {
+        await grantEnovPlanAccess(res, secret.hash);
         grantedInline = true;
         await logCodeAccessAttempt(req, ENOV_SURFACE, { granted: true, via: 'link' });
-      } else if (hash) {
+      } else if (secret) {
         await logCodeAccessAttempt(req, ENOV_SURFACE, {
           granted: false,
-          reason: CODE_ACCESS_REFUSAL_REASONS.invalid,
+          reason:
+            secret.kind === 'password'
+              ? CODE_ACCESS_REFUSAL_REASONS.linkDisabled
+              : CODE_ACCESS_REFUSAL_REASONS.invalid,
           via: 'link',
+          kind: secret.kind,
         });
       }
     }
     const granted =
       grantedInline || (await isEnovPlanAccessGranted(req, { accessMode: settings.access_mode }));
     if (!granted) {
+      const kind = accessSecretKindForMode(settings.access_mode) || 'code';
       res.set('Cache-Control', 'no-store');
-      return res.status(401).json({ error: 'Code d’accès requis', access_required: true });
+      return res.status(401).json({
+        error: accessSecretWording(kind).required,
+        access_required: true,
+        access_kind: kind,
+      });
     }
     const resolved = await resolvePlanMap(req.query.map_id, settings);
     if (!resolved.map) {

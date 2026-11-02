@@ -116,17 +116,17 @@ e-nov **retirerait** de tous les autres plans les lieux qui n'ont qu'elle.
 
 Dans _Réglages → Plan Lyautey_, section **« Plan e-nov (enov) »** :
 
-| Réglage                           | Effet                                                                                                          |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Catégories mises en avant**     | Les catégories dont les lieux ressortent (par défaut « e-nov » seule)                                          |
-| **Couleur du halo**               | La couleur de la mise en avant (halo, souligné, puce, encadré de la fiche) — par défaut le jaune du logo e-nov |
-| **Pastille « e-nov »**            | Ajoute une pastille « e-nov » à côté des lieux mis en avant, en plus du halo (désactivée)                      |
-| **Intitulé de la liste**          | Le nom de la puce qui liste les lieux mis en avant (par défaut « Innovations »)                                |
-| **Titre, message d'accueil**      | Le titre de l'application et la bulle affichée à la première ouverture                                         |
-| **Mention en pied de page**       | Une mention sur la carte (source du fond de plan, par exemple)                                                 |
-| **Autres plans proposés**         | D'autres cartes que le lecteur peut ouvrir depuis « Réglages → Plan affiché »                                  |
-| **Catégories cochées / masquées** | Comme sur le plan public : filtres à l'ouverture, catégories retirées des filtres                              |
-| **Mode d'accès, code d'accès**    | Public, ou fermé par un code (voir ci-dessous)                                                                 |
+| Réglage                              | Effet                                                                                                          |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **Catégories mises en avant**        | Les catégories dont les lieux ressortent (par défaut « e-nov » seule)                                          |
+| **Couleur du halo**                  | La couleur de la mise en avant (halo, souligné, puce, encadré de la fiche) — par défaut le jaune du logo e-nov |
+| **Pastille « e-nov »**               | Ajoute une pastille « e-nov » à côté des lieux mis en avant, en plus du halo (désactivée)                      |
+| **Intitulé de la liste**             | Le nom de la puce qui liste les lieux mis en avant (par défaut « Innovations »)                                |
+| **Titre, message d'accueil**         | Le titre de l'application et la bulle affichée à la première ouverture                                         |
+| **Mention en pied de page**          | Une mention sur la carte (source du fond de plan, par exemple)                                                 |
+| **Autres plans proposés**            | D'autres cartes que le lecteur peut ouvrir depuis « Réglages → Plan affiché »                                  |
+| **Catégories cochées / masquées**    | Comme sur le plan public : filtres à l'ouverture, catégories retirées des filtres                              |
+| **Mode d'accès, code, mot de passe** | Public, ou fermé par un code ou par un mot de passe (voir ci-dessous)                                          |
 
 La **carte** affichée est celle du Plan Lyautey public : la changer là change aussi le plan
 e-nov. Les **couleurs et le logo e-nov**, eux, ne se règlent pas : ils suivent la charte du label,
@@ -144,16 +144,25 @@ d'adresse dès que le plan est ouvert. Un visiteur entré avec le code
 le reste 30 jours sur son appareil (durée réglable de 1 à 90 jours, vérifiée par le serveur) ;
 changer le code referme la porte à tous.
 
-En mode « code » **sans** code enregistré, le plan reste ouvert à tous (on n'enferme pas les
-visiteurs dehors par un réglage à moitié rempli).
+Pour un jury qu'on ne veut pas voir transmettre l'accès d'une photo de QR code, choisissez
+plutôt le mode **« Mot de passe »** : un vrai mot de passe d'au moins 12 caractères, avec des
+lettres **et** des chiffres (les majuscules comptent ; le bouton « Générer un mot de passe » en
+propose un). Le visiteur le tape dans un champ masqué — que le navigateur peut retenir —, et
+aucun lien ni QR code ne l'ouvre. Il est lui aussi propre au plan e-nov, et distinct du code :
+on peut le préparer avant de changer de mode, et la bascule referme la porte aux appareils
+entrés avec le code.
+
+En mode « code » **sans** code enregistré (ou « mot de passe » sans mot de passe), le plan reste
+ouvert à tous (on n'enferme pas les visiteurs dehors par un réglage à moitié rempli) ; les
+réglages l'annoncent par un avertissement.
 
 ### Imprimer les plans annotés (dossier de labellisation)
 
 Dans _Réglages → Plan Lyautey_, section « Plan e-nov », le bloc **« Plans annotés à
 imprimer »** ouvre la page d'impression du plan e-nov : un bouton pour **tous les plans**, un
 bouton par carte (le lycée, le complexe sportif…). La page est aussi joignable directement à
-l'adresse `enov.olution.info/impression`. Si le plan e-nov est fermé par un code, elle le
-demande, comme le plan.
+l'adresse `enov.olution.info/impression`. Si le plan e-nov est fermé par un code ou un mot de
+passe, elle le demande, comme le plan.
 
 Chaque carte donne **une feuille A4** :
 
