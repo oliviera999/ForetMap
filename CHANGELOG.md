@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — connecteur Claude (MCP distant + serveur OAuth intégré)
+
+- **Endpoint `/mcp`** (Streamable HTTP du SDK `@modelcontextprotocol/sdk`, sans état, réponses
+  JSON — pas de SSE sous Passenger), monté hors de `/api/` avec son propre limiteur, sur l'hôte
+  ForetMap seulement. **Désactivé par défaut** (`MCP_ENABLED`). Doc : `docs/MCP.md`.
+- **Serveur d'autorisation OAuth 2.1** conforme aux exigences de Claude : 401 +
+  `WWW-Authenticate resource_metadata`, métadonnées RFC 9728 / RFC 8414 (CIMD annoncé),
+  enregistrement **CIMD** et **DCR**, redirections claude.ai + loopback Claude Code (port
+  ignoré), PKCE S256 obligatoire, écran de connexion avec les identifiants du site et le
+  **TOTP** existant, consentement, codes à usage unique, **rotation des refresh** avec
+  révocation de famille à la réutilisation, révocation RFC 7009. Jetons opaques **hachés**.
+  Jetons MCP refusés sur `/api/*`, JWT applicatifs refusés sur `/mcp`.
+- **Outils** : diagnostic (santé, diagnostics, journaux, migrations), contenu (recherche,
+  espèces FM/G&L, cartes, clés, réseau trophique, QCM, glossaires, plateau et lore G&L),
+  **14 audits de cohérence** (`foretmap_audit`, `foretmap_audit_all`), usage anonyme (n ≥ 5),
+  SQL borné (désactivé par défaut) et **écriture plan → apply** (active par défaut, admin
+  seulement : diff, contrôle d'état, transaction, `audit_log`, migration idempotente générée).
+- **Données personnelles** : liste blanche de tables de contenu, liste noire prioritaire,
+  colonnes nominatives retirées, transaction `READ ONLY` + délai max + `LIMIT` forcé ; fiche de
+  registre `docs/MCP_REGISTRE_TRAITEMENT.md` ; doc de référence
+  `docs/reference/foretmap/connecteur-claude.md`.
+- **Migration `324_mcp_oauth.sql`** (idempotente) : tables `mcp_oauth_clients`,
+  `mcp_oauth_auth_codes`, `mcp_oauth_tokens`, `mcp_content_plans` ; permissions `mcp.use`
+  (admin, prof), `mcp.write` et `mcp.sql` (admin seulement).
+- Script stdio Cursor (`scripts/mcp-foretmap-diagnostics.mjs`) refactoré sur le registre
+  partagé (anciens noms conservés) ; `npm run mcp:smoke` (flux OAuth complet + appels MCP).
+- `@modelcontextprotocol/sdk` passe en `dependencies` (la production installe `--production`).
+- Constat : `gl_qcm_question_glossary` n'existe plus depuis la migration 186 ; l'audit
+  `gl_qcm_glossary_link_divergence` compare les liens `import` de `gl_resource_question_links`
+  à l'appariement actuel (et l'ancienne table si une base en retard l'a encore).
+- Inspiration : `@modelcontextprotocol/sdk` (MIT,
+  https://github.com/modelcontextprotocol/typescript-sdk), RFC 9700, documentation connecteurs
+  Claude (https://claude.com/docs/connectors/building/authentication).
+
 ### Ajouté — plans : accès par un vrai mot de passe alphanumérique
 
 - **Nouveau mode d'accès « Mot de passe »** sur le plan public, le plan e-nov et la voie
