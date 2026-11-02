@@ -35,7 +35,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (admin, prof), `mcp.write` et `mcp.sql` (admin seulement).
 - Script stdio Cursor (`scripts/mcp-foretmap-diagnostics.mjs`) refactoré sur le registre
   partagé (anciens noms conservés) ; `npm run mcp:smoke` (flux OAuth complet + appels MCP).
-- `@modelcontextprotocol/sdk` passe en `dependencies` (la production installe `--production`).
+- `@modelcontextprotocol/sdk` passe en `dependencies` (la production installe `--production`)
+  et monte en `^1.32.2` (corrige GHSA-46jr-4wx8-v453, GHSA-rvq5-wwqv-78pq, GHSA-6prh-2h8m-c8cw,
+  GHSA-22jm-h49p-29qw, désormais audités par `npm audit --omit=dev`). Corps `/mcp` limité à
+  256 ko ; un jeton sans ressource est refusé (audience explicite).
 - Constat : `gl_qcm_question_glossary` n'existe plus depuis la migration 186 ; l'audit
   `gl_qcm_glossary_link_divergence` compare les liens `import` de `gl_resource_question_links`
   à l'appariement actuel (et l'ancienne table si une base en retard l'a encore).

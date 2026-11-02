@@ -544,3 +544,19 @@ test('jeton lié à sa ressource : refusé si l’URL publique change', async ()
   assert.equal(res.status, 401);
   assert.match(res.body.error_description, /autre ressource/);
 });
+
+test('jeton sans ressource refusé ; corps /mcp > 256 ko refusé (413)', async () => {
+  const tokens = await fx.obtainTokens(app, admin);
+  await execute('UPDATE mcp_oauth_tokens SET resource = NULL WHERE token_hash = ?', [
+    crypto.createHash('sha256').update(tokens.access_token).digest('hex'),
+  ]);
+  const res = await fx.rpc(app, tokens.access_token, 'tools/list');
+  assert.equal(res.status, 401);
+  const big = await request(app)
+    .post('/mcp')
+    .set('Content-Type', 'application/json')
+    .send(
+      JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'x', params: { p: 'a'.repeat(300_000) } }),
+    );
+  assert.equal(big.status, 413);
+});

@@ -46,7 +46,8 @@ Claude ──▶ /.well-known/oauth-protected-resource[/mcp]   (RFC 9728)
 - **Montage** (`server.js`) : avant les parseurs de corps généraux, avant la CSP de
   l'application (les pages de consentement posent la leur) et avant le fallback SPA ; **hors
   du limiteur général `/api/`**, avec un limiteur dédié (`MCP_RATE_LIMIT_PER_MIN`, clé = jeton
-  haché ou IP — le trafic de Claude sort des adresses partagées d'Anthropic).
+  haché ou IP — le trafic de Claude sort des adresses partagées d'Anthropic) et un corps JSON
+  limité à 256 ko.
 - **Hôte** : servi uniquement sur l'hôte du produit ForetMap principal. Sur `gl.*`, `plan.*`…
   ces chemins répondent 404 : un seul `resource`, un seul `issuer`. Les outils G&L lisent la
   base directement.
