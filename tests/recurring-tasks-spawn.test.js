@@ -185,11 +185,25 @@ test('Job recurrence : clone sans assignations et idempotence', async () => {
     childId,
   ]);
   assert.strictEqual(String(childAnchor.recurrence_anchor_date), '2020-01-01');
+  // Le départ est l'occurrence théorique (même jour de semaine que l'ancre) **accrochée au
+  // premier jour ouvré scolaire** : une occurrence qui tombe pendant des vacances est
+  // repoussée à la réouverture (migration 258). Comparer directement le jour de semaine
+  // échouait donc chaque fois que la date du jour suivait une coupure (ex. lundi 2 novembre
+  // 2026, après la Toussaint) : on remonte aux occurrences théoriques récentes et on vérifie
+  // que l'une d'elles, accrochée au jour ouvré, donne le départ observé.
   const jourAncre = new Date('2020-01-01T00:00:00Z').getUTCDay();
-  assert.strictEqual(
-    new Date(`${child.start_date}T00:00:00Z`).getUTCDay(),
-    jourAncre,
-    `départ ${child.start_date} attendu sur le jour de l'ancre`,
+  const { nextSchoolOpenDay } = require('../lib/schoolCalendar');
+  const { occurrenceDate, estimateOccurrenceIndex } = require('../lib/recurringTasks');
+  const kMax = estimateOccurrenceIndex('2020-01-01', 'weekly', String(child.start_date));
+  let accroche = false;
+  for (let k = kMax; k >= Math.max(1, kMax - 12) && !accroche; k -= 1) {
+    const theorique = occurrenceDate('2020-01-01', 'weekly', k);
+    assert.strictEqual(new Date(`${theorique}T00:00:00Z`).getUTCDay(), jourAncre);
+    if ((await nextSchoolOpenDay(theorique)) === String(child.start_date)) accroche = true;
+  }
+  assert.ok(
+    accroche,
+    `départ ${child.start_date} attendu sur le jour de l'ancre, ou sur le premier jour ouvré qui le suit`,
   );
 
   await runRecurringTaskSpawnJob({ force: true });

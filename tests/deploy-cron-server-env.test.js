@@ -34,6 +34,15 @@ const NODE_NAMES = new Set(['node', 'nodejs', 'npm', 'npx', 'corepack']);
  * PATH « système » sans node ni npm, comme celui d'une tâche cron chez o2switch : un dossier de
  * liens vers tous les exécutables de /usr/local/bin, /usr/bin et /bin, sauf ceux de Node.
  */
+function lexists(p) {
+  try {
+    fs.lstatSync(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function pathWithoutNode(root) {
   const dir = path.join(root, 'sysbin');
   fs.mkdirSync(dir, { recursive: true });
@@ -46,7 +55,11 @@ function pathWithoutNode(root) {
     }
     for (const name of names) {
       const target = path.join(dir, name);
-      if (NODE_NAMES.has(name) || fs.existsSync(target)) continue;
+      // `lstat` et non `existsSync` : ce dernier suit les liens, et un lien **cassé** de
+      // l'image système (ex. `/usr/bin/grub-ntldr-img` sur le runner GitHub, vu aussi par
+      // `/bin` → `usr/bin`) passait pour absent au second passage — d'où un `symlink`
+      // en EEXIST puis une copie d'une cible inexistante (ENOENT).
+      if (NODE_NAMES.has(name) || lexists(target)) continue;
       linkOrCopyFile(path.join(source, name), target);
     }
   }
