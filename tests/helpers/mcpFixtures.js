@@ -58,7 +58,22 @@ async function createAccount(roleSlug, { userType = 'teacher' } = {}) {
     await setAssignedRole(id, role.id);
   }
   await recomputeUserRole(id);
+  createdAccountIds.push(id);
   return { id, pseudo: `mcp_${stamp}`, password: PASSWORD };
+}
+
+const createdAccountIds = [];
+
+/**
+ * Supprime les comptes créés par ce fichier de test (cascade : jetons, plans, TOTP). Sans
+ * cela, un compte enrôlé en TOTP avec une clé propre au fichier ferait échouer la rotation de
+ * clé de `tests/auth-totp-admin.test.js` (secret indéchiffrable).
+ */
+async function cleanupAccounts() {
+  if (createdAccountIds.length === 0) return;
+  const ids = createdAccountIds.splice(0);
+  await execute(`DELETE FROM user_roles WHERE user_id IN (${ids.map(() => '?').join(', ')})`, ids);
+  await execute(`DELETE FROM users WHERE id IN (${ids.map(() => '?').join(', ')})`, ids);
 }
 
 function pkcePair() {
@@ -228,6 +243,7 @@ module.exports = {
   authorizeFlow,
   authorizeQuery,
   callTool,
+  cleanupAccounts,
   createAccount,
   csrfCookieOf,
   enableMcpEnv,

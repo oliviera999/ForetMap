@@ -74,6 +74,7 @@ test.after(async () => {
     "UPDATE plant_photos SET credit = REPLACE(credit, CONCAT('Auteur ', ?), '') WHERE id = 1",
     [seededEmail],
   );
+  await fx.cleanupAccounts();
 });
 
 test.beforeEach(() => fx.enableMcpEnv());

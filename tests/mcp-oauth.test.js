@@ -37,6 +37,8 @@ test.before(async () => {
 
 test.beforeEach(() => fx.enableMcpEnv());
 
+test.after(() => fx.cleanupAccounts());
+
 test('POST /mcp sans jeton : 401 + WWW-Authenticate resource_metadata', async () => {
   const res = await fx.rpc(app, null, 'tools/list');
   assert.equal(res.status, 401);
