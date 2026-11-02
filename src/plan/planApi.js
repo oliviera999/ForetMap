@@ -55,9 +55,17 @@ export async function fetchPlanContent(mapId = '', variant = PLAN_VARIANT) {
   return planApi(`${variant.apiBase}/content${suffix}`, 'GET', undefined, variant.getToken);
 }
 
-/** Saisie du code d'accès (lot 8) : pose le laissez-passer côté serveur. */
-export async function submitPlanAccessCode(code, variant = PLAN_VARIANT) {
-  return planApi(`${variant.apiBase}/access`, 'POST', { code });
+/**
+ * Saisie du code d'accès ou du mot de passe (lot 8) : pose le laissez-passer côté serveur.
+ * `via: 'link'` signale un code porté par un lien (`?code=`, QR code) que le plan échange :
+ * le serveur l'accepte pour un code d'accès, le refuse (403) pour un mot de passe.
+ * @param {string} code
+ * @param {object} [variant]
+ * @param {{ via?: 'form'|'link' }} [options]
+ */
+export async function submitPlanAccessCode(code, variant = PLAN_VARIANT, { via = 'form' } = {}) {
+  const body = via === 'link' ? { code, via: 'link' } : { code };
+  return planApi(`${variant.apiBase}/access`, 'POST', body);
 }
 
 /**

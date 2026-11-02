@@ -1386,6 +1386,9 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST    | `/api/settings/admin/plan-access-code`                       | Définir / effacer le code d’accès du Plan (`{ code }` clair → bcrypt serveur ; `code: ""` efface). **12 à 64 caractères** : **400** `Code trop court (12 caractères minimum)` en deçà (un code enregistré auparavant reste valide jusqu’à son remplacement). Permission `admin.settings.write`. L’écriture directe de `security.plan_access_code_hash` via PUT `:key` est refusée.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | POST    | `/api/settings/admin/staff-plan-access-code`                 | Idem pour le **plan des personnels** (`security.staff_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/settings/admin/enov-plan-access-code`                  | Idem pour le **plan e-nov** (`security.enov_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| POST    | `/api/settings/admin/plan-access-password` | Définir / effacer le **mot de passe** du Plan (mode `password`, `security.plan_access_password_hash`, empreinte **distincte** du code). Même corps `{ code }` ; **12 à 64 caractères avec au moins une lettre et un chiffre** — **400** `Le mot de passe doit mêler lettres et chiffres…` sinon. Même permission, même refus de l’écriture directe via PUT `:key`. |
+| POST    | `/api/settings/admin/staff-plan-access-password` | Idem pour le **plan des personnels** (`security.staff_plan_access_password_hash`). |
+| POST    | `/api/settings/admin/enov-plan-access-password` | Idem pour le **plan e-nov** (`security.enov_plan_access_password_hash`). |
 | PUT     | `/api/settings/admin/:key`                                   | Mettre à jour un réglage (`{ value }`) — validation complète (normalisation + cohérence croisée) **avant** persistance : un 400 garantit que rien n’a été enregistré ; panne interne → **500**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | POST    | `/api/settings/admin/maps`                                   | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | PUT     | `/api/settings/admin/maps/:id`                               | Mettre à jour une carte (label, ordre, activation, URL image, padding, pedago_level, `default_category_ids`, `hidden_category_ids` — chaîne `;`-séparée ou tableau d'ids ; omis = inchangé, vide = effacé ; 400 « Liste de catégories trop longue » au-delà de 8192 caractères). Réponse : la carte sérialisée comme dans `GET /api/maps`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -1542,7 +1545,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.map_id`               | string  | `lyautey`                          | Carte affichée par le plan                              |
 | `ui.plan.title`                | string  | `Plan Lyautey`                     | Titre de l'application                                  |
 | `ui.plan.welcome_hint`         | string  | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
-| `ui.plan.access_mode`          | enum    | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
+| `ui.plan.access_mode`          | enum    | `public`                           | `public`, `code` ou `password` (garde `lib/accessGate.js`, secrets `lib/accessSecret.js`) |
 | `ui.plan.attribution`          | string  | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
 | `ui.plan.public_base_url`      | string  | vide                               | URL publique du plan, base des liens profonds imprimés  |
 | `ui.plan.brand`                | json    | `{}`                               | Identité visuelle (couleurs / logo) du plan             |
@@ -1618,7 +1621,16 @@ cette règle restent valides jusqu'à leur remplacement (le serveur n'en connaî
 La console Réglages → Plan expose ce flux, avec un **générateur** (bouton « Générer un code ») :
 14 caractères tirés dans le navigateur (`crypto.getRandomValues`, `src/utils/accessCodeGenerator.js`)
 parmi minuscules et chiffres sans caractère ambigu (ni `0`/`o`, ni `1`/`i`/`l`), affichés en
-clair jusqu'à l'enregistrement. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+clair jusqu'à l'enregistrement.
+
+`security.plan_access_password_hash` (portée `admin`) : empreinte du **mot de passe** demandé en
+mode `ui.plan.access_mode = password`, écrite **uniquement** par
+`POST /api/settings/admin/plan-access-password` (même corps `{ code }`, **12 à 64 caractères dont
+au moins une lettre et un chiffre**, casse respectée ; **400** sinon ; `PUT :key` → **400**). Elle est
+distincte de celle du code : l'administrateur peut préparer le mot de passe avant de basculer le
+mode, et la bascule invalide les laissez-passer obtenus avec le code. Bouton « Générer un mot de
+passe » : 14 caractères mêlant majuscules, minuscules et chiffres (sans caractère ambigu), tirés
+dans le navigateur. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
 chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
 la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
 
@@ -1633,7 +1645,7 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 | --------------------------------------- | ------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
 | `ui.enov_plan.title`                    | string  | `Plan e-nov — <établissement>`           | Titre de l'application                                                                 |
 | `ui.enov_plan.welcome_hint`             | string  | phrase d'accueil                         | Bulle du premier lancement                                                             |
-| `ui.enov_plan.access_mode`              | enum    | `public`                                 | `public` ou `code` (code **propre** au plan e-nov)                                     |
+| `ui.enov_plan.access_mode`              | enum    | `public`                                 | `public`, `code` ou `password` (secrets **propres** au plan e-nov)                     |
 | `ui.enov_plan.attribution`              | string  | vide                                     | Mention en pied de carte                                                               |
 | `ui.enov_plan.selectable_map_ids`       | string  | vide                                     | Autres cartes proposées — et liste blanche de `?map_id=`                               |
 | `ui.enov_plan.default_category_ids`     | string  | vide                                     | Catégories cochées à l'ouverture                                                       |
@@ -1643,9 +1655,9 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 | `ui.enov_plan.badge_enabled`            | boolean | `false`                                  | Pastille « e-nov » à côté des lieux mis en avant, en plus du halo                      |
 | `ui.enov_plan.innovations_label`        | string  | `Innovations`                            | Intitulé de la puce qui liste les lieux mis en avant                                   |
 
-Portée `admin` : `security.enov_plan_access_code_hash`, écrite **uniquement** par
-`POST /api/settings/admin/enov-plan-access-code` (même contrat que le plan public ; `PUT :key`
-→ **400**).
+Portée `admin` : `security.enov_plan_access_code_hash` et `security.enov_plan_access_password_hash`,
+écrites **uniquement** par `POST /api/settings/admin/enov-plan-access-code` et
+`…/enov-plan-access-password` (même contrat que le plan public ; `PUT :key` → **400**).
 
 Durée des laissez-passer (portée `admin`, écriture par `PUT /api/settings/admin/:key`, **400**
 hors bornes) — voir « Accès du plan par code » :
@@ -2857,7 +2869,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     que sous `/uploads/` ou `/maps/` — un réglage d'apparence ne doit pas servir à appeler un
     domaine tiers depuis toutes les pages.
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
-  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
+  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code` | `password`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies dans le catalogue),
     `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage),
     `routes` (réglages `ui.routes.*` des parcours guidés, sans le préfixe — voir le tableau
@@ -2878,7 +2890,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
   `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,
-  `private, max-age=60` quand `access_mode` vaut `code` (un cache partagé ne doit pas
+  `private, max-age=60` quand `access_mode` vaut `code` ou `password` (un cache partagé ne doit pas
   servir la charge sans laissez-passer). Un refus 401 porte `Cache-Control: no-store`.
 - **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open`, `go` et
   `map_switch` (changement de plan affiché) via `POST /api/usage` (produit `plan`) — voir
@@ -3156,7 +3168,8 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
 - **Garde d'accès, par surface** : chaque surface se lit comme se lit sa charge.
   - `?surface=plan` (ou sans `surface`) et le détail `/:idOrSlug` → garde du plan
     (`lib/planAccess.js`) : **401** `{ access_required: true }` quand `ui.plan.access_mode`
-    vaut `code` et qu'un code est configuré, comme `GET /api/plan/content`.
+    vaut `code` (ou `password`) et que le secret correspondant est configuré, comme
+    `GET /api/plan/content`.
   - `?surface=visit` → ouvert (la Visite embarque aussi ses parcours dans
     `GET /api/visit/content`).
   - `?surface=map` → **compte requis** (la carte de travail est un écran interne) : **401**
@@ -3252,6 +3265,30 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.
 
+### Accès du plan par mot de passe
+
+Troisième valeur de `ui.plan.access_mode` (et de `ui.enov_plan.access_mode`,
+`ui.staff_plan.access_mode`) : **`password`**. Même mécanique que le code — empreinte bcrypt,
+`POST /access` `{ code }` sous le limiteur d'authentification, laissez-passer signé à échéance —
+avec une empreinte **propre** (`security.plan_access_password_hash`, règles dans
+`lib/accessSecret.js`) et ces différences :
+
+- **composition** imposée à l'enregistrement : 12 à 64 caractères, au moins une lettre **et** un
+  chiffre ; casse respectée à la saisie (`Enov2026Jury` ≠ `enov2026jury`) ;
+- **jamais par un lien** : `GET /content?code=…` n'ouvre pas un plan en mode `password` (refus
+  journalisé, motif `link_disabled`), et `POST /access` `{ code, via: 'link' }` — l'échange d'un
+  `?code=` par le front — répond **403** `{ error, access_kind: 'password' }` ;
+- **réponses** : `GET /content` refusé → **401** `{ error: 'Mot de passe requis',
+  access_required: true, access_kind: 'password' }` (`access_kind: 'code'` en mode code) ;
+  `POST /access` → **401** `Mot de passe incorrect` / **400** `Mot de passe requis`, avec
+  `access_kind`. Le front affiche alors un vrai champ de mot de passe (masqué, bouton
+  « Afficher », `autocomplete="current-password"`) au lieu du champ de code ;
+- **cloisonnement** : le laissez-passer est dérivé de l'empreinte en vigueur — un appareil entré
+  avec le code est refusé dès que le mode passe à `password`, et inversement.
+
+Mode `password` **sans** mot de passe configuré : comme pour le code, le plan reste ouvert (même
+s'il a un code enregistré : chaque mode a son secret).
+
 **Journal des saisies de code** (`lib/codeAccessJournal.js`) — plan public, plan e-nov et plan
 des personnels. Chaque saisie est inscrite au journal de sécurité (`security_events`, lu par
 `GET /api/audit/security`), **jamais le code saisi** :
@@ -3261,9 +3298,9 @@ des personnels. Chaque saisie est inscrite au journal de sécurité (`security_e
 | `action`      | `plan.access.code_granted` / `plan.access.code_refused` ; `enov_plan.access.*` ; `staff_plan.access.*` (aussi au journal d'audit)          |
 | `target_type` | `plan`, `enov_plan`, `staff_plan`                                                                                                          |
 | `result`      | `success` (laissez-passer posé) ou `failure` (refus)                                                                                       |
-| `reason`      | refus seulement : `code_invalid` (code faux), `code_missing` (code absent), `code_disabled` (entrée par code désactivée, plan des personnels), `rate_limited` (limiteur) |
+| `reason`      | refus seulement : `code_invalid` (code ou mot de passe faux), `code_missing` (rien de saisi), `code_disabled` (entrée par code désactivée, plan des personnels), `link_disabled` (mot de passe présenté par un lien), `rate_limited` (limiteur) |
 | `ip_address`  | adresse du client (colonne, plus dans le détail) ; `user_agent` de même                                                                    |
-| `payload_json`| `{ via: 'form' \| 'link', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)                                    |
+| `payload_json`| `{ via: 'form' \| 'link', kind: 'code' \| 'password', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)       |
 
 Rien n'est inscrit quand le plan est ouvert à tous (aucun code demandé). Les refus du
 limiteur strict (`authLimiter`, réponse **429**) sont inscrits **une fois par plan, par adresse
@@ -3286,9 +3323,9 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 
 | Méthode | URL                               | Auth                         | Description                                                                       |
 | ------- | --------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
-| GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled }`         |
+| GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled, access_kind }` |
 | GET     | `/api/staff-plan/content?map_id=` | compte **ou** laissez-passer | Charge de la surface `staff`, filtrée pour le lecteur                             |
-| POST    | `/api/staff-plan/access`          | non                          | `{ code }` → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
+| POST    | `/api/staff-plan/access`          | non                          | `{ code }` (code ou mot de passe) → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
 | POST    | `/api/staff-plan/logout`          | non                          | Rend le laissez-passer de code (cookie `staff_plan_access`) — toujours **200**    |
 | POST    | `/api/staff-plan/report`          | compte uniquement            | `{ contextType: 'zone'\|'marker', contextId, body }` → « Signaler ou proposer »   |
 
@@ -3325,14 +3362,18 @@ Deux voies, dans cet ordre.
    — accordée comme refusée — est inscrite au journal d'audit et au journal de sécurité**
    (`staff_plan.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif
    du refus dans `reason` : voir « Journal des saisies de code ») : un code partagé ne dit pas
-   qui entre.
+   qui entre. Variante **mot de passe** : `ui.staff_plan.access_mode = password`, empreinte
+   `security.staff_plan_access_password_hash` (`POST /api/settings/admin/staff-plan-access-password`,
+   12 caractères dont au moins une lettre et un chiffre) ; elle remplace le code dans la même
+   voie (même laissez-passer, même rôle endossé, même journal avec `kind: 'password'`).
 
-Mode `code` **sans** code configuré : la porte reste **fermée**, contrairement au plan public.
+Mode `code` (ou `password`) **sans** secret configuré : la porte reste **fermée**, contrairement au plan public.
 Cette surface n'a pas de version publique acceptable, un réglage à moitié rempli ne doit pas
 l'ouvrir.
 
-Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available }` —
-`code_available` dit au front s'il doit proposer la saisie du code à côté de la connexion.
+Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available, access_kind }` —
+`code_available` dit au front s'il doit proposer la saisie du secret à côté de la connexion,
+`access_kind` (`code` | `password`) lequel.
 
 ### Déconnexion (`POST /api/staff-plan/logout`)
 
@@ -3465,7 +3506,7 @@ en « visiteur » (`PUBLIC_SURFACES`).
 | ------- | --------------------------- | ---- | ----------------------------------------------------------------------------------- |
 | GET     | `/api/enov/content?map_id=` | non  | Charge publique de la surface `enov` (lieux e-nov mis en avant, texte e-nov)        |
 | GET     | `/api/enov/settings`        | non  | Réglages publics `ui.enov_plan.*` + `enov` (mise en avant), sans `map_id`           |
-| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
+| POST    | `/api/enov/access`          | non  | `{ code }` (code ou mot de passe) → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
 | POST    | `/api/enov/logout`          | non  | Oublie le laissez-passer — toujours **200**                                         |
 
 - **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,
@@ -3480,10 +3521,12 @@ en « visiteur » (`PUBLIC_SURFACES`).
 - **Carte servie**, **cartes proposées**, **cache** (par carte, périmé à la première
   écriture, `Cache-Control` `public`/`private` selon le mode) : comme le plan public, avec
   `ui.enov_plan.selectable_map_ids`.
-- **Accès par code** : même contrat que « Accès du plan par code » ci-dessus, avec
-  `ui.enov_plan.access_mode` et `security.enov_plan_access_code_hash`. Le code du plan e-nov
-  n'ouvre pas le plan public, et inversement. `POST /access` et `?code=` passent par le
-  limiteur d'authentification. Mode `code` sans code configuré : le plan reste ouvert.
+- **Accès par code ou mot de passe** : même contrat que « Accès du plan par code » et « Accès
+  du plan par mot de passe » ci-dessus, avec `ui.enov_plan.access_mode` et
+  `security.enov_plan_access_code_hash` / `security.enov_plan_access_password_hash`. Les
+  secrets du plan e-nov n'ouvrent pas le plan public, et inversement. `POST /access` et
+  `?code=` passent par le limiteur d'authentification. Mode `code` ou `password` sans secret
+  configuré : le plan reste ouvert.
 - **Routes génériques** (`/api/zones`, `/api/map/markers`, `/api/map-categories`, `/api/maps`)
   appelées sur le host `enov.*` : surface `enov`, même laissez-passer (`lib/surfaceAccess.js`).
 - **Page d'impression** `/impression` (front seul, entrée `enov.html`) : une feuille A4 par

@@ -114,7 +114,7 @@ vous êtes parti — `proflyautey` ou `stafflyautey`, selon le cas.
 Cette entrée est volontairement **séparée** de « Accès interface n3boss » : un agent ou un
 membre de la vie scolaire peut entrer sur le plan sans qu'on lui ouvre la console de gestion.
 
-### La voie secondaire : un code partagé (désactivée par défaut)
+### La voie secondaire : un code ou un mot de passe partagé (désactivée par défaut)
 
 Pour les personnels **sans compte** — un agent, un intervenant extérieur, un remplaçant —
 un administrateur peut activer une entrée par **code partagé**, dans
@@ -151,6 +151,17 @@ plan public, lui, n'ouvre jamais le plan des personnels, même si les deux sont 
 Le code n'est jamais stocké en clair, seulement son empreinte. Et contrairement au plan public,
 activer le mode « code » **sans** enregistrer de code ne laisse entrer personne : cette surface
 n'a pas de version publique acceptable.
+
+**Un mot de passe plutôt qu'un code.** Le mode d'entrée propose aussi **« Compte ou mot de
+passe partagé »**. Le mot de passe remplace alors le code dans la même voie secondaire — mêmes
+garde-fous (laissez-passer de 7 jours, profil endossé, journal) —, mais c'est un vrai mot de
+passe : au moins 12 caractères avec des lettres **et** des chiffres (les majuscules comptent),
+saisi dans un champ masqué que le navigateur peut retenir dans son gestionnaire de mots de
+passe. Sur l'écran de connexion, le lien devient « Je n'ai pas de compte : entrer le mot de
+passe ». Code et mot de passe sont deux secrets distincts : passer de l'un à l'autre referme la
+porte aux appareils entrés avec le précédent. Sans mot de passe enregistré, ce mode ne laisse
+entrer personne — les réglages l'annoncent par un avertissement. Un mot de passe partagé reste
+un secret partagé : il ne dit pas qui est entré, et ne remplace pas un compte.
 
 ## Ce qu'un personnel peut faire de plus
 
@@ -259,15 +270,15 @@ Ces lieux restent visibles sur le plan des personnels : vous ne perdez rien, vou
 
 ## Ce qui est partagé avec le plan public, et ce qui ne l'est pas
 
-| Réglage                               | Partagé avec le plan public ?                        |
-| ------------------------------------- | ---------------------------------------------------- |
-| La carte affichée, son calage GPS     | **Oui** — c'est la même carte de l'établissement     |
-| L'identité visuelle (couleurs, logo)  | **Oui**, hors la teinte brune qui distingue les deux |
-| Titre, message d'accueil, mention     | Non — propres au plan des personnels                 |
-| Profils autorisés (compte)            | Non — propres au plan des personnels                 |
-| Catégories cochées d'office, masquées | Non — propres au plan des personnels                 |
-| Autres plans proposés au changement   | Non — propres au plan des personnels                 |
-| Mode d'entrée, code, profil du code   | Non — propres au plan des personnels                 |
+| Réglage                                           | Partagé avec le plan public ?                        |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| La carte affichée, son calage GPS                 | **Oui** — c'est la même carte de l'établissement     |
+| L'identité visuelle (couleurs, logo)              | **Oui**, hors la teinte brune qui distingue les deux |
+| Titre, message d'accueil, mention                 | Non — propres au plan des personnels                 |
+| Profils autorisés (compte)                        | Non — propres au plan des personnels                 |
+| Catégories cochées d'office, masquées             | Non — propres au plan des personnels                 |
+| Autres plans proposés au changement               | Non — propres au plan des personnels                 |
+| Mode d'entrée, code, mot de passe, profil endossé | Non — propres au plan des personnels                 |
 
 La carte n'a volontairement **pas** de réglage séparé : deux réglages à tenir synchronisés à la
 main finiraient par diverger, pour aucun gain.

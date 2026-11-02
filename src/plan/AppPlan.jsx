@@ -41,6 +41,7 @@ import {
 } from './planApi.js';
 import { purgeCachedPlanApi } from '../utils/localDataCleanup.js';
 import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
+import { accessIntroFor } from './utils/planAccessKind.js';
 import { fingerprintCategoryDefaults } from './utils/planCategoryDefaults.js';
 import { PlanAccountGate } from './components/PlanAccountGate.jsx';
 import {
@@ -134,6 +135,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     accessRequired,
     authRequired,
     codeAvailable,
+    accessKind,
     viewer,
     reload,
     forgetLinkCode,
@@ -215,11 +217,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * Y a-t-il une session à rendre ?
    *
    * Plan des personnels : toujours — on y entre par un compte ou par un laissez-passer de
-   * code. Plan public : seulement quand l'établissement le ferme par un code de diffusion ;
-   * ouvert à tous, il n'y a rien à quitter, et un bouton « Se déconnecter » n'y voudrait rien
-   * dire.
+   * code. Plan public : seulement quand l'établissement le ferme par un code de diffusion ou
+   * un mot de passe ; ouvert à tous, il n'y a rien à quitter, et un bouton « Se déconnecter »
+   * n'y voudrait rien dire.
    */
-  const canLogout = Boolean(variant.requiresAccount || settings?.access_mode === 'code');
+  const canLogout = Boolean(
+    variant.requiresAccount ||
+    settings?.access_mode === 'code' ||
+    settings?.access_mode === 'password',
+  );
   /** Réglages ouvrables : une session à rendre, ou plusieurs plans proposés. */
   const hasSettings = canLogout || (maps || []).length > 1;
 
@@ -1085,6 +1091,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           title={title}
           intro={variant.accessIntro}
           codeAvailable={codeAvailable}
+          codeKind={accessKind}
           onSubmitCode={submitAccessCode}
         />
       </div>
@@ -1097,7 +1104,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         <AccessCodeGate
           className="plan-access-gate"
           title={title}
-          intro={variant.accessIntro}
+          intro={accessIntroFor(variant, accessKind)}
+          kind={accessKind}
           onSubmit={submitAccessCode}
         />
         {/* Notice publique, lisible sans le code (audit RGPD du 30/09/2026, RG1). */}
