@@ -262,6 +262,19 @@ app.use('/api', (req, res, next) => {
   return next();
 });
 
+// Connecteur Claude (MCP distant, `lib/mcp/`) : `/mcp`, `/oauth/*`, `/.well-known/oauth-*`.
+// **La position compte** : hors de `/api/` (donc hors du limiteur général, avec son limiteur
+// dédié), avant les parseurs de corps généraux (corps propres : JSON 1 Mo pour `/mcp`,
+// formulaire 32 ko pour `/oauth/token`), avant la CSP de l'application (les pages de
+// consentement posent la leur) et avant le fallback SPA. Désactivé par défaut
+// (`MCP_ENABLED`) ; servi sur l'hôte ForetMap seulement. Voir docs/MCP.md.
+const { mountMcp } = require('./lib/mcp');
+const { rejectMcpTokensOnApi } = require('./lib/mcp/oauth/bearer');
+mountMcp(app, { resolveProductId: resolveSecureProductId });
+// Isolation des jetons : un jeton d'accès du connecteur n'ouvre aucune route `/api/*`
+// (ForetMap comme G&L) ; un JWT applicatif n'ouvre pas `/mcp` (refusé par `lib/mcp/oauth/bearer.js`).
+app.use('/api', rejectMcpTokensOnApi);
+
 // Collecteur des signalements CSP. **La position compte** : après le limiteur `/api/` (un
 // navigateur emballé reste borné) et après le verrou de readiness (dont il est exempté ci-dessus),
 // mais **avant** les parseurs de corps généraux — sinon un signalement serait lu avec la limite
