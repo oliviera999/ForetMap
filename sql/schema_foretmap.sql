@@ -1641,6 +1641,7 @@ CREATE TABLE IF NOT EXISTS mcp_oauth_tokens (
   user_id VARCHAR(64) NOT NULL,
   scope VARCHAR(255) NOT NULL,
   resource VARCHAR(512) DEFAULT NULL,
+  token_epoch INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'users.token_epoch à l’émission : un changement de mot de passe ou une désactivation invalide le jeton',
   expires_at DATETIME NOT NULL,
   revoked_at DATETIME DEFAULT NULL,
   rotated_at DATETIME DEFAULT NULL COMMENT 'Refresh déjà échangé : toute réutilisation révoque la famille',
