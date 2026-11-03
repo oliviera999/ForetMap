@@ -157,7 +157,7 @@ test('plan e-nov : innovation mise en avant, listée, fiche ouverte sur son text
   const results = page.getByTestId('plan-results-sheet');
   await expect(results).toBeVisible({ timeout: 15_000 });
   await expect(results.getByRole('heading', { name: /Innovations \(/ })).toBeVisible();
-  await results.locator('.plan-results__btn').filter({ hasText: 'Innovation' }).first().click();
+  await results.locator('.plan-results__btn').filter({ hasText: 'Espace retenu' }).first().click();
 
   const placeSheet = page.getByTestId('plan-place-sheet');
   await expect(placeSheet).toBeVisible({ timeout: 15_000 });

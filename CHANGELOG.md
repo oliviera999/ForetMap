@@ -16,6 +16,41 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   Gemini CLI).
 - Script `npm run mcp:activate-check` : contrôle `/mcp` (401), métadonnées OAuth, well-known,
   rappel des étapes client ; option `--print-env` / `--local-env`.
+### Corrigé — connecteur Claude : migration qui perd la seconde correction d'un même champ
+
+- Un plan qui corrige deux fois la même cellule (même fiche, même champ) produisait une
+  migration dont le second `UPDATE` restait gardé par la valeur d'origine. Rejouée sur une
+  base neuve, cette seconde correction ne modifiait aucune ligne : le texte livré n'était
+  pas celui appliqué en direct. La garde et le diff s'enchaînent désormais sur le résultat
+  de la correction précédente ; un autre champ du même plan n'est pas concerné.
+### Corrigé — pré-saisie : un crédit nettoyé ne revient pas avec les photos
+
+- Intégrer des photos de pré-saisie réécrivait le miroir public depuis les seules lignes
+  de table. Quand les colonnes avaient déjà été nettoyées (adresse retirée du crédit,
+  migration 313) ou portaient un lien absent de la table, cette intégration republiait
+  l’ancienne attribution ou faisait disparaître le lien. Le miroir repart maintenant des
+  photos affichées, comme le téléversement.
+### Modifié — plan e-nov : deux niveaux de lieux, plan imprimé aligné sur le dossier N3
+
+- **Deux niveaux de mise en avant** : les espaces **retenus** par le dossier (jaune du label,
+  catégorie `cat-enov`) et les **autres lieux d'innovation** (bleu ciel du label, nouvelle
+  catégorie-label `cat-enov-secondaire`), même style, autre couleur. Réglages
+  `ui.enov_plan.secondary_category_ids`, `secondary_color` (validé `#rrggbb`),
+  `primary_label`, `secondary_label` ; charge `/api/enov/content` : `enov_tier` par lieu.
+  Carte partagée : drapeau générique `map_highlight_tone` → classe `is-highlight-secondary`.
+  Liste « Innovations » ordonnée (espaces retenus d'abord), étiquettes « Espace retenu » /
+  « Autre lieu », niveau dit dans l'encadré de fiche.
+- **Plan imprimé (`/impression`)** : légende en deux parties (espaces retenus par type avec
+  texte ; autres lieux en deux colonnes) qui ne déborde plus ; séries regroupées sous un seul
+  numéro (cinq points de tri → une entrée) ; numéros superposés écartés avec trait de rappel ;
+  noms de repérage sans chevauchement ; légende sous la carte pour une carte en largeur ;
+  cartes sans lieu mis en avant décochées d'office ; sous-titre et note de bas de page alignés
+  sur le dossier ; espaces insécables dans les nombres et unités.
+- **Migration 326** (données) : catégorie du second niveau ; reclassement explicite des lieux
+  non retenus par la pièce 3 du dossier ; `enov_space_type` déduit des sous-catégories
+  `cat-enov-*` (il était vide partout : légende « Type d'espace non renseigné ») ; filtre
+  d'ouverture et message d'accueil du plan e-nov ; repère Watt2O ; texte des structures
+  végétalisantes aligné sur le dossier.
 
 ### Ajouté — connecteur MCP multi-clients (Cursor, ChatGPT, Gemini CLI)
 

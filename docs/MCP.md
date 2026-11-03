@@ -368,9 +368,11 @@ voit pas ces outils et se les voit refuser. `MCP_WRITE_ENABLED=false` les retire
    écriture dans `audit_log`, et renvoi de la migration équivalente.
 3. **`foretmap_export_plan_as_migration`** : migration + rollback seuls, nom de fichier suggéré.
 
-La migration générée est **idempotente** : chaque `UPDATE` est gardé par la valeur attendue
-avant correction (comparaison `BINARY`), chaque liaison par `INSERT IGNORE` / `DELETE` ciblé.
-Le rollback garde symétriquement la valeur d'après.
+La migration générée est **idempotente** et équivalente à l'application dans l'ordre du plan :
+chaque `UPDATE` est gardé par la valeur attendue juste avant lui (comparaison `BINARY`). Si le
+plan corrige deux fois la même cellule, la seconde part du résultat de la première, pas de
+l'instantané d'origine. Chaque liaison passe par `INSERT IGNORE` / `DELETE` ciblé. Le rollback
+défait les opérations dans l'ordre inverse.
 
 ### Pourquoi la voie « migration par PR » reste privilégiée
 

@@ -28,6 +28,8 @@ const SNAPSHOT_KEYS = [
   'ui.enov_plan.highlight_category_ids',
   'ui.enov_plan.access_mode',
   'ui.enov_plan.highlight_color',
+  'ui.enov_plan.secondary_category_ids',
+  'ui.enov_plan.secondary_color',
   'ui.enov_plan.badge_enabled',
   'security.enov_plan_access_code_hash',
 ];
@@ -43,6 +45,8 @@ let loge;
 let hall;
 let local;
 let fablab;
+let second;
+let tri;
 
 function auth(req, token = teacherToken) {
   return req.set('Authorization', 'Bearer ' + token);
@@ -83,12 +87,21 @@ test.before(async () => {
     isDistinction: true,
   });
   await saveSetting('ui.enov_plan.highlight_category_ids', label.id);
+  // Second niveau (migration 326) : autres lieux d'innovation, même style, autre couleur.
+  second = await fx.createLocationCategory({
+    mapId,
+    label: 'e-nov autres lieux (test)',
+    surfaces: ['enov'],
+    isDistinction: true,
+  });
+  await saveSetting('ui.enov_plan.secondary_category_ids', second.id);
 
   cdi = await fx.createZone({ mapId, name: 'CDI' });
   loge = await fx.createZone({ mapId, name: 'Loge' });
   hall = await fx.createZone({ mapId, name: 'Hall' });
   local = await fx.createZone({ mapId, name: 'Local PPMS', hiddenSurfaces: ['plan', 'enov'] });
   fablab = await fx.createMarker({ mapId, label: 'Fablab' });
+  tri = await fx.createMarker({ mapId, label: 'Point de tri' });
   for (const [zoneId, categoryId] of [
     [cdi.id, salles.id],
     [cdi.id, label.id],
@@ -96,6 +109,9 @@ test.before(async () => {
     [loge.id, label.id],
     [hall.id, salles.id],
     [local.id, label.id],
+    // Le CDI porte aussi le second niveau : le premier l'emporte.
+    [cdi.id, second.id],
+    [hall.id, second.id],
   ]) {
     await execute('INSERT IGNORE INTO zone_categories (zone_id, category_id) VALUES (?, ?)', [
       zoneId,
@@ -105,6 +121,10 @@ test.before(async () => {
   await execute('INSERT IGNORE INTO marker_categories (marker_id, category_id) VALUES (?, ?)', [
     fablab.id,
     label.id,
+  ]);
+  await execute('INSERT IGNORE INTO marker_categories (marker_id, category_id) VALUES (?, ?)', [
+    tri.id,
+    second.id,
   ]);
   await execute('UPDATE zones SET enov_description = ? WHERE id = ?', [
     'Espace de robotique ouvert aux élèves.',
@@ -157,10 +177,10 @@ test('GET /api/enov/content : tout le plan, lieux e-nov mis en avant, texte e-no
   // Même plan que le plan public : la salle ordinaire y est, le lieu retiré du public non.
   assert.ok(zones.has(hall.id), 'lieu ordinaire présent');
   assert.ok(!zones.has(local.id), 'lieu masqué sur le plan public : masqué ici aussi');
-  assert.equal(zones.get(hall.id).is_enov, false);
   assert.equal(zones.get(hall.id).enov_description, '');
 
   assert.equal(zones.get(cdi.id).is_enov, true);
+  assert.equal(zones.get(cdi.id).enov_tier, 'primary', 'les deux niveaux : le premier gagne');
   assert.equal(zones.get(cdi.id).enov_description, 'Espace de robotique ouvert aux élèves.');
   // Type d'espace (migration 323) : servi tel quel, `''` quand il n'est pas renseigné.
   assert.equal(zones.get(cdi.id).enov_space_type, 'pedagogique');
@@ -170,6 +190,7 @@ test('GET /api/enov/content : tout le plan, lieux e-nov mis en avant, texte e-no
 
   const marker = res.body.markers.find((m) => m.id === fablab.id);
   assert.equal(marker.is_enov, true);
+  assert.equal(marker.enov_tier, 'primary');
   assert.equal(marker.enov_description, 'Imprimantes 3D en libre accès.');
 
   assert.ok(
@@ -180,6 +201,46 @@ test('GET /api/enov/content : tout le plan, lieux e-nov mis en avant, texte e-no
   assert.match(res.body.settings.enov.highlight_color, /^#[0-9a-f]{6}$/);
   assert.equal(typeof res.body.settings.enov.badge_enabled, 'boolean');
   assert.ok(res.body.settings.enov.innovations_label);
+});
+
+test('GET /api/enov/content : second niveau (autres lieux d’innovation), migration 326', async () => {
+  const res = await request(app).get('/api/enov/content').expect(200);
+  const zones = new Map(res.body.zones.map((z) => [z.id, z]));
+  // Le hall ne porte que le second niveau : mis en avant, au second rang.
+  assert.equal(zones.get(hall.id).is_enov, true);
+  assert.equal(zones.get(hall.id).enov_tier, 'secondary');
+  const marker = res.body.markers.find((m) => m.id === tri.id);
+  assert.equal(marker.is_enov, true);
+  assert.equal(marker.enov_tier, 'secondary');
+  // Un lieu sans label : ni l'un ni l'autre.
+  const ordinary = await fx.createZone({ mapId, name: 'Préau' });
+  clearCaches();
+  const again = await request(app).get('/api/enov/content').expect(200);
+  const preau = again.body.zones.find((z) => z.id === ordinary.id);
+  assert.equal(preau.is_enov, false);
+  assert.equal(preau.enov_tier, '');
+
+  const { enov } = res.body.settings;
+  assert.deepEqual(enov.secondary_category_ids, [second.id]);
+  assert.match(enov.secondary_color, /^#[0-9a-f]{6}$/);
+  assert.ok(enov.primary_label);
+  assert.ok(enov.secondary_label);
+
+  // Une couleur invalide retombe sur le bleu ciel du label, pas sur le jaune.
+  await saveSetting('ui.enov_plan.secondary_color', 'bleu');
+  const fallback = await request(app).get('/api/enov/content').expect(200);
+  assert.equal(fallback.body.settings.enov.secondary_color, '#66a4d9');
+});
+
+test('migration 326 : catégorie du second niveau semée, label, sur le seul plan e-nov', async () => {
+  const row = await queryOne(
+    'SELECT surfaces, is_distinction, is_active FROM location_categories WHERE id = ?',
+    ['cat-enov-secondaire'],
+  );
+  assert.ok(row, 'catégorie cat-enov-secondaire semée');
+  assert.equal(row.surfaces, 'enov');
+  assert.equal(Number(row.is_distinction), 1);
+  assert.equal(Number(row.is_active), 1);
 });
 
 test('GET /api/plan/content : le label ne retire aucun lieu et ne sort pas', async () => {
@@ -333,12 +394,19 @@ test('réglages : couleur validée, empreinte du code non écrivable, settings p
   await auth(request(app).put('/api/settings/admin/ui.enov_plan.highlight_color'))
     .send({ value: '#22AA88' })
     .expect(200);
+  await auth(request(app).put('/api/settings/admin/ui.enov_plan.secondary_color'))
+    .send({ value: 'bleu' })
+    .expect(400);
+  await auth(request(app).put('/api/settings/admin/ui.enov_plan.secondary_color'))
+    .send({ value: '#66A4D9' })
+    .expect(200);
   await auth(request(app).put('/api/settings/admin/security.enov_plan_access_code_hash'))
     .send({ value: 'x' })
     .expect(400);
   clearCaches();
   const res = await request(app).get('/api/enov/settings').expect(200);
   assert.equal(res.body.enov.highlight_color, '#22aa88');
+  assert.equal(res.body.enov.secondary_color, '#66a4d9');
   assert.equal(res.body.map_id, undefined, 'réglage d’exploitation non exposé');
 });
 
