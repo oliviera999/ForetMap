@@ -111,6 +111,24 @@ test('redirections : claude.ai exacte, loopback port ignoré (localhost et 127.0
   );
 });
 
+test('redirections multi-clients : Cursor, ChatGPT (stable + préfixe), Gemini CLI', () => {
+  assert.ok(clients.isRedirectAllowedByServer('https://www.cursor.com/agents/mcp/oauth/callback'));
+  assert.ok(clients.isRedirectAllowedByServer('http://localhost:8787/callback'));
+  assert.ok(
+    clients.isRedirectAllowedByServer('https://chatgpt.com/connector_platform_oauth_redirect'),
+  );
+  assert.ok(clients.isRedirectAllowedByServer('https://chatgpt.com/connector/oauth/cb_abc123'));
+  assert.ok(!clients.isRedirectAllowedByServer('https://chatgpt.com/connector/oauth/'));
+  assert.ok(!clients.isRedirectAllowedByServer('https://chatgpt.com/connector/other/x'));
+  assert.ok(clients.isRedirectAllowedByServer('http://localhost:19234/oauth/callback'));
+  assert.ok(clients.isRedirectAllowedByServer('http://127.0.0.1:9/oauth/callback'));
+  assert.ok(!clients.isRedirectAllowedByServer('cursor://anysphere.cursor-mcp/oauth/callback'));
+  assert.equal(
+    clients.validateRedirectUriShape('cursor://anysphere.cursor-mcp/oauth/callback'),
+    'redirect_uri doit être en https (ou http sur une adresse de bouclage)',
+  );
+});
+
 test('DCR : client public enregistré, redirections et méthode validées', async () => {
   const ok = await request(app)
     .post('/oauth/register')
@@ -138,6 +156,54 @@ test('DCR : client public enregistré, redirections et méthode validées', asyn
     .post('/oauth/register')
     .send({ redirect_uris: ['https://claude.ai/api/mcp/auth_callback#x'] });
   assert.equal(fragment.status, 400);
+});
+
+test('DCR : filtre les redirect_uris hors allowlist (Cursor mix)', async () => {
+  const mixed = await request(app)
+    .post('/oauth/register')
+    .send({
+      client_name: 'Cursor',
+      redirect_uris: [
+        'https://www.cursor.com/agents/mcp/oauth/callback',
+        'http://localhost:8787/callback',
+        'cursor://anysphere.cursor-mcp/oauth/callback',
+        'https://evil.example/cb',
+      ],
+    });
+  assert.equal(mixed.status, 201, JSON.stringify(mixed.body));
+  assert.deepEqual(mixed.body.redirect_uris, [
+    'https://www.cursor.com/agents/mcp/oauth/callback',
+    'http://localhost:8787/callback',
+  ]);
+});
+
+test('CIMD : document ChatGPT-like avec redirect préfixe accepté', async () => {
+  const url = 'https://chatgpt.com/oauth/client.json';
+  clients.setCimdFetcherForTests(async (u) => {
+    assert.equal(u, url);
+    return {
+      status: 200,
+      body: Buffer.from(
+        JSON.stringify({
+          client_id: url,
+          client_name: 'ChatGPT',
+          redirect_uris: [
+            'https://chatgpt.com/connector_platform_oauth_redirect',
+            'https://chatgpt.com/connector/oauth/cb_test1',
+            'https://evil.example/cb',
+          ],
+        }),
+      ),
+      contentType: 'application/json',
+    };
+  });
+  const client = await clients.resolveClient(url);
+  assert.equal(client.kind, 'cimd');
+  assert.deepEqual(client.redirect_uris, [
+    'https://chatgpt.com/connector_platform_oauth_redirect',
+    'https://chatgpt.com/connector/oauth/cb_test1',
+  ]);
+  clients.setCimdFetcherForTests(null);
 });
 
 test('CIMD : document lu, validé (client_id = URL) et mis en cache', async () => {

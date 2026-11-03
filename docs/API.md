@@ -790,7 +790,7 @@ Sources de référence :
 
 ---
 
-## Connecteur Claude — MCP distant et OAuth (`/mcp`, `/oauth/*`, `/.well-known/*`)
+## Connecteur MCP distant et OAuth (`/mcp`, `/oauth/*`, `/.well-known/*`)
 
 Hors préfixe `/api/` (limiteur dédié, pas le limiteur général). **Désactivé par défaut**
 (`MCP_ENABLED`) : toutes ces routes répondent alors **404**. Servi sur l'hôte ForetMap
@@ -1347,7 +1347,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `observations.read.group`      | Lecture observations par groupe | Consulter les observations du périmètre de groupe                                                               |
 | `observations.validate`        | Validation des observations d’espèces | Valider ou refuser les observations d’espèces des élèves (confirme la présence sur le site, migration 307) |
 | `forum.group.moderate`         | Modération forum par groupe     | Modérer les fils/messages dans les groupes accessibles                                                          |
-| `mcp.use`                      | Connecteur Claude (MCP)         | Se connecter au connecteur MCP distant (`/mcp`) et lire le contenu pédagogique (admin, prof) — `docs/MCP.md`     |
+| `mcp.use`                      | Connecteur MCP                  | Se connecter au connecteur MCP distant (`/mcp`) et lire le contenu pédagogique (admin, prof) — `docs/MCP.md`     |
 | `mcp.write`                    | Écriture par le connecteur MCP  | Plans de correction de contenu puis application (portée `foretmap.write`, **admin** seulement)                  |
 | `mcp.sql`                      | Requêtes SQL par le connecteur  | `foretmap_sql_select` (admin ; coupé par défaut : `MCP_SQL_ENABLED` **et** compte `DB_MCP_USER` requis)         |
 
