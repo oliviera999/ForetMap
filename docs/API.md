@@ -795,7 +795,10 @@ Sources de référence :
 Hors préfixe `/api/` (limiteur dédié, pas le limiteur général). **Désactivé par défaut**
 (`MCP_ENABLED`) : toutes ces routes répondent alors **404**. Servi sur l'hôte ForetMap
 uniquement (404 sur `gl.*`, `plan.*`…). Détail, variables et mise en production :
-[MCP.md](MCP.md) ; données personnelles : [MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
+[MCP.md](MCP.md) ; guide simple d'activation (tous assistants) :
+[reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md) ;
+contrôle : `npm run mcp:activate-check -- --base https://<domaine>` ; données personnelles :
+[MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
 
 | Méthode | URL                                        | Accès                          | Contrat                                                                                                     |
 | ------- | ------------------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
