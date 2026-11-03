@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Migration 326 (mode productivité MCP) : table mcp_confirmations, permissions admin.
+ * Migration 327 (mode productivité MCP) : table mcp_confirmations, permissions admin.
  */
 
 require('./helpers/setup');
@@ -24,9 +24,9 @@ test('table mcp_confirmations créée', async () => {
   assert.equal(rows.length, 1);
 });
 
-test('migration 326 rejouable (idempotente)', async () => {
+test('migration 327 rejouable (idempotente)', async () => {
   const sql = fs.readFileSync(
-    path.join(__dirname, '..', 'migrations', '326_mcp_productivity.sql'),
+    path.join(__dirname, '..', 'migrations', '327_mcp_productivity.sql'),
     'utf8',
   );
   const conn = await pool.getConnection();

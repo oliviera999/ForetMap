@@ -823,7 +823,7 @@ exposés et portées : [MCP.md § 4](MCP.md).
 `MCP_SQL_MAX_AFFECTED_ROWS` : voir [MCP.md § 2 et § 13](MCP.md). Outils additionnels possibles :
 `foretmap_sql_execute`, `foretmap_content_change` (si plan non exigé), `foretmap_list_students`,
 `foretmap_get_student` (bypass actif). Confirmation par code e-mail pour certaines exécutions SQL
-(`mcp_confirmations`, migration `326_mcp_productivity.sql`).
+(`mcp_confirmations`, migration `327_mcp_productivity.sql`).
 
 ---
 
