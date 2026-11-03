@@ -301,44 +301,115 @@ test('écriture : tables et colonnes hors liste blanche refusées (PII interdite
   assert.equal(col.data.code, 'MCP_WRITE_REJECTED');
 });
 
-test('SQL : coupé par défaut ; activé, SELECT borné et rejets', async () => {
+test('SQL : coupé par défaut, exige DB_MCP_USER, refus prouvés sur MariaDB réel (B1)', async () => {
   const off = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
     sql: 'SELECT 1 FROM plants',
   });
   assert.equal(off.isError, true);
+
+  // Drapeau seul : toujours indisponible sans compte MySQL dédié.
   process.env.MCP_SQL_ENABLED = 'true';
-  const ok = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
-    sql: 'SELECT id, name FROM plants ORDER BY id',
-    limit: 3,
+  delete process.env.DB_MCP_USER;
+  assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
+  const noPool = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+    sql: 'SELECT 1 FROM plants',
   });
-  assert.equal(ok.isError, false, ok.text);
-  assert.equal(ok.data.rows.length, 3);
-  const rejected = [
-    'SELECT * FROM users',
-    'SELECT 1 FROM plants; DROP TABLE plants',
-    "SELECT * FROM plants INTO OUTFILE '/tmp/x'",
-    'SELECT * FROM plants FOR UPDATE',
-    'SELECT SLEEP(5) FROM plants',
-    "SELECT LOAD_FILE('/etc/passwd') FROM plants",
-    'SELECT * FROM plants -- commentaire',
-    'UPDATE plants SET name = 1',
-    'SELECT @@version FROM plants',
-    'SELECT * FROM user_quiz_attempts',
-    'SELECT TABLE_NAME FROM information_schema.tables',
-    'SELECT email FROM plants',
-  ];
-  for (const sql of rejected) {
-    const res = await fx.callTool(app, adminToken, 'foretmap_sql_select', { sql });
-    assert.equal(res.isError, true, `doit être refusé : ${sql}`);
+  assert.equal(noPool.isError, true);
+
+  // Compte réel restreint par le script de droits : un GRANT SELECT par table de contenu.
+  const { pool, splitSqlStatements } = require('../database');
+  const { buildGrants } = require('../scripts/mcp-print-grants');
+  const { endReadPool } = require('../lib/mcp/readDb');
+  const roUser = `fmcp_t${Date.now().toString(36)}`.slice(0, 16);
+  const roPass = `Ro-${require('node:crypto').randomBytes(8).toString('hex')}`;
+  const conn = await pool.getConnection();
+  const dbName = process.env.DB_NAME;
+  const [existing] = await conn.query(
+    'SELECT TABLE_NAME AS t FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()',
+  );
+  // CI et base locale de test : compte avec droits d'administration (root / dev). Un échec
+  // ici fait échouer le test — jamais de repli silencieux.
+  try {
+    for (const host of ['localhost', '127.0.0.1', '%']) {
+      await conn.query(`CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?`, [roUser, host, roPass]);
+      const grants = buildGrants({
+        db: dbName,
+        user: roUser,
+        host,
+        existingTables: new Set(existing.map((r) => r.t)),
+      });
+      for (const stmt of splitSqlStatements(grants)) await conn.query(stmt);
+    }
+  } finally {
+    conn.release();
   }
-  const meta = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
-    sql: 'SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE()',
-    limit: 500,
-  });
-  assert.equal(meta.isError, false, meta.text);
-  assert.ok(meta.data.rows.every((r) => !/^(users|user_|oauth_|mcp_)/.test(r.TABLE_NAME)));
-  // Un prof ne voit pas l'outil même activé.
-  assert.ok(!(await fx.listTools(app, profToken)).includes('foretmap_sql_select'));
+  const grantsApplied = true;
+  try {
+    if (grantsApplied) {
+      process.env.DB_MCP_USER = roUser;
+      process.env.DB_MCP_PASS = roPass;
+      await endReadPool();
+      const ok = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+        sql: 'SELECT id, name FROM plants ORDER BY id',
+        limit: 3,
+      });
+      assert.equal(ok.isError, false, ok.text);
+      assert.equal(ok.data.rows.length, 3);
+      const cte = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+        sql: 'WITH x AS (SELECT id FROM plants) SELECT COUNT(*) AS n FROM x',
+      });
+      assert.equal(cte.isError, false, cte.text);
+
+      for (const sql of [
+        'SELECT * FROM (users)',
+        'SELECT * FROM ((users))',
+        'SELECT id FROM plants WHERE id IN (SELECT id FROM (users))',
+        'WITH x AS (SELECT * FROM users) SELECT * FROM x',
+        'SELECT id FROM plants UNION SELECT id FROM users',
+        'SELECT * FROM (forum_posts)',
+        'SELECT * FROM (species_observations)',
+        'SELECT * FROM/**/users',
+        `SELECT * FROM \`${dbName}\`.users`,
+      ]) {
+        const res = await fx.callTool(app, adminToken, 'foretmap_sql_select', { sql });
+        assert.equal(res.isError, true, `doit être refusé : ${sql}`);
+        assertNoPii(res.text, sql);
+      }
+      // Seconde barrière, indépendante du code : le compte MySQL lui-même ne lit pas `users`.
+      const mysql = require('mysql2/promise');
+      const direct = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 3306,
+        user: roUser,
+        password: roPass,
+        database: dbName,
+      });
+      try {
+        await assert.rejects(direct.query('SELECT * FROM (users) LIMIT 1'), /denied/i);
+        await assert.rejects(direct.query('UPDATE plants SET name = name WHERE id = 0'), /denied/i);
+        const [rows] = await direct.query('SELECT COUNT(*) AS n FROM plants');
+        assert.ok(Number(rows[0].n) > 0);
+      } finally {
+        await direct.end();
+      }
+    }
+    // Un prof ne voit pas l'outil, même activé.
+    assert.ok(!(await fx.listTools(app, profToken)).includes('foretmap_sql_select'));
+  } finally {
+    delete process.env.DB_MCP_USER;
+    delete process.env.DB_MCP_PASS;
+    await endReadPool();
+    if (grantsApplied) {
+      const c2 = await pool.getConnection();
+      try {
+        for (const host of ['localhost', '127.0.0.1', '%']) {
+          await c2.query('DROP USER IF EXISTS ?@?', [roUser, host]);
+        }
+      } finally {
+        c2.release();
+      }
+    }
+  }
 });
 
 test('bout en bout : client MCP du SDK contre l’app sur un port éphémère', async () => {
@@ -363,4 +434,66 @@ test('bout en bout : client MCP du SDK contre l’app sur un port éphémère', 
   } finally {
     await new Promise((r) => server.close(r));
   }
+});
+
+test('apply : audit_log écrit dans la transaction ; échec du journal → rien n’est écrit (M7)', async () => {
+  const before = await queryOne('SELECT licence FROM plant_photos WHERE id = 4');
+  const plan = await fx.callTool(app, adminToken, 'foretmap_plan_content_change', {
+    operations: [
+      { op: 'set_field', table: 'plant_photos', key: { id: 4 }, column: 'licence', value: 'CC-M7' },
+    ],
+  });
+  // Journal rendu impossible le temps de l'apply : `audit_log` renommée.
+  await execute('RENAME TABLE audit_log TO audit_log_m7');
+  let res;
+  try {
+    res = await fx.callTool(app, adminToken, 'foretmap_apply_plan', { plan_id: plan.data.plan_id });
+  } finally {
+    await execute('RENAME TABLE audit_log_m7 TO audit_log');
+  }
+  assert.equal(res.isError, true);
+  assert.equal(
+    (await queryOne('SELECT licence FROM plant_photos WHERE id = 4')).licence,
+    before.licence,
+  );
+  const status = await queryOne('SELECT status FROM mcp_content_plans WHERE id = ?', [
+    plan.data.plan_id,
+  ]);
+  assert.equal(status.status, 'planned', 'plan non marqué appliqué (rollback)');
+});
+
+test('apply : opérations revalidées contre la liste blanche (M7)', async () => {
+  const plan = await fx.callTool(app, adminToken, 'foretmap_plan_content_change', {
+    operations: [
+      { op: 'set_field', table: 'plant_photos', key: { id: 4 }, column: 'licence', value: 'X' },
+    ],
+  });
+  // Plan altéré en base : colonne hors liste blanche.
+  await execute(
+    'UPDATE mcp_content_plans SET operations_json = REPLACE(operations_json, \'"licence"\', \'"url"\') WHERE id = ?',
+    [plan.data.plan_id],
+  );
+  const res = await fx.callTool(app, adminToken, 'foretmap_apply_plan', {
+    plan_id: plan.data.plan_id,
+  });
+  assert.equal(res.isError, true);
+  assert.equal(res.data.code, 'MCP_WRITE_REJECTED');
+});
+
+test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux pseudonymisés (I2)', async () => {
+  const bad = await fx.callTool(app, adminToken, 'foretmap_usage_overview', { days: 8 });
+  assert.equal(bad.isError, true);
+  const ok = await fx.callTool(app, adminToken, 'foretmap_usage_overview', { days: 30 });
+  assert.equal(ok.isError, false);
+  assert.equal(ok.data.window_days, 30);
+
+  const logger = require('../lib/logger');
+  logger.warn({ studentId: admin.id, ip: '10.9.8.7', marker: 'diag_i2' }, `compte ${admin.id}`);
+  const logs = await fx.callTool(app, adminToken, 'foretmap_tail_logs', { lines: 200 });
+  assert.equal(logs.isError, false);
+  assert.ok(!logs.text.includes(admin.id), 'identifiant de compte masqué');
+  assert.ok(!logs.text.includes('10.9.8.7'), 'IP masquée');
+  const line = logs.data.entries.find((l) => l.includes('diag_i2'));
+  assert.ok(line, 'ligne de diagnostic présente');
+  assert.match(line, /user#[0-9a-f]{6}/);
 });

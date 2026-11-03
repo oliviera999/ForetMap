@@ -560,3 +560,149 @@ test('jeton sans ressource refusé ; corps /mcp > 256 ko refusé (413)', async (
     );
   assert.equal(big.status, 413);
 });
+
+test('époque de jeton : changement de mot de passe ou désactivation → accès et refresh coupés (I1)', async () => {
+  const { bumpUserTokenEpoch } = require('../lib/auth/tokenEpoch');
+  const other = await fx.createAccount('prof');
+  const tokens = await fx.obtainTokens(app, other);
+  assert.ok((await fx.listTools(app, tokens.access_token)).length > 0);
+  // Époque enregistrée à l'émission.
+  const row = await queryOne('SELECT token_epoch FROM mcp_oauth_tokens WHERE token_hash = ?', [
+    crypto.createHash('sha256').update(tokens.access_token).digest('hex'),
+  ]);
+  const epoch = await queryOne('SELECT token_epoch FROM users WHERE id = ?', [other.id]);
+  assert.equal(Number(row.token_epoch), Number(epoch.token_epoch));
+
+  await bumpUserTokenEpoch(other.id);
+  assert.equal((await fx.rpc(app, tokens.access_token, 'tools/list')).status, 401);
+  const refreshed = await request(app).post('/oauth/token').type('form').send({
+    grant_type: 'refresh_token',
+    refresh_token: tokens.refresh_token,
+    client_id: tokens.clientId,
+  });
+  assert.equal(refreshed.body.error, 'invalid_grant');
+  const live = await queryOne(
+    'SELECT COUNT(*) AS n FROM mcp_oauth_tokens WHERE user_id = ? AND revoked_at IS NULL',
+    [other.id],
+  );
+  assert.equal(Number(live.n), 0, 'revokeAllForUser appelé par bumpUserTokenEpoch');
+
+  // Époque changée par une écriture directe (sans passer par bumpUserTokenEpoch) : la
+  // comparaison seule suffit à refuser.
+  const fresh = await fx.obtainTokens(app, other);
+  assert.ok((await fx.listTools(app, fresh.access_token)).length > 0);
+  await execute('UPDATE users SET token_epoch = token_epoch + 1 WHERE id = ?', [other.id]);
+  assert.equal((await fx.rpc(app, fresh.access_token, 'tools/list')).status, 401);
+});
+
+test('lot JSON-RPC de plus de 20 messages refusé avant le SDK (M2)', async () => {
+  const tokens = await fx.obtainTokens(app, admin);
+  const batch = Array.from({ length: 21 }, (_, i) => ({
+    jsonrpc: '2.0',
+    id: i + 1,
+    method: 'tools/list',
+  }));
+  const res = await request(app)
+    .post('/mcp')
+    .set('Authorization', `Bearer ${tokens.access_token}`)
+    .set('Accept', 'application/json, text/event-stream')
+    .send(batch);
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.code, -32600);
+});
+
+test('étapes MFA/consentement liées à l’empreinte complète de la demande (M3)', async () => {
+  const clientId = await fx.registerClient(app);
+  const pkceA = fx.pkcePair();
+  const pageA = await request(app)
+    .get('/oauth/authorize')
+    .query(
+      fx.authorizeQuery({
+        clientId,
+        redirectUri: fx.LOOPBACK_CALLBACK,
+        challenge: pkceA.challenge,
+        state: 'A',
+      }),
+    );
+  const cookie = fx.csrfCookieOf(pageA);
+  const login = await request(app)
+    .post('/oauth/authorize')
+    .set('Cookie', cookie)
+    .type('form')
+    .send({ ...fx.hiddenFields(pageA.text), identifier: admin.pseudo, password: admin.password });
+  const consentA = fx.hiddenFields(login.text);
+  assert.ok(consentA.consent);
+  // Même client, autre demande (autre défi PKCE, autre state) : le jeton de consentement de A
+  // ne la termine pas.
+  const pkceB = fx.pkcePair();
+  const pageB = await request(app)
+    .get('/oauth/authorize')
+    .set('Cookie', cookie)
+    .query(
+      fx.authorizeQuery({
+        clientId,
+        redirectUri: fx.LOOPBACK_CALLBACK,
+        challenge: pkceB.challenge,
+        state: 'B',
+      }),
+    );
+  const requestB = fx.hiddenFields(pageB.text).request;
+  const mixed = await request(app)
+    .post('/oauth/authorize')
+    .set('Cookie', cookie)
+    .type('form')
+    .send({ ...consentA, request: requestB, decision: 'approve' });
+  assert.equal(mixed.status, 400);
+  assert.match(mixed.text, /Étape expirée/);
+});
+
+test('jeton : client CIMD lu en base, sans relecture du document (M4)', async () => {
+  const url = 'https://claude.ai/oauth/cimd-m4-doc';
+  let fetches = 0;
+  clients.setCimdFetcherForTests(async () => {
+    fetches += 1;
+    return {
+      status: 200,
+      body: Buffer.from(
+        JSON.stringify({
+          client_id: url,
+          redirect_uris: ['http://127.0.0.1/callback'],
+          token_endpoint_auth_method: 'none',
+        }),
+      ),
+    };
+  });
+  const pkce = fx.pkcePair();
+  const flow = await fx.authorizeFlow(app, {
+    clientId: url,
+    redirectUri: 'http://127.0.0.1:45555/callback',
+    account: admin,
+    pkce,
+  });
+  assert.equal(fetches, 1);
+  clients.setCimdFetcherForTests(async () => {
+    throw new Error('ne doit pas être appelé');
+  });
+  const tok = await fx.exchangeCode(app, {
+    clientId: url,
+    redirectUri: 'http://127.0.0.1:45555/callback',
+    code: flow.code,
+    verifier: pkce.verifier,
+  });
+  assert.equal(tok.status, 200, JSON.stringify(tok.body));
+});
+
+test('production sans MCP_PUBLIC_BASE_URL : connecteur en 503 (M5)', async () => {
+  const saved = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  delete process.env.MCP_PUBLIC_BASE_URL;
+  try {
+    const mcp = await fx.rpc(app, null, 'tools/list');
+    assert.equal(mcp.status, 503);
+    const md = await request(app).get('/.well-known/oauth-authorization-server');
+    assert.equal(md.status, 503);
+  } finally {
+    process.env.NODE_ENV = saved;
+    fx.enableMcpEnv();
+  }
+});

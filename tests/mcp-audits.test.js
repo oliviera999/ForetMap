@@ -335,25 +335,119 @@ test('garde SQL : liste blanche, liste noire prioritaire, agrégat seulement, co
   assert.doesNotThrow(() => guard.assertSqlReadable("SELECT id FROM plants WHERE name = 'email'"));
 });
 
-test('SELECT libre : validation stricte', () => {
+test('SELECT libre : contournements de la liste blanche refusés (AST, B1)', () => {
   assert.equal(validateSelectSql(' SELECT 1 FROM plants '), 'SELECT 1 FROM plants');
-  assert.doesNotThrow(() => validateSelectSql("SELECT id FROM plants WHERE name = 'a;b @c'"));
+  assert.equal(validateSelectSql('SELECT id FROM plants;'), 'SELECT id FROM plants');
   for (const sql of [
+    "SELECT id FROM plants WHERE name = 'a;b @c users'",
+    'SELECT p.id, COUNT(*) AS n FROM plants p JOIN zone_species zs ON zs.plant_id = p.id GROUP BY p.id',
+    'WITH x AS (SELECT id FROM plants) SELECT * FROM x',
+    'SELECT * FROM (SELECT id FROM plants) t',
+    'SELECT id FROM plants UNION SELECT plant_id FROM zone_species',
+    'SELECT EXISTS(SELECT 1 FROM zones) FROM plants',
+    'SELECT 1 /* commentaire */ FROM plants',
+    "SELECT CASE WHEN photo IS NULL THEN 'a' ELSE 'b' END FROM plants",
+  ]) {
+    assert.doesNotThrow(() => validateSelectSql(sql), sql);
+  }
+  const rejected = [
     '',
+    // Constat B1 : table parenthésée, sous-requêtes, CTE, UNION, jointure.
+    'SELECT * FROM (users)',
+    'SELECT * FROM ((users))',
+    'SELECT 1 FROM plants JOIN (users) ON 1',
+    'SELECT id FROM plants WHERE id IN (SELECT id FROM (users))',
+    'SELECT * FROM plants WHERE id IN (SELECT plant_id FROM (SELECT * FROM (users)) z)',
+    'WITH x AS (SELECT * FROM users) SELECT * FROM x',
+    'WITH plants AS (SELECT * FROM users) SELECT * FROM plants',
+    'SELECT id FROM plants UNION SELECT id FROM users',
+    'SELECT (SELECT email FROM users LIMIT 1) AS x FROM plants',
+    'SELECT * FROM plants p, users u',
+    'SELECT * FROM (forum_posts)',
+    'SELECT * FROM (context_comments)',
+    'SELECT * FROM (species_observations)',
+    'SELECT * FROM (gl_players)',
+    // Commentaires, guillemets obliques, base qualifiée, casse mixte.
+    'SELECT * FROM/**/users',
+    'SELECT * FROM `users`',
+    'SELECT * FROM foretmap.users',
+    'SELECT * FROM `foretmap_test`.`plants`',
+    'sElEcT * FrOm UsErS',
+    'SELECT * FROM information_schema.tables',
+    'SELECT * FROM mysql.user',
+    'SELECT * FROM performance_schema.threads',
+    // Instructions, écriture, verrous, variables, fonctions.
     'SELECT 1; SELECT 2',
+    'SELECT 1 FROM plants; DROP TABLE plants',
     'DELETE FROM plants',
-    'SELECT 1 /* x */ FROM plants',
-    'SELECT 1 FROM plants # x',
+    'UPDATE plants SET name = 1',
+    'SHOW TABLES',
+    "SELECT * FROM plants INTO OUTFILE '/tmp/x'",
+    'SELECT * INTO @x FROM plants',
     'SELECT * FROM plants FOR UPDATE',
     'SELECT * FROM plants LOCK IN SHARE MODE',
-    'SELECT * INTO @x FROM plants',
+    'SELECT @@version',
+    'SELECT @a := 1 FROM plants',
+    'SELECT SLEEP(1) FROM plants',
     'SELECT BENCHMARK(1, 1) FROM plants',
     "SELECT GET_LOCK('a', 1) FROM plants",
-    'SHOW TABLES',
-    'SELECT 1 FROM plants UNION SELECT TABLE_NAME FROM information_schema.tables',
-  ]) {
-    assert.throws(() => validateSelectSql(sql), undefined, sql);
+    "SELECT LOAD_FILE('/etc/passwd') FROM plants",
+    'SELECT x.y() FROM plants',
+    // Traces d'élèves et colonnes nominatives.
+    'SELECT * FROM user_quiz_attempts',
+    'SELECT created_by FROM id_keys',
+    'SELECT u.email FROM plants JOIN users u ON 1',
+  ];
+  for (const sql of rejected) {
+    assert.throws(() => validateSelectSql(sql), undefined, `doit être refusé : ${sql}`);
   }
+});
+
+test('script de droits : un GRANT SELECT par table de contenu, rien d’autre', () => {
+  const { buildGrants } = require('../scripts/mcp-print-grants');
+  const out = buildGrants({ db: 'base_test', user: 'fmcp_ro', host: 'localhost' });
+  const grants = out.split('\n').filter((l) => l.startsWith('GRANT'));
+  assert.equal(grants.length, guard.CONTENT_TABLES.size);
+  for (const g of grants) {
+    assert.match(g, /^GRANT SELECT ON `base_test`\.`[a-z0-9_]+` TO 'fmcp_ro'@'localhost';$/);
+  }
+  assert.ok(!/`users`|`user_|`oauth_|`mcp_/.test(out));
+  assert.throws(() => buildGrants({ db: 'x; DROP', user: 'u' }));
+  const filtered = buildGrants({ db: 'b', user: 'u', existingTables: new Set(['plants']) });
+  assert.equal(filtered.split('\n').filter((l) => l.startsWith('GRANT')).length, 1);
+});
+
+test('pseudonymisation des journaux : UUID, identifiants de compte, IP (I2)', () => {
+  const { createPseudonymizer } = require('../lib/mcp/pseudonymize');
+  const uuid = '2005bf0e-4736-48f7-b2ee-dca6c2c9bf06';
+  const line = JSON.stringify({
+    msg: `suppression du compte ${uuid} depuis 192.168.0.9`,
+    studentId: uuid,
+    playerId: 42,
+    userId: 'abc',
+    ip: '10.1.2.3',
+    remote: 'fe80::1:2',
+    durationMs: 12,
+    at: '12:30:45',
+    version: '1.226.0',
+  });
+  const p = createPseudonymizer();
+  const out = p.pseudoLogLine(line);
+  const parsed = JSON.parse(out);
+  for (const secret of [uuid, '192.168.0.9', '10.1.2.3', 'fe80::1:2', '"abc"', ':42']) {
+    assert.ok(!out.includes(secret), `${secret} doit disparaître`);
+  }
+  assert.match(parsed.studentId, /^user#[0-9a-f]{6}$/);
+  assert.equal(parsed.studentId, parsed.msg.match(/user#[0-9a-f]{6}/)[0], 'corrélation stable');
+  assert.match(parsed.playerId, /^user#/);
+  assert.match(parsed.ip, /^ip#/);
+  assert.match(parsed.remote, /^ip#/);
+  assert.equal(parsed.durationMs, 12);
+  assert.equal(parsed.at, '12:30:45');
+  assert.equal(parsed.version, '1.226.0');
+  assert.equal(p.pseudoLogLine(line), out, 'stable dans un même appel');
+  assert.notEqual(createPseudonymizer().pseudoLogLine(line), out, 'non reliable entre appels');
+  assert.match(p.pseudoLogLine('mail a.b@example.test'), /\[e-mail masqué\]/);
 });
 
 test('opérations d’écriture : liste blanche tables/colonnes, clés et longueurs', () => {
@@ -380,6 +474,20 @@ test('opérations d’écriture : liste blanche tables/colonnes, clés et longue
     { op: 'link', table: 'group_members', key: { group_id: 'g', plant_id: 1 } },
     { op: 'link', table: 'zone_species', key: { zone_id: 'z', plant_id: 'abc' } },
     { op: 'drop', table: 'plants' },
+    // M1 : clés héritées du prototype.
+    { op: 'set_field', table: 'plants', key: { id: 1 }, column: 'constructor', value: 'x' },
+    { op: 'set_field', table: 'plants', key: { id: 1 }, column: '__proto__', value: 'x' },
+    { op: 'set_field', table: 'plants', key: { id: 1 }, column: 'toString', value: 'x' },
+    { op: 'set_field', table: 'constructor', key: { id: 1 }, column: 'name', value: 'x' },
+    { op: 'set_field', table: '__proto__', key: { id: 1 }, column: 'name', value: 'x' },
+    { op: 'link', table: 'hasOwnProperty', key: { zone_id: 'z', plant_id: 1 } },
+    {
+      op: 'set_field',
+      table: 'plants',
+      key: JSON.parse('{"__proto__":{"id":5}}'),
+      column: 'name',
+      value: 'x',
+    },
   ];
   for (const op of bad) assert.throws(() => normalizeOperation(op), undefined, JSON.stringify(op));
 });
@@ -407,6 +515,11 @@ test('migration générée : idempotente (garde de valeur) et rollback inverse',
     rollback_sql,
     /SET description = NULL\n WHERE id = 4 AND BINARY description = BINARY 'l\\'été';/,
   );
+});
+
+test('usage : fenêtres fixes seulement (M6)', () => {
+  const { USAGE_WINDOWS } = require('../lib/mcp/tools/usage');
+  assert.deepEqual([...USAGE_WINDOWS], [7, 30, 90, 365]);
 });
 
 test('seuil d’anonymat : effectifs 1 à 4 masqués', () => {
