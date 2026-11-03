@@ -1,5 +1,11 @@
 # Diagnostic ForetMap via MCP (Cursor)
 
+> **Connecteur Claude distant** (claude.ai, Claude Code, OAuth, contenu pédagogique, audits,
+> corrections de contenu) : voir **[MCP.md](MCP.md)**. La présente page décrit le serveur
+> **stdio** local pour Cursor, qui interroge la prod par `DEPLOY_SECRET` ; ses définitions
+> d'outils de diagnostic sont partagées avec le serveur distant
+> (`lib/mcp/tools/diagnostics.js`).
+
 Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (ou un staging) **sans coller le secret dans le chat**.
 
 ## Prérequis
@@ -35,11 +41,14 @@ Sans variable, le script retombe sur l'instance de production du projet.
 
 ## Outils exposés
 
-| Outil                    | Secret | Rôle                                                         |
-| ------------------------ | ------ | ------------------------------------------------------------ |
-| `foretmap_public_health` | Non    | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
-| `foretmap_diagnostics`   | Oui    | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
-| `foretmap_tail_logs`     | Oui    | Tampon Pino (`lines` optionnel, 1–5000)                      |
+| Outil                                              | Secret | Rôle                                                         |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------ |
+| `foretmap_health` (alias `foretmap_public_health`) | Non    | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
+| `foretmap_diagnostics`                             | Oui    | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
+| `foretmap_tail_logs`                               | Oui    | Tampon Pino (`lines` optionnel, 1–1000)                      |
+| `foretmap_db_status`                               | Oui    | Section `schema` des diagnostics (migrations en attente)     |
+| `gl_public_health`                                 | Non    | Santé publique G&L                                           |
+| `gl_diagnostics`                                   | Oui    | Section `gl` des diagnostics                                 |
 
 Après configuration : _Cursor Settings → MCP_ : vérifier que **`foretmap-diagnostics`** est actif ; en cas de doute, redémarrer Cursor.
 

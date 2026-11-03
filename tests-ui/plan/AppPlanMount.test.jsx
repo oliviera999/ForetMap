@@ -435,7 +435,9 @@ describe('AppPlan — montage', () => {
       render(<AppPlan />);
       await Promise.resolve();
     });
-    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    // Délai explicite : la fiche s'ouvre après le chargement du contenu (promesse simulée) et
+    // l'ouverture de l'overlay ; le délai par défaut (1 s) était dépassé sur un runner CI chargé.
+    const placeSheet = await screen.findByTestId('plan-place-sheet', {}, { timeout: 5000 });
     expect(placeSheet.textContent).toContain('Gymnase');
     // Dépiiler l'overlay du lien profond avant le test suivant (pile module partagée).
     await act(async () => {

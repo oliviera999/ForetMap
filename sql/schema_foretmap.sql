@@ -1599,4 +1599,74 @@ CREATE TABLE IF NOT EXISTS fresque_board_events (
     REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- Connecteur MCP distant (migration 324) : clients OAuth (DCR / CIMD), codes et jetons
+-- **hachés** (sha256), plans d'écriture de contenu. Voir docs/MCP.md.
+CREATE TABLE IF NOT EXISTS mcp_oauth_clients (
+  client_id VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL PRIMARY KEY COMMENT 'Identifiant opaque (DCR) ou URL https du document CIMD',
+  kind ENUM('dcr','cimd') NOT NULL,
+  client_name VARCHAR(255) DEFAULT NULL,
+  client_uri VARCHAR(512) DEFAULT NULL,
+  redirect_uris_json TEXT NOT NULL,
+  grant_types_json VARCHAR(255) NOT NULL DEFAULT '["authorization_code","refresh_token"]',
+  scope VARCHAR(255) DEFAULT NULL,
+  metadata_fetched_at DATETIME DEFAULT NULL COMMENT 'CIMD : dernière lecture du document',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  last_used_at DATETIME DEFAULT NULL,
+  INDEX idx_mcp_oauth_clients_kind (kind, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mcp_oauth_auth_codes (
+  code_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY COMMENT 'sha256 hexadécimal du code',
+  client_id VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  redirect_uri VARCHAR(1024) NOT NULL,
+  code_challenge VARCHAR(128) NOT NULL,
+  scope VARCHAR(255) NOT NULL,
+  resource VARCHAR(512) DEFAULT NULL,
+  family_id CHAR(36) DEFAULT NULL COMMENT 'Famille de jetons émise à l’échange (révoquée si le code est rejoué)',
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mcp_oauth_codes_expires (expires_at),
+  CONSTRAINT fk_mcp_oauth_codes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mcp_oauth_tokens (
+  token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY COMMENT 'sha256 hexadécimal du jeton',
+  kind ENUM('access','refresh') NOT NULL,
+  family_id CHAR(36) NOT NULL COMMENT 'Consentement d’origine : partagé par toutes les rotations',
+  client_id VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  user_id VARCHAR(64) NOT NULL,
+  scope VARCHAR(255) NOT NULL,
+  resource VARCHAR(512) DEFAULT NULL,
+  token_epoch INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'users.token_epoch à l’émission : un changement de mot de passe ou une désactivation invalide le jeton',
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME DEFAULT NULL,
+  rotated_at DATETIME DEFAULT NULL COMMENT 'Refresh déjà échangé : toute réutilisation révoque la famille',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME DEFAULT NULL,
+  INDEX idx_mcp_oauth_tokens_family (family_id),
+  INDEX idx_mcp_oauth_tokens_user (user_id),
+  INDEX idx_mcp_oauth_tokens_expires (expires_at),
+  CONSTRAINT fk_mcp_oauth_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mcp_content_plans (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  operations_json MEDIUMTEXT NOT NULL COMMENT 'Opérations bornées (liste blanche lib/mcp/write)',
+  before_hash CHAR(64) NOT NULL COMMENT 'Empreinte de l’état lu au moment du plan',
+  diff_json MEDIUMTEXT NOT NULL,
+  migration_sql MEDIUMTEXT NOT NULL,
+  rollback_sql MEDIUMTEXT NOT NULL,
+  status ENUM('planned','applied','expired','conflict') NOT NULL DEFAULT 'planned',
+  expires_at DATETIME NOT NULL,
+  applied_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mcp_content_plans_expires (status, expires_at),
+  CONSTRAINT fk_mcp_content_plans_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

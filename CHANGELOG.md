@@ -9,6 +9,91 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — connecteur Claude (MCP distant + serveur OAuth intégré)
+
+- **Endpoint `/mcp`** (Streamable HTTP du SDK `@modelcontextprotocol/sdk`, sans état, réponses
+  JSON — pas de SSE sous Passenger), monté hors de `/api/` avec son propre limiteur, sur l'hôte
+  ForetMap seulement. **Désactivé par défaut** (`MCP_ENABLED`). Doc : `docs/MCP.md`.
+- **Serveur d'autorisation OAuth 2.1** conforme aux exigences de Claude : 401 +
+  `WWW-Authenticate resource_metadata`, métadonnées RFC 9728 / RFC 8414 (CIMD annoncé),
+  enregistrement **CIMD** et **DCR**, redirections claude.ai + loopback Claude Code (port
+  ignoré), PKCE S256 obligatoire, écran de connexion avec les identifiants du site et le
+  **TOTP** existant, consentement, codes à usage unique, **rotation des refresh** avec
+  révocation de famille à la réutilisation, révocation RFC 7009. Jetons opaques **hachés**.
+  Jetons MCP refusés sur `/api/*`, JWT applicatifs refusés sur `/mcp`.
+- **Outils** : diagnostic (santé, diagnostics, journaux, migrations), contenu (recherche,
+  espèces FM/G&L, cartes, clés, réseau trophique, QCM, glossaires, plateau et lore G&L),
+  **14 audits de cohérence** (`foretmap_audit`, `foretmap_audit_all`), usage anonyme (n ≥ 5),
+  SQL borné (désactivé par défaut) et **écriture plan → apply** (active par défaut, admin
+  seulement : diff, contrôle d'état, transaction, `audit_log`, migration idempotente générée).
+- **Données personnelles** : liste blanche de tables de contenu, liste noire prioritaire,
+  colonnes nominatives retirées, transaction `READ ONLY` + délai max + `LIMIT` forcé ; fiche de
+  registre `docs/MCP_REGISTRE_TRAITEMENT.md` ; doc de référence
+  `docs/reference/foretmap/connecteur-claude.md`.
+- **Migration `324_mcp_oauth.sql`** (idempotente) : tables `mcp_oauth_clients`,
+  `mcp_oauth_auth_codes`, `mcp_oauth_tokens`, `mcp_content_plans` ; permissions `mcp.use`
+  (admin, prof), `mcp.write` et `mcp.sql` (admin seulement).
+- Script stdio Cursor (`scripts/mcp-foretmap-diagnostics.mjs`) refactoré sur le registre
+  partagé (anciens noms conservés) ; `npm run mcp:smoke` (flux OAuth complet + appels MCP).
+- `@modelcontextprotocol/sdk` passe en `dependencies` (la production installe `--production`)
+  et monte en `^1.32.2` (corrige GHSA-46jr-4wx8-v453, GHSA-rvq5-wwqv-78pq, GHSA-6prh-2h8m-c8cw,
+  GHSA-22jm-h49p-29qw, désormais audités par `npm audit --omit=dev`). Corps `/mcp` limité à
+  256 ko ; un jeton sans ressource est refusé (audience explicite).
+- Constat : `gl_qcm_question_glossary` n'existe plus depuis la migration 186 ; l'audit
+  `gl_qcm_glossary_link_divergence` compare les liens `import` de `gl_resource_question_links`
+  à l'appariement actuel (et l'ancienne table si une base en retard l'a encore).
+- **Correctifs suite à la relecture de sécurité (03/11/2026)** :
+  - **B1** — `foretmap_sql_select` : analyse **syntaxique** (`lib/mcp/sqlAst.js`,
+    [`node-sql-parser`](https://github.com/taozhi8833998/node-sql-parser), Apache-2.0) à la place
+    des expressions régulières, qui laissaient passer `SELECT * FROM (users)` ; l'outil exige en
+    plus un compte MySQL dédié `DB_MCP_USER` avec `GRANT SELECT` par table de contenu
+    (`scripts/mcp-print-grants.js`), et reste indisponible sans lui ; test d'intégration MariaDB.
+  - **I1** — jetons liés à `users.token_epoch` (colonne `mcp_oauth_tokens.token_epoch`) :
+    changement de mot de passe, désactivation, réinitialisation TOTP → accès et refresh coupés ;
+    `bumpUserTokenEpoch` appelle `revokeAllForUser`.
+  - **I2** — `foretmap_tail_logs` / `foretmap_diagnostics` : UUID, identifiants de compte et IP
+    pseudonymisés (première version, remplacée lors de la contre-vérification ci-dessous).
+  - **M1** `Object.hasOwn` sur les tables de correspondance ; **M2** lots JSON-RPC ≤ 20 ;
+    **M3** étapes MFA/consentement liées à l'empreinte complète de la demande ; **M4** client
+    CIMD lu en base au point de jeton ; **M5** 503 en production sans `MCP_PUBLIC_BASE_URL` ;
+    **M6** fenêtres d'usage fixes ; **M7** `audit_log` dans la transaction d'`apply` et
+    revalidation des opérations ; **M8** limiteur `/oauth/token` et `/oauth/revoke`.
+- **Contre-vérification (03/11/2026)** :
+  - **B1** — commentaires exécutables MariaDB (`/*! … */`, `/*!50000 …*/`, `/*M! …*/`) : le
+    parseur les ignore, le serveur les exécute. Le texte brut est désormais refusé, après
+    normalisation NFKC, s'il contient `/*`, `*/`, `#`, `--`, `;` (y compris final), un caractère
+    de contrôle ou de format, ou une forme non canonique (pleine chasse) — `assertPlainSqlText`.
+    Les **droits réels** du compte `DB_MCP_USER` sont lus (`SHOW GRANTS FOR CURRENT_USER()`,
+    `CURRENT_ROLE()`) au premier usage puis toutes les 5 minutes (`lib/mcp/readOnlyGrants.js`) :
+    toute ligne autre que `USAGE ON *.*` ou `SELECT` sur une table de contenu (droit global, au
+    niveau base, autre privilège, `WITH GRANT OPTION`, rôle, `PROXY`, forme inconnue) rend
+    l'outil indisponible (absent de `tools/list`, refusé à l'appel, raison journalisée). Test
+    d'intégration MariaDB : `GRANT SELECT ON <base>.*` → outil retiré. `CAST`, `HEX`, `CONCAT`
+    conservés et documentés (périmètre borné par les droits vérifiés).
+  - **I2** — `foretmap_tail_logs` / `foretmap_diagnostics` passent à une **liste blanche de
+    champs** (`lib/mcp/logSanitizer.js`, remplace `pseudonymize.js`) : `level`, `time`, `msg`,
+    `requestId`, `method`, `statusCode`, `durationMs`, `route` normalisée (`:id`), `err.type`,
+    `err.code`, `err.message` ; tout autre champ retiré (`newId`, `sourceId`, `teamId`,
+    `author`, `studentIds`, `ctx.student.id`, `pseudo`…). Texte libre : UUID avec ou sans
+    tirets et hexadécimal ≥ 16 → `id#…`, IP → `ip#…`, nombres ≥ 3 chiffres → `[n]`. Limite
+    documentée : un nom en clair dans un message n'est pas garanti absent.
+- **Troisième relecture (03/11/2026)** :
+  - **Droits `PUBLIC`** (bloquant) — sous MariaDB 10.11+, `SHOW GRANTS FOR CURRENT_USER()`
+    n'affiche pas les droits accordés à `PUBLIC` : `GRANT SELECT ON <base>.users TO PUBLIC`
+    laissait l'outil SQL disponible avec `users` lisible. `SHOW GRANTS FOR PUBLIC` est
+    désormais lu aussi (1141 et absence de `PUBLIC` = aucun droit) ; toute ligne autre que
+    `USAGE ON *.*` rend l'outil indisponible. Test d'intégration MariaDB `GRANT … TO PUBLIC`.
+  - Droits vérifiés **à chaque appel** de `foretmap_sql_select` ; cache de `tools/list` ramené
+    de 5 min à 60 s.
+  - Journaux : littéraux entre apostrophes ou guillemets → `'[valeur]'` dans `msg` et
+    `err.message` ; `err.code` / `err.type` hors forme technique → `'[valeur]'` ; `route` =
+    gabarit Express seulement (`'autre'` sinon), les échantillons 5xx/429 portant désormais ce
+    gabarit (`lib/logMetrics.js`, `lib/httpRequestLog.js`).
+  - Tests de mutation : refus NFKC isolé, « rôle actif », droits `PUBLIC`.
+- Inspiration : `@modelcontextprotocol/sdk` (MIT,
+  https://github.com/modelcontextprotocol/typescript-sdk), RFC 9700, documentation connecteurs
+  Claude (https://claude.com/docs/connectors/building/authentication).
+
 ### Ajouté — plans : accès par un vrai mot de passe alphanumérique
 
 - **Nouveau mode d'accès « Mot de passe »** sur le plan public, le plan e-nov et la voie
