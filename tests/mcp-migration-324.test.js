@@ -22,10 +22,16 @@ test('tables du connecteur créées', async () => {
     `SELECT TABLE_NAME AS t FROM information_schema.tables
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'mcp\\_%' ORDER BY TABLE_NAME`,
   );
-  assert.deepEqual(
-    rows.map((r) => r.t),
-    ['mcp_content_plans', 'mcp_oauth_auth_codes', 'mcp_oauth_clients', 'mcp_oauth_tokens'],
-  );
+  // Tables de la migration 324 (la 325 en ajoute d'autres : `tests/mcp-migration-325.test.js`).
+  const names = rows.map((r) => r.t);
+  for (const t of [
+    'mcp_content_plans',
+    'mcp_oauth_auth_codes',
+    'mcp_oauth_clients',
+    'mcp_oauth_tokens',
+  ]) {
+    assert.ok(names.includes(t), `${t} attendue`);
+  }
 });
 
 test('migration rejouable (idempotente)', async () => {

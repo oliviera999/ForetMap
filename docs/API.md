@@ -23,6 +23,28 @@ retombent toujours sur la SPA (`/apiculture` reste une route d’application, pa
 | GET     | `/api/version`   | Version SemVer de l’app : JSON `{ "version": "<semver>" }` (lecture de `package.json` à chaque requête ; en cas d’échec de lecture, repli sur la version chargée au démarrage du process). Utilisé par les scripts de contrôle post-déploiement (`npm run deploy:check:prod`, etc.) |
 | GET     | `/health`        | Alias                                                                                                                                                                                                                                                                               |
 
+### Rapport de santé — `GET /api/health/report`
+
+Rapport de santé complet du connecteur Claude (`lib/mcp/health/`), pour une sonde externe
+(workflow `.github/workflows/health-check.yml`, script cron `scripts/health-report.js`). Détail
+des sections et des règles de statut : [MCP.md § Rapport de santé](MCP.md#11-rapport-de-santé).
+
+| Cas                                       | Réponse                                                         |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| `MCP_HEALTH_TOKEN` non configuré          | **404** `{ error: "Not found" }` (la route n'existe pas)        |
+| en-tête `X-Health-Token` absent ou faux   | **401** `{ error }` (comparaison en temps constant sur sha256)  |
+| jeton correct                             | **200** rapport JSON, `Cache-Control: no-store`                 |
+| erreur interne du collecteur              | **500** `{ error: "Rapport de santé indisponible" }`            |
+
+Corps (200) : `{ status: "green"|"orange"|"red", summary, findings: [{ level, rule, message }],
+generated_at, process, database, schema, tables, http: { last24h, last7d, sinceStart }, restarts,
+cron, disk, tls: { hosts }, mcp, audit, thresholds, duration_ms }`. Le statut **rouge** répond
+quand même 200 : c'est l'appelant qui décide (le workflow échoue). Paramètres facultatifs :
+`tls=0` (sans contrôle des certificats), `audit=0` (sans audits du corpus). Exempté du verrou
+« base pas prête » : une base injoignable doit pouvoir être signalée. Hors limiteur dédié : la
+route hérite du limiteur général `/api/`. Aucune donnée de personne : compteurs, états,
+versions, tailles, gabarits.
+
 ---
 
 ## Gnomes & Licornes (`/api/gl`)

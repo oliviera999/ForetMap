@@ -9,6 +9,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — connecteur Claude : exploitation (mémoire, rapport de santé, journaux)
+
+- **Mémoire persistante du connecteur** : `foretmap_recall`, `foretmap_remember`,
+  `foretmap_forget` (permission `mcp.use` ; oubli ou réécriture d'une note partagée par son
+  auteur ou un admin). Même sujet = mise à jour ; notes de site ou personnelles ; note non
+  vérifiée depuis 90 j signalée « à revérifier » ; contenu borné à 4 000 caractères et refusé
+  s'il ressemble à un secret (jeton, clé, hachage, mot de passe) ou contient une adresse e-mail.
+  Huit notes techniques semées (isolement G&L, corpus semé par migrations, convention QCM,
+  emoji en `BINARY`, 4 chapitres en 6ᵉ, `gl_resource_question_links`, droits `PUBLIC` MariaDB,
+  emplacements des journaux). Les `instructions` d'`initialize` renvoient vers la mémoire.
+- **Rapport de santé** vert / orange / rouge selon des règles explicites (`lib/mcp/health/`) :
+  version, uptime, mémoire, Node ; base (latence, migrations en retard, plus grosses tables) ;
+  5xx et 429 sur 24 h et 7 j (nouvelles tranches horaires de `lib/logMetrics.js`) ;
+  redémarrages ; tâches planifiées ; disque et `uploads/` ; jours avant expiration TLS des
+  hôtes ForêtMap et G&L ; connexions MCP actives ; résumé des audits. Outils
+  `foretmap_health_report` et `foretmap_health_history` (admin) ; **`GET /api/health/report`**
+  protégé par `MCP_HEALTH_TOKEN` (en-tête `X-Health-Token`, comparaison en temps constant,
+  404 sans jeton configuré) ; **`scripts/health-report.js`** pour le cron cPanel (stockage,
+  purge, e-mail si orange/rouge ou `MCP_HEALTH_REPORT_EMAIL=daily`) ; workflow
+  **`.github/workflows/health-check.yml`** (quotidien + manuel, une minute, rouge = échec,
+  secrets absents = succès expliqué).
+- **Journaux et fichiers du serveur en lecture seule** (admin `mcp.write`, drapeau
+  `MCP_FILES_ENABLED`) : `foretmap_list_files`, `foretmap_read_file` (offset/limit ou tail),
+  `foretmap_grep_files` (motif et résultats bornés), sur des racines configurables
+  (`MCP_FILE_ROOTS` ; défaut : `logs/`, `startup.log`, `stderr.log` Passenger, `.cpanel.yml`,
+  `scripts/`, `docs/`, `migrations/`, tampon Pino). Anti-traversée par `realpath` (liens
+  symboliques compris), binaires refusés, `.env` réduit aux noms de variables, clés jamais
+  transmises, secrets reconnaissables masqués (`lib/mcp/secretMask.js`), journaux nettoyés par
+  `logSanitizer`.
+- **`foretmap_cron_status`** : dernière exécution et retard de chaque tâche planifiée connue.
+  Nouveau journal **`scheduled_job_runs`** (`lib/scheduledJobs.js`) alimenté par les jobs
+  quotidiens du serveur et le rapport de santé (traçage seul, jobs inchangés) ; lecture de
+  `retention_purge_runs` et des `logs/*.log` de la crontab ; `crontab -l` seulement si
+  `MCP_CRON_READ_CRONTAB=true`.
+- **Migration `325_mcp_exploitation.sql`** (idempotente) : tables `mcp_memory`,
+  `mcp_health_reports`, `scheduled_job_runs` et notes semées. Tables ignorées par la
+  synchronisation différentielle du client.
+- Docs : `docs/MCP.md` § 11 (mémoire, santé, fichiers, cron) et § 12 « Activer en production »,
+  `docs/API.md`, `docs/CRONTAB.md` (ligne 9), registre `docs/MCP_REGISTRE_TRAITEMENT.md`, doc
+  de référence `docs/reference/foretmap/connecteur-claude.md`. `npm run mcp:smoke` appelle
+  aussi `foretmap_health_report` pour un compte admin.
+
 ### Ajouté — connecteur Claude (MCP distant + serveur OAuth intégré)
 
 - **Endpoint `/mcp`** (Streamable HTTP du SDK `@modelcontextprotocol/sdk`, sans état, réponses

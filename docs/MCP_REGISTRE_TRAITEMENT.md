@@ -58,6 +58,32 @@ individuelle, un message, un journal de connexion. **Garantie réelle** :
   identifiants en champs séparés (retirés), jamais dans le texte des messages ; c'est la règle
   à tenir pour tout nouveau message de journal.
 
+**Fonctions d'exploitation** (ajoutées le 03/11/2026, `docs/MCP.md` § 11), qui ne retirent
+aucune des garanties ci-dessus :
+
+- **mémoire du connecteur** (`foretmap_recall`, `foretmap_remember`, `foretmap_forget`, profils
+  ayant la permission du connecteur) : notes techniques stables (conventions, pièges connus,
+  emplacements). Le serveur **refuse** toute note qui contient une adresse e-mail ou ressemble à
+  un secret (mot de passe, jeton, clé, hachage) ; la consigne donnée à Claude interdit d'y
+  mettre une donnée d'élève. Une note personnelle n'est visible que de son auteur ; une note
+  partagée ne peut être modifiée ou supprimée que par son auteur ou un administrateur ;
+- **rapport de santé** (`foretmap_health_report`, `foretmap_health_history`, administrateurs ;
+  tâche quotidienne ; point d'accès protégé par un jeton) : uniquement des **agrégats
+  techniques** — version, mémoire, latence et taille des tables (métadonnées, aucune ligne
+  lue), compteurs de réponses en erreur, état des tâches planifiées, espace disque, échéance des
+  certificats, nombre de connexions du connecteur (sans identité), nombre de constats du corpus ;
+- **journaux et fichiers du serveur** (`foretmap_list_files`, `foretmap_read_file`,
+  `foretmap_grep_files`, `foretmap_cron_status`, **administrateurs seulement**) : lecture seule
+  dans une liste fermée de dossiers (journaux des tâches planifiées, journaux de démarrage et du
+  serveur web, scripts, documentation, migrations). Valeurs des fichiers de configuration
+  (`.env`) **toujours** masquées (seuls les noms de variables), fichiers de clés jamais transmis,
+  secrets reconnaissables (jetons, mots de passe dans une adresse, en-têtes d'authentification)
+  masqués ; dans les journaux, adresses e-mail masquées, valeurs citées, identifiants et
+  adresses IP remplacés par des pseudonymes comme pour `foretmap_tail_logs`. **Limite** : un
+  nom écrit en clair dans une ligne de journal texte n'est pas reconnaissable de façon sûre ;
+  c'est pourquoi ces outils sont réservés aux administrateurs, qui ont déjà accès à ces
+  journaux sur le serveur.
+
 Avant la relecture de sécurité du 03/11/2026, l'outil SQL libre se contrôlait par expressions
 régulières, contournables (`SELECT * FROM (users)`) ; la contre-vérification du même jour a
 montré que l'analyse syntaxique seule laissait passer un commentaire exécutable MariaDB. Il
@@ -67,7 +93,7 @@ montré que l'analyse syntaxique seule laissait passer un commentaire exécutabl
 
 | Personnes                         | Données traitées par le connecteur                                                                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage                                                                                     |
+| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage ; auteur (identifiant) des notes de mémoire                                         |
 | Élèves                            | **Aucune donnée individuelle.** Agrégats anonymes seulement (nombre d'observations, de réponses aux QCM par catégorie, de lectures de tutoriels, de tâches réalisées), effectifs inférieurs à 5 masqués |
 | Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                    |
 
@@ -108,15 +134,19 @@ documentés.
 
 ## 6. Durées de conservation
 
-| Donnée                                                                | Durée                                                                                                                         |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Code d'autorisation (haché)                                           | 60 s de validité ; supprimé 1 h après expiration                                                                              |
-| Jeton d'accès (haché)                                                 | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                             |
-| Jeton de rafraîchissement (haché)                                     | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                        |
-| Client OAuth enregistré                                               | Sans donnée personnelle (nom d'application, redirections)                                                                     |
-| Plan d'écriture                                                       | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction) |
-| Journal d'appels (Pino)                                               | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**        |
-| `security_events` (connexion, consentement) / `audit_log` (écritures) | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                              |
+| Donnée                                                                | Durée                                                                                                                                                             |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code d'autorisation (haché)                                           | 60 s de validité ; supprimé 1 h après expiration                                                                                                                  |
+| Jeton d'accès (haché)                                                 | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                                                                 |
+| Jeton de rafraîchissement (haché)                                     | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                                                            |
+| Client OAuth enregistré                                               | Sans donnée personnelle (nom d'application, redirections)                                                                                                         |
+| Plan d'écriture                                                       | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction)                                     |
+| Journal d'appels (Pino)                                               | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**                                            |
+| `security_events` (connexion, consentement) / `audit_log` (écritures) | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                                                                  |
+| Note de mémoire du connecteur (`mcp_memory`)                          | Jusqu'à son oubli (`foretmap_forget`) ; signalée « à revérifier » après 90 jours ; note personnelle supprimée avec le compte, note partagée conservée sans auteur |
+| Rapport de santé (`mcp_health_reports`)                               | 90 jours (`MCP_HEALTH_REPORT_RETENTION_DAYS`) ; aucune donnée de personne                                                                                         |
+| Journal des tâches planifiées (`scheduled_job_runs`)                  | 180 jours ; comptages et messages d'erreur nettoyés, aucune donnée de personne                                                                                    |
+| Lecture de fichiers et journaux du serveur                            | Rien n'est conservé par le connecteur : lecture à la demande ; les journaux eux-mêmes suivent leur rotation (`docs/CRONTAB.md`, ligne 8)                          |
 
 La suppression d'un compte supprime ses jetons et plans (clés étrangères en cascade).
 Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
@@ -145,7 +175,10 @@ limitation de débit ; journalisation.
 2. Information des personnels (mention dans la page « Vos données » si le connecteur est activé).
 3. Liste des profils autorisés (par défaut : admin et n3boss/professeur en lecture ; admin seul
    en écriture).
-4. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`, `GRANT SELECT` par
+4. Outils de lecture des journaux du serveur (administrateurs) : confirmer qu'ils peuvent
+   rester actifs (`MCP_FILES_ENABLED=false` les retire) ; les journaux de l'hébergeur sont déjà
+   accessibles aux administrateurs du serveur, le connecteur les leur transmet nettoyés.
+5. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`, `GRANT SELECT` par
    table de contenu), recommandé ; condition de l'outil SQL libre. Sur un hébergement qui ne
    permet que des droits par base entière, l'outil SQL reste indisponible de lui-même (droits
    vérifiés par `SHOW GRANTS`) : le laisser désactivé.
