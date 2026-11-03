@@ -347,8 +347,9 @@ Dans _Réglages → Plan Lyautey_ (portée publique, sauf le code d'accès) :
 | Adresse publique du plan    | base des QR codes et liens (ex. adresse du site Plan)                                              |
 | Catégories cochées d'office | étiquettes actives à la première ouverture (vide = tout) ; un changement réapplique sur l'appareil |
 | Catégories masquées         | retirées des filtres ; lieux qui n'avaient qu'elles absents du plan                                |
-| Mode d'accès                | `public` (par défaut) ou `code` — un code partagé, retenu 30 jours par défaut                      |
+| Mode d'accès                | `public` (par défaut), `code` (code partagé) ou `mot de passe` — retenu 30 jours par défaut        |
 | Code d'accès                | saisi ou généré dans les réglages ; seule une empreinte est stockée ; **12 caractères minimum**    |
+| Mot de passe                | saisi ou généré ; **12 caractères minimum, lettres et chiffres** ; distinct du code (voir dessous) |
 | Durée du laissez-passer     | combien de jours un appareil reste ouvert après la saisie du code (30 par défaut, 90 au plus)      |
 | Orienter                    | autorise le bouton « Orienter » (la carte doit aussi l'autoriser dans son calage GPS)              |
 
@@ -382,12 +383,32 @@ téléphone, ni dans la copie hors ligne du plan. Le reste du lien (lieu, parcou
 conservé. Préférez tout de même la saisie du code quand c'est possible : un QR code imprimé
 est un lien direct permanent, qu'on photographie et qu'on transmet.
 
+**Code ou mot de passe ?** Le mode d'accès propose deux façons de fermer le plan :
+
+- le **code d'accès** est fait pour être **diffusé** : il se recopie d'une affiche, et un lien
+  ou un QR code peut le porter. Il s'affiche en clair quand on le tape ;
+- le **mot de passe** est fait pour être **tapé** par la personne qui le connaît : c'est un vrai
+  mot de passe alphanumérique (au moins 12 caractères, avec des lettres **et** des chiffres ; les
+  majuscules comptent). Le visiteur le saisit dans un champ **masqué** — un bouton « Afficher »
+  permet de vérifier sa frappe —, et le navigateur peut proposer de l'enregistrer dans son
+  gestionnaire de mots de passe. Il ne passe **jamais** par un lien ni un QR code : un lien
+  `?code=…` n'ouvre pas un plan fermé par mot de passe (la tentative est notée au journal).
+
+Code et mot de passe sont **deux secrets distincts**, chacun avec son champ dans les réglages.
+Vous pouvez donc préparer le mot de passe avant de basculer le mode : au moment de la bascule,
+les appareils entrés avec le code doivent saisir le mot de passe (et inversement si vous
+revenez au code). En mode « mot de passe » sans mot de passe enregistré, le plan reste ouvert à
+tous, comme en mode « code » sans code — un avertissement le signale dans les réglages.
+
 **Le générateur de code.** Le bouton **« Générer un code »** propose un code de 14 caractères
 tirés au hasard, en minuscules et chiffres, sans les caractères qui se confondent (ni `0` ni
 `o`, ni `1`, `i` ou `l`). Il s'affiche en clair : **notez-le avant d'enregistrer**, car seule
 son empreinte est conservée et personne ne pourra plus l'afficher ensuite. Un code choisi à la
 main reste possible, à condition de faire **au moins 12 caractères** ; un code plus court
-enregistré avant cette règle continue de fonctionner jusqu'à ce que vous le remplaciez.
+enregistré avant cette règle continue de fonctionner jusqu'à ce que vous le remplaciez. Le
+bouton **« Générer un mot de passe »** fait de même pour le mot de passe : 14 caractères mêlant
+majuscules, minuscules et chiffres, sans caractères qui se confondent, à noter avant
+d'enregistrer.
 
 #### Autres plans proposés
 
@@ -458,6 +479,8 @@ sur l'écran de saisie du code et sur l'écran de connexion du plan des personne
   portes restent le moyen le plus fiable de savoir où l'on est.
 - **Le code d'accès n'est pas un mot de passe.** Il est partagé, et retenu 30 jours par
   appareil (durée réglable) : il décourage la diffusion large, il ne protège pas des données sensibles — et le
-  plan n'en contient pas.
+  plan n'en contient pas. Le mode **mot de passe** est plus discret (saisie masquée, jamais de
+  lien ni de QR code), mais reste un secret **partagé** : il ne dit pas qui est entré, et ne se
+  retire à une personne qu'en le changeant pour tous.
 - **Un lieu masqué sur toutes les surfaces disparaît partout**, y compris de la carte des
   élèves. L'avertissement dans la fiche le signale, mais rien ne l'interdit.

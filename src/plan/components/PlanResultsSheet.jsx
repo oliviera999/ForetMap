@@ -1,5 +1,5 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
-import { placeDisplayParts } from '../utils/planPlaces.js';
+import { placeDisplayParts, isSecondaryHighlight } from '../utils/planPlaces.js';
 
 /** Champs de correspondance qui n'ont pas besoin d'être expliqués (le nom saute aux yeux). */
 const OBVIOUS_MATCH_FIELDS = new Set(['name', 'alias']);
@@ -40,6 +40,8 @@ function matchOriginLabel(matchedFields) {
  * @param {boolean} [props.filterActive] au moins une catégorie est cochée.
  * @param {string} [props.highlightTag] plan e-nov : étiquette des lieux mis en avant
  *   (`map_highlight`) dans la liste ; vide = rien.
+ * @param {string} [props.secondaryHighlightTag] plan e-nov : étiquette des lieux du second
+ *   niveau (`map_highlight_tone: 'secondary'`), dans leur couleur ; vide = `highlightTag`.
  */
 export function PlanResultsSheet({
   open,
@@ -53,6 +55,7 @@ export function PlanResultsSheet({
   totalCount = null,
   filterActive = false,
   highlightTag = '',
+  secondaryHighlightTag = '',
 }) {
   const count = results.length;
   const truncated = totalCount != null && totalCount > count;
@@ -108,7 +111,13 @@ export function PlanResultsSheet({
                     <span className="plan-results__name">
                       {name}
                       {highlightTag && place.map_highlight === true ? (
-                        <span className="plan-results__highlight">{highlightTag}</span>
+                        isSecondaryHighlight(place) ? (
+                          <span className="plan-results__highlight is-highlight-secondary">
+                            {secondaryHighlightTag || highlightTag}
+                          </span>
+                        ) : (
+                          <span className="plan-results__highlight">{highlightTag}</span>
+                        )
                       ) : null}
                       {distance ? <span className="plan-results__distance">{distance}</span> : null}
                     </span>

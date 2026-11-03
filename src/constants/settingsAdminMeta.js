@@ -49,6 +49,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.plan.access_mode',
   'ui.plan.heading_up_enabled',
   'security.plan_access_code_hash',
+  'security.plan_access_password_hash',
   'security.plan_access_pass_days',
   // Plan des personnels (StaffPlanSettingsPanel) — sans ça, la grille générique montrait un
   // champ texte pour `allowed_role_slugs` : le vider au blur fermait proflyautey à tout le monde.
@@ -62,6 +63,7 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.staff_plan.access_mode',
   'ui.staff_plan.code_role_slug',
   'security.staff_plan_access_code_hash',
+  'security.staff_plan_access_password_hash',
   'security.staff_plan_access_pass_days',
   // Plan e-nov (EnovPlanSettingsPanel) : couleur, catégories et case à cocher n'ont pas
   // d'éditeur générique adapté (une couleur saisie en texte libre serait refusée).
@@ -73,10 +75,15 @@ export const KEYS_HANDLED_BY_PANEL = new Set([
   'ui.enov_plan.hidden_category_ids',
   'ui.enov_plan.highlight_category_ids',
   'ui.enov_plan.highlight_color',
+  'ui.enov_plan.secondary_category_ids',
+  'ui.enov_plan.secondary_color',
+  'ui.enov_plan.primary_label',
+  'ui.enov_plan.secondary_label',
   'ui.enov_plan.badge_enabled',
   'ui.enov_plan.innovations_label',
   'ui.enov_plan.access_mode',
   'security.enov_plan_access_code_hash',
+  'security.enov_plan_access_password_hash',
   'security.enov_plan_access_pass_days',
   'content.visit.mascot_dialog.defaults',
   'content.visit.mascot_dialog.catalog_overrides',

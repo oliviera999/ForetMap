@@ -435,7 +435,9 @@ describe('AppPlan — montage', () => {
       render(<AppPlan />);
       await Promise.resolve();
     });
-    const placeSheet = await screen.findByTestId('plan-place-sheet');
+    // Délai explicite : la fiche s'ouvre après le chargement du contenu (promesse simulée) et
+    // l'ouverture de l'overlay ; le délai par défaut (1 s) était dépassé sur un runner CI chargé.
+    const placeSheet = await screen.findByTestId('plan-place-sheet', {}, { timeout: 5000 });
     expect(placeSheet.textContent).toContain('Gymnase');
     // Dépiiler l'overlay du lien profond avant le test suivant (pile module partagée).
     await act(async () => {
@@ -732,6 +734,30 @@ describe('AppPlan — montage', () => {
       expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
         'OUVRE-TOI',
         expect.objectContaining({ id: 'plan', apiBase: '/api/plan' }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());
+  });
+
+  test('accès par mot de passe : vrai champ de mot de passe quand le serveur l’annonce', async () => {
+    const denied = Object.assign(new Error('Mot de passe requis'), {
+      status: 401,
+      body: { access_required: true, access_kind: 'password' },
+    });
+    planApiMock.fetchPlanContent.mockRejectedValueOnce(denied);
+    render(<AppPlan />);
+    const input = await screen.findByLabelText('Mot de passe');
+    expect(input.getAttribute('type')).toBe('password');
+    expect(input.getAttribute('autocomplete')).toBe('current-password');
+    expect(screen.getByText(/Saisissez le mot de passe/)).toBeTruthy();
+
+    planApiMock.submitPlanAccessCode.mockResolvedValueOnce({ ok: true });
+    fireEvent.change(input, { target: { value: 'Enov2026Jury' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Entrer' }));
+    await waitFor(() =>
+      expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
+        'Enov2026Jury',
+        expect.objectContaining({ id: 'plan' }),
       ),
     );
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan Lyautey' })).toBeTruthy());

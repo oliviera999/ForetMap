@@ -49,7 +49,7 @@ L’app est servie sur **http://localhost:3000** (ou le port défini par `proces
 
 Guide pas à pas : **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** — MariaDB 11.4 (Docker `mariadb:11.4.10`), `env.local.example` → `.env`, `npm run db:init`, `npm run dev`, `npm run test:local` (base `foretmap_test` séparée).
 **Quoi lancer dans quel cas** : **[docs/SCRIPTS.md](docs/SCRIPTS.md)**.
-Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images). Diagnostic à distance depuis Cursor (MCP) : **[docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md)** (fichier **`.cursor/mcp.json`**, secret deploy dans **`.env`** ou variable d’environnement).
+Exploitation prod : **[docs/EXPLOITATION.md](docs/EXPLOITATION.md)** (check post-déploiement, lock o2switch, bascule images). Connecteur Claude distant (MCP + OAuth, contenu pédagogique et audits) : **[docs/MCP.md](docs/MCP.md)**. Diagnostic à distance depuis Cursor (MCP) : **[docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md)** (fichier **`.cursor/mcp.json`**, secret deploy dans **`.env`** ou variable d’environnement).
 Déploiement entièrement automatisé (push -> cron -> mise à jour): voir la section dédiée dans `docs/EXPLOITATION.md`.
 `dist/` n'est plus versionné (26/09/2026) : la CI construit le front et le publie sur la branche `dist-artifact/main`, que le script auto-deploy récupère après le `git pull` (`docs/DEPLOY_DIST_ARTIFACT.md`). Aucun build à pousser.
 

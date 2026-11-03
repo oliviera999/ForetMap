@@ -52,7 +52,7 @@ SMTP_HOST=… SMTP_PORT=587 SMTP_USER=… SMTP_PASS=… SMTP_FROM="ForetMap <no-
 OPS_ALERT_TO=admin@…
 ```
 
-## Les lignes de crontab (`crontab -e`) — 4 de base ci-dessous, puis purge planifiée (5), Moodle optionnel (6), fichiers orphelins (7) et rotation des journaux (8)
+## Les lignes de crontab (`crontab -e`) — 4 de base ci-dessous, puis purge planifiée (5), Moodle optionnel (6), fichiers orphelins (7), rotation des journaux (8) et rapport de santé (9)
 
 ```cron
 # 1) Déploiement auto : pull + (migrate) + restart + post-deploy-check (+ rollback/alerte si échec) — toutes les 2 min
@@ -287,6 +287,27 @@ anciennes.
 10 5 1 * * find /home/USER/foretmap/logs -name '*.log' -size +5M -exec sh -c 'tail -n 5000 "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; ; find /home/USER/foretmap/logs -name '*.gz' -mtime +90 -delete
 ```
 
+## Ligne 9 — rapport de santé quotidien (connecteur Claude)
+
+`scripts/health-report.js` construit le rapport de santé du site (statut vert / orange /
+rouge : base, migrations, 5xx et 429, redémarrages, tâches planifiées, disque, certificats TLS,
+connexions du connecteur, audits du corpus), le stocke dans `mcp_health_reports` (relu par
+l'outil `foretmap_health_history`) et envoie un e-mail à `OPS_ALERT_TO` **si le statut est
+orange ou rouge** — chaque jour avec `MCP_HEALTH_REPORT_EMAIL=daily`. Il interroge
+l'application par `GET /api/health/report` : poser `MCP_HEALTH_TOKEN` (même valeur dans le
+`.env` lu par le cron et dans l'application). Sans jeton, le rapport est construit sans les
+compteurs HTTP ; application injoignable : statut rouge. Détail et seuils :
+[`docs/MCP.md`](MCP.md), § 11.2.
+
+```cron
+# 9) Rapport de santé (stocké, e-mail si orange/rouge) — chaque jour à 06:40
+40 6 * * * mkdir -p /home/USER/foretmap/logs && bash /home/USER/foretmap/scripts/with-app-node.sh node scripts/health-report.js >> /home/USER/foretmap/logs/health-report.log 2>&1
+```
+
+Code de sortie : 0 si le rapport a été produit (quel que soit son statut), 1 si le script a
+échoué. Chaque exécution est tracée dans `scheduled_job_runs` (`health_report`), lu par
+`foretmap_cron_status` avec les jobs quotidiens du serveur et les journaux ci-dessus.
+
 ## Comptes élèves inactifs — script manuel (remplacé par la ligne 5)
 
 La suppression des comptes arrivés au terme de leur durée de conservation est désormais faite
@@ -339,6 +360,8 @@ tail -n 20 /home/USER/foretmap/logs/boot-journal.ndjson
 ls -lh /home/USER/foretmap/backups | tail
 # La purge planifiée tourne ? (simulation ou réelle, issue de chaque passage)
 tail -n 20 /home/USER/foretmap/logs/retention-purge.log
+# Le rapport de santé tourne ? (une ligne de résumé par jour)
+tail -n 7 /home/USER/foretmap/logs/health-report.log
 # Restaurer un dump (exemple) :
 gunzip -c /home/USER/foretmap/backups/foretmap-AAAAMMJJ-HHMMSS.sql.gz | mysql -u "$DB_USER" -p "$DB_NAME"
 ```

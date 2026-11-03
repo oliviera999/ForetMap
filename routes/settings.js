@@ -12,6 +12,11 @@ const { logAudit } = require('../lib/auditLog');
 const { scopePublicSettings } = require('../lib/publicSettingsScope');
 const { resolveSecureProductId } = require('../lib/surfaceAccess');
 const { listMapsForAdmin } = require('../lib/terrain/mapService');
+const {
+  ACCESS_SECRET_HASH_KEYS,
+  PLAN_ACCESS_SECRET_KEYS,
+  validateAccessSecret,
+} = require('../lib/accessSecret');
 
 // `limit` : coercition permissive (repli sur le défaut côté handler si absent/non numérique) — jamais de 400.
 const settingsMediaQuerySchema = z.object({ limit: z.coerce.number().optional().catch(undefined) });
@@ -254,39 +259,67 @@ router.post(
 );
 
 /**
- * Codes d'accès des trois plans : jamais stockés en clair, seulement leur empreinte bcrypt. Ils
- * passent par une route dédiée plutôt que par `PUT /admin/:key`, qui écrirait la valeur telle
- * quelle — la garde plus bas refuse d'ailleurs explicitement ces clés.
+ * Codes d'accès et mots de passe des trois plans : jamais stockés en clair, seulement leur
+ * empreinte bcrypt. Ils passent par une route dédiée plutôt que par `PUT /admin/:key`, qui
+ * écrirait la valeur telle quelle — la garde plus bas refuse d'ailleurs explicitement ces clés.
+ *
+ * Règles d'enregistrement (`lib/accessSecret.js`) : 12 à 64 caractères ; un mot de passe mêle
+ * en plus lettres et chiffres. Les secrets déjà enregistrés restent valides jusqu'à leur
+ * remplacement : un secret n'est connu du serveur que par son empreinte, sa forme ne peut pas
+ * être relue.
  */
-const ACCESS_CODE_SETTINGS = Object.freeze({
-  plan: { key: 'security.plan_access_code_hash', label: 'du plan' },
-  'staff-plan': { key: 'security.staff_plan_access_code_hash', label: 'du plan des personnels' },
-  'enov-plan': { key: 'security.enov_plan_access_code_hash', label: 'du plan e-nov' },
-});
+const ACCESS_SECRET_ROUTES = Object.freeze([
+  { path: 'plan-access-code', surface: 'plan', kind: 'code', label: 'Code d’accès du plan' },
+  {
+    path: 'staff-plan-access-code',
+    surface: 'staff',
+    kind: 'code',
+    label: 'Code d’accès du plan des personnels',
+  },
+  {
+    path: 'enov-plan-access-code',
+    surface: 'enov',
+    kind: 'code',
+    label: 'Code d’accès du plan e-nov',
+  },
+  {
+    path: 'plan-access-password',
+    surface: 'plan',
+    kind: 'password',
+    label: 'Mot de passe du plan',
+  },
+  {
+    path: 'staff-plan-access-password',
+    surface: 'staff',
+    kind: 'password',
+    label: 'Mot de passe du plan des personnels',
+  },
+  {
+    path: 'enov-plan-access-password',
+    surface: 'enov',
+    kind: 'password',
+    label: 'Mot de passe du plan e-nov',
+  },
+]);
 
-/**
- * Longueur minimale d'un code d'accès : 12 caractères. La seule défense contre le tâtonnement
- * est `authLimiter` (plafond par adresse IP) ; 12 caractères tirés au hasard (le générateur de
- * l'écran de réglages, `src/utils/accessCodeGenerator.js`) mettent le code hors de portée.
- * Les codes déjà enregistrés restent valides jusqu'à leur remplacement : la règle s'applique à
- * l'enregistrement, et un code n'est connu du serveur que par son empreinte bcrypt — sa
- * longueur ne peut pas être relue.
- */
-const ACCESS_CODE_MIN_LENGTH = 12;
+/** Route dédiée de chaque clé d'empreinte (message de refus de `PUT /admin/:key`). */
+const ACCESS_SECRET_ROUTE_BY_KEY = Object.freeze(
+  Object.fromEntries(
+    ACCESS_SECRET_ROUTES.map((route) => [
+      PLAN_ACCESS_SECRET_KEYS[route.surface][route.kind],
+      route,
+    ]),
+  ),
+);
 
-function accessCodeHandler(target) {
-  const { key, label } = ACCESS_CODE_SETTINGS[target];
+function accessSecretHandler({ surface, kind, label }) {
+  const key = PLAN_ACCESS_SECRET_KEYS[surface][kind];
   return asyncHandler(async (req, res) => {
-    const code = String(req.body?.code ?? '').trim();
-    if (code.length > 64) {
-      return res.status(400).json({ error: 'Code trop long (64 caractères maximum)' });
-    }
-    if (code && code.length < ACCESS_CODE_MIN_LENGTH) {
-      return res.status(400).json({
-        error: `Code trop court (${ACCESS_CODE_MIN_LENGTH} caractères minimum)`,
-      });
-    }
-    const hash = code ? await bcrypt.hash(code, 10) : '';
+    // Corps `{ code }` pour les deux natures : un mot de passe est un secret comme un autre.
+    const secret = String(req.body?.code ?? '').trim();
+    const invalid = validateAccessSecret(kind, secret);
+    if (invalid) return res.status(400).json({ error: invalid });
+    const hash = secret ? await bcrypt.hash(secret, 10) : '';
     const updated = await setSetting(key, hash, {
       userType: req.auth?.userType,
       userId: req.auth?.userId,
@@ -295,30 +328,20 @@ function accessCodeHandler(target) {
       'settings_update',
       'setting',
       key,
-      code ? `Code d’accès ${label} défini` : `Code d’accès ${label} effacé`,
-      { req, payload: { key, cleared: !code } },
+      secret ? `${label} défini` : `${label} effacé`,
+      { req, payload: { key, kind, cleared: !secret } },
     );
-    res.json({ ok: true, key, hasCode: Boolean(updated) });
+    res.json({ ok: true, key, kind, hasCode: Boolean(updated) });
   });
 }
 
-router.post(
-  '/admin/plan-access-code',
-  requirePermission('admin.settings.write'),
-  accessCodeHandler('plan'),
-);
-
-router.post(
-  '/admin/staff-plan-access-code',
-  requirePermission('admin.settings.write'),
-  accessCodeHandler('staff-plan'),
-);
-
-router.post(
-  '/admin/enov-plan-access-code',
-  requirePermission('admin.settings.write'),
-  accessCodeHandler('enov-plan'),
-);
+for (const route of ACCESS_SECRET_ROUTES) {
+  router.post(
+    `/admin/${route.path}`,
+    requirePermission('admin.settings.write'),
+    accessSecretHandler(route),
+  );
+}
 
 router.put(
   '/admin/:key',
@@ -326,22 +349,11 @@ router.put(
   asyncHandler(async (req, res) => {
     const key = String(req.params.key || '').trim();
     if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
-    if (key === 'security.plan_access_code_hash') {
+    if (ACCESS_SECRET_HASH_KEYS.includes(key)) {
+      const route = ACCESS_SECRET_ROUTE_BY_KEY[key];
+      const what = route.label.charAt(0).toLowerCase() + route.label.slice(1);
       return res.status(400).json({
-        error:
-          'Utilisez POST /api/settings/admin/plan-access-code pour définir le code d’accès du plan',
-      });
-    }
-    if (key === 'security.staff_plan_access_code_hash') {
-      return res.status(400).json({
-        error:
-          'Utilisez POST /api/settings/admin/staff-plan-access-code pour définir le code d’accès du plan des personnels',
-      });
-    }
-    if (key === 'security.enov_plan_access_code_hash') {
-      return res.status(400).json({
-        error:
-          'Utilisez POST /api/settings/admin/enov-plan-access-code pour définir le code d’accès du plan e-nov',
+        error: `Utilisez POST /api/settings/admin/${route.path} pour définir le ${what}`,
       });
     }
     const value = req.body?.value;
@@ -364,10 +376,10 @@ router.put(
         });
       }
     }
-    // Couleur du halo e-nov : un `#rrggbb` ou rien — une valeur quelconque serait injectée
-    // telle quelle dans le style du plan.
+    // Couleurs du halo e-nov (deux niveaux) : un `#rrggbb` ou rien — une valeur quelconque
+    // serait injectée telle quelle dans le style du plan.
     if (
-      key === 'ui.enov_plan.highlight_color' &&
+      (key === 'ui.enov_plan.highlight_color' || key === 'ui.enov_plan.secondary_color') &&
       !/^#[0-9a-f]{6}$/i.test(String(value ?? '').trim())
     ) {
       return res.status(400).json({ error: 'Couleur invalide (format #rrggbb)' });

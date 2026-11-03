@@ -342,8 +342,13 @@ const SYNC_DOMAIN_RES = Object.fromEntries(
 // Les deux tables de la double authentification (migration 320) ne sont lues que par
 // `/api/auth/totp/*` : chaque connexion d'un administrateur ou d'un n3boss y écrit (pas
 // consommé, compteur d'échecs) sans rien changer aux données du cycle.
+//
+// Les tables du connecteur MCP (`mcp_*`, migrations 324 et 325 : jetons, plans, mémoire,
+// rapports de santé) et le journal des tâches planifiées (`scheduled_job_runs`) ne sont lues
+// par aucune route du cycle : un appel de Claude ou un job quotidien ne doit pas faire
+// recharger le catalogue de toute la classe.
 const SYNC_IGNORED_TABLES_RE =
-  /\b(?:gl_(?!classes\b)[a-z0-9_]+|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence|user_totp|user_totp_backup_codes)\b/i;
+  /\b(?:gl_(?!classes\b)[a-z0-9_]+|mcp_[a-z0-9_]+|scheduled_job_runs|forum_[a-z0-9_]+|context_comment[a-z0-9_]*|user_plant_observation_events|species_interactions|glossary_term_species|quiz_question_species|user_quiz_attempts|resource_question_links|resource_gating_policy|resource_gating_cooldowns|learning_acknowledgements|species_observations|species_observation_photos|interaction_evidence|user_totp|user_totp_backup_codes)\b/i;
 const syncDomainVersions = Object.fromEntries(
   Object.keys(SYNC_DOMAIN_TABLES).map((domain) => [domain, 0]),
 );

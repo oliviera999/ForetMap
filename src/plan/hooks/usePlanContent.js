@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchPlanContent, submitPlanAccessCode } from '../planApi.js';
+import { accessKindFromBody } from '../utils/planAccessKind.js';
 import { planPlacesFromContent } from '../utils/planPlaces.js';
 import { PLAN_VARIANT } from '../utils/planVariants.js';
 
@@ -22,7 +23,8 @@ const LINK_CODE_REFUSALS = new Set([400, 401, 403]);
 async function exchangeLinkCode(code, variant) {
   if (!variant?.acceptsLinkCode) return 'ignored';
   try {
-    await submitPlanAccessCode(code, variant);
+    // `via: 'link'` : un plan fermé par mot de passe refuse un secret venu d'un lien (403).
+    await submitPlanAccessCode(code, variant, { via: 'link' });
     return 'granted';
   } catch (err) {
     if (LINK_CODE_REFUSALS.has(err?.status)) return 'refused';
@@ -63,6 +65,11 @@ export function usePlanContent(
   const [authRequired, setAuthRequired] = useState(false);
   const [codeAvailable, setCodeAvailable] = useState(false);
   /**
+   * Nature du secret demandé (`access_kind` du refus) : `code` (code d'accès) ou `password`
+   * (mot de passe) — l'écran de saisie adapte son champ et ses messages.
+   */
+  const [accessKind, setAccessKind] = useState('code');
+  /**
    * Code de lien en attente d'échange. Une référence et non un état : il ne sert qu'une fois,
    * et le consommer ne doit pas relancer la charge.
    */
@@ -91,9 +98,11 @@ export function usePlanContent(
           if (variant.getToken?.()) variant.onTokenRefused?.();
           setAuthRequired(true);
           setCodeAvailable(!!err.body.code_available);
+          setAccessKind(accessKindFromBody(err.body));
           setError(null);
         } else if (err?.status === 401 && err?.body?.access_required) {
           setAccessRequired(true);
+          setAccessKind(accessKindFromBody(err.body));
           setError(null);
         } else {
           setError(err instanceof Error ? err : new Error(String(err)));
@@ -148,6 +157,7 @@ export function usePlanContent(
     accessRequired,
     authRequired,
     codeAvailable,
+    accessKind,
     viewer: content?.viewer || null,
     routes: content?.routes || [],
     categories: content?.categories || [],

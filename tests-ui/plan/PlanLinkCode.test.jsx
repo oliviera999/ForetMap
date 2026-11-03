@@ -139,9 +139,11 @@ describe('lien porteur du code (?code=)', () => {
     render(<AppPlan />);
     await screen.findByRole('heading', { name: 'Plan Lyautey' });
 
+    // `via: 'link'` : un plan fermé par mot de passe refuse un secret venu d'un lien.
     expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
       SECRET,
       expect.objectContaining({ apiBase: '/api/plan' }),
+      { via: 'link' },
     );
     // Le laissez-passer est posé avant la lecture : l'échange précède le premier chargement.
     expect(planApiMock.submitPlanAccessCode.mock.invocationCallOrder[0]).toBeLessThan(
@@ -160,6 +162,7 @@ describe('lien porteur du code (?code=)', () => {
       expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith(
         SECRET,
         expect.objectContaining({ apiBase: '/api/enov' }),
+        { via: 'link' },
       ),
     );
     await waitFor(() => expect(window.location.search).not.toContain('code='));

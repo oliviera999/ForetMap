@@ -153,6 +153,17 @@ npm run gl:audit:media-keys
 | Politique de verrous **réellement** en base                     | `npm run gating:check`                                      |
 | Moodle configuré ?                                              | `npm run moodle:check`                                      |
 
+Plans d'établissement (architecture : [PLAN_ARCHITECTURE.md](PLAN_ARCHITECTURE.md)) :
+
+```bash
+# Accès code / mot de passe des trois plans
+node --test tests/plan-access-passwords.test.js
+
+# Contenu e-nov, types d'espace et page d'impression
+node --test tests/enov-plan-content.test.js tests/enov-space-type.test.js
+npm run test:ui -- tests-ui/enov/EnovPrintPage.test.jsx tests-ui/enov/enovPrintModel.test.js
+```
+
 **Piège e2e :** ne pas laisser un `npm start` « normal » sur le port 3000 —
 Playwright le réutilise et tu prends des **429**.
 
