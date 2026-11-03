@@ -379,6 +379,16 @@
  *   --pct-highlight-pulses         nombre de respirations à l'ouverture (2 ; 0 = aucune) ;
  *   --pct-highlight-ring-inset     retrait de l'anneau d'un repère dans sa cible tactile (8px).
  */
+/*
+ * Second niveau de mise en avant (plan e-nov : autres lieux d'innovation, à côté des espaces
+ * retenus par le dossier) : **même style**, autre couleur. La couleur vient de la coquille
+ * (`--pct-highlight-secondary-color`, réglage `ui.enov_plan.secondary_color`) ; on la
+ * rebranche ici sur `--pct-highlight-color`, que lisent toutes les règles ci-dessous.
+ */
+.is-highlight-secondary {
+  --pct-highlight-color: var(--pct-highlight-secondary-color, var(--accent-info-solid));
+}
+
 .fm-pct-zone.is-highlight .fm-pct-zone__poly {
   stroke: var(--pct-highlight-color, var(--accent-warning-solid));
   stroke-opacity: 1;

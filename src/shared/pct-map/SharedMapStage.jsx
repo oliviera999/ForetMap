@@ -918,6 +918,7 @@ export function SharedMapStage({
               zoneLabelSideExtraWidthPx(nameSide, labelEmojiPx, labelNameGapPx),
             active: selectedZoneId != null && String(selectedZoneId) === spec.id,
             highlight: spec.zone?.map_highlight === true,
+            highlightTone: spec.zone?.map_highlight === true ? spec.zone?.map_highlight_tone : '',
             badge: spec.zone?.map_highlight === true ? highlightBadge : '',
           };
         })

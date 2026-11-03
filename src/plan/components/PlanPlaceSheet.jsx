@@ -1,7 +1,7 @@
 import { BottomSheet } from '../../shared/ui/BottomSheet.jsx';
 import { Button } from '../../shared/ui/Button.jsx';
 import { resolveExternalImageUrl } from '../../shared/privacy/externalAssets.js';
-import { placeDisplayParts } from '../utils/planPlaces.js';
+import { isSecondaryHighlight, placeDisplayParts } from '../utils/planPlaces.js';
 import { PlanLinkedText } from '../utils/planLinkedText.jsx';
 import { enovSpaceTypeLabel } from '../../shared/enov/enovSpaceTypes.js';
 import { PlaceSuggestionForm } from './PlaceSuggestionForm.jsx';
@@ -35,6 +35,9 @@ import { placeStatusClass, placeStatusLabel } from '../../shared/place-messages/
  *   [props.myReports] ce que **ce lecteur** a déjà signalé sur ce lieu, avec l'état de
  *   traitement. Sans cette liste, signaler revenait à parler dans le vide : la fiche n'affiche
  *   pas les commentaires, et la console refuse le profil `personnel` en lecture.
+ * @param {{ primary?: string, secondary?: string }} [props.highlightTierLabels] plan e-nov :
+ *   intitulés des deux niveaux de mise en avant (« Espaces retenus », « Autres lieux
+ *   d'innovation »), dits dans l'encadré avant le type d'espace.
  * @param {string} [props.highlightTitle] plan e-nov : titre du bloc « en quoi ce lieu est une
  *   innovation », affiché **en tête** de fiche pour un lieu mis en avant ou porteur d'un texte
  *   e-nov. Vide (autres plans) = aucun bloc.
@@ -71,6 +74,7 @@ export function PlanPlaceSheet({
   myReports = EMPTY_REPORTS,
   initialSnap = 'half',
   highlightTitle = '',
+  highlightTierLabels = null,
 }) {
   if (!place) return null;
   // Le nom porte presque toujours l'emoji en tête, et la colonne `emoji` le répète : sans
@@ -99,6 +103,15 @@ export function PlanPlaceSheet({
   const showEnov = Boolean(highlightTitle) && (place.map_highlight === true || Boolean(enovText));
   /** Type d'espace (migration 323), dit sous le titre : « Espace sportif », « Restauration »… */
   const enovTypeLabel = showEnov ? enovSpaceTypeLabel(place.enov_space_type) : '';
+  /** Niveau du lieu (espace retenu / autre lieu d'innovation), dans sa couleur. */
+  const enovSecondary = showEnov && isSecondaryHighlight(place);
+  const enovTierLabel =
+    showEnov && place.map_highlight === true
+      ? String(
+          (enovSecondary ? highlightTierLabels?.secondary : highlightTierLabels?.primary) || '',
+        ).trim()
+      : '';
+  const enovMeta = [enovTierLabel, enovTypeLabel].filter(Boolean).join(' · ');
   return (
     <BottomSheet
       open
@@ -160,13 +173,16 @@ export function PlanPlaceSheet({
       }
     >
       {showEnov ? (
-        <section className="plan-place__enov" data-testid="plan-place-enov">
+        <section
+          className={`plan-place__enov${enovSecondary ? ' is-highlight-secondary' : ''}`}
+          data-testid="plan-place-enov"
+        >
           <h3 className="plan-place__enov-title">
             <span aria-hidden>💡</span> {highlightTitle}
           </h3>
-          {enovTypeLabel ? (
+          {enovMeta ? (
             <p className="plan-place__enov-type" data-testid="plan-place-enov-type">
-              {enovTypeLabel}
+              {enovMeta}
             </p>
           ) : null}
           {enovText ? <PlanLinkedText className="plan-place__enov-text" text={enovText} /> : null}

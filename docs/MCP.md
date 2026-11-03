@@ -1,25 +1,32 @@
-# Connecteur Claude (MCP distant)
+# Connecteur MCP distant
 
 Le site expose un **serveur MCP distant** (Model Context Protocol) à l'adresse `<base>/mcp`,
-protégé par un **serveur d'autorisation OAuth 2.1 intégré**. Il permet de brancher Claude
-(claude.ai, Claude Desktop, Claude mobile, Claude Code) sur le **contenu pédagogique** de
-ForetMap et de Gnomes & Licornes : recherche, fiches espèces, cartes, clés de détermination,
-réseaux trophiques, QCM, glossaires, plateaux et lore G&L, **audits de cohérence du corpus**,
-et — pour les administrateurs — **corrections de contenu par plan puis application**.
+protégé par un **serveur d'autorisation OAuth 2.1 intégré**. Il permet de brancher un
+**assistant compatible MCP** — Claude (claude.ai, Desktop, mobile, Claude Code), **Cursor**
+(HTTP distant), **ChatGPT** (connecteur personnalisé) et **Gemini CLI** — sur le **contenu
+pédagogique** de ForetMap et de Gnomes & Licornes : recherche, fiches espèces, cartes, clés de
+détermination, réseaux trophiques, QCM, glossaires, plateaux et lore G&L, **audits de
+cohérence du corpus**, et — pour les administrateurs — **corrections de contenu par plan puis
+application**.
 
 Aucune donnée personnelle n'est exposée : voir § 5 et la fiche
-[MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
+[MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md). Le choix du client (Claude, ChatGPT,
+Gemini…) détermine le **sous-traitant IA** qui reçoit les réponses des outils.
 
 Le serveur MCP **stdio** pour Cursor (`scripts/mcp-foretmap-diagnostics.mjs`, diagnostic à
-distance par `DEPLOY_SECRET`) reste disponible : [MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md).
-Il partage désormais le même registre d'outils de diagnostic.
+distance par `DEPLOY_SECRET`) reste disponible à côté du connecteur distant OAuth :
+[MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md). Il partage le même registre d'outils de
+diagnostic.
+
+**Hors périmètre :** Gemini Enterprise / Vertex (client OAuth confidentiel avec secret) n'est
+pas supporté ; seul Gemini CLI (client public, loopback) l'est.
 
 ---
 
 ## 1. Architecture
 
 ```
-Claude ──HTTPS──▶ /mcp (POST JSON-RPC)                 lib/mcp/server.js
+Client MCP ──HTTPS──▶ /mcp (POST JSON-RPC)              lib/mcp/server.js
                    │  401 + WWW-Authenticate            lib/mcp/oauth/bearer.js
                    │  jeton fmcp_at_… (haché sha256)    lib/mcp/oauth/store.js
                    ▼
@@ -33,7 +40,7 @@ diagnostics*.js                     (fonctions pures)   (n ≥ 5)         (plan 
             withReadOnly : START TRANSACTION READ ONLY,      lib/mcp/readDb.js
             max_statement_time, LIMIT forcé, liste blanche    lib/mcp/sqlGuard.js
 
-Claude ──▶ /.well-known/oauth-protected-resource[/mcp]   (RFC 9728)
+Client ──▶ /.well-known/oauth-protected-resource[/mcp]   (RFC 9728)
        ──▶ /.well-known/oauth-authorization-server        (RFC 8414 ; alias openid-configuration)
        ──▶ /oauth/register (DCR) · /oauth/authorize · /oauth/token · /oauth/revoke
                                                          lib/mcp/oauth/router.js
@@ -46,7 +53,7 @@ Claude ──▶ /.well-known/oauth-protected-resource[/mcp]   (RFC 9728)
 - **Montage** (`server.js`) : avant les parseurs de corps généraux, avant la CSP de
   l'application (les pages de consentement posent la leur) et avant le fallback SPA ; **hors
   du limiteur général `/api/`**, avec un limiteur dédié (`MCP_RATE_LIMIT_PER_MIN`, clé = jeton
-  haché ou IP — le trafic de Claude sort des adresses partagées d'Anthropic) et un corps JSON
+  haché ou IP — les clients cloud sortent souvent d'adresses partagées) et un corps JSON
   limité à 256 ko.
 - **Hôte** : servi uniquement sur l'hôte du produit ForetMap principal. Sur `gl.*`, `plan.*`…
   ces chemins répondent 404 : un seul `resource`, un seul `issuer`. Les outils G&L lisent la
@@ -386,9 +393,11 @@ empreinte de conflit — à réserver aux corrections où la revue humaine du di
    écriture dans `audit_log`, et renvoi de la migration équivalente.
 3. **`foretmap_export_plan_as_migration`** : migration + rollback seuls, nom de fichier suggéré.
 
-La migration générée est **idempotente** : chaque `UPDATE` est gardé par la valeur attendue
-avant correction (comparaison `BINARY`), chaque liaison par `INSERT IGNORE` / `DELETE` ciblé.
-Le rollback garde symétriquement la valeur d'après.
+La migration générée est **idempotente** et équivalente à l'application dans l'ordre du plan :
+chaque `UPDATE` est gardé par la valeur attendue juste avant lui (comparaison `BINARY`). Si le
+plan corrige deux fois la même cellule, la seconde part du résultat de la première, pas de
+l'instantané d'origine. Chaque liaison passe par `INSERT IGNORE` / `DELETE` ciblé. Le rollback
+défait les opérations dans l'ordre inverse.
 
 ### Pourquoi la voie « migration par PR » reste privilégiée
 
@@ -423,6 +432,51 @@ claude            # puis /mcp → foretmap → Authenticate
 
 Claude Code utilise son document CIMD et une redirection `http://localhost:<port>/callback` ;
 l'écran de consentement affiche alors l'avertissement « adresse locale ».
+
+### Cursor (connecteur distant OAuth)
+
+Dans `.cursor/mcp.json` (déjà présent dans le dépôt) :
+
+```json
+{
+  "mcpServers": {
+    "foretmap": {
+      "url": "${env:FORETMAP_MCP_URL}"
+    }
+  }
+}
+```
+
+Poser `FORETMAP_MCP_URL=https://<domaine-foretmap>/mcp` dans l'environnement Windows / shell,
+puis redémarrer Cursor. L'OAuth (DCR + PKCE) s'ouvre dans le navigateur ; redirects admises :
+`https://www.cursor.com/agents/mcp/oauth/callback` et `http://localhost:8787/callback`.
+
+Le serveur stdio **`foretmap-diagnostics`** (secret de déploiement) reste distinct :
+[MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md).
+
+### ChatGPT (connecteur / plugin MCP)
+
+Dans ChatGPT (mode développeur / apps MCP selon le compte) : ajouter un serveur MCP
+personnalisé avec l'URL `https://<domaine-foretmap>/mcp`, authentification OAuth. ChatGPT
+utilise CIMD (`chatgpt.com/oauth/…/client.json`) ou DCR ; redirects admises :
+`https://chatgpt.com/connector_platform_oauth_redirect` et
+`https://chatgpt.com/connector/oauth/*`.
+
+### Gemini CLI
+
+```json
+{
+  "mcpServers": {
+    "foretmap": {
+      "url": "https://<domaine-foretmap>/mcp"
+    }
+  }
+}
+```
+
+Découverte OAuth automatique ; redirect loopback `http://localhost:<port>/oauth/callback`
+(chemin `/oauth/callback`, distinct de Claude Code). **Gemini Enterprise / Vertex** (client
+confidentiel + secret) n'est **pas** supporté.
 
 ### MCP Inspector
 
@@ -485,9 +539,11 @@ Enchaîne 401 → métadonnées → DCR → connexion → consentement → jeton
   `/.well-known/*` n'est pas servi par Node. Vérifier que le frontal (Apache/Passenger, Tiger
   Protect / WAF o2switch) transmet `/.well-known/oauth-*`, `/oauth/*` et `/mcp` à
   l'application, et ne retire pas `WWW-Authenticate`.
-- **WAF / pare-feu** : autoriser la plage de sortie d'Anthropic **`160.79.104.0/21`** sur ces
-  chemins (découverte, enregistrement, jeton et `/mcp` viennent tous de là). Une règle
-  anti-robot sur `POST /oauth/token` casse le flux sans trace côté application.
+- **WAF / pare-feu** : selon les clients utilisés, autoriser les plages d'egress concernées
+  (Anthropic **`160.79.104.0/21`**, plus celles d'OpenAI / Google si ChatGPT ou Gemini CLI
+  appellent depuis le cloud). Les clients desktop (Cursor, Claude Code, Gemini CLI) passent
+  souvent par l'IP de l'utilisateur. Une règle anti-robot sur `POST /oauth/token` casse le
+  flux sans trace côté application.
 - **Délais** : Claude attend 10 s (découverte, enregistrement, jeton) et 30 s (refresh). Le
   jeton répond en millisecondes ; un délai vient du frontal.
 - **SSE / buffering** : sans objet, les réponses sont du JSON simple.
@@ -756,8 +812,12 @@ comme un fichier.
 
 ## 12. Activer en production
 
-Liste ordonnée, à suivre dans l'ordre. Les étapes marquées « facultatif » peuvent être
-sautées sans rien casser.
+> **Version simple (admins / hébergeur)** : guide pas à pas tous assistants —
+> [docs/reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md).
+> Contrôle automatique des endpoints : `npm run mcp:activate-check -- --base https://<domaine>`.
+
+Liste ordonnée technique, à suivre dans l'ordre. Les étapes marquées « facultatif » peuvent
+être sautées sans rien casser.
 
 1. **Fusion et migrations.** Fusionner les PR du connecteur ; le cron de déploiement applique
    `324_mcp_oauth.sql` et `325_mcp_exploitation.sql` (`DEPLOY_AUTO_MIGRATE=1`). Contrôler :
@@ -792,9 +852,11 @@ sautées sans rien casser.
 6. **WAF o2switch (Tiger Protect)** : autoriser la plage d'egress d'Anthropic
    **`160.79.104.0/21`** sur `/mcp`, `/oauth/*` et `/.well-known/oauth-*`, et vérifier que
    `WWW-Authenticate` n'est pas retiré (§ 8, « Dépannage »).
-7. **Vérifications `curl`** :
+7. **Vérifications** (script recommandé, ou `curl`) :
 
    ```bash
+   npm run mcp:activate-check -- --base https://<domaine-foretmap>
+   # équivalent manuel :
    curl -i -X POST https://<domaine-foretmap>/mcp          # 401 + WWW-Authenticate: Bearer resource_metadata="…"
    curl -s https://<domaine-foretmap>/.well-known/oauth-protected-resource/mcp
    curl -s https://<domaine-foretmap>/.well-known/oauth-authorization-server
@@ -810,11 +872,11 @@ sautées sans rien casser.
    MCP_SMOKE_PASSWORD=<mot de passe> [MCP_SMOKE_TOTP=<code>] npm run mcp:smoke
    ```
 
-9. **Ajouter le connecteur** :
-   - claude.ai (et Desktop, mobile) : Réglages → Connecteurs → Ajouter un connecteur
-     personnalisé → `https://<domaine-foretmap>/mcp` → Connecter ;
-   - Claude Code : `claude mcp add --transport http foretmap https://<domaine-foretmap>/mcp`,
-     puis `/mcp` → `foretmap` → Authenticate.
+9. **Ajouter le connecteur** (même URL `https://<domaine-foretmap>/mcp` pour tous) :
+   - claude.ai / Desktop / mobile ; Claude Code ; Cursor (`FORETMAP_MCP_URL`) ; ChatGPT ;
+     Gemini CLI — détail :
+     [reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md)
+     § « Partie B ».
 10. **Secrets du workflow** `health-check.yml` (GitHub → Settings → Secrets and variables →
     Actions) : `HEALTH_CHECK_URL=https://<domaine-foretmap>` et `HEALTH_CHECK_TOKEN` = la valeur
     de `MCP_HEALTH_TOKEN`. Lancer une fois Actions → _Health check_ → _Run workflow_.

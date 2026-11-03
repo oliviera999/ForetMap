@@ -19,6 +19,10 @@ const ENOV_KEYS = Object.freeze({
   hiddenCategoryIds: 'ui.enov_plan.hidden_category_ids',
   highlightCategoryIds: 'ui.enov_plan.highlight_category_ids',
   highlightColor: 'ui.enov_plan.highlight_color',
+  secondaryCategoryIds: 'ui.enov_plan.secondary_category_ids',
+  secondaryColor: 'ui.enov_plan.secondary_color',
+  primaryLabel: 'ui.enov_plan.primary_label',
+  secondaryLabel: 'ui.enov_plan.secondary_label',
   badgeEnabled: 'ui.enov_plan.badge_enabled',
   innovationsLabel: 'ui.enov_plan.innovations_label',
   accessMode: 'ui.enov_plan.access_mode',
@@ -26,6 +30,8 @@ const ENOV_KEYS = Object.freeze({
 
 /** Miroir de `ENOV_DEFAULT_HIGHLIGHT_COLOR` (`lib/enovPlan.js`). */
 const DEFAULT_HIGHLIGHT_COLOR = '#faba38';
+/** Miroir de `ENOV_DEFAULT_SECONDARY_COLOR` (`lib/enovPlan.js`) : bleu ciel du logo e-nov. */
+const DEFAULT_SECONDARY_COLOR = '#66a4d9';
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
@@ -63,6 +69,7 @@ export function EnovPlanSettingsPanel({
    * curseur, on n'enregistre qu'à la sortie du champ (sinon une écriture par pixel parcouru).
    */
   const [colorDraft, setColorDraft] = useState(null);
+  const [secondaryDraft, setSecondaryDraft] = useState(null);
   const hasHash = Boolean(String(get('security.enov_plan_access_code_hash', '') || '').trim());
   const hasPasswordHash = Boolean(
     String(get('security.enov_plan_access_password_hash', '') || '').trim(),
@@ -70,6 +77,10 @@ export function EnovPlanSettingsPanel({
   const accessMode = String(get(ENOV_KEYS.accessMode, 'public') || 'public');
   const storedColor = String(get(ENOV_KEYS.highlightColor, DEFAULT_HIGHLIGHT_COLOR) || '');
   const highlightColor = HEX_COLOR_RE.test(storedColor) ? storedColor : DEFAULT_HIGHLIGHT_COLOR;
+  const storedSecondary = String(get(ENOV_KEYS.secondaryColor, DEFAULT_SECONDARY_COLOR) || '');
+  const secondaryColor = HEX_COLOR_RE.test(storedSecondary)
+    ? storedSecondary
+    : DEFAULT_SECONDARY_COLOR;
   const readOnly = !canWrite;
 
   /**
@@ -176,6 +187,79 @@ export function EnovPlanSettingsPanel({
           Préférez une couleur vive et claire : la pastille et la puce écrivent en sombre dessus.
         </p>
       </label>
+
+      <label className="field">
+        <span>Intitulé du premier niveau</span>
+        <input
+          type="text"
+          maxLength={60}
+          defaultValue={String(get(ENOV_KEYS.primaryLabel, 'Espaces retenus') || '')}
+          disabled={readOnly || savingKey === ENOV_KEYS.primaryLabel}
+          onBlur={(e) => saveSetting(ENOV_KEYS.primaryLabel, e.target.value, 'Intitulé enregistré')}
+        />
+      </label>
+
+      <h4 style={{ margin: '12px 0 4px' }}>Second niveau : autres lieux d’innovation</h4>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Même mise en avant, autre couleur : les lieux d’innovation que le dossier cite sans les
+        retenir parmi les espaces transformés, ou qui sont là sans y être cités. Un lieu qui porte
+        une catégorie des deux niveaux reste au premier.
+      </p>
+
+      <CategoryIdsMultiSelect
+        label="Catégories du second niveau"
+        value={get(ENOV_KEYS.secondaryCategoryIds, 'cat-enov-secondaire')}
+        disabled={readOnly || savingKey === ENOV_KEYS.secondaryCategoryIds}
+        hint="Sélection multiple — enregistrée immédiatement."
+        testId="enov-plan-secondary-category-ids"
+        requireSurface="enov"
+        onSave={(next) =>
+          saveSetting(
+            ENOV_KEYS.secondaryCategoryIds,
+            next,
+            'Catégories du second niveau enregistrées',
+          )
+        }
+      />
+
+      <label className="field" data-testid="enov-plan-secondary-color">
+        <span>Couleur du second niveau</span>
+        <input
+          type="color"
+          value={secondaryDraft ?? secondaryColor}
+          disabled={readOnly || savingKey === ENOV_KEYS.secondaryColor}
+          onChange={(e) => setSecondaryDraft(e.target.value)}
+          onBlur={() => {
+            if (secondaryDraft && secondaryDraft !== secondaryColor) {
+              saveSetting(
+                ENOV_KEYS.secondaryColor,
+                secondaryDraft,
+                'Couleur du second niveau enregistrée',
+              );
+            }
+            setSecondaryDraft(null);
+          }}
+          style={{ width: 64, height: 44, padding: 2 }}
+        />
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Par défaut le bleu ciel du logo e-nov. Comme pour le halo, une couleur claire.
+        </p>
+      </label>
+
+      <label className="field">
+        <span>Intitulé du second niveau</span>
+        <input
+          type="text"
+          maxLength={60}
+          defaultValue={String(get(ENOV_KEYS.secondaryLabel, 'Autres lieux d’innovation') || '')}
+          disabled={readOnly || savingKey === ENOV_KEYS.secondaryLabel}
+          onBlur={(e) =>
+            saveSetting(ENOV_KEYS.secondaryLabel, e.target.value, 'Intitulé enregistré')
+          }
+        />
+      </label>
+
+      <hr />
 
       <label
         className="field"

@@ -376,10 +376,10 @@ router.put(
         });
       }
     }
-    // Couleur du halo e-nov : un `#rrggbb` ou rien — une valeur quelconque serait injectée
-    // telle quelle dans le style du plan.
+    // Couleurs du halo e-nov (deux niveaux) : un `#rrggbb` ou rien — une valeur quelconque
+    // serait injectée telle quelle dans le style du plan.
     if (
-      key === 'ui.enov_plan.highlight_color' &&
+      (key === 'ui.enov_plan.highlight_color' || key === 'ui.enov_plan.secondary_color') &&
       !/^#[0-9a-f]{6}$/i.test(String(value ?? '').trim())
     ) {
       return res.status(400).json({ error: 'Couleur invalide (format #rrggbb)' });
