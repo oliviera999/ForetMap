@@ -33,13 +33,16 @@ est signalée « à revérifier ». Le site **refuse** une note qui contient une
 ressemble à un mot de passe ou à une clé. N'y mettez jamais d'information sur un élève.
 Seul l'auteur d'une note partagée, ou un administrateur, peut la modifier ou l'effacer.
 
-## Ce que Claude ne voit jamais
+## Ce que Claude ne voit pas (mode normal)
 
-Le connecteur ne donne accès **à aucune donnée personnelle** : ni comptes, ni noms d'élèves,
-ni adresses, ni classes, ni messages du forum, ni commentaires, ni carnets, ni journaux de
-connexion. Les chiffres d'usage sont des **totaux**, et un total inférieur à 5 s'affiche
-« <5 » pour qu'on ne puisse pas reconnaître un élève. Une adresse e-mail glissée par erreur
-dans un crédit photo est masquée.
+En **configuration par défaut**, le connecteur ne donne accès **à aucune donnée personnelle** :
+ni comptes, ni noms d'élèves, ni adresses, ni classes, ni messages du forum, ni commentaires,
+ni carnets, ni journaux de connexion. Les chiffres d'usage sont des **totaux**, et un total
+inférieur à 5 s'affiche « <5 » pour qu'on ne puisse pas reconnaître un élève. Une adresse
+e-mail glissée par erreur dans un crédit photo est masquée.
+
+Les **mots de passe, codes secrets et jetons** ne sont **jamais** transmis à Claude, y compris
+si l'hébergeur active un « mode productivité » (voir ci-dessous).
 
 ## Qui peut l'utiliser
 
@@ -75,13 +78,18 @@ Pour **déconnecter** Claude : retirez le connecteur dans les réglages de Claud
 
 ## Faire corriger du contenu (administrateurs)
 
-Les corrections se font **toujours en deux temps** :
+**Par défaut**, les corrections se font **en deux temps** :
 
 1. Claude **prépare** la correction et vous montre **avant / après** pour chaque champ, avec
    les risques éventuels (champ vidé, renommage…). **Rien n'est encore modifié.**
 2. Vous donnez votre accord ; Claude **applique**. Si quelqu'un a modifié la même fiche entre
    les deux étapes, l'application est **refusée** et rien n'est écrit : il faut préparer une
    nouvelle correction.
+
+Si l'hébergeur a activé le **mode productivité** (sans étape de préparation), Claude peut
+**appliquer tout de suite** les mêmes types de corrections, toujours dans la liste autorisée
+et toujours inscrites au journal d'audit — la bonne pratique « fichier de mise à jour pour le
+développeur » reste la même.
 
 Chaque correction appliquée est inscrite au **journal d'audit**.
 
@@ -118,6 +126,13 @@ Rien de tout cela ne modifie le site.
 
 ## ⚠️ Points d'attention
 
+- **Bypass « données élèves » (mode productivité).** L'hébergeur peut, **après validation
+  juridique** (DPO, information des familles, compte Claude d'organisation, etc.), activer une
+  option qui permet à Claude de **lire l'identité et l'activité récente d'élèves** via le
+  connecteur — ce qui **n'est pas** le fonctionnement normal. Chaque consultation est tracée.
+  Les **secrets** (mot de passe, double authentification, jetons) restent **interdits** dans
+  les réponses. Ne demandez jamais à Claude de « lister tous les élèves » tant que cette option
+  n'a pas été explicitement validée par la direction et le DPO.
 - La connexion par **Google** n'est pas proposée sur la page du connecteur : un compte qui se
   connecte uniquement par Google doit d'abord se créer un mot de passe sur le site.
 - Il n'y a pas encore d'écran listant « les connecteurs ouverts sur mon compte » : on retire
@@ -131,7 +146,9 @@ Rien de tout cela ne modifie le site.
 
 L'activation se fait par la variable `MCP_ENABLED=true` et l'adresse publique
 `MCP_PUBLIC_BASE_URL` ; les corrections sont actives par défaut pour les admins
-(`MCP_WRITE_ENABLED`, à `false` pour les couper). Documentation technique : `docs/MCP.md` ;
-fiche de registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Le rapport de santé quotidien
-s'installe par une ligne de crontab (`docs/CRONTAB.md`, ligne 9) ; la liste complète de mise en
-service est dans `docs/MCP.md`, « Activer en production ».
+(`MCP_WRITE_ENABLED`, à `false` pour les couper). Le **mode productivité** (écriture directe,
+requêtes SQL d'écriture, bypass nominatif avec date d'accusé) est documenté dans `docs/MCP.md`
+§ 13 — **désactivé par défaut**. Documentation technique : `docs/MCP.md` ; fiche de registre
+RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Le rapport de santé quotidien s'installe par une
+ligne de crontab (`docs/CRONTAB.md`, ligne 9) ; la liste complète de mise en service est dans
+`docs/MCP.md`, « Activer en production ».

@@ -30,6 +30,12 @@ function enableMcpEnv(overrides = {}) {
   process.env.MCP_ENABLED = 'true';
   delete process.env.MCP_WRITE_ENABLED;
   delete process.env.MCP_SQL_ENABLED;
+  delete process.env.MCP_SQL_WRITE_ENABLED;
+  delete process.env.MCP_SQL_DDL_ENABLED;
+  delete process.env.MCP_WRITE_REQUIRE_PLAN;
+  delete process.env.MCP_PRIVACY_BYPASS;
+  delete process.env.MCP_PRIVACY_BYPASS_ACK;
+  delete process.env.MCP_CONFIRM_REQUIRED;
   process.env.MCP_PUBLIC_BASE_URL = TEST_BASE_URL;
   Object.assign(process.env, overrides);
 }
