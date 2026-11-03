@@ -80,13 +80,14 @@ function PctZonesLayerImpl({
         const dotsSuffix =
           typeof getStatusLabel === 'function' ? String(getStatusLabel(zone) || '').trim() : '';
         const highlighted = zone.map_highlight === true;
+        const secondary = highlighted && zone.map_highlight_tone === 'secondary';
         const highlightSuffix = highlighted && highlightLabel ? ` — ${highlightLabel}` : '';
         return (
           <g
             key={zone.id}
             className={`fm-pct-zone${isActive ? ' is-active' : ''}${seenClass}${haloClass}${
               highlighted ? ' is-highlight' : ''
-            }`}
+            }${secondary ? ' is-highlight-secondary' : ''}`}
             role={onZoneClick ? 'button' : undefined}
             tabIndex={onZoneClick ? 0 : undefined}
             aria-current={isActive ? 'true' : undefined}

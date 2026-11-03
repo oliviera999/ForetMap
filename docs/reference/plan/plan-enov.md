@@ -41,6 +41,28 @@ Il n'y a ni tâche, ni élève, ni progression. Des **compteurs anonymes** de fr
 propres (ouvertures, recherches, ouvertures de la liste « Innovations »), séparés de ceux du
 plan public.
 
+## Deux niveaux : espaces retenus et autres lieux d'innovation
+
+Le dossier de labellisation ne met pas tous les lieux au même rang. Il **retient** quelques
+espaces — ceux qui réunissent un aménagement pour un usage nouveau et un équipement numérique à
+plus-value pédagogique, et qui sont comptés dans la superficie transformée — et il en **cite**
+d'autres, sans les compter (points de tri, Ecofab, studio radio, chats…). D'autres lieux encore
+sont présents sur le plan sans être cités. Le plan e-nov suit le dossier :
+
+| Niveau                                        | Catégorie (par défaut)      | Couleur (par défaut)                |
+| --------------------------------------------- | --------------------------- | ----------------------------------- |
+| **Espaces retenus** (premier niveau)          | « e-nov — espaces retenus » | jaune du logo e-nov (`#faba38`)     |
+| **Autres lieux d'innovation** (second niveau) | « e-nov — autres lieux »    | bleu ciel du logo e-nov (`#66a4d9`) |
+
+Les deux niveaux ont **le même style** (contour épais, nom souligné, liste « Innovations »,
+encadré en tête de fiche) ; seule la couleur change. La fiche dit le niveau avant le type
+d'espace (« Espaces retenus · Espace extérieur »), la liste « Innovations » montre les espaces
+retenus d'abord, avec l'étiquette « Espace retenu » ou « Autre lieu ». Un lieu qui porterait les
+deux catégories reste au premier niveau.
+
+Pour **changer un lieu de niveau**, il suffit de changer sa catégorie dans sa fiche (onglet
+_Modifier_) : décocher l'une, cocher l'autre.
+
 ## Ce que voit un visiteur
 
 1. **Tout le plan de l'établissement**, pour s'y repérer : les mêmes lieux que sur le plan
@@ -73,8 +95,9 @@ l'établissement décrit déjà : **on ne recrée aucun lieu**.
 
 Dans la fiche de la zone ou du repère, onglet _Modifier_ :
 
-1. **Cochez la catégorie « 💡 e-nov »** dans la liste des catégories. C'est elle qui fait
-   ressortir le lieu sur le plan e-nov.
+1. **Cochez la catégorie « 💡 e-nov — espaces retenus »** (espace retenu par le dossier) ou
+   **« 🔹 e-nov — autres lieux »** (autre lieu d'innovation) dans la liste des catégories. C'est
+   elle qui fait ressortir le lieu sur le plan e-nov, en jaune ou en bleu.
 2. **Remplissez le champ « 💡 Description e-nov »** (juste sous les catégories) : en quoi ce
    lieu est une innovation pour l'établissement. C'est le texte qui ouvre la fiche sur le plan
    e-nov. Un retour à la ligne est conservé tel quel ; un lien web écrit en toutes lettres
@@ -118,8 +141,12 @@ Dans _Réglages → Plan Lyautey_, section **« Plan e-nov (enov) »** :
 
 | Réglage                              | Effet                                                                                                          |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| **Catégories mises en avant**        | Les catégories dont les lieux ressortent (par défaut « e-nov » seule)                                          |
+| **Catégories mises en avant**        | Les catégories dont les lieux ressortent au premier niveau (par défaut « e-nov — espaces retenus »)            |
 | **Couleur du halo**                  | La couleur de la mise en avant (halo, souligné, puce, encadré de la fiche) — par défaut le jaune du logo e-nov |
+| **Intitulé du premier niveau**       | « Espaces retenus » par défaut : dit dans la fiche et en tête de légende du plan imprimé                       |
+| **Catégories du second niveau**      | Les catégories des autres lieux d'innovation (par défaut « e-nov — autres lieux »)                             |
+| **Couleur du second niveau**         | Par défaut le bleu ciel du logo e-nov                                                                          |
+| **Intitulé du second niveau**        | « Autres lieux d'innovation » par défaut                                                                       |
 | **Pastille « e-nov »**               | Ajoute une pastille « e-nov » à côté des lieux mis en avant, en plus du halo (désactivée)                      |
 | **Intitulé de la liste**             | Le nom de la puce qui liste les lieux mis en avant (par défaut « Innovations »)                                |
 | **Titre, message d'accueil**         | Le titre de l'application et la bulle affichée à la première ouverture                                         |
@@ -167,17 +194,28 @@ passe, elle le demande, comme le plan.
 Chaque carte donne **une feuille A4** :
 
 - en tête, le logo du label, le nom de l'établissement, le titre « Plan annoté des espaces
-  innovants » et le nombre d'espaces et de types d'espace ;
-- la **carte**, sur laquelle chaque lieu innovant est entouré et porte un **numéro** ; les
-  autres lieux apparaissent en pointillés, avec leur nom, pour s'y repérer ;
-- la **légende**, rangée par type d'espace, les numéros se suivant de haut en bas ; chaque
-  entrée reprend le début de la description e-nov ;
-- en pied de page, la date du jour, la mention de pied de page du plan e-nov (source du fond
-  de plan, par exemple) et un **QR code** qui ouvre la carte sur le plan interactif.
+  innovants » et les comptes : espaces retenus (et leurs types d'espace), autres lieux
+  d'innovation ;
+- la **carte**, sur laquelle chaque lieu innovant est entouré et porte un **numéro** — foncé
+  cerclé de jaune pour un espace retenu, bleu pour un autre lieu d'innovation ; deux numéros
+  trop proches s'écartent l'un de l'autre, reliés à leur lieu par un trait ; les autres lieux
+  apparaissent en pointillés, avec leur nom quand il ne chevauche ni un autre nom ni un
+  numéro ;
+- la **légende** en deux parties : les **espaces retenus**, rangés par type d'espace, avec le
+  début de leur description e-nov ; puis les **autres lieux d'innovation**, sur deux colonnes,
+  une ligne par lieu avec son type. Les lieux d'une même série (même nom avant le tiret, même
+  texte : les cinq points de tri, les deux points de nourrissage des chats) partagent **un seul
+  numéro**, posé sur chacun d'eux, et une seule entrée (« 5 emplacements ») ;
+- quand la carte est en largeur (le complexe sportif), la légende passe **sous** la carte ;
+- en pied de page, une pastille de chaque couleur et ce qu'elle signifie, la date du jour, la
+  mention de pied de page du plan e-nov (source du fond de plan, par exemple) et un **QR code**
+  qui ouvre la carte sur le plan interactif.
 
-Avant d'imprimer, la page propose : les cartes à inclure, l'orientation (A4 paysage ou
-portrait), le détail de la légende (texte court, texte développé, noms seuls), l'affichage des
-autres lieux et du QR code. Rien n'est enregistré : ces choix ne valent que pour l'impression
+Avant d'imprimer, la page propose : les cartes à inclure (seules celles qui portent au moins un
+lieu mis en avant sont cochées à l'ouverture : une carte sans innovation donnerait une feuille
+vide), l'orientation (A4 paysage ou portrait), le détail de la légende (texte court pour les
+espaces retenus ; texte développé pour tous ; noms seuls), l'affichage des autres lieux et du
+QR code. Rien n'est enregistré : ces choix ne valent que pour l'impression
 en cours. Le bouton **« Imprimer / PDF »** ouvre la fenêtre d'impression du navigateur :
 choisissez « Enregistrer au format PDF », **sans** en-têtes ni pieds de page du navigateur,
 avec les **arrière-plans graphiques** activés (sinon les contours colorés disparaissent).
@@ -207,13 +245,13 @@ Un parcours du plan public **n'est pas repris** automatiquement sur le plan e-no
 > innovations était retirée du plan public, décochez « Plan e-nov » dans son bloc
 > « Masquer sur » pour qu'elle y apparaisse.
 
-> ⚠️ **Point d'attention — message d'accueil.** Depuis l'arrivée de la bascule entre cartes,
-> un message d'accueil qui renvoie à « Réglages → Plan affiché » pour le complexe sportif
-> décrit un chemin devenu inutile : pensez à le reformuler.
+> ⚠️ **Point d'attention — filtre d'ouverture.** Si « Catégories cochées d'office » ne
+> contient que la catégorie des espaces retenus, les autres lieux d'innovation sont **masqués à
+> l'ouverture** du plan. Cochez les deux catégories e-nov.
 
-> ⚠️ **Point d'attention — numéros superposés.** Sur le plan imprimé, le numéro d'un lieu se
-> pose au centre de sa zone. Deux petites zones très proches peuvent voir leurs numéros se
-> chevaucher : vérifiez l'aperçu avant d'imprimer et, au besoin, retouchez le tracé du lieu.
+> ⚠️ **Point d'attention — numéros écartés.** Sur le plan imprimé, deux numéros trop proches
+> s'écartent et un trait les relie à leur lieu. Dans un coin très chargé, vérifiez l'aperçu
+> avant d'imprimer et, au besoin, retouchez la position du repère.
 
 > ⚠️ **Point d'attention — suivi d'usage.** Les compteurs de fréquentation du plan e-nov sont
 > bien enregistrés, mais l'écran de suivi d'usage ne propose comme filtre que ForetMap,

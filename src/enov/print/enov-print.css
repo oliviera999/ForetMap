@@ -7,7 +7,8 @@
  * orientation (`.enov-print.is-landscape` / `.is-portrait`), marges de 9 mm comprises.
  *
  * Couleurs : rôles de l'échelle et charte e-nov (`--enov-*`, `enov-plan.css`) ; la couleur du
- * halo (`--pct-highlight-color`) est posée par feuille, depuis le réglage du plan e-nov.
+ * halo (`--pct-highlight-color`) et celle du second niveau (`--enov-print-secondary`, autres
+ * lieux d'innovation) sont posées par feuille, depuis les réglages du plan e-nov.
  */
 
 .enov-print {
@@ -114,6 +115,10 @@
 
 .enov-print-sheet {
   --enov-print-accent: var(--pct-highlight-color, var(--enov-sun, var(--accent-warning-solid)));
+  --enov-print-secondary-accent: var(
+    --enov-print-secondary,
+    var(--enov-blue, var(--accent-info-solid))
+  );
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -242,11 +247,29 @@
   opacity: 1;
 }
 
+/* Second niveau (autres lieux d'innovation) : même dessin, bleu du label, trait plus fin. */
+.enov-print-map__zone--innovation.is-secondary {
+  fill: color-mix(in srgb, var(--enov-print-secondary-accent) 22%, transparent);
+  stroke: var(--enov-print-secondary-accent);
+  stroke-width: 1.2;
+}
+
+/* Trait de rappel d'un numéro écarté de son lieu (voir `spreadPins`). */
+.enov-print-map__leader {
+  stroke: var(--enov-print-ink);
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.enov-print-map__leader.is-secondary {
+  stroke: var(--enov-print-secondary-accent);
+}
+
 .enov-print-map__other-label {
   position: absolute;
   transform: translate(-50%, -50%);
-  max-width: 22mm;
-  font-size: 6pt;
+  max-width: 20mm;
+  font-size: 5.5pt;
   line-height: 1.1;
   text-align: center;
   color: var(--ink-base);
@@ -280,6 +303,18 @@
   box-shadow: 0 0 0 0.35mm var(--enov-print-accent);
 }
 
+.enov-print-map__pin.is-secondary {
+  z-index: 0;
+  min-width: 4.4mm;
+  height: 4.4mm;
+  padding: 0 0.7mm;
+  border-width: 0.35mm;
+  background: var(--enov-print-secondary-accent);
+  color: var(--ink-strong);
+  font-size: 6.5pt;
+  box-shadow: none;
+}
+
 .enov-print-map__missing {
   font-size: 10pt;
   color: var(--ink-muted);
@@ -302,6 +337,25 @@
 .enov-print-legend__empty {
   font-size: 9pt;
   color: var(--ink-muted);
+}
+
+.enov-print-legend__tier {
+  margin: 0 0 3mm;
+}
+
+.enov-print-legend__tier-title {
+  margin: 0 0 1.5mm;
+  padding: 0 0 0.6mm;
+  border-bottom: 0.6mm solid var(--enov-print-accent);
+  font-size: 9.5pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--enov-print-ink);
+}
+
+.enov-print-legend__tier.is-secondary .enov-print-legend__tier-title {
+  border-bottom-color: var(--enov-print-secondary-accent);
 }
 
 .enov-print-legend__group {
@@ -368,10 +422,67 @@
   color: var(--ink-muted);
 }
 
+.enov-print-entry__count,
+.enov-print-entry__type {
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+/* Légende compacte du second niveau : une ligne par lieu, deux colonnes. */
+.enov-print-legend__list--compact {
+  columns: 2;
+  column-gap: 3mm;
+}
+
+.enov-print-entry.is-secondary {
+  gap: 1.5mm;
+  margin-bottom: 0.9mm;
+}
+
+.enov-print-entry.is-secondary .enov-print-entry__number {
+  min-width: 4mm;
+  height: 4mm;
+  background: var(--enov-print-secondary-accent);
+  color: var(--ink-strong);
+  font-size: 6.5pt;
+}
+
+.enov-print-entry.is-secondary .enov-print-entry__name {
+  font-size: 7.5pt;
+  font-weight: 600;
+}
+
+.enov-print-entry.is-secondary .enov-print-entry__text {
+  font-size: 7pt;
+}
+
 .enov-print-entry__text {
   margin: 0.3mm 0 0;
   font-size: 7.5pt;
   color: var(--ink-base);
+}
+
+/* ---- Carte en largeur (complexe sportif) : légende sous la carte, en colonnes ---- */
+
+.enov-print:not(.is-portrait) .enov-print-sheet.is-wide-map .enov-print-sheet__body {
+  flex-direction: column;
+  gap: 3mm;
+}
+
+.enov-print:not(.is-portrait) .enov-print-sheet.is-wide-map .enov-print-map {
+  flex: 0 0 auto;
+}
+
+.enov-print:not(.is-portrait) .enov-print-sheet.is-wide-map .enov-print-map__image {
+  max-height: 105mm;
+}
+
+.enov-print:not(.is-portrait) .enov-print-sheet.is-wide-map .enov-print-legend {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 3fr 2fr;
+  gap: 0 6mm;
+  align-content: start;
 }
 
 /* ---- Pied de page ---- */
@@ -389,6 +500,23 @@
   margin: 0;
   font-size: 6.5pt;
   color: var(--ink-muted);
+}
+
+/* Pastilles de couleur de la note de bas de page (espaces retenus / autres lieux). */
+.enov-print-swatch {
+  display: inline-block;
+  width: 2.4mm;
+  height: 2.4mm;
+  margin-left: 0.5mm;
+  border: 0.3mm solid var(--enov-print-ink);
+  border-radius: 0.5mm;
+  background: var(--enov-print-accent);
+  vertical-align: -0.3mm;
+}
+
+.enov-print-swatch.is-secondary {
+  border-color: var(--enov-print-secondary-accent);
+  background: var(--enov-print-secondary-accent);
 }
 
 .enov-print-sheet__qr {
