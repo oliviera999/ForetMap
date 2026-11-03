@@ -337,15 +337,15 @@ test('garde SQL : liste blanche, liste noire prioritaire, agrégat seulement, co
 
 test('SELECT libre : contournements de la liste blanche refusés (AST, B1)', () => {
   assert.equal(validateSelectSql(' SELECT 1 FROM plants '), 'SELECT 1 FROM plants');
-  assert.equal(validateSelectSql('SELECT id FROM plants;'), 'SELECT id FROM plants');
   for (const sql of [
-    "SELECT id FROM plants WHERE name = 'a;b @c users'",
+    "SELECT id FROM plants WHERE name = 'a b @c users'",
+    "SELECT CAST(id AS CHAR), HEX(name), CONCAT(name, 'x') FROM plants",
+    'SELECT id FROM plants\tWHERE id > 1\nORDER BY id',
     'SELECT p.id, COUNT(*) AS n FROM plants p JOIN zone_species zs ON zs.plant_id = p.id GROUP BY p.id',
     'WITH x AS (SELECT id FROM plants) SELECT * FROM x',
     'SELECT * FROM (SELECT id FROM plants) t',
     'SELECT id FROM plants UNION SELECT plant_id FROM zone_species',
     'SELECT EXISTS(SELECT 1 FROM zones) FROM plants',
-    'SELECT 1 /* commentaire */ FROM plants',
     "SELECT CASE WHEN photo IS NULL THEN 'a' ELSE 'b' END FROM plants",
   ]) {
     assert.doesNotThrow(() => validateSelectSql(sql), sql);
@@ -403,6 +403,118 @@ test('SELECT libre : contournements de la liste blanche refusés (AST, B1)', () 
   }
 });
 
+test('SELECT libre : commentaires exécutables et texte non canonique refusés en amont (contre-vérification B1)', () => {
+  const fw = (c) => String.fromCodePoint(c);
+  const rejected = [
+    // Commentaires exécutables MariaDB / MySQL : le parseur les ignore, le serveur les exécute.
+    'SELECT id FROM plants /*!UNION SELECT id FROM users*/',
+    'SELECT id FROM plants /*!50000 UNION SELECT email FROM users*/',
+    'SELECT id FROM plants /*M!100100 UNION SELECT email FROM users*/',
+    'SELECT id FROM plants /*!*/',
+    "SELECT /*!LOAD_FILE('/etc/passwd')*/ FROM plants",
+    'SELECT /*!CURRENT_USER()*/ FROM plants',
+    'SELECT /*!USER()*/ FROM plants',
+    'SELECT /*!SLEEP(5)*/ FROM plants',
+    'SELECT /*!BENCHMARK(1000000, 1)*/ FROM plants',
+    'SELECT /*!DATABASE()*/ FROM plants',
+    // Commentaires ordinaires, imbriqués, de fin de ligne, sans espace.
+    'SELECT 1 /* commentaire */ FROM plants',
+    'SELECT id FROM plants /* a /* b */ c */',
+    'SELECT id FROM plants */',
+    'SELECT id FROM plants # UNION SELECT email FROM users',
+    'SELECT id FROM plants --x',
+    'SELECT id FROM plants -- x',
+    "SELECT id FROM plants WHERE name = 'a#b'",
+    // Plusieurs instructions, y compris un « ; » final.
+    'SELECT id FROM plants;',
+    'SELECT id FROM plants; SELECT email FROM users',
+    "SELECT id FROM plants WHERE name = ';'",
+    // Unicode : barre et astérisque pleine chasse (NFKC → « /* »), lettres pleine chasse.
+    `SELECT id FROM plants ${fw(0xff0f)}${fw(0xff0a)}!UNION SELECT email FROM users${fw(0xff0a)}${fw(0xff0f)}`,
+    `SELECT id FROM plants ${fw(0xff03)} x`,
+    `SELECT id FROM plants${fw(0xff1b)} SELECT 1`,
+    `SELECT * FROM ${fw(0xff55)}sers`,
+    // Caractères de contrôle et de format.
+    'SELECT id FROM plants\u0000',
+    'SELECT id​ FROM plants',
+    'SELECT id FROM plants ',
+    'SELECT id FROM plants‮',
+    // Fonctions d'identité, d'environnement, de fichier ou de temporisation.
+    "SELECT LOAD_FILE('/etc/passwd') FROM plants",
+    'SELECT CURRENT_USER() FROM plants',
+    'SELECT CURRENT_USER FROM plants',
+    'SELECT USER() FROM plants',
+    'SELECT SYSTEM_USER() FROM plants',
+    'SELECT DATABASE() FROM plants',
+    'SELECT SCHEMA() FROM plants',
+    'SELECT VERSION() FROM plants',
+    'SELECT CONNECTION_ID() FROM plants',
+    'SELECT CURRENT_ROLE() FROM plants',
+    'SELECT SLEEP(1) FROM plants',
+    'SELECT BENCHMARK(1, 1) FROM plants',
+    // Noms non qualifiés d'information_schema / mysql : hors liste blanche.
+    'SELECT * FROM tables',
+    'SELECT TABLE_NAME FROM TABLES',
+    'SELECT * FROM columns',
+    'SELECT * FROM schemata',
+    'SELECT * FROM user',
+    'SELECT * FROM global_variables',
+  ];
+  for (const sql of rejected) {
+    assert.throws(
+      () => validateSelectSql(sql),
+      undefined,
+      `doit être refusé : ${JSON.stringify(sql)}`,
+    );
+  }
+});
+
+test('droits réels du compte DB_MCP_USER : seules des lignes exactement admises (contre-vérification B1)', () => {
+  const { evaluateGrants } = require('../lib/mcp/readOnlyGrants');
+  const db = 'base_test';
+  const usage = "GRANT USAGE ON *.* TO `fmcp_ro`@`localhost` IDENTIFIED BY PASSWORD '*ABCDEF'";
+  const sel = (t, d = db) => `GRANT SELECT ON \`${d}\`.\`${t}\` TO \`fmcp_ro\`@\`localhost\``;
+  const ok = evaluateGrants([usage, sel('plants'), sel('zones')], db);
+  assert.deepEqual(ok, { ok: true, tables: ['plants', 'zones'] });
+  assert.equal(
+    evaluateGrants(
+      [usage, 'GRANT SELECT (`id`, `name`) ON `base_test`.`plants` TO `fmcp_ro`@`localhost`'],
+      db,
+    ).ok,
+    true,
+    'droit de colonnes admis',
+  );
+  const refused = {
+    'aucun droit lisible': [],
+    'aucune table de contenu lisible': [usage],
+    'droit global autre que USAGE': [usage.replace('USAGE', 'SELECT'), sel('plants')],
+    'droit au niveau de la base': [usage, 'GRANT SELECT ON `base_test`.* TO `fmcp_ro`@`localhost`'],
+    'droit non reconnu (refusé par défaut)': [
+      usage,
+      'GRANT SELECT, INSERT ON `base_test`.`plants` TO `fmcp_ro`@`localhost`',
+    ],
+    'table hors liste blanche (users)': [usage, sel('plants'), sel('users')],
+    'droit sur une autre base (autre)': [usage, sel('plants', 'autre')],
+    'rôle attribué': [usage, sel('plants'), 'GRANT `lecteur` TO `fmcp_ro`@`localhost`'],
+    'droit PROXY': [usage, "GRANT PROXY ON ''@'%' TO 'fmcp_ro'@'localhost'"],
+    'droit de transmission (WITH GRANT OPTION)': [usage, `${sel('plants')} WITH GRANT OPTION`],
+  };
+  for (const [reason, lines] of Object.entries(refused)) {
+    const r = evaluateGrants(lines, db);
+    assert.equal(r.ok, false, reason);
+    assert.equal(r.reason, reason);
+  }
+  for (const odd of [
+    'GRANT EXECUTE ON PROCEDURE `base_test`.`p` TO `fmcp_ro`@`localhost`',
+    'GRANT UPDATE ON `base_test`.`plants` TO `fmcp_ro`@`localhost`',
+    'GRANT ALL PRIVILEGES ON `base_test`.`plants` TO `fmcp_ro`@`localhost`',
+    'GRANT FILE ON *.* TO `fmcp_ro`@`localhost`',
+    'quelque chose d’inattendu',
+  ]) {
+    assert.equal(evaluateGrants([usage, sel('plants'), odd], db).ok, false, odd);
+  }
+});
+
 test('script de droits : un GRANT SELECT par table de contenu, rien d’autre', () => {
   const { buildGrants } = require('../scripts/mcp-print-grants');
   const out = buildGrants({ db: 'base_test', user: 'fmcp_ro', host: 'localhost' });
@@ -417,37 +529,175 @@ test('script de droits : un GRANT SELECT par table de contenu, rien d’autre', 
   assert.equal(filtered.split('\n').filter((l) => l.startsWith('GRANT')).length, 1);
 });
 
-test('pseudonymisation des journaux : UUID, identifiants de compte, IP (I2)', () => {
-  const { createPseudonymizer } = require('../lib/mcp/pseudonymize');
+test('journaux MCP : liste blanche de champs, identifiants retirés (contre-vérification I2)', () => {
+  const { createLogSanitizer, normalizeRoute } = require('../lib/mcp/logSanitizer');
   const uuid = '2005bf0e-4736-48f7-b2ee-dca6c2c9bf06';
-  const line = JSON.stringify({
-    msg: `suppression du compte ${uuid} depuis 192.168.0.9`,
-    studentId: uuid,
-    playerId: 42,
-    userId: 'abc',
-    ip: '10.1.2.3',
-    remote: 'fe80::1:2',
-    durationMs: 12,
-    at: '12:30:45',
-    version: '1.226.0',
-  });
-  const p = createPseudonymizer();
-  const out = p.pseudoLogLine(line);
-  const parsed = JSON.parse(out);
-  for (const secret of [uuid, '192.168.0.9', '10.1.2.3', 'fe80::1:2', '"abc"', ':42']) {
-    assert.ok(!out.includes(secret), `${secret} doit disparaître`);
+  const uuidCompact = uuid.replace(/-/g, '');
+  const reqId = 'c0ffee00-1111-4abc-8def-0a0b0c0d0e0f';
+  const entry = {
+    level: 40,
+    time: 1793670776347,
+    pid: 4242,
+    hostname: 'vm-prod',
+    msg: `Duplication avatar ignorée pour ${uuidCompact} (lot 98765) depuis 192.168.0.9`,
+    requestId: reqId,
+    method: 'POST',
+    statusCode: 500,
+    durationMs: 12.5,
+    path: '/api/gl/players/4217/journal',
+    // Clés imprévues par l'ancienne liste noire : toutes doivent disparaître.
+    newId: 'f1e2d3c4b5a6978877665544332211ff',
+    sourceId: uuid,
+    author: 'Camille Martin',
+    teamId: 31337,
+    studentIds: [uuid, 'abc-élève'],
+    ctx: { student: { id: 'stu_nested_7781', pseudo: 'renard-roux' } },
+    pseudo: 'licorne-bleue',
+    marker: 'i2_marker',
+    err: {
+      type: 'Error',
+      code: 'ER_DUP_ENTRY',
+      message: `Duplicate entry '${uuid}' for key 'PRIMARY' (id 45678)`,
+      stack: 'Error: at /home/app/routes/students.js:272',
+      sql: 'INSERT INTO users …',
+      student: { email: 'a.b@example.test' },
+    },
+  };
+  const s = createLogSanitizer();
+  const out = s.sanitizeLogLine(JSON.stringify(entry));
+  const text = JSON.stringify(out);
+  assert.deepEqual(Object.keys(out).sort(), [
+    'durationMs',
+    'err',
+    'level',
+    'method',
+    'msg',
+    'requestId',
+    'route',
+    'statusCode',
+    'time',
+  ]);
+  assert.deepEqual(Object.keys(out.err).sort(), ['code', 'message', 'type']);
+  for (const leak of [
+    uuid,
+    uuidCompact,
+    'f1e2d3c4b5a6978877665544332211ff',
+    'Camille',
+    '31337',
+    'abc-élève',
+    'stu_nested_7781',
+    'renard-roux',
+    'licorne-bleue',
+    'i2_marker',
+    '4217',
+    '98765',
+    '45678',
+    '192.168.0.9',
+    'a.b@example.test',
+    'students.js',
+    'vm-prod',
+    '4242',
+  ]) {
+    assert.ok(!text.includes(leak), `${leak} ne doit pas sortir : ${text}`);
   }
-  assert.match(parsed.studentId, /^user#[0-9a-f]{6}$/);
-  assert.equal(parsed.studentId, parsed.msg.match(/user#[0-9a-f]{6}/)[0], 'corrélation stable');
-  assert.match(parsed.playerId, /^user#/);
-  assert.match(parsed.ip, /^ip#/);
-  assert.match(parsed.remote, /^ip#/);
-  assert.equal(parsed.durationMs, 12);
-  assert.equal(parsed.at, '12:30:45');
-  assert.equal(parsed.version, '1.226.0');
-  assert.equal(p.pseudoLogLine(line), out, 'stable dans un même appel');
-  assert.notEqual(createPseudonymizer().pseudoLogLine(line), out, 'non reliable entre appels');
-  assert.match(p.pseudoLogLine('mail a.b@example.test'), /\[e-mail masqué\]/);
+  assert.equal(out.route, '/api/gl/players/:id/journal');
+  assert.equal(out.requestId, reqId, 'requestId généré par le serveur conservé (corrélation)');
+  assert.equal(out.statusCode, 500);
+  assert.equal(out.durationMs, 12.5);
+  assert.equal(out.err.code, 'ER_DUP_ENTRY');
+  assert.match(out.msg, /id#[0-9a-f]{6}/);
+  assert.match(out.msg, /\[n\]/);
+  assert.match(out.msg, /ip#[0-9a-f]{6}/);
+  // Même identifiant (avec ou sans tirets) → même pseudonyme dans un appel, pas d'un appel à l'autre.
+  assert.equal(out.err.message.match(/id#[0-9a-f]{6}/)[0], out.msg.match(/id#[0-9a-f]{6}/)[0]);
+  assert.deepEqual(s.sanitizeLogLine(JSON.stringify(entry)), out);
+  assert.notEqual(createLogSanitizer().sanitizeLogLine(JSON.stringify(entry)).msg, out.msg);
+  // Gabarit Express prioritaire sur le chemin ; requestId client → pseudonyme.
+  const tpl = s.sanitizeLogEntry({
+    route: '/api/tasks/:id/done',
+    path: '/api/tasks/77/done',
+    requestId: 'client-chosen-id-42',
+    method: 'TRACE',
+  });
+  assert.equal(tpl.route, '/api/tasks/:id/done');
+  assert.match(tpl.requestId, /^req#[0-9a-f]{6}$/);
+  assert.equal(tpl.method, undefined);
+  // Normalisation des chemins.
+  for (const [raw, want] of [
+    ['/api/gl/players/4217/journal', '/api/gl/players/:id/journal'],
+    [`/api/students/${uuid}/avatar`, '/api/students/:id/avatar'],
+    [`/api/students/${uuidCompact}`, '/api/students/:id'],
+    ['/api/users/a.b%40example.test?x=1', '/api/users/:id'],
+    ['/api/zones/zone-12/photo', '/api/zones/zone-12/photo'],
+    ['/api/zones/z1234/photo', '/api/zones/:id/photo'],
+    ['/api/tasks', '/api/tasks'],
+  ]) {
+    assert.equal(normalizeRoute(raw), want, raw);
+  }
+  // Texte libre : heures, versions et petits nombres intacts ; nom en clair = limite assumée.
+  assert.equal(s.cleanText('à 12:30:45, v1.22, 2 essais'), 'à 12:30:45, v1.22, 2 essais');
+  assert.match(s.cleanText('mail a.b@example.test'), /\[e-mail masqué\]/);
+  assert.match(s.cleanText('fe80::1:2 refusé'), /^ip#[0-9a-f]{6} refusé$/);
+  // Ligne non JSON : texte nettoyé seulement.
+  assert.deepEqual(Object.keys(s.sanitizeLogLine(`brut ${uuid}`)), ['msg']);
+});
+
+test('diagnostics MCP : liste blanche de champs (contre-vérification I2)', () => {
+  const { createLogSanitizer } = require('../lib/mcp/logSanitizer');
+  const uuid = '2005bf0e-4736-48f7-b2ee-dca6c2c9bf06';
+  const out = createLogSanitizer().sanitizeDiagnostics({
+    ts: '2026-11-03T01:00:00.000Z',
+    version: '1.300.0',
+    nodeEnv: 'production',
+    uptimeSeconds: 12,
+    memory: { rssMb: 80, heapUsedMb: 40, owner: 'x' },
+    database: { ok: true, latencyMs: 1.2, host: 'db.interne' },
+    schema: { ok: true, current: 323, latest: 324, pending: [324] },
+    logBuffer: { linesCount: 10, maxLines: 500 },
+    metrics: {
+      httpRequests: 9,
+      http5xx: 1,
+      recentHttp5xx: [
+        {
+          requestId: uuid,
+          method: 'GET',
+          path: '/api/gl/players/4217/journal',
+          statusCode: 500,
+          at: '2026-11-03T00:59:00.000Z',
+          userId: uuid,
+        },
+      ],
+      deferredWrites: { count: 1, byRoute: { '/api/tasks/:id/done': 1 } },
+    },
+    runtimeProcess: { pid: 1, cluster: { isWorker: false, workerId: null }, envHints: { a: 'b' } },
+    restarts: {
+      enabled: true,
+      file: '/home/secret/boot.jsonl',
+      counts: { boots: 1, crashes: 1 },
+      verdict: 'stable',
+      recent: [{ at: '2026-11-03T00:00:00.000Z', event: 'crash', message: `élève ${uuid}` }],
+    },
+    gl: { ok: true, gamesByStatus: { active: 2 } },
+    extra: { student: { pseudo: 'renard-roux' } },
+  });
+  const text = JSON.stringify(out);
+  for (const leak of [
+    '4217',
+    'db.interne',
+    '/home/secret',
+    'renard-roux',
+    '"owner"',
+    '"envHints"',
+  ]) {
+    assert.ok(!text.includes(leak), `${leak} ne doit pas sortir`);
+  }
+  assert.ok(!text.includes(uuid.replace(/-/g, '')) && !text.includes('"userId"'));
+  assert.equal(out.metrics.recentHttp5xx[0].route, '/api/gl/players/:id/journal');
+  assert.equal(out.schema.latest, 324);
+  assert.equal(out.restarts.counts.crashes, 1);
+  assert.match(out.restarts.recent[0].message, /^élève id#[0-9a-f]{6}$/);
+  assert.equal(out.gl.gamesByStatus.active, 2);
+  assert.equal(out.extra, undefined);
 });
 
 test('opérations d’écriture : liste blanche tables/colonnes, clés et longueurs', () => {

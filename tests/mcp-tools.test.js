@@ -349,6 +349,8 @@ test('SQL : coupé par défaut, exige DB_MCP_USER, refus prouvés sur MariaDB r�
       process.env.DB_MCP_USER = roUser;
       process.env.DB_MCP_PASS = roPass;
       await endReadPool();
+      // Droits conformes (un GRANT SELECT par table de contenu) : l'outil est proposé.
+      assert.ok((await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
       const ok = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
         sql: 'SELECT id, name FROM plants ORDER BY id',
         limit: 3,
@@ -392,6 +394,26 @@ test('SQL : coupé par défaut, exige DB_MCP_USER, refus prouvés sur MariaDB r�
       } finally {
         await direct.end();
       }
+
+      // Contre-vérification B1 : un droit au niveau de la base (`SELECT ON db.*`) rend l'outil
+      // indisponible — absent de tools/list et refusé à l'appel —, même si l'analyse
+      // syntaxique laisserait passer la requête.
+      const { resetGrantsCacheForTests } = require('../lib/mcp/readOnlyGrants');
+      const c1 = await pool.getConnection();
+      try {
+        for (const host of ['localhost', '127.0.0.1', '%']) {
+          await c1.query(`GRANT SELECT ON \`${dbName}\`.* TO ?@?`, [roUser, host]);
+        }
+      } finally {
+        c1.release();
+      }
+      resetGrantsCacheForTests();
+      assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
+      const wide = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+        sql: 'SELECT id FROM plants',
+      });
+      assert.equal(wide.isError, true);
+      assert.ok(!wide.text.includes('"rows"'), wide.text);
     }
     // Un prof ne voit pas l'outil, même activé.
     assert.ok(!(await fx.listTools(app, profToken)).includes('foretmap_sql_select'));
@@ -480,7 +502,7 @@ test('apply : opérations revalidées contre la liste blanche (M7)', async () =>
   assert.equal(res.data.code, 'MCP_WRITE_REJECTED');
 });
 
-test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux pseudonymisés (I2)', async () => {
+test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux en liste blanche (I2)', async () => {
   const bad = await fx.callTool(app, adminToken, 'foretmap_usage_overview', { days: 8 });
   assert.equal(bad.isError, true);
   const ok = await fx.callTool(app, adminToken, 'foretmap_usage_overview', { days: 30 });
@@ -488,12 +510,33 @@ test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux pseudony
   assert.equal(ok.data.window_days, 30);
 
   const logger = require('../lib/logger');
-  logger.warn({ studentId: admin.id, ip: '10.9.8.7', marker: 'diag_i2' }, `compte ${admin.id}`);
+  // Lettres seulement : un nombre de 3 chiffres ou plus serait remplacé par « [n] ».
+  const marker = `diagi${Date.now().toString(36).replace(/\d/g, 'x')}`;
+  logger.warn(
+    {
+      studentId: admin.id,
+      newId: admin.id.replace(/-/g, ''),
+      ctx: { student: { id: admin.id, pseudo: 'renard-roux' } },
+      studentIds: [admin.id],
+      teamId: 4217,
+      ip: '10.9.8.7',
+      path: '/api/gl/players/4217/journal',
+    },
+    `${marker} compte ${admin.id}`,
+  );
   const logs = await fx.callTool(app, adminToken, 'foretmap_tail_logs', { lines: 200 });
   assert.equal(logs.isError, false);
-  assert.ok(!logs.text.includes(admin.id), 'identifiant de compte masqué');
-  assert.ok(!logs.text.includes('10.9.8.7'), 'IP masquée');
-  const line = logs.data.entries.find((l) => l.includes('diag_i2'));
+  for (const leak of [admin.id, admin.id.replace(/-/g, ''), '10.9.8.7', '4217', 'renard-roux']) {
+    assert.ok(!logs.text.includes(leak), `${leak} masqué`);
+  }
+  const line = logs.data.entries.find((l) => String(l.msg || '').startsWith(marker));
   assert.ok(line, 'ligne de diagnostic présente');
-  assert.match(line, /user#[0-9a-f]{6}/);
+  assert.match(line.msg, /id#[0-9a-f]{6}/);
+  assert.equal(line.route, '/api/gl/players/:id/journal');
+  assert.equal(line.studentId, undefined);
+
+  const diag = await fx.callTool(app, adminToken, 'foretmap_diagnostics', {});
+  assert.equal(diag.isError, false, diag.text);
+  assert.equal(typeof diag.data.uptimeSeconds, 'number');
+  assert.equal(typeof diag.data.database.ok, 'boolean');
 });
