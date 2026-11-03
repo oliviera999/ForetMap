@@ -9,6 +9,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — connecteur Claude : migration qui perd la seconde correction d'un même champ
+
+- Un plan qui corrige deux fois la même cellule (même fiche, même champ) produisait une
+  migration dont le second `UPDATE` restait gardé par la valeur d'origine. Rejouée sur une
+  base neuve, cette seconde correction ne modifiait aucune ligne : le texte livré n'était
+  pas celui appliqué en direct. La garde et le diff s'enchaînent désormais sur le résultat
+  de la correction précédente ; un autre champ du même plan n'est pas concerné.
 ### Corrigé — pré-saisie : un crédit nettoyé ne revient pas avec les photos
 
 - Intégrer des photos de pré-saisie réécrivait le miroir public depuis les seules lignes
