@@ -283,31 +283,39 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
      restent admis : ils ne lisent rien de plus que les colonnes déjà lisibles et ne servent
      qu'à mettre en forme ; ce qui est lisible est borné par le contrôle 3, pas par la liste de
      fonctions.
-  3. **Droits réels du compte MySQL dédié `DB_MCP_USER`** (`lib/mcp/readOnlyGrants.js`) : au
-     premier usage puis toutes les 5 minutes, le serveur lit `SHOW GRANTS FOR CURRENT_USER()`
-     (et `CURRENT_ROLE()`) sur ce pool. Seules sont admises `GRANT USAGE ON *.*` et
-     `GRANT SELECT [(colonnes)] ON \`<base>\`.\`<table>\``avec une table de la liste blanche ;
-**tout le reste rend l'outil indisponible** — absent de`tools/list`, refusé à l'appel
-(`MCP_READONLY_GRANTS_REFUSED`), raison journalisée (`mcp_sql_grants_refused`) : droit
-global autre que `USAGE`, droit au niveau base (`ON \`<base>\`._`), privilège autre que
-`SELECT`, `WITH GRANT OPTION`, table hors liste blanche ou d'une autre base, rôle, `PROXY`,
-procédure, ligne de forme inconnue (refus par défaut). Les droits se posent avec
-`node scripts/mcp-print-grants.js --db <base> --user <compte> --check-db`. Sans ce compte,
-l'outil n'est ni proposé ni exécutable, même avec `MCP_SQL_ENABLED=true`. Les tests
-d'intégration créent un tel compte sur MariaDB, vérifient que le serveur SQL refuse lui-même
-`SELECT * FROM (users)`, puis qu'un `GRANT SELECT ON <base>._` ajouté rend l'outil
-     indisponible.
+  3. **Droits réels du compte MySQL dédié `DB_MCP_USER`** (`lib/mcp/readOnlyGrants.js`) : à
+     **chaque appel** de l'outil (et pour `tools/list`, avec un cache de 60 s), le serveur lit
+     `SHOW GRANTS FOR CURRENT_USER()`, `SHOW GRANTS FOR PUBLIC` et `CURRENT_ROLE()` sur ce pool.
+     Seules sont admises, pour le compte, `GRANT USAGE ON *.*` et `GRANT SELECT [(colonnes)]`
+     sur une table de la liste blanche de la base ; pour `PUBLIC`, seule `GRANT USAGE ON *.*`
+     (l'erreur 1141 « aucun droit » et l'erreur de syntaxe d'un serveur sans `PUBLIC` valent
+     « aucun droit »). **Tout le reste rend l'outil indisponible** — absent de `tools/list`,
+     refusé à l'appel (`MCP_READONLY_GRANTS_REFUSED`), raison journalisée
+     (`mcp_sql_grants_refused`) : droit global autre que `USAGE`, droit au niveau base,
+     privilège autre que `SELECT`, `WITH GRANT OPTION`, table hors liste blanche ou d'une autre
+     base, rôle attribué ou actif, `PROXY`, procédure, droit accordé à `PUBLIC`, ligne de forme
+     inconnue (refus par défaut). Sous MariaDB 10.11+, un droit accordé à `PUBLIC` n'apparaît
+     pas dans les droits du compte mais vaut pour lui : sans la seconde lecture,
+     `GRANT SELECT ON <base>.users TO PUBLIC` rendait `users` lisible (troisième relecture).
+     Les droits se posent avec
+     `node scripts/mcp-print-grants.js --db <base> --user <compte> --check-db`. Sans ce compte,
+     l'outil n'est ni proposé ni exécutable, même avec `MCP_SQL_ENABLED=true`. Les tests
+     d'intégration créent un tel compte sur MariaDB, vérifient que le serveur SQL refuse lui-même
+     `SELECT * FROM (users)`, puis qu'un droit au niveau base, ou un `GRANT … TO PUBLIC`, rend
+     l'outil indisponible.
 - **Lecture seule** : chaque outil de lecture tourne dans `START TRANSACTION READ ONLY`, avec
   `SET STATEMENT max_statement_time=… FOR` (MariaDB) ou `MAX_EXECUTION_TIME` (MySQL 8), un
   `LIMIT` forcé (≤ 500) et un budget total par appel.
 - **Journaux et diagnostics** (`foretmap_tail_logs`, `foretmap_diagnostics`,
   `lib/mcp/logSanitizer.js`) : **liste blanche de champs**. D'une ligne Pino ne sortent que
   `level`, `time`, `msg` (nettoyé), `requestId` (UUID du serveur, sinon pseudonyme), `method`,
-  `statusCode`, `durationMs`, `route` (gabarit Express `/api/tasks/:id/done`, sinon chemin dont
-  chaque segment numérique, UUID, hexadécimal long ou à caractères inhabituels devient `:id`) et
-  `err.type`, `err.code`, `err.message` (nettoyé) ; toute autre clé (`newId`, `sourceId`,
+  `statusCode`, `durationMs`, `route` (gabarit Express `/api/tasks/:id/done` seulement ; sans
+  gabarit, `autre` — un chemin, même normalisé, fuit : `/api/visit/zone-Lea_Martin`), `err.type`
+  (nom de classe d'erreur, sinon `[valeur]`), `err.code` (forme `ER_DUP_ENTRY` ou nombre, sinon
+  `[valeur]`) et `err.message` (nettoyé) ; toute autre clé (`newId`, `sourceId`,
   `teamId`, `author`, `studentIds`, `ctx.student.id`, `pseudo`, pile d'erreur…) est retirée.
-  Dans le texte libre : e-mails, hachages et jetons masqués ; UUID (avec ou sans tirets) et
+  Dans le texte libre : e-mails, hachages et jetons masqués ; littéraux entre apostrophes ou
+  guillemets → `'[valeur]'` (`Duplicate entry 'lea.martin' for key …`) ; UUID (avec ou sans tirets) et
   suites hexadécimales de 16 caractères ou plus → `id#xxxxxx`, IP → `ip#xxxxxx` (pseudonymes
   HMAC à sel aléatoire par appel : stables dans une réponse, non reliables d'un appel à
   l'autre) ; nombres de 3 chiffres ou plus → `[n]`. Les diagnostics ne transmettent que des

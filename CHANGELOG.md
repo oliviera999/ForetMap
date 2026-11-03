@@ -77,6 +77,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
     `author`, `studentIds`, `ctx.student.id`, `pseudo`…). Texte libre : UUID avec ou sans
     tirets et hexadécimal ≥ 16 → `id#…`, IP → `ip#…`, nombres ≥ 3 chiffres → `[n]`. Limite
     documentée : un nom en clair dans un message n'est pas garanti absent.
+- **Troisième relecture (03/11/2026)** :
+  - **Droits `PUBLIC`** (bloquant) — sous MariaDB 10.11+, `SHOW GRANTS FOR CURRENT_USER()`
+    n'affiche pas les droits accordés à `PUBLIC` : `GRANT SELECT ON <base>.users TO PUBLIC`
+    laissait l'outil SQL disponible avec `users` lisible. `SHOW GRANTS FOR PUBLIC` est
+    désormais lu aussi (1141 et absence de `PUBLIC` = aucun droit) ; toute ligne autre que
+    `USAGE ON *.*` rend l'outil indisponible. Test d'intégration MariaDB `GRANT … TO PUBLIC`.
+  - Droits vérifiés **à chaque appel** de `foretmap_sql_select` ; cache de `tools/list` ramené
+    de 5 min à 60 s.
+  - Journaux : littéraux entre apostrophes ou guillemets → `'[valeur]'` dans `msg` et
+    `err.message` ; `err.code` / `err.type` hors forme technique → `'[valeur]'` ; `route` =
+    gabarit Express seulement (`'autre'` sinon), les échantillons 5xx/429 portant désormais ce
+    gabarit (`lib/logMetrics.js`, `lib/httpRequestLog.js`).
+  - Tests de mutation : refus NFKC isolé, « rôle actif », droits `PUBLIC`.
 - Inspiration : `@modelcontextprotocol/sdk` (MIT,
   https://github.com/modelcontextprotocol/typescript-sdk), RFC 9700, documentation connecteurs
   Claude (https://claude.com/docs/connectors/building/authentication).

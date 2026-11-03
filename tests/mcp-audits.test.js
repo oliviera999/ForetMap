@@ -515,6 +515,86 @@ test('droits réels du compte DB_MCP_USER : seules des lignes exactement admises
   }
 });
 
+test('droits réels : PUBLIC, rôle actif, erreurs 1141/1064, cache (troisième relecture)', async () => {
+  const {
+    checkReadOnlyGrants,
+    evaluatePublicGrants,
+    resetGrantsCacheForTests,
+  } = require('../lib/mcp/readOnlyGrants');
+  assert.deepEqual(evaluatePublicGrants([]), { ok: true });
+  assert.deepEqual(evaluatePublicGrants(['GRANT USAGE ON *.* TO PUBLIC']), { ok: true });
+  for (const line of [
+    'GRANT SELECT ON `foretmap_test`.`users` TO PUBLIC',
+    'GRANT SELECT ON `foretmap_test`.* TO PUBLIC',
+    'GRANT SELECT ON `foretmap_test`.`plants` TO PUBLIC',
+  ]) {
+    assert.deepEqual(evaluatePublicGrants([line]), { ok: false, reason: 'droit accordé à PUBLIC' });
+  }
+  const prevDb = process.env.DB_NAME;
+  process.env.DB_NAME = 'base_test';
+  const own = [
+    "GRANT USAGE ON *.* TO `fmcp_ro`@`localhost` IDENTIFIED BY PASSWORD '*AB'",
+    'GRANT SELECT ON `base_test`.`plants` TO `fmcp_ro`@`localhost`',
+  ];
+  const fakePool = ({ publicRows, publicErr, role = null, calls }) => ({
+    async query(sql) {
+      calls?.push(sql);
+      if (sql === 'SHOW GRANTS FOR CURRENT_USER()') return [own.map((g) => ({ g }))];
+      if (sql === 'SHOW GRANTS FOR PUBLIC') {
+        if (publicErr) throw Object.assign(new Error('x'), { errno: publicErr });
+        return [(publicRows || []).map((g) => ({ g }))];
+      }
+      if (/CURRENT_ROLE/.test(sql)) return [[{ r: role }]];
+      throw new Error(`inattendu : ${sql}`);
+    },
+  });
+  try {
+    const run = async (opts) => {
+      resetGrantsCacheForTests();
+      return checkReadOnlyGrants(() => fakePool(opts), { force: true });
+    };
+    assert.equal((await run({})).ok, true);
+    assert.equal((await run({ publicErr: 1141 })).ok, true, '1141 : aucun droit PUBLIC');
+    assert.equal((await run({ publicErr: 1064 })).ok, true, 'MySQL sans PUBLIC');
+    assert.deepEqual(await run({ publicErr: 1045 }), {
+      ok: false,
+      reason: 'droits illisibles (erreur)',
+    });
+    assert.deepEqual(await run({ publicRows: ['GRANT SELECT ON `base_test`.`users` TO PUBLIC'] }), {
+      ok: false,
+      reason: 'droit accordé à PUBLIC',
+    });
+    assert.deepEqual(await run({ role: 'lecteur' }), { ok: false, reason: 'rôle actif' });
+    assert.equal((await run({ role: 'NONE' })).ok, true);
+    // Cache : sans `force`, un second appel dans la minute ne relit pas les droits.
+    resetGrantsCacheForTests();
+    const calls = [];
+    await checkReadOnlyGrants(() => fakePool({ calls }));
+    const n = calls.length;
+    await checkReadOnlyGrants(() => fakePool({ calls }));
+    assert.equal(calls.length, n);
+    await checkReadOnlyGrants(() => fakePool({ calls }), { force: true });
+    assert.ok(calls.length > n, 'force : relecture');
+  } finally {
+    process.env.DB_NAME = prevDb;
+    resetGrantsCacheForTests();
+  }
+});
+
+test('texte SQL brut : refus NFKC isolé (forme non canonique sans caractère interdit)', () => {
+  const { assertPlainSqlText } = require('../lib/mcp/sqlAst');
+  // « ﬁ » (U+FB01) se normalise en « fi » : aucun caractère interdit, seule la règle NFKC refuse.
+  const lig = `SELECT id FROM plants WHERE name = '${String.fromCodePoint(0xfb01)}g'`;
+  assert.throws(() => assertPlainSqlText(lig), /NFKC/);
+  assert.throws(() => validateSelectSql(lig), /NFKC/);
+  // Exposant ² (U+00B2) → 2 : même règle.
+  assert.throws(
+    () => assertPlainSqlText(`SELECT ${String.fromCodePoint(0xb2)} FROM plants`),
+    /NFKC/,
+  );
+  assert.equal(assertPlainSqlText('SELECT id FROM plants'), 'SELECT id FROM plants');
+});
+
 test('script de droits : un GRANT SELECT par table de contenu, rien d’autre', () => {
   const { buildGrants } = require('../scripts/mcp-print-grants');
   const out = buildGrants({ db: 'base_test', user: 'fmcp_ro', host: 'localhost' });
@@ -530,7 +610,7 @@ test('script de droits : un GRANT SELECT par table de contenu, rien d’autre', 
 });
 
 test('journaux MCP : liste blanche de champs, identifiants retirés (contre-vérification I2)', () => {
-  const { createLogSanitizer, normalizeRoute } = require('../lib/mcp/logSanitizer');
+  const { createLogSanitizer, routeOf } = require('../lib/mcp/logSanitizer');
   const uuid = '2005bf0e-4736-48f7-b2ee-dca6c2c9bf06';
   const uuidCompact = uuid.replace(/-/g, '');
   const reqId = 'c0ffee00-1111-4abc-8def-0a0b0c0d0e0f';
@@ -600,7 +680,7 @@ test('journaux MCP : liste blanche de champs, identifiants retirés (contre-vér
   ]) {
     assert.ok(!text.includes(leak), `${leak} ne doit pas sortir : ${text}`);
   }
-  assert.equal(out.route, '/api/gl/players/:id/journal');
+  assert.equal(out.route, 'autre', 'chemin sans gabarit Express : jamais transmis');
   assert.equal(out.requestId, reqId, 'requestId généré par le serveur conservé (corrélation)');
   assert.equal(out.statusCode, 500);
   assert.equal(out.durationMs, 12.5);
@@ -608,8 +688,8 @@ test('journaux MCP : liste blanche de champs, identifiants retirés (contre-vér
   assert.match(out.msg, /id#[0-9a-f]{6}/);
   assert.match(out.msg, /\[n\]/);
   assert.match(out.msg, /ip#[0-9a-f]{6}/);
-  // Même identifiant (avec ou sans tirets) → même pseudonyme dans un appel, pas d'un appel à l'autre.
-  assert.equal(out.err.message.match(/id#[0-9a-f]{6}/)[0], out.msg.match(/id#[0-9a-f]{6}/)[0]);
+  // Littéraux cités de `err.message` remplacés (la valeur en double est souvent nominative).
+  assert.equal(out.err.message, "Duplicate entry '[valeur]' for key '[valeur]' (id [n])");
   assert.deepEqual(s.sanitizeLogLine(JSON.stringify(entry)), out);
   assert.notEqual(createLogSanitizer().sanitizeLogLine(JSON.stringify(entry)).msg, out.msg);
   // Gabarit Express prioritaire sur le chemin ; requestId client → pseudonyme.
@@ -622,18 +702,35 @@ test('journaux MCP : liste blanche de champs, identifiants retirés (contre-vér
   assert.equal(tpl.route, '/api/tasks/:id/done');
   assert.match(tpl.requestId, /^req#[0-9a-f]{6}$/);
   assert.equal(tpl.method, undefined);
-  // Normalisation des chemins.
-  for (const [raw, want] of [
-    ['/api/gl/players/4217/journal', '/api/gl/players/:id/journal'],
-    [`/api/students/${uuid}/avatar`, '/api/students/:id/avatar'],
-    [`/api/students/${uuidCompact}`, '/api/students/:id'],
-    ['/api/users/a.b%40example.test?x=1', '/api/users/:id'],
-    ['/api/zones/zone-12/photo', '/api/zones/zone-12/photo'],
-    ['/api/zones/z1234/photo', '/api/zones/:id/photo'],
-    ['/api/tasks', '/api/tasks'],
+  // Route : gabarit Express seulement ; un chemin, même d'allure anodine, devient « autre ».
+  for (const [tplIn, path, want] of [
+    ['/api/tasks/:id/done', '/api/tasks/77/done', '/api/tasks/:id/done'],
+    [undefined, '/api/students/c04-mv/profile', 'autre'],
+    [undefined, '/api/visit/zone-Lea_Martin', 'autre'],
+    [undefined, '/api/tasks', 'autre'],
+    ['/api/users/lea.martin@example.test', undefined, 'autre'],
+    ['/api/visit/zone Lea', undefined, 'autre'],
+    [undefined, undefined, undefined],
   ]) {
-    assert.equal(normalizeRoute(raw), want, raw);
+    assert.equal(routeOf(tplIn, path), want, `${tplIn} | ${path}`);
   }
+  // Littéraux cités : `msg` et `err.message` ; élision intacte ; code et type d'erreur.
+  assert.equal(
+    s.cleanText("Duplicate entry 'lea.martin' for key 'users.pseudo'"),
+    "Duplicate entry '[valeur]' for key '[valeur]'",
+  );
+  assert.equal(s.cleanText('Élève "Léa Martin" absent'), "Élève '[valeur]' absent");
+  assert.equal(s.cleanText("l'outil n'a pas répondu"), "l'outil n'a pas répondu");
+  const errs = s.sanitizeLogEntry({
+    msg: "pseudo 'lea.martin' déjà pris",
+    err: { type: 'lea.martin', code: 'Lea Martin', message: 'x' },
+  });
+  assert.equal(errs.msg, "pseudo '[valeur]' déjà pris");
+  assert.equal(errs.err.type, '[valeur]');
+  assert.equal(errs.err.code, '[valeur]');
+  const okErr = s.sanitizeLogEntry({ err: { type: 'TypeError', code: 1062 } });
+  assert.deepEqual(okErr.err, { type: 'TypeError', code: 1062 });
+  assert.equal(s.sanitizeLogEntry({ err: { code: 'ER_DUP_ENTRY' } }).err.code, 'ER_DUP_ENTRY');
   // Texte libre : heures, versions et petits nombres intacts ; nom en clair = limite assumée.
   assert.equal(s.cleanText('à 12:30:45, v1.22, 2 essais'), 'à 12:30:45, v1.22, 2 essais');
   assert.match(s.cleanText('mail a.b@example.test'), /\[e-mail masqué\]/);
@@ -662,10 +759,12 @@ test('diagnostics MCP : liste blanche de champs (contre-vérification I2)', () =
           requestId: uuid,
           method: 'GET',
           path: '/api/gl/players/4217/journal',
+          route: '/api/gl/players/:id/journal',
           statusCode: 500,
           at: '2026-11-03T00:59:00.000Z',
           userId: uuid,
         },
+        { method: 'GET', path: '/api/visit/zone-Lea_Martin', statusCode: 500 },
       ],
       deferredWrites: { count: 1, byRoute: { '/api/tasks/:id/done': 1 } },
     },
@@ -693,6 +792,8 @@ test('diagnostics MCP : liste blanche de champs (contre-vérification I2)', () =
   }
   assert.ok(!text.includes(uuid.replace(/-/g, '')) && !text.includes('"userId"'));
   assert.equal(out.metrics.recentHttp5xx[0].route, '/api/gl/players/:id/journal');
+  assert.equal(out.metrics.recentHttp5xx[1].route, 'autre');
+  assert.ok(!text.includes('Lea_Martin'));
   assert.equal(out.schema.latest, 324);
   assert.equal(out.restarts.counts.crashes, 1);
   assert.match(out.restarts.recent[0].message, /^élève id#[0-9a-f]{6}$/);

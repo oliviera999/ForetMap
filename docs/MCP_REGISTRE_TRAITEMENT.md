@@ -35,21 +35,24 @@ individuelle, un message, un journal de connexion. **Garantie réelle** :
   de la requête qui refuse toute table hors liste blanche (y compris par sous-requête, table
   parenthésée, CTE ou `UNION`) et les fonctions d'identité, de fichier ou de temporisation ;
   **et** un compte MySQL dédié dont les droits sont **vérifiés par le serveur lui-même**
-  (`SHOW GRANTS`, au premier usage puis toutes les 5 minutes) : lecture des seules tables de
-  contenu, rien d'autre. Un droit plus large (base entière, écriture, rôle…) rend l'outil
-  indisponible, et l'incident est journalisé. Les fonctions de mise en forme `CAST`, `HEX`,
+  (`SHOW GRANTS` du compte **et** de `PUBLIC`, à chaque appel) : lecture des seules tables de
+  contenu, rien d'autre. Un droit plus large (base entière, écriture, rôle, droit accordé à
+  tous les comptes par `PUBLIC`…) rend l'outil indisponible, et l'incident est journalisé. Les fonctions de mise en forme `CAST`, `HEX`,
   `CONCAT` restent admises : elles ne donnent accès à aucune donnée supplémentaire, le
   périmètre lisible étant borné par les droits vérifiés ;
 - **journaux techniques** (`foretmap_tail_logs`, `foretmap_diagnostics`, administrateurs) :
   ils ne transmettent qu'une **liste fermée de champs** — niveau, heure, message, identifiant
-  de requête, méthode, statut et durée HTTP, gabarit de route (`/api/gl/players/:id/journal`),
-  type, code et message d'erreur ; pour les diagnostics, des compteurs et états nommés un par
+  de requête, méthode, statut et durée HTTP, gabarit de route défini par le code
+  (`/api/gl/players/:id/journal` ; un chemin réel n'est jamais transmis, il devient `autre`),
+  type et code d'erreur s'ils ont une forme technique (sinon `[valeur]`), message d'erreur ; pour les diagnostics, des compteurs et états nommés un par
   un. Tout autre champ (identifiants de comptes, d'élèves, d'équipes, pseudos, auteurs…) est
   retiré. Dans les messages, les identifiants techniques (UUID, suites hexadécimales) et les
   adresses IP sont remplacés par des **pseudonymes** (`id#3f2a91`, `ip#7c01d4`), stables au
   sein d'une réponse pour permettre le diagnostic, calculés avec une clé aléatoire jetée après
   chaque appel (impossibles à relier à un compte ou d'un appel à l'autre) ; les nombres de
-  trois chiffres ou plus sont remplacés par `[n]` ; e-mails, hachages et jetons sont masqués.
+  trois chiffres ou plus sont remplacés par `[n]`, les valeurs citées entre apostrophes ou
+  guillemets (par exemple la valeur en double d'une erreur d'unicité) par `'[valeur]'` ;
+  e-mails, hachages et jetons sont masqués.
   **Limite honnête** : un nom ou un pseudo écrit en clair dans le texte d'un message ne peut
   pas être reconnu avec certitude et n'est donc pas garanti absent. Le code du site passe les
   identifiants en champs séparés (retirés), jamais dans le texte des messages ; c'est la règle

@@ -409,11 +409,73 @@ test('SQL : coupé par défaut, exige DB_MCP_USER, refus prouvés sur MariaDB r�
       }
       resetGrantsCacheForTests();
       assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
-      const wide = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+      const wideCall = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
         sql: 'SELECT id FROM plants',
       });
-      assert.equal(wide.isError, true);
-      assert.ok(!wide.text.includes('"rows"'), wide.text);
+      assert.equal(wideCall.isError, true);
+      assert.ok(!wideCall.text.includes('"rows"'), wideCall.text);
+      // Retour aux droits par table, puis droit accordé à PUBLIC (invisible dans SHOW GRANTS
+      // FOR CURRENT_USER() sous MariaDB 10.11+) : l'outil doit tomber aussi.
+      const c3 = await pool.getConnection();
+      try {
+        for (const host of ['localhost', '127.0.0.1', '%']) {
+          await c3.query(`REVOKE SELECT ON \`${dbName}\`.* FROM ?@?`, [roUser, host]);
+        }
+      } finally {
+        c3.release();
+      }
+      resetGrantsCacheForTests();
+      assert.ok((await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
+      let publicGranted = false;
+      const c4 = await pool.getConnection();
+      try {
+        const [ver] = await c4.query('SELECT VERSION() AS v');
+        const v = String(ver[0].v);
+        const m = /^(\d+)\.(\d+)/.exec(v);
+        // `TO PUBLIC` : MariaDB ≥ 10.11 seulement (CI : 11.4, local : 10.11).
+        if (/mariadb/i.test(v) && m && (Number(m[1]) > 10 || Number(m[2]) >= 11)) {
+          await c4.query(`GRANT SELECT ON \`${dbName}\`.\`users\` TO PUBLIC`);
+          publicGranted = true;
+        }
+      } finally {
+        c4.release();
+      }
+      try {
+        if (publicGranted) {
+          resetGrantsCacheForTests();
+          assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
+          const pubCall = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
+            sql: 'SELECT id FROM plants',
+          });
+          assert.equal(pubCall.isError, true);
+          assert.ok(!pubCall.text.includes('"rows"'), pubCall.text);
+          const { lastGrantsCheck } = require('../lib/mcp/readOnlyGrants');
+          assert.deepEqual(lastGrantsCheck(), { ok: false, reason: 'droit accordé à PUBLIC' });
+          // Le serveur SQL, lui, ouvre bien `users` à ce compte : c'est le contrôle qui ferme.
+          const viaPublic = await mysql.createConnection({
+            host: process.env.DB_HOST || 'localhost',
+            port: Number(process.env.DB_PORT) || 3306,
+            user: roUser,
+            password: roPass,
+            database: dbName,
+          });
+          try {
+            const [n] = await viaPublic.query('SELECT COUNT(*) AS n FROM users');
+            assert.ok(Number(n[0].n) >= 0);
+          } finally {
+            await viaPublic.end();
+          }
+        }
+      } finally {
+        if (publicGranted) {
+          const c5 = await pool.getConnection();
+          try {
+            await c5.query(`REVOKE SELECT ON \`${dbName}\`.\`users\` FROM PUBLIC`);
+          } finally {
+            c5.release();
+          }
+        }
+      }
     }
     // Un prof ne voit pas l'outil, même activé.
     assert.ok(!(await fx.listTools(app, profToken)).includes('foretmap_sql_select'));
@@ -532,7 +594,7 @@ test('foretmap_usage_overview : fenêtre libre refusée (M6) ; journaux en liste
   const line = logs.data.entries.find((l) => String(l.msg || '').startsWith(marker));
   assert.ok(line, 'ligne de diagnostic présente');
   assert.match(line.msg, /id#[0-9a-f]{6}/);
-  assert.equal(line.route, '/api/gl/players/:id/journal');
+  assert.equal(line.route, 'autre', 'chemin sans gabarit Express : jamais transmis');
   assert.equal(line.studentId, undefined);
 
   const diag = await fx.callTool(app, adminToken, 'foretmap_diagnostics', {});
