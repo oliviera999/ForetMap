@@ -9,13 +9,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — doublon de migration 326 sur `main`
+
+- `326_mcp_productivity.sql` renumérotée **`327_mcp_productivity.sql`** : #622 (`326_enov_deux_niveaux.sql`)
+  et #619 avaient le même numéro ; la release échouait (`assertNoNewDuplicateMigrationNumbers`).
+  La production a déjà appliqué la 326 e-nov : la migration MCP passera en 327, idempotente.
+
 ### Ajouté — connecteur Claude : mode productivité MCP
 
 - **Mode productivité** (défauts protégés) : `foretmap_sql_execute` (SQL écriture, plafond
   `MCP_SQL_MAX_AFFECTED_ROWS`, DDL optionnel), `foretmap_content_change` (écriture directe si
   `MCP_WRITE_REQUIRE_PLAN=false`), outils nominatifs `foretmap_list_students` /
   `foretmap_get_student` avec **bypass RGPD** (`MCP_PRIVACY_BYPASS` + `MCP_PRIVACY_BYPASS_ACK`),
-  **confirmation par code** e-mail (`mcp_confirmations`, migration `326_mcp_productivity.sql`,
+  **confirmation par code** e-mail (`mcp_confirmations`, migration `327_mcp_productivity.sql`,
   permissions `mcp.sql_execute` / `mcp.privacy_bypass`). Secrets jamais renvoyés au modèle.
 - Docs : `docs/MCP.md` § 13, `docs/MCP_REGISTRE_TRAITEMENT.md`, `docs/API.md`, doc de référence
   connecteur Claude, `docs/reference/exploitation/modele-de-securite.md`, `.env.example`.

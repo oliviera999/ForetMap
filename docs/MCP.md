@@ -569,7 +569,7 @@ Enchaîne 401 → métadonnées → DCR → connexion → consentement → jeton
 | `tests/mcp-confirm.test.js`             | Confirmation par code (e-mail simulé), expiration 10 min, empreinte d'arguments, verrouillage après 3 essais                                                                    |
 | `tests/mcp-sql-execute.test.js`         | Classification SQL, dry_run DML/DDL, plafond `max_affected_rows`, confirmation, migration générée, refus d'instructions dangereuses                                             |
 | `tests/mcp-privacy-bypass.test.js`      | Outils nominatifs élèves, audit, secrets absents des réponses, seuils usage levés si bypass actif                                                                               |
-| `tests/mcp-migration-326.test.js`       | Table `mcp_confirmations`, permissions `mcp.sql_execute` / `mcp.privacy_bypass` semées (admin)                                                                                  |
+| `tests/mcp-migration-327.test.js`       | Table `mcp_confirmations`, permissions `mcp.sql_execute` / `mcp.privacy_bypass` semées (admin)                                                                                  |
 
 ```bash
 node --test --test-concurrency=1 --test-force-exit tests/mcp-*.test.js
@@ -960,5 +960,5 @@ MCP_PRIVACY_BYPASS=false
 MCP_PRIVACY_BYPASS_ACK=
 ```
 
-Redémarrer l'application après changement. Migration **`326_mcp_productivity.sql`** (table
+Redémarrer l'application après changement. Migration **`327_mcp_productivity.sql`** (table
 `mcp_confirmations`, permissions) : `npm run db:migrate` ou cron de déploiement.

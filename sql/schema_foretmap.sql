@@ -1669,7 +1669,7 @@ CREATE TABLE IF NOT EXISTS mcp_content_plans (
   CONSTRAINT fk_mcp_content_plans_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Connecteur MCP — mode productivité (migration 326) : confirmation par code.
+-- Connecteur MCP — mode productivité (migration 327) : confirmation par code.
 CREATE TABLE IF NOT EXISTS mcp_confirmations (
   id CHAR(36) NOT NULL PRIMARY KEY,
   user_id VARCHAR(64) NOT NULL,
