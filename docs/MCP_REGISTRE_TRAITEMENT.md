@@ -90,13 +90,32 @@ régulières, contournables (`SELECT * FROM (users)`) ; la contre-vérification 
 montré que l'analyse syntaxique seule laissait passer un commentaire exécutable MariaDB. Il
 était désactivé par défaut et n'a jamais été déployé.
 
+### Mode productivité (drapeaux serveur — optionnel)
+
+Ces réglages (`docs/MCP.md` § 2 et § 13) **ne changent pas** la finalité du connecteur ; ils
+autorisent des **outils ou flux supplémentaires** réservés aux administrateurs. Tant qu'ils
+restent aux valeurs protégées par défaut, **rien** de ce qui suit n'est transmis à Anthropic.
+
+| Drapeau / permission                              | Effet côté serveur                                                                                        | Ce qui peut être transmis à **Anthropic** (dans la conversation du personnel)                                                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_WRITE_REQUIRE_PLAN=false`                    | Expose `foretmap_content_change` (écriture directe de contenu, même liste blanche)                        | Uniquement du **contenu pédagogique** corrigé (textes, crédits, liaisons espèce ↔ zone…) — pas de comptes élèves                                                 |
+| `MCP_SQL_WRITE_ENABLED` + `mcp.sql_execute`       | Expose `foretmap_sql_execute`                                                                             | Résultats d'une instruction SQL (lignes affectées, échantillon de lignes, `migration_sql`) : **peut contenir des données** selon la requête ; secrets masqués    |
+| `MCP_SQL_DDL_ENABLED`                             | Autorise DDL/DCL dans `foretmap_sql_execute`                                                              | Métadonnées de schéma / messages d'erreur SQL — pas de listes nominatives d'élèves en soi                                                                        |
+| `MCP_SQL_MAX_AFFECTED_ROWS`                       | Plafond avant confirmation                                                                                | Aucun transfert supplémentaire : borne technique                                                                                                                 |
+| `MCP_CONFIRM_REQUIRED=false`                      | Pas de code e-mail avant certaines exécutions SQL sensibles                                               | Aucune donnée en plus ; **moins** de friction, donc risque opérationnel accru pour le même contenu SQL                                                           |
+| `MCP_PRIVACY_BYPASS` + ACK + `mcp.privacy_bypass` | Outils `foretmap_list_students`, `foretmap_get_student` ; seuils « &lt;5 » levés sur les agrégats d'usage | **Données nominatives d'élèves** (identité, e-mail, groupes, activité récente) et agrégats finement détaillés — **jamais** mots de passe, hachages, TOTP, jetons |
+
+Anthropic reçoit **toujours** ce que le modèle demande via les outils autorisés pour le compte
+connecté ; ces drapeaux élargissent la **liste d'outils** et le **périmètre des réponses**, pas
+le canal (HTTPS depuis `160.79.104.0/21`, compte Claude du personnel).
+
 ## 3. Personnes concernées et catégories de données
 
-| Personnes                         | Données traitées par le connecteur                                                                                                                                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage ; auteur (identifiant) des notes de mémoire                                         |
-| Élèves                            | **Aucune donnée individuelle.** Agrégats anonymes seulement (nombre d'observations, de réponses aux QCM par catégorie, de lectures de tutoriels, de tâches réalisées), effectifs inférieurs à 5 masqués |
-| Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                    |
+| Personnes                         | Données traitées par le connecteur                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage ; auteur (identifiant) des notes de mémoire                                                                                                                                                                                    |
+| Élèves                            | **Par défaut : aucune donnée individuelle** — agrégats anonymes seulement (observations, QCM, tutoriels, tâches), effectifs &lt; 5 masqués. **Si bypass RGPD actif** (`MCP_PRIVACY_BYPASS` + ACK + permission admin) : identité et activité récente d'élèves consultés via les outils nominatifs ; secrets (mot de passe, TOTP, jetons) **exclus** |
+| Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                                                                                                                                                               |
 
 Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP en clair
 n'est transmise à Claude (les journaux techniques ne portent que des pseudonymes, § 2).
@@ -120,14 +139,14 @@ n'est transmise à Claude (les journaux techniques ne portent que des pseudonyme
 
 ## 5. Destinataires
 
-| Destinataire                                       | Données                                                                                       |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Le personnel connecté                              | Réponses des outils (contenu pédagogique, audits, agrégats)                                   |
-| **Anthropic** (si client Claude)                   | Mêmes réponses, transmises au modèle. Trafic cloud souvent depuis `160.79.104.0/21`           |
-| **OpenAI** (si client ChatGPT)                     | Mêmes réponses, selon les conditions du compte / espace de travail ChatGPT                    |
-| **Google** (si client Gemini CLI)                  | Mêmes réponses, selon les conditions du compte Google utilisé pour Gemini CLI                 |
-| Éditeur de l’IDE (si client Cursor sur le distant) | Les réponses transitent via l’infrastructure Cursor lorsque l’agent distant OAuth est utilisé |
-| Administrateurs du site                            | Journaux techniques (§ 6)                                                                     |
+| Destinataire                                       | Données                                                                                                                                                                       |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Le personnel connecté                              | Réponses des outils (contenu pédagogique, audits, agrégats)                                                                                                                   |
+| **Anthropic** (si client Claude)                   | Mêmes réponses, transmises au modèle : contenu pédagogique et agrégats **par défaut** ; avec **mode productivité**, périmètre élargi comme dans le tableau § 2. Trafic cloud souvent depuis `160.79.104.0/21` |
+| **OpenAI** (si client ChatGPT)                     | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte / espace de travail ChatGPT                                                            |
+| **Google** (si client Gemini CLI)                  | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte Google utilisé pour Gemini CLI                                                         |
+| Éditeur de l’IDE (si client Cursor sur le distant) | Les réponses transitent via l’infrastructure Cursor lorsque l’agent distant OAuth est utilisé                                                                                 |
+| Administrateurs du site                            | Journaux techniques (§ 6)                                                                                                                                                     |
 
 **Le choix du client MCP = choix du sous-traitant IA.** Chaque fournisseur agit selon les
 conditions du compte utilisé. **À vérifier par le DPO** pour chaque client autorisé : nature
@@ -137,21 +156,22 @@ d'organisation documentés.
 
 ## 6. Durées de conservation
 
-| Donnée                                                                | Durée                                                                                                                                                             |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Code d'autorisation (haché)                                           | 60 s de validité ; supprimé 1 h après expiration                                                                                                                  |
-| Jeton d'accès (haché)                                                 | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                                                                 |
-| Jeton de rafraîchissement (haché)                                     | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                                                            |
-| Client OAuth enregistré                                               | Sans donnée personnelle (nom d'application, redirections)                                                                                                         |
-| Plan d'écriture                                                       | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction)                                     |
-| Journal d'appels (Pino)                                               | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**                                            |
-| `security_events` (connexion, consentement) / `audit_log` (écritures) | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                                                                  |
-| Note de mémoire du connecteur (`mcp_memory`)                          | Jusqu'à son oubli (`foretmap_forget`) ; signalée « à revérifier » après 90 jours ; note personnelle supprimée avec le compte, note partagée conservée sans auteur |
-| Rapport de santé (`mcp_health_reports`)                               | 90 jours (`MCP_HEALTH_REPORT_RETENTION_DAYS`) ; aucune donnée de personne                                                                                         |
-| Journal des tâches planifiées (`scheduled_job_runs`)                  | 180 jours ; comptages et messages d'erreur nettoyés, aucune donnée de personne                                                                                    |
-| Lecture de fichiers et journaux du serveur                            | Rien n'est conservé par le connecteur : lecture à la demande ; les journaux eux-mêmes suivent leur rotation (`docs/CRONTAB.md`, ligne 8)                          |
+| Donnée                                                                | Durée                                                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Code d'autorisation (haché)                                           | 60 s de validité ; supprimé 1 h après expiration                                                                                                                                                                                                                                                       |
+| Jeton d'accès (haché)                                                 | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                      |
+| Jeton de rafraîchissement (haché)                                     | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                 |
+| Client OAuth enregistré                                               | Sans donnée personnelle (nom d'application, redirections)                                                                                                                                                                                                                                              |
+| Plan d'écriture                                                       | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction)                                                                                                                                                                          |
+| Journal d'appels (Pino)                                               | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**                                                                                                                                                                                 |
+| `security_events` (connexion, consentement) / `audit_log` (écritures) | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                                                                                                                                                                                                       |
+| Note de mémoire du connecteur (`mcp_memory`)                          | Jusqu'à son oubli (`foretmap_forget`) ; signalée « à revérifier » après 90 jours ; note personnelle supprimée avec le compte, note partagée conservée sans auteur                                                                                                                                      |
+| Rapport de santé (`mcp_health_reports`)                               | 90 jours (`MCP_HEALTH_REPORT_RETENTION_DAYS`) ; aucune donnée de personne                                                                                                                                                                                                                              |
+| Journal des tâches planifiées (`scheduled_job_runs`)                  | 180 jours ; comptages et messages d'erreur nettoyés, aucune donnée de personne                                                                                                                                                                                                                         |
+| Lecture de fichiers et journaux du serveur                            | Rien n'est conservé par le connecteur : lecture à la demande ; les journaux eux-mêmes suivent leur rotation (`docs/CRONTAB.md`, ligne 8)                                                                                                                                                               |
+| Confirmation MCP (`mcp_confirmations`)                                | **10 min** de validité pour un code à 6 chiffres (HMAC, jamais le code en clair en base) ; usage unique ou verrouillage après 3 essais ; lignes expirées ou consommées **supprimées** opportunistément (au plus toutes les **10 min**, même cadence que la purge OAuth, déclenchée par `/oauth/token`) |
 
-La suppression d'un compte supprime ses jetons et plans (clés étrangères en cascade).
+La suppression d'un compte supprime ses jetons, plans et confirmations en attente (clés étrangères en cascade).
 Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
 
 ## 7. Sécurité
@@ -187,3 +207,22 @@ limitation de débit ; journalisation.
    table de contenu), recommandé ; condition de l'outil SQL libre. Sur un hébergement qui ne
    permet que des droits par base entière, l'outil SQL reste indisponible de lui-même (droits
    vérifiés par `SHOW GRANTS`) : le laisser désactivé.
+
+### Prérequis **obligatoires** avant `MCP_PRIVACY_BYPASS=true`
+
+Le bypass nominatif élèves **contredit** la garantie « aucune donnée individuelle d'élève » du
+§ 2. Ne poser **`MCP_PRIVACY_BYPASS_ACK=AAAA-MM-JJ`** qu'**après** :
+
+1. **Base légale** identifiée et documentée pour ce traitement via Claude (finalité, proportionnalité).
+2. **Accord de traitement / sous-traitance** avec **Anthropic** adapté à un **compte Claude
+   d'organisation** (Team / Enterprise), couvrant transferts hors UE si applicable (CCT, DPA).
+3. **Information** des **familles** et des **personnels** concernés (ou mise à jour de la page
+   « Vos données » / registre) : le connecteur peut, si activé, transmettre identité et activité
+   d'élèves au modèle.
+4. **Analyse d'impact (AIPD)** lorsque des **données de mineurs** sont concernées.
+5. **Durée de conservation** définie pour les traces (`audit_log` `mcp.privacy_bypass.read`,
+   conversations Claude selon réglages Anthropic) et procédure de retrait du bypass.
+
+Ensuite seulement : `MCP_PRIVACY_BYPASS=true` et `MCP_PRIVACY_BYPASS_ACK=<date du GO DPO>`
+(format `AAAA-MM-JJ`, non future). Sans ACK valide, le serveur **refuse** d'activer les outils
+nominatifs même si le drapeau est à `true` (`docs/MCP.md` § 13).

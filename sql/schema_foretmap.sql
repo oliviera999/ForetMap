@@ -1669,6 +1669,24 @@ CREATE TABLE IF NOT EXISTS mcp_content_plans (
   CONSTRAINT fk_mcp_content_plans_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Connecteur MCP — mode productivité (migration 326) : confirmation par code.
+CREATE TABLE IF NOT EXISTS mcp_confirmations (
+  id CHAR(36) NOT NULL PRIMARY KEY,
+  user_id VARCHAR(64) NOT NULL,
+  tool VARCHAR(64) NOT NULL COMMENT 'Nom de l’outil MCP qui a demandé la confirmation',
+  args_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'sha256 des arguments (hors confirmation_*)',
+  code_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'HMAC-SHA256 du code à 6 chiffres',
+  summary VARCHAR(1000) NOT NULL COMMENT 'Résumé lisible (technique, sans valeur nominative)',
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  status ENUM('pending','consumed','expired','locked') NOT NULL DEFAULT 'pending',
+  expires_at DATETIME NOT NULL,
+  consumed_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mcp_confirmations_user (user_id, status, expires_at),
+  INDEX idx_mcp_confirmations_expires (status, expires_at),
+  CONSTRAINT fk_mcp_confirmations_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- Connecteur MCP — exploitation (migration 325) : mémoire du connecteur, rapports de santé,
 -- journal des tâches planifiées. Les notes semées sont dans la migration.

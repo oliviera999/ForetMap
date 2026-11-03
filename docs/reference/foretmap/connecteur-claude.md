@@ -33,13 +33,16 @@ est signalée « à revérifier ». Le site **refuse** une note qui contient une
 ressemble à un mot de passe ou à une clé. N'y mettez jamais d'information sur un élève.
 Seul l'auteur d'une note partagée, ou un administrateur, peut la modifier ou l'effacer.
 
-## Ce que l'assistant ne voit jamais
+## Ce que l'assistant ne voit pas (mode normal)
 
-Le connecteur ne donne accès **à aucune donnée personnelle** : ni comptes, ni noms d'élèves,
-ni adresses, ni classes, ni messages du forum, ni commentaires, ni carnets, ni journaux de
-connexion. Les chiffres d'usage sont des **totaux**, et un total inférieur à 5 s'affiche
-« <5 » pour qu'on ne puisse pas reconnaître un élève. Une adresse e-mail glissée par erreur
-dans un crédit photo est masquée.
+En **configuration par défaut**, le connecteur ne donne accès **à aucune donnée personnelle** :
+ni comptes, ni noms d'élèves, ni adresses, ni classes, ni messages du forum, ni commentaires,
+ni carnets, ni journaux de connexion. Les chiffres d'usage sont des **totaux**, et un total
+inférieur à 5 s'affiche « <5 » pour qu'on ne puisse pas reconnaître un élève. Une adresse
+e-mail glissée par erreur dans un crédit photo est masquée.
+
+Les **mots de passe, codes secrets et jetons** ne sont **jamais** transmis à l’assistant, y compris
+si l'hébergeur active un « mode productivité » (voir ci-dessous).
 
 ## Qui peut l'utiliser
 
@@ -80,13 +83,18 @@ Pour **déconnecter** : retirez le connecteur dans les réglages de l'assistant.
 
 ## Faire corriger du contenu (administrateurs)
 
-Les corrections se font **toujours en deux temps** :
+**Par défaut**, les corrections se font **en deux temps** :
 
 1. L'assistant **prépare** la correction et vous montre **avant / après** pour chaque champ, avec
    les risques éventuels (champ vidé, renommage…). **Rien n'est encore modifié.**
 2. Vous donnez votre accord ; l'assistant **applique**. Si quelqu'un a modifié la même fiche
    entre les deux étapes, l'application est **refusée** et rien n'est écrit : il faut préparer
    une nouvelle correction.
+
+Si l'hébergeur a activé le **mode productivité** (sans étape de préparation), l’assistant peut
+**appliquer tout de suite** les mêmes types de corrections, toujours dans la liste autorisée
+et toujours inscrites au journal d'audit — la bonne pratique « fichier de mise à jour pour le
+développeur » reste la même.
 
 Chaque correction appliquée est inscrite au **journal d'audit**.
 
@@ -123,6 +131,13 @@ Rien de tout cela ne modifie le site.
 
 ## ⚠️ Points d'attention
 
+- **Bypass « données élèves » (mode productivité).** L'hébergeur peut, **après validation
+  juridique** (DPO, information des familles, compte Claude d'organisation, etc.), activer une
+  option qui permet à Claude de **lire l'identité et l'activité récente d'élèves** via le
+  connecteur — ce qui **n'est pas** le fonctionnement normal. Chaque consultation est tracée.
+  Les **secrets** (mot de passe, double authentification, jetons) restent **interdits** dans
+  les réponses. Ne demandez jamais à Claude de « lister tous les élèves » tant que cette option
+  n'a pas été explicitement validée par la direction et le DPO.
 - La connexion par **Google** n'est pas proposée sur la page du connecteur : un compte qui se
   connecte uniquement par Google doit d'abord se créer un mot de passe sur le site.
 - Il n'y a pas encore d'écran listant « les connecteurs ouverts sur mon compte » : on retire
@@ -140,5 +155,8 @@ Rien de tout cela ne modifie le site.
 Guide pas à pas : [activer-le-connecteur.md](activer-le-connecteur.md). Contrôle rapide :
 `npm run mcp:activate-check -- --base https://votre-domaine`. Activation technique complète :
 `docs/MCP.md` (« Activer en production »). Variables : `MCP_ENABLED=true`,
-`MCP_PUBLIC_BASE_URL` ; corrections admin via `MCP_WRITE_ENABLED`. Fiche registre RGPD :
-`docs/MCP_REGISTRE_TRAITEMENT.md`. Rapport de santé : crontab (`docs/CRONTAB.md`, ligne 9).
+`MCP_PUBLIC_BASE_URL` ; corrections admin actives par défaut via `MCP_WRITE_ENABLED` (à
+`false` pour les couper). Le **mode productivité** (écriture directe, requêtes SQL d'écriture,
+bypass nominatif avec date d'accusé) est documenté dans `docs/MCP.md` § 13 — **désactivé par
+défaut**. Fiche registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Rapport de santé : crontab
+(`docs/CRONTAB.md`, ligne 9).
