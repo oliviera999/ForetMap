@@ -1669,4 +1669,47 @@ CREATE TABLE IF NOT EXISTS mcp_content_plans (
   CONSTRAINT fk_mcp_content_plans_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- Connecteur MCP — exploitation (migration 325) : mémoire du connecteur, rapports de santé,
+-- journal des tâches planifiées. Les notes semées sont dans la migration.
+CREATE TABLE IF NOT EXISTS mcp_memory (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  scope ENUM('site','user') NOT NULL DEFAULT 'site',
+  user_id VARCHAR(64) DEFAULT NULL COMMENT 'Portée user : propriétaire de la note',
+  subject VARCHAR(200) NOT NULL,
+  subject_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'SHA2(portée|compte|sujet normalisé)',
+  content TEXT NOT NULL,
+  tags VARCHAR(500) DEFAULT NULL COMMENT 'Étiquettes séparées par des virgules',
+  created_by VARCHAR(64) DEFAULT NULL COMMENT 'Auteur (NULL : note semée par migration)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  verified_at DATETIME DEFAULT NULL COMMENT 'Dernière vérification (création, mise à jour)',
+  UNIQUE KEY uq_mcp_memory_subject (subject_key),
+  INDEX idx_mcp_memory_scope (scope, user_id),
+  CONSTRAINT fk_mcp_memory_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_mcp_memory_author FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mcp_health_reports (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  source ENUM('cron','tool') NOT NULL COMMENT 'cron : script quotidien scripts/health-report.js ; tool : outil foretmap_health_report',
+  status ENUM('green','orange','red') NOT NULL,
+  summary VARCHAR(1000) NOT NULL,
+  report_json MEDIUMTEXT NOT NULL COMMENT 'Rapport complet (agrégats techniques, aucune donnée de personne)',
+  INDEX idx_mcp_health_reports_created (created_at),
+  INDEX idx_mcp_health_reports_status (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS scheduled_job_runs (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  job VARCHAR(64) NOT NULL,
+  started_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  finished_at DATETIME(3) DEFAULT NULL,
+  outcome ENUM('running','success','failure') NOT NULL DEFAULT 'running',
+  duration_ms INT UNSIGNED DEFAULT NULL,
+  detail VARCHAR(500) DEFAULT NULL COMMENT 'Résumé nettoyé (comptages, message d’erreur sans identifiant)',
+  INDEX idx_scheduled_job_runs_job (job, started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

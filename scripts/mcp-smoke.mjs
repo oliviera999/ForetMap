@@ -8,7 +8,7 @@
  *      consentement, redirection avec `code` ;
  *   4. /oauth/token (PKCE S256) puis rotation du refresh ;
  *   5. client MCP du SDK (StreamableHTTPClientTransport) : initialize, tools/list,
- *      tools/call foretmap_audit_all.
+ *      tools/call foretmap_audit_all, puis foretmap_health_report (compte admin seulement).
  *
  * Usage :
  *   MCP_SMOKE_BASE_URL=http://localhost:3000 \
@@ -178,8 +178,22 @@ export async function runSmoke({
   if (call.isError) fail(`tools/call ${callTool} : ${call.content?.[0]?.text}`);
   const payload = JSON.parse(call.content[0].text);
   step(`tools/call ${callTool} → ${payload.total_findings ?? '?'} constats`);
+  // Rapport de santé : proposé aux seuls comptes `admin.settings.read` (sauté sinon).
+  let health = null;
+  if (list.tools.some((t) => t.name === 'foretmap_health_report')) {
+    const h = await client.callTool({
+      name: 'foretmap_health_report',
+      arguments: { skip_audit: true },
+    });
+    if (h.isError) fail(`tools/call foretmap_health_report : ${h.content?.[0]?.text}`);
+    health = JSON.parse(h.content[0].text);
+    if (!['green', 'orange', 'red'].includes(health.status)) fail('statut de santé inattendu');
+    step(`tools/call foretmap_health_report → ${health.summary}`);
+  } else {
+    step('foretmap_health_report non proposé à ce compte (admin seulement) : sauté');
+  }
   await client.close();
-  return { tools: list.tools.map((t) => t.name), audit: payload, scope: tokens.scope };
+  return { tools: list.tools.map((t) => t.name), audit: payload, health, scope: tokens.scope };
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -194,7 +208,7 @@ if (isMain) {
   runSmoke({ baseUrl, identifier, password, totp: process.env.MCP_SMOKE_TOTP || null })
     .then((out) => {
       process.stdout.write(
-        `${JSON.stringify({ ok: true, tools: out.tools, scope: out.scope, audit: out.audit.checks?.map((c) => `${c.check}=${c.count}`) }, null, 2)}\n`,
+        `${JSON.stringify({ ok: true, tools: out.tools, scope: out.scope, audit: out.audit.checks?.map((c) => `${c.check}=${c.count}`), health: out.health ? { status: out.health.status, summary: out.health.summary } : null }, null, 2)}\n`,
       );
       process.exit(0);
     })

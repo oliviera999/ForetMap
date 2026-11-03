@@ -20,7 +20,18 @@ pouvez demander à Claude, en langage courant :
 - d'obtenir une **vue d'usage anonyme** (combien de réponses aux quiz, d'observations, de
   lectures de tutoriels — jamais par élève).
 
-Les **administrateurs** peuvent en plus faire **corriger** du contenu par Claude (voir plus bas).
+Les **administrateurs** peuvent en plus faire **corriger** du contenu par Claude (voir plus bas)
+et lui faire **surveiller le site** (voir « Surveiller le site »).
+
+## Claude se souvient de ce qui est stable
+
+Le connecteur a une **mémoire** : Claude y retrouve, en début de conversation, les règles et
+pièges connus du site (par exemple « dans les quiz, le commentaire de la bonne réponse reste
+vide »), et y note ce qui restera vrai la prochaine fois. Une note **partagée** sert à tous les
+comptes du connecteur ; une note **personnelle** n'est visible que de vous. Une note ancienne
+est signalée « à revérifier ». Le site **refuse** une note qui contient une adresse e-mail ou
+ressemble à un mot de passe ou à une clé. N'y mettez jamais d'information sur un élève.
+Seul l'auteur d'une note partagée, ou un administrateur, peut la modifier ou l'effacer.
 
 ## Ce que Claude ne voit jamais
 
@@ -86,6 +97,25 @@ glossaire. Rien d'autre : ni comptes, ni réglages, ni suppression de fiches.
 > cela, une future mise à jour pourrait remettre l'ancienne version. Pour une correction qui
 > peut attendre, on peut aussi ne demander **que** ce fichier, sans rien modifier sur le site.
 
+## Surveiller le site (administrateurs)
+
+- **Rapport de santé** : demandez à Claude « comment va le site ? ». Il répond par un statut
+  **vert**, **orange** ou **rouge** et la liste des alertes : base de données lente ou en
+  retard de mise à jour, erreurs du serveur, redémarrages anormaux, sauvegarde ou tâche
+  planifiée en retard, disque presque plein, certificat de sécurité bientôt expiré… Les seuils
+  sont fixes et affichés avec le rapport.
+- **Chaque jour**, une tâche planifiée refait ce rapport et l'enregistre ; un **e-mail** part à
+  l'adresse d'exploitation quand le statut est orange ou rouge (ou chaque jour si l'hébergeur
+  l'a réglé ainsi). Claude peut montrer l'**historique** (« depuis quand c'est orange ? »).
+- **Journaux du serveur** : Claude peut lire, en lecture seule, les journaux des tâches
+  planifiées, du démarrage et du serveur web, ainsi que les scripts et la documentation, et y
+  chercher un message d'erreur. Les mots de passe, clés et jetons y sont **toujours masqués** ;
+  du fichier de configuration du serveur, seuls les noms des réglages apparaissent.
+- **Tâches planifiées** : Claude dit, pour chaque tâche (sauvegarde, déploiement, purge,
+  tâches récurrentes…), quand elle a tourné pour la dernière fois et si elle est en retard.
+
+Rien de tout cela ne modifie le site.
+
 ## ⚠️ Points d'attention
 
 - La connexion par **Google** n'est pas proposée sur la page du connecteur : un compte qui se
@@ -102,4 +132,6 @@ glossaire. Rien d'autre : ni comptes, ni réglages, ni suppression de fiches.
 L'activation se fait par la variable `MCP_ENABLED=true` et l'adresse publique
 `MCP_PUBLIC_BASE_URL` ; les corrections sont actives par défaut pour les admins
 (`MCP_WRITE_ENABLED`, à `false` pour les couper). Documentation technique : `docs/MCP.md` ;
-fiche de registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`.
+fiche de registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Le rapport de santé quotidien
+s'installe par une ligne de crontab (`docs/CRONTAB.md`, ligne 9) ; la liste complète de mise en
+service est dans `docs/MCP.md`, « Activer en production ».

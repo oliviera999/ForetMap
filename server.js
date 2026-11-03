@@ -23,6 +23,7 @@ const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { runAutoArchiveJob } = require('./lib/autoArchive');
+const { trackJobRun } = require('./lib/scheduledJobs');
 const { purgeOldNotifications } = require('./lib/notifications');
 const { runTaskDeadlineRemindersJob } = require('./lib/taskDeadlineReminders');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
@@ -240,7 +241,12 @@ function isApiAvailabilityExemptPath(originalUrl) {
  * appliqué : le process est en train de disparaître.
  */
 function isApiDatabaseGateExemptPath(pathname) {
-  return pathname === '/api/admin/diagnostics' || pathname === '/api/admin/logs';
+  return (
+    pathname === '/api/admin/diagnostics' ||
+    pathname === '/api/admin/logs' ||
+    // Rapport de santé (jeton MCP_HEALTH_TOKEN) : il doit pouvoir dire « base injoignable ».
+    pathname === '/api/health/report'
+  );
 }
 
 app.use('/api', (req, res, next) => {
@@ -864,12 +870,23 @@ function scheduleRecurringTaskSpawn() {
     return;
   }
   const jitter = 45000 + Math.floor(Math.random() * 120000);
+  // Chaque job est tracé dans `scheduled_job_runs` (lib/scheduledJobs.js, migration 325) :
+  // `foretmap_cron_status` y lit la dernière exécution et les retards. Traçage best-effort,
+  // sans effet sur le job lui-même.
   const runDailyJobs = () => {
-    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
+    trackJobRun('recurring_tasks', () => runRecurringTaskSpawnJob()).catch((err) =>
+      logger.warn({ err }, 'Job tâches récurrentes'),
+    );
     // Archivage automatique des tâches/projets validés anciens (réglable, cf. lib/autoArchive).
-    runAutoArchiveJob().catch((err) => logger.warn({ err }, 'Job archivage automatique'));
-    purgeOldNotifications().catch((err) => logger.warn({ err }, 'Job purge notifications'));
-    runTaskDeadlineRemindersJob().catch((err) => logger.warn({ err }, 'Job rappels d’échéance'));
+    trackJobRun('auto_archive', () => runAutoArchiveJob()).catch((err) =>
+      logger.warn({ err }, 'Job archivage automatique'),
+    );
+    trackJobRun('notifications_purge', () => purgeOldNotifications()).catch((err) =>
+      logger.warn({ err }, 'Job purge notifications'),
+    );
+    trackJobRun('task_deadline_reminders', () => runTaskDeadlineRemindersJob()).catch((err) =>
+      logger.warn({ err }, 'Job rappels d’échéance'),
+    );
   };
   recurringJobFirstTimeoutId = setTimeout(() => {
     recurringJobFirstTimeoutId = null;

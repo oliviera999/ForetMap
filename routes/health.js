@@ -8,6 +8,7 @@
  * le boot ou un redémarrage.
  */
 
+const crypto = require('node:crypto');
 const express = require('express');
 const { ping: dbPing, isApplicationDatabaseReady } = require('../database');
 const logger = require('../lib/logger');
@@ -61,4 +62,50 @@ router.get('/api/ready', async (req, res) => {
   }
 });
 
+/**
+ * Comparaison en temps constant d'un jeton d'en-tête : les deux valeurs sont d'abord hachées
+ * (sha256), si bien que ni le contenu ni la **longueur** du jeton attendu ne fuient par le
+ * temps de réponse (`timingSafeEqual` exige deux tampons de même taille).
+ */
+function healthTokenMatches(provided, expected) {
+  if (!provided || !expected) return false;
+  const a = crypto.createHash('sha256').update(String(provided)).digest();
+  const b = crypto.createHash('sha256').update(String(expected)).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * Rapport de santé complet (connecteur MCP, `lib/mcp/health/`) pour une sonde externe : le
+ * workflow GitHub `health-check.yml` et le script cron `scripts/health-report.js`.
+ *
+ * - **404** tant que `MCP_HEALTH_TOKEN` n'est pas configuré (la route n'existe pas) ;
+ * - **401** sans en-tête `X-Health-Token` ou avec un jeton faux (comparaison en temps constant) ;
+ * - **200** `{ status, summary, findings, … }`, y compris quand le statut est rouge : c'est
+ *   l'appelant qui décide (le workflow échoue sur `status: "red"`).
+ *
+ * Exempté du verrou « base pas prête » (comme les diagnostics) : une base injoignable est
+ * justement ce que le rapport doit dire. Paramètres : `tls=0`, `audit=0` pour alléger.
+ * Aucune donnée de personne : compteurs, états, versions, tailles.
+ */
+router.get('/api/health/report', async (req, res) => {
+  const expected = String(process.env.MCP_HEALTH_TOKEN || '').trim();
+  if (!expected) return res.status(404).json({ error: 'Not found' });
+  if (!healthTokenMatches(req.get('x-health-token'), expected)) {
+    return res.status(401).json({ error: 'Jeton de rapport de santé invalide' });
+  }
+  try {
+    const { buildHealthReport } = require('../lib/mcp/health/collect');
+    const report = await buildHealthReport({
+      skipTls: req.query.tls === '0',
+      skipAudit: req.query.audit === '0',
+    });
+    res.set('Cache-Control', 'no-store');
+    return res.type('application/json').status(200).json(report);
+  } catch (err) {
+    logger.error({ err, msg: 'health_report_failed' }, 'Rapport de santé en échec');
+    return res.status(500).json({ error: 'Rapport de santé indisponible' });
+  }
+});
+
 module.exports = router;
+module.exports.healthTokenMatches = healthTokenMatches;

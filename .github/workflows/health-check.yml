@@ -1,0 +1,81 @@
+name: Health check
+
+# Rapport de santé quotidien du site, vu de l'extérieur (docs/MCP.md, « Rapport de santé »).
+#
+# Appelle `GET <HEALTH_CHECK_URL>/api/health/report` avec l'en-tête `X-Health-Token`
+# (secret `HEALTH_CHECK_TOKEN` = variable `MCP_HEALTH_TOKEN` du serveur), affiche le résumé
+# et les alertes, et **échoue si le statut est rouge** (ou si le site ne répond pas). Orange :
+# succès avec avertissement dans le résumé du run.
+#
+# Coût : dépôt privé = minutes Actions comptées (CLAUDE.md, docs/EXPLOITATION.md § 11.2). Une
+# seule exécution par jour, un job, sans checkout ni `npm ci` : `curl` + `jq` (préinstallés),
+# moins d'une minute facturée. Sans les deux secrets, le run se termine en **succès** avec une
+# explication (le workflow peut être fusionné avant l'activation en production).
+#
+# Secrets du dépôt (Settings → Secrets and variables → Actions) :
+#   HEALTH_CHECK_URL   : origine publique du site, ex. https://foretmap.example (sans barre finale)
+#   HEALTH_CHECK_TOKEN : même valeur que MCP_HEALTH_TOKEN dans l'environnement du serveur
+
+on:
+  schedule:
+    - cron: '40 4 * * *' # chaque jour, 04:40 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-check
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Rapport de santé
+        env:
+          HEALTH_CHECK_URL: ${{ secrets.HEALTH_CHECK_URL }}
+          HEALTH_CHECK_TOKEN: ${{ secrets.HEALTH_CHECK_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HEALTH_CHECK_URL}" ] || [ -z "${HEALTH_CHECK_TOKEN}" ]; then
+            msg="Secrets HEALTH_CHECK_URL et/ou HEALTH_CHECK_TOKEN absents : contrôle non configuré, rien à vérifier (docs/MCP.md, « Activer en production »)."
+            echo "::notice title=Health check non configuré::${msg}"
+            echo "### Health check non configuré" >> "$GITHUB_STEP_SUMMARY"
+            echo "${msg}" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          base="${HEALTH_CHECK_URL%/}"
+          code=$(curl -sS -o report.json -w '%{http_code}' --max-time 90 \
+            -H 'Accept: application/json' -H "X-Health-Token: ${HEALTH_CHECK_TOKEN}" \
+            "${base}/api/health/report") || code=000
+          if [ "${code}" != "200" ]; then
+            echo "::error title=Site injoignable::GET /api/health/report → HTTP ${code}"
+            echo "### Rapport de santé : HTTP ${code}" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          status=$(jq -r '.status // "inconnu"' report.json)
+          summary=$(jq -r '.summary // ""' report.json)
+          {
+            echo "### Rapport de santé : ${status}"
+            echo ""
+            echo "${summary}"
+            echo ""
+            jq -r '.findings[]? | "- **\(.level)** `\(.rule)` : \(.message)"' report.json
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "${summary}"
+          case "${status}" in
+            red)
+              echo "::error title=Statut rouge::${summary}"
+              exit 1
+              ;;
+            orange)
+              echo "::warning title=Statut orange::${summary}"
+              ;;
+            green) ;;
+            *)
+              echo "::error title=Réponse inattendue::statut « ${status} »"
+              exit 1
+              ;;
+          esac

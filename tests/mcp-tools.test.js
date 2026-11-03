@@ -514,6 +514,7 @@ test('bout en bout : client MCP du SDK contre l’app sur un port éphémère', 
     assert.ok(out.tools.includes('foretmap_audit_all'));
     assert.ok(out.tools.includes('foretmap_apply_plan'));
     assert.ok(Array.isArray(out.audit.checks));
+    assert.ok(['green', 'orange', 'red'].includes(out.health?.status), 'rapport de santé');
     assert.equal(out.scope, 'foretmap.read foretmap.write');
   } finally {
     await new Promise((r) => server.close(r));

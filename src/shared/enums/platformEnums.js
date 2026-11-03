@@ -58,3 +58,31 @@ export const MCP_CONTENT_PLAN_STATUS_ENUM = defineEnum('MCP_CONTENT_PLAN_STATUS_
   },
   columns: ['mcp_content_plans.status'],
 });
+
+/** Portée d'une note de mémoire du connecteur MCP (`mcp_memory`, migration 325). */
+export const MCP_MEMORY_SCOPE_ENUM = defineEnum('MCP_MEMORY_SCOPE_ENUM', {
+  values: ['site', 'user'],
+  labels: { site: 'Partagée (site)', user: 'Personnelle' },
+  columns: ['mcp_memory.scope'],
+});
+
+/** Origine d'un rapport de santé (`mcp_health_reports`, migration 325). */
+export const MCP_HEALTH_REPORT_SOURCE_ENUM = defineEnum('MCP_HEALTH_REPORT_SOURCE_ENUM', {
+  values: ['cron', 'tool'],
+  labels: { cron: 'Tâche planifiée', tool: 'Outil du connecteur' },
+  columns: ['mcp_health_reports.source'],
+});
+
+/** Statut global d'un rapport de santé (`mcp_health_reports`, migration 325). */
+export const MCP_HEALTH_STATUS_ENUM = defineEnum('MCP_HEALTH_STATUS_ENUM', {
+  values: ['green', 'orange', 'red'],
+  labels: { green: 'Vert', orange: 'Orange', red: 'Rouge' },
+  columns: ['mcp_health_reports.status'],
+});
+
+/** Issue d'une exécution de tâche planifiée (`scheduled_job_runs`, migration 325). */
+export const SCHEDULED_JOB_OUTCOME_ENUM = defineEnum('SCHEDULED_JOB_OUTCOME_ENUM', {
+  values: ['running', 'success', 'failure'],
+  labels: { running: 'En cours', success: 'Succès', failure: 'Échec' },
+  columns: ['scheduled_job_runs.outcome'],
+});

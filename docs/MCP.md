@@ -180,29 +180,32 @@ Noms stables préfixés, descriptions en français pour le modèle, schémas zod
 inconnue refusée), pagination `limit ≤ 200` + `offset`, sorties JSON **compactes** (tronquées
 au-delà de 120 000 caractères), annotations MCP renseignées.
 
-| Outil                                    | Portée / permission                                | Rôle                                                                                                                                                                                                   |
-| ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `foretmap_health`                        | read                                               | Version, uptime, ping BDD                                                                                                                                                                              |
-| `foretmap_diagnostics`                   | read + `admin.settings.read`                       | Instantané d'exploitation (mémoire, BDD, schéma, redémarrages, agrégats G&L), champ par champ en liste blanche                                                                                         |
-| `foretmap_tail_logs`                     | read + `admin.settings.read`                       | Dernières lignes Pino réduites à une **liste blanche de champs** (§ 5, « Journaux ») : niveau, heure, message nettoyé, requestId, méthode, statut, durée, gabarit de route, type/code/message d'erreur |
-| `foretmap_db_status`                     | read + `admin.settings.read`                       | Migrations appliquées / en attente                                                                                                                                                                     |
-| `foretmap_search`                        | read + `mcp.use`                                   | Plein texte : espèces FM (alias) et G&L, 3 glossaires, tutoriels, 3 jeux de QCM, zones, repères                                                                                                        |
-| `foretmap_get_species`                   | read + `mcp.use`                                   | Fiche complète FM (taxonomie, alias, photos+crédits, dangers, interactions, présence, clés, QCM, glossaire) ou G&L                                                                                     |
-| `foretmap_list_maps`                     | read + `mcp.use`                                   | Cartes, niveau pédagogique, volumes                                                                                                                                                                    |
-| `foretmap_get_map`                       | read + `mcp.use`                                   | Zones, repères, espèces rattachées, registre, parcours                                                                                                                                                 |
-| `foretmap_get_id_key`                    | read + `mcp.use`                                   | Arbre d'une clé de détermination                                                                                                                                                                       |
-| `foretmap_get_food_web`                  | read + `mcp.use`                                   | Réseau trophique d'une carte / d'une espèce (niveau de preuve, source) ; G&L                                                                                                                           |
-| `foretmap_list_qcm` / `foretmap_get_qcm` | read + `mcp.use`                                   | QCM ForetMap / G&L / lore (niveau, difficulté, catégorie, biome/chapitre, espèce)                                                                                                                      |
-| `foretmap_get_glossary_term`             | read + `mcp.use`                                   | Un terme dans les trois glossaires (comparaison FM ↔ G&L)                                                                                                                                              |
-| `gl_get_board`                           | read + `mcp.use`                                   | Chapitres, cases ordonnées (positions, réglage de tirage), zones de frontière                                                                                                                          |
-| `gl_get_lore`                            | read + `mcp.use`                                   | Feuillets (statut, plateau)                                                                                                                                                                            |
-| `foretmap_usage_overview`                | read + `mcp.use`                                   | Agrégats anonymes seuillés (n ≥ 5), fenêtres fixes 7 / 30 / 90 / 365 jours                                                                                                                             |
-| `foretmap_audit`                         | read + `mcp.use`                                   | Un contrôle (énumération fermée) → `{check, description, count, sample_ids ≤ 50, hint}`                                                                                                                |
-| `foretmap_audit_all`                     | read + `mcp.use`                                   | Tableau de bord de tous les contrôles                                                                                                                                                                  |
-| `foretmap_sql_select`                    | read + `mcp.sql`, `MCP_SQL_ENABLED`, `DB_MCP_USER` | SELECT validé par analyse syntaxique, exécuté par le compte restreint (désactivé par défaut, § 5)                                                                                                      |
-| `foretmap_plan_content_change`           | write + `mcp.write`                                | Prépare une correction : diff, risques, migration idempotente + rollback ; n'écrit rien                                                                                                                |
-| `foretmap_apply_plan`                    | write + `mcp.write`                                | Applique un plan si l'état n'a pas changé ; transaction ; `audit_log`                                                                                                                                  |
-| `foretmap_export_plan_as_migration`      | write + `mcp.write`                                | Migration + rollback seuls (voie « par PR »)                                                                                                                                                           |
+| Outil                                                              | Portée / permission                                | Rôle                                                                                                                                                                                                   |
+| ------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `foretmap_health`                                                  | read                                               | Version, uptime, ping BDD                                                                                                                                                                              |
+| `foretmap_diagnostics`                                             | read + `admin.settings.read`                       | Instantané d'exploitation (mémoire, BDD, schéma, redémarrages, agrégats G&L), champ par champ en liste blanche                                                                                         |
+| `foretmap_tail_logs`                                               | read + `admin.settings.read`                       | Dernières lignes Pino réduites à une **liste blanche de champs** (§ 5, « Journaux ») : niveau, heure, message nettoyé, requestId, méthode, statut, durée, gabarit de route, type/code/message d'erreur |
+| `foretmap_db_status`                                               | read + `admin.settings.read`                       | Migrations appliquées / en attente                                                                                                                                                                     |
+| `foretmap_search`                                                  | read + `mcp.use`                                   | Plein texte : espèces FM (alias) et G&L, 3 glossaires, tutoriels, 3 jeux de QCM, zones, repères                                                                                                        |
+| `foretmap_get_species`                                             | read + `mcp.use`                                   | Fiche complète FM (taxonomie, alias, photos+crédits, dangers, interactions, présence, clés, QCM, glossaire) ou G&L                                                                                     |
+| `foretmap_list_maps`                                               | read + `mcp.use`                                   | Cartes, niveau pédagogique, volumes                                                                                                                                                                    |
+| `foretmap_get_map`                                                 | read + `mcp.use`                                   | Zones, repères, espèces rattachées, registre, parcours                                                                                                                                                 |
+| `foretmap_get_id_key`                                              | read + `mcp.use`                                   | Arbre d'une clé de détermination                                                                                                                                                                       |
+| `foretmap_get_food_web`                                            | read + `mcp.use`                                   | Réseau trophique d'une carte / d'une espèce (niveau de preuve, source) ; G&L                                                                                                                           |
+| `foretmap_list_qcm` / `foretmap_get_qcm`                           | read + `mcp.use`                                   | QCM ForetMap / G&L / lore (niveau, difficulté, catégorie, biome/chapitre, espèce)                                                                                                                      |
+| `foretmap_get_glossary_term`                                       | read + `mcp.use`                                   | Un terme dans les trois glossaires (comparaison FM ↔ G&L)                                                                                                                                              |
+| `gl_get_board`                                                     | read + `mcp.use`                                   | Chapitres, cases ordonnées (positions, réglage de tirage), zones de frontière                                                                                                                          |
+| `gl_get_lore`                                                      | read + `mcp.use`                                   | Feuillets (statut, plateau)                                                                                                                                                                            |
+| `foretmap_usage_overview`                                          | read + `mcp.use`                                   | Agrégats anonymes seuillés (n ≥ 5), fenêtres fixes 7 / 30 / 90 / 365 jours                                                                                                                             |
+| `foretmap_audit`                                                   | read + `mcp.use`                                   | Un contrôle (énumération fermée) → `{check, description, count, sample_ids ≤ 50, hint}`                                                                                                                |
+| `foretmap_audit_all`                                               | read + `mcp.use`                                   | Tableau de bord de tous les contrôles                                                                                                                                                                  |
+| `foretmap_sql_select`                                              | read + `mcp.sql`, `MCP_SQL_ENABLED`, `DB_MCP_USER` | SELECT validé par analyse syntaxique, exécuté par le compte restreint (désactivé par défaut, § 5)                                                                                                      |
+| `foretmap_plan_content_change`                                     | write + `mcp.write`                                | Prépare une correction : diff, risques, migration idempotente + rollback ; n'écrit rien                                                                                                                |
+| `foretmap_apply_plan`                                              | write + `mcp.write`                                | Applique un plan si l'état n'a pas changé ; transaction ; `audit_log`                                                                                                                                  |
+| `foretmap_export_plan_as_migration`                                | write + `mcp.write`                                | Migration + rollback seuls (voie « par PR »)                                                                                                                                                           |
+| `foretmap_recall` / `remember` / `forget`                          | read + `mcp.use`                                   | Mémoire persistante du connecteur (§ 11.1)                                                                                                                                                             |
+| `foretmap_health_report` / `_history`                              | read + `admin.settings.read`                       | Rapport de santé vert / orange / rouge, historique (§ 11.2)                                                                                                                                            |
+| `foretmap_list_files` / `read_file` / `grep_files` / `cron_status` | read + `mcp.write`, `MCP_FILES_ENABLED`            | Journaux et fichiers du serveur en lecture seule, tâches planifiées (§ 11.3, § 11.4)                                                                                                                   |
 
 Un outil n'apparaît dans `tools/list` que si la portée, la permission et le drapeau le
 permettent ; l'appel est revérifié (une liste obtenue avec d'autres droits ne suffit pas).
@@ -421,6 +424,9 @@ Enchaîne 401 → métadonnées → DCR → connexion → consentement → jeton
 
 ## 8. Mise en production (o2switch / Passenger)
 
+> La liste complète et ordonnée, rapport de santé et cron compris, est au **§ 12 « Activer en
+> production »** ; cette section détaille les points propres au connecteur OAuth.
+
 1. **Migration** : `324_mcp_oauth.sql` (jouée par le démarrage ou `npm run db:migrate`) ;
    contrôler par `npm run db:status` ou l'outil `foretmap_db_status`.
 2. **Variables** (cPanel → « Setup Node.js App ») : `MCP_ENABLED=true`,
@@ -470,12 +476,14 @@ Enchaîne 401 → métadonnées → DCR → connexion → consentement → jeton
 
 ## 9. Tests
 
-| Fichier                           | Couverture                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/mcp-oauth.test.js`         | Métadonnées et 401, DCR, CIMD simulé, PKCE, CSRF, consentement, codes, rotation, révocation, isolation, TOTP                          |
-| `tests/mcp-tools.test.js`         | Listes par profil, chaque outil, anti-PII, écriture (admin / prof / drapeau), plan → apply → rollback, conflit, SQL, bout en bout SDK |
-| `tests/mcp-audits.test.js`        | Contrôles sur jeux construits, garde SQL, SELECT libre, opérations, migration générée, configuration                                  |
-| `tests/mcp-migration-324.test.js` | Tables, idempotence, permissions semées                                                                                               |
+| Fichier                           | Couverture                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/mcp-oauth.test.js`         | Métadonnées et 401, DCR, CIMD simulé, PKCE, CSRF, consentement, codes, rotation, révocation, isolation, TOTP                                                                    |
+| `tests/mcp-tools.test.js`         | Listes par profil, chaque outil, anti-PII, écriture (admin / prof / drapeau), plan → apply → rollback, conflit, SQL, bout en bout SDK                                           |
+| `tests/mcp-audits.test.js`        | Contrôles sur jeux construits, garde SQL, SELECT libre, opérations, migration générée, configuration                                                                            |
+| `tests/mcp-migration-324.test.js` | Tables, idempotence, permissions semées                                                                                                                                         |
+| `tests/mcp-migration-325.test.js` | Tables d'exploitation, idempotence, notes semées (clé SQL = clé JS, aucun secret)                                                                                               |
+| `tests/mcp-ops.test.js`           | Mémoire, règles de statut, rapport et historique, endpoint, script cron (mailer simulé), fichiers (traversée, lien, binaire, `.env`, secrets, `tail`, `grep`, refus prof), cron |
 
 ```bash
 node --test --test-concurrency=1 --test-force-exit tests/mcp-*.test.js
@@ -502,3 +510,281 @@ node --test --test-concurrency=1 --test-force-exit tests/mcp-*.test.js
   `base` ; à ajuster si la convention de saisie évolue.
 - **Étendre l'écriture** (nouvelles colonnes ou tables) : ajouter à `EDITABLE_FIELDS` /
   `LINK_TABLES` **et** aux tests ; une table de la liste noire reste refusée quoi qu'il arrive.
+
+---
+
+## 11. Mémoire, rapport de santé, fichiers (exploitation)
+
+Fonctions d'**observation et de diagnostic** ajoutées après la première version du connecteur
+(migration `325_mcp_exploitation.sql`). Elles ne retirent aucune protection : la liste blanche
+des tables de contenu, la transaction `READ ONLY`, l'outil SQL et l'écriture plan → apply sont
+inchangés. Les nouvelles tables (`mcp_memory`, `mcp_health_reports`) sont en `mcp_*`, donc sur
+la liste noire de lecture : aucun outil de contenu ni `foretmap_sql_select` ne les lit.
+
+| Outil                     | Portée / permission                | Rôle                                                                                  |
+| ------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| `foretmap_recall`         | read + `mcp.use`                   | Cherche dans la mémoire (sujet, texte, étiquettes) ; signale les notes à revérifier   |
+| `foretmap_remember`       | read + `mcp.use`                   | Crée ou met à jour (même sujet) une note stable ; refuse secrets et e-mails           |
+| `foretmap_forget`         | read + `mcp.use` (auteur ou admin) | Supprime une note                                                                     |
+| `foretmap_health_report`  | read + `admin.settings.read`       | Rapport de santé structuré, statut vert / orange / rouge ; `store: true` l'historise  |
+| `foretmap_health_history` | read + `admin.settings.read`       | Derniers rapports stockés et évolution du statut ; `id` pour un rapport complet       |
+| `foretmap_list_files`     | read + `mcp.write` (admin)         | Racines consultables, contenu d'un dossier                                            |
+| `foretmap_read_file`      | read + `mcp.write` (admin)         | Lecture `offset`/`limit` ou `tail`, 500 lignes au plus ; tampon Pino (`root: "pino"`) |
+| `foretmap_grep_files`     | read + `mcp.write` (admin)         | Recherche bornée (300 fichiers, 200 résultats, 3 s)                                   |
+| `foretmap_cron_status`    | read + `mcp.write` (admin)         | Dernières exécutions et retards des tâches planifiées connues                         |
+
+`mcp.write` est la permission la plus stricte existante (profil admin seulement). Les outils de
+fichiers ne demandent que la portée `foretmap.read` : lire un fichier n'écrit rien.
+
+### 11.1 Mémoire du connecteur
+
+Table `mcp_memory`. Une note = **sujet** (clé de mise à jour), **contenu** (4 000 caractères au
+plus), **étiquettes** (12 au plus), **portée** :
+
+- `site` (défaut) : partagée entre tous les comptes `mcp.use` ; réécrite ou oubliée par son
+  auteur ou un admin (`mcp.write`) — une note semée par migration est réécrivable par un admin ;
+- `user` : visible et modifiable par son seul auteur.
+
+Règles :
+
+- `foretmap_remember` sur un sujet existant (casse et espaces ignorés, même portée, même compte
+  pour `user`) **met à jour** la note et pose `verified_at = NOW()` ; `subject_key` =
+  `SHA2(portée|compte|sujet normalisé)` rend le sujet unique (même calcul en SQL dans la
+  migration 325 et en JS dans `lib/mcp/memory.js`) ;
+- **refus** (`MCP_MEMORY_REJECTED`) d'un contenu qui ressemble à un secret ou à une donnée
+  personnelle évidente (`lib/mcp/secretMask.js`, `findSecretLike`) : adresse e-mail, jeton de
+  format connu (GitHub, Google, AWS, Slack, Anthropic/OpenAI/Stripe, JWT, `fmcp_…`), hachage
+  bcrypt, clé privée PEM, `Bearer …`, mot de passe dans une URL, affectation `password=…` /
+  `SECRET: …`, longue suite aléatoire (≥ 32 caractères mêlant majuscules, minuscules et chiffres,
+  entropie ≥ 4 bits/caractère ; UUID et empreintes de commit admis) ;
+- `foretmap_recall` : tous les mots de `query` doivent apparaître (sujet, contenu ou
+  étiquettes, `LIKE` paramétré), `tags` exigés ; une note non vérifiée depuis
+  `MCP_MEMORY_STALE_DAYS` (90 j) porte `stale: true` et « À revérifier » ;
+- plafond de 500 notes par compte (et pour le site).
+
+**Notes semées** (techniques, tirées du dépôt) : isolement G&L et produits par hôte ; corpus
+semé par les migrations (corriger par migration) ; convention QCM (feedback de la bonne réponse
+à NULL) ; emoji comparés en `BINARY` ; G&L = 4 chapitres, 6ᵉ ; `gl_resource_question_links`
+source de vérité ; droits `PUBLIC` sous MariaDB 10.11+ ; emplacements des journaux et du cron.
+
+Le champ `instructions` renvoyé par `initialize` demande à Claude de consulter
+`foretmap_recall` en début de tâche et d'enregistrer avec `foretmap_remember` ce qui est stable.
+
+### 11.2 Rapport de santé
+
+Collecte : `lib/mcp/health/collect.js` (chaque section bornée et indépendante : une section en
+échec devient `{ ok: false, error }` sans faire échouer le rapport). Règles :
+`lib/mcp/health/rules.js` (fonctions pures). Stockage : `lib/mcp/health/store.js`.
+
+| Section    | Contenu                                                                                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `process`  | version, Node, `NODE_ENV`, uptime, mémoire (RSS, tas)                                                                                                       |
+| `database` | ping et latence                                                                                                                                             |
+| `schema`   | version du schéma, dernière migration, migrations en attente                                                                                                |
+| `tables`   | 12 plus grosses tables (taille, lignes approximatives — métadonnées `information_schema`, aucune ligne lue), total                                          |
+| `http`     | 5xx et 429 sur 24 h et 7 j (tranches horaires en mémoire, `lib/logMetrics.js`) ; `coveredHours` = fenêtre réellement couverte depuis le dernier redémarrage |
+| `restarts` | journal de cycle de vie sur 24 h (crash, échecs de démarrage, processus tués, verdict)                                                                      |
+| `cron`     | état des tâches planifiées (§ 11.4)                                                                                                                         |
+| `disk`     | espace total / libre du système de fichiers, taille d'`uploads/` et de `logs/`                                                                              |
+| `tls`      | jours restants avant expiration du certificat de chaque hôte (`tls.connect`, 5 s, erreur gérée)                                                             |
+| `mcp`      | connexions MCP actives (familles de jetons valides), comptes, jetons d'accès utilisés sur 24 h                                                              |
+| `audit`    | résumé de `foretmap_audit_all` (total, 5 contrôles les plus fournis)                                                                                        |
+
+Hôtes TLS : `MCP_HEALTH_TLS_HOSTS` (liste), sinon l'hôte de `MCP_PUBLIC_BASE_URL` et celui de
+`GL_PROD_BASE_URL` (à défaut, le préfixe `gl.` du registre `lib/products.js` sur le même domaine).
+
+**Règles du statut** — rouge si un constat est rouge, sinon orange si un constat est orange,
+sinon vert (les constats `info` ne comptent pas). Seuils renvoyés dans `thresholds` :
+
+| Règle             | Orange                                                              | Rouge                                                     |
+| ----------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| `app_unreachable` | —                                                                   | application injoignable (script cron)                     |
+| `database`        | latence ≥ 500 ms (`MCP_HEALTH_DB_LATENCY_WARN_MS`)                  | ping en échec, ou ≥ 2 000 ms (`…_CRIT_MS`)                |
+| `migrations`      | —                                                                   | migration(s) en attente                                   |
+| `http_5xx_24h`    | ≥ 5 (`MCP_HEALTH_5XX_WARN`)                                         | ≥ 50 (`MCP_HEALTH_5XX_CRIT`), ou ≥ 5 % sur ≥ 100 requêtes |
+| `http_429_24h`    | ≥ 500 (`MCP_HEALTH_429_WARN`)                                       | —                                                         |
+| `restarts`        | crash, échec de démarrage ou processus tué sur 24 h                 | —                                                         |
+| `memory`          | RSS ≥ 800 Mo (`MCP_HEALTH_RSS_WARN_MB`)                             | —                                                         |
+| `disk`            | espace libre < 10 %                                                 | < 5 %                                                     |
+| `tls`             | expiration < 21 j (`MCP_HEALTH_TLS_WARN_DAYS`), contrôle impossible | < 7 j (`…_CRIT_DAYS`), certificat refusé                  |
+| `cron`            | tâche en échec, en retard ou bloquée par un seuil                   | —                                                         |
+| `audit`           | — (`info` : nombre de constats du corpus)                           | —                                                         |
+
+**À la demande** : `foretmap_health_report` (admin), ou `GET /api/health/report` avec
+l'en-tête `X-Health-Token` (`docs/API.md`, « Rapport de santé »).
+
+**Régulier** :
+
+- `scripts/health-report.js` (crontab cPanel, quotidien, ligne 9 de `docs/CRONTAB.md`)
+  interroge l'application (`/api/health/report` : c'est elle qui détient les compteurs HTTP),
+  construit le rapport lui-même si elle ne répond pas (statut **rouge**, `app_unreachable`),
+  le stocke dans `mcp_health_reports` (purge au-delà de `MCP_HEALTH_REPORT_RETENTION_DAYS`,
+  90 j), purge `scheduled_job_runs` au-delà de 180 j, et envoie un e-mail par le mailer
+  existant (`OPS_ALERT_TO`) si le statut est **orange ou rouge** — ou chaque jour avec
+  `MCP_HEALTH_REPORT_EMAIL=daily` (`off` coupe l'e-mail). Sortie : une ligne de résumé.
+  Code 0 si le rapport a été produit (quel que soit son statut), 1 si le script a échoué ;
+- `.github/workflows/health-check.yml` : une exécution courte par jour (04:40 UTC) +
+  `workflow_dispatch`, un job sans checkout ni `npm ci` (`curl` + `jq`), moins d'une minute
+  facturée. Échoue si le statut est rouge ou si le site ne répond pas ; avertissement si
+  orange ; **succès avec explication** si les secrets `HEALTH_CHECK_URL` /
+  `HEALTH_CHECK_TOKEN` manquent.
+
+`foretmap_health_history` relit les rapports stockés : nombre par statut, changements de
+statut, série en cours, rapport complet par `id`.
+
+### 11.3 Fichiers du serveur (lecture seule)
+
+Racines (`lib/mcp/files/roots.js`). `MCP_FILE_ROOTS` remplace la liste par défaut :
+`nom=chemin` séparés par des virgules (chemin absolu ou relatif à l'application). Par défaut,
+seules les racines qui existent sont exposées :
+
+| Racine                          | Chemin                                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `logs`                          | `MCP_CRON_LOG_DIR`, sinon `<application>/logs`, sinon `~/foretmap-logs` (journaux de la crontab, `boot-journal.ndjson`) |
+| `startup`, `startup-diag`       | `startup.log`, `startup-diag.log` (écrasés à chaque démarrage)                                                          |
+| `passenger`                     | `MCP_PASSENGER_LOG`, sinon `<application>/stderr.log`, sinon `~/logs/<dossier>.stderr.log`                              |
+| `cpanel`                        | `.cpanel.yml`                                                                                                           |
+| `scripts`, `docs`, `migrations` | dossiers du dépôt                                                                                                       |
+| `pino` (virtuelle)              | tampon Pino en mémoire, mêmes règles que `foretmap_tail_logs`                                                           |
+
+Sur o2switch, Passenger écrit sa sortie d'erreur là où le désigne la directive
+`PassengerAppLogFile` du `.htaccess` (souvent `stderr.log` à la racine de l'application, parfois
+`~/logs/`). Si aucun des emplacements par défaut ne convient, poser `MCP_PASSENGER_LOG`.
+
+**Sécurité, sans dérogation** :
+
+- **anti-traversée** : chemin relatif seulement (absolu refusé), résolu par `realpath` (liens
+  symboliques compris) ; le chemin réel doit rester **dans la racine** — `..` et un lien
+  symbolique qui en sort sont refusés (`MCP_FILE_TRAVERSAL`) ; la recherche ne suit un lien que
+  s'il reste dans la racine ; `node_modules`, `.git`, `dist`, `uploads`, `backups` ne sont jamais
+  parcourus ;
+- **binaires refusés** (`MCP_FILE_BINARY`) : octet nul ou plus de 10 % de caractères de contrôle
+  dans les 8 premiers ko, ou extension d'archive, d'image, de base…;
+- **`.env` et apparentés** (`.env.*`, `.my.cnf`, `.npmrc`, `.netrc`, `.pgpass`, `.htpasswd`) :
+  seuls les noms de variables sortent (`CLE=****`) ; tout autre commentaire ou ligne libre est
+  masqué en entier ; exclus de la recherche ;
+- **fichiers de clés et certificats** (`.pem`, `.key`, `.p12`, `id_rsa`, `*secret*`…) :
+  contenu jamais transmis ;
+- **secrets reconnaissables masqués** dans tout autre fichier (`maskSecrets`) : jetons de
+  formats connus, `Bearer …` / `Basic …`, mot de passe dans une URL (`scheme://u:****@hôte`),
+  paramètre `token=`, `password=`, `code=`…, affectation dont le nom contient
+  `pass`/`secret`/`token`/`key`/`auth`/`session`/`salt`… ; e-mails, hachages et jetons du site
+  (`scrubString`) ;
+- **journaux** (racines `logs`, `startup*`, `passenger`) : en plus, littéraux cités →
+  `'[valeur]'`, UUID et suites hexadécimales → `id#xxxxxx`, IP → `ip#xxxxxx` (`logSanitizer`,
+  pseudonymes à sel aléatoire par appel) ; les nombres restent (horodatages, tailles, codes) ;
+- **bornes** : 2 Mo lus par fichier (la fin pour `tail` et pour la recherche dans un journal),
+  500 lignes et 2 000 caractères par ligne, motif de 200 caractères (expressions à quantificateurs
+  imbriqués et références arrière refusées), recherche sur la ligne **déjà nettoyée** (un secret
+  masqué ne se retrouve pas par motif).
+
+**Limite** : un nom ou un pseudo écrit en clair dans un journal texte n'est pas reconnaissable
+de façon sûre (même limite que `foretmap_tail_logs`, § 5) ; ces outils sont donc réservés aux
+administrateurs.
+
+### 11.4 Tâches planifiées (`foretmap_cron_status`)
+
+Lit **ce que le code trace déjà** (`lib/mcp/files/cron.js`) :
+
+| Tâche                                                                               | Trace                                                     | Attendue           |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| `recurring_tasks`, `auto_archive`, `notifications_purge`, `task_deadline_reminders` | `scheduled_job_runs` (jobs quotidiens de `server.js`)     | 24 h               |
+| `health_report`                                                                     | `scheduled_job_runs` (`scripts/health-report.js`)         | 24 h               |
+| `retention_purge`                                                                   | `retention_purge_runs` (migration 319)                    | 24 h               |
+| `auto_deploy`, `db_backup`, `uptime_check`                                          | dernière ligne horodatée de `logs/<ligne de crontab>.log` | 2 min, 24 h, 5 min |
+| `moodle_sync`, `reconcile_uploads` (facultatives)                                   | `logs/moodle-sync.log`, `logs/reconcile-uploads.log`      | 4 j, 32 j          |
+
+`scheduled_job_runs` est **nouveau** (migration 325, `lib/scheduledJobs.js`) : les jobs
+quotidiens du serveur ne laissaient jusque-là qu'une ligne Pino, perdue au redémarrage. Le
+traçage est best-effort et ne change rien au job. États : `ok`, `late` (plus vieux que
+l'attente + 50 %), `failure`, `blocked` (purge arrêtée par un seuil), `never` (aucune trace),
+`not_configured` (tâche facultative sans journal).
+
+La **crontab** elle-même (`crontab -l`, `child_process.execFile`, 3 s) n'est lue que si
+`MCP_CRON_READ_CRONTAB=true` : sous Passenger / CageFS, le processus web peut se la voir
+refuser ; la réponse le dit alors (`crontab.available: false` et la raison). Sortie masquée
+comme un fichier.
+
+### 11.5 Variables
+
+| Variable                           | Défaut                  | Rôle                                                                                      |
+| ---------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| `MCP_FILES_ENABLED`                | `true`                  | `false` retire les quatre outils de fichiers et de cron pour tous                         |
+| `MCP_FILE_ROOTS`                   | (racines par défaut)    | `nom=chemin,…` : remplace la liste des racines                                            |
+| `MCP_CRON_LOG_DIR`                 | `<app>/logs`            | Dossier des journaux de la crontab                                                        |
+| `MCP_PASSENGER_LOG`                | (recherché)             | Chemin du `stderr.log` Passenger                                                          |
+| `MCP_CRON_READ_CRONTAB`            | `false`                 | Lire `crontab -l` dans `foretmap_cron_status`                                             |
+| `MCP_MEMORY_STALE_DAYS`            | `90`                    | Au-delà, une note est « à revérifier »                                                    |
+| `MCP_HEALTH_TOKEN`                 | (absent : endpoint 404) | Jeton de `GET /api/health/report` (en-tête `X-Health-Token`) ; ≥ 32 caractères aléatoires |
+| `MCP_HEALTH_REPORT_EMAIL`          | (alerte)                | `daily` : e-mail chaque jour ; `off` : jamais ; sinon orange / rouge seulement            |
+| `MCP_HEALTH_REPORT_RETENTION_DAYS` | `90`                    | Conservation des rapports stockés (7–730)                                                 |
+| `HEALTH_REPORT_BASE_URL`           | `MCP_PUBLIC_BASE_URL`   | Adresse de l'application pour le script cron                                              |
+| `MCP_HEALTH_TLS_HOSTS`             | (dérivés)               | Hôtes dont le certificat est contrôlé                                                     |
+| `MCP_HEALTH_*_WARN` / `_CRIT`      | (§ 11.2)                | Seuils des règles                                                                         |
+
+---
+
+## 12. Activer en production
+
+Liste ordonnée, à suivre dans l'ordre. Les étapes marquées « facultatif » peuvent être
+sautées sans rien casser.
+
+1. **Fusion et migrations.** Fusionner les PR du connecteur ; le cron de déploiement applique
+   `324_mcp_oauth.sql` et `325_mcp_exploitation.sql` (`DEPLOY_AUTO_MIGRATE=1`). Contrôler :
+   `bash scripts/with-app-node.sh npm run db:status` → « à jour » (ou l'outil
+   `foretmap_db_status`).
+2. **Variables cPanel** (« Setup Node.js App » → variables d'environnement, ou `.env` du serveur) :
+   - `MCP_ENABLED=true` ;
+   - `MCP_PUBLIC_BASE_URL=https://<domaine-foretmap>` (exactement l'URL saisie dans Claude,
+     sans barre finale ; obligatoire en production, sinon 503) ;
+   - `MCP_HEALTH_TOKEN=<secret>` (`openssl rand -base64 36`) ;
+   - facultatif : `MCP_HEALTH_REPORT_EMAIL=daily`, `MCP_PASSENGER_LOG=<chemin du stderr.log>`,
+     `MCP_CRON_READ_CRONTAB=true`, `GL_PROD_BASE_URL=https://<domaine-gl>` ;
+   - garder `MCP_SQL_ENABLED=false` ; `MCP_WRITE_ENABLED` et `MCP_FILES_ENABLED` valent `true`
+     sans variable (poser `false` pour couper) ;
+   - vérifier que `SMTP_*` et `OPS_ALERT_TO` sont posés (e-mails du rapport de santé).
+3. **Compte MySQL restreint** (facultatif ; obligatoire pour `foretmap_sql_select`) :
+   `node scripts/mcp-print-grants.js --db <base> --user <compte> --check-db`, exécuter les
+   `GRANT` avec un compte administrateur MySQL, puis `DB_MCP_USER` / `DB_MCP_PASS`. Sur
+   o2switch, les `GRANT` par table ne sont en général pas possibles depuis cPanel : laisser vide
+   (§ 8).
+4. **Dépendances et redémarrage** : `npm install --production` dans le dossier de l'application
+   (le déploiement cPanel le fait via `.cpanel.yml`), puis redémarrer Passenger (« Restart »
+   dans Setup Node.js App, ou `touch tmp/restart.txt`).
+5. **Entrée cron cPanel** pour le rapport de santé (ligne 9 de `docs/CRONTAB.md`) :
+
+   ```cron
+   40 6 * * * mkdir -p /home/USER/foretmap/logs && bash /home/USER/foretmap/scripts/with-app-node.sh node scripts/health-report.js >> /home/USER/foretmap/logs/health-report.log 2>&1
+   ```
+
+   Lancer une fois à la main la même commande et lire `logs/health-report.log`.
+
+6. **WAF o2switch (Tiger Protect)** : autoriser la plage d'egress d'Anthropic
+   **`160.79.104.0/21`** sur `/mcp`, `/oauth/*` et `/.well-known/oauth-*`, et vérifier que
+   `WWW-Authenticate` n'est pas retiré (§ 8, « Dépannage »).
+7. **Vérifications `curl`** :
+
+   ```bash
+   curl -i -X POST https://<domaine-foretmap>/mcp          # 401 + WWW-Authenticate: Bearer resource_metadata="…"
+   curl -s https://<domaine-foretmap>/.well-known/oauth-protected-resource/mcp
+   curl -s https://<domaine-foretmap>/.well-known/oauth-authorization-server
+   curl -s -o /dev/null -w '%{http_code}\n' https://<domaine-foretmap>/api/health/report   # 401
+   curl -s -H "X-Health-Token: $MCP_HEALTH_TOKEN" https://<domaine-foretmap>/api/health/report | jq '.status, .summary'
+   ```
+
+8. **Smoke** (flux OAuth complet, `initialize`, `tools/list`, `foretmap_audit_all`, puis
+   `foretmap_health_report` pour un admin) :
+
+   ```bash
+   MCP_SMOKE_BASE_URL=https://<domaine-foretmap> MCP_SMOKE_IDENTIFIER=<compte admin> \
+   MCP_SMOKE_PASSWORD=<mot de passe> [MCP_SMOKE_TOTP=<code>] npm run mcp:smoke
+   ```
+
+9. **Ajouter le connecteur** :
+   - claude.ai (et Desktop, mobile) : Réglages → Connecteurs → Ajouter un connecteur
+     personnalisé → `https://<domaine-foretmap>/mcp` → Connecter ;
+   - Claude Code : `claude mcp add --transport http foretmap https://<domaine-foretmap>/mcp`,
+     puis `/mcp` → `foretmap` → Authenticate.
+10. **Secrets du workflow** `health-check.yml` (GitHub → Settings → Secrets and variables →
+    Actions) : `HEALTH_CHECK_URL=https://<domaine-foretmap>` et `HEALTH_CHECK_TOKEN` = la valeur
+    de `MCP_HEALTH_TOKEN`. Lancer une fois Actions → _Health check_ → _Run workflow_.
