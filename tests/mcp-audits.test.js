@@ -868,6 +868,62 @@ test('migration générée : idempotente (garde de valeur) et rollback inverse',
   );
 });
 
+test('migration générée : deux corrections de la même cellule s’enchaînent', () => {
+  const { buildMigration } = require('../lib/mcp/write/plans');
+  // Les deux lectures voient encore la valeur d'origine : l'application en direct écrit
+  // d'abord « brouillon » puis « texte final ». Sans enchaînement, le second UPDATE de la
+  // migration resterait gardé par NULL et ne modifierait aucune ligne.
+  const { migration_sql, rollback_sql } = buildMigration(
+    [
+      {
+        op: 'set_field',
+        table: 'plants',
+        key: { id: 4 },
+        column: 'description',
+        value: 'brouillon',
+      },
+      {
+        op: 'set_field',
+        table: 'plants',
+        key: { id: 4 },
+        column: 'description',
+        value: 'texte final',
+      },
+      { op: 'set_field', table: 'plants', key: { id: 9 }, column: 'name', value: 'Figuier' },
+    ],
+    [
+      { exists: true, value: null },
+      { exists: true, value: null },
+      { exists: true, value: 'Figue' },
+    ],
+    { planId: 'p2' },
+  );
+  assert.match(
+    migration_sql,
+    /SET description = 'brouillon'\n WHERE id = 4 AND description IS NULL;/,
+  );
+  assert.match(
+    migration_sql,
+    /SET description = 'texte final'\n WHERE id = 4 AND BINARY description = BINARY 'brouillon';/,
+  );
+  assert.match(
+    migration_sql,
+    /SET name = 'Figuier'\n WHERE id = 9 AND BINARY name = BINARY 'Figue';/,
+  );
+  const nameBack = rollback_sql.indexOf("SET name = 'Figue'");
+  const draftBack = rollback_sql.indexOf("SET description = 'brouillon'");
+  const originBack = rollback_sql.indexOf('SET description = NULL');
+  assert.ok(nameBack >= 0 && draftBack > nameBack && originBack > draftBack, rollback_sql);
+  assert.match(
+    rollback_sql,
+    /SET description = 'brouillon'\n WHERE id = 4 AND BINARY description = BINARY 'texte final';/,
+  );
+  assert.match(
+    rollback_sql,
+    /SET description = NULL\n WHERE id = 4 AND BINARY description = BINARY 'brouillon';/,
+  );
+});
+
 test('usage : fenêtres fixes seulement (M6)', () => {
   const { USAGE_WINDOWS } = require('../lib/mcp/tools/usage');
   assert.deepEqual([...USAGE_WINDOWS], [7, 30, 90, 365]);
