@@ -38,13 +38,15 @@ export const PctMarkerButton = React.memo(function PctMarkerButton({
   // Lieu mis en avant (plan e-nov) : halo en CSS, pastille facultative, et mention au nom
   // accessible — le halo ne s'entend pas.
   const highlighted = marker.map_highlight === true;
+  // Second niveau (autres lieux d'innovation) : même halo, autre couleur.
+  const secondary = highlighted && marker.map_highlight_tone === 'secondary';
   const highlightSuffix = highlighted && highlightLabel ? ` — ${highlightLabel}` : '';
   return (
     <button
       type="button"
       className={`fm-pct-marker${isActive ? ' is-active' : ''}${seenClass}${haloClass}${
         highlighted ? ' is-highlight' : ''
-      }`}
+      }${secondary ? ' is-highlight-secondary' : ''}`}
       style={{ left: `${marker.x_pct}%`, top: `${marker.y_pct}%` }}
       aria-current={isActive ? 'true' : undefined}
       aria-label={`${accessibleName || 'Lieu'}${highlightSuffix}${statusSuffix}${dotsSuffix ? ` — ${dotsSuffix}` : ''}`}

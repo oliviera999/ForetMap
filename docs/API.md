@@ -1704,6 +1704,10 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 | `ui.enov_plan.hidden_category_ids`      | string  | vide                                     | Catégories retirées des filtres (n'éteint pas la mise en avant)                        |
 | `ui.enov_plan.highlight_category_ids`   | string  | `cat-enov`                               | Catégories dont les lieux sont **mis en avant** (`is_enov`)                            |
 | `ui.enov_plan.highlight_color`          | string  | `#faba38`                                | Couleur du halo ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`              |
+| `ui.enov_plan.secondary_category_ids`   | string  | `cat-enov-secondaire`                    | Catégories du **second niveau** (autres lieux d'innovation, `enov_tier: secondary`)    |
+| `ui.enov_plan.secondary_color`          | string  | `#66a4d9`                                | Couleur du second niveau ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`     |
+| `ui.enov_plan.primary_label`            | string  | `Espaces retenus`                        | Intitulé du premier niveau (fiche, légende imprimée)                                   |
+| `ui.enov_plan.secondary_label`          | string  | `Autres lieux d’innovation`              | Intitulé du second niveau                                                              |
 | `ui.enov_plan.badge_enabled`            | boolean | `false`                                  | Pastille « e-nov » à côté des lieux mis en avant, en plus du halo                      |
 | `ui.enov_plan.innovations_label`        | string  | `Innovations`                            | Intitulé de la puce qui liste les lieux mis en avant                                   |
 
@@ -3564,11 +3568,14 @@ en « visiteur » (`PUBLIC_SURFACES`).
 - **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,
   categories, zones, markers, routes }`), avec en plus :
   - sur chaque zone et chaque repère : **`is_enov`** (booléen — le lieu porte une catégorie de
-    `ui.enov_plan.highlight_category_ids`, lue **avant** le masquage des filtres) et
-    **`enov_description`** (chaîne, `''` si vide) et **`enov_space_type`** (identifiant de type
-    d'espace, `''` si non renseigné) ;
-  - **`settings.enov`** : `{ highlight_category_ids, highlight_color, badge_enabled,
-    innovations_label }` — catégories ramenées à celles servies sur cette carte.
+    `ui.enov_plan.highlight_category_ids` **ou** de `ui.enov_plan.secondary_category_ids`, lue
+    **avant** le masquage des filtres), **`enov_tier`** (`'primary'` espace retenu,
+    `'secondary'` autre lieu d'innovation, `''` sinon ; un lieu des deux niveaux est
+    `primary` — migration 326), **`enov_description`** (chaîne, `''` si vide) et
+    **`enov_space_type`** (identifiant de type d'espace, `''` si non renseigné) ;
+  - **`settings.enov`** : `{ highlight_category_ids, highlight_color, secondary_category_ids,
+    secondary_color, primary_label, secondary_label, badge_enabled, innovations_label }` —
+    catégories ramenées à celles servies sur cette carte.
   Aucun de ces champs ne sort de `/api/plan/content` ni de `/api/staff-plan/content`.
 - **Carte servie**, **cartes proposées**, **cache** (par carte, périmé à la première
   écriture, `Cache-Control` `public`/`private` selon le mode) : comme le plan public, avec
