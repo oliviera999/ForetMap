@@ -2889,6 +2889,9 @@ jeton, aucun cookie, aucune donnée d'élève, de tâche ou de progression. Les 
 dupliqués : ce sont les **mêmes** `zones` et `map_markers` que la carte de travail et la Visite,
 filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 
+Vue d'ensemble technique et runbook des trois surfaces de plan :
+[`docs/PLAN_ARCHITECTURE.md`](PLAN_ARCHITECTURE.md).
+
 | Méthode | URL                         | n3boss | Description                                                               |
 | ------- | --------------------------- | ------ | ------------------------------------------------------------------------- |
 | GET     | `/api/plan/content?map_id=` | non    | Charge publique : carte, réglages, catégories, lieux visibles sur le plan |
