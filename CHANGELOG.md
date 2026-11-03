@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — tuto d’activation MCP + script `mcp:activate-check`
+
+- Guide simple tous assistants :
+  `docs/reference/foretmap/activer-le-connecteur.md` (serveur puis Claude / Cursor / ChatGPT /
+  Gemini CLI).
+- Script `npm run mcp:activate-check` : contrôle `/mcp` (401), métadonnées OAuth, well-known,
+  rappel des étapes client ; option `--print-env` / `--local-env`.
+
 ### Ajouté — connecteur MCP multi-clients (Cursor, ChatGPT, Gemini CLI)
 
 - Allowlist OAuth élargie (Claude, Cursor web/desktop, ChatGPT stable + préfixe

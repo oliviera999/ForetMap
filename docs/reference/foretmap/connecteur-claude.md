@@ -55,7 +55,8 @@ retirer dans **Profils & utilisateurs**. Un retrait prend effet **immédiatement
 un assistant déjà connecté.
 
 Le connecteur doit d'abord être **activé sur le serveur** par la personne qui gère
-l'hébergement (voir « Pour les curieux »).
+l'hébergement. Checklist complète (serveur + tous les assistants) :
+[activer-le-connecteur.md](activer-le-connecteur.md).
 
 ## Se connecter
 
@@ -136,9 +137,8 @@ Rien de tout cela ne modifie le site.
 
 ## Pour les curieux
 
-L'activation se fait par la variable `MCP_ENABLED=true` et l'adresse publique
-`MCP_PUBLIC_BASE_URL` ; les corrections sont actives par défaut pour les admins
-(`MCP_WRITE_ENABLED`, à `false` pour les couper). Documentation technique : `docs/MCP.md` ;
-fiche de registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Le rapport de santé quotidien
-s'installe par une ligne de crontab (`docs/CRONTAB.md`, ligne 9) ; la liste complète de mise en
-service est dans `docs/MCP.md`, « Activer en production ».
+Guide pas à pas : [activer-le-connecteur.md](activer-le-connecteur.md). Contrôle rapide :
+`npm run mcp:activate-check -- --base https://votre-domaine`. Activation technique complète :
+`docs/MCP.md` (« Activer en production »). Variables : `MCP_ENABLED=true`,
+`MCP_PUBLIC_BASE_URL` ; corrections admin via `MCP_WRITE_ENABLED`. Fiche registre RGPD :
+`docs/MCP_REGISTRE_TRAITEMENT.md`. Rapport de santé : crontab (`docs/CRONTAB.md`, ligne 9).
