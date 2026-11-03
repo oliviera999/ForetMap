@@ -23,6 +23,28 @@ retombent toujours sur la SPA (`/apiculture` reste une route d’application, pa
 | GET     | `/api/version`   | Version SemVer de l’app : JSON `{ "version": "<semver>" }` (lecture de `package.json` à chaque requête ; en cas d’échec de lecture, repli sur la version chargée au démarrage du process). Utilisé par les scripts de contrôle post-déploiement (`npm run deploy:check:prod`, etc.) |
 | GET     | `/health`        | Alias                                                                                                                                                                                                                                                                               |
 
+### Rapport de santé — `GET /api/health/report`
+
+Rapport de santé complet du connecteur Claude (`lib/mcp/health/`), pour une sonde externe
+(workflow `.github/workflows/health-check.yml`, script cron `scripts/health-report.js`). Détail
+des sections et des règles de statut : [MCP.md § Rapport de santé](MCP.md#11-rapport-de-santé).
+
+| Cas                                       | Réponse                                                         |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| `MCP_HEALTH_TOKEN` non configuré          | **404** `{ error: "Not found" }` (la route n'existe pas)        |
+| en-tête `X-Health-Token` absent ou faux   | **401** `{ error }` (comparaison en temps constant sur sha256)  |
+| jeton correct                             | **200** rapport JSON, `Cache-Control: no-store`                 |
+| erreur interne du collecteur              | **500** `{ error: "Rapport de santé indisponible" }`            |
+
+Corps (200) : `{ status: "green"|"orange"|"red", summary, findings: [{ level, rule, message }],
+generated_at, process, database, schema, tables, http: { last24h, last7d, sinceStart }, restarts,
+cron, disk, tls: { hosts }, mcp, audit, thresholds, duration_ms }`. Le statut **rouge** répond
+quand même 200 : c'est l'appelant qui décide (le workflow échoue). Paramètres facultatifs :
+`tls=0` (sans contrôle des certificats), `audit=0` (sans audits du corpus). Exempté du verrou
+« base pas prête » : une base injoignable doit pouvoir être signalée. Hors limiteur dédié : la
+route hérite du limiteur général `/api/`. Aucune donnée de personne : compteurs, états,
+versions, tailles, gabarits.
+
 ---
 
 ## Gnomes & Licornes (`/api/gl`)
@@ -598,7 +620,7 @@ section `gl` :
 }
 ```
 
-Outils MCP exposés (`scripts/mcp-foretmap-diagnostics.mjs`) :
+Outils MCP exposés (`scripts/mcp-foretmap-diagnostics.mjs`, registre partagé `lib/mcp/tools/diagnostics.js`) :
 
 - `gl_public_health` (sans secret) — `/api/health`, `/api/version`,
   `/api/gl/chapters` (200/401 attendus).
@@ -765,6 +787,43 @@ Sources de référence :
 - `docs/SITE_ISSUES.md`
 - `docs/SITE_ISSUES.json`
 - audits détaillés : `docs/AUDIT_BUGS_INCOHERENCES.md`, `docs/AUDIT_PHOTOS_BIODIVERSITE.md`
+
+---
+
+## Connecteur MCP distant et OAuth (`/mcp`, `/oauth/*`, `/.well-known/*`)
+
+Hors préfixe `/api/` (limiteur dédié, pas le limiteur général). **Désactivé par défaut**
+(`MCP_ENABLED`) : toutes ces routes répondent alors **404**. Servi sur l'hôte ForetMap
+uniquement (404 sur `gl.*`, `plan.*`…). Détail, variables et mise en production :
+[MCP.md](MCP.md) ; guide simple d'activation (tous assistants) :
+[reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md) ;
+contrôle : `npm run mcp:activate-check -- --base https://<domaine>` ; données personnelles :
+[MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
+
+| Méthode | URL                                        | Accès                          | Contrat                                                                                                     |
+| ------- | ------------------------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| POST    | `/mcp`                                     | Bearer `fmcp_at_…`             | JSON-RPC MCP (Streamable HTTP sans état, réponse `application/json`). Sans jeton valide : **401** + `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp", scope="foretmap.read foretmap.write"`. Base non prête : 503. Limiteur `MCP_RATE_LIMIT_PER_MIN` (429 JSON-RPC) |
+| GET / DELETE | `/mcp`                                | —                              | **405** (`Allow: POST`) : ni session ni flux SSE                                                            |
+| GET     | `/.well-known/oauth-protected-resource/mcp` (et sans `/mcp`) | Public           | RFC 9728 : `resource = <base>/mcp`, `authorization_servers = [<base>]`, `scopes_supported`, `bearer_methods_supported: ["header"]` |
+| GET     | `/.well-known/oauth-authorization-server` (alias `/.well-known/openid-configuration`) | Public | RFC 8414 : endpoints, `code_challenge_methods_supported: ["S256"]`, `token_endpoint_auth_methods_supported: ["none"]`, `client_id_metadata_document_supported: true`, `scopes_supported` (`foretmap.read`, `foretmap.write`, `offline_access`) |
+| POST    | `/oauth/register`                          | Public (60/h/IP)               | DCR RFC 7591, JSON. Clients publics seulement ; `redirect_uris` dans la liste autorisée. **201** `{ client_id, redirect_uris, token_endpoint_auth_method: "none", … }` ; erreurs `invalid_redirect_uri`, `invalid_client_metadata` |
+| GET     | `/oauth/authorize`                         | Public (`authLimiter`)         | `response_type=code`, `client_id` (DCR ou URL CIMD), `redirect_uri`, `code_challenge` + `code_challenge_method=S256` (obligatoire), `state`, `scope`, `resource`. Page HTML de connexion (CSP dédiée, sans script) ; `redirect_uri` non vérifiée : page d'erreur (jamais de redirection) ; autre erreur : redirection `?error=…&state=…` |
+| POST    | `/oauth/authorize`                         | Formulaire + CSRF              | Étapes `login` (identifiant, mot de passe ; permission `mcp.use` exigée), `totp` (si le compte l'a activé), `consent` (`decision=approve|deny`). Fin : **302** vers `redirect_uri?code=…&state=…&iss=…` ; portée `foretmap.write` accordée seulement avec `mcp.write` |
+| POST    | `/oauth/token`                             | Client public (`client_id`)    | `application/x-www-form-urlencoded` (JSON toléré). `grant_type=authorization_code` (`code`, `code_verifier`, `redirect_uri`) ou `refresh_token` (rotation ; réutilisation → famille révoquée). **200** `{ access_token, token_type: "Bearer", expires_in, refresh_token, scope }` ; erreurs RFC 6749 (`invalid_grant`, `invalid_client` 401, `invalid_request`, `invalid_scope`, `unsupported_grant_type`). `Cache-Control: no-store` |
+| POST    | `/oauth/revoke`                            | Public                         | RFC 7009 : `token` (+ `client_id`) ; révoque la famille ; **200** même si inconnu                          |
+
+Lots JSON-RPC limités à 20 messages (**400**, code `-32600`) ; corps limité à 256 ko (**413**). En production sans `MCP_PUBLIC_BASE_URL`, toutes ces routes répondent **503**. Limiteurs : `/oauth/token` et `/oauth/revoke` 120/min par client. Les jetons sont révoqués dès que l'époque du compte change (mot de passe, désactivation).
+
+Isolation : un jeton `fmcp_…` présenté sur `/api/*` ou `/api/gl/*` reçoit **401**
+`{ code: "MCP_TOKEN" }` ; un JWT applicatif est refusé sur `/mcp` (`invalid_token`). Outils
+exposés et portées : [MCP.md § 4](MCP.md).
+
+**Mode productivité (admin, optionnel)** — drapeaux `MCP_SQL_WRITE_ENABLED`, `MCP_SQL_DDL_ENABLED`,
+`MCP_WRITE_REQUIRE_PLAN`, `MCP_PRIVACY_BYPASS` + `MCP_PRIVACY_BYPASS_ACK`, `MCP_CONFIRM_REQUIRED`,
+`MCP_SQL_MAX_AFFECTED_ROWS` : voir [MCP.md § 2 et § 13](MCP.md). Outils additionnels possibles :
+`foretmap_sql_execute`, `foretmap_content_change` (si plan non exigé), `foretmap_list_students`,
+`foretmap_get_student` (bypass actif). Confirmation par code e-mail pour certaines exécutions SQL
+(`mcp_confirmations`, migration `326_mcp_productivity.sql`).
 
 ---
 
@@ -1298,6 +1357,11 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `observations.read.group`      | Lecture observations par groupe | Consulter les observations du périmètre de groupe                                                               |
 | `observations.validate`        | Validation des observations d’espèces | Valider ou refuser les observations d’espèces des élèves (confirme la présence sur le site, migration 307) |
 | `forum.group.moderate`         | Modération forum par groupe     | Modérer les fils/messages dans les groupes accessibles                                                          |
+| `mcp.use`                      | Connecteur MCP                  | Se connecter au connecteur MCP distant (`/mcp`) et lire le contenu pédagogique (admin, prof) — `docs/MCP.md`     |
+| `mcp.write`                    | Écriture par le connecteur MCP  | Plans de correction de contenu puis application (portée `foretmap.write`, **admin** seulement)                  |
+| `mcp.sql`                      | Requêtes SQL par le connecteur  | `foretmap_sql_select` (admin ; coupé par défaut : `MCP_SQL_ENABLED` **et** compte `DB_MCP_USER` requis)         |
+| `mcp.sql_execute`              | SQL en écriture (MCP)           | `foretmap_sql_execute` (admin ; coupé par défaut : `MCP_SQL_WRITE_ENABLED`)                                      |
+| `mcp.privacy_bypass`           | Bypass RGPD (MCP)              | Données nominatives d'élèves via MCP (admin ; `MCP_PRIVACY_BYPASS` + ACK daté requis)                           |
 
 ### Profils système (droits par défaut)
 
@@ -1305,8 +1369,8 @@ Les profils sont entièrement paramétrables ; ce tableau documente les **valeur
 
 | Profil            | Droits par défaut                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `admin`           | `teacher.access`, `media.manage`, `admin.roles.manage`, `admin.users.assign_roles`, `admin.impersonate`, `users.create`, `admin.settings.read`, `admin.settings.write`, `admin.settings.secrets.write`, `groups.read`, `groups.manage`, `stats.read.all`, `stats.read.group`, `stats.export`, `students.import`, `students.delete`, `tasks.manage`, `tasks.validate`, `tasks.propose`, `tasks.assign.group`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage`, `map.manage_markers`, `plants.manage`, `plants.hazards.validate`, `tutorials.manage`, `visit.manage`, `staff_plan.access`, `tours.manage`, `audit.read`, `audit.security.read`, `integrations.moodle.manage`, `observations.read.all`, `observations.read.group`, `observations.manage.all`, `observations.manage.group`, `observations.validate`, `forum.group.moderate` |
-| `prof`            | `teacher.access`, `media.manage`, `groups.read`, `groups.manage`, `stats.read.all`, `stats.read.group`, `stats.export`, `students.import`, `students.delete`, `users.create`, `tasks.manage`, `tasks.validate`, `tasks.propose`, `tasks.assign.group`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage`, `map.manage_markers`, `plants.manage`, `plants.hazards.validate`, `tutorials.manage`, `visit.manage`, `staff_plan.access`, `audit.read`, `observations.read.all`, `observations.read.group`, `observations.manage.all`, `observations.manage.group`, `observations.validate`, `forum.group.moderate`                                                                                                                                                                                                     |
+| `admin`           | `teacher.access`, `media.manage`, `admin.roles.manage`, `admin.users.assign_roles`, `admin.impersonate`, `users.create`, `admin.settings.read`, `admin.settings.write`, `admin.settings.secrets.write`, `groups.read`, `groups.manage`, `stats.read.all`, `stats.read.group`, `stats.export`, `students.import`, `students.delete`, `tasks.manage`, `tasks.validate`, `tasks.propose`, `tasks.assign.group`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage`, `map.manage_markers`, `plants.manage`, `plants.hazards.validate`, `tutorials.manage`, `visit.manage`, `staff_plan.access`, `tours.manage`, `audit.read`, `audit.security.read`, `integrations.moodle.manage`, `observations.read.all`, `observations.read.group`, `observations.manage.all`, `observations.manage.group`, `observations.validate`, `forum.group.moderate`, `mcp.use`, `mcp.write`, `mcp.sql`, `mcp.sql_execute`, `mcp.privacy_bypass` |
+| `prof`            | `teacher.access`, `media.manage`, `groups.read`, `groups.manage`, `stats.read.all`, `stats.read.group`, `stats.export`, `students.import`, `students.delete`, `users.create`, `tasks.manage`, `tasks.validate`, `tasks.propose`, `tasks.assign.group`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`, `zones.manage`, `map.manage_markers`, `plants.manage`, `plants.hazards.validate`, `tutorials.manage`, `visit.manage`, `staff_plan.access`, `audit.read`, `observations.read.all`, `observations.read.group`, `observations.manage.all`, `observations.manage.group`, `observations.validate`, `forum.group.moderate`, `mcp.use` |
 | `prof_classe`     | `groups.read`, `groups.manage`, `stats.read.group`, `observations.read.group`, `staff_plan.access` — ni `teacher.access`, ni `tasks.*`, ni `id_keys.manage` (retirés par la migration 310, retraits durables via `rbac_seeded_permissions`) ; création / import élèves **absents** par défaut, cochables                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `eleve_chevronne` | `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `eleve_avance`    | `tasks.propose`, `tasks.assign_self`, `tasks.unassign_self`, `tasks.done_self`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -1386,6 +1450,9 @@ Ces routes sont destinées à la console admin et exigent un token avec permissi
 | POST    | `/api/settings/admin/plan-access-code`                       | Définir / effacer le code d’accès du Plan (`{ code }` clair → bcrypt serveur ; `code: ""` efface). **12 à 64 caractères** : **400** `Code trop court (12 caractères minimum)` en deçà (un code enregistré auparavant reste valide jusqu’à son remplacement). Permission `admin.settings.write`. L’écriture directe de `security.plan_access_code_hash` via PUT `:key` est refusée.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | POST    | `/api/settings/admin/staff-plan-access-code`                 | Idem pour le **plan des personnels** (`security.staff_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/settings/admin/enov-plan-access-code`                  | Idem pour le **plan e-nov** (`security.enov_plan_access_code_hash`). Même permission, même refus de l’écriture directe via PUT `:key`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| POST    | `/api/settings/admin/plan-access-password` | Définir / effacer le **mot de passe** du Plan (mode `password`, `security.plan_access_password_hash`, empreinte **distincte** du code). Même corps `{ code }` ; **12 à 64 caractères avec au moins une lettre et un chiffre** — **400** `Le mot de passe doit mêler lettres et chiffres…` sinon. Même permission, même refus de l’écriture directe via PUT `:key`. |
+| POST    | `/api/settings/admin/staff-plan-access-password` | Idem pour le **plan des personnels** (`security.staff_plan_access_password_hash`). |
+| POST    | `/api/settings/admin/enov-plan-access-password` | Idem pour le **plan e-nov** (`security.enov_plan_access_password_hash`). |
 | PUT     | `/api/settings/admin/:key`                                   | Mettre à jour un réglage (`{ value }`) — validation complète (normalisation + cohérence croisée) **avant** persistance : un 400 garantit que rien n’a été enregistré ; panne interne → **500**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | POST    | `/api/settings/admin/maps`                                   | Créer une carte (`{ id, label, sort_order?, map_image_url?, is_active? }`) — `id` : slug minuscules/chiffres/tirets (1–31 caractères), réservé `both` interdit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | PUT     | `/api/settings/admin/maps/:id`                               | Mettre à jour une carte (label, ordre, activation, URL image, padding, pedago_level, `default_category_ids`, `hidden_category_ids` — chaîne `;`-séparée ou tableau d'ids ; omis = inchangé, vide = effacé ; 400 « Liste de catégories trop longue » au-delà de 8192 caractères). Réponse : la carte sérialisée comme dans `GET /api/maps`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -1542,7 +1609,7 @@ par `GET /api/settings/public` et éditables par `PUT /api/settings/admin/:key` 
 | `ui.plan.map_id`               | string  | `lyautey`                          | Carte affichée par le plan                              |
 | `ui.plan.title`                | string  | `Plan Lyautey`                     | Titre de l'application                                  |
 | `ui.plan.welcome_hint`         | string  | `Touchez un lieu, ou cherchez-le.` | Bulle du premier lancement                              |
-| `ui.plan.access_mode`          | enum    | `public`                           | `public` ou `code` (garde `lib/accessGate.js`)          |
+| `ui.plan.access_mode`          | enum    | `public`                           | `public`, `code` ou `password` (garde `lib/accessGate.js`, secrets `lib/accessSecret.js`) |
 | `ui.plan.attribution`          | string  | vide                               | Mention due pour le fond de plan (ex. OpenStreetMap)    |
 | `ui.plan.public_base_url`      | string  | vide                               | URL publique du plan, base des liens profonds imprimés  |
 | `ui.plan.brand`                | json    | `{}`                               | Identité visuelle (couleurs / logo) du plan             |
@@ -1618,7 +1685,16 @@ cette règle restent valides jusqu'à leur remplacement (le serveur n'en connaî
 La console Réglages → Plan expose ce flux, avec un **générateur** (bouton « Générer un code ») :
 14 caractères tirés dans le navigateur (`crypto.getRandomValues`, `src/utils/accessCodeGenerator.js`)
 parmi minuscules et chiffres sans caractère ambigu (ni `0`/`o`, ni `1`/`i`/`l`), affichés en
-clair jusqu'à l'enregistrement. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
+clair jusqu'à l'enregistrement.
+
+`security.plan_access_password_hash` (portée `admin`) : empreinte du **mot de passe** demandé en
+mode `ui.plan.access_mode = password`, écrite **uniquement** par
+`POST /api/settings/admin/plan-access-password` (même corps `{ code }`, **12 à 64 caractères dont
+au moins une lettre et un chiffre**, casse respectée ; **400** sinon ; `PUT :key` → **400**). Elle est
+distincte de celle du code : l'administrateur peut préparer le mot de passe avant de basculer le
+mode, et la bascule invalide les laissez-passer obtenus avec le code. Bouton « Générer un mot de
+passe » : 14 caractères mêlant majuscules, minuscules et chiffres (sans caractère ambigu), tirés
+dans le navigateur. Le magasin de réglages partagé (`lib/shared/settingsStore.js`) invalide son cache à
 chaque écriture SQL du processus ; `lib/glSettings.js` l'utilise aussi pour `gl_settings`, dont
 la validation vit désormais dans son registre (`GL_SETTINGS_REGISTRY`) et non plus dans la route.
 
@@ -1633,19 +1709,23 @@ plan e-nov partage la **carte** du Plan Lyautey (`ui.plan.map_id`, `ui.plan.bran
 | --------------------------------------- | ------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
 | `ui.enov_plan.title`                    | string  | `Plan e-nov — <établissement>`           | Titre de l'application                                                                 |
 | `ui.enov_plan.welcome_hint`             | string  | phrase d'accueil                         | Bulle du premier lancement                                                             |
-| `ui.enov_plan.access_mode`              | enum    | `public`                                 | `public` ou `code` (code **propre** au plan e-nov)                                     |
+| `ui.enov_plan.access_mode`              | enum    | `public`                                 | `public`, `code` ou `password` (secrets **propres** au plan e-nov)                     |
 | `ui.enov_plan.attribution`              | string  | vide                                     | Mention en pied de carte                                                               |
 | `ui.enov_plan.selectable_map_ids`       | string  | vide                                     | Autres cartes proposées — et liste blanche de `?map_id=`                               |
 | `ui.enov_plan.default_category_ids`     | string  | vide                                     | Catégories cochées à l'ouverture                                                       |
 | `ui.enov_plan.hidden_category_ids`      | string  | vide                                     | Catégories retirées des filtres (n'éteint pas la mise en avant)                        |
 | `ui.enov_plan.highlight_category_ids`   | string  | `cat-enov`                               | Catégories dont les lieux sont **mis en avant** (`is_enov`)                            |
 | `ui.enov_plan.highlight_color`          | string  | `#faba38`                                | Couleur du halo ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`              |
+| `ui.enov_plan.secondary_category_ids`   | string  | `cat-enov-secondaire`                    | Catégories du **second niveau** (autres lieux d'innovation, `enov_tier: secondary`)    |
+| `ui.enov_plan.secondary_color`          | string  | `#66a4d9`                                | Couleur du second niveau ; `PUT` refuse (**400**) tout ce qui n'est pas `#rrggbb`     |
+| `ui.enov_plan.primary_label`            | string  | `Espaces retenus`                        | Intitulé du premier niveau (fiche, légende imprimée)                                   |
+| `ui.enov_plan.secondary_label`          | string  | `Autres lieux d’innovation`              | Intitulé du second niveau                                                              |
 | `ui.enov_plan.badge_enabled`            | boolean | `false`                                  | Pastille « e-nov » à côté des lieux mis en avant, en plus du halo                      |
 | `ui.enov_plan.innovations_label`        | string  | `Innovations`                            | Intitulé de la puce qui liste les lieux mis en avant                                   |
 
-Portée `admin` : `security.enov_plan_access_code_hash`, écrite **uniquement** par
-`POST /api/settings/admin/enov-plan-access-code` (même contrat que le plan public ; `PUT :key`
-→ **400**).
+Portée `admin` : `security.enov_plan_access_code_hash` et `security.enov_plan_access_password_hash`,
+écrites **uniquement** par `POST /api/settings/admin/enov-plan-access-code` et
+`…/enov-plan-access-password` (même contrat que le plan public ; `PUT :key` → **400**).
 
 Durée des laissez-passer (portée `admin`, écriture par `PUT /api/settings/admin/:key`, **400**
 hors bornes) — voir « Accès du plan par code » :
@@ -1911,7 +1991,7 @@ import en transaction) et le SQL dans `lib/biodiv/speciesRepository.js`. Il n'ex
 | POST    | `/api/plants/:id/acknowledge-discovery`                                    | JWT obligatoire | Corps **`{ "confirm": true }`** (obligatoire, sinon `400`). Enregistre une **observation** (engagement terrain + lecture de fiche) pour la fiche `:id` ; chaque appel ajoute une ligne (compteurs incrémentés). **`client_uuid`** facultatif (8 à 64 caractères `[A-Za-z0-9-]`, migration 296) : clé d'idempotence propre à l'utilisateur — un renvoi de la même clé ne crée pas de ligne et rejoue la réponse avec `"replayed": true` (file hors ligne du client, réponse perdue). `200` : `{ "success", "plant_id", "observed_at", "my_observation_count", "site_observation_count", "replayed"? }` ; `400` si la clé est mal formée ; `404` si la fiche n’existe pas                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/:id/validate-hazard`                                          | `plants.hazards.validate` | Confirme la relecture des dangers et du risque sanitaire : `hazard_reviewed = 1`, `hazard_reviewed_by` = compte appelant, `hazard_reviewed_at` = maintenant. Corps optionnel `{ "reviewed": false }` pour **retirer** la validation (les trois colonnes retombent à `0` / `null`). Réponse : la fiche complète ; `400` identifiant invalide, `404` fiche inconnue                                                                                                                                                                                                                                                       |
 | POST    | `/api/plants/:id/photo-upload`                                             | oui             | Uploader une photo locale pour un champ `photo*`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| POST    | `/api/plants/:id/photos/propose`                                           | oui             | Intégrer d’emblée des photos de pré-saisie : corps `{ photos: [{ kind, url, credit?, licence?, source?, source_url? }] }`. Chaque nouvelle photo est enregistrée avec **`confirmed: false`** (visible de tous, mention « À confirmer ») ; les doublons `kind+url` sont ignorés. Réponse : `{ inserted, photos, plant }`. Si `inserted` > 0, **`plant.edit_revision` avance** : un `PUT` de la fiche envoyé avec l’ancienne `expected_revision` reçoit **409** `edit_conflict` et n’efface pas ces photos.                                                                                                                                                                                                                                                         |
+| POST    | `/api/plants/:id/photos/propose`                                           | oui             | Intégrer d’emblée des photos de pré-saisie : corps `{ photos: [{ kind, url, credit?, licence?, source?, source_url? }] }`. Chaque nouvelle photo est enregistrée avec **`confirmed: false`** (visible de tous, mention « À confirmer ») ; les doublons `kind+url` sont ignorés. Réponse : `{ inserted, photos, plant }`. Si `inserted` > 0, **`plant.edit_revision` avance** : un `PUT` de la fiche envoyé avec l’ancienne `expected_revision` reçoit **409** `edit_conflict` et n’efface pas ces photos. Si la fiche est lue en repli colonnes (colonnes ≠ table), le miroir est recalculé depuis les photos affichées (colonnes) plus les nouvelles : un crédit déjà nettoyé n’est pas remplacé par la ligne de table, et un lien présent seulement dans les colonnes n’est pas retiré. |
 | POST    | `/api/plants/:id/photos/:photoId/confirm`                                  | oui             | Valide une photo proposée (`confirmed: true`). Réponse : `{ photo, photos, plant }`. La révision de la fiche avance (`plant.edit_revision`) quand la photo ne l’était pas encore : un enregistrement périmé reçoit **409** `edit_conflict` au lieu de retirer la validation.                                                                                                                                                                                                                                                                                                                                                                                                               |
 | POST    | `/api/plants/import`                                                       | oui             | Importer des fiches biodiversité (CSV/XLSX/Google Sheet)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
@@ -2821,6 +2901,9 @@ jeton, aucun cookie, aucune donnée d'élève, de tâche ou de progression. Les 
 dupliqués : ce sont les **mêmes** `zones` et `map_markers` que la carte de travail et la Visite,
 filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 
+Vue d'ensemble technique et runbook des trois surfaces de plan :
+[`docs/PLAN_ARCHITECTURE.md`](PLAN_ARCHITECTURE.md).
+
 | Méthode | URL                         | n3boss | Description                                                               |
 | ------- | --------------------------- | ------ | ------------------------------------------------------------------------- |
 | GET     | `/api/plan/content?map_id=` | non    | Charge publique : carte, réglages, catégories, lieux visibles sur le plan |
@@ -2857,7 +2940,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
     que sous `/uploads/` ou `/maps/` — un réglage d'apparence ne doit pas servir à appeler un
     domaine tiers depuis toutes les pages.
   - `categories` porte aussi `zoom_only` : le client n'affiche ces lieux qu'une fois zoomé.
-  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code`), `attribution`,
+  - `settings` : `title`, `welcome_hint`, `access_mode` (`public` | `code` | `password`), `attribution`,
     `default_category_ids` (restreint aux catégories réellement servies dans le catalogue),
     `hidden_category_ids` (restreint aux catégories de cette carte/surface avant masquage),
     `routes` (réglages `ui.routes.*` des parcours guidés, sans le préfixe — voir le tableau
@@ -2878,7 +2961,7 @@ filtrés par la surface `plan` (voir **Surfaces d'affichage des lieux**).
 - **Cache** : charge agrégée mise en cache par carte, invalidée par la **version d'écriture
   globale** (`lib/shared/writeVersionCache.js`, mécanique partagée avec
   `GET /api/visit/content`) ; en-tête `Cache-Control: public, max-age=60` en mode public,
-  `private, max-age=60` quand `access_mode` vaut `code` (un cache partagé ne doit pas
+  `private, max-age=60` quand `access_mode` vaut `code` ou `password` (un cache partagé ne doit pas
   servir la charge sans laissez-passer). Un refus 401 porte `Cache-Control: no-store`.
 - **Compteur d'usage** : le plan émet `open`, `search_empty`, `place_open`, `go` et
   `map_switch` (changement de plan affiché) via `POST /api/usage` (produit `plan`) — voir
@@ -3156,7 +3239,8 @@ step_text? }`, 60 étapes au plus. La position est l'ordre du tableau. Omettre `
 - **Garde d'accès, par surface** : chaque surface se lit comme se lit sa charge.
   - `?surface=plan` (ou sans `surface`) et le détail `/:idOrSlug` → garde du plan
     (`lib/planAccess.js`) : **401** `{ access_required: true }` quand `ui.plan.access_mode`
-    vaut `code` et qu'un code est configuré, comme `GET /api/plan/content`.
+    vaut `code` (ou `password`) et que le secret correspondant est configuré, comme
+    `GET /api/plan/content`.
   - `?surface=visit` → ouvert (la Visite embarque aussi ses parcours dans
     `GET /api/visit/content`).
   - `?surface=map` → **compte requis** (la carte de travail est un écran interne) : **401**
@@ -3252,6 +3336,30 @@ Quand `ui.plan.access_mode` vaut `code` **et** qu'un code est configuré
 Mode `code` **sans** code configuré : le plan reste ouvert — on n'enferme pas les visiteurs
 dehors par un réglage à moitié rempli.
 
+### Accès du plan par mot de passe
+
+Troisième valeur de `ui.plan.access_mode` (et de `ui.enov_plan.access_mode`,
+`ui.staff_plan.access_mode`) : **`password`**. Même mécanique que le code — empreinte bcrypt,
+`POST /access` `{ code }` sous le limiteur d'authentification, laissez-passer signé à échéance —
+avec une empreinte **propre** (`security.plan_access_password_hash`, règles dans
+`lib/accessSecret.js`) et ces différences :
+
+- **composition** imposée à l'enregistrement : 12 à 64 caractères, au moins une lettre **et** un
+  chiffre ; casse respectée à la saisie (`Enov2026Jury` ≠ `enov2026jury`) ;
+- **jamais par un lien** : `GET /content?code=…` n'ouvre pas un plan en mode `password` (refus
+  journalisé, motif `link_disabled`), et `POST /access` `{ code, via: 'link' }` — l'échange d'un
+  `?code=` par le front — répond **403** `{ error, access_kind: 'password' }` ;
+- **réponses** : `GET /content` refusé → **401** `{ error: 'Mot de passe requis',
+  access_required: true, access_kind: 'password' }` (`access_kind: 'code'` en mode code) ;
+  `POST /access` → **401** `Mot de passe incorrect` / **400** `Mot de passe requis`, avec
+  `access_kind`. Le front affiche alors un vrai champ de mot de passe (masqué, bouton
+  « Afficher », `autocomplete="current-password"`) au lieu du champ de code ;
+- **cloisonnement** : le laissez-passer est dérivé de l'empreinte en vigueur — un appareil entré
+  avec le code est refusé dès que le mode passe à `password`, et inversement.
+
+Mode `password` **sans** mot de passe configuré : comme pour le code, le plan reste ouvert (même
+s'il a un code enregistré : chaque mode a son secret).
+
 **Journal des saisies de code** (`lib/codeAccessJournal.js`) — plan public, plan e-nov et plan
 des personnels. Chaque saisie est inscrite au journal de sécurité (`security_events`, lu par
 `GET /api/audit/security`), **jamais le code saisi** :
@@ -3261,9 +3369,9 @@ des personnels. Chaque saisie est inscrite au journal de sécurité (`security_e
 | `action`      | `plan.access.code_granted` / `plan.access.code_refused` ; `enov_plan.access.*` ; `staff_plan.access.*` (aussi au journal d'audit)          |
 | `target_type` | `plan`, `enov_plan`, `staff_plan`                                                                                                          |
 | `result`      | `success` (laissez-passer posé) ou `failure` (refus)                                                                                       |
-| `reason`      | refus seulement : `code_invalid` (code faux), `code_missing` (code absent), `code_disabled` (entrée par code désactivée, plan des personnels), `rate_limited` (limiteur) |
+| `reason`      | refus seulement : `code_invalid` (code ou mot de passe faux), `code_missing` (rien de saisi), `code_disabled` (entrée par code désactivée, plan des personnels), `link_disabled` (mot de passe présenté par un lien), `rate_limited` (limiteur) |
 | `ip_address`  | adresse du client (colonne, plus dans le détail) ; `user_agent` de même                                                                    |
-| `payload_json`| `{ via: 'form' \| 'link', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)                                    |
+| `payload_json`| `{ via: 'form' \| 'link', kind: 'code' \| 'password', requestId }` (+ `roleSlug` pour une entrée réussie sur le plan des personnels)       |
 
 Rien n'est inscrit quand le plan est ouvert à tous (aucun code demandé). Les refus du
 limiteur strict (`authLimiter`, réponse **429**) sont inscrits **une fois par plan, par adresse
@@ -3286,9 +3394,9 @@ visiteur anonyme. Les lieux ne sont pas dupliqués : ce sont les mêmes `zones` 
 
 | Méthode | URL                               | Auth                         | Description                                                                       |
 | ------- | --------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
-| GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled }`         |
+| GET     | `/api/staff-plan/settings`        | non                          | Coquille d'accueil : `{ title, welcome_hint, attribution, code_enabled, access_kind }` |
 | GET     | `/api/staff-plan/content?map_id=` | compte **ou** laissez-passer | Charge de la surface `staff`, filtrée pour le lecteur                             |
-| POST    | `/api/staff-plan/access`          | non                          | `{ code }` → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
+| POST    | `/api/staff-plan/access`          | non                          | `{ code }` (code ou mot de passe) → pose le laissez-passer (**403** si l'entrée par code est désactivée) |
 | POST    | `/api/staff-plan/logout`          | non                          | Rend le laissez-passer de code (cookie `staff_plan_access`) — toujours **200**    |
 | POST    | `/api/staff-plan/report`          | compte uniquement            | `{ contextType: 'zone'\|'marker', contextId, body }` → « Signaler ou proposer »   |
 
@@ -3325,14 +3433,18 @@ Deux voies, dans cet ordre.
    — accordée comme refusée — est inscrite au journal d'audit et au journal de sécurité**
    (`staff_plan.access.code_granted` / `code_refused`, `result` `success` / `failure`, motif
    du refus dans `reason` : voir « Journal des saisies de code ») : un code partagé ne dit pas
-   qui entre.
+   qui entre. Variante **mot de passe** : `ui.staff_plan.access_mode = password`, empreinte
+   `security.staff_plan_access_password_hash` (`POST /api/settings/admin/staff-plan-access-password`,
+   12 caractères dont au moins une lettre et un chiffre) ; elle remplace le code dans la même
+   voie (même laissez-passer, même rôle endossé, même journal avec `kind: 'password'`).
 
-Mode `code` **sans** code configuré : la porte reste **fermée**, contrairement au plan public.
+Mode `code` (ou `password`) **sans** secret configuré : la porte reste **fermée**, contrairement au plan public.
 Cette surface n'a pas de version publique acceptable, un réglage à moitié rempli ne doit pas
 l'ouvrir.
 
-Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available }` —
-`code_available` dit au front s'il doit proposer la saisie du code à côté de la connexion.
+Sans l'une ni l'autre : **401** `{ error, auth_required: true, code_available, access_kind }` —
+`code_available` dit au front s'il doit proposer la saisie du secret à côté de la connexion,
+`access_kind` (`code` | `password`) lequel.
 
 ### Déconnexion (`POST /api/staff-plan/logout`)
 
@@ -3465,25 +3577,30 @@ en « visiteur » (`PUBLIC_SURFACES`).
 | ------- | --------------------------- | ---- | ----------------------------------------------------------------------------------- |
 | GET     | `/api/enov/content?map_id=` | non  | Charge publique de la surface `enov` (lieux e-nov mis en avant, texte e-nov)        |
 | GET     | `/api/enov/settings`        | non  | Réglages publics `ui.enov_plan.*` + `enov` (mise en avant), sans `map_id`           |
-| POST    | `/api/enov/access`          | non  | `{ code }` → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
+| POST    | `/api/enov/access`          | non  | `{ code }` (code ou mot de passe) → pose le laissez-passer (cookie `enov_plan_access`, échéance signée, 30 j par défaut) |
 | POST    | `/api/enov/logout`          | non  | Oublie le laissez-passer — toujours **200**                                         |
 
 - **Réponse de `content`** : celle de `GET /api/plan/content` (`{ map, maps, settings,
   categories, zones, markers, routes }`), avec en plus :
   - sur chaque zone et chaque repère : **`is_enov`** (booléen — le lieu porte une catégorie de
-    `ui.enov_plan.highlight_category_ids`, lue **avant** le masquage des filtres) et
-    **`enov_description`** (chaîne, `''` si vide) et **`enov_space_type`** (identifiant de type
-    d'espace, `''` si non renseigné) ;
-  - **`settings.enov`** : `{ highlight_category_ids, highlight_color, badge_enabled,
-    innovations_label }` — catégories ramenées à celles servies sur cette carte.
+    `ui.enov_plan.highlight_category_ids` **ou** de `ui.enov_plan.secondary_category_ids`, lue
+    **avant** le masquage des filtres), **`enov_tier`** (`'primary'` espace retenu,
+    `'secondary'` autre lieu d'innovation, `''` sinon ; un lieu des deux niveaux est
+    `primary` — migration 326), **`enov_description`** (chaîne, `''` si vide) et
+    **`enov_space_type`** (identifiant de type d'espace, `''` si non renseigné) ;
+  - **`settings.enov`** : `{ highlight_category_ids, highlight_color, secondary_category_ids,
+    secondary_color, primary_label, secondary_label, badge_enabled, innovations_label }` —
+    catégories ramenées à celles servies sur cette carte.
   Aucun de ces champs ne sort de `/api/plan/content` ni de `/api/staff-plan/content`.
 - **Carte servie**, **cartes proposées**, **cache** (par carte, périmé à la première
   écriture, `Cache-Control` `public`/`private` selon le mode) : comme le plan public, avec
   `ui.enov_plan.selectable_map_ids`.
-- **Accès par code** : même contrat que « Accès du plan par code » ci-dessus, avec
-  `ui.enov_plan.access_mode` et `security.enov_plan_access_code_hash`. Le code du plan e-nov
-  n'ouvre pas le plan public, et inversement. `POST /access` et `?code=` passent par le
-  limiteur d'authentification. Mode `code` sans code configuré : le plan reste ouvert.
+- **Accès par code ou mot de passe** : même contrat que « Accès du plan par code » et « Accès
+  du plan par mot de passe » ci-dessus, avec `ui.enov_plan.access_mode` et
+  `security.enov_plan_access_code_hash` / `security.enov_plan_access_password_hash`. Les
+  secrets du plan e-nov n'ouvrent pas le plan public, et inversement. `POST /access` et
+  `?code=` passent par le limiteur d'authentification. Mode `code` ou `password` sans secret
+  configuré : le plan reste ouvert.
 - **Routes génériques** (`/api/zones`, `/api/map/markers`, `/api/map-categories`, `/api/maps`)
   appelées sur le host `enov.*` : surface `enov`, même laissez-passer (`lib/surfaceAccess.js`).
 - **Page d'impression** `/impression` (front seul, entrée `enov.html`) : une feuille A4 par

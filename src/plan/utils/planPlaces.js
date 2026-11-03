@@ -38,23 +38,38 @@ export function placeDisplayParts(place) {
  *
  * Plan e-nov : un lieu labellisé (`is_enov`, charge `/api/enov/content` seulement) porte en
  * plus `map_highlight`, le drapeau **générique** que lit la carte partagée pour le mettre en
- * avant (halo, priorité d'étiquette, jamais fondu dans un groupe).
+ * avant (halo, priorité d'étiquette, jamais fondu dans un groupe). Un lieu du **second
+ * niveau** (`enov_tier: 'secondary'`, autres lieux d'innovation) porte en outre
+ * `map_highlight_tone: 'secondary'` : même mise en avant, autre couleur.
  *
  * @param {{ zones?: Array<object>, markers?: Array<object> }} content
  * @returns {Array<object>}
  */
+/** Drapeaux génériques de mise en avant d'un lieu de la charge e-nov (`is_enov`, `enov_tier`). */
+function highlightFields(place) {
+  if (place?.is_enov !== true) return null;
+  return place.enov_tier === 'secondary'
+    ? { map_highlight: true, map_highlight_tone: 'secondary' }
+    : { map_highlight: true };
+}
+
+/** Le lieu est-il mis en avant au second niveau (autre lieu d'innovation) ? */
+export function isSecondaryHighlight(place) {
+  return place?.map_highlight === true && place?.map_highlight_tone === 'secondary';
+}
+
 export function planPlacesFromContent(content) {
   const zones = (content?.zones || []).map((zone) => ({
     ...zone,
     kind: 'zone',
     name: String(zone.name || '').trim(),
-    ...(zone.is_enov === true ? { map_highlight: true } : null),
+    ...highlightFields(zone),
   }));
   const markers = (content?.markers || []).map((marker) => ({
     ...marker,
     kind: 'marker',
     name: String(marker.label || '').trim(),
-    ...(marker.is_enov === true ? { map_highlight: true } : null),
+    ...highlightFields(marker),
   }));
   const collator = new Intl.Collator('fr-FR', { sensitivity: 'base' });
   return [...zones, ...markers].sort((a, b) => collator.compare(a.name, b.name));

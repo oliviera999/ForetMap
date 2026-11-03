@@ -1,4 +1,8 @@
-import { AccessCodeField, AccessPassDaysField } from './AccessCodeField.jsx';
+import {
+  AccessCodeField,
+  AccessPassDaysField,
+  AccessSecretModeNotice,
+} from './AccessCodeField.jsx';
 import { CategoryIdsMultiSelect } from './CategoryIdsMultiSelect.jsx';
 import { MapIdsMultiSelect } from './MapIdsMultiSelect.jsx';
 import { RoleSlugsMultiSelect } from './RoleSlugsMultiSelect.jsx';
@@ -10,6 +14,13 @@ import { parseCategoryIdsSetting } from '../../utils/categoryIdsSetting.js';
  * (`lib/settings/plan.js`), qui refuse toute autre valeur. Le premier est le défaut.
  */
 export const STAFF_PLAN_CODE_ROLE_SLUGS = Object.freeze(['personnel', 'visiteur']);
+
+/** Message de confirmation de chaque mode d'entrée. */
+const STAFF_MODE_MESSAGES = Object.freeze({
+  disabled: 'Entrée par code désactivée',
+  code: 'Entrée par code activée',
+  password: 'Entrée par mot de passe activée',
+});
 
 const STAFF_KEYS = Object.freeze({
   title: 'ui.staff_plan.title',
@@ -56,6 +67,9 @@ export function StaffPlanSettingsPanel({
   onError = null,
 }) {
   const hasHash = Boolean(String(get('security.staff_plan_access_code_hash', '') || '').trim());
+  const hasPasswordHash = Boolean(
+    String(get('security.staff_plan_access_password_hash', '') || '').trim(),
+  );
   const accessMode = String(get(STAFF_KEYS.accessMode, 'disabled') || 'disabled');
   const readOnly = !canWrite;
   /** Liste blanche seulement : les autres profils n'ont rien à faire dans ce menu. */
@@ -167,11 +181,11 @@ export function StaffPlanSettingsPanel({
 
       <hr />
 
-      <h4 style={{ margin: '0 0 4px' }}>Entrée par code partagé</h4>
+      <h4 style={{ margin: '0 0 4px' }}>Entrée par code ou mot de passe partagé</h4>
       <p className="muted" style={{ marginTop: 0 }}>
         Voie <strong>secondaire</strong>, désactivée par défaut, pour les personnels sans compte
-        (agent, intervenant, remplaçant). Un code partagé ne dit pas qui entre et se transmet d’une
-        capture d’écran : il ne remplace pas un compte. Chaque ouverture est inscrite au journal
+        (agent, intervenant, remplaçant). Un code ou un mot de passe partagé ne dit pas qui entre et
+        se transmet : il ne remplace pas un compte. Chaque ouverture est inscrite au journal
         d’audit, et le laissez-passer dure 7 jours par défaut (réglable ci-dessous).
       </p>
 
@@ -184,14 +198,21 @@ export function StaffPlanSettingsPanel({
             saveSetting(
               STAFF_KEYS.accessMode,
               e.target.value,
-              e.target.value === 'code' ? 'Entrée par code activée' : 'Entrée par code désactivée',
+              STAFF_MODE_MESSAGES[e.target.value] || 'Entrée par code désactivée',
             )
           }
         >
           <option value="disabled">Désactivée (compte uniquement)</option>
           <option value="code">Compte ou code partagé</option>
+          <option value="password">Compte ou mot de passe partagé</option>
         </select>
       </label>
+      <AccessSecretModeNotice
+        mode={accessMode}
+        hasCode={hasHash}
+        hasPassword={hasPasswordHash}
+        closedWithoutSecret
+      />
 
       <label className="field">
         <span>Profil endossé par un porteur de code</span>
@@ -231,6 +252,7 @@ export function StaffPlanSettingsPanel({
         endpoint="/api/settings/admin/staff-plan-access-code"
         targetLabel="du plan des personnels"
         hasCode={hasHash}
+        active={accessMode === 'code'}
         readOnly={readOnly}
         onMessage={onMessage}
         onError={onError}
@@ -240,6 +262,23 @@ export function StaffPlanSettingsPanel({
         plan public, le mode « code » <strong>sans</strong> empreinte ne laisse entrer personne —
         cette surface n’a pas de version publique acceptable. Changer le code oblige chaque appareil
         déjà entré à le ressaisir.
+      </AccessCodeField>
+
+      <AccessCodeField
+        kind="password"
+        endpoint="/api/settings/admin/staff-plan-access-password"
+        targetLabel="du plan des personnels"
+        hasCode={hasPasswordHash}
+        active={accessMode === 'password'}
+        readOnly={readOnly}
+        onMessage={onMessage}
+        onError={onError}
+        testId="staff-plan-access-password"
+      >
+        Utilisé en mode « Compte ou mot de passe partagé » : au moins 12 caractères, lettres{' '}
+        <strong>et</strong> chiffres, casse respectée. Saisi masqué, il peut être retenu par le
+        gestionnaire de mots de passe du navigateur. Comme pour le code, sans mot de passe
+        enregistré personne n’entre par cette voie.
       </AccessCodeField>
     </div>
   );

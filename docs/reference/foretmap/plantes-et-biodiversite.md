@@ -570,7 +570,9 @@ voient cette mention ; le professeur peut **confirmer** chaque photo après
 vérification visuelle (une image plausible mais fausse est pire qu'une fiche sans
 image). Si la même fiche est encore ouverte dans une autre fenêtre, le prochain
 enregistrement demande confirmation avant de remplacer le travail en cours : les photos
-ajoutées ne disparaissent pas sans cet accord. Les photos GBIF viennent d'observations
+ajoutées ne disparaissent pas sans cet accord. Le crédit d’auteur déjà publié
+(sans coordonnées personnelles) n’est pas remplacé par une ancienne attribution
+encore en réserve, et une photo déjà affichée n’est pas retirée par cette intégration. Les photos GBIF viennent d'observations
 terrain (pas de la page taxonomique seule) : seules les images sous licence libre
 (domaine public, CC BY, CC BY-SA) sont proposées. Les liens des sources utilisées sont
 ajoutés au champ « sources » de la fiche.

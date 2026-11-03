@@ -1,6 +1,15 @@
 # Diagnostic ForetMap via MCP (Cursor)
 
-Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (ou un staging) **sans coller le secret dans le chat**.
+> Deux voies distinctes dans Cursor :
+>
+> 1. **Connecteur distant OAuth** (`foretmap` dans `.cursor/mcp.json`, URL
+>    `${env:FORETMAP_MCP_URL}`) : même serveur `/mcp` que Claude / ChatGPT / Gemini CLI —
+>    contenu pédagogique, audits, corrections. Voir **[MCP.md](MCP.md)** § 7.
+> 2. **stdio diagnostics** (`foretmap-diagnostics`) : la présente page. Interroge la prod par
+>    `DEPLOY_SECRET` ; outils partagés avec le distant (`lib/mcp/tools/diagnostics.js`).
+
+Le stdio permet à l’assistant dans **Cursor** d’interroger la prod (ou un staging) **sans
+coller le secret dans le chat**, sans passer par OAuth.
 
 ## Prérequis
 
@@ -9,9 +18,9 @@ Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (o
 
 ## Fichier projet (recommandé)
 
-Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**. Le fichier ne porte
-**aucune URL** (audit sécurité du 30/09/2026, CS4 : les adresses de production n'ont pas à voyager
-avec une archive du code) ; les URL cibles se posent dans `.env` (voir « Autre URL que la prod »).
+Le dépôt contient **`.cursor/mcp.json`** : **`foretmap-diagnostics`** (stdio) et **`foretmap`**
+(HTTP distant, `FORETMAP_MCP_URL`). Aucune URL de production n'est écrite en clair dans le
+fichier (audit sécurité CS4) ; les cibles se posent en variables d'environnement.
 
 Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 
@@ -35,11 +44,14 @@ Sans variable, le script retombe sur l'instance de production du projet.
 
 ## Outils exposés
 
-| Outil                    | Secret | Rôle                                                         |
-| ------------------------ | ------ | ------------------------------------------------------------ |
-| `foretmap_public_health` | Non    | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
-| `foretmap_diagnostics`   | Oui    | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
-| `foretmap_tail_logs`     | Oui    | Tampon Pino (`lines` optionnel, 1–5000)                      |
+| Outil                                              | Secret | Rôle                                                         |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------ |
+| `foretmap_health` (alias `foretmap_public_health`) | Non    | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
+| `foretmap_diagnostics`                             | Oui    | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
+| `foretmap_tail_logs`                               | Oui    | Tampon Pino (`lines` optionnel, 1–1000)                      |
+| `foretmap_db_status`                               | Oui    | Section `schema` des diagnostics (migrations en attente)     |
+| `gl_public_health`                                 | Non    | Santé publique G&L                                           |
+| `gl_diagnostics`                                   | Oui    | Section `gl` des diagnostics                                 |
 
 Après configuration : _Cursor Settings → MCP_ : vérifier que **`foretmap-diagnostics`** est actif ; en cas de doute, redémarrer Cursor.
 

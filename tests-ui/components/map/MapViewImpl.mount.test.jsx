@@ -203,7 +203,12 @@ describe('MapViewImpl — carte, barre d’outils, sélection d’un lieu', () =
     expect(handlers.onLocationTasksFocus).toHaveBeenLastCalledWith({ kind: 'zone', id: '1' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(handlers.onLocationTasksFocus).toHaveBeenLastCalledWith(null);
+    // Attendu et non lu immédiatement : la désélection est propagée après la fermeture du
+    // dialogue (effet), parfois au rendu suivant sur un runner CI chargé.
+    await waitFor(
+      () => expect(handlers.onLocationTasksFocus).toHaveBeenLastCalledWith(null),
+      MOUNT_TIMEOUT,
+    );
   });
 
   test('élève : toucher un repère ouvre sa fiche', async () => {

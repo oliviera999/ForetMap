@@ -41,12 +41,14 @@ import {
 } from './planApi.js';
 import { purgeCachedPlanApi } from '../utils/localDataCleanup.js';
 import { PLAN_VARIANT, planStorageKeys } from './utils/planVariants.js';
+import { accessIntroFor } from './utils/planAccessKind.js';
 import { fingerprintCategoryDefaults } from './utils/planCategoryDefaults.js';
 import { PlanAccountGate } from './components/PlanAccountGate.jsx';
 import {
   buildPlaceUrl,
   countPlacesByCategory,
   filterPlacesByCategories,
+  isSecondaryHighlight,
   planPlaceFocusPct,
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
@@ -134,6 +136,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     accessRequired,
     authRequired,
     codeAvailable,
+    accessKind,
     viewer,
     reload,
     forgetLinkCode,
@@ -196,9 +199,25 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * les autres plans, tout ce qui suit reste éteint.
    */
   const enovSettings = variant.highlightPlaces ? settings?.enov || null : null;
-  const highlightedPlaces = useMemo(
-    () => (enovSettings ? places.filter((place) => place.map_highlight === true) : EMPTY_PLACES),
-    [enovSettings, places],
+  // Espaces retenus d'abord, autres lieux d'innovation ensuite (chacun par nom, l'ordre de
+  // `places`) : la liste « Innovations » se lit dans l'ordre du dossier.
+  const highlightedPlaces = useMemo(() => {
+    if (!enovSettings) return EMPTY_PLACES;
+    const highlighted = places.filter((place) => place.map_highlight === true);
+    return [
+      ...highlighted.filter((place) => !isSecondaryHighlight(place)),
+      ...highlighted.filter((place) => isSecondaryHighlight(place)),
+    ];
+  }, [enovSettings, places]);
+  const highlightTierLabels = useMemo(
+    () =>
+      enovSettings
+        ? {
+            primary: String(enovSettings.primary_label || '').trim(),
+            secondary: String(enovSettings.secondary_label || '').trim(),
+          }
+        : null,
+    [enovSettings],
   );
   const innovationsLabel = String(enovSettings?.innovations_label || '').trim() || 'Innovations';
 
@@ -215,11 +234,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * Y a-t-il une session à rendre ?
    *
    * Plan des personnels : toujours — on y entre par un compte ou par un laissez-passer de
-   * code. Plan public : seulement quand l'établissement le ferme par un code de diffusion ;
-   * ouvert à tous, il n'y a rien à quitter, et un bouton « Se déconnecter » n'y voudrait rien
-   * dire.
+   * code. Plan public : seulement quand l'établissement le ferme par un code de diffusion ou
+   * un mot de passe ; ouvert à tous, il n'y a rien à quitter, et un bouton « Se déconnecter »
+   * n'y voudrait rien dire.
    */
-  const canLogout = Boolean(variant.requiresAccount || settings?.access_mode === 'code');
+  const canLogout = Boolean(
+    variant.requiresAccount ||
+    settings?.access_mode === 'code' ||
+    settings?.access_mode === 'password',
+  );
   /** Réglages ouvrables : une session à rendre, ou plusieurs plans proposés. */
   const hasSettings = canLogout || (maps || []).length > 1;
 
@@ -276,11 +299,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * (`--pct-highlight-color`) et par les feuilles basses.
    */
   const highlightColor = String(enovSettings?.highlight_color || '');
-  const shellStyle = useMemo(
-    () =>
-      highlightColor ? { ...brandStyle, '--pct-highlight-color': highlightColor } : brandStyle,
-    [brandStyle, highlightColor],
-  );
+  // Second niveau (autres lieux d'innovation) : `--pct-highlight-secondary-color`, que la
+  // classe `is-highlight-secondary` rebranche sur `--pct-highlight-color`.
+  const secondaryColor = String(enovSettings?.secondary_color || '');
+  const shellStyle = useMemo(() => {
+    const style = { ...brandStyle };
+    if (highlightColor) style['--pct-highlight-color'] = highlightColor;
+    if (secondaryColor) style['--pct-highlight-secondary-color'] = secondaryColor;
+    return highlightColor || secondaryColor ? style : brandStyle;
+  }, [brandStyle, highlightColor, secondaryColor]);
 
   /**
    * Les feuilles basses sont montées **en portail sous `body`**, donc hors de `.plan-shell` :
@@ -1085,6 +1112,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
           title={title}
           intro={variant.accessIntro}
           codeAvailable={codeAvailable}
+          codeKind={accessKind}
           onSubmitCode={submitAccessCode}
         />
       </div>
@@ -1097,7 +1125,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         <AccessCodeGate
           className="plan-access-gate"
           title={title}
-          intro={variant.accessIntro}
+          intro={accessIntroFor(variant, accessKind)}
+          kind={accessKind}
           onSubmit={submitAccessCode}
         />
         {/* Notice publique, lisible sans le code (audit RGPD du 30/09/2026, RG1). */}
@@ -1399,7 +1428,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         distanceOf={distanceOfPlace}
         totalCount={resultsTotal}
         filterActive={selectedCategoryIds.size > 0}
-        highlightTag={enovSettings ? 'Innovation' : ''}
+        highlightTag={enovSettings ? 'Espace retenu' : ''}
+        secondaryHighlightTag={enovSettings ? 'Autre lieu' : ''}
       />
 
       <PlanFiltersSheet
@@ -1451,6 +1481,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         onSuggest={suggestForPlace(sheetPlace)}
         myReports={reportsForPlace(sheetPlace)}
         highlightTitle={enovSettings ? HIGHLIGHT_TITLE : ''}
+        highlightTierLabels={highlightTierLabels}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>

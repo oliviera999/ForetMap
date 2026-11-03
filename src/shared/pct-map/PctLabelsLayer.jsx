@@ -65,8 +65,8 @@ function PctLabelsLayerImpl({ labels, onLabelClick = null, className = 'fm-pct-l
         const classes = `fm-pct-label${hasEmoji ? ' has-emoji' : ''}${
           side ? ` name-${side}` : ''
         }${label.active ? ' is-active' : ''}${label.highlight ? ' is-highlight' : ''}${
-          clickable ? ' is-clickable' : ''
-        }`;
+          label.highlight && label.highlightTone === 'secondary' ? ' is-highlight-secondary' : ''
+        }${clickable ? ' is-clickable' : ''}`;
         if (!clickable) {
           return (
             <span key={label.id} className={classes} style={style}>

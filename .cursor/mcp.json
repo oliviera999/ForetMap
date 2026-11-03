@@ -3,6 +3,9 @@
     "foretmap-diagnostics": {
       "command": "node",
       "args": ["${workspaceFolder}/scripts/mcp-foretmap-diagnostics.mjs"]
+    },
+    "foretmap": {
+      "url": "${env:FORETMAP_MCP_URL}"
     }
   }
 }

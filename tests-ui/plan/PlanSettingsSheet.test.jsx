@@ -242,7 +242,9 @@ describe('AppPlan — réglages : déconnexion', () => {
     render(<AppPlan />);
     await screen.findByRole('button', { name: 'Gymnase' });
     // Le code part dans le corps du `POST /access`, jamais dans l'adresse de la charge.
-    expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('secret', expect.anything());
+    expect(planApiMock.submitPlanAccessCode).toHaveBeenCalledWith('secret', expect.anything(), {
+      via: 'link',
+    });
     expect(planApiMock.fetchPlanContent).toHaveBeenLastCalledWith('', expect.anything());
     expect(window.location.search).not.toContain('code=');
 

@@ -2,21 +2,70 @@ import { useCallback, useState } from 'react';
 
 import { api } from '../../services/api';
 import { Button } from '../../shared/ui/Button.jsx';
-import { ACCESS_CODE_MIN_LENGTH, generateAccessCode } from '../../utils/accessCodeGenerator.js';
+import {
+  ACCESS_CODE_MIN_LENGTH,
+  ACCESS_SECRET_MAX_LENGTH,
+  accessSecretProblem,
+  generateAccessCode,
+  generateAccessPassword,
+} from '../../utils/accessCodeGenerator.js';
 
 /**
- * Saisie du code d'accès d'un plan (plan public, plan des personnels, plan e-nov), commune
- * aux trois panneaux de réglages.
+ * Formulations par nature de secret : **code d'accès** (secret de diffusion, transmissible par
+ * lien et QR code) ou **mot de passe** (alphanumérique, saisi masqué, jamais par lien).
+ */
+const SECRET_WORDING = Object.freeze({
+  code: Object.freeze({
+    title: 'Code d’accès',
+    newLabel: 'Nouveau code d’accès',
+    placeholder: `Nouveau code (${ACCESS_CODE_MIN_LENGTH} caractères minimum)`,
+    generate: 'Générer un code',
+    save: 'Enregistrer le code',
+    clear: 'Effacer le code',
+    missing: 'Saisissez un code d’accès.',
+    saved: (target) => `Code d’accès ${target} enregistré.`,
+    cleared: (target) => `Code d’accès ${target} effacé.`,
+    note: 'Notez ce code avant de l’enregistrer : seule son empreinte est conservée, il ne pourra plus être affiché ensuite.',
+    generateFailed: 'Génération du code impossible.',
+    saveFailed: 'Enregistrement du code impossible.',
+    clearFailed: 'Effacement du code impossible.',
+  }),
+  password: Object.freeze({
+    title: 'Mot de passe',
+    newLabel: 'Nouveau mot de passe',
+    placeholder: `Nouveau mot de passe (${ACCESS_CODE_MIN_LENGTH} caractères, lettres et chiffres)`,
+    generate: 'Générer un mot de passe',
+    save: 'Enregistrer le mot de passe',
+    clear: 'Effacer le mot de passe',
+    missing: 'Saisissez un mot de passe.',
+    saved: (target) => `Mot de passe ${target} enregistré.`,
+    cleared: (target) => `Mot de passe ${target} effacé.`,
+    note: 'Notez ce mot de passe avant de l’enregistrer : seule son empreinte est conservée, il ne pourra plus être affiché ensuite.',
+    generateFailed: 'Génération du mot de passe impossible.',
+    saveFailed: 'Enregistrement du mot de passe impossible.',
+    clearFailed: 'Effacement du mot de passe impossible.',
+  }),
+});
+
+/**
+ * Saisie du secret d'un plan (plan public, plan des personnels, plan e-nov), commune aux trois
+ * panneaux de réglages : **code d'accès** ou **mot de passe** (`kind`), chacun avec sa route
+ * et son empreinte côté serveur (`lib/accessSecret.js`).
  *
- * Le code n'est jamais relu : le serveur n'en garde que l'empreinte bcrypt. D'où le
- * **générateur** : il propose un code aléatoire de 14 caractères, affiché en clair pour que
+ * Le secret n'est jamais relu : le serveur n'en garde que l'empreinte bcrypt. D'où le
+ * **générateur** : il propose un code (14 caractères, minuscules et chiffres) ou un mot de
+ * passe (14 caractères, majuscules, minuscules et chiffres), affiché en clair pour que
  * l'administrateur le recopie **avant** de l'enregistrer — après, plus personne ne peut
- * l'afficher. Un code saisi à la main reste masqué.
+ * l'afficher. Un secret saisi à la main reste masqué.
  *
  * @param {object} props
- * @param {string} props.endpoint route d'enregistrement (`/api/settings/admin/*-access-code`).
+ * @param {string} props.endpoint route d'enregistrement (`/api/settings/admin/*-access-code`
+ *   ou `*-access-password`).
  * @param {string} props.targetLabel complément des messages (« du plan », « du plan e-nov »…).
- * @param {boolean} props.hasCode un code est-il déjà défini ?
+ * @param {boolean} props.hasCode un secret de cette nature est-il déjà défini ?
+ * @param {'code'|'password'} [props.kind='code']
+ * @param {boolean} [props.active] ce secret est-il celui que demande le mode d'accès actuel ?
+ *   Affiché à côté du titre (« en vigueur ») ; `undefined` = rien d'affiché.
  * @param {boolean} [props.readOnly]
  * @param {(msg: string) => void} [props.onMessage]
  * @param {(msg: string) => void} [props.onError]
@@ -27,12 +76,16 @@ export function AccessCodeField({
   endpoint,
   targetLabel,
   hasCode,
+  kind = 'code',
+  active = undefined,
   readOnly = false,
   onMessage = null,
   onError = null,
   testId = undefined,
   children = null,
 }) {
+  const isPassword = kind === 'password';
+  const wording = isPassword ? SECRET_WORDING.password : SECRET_WORDING.code;
   const [code, setCode] = useState('');
   const [revealed, setRevealed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,31 +98,38 @@ export function AccessCodeField({
   const generate = useCallback(() => {
     if (readOnly) return;
     try {
-      setCode(generateAccessCode());
+      setCode(isPassword ? generateAccessPassword() : generateAccessCode());
       setRevealed(true);
     } catch (err) {
-      onError?.(err?.message || 'Génération du code impossible.');
+      onError?.(err?.message || wording.generateFailed);
     }
-  }, [onError, readOnly]);
+  }, [isPassword, onError, readOnly, wording]);
 
   const save = useCallback(async () => {
     if (readOnly) return;
     const value = String(code || '').trim();
     if (!value) {
-      onError?.('Saisissez un code d’accès.');
+      onError?.(wording.missing);
+      return;
+    }
+    // Mot de passe : la règle de composition est vérifiée avant l'envoi (le serveur la
+    // redit). Le code garde son seul contrôle serveur, inchangé.
+    const problem = isPassword ? accessSecretProblem('password', value) : '';
+    if (problem) {
+      onError?.(problem);
       return;
     }
     setSaving(true);
     try {
       await api(endpoint, 'POST', { code: value });
       reset();
-      onMessage?.(`Code d’accès ${targetLabel} enregistré.`);
+      onMessage?.(wording.saved(targetLabel));
     } catch (err) {
-      onError?.(err?.message || 'Enregistrement du code impossible.');
+      onError?.(err?.message || wording.saveFailed);
     } finally {
       setSaving(false);
     }
-  }, [code, endpoint, onError, onMessage, readOnly, reset, targetLabel]);
+  }, [code, endpoint, isPassword, onError, onMessage, readOnly, reset, targetLabel, wording]);
 
   const clear = useCallback(async () => {
     if (readOnly) return;
@@ -77,52 +137,57 @@ export function AccessCodeField({
     try {
       await api(endpoint, 'POST', { code: '' });
       reset();
-      onMessage?.(`Code d’accès ${targetLabel} effacé.`);
+      onMessage?.(wording.cleared(targetLabel));
     } catch (err) {
-      onError?.(err?.message || 'Effacement du code impossible.');
+      onError?.(err?.message || wording.clearFailed);
     } finally {
       setSaving(false);
     }
-  }, [endpoint, onError, onMessage, readOnly, reset, targetLabel]);
+  }, [endpoint, onError, onMessage, readOnly, reset, targetLabel, wording]);
 
   const disabled = readOnly || saving;
 
   return (
     <div className="field" data-testid={testId}>
-      <span>Code d’accès {hasCode ? '(déjà défini)' : '(aucun)'}</span>
+      <span>
+        {wording.title} {hasCode ? '(déjà défini)' : '(aucun)'}
+        {active === true ? ' — en vigueur' : null}
+      </span>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           type={revealed ? 'text' : 'password'}
           autoComplete="new-password"
+          autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
-          aria-label="Nouveau code d’accès"
-          placeholder={`Nouveau code (${ACCESS_CODE_MIN_LENGTH} caractères minimum)`}
+          aria-label={wording.newLabel}
+          placeholder={wording.placeholder}
           minLength={ACCESS_CODE_MIN_LENGTH}
+          maxLength={isPassword ? ACCESS_SECRET_MAX_LENGTH : undefined}
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
-            // Un code retouché à la main redevient un secret saisi : il se masque.
+            // Un secret retouché à la main redevient un secret saisi : il se masque.
             setRevealed(false);
           }}
           disabled={disabled}
           style={{ flex: '1 1 12rem', fontFamily: revealed ? 'monospace' : undefined }}
         />
         <Button variant="secondary" disabled={disabled} onClick={generate}>
-          Générer un code
+          {wording.generate}
         </Button>
         <Button variant="primary" disabled={disabled} onClick={save}>
-          Enregistrer le code
+          {wording.save}
         </Button>
         {hasCode ? (
           <Button variant="secondary" disabled={disabled} onClick={clear}>
-            Effacer le code
+            {wording.clear}
           </Button>
         ) : null}
       </div>
       {revealed && code ? (
         <p className="muted" role="status" style={{ marginBottom: 0 }}>
-          Notez ce code avant de l’enregistrer : seule son empreinte est conservée, il ne pourra
-          plus être affiché ensuite.
+          {wording.note}
         </p>
       ) : null}
       {children ? (
@@ -183,10 +248,42 @@ export function AccessPassDaysField({
         style={{ maxWidth: '8rem' }}
       />
       <small className="muted">
-        Après la saisie du code, l’appareil reste ouvert pendant cette durée ({defaultDays} jours
-        par défaut, {maxDays} au plus), puis le code est redemandé. Une nouvelle durée vaut pour les
-        entrées suivantes ; pour refermer tout de suite, changez le code.
+        Après la saisie du code ou du mot de passe, l’appareil reste ouvert pendant cette durée (
+        {defaultDays} jours par défaut, {maxDays} au plus), puis il est redemandé. Une nouvelle
+        durée vaut pour les entrées suivantes ; pour refermer tout de suite, changez le code ou le
+        mot de passe.
       </small>
     </label>
+  );
+}
+
+/**
+ * Avertissement sous le mode d'accès quand le secret qu'il demande n'est pas enregistré. Plan
+ * public et plan e-nov : le plan reste alors **ouvert à tous** (on n'enferme personne par
+ * accident) ; plan des personnels (`closedWithoutSecret`) : **personne** n'entre par cette voie.
+ *
+ * @param {object} props
+ * @param {string} props.mode valeur de `ui.<plan>.access_mode`.
+ * @param {boolean} props.hasCode
+ * @param {boolean} props.hasPassword
+ * @param {boolean} [props.closedWithoutSecret]
+ */
+export function AccessSecretModeNotice({
+  mode,
+  hasCode,
+  hasPassword,
+  closedWithoutSecret = false,
+}) {
+  let missing = '';
+  if (mode === 'code' && !hasCode) missing = 'Aucun code d’accès enregistré';
+  if (mode === 'password' && !hasPassword) missing = 'Aucun mot de passe enregistré';
+  if (!missing) return null;
+  return (
+    <p className="muted" role="status" style={{ marginTop: 0 }}>
+      ⚠️ {missing} :{' '}
+      {closedWithoutSecret
+        ? 'personne ne peut entrer par cette voie tant que vous n’en enregistrez pas un ci-dessous.'
+        : 'le plan reste ouvert à tous tant que vous n’en enregistrez pas un ci-dessous.'}
+    </p>
   );
 }
