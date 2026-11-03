@@ -1,12 +1,15 @@
 # Diagnostic ForetMap via MCP (Cursor)
 
-> **Connecteur Claude distant** (claude.ai, Claude Code, OAuth, contenu pédagogique, audits,
-> corrections de contenu) : voir **[MCP.md](MCP.md)**. La présente page décrit le serveur
-> **stdio** local pour Cursor, qui interroge la prod par `DEPLOY_SECRET` ; ses définitions
-> d'outils de diagnostic sont partagées avec le serveur distant
-> (`lib/mcp/tools/diagnostics.js`).
+> Deux voies distinctes dans Cursor :
+>
+> 1. **Connecteur distant OAuth** (`foretmap` dans `.cursor/mcp.json`, URL
+>    `${env:FORETMAP_MCP_URL}`) : même serveur `/mcp` que Claude / ChatGPT / Gemini CLI —
+>    contenu pédagogique, audits, corrections. Voir **[MCP.md](MCP.md)** § 7.
+> 2. **stdio diagnostics** (`foretmap-diagnostics`) : la présente page. Interroge la prod par
+>    `DEPLOY_SECRET` ; outils partagés avec le distant (`lib/mcp/tools/diagnostics.js`).
 
-Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (ou un staging) **sans coller le secret dans le chat**.
+Le stdio permet à l’assistant dans **Cursor** d’interroger la prod (ou un staging) **sans
+coller le secret dans le chat**, sans passer par OAuth.
 
 ## Prérequis
 
@@ -15,9 +18,9 @@ Cette approche permet à l’assistant dans **Cursor** d’interroger la prod (o
 
 ## Fichier projet (recommandé)
 
-Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**. Le fichier ne porte
-**aucune URL** (audit sécurité du 30/09/2026, CS4 : les adresses de production n'ont pas à voyager
-avec une archive du code) ; les URL cibles se posent dans `.env` (voir « Autre URL que la prod »).
+Le dépôt contient **`.cursor/mcp.json`** : **`foretmap-diagnostics`** (stdio) et **`foretmap`**
+(HTTP distant, `FORETMAP_MCP_URL`). Aucune URL de production n'est écrite en clair dans le
+fichier (audit sécurité CS4) ; les cibles se posent en variables d'environnement.
 
 Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 

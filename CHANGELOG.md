@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — connecteur MCP multi-clients (Cursor, ChatGPT, Gemini CLI)
+
+- Allowlist OAuth élargie (Claude, Cursor web/desktop, ChatGPT stable + préfixe
+  `/connector/oauth/*`, Gemini CLI `/oauth/callback`) ; motifs `/*` et **DCR filtrant** comme
+  CIMD (enregistrement OK si au moins une redirect est admise).
+- Wording neutre « Connecteur MCP » (pages OAuth, RBAC, docs, registre RGPD multi-sous-traitants).
+- `.cursor/mcp.json` : entrée remote `foretmap` via `FORETMAP_MCP_URL` (stdio diagnostics conservé).
+- Gemini Enterprise (client secret) documenté comme non supporté.
+
 ### Ajouté — connecteur Claude : exploitation (mémoire, rapport de santé, journaux)
 
 - **Mémoire persistante du connecteur** : `foretmap_recall`, `foretmap_remember`,

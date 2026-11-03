@@ -1,13 +1,13 @@
-# Connecteur Claude : brancher l'assistant sur le contenu du site
+# Connecteur MCP : brancher un assistant sur le contenu du site
 
 > **Public de ce document : administrateurs et n3boss.** Il décrit ce que l'application fait
 > aujourd'hui, sans jargon technique. Retour au sommaire : [../README.md](../README.md)
 
 ## À quoi ça sert
 
-Le **connecteur Claude** permet de relier l'assistant **Claude** (site claude.ai, application
-de bureau ou mobile, Claude Code) au contenu pédagogique du site. Une fois connecté, vous
-pouvez demander à Claude, en langage courant :
+Le **connecteur MCP** permet de relier un **assistant compatible** (Claude sur claude.ai /
+bureau / mobile / Claude Code, **Cursor**, **ChatGPT**, **Gemini CLI**) au contenu
+pédagogique du site. Une fois connecté, vous pouvez demander à l'assistant, en langage courant :
 
 - de **chercher** une espèce, un terme du glossaire, un tutoriel, une question de quiz, une
   zone ou un repère ;
@@ -20,20 +20,20 @@ pouvez demander à Claude, en langage courant :
 - d'obtenir une **vue d'usage anonyme** (combien de réponses aux quiz, d'observations, de
   lectures de tutoriels — jamais par élève).
 
-Les **administrateurs** peuvent en plus faire **corriger** du contenu par Claude (voir plus bas)
-et lui faire **surveiller le site** (voir « Surveiller le site »).
+Les **administrateurs** peuvent en plus faire **corriger** du contenu via l'assistant (voir plus
+bas) et lui faire **surveiller le site** (voir « Surveiller le site »).
 
-## Claude se souvient de ce qui est stable
+## L'assistant se souvient de ce qui est stable
 
-Le connecteur a une **mémoire** : Claude y retrouve, en début de conversation, les règles et
-pièges connus du site (par exemple « dans les quiz, le commentaire de la bonne réponse reste
+Le connecteur a une **mémoire** : l'assistant y retrouve, en début de conversation, les règles
+et pièges connus du site (par exemple « dans les quiz, le commentaire de la bonne réponse reste
 vide »), et y note ce qui restera vrai la prochaine fois. Une note **partagée** sert à tous les
 comptes du connecteur ; une note **personnelle** n'est visible que de vous. Une note ancienne
 est signalée « à revérifier ». Le site **refuse** une note qui contient une adresse e-mail ou
 ressemble à un mot de passe ou à une clé. N'y mettez jamais d'information sur un élève.
 Seul l'auteur d'une note partagée, ou un administrateur, peut la modifier ou l'effacer.
 
-## Ce que Claude ne voit jamais
+## Ce que l'assistant ne voit jamais
 
 Le connecteur ne donne accès **à aucune donnée personnelle** : ni comptes, ni noms d'élèves,
 ni adresses, ni classes, ni messages du forum, ni commentaires, ni carnets, ni journaux de
@@ -49,39 +49,43 @@ dans un crédit photo est masquée.
 | n3boss                | ✅                          | —                      |
 | Prof de classe, élève | —                           | —                      |
 
-C'est la permission **« Connecteur Claude (MCP) »** qui ouvre l'accès, et **« Écriture par le
+C'est la permission **« Connecteur MCP »** qui ouvre l'accès, et **« Écriture par le
 connecteur MCP »** qui ouvre les corrections. Un administrateur peut les ajouter ou les
 retirer dans **Profils & utilisateurs**. Un retrait prend effet **immédiatement**, même pour
-un Claude déjà connecté.
+un assistant déjà connecté.
 
 Le connecteur doit d'abord être **activé sur le serveur** par la personne qui gère
 l'hébergement (voir « Pour les curieux »).
 
 ## Se connecter
 
-1. Dans Claude : **Réglages → Connecteurs → Ajouter un connecteur personnalisé**, puis
-   l'adresse du site suivie de **`/mcp`** (par exemple `https://votre-site/mcp`).
-2. Cliquez sur **Connecter** : une page du site s'ouvre. Saisissez votre **identifiant** et
-   votre **mot de passe** habituels, puis votre **code de double authentification** si vous
-   l'avez activée.
-3. La page suivante résume la demande : l'application (Claude), l'adresse où vous serez
-   renvoyé, et ce qui est demandé (lecture, et corrections pour un admin). Cliquez sur
+1. Dans l'assistant : ajoutez un connecteur / serveur MCP avec l'adresse du site suivie de
+   **`/mcp`** (par exemple `https://votre-site/mcp`). Chemins typiques :
+   - **Claude** : Réglages → Connecteurs → Ajouter un connecteur personnalisé ;
+   - **Cursor** : entrée `foretmap` dans les réglages MCP (variable `FORETMAP_MCP_URL`) ;
+   - **ChatGPT** : ajout d'un serveur MCP personnalisé (selon le mode développeur du compte) ;
+   - **Gemini CLI** : configuration `mcpServers` avec l'URL `/mcp`.
+2. Lancez la connexion : une page du site s'ouvre. Saisissez votre **identifiant** et votre
+   **mot de passe** habituels, puis votre **code de double authentification** si vous l'avez
+   activée.
+3. La page suivante résume la demande : l'application (nom de l'assistant), l'adresse où vous
+   serez renvoyé, et ce qui est demandé (lecture, et corrections pour un admin). Cliquez sur
    **Autoriser**.
 
-Si la page signale une **« adresse locale »**, c'est Claude Code sur votre ordinateur :
-n'autorisez que si vous venez de lancer la connexion vous-même.
+Si la page signale une **« adresse locale »**, c'est un outil sur votre ordinateur (Claude
+Code, Cursor, Gemini CLI…) : n'autorisez que si vous venez de lancer la connexion vous-même.
 
-Pour **déconnecter** Claude : retirez le connecteur dans les réglages de Claude.
+Pour **déconnecter** : retirez le connecteur dans les réglages de l'assistant.
 
 ## Faire corriger du contenu (administrateurs)
 
 Les corrections se font **toujours en deux temps** :
 
-1. Claude **prépare** la correction et vous montre **avant / après** pour chaque champ, avec
+1. L'assistant **prépare** la correction et vous montre **avant / après** pour chaque champ, avec
    les risques éventuels (champ vidé, renommage…). **Rien n'est encore modifié.**
-2. Vous donnez votre accord ; Claude **applique**. Si quelqu'un a modifié la même fiche entre
-   les deux étapes, l'application est **refusée** et rien n'est écrit : il faut préparer une
-   nouvelle correction.
+2. Vous donnez votre accord ; l'assistant **applique**. Si quelqu'un a modifié la même fiche
+   entre les deux étapes, l'application est **refusée** et rien n'est écrit : il faut préparer
+   une nouvelle correction.
 
 Chaque correction appliquée est inscrite au **journal d'audit**.
 
@@ -92,26 +96,26 @@ jeu, et le **rattachement d'une espèce** à une zone, un repère, une carte ou 
 glossaire. Rien d'autre : ni comptes, ni réglages, ni suppression de fiches.
 
 > **Bonne pratique.** Le contenu du site est aussi **décrit dans le code** (c'est ce qui
-> permet de réinstaller le site à l'identique). Après une correction, Claude fournit un
+> permet de réinstaller le site à l'identique). Après une correction, l'assistant fournit un
 > **fichier de mise à jour** à transmettre au développeur pour qu'il l'ajoute au code ; sans
 > cela, une future mise à jour pourrait remettre l'ancienne version. Pour une correction qui
 > peut attendre, on peut aussi ne demander **que** ce fichier, sans rien modifier sur le site.
 
 ## Surveiller le site (administrateurs)
 
-- **Rapport de santé** : demandez à Claude « comment va le site ? ». Il répond par un statut
+- **Rapport de santé** : demandez « comment va le site ? ». L'assistant répond par un statut
   **vert**, **orange** ou **rouge** et la liste des alertes : base de données lente ou en
   retard de mise à jour, erreurs du serveur, redémarrages anormaux, sauvegarde ou tâche
   planifiée en retard, disque presque plein, certificat de sécurité bientôt expiré… Les seuils
   sont fixes et affichés avec le rapport.
 - **Chaque jour**, une tâche planifiée refait ce rapport et l'enregistre ; un **e-mail** part à
   l'adresse d'exploitation quand le statut est orange ou rouge (ou chaque jour si l'hébergeur
-  l'a réglé ainsi). Claude peut montrer l'**historique** (« depuis quand c'est orange ? »).
-- **Journaux du serveur** : Claude peut lire, en lecture seule, les journaux des tâches
+  l'a réglé ainsi). L'assistant peut montrer l'**historique** (« depuis quand c'est orange ? »).
+- **Journaux du serveur** : l'assistant peut lire, en lecture seule, les journaux des tâches
   planifiées, du démarrage et du serveur web, ainsi que les scripts et la documentation, et y
   chercher un message d'erreur. Les mots de passe, clés et jetons y sont **toujours masqués** ;
   du fichier de configuration du serveur, seuls les noms des réglages apparaissent.
-- **Tâches planifiées** : Claude dit, pour chaque tâche (sauvegarde, déploiement, purge,
+- **Tâches planifiées** : l'assistant dit, pour chaque tâche (sauvegarde, déploiement, purge,
   tâches récurrentes…), quand elle a tourné pour la dernière fois et si elle est en retard.
 
 Rien de tout cela ne modifie le site.
@@ -121,11 +125,14 @@ Rien de tout cela ne modifie le site.
 - La connexion par **Google** n'est pas proposée sur la page du connecteur : un compte qui se
   connecte uniquement par Google doit d'abord se créer un mot de passe sur le site.
 - Il n'y a pas encore d'écran listant « les connecteurs ouverts sur mon compte » : on retire
-  l'accès dans Claude, ou un administrateur retire la permission.
-- Les réponses de Claude restent celles d'un assistant : une revue du contenu signale des
-  pistes, elle ne remplace pas la relecture d'un professeur.
-- Ce que vous écrivez à Claude et les réponses du connecteur sont traités par **Anthropic**
-  selon les conditions de votre compte Claude (fiche de registre : voir le DPO).
+  l'accès dans les réglages de l'assistant, ou un administrateur retire la permission.
+- Les réponses restent celles d'un assistant : une revue du contenu signale des pistes, elle
+  ne remplace pas la relecture d'un professeur.
+- Ce que vous écrivez à l'assistant et les réponses du connecteur sont traités par le
+  **fournisseur de cet assistant** (Anthropic, OpenAI, Google, Cursor… selon le client
+  choisi). Fiche de registre : voir le DPO.
+- **Gemini Enterprise** (offre professionnelle Google avec secret client) n'est **pas**
+  supporté ; seul Gemini en ligne de commande sur un poste local l'est.
 
 ## Pour les curieux
 
