@@ -1,14 +1,15 @@
-# Fiche de registre — Connecteur Claude (MCP distant)
+# Fiche de registre — Connecteur MCP distant
 
 > Fiche au format du registre des activités de traitement (RGPD, art. 30). À reporter dans le
 > registre de l'établissement. Rédigée le 02/11/2026 avec l'arrivée du connecteur
-> (`docs/MCP.md`). Public concerné par l'application : **élèves mineurs**, personnels.
+> (`docs/MCP.md`) ; mise à jour multi-clients (Claude, Cursor, ChatGPT, Gemini CLI). Public
+> concerné par l'application : **élèves mineurs**, personnels.
 
 ## 1. Identification
 
 | Rubrique                | Contenu                                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------------------- |
-| Nom du traitement       | Connexion d'un assistant conversationnel (Claude) au contenu pédagogique du site         |
+| Nom du traitement       | Connexion d'un assistant compatible MCP au contenu pédagogique du site                   |
 | Responsable             | L'établissement exploitant l'instance (chef d'établissement)                             |
 | Contact DPO             | Contact DPO du site (celui indiqué sur la page « Vos données », réglage de l'instance)   |
 | Mise en œuvre technique | Module `lib/mcp/` ; activable par l'administrateur (`MCP_ENABLED`), désactivé par défaut |
@@ -16,11 +17,11 @@
 ## 2. Finalité
 
 Permettre à un **personnel habilité** (profils administrateur et n3boss/professeur, permission
-« Connecteur Claude (MCP) ») d'interroger le **contenu pédagogique** (fiches espèces, cartes,
-clés de détermination, QCM, glossaires, contenu du jeu Gnomes & Licornes) depuis Claude, de
-lancer des **audits de cohérence** de ce contenu et, pour les seuls administrateurs, de
-**préparer et appliquer des corrections de contenu** (crédits photo, définitions, rattachement
-d'une espèce à une zone…).
+« Connecteur MCP ») d'interroger le **contenu pédagogique** (fiches espèces, cartes, clés de
+détermination, QCM, glossaires, contenu du jeu Gnomes & Licornes) depuis un assistant
+(Claude, Cursor, ChatGPT, Gemini CLI…), de lancer des **audits de cohérence** de ce contenu et,
+pour les seuls administrateurs, de **préparer et appliquer des corrections de contenu**
+(crédits photo, définitions, rattachement d'une espèce à une zone…).
 
 Hors finalité : consulter un compte, un élève, une classe, une production d'élève
 individuelle, un message, un journal de connexion. **Garantie réelle** :
@@ -119,18 +120,20 @@ n'est transmise à Claude (les journaux techniques ne portent que des pseudonyme
 
 ## 5. Destinataires
 
-| Destinataire                          | Données                                                                                                                     |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Le personnel connecté                 | Réponses des outils (contenu pédagogique, audits, agrégats)                                                                 |
-| **Anthropic** (fournisseur de Claude) | Mêmes réponses, transmises au modèle dans la conversation de ce personnel. Trafic entrant depuis la plage `160.79.104.0/21` |
-| Administrateurs du site               | Journaux techniques (§ 6)                                                                                                   |
+| Destinataire                                       | Données                                                                                       |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Le personnel connecté                              | Réponses des outils (contenu pédagogique, audits, agrégats)                                   |
+| **Anthropic** (si client Claude)                   | Mêmes réponses, transmises au modèle. Trafic cloud souvent depuis `160.79.104.0/21`           |
+| **OpenAI** (si client ChatGPT)                     | Mêmes réponses, selon les conditions du compte / espace de travail ChatGPT                    |
+| **Google** (si client Gemini CLI)                  | Mêmes réponses, selon les conditions du compte Google utilisé pour Gemini CLI                 |
+| Éditeur de l’IDE (si client Cursor sur le distant) | Les réponses transitent via l’infrastructure Cursor lorsque l’agent distant OAuth est utilisé |
+| Administrateurs du site                            | Journaux techniques (§ 6)                                                                     |
 
-Anthropic agit selon les conditions du compte Claude de l'utilisateur ou de l'organisation
-(conservation et usage des conversations : réglages du compte Claude). **À vérifier par le
-DPO** : nature du compte utilisé (individuel, Team, Enterprise), localisation et encadrement
-du transfert hors UE (clauses contractuelles types), option d'exclusion de l'entraînement.
-Recommandation : réserver le connecteur à un compte d'organisation dont ces points sont
-documentés.
+**Le choix du client MCP = choix du sous-traitant IA.** Chaque fournisseur agit selon les
+conditions du compte utilisé. **À vérifier par le DPO** pour chaque client autorisé : nature
+du compte (individuel / organisation), localisation et encadrement du transfert hors UE,
+option d'exclusion de l'entraînement. Recommandation : réserver le connecteur à des comptes
+d'organisation documentés.
 
 ## 6. Durées de conservation
 
@@ -153,7 +156,8 @@ Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
 
 ## 7. Sécurité
 
-OAuth 2.1 avec PKCE, clients publics, redirections limitées à Claude ; connexion par les
+OAuth 2.1 avec PKCE, clients publics, redirections limitées à une **allowlist multi-clients**
+(Claude, Cursor, ChatGPT, Gemini CLI ; motifs préfixe pour ChatGPT) ; connexion par les
 identifiants du site et **double authentification** si le compte l'a activée ; jetons
 aléatoires de 256 bits stockés **hachés** ; rotation des jetons de rafraîchissement avec
 révocation en cas de réutilisation ; jetons liés à l'**époque** du compte (un changement de
@@ -164,14 +168,15 @@ limitation de débit ; journalisation.
 ## 8. Droits des personnes
 
 - **Personnels** : accès, rectification, effacement par les moyens habituels du site
-  (page « Vos données ») ; retrait du connecteur à tout moment dans les réglages de Claude, ou
-  par un administrateur (retrait de la permission, effet immédiat).
+  (page « Vos données ») ; retrait du connecteur à tout moment dans les réglages de
+  l’assistant utilisé, ou par un administrateur (retrait de la permission, effet immédiat).
 - **Élèves** : aucune donnée individuelle n'est traitée par le connecteur ; leurs droits
   s'exercent sur les traitements principaux du site.
 
 ## 9. Points à valider par le DPO avant activation
 
-1. Compte Claude utilisé (organisation recommandée) et encadrement du transfert vers Anthropic.
+1. Clients autorisés (Claude / Cursor / ChatGPT / Gemini CLI) et encadrement du transfert vers
+   chaque sous-traitant IA correspondant ; comptes d'organisation recommandés.
 2. Information des personnels (mention dans la page « Vos données » si le connecteur est activé).
 3. Liste des profils autorisés (par défaut : admin et n3boss/professeur en lecture ; admin seul
    en écriture).

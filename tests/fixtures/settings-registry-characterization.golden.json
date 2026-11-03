@@ -845,6 +845,30 @@
       "maxLength": 40,
       "default": "Innovations"
     },
+    "ui.enov_plan.primary_label": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 60,
+      "default": "Espaces retenus"
+    },
+    "ui.enov_plan.secondary_category_ids": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 8192,
+      "default": "cat-enov-secondaire"
+    },
+    "ui.enov_plan.secondary_color": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 7,
+      "default": "#66a4d9"
+    },
+    "ui.enov_plan.secondary_label": {
+      "scope": "public",
+      "type": "string",
+      "maxLength": 60,
+      "default": "Autres lieux d’innovation"
+    },
     "ui.enov_plan.selectable_map_ids": {
       "scope": "public",
       "type": "string",
@@ -3998,6 +4022,70 @@
         "min": null,
         "max": null,
         "maxLength": 40,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.primary_label",
+      "scope": "public",
+      "type": "string",
+      "value": "Espaces retenus",
+      "default_value": "Espaces retenus",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 60,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.secondary_category_ids",
+      "scope": "public",
+      "type": "string",
+      "value": "cat-enov-secondaire",
+      "default_value": "cat-enov-secondaire",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 8192,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.secondary_color",
+      "scope": "public",
+      "type": "string",
+      "value": "#66a4d9",
+      "default_value": "#66a4d9",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 7,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "ui.enov_plan.secondary_label",
+      "scope": "public",
+      "type": "string",
+      "value": "Autres lieux d’innovation",
+      "default_value": "Autres lieux d’innovation",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 60,
         "values": null
       },
       "updated_at": null,

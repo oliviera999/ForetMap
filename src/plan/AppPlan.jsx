@@ -48,6 +48,7 @@ import {
   buildPlaceUrl,
   countPlacesByCategory,
   filterPlacesByCategories,
+  isSecondaryHighlight,
   planPlaceFocusPct,
   readPlaceIdFromLocation,
 } from './utils/planPlaces.js';
@@ -198,9 +199,25 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * les autres plans, tout ce qui suit reste éteint.
    */
   const enovSettings = variant.highlightPlaces ? settings?.enov || null : null;
-  const highlightedPlaces = useMemo(
-    () => (enovSettings ? places.filter((place) => place.map_highlight === true) : EMPTY_PLACES),
-    [enovSettings, places],
+  // Espaces retenus d'abord, autres lieux d'innovation ensuite (chacun par nom, l'ordre de
+  // `places`) : la liste « Innovations » se lit dans l'ordre du dossier.
+  const highlightedPlaces = useMemo(() => {
+    if (!enovSettings) return EMPTY_PLACES;
+    const highlighted = places.filter((place) => place.map_highlight === true);
+    return [
+      ...highlighted.filter((place) => !isSecondaryHighlight(place)),
+      ...highlighted.filter((place) => isSecondaryHighlight(place)),
+    ];
+  }, [enovSettings, places]);
+  const highlightTierLabels = useMemo(
+    () =>
+      enovSettings
+        ? {
+            primary: String(enovSettings.primary_label || '').trim(),
+            secondary: String(enovSettings.secondary_label || '').trim(),
+          }
+        : null,
+    [enovSettings],
   );
   const innovationsLabel = String(enovSettings?.innovations_label || '').trim() || 'Innovations';
 
@@ -282,11 +299,15 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
    * (`--pct-highlight-color`) et par les feuilles basses.
    */
   const highlightColor = String(enovSettings?.highlight_color || '');
-  const shellStyle = useMemo(
-    () =>
-      highlightColor ? { ...brandStyle, '--pct-highlight-color': highlightColor } : brandStyle,
-    [brandStyle, highlightColor],
-  );
+  // Second niveau (autres lieux d'innovation) : `--pct-highlight-secondary-color`, que la
+  // classe `is-highlight-secondary` rebranche sur `--pct-highlight-color`.
+  const secondaryColor = String(enovSettings?.secondary_color || '');
+  const shellStyle = useMemo(() => {
+    const style = { ...brandStyle };
+    if (highlightColor) style['--pct-highlight-color'] = highlightColor;
+    if (secondaryColor) style['--pct-highlight-secondary-color'] = secondaryColor;
+    return highlightColor || secondaryColor ? style : brandStyle;
+  }, [brandStyle, highlightColor, secondaryColor]);
 
   /**
    * Les feuilles basses sont montées **en portail sous `body`**, donc hors de `.plan-shell` :
@@ -1407,7 +1428,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         distanceOf={distanceOfPlace}
         totalCount={resultsTotal}
         filterActive={selectedCategoryIds.size > 0}
-        highlightTag={enovSettings ? 'Innovation' : ''}
+        highlightTag={enovSettings ? 'Espace retenu' : ''}
+        secondaryHighlightTag={enovSettings ? 'Autre lieu' : ''}
       />
 
       <PlanFiltersSheet
@@ -1459,6 +1481,7 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
         onSuggest={suggestForPlace(sheetPlace)}
         myReports={reportsForPlace(sheetPlace)}
         highlightTitle={enovSettings ? HIGHLIGHT_TITLE : ''}
+        highlightTierLabels={highlightTierLabels}
       />
 
       <FixedToast className="plan-toast">{positionToast || routeToast}</FixedToast>
