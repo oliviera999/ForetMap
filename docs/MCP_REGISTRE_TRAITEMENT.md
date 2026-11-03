@@ -29,24 +29,36 @@ individuelle, un message, un journal de connexion. **Garantie réelle** :
   contre une liste blanche de tables de contenu, colonnes nominatives retirées des réponses.
   Ils ne permettent pas ces consultations ;
 - **outil SQL libre** (`foretmap_sql_select`, administrateurs, **désactivé par défaut**) : il
-  n'est disponible que si **deux** barrières indépendantes sont en place — une analyse
-  syntaxique de la requête qui refuse toute table hors liste blanche (y compris par
-  sous-requête, table parenthésée, CTE ou `UNION`), **et** un compte MySQL dédié qui n'a le
-  droit de lire **que** les tables de contenu (le serveur SQL refuse lui-même la lecture des
-  comptes, du forum, des observations). Sans ce compte, l'outil est indisponible ;
+  n'est disponible que si **trois** contrôles sont en place — un refus en amont de tout
+  commentaire SQL (`/* */`, `#`, `--`), de tout « ; » et de tout caractère invisible ou non
+  canonique (MariaDB exécute le contenu des commentaires `/*! … */`) ; une analyse syntaxique
+  de la requête qui refuse toute table hors liste blanche (y compris par sous-requête, table
+  parenthésée, CTE ou `UNION`) et les fonctions d'identité, de fichier ou de temporisation ;
+  **et** un compte MySQL dédié dont les droits sont **vérifiés par le serveur lui-même**
+  (`SHOW GRANTS`, au premier usage puis toutes les 5 minutes) : lecture des seules tables de
+  contenu, rien d'autre. Un droit plus large (base entière, écriture, rôle…) rend l'outil
+  indisponible, et l'incident est journalisé. Les fonctions de mise en forme `CAST`, `HEX`,
+  `CONCAT` restent admises : elles ne donnent accès à aucune donnée supplémentaire, le
+  périmètre lisible étant borné par les droits vérifiés ;
 - **journaux techniques** (`foretmap_tail_logs`, `foretmap_diagnostics`, administrateurs) :
-  ils peuvent contenir des événements liés à des comptes ; les identifiants de comptes et
-  d'élèves, les identifiants techniques (UUID) et les adresses IP y sont remplacés par des
-  **pseudonymes** (`user#3f2a91`, `ip#7c01d4`), stables au sein d'une réponse pour permettre le
-  diagnostic, calculés avec une clé aléatoire jetée après chaque appel (impossibles à relier à
-  un compte ou d'un appel à l'autre) ; e-mails, hachages et jetons sont masqués. Le texte
-  libre d'un message de journal peut contenir d'autres éléments (titres de tâches, noms de
-  zones) : c'est une donnée technique pseudonymisée, à usage de diagnostic par un
-  administrateur.
+  ils ne transmettent qu'une **liste fermée de champs** — niveau, heure, message, identifiant
+  de requête, méthode, statut et durée HTTP, gabarit de route (`/api/gl/players/:id/journal`),
+  type, code et message d'erreur ; pour les diagnostics, des compteurs et états nommés un par
+  un. Tout autre champ (identifiants de comptes, d'élèves, d'équipes, pseudos, auteurs…) est
+  retiré. Dans les messages, les identifiants techniques (UUID, suites hexadécimales) et les
+  adresses IP sont remplacés par des **pseudonymes** (`id#3f2a91`, `ip#7c01d4`), stables au
+  sein d'une réponse pour permettre le diagnostic, calculés avec une clé aléatoire jetée après
+  chaque appel (impossibles à relier à un compte ou d'un appel à l'autre) ; les nombres de
+  trois chiffres ou plus sont remplacés par `[n]` ; e-mails, hachages et jetons sont masqués.
+  **Limite honnête** : un nom ou un pseudo écrit en clair dans le texte d'un message ne peut
+  pas être reconnu avec certitude et n'est donc pas garanti absent. Le code du site passe les
+  identifiants en champs séparés (retirés), jamais dans le texte des messages ; c'est la règle
+  à tenir pour tout nouveau message de journal.
 
 Avant la relecture de sécurité du 03/11/2026, l'outil SQL libre se contrôlait par expressions
-régulières, contournables (`SELECT * FROM (users)`) ; il était désactivé par défaut et n'a
-jamais été déployé.
+régulières, contournables (`SELECT * FROM (users)`) ; la contre-vérification du même jour a
+montré que l'analyse syntaxique seule laissait passer un commentaire exécutable MariaDB. Il
+était désactivé par défaut et n'a jamais été déployé.
 
 ## 3. Personnes concernées et catégories de données
 
@@ -132,4 +144,5 @@ limitation de débit ; journalisation.
    en écriture).
 4. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`, `GRANT SELECT` par
    table de contenu), recommandé ; condition de l'outil SQL libre. Sur un hébergement qui ne
-   permet que des droits par base entière, laisser l'outil SQL désactivé.
+   permet que des droits par base entière, l'outil SQL reste indisponible de lui-même (droits
+   vérifiés par `SHOW GRANTS`) : le laisser désactivé.

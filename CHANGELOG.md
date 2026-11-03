@@ -52,12 +52,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
     changement de mot de passe, désactivation, réinitialisation TOTP → accès et refresh coupés ;
     `bumpUserTokenEpoch` appelle `revokeAllForUser`.
   - **I2** — `foretmap_tail_logs` / `foretmap_diagnostics` : UUID, identifiants de compte et IP
-    pseudonymisés (`lib/mcp/pseudonymize.js`).
+    pseudonymisés (première version, remplacée lors de la contre-vérification ci-dessous).
   - **M1** `Object.hasOwn` sur les tables de correspondance ; **M2** lots JSON-RPC ≤ 20 ;
     **M3** étapes MFA/consentement liées à l'empreinte complète de la demande ; **M4** client
     CIMD lu en base au point de jeton ; **M5** 503 en production sans `MCP_PUBLIC_BASE_URL` ;
     **M6** fenêtres d'usage fixes ; **M7** `audit_log` dans la transaction d'`apply` et
     revalidation des opérations ; **M8** limiteur `/oauth/token` et `/oauth/revoke`.
+- **Contre-vérification (03/11/2026)** :
+  - **B1** — commentaires exécutables MariaDB (`/*! … */`, `/*!50000 …*/`, `/*M! …*/`) : le
+    parseur les ignore, le serveur les exécute. Le texte brut est désormais refusé, après
+    normalisation NFKC, s'il contient `/*`, `*/`, `#`, `--`, `;` (y compris final), un caractère
+    de contrôle ou de format, ou une forme non canonique (pleine chasse) — `assertPlainSqlText`.
+    Les **droits réels** du compte `DB_MCP_USER` sont lus (`SHOW GRANTS FOR CURRENT_USER()`,
+    `CURRENT_ROLE()`) au premier usage puis toutes les 5 minutes (`lib/mcp/readOnlyGrants.js`) :
+    toute ligne autre que `USAGE ON *.*` ou `SELECT` sur une table de contenu (droit global, au
+    niveau base, autre privilège, `WITH GRANT OPTION`, rôle, `PROXY`, forme inconnue) rend
+    l'outil indisponible (absent de `tools/list`, refusé à l'appel, raison journalisée). Test
+    d'intégration MariaDB : `GRANT SELECT ON <base>.*` → outil retiré. `CAST`, `HEX`, `CONCAT`
+    conservés et documentés (périmètre borné par les droits vérifiés).
+  - **I2** — `foretmap_tail_logs` / `foretmap_diagnostics` passent à une **liste blanche de
+    champs** (`lib/mcp/logSanitizer.js`, remplace `pseudonymize.js`) : `level`, `time`, `msg`,
+    `requestId`, `method`, `statusCode`, `durationMs`, `route` normalisée (`:id`), `err.type`,
+    `err.code`, `err.message` ; tout autre champ retiré (`newId`, `sourceId`, `teamId`,
+    `author`, `studentIds`, `ctx.student.id`, `pseudo`…). Texte libre : UUID avec ou sans
+    tirets et hexadécimal ≥ 16 → `id#…`, IP → `ip#…`, nombres ≥ 3 chiffres → `[n]`. Limite
+    documentée : un nom en clair dans un message n'est pas garanti absent.
 - Inspiration : `@modelcontextprotocol/sdk` (MIT,
   https://github.com/modelcontextprotocol/typescript-sdk), RFC 9700, documentation connecteurs
   Claude (https://claude.com/docs/connectors/building/authentication).
