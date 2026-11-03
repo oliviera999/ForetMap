@@ -22,8 +22,31 @@ lancer des **audits de cohérence** de ce contenu et, pour les seuls administrat
 **préparer et appliquer des corrections de contenu** (crédits photo, définitions, rattachement
 d'une espèce à une zone…).
 
-Hors finalité, et **techniquement impossible** par le connecteur : consulter un compte, un
-élève, une classe, une production d'élève individuelle, un message, un journal de connexion.
+Hors finalité : consulter un compte, un élève, une classe, une production d'élève
+individuelle, un message, un journal de connexion. **Garantie réelle** :
+
+- **outils standards** (20 outils) : ils n'exécutent que du SQL écrit dans le code, contrôlé
+  contre une liste blanche de tables de contenu, colonnes nominatives retirées des réponses.
+  Ils ne permettent pas ces consultations ;
+- **outil SQL libre** (`foretmap_sql_select`, administrateurs, **désactivé par défaut**) : il
+  n'est disponible que si **deux** barrières indépendantes sont en place — une analyse
+  syntaxique de la requête qui refuse toute table hors liste blanche (y compris par
+  sous-requête, table parenthésée, CTE ou `UNION`), **et** un compte MySQL dédié qui n'a le
+  droit de lire **que** les tables de contenu (le serveur SQL refuse lui-même la lecture des
+  comptes, du forum, des observations). Sans ce compte, l'outil est indisponible ;
+- **journaux techniques** (`foretmap_tail_logs`, `foretmap_diagnostics`, administrateurs) :
+  ils peuvent contenir des événements liés à des comptes ; les identifiants de comptes et
+  d'élèves, les identifiants techniques (UUID) et les adresses IP y sont remplacés par des
+  **pseudonymes** (`user#3f2a91`, `ip#7c01d4`), stables au sein d'une réponse pour permettre le
+  diagnostic, calculés avec une clé aléatoire jetée après chaque appel (impossibles à relier à
+  un compte ou d'un appel à l'autre) ; e-mails, hachages et jetons sont masqués. Le texte
+  libre d'un message de journal peut contenir d'autres éléments (titres de tâches, noms de
+  zones) : c'est une donnée technique pseudonymisée, à usage de diagnostic par un
+  administrateur.
+
+Avant la relecture de sécurité du 03/11/2026, l'outil SQL libre se contrôlait par expressions
+régulières, contournables (`SELECT * FROM (users)`) ; il était désactivé par défaut et n'a
+jamais été déployé.
 
 ## 3. Personnes concernées et catégories de données
 
@@ -33,8 +56,8 @@ Hors finalité, et **techniquement impossible** par le connecteur : consulter un
 | Élèves                            | **Aucune donnée individuelle.** Agrégats anonymes seulement (nombre d'observations, de réponses aux QCM par catégorie, de lectures de tutoriels, de tâches réalisées), effectifs inférieurs à 5 masqués |
 | Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                    |
 
-Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP n'est
-transmise à Claude.
+Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP en clair
+n'est transmise à Claude (les journaux techniques ne portent que des pseudonymes, § 2).
 
 ## 4. Minimisation — mesures par construction
 
@@ -45,7 +68,8 @@ transmise à Claude.
   refusées dans les requêtes et **retirées des réponses** ; tout motif d'e-mail, de hachage ou de
   jeton est masqué en sortie.
 - Traces d'élèves : uniquement des **comptages**, jamais par personne ni par classe ; seuil
-  **n ≥ 5**.
+  **n ≥ 5** ; fenêtres de temps **fixes** (7, 30, 90, 365 jours) pour empêcher d'isoler une
+  journée par différence de deux requêtes.
 - Lecture en **transaction en lecture seule**, avec durée maximale et nombre de lignes plafonné.
 - Écriture limitée à une **liste fermée de champs de contenu**, en deux temps (plan montré à la
   personne, puis application) et journalisée.
@@ -87,8 +111,9 @@ Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
 OAuth 2.1 avec PKCE, clients publics, redirections limitées à Claude ; connexion par les
 identifiants du site et **double authentification** si le compte l'a activée ; jetons
 aléatoires de 256 bits stockés **hachés** ; rotation des jetons de rafraîchissement avec
-révocation en cas de réutilisation ; vérification du compte et des permissions **à chaque
-requête** (retrait immédiat) ; jetons du connecteur refusés sur l'API du site et inversement ;
+révocation en cas de réutilisation ; jetons liés à l'**époque** du compte (un changement de
+mot de passe ou une désactivation les révoque aussitôt) ; vérification du compte et des
+permissions **à chaque requête** (retrait immédiat) ; jetons du connecteur refusés sur l'API du site et inversement ;
 limitation de débit ; journalisation.
 
 ## 8. Droits des personnes
@@ -105,4 +130,6 @@ limitation de débit ; journalisation.
 2. Information des personnels (mention dans la page « Vos données » si le connecteur est activé).
 3. Liste des profils autorisés (par défaut : admin et n3boss/professeur en lecture ; admin seul
    en écriture).
-4. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`), recommandé.
+4. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`, `GRANT SELECT` par
+   table de contenu), recommandé ; condition de l'outil SQL libre. Sur un hébergement qui ne
+   permet que des droits par base entière, laisser l'outil SQL désactivé.

@@ -75,22 +75,22 @@ transport et le protocole MCP (`McpServer`, `StreamableHTTPServerTransport`).
 
 ## 2. Variables d'environnement
 
-| Variable                       | Défaut       | Rôle                                                                                        |
-| ------------------------------ | ------------ | ------------------------------------------------------------------------------------------- |
-| `MCP_ENABLED`                  | `false`      | Active `/mcp`, `/oauth/*`, `/.well-known/oauth-*`                                           |
-| `MCP_PUBLIC_BASE_URL`          | (requête)    | **À poser en production** : origine publique exacte, ex. `https://foretmap.olution.info`    |
-| `MCP_WRITE_ENABLED`            | **`true`**   | Outils d'écriture (plan → apply). Toujours réservés à `mcp.write` + portée `foretmap.write` |
-| `MCP_SQL_ENABLED`              | `false`      | Outil `foretmap_sql_select` (admin `mcp.sql`)                                               |
-| `MCP_ACCESS_TOKEN_TTL_SECONDS` | `3600`       | Durée de vie d'un jeton d'accès (300–86400)                                                 |
-| `MCP_REFRESH_TOKEN_TTL_DAYS`   | `30`         | Durée de vie d'un jeton de rafraîchissement (1–365)                                         |
-| `MCP_AUTH_CODE_TTL_SECONDS`    | `60`         | Durée de vie d'un code d'autorisation (30–600)                                              |
-| `MCP_PLAN_TTL_MINUTES`         | `60`         | Validité d'un plan d'écriture (5–1440)                                                      |
-| `MCP_STATEMENT_TIMEOUT_MS`     | `5000`       | Délai maximal par requête SQL d'un outil (500–60000)                                        |
-| `MCP_RATE_LIMIT_PER_MIN`       | `300`        | Requêtes `/mcp` par minute et par jeton                                                     |
-| `MCP_OAUTH_ALLOWED_REDIRECTS`  | (voir § 3)   | Liste (virgules) des redirections admises                                                   |
-| `MCP_CIMD_ENABLED`             | `true`       | Accepter les `client_id` CIMD (URL https)                                                   |
-| `MCP_DCR_ENABLED`              | `true`       | Accepter l'enregistrement dynamique `/oauth/register`                                       |
-| `DB_MCP_USER` / `DB_MCP_PASS`  | (pool appli) | Compte MySQL **lecture seule** recommandé pour les outils de lecture (voir § 8)             |
+| Variable                       | Défaut       | Rôle                                                                                                                                                                   |
+| ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_ENABLED`                  | `false`      | Active `/mcp`, `/oauth/*`, `/.well-known/oauth-*`                                                                                                                      |
+| `MCP_PUBLIC_BASE_URL`          | (requête)    | **À poser en production** : origine publique exacte, ex. `https://foretmap.olution.info`                                                                               |
+| `MCP_WRITE_ENABLED`            | **`true`**   | Outils d'écriture (plan → apply). Toujours réservés à `mcp.write` + portée `foretmap.write`                                                                            |
+| `MCP_SQL_ENABLED`              | `false`      | Outil `foretmap_sql_select` (admin `mcp.sql`) — **exige aussi `DB_MCP_USER`**                                                                                          |
+| `MCP_ACCESS_TOKEN_TTL_SECONDS` | `3600`       | Durée de vie d'un jeton d'accès (300–86400)                                                                                                                            |
+| `MCP_REFRESH_TOKEN_TTL_DAYS`   | `30`         | Durée de vie d'un jeton de rafraîchissement (1–365)                                                                                                                    |
+| `MCP_AUTH_CODE_TTL_SECONDS`    | `60`         | Durée de vie d'un code d'autorisation (30–600)                                                                                                                         |
+| `MCP_PLAN_TTL_MINUTES`         | `60`         | Validité d'un plan d'écriture (5–1440)                                                                                                                                 |
+| `MCP_STATEMENT_TIMEOUT_MS`     | `5000`       | Délai maximal par requête SQL d'un outil (500–60000)                                                                                                                   |
+| `MCP_RATE_LIMIT_PER_MIN`       | `300`        | Requêtes `/mcp` par minute et par jeton                                                                                                                                |
+| `MCP_OAUTH_ALLOWED_REDIRECTS`  | (voir § 3)   | Liste (virgules) des redirections admises                                                                                                                              |
+| `MCP_CIMD_ENABLED`             | `true`       | Accepter les `client_id` CIMD (URL https)                                                                                                                              |
+| `MCP_DCR_ENABLED`              | `true`       | Accepter l'enregistrement dynamique `/oauth/register`                                                                                                                  |
+| `DB_MCP_USER` / `DB_MCP_PASS`  | (pool appli) | Compte MySQL **`SELECT` sur les seules tables de contenu** : utilisé par tous les outils de lecture s'il est défini ; **obligatoire** pour `foretmap_sql_select` (§ 8) |
 
 `MCP_PUBLIC_BASE_URL` compte : `resource` (métadonnées RFC 9728) doit valoir **exactement**
 l'URL saisie dans Claude, et chaque jeton est lié à cette ressource. Sans la variable, l'URL
@@ -153,6 +153,17 @@ Source : <https://claude.com/docs/connectors/building/authentication> et spécif
 - **Jetons** : opaques (`fmcp_at_…`, `fmcp_rt_…`), 256 bits aléatoires, **stockés hachés**
   (sha256) ; access ~1 h, refresh ~30 j. À chaque requête `/mcp`, le compte est revérifié
   (actif, `mcp.use`) et les portées effectives recalculées depuis les permissions actuelles.
+- **Époque de jeton** : chaque jeton enregistre `users.token_epoch` à son émission ; un
+  changement de mot de passe, une désactivation, une réinitialisation TOTP ou un changement
+  d'e-mail incrémente l'époque et révoque aussitôt les jetons MCP (`bumpUserTokenEpoch` →
+  `revokeAllForUser`), au point d'accès comme au refresh. La suppression d'un compte supprime
+  ses jetons (clé étrangère en cascade).
+- **Liaison des étapes** : les jetons d'étape MFA et consentement sont liés à l'empreinte
+  complète de la demande (`client_id`, `redirect_uri`, défi PKCE, portées, `state`,
+  `resource`).
+- **Limiteurs** : `/oauth/token` et `/oauth/revoke` 120/min par client ; `/oauth/register`
+  60/h/IP ; `/oauth/authorize` limiteur de connexion du site ; `/mcp` par jeton. Lots JSON-RPC :
+  20 messages au plus (`-32600`). En production, `MCP_PUBLIC_BASE_URL` absent → 503.
 - **Isolation** : un jeton `fmcp_…` est refusé sur `/api/*` et `/api/gl/*` (401
   `MCP_TOKEN`) ; un JWT de session (ForetMap ou G&L) est refusé sur `/mcp`.
 - **Purge** : opportuniste, au plus toutes les 10 min (déclenchée par `/oauth/token`) : codes
@@ -169,29 +180,29 @@ Noms stables préfixés, descriptions en français pour le modèle, schémas zod
 inconnue refusée), pagination `limit ≤ 200` + `offset`, sorties JSON **compactes** (tronquées
 au-delà de 120 000 caractères), annotations MCP renseignées.
 
-| Outil                                    | Portée / permission                 | Rôle                                                                                                               |
-| ---------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `foretmap_health`                        | read                                | Version, uptime, ping BDD                                                                                          |
-| `foretmap_diagnostics`                   | read + `admin.settings.read`        | Instantané d'exploitation (mémoire, BDD, schéma, redémarrages, agrégats G&L)                                       |
-| `foretmap_tail_logs`                     | read + `admin.settings.read`        | Dernières lignes Pino (redact du logger + masquage e-mail/jeton)                                                   |
-| `foretmap_db_status`                     | read + `admin.settings.read`        | Migrations appliquées / en attente                                                                                 |
-| `foretmap_search`                        | read + `mcp.use`                    | Plein texte : espèces FM (alias) et G&L, 3 glossaires, tutoriels, 3 jeux de QCM, zones, repères                    |
-| `foretmap_get_species`                   | read + `mcp.use`                    | Fiche complète FM (taxonomie, alias, photos+crédits, dangers, interactions, présence, clés, QCM, glossaire) ou G&L |
-| `foretmap_list_maps`                     | read + `mcp.use`                    | Cartes, niveau pédagogique, volumes                                                                                |
-| `foretmap_get_map`                       | read + `mcp.use`                    | Zones, repères, espèces rattachées, registre, parcours                                                             |
-| `foretmap_get_id_key`                    | read + `mcp.use`                    | Arbre d'une clé de détermination                                                                                   |
-| `foretmap_get_food_web`                  | read + `mcp.use`                    | Réseau trophique d'une carte / d'une espèce (niveau de preuve, source) ; G&L                                       |
-| `foretmap_list_qcm` / `foretmap_get_qcm` | read + `mcp.use`                    | QCM ForetMap / G&L / lore (niveau, difficulté, catégorie, biome/chapitre, espèce)                                  |
-| `foretmap_get_glossary_term`             | read + `mcp.use`                    | Un terme dans les trois glossaires (comparaison FM ↔ G&L)                                                          |
-| `gl_get_board`                           | read + `mcp.use`                    | Chapitres, cases ordonnées (positions, réglage de tirage), zones de frontière                                      |
-| `gl_get_lore`                            | read + `mcp.use`                    | Feuillets (statut, plateau)                                                                                        |
-| `foretmap_usage_overview`                | read + `mcp.use`                    | Agrégats anonymes seuillés (n ≥ 5)                                                                                 |
-| `foretmap_audit`                         | read + `mcp.use`                    | Un contrôle (énumération fermée) → `{check, description, count, sample_ids ≤ 50, hint}`                            |
-| `foretmap_audit_all`                     | read + `mcp.use`                    | Tableau de bord de tous les contrôles                                                                              |
-| `foretmap_sql_select`                    | read + `mcp.sql`, `MCP_SQL_ENABLED` | SELECT borné sur tables de contenu (désactivé par défaut)                                                          |
-| `foretmap_plan_content_change`           | write + `mcp.write`                 | Prépare une correction : diff, risques, migration idempotente + rollback ; n'écrit rien                            |
-| `foretmap_apply_plan`                    | write + `mcp.write`                 | Applique un plan si l'état n'a pas changé ; transaction ; `audit_log`                                              |
-| `foretmap_export_plan_as_migration`      | write + `mcp.write`                 | Migration + rollback seuls (voie « par PR »)                                                                       |
+| Outil                                    | Portée / permission                                | Rôle                                                                                                                                                                                           |
+| ---------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `foretmap_health`                        | read                                               | Version, uptime, ping BDD                                                                                                                                                                      |
+| `foretmap_diagnostics`                   | read + `admin.settings.read`                       | Instantané d'exploitation (mémoire, BDD, schéma, redémarrages, agrégats G&L)                                                                                                                   |
+| `foretmap_tail_logs`                     | read + `admin.settings.read`                       | Dernières lignes Pino : redact du logger, puis **UUID, identifiants de compte et IP pseudonymisés** (`user#3f2a91`, stables dans un appel, non reliables entre appels), e-mails/jetons masqués |
+| `foretmap_db_status`                     | read + `admin.settings.read`                       | Migrations appliquées / en attente                                                                                                                                                             |
+| `foretmap_search`                        | read + `mcp.use`                                   | Plein texte : espèces FM (alias) et G&L, 3 glossaires, tutoriels, 3 jeux de QCM, zones, repères                                                                                                |
+| `foretmap_get_species`                   | read + `mcp.use`                                   | Fiche complète FM (taxonomie, alias, photos+crédits, dangers, interactions, présence, clés, QCM, glossaire) ou G&L                                                                             |
+| `foretmap_list_maps`                     | read + `mcp.use`                                   | Cartes, niveau pédagogique, volumes                                                                                                                                                            |
+| `foretmap_get_map`                       | read + `mcp.use`                                   | Zones, repères, espèces rattachées, registre, parcours                                                                                                                                         |
+| `foretmap_get_id_key`                    | read + `mcp.use`                                   | Arbre d'une clé de détermination                                                                                                                                                               |
+| `foretmap_get_food_web`                  | read + `mcp.use`                                   | Réseau trophique d'une carte / d'une espèce (niveau de preuve, source) ; G&L                                                                                                                   |
+| `foretmap_list_qcm` / `foretmap_get_qcm` | read + `mcp.use`                                   | QCM ForetMap / G&L / lore (niveau, difficulté, catégorie, biome/chapitre, espèce)                                                                                                              |
+| `foretmap_get_glossary_term`             | read + `mcp.use`                                   | Un terme dans les trois glossaires (comparaison FM ↔ G&L)                                                                                                                                      |
+| `gl_get_board`                           | read + `mcp.use`                                   | Chapitres, cases ordonnées (positions, réglage de tirage), zones de frontière                                                                                                                  |
+| `gl_get_lore`                            | read + `mcp.use`                                   | Feuillets (statut, plateau)                                                                                                                                                                    |
+| `foretmap_usage_overview`                | read + `mcp.use`                                   | Agrégats anonymes seuillés (n ≥ 5), fenêtres fixes 7 / 30 / 90 / 365 jours                                                                                                                     |
+| `foretmap_audit`                         | read + `mcp.use`                                   | Un contrôle (énumération fermée) → `{check, description, count, sample_ids ≤ 50, hint}`                                                                                                        |
+| `foretmap_audit_all`                     | read + `mcp.use`                                   | Tableau de bord de tous les contrôles                                                                                                                                                          |
+| `foretmap_sql_select`                    | read + `mcp.sql`, `MCP_SQL_ENABLED`, `DB_MCP_USER` | SELECT validé par analyse syntaxique, exécuté par le compte restreint (désactivé par défaut, § 5)                                                                                              |
+| `foretmap_plan_content_change`           | write + `mcp.write`                                | Prépare une correction : diff, risques, migration idempotente + rollback ; n'écrit rien                                                                                                        |
+| `foretmap_apply_plan`                    | write + `mcp.write`                                | Applique un plan si l'état n'a pas changé ; transaction ; `audit_log`                                                                                                                          |
+| `foretmap_export_plan_as_migration`      | write + `mcp.write`                                | Migration + rollback seuls (voie « par PR »)                                                                                                                                                   |
 
 Un outil n'apparaît dans `tools/list` que si la portée, la permission et le drapeau le
 permettent ; l'appel est revérifié (une liste obtenue avec d'autres droits ne suffit pas).
@@ -249,6 +260,21 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
 - **Traces d'élèves** (`species_observations`, `user_quiz_attempts`, `gl_qcm_attempts`,
   `user_tutorial_reads`, `task_assignments`, `usage_counters`…) : **agrégats uniquement**
   (`COUNT`/`SUM`), jamais par personne ni par classe, et tout effectif **< 5** devient `"<5"`.
+- **SQL libre (`foretmap_sql_select`)** : deux barrières indépendantes, toutes deux exigées.
+  1. **Analyse syntaxique** (`lib/mcp/sqlAst.js`, parseur
+     [`node-sql-parser`](https://github.com/taozhi8833998/node-sql-parser), Apache-2.0, grammaire
+     MariaDB) : une seule instruction SELECT ; parcours récursif de l'AST (sous-requêtes, tables
+     dérivées, `FROM (t)` parenthésé, jointures, CTE, `UNION`, expressions) ; **toutes** les
+     tables doivent être dans la liste blanche ; refus de toute base qualifiée
+     (`information_schema`, `mysql`, `performance_schema`…), d'`INTO`, des verrous, des
+     variables, de toute fonction hors liste blanche de fonctions pures et de tout ce que le
+     parseur n'analyse pas (fail-closed). L'ancienne analyse par expressions régulières laissait
+     passer `SELECT * FROM (users)` (relecture de sécurité de la PR #616, constat B1).
+  2. **Compte MySQL dédié `DB_MCP_USER`**, avec `GRANT SELECT` **par table** de contenu
+     (`node scripts/mcp-print-grants.js --db <base> --user <compte> --check-db`). Sans lui,
+     l'outil n'est ni proposé ni exécutable, même avec `MCP_SQL_ENABLED=true`. Un test
+     d'intégration crée un tel compte sur MariaDB et vérifie que le serveur SQL refuse lui-même
+     `SELECT * FROM (users)`.
 - **Lecture seule** : chaque outil de lecture tourne dans `START TRANSACTION READ ONLY`, avec
   `SET STATEMENT max_statement_time=… FOR` (MariaDB) ou `MAX_EXECUTION_TIME` (MySQL 8), un
   `LIMIT` forcé (≤ 500) et un budget total par appel.
@@ -354,9 +380,22 @@ Enchaîne 401 → métadonnées → DCR → connexion → consentement → jeton
 2. **Variables** (cPanel → « Setup Node.js App ») : `MCP_ENABLED=true`,
    `MCP_PUBLIC_BASE_URL=https://<domaine-foretmap>` ; garder `MCP_SQL_ENABLED=false` ;
    `MCP_WRITE_ENABLED` vaut `true` sans variable (poser `false` pour couper l'écriture).
-3. **Recommandé** : un utilisateur MySQL en lecture seule (`GRANT SELECT` sur la base) dans
-   `DB_MCP_USER` / `DB_MCP_PASS` : c'est la seule garantie qui ne dépende pas de ce code. (Les
-   écritures `apply` et le stockage OAuth passent par le pool applicatif.)
+3. **Recommandé** (et **obligatoire** pour `foretmap_sql_select`) : un utilisateur MySQL dans
+   `DB_MCP_USER` / `DB_MCP_PASS`, avec **`GRANT SELECT` table par table** sur les seules tables de
+   contenu : `node scripts/mcp-print-grants.js --db <base> --user <compte> --check-db` imprime
+   les instructions, à exécuter avec un compte administrateur MySQL. C'est la seule garantie qui
+   ne dépende pas de ce code. (Les écritures `apply` et le stockage OAuth passent par le pool
+   applicatif.)
+
+   > ⚠️ **o2switch / cPanel** : l'écran « Bases de données MySQL » n'attribue les privilèges
+   > que **pour une base entière** ; il n'offre pas de `GRANT` par table, et le compte cPanel
+   > n'a en général pas les droits pour l'exécuter en SQL. **Ne donnez pas `SELECT` sur toute
+   > la base** à ce compte : il lirait `users`, le forum, les observations. Dans ce cas, laissez
+   > `DB_MCP_USER` vide et **`foretmap_sql_select` reste désactivé** — c'est le fonctionnement
+   > attendu, et les 20 autres outils restent disponibles (avec la liste blanche et la
+   > transaction `READ ONLY` comme barrières côté lecture). Si le support o2switch accepte de
+   > poser les `GRANT` par table, renseignez alors le compte.
+
 4. **Redémarrer** l'application (Passenger : `touch tmp/restart.txt` ou bouton « Restart »).
 5. **Vérifier** : `curl -i -X POST https://<domaine>/mcp` → `401` avec `WWW-Authenticate` ;
    `curl https://<domaine>/.well-known/oauth-authorization-server` ; puis MCP Inspector ou
@@ -407,8 +446,10 @@ node --test --test-concurrency=1 --test-force-exit tests/mcp-*.test.js
 - **Pas de gestion des connexions dans l'interface** : un compte ne voit pas (encore) la liste
   de ses connecteurs ; un admin coupe l'accès en retirant `mcp.use`, et la révocation est
   immédiate (le compte est revérifié à chaque requête).
-- **Pool lecture seule** recommandé mais facultatif : sans `DB_MCP_USER`, la transaction
-  `READ ONLY` et la liste blanche sont les seules barrières côté lecture.
+- **Pool lecture seule** recommandé mais facultatif pour les outils de lecture : sans
+  `DB_MCP_USER`, la transaction `READ ONLY` et la liste blanche (SQL écrit par le code des
+  outils, jamais par le modèle) sont les seules barrières. Obligatoire pour `foretmap_sql_select`,
+  qui reste donc indisponible sur un hébergement sans `GRANT` par table.
 - **Recherche** par `LIKE` (pas d'index plein texte) : suffisant pour quelques milliers de
   lignes ; `limit` par type ≤ 50.
 - **Niveaux G&L** : le contrôle `gl_case_levels_not_6e` admet `6e`, `cycle 3`, `college`,

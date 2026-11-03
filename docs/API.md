@@ -787,6 +787,8 @@ uniquement (404 sur `gl.*`, `plan.*`…). Détail, variables et mise en producti
 | POST    | `/oauth/token`                             | Client public (`client_id`)    | `application/x-www-form-urlencoded` (JSON toléré). `grant_type=authorization_code` (`code`, `code_verifier`, `redirect_uri`) ou `refresh_token` (rotation ; réutilisation → famille révoquée). **200** `{ access_token, token_type: "Bearer", expires_in, refresh_token, scope }` ; erreurs RFC 6749 (`invalid_grant`, `invalid_client` 401, `invalid_request`, `invalid_scope`, `unsupported_grant_type`). `Cache-Control: no-store` |
 | POST    | `/oauth/revoke`                            | Public                         | RFC 7009 : `token` (+ `client_id`) ; révoque la famille ; **200** même si inconnu                          |
 
+Lots JSON-RPC limités à 20 messages (**400**, code `-32600`) ; corps limité à 256 ko (**413**). En production sans `MCP_PUBLIC_BASE_URL`, toutes ces routes répondent **503**. Limiteurs : `/oauth/token` et `/oauth/revoke` 120/min par client. Les jetons sont révoqués dès que l'époque du compte change (mot de passe, désactivation).
+
 Isolation : un jeton `fmcp_…` présenté sur `/api/*` ou `/api/gl/*` reçoit **401**
 `{ code: "MCP_TOKEN" }` ; un JWT applicatif est refusé sur `/mcp` (`invalid_token`). Outils
 exposés et portées : [MCP.md § 4](MCP.md).
@@ -1325,7 +1327,7 @@ Ces droits sont assignables depuis la console **Profils & utilisateurs**.
 | `forum.group.moderate`         | Modération forum par groupe     | Modérer les fils/messages dans les groupes accessibles                                                          |
 | `mcp.use`                      | Connecteur Claude (MCP)         | Se connecter au connecteur MCP distant (`/mcp`) et lire le contenu pédagogique (admin, prof) — `docs/MCP.md`     |
 | `mcp.write`                    | Écriture par le connecteur MCP  | Plans de correction de contenu puis application (portée `foretmap.write`, **admin** seulement)                  |
-| `mcp.sql`                      | Requêtes SQL par le connecteur  | `foretmap_sql_select` (admin ; outil coupé par défaut, `MCP_SQL_ENABLED`)                                       |
+| `mcp.sql`                      | Requêtes SQL par le connecteur  | `foretmap_sql_select` (admin ; coupé par défaut : `MCP_SQL_ENABLED` **et** compte `DB_MCP_USER` requis)         |
 
 ### Profils système (droits par défaut)
 

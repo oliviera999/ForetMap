@@ -42,6 +42,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Constat : `gl_qcm_question_glossary` n'existe plus depuis la migration 186 ; l'audit
   `gl_qcm_glossary_link_divergence` compare les liens `import` de `gl_resource_question_links`
   à l'appariement actuel (et l'ancienne table si une base en retard l'a encore).
+- **Correctifs suite à la relecture de sécurité (03/11/2026)** :
+  - **B1** — `foretmap_sql_select` : analyse **syntaxique** (`lib/mcp/sqlAst.js`,
+    [`node-sql-parser`](https://github.com/taozhi8833998/node-sql-parser), Apache-2.0) à la place
+    des expressions régulières, qui laissaient passer `SELECT * FROM (users)` ; l'outil exige en
+    plus un compte MySQL dédié `DB_MCP_USER` avec `GRANT SELECT` par table de contenu
+    (`scripts/mcp-print-grants.js`), et reste indisponible sans lui ; test d'intégration MariaDB.
+  - **I1** — jetons liés à `users.token_epoch` (colonne `mcp_oauth_tokens.token_epoch`) :
+    changement de mot de passe, désactivation, réinitialisation TOTP → accès et refresh coupés ;
+    `bumpUserTokenEpoch` appelle `revokeAllForUser`.
+  - **I2** — `foretmap_tail_logs` / `foretmap_diagnostics` : UUID, identifiants de compte et IP
+    pseudonymisés (`lib/mcp/pseudonymize.js`).
+  - **M1** `Object.hasOwn` sur les tables de correspondance ; **M2** lots JSON-RPC ≤ 20 ;
+    **M3** étapes MFA/consentement liées à l'empreinte complète de la demande ; **M4** client
+    CIMD lu en base au point de jeton ; **M5** 503 en production sans `MCP_PUBLIC_BASE_URL` ;
+    **M6** fenêtres d'usage fixes ; **M7** `audit_log` dans la transaction d'`apply` et
+    revalidation des opérations ; **M8** limiteur `/oauth/token` et `/oauth/revoke`.
 - Inspiration : `@modelcontextprotocol/sdk` (MIT,
   https://github.com/modelcontextprotocol/typescript-sdk), RFC 9700, documentation connecteurs
   Claude (https://claude.com/docs/connectors/building/authentication).
