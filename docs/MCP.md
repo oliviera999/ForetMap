@@ -782,8 +782,12 @@ comme un fichier.
 
 ## 12. Activer en production
 
-Liste ordonnée, à suivre dans l'ordre. Les étapes marquées « facultatif » peuvent être
-sautées sans rien casser.
+> **Version simple (admins / hébergeur)** : guide pas à pas tous assistants —
+> [docs/reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md).
+> Contrôle automatique des endpoints : `npm run mcp:activate-check -- --base https://<domaine>`.
+
+Liste ordonnée technique, à suivre dans l'ordre. Les étapes marquées « facultatif » peuvent
+être sautées sans rien casser.
 
 1. **Fusion et migrations.** Fusionner les PR du connecteur ; le cron de déploiement applique
    `324_mcp_oauth.sql` et `325_mcp_exploitation.sql` (`DEPLOY_AUTO_MIGRATE=1`). Contrôler :
@@ -818,9 +822,11 @@ sautées sans rien casser.
 6. **WAF o2switch (Tiger Protect)** : autoriser la plage d'egress d'Anthropic
    **`160.79.104.0/21`** sur `/mcp`, `/oauth/*` et `/.well-known/oauth-*`, et vérifier que
    `WWW-Authenticate` n'est pas retiré (§ 8, « Dépannage »).
-7. **Vérifications `curl`** :
+7. **Vérifications** (script recommandé, ou `curl`) :
 
    ```bash
+   npm run mcp:activate-check -- --base https://<domaine-foretmap>
+   # équivalent manuel :
    curl -i -X POST https://<domaine-foretmap>/mcp          # 401 + WWW-Authenticate: Bearer resource_metadata="…"
    curl -s https://<domaine-foretmap>/.well-known/oauth-protected-resource/mcp
    curl -s https://<domaine-foretmap>/.well-known/oauth-authorization-server
@@ -836,11 +842,11 @@ sautées sans rien casser.
    MCP_SMOKE_PASSWORD=<mot de passe> [MCP_SMOKE_TOTP=<code>] npm run mcp:smoke
    ```
 
-9. **Ajouter le connecteur** :
-   - claude.ai (et Desktop, mobile) : Réglages → Connecteurs → Ajouter un connecteur
-     personnalisé → `https://<domaine-foretmap>/mcp` → Connecter ;
-   - Claude Code : `claude mcp add --transport http foretmap https://<domaine-foretmap>/mcp`,
-     puis `/mcp` → `foretmap` → Authenticate.
+9. **Ajouter le connecteur** (même URL `https://<domaine-foretmap>/mcp` pour tous) :
+   - claude.ai / Desktop / mobile ; Claude Code ; Cursor (`FORETMAP_MCP_URL`) ; ChatGPT ;
+     Gemini CLI — détail :
+     [reference/foretmap/activer-le-connecteur.md](reference/foretmap/activer-le-connecteur.md)
+     § « Partie B ».
 10. **Secrets du workflow** `health-check.yml` (GitHub → Settings → Secrets and variables →
     Actions) : `HEALTH_CHECK_URL=https://<domaine-foretmap>` et `HEALTH_CHECK_TOKEN` = la valeur
     de `MCP_HEALTH_TOKEN`. Lancer une fois Actions → _Health check_ → _Run workflow_.

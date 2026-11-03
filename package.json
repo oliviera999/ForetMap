@@ -218,6 +218,7 @@
     "gl:migrate:chapter-media": "node scripts/migrate-gl-chapter-media-urls.js",
     "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js",
     "mcp:diag": "node scripts/mcp-foretmap-diagnostics.mjs",
+    "mcp:activate-check": "node scripts/mcp-activate-check.mjs",
     "mcp:smoke": "node scripts/mcp-smoke.mjs",
     "prod:admin-tail": "node scripts/prod-admin-tail.js",
     "prod:admin-diagnostics": "node scripts/prod-admin-diagnostics.js",
