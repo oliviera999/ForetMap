@@ -15,11 +15,13 @@ import { PLAN_VARIANT, STAFF_PLAN_VARIANT } from './utils/planVariants.js';
  * @param {string} [method]
  * @param {unknown} [body]
  * @param {() => string|null} [getToken] jeton à signer — seul le plan des personnels en a un.
+ * @param {{ cache?: RequestCache }} [options] ex. `cache: 'no-store'` après déconnexion.
  */
-export async function planApi(path, method = 'GET', body, getToken = null) {
+export async function planApi(path, method = 'GET', body, getToken = null, options = {}) {
+  const { cache } = options;
   return fetchJsonWithRetry(
     path,
-    { method, body },
+    { method, body, ...(cache ? { cache } : {}) },
     {
       resolveUrl: withAppBase,
       ...(getToken ? { getToken } : {}),
@@ -47,12 +49,24 @@ export async function planApi(path, method = 'GET', body, getToken = null) {
  * interne) est d'abord échangé par `submitPlanAccessCode` — le code voyage dans le corps d'un
  * `POST` —, puis la charge est lue avec le seul laissez-passer. Une lecture `?code=` finissait
  * dans le cache du service worker et dans les journaux de requêtes.
+ *
+ * @param {string} [mapId]
+ * @param {object} [variant]
+ * @param {{ bypassCache?: boolean }} [options] `bypassCache` : lecture après déconnexion
+ *   (`cache: 'no-store'`) pour ne pas rouvrir le plan depuis une copie SW / HTTP.
  */
-export async function fetchPlanContent(mapId = '', variant = PLAN_VARIANT) {
+export async function fetchPlanContent(mapId = '', variant = PLAN_VARIANT, options = {}) {
   const params = new URLSearchParams();
   if (mapId) params.set('map_id', mapId);
   const suffix = params.toString() ? `?${params}` : '';
-  return planApi(`${variant.apiBase}/content${suffix}`, 'GET', undefined, variant.getToken);
+  const cache = options.bypassCache ? 'no-store' : undefined;
+  return planApi(
+    `${variant.apiBase}/content${suffix}`,
+    'GET',
+    undefined,
+    variant.getToken,
+    cache ? { cache } : {},
+  );
 }
 
 /**

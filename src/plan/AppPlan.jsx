@@ -140,6 +140,8 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
     viewer,
     reload,
     forgetLinkCode,
+    lockSession,
+    allowContent,
   } = usePlanContent(mapId, variant, {
     linkCode,
     onLinkCodeSettled: stripLinkCodeFromAddress,
@@ -1017,9 +1019,10 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
       // Le laissez-passer (cookie) est posé par la réponse du `POST` : la charge se relit sans
       // le code, qui n'a rien à faire dans l'adresse d'une lecture (cache du service worker,
       // journaux de requêtes).
+      allowContent();
       reload();
     },
-    [reload, variant],
+    [allowContent, reload, variant],
   );
 
   const dismissWelcome = useCallback(() => {
@@ -1071,24 +1074,27 @@ export function AppPlan({ variant = PLAN_VARIANT }) {
 
   /**
    * Déconnexion. Le serveur oublie le laissez-passer (cookie `HttpOnly`), l'appareil oublie
-   * le jeton du compte, puis la charge est redemandée : le serveur répond alors « connexion
-   * requise » et l'écran d'entrée revient de lui-même. Pas de `location.reload()` — le plan
-   * doit aussi se déconnecter hors ligne, sans dépendre d'un chargement de page.
+   * le jeton du compte, puis l'UI ferme la session tout de suite (`lockSession`) : le cache
+   * stale-while-revalidate du service worker (plan / e-nov) pouvait sinon resservir la charge
+   * et laisser le plan ouvert. La purge SW est attendue, puis une relecture `no-store`
+   * confirme la 401 sans rouvrir sur une copie périmée. Pas de `location.reload()`.
    *
    * Le code d'un lien (`?code=`) a quitté l'adresse dès son échange. S'il est encore en
    * attente (échange interrompu par le réseau), il part avec la session : rejoué au
    * rechargement, il reposerait le laissez-passer et la déconnexion n'aurait rien déconnecté.
    */
   const logout = useCallback(async () => {
-    // Charge hors ligne du plan/e-nov : ne doit pas survivre au rendu du laissez-passer.
-    // Staff : aucune API en cache (`PWA_PROFILES.staff`) — purge idempotente.
-    void purgeCachedPlanApi();
     await submitPlanLogout(variant);
     variant.clearToken?.();
     forgetLinkCode();
     stripLinkCodeFromAddress();
-    reload();
-  }, [forgetLinkCode, reload, variant]);
+    setSettingsOpen(false);
+    // Charge hors ligne du plan/e-nov : ne doit pas survivre au rendu du laissez-passer.
+    // Staff : aucune API en cache (`PWA_PROFILES.staff`) — purge idempotente.
+    await purgeCachedPlanApi();
+    lockSession();
+    await reload({ bypassCache: true });
+  }, [forgetLinkCode, lockSession, reload, variant]);
 
   /**
    * Un plan mémorisé qui n'est plus proposé (retiré des réglages, dépublié) répond `400`.

@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — déconnexion plan / plan e-nov : plus de plan qui reste ouvert
+
+- « Se déconnecter » fermait le cookie puis relisait la charge : le service worker
+  (stale-while-revalidate) ou le cache HTTP pouvait encore renvoyer le plan → l’écran de
+  code ne revenait pas, et le bouton restait coincé en chargement.
+- Correctifs : purge SW **attendue**, verrouillage immédiat de la porte (`lockSession`),
+  relecture en `cache: 'no-store'` (respectée par le SW), réarmement du bouton / fermeture
+  des réglages.
+- Tests : `tests-ui/plan/PlanSettingsSheet.test.jsx`, `tests/pwa-sw-template.test.js`.
+
 ### Corrigé — doublon de migration 326 sur `main`
 
 - `326_mcp_productivity.sql` renumérotée **`327_mcp_productivity.sql`** : #622 (`326_enov_deux_niveaux.sql`)

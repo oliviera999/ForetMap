@@ -424,9 +424,13 @@ function imageCacheFirst(request) {
  * quand le réseau a tranché) ; le chargement suivant renvoie à l'écran de code. Servir le
  * réseau d'abord supprimerait ce dernier affichage, mais au prix du hors-ligne, qui est la
  * raison d'être de cette stratégie.
+ *
+ * **Exception** : une requête en \`cache: 'no-store'\` ou \`'reload'\` (déconnexion plan /
+ * e-nov) ne reprend jamais la copie : sinon « Se déconnecter » laissait le plan ouvert.
  */
 function staleWhileRevalidate(request) {
   const key = cacheKeyFor(request);
+  const bypassCache = request.cache === 'no-store' || request.cache === 'reload';
   return caches.open(CACHE_NAME).then((cache) => cache.match(key).then((cached) => {
     const networkPromise = fetch(request)
       .then((response) => {
@@ -438,7 +442,7 @@ function staleWhileRevalidate(request) {
         return response;
       })
       .catch(() => null);
-    if (cached) {
+    if (cached && !bypassCache) {
       networkPromise.catch(() => {});
       return cached;
     }
