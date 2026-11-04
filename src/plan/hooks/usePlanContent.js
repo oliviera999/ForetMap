@@ -74,9 +74,15 @@ export function usePlanContent(
    * et le consommer ne doit pas relancer la charge.
    */
   const pendingLinkCodeRef = useRef(String(linkCode || '').trim());
+  /**
+   * Après « Se déconnecter », on tient la porte d'entrée même si une lecture renvoie encore
+   * 200 (copie SW / HTTP périmée). Levée seulement par un vrai 401, ou quand l'utilisateur
+   * saisit à nouveau un code / se reconnecte (`allowContent`).
+   */
+  const holdGateRef = useRef(false);
 
   const load = useCallback(
-    async (signal) => {
+    async (signal, { bypassCache = false } = {}) => {
       setLoading(true);
       try {
         const pendingLinkCode = pendingLinkCodeRef.current;
@@ -85,8 +91,14 @@ export function usePlanContent(
           pendingLinkCodeRef.current = '';
           onLinkCodeSettled?.(outcome);
         }
-        const data = await fetchPlanContent(mapId, variant);
+        const data = bypassCache
+          ? await fetchPlanContent(mapId, variant, { bypassCache: true })
+          : await fetchPlanContent(mapId, variant);
         if (signal?.aborted) return;
+        // Déconnexion : ignorer une 200 issue d'un cache qui n'a pas encore oublié la charge.
+        if (holdGateRef.current) {
+          return;
+        }
         setContent(data);
         setError(null);
         setAccessRequired(false);
@@ -96,14 +108,18 @@ export function usePlanContent(
         if (err?.status === 401 && err?.body?.auth_required) {
           // Refus malgré un jeton mémorisé : il ne vaut plus rien ici (expiré, accès retiré).
           if (variant.getToken?.()) variant.onTokenRefused?.();
+          holdGateRef.current = false;
           setAuthRequired(true);
           setCodeAvailable(!!err.body.code_available);
           setAccessKind(accessKindFromBody(err.body));
           setError(null);
+          setContent(null);
         } else if (err?.status === 401 && err?.body?.access_required) {
+          holdGateRef.current = false;
           setAccessRequired(true);
           setAccessKind(accessKindFromBody(err.body));
           setError(null);
+          setContent(null);
         } else {
           setError(err instanceof Error ? err : new Error(String(err)));
         }
@@ -149,6 +165,29 @@ export function usePlanContent(
     pendingLinkCodeRef.current = '';
   }, []);
 
+  /**
+   * Ferme la session côté UI tout de suite (porte code / compte), sans attendre une 401
+   * que le cache pourrait encore masquer.
+   */
+  const lockSession = useCallback(() => {
+    holdGateRef.current = true;
+    setContent(null);
+    setError(null);
+    setLoading(false);
+    if (variant.requiresAccount) {
+      setAuthRequired(true);
+      setAccessRequired(false);
+    } else {
+      setAccessRequired(true);
+      setAuthRequired(false);
+    }
+  }, [variant]);
+
+  /** Autorise à nouveau une charge 200 (après saisie de code / reconnexion). */
+  const allowContent = useCallback(() => {
+    holdGateRef.current = false;
+  }, []);
+
   return {
     content,
     places,
@@ -167,7 +206,9 @@ export function usePlanContent(
     map: content?.map || null,
     loading,
     error,
-    reload: useCallback(() => load(null), [load]),
+    reload: useCallback((opts) => load(null, opts), [load]),
     forgetLinkCode,
+    lockSession,
+    allowContent,
   };
 }

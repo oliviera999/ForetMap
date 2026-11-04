@@ -119,7 +119,7 @@ export async function fetchJsonWithRetry(path, request = {}, options = {}) {
 
 async function runFetchJsonLoop(
   path,
-  { method = 'GET', body, headers: extraHeaders } = {},
+  { method = 'GET', body, headers: extraHeaders, cache } = {},
   options = {},
   retryStatus,
 ) {
@@ -194,6 +194,9 @@ async function runFetchJsonLoop(
           headers,
           body: hasBody ? JSON.stringify(body) : undefined,
           signal: controller.signal,
+          // `no-store` / `reload` : après déconnexion plan/e-nov, éviter le cache HTTP et
+          // signaler au service worker de ne pas resservir une charge périmée (SWR).
+          ...(cache ? { cache } : {}),
         });
       } catch (err) {
         const isTransportFailure =

@@ -46,6 +46,10 @@ export function PlanSettingsSheet({
     setLogoutError('');
     try {
       await onLogout();
+      // Succès : remonter le bouton au cas où la feuille resterait un instant montée
+      // (course avec la porte d'entrée), sinon un second clic ne ferait plus rien.
+      setLoggingOut(false);
+      onClose?.();
     } catch (err) {
       // La déconnexion échoue → on le dit, plutôt que de laisser croire que l'appareil est
       // rendu. Le bouton redevient actionnable : c'est souvent un réseau coupé.
