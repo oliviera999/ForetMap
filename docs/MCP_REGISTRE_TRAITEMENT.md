@@ -139,14 +139,14 @@ n'est transmise à Claude (les journaux techniques ne portent que des pseudonyme
 
 ## 5. Destinataires
 
-| Destinataire                                       | Données                                                                                                                                                                       |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Le personnel connecté                              | Réponses des outils (contenu pédagogique, audits, agrégats)                                                                                                                   |
+| Destinataire                                       | Données                                                                                                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Le personnel connecté                              | Réponses des outils (contenu pédagogique, audits, agrégats)                                                                                                                                                   |
 | **Anthropic** (si client Claude)                   | Mêmes réponses, transmises au modèle : contenu pédagogique et agrégats **par défaut** ; avec **mode productivité**, périmètre élargi comme dans le tableau § 2. Trafic cloud souvent depuis `160.79.104.0/21` |
-| **OpenAI** (si client ChatGPT)                     | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte / espace de travail ChatGPT                                                            |
-| **Google** (si client Gemini CLI)                  | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte Google utilisé pour Gemini CLI                                                         |
-| Éditeur de l’IDE (si client Cursor sur le distant) | Les réponses transitent via l’infrastructure Cursor lorsque l’agent distant OAuth est utilisé                                                                                 |
-| Administrateurs du site                            | Journaux techniques (§ 6)                                                                                                                                                     |
+| **OpenAI** (si client ChatGPT)                     | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte / espace de travail ChatGPT                                                                                            |
+| **Google** (si client Gemini CLI)                  | Mêmes réponses (périmètre élargi en mode productivité), selon les conditions du compte Google utilisé pour Gemini CLI                                                                                         |
+| Éditeur de l’IDE (si client Cursor sur le distant) | Les réponses transitent via l’infrastructure Cursor lorsque l’agent distant OAuth est utilisé                                                                                                                 |
+| Administrateurs du site                            | Journaux techniques (§ 6)                                                                                                                                                                                     |
 
 **Le choix du client MCP = choix du sous-traitant IA.** Chaque fournisseur agit selon les
 conditions du compte utilisé. **À vérifier par le DPO** pour chaque client autorisé : nature
