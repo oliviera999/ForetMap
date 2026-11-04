@@ -315,4 +315,28 @@ describe('AppPlan — réglages : déconnexion', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Réseau indisponible');
     expect(screen.getByTestId('plan-logout').hasAttribute('disabled')).toBe(false);
   });
+
+  test('copie de charge encore 200 après logout : la porte reste fermée (pas de réouverture cache)', async () => {
+    const gated = {
+      ...CONTENT_LYAUTEY,
+      settings: { ...CONTENT_LYAUTEY.settings, access_mode: 'code' },
+    };
+    planApiMock.fetchPlanContent.mockResolvedValue(gated);
+    render(<AppPlan />);
+    await screen.findByRole('button', { name: 'Gymnase' });
+
+    await openSettings();
+    // Simule un SW stale-while-revalidate qui ressert encore la charge après clear cookie.
+    planApiMock.fetchPlanContent.mockResolvedValue(gated);
+    fireEvent.click(screen.getByTestId('plan-logout'));
+
+    await waitFor(() => expect(planApiMock.submitPlanLogout).toHaveBeenCalledTimes(1));
+    expect(await screen.findByLabelText('Code d’accès')).toBeTruthy();
+    expect(planApiMock.fetchPlanContent).toHaveBeenCalledWith(
+      '',
+      expect.anything(),
+      expect.objectContaining({ bypassCache: true }),
+    );
+    expect(screen.queryByRole('button', { name: 'Gymnase' })).toBeNull();
+  });
 });

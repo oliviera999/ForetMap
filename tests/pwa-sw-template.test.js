@@ -75,6 +75,8 @@ test('renderServiceWorker injecte le nom de cache et les listes (sans doublon de
 test('renderServiceWorker reprend les stratégies (HTML network-first, SWR, assets cache-first, SKIP_WAITING, purge)', () => {
   const source = renderServiceWorker(BASE_OPTIONS);
   assert.match(source, /function staleWhileRevalidate\(request\)/);
+  // Déconnexion plan/e-nov : ne pas resservir la copie quand fetch demande no-store/reload.
+  assert.match(source, /request\.cache === 'no-store' \|\| request\.cache === 'reload'/);
   assert.match(source, /function networkFirst\(request, fallback, options = \{\}\)/);
   assert.match(source, /const NETWORK_TIMEOUT_MS = 4000;/);
   assert.match(source, /function cacheFirst\(request\)/);
