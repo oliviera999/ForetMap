@@ -9,6 +9,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — livraison par PR obligatoire (plus de push direct sur `main`)
+
+- Règle Cursor **`foretmap-pr-workflow`** : tout lot de code passe par une branche + PR vers
+  `main` ; alignement `foretmap-conventions`, `CLAUDE.md`, skills release/versioning.
+
 ### Corrigé — déconnexion plan / plan e-nov : plus de plan qui reste ouvert
 
 - « Se déconnecter » fermait le cookie puis relisait la charge : le service worker

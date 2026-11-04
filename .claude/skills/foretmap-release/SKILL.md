@@ -7,11 +7,13 @@ description: Versionnage SemVer, CHANGELOG et workflow Git ForetMap (bump, commi
 
 ## Fin de chaque lot livrable (obligatoire)
 
-1. **CHANGELOG** : entrée sous `[Non publié]` décrivant le changement.
-2. **Commit** : `git add -A` (exclure `tmp/`, dumps SQL, secrets, `.bak`) puis commit, en
+1. **Branche** dédiée depuis `main` (pas de push direct sur `main` — règle
+   `.cursor/rules/foretmap-pr-workflow.mdc`).
+2. **CHANGELOG** : entrée sous `[Non publié]` décrivant le changement.
+3. **Commit** : `git add -A` (exclure `tmp/`, dumps SQL, secrets, `.bak`) puis commit, en
    **Conventional Commits** — le niveau SemVer en est déduit à la fusion (`feat` → mineur,
    `type!:` / `BREAKING CHANGE` → majeur, le reste → correctif).
-3. **Push** immédiat.
+4. **Push** de la branche + **PR vers `main`** (`gh pr create`).
 
 > **Ne pas bumper dans la PR.** `.github/workflows/release.yml` incrémente `package.json`
 > **après** la fusion sur `main`, puis, dans le même job, crée le tag et la release sur le commit

@@ -77,7 +77,8 @@ Après toute tâche terminée et vérifiée, **toujours** exécuter ces étapes 
    git push
    ```
 
-Ne pas attendre : **chaque modification livrée = un commit poussé**.
+Ne pas attendre : **chaque modification livrée = branche + commit poussé + PR vers `main`**
+(règle `.cursor/rules/foretmap-pr-workflow.mdc` ; pas de push direct sur `main`).
 
 ## PowerShell : commits multi-lignes sans heredoc Bash
 
