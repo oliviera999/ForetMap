@@ -135,8 +135,9 @@ Rien de tout cela ne modifie le site.
   juridique** (DPO, information des familles, compte Claude d'organisation, etc.), activer une
   option qui permet à Claude de **lire l'identité et l'activité récente d'élèves** via le
   connecteur — ce qui **n'est pas** le fonctionnement normal. Chaque consultation est tracée.
-  Les **secrets** (mot de passe, double authentification, jetons) restent **interdits** dans
-  les réponses. Ne demandez jamais à Claude de « lister tous les élèves » tant que cette option
+  Les **secrets** (mot de passe, double authentification, jetons) restent **interdits** :
+  l’assistant ne peut ni les lire, ni les écrire ou les remplacer par une requête. Ne demandez
+  jamais à Claude de « lister tous les élèves » tant que cette option
   n'a pas été explicitement validée par la direction et le DPO.
 - La connexion par **Google** n'est pas proposée sur la page du connecteur : un compte qui se
   connecte uniquement par Google doit d'abord se créer un mot de passe sur le site.

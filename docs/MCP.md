@@ -918,6 +918,9 @@ d'autorisation RBAC/OAuth/MCP, dépassement de `MCP_SQL_MAX_AFFECTED_ROWS` aprè
 - Réponse inclut une **`migration_sql`** idempotente à verser par PR pour le corpus semé (comme
   plan → apply).
 - Permission **`mcp.sql_execute`** (profil admin) **et** `MCP_SQL_WRITE_ENABLED=true` requis.
+- Colonnes secrètes (`password_hash`, jetons, secrets) refusées **aussi** dans la liste d’un
+  `INSERT` / `REPLACE`. Un `INSERT` / `REPLACE` **sans** liste de colonnes est refusé : il
+  écrirait toutes les colonnes de la table, hachage compris, sans les nommer.
 
 ### Bypass nominatif élèves
 

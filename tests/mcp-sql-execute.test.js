@@ -90,6 +90,20 @@ test('classify : table protégée et colonne secrète', () => {
     () => classifySql("UPDATE users SET password_hash = 'x' WHERE id = 'a'"),
     McpToolError,
   );
+  // La liste `(col, …)` d’un INSERT / REPLACE n’est pas des column_ref : sans relevé,
+  // on pouvait poser un hachage connu (prise de compte) malgré le garde-fou.
+  for (const sql of [
+    "INSERT INTO users (id, password_hash) VALUES ('a', 'x')",
+    "INSERT INTO users (`password_hash`) VALUES ('x')",
+    "REPLACE INTO users (id, email, password_hash) VALUES ('a', 'e@e.e', 'x')",
+    "INSERT INTO users VALUES ('a', 'x')",
+    "REPLACE INTO users VALUES ('a')",
+  ]) {
+    assert.throws(() => classifySql(sql), McpToolError, sql);
+  }
+  const contentInsert = classifySql("INSERT INTO plants (name) VALUES ('romarin')");
+  assert.equal(contentInsert.subtype, 'insert');
+  assert.deepEqual(contentInsert.columns, ['name']);
 });
 
 test('DML UPDATE dry_run puis réel', async () => {
