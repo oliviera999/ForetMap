@@ -383,7 +383,10 @@ test('authorize : compte sans mcp.use refusé à la connexion', async () => {
   assert.match(flow.html, /pas accès au connecteur/);
 });
 
-test('consentement : écran affiche hôte et portées ; un prof ne reçoit que la lecture', async () => {
+test('consentement (admin_only, verrouillé par env) : un prof ne reçoit que la lecture', async (t) => {
+  // Politique historique : `MCP_WRITE_SCOPE_POLICY=admin_only` verrouille `mcp.write_scope_policy`.
+  process.env.MCP_WRITE_SCOPE_POLICY = 'admin_only';
+  t.after(() => delete process.env.MCP_WRITE_SCOPE_POLICY);
   const clientId = await fx.registerClient(app, [fx.CLAUDE_CALLBACK]);
   const pkce = fx.pkcePair();
   const flow = await fx.authorizeFlow(app, {
@@ -539,7 +542,9 @@ test('refresh : rotation, ancien refresh refusé, réutilisation → famille ré
   assert.equal((await refresh(r1.body.refresh_token)).body.error, 'invalid_grant');
 });
 
-test('refresh : portée réduite quand mcp.write a été retirée', async () => {
+test('refresh (admin_only) : portée réduite quand mcp.write a été retirée', async (t) => {
+  process.env.MCP_WRITE_SCOPE_POLICY = 'admin_only';
+  t.after(() => delete process.env.MCP_WRITE_SCOPE_POLICY);
   const other = await fx.createAccount('admin');
   const tokens = await fx.obtainTokens(app, other);
   assert.equal(tokens.scope, 'foretmap.read foretmap.write');
