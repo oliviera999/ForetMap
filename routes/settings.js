@@ -433,6 +433,9 @@ router.put(
 // `lib/terrain/mapService.js` (étape B4 de l'audit du 25/09/2026, § 3.1), mêmes URL.
 router.use('/admin/maps', require('./maps-admin'));
 
+// Connecteur Claude (lot E) : état, outils exposés, activité, « Couper l'écriture ».
+router.use('/admin/mcp', require('./mcpAdmin'));
+
 router.get(
   '/admin/media-library',
   requirePermission('admin.settings.read'),

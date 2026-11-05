@@ -28,6 +28,28 @@ export const SECTION_DEFS = {
  * éditeurs contradictoires pour le même réglage.
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
+  // Connecteur Claude (McpConnectorPanel) : valeur effective, source et verrou par variable
+  // d'environnement — la grille générique ne sait pas afficher le verrou.
+  'mcp.write_mode',
+  'mcp.write_scope_policy',
+  'mcp.api_bridge_enabled',
+  'mcp.api_bridge_methods',
+  'mcp.api_bridge_sensitive_auth',
+  'mcp.domains_disabled',
+  'mcp.sql_select_enabled',
+  'mcp.sql_select_pool',
+  'mcp.sql_write_enabled',
+  'mcp.sql_ddl_enabled',
+  'mcp.sql_max_affected_rows',
+  'mcp.confirm_mode',
+  'mcp.privacy_bypass',
+  'mcp.privacy_bypass_ack',
+  'mcp.privacy_reads_audit_details',
+  'mcp.ops_enabled',
+  'mcp.files_enabled',
+  'mcp.max_rows',
+  'mcp.max_output_chars',
+  'mcp.tool_profile',
   'ui.visit.mascot.default_id',
   // Calendrier scolaire (SchoolCalendarPanel) : écrire la clé seule ne recalculerait pas les
   // jours déjà posés en base.
