@@ -4,23 +4,14 @@ const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { nowDbTimestamp } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { deleteFile, writeBufferToDisk } = require('../lib/uploads');
-const { deletePublicUploadThumb } = require('../lib/imageThumb');
 const { respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { logAudit } = require('../lib/auditLog');
 const { emitTasksChanged } = require('../lib/realtime');
-const { getActor } = require('../lib/shared/participationGuards');
-const { listTaskAssigneeIds } = require('../lib/notifications');
-const {
-  fireAndForget,
-  notifyTaskStatusChange,
-  notifyTaskDeleted,
-} = require('../lib/notificationEvents');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
 const { syncTaskSpecies, loadTaskSpeciesMap } = require('../lib/speciesJunction');
 const dbSpecies = { queryAll, queryOne, execute, withTransaction };
-const { syncProgressionForValidatedTask } = require('../lib/rbac');
 const {
   normalizeTaskStatusForRead,
   normalizeTaskCompletionMode,
@@ -36,16 +27,12 @@ const {
   setTaskTutorials,
   setTaskReferents,
   syncLegacyLocationColumns,
-  getTaskProposerStudentId,
   fetchZonesForTasks,
   fetchMarkersForTasks,
   fetchTutorialsForTasks,
   fetchReferentsForTasks,
   getTaskWithAssignments,
   getTaskProject,
-  getTaskZoneIds,
-  getTaskMarkerIds,
-  persistDetachedLocationsSnapshot,
 } = require('../lib/tasks/taskQueries');
 const {
   TaskRuleError,
@@ -58,7 +45,12 @@ const {
 } = require('../lib/tasks/taskService');
 const { withEditRevision } = require('../lib/editRevision');
 const {
-  resolveTaskMapId,
+  TaskActionError,
+  deleteTaskAction,
+  setTaskArchivedAction,
+  validateTaskAction,
+} = require('../lib/tasks/taskActions');
+const {
   parseTaskDangerLevelFromClient,
   parseTaskDifficultyLevelFromClient,
   parseTaskImportanceLevelFromClient,
@@ -90,7 +82,6 @@ const {
   computeNextStartWithoutDue,
   hasNoDueDate,
   createOpenDayResolver,
-  spawnRecurringTaskOnValidation,
 } = require('../lib/recurringTasks');
 const { getSettingValue } = require('../lib/settings');
 const { signUploadRelativePath } = require('../lib/uploadsSignedUrls');
@@ -809,60 +800,23 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+/** Traduit une `TaskActionError` (règle métier) en réponse HTTP ; relance le reste. */
+function sendTaskActionError(res, err) {
+  if (err instanceof TaskActionError) return res.status(err.status).json({ error: err.message });
+  throw err;
+}
+
+// Suppression, archivage, désarchivage et validation : logique dans `lib/tasks/taskActions.js`
+// (extraite à l'identique, lot D du connecteur Claude), partagée avec les outils MCP.
 router.delete(
   '/:id',
   requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    // Lus avant la transaction : la suppression efface les inscriptions.
-    const deletedAssigneeIds = await listTaskAssigneeIds(task.id);
-    const deletedProposerId =
-      normalizeTaskStatusForRead(task.status) === 'proposed'
-        ? await getTaskProposerStudentId(task.id)
-        : null;
-    // Suppression atomique : sans transaction, un échec entre deux DELETE laissait une tâche
-    // amputée de ses logs/assignations (les écritures composées de ce fichier — POST/PUT/validate —
-    // sont déjà transactionnelles).
-    const logImagePaths = await withTransaction(async (tx) => {
-      const rows = await tx.queryAll(
-        "SELECT image_path FROM task_logs WHERE task_id = ? AND image_path IS NOT NULL AND image_path <> ''",
-        [req.params.id],
-      );
-      await tx.execute('DELETE FROM task_logs WHERE task_id = ?', [req.params.id]);
-      await tx.execute('DELETE FROM task_assignments WHERE task_id = ?', [req.params.id]);
-      await tx.execute('DELETE FROM tasks WHERE id = ?', [req.params.id]);
-      return rows.map((r) => r.image_path);
-    });
-    // Fichiers supprimés après validation seulement : un retour arrière garderait sinon une
-    // tâche sans sa couverture ni les photos de ses rapports.
-    if (task.image_path) {
-      deleteFile(task.image_path);
-      deletePublicUploadThumb(task.image_path);
+    try {
+      res.json(await deleteTaskAction(req.params.id, { req }));
+    } catch (err) {
+      sendTaskActionError(res, err);
     }
-    for (const relativePath of logImagePaths) deleteFile(relativePath);
-    logAudit('delete_task', 'task', req.params.id, task.title, { req });
-    emitTasksChanged({
-      reason: 'delete_task',
-      taskId: req.params.id,
-      mapId: resolveTaskMapId(task),
-    });
-    fireAndForget(
-      () =>
-        notifyTaskDeleted({
-          task: { ...task, status: normalizeTaskStatusForRead(task.status) },
-          assigneeIds: deletedAssigneeIds,
-          proposerId: deletedProposerId,
-          actorUserId: getActor(req.auth)?.userId || null,
-        }),
-      { taskId: task.id },
-    );
-    const delProjectId =
-      task.project_id != null && String(task.project_id).trim()
-        ? String(task.project_id).trim()
-        : null;
-    await syncTaskProjectCompletionForProjects([delProjectId]);
-    res.json({ success: true });
   }),
 );
 
@@ -870,38 +824,11 @@ router.delete(
 // L'archivage est réversible (POST /:id/unarchive) et n'altère ni le statut ni les
 // données liées (assignations, logs, zones). Réservé à la gestion (tasks.manage).
 async function setTaskArchivedState(req, res, { archive }) {
-  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-  const alreadyArchived = task.archived_at != null;
-  if (archive === alreadyArchived) {
-    // Idempotent : renvoyer l'état courant sans réécrire ni ré-émettre.
-    return res.json(await getTaskWithAssignments(task.id));
+  try {
+    res.json(await setTaskArchivedAction(req.params.id, { archive, req }));
+  } catch (err) {
+    sendTaskActionError(res, err);
   }
-  if (archive) {
-    // Archivage manuel : marqueur cascade à 0 (ne sera pas restauré par le désarchivage
-    // d'un projet — seul un désarchivage individuel le rétablit).
-    await execute('UPDATE tasks SET archived_at = NOW(), archived_via_project = 0 WHERE id = ?', [
-      req.params.id,
-    ]);
-  } else {
-    await execute('UPDATE tasks SET archived_at = NULL, archived_via_project = 0 WHERE id = ?', [
-      req.params.id,
-    ]);
-  }
-  const projectId =
-    task.project_id != null && String(task.project_id).trim()
-      ? String(task.project_id).trim()
-      : null;
-  logAudit(archive ? 'archive_task' : 'unarchive_task', 'task', req.params.id, task.title, { req });
-  emitTasksChanged({
-    reason: archive ? 'archive_task' : 'unarchive_task',
-    taskId: req.params.id,
-    projectId,
-    mapId: resolveTaskMapId(task),
-  });
-  // Une tâche archivée ne compte plus dans la complétion du projet (et inversement).
-  await syncTaskProjectCompletionForProjects([projectId]);
-  res.json(await getTaskWithAssignments(task.id));
 }
 
 router.post(
@@ -920,54 +847,17 @@ router.post(
   '/:id/validate',
   requirePermission('tasks.validate'),
   asyncHandler(async (req, res) => {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.archived_at != null) {
-      return res.status(409).json({ error: 'Désarchivez la tâche avant de la valider' });
+    try {
+      res.json(await validateTaskAction(req.params.id, { req }));
+    } catch (err) {
+      sendTaskActionError(res, err);
     }
-    const currentStatus = normalizeTaskStatusForRead(task.status);
-    if (currentStatus === 'validated') {
-      return res.status(400).json({ error: 'Tâche déjà validée' });
-    }
-    const zonesBeforeValidate = await getTaskZoneIds(task.id);
-    const markersBeforeValidate = await getTaskMarkerIds(task.id);
-    // Écritures atomiques : snapshot récurrence + détachement zones/repères + statut
-    // dans UNE transaction — un échec au milieu ne doit pas laisser une tâche
-    // « validée » encore liée, ni détachée sans être validée.
-    await withTransaction(async (tx) => {
-      await persistDetachedLocationsSnapshot(
-        task.id,
-        zonesBeforeValidate,
-        markersBeforeValidate,
-        tx,
-      );
-      // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
-      await setTaskZones(task.id, [], tx);
-      await setTaskMarkers(task.id, [], tx);
-      await syncLegacyLocationColumns(task.id, [], [], tx);
-      await tx.execute("UPDATE tasks SET status = 'validated', validated_at = NOW() WHERE id = ?", [
-        req.params.id,
-      ]);
-    });
-    logAudit('validate_task', 'task', req.params.id, task.title, { req });
-    await syncProgressionForValidatedTask(task.id);
-    const updated = await getTaskWithAssignments(task.id);
-    emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    fireAndForget(
-      () =>
-        notifyTaskStatusChange({
-          task: updated,
-          previousStatus: currentStatus,
-          actorUserId: getActor(req.auth)?.userId || null,
-        }),
-      { taskId: task.id },
-    );
-    await syncTaskProjectCompletionForProjects([task.project_id]);
-    fireAndForget(() => spawnRecurringTaskOnValidation(task.id), { taskId: task.id });
-    res.json(updated);
   }),
 );
 
+// Gestion ajoutée pour le connecteur Claude (lot D) : duplication, occurrence suivante d'une
+// série, compte rendu de la gestion (`/:id/duplicate`, `/:id/recurrence/spawn`, `/:id/logs`).
+router.use(require('./tasks/extras'));
 // O10 — sous-domaine propositions de tâches (POST /proposals par les n3beurs) extrait en sous-routeur dédié (chemins inchangés).
 router.use(require('./tasks/proposals'));
 // O10 — sous-domaine assignations (assign / assign-group / done / unassign) extrait en sous-routeur dédié (chemins inchangés).
