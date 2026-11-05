@@ -129,8 +129,19 @@ export async function runSmoke({
   if (!/name="step" value="consent"/.test(html)) fail('Écran de consentement attendu');
   step('connexion + consentement affiché');
   res = await post({ ...fields(html), decision: 'approve' });
-  if (res.status !== 302) fail(`redirection attendue après consentement (${res.status})`);
-  const back = new URL(res.headers.get('location'));
+  // Depuis le correctif CSP de Chrome (`form-action`), le retour vers le client est une page
+  // 200 avec `<meta http-equiv="refresh">` (et un lien) au lieu d'une redirection 302 ;
+  // les deux formes sont acceptées.
+  let backUrl = null;
+  if (res.status === 302 || res.status === 303) {
+    backUrl = res.headers.get('location');
+  } else if (res.status === 200) {
+    const page = await res.text();
+    const meta = page.match(/http-equiv=["']refresh["'][^>]*content=["'][^"']*url=([^"']+)["']/i);
+    backUrl = meta ? meta[1].replace(/&amp;/g, '&') : null;
+  }
+  if (!backUrl) fail(`redirection attendue après consentement (${res.status})`);
+  const back = new URL(backUrl);
   if (back.searchParams.get('state') !== state) fail('state non renvoyé');
   const code = back.searchParams.get('code');
   if (!code) fail(`pas de code : ${back.search}`);

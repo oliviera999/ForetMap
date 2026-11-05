@@ -87,6 +87,7 @@ describe('uploadsPrivatePaths — classification des chemins', () => {
       'gl-forum-posts',
       'gl-player-journal',
       'gl_players',
+      'mcp-exports',
       'observations',
       'student',
       'students',
