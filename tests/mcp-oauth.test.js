@@ -309,8 +309,8 @@ test('authorize : PKCE S256 obligatoire, redirect_uri vérifiée avant toute red
       }),
       code_challenge_method: 'plain',
     });
-  assert.equal(plain.status, 302);
-  const loc = new URL(plain.headers.location);
+  assert.equal(plain.status, 200);
+  const loc = fx.parseOAuthRedirect(plain);
   assert.equal(loc.searchParams.get('error'), 'invalid_request');
   assert.equal(loc.searchParams.get('state'), 'st4te');
 
@@ -335,7 +335,7 @@ test('authorize : PKCE S256 obligatoire, redirect_uri vérifiée avant toute red
         resource: 'https://ailleurs.example/mcp',
       }),
     );
-  assert.equal(new URL(badResource.headers.location).searchParams.get('error'), 'invalid_target');
+  assert.equal(fx.parseOAuthRedirect(badResource).searchParams.get('error'), 'invalid_target');
 });
 
 test('authorize : CSRF exigé, mauvais mot de passe refusé, refus utilisateur', async () => {
@@ -367,8 +367,8 @@ test('authorize : CSRF exigé, mauvais mot de passe refusé, refus utilisateur',
     .set('Cookie', cookie)
     .type('form')
     .send({ ...fields, decision: 'deny' });
-  assert.equal(deny.status, 302);
-  assert.equal(new URL(deny.headers.location).searchParams.get('error'), 'access_denied');
+  assert.equal(deny.status, 200);
+  assert.equal(fx.parseOAuthRedirect(deny).searchParams.get('error'), 'access_denied');
 });
 
 test('authorize : compte sans mcp.use refusé à la connexion', async () => {
@@ -393,7 +393,7 @@ test('consentement : écran affiche hôte et portées ; un prof ne reçoit que l
     scope: 'foretmap.read foretmap.write offline_access',
     pkce,
   });
-  assert.equal(flow.status, 302);
+  assert.equal(flow.status, 200);
   assert.equal(flow.state, 'st4te');
   assert.equal(flow.location.origin + flow.location.pathname, fx.CLAUDE_CALLBACK);
   assert.match(flow.consentHtml, /claude\.ai/);
@@ -614,7 +614,7 @@ test('TOTP : un compte enrôlé passe par le second facteur', async () => {
     pkce,
     totp: async () => nextCode(),
   });
-  assert.equal(flow.status, 302, flow.html);
+  assert.equal(flow.status, 200, flow.html);
   assert.ok(flow.code);
 });
 

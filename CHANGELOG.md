@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — OAuth MCP : retour client sans 302 (contournement CSP Chrome)
+
+- Après « Autoriser » / « Refuser », réponse **200 HTML** avec `<meta refresh>` + lien
+  au lieu d’un `302 Location`. Chrome appliquait `form-action` à toute la chaîne de
+  redirections et bloquait le retour vers `localhost:8787` / `cursor.com` (message
+  trompeur sur `/oauth/authorize`).
+- Tests / fixtures mis à jour (`parseOAuthRedirect`).
+
 ### Corrigé — OAuth MCP : bouton « Autoriser » qui ne redirige pas (Cursor)
 
 - CSP `form-action` des pages `/oauth/*` : autorise `http://localhost:*`,
