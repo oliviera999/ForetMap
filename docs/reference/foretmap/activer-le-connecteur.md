@@ -7,7 +7,8 @@
 
 ## En deux temps
 
-1. **Côté site** (une seule fois) : allumer le connecteur sur le serveur.
+1. **Côté site** (une seule fois) : allumer le connecteur sur le serveur, puis le régler
+   depuis l’administration si besoin.
 2. **Côté assistant** (par personne) : ajouter l’adresse du site et se connecter avec son
    compte enseignant ou admin.
 
@@ -35,7 +36,9 @@ serveur), ajouter au minimum :
 Recommandé aussi : un jeton long pour le rapport de santé (`MCP_HEALTH_TOKEN`), et vérifier
 que l’envoi d’e-mails (`SMTP_…`) fonctionne si vous voulez les alertes.
 
-Gardez `MCP_SQL_ENABLED` à `false` sauf besoin particulier (réglage avancé).
+N’ajoutez **pas** d’autre réglage `MCP_…` : tout le reste se règle depuis l’administration du
+site (partie B). Un réglage `MCP_…` posé sur le serveur **verrouille** l’option correspondante :
+elle apparaît alors grisée, « fixé par le serveur », et ne se change plus que sur le serveur.
 
 ### A3. Redémarrer l’application
 
@@ -76,7 +79,56 @@ Dans **Profils & utilisateurs**, les profils admin et n3boss ont en général la
 
 ---
 
-## Partie B — Brancher un assistant (même adresse pour tous)
+## Partie B — Régler le connecteur (administration du site)
+
+**Réglages → Exploitation → « Connecteur Claude ».** Tout y est **ouvert par défaut** : Claude
+peut lire et modifier le site, comme la personne connectée.
+
+Pour chaque option, vous voyez sa valeur, d’où elle vient (**serveur** = fixée par une
+variable d’environnement, grisée ; **réglage** = choisie ici ; **défaut**) et une phrase
+d’aide. Les principales :
+
+| Option                                    | Ce qu’elle change                                                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Écritures par Claude                      | Appliquées tout de suite (défaut), ou proposées en plan à valider avant application                    |
+| Qui peut écrire par Claude                | Chacun avec ses droits dans le site (défaut), ou les administrateurs seulement                         |
+| Claude peut utiliser toutes les fonctions | Créer, valider, archiver… exactement comme dans le site                                                |
+| Domaines retirés                          | Retirer un domaine entier à Claude (ex. `students`, `ops`)                                             |
+| Lecture / correction SQL                  | Réservées aux administrateurs ; la correction SQL contourne les règles du site : à garder pour réparer |
+| Code par e-mail                           | Jamais (défaut), pour les actions sensibles, ou pour toute écriture                                    |
+| Données nominatives des élèves            | Lisibles et modifiables par les administrateurs (défaut) ; chaque lecture est notée au journal         |
+| Exploitation                              | Tâches planifiées, mises à jour de la base, redémarrage, sauvegardes (administrateurs)                 |
+
+L’encart d’état indique combien d’outils voit un administrateur, un n3boss et un prof de
+classe, si les données nominatives sont accessibles, et les **vingt dernières actions** faites
+par Claude (qui, quel outil, quelle action, quand).
+
+Le bouton **« Couper l’écriture »** arrête d’un geste toute modification par Claude (fonctions du
+site, correction SQL, écritures de contenu passées en plan à valider). Les lectures restent
+possibles. Pour rouvrir, remettez les options une par une.
+
+### Ce qu’un professeur peut faire par Claude
+
+Avec le réglage par défaut, un n3boss connecté au connecteur peut faire par Claude **ce qu’il
+peut déjà faire dans le site, et rien de plus** : créer et valider des tâches, gérer ses
+projets, ses groupes, les fiches espèces… Si le site lui refuse une action, Claude reçoit le
+même refus. Un prof de classe n’a pas le connecteur par défaut (permission « Connecteur MCP » à
+lui accorder si besoin).
+
+Restent **réservés à l’administrateur** : la lecture et la correction de la base en SQL, les
+données nominatives des élèves, l’exploitation (redémarrage, mises à jour, sauvegardes) et
+l’écriture directe des champs de contenu.
+
+### Ce qui ne change jamais
+
+- Les mots de passe, codes de double authentification, jetons et secrets du serveur ne sortent
+  **jamais** vers l’assistant.
+- Tout ce que Claude modifie, et chaque lecture de données d’élèves, est **noté au journal**
+  avec la mention « via Claude ».
+
+---
+
+## Partie C — Brancher un assistant (même adresse pour tous)
 
 Adresse à utiliser partout :
 
@@ -133,6 +185,8 @@ Dans l’assistant, essayez par exemple :
 - « Fais une revue du contenu pédagogique du site »
 - « Cherche l’espèce [nom] »
 - (admin) « Comment va le site ? »
+- « Liste les tâches à valider de la carte [nom] » puis « Valide la tâche [titre] »
+- « Exporte le bilan des tâches de l’année en tableur »
 
 Si l’assistant dit qu’il n’a pas d’outils ou que la connexion a échoué : revérifiez la
 partie A avec `npm run mcp:activate-check`, puis retirez et rajoutez le connecteur côté
@@ -145,11 +199,13 @@ assistant.
 - Ce que vous écrivez à l’assistant et les réponses du connecteur passent chez le
   **fournisseur de cet assistant** (Anthropic, OpenAI, Google, Cursor…). Voir la fiche
   registre et le DPO avant d’ouvrir largement.
-- Aucune donnée d’élève nominative n’est exposée en mode normal. Des options avancées
-  (mode productivité) existent pour les admins : elles restent **éteintes** tant qu’on ne
-  les allume pas volontairement.
+- Les données nominatives des élèves sont **accessibles aux administrateurs par défaut**
+  (option « Données nominatives des élèves »). Avant de s’en servir, voir la fiche registre et
+  le DPO ; pour les couper, décochez l’option (ou posez `MCP_PRIVACY_BYPASS=false` sur le
+  serveur pour les verrouiller).
 - Pour **couper** le connecteur pour tout le monde : `MCP_ENABLED=false` puis redémarrer.
-  Pour un seul compte : retirer la permission « Connecteur MCP ».
+  Pour un seul compte : retirer la permission « Connecteur MCP ». Pour arrêter seulement les
+  modifications : bouton « Couper l’écriture » (partie B).
 
 ## Pour les curieux
 

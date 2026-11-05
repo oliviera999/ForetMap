@@ -90,32 +90,42 @@ régulières, contournables (`SELECT * FROM (users)`) ; la contre-vérification 
 montré que l'analyse syntaxique seule laissait passer un commentaire exécutable MariaDB. Il
 était désactivé par défaut et n'a jamais été déployé.
 
-### Mode productivité (drapeaux serveur — optionnel)
+### Accès complet, ouvert par défaut (décision du 05/11/2026)
 
-Ces réglages (`docs/MCP.md` § 2 et § 13) **ne changent pas** la finalité du connecteur ; ils
-autorisent des **outils ou flux supplémentaires** réservés aux administrateurs. Tant qu'ils
-restent aux valeurs protégées par défaut, **rien** de ce qui suit n'est transmis à Anthropic.
+Depuis le 05/11/2026, le connecteur permet de **réellement tout faire** sur ForêtMap depuis
+Claude (`docs/MCP.md` § 4, § 6 et § 13) : lire et modifier les tâches, projets, élèves,
+groupes, tutoriels, quiz, espèces, cartes, plans, réglages et droits, et piloter l'exploitation.
+Tout est **ouvert par défaut** et réglable par l'administration (clés `mcp.*`), chaque clé
+pouvant être verrouillée par une variable d'environnement. La **finalité est élargie** : au-delà
+de la revue du contenu pédagogique, le connecteur sert à la **gestion courante du site** par le
+personnel (tâches et projets, inscriptions, suivi des élèves et des classes, modération,
+réglages, exploitation).
 
-| Drapeau / permission                              | Effet côté serveur                                                                                        | Ce qui peut être transmis à **Anthropic** (dans la conversation du personnel)                                                                                    |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_WRITE_REQUIRE_PLAN=false`                    | Expose `foretmap_content_change` (écriture directe de contenu, même liste blanche)                        | Uniquement du **contenu pédagogique** corrigé (textes, crédits, liaisons espèce ↔ zone…) — pas de comptes élèves                                                 |
-| `MCP_SQL_WRITE_ENABLED` + `mcp.sql_execute`       | Expose `foretmap_sql_execute`                                                                             | Résultats d'une instruction SQL (lignes affectées, échantillon de lignes, `migration_sql`) : **peut contenir des données** selon la requête ; secrets masqués    |
-| `MCP_SQL_DDL_ENABLED`                             | Autorise DDL/DCL dans `foretmap_sql_execute`                                                              | Métadonnées de schéma / messages d'erreur SQL — pas de listes nominatives d'élèves en soi                                                                        |
-| `MCP_SQL_MAX_AFFECTED_ROWS`                       | Plafond avant confirmation                                                                                | Aucun transfert supplémentaire : borne technique                                                                                                                 |
-| `MCP_CONFIRM_REQUIRED=false`                      | Pas de code e-mail avant certaines exécutions SQL sensibles                                               | Aucune donnée en plus ; **moins** de friction, donc risque opérationnel accru pour le même contenu SQL                                                           |
-| `MCP_PRIVACY_BYPASS` + ACK + `mcp.privacy_bypass` | Outils `foretmap_list_students`, `foretmap_get_student` ; seuils « &lt;5 » levés sur les agrégats d'usage | **Données nominatives d'élèves** (identité, e-mail, groupes, activité récente) et agrégats finement détaillés — **jamais** mots de passe, hachages, TOTP, jetons |
+| Capacité (réglage)                                                         | Effet côté serveur                                                                          | Ce qui peut être transmis au fournisseur IA (dans la conversation du personnel)                                                                                                                                                             |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pont API et outils de domaine (`mcp.api_bridge_enabled`)                   | Toute route `/api/*` ForêtMap appelée avec les **droits applicatifs** du compte             | Ce que le compte verrait dans l'application ; noms d'élèves seulement si le bypass est actif pour ce compte                                                                                                                                 |
+| Bypass RGPD (`mcp.privacy_bypass`, permission `mcp.privacy_bypass`, admin) | Actions nominatives (élèves, inscriptions, comptes rendus, carnets, forum, journal d'audit) | **Données nominatives d'élèves** : identité, groupes, tâches, comptes rendus, réussite aux quiz, lectures, observations, nombre d'articles de carnet, messages de forum, journal d'audit — **jamais** mots de passe, hachages, TOTP, jetons |
+| SQL (`mcp.sql_*`, permissions `mcp.sql`, `mcp.sql_execute`)                | Lecture SQL (pool principal en READ ONLY sans compte dédié), écriture SQL (corrections)     | Résultats de requêtes ; secrets refusés et masqués                                                                                                                                                                                          |
+| Exports et sauvegardes (`foretmap_export`, `foretmap_ops dump`)            | Fichier privé (`uploads/mcp-exports/`), lien signé d'une heure, purge à 24 h                | Le **lien** seulement ; le contenu du fichier n'est pas renvoyé dans la conversation (la sauvegarde `full` contient toute la base, secrets compris, décision du propriétaire)                                                               |
+| Exploitation (`mcp.ops_enabled`, permission `mcp.ops`, admin)              | Tâches planifiées, migrations, redémarrage, rétention, caches, rapport de stockage          | Comptes rendus techniques, sans donnée de personne                                                                                                                                                                                          |
+| Confirmation (`mcp.confirm_mode`)                                          | Code e-mail hors Claude avant les écritures sensibles ou toutes les écritures               | Aucune donnée en plus                                                                                                                                                                                                                       |
 
-Anthropic reçoit **toujours** ce que le modèle demande via les outils autorisés pour le compte
-connecté ; ces drapeaux élargissent la **liste d'outils** et le **périmètre des réponses**, pas
-le canal (HTTPS depuis `160.79.104.0/21`, compte Claude du personnel).
+**Traçabilité** : chaque écriture et chaque lecture nominative laisse une ligne `audit_log`
+marquée `via: 'mcp'` (outil, compte, client OAuth). La traçabilité ne retire aucun pouvoir :
+elle permet de savoir ce qui a été fait, par qui, depuis quel assistant. L'encart « Connecteur
+Claude » de l'administration montre les vingt dernières actions.
+
+Le fournisseur IA reçoit **toujours** ce que le modèle demande via les outils autorisés pour le
+compte connecté ; les réglages élargissent la **liste d'outils** et le **périmètre des
+réponses**, pas le canal.
 
 ## 3. Personnes concernées et catégories de données
 
-| Personnes                         | Données traitées par le connecteur                                                                                                                                                                                                                                                                                                                 |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage ; auteur (identifiant) des notes de mémoire                                                                                                                                                                                    |
-| Élèves                            | **Par défaut : aucune donnée individuelle** — agrégats anonymes seulement (observations, QCM, tutoriels, tâches), effectifs &lt; 5 masqués. **Si bypass RGPD actif** (`MCP_PRIVACY_BYPASS` + ACK + permission admin) : identité et activité récente d'élèves consultés via les outils nominatifs ; secrets (mot de passe, TOTP, jetons) **exclus** |
-| Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                                                                                                                                                               |
+| Personnes                         | Données traitées par le connecteur                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personnel utilisant le connecteur | Identifiant interne du compte (`user_id`), profil et permissions (lus pour décider de l'accès), horodatages d'usage ; auteur (identifiant) des notes de mémoire                                                                                                                                                                                                                                                                                                      |
+| Élèves                            | **Bypass RGPD actif par défaut** (réglage `mcp.privacy_bypass`, permission `mcp.privacy_bypass`, admin) : identité, groupes, tâches et inscriptions, comptes rendus, réussite aux quiz, lectures de tutoriels, observations, nombre d'articles de carnet, messages de forum, lignes d'audit. Pour les comptes sans la permission (ou bypass coupé) : agrégats anonymes seulement, effectifs &lt; 5 masqués. Secrets (mot de passe, TOTP, jetons) **toujours exclus** |
+| Auteurs de contenu                | Crédits photo publics (noms d'auteurs, licences) tels qu'affichés sur le site ; adresses e-mail éventuelles masquées                                                                                                                                                                                                                                                                                                                                                 |
 
 Aucune donnée sensible (art. 9), aucun mot de passe en clair, aucune adresse IP en clair
 n'est transmise à Claude (les journaux techniques ne portent que des pseudonymes, § 2).
@@ -156,20 +166,22 @@ d'organisation documentés.
 
 ## 6. Durées de conservation
 
-| Donnée                                                                | Durée                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Code d'autorisation (haché)                                           | 60 s de validité ; supprimé 1 h après expiration                                                                                                                                                                                                                                                       |
-| Jeton d'accès (haché)                                                 | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                      |
-| Jeton de rafraîchissement (haché)                                     | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                 |
-| Client OAuth enregistré                                               | Sans donnée personnelle (nom d'application, redirections)                                                                                                                                                                                                                                              |
-| Plan d'écriture                                                       | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction)                                                                                                                                                                          |
-| Journal d'appels (Pino)                                               | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**                                                                                                                                                                                 |
-| `security_events` (connexion, consentement) / `audit_log` (écritures) | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                                                                                                                                                                                                       |
-| Note de mémoire du connecteur (`mcp_memory`)                          | Jusqu'à son oubli (`foretmap_forget`) ; signalée « à revérifier » après 90 jours ; note personnelle supprimée avec le compte, note partagée conservée sans auteur                                                                                                                                      |
-| Rapport de santé (`mcp_health_reports`)                               | 90 jours (`MCP_HEALTH_REPORT_RETENTION_DAYS`) ; aucune donnée de personne                                                                                                                                                                                                                              |
-| Journal des tâches planifiées (`scheduled_job_runs`)                  | 180 jours ; comptages et messages d'erreur nettoyés, aucune donnée de personne                                                                                                                                                                                                                         |
-| Lecture de fichiers et journaux du serveur                            | Rien n'est conservé par le connecteur : lecture à la demande ; les journaux eux-mêmes suivent leur rotation (`docs/CRONTAB.md`, ligne 8)                                                                                                                                                               |
-| Confirmation MCP (`mcp_confirmations`)                                | **10 min** de validité pour un code à 6 chiffres (HMAC, jamais le code en clair en base) ; usage unique ou verrouillage après 3 essais ; lignes expirées ou consommées **supprimées** opportunistément (au plus toutes les **10 min**, même cadence que la purge OAuth, déclenchée par `/oauth/token`) |
+| Donnée                                                                                                      | Durée                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Code d'autorisation (haché)                                                                                 | 60 s de validité ; supprimé 1 h après expiration                                                                                                                                                                                                                                                       |
+| Jeton d'accès (haché)                                                                                       | 1 h de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                      |
+| Jeton de rafraîchissement (haché)                                                                           | 30 jours de validité ; supprimé 7 jours après expiration ou révocation                                                                                                                                                                                                                                 |
+| Client OAuth enregistré                                                                                     | Sans donnée personnelle (nom d'application, redirections)                                                                                                                                                                                                                                              |
+| Plan d'écriture                                                                                             | 1 h de validité ; plans non appliqués supprimés 7 jours après expiration ; plans appliqués conservés (trace de la correction)                                                                                                                                                                          |
+| Journal d'appels (Pino)                                                                                     | Tampon mémoire et journaux du serveur, rotation de l'hébergeur ; outil, compte, durée, statut — **sans les arguments**                                                                                                                                                                                 |
+| `security_events` (connexion, consentement) / `audit_log` (écritures)                                       | Durées déjà définies pour ces journaux (`docs/reference/exploitation/durees-de-conservation.md`)                                                                                                                                                                                                       |
+| Note de mémoire du connecteur (`mcp_memory`)                                                                | Jusqu'à son oubli (`foretmap_forget`) ; signalée « à revérifier » après 90 jours ; note personnelle supprimée avec le compte, note partagée conservée sans auteur                                                                                                                                      |
+| Rapport de santé (`mcp_health_reports`)                                                                     | 90 jours (`MCP_HEALTH_REPORT_RETENTION_DAYS`) ; aucune donnée de personne                                                                                                                                                                                                                              |
+| Journal des tâches planifiées (`scheduled_job_runs`)                                                        | 180 jours ; comptages et messages d'erreur nettoyés, aucune donnée de personne                                                                                                                                                                                                                         |
+| Lecture de fichiers et journaux du serveur                                                                  | Rien n'est conservé par le connecteur : lecture à la demande ; les journaux eux-mêmes suivent leur rotation (`docs/CRONTAB.md`, ligne 8)                                                                                                                                                               |
+| Confirmation MCP (`mcp_confirmations`)                                                                      | **10 min** de validité pour un code à 6 chiffres (HMAC, jamais le code en clair en base) ; usage unique ou verrouillage après 3 essais ; lignes expirées ou consommées **supprimées** opportunistément (au plus toutes les **10 min**, même cadence que la purge OAuth, déclenchée par `/oauth/token`) |
+| Export (`foretmap_export`) et sauvegarde (`foretmap_ops dump`)                                              | Fichier privé `uploads/mcp-exports/` : lien signé valable **1 h**, fichier **supprimé après 24 h** (à chaque export et par la catégorie de rétention `mcp_exports`)                                                                                                                                    |
+| Lignes d'audit `via: 'mcp'` (`audit_log`, `mcp.privacy_bypass.read`, `mcp_api_call`, `mcp.settings.change`) | Durées du journal d'audit (`docs/reference/exploitation/durees-de-conservation.md`)                                                                                                                                                                                                                    |
 
 La suppression d'un compte supprime ses jetons, plans et confirmations en attente (clés étrangères en cascade).
 Durées réglables par variables d'environnement (`docs/MCP.md` § 2).
@@ -190,39 +202,51 @@ limitation de débit ; journalisation.
 - **Personnels** : accès, rectification, effacement par les moyens habituels du site
   (page « Vos données ») ; retrait du connecteur à tout moment dans les réglages de
   l’assistant utilisé, ou par un administrateur (retrait de la permission, effet immédiat).
-- **Élèves** : aucune donnée individuelle n'est traitée par le connecteur ; leurs droits
-  s'exercent sur les traitements principaux du site.
+- **Élèves** : avec le bypass actif (défaut), leurs données peuvent être lues et modifiées par
+  le connecteur pour les comptes autorisés ; leurs droits s'exercent sur les traitements
+  principaux du site, et l'accès nominatif par le connecteur se retrouve dans le journal
+  d'audit (`via: 'mcp'`).
 
 ## 9. Points à valider par le DPO avant activation
 
 1. Clients autorisés (Claude / Cursor / ChatGPT / Gemini CLI) et encadrement du transfert vers
    chaque sous-traitant IA correspondant ; comptes d'organisation recommandés.
 2. Information des personnels (mention dans la page « Vos données » si le connecteur est activé).
-3. Liste des profils autorisés (par défaut : admin et n3boss/professeur en lecture ; admin seul
-   en écriture).
+3. Liste des profils autorisés (par défaut : admin et n3boss ; chacun écrit **avec ses droits
+   applicatifs** depuis le 05/11/2026 ; SQL, bypass nominatif et exploitation réservés à
+   l'admin).
 4. Outils de lecture des journaux du serveur (administrateurs) : confirmer qu'ils peuvent
    rester actifs (`MCP_FILES_ENABLED=false` les retire) ; les journaux de l'hébergeur sont déjà
    accessibles aux administrateurs du serveur, le connecteur les leur transmet nettoyés.
 5. Utilisateur MySQL en lecture seule pour le connecteur (`DB_MCP_USER`, `GRANT SELECT` par
-   table de contenu), recommandé ; condition de l'outil SQL libre. Sur un hébergement qui ne
-   permet que des droits par base entière, l'outil SQL reste indisponible de lui-même (droits
-   vérifiés par `SHOW GRANTS`) : le laisser désactivé.
+   table de contenu), recommandé quand l'hébergement le permet. Sans lui (hébergement qui ne
+   donne des droits que par base entière), l'outil SQL lit par le compte principal en
+   transaction READ ONLY, avec l'analyse syntaxique et le refus des colonnes secrètes ;
+   `mcp.sql_select_pool=dedicated_only` exige le compte dédié.
+6. Bypass nominatif ouvert par défaut : voir ci-dessous.
 
-### Prérequis **obligatoires** avant `MCP_PRIVACY_BYPASS=true`
+### Bypass nominatif ouvert par défaut — analyse conservée
 
-Le bypass nominatif élèves **contredit** la garantie « aucune donnée individuelle d'élève » du
-§ 2. Ne poser **`MCP_PRIVACY_BYPASS_ACK=AAAA-MM-JJ`** qu'**après** :
+Le bypass nominatif élèves **contredit** la garantie « aucune donnée individuelle d'élève » des
+versions précédentes. Le propriétaire du projet l'a ouvert par défaut le 05/11/2026 ; l'accusé
+`mcp.privacy_bypass_ack` (variable `MCP_PRIVACY_BYPASS_ACK`, `AAAA-MM-JJ`) n'est **plus un
+prérequis technique** : c'est une information affichée au diagnostic, et le serveur journalise
+un **avertissement** (et non plus une erreur bloquante) quand le bypass est actif sans accusé.
 
-1. **Base légale** identifiée et documentée pour ce traitement via Claude (finalité, proportionnalité).
-2. **Accord de traitement / sous-traitance** avec **Anthropic** adapté à un **compte Claude
-   d'organisation** (Team / Enterprise), couvrant transferts hors UE si applicable (CCT, DPA).
-3. **Information** des **familles** et des **personnels** concernés (ou mise à jour de la page
-   « Vos données » / registre) : le connecteur peut, si activé, transmettre identité et activité
-   d'élèves au modèle.
+L'analyse juridique reste valable et **doit être menée** ; elle conditionne l'usage, pas le
+démarrage du serveur :
+
+1. **Base légale** identifiée et documentée pour ce traitement via un assistant IA (finalité,
+   proportionnalité).
+2. **Accord de traitement / sous-traitance** avec le fournisseur IA, adapté à un **compte
+   d'organisation** (Team / Enterprise pour Claude), couvrant les transferts hors UE si
+   applicable (CCT, DPA).
+3. **Information** des **familles** et des **personnels** (page « Vos données », registre) :
+   le connecteur peut transmettre identité et activité d'élèves au modèle.
 4. **Analyse d'impact (AIPD)** lorsque des **données de mineurs** sont concernées.
-5. **Durée de conservation** définie pour les traces (`audit_log` `mcp.privacy_bypass.read`,
-   conversations Claude selon réglages Anthropic) et procédure de retrait du bypass.
+5. **Durées de conservation** des traces (`audit_log` `via: 'mcp'`, exports, conversations selon
+   les réglages du fournisseur) et procédure de retrait.
 
-Ensuite seulement : `MCP_PRIVACY_BYPASS=true` et `MCP_PRIVACY_BYPASS_ACK=<date du GO DPO>`
-(format `AAAA-MM-JJ`, non future). Sans ACK valide, le serveur **refuse** d'activer les outils
-nominatifs même si le drapeau est à `true` (`docs/MCP.md` § 13).
+Pour couper le bypass : réglage « Données nominatives des élèves » dans l'administration, ou
+`MCP_PRIVACY_BYPASS=false` pour le verrouiller. Renseigner `mcp.privacy_bypass_ack` avec la date
+du GO du DPO une fois l'analyse faite (`docs/MCP.md` § 13).

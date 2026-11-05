@@ -82,29 +82,23 @@ transport et le protocole MCP (`McpServer`, `StreamableHTTPServerTransport`).
 
 ## 2. Variables d'environnement
 
-| Variable                       | Défaut       | Rôle                                                                                                                                                                               |
-| ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_ENABLED`                  | `false`      | Active `/mcp`, `/oauth/*`, `/.well-known/oauth-*`                                                                                                                                  |
-| `MCP_PUBLIC_BASE_URL`          | (requête)    | **À poser en production** : origine publique exacte, ex. `https://foretmap.olution.info`                                                                                           |
-| `MCP_WRITE_ENABLED`            | **`true`**   | Outils d'écriture (plan → apply). Toujours réservés à `mcp.write` + portée `foretmap.write`                                                                                        |
-| `MCP_SQL_ENABLED`              | `false`      | Outil `foretmap_sql_select` (admin `mcp.sql`) — **exige aussi `DB_MCP_USER`**                                                                                                      |
-| `MCP_ACCESS_TOKEN_TTL_SECONDS` | `3600`       | Durée de vie d'un jeton d'accès (300–86400)                                                                                                                                        |
-| `MCP_REFRESH_TOKEN_TTL_DAYS`   | `30`         | Durée de vie d'un jeton de rafraîchissement (1–365)                                                                                                                                |
-| `MCP_AUTH_CODE_TTL_SECONDS`    | `60`         | Durée de vie d'un code d'autorisation (30–600)                                                                                                                                     |
-| `MCP_PLAN_TTL_MINUTES`         | `60`         | Validité d'un plan d'écriture (5–1440)                                                                                                                                             |
-| `MCP_STATEMENT_TIMEOUT_MS`     | `5000`       | Délai maximal par requête SQL d'un outil (500–60000)                                                                                                                               |
-| `MCP_RATE_LIMIT_PER_MIN`       | `300`        | Requêtes `/mcp` par minute et par jeton                                                                                                                                            |
-| `MCP_OAUTH_ALLOWED_REDIRECTS`  | (voir § 3)   | Liste (virgules) des redirections admises                                                                                                                                          |
-| `MCP_CIMD_ENABLED`             | `true`       | Accepter les `client_id` CIMD (URL https)                                                                                                                                          |
-| `MCP_DCR_ENABLED`              | `true`       | Accepter l'enregistrement dynamique `/oauth/register`                                                                                                                              |
-| `DB_MCP_USER` / `DB_MCP_PASS`  | (pool appli) | Compte MySQL **`SELECT` sur les seules tables de contenu** : utilisé par tous les outils de lecture s'il est défini ; **obligatoire** pour `foretmap_sql_select` (§ 8)             |
-| `MCP_SQL_WRITE_ENABLED`        | **`false`**  | Outil `foretmap_sql_execute` (admin `mcp.sql_execute`) — une instruction SQL en écriture (§ 13)                                                                                    |
-| `MCP_SQL_DDL_ENABLED`          | **`false`**  | Autorise DDL/DCL dans `foretmap_sql_execute` (commit implicite ; confirmation par code si `MCP_CONFIRM_REQUIRED`)                                                                  |
-| `MCP_SQL_MAX_AFFECTED_ROWS`    | `100`        | Plafond de lignes affectées par `foretmap_sql_execute` (1–100000) ; au-delà → rollback et confirmation                                                                             |
-| `MCP_WRITE_REQUIRE_PLAN`       | **`true`**   | Si `true`, écriture de contenu **plan → apply** seulement ; si `false`, expose aussi `foretmap_content_change` (écriture directe, § 6)                                             |
-| `MCP_PRIVACY_BYPASS`           | **`false`**  | Levée des garde-fous nominatifs (outils élèves, seuils d'usage) — **exige** `MCP_PRIVACY_BYPASS_ACK` (§ 5, § 13)                                                                   |
-| `MCP_PRIVACY_BYPASS_ACK`       | (vide)       | Date d'accusé de réception DPO / responsable, forme `AAAA-MM-JJ`, non future ; sans ACK valide, le bypass reste inactif                                                            |
-| `MCP_CONFIRM_REQUIRED`         | **`true`**   | Confirmation par code e-mail (6 chiffres, 10 min) pour opérations sensibles (`foretmap_sql_execute`, etc.) ; `false` = mode productivité sans e-mail (audit `mcp.confirm.skipped`) |
+| Variable                                                                                                                                                                                                                 | Défaut       | Rôle                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_ENABLED`                                                                                                                                                                                                            | `false`      | Active `/mcp`, `/oauth/*`, `/.well-known/oauth-*`                                                                                                                                                                                       |
+| `MCP_PUBLIC_BASE_URL`                                                                                                                                                                                                    | (requête)    | **À poser en production** : origine publique exacte, ex. `https://foretmap.olution.info`                                                                                                                                                |
+| `MCP_WRITE_ENABLED`                                                                                                                                                                                                      | **`true`**   | Outils d'écriture (plan → apply). Toujours réservés à `mcp.write` + portée `foretmap.write`                                                                                                                                             |
+| `MCP_SQL_ENABLED`                                                                                                                                                                                                        | (réglage)    | Verrouille `mcp.sql_select_enabled` (§ 13) : `foretmap_sql_select` (admin `mcp.sql`) ; sans `DB_MCP_USER`, pool principal en READ ONLY                                                                                                  |
+| `MCP_ACCESS_TOKEN_TTL_SECONDS`                                                                                                                                                                                           | `3600`       | Durée de vie d'un jeton d'accès (300–86400)                                                                                                                                                                                             |
+| `MCP_REFRESH_TOKEN_TTL_DAYS`                                                                                                                                                                                             | `30`         | Durée de vie d'un jeton de rafraîchissement (1–365)                                                                                                                                                                                     |
+| `MCP_AUTH_CODE_TTL_SECONDS`                                                                                                                                                                                              | `60`         | Durée de vie d'un code d'autorisation (30–600)                                                                                                                                                                                          |
+| `MCP_PLAN_TTL_MINUTES`                                                                                                                                                                                                   | `60`         | Validité d'un plan d'écriture (5–1440)                                                                                                                                                                                                  |
+| `MCP_STATEMENT_TIMEOUT_MS`                                                                                                                                                                                               | `5000`       | Délai maximal par requête SQL d'un outil (500–60000)                                                                                                                                                                                    |
+| `MCP_RATE_LIMIT_PER_MIN`                                                                                                                                                                                                 | `300`        | Requêtes `/mcp` par minute et par jeton                                                                                                                                                                                                 |
+| `MCP_OAUTH_ALLOWED_REDIRECTS`                                                                                                                                                                                            | (voir § 3)   | Liste (virgules) des redirections admises                                                                                                                                                                                               |
+| `MCP_CIMD_ENABLED`                                                                                                                                                                                                       | `true`       | Accepter les `client_id` CIMD (URL https)                                                                                                                                                                                               |
+| `MCP_DCR_ENABLED`                                                                                                                                                                                                        | `true`       | Accepter l'enregistrement dynamique `/oauth/register`                                                                                                                                                                                   |
+| `DB_MCP_USER` / `DB_MCP_PASS`                                                                                                                                                                                            | (pool appli) | Compte MySQL **`SELECT` sur les seules tables de contenu** : utilisé par tous les outils de lecture s'il est défini ; exigé par `foretmap_sql_select` seulement si `mcp.sql_select_pool=dedicated_only` (§ 8, § 13)                     |
+| `MCP_SQL_WRITE_ENABLED`, `MCP_SQL_DDL_ENABLED`, `MCP_SQL_MAX_AFFECTED_ROWS`, `MCP_WRITE_REQUIRE_PLAN`, `MCP_PRIVACY_BYPASS`, `MCP_PRIVACY_BYPASS_ACK`, `MCP_CONFIRM_REQUIRED` et les autres variables `MCP_*` de réglage | (non posées) | **Verrous** des réglages `mcp.*` : posées, elles gagnent sur l'interface et figent la clé. Non posées (recommandé), les réglages se pilotent depuis l'administration avec des défauts ouverts. Table complète et correspondances : § 13 |
 
 `MCP_PUBLIC_BASE_URL` compte : `resource` (métadonnées RFC 9728) doit valoir **exactement**
 l'URL saisie dans Claude, et chaque jeton est lié à cette ressource. Sans la variable, l'URL
@@ -267,6 +261,15 @@ présence (les cartes de test sont presque vides) et 9 photos sans crédit/licen
 
 ## 5. Données personnelles — garde-fous par construction
 
+> **Depuis le 05/11/2026 (§ 13)** : le bypass RGPD est **actif par défaut**
+> (`mcp.privacy_bypass`) pour les porteurs de la permission `mcp.privacy_bypass` (admin) — ils
+> lisent et modifient les données nominatives d'élèves (outils de domaine marqués « nominatif »,
+> `foretmap_api`, SQL hors secrets), chaque lecture nominative étant journalisée. Les garde-fous
+> ci-dessous restent ceux de **tous les autres comptes** et de la sortie sans bypass ; les
+> secrets ne sortent jamais. Sans `DB_MCP_USER`, `foretmap_sql_select` passe par le pool
+> principal en transaction READ ONLY (analyse syntaxique conservée, `SELECT *` refusé sur une
+> table à colonnes secrètes).
+
 - **Liste blanche** de tables (`lib/mcp/sqlGuard.js`, `CONTENT_TABLES`) : contenu pédagogique,
   cartes, contenu G&L. Toute requête d'outil est analysée **avant** envoi ; une table hors
   liste lève `McpDataAccessError`.
@@ -366,23 +369,58 @@ Fiche de registre : [MCP_REGISTRE_TRAITEMENT.md](MCP_REGISTRE_TRAITEMENT.md).
 
 ---
 
-## 6. Écriture de contenu — plan → apply
+## 6. Écriture — pont API, outils de domaine, contenu
 
-**Activée par défaut** (`MCP_WRITE_ENABLED=true`, choix du propriétaire du projet) mais
-réservée aux comptes **admin** (`mcp.write`) ayant reçu la portée `foretmap.write`. Un prof ne
-voit pas ces outils et se les voit refuser. `MCP_WRITE_ENABLED=false` les retire pour tous.
+Trois voies d'écriture, de la plus sûre à la plus brute :
 
-Par défaut, **`MCP_WRITE_REQUIRE_PLAN=true`** : seuls **plan → apply** (et export migration) sont
-exposés. Si **`MCP_WRITE_REQUIRE_PLAN=false`** (mode productivité, § 13), l'outil
-**`foretmap_content_change`** apparaît en plus : même liste blanche de champs, validation,
-transaction et journal d'audit que `foretmap_apply_plan`, mais **sans** étape de plan ni
-empreinte de conflit — à réserver aux corrections où la revue humaine du diff est assurée autrement.
+1. **Outils de domaine et `foretmap_api`** (voie normale) : l'écriture passe par la **route du
+   site**, appelée en processus en tant que la personne connectée (`lib/mcp/apiBridge.js`). La
+   route applique **sa** logique métier (recalcul des statuts, avancement des projets,
+   progression des élèves, notifications, détachement et restauration des lieux, temps réel,
+   journal d'audit) et **ses** droits. Réglages `mcp.api_bridge_enabled` et
+   `mcp.api_bridge_methods` ; portée `foretmap.write` exigée pour toute méthode autre que GET.
+2. **Liste blanche de contenu** (`foretmap_content_change`, plan → apply) : champs texte de
+   contenu sans logique métier (fiches espèces, zones, repères, glossaires, quiz, tutoriels,
+   catégories de lieux, parcours, contenus de visite, séances, notions), réservée à `mcp.write`.
+   Par défaut (`mcp.write_mode=direct`), `foretmap_content_change` écrit tout de suite ; en
+   `plan`, seul plan → apply est exposé.
+3. **SQL d'écriture** (`foretmap_sql_execute`, § 13) : corrections de données seulement — il
+   contourne la logique métier.
+
+### Pont API interne (`foretmap_api`)
+
+- Injection **sans réseau** par `light-my-request` (BSD-3-Clause, équipe Fastify) ; Express 5
+  remplaçant les prototypes de `req` / `res`, l'injecteur fige les méthodes de la bibliothèque
+  en propriétés propres.
+- Identité : JWT applicatif **éphémère (120 s)** signé pour chaque appel, même charge qu'une
+  connexion (rôle effectif, époque de jeton, droits), revendication `via: 'mcp'`, second facteur
+  marqué si le compte a la double authentification (le consentement OAuth l'a alors exigée). Le
+  jeton n'est ni renvoyé ni journalisé ; `rejectMcpTokensOnApi` reste en place.
+- Marquage : `Symbol` posé sur `req` par l'injecteur (impossible à produire par un en-tête) et
+  `AsyncLocalStorage` autour de chaque appel d'outil (`lib/mcp/callContext.js`). Effets :
+  `logAudit` ajoute `via`, `mcp_tool`, `mcp_client_id` à `payload_json` ; journaux HTTP et
+  d'erreur marqués ; limiteurs général et d'authentification levés pour les seules requêtes
+  internes (le limiteur `/mcp` reste la garde).
+- Refus permanents : `/api/gl/*`, `/api/auth/login`, `/api/auth/logout`, tout chemin hors
+  `/api/`. Routes d'authentification sensibles (prise de contrôle, enrôlement / vérification
+  TOTP, réinitialisation de mot de passe, Google, LTI, accès aux plans) refusées sauf
+  `mcp.api_bridge_sensitive_auth=true`.
+- Sortie : `{ status, json | text, location?, request_id }`, en-têtes réduits à une liste
+  blanche (`Set-Cookie` jamais renvoyé) ; nettoyage « secrets » si le bypass est actif, sinon
+  complet (aucun élève nommé).
+- Journal : une ligne `audit_log` `mcp_api_call` par appel autre que GET, et par GET quand le
+  bypass est actif ; la route journalise en plus sa propre action, marquée `via: 'mcp'`.
+- Fichiers : multipart, 15 Mo au total (corps `/mcp` porté à 21 Mo pour un appel authentifié).
+
+### Liste blanche de contenu (plan → apply, écriture directe)
 
 1. **`foretmap_plan_content_change`** : opérations bornées (≤ 50) sur une **liste blanche de
    tables et colonnes** (`lib/mcp/write/operations.js`) :
    - `set_field` sur `plants` (textes, crédit/licence photo), `plant_photos` (crédit,
      licence, source), `zones`, `map_markers`, `glossary_terms`, `gl_glossary_terms`,
-     `gl_species`, `quiz_questions`, `gl_qcm_questions` (feedbacks, crédits, niveau G&L) ;
+     `gl_species`, `quiz_questions`, `gl_qcm_questions` (feedbacks, crédits, niveau G&L),
+     et depuis le 05/11/2026 `tutorials`, `location_categories`, `map_routes`, `visit_zones`,
+     `visit_markers`, `visit_media`, `pedago_sessions`, `curriculum_notions` ;
    - `link` / `unlink` d'une espèce sur `zone_species`, `marker_species`, `map_species`,
      `glossary_term_species`.
 
@@ -889,87 +927,132 @@ Liste ordonnée technique, à suivre dans l'ordre. Les étapes marquées « facu
 
 ---
 
-## 13. Mode productivité (admin)
+## 13. Réglages du connecteur
 
-Options **désactivées par défaut** (défauts protégés dans `lib/mcp/config.js`) pour accélérer
-les corrections de contenu, le SQL d'écriture ou — avec encadrement juridique — la consultation
-nominative d'élèves depuis Claude. Elles ne remplacent pas OAuth, RBAC ni le journal d'audit ;
-elles ajoutent des outils et assouplissent certaines barrières **uniquement** si les drapeaux,
-permissions et ACK le permettent.
+Décision du propriétaire du projet (05/11/2026) : le connecteur permet de **tout faire** sur
+ForêtMap depuis Claude. Tout est **ouvert par défaut** et **paramétrable** depuis
+l'administration (Réglages → Exploitation → « Connecteur Claude », clés `mcp.*` déclarées dans
+`lib/settings/mcp.js`), avec un **verrou possible par variable d'environnement**.
+
+### Résolution d'une valeur
+
+1. une **variable d'environnement posée et valide gagne toujours** et **verrouille** la clé :
+   l'interface l'affiche grisée, « fixé par le serveur (VARIABLE) », et `PUT
+/api/settings/admin/mcp.*` répond `409 MCP_SETTING_LOCKED` ;
+2. sinon la valeur enregistrée en base (`app_settings`) ;
+3. sinon le **défaut ouvert** ci-dessous.
+
+`resolveMcpSettings()` (`lib/mcp/config.js`) lit la base à chaque requête `/mcp` (cache 10 s,
+invalidé à l'écriture d'une clé `mcp.*`) ; `getMcpConfig()` reste synchrone et consomme cet
+instantané. Le script stdio Cursor, sans base, retombe sur environnement + défauts. Chaque
+changement de réglage `mcp.*` écrit `audit_log` `mcp.settings.change` (ancienne et nouvelle
+valeur), qu'il vienne de l'interface ou de `foretmap_settings`.
+
+Hors réglages : `MCP_ENABLED` (interrupteur général, **désactivé** par défaut) et
+`MCP_WRITE_ENABLED` (outils plan → apply et écriture de contenu, activé par défaut).
+
+| Clé                               | Défaut            | Variable qui verrouille                    | Effet                                                                                                                                                                  |
+| --------------------------------- | ----------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mcp.write_mode`                  | `direct`          | `MCP_WRITE_MODE`, `MCP_WRITE_REQUIRE_PLAN` | `direct` : `foretmap_content_change` et écritures immédiates ; `plan` : plan → apply seulement (`MCP_WRITE_REQUIRE_PLAN=true` ↔ `plan`).                               |
+| `mcp.write_scope_policy`          | `app_permissions` | `MCP_WRITE_SCOPE_POLICY`                   | Portée `foretmap.write` accordée au consentement à tout compte `mcp.use` (il agit avec ses droits applicatifs) ; `admin_only` : seulement aux porteurs de `mcp.write`. |
+| `mcp.api_bridge_enabled`          | `true`            | `MCP_API_BRIDGE_ENABLED`                   | `foretmap_api` et écritures des outils de domaine.                                                                                                                     |
+| `mcp.api_bridge_methods`          | toutes            | `MCP_API_BRIDGE_METHODS`                   | Méthodes HTTP admises par le pont (`GET,POST,PUT,PATCH,DELETE`).                                                                                                       |
+| `mcp.api_bridge_sensitive_auth`   | `false`           | `MCP_API_BRIDGE_SENSITIVE_AUTH`            | Routes d'authentification sensibles par le pont (prise de contrôle, TOTP, LTI, accès aux plans…) ; jetons et secrets restent masqués en sortie.                        |
+| `mcp.domains_disabled`            | vide              | `MCP_DOMAINS_DISABLED`                     | Domaines d'outils retirés (`tasks`, `students`, `maps`, `ops`…).                                                                                                       |
+| `mcp.sql_select_enabled`          | `true`            | `MCP_SQL_ENABLED`                          | `foretmap_sql_select`, `foretmap_describe_schema`, `foretmap_export`.                                                                                                  |
+| `mcp.sql_select_pool`             | `auto`            | `MCP_SQL_SELECT_POOL`                      | `auto` : compte `DB_MCP_USER` s'il existe, sinon pool principal en transaction READ ONLY ; `dedicated_only` : compte dédié exigé.                                      |
+| `mcp.sql_write_enabled`           | `true`            | `MCP_SQL_WRITE_ENABLED`                    | `foretmap_sql_execute` (DML).                                                                                                                                          |
+| `mcp.sql_ddl_enabled`             | `true`            | `MCP_SQL_DDL_ENABLED`                      | DDL / DCL dans `foretmap_sql_execute`.                                                                                                                                 |
+| `mcp.sql_max_affected_rows`       | `10000`           | `MCP_SQL_MAX_AFFECTED_ROWS`                | Plafond de lignes touchées par instruction (1 à 1 000 000).                                                                                                            |
+| `mcp.confirm_mode`                | `off`             | `MCP_CONFIRM_MODE`, `MCP_CONFIRM_REQUIRED` | Confirmation par code e-mail : `off`, `sensitive` (opérations sensibles du SQL d'écriture), `all_writes` (toute écriture). `MCP_CONFIRM_REQUIRED=true` ↔ `sensitive`.  |
+| `mcp.privacy_bypass`              | `true`            | `MCP_PRIVACY_BYPASS`                       | Données nominatives d'élèves (lecture et écriture) pour les porteurs de `mcp.privacy_bypass`.                                                                          |
+| `mcp.privacy_bypass_ack`          | vide              | `MCP_PRIVACY_BYPASS_ACK`                   | Date de lecture du registre de traitement, **informative** (journal `warn` si absente).                                                                                |
+| `mcp.privacy_reads_audit_details` | `summary`         | `MCP_PRIVACY_READS_AUDIT_DETAILS`          | Détail de la ligne d'audit d'une lecture nominative (`summary` ou `full`) ; il n'existe pas de valeur `off`.                                                           |
+| `mcp.ops_enabled`                 | `true`            | `MCP_OPS_ENABLED`                          | `foretmap_ops` (tâches planifiées, migrations, redémarrage, sauvegarde, rétention, caches).                                                                            |
+| `mcp.files_enabled`               | `true`            | `MCP_FILES_ENABLED`                        | Outils fichiers (journaux, `cron_status`).                                                                                                                             |
+| `mcp.max_rows`                    | `2000`            | `MCP_MAX_ROWS`                             | Plafond de lignes des lectures (50 à 5 000).                                                                                                                           |
+| `mcp.max_output_chars`            | `400000`          | `MCP_MAX_OUTPUT_CHARS`                     | Plafond de caractères d'une réponse ; au-delà, la réponse invite à `foretmap_export`.                                                                                  |
+| `mcp.tool_profile`                | `complet`         | `MCP_TOOL_PROFILE`                         | `essentiel` : socle, tâches, élèves, groupes, espèces, cartes, réglages (si le choix d'outil par Claude se dégrade).                                                   |
+
+### Ce qui reste non négociable
+
+1. **Aucun secret ne sort**, quel que soit le réglage : hachages, secrets et codes TOTP, jetons
+   (OAuth, MCP, réinitialisation, LTI), valeurs `.env`, clés. `secretGuard.js` /
+   `secretMask.js` nettoient toute sortie ; `SELECT *` est refusé sur une table à colonnes
+   secrètes quand le SQL passe par le pool principal. Exception voulue par le propriétaire :
+   `foretmap_ops dump full` produit une sauvegarde **complète** dans un fichier privé (lien
+   signé d'une heure, purgé à 24 h) — son contenu n'est jamais renvoyé dans la conversation.
+2. **Tout est tracé** : chaque écriture, et chaque lecture nominative, laisse une ligne
+   `audit_log` marquée `via: 'mcp'`, avec l'outil (`mcp_tool`), l'utilisateur et le client
+   OAuth (`mcp_client_id`).
+3. **OAuth + TOTP + `mcp.use`** restent la porte d'entrée ; `MCP_ENABLED` l'interrupteur
+   général.
+
+### Qui peut faire quoi
+
+- Avec `mcp.write_scope_policy=app_permissions`, **tout compte `mcp.use`** (admin, n3boss)
+  reçoit la portée d'écriture : par le pont et les outils de domaine, il ne peut faire que ce
+  que ses **droits applicatifs** lui permettent dans le site (un prof sans `tasks.validate` reçoit
+  le 403 de la route).
+- Restent réservés aux porteurs de leur permission (admin par défaut) les outils qui
+  **contournent le RBAC applicatif** : SQL (`mcp.sql`, `mcp.sql_execute`), bypass RGPD
+  (`mcp.privacy_bypass`), `foretmap_ops` (`mcp.ops`, migration 328), écriture de la liste
+  blanche de contenu (`mcp.write`).
 
 ### Confirmation par code (hors Claude)
 
-Quand **`MCP_CONFIRM_REQUIRED=true`** (défaut), les opérations sensibles de
-**`foretmap_sql_execute`** (DDL/DCL si autorisés, UPDATE/DELETE **sans** `WHERE` **ou dont le
-`WHERE` est toujours vrai** — `1=1`, `TRUE`, `col = col`, `LIKE '%'`, `… OR 1=1`, `IF(1,1,0)` —,
-tables
-d'autorisation RBAC/OAuth/MCP, dépassement de `MCP_SQL_MAX_AFFECTED_ROWS` après exécution)
-**ne s'exécutent pas** tant qu'un code à **6 chiffres** n'a pas été validé :
+En `mcp.confirm_mode=sensitive`, les opérations sensibles de **`foretmap_sql_execute`**
+(DDL/DCL, UPDATE/DELETE **sans** `WHERE` ou dont le `WHERE` est toujours vrai — `1=1`, `TRUE`,
+`col = col`, `LIKE '%'`, `… OR 1=1`, `IF(1,1,0)` —, tables d'autorisation RBAC/OAuth/MCP,
+dépassement du plafond de lignes) ne s'exécutent pas tant qu'un code à **6 chiffres** n'a pas
+été validé ; en `all_writes`, toute écriture d'un outil de domaine le demande aussi :
 
-1. Premier appel → le serveur envoie le code à l'**e-mail du compte** appelant, enregistre une
-   ligne dans **`mcp_confirmations`** (10 min, usage unique, ≤ 3 essais, liée au compte, à l'outil
-   et à l'empreinte des arguments) et renvoie
+1. Premier appel → code envoyé à l'**e-mail du compte**, ligne `mcp_confirmations` (10 min,
+   usage unique, ≤ 3 essais, liée au compte, à l'outil et à l'empreinte des arguments), réponse
    `{ confirmation_required: true, confirmation_id, summary }`.
-2. Second appel avec les **mêmes** arguments + `confirmation_id` + `confirmation_code` → exécution.
+2. Second appel avec les **mêmes** arguments + `confirmation_id` + `confirmation_code`.
 
-`MCP_CONFIRM_REQUIRED=false` saute cette étape (événement d'audit `mcp.confirm.skipped`) — réservé
-à un poste de confiance où la personne accepte de ne plus avoir ce second facteur **hors** Claude.
+En `off` (défaut), l'étape est sautée (audit `mcp.confirm.skipped` pour les opérations
+sensibles).
 
 ### Limites de `foretmap_sql_execute`
 
 - **Une seule instruction**, sans `;` final ; texte contrôlé (`classify.js`) : pas de
   `LOAD DATA`, `INTO OUTFILE`, `SHUTDOWN`, `SET PASSWORD`, etc.
-- **DML** : transaction applicative ; **`dry_run=true`** exécute puis **rollback** (affiche
-  `affected_rows` et un échantillon).
-- **DDL / DCL** (`MCP_SQL_DDL_ENABLED=true`) : **hors transaction** — **commit implicite**
-  MySQL/MariaDB ; **`dry_run=true`** ne lance **pas** l'instruction (validation + résumé seulement).
-- Réponse inclut une **`migration_sql`** idempotente à verser par PR pour le corpus semé (comme
-  plan → apply).
-- Permission **`mcp.sql_execute`** (profil admin) **et** `MCP_SQL_WRITE_ENABLED=true` requis.
-- Colonnes secrètes (`password_hash`, jetons, secrets) refusées **aussi** dans la liste d’un
-  `INSERT` / `REPLACE`. Un `INSERT` / `REPLACE` **sans** liste de colonnes est refusé : il
-  écrirait toutes les colonnes de la table, hachage compris, sans les nommer.
+- **DML** : transaction applicative ; **`dry_run=true`** exécute puis **rollback**.
+- **DDL / DCL** : **hors transaction** (commit implicite) ; `dry_run=true` ne lance pas
+  l'instruction.
+- Réponse avec une **`migration_sql`** idempotente à verser par PR pour le corpus semé.
+- Colonnes secrètes refusées, y compris dans la liste d'un `INSERT` / `REPLACE` ; un `INSERT` /
+  `REPLACE` **sans** liste de colonnes est refusé.
+- **Contourne la logique métier** : pour les tâches, projets, inscriptions et validations,
+  utiliser `foretmap_tasks` / `foretmap_api`.
 
-### Bypass nominatif élèves
+### Blocs `.env`
 
-Permission **`mcp.privacy_bypass`**, **`MCP_PRIVACY_BYPASS=true`** et
-**`MCP_PRIVACY_BYPASS_ACK=AAAA-MM-JJ`** (date valide, non future). Sans ACK, le serveur journalise
-une erreur au démarrage et les outils nominatifs restent absents. Chaque lecture nominative est
-traced dans **`audit_log`** (`mcp.privacy_bypass.read`). Voir la fiche registre § 9 avant toute
-activation.
-
-### Blocs `.env` prêts à copier
-
-**Mode productivité** (exemple — adapter la date d'ACK après validation DPO) :
+**Tout ouvert** (défaut du dépôt) : ne poser **aucune** des variables de la table ci-dessus — les
+réglages se pilotent alors depuis l'interface. Seules restent nécessaires :
 
 ```env
-# Écriture de contenu sans plan intermédiaire (admin, foretmap.write)
-MCP_WRITE_REQUIRE_PLAN=false
-
-# SQL en écriture (admin, mcp.sql_execute) — DDL reste coupé par défaut
-MCP_SQL_WRITE_ENABLED=true
-MCP_SQL_DDL_ENABLED=false
-MCP_SQL_MAX_AFFECTED_ROWS=100
-
-# Confirmation par e-mail conservée (recommandé)
-MCP_CONFIRM_REQUIRED=true
-
-# Bypass nominatif élèves — UNIQUEMENT après prérequis docs/MCP_REGISTRE_TRAITEMENT.md § 9
-# MCP_PRIVACY_BYPASS=true
-# MCP_PRIVACY_BYPASS_ACK=2026-11-03
+MCP_ENABLED=true
+MCP_PUBLIC_BASE_URL=https://foretmap.example
 ```
 
-**Retour au mode protégé** (comportement documenté § 5–6, défauts du dépôt) :
+**Protégé** (verrouille les clés dans l'état historique, non modifiable depuis l'interface) :
 
 ```env
 MCP_WRITE_REQUIRE_PLAN=true
+MCP_WRITE_SCOPE_POLICY=admin_only
+MCP_API_BRIDGE_ENABLED=false
+MCP_SQL_ENABLED=false
 MCP_SQL_WRITE_ENABLED=false
 MCP_SQL_DDL_ENABLED=false
 MCP_SQL_MAX_AFFECTED_ROWS=100
 MCP_CONFIRM_REQUIRED=true
 MCP_PRIVACY_BYPASS=false
-MCP_PRIVACY_BYPASS_ACK=
+MCP_OPS_ENABLED=false
 ```
 
-Redémarrer l'application après changement. Migration **`327_mcp_productivity.sql`** (table
-`mcp_confirmations`, permissions) : `npm run db:migrate` ou cron de déploiement.
+Redémarrer l'application après un changement de variable. Migrations **`327_mcp_productivity.sql`**
+(table `mcp_confirmations`, permissions SQL et bypass) et **`328_mcp_acces_complet.sql`**
+(permissions `mcp.ops` et `notifications.send`) : `npm run db:migrate` ou cron de déploiement.
