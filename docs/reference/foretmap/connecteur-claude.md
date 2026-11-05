@@ -159,5 +159,6 @@ Guide pas à pas : [activer-le-connecteur.md](activer-le-connecteur.md). Contrô
 `MCP_PUBLIC_BASE_URL` ; corrections admin actives par défaut via `MCP_WRITE_ENABLED` (à
 `false` pour les couper). Le **mode productivité** (écriture directe, requêtes SQL d'écriture,
 bypass nominatif avec date d'accusé) est documenté dans `docs/MCP.md` § 13 — **désactivé par
-défaut**. Fiche registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Rapport de santé : crontab
+défaut**. Une modification ou une suppression qui viserait toutes les lignes (aucune condition,
+ou une condition toujours vraie) demande le code reçu par e-mail avant de s'appliquer. Fiche registre RGPD : `docs/MCP_REGISTRE_TRAITEMENT.md`. Rapport de santé : crontab
 (`docs/CRONTAB.md`, ligne 9).
