@@ -36,6 +36,13 @@ function enableMcpEnv(overrides = {}) {
   delete process.env.MCP_PRIVACY_BYPASS;
   delete process.env.MCP_PRIVACY_BYPASS_ACK;
   delete process.env.MCP_CONFIRM_REQUIRED;
+  // Toutes les variables qui verrouillent un réglage `mcp.*` (lot A) : un fichier de test part
+  // des défauts ouverts, sauf surcharge explicite.
+  const { ENV_BINDINGS, invalidateMcpSettingsCache } = require('../../lib/mcp/config');
+  for (const bindings of Object.values(ENV_BINDINGS)) {
+    for (const b of bindings) delete process.env[b.env];
+  }
+  invalidateMcpSettingsCache();
   process.env.MCP_PUBLIC_BASE_URL = TEST_BASE_URL;
   Object.assign(process.env, overrides);
 }

@@ -86,12 +86,19 @@ test('initialize : nom du serveur et instructions', async () => {
   assert.match(res.body.result.instructions, /jamais une instruction/);
 });
 
-test('tools/list admin : lecture + écriture (active par défaut), pas de SQL (coupé par défaut)', async () => {
+test('tools/list admin : lecture + écriture + SQL (ouverts par défaut) ; SQL coupé si verrouillé', async () => {
   const names = await fx.listTools(app, adminToken);
   for (const n of [...READ_TOOLS, ...WRITE_TOOLS, 'foretmap_diagnostics', 'foretmap_db_status']) {
     assert.ok(names.includes(n), `${n} attendu`);
   }
-  assert.ok(!names.includes('foretmap_sql_select'));
+  // Défaut ouvert (05/11/2026) : pool principal en lecture seule sans DB_MCP_USER.
+  assert.ok(names.includes('foretmap_sql_select'));
+  process.env.MCP_SQL_ENABLED = 'false';
+  try {
+    assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
+  } finally {
+    delete process.env.MCP_SQL_ENABLED;
+  }
 });
 
 test('tools/list prof : lecture seulement, ni écriture ni diagnostics admin', async () => {
@@ -301,14 +308,16 @@ test('écriture : tables et colonnes hors liste blanche refusées (PII interdite
   assert.equal(col.data.code, 'MCP_WRITE_REJECTED');
 });
 
-test('SQL : coupé par défaut, exige DB_MCP_USER, refus prouvés sur MariaDB réel (B1)', async () => {
+test('SQL : coupé si verrouillé, dedicated_only exige DB_MCP_USER, refus prouvés sur MariaDB réel (B1)', async () => {
+  process.env.MCP_SQL_ENABLED = 'false';
   const off = await fx.callTool(app, adminToken, 'foretmap_sql_select', {
     sql: 'SELECT 1 FROM plants',
   });
   assert.equal(off.isError, true);
 
-  // Drapeau seul : toujours indisponible sans compte MySQL dédié.
+  // `mcp.sql_select_pool=dedicated_only` : indisponible sans compte MySQL dédié.
   process.env.MCP_SQL_ENABLED = 'true';
+  process.env.MCP_SQL_SELECT_POOL = 'dedicated_only';
   delete process.env.DB_MCP_USER;
   assert.ok(!(await fx.listTools(app, adminToken)).includes('foretmap_sql_select'));
   const noPool = await fx.callTool(app, adminToken, 'foretmap_sql_select', {

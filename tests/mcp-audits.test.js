@@ -951,7 +951,7 @@ test('accès aux outils : portée, permission et drapeau', () => {
   assert.equal(checkToolAccess(def, { ...full, permissions: ['mcp.use'] }).ok, false);
 });
 
-test('configuration : écriture active par défaut, SQL et connecteur coupés par défaut', () => {
+test('configuration : écriture et SQL actifs par défaut, connecteur coupé par défaut', () => {
   const saved = { ...process.env };
   try {
     delete process.env.MCP_ENABLED;
@@ -961,11 +961,16 @@ test('configuration : écriture active par défaut, SQL et connecteur coupés pa
     const cfg = getMcpConfig();
     assert.equal(cfg.enabled, false);
     assert.equal(cfg.writeEnabled, true);
-    assert.equal(cfg.sqlEnabled, false);
+    // Défaut ouvert depuis le 05/11/2026 (réglage `mcp.sql_select_enabled`).
+    assert.equal(cfg.sqlEnabled, true);
     assert.equal(cfg.accessTokenTtlSeconds, 3600);
     assert.equal(cfg.refreshTokenTtlDays, 30);
     process.env.MCP_WRITE_ENABLED = 'false';
     assert.equal(getMcpConfig().writeEnabled, false);
+    // Verrouillé par variable d'environnement.
+    process.env.MCP_SQL_ENABLED = 'false';
+    assert.equal(getMcpConfig().sqlEnabled, false);
+    assert.equal(getMcpConfig().settings['mcp.sql_select_enabled'].locked, true);
   } finally {
     process.env = saved;
   }

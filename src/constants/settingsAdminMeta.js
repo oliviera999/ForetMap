@@ -18,6 +18,7 @@ export const SECTION_DEFS = {
   security: { title: 'Sécurité', order: 30 },
   privacy: { title: 'Confidentialité (RGPD)', order: 32 },
   operations: { title: 'Exploitation', order: 40 },
+  mcp: { title: 'Connecteur Claude', order: 42 },
   other: { title: 'Autres paramètres', order: 90 },
 };
 
@@ -27,6 +28,28 @@ export const SECTION_DEFS = {
  * éditeurs contradictoires pour le même réglage.
  */
 export const KEYS_HANDLED_BY_PANEL = new Set([
+  // Connecteur Claude (McpConnectorPanel) : valeur effective, source et verrou par variable
+  // d'environnement — la grille générique ne sait pas afficher le verrou.
+  'mcp.write_mode',
+  'mcp.write_scope_policy',
+  'mcp.api_bridge_enabled',
+  'mcp.api_bridge_methods',
+  'mcp.api_bridge_sensitive_auth',
+  'mcp.domains_disabled',
+  'mcp.sql_select_enabled',
+  'mcp.sql_select_pool',
+  'mcp.sql_write_enabled',
+  'mcp.sql_ddl_enabled',
+  'mcp.sql_max_affected_rows',
+  'mcp.confirm_mode',
+  'mcp.privacy_bypass',
+  'mcp.privacy_bypass_ack',
+  'mcp.privacy_reads_audit_details',
+  'mcp.ops_enabled',
+  'mcp.files_enabled',
+  'mcp.max_rows',
+  'mcp.max_output_chars',
+  'mcp.tool_profile',
   'ui.visit.mascot.default_id',
   // Calendrier scolaire (SchoolCalendarPanel) : écrire la clé seule ne recalculerait pas les
   // jours déjà posés en base.
@@ -694,6 +717,133 @@ export const KEY_META = {
     label: 'Hôtes interdits pour le relais (toujours), séparés par virgule.',
     section: 'privacy',
     order: 42,
+  },
+
+  // Connecteur Claude (MCP) — ouvert par défaut ; une variable d'environnement verrouille la clé.
+  'mcp.write_mode': {
+    label:
+      'Écritures par Claude : appliquées tout de suite, ou proposées en plan à valider avant application.',
+    section: 'mcp',
+    order: 10,
+    optionLabels: { direct: 'Directes (défaut)', plan: 'Plan à valider puis appliquer' },
+  },
+  'mcp.write_scope_policy': {
+    label:
+      'Qui peut écrire par Claude : tout compte autorisé au connecteur, avec ses propres droits dans l’application, ou seulement les administrateurs.',
+    section: 'mcp',
+    order: 15,
+    optionLabels: {
+      app_permissions: 'Chacun avec ses droits applicatifs (défaut)',
+      admin_only: 'Administrateurs seulement',
+    },
+  },
+  'mcp.api_bridge_enabled': {
+    label:
+      'Claude peut utiliser toutes les fonctions du site (créer, valider, archiver…), avec les droits de la personne connectée.',
+    section: 'mcp',
+    order: 20,
+  },
+  'mcp.api_bridge_methods': {
+    label:
+      'Types d’actions permis à Claude sur le site (GET = lire, POST/PUT/PATCH = écrire, DELETE = supprimer).',
+    section: 'mcp',
+    order: 21,
+  },
+  'mcp.api_bridge_sensitive_auth': {
+    label:
+      'Autoriser Claude sur les routes de connexion sensibles (prise de contrôle d’un compte, enrôlement TOTP…). Les jetons restent masqués.',
+    section: 'mcp',
+    order: 22,
+  },
+  'mcp.domains_disabled': {
+    label:
+      'Domaines retirés à Claude (ex. tasks, students, maps, ops), séparés par des virgules. Vide : tout est disponible.',
+    section: 'mcp',
+    order: 25,
+  },
+  'mcp.sql_select_enabled': {
+    label: 'Claude peut lire la base par des requêtes SQL (lecture seule).',
+    section: 'mcp',
+    order: 30,
+  },
+  'mcp.sql_select_pool': {
+    label: 'Compte de base utilisé pour la lecture SQL.',
+    section: 'mcp',
+    order: 31,
+    optionLabels: {
+      auto: 'Compte dédié s’il existe, sinon compte principal en lecture seule (défaut)',
+      dedicated_only: 'Compte dédié DB_MCP_USER obligatoire',
+    },
+  },
+  'mcp.sql_write_enabled': {
+    label:
+      'Claude peut corriger des données en SQL (contourne la logique du site : à réserver aux corrections).',
+    section: 'mcp',
+    order: 32,
+  },
+  'mcp.sql_ddl_enabled': {
+    label: 'Claude peut modifier la structure de la base (tables, colonnes, droits).',
+    section: 'mcp',
+    order: 33,
+  },
+  'mcp.sql_max_affected_rows': {
+    label: 'Nombre maximal de lignes qu’une instruction SQL de Claude peut modifier.',
+    section: 'mcp',
+    order: 34,
+  },
+  'mcp.confirm_mode': {
+    label: 'Demander un code reçu par e-mail avant certaines actions de Claude.',
+    section: 'mcp',
+    order: 40,
+    optionLabels: {
+      off: 'Jamais (défaut)',
+      sensitive: 'Actions sensibles seulement',
+      all_writes: 'Toute écriture',
+    },
+  },
+  'mcp.privacy_bypass': {
+    label:
+      'Claude peut lire et modifier les données nominatives des élèves, pour les comptes autorisés. Chaque lecture est journalisée.',
+    section: 'mcp',
+    order: 50,
+  },
+  'mcp.privacy_bypass_ack': {
+    label: 'Date de lecture du registre de traitement (AAAA-MM-JJ), à titre d’information.',
+    section: 'mcp',
+    order: 51,
+  },
+  'mcp.privacy_reads_audit_details': {
+    label: 'Détail noté au journal pour chaque lecture de données nominatives.',
+    section: 'mcp',
+    order: 52,
+    optionLabels: { summary: 'Résumé (défaut)', full: 'Complet' },
+  },
+  'mcp.ops_enabled': {
+    label:
+      'Claude peut piloter l’exploitation : tâches planifiées, migrations, redémarrage, sauvegardes.',
+    section: 'mcp',
+    order: 60,
+  },
+  'mcp.files_enabled': {
+    label: 'Claude peut consulter les journaux et fichiers du serveur (lecture seule).',
+    section: 'mcp',
+    order: 61,
+  },
+  'mcp.max_rows': {
+    label: 'Nombre maximal de lignes renvoyées par une lecture de Claude.',
+    section: 'mcp',
+    order: 70,
+  },
+  'mcp.max_output_chars': {
+    label: 'Taille maximale d’une réponse à Claude (caractères) ; au-delà, passer par un export.',
+    section: 'mcp',
+    order: 71,
+  },
+  'mcp.tool_profile': {
+    label: 'Outils proposés à Claude : tous, ou un jeu essentiel si Claude choisit mal ses outils.',
+    section: 'mcp',
+    order: 80,
+    optionLabels: { complet: 'Complet (défaut)', essentiel: 'Essentiel' },
   },
 
   'rbac.progression_by_validated_tasks': {

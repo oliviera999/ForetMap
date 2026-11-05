@@ -818,12 +818,44 @@ Isolation : un jeton `fmcp_…` présenté sur `/api/*` ou `/api/gl/*` reçoit *
 `{ code: "MCP_TOKEN" }` ; un JWT applicatif est refusé sur `/mcp` (`invalid_token`). Outils
 exposés et portées : [MCP.md § 4](MCP.md).
 
-**Mode productivité (admin, optionnel)** — drapeaux `MCP_SQL_WRITE_ENABLED`, `MCP_SQL_DDL_ENABLED`,
-`MCP_WRITE_REQUIRE_PLAN`, `MCP_PRIVACY_BYPASS` + `MCP_PRIVACY_BYPASS_ACK`, `MCP_CONFIRM_REQUIRED`,
-`MCP_SQL_MAX_AFFECTED_ROWS` : voir [MCP.md § 2 et § 13](MCP.md). Outils additionnels possibles :
-`foretmap_sql_execute`, `foretmap_content_change` (si plan non exigé), `foretmap_list_students`,
-`foretmap_get_student` (bypass actif). Confirmation par code e-mail pour certaines exécutions SQL
-(`mcp_confirmations`, migration `327_mcp_productivity.sql`).
+Lots JSON-RPC : corps porté à **21 Mo** quand la requête porte un jeton `Bearer fmcp_at_…`
+(fichiers transmis en base64 par `foretmap_api`), 256 ko sinon. `prompts/list` expose six
+parcours guidés (bilan des tâches, tâches à valider et en retard, bilan d'une classe,
+couverture du programme, audit du corpus, santé du site).
+
+**Accès complet, ouvert par défaut (05/11/2026)** — réglages `mcp.*` (administration, section
+« Connecteur Claude ») : variable d'environnement > base > défaut ouvert, une variable posée
+verrouille la clé ([MCP.md § 13](MCP.md)). Outils (catalogue complet : [MCP.md § 4](MCP.md)) :
+socle universel `foretmap_api` (pont API interne), `foretmap_api_catalog`,
+`foretmap_describe_schema`, `foretmap_sql_select` / `foretmap_sql_execute`, `foretmap_export`,
+`foretmap_entity_history` ; outils de domaine (`foretmap_tasks`, `foretmap_task_projects`,
+`foretmap_students`, `foretmap_groups`, `foretmap_maps`, `foretmap_species`,
+`foretmap_settings`, `foretmap_ops`…). Confirmation par code e-mail selon
+`mcp.confirm_mode` (`mcp_confirmations`, migration `327`) ; permissions `mcp.ops` et
+`notifications.send` (migration `328`).
+
+**Pont API (`foretmap_api`, `lib/mcp/apiBridge.js`)** — appel en processus de n'importe quelle
+route `/api/*` en tant que l'utilisateur du connecteur (JWT applicatif éphémère de 120 s,
+revendication `via: 'mcp'`, jamais renvoyé ni journalisé). Refus : `/api/gl/*`,
+`/api/auth/login`, `/api/auth/logout`, routes d'authentification sensibles (sauf
+`mcp.api_bridge_sensitive_auth`). Les requêtes internes sont marquées (symbole posé par
+l'injecteur, impossible à produire par un en-tête) : elles échappent aux limiteurs général et
+d'authentification (le limiteur `/mcp` reste la garde).
+
+**Journal d'audit (`logAudit`, `lib/auditLog.js`)** — quand l'action vient d'un appel d'outil
+MCP (requête interne du pont ou contexte d'appel `AsyncLocalStorage`), `payload_json` reçoit en
+plus `via: "mcp"`, `mcp_tool` et `mcp_client_id` ; hors MCP, la charge est inchangée
+(rétrocompatible). Lignes propres au connecteur : `mcp_api_call` (appel du pont autre que GET,
+et GET quand le bypass est actif), `mcp.privacy_bypass.read` (lecture nominative),
+`mcp.settings.change` (ancienne et nouvelle valeur d'un réglage `mcp.*`), `mcp.write_off`.
+
+### Administration du connecteur (`/api/settings/admin/mcp`)
+
+| Méthode | URL                                    | Accès                  | Contrat                                                                                                                                                                                                       |
+| ------- | -------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/settings/admin/mcp/status`       | `admin.settings.read`  | `{ enabled, settings: [{ key, value, source: env|base|défaut, locked, env, type, values, min, max, default_value }], privacy_bypass: { active, ack, ack_missing_reason }, profiles: [{ profile, connector, scopes, count, tools }], activity: [20 dernières lignes via mcp] }` |
+| POST    | `/api/settings/admin/mcp/write-off`    | `admin.settings.write` | « Couper l'écriture » : `mcp.api_bridge_enabled=false`, `mcp.sql_write_enabled=false`, `mcp.write_mode=plan` (clés verrouillées laissées telles quelles). **200** `{ ok, applied, locked }` ; audit `mcp.write_off` |
+| PUT     | `/api/settings/admin/mcp.<clé>`        | `admin.settings.write` | Route générique des réglages ; **409** `{ code: "MCP_SETTING_LOCKED" }` si la clé est verrouillée par une variable d'environnement                                                                             |
 
 ---
 
@@ -2336,6 +2368,9 @@ Contrat principal :
 | GET     | `/api/tasks/:id/logs`              | non (compte connecté **requis**, profil non visiteur)          | Logs de la tâche (PII : prénoms/noms, commentaires) — anonyme ou visiteur → **403**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | GET     | `/api/tasks/:id/logs/:logId/image` | non (compte connecté **requis**, profil non visiteur)          | Image d’un log (fichier disque) — **même politique que la liste ci-dessus** ; anonyme ou visiteur → **403**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | POST    | `/api/tasks/:id/validate`          | oui (`tasks.validate`)                                         | Valider la tâche (depuis n’importe quel statut sauf `validated`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| POST    | `/api/tasks/:id/duplicate`         | oui (`tasks.manage`)                                           | Dupliquer une tâche : copie active (`available`, démarrage aujourd'hui) avec lieux, tutoriels, espèces, référents, groupe et séance ; ni inscriptions ni comptes rendus. Corps `{ title? }` (défaut « titre (copie) »). **201** tâche créée ; audit `duplicate_task` |
+| POST    | `/api/tasks/:id/recurrence/spawn`  | oui (`tasks.manage`)                                           | Générer tout de suite l'occurrence suivante d'une série récurrente (occurrence courante validée, non archivée ; marqueur anti-doublon). **201** `{ created, task }` ; **409** `not_validated` / `archived` / `already_spawned`, **400** `not_recurring` |
+| POST    | `/api/tasks/:id/logs`              | oui (`tasks.manage`)                                           | Compte rendu ajouté par la gestion : `{ comment?, imageData? (data URL), student_id? }` (au moins l'un des deux premiers). Ne change ni le statut ni les inscriptions. **201** `{ id, task_id, student_id, comment, has_image, created_at }` ; audit `add_task_log` |
 | POST    | `/api/tasks/proposals`             | non (JWT n3beur **requis**)                                    | Proposer une tâche (statut `proposed`). Identité dérivée du JWT : sans jeton → **403** ; `studentId` divergent du jeton → **403** ; un prof (`tasks.manage`/périmètre groupe) peut proposer au nom d'un n3beur de son périmètre                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Inscription à une tâche (`POST /api/tasks/:id/assign`)** — unicité et capacité :
@@ -2446,6 +2481,7 @@ Regroupe plusieurs tâches sous un même projet (carte, titre, description, stat
 | Méthode | URL                                | n3boss                 | Description                                                                                                                                                                                                           |
 | ------- | ---------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET     | `/api/task-projects`               | non                    | Liste des projets (`?map_id=` optionnel). Paramètre `archived` (**prof** — `tasks.manage`) : `active` (défaut), `archived`, `all` ; sans `tasks.manage`, forcé à `active`                                             |
+| GET     | `/api/task-projects/:id`           | non                    | Fiche d'un projet (zones, repères, tutoriels) avec `progress: { total, validated, by_status, percent }` (tâches actives). Projet archivé : **404** hors gestion (`tasks.manage`) |
 | POST    | `/api/task-projects`               | oui (`tasks.manage`)   | Créer un projet                                                                                                                                                                                                       |
 | PUT     | `/api/task-projects/:id`           | oui                    | Modifier un projet (**400** si `map_id` change avec des tâches sur l’ancienne carte)                                                                                                                                  |
 | POST    | `/api/task-projects/:id/validate`  | oui (`tasks.validate`) | Valider manuellement un projet (`status` → `validated`)                                                                                                                                                               |

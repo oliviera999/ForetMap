@@ -316,6 +316,42 @@ router.get(
   }),
 );
 
+// Lecture d'un projet (connecteur Claude, lot D) : même visibilité que la liste — un projet
+// archivé n'est visible que de la gestion (`tasks.manage`). Avancement : compteurs des tâches
+// actives par statut.
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const row = await loadProjectRow(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Projet introuvable' });
+    const auth = await parseOptionalAuth(req);
+    if (row.archived_at != null && !canManageTasks(auth)) {
+      return res.status(404).json({ error: 'Projet introuvable' });
+    }
+    const counts = await queryAll(
+      `SELECT status, COUNT(*) AS n FROM tasks
+        WHERE project_id = ? AND archived_at IS NULL
+        GROUP BY status`,
+      [req.params.id],
+    );
+    const byStatus = {};
+    let total = 0;
+    for (const c of counts) {
+      byStatus[c.status] = Number(c.n);
+      total += Number(c.n);
+    }
+    res.json({
+      ...row,
+      progress: {
+        total,
+        validated: byStatus.validated || 0,
+        by_status: byStatus,
+        percent: total ? Math.round(((byStatus.validated || 0) * 100) / total) : 0,
+      },
+    });
+  }),
+);
+
 router.post(
   '/',
   requirePermission('tasks.manage'),

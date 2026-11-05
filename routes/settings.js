@@ -356,6 +356,17 @@ router.put(
         error: `Utilisez POST /api/settings/admin/${route.path} pour définir le ${what}`,
       });
     }
+    // Réglage du connecteur Claude verrouillé par une variable d'environnement : la base ne
+    // gagnerait jamais, l'écriture serait trompeuse.
+    if (key.startsWith('mcp.')) {
+      const entry = require('../lib/mcp/config').buildSettingsEntries({})[key];
+      if (entry?.locked) {
+        return res.status(409).json({
+          error: `Réglage fixé par le serveur (variable ${entry.env}) : modifiable seulement dans l’environnement`,
+          code: 'MCP_SETTING_LOCKED',
+        });
+      }
+    }
     const value = req.body?.value;
     // Double authentification obligatoire : jamais sans clé de chiffrement (personne ne
     // pourrait s'enrôler), et seulement par un administrateur qui a lui-même activé et validé
@@ -421,6 +432,9 @@ router.put(
 // CRUD des cartes (création, modification, image de fond, calage GPS) : sorti vers
 // `lib/terrain/mapService.js` (étape B4 de l'audit du 25/09/2026, § 3.1), mêmes URL.
 router.use('/admin/maps', require('./maps-admin'));
+
+// Connecteur Claude (lot E) : état, outils exposés, activité, « Couper l'écriture ».
+router.use('/admin/mcp', require('./mcpAdmin'));
 
 router.get(
   '/admin/media-library',

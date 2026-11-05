@@ -42,6 +42,7 @@ test('le registre est l’agrégat des domaines, dans l’ordre de la liste', ()
       'confidentialité',
       'parcours',
       'zoom sur le lieu',
+      'connecteur Claude',
     ],
   );
 });

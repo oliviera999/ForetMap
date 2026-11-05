@@ -9,6 +9,55 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Connecteur Claude : accès complet, ouvert par défaut, paramétrable
+
+Décision du propriétaire du projet (05/11/2026) : le connecteur MCP permet de **tout faire**
+sur ForêtMap depuis Claude, en lecture comme en écriture, avec la logique métier du site. Tout
+est ouvert par défaut et réglable dans l'administration ; une variable d'environnement verrouille
+une clé. Non négociable : aucun secret ne sort, tout est tracé (`via: 'mcp'`), OAuth + TOTP +
+`mcp.use` restent la porte d'entrée. Gnomes & Licornes hors périmètre. Docs : `docs/MCP.md`
+(§ 4, § 6, § 13), `docs/MCP_REGISTRE_TRAITEMENT.md`, `docs/reference/foretmap/activer-le-connecteur.md`.
+
+- **Lot A — réglages `mcp.*`** (`lib/settings/mcp.js`, `lib/mcp/config.js`) : vingt clés
+  (mode d'écriture, politique de portée, pont, méthodes, domaines retirés, SQL, confirmation,
+  bypass RGPD, exploitation, fichiers, plafonds, profil d'outils), défauts ouverts ; résolution
+  variable d'environnement > base > défaut, cache 10 s ; accusé du bypass devenu informatif
+  (journal `warn`) ; portée `foretmap.write` pour tout compte `mcp.use` (`app_permissions`) ;
+  instructions serveur selon l'état ; audit `mcp.settings.change` ; `PUT` d'une clé verrouillée
+  → 409.
+- **Lot B — pont API interne** (`foretmap_api`, `foretmap_api_catalog`, `lib/mcp/apiBridge.js`) :
+  toute route `/api/*` appelée en processus en tant que l'utilisateur (JWT éphémère 120 s),
+  injection par `light-my-request` (BSD-3-Clause, équipe Fastify) ; marquage non falsifiable
+  (`lib/mcp/callContext.js`) : `logAudit` ajoute `via` / `mcp_tool` / `mcp_client_id`
+  (rétrocompatible), journaux marqués, limiteurs levés pour les seules requêtes internes ;
+  refus de `/api/gl/*`, login/logout et routes d'authentification sensibles (réglable).
+- **Lot C — socle de données** : `foretmap_sql_select` sur le pool principal en READ ONLY sans
+  `DB_MCP_USER` (`SELECT *` refusé sur une table à colonnes secrètes), `foretmap_describe_schema`,
+  `foretmap_export` (CSV / XLSX / JSON, lien signé d'une heure, purge à 24 h, nouvelle catégorie
+  de rétention `mcp_exports`), `foretmap_entity_history` (journal d'une fiche, restauration par
+  l'API), liste blanche de contenu étendue (tutoriels, catégories de lieux, parcours, visite,
+  séances, notions).
+- **Lot D — outils de domaine** (`lib/mcp/tools/domains/`) : fabrique commune (action par
+  outil, schéma strict par action, écritures par le pont, nominatif sous bypass, lectures SQL
+  sous permission applicative) ; `foretmap_tasks` et `foretmap_task_projects` ; extraction à
+  l'identique de la validation, de l'archivage et de la suppression des tâches vers
+  `lib/tasks/taskActions.js` ; nouvelles routes `POST /api/tasks/:id/duplicate`,
+  `POST /api/tasks/:id/recurrence/spawn`, `POST /api/tasks/:id/logs`,
+  `GET /api/task-projects/:id`.
+- **Lot E — interface** : section « Connecteur Claude » (Réglages → Exploitation) — valeur
+  effective et source de chaque clé, clés verrouillées grisées, outils exposés par profil,
+  bypass, vingt dernières actions `via: 'mcp'`, bouton « Couper l'écriture » ; routes
+  `GET /api/settings/admin/mcp/status`, `POST /api/settings/admin/mcp/write-off`.
+- **Lot F — prompts MCP** : six parcours (`prompts/list`) — bilan des tâches, tâches à valider
+  et en retard, bilan d'une classe, couverture du programme, audit du corpus, santé du site ;
+  note de mémoire stable semée une fois.
+- **Lot G — migration `328_mcp_acces_complet.sql`** : permissions `mcp.ops` (admin) et
+  `notifications.send` (admin, n3boss), idempotente, aucune ligne `app_settings`.
+- **Lot H — documentation** : `docs/MCP.md` (catalogue, pont, réglages, blocs `.env` « tout
+  ouvert » et « protégé »), registre de traitement (finalités, bypass ouvert, traçabilité,
+  conservation des exports), `docs/API.md`, docs de référence (activation, réglages, ce qu'un
+  prof peut faire), `.env.example`, durées de conservation.
+
 ### Modifié — Tâches de projet aussi dans la liste par statut
 
 - Les tâches rattachées à un projet apparaissent désormais **aussi** dans les sections

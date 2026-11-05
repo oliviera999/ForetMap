@@ -99,16 +99,21 @@ test.beforeEach(() => {
   resetToolDefsForTests();
 });
 
-test('outils absents par défaut et sans ACK', async () => {
-  let tools = await fx.listTools(app, adminToken);
-  assert.ok(!tools.includes('foretmap_get_student'));
-  assert.ok(!tools.includes('foretmap_list_students'));
-
-  process.env.MCP_PRIVACY_BYPASS = 'true';
+test('outils présents par défaut, même sans ACK ; absents si verrouillés à false', async () => {
+  // Défaut ouvert (05/11/2026) : l'accusé n'est plus un prérequis.
+  delete process.env.MCP_PRIVACY_BYPASS;
   delete process.env.MCP_PRIVACY_BYPASS_ACK;
+  resetToolDefsForTests();
+  let tools = await fx.listTools(app, adminToken);
+  assert.ok(tools.includes('foretmap_get_student'));
+  assert.ok(tools.includes('foretmap_list_students'));
+
+  process.env.MCP_PRIVACY_BYPASS = 'false';
   resetToolDefsForTests();
   tools = await fx.listTools(app, adminToken);
   assert.ok(!tools.includes('foretmap_get_student'));
+  assert.ok(!tools.includes('foretmap_list_students'));
+  delete process.env.MCP_PRIVACY_BYPASS;
 });
 
 test('outils présents pour admin avec ACK ; absents pour prof', async () => {
@@ -248,10 +253,12 @@ test('prof avec permission manuelle refusé (verrou role)', async () => {
   ]);
 });
 
-test('foretmap_content_change masqué par défaut, visible si REQUIRE_PLAN=false', async () => {
+test('foretmap_content_change visible par défaut, masqué si REQUIRE_PLAN=true (verrouillé)', async () => {
+  process.env.MCP_WRITE_REQUIRE_PLAN = 'true';
+  resetToolDefsForTests();
   let tools = await fx.listTools(app, adminToken);
   assert.ok(!tools.includes('foretmap_content_change'));
-  process.env.MCP_WRITE_REQUIRE_PLAN = 'false';
+  delete process.env.MCP_WRITE_REQUIRE_PLAN;
   resetToolDefsForTests();
   tools = await fx.listTools(app, adminToken);
   assert.ok(tools.includes('foretmap_content_change'));

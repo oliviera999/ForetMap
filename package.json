@@ -33,6 +33,7 @@
     "isomorphic-dompurify": "^4.6.0",
     "jose": "^6.2.13",
     "jsonwebtoken": "^9.0.2",
+    "light-my-request": "6.6.0",
     "multer": "^2.4.0",
     "mysql2": "^3.24.6",
     "node-sql-parser": "^5.4.0",

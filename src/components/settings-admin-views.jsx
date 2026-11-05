@@ -24,6 +24,7 @@ import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.js
 import { FMLearningGatingSettings } from './settings/FMLearningGatingSettings.jsx';
 import { SchoolCalendarPanel } from './settings/SchoolCalendarPanel.jsx';
 import { MoodleAdminPanel } from './settings/MoodleAdminPanel.jsx';
+import { McpConnectorPanel } from './settings/McpConnectorPanel.jsx';
 import { CategoryIdsMultiSelect } from './settings/CategoryIdsMultiSelect.jsx';
 import { ForetBrandEditor } from './settings/ForetBrandEditor.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
@@ -1105,6 +1106,19 @@ function SettingsAdminView({
               </AdminSection>
               <AdminSection id="usage" title="Usage (compteurs anonymes)" defaultOpen={false}>
                 <UsagePanel onError={(errMsg) => setErr(errMsg)} />
+              </AdminSection>
+              <AdminSection id="mcp" title="Connecteur Claude" defaultOpen={false}>
+                <McpConnectorPanel
+                  canWrite={canWriteSettings}
+                  saveSetting={saveSetting}
+                  savingKey={savingKey}
+                  confirm={confirm}
+                  onMessage={(okMsg) => {
+                    setMsg(okMsg);
+                    setErr('');
+                  }}
+                  onError={(errMsg) => setErr(errMsg)}
+                />
               </AdminSection>
               <div
                 className="settings-admin-grid settings-admin-grid--single-on-mobile"
