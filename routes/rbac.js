@@ -1349,6 +1349,73 @@ router.patch(
   }),
 );
 
+/**
+ * POST /api/rbac/users/:userType/:userId/reset-password-link — lien de réinitialisation du mot
+ * de passe à **transmettre** au titulaire (élève sans e-mail, enseignant qui a perdu l'accès à
+ * sa boîte). Même jeton et même durée de vie que « mot de passe oublié »
+ * (`createPasswordResetToken`), mêmes gardes que le changement de mot de passe d'un compte
+ * (PATCH ci-dessus) : jamais sur soi-même, ni sur un profil de rang égal ou supérieur (hors
+ * administrateur), ni sur un administrateur pour un non-administrateur, ni sur un compte
+ * désactivé. Le jeton n'est **jamais** journalisé ; le lien est renvoyé dans `reset_link`.
+ */
+router.post(
+  '/users/:userType/:userId/reset-password-link',
+  requirePermission('admin.users.assign_roles'),
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const { user, resolvedUserType, resolvedUserId } = resolved;
+    const visibleIds = await visibleUserIdsForActor(req.auth);
+    if (visibleIds && !visibleIds.has(String(resolvedUserId))) {
+      return res.status(403).json({ error: 'Compte hors de votre périmètre' });
+    }
+    if (String(req.auth?.userId) === String(resolvedUserId)) {
+      return res
+        .status(403)
+        .json({ error: 'Utilisez « mot de passe oublié » pour votre propre compte' });
+    }
+    const actorRoleSlug = String(req.auth?.roleSlug || '')
+      .trim()
+      .toLowerCase();
+    const targetPrimary = await getPrimaryRoleForUser(resolvedUserType, resolvedUserId);
+    if (targetPrimary?.slug === 'admin' && actorRoleSlug !== 'admin') {
+      return res
+        .status(403)
+        .json({ error: 'Seul un administrateur peut modifier un autre administrateur' });
+    }
+    if (
+      actorRoleSlug !== 'admin' &&
+      Number(targetPrimary?.rank || 0) >= Number(req.auth?.roleRank || 0)
+    ) {
+      return res.status(403).json({
+        error: 'Réservé à un profil de rang supérieur à celui du compte visé',
+      });
+    }
+    if (Number(user.is_active) === 0) {
+      return res.status(409).json({ error: 'Compte désactivé : réactivez-le d’abord' });
+    }
+    const {
+      createPasswordResetToken,
+      makeResetUrl,
+      PASSWORD_RESET_TTL_MINUTES,
+    } = require('../lib/passwordReset');
+    const resetToken = await createPasswordResetToken(resolvedUserType, resolvedUserId);
+    const resetLink = makeResetUrl(resolvedUserType, resetToken);
+    // Journal : le compte visé et son type, jamais le jeton ni le lien.
+    await logAudit('rbac_password_reset_link', 'user', String(resolvedUserId), resolvedUserType, {
+      req,
+      payload: { user_type: resolvedUserType, ttl_minutes: PASSWORD_RESET_TTL_MINUTES },
+    });
+    res.json({
+      ok: true,
+      user_type: resolvedUserType,
+      user_id: String(resolvedUserId),
+      reset_link: resetLink,
+      expires_in_minutes: PASSWORD_RESET_TTL_MINUTES,
+    });
+  }),
+);
+
 router.put(
   '/users/:userType/:userId/role',
   requirePermission('admin.users.assign_roles'),

@@ -48,6 +48,7 @@ const { evaluateSessionRewards, announceableRewards } = require('../lib/rewards'
 const { getScopedStudentIds } = require('../lib/groupScope');
 const { resolveRouteBaseUrl } = require('../lib/mapRoutes');
 const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
+const { logAudit } = require('../lib/auditLog');
 // `qrcode` (MIT, https://github.com/soldair/node-qrcode) : déjà utilisé pour les parcours.
 const QRCode = require('qrcode');
 
@@ -483,6 +484,47 @@ router.put(
 
     const updated = await loadSessionByIdOrSlug(row.id);
     return res.json(serializeSessionRow(updated));
+  }),
+);
+
+/**
+ * DELETE /api/pedago-sessions/:idOrSlug — supprime une séance (même droit que la création,
+ * `plants.manage`). Les passages (`pedago_session_runs`) partent avec elle (clé étrangère en
+ * cascade) ; les tâches liées sont **détachées** (`pedago_session_id` à NULL), pas supprimées ;
+ * les badges déjà obtenus restent acquis. Une séance qui l'exigeait en prérequis s'ouvre
+ * ensuite librement (un prérequis introuvable ne bloque pas, cf. `checkPrerequisite`).
+ */
+router.delete(
+  '/:idOrSlug',
+  manageSessions,
+  asyncHandler(async (req, res) => {
+    const row = await loadSessionByIdOrSlug(req.params.idOrSlug);
+    if (!row) return res.status(404).json({ error: 'Séance introuvable' });
+    const runs = await queryOne(
+      'SELECT COUNT(*) AS n FROM pedago_session_runs WHERE session_id = ?',
+      [row.id],
+    );
+    const detached = await execute(
+      'UPDATE tasks SET pedago_session_id = NULL WHERE pedago_session_id = ?',
+      [row.id],
+    );
+    await execute('DELETE FROM pedago_sessions WHERE id = ?', [row.id]);
+    const result = {
+      ok: true,
+      deleted: row.id,
+      slug: row.slug,
+      runs_deleted: Number(runs?.n || 0),
+      tasks_detached: Number(detached?.affectedRows || 0),
+    };
+    await logAudit('delete_pedago_session', 'pedago_session', row.id, row.title, {
+      req,
+      payload: {
+        slug: row.slug,
+        runs_deleted: result.runs_deleted,
+        tasks_detached: result.tasks_detached,
+      },
+    });
+    return res.json(result);
   }),
 );
 

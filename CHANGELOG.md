@@ -9,6 +9,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Connecteur Claude : outils de domaine (suite)
+
+- **Lot D (2/4) — personnes et pédagogie** : `foretmap_students` (nominatif ; remplace
+  `foretmap_list_students` / `foretmap_get_student`, gardés comme alias dépréciés),
+  `foretmap_groups`, `foretmap_tutorials`, `foretmap_learning`, `foretmap_quiz`,
+  `foretmap_glossary`, `foretmap_curriculum`, `foretmap_pedago_sessions` ; routes
+  `GET /api/groups/:id`, `POST /api/rbac/users/:userType/:userId/reset-password-link`,
+  `GET /api/tutorials/:id/reads`, `DELETE /api/pedago-sessions/:idOrSlug`.
+- **Lot D (3/4) — vivant et lieux** : `foretmap_species`, `foretmap_food_web`,
+  `foretmap_observations`, `foretmap_id_keys`, `foretmap_maps`, `foretmap_visit`,
+  `foretmap_plans` ; route `PATCH /api/plants/:id/map-species/:mapId` (statut au registre).
+- **Lot D (4/4) — vie collective, réglages, exploitation** : `foretmap_social`,
+  `foretmap_settings`, `foretmap_rbac`, `foretmap_audit_log`, `foretmap_calendar`,
+  `foretmap_moodle`, `foretmap_stats`, `foretmap_ops` ; route `POST /api/notifications/send` ;
+  tâches planifiées quotidiennes extraites à l'identique vers `lib/dailyJobs.js`.
+- **Corrigé** : ligne d'audit `mcp_api_call` perdue pour un chemin plus long que
+  `target_id` ; schéma publié d'un paramètre partagé par plusieurs actions (union) ; routes
+  d'écriture des lots D et E déclarées dans l'inventaire figé (test rouge sur `main`).
+- **Lot H (2/2)** : catalogue complet des outils par étage dans `docs/MCP.md` § 4.
+
 ### Ajouté — Connecteur Claude : accès complet, ouvert par défaut, paramétrable
 
 Décision du propriétaire du projet (05/11/2026) : le connecteur MCP permet de **tout faire**

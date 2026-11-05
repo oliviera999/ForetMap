@@ -245,6 +245,7 @@ const WRITE_ROUTES = Object.freeze({
   'DELETE /api/notifications/:id': 'auth',
   'POST /api/notifications/:id/read': 'auth',
   'POST /api/notifications/read-all': 'auth',
+  'POST /api/notifications/send': 'auth+permission:notifications.send',
   'POST /api/pedago-sessions': 'permission:plants.manage',
   'PUT /api/pedago-sessions/:idOrSlug': 'permission:plants.manage',
   'POST /api/pedago-sessions/:idOrSlug/runs/complete': 'auth',
@@ -257,6 +258,9 @@ const WRITE_ROUTES = Object.freeze({
   'PUT /api/plants/:id': 'permission:plants.manage',
   'POST /api/plants/:id/acknowledge-discovery': 'auth',
   'PUT /api/plants/:id/map-species/:mapId': 'permission:plants.manage',
+  // Statut au registre : droits vérifiés champ par champ dans le handler (plants.manage ou
+  // observations.validate selon le champ), après `requireAuth`.
+  'PATCH /api/plants/:id/map-species/:mapId': 'auth',
   'POST /api/plants/:id/photo-upload': 'permission:plants.manage',
   // Photos de pré-saisie (migration 322) : proposées « À confirmer », validées par un prof.
   'POST /api/plants/:id/photos/propose': 'permission:plants.manage',
@@ -290,6 +294,7 @@ const WRITE_ROUTES = Object.freeze({
   'PUT /api/settings/admin/help-narrator': 'permission:admin.settings.write',
   'POST /api/settings/admin/help-narrator/reset': 'permission:admin.settings.write',
   'POST /api/settings/admin/maps': 'permission:admin.settings.write',
+  'POST /api/settings/admin/mcp/write-off': 'permission:admin.settings.write',
   'PUT /api/settings/admin/maps/:id': 'permission:admin.settings.write',
   'PUT /api/settings/admin/maps/:id/georef': 'permission:admin.settings.write',
   'POST /api/settings/admin/maps/:id/image': 'permission:admin.settings.write',
@@ -344,7 +349,13 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/tasks/:id/unarchive': 'permission:tasks.manage',
   'POST /api/tasks/:id/unassign':
     'garde interne : resolveStudentActionContext, identité tirée du jeton',
+  'DELETE /api/pedago-sessions/:idOrSlug': 'permission:plants.manage',
+  'POST /api/rbac/users/:userType/:userId/reset-password-link':
+    'permission:admin.users.assign_roles',
   'POST /api/tasks/:id/validate': 'permission:tasks.validate',
+  'POST /api/tasks/:id/duplicate': 'permission:tasks.manage',
+  'POST /api/tasks/:id/recurrence/spawn': 'permission:tasks.manage',
+  'POST /api/tasks/:id/logs': 'permission:tasks.manage',
   'POST /api/tasks/import': 'permission:tasks.manage',
   'POST /api/tasks/proposals':
     'garde interne : resolveStudentActionContext(…, tasks.propose), identité tirée du jeton',
