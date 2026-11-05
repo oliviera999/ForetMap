@@ -13,6 +13,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - Règle Cursor **`foretmap-pr-workflow`** : tout lot de code passe par une branche + PR vers
   `main` ; alignement `foretmap-conventions`, `CLAUDE.md`, skills release/versioning.
+### Corrigé — connecteur MCP : un WHERE toujours vrai ne saute plus la confirmation
+
+- `foretmap_sql_execute` demandait un code e-mail pour un `UPDATE` / `DELETE` sans `WHERE`,
+  mais pas pour une condition toujours vraie (`WHERE 1=1`, `WHERE TRUE`, `WHERE id = id`,
+  `WHERE name LIKE '%'`, `WHERE id = 5 OR 1=1`). Sous le plafond de lignes (100 par défaut),
+  l'instruction vidait ou réécrivait toute la table sans confirmation.
+- Ces formes exigent maintenant le même code. Un filtre réel (`WHERE id = 5`, y compris
+  combiné par `AND` à une tautologie) ne change pas.
+- Test : `tests/mcp-sql-execute.test.js`.
 
 ### Corrigé — déconnexion plan / plan e-nov : plus de plan qui reste ouvert
 

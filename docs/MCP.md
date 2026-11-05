@@ -894,7 +894,9 @@ permissions et ACK le permettent.
 ### Confirmation par code (hors Claude)
 
 Quand **`MCP_CONFIRM_REQUIRED=true`** (défaut), les opérations sensibles de
-**`foretmap_sql_execute`** (DDL/DCL si autorisés, UPDATE/DELETE **sans** `WHERE`, tables
+**`foretmap_sql_execute`** (DDL/DCL si autorisés, UPDATE/DELETE **sans** `WHERE` **ou dont le
+`WHERE` est toujours vrai** — `1=1`, `TRUE`, `col = col`, `LIKE '%'`, `… OR 1=1`, `IF(1,1,0)` —,
+tables
 d'autorisation RBAC/OAuth/MCP, dépassement de `MCP_SQL_MAX_AFFECTED_ROWS` après exécution)
 **ne s'exécutent pas** tant qu'un code à **6 chiffres** n'a pas été validé :
 

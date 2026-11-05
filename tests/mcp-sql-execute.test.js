@@ -84,6 +84,47 @@ test('classify : interdits', () => {
   }
 });
 
+test('classify : WHERE toujours vrai exige une confirmation', () => {
+  for (const sql of [
+    'DELETE FROM plants WHERE 1=1',
+    'DELETE FROM plants WHERE (1=1)',
+    'DELETE FROM plants WHERE 1',
+    'DELETE FROM plants WHERE TRUE',
+    'DELETE FROM plants WHERE NOT (1=0)',
+    'DELETE FROM plants WHERE NOT 0',
+    "UPDATE plants SET name = 'x' WHERE id = id",
+    "UPDATE plants SET name = 'x' WHERE p.id = p.id",
+    "DELETE FROM plants WHERE name LIKE '%'",
+    'DELETE FROM plants WHERE id = 5 OR 1=1',
+    "UPDATE plants SET name = 'x' WHERE id = 5 OR name = name",
+    'DELETE FROM plants WHERE IF(1, 1, 0)',
+  ]) {
+    const classified = classifySql(sql);
+    assert.ok(
+      classified.confirmReasons.includes('unfiltered_where'),
+      `${sql} → ${classified.confirmReasons.join(',')}`,
+    );
+    assert.equal(classified.requiresConfirm, true, sql);
+  }
+  // Un vrai filtre, une tautologie en ET, ou une comparaison entre deux colonnes
+  // différentes ne doit pas être traité comme « toutes les lignes ».
+  for (const sql of [
+    'DELETE FROM plants WHERE id = 5',
+    'DELETE FROM plants WHERE id = 5 AND 1=1',
+    "UPDATE plants SET name = 'x' WHERE p.id = q.id",
+    "DELETE FROM plants WHERE name LIKE '%a%'",
+    'DELETE FROM plants WHERE id IS NOT NULL',
+    'DELETE FROM plants WHERE 0',
+    "UPDATE plants SET name = 'x' WHERE id <> id",
+  ]) {
+    const classified = classifySql(sql);
+    assert.ok(
+      !classified.confirmReasons.includes('unfiltered_where'),
+      `${sql} → ${classified.confirmReasons.join(',')}`,
+    );
+  }
+});
+
 test('classify : table protégée et colonne secrète', () => {
   assert.throws(() => classifySql('DELETE FROM audit_log WHERE id = 1'), McpToolError);
   assert.throws(
