@@ -5,7 +5,7 @@
       "args": ["${workspaceFolder}/scripts/mcp-foretmap-diagnostics.mjs"]
     },
     "foretmap": {
-      "url": "${env:FORETMAP_MCP_URL}"
+      "url": "https://foretmap.olution.info/mcp"
     }
   }
 }

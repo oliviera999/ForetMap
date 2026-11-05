@@ -9,6 +9,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — OAuth MCP : bouton « Autoriser » qui ne redirige pas (Cursor)
+
+- CSP `form-action` des pages `/oauth/*` : autorise `http://localhost:*`,
+  `http://127.0.0.1:*`, `https:` et `cursor:` (plus l’origine exacte de la `redirect_uri`).
+  Avant, un motif trop strict bloquait silencieusement le 302 après consentement.
+- Allowlist : `cursor://anysphere.cursor-mcp/oauth/callback` et
+  `http://127.0.0.1:8787/callback`.
+- Tests : `tests/mcp-oauth.test.js`.
+
+### Corrigé — connecteurs MCP Cursor visibles (Customize / Settings)
+
+- `.cursor/mcp.json` : URL publique `https://foretmap.olution.info/mcp` en clair (évite la
+  disparition de l’entrée quand `${env:FORETMAP_MCP_URL}` est vide dans le process Cursor).
+- Doc `MCP_FORETMAP_CURSOR.md` : contournement UI Cursor (serveurs *projet* masqués dans
+  Customize → MCPs) via duplication dans `%USERPROFILE%\.cursor\mcp.json`.
+
 ### Modifié — livraison par PR obligatoire (plus de push direct sur `main`)
 
 - Règle Cursor **`foretmap-pr-workflow`** : tout lot de code passe par une branche + PR vers

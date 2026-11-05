@@ -20,6 +20,7 @@ process.env.TOTP_ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const clients = require('../lib/mcp/oauth/clients');
+const pages = require('../lib/mcp/oauth/pages');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const totp = require('../lib/auth/totp');
 const totpStore = require('../lib/auth/totpStore');
@@ -111,9 +112,26 @@ test('redirections : claude.ai exacte, loopback port ignoré (localhost et 127.0
   );
 });
 
+test('CSP consentement : form-action autorise loopback:port, https et cursor:', () => {
+  const cspLoop = pages.consentPageCsp('http://localhost:8787/callback');
+  assert.match(cspLoop, /form-action[^;]*http:\/\/localhost:\*/);
+  assert.match(cspLoop, /form-action[^;]*http:\/\/localhost:8787/);
+  assert.match(cspLoop, /form-action[^;]*cursor:/);
+  const cspCursor = pages.consentPageCsp('cursor://anysphere.cursor-mcp/oauth/callback');
+  assert.match(cspCursor, /form-action[^;]*cursor:/);
+  const cspHttps = pages.consentPageCsp('https://www.cursor.com/agents/mcp/oauth/callback');
+  assert.match(cspHttps, /form-action[^;]*https:\/\/www\.cursor\.com/);
+});
+
 test('redirections multi-clients : Cursor, ChatGPT (stable + préfixe), Gemini CLI', () => {
   assert.ok(clients.isRedirectAllowedByServer('https://www.cursor.com/agents/mcp/oauth/callback'));
   assert.ok(clients.isRedirectAllowedByServer('http://localhost:8787/callback'));
+  assert.ok(clients.isRedirectAllowedByServer('http://127.0.0.1:8787/callback'));
+  assert.ok(clients.isRedirectAllowedByServer('cursor://anysphere.cursor-mcp/oauth/callback'));
+  assert.equal(
+    clients.validateRedirectUriShape('cursor://anysphere.cursor-mcp/oauth/callback'),
+    null,
+  );
   assert.ok(
     clients.isRedirectAllowedByServer('https://chatgpt.com/connector_platform_oauth_redirect'),
   );
@@ -122,11 +140,7 @@ test('redirections multi-clients : Cursor, ChatGPT (stable + préfixe), Gemini C
   assert.ok(!clients.isRedirectAllowedByServer('https://chatgpt.com/connector/other/x'));
   assert.ok(clients.isRedirectAllowedByServer('http://localhost:19234/oauth/callback'));
   assert.ok(clients.isRedirectAllowedByServer('http://127.0.0.1:9/oauth/callback'));
-  assert.ok(!clients.isRedirectAllowedByServer('cursor://anysphere.cursor-mcp/oauth/callback'));
-  assert.equal(
-    clients.validateRedirectUriShape('cursor://anysphere.cursor-mcp/oauth/callback'),
-    'redirect_uri doit être en https (ou http sur une adresse de bouclage)',
-  );
+  assert.ok(!clients.isRedirectAllowedByServer('cursor://evil-app/oauth/callback'));
 });
 
 test('DCR : client public enregistré, redirections et méthode validées', async () => {
@@ -174,6 +188,7 @@ test('DCR : filtre les redirect_uris hors allowlist (Cursor mix)', async () => {
   assert.deepEqual(mixed.body.redirect_uris, [
     'https://www.cursor.com/agents/mcp/oauth/callback',
     'http://localhost:8787/callback',
+    'cursor://anysphere.cursor-mcp/oauth/callback',
   ]);
 });
 
