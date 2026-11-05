@@ -21,11 +21,9 @@ const {
 } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
-const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
-const { runAutoArchiveJob } = require('./lib/autoArchive');
-const { trackJobRun } = require('./lib/scheduledJobs');
-const { purgeOldNotifications } = require('./lib/notifications');
-const { runTaskDeadlineRemindersJob } = require('./lib/taskDeadlineReminders');
+// Jobs quotidiens (tâches récurrentes, archivage, purge des notifications, rappels) :
+// liste nommée partagée avec `foretmap_ops run_cron` (lancement à la demande).
+const { runDailyJobs } = require('./lib/dailyJobs');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { recordBoot, recordStop, recordCrash, resolveStopReason } = require('./lib/bootJournal');
@@ -872,22 +870,7 @@ function scheduleRecurringTaskSpawn() {
   const jitter = 45000 + Math.floor(Math.random() * 120000);
   // Chaque job est tracé dans `scheduled_job_runs` (lib/scheduledJobs.js, migration 325) :
   // `foretmap_cron_status` y lit la dernière exécution et les retards. Traçage best-effort,
-  // sans effet sur le job lui-même.
-  const runDailyJobs = () => {
-    trackJobRun('recurring_tasks', () => runRecurringTaskSpawnJob()).catch((err) =>
-      logger.warn({ err }, 'Job tâches récurrentes'),
-    );
-    // Archivage automatique des tâches/projets validés anciens (réglable, cf. lib/autoArchive).
-    trackJobRun('auto_archive', () => runAutoArchiveJob()).catch((err) =>
-      logger.warn({ err }, 'Job archivage automatique'),
-    );
-    trackJobRun('notifications_purge', () => purgeOldNotifications()).catch((err) =>
-      logger.warn({ err }, 'Job purge notifications'),
-    );
-    trackJobRun('task_deadline_reminders', () => runTaskDeadlineRemindersJob()).catch((err) =>
-      logger.warn({ err }, 'Job rappels d’échéance'),
-    );
-  };
+  // sans effet sur le job lui-même. Liste et lancement : `lib/dailyJobs.js`.
   recurringJobFirstTimeoutId = setTimeout(() => {
     recurringJobFirstTimeoutId = null;
     runDailyJobs();

@@ -349,6 +349,9 @@ const WRITE_ROUTES = Object.freeze({
   'POST /api/tasks/:id/unarchive': 'permission:tasks.manage',
   'POST /api/tasks/:id/unassign':
     'garde interne : resolveStudentActionContext, identité tirée du jeton',
+  'DELETE /api/pedago-sessions/:idOrSlug': 'permission:plants.manage',
+  'POST /api/rbac/users/:userType/:userId/reset-password-link':
+    'permission:admin.users.assign_roles',
   'POST /api/tasks/:id/validate': 'permission:tasks.validate',
   'POST /api/tasks/:id/duplicate': 'permission:tasks.manage',
   'POST /api/tasks/:id/recurrence/spawn': 'permission:tasks.manage',

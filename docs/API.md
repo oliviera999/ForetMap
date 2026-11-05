@@ -2592,6 +2592,7 @@ Notifications **adressées à un compte précis** (migration `289`, table `notif
 | POST    | `/api/notifications/:id/read`            | Marque une notification comme lue → `{ ok: true }`                                                                                                             |
 | POST    | `/api/notifications/read-all`            | Marque toutes les notifications non lues comme lues → `{ ok: true, updated }`                                                                                  |
 | DELETE  | `/api/notifications/:id`                 | Supprime une notification → `{ ok: true }`                                                                                                                     |
+| POST    | `/api/notifications/send` | Permission `notifications.send` (admin, prof). Corps `{ title (1-200), body? (≤ 500), link?: { type: task\|place\|thread\|settings, id?, map_id?, kind?: zone\|marker, post_id?, section?, filter? }, target: { user_ids (1-500) \| group_id \| all: true, user_type?: student\|teacher } }` — une seule cible. Comptes actifs seulement, auteur exclu, 2 000 destinataires au plus. Sans vue globale, seul un groupe de son périmètre est admis (**403** sinon) ; groupe inconnu **404** ; aucun destinataire **400**. Journal `notification_send`. **201** `{ ok, target, recipients, inserted }` |
 
 Chaque élément de `items` : `{ id, kind, title, body, target, read, read_at, created_at }`. `target` décrit l'élément à ouvrir au clic, ou vaut `null` :
 
