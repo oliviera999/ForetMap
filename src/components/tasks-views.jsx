@@ -781,18 +781,13 @@ function TasksViewImpl({
     }
     return byProject;
   }, [allFilteredWithoutUrgent, validationFirst]);
-  const visibleProjectIds = useMemo(
-    () => new Set(visibleProjects.map((p) => String(p.id || ''))),
-    [visibleProjects],
-  );
-  const regularFiltered = useMemo(
-    () =>
-      allFilteredWithoutUrgent.filter((t) => {
-        const projectId = String(t?.project_id || '');
-        return !projectId || !visibleProjectIds.has(projectId);
-      }),
-    [allFilteredWithoutUrgent, visibleProjectIds],
-  );
+  /**
+   * Sections par statut (« À faire », « En cours », « Mes tâches »…) : incluent aussi les
+   * tâches rattachées à un projet visible. Avant, elles n'apparaissaient que dans le bloc
+   * projets — un élève inscrit sur une tâche de projet ne la voyait pas dans « Mes tâches ».
+   * Le bloc projets (replié par défaut) reste le regroupement dédié.
+   */
+  const regularFiltered = allFilteredWithoutUrgent;
   const myProposals = useMemo(
     () => (isTeacher ? [] : studentOwnProposals(allFiltered, student)),
     [isTeacher, allFiltered, student],

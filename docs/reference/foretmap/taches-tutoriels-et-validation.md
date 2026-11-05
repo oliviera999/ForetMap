@@ -31,6 +31,16 @@ les tâches à l'intérieur du projet, le dupliquer (les copies repartent « dis
 et le mettre **en attente** (les inscriptions des élèves sont alors fermées sur toutes
 ses tâches).
 
+Les tâches d'un projet apparaissent **à deux endroits** dans l'écran Tâches :
+
+- dans la **section de leur statut** (« À faire », « En cours », « Mes tâches »…), comme
+  n'importe quelle autre tâche — avec le nom du projet en étiquette sur la carte ;
+- dans la **case du projet**, dans le bloc « Projets ».
+
+Les cases de projets sont **repliées par défaut** : on voit le titre, les lieux liés et le
+nombre de tâches. Un appui sur le titre **déploie** la case et montre toutes les tâches du
+projet regroupées (comme l'affichage ouvert d'auparavant). Un nouvel appui la replie.
+
 Le statut « **terminé** » d'un projet est **automatique** : dès que toutes ses tâches sont
 faites ou validées, le projet passe terminé — et il redevient actif si une nouvelle tâche
 s'y ajoute. La **validation** d'un projet, elle, est une décision manuelle du professeur.

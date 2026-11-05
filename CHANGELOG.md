@@ -9,6 +9,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Modifié — Tâches de projet aussi dans la liste par statut
+
+- Les tâches rattachées à un projet apparaissent désormais **aussi** dans les sections
+  habituelles (« À faire », « En cours », « Mes tâches »…), en plus de la case du projet —
+  avec l'étiquette projet déjà présente sur la carte.
+- Les cases de **projets** sont **repliées par défaut** ; un clic sur le titre déploie la
+  liste des tâches associées (`TaskProjectsBlock`).
+- Doc de référence `docs/reference/foretmap/taches-tutoriels-et-validation.md` ; tests UI
+  `tests-ui/components/tasks/TaskProjectsBlock.test.jsx`.
+
 ### Corrigé — OAuth MCP : retour client sans 302 (contournement CSP Chrome)
 
 - Après « Autoriser » / « Refuser », réponse **200 HTML** avec `<meta refresh>` + lien

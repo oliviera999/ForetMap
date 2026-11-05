@@ -1620,6 +1620,43 @@
       border-color:var(--leaf);
       background:rgba(34,197,94,.08);
     }
+    /* Cases de projet : repliées par défaut ; le titre déploie la liste des tâches. */
+    .task-project-toggle {
+      appearance:none;
+      -webkit-appearance:none;
+      border:none;
+      background:transparent;
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      width:100%;
+      max-width:100%;
+      padding:4px 2px;
+      margin:0;
+      text-align:left;
+      cursor:pointer;
+      font:inherit;
+      color:inherit;
+      border-radius:10px;
+      box-sizing:border-box;
+      min-height:44px;
+    }
+    .task-project-toggle:focus-visible {
+      outline:2px solid var(--sage);
+      outline-offset:2px;
+    }
+    .task-project-chevron {
+      flex-shrink:0;
+      opacity:.55;
+      font-size:var(--text-sm);
+      line-height:1.4;
+      margin-top:2px;
+      font-family:var(--font-sans);
+    }
+    .task-project-toggle .task-title {
+      min-width:0;
+      flex:1;
+    }
     .task-card.proposed {
       border-color:#c4b5fd;
       background:#faf5ff;
