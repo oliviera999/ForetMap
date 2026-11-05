@@ -1,5 +1,5 @@
 const express = require('express');
-const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
+const { requirePermission, requireAuth, hasPermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { loadLearnerLevelForRequest } = require('../lib/pedago/learnerLevel');
@@ -218,6 +218,41 @@ router.put(
     send(
       res,
       await speciesService.updateMapSiteNotes(req.params.id, req.params.mapId, req.body || {}),
+    );
+  }),
+);
+
+/**
+ * Statut d'une espèce au registre d'une carte (ligne `map_species` **existante**, 404 sinon).
+ * Corps : `{ presence_status?, validation_status?, allow_downgrade? }`.
+ *
+ * Droits vérifiés ici, champ par champ : `presence_status` exige `plants.manage` ;
+ * `validation_status` exige `plants.manage` ou `observations.validate` (le validateur des
+ * observations confirme aussi une présence). Quitter `confirme_site` exige en plus
+ * `allow_downgrade: true` et `plants.manage` (409 sinon). Journalisé (`update_map_species_status`).
+ */
+router.patch(
+  '/:id/map-species/:mapId',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const canManagePlants = hasPermission(req.auth, 'plants.manage');
+    const canValidate = canManagePlants || hasPermission(req.auth, 'observations.validate');
+    const touchesPresence = Object.prototype.hasOwnProperty.call(body, 'presence_status');
+    const touchesValidation = Object.prototype.hasOwnProperty.call(body, 'validation_status');
+    if (!canValidate || (touchesPresence && !canManagePlants)) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    if (!touchesPresence && !touchesValidation) {
+      return res.status(400).json({ error: 'Champ presence_status ou validation_status requis' });
+    }
+    send(
+      res,
+      await speciesService.updateMapSpeciesRegistryStatus(req.params.id, req.params.mapId, body, {
+        req,
+        actorId: authUserId(req),
+        canManagePlants,
+      }),
     );
   }),
 );
