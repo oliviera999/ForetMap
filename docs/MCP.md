@@ -452,9 +452,10 @@ Dans `.cursor/mcp.json` (déjà présent dans le dépôt) :
 Poser `FORETMAP_MCP_URL=https://<domaine-foretmap>/mcp` dans l'environnement Windows / shell,
 puis redémarrer Cursor. L'OAuth (DCR + PKCE) s'ouvre dans le navigateur ; redirects admises :
 `https://www.cursor.com/agents/mcp/oauth/callback`, `http://localhost:8787/callback`
-(et `127.0.0.1`), `cursor://anysphere.cursor-mcp/oauth/callback`. Si « Autoriser » semble
-ne rien faire : vérifier la console navigateur (violation CSP `form-action`) — corrigé en
-autorisant l’origine exacte / `cursor:` ; refermer l’onglet et relancer Auth depuis Cursor.
+(et `127.0.0.1`), `cursor://anysphere.cursor-mcp/oauth/callback`. Le retour vers le client se fait par une page HTML (meta refresh), pas un `302`, pour
+éviter le blocage Chrome de `form-action` sur la chaîne de redirections. Si « Autoriser »
+semble bloqué : déployer au moins la version qui inclut ce correctif, refermer l’onglet
+et relancer Auth depuis Cursor.
 
 Le serveur stdio **`foretmap-diagnostics`** (secret de déploiement) reste distinct :
 [MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md).

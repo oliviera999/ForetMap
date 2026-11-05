@@ -130,6 +130,22 @@ function authorizeQuery({ clientId, redirectUri, challenge, scope, state = 'st4t
 }
 
 /**
+ * Extrait l’URL de retour OAuth d’une réponse authorize : page HTML 200 (meta refresh /
+ * lien) ou ancien 302 Location.
+ */
+function parseOAuthRedirect(res) {
+  if ((res.status === 302 || res.status === 303) && res.headers.location) {
+    return new URL(res.headers.location);
+  }
+  const html = String(res.text || '');
+  const meta = html.match(/http-equiv=["']refresh["'][^>]*content=["'][^"']*url=([^"']+)["']/i);
+  const href = html.match(/href=["']((?:https?:|cursor:)\/\/[^"']+)["']/i);
+  const raw = (meta && meta[1]) || (href && href[1]);
+  assert.ok(raw, `Pas d’URL de redirection OAuth (status ${res.status})`);
+  return new URL(String(raw).replace(/&amp;/g, '&'));
+}
+
+/**
  * Parcours d'autorisation complet jusqu'au code. Renvoie `{ code, state, location }`.
  * `totp` : fonction asynchrone qui fournit un code quand l'étape est demandée.
  */
@@ -163,10 +179,11 @@ async function authorizeFlow(app, { clientId, redirectUri, account, scope, totp,
   assert.match(res.text, /name="step" value="consent"/);
   const consentHtml = res.text;
   res = await post({ ...hiddenFields(consentHtml), decision: 'approve' });
-  assert.equal(res.status, 302, res.text);
-  const location = new URL(res.headers.location);
+  assert.equal(res.status, 200, res.text);
+  assert.match(res.text, /http-equiv=["']refresh["']/i);
+  const location = parseOAuthRedirect(res);
   return {
-    status: 302,
+    status: 200,
     code: location.searchParams.get('code'),
     state: location.searchParams.get('state'),
     location,
@@ -189,7 +206,7 @@ async function obtainTokens(app, account, { scope, redirectUri = LOOPBACK_CALLBA
   const clientId = await registerClient(app, [redirectUri]);
   const pkce = pkcePair();
   const flow = await authorizeFlow(app, { clientId, redirectUri, account, scope, pkce });
-  assert.equal(flow.status, 302, flow.html);
+  assert.equal(flow.status, 200, flow.html);
   const res = await exchangeCode(app, {
     clientId,
     redirectUri,
@@ -250,6 +267,7 @@ module.exports = {
   authorizeQuery,
   callTool,
   cleanupAccounts,
+  parseOAuthRedirect,
   createAccount,
   csrfCookieOf,
   enableMcpEnv,
