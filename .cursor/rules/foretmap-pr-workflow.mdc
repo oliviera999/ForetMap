@@ -1,0 +1,38 @@
+---
+description: Toute modification de code passe par une branche + PR vers main (pas de push direct)
+alwaysApply: true
+---
+
+# ForetMap — Livraison par pull request
+
+## Règle
+
+**Toute modification de code** (feature, correctif, refactor, tests, règles/skills agent,
+scripts, migrations) est livrée par une **pull request vers `main`**. Pas de `git push`
+direct sur `main`, sauf consigne explicite contraire dans le fil.
+
+La CI ne tourne que sur les PR (dépôt privé, minutes Actions) : un lot poussé uniquement sur
+une branche sans PR n’est **pas** validé ni fusionnable.
+
+## Routine obligatoire en fin de lot
+
+1. Branche dédiée depuis le dernier `main` (`git fetch origin main` puis
+   `git checkout -b type/sujet-court origin/main`).
+2. `CHANGELOG.md` sous `[Non publié]` si pertinent — **sans** bumper `package.json`
+   (bump à la fusion, `release.yml`).
+3. Commit + push de la branche (`foretmap-commit-safe` sous PowerShell).
+4. Ouvrir une PR vers `main` avec `gh pr create` (résumé + plan de test).
+5. Appliquer **`.cursor/rules/foretmap-pr-merge-conflict.mdc`** (autres PR ouvertes,
+   `CHANGELOG`, migrations).
+6. Ne pas considérer le lot terminé tant que l’URL de la PR n’est pas communiquée.
+
+## Exceptions
+
+- **Doc seule** sans impact runtime : PR quand même (job `quality` plus léger) ; rester sur
+  brouillon seulement si l’utilisateur le demande.
+- **Hotfix prod** demandé explicitement sur `main` : possible, mais le rappeler et proposer
+  une PR de régularisation si le push direct a eu lieu.
+
+## Lien
+
+Anti-conflit inter-PR : `foretmap-pr-merge-conflict.mdc`. Versionnage : `docs/VERSIONING.md`.

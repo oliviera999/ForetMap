@@ -117,10 +117,10 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 
 ## Workflow Git / versionnage
 
-- Après chaque lot livrable : `CHANGELOG.md` sous `[Non publié]`, `git add -A`, commit, **push**.
-  **Ne pas toucher au champ `version`** : il est incrémenté automatiquement après la fusion
-  (`.github/workflows/release.yml`, qui pose aussi le tag et publie l'artefact), ce qui supprime
-  le conflit systématique entre PR.
+- Après chaque lot livrable : branche dédiée, `CHANGELOG.md` sous `[Non publié]`, commit,
+  **push de la branche**, **PR vers `main`** (règle `.cursor/rules/foretmap-pr-workflow.mdc`).
+  **Pas de push direct sur `main`.** **Ne pas toucher au champ `version`** : incrémenté
+  automatiquement après la fusion (`.github/workflows/release.yml`, tag + artefact).
   Bumper explicitement dans la PR reste possible pour forcer un niveau SemVer — le workflow
   le détecte et s'abstient. Détail : `docs/VERSIONING.md` et skill `foretmap-release`.
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
