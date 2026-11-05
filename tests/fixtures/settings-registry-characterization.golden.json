@@ -489,6 +489,121 @@
       "type": "boolean",
       "default": true
     },
+    "mcp.api_bridge_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.api_bridge_methods": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 60,
+      "default": "GET,POST,PUT,PATCH,DELETE"
+    },
+    "mcp.api_bridge_sensitive_auth": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": false
+    },
+    "mcp.confirm_mode": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["off", "sensitive", "all_writes"],
+      "default": "off"
+    },
+    "mcp.domains_disabled": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 600,
+      "default": ""
+    },
+    "mcp.files_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.max_output_chars": {
+      "scope": "admin",
+      "type": "number",
+      "min": 20000,
+      "max": 2000000,
+      "default": 400000
+    },
+    "mcp.max_rows": {
+      "scope": "admin",
+      "type": "number",
+      "min": 50,
+      "max": 5000,
+      "default": 2000
+    },
+    "mcp.ops_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.privacy_bypass": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.privacy_bypass_ack": {
+      "scope": "admin",
+      "type": "string",
+      "maxLength": 10,
+      "default": ""
+    },
+    "mcp.privacy_reads_audit_details": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["summary", "full"],
+      "default": "summary"
+    },
+    "mcp.sql_ddl_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.sql_max_affected_rows": {
+      "scope": "admin",
+      "type": "number",
+      "min": 1,
+      "max": 1000000,
+      "default": 10000
+    },
+    "mcp.sql_select_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.sql_select_pool": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["auto", "dedicated_only"],
+      "default": "auto"
+    },
+    "mcp.sql_write_enabled": {
+      "scope": "admin",
+      "type": "boolean",
+      "default": true
+    },
+    "mcp.tool_profile": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["complet", "essentiel"],
+      "default": "complet"
+    },
+    "mcp.write_mode": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["direct", "plan"],
+      "default": "direct"
+    },
+    "mcp.write_scope_policy": {
+      "scope": "admin",
+      "type": "enum",
+      "values": ["app_permissions", "admin_only"],
+      "default": "app_permissions"
+    },
     "observations.journal_max_assets": {
       "scope": "teacher",
       "type": "number",
@@ -3079,6 +3194,326 @@
         "max": null,
         "maxLength": null,
         "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.api_bridge_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.api_bridge_methods",
+      "scope": "admin",
+      "type": "string",
+      "value": "GET,POST,PUT,PATCH,DELETE",
+      "default_value": "GET,POST,PUT,PATCH,DELETE",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 60,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.api_bridge_sensitive_auth",
+      "scope": "admin",
+      "type": "boolean",
+      "value": false,
+      "default_value": false,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.confirm_mode",
+      "scope": "admin",
+      "type": "enum",
+      "value": "off",
+      "default_value": "off",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["off", "sensitive", "all_writes"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.domains_disabled",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 600,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.files_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.max_output_chars",
+      "scope": "admin",
+      "type": "number",
+      "value": 400000,
+      "default_value": 400000,
+      "constraints": {
+        "min": 20000,
+        "max": 2000000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.max_rows",
+      "scope": "admin",
+      "type": "number",
+      "value": 2000,
+      "default_value": 2000,
+      "constraints": {
+        "min": 50,
+        "max": 5000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.ops_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.privacy_bypass",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.privacy_bypass_ack",
+      "scope": "admin",
+      "type": "string",
+      "value": "",
+      "default_value": "",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": 10,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.privacy_reads_audit_details",
+      "scope": "admin",
+      "type": "enum",
+      "value": "summary",
+      "default_value": "summary",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["summary", "full"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.sql_ddl_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.sql_max_affected_rows",
+      "scope": "admin",
+      "type": "number",
+      "value": 10000,
+      "default_value": 10000,
+      "constraints": {
+        "min": 1,
+        "max": 1000000,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.sql_select_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.sql_select_pool",
+      "scope": "admin",
+      "type": "enum",
+      "value": "auto",
+      "default_value": "auto",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["auto", "dedicated_only"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.sql_write_enabled",
+      "scope": "admin",
+      "type": "boolean",
+      "value": true,
+      "default_value": true,
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": null
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.tool_profile",
+      "scope": "admin",
+      "type": "enum",
+      "value": "complet",
+      "default_value": "complet",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["complet", "essentiel"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.write_mode",
+      "scope": "admin",
+      "type": "enum",
+      "value": "direct",
+      "default_value": "direct",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["direct", "plan"]
+      },
+      "updated_at": null,
+      "updated_by_user_type": null,
+      "updated_by_user_id": null
+    },
+    {
+      "key": "mcp.write_scope_policy",
+      "scope": "admin",
+      "type": "enum",
+      "value": "app_permissions",
+      "default_value": "app_permissions",
+      "constraints": {
+        "min": null,
+        "max": null,
+        "maxLength": null,
+        "values": ["app_permissions", "admin_only"]
       },
       "updated_at": null,
       "updated_by_user_type": null,
