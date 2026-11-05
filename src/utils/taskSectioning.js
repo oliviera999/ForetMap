@@ -204,12 +204,13 @@ export function sortedVisibleProjects(projects, filterMap, activeMapId) {
 }
 
 /**
- * Répartit les tâches (hors urgent / projets visibles) par statut de section.
+ * Répartit les tâches (hors encart « Urgent ! ») par statut de section.
  *
- * Ces tâches sont, par construction, celles qui ne sont PAS rendues dans un bloc projet :
- * on les range donc sur `taskSectionStatus` et non sur le statut effectif brut, sans quoi
- * celles rattachées à un projet terminé/validé non affiché ne tomberaient dans aucune
- * section et seraient invisibles.
+ * Les tâches rattachées à un projet visible figurent aussi dans ces sections (en plus du
+ * bloc projets). On les range sur `taskSectionStatus` et non sur le statut effectif brut :
+ * `project_completed` / `project_validated` ne correspondent à aucune section rendue —
+ * sans ce remapping, une tâche dont le projet n'est pas affiché (archivage auto sans
+ * cascade, etc.) disparaîtrait complètement de l'écran.
  */
 export function partitionTasksByEffectiveStatus(regularFiltered) {
   const buckets = {

@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { mapLabelFromMaps, normalizeProjectUiStatus } from '../../utils/taskListHelpers.js';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
@@ -68,6 +69,19 @@ function TaskProjectsBlock({
 }) {
   // Props volatiles dérivées par tuile (P1) : ne pas les étaler sur toutes les cartes.
   const { getTaskTileVolatileProps, ...tileCardProps } = taskTileProps || {};
+  /** Projets dépliés : tous repliés à l'ouverture (les tâches restent visibles dans les sections par statut). */
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const toggleProject = useCallback((projectId) => {
+    const id = String(projectId || '');
+    if (!id) return;
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   if (visibleProjects.length <= 0) return null;
   return (
     <div className="tasks-section">
@@ -83,9 +97,12 @@ function TaskProjectsBlock({
           /* `visibleProjects` arrive pré-trié (compareProjectsForDisplay) et
              `projectTasksById` pré-groupé — mémoïsés une fois dans TasksView. */
           visibleProjects.map((p) => {
-            const projectTasks = projectTasksById?.get(String(p.id || '')) ?? EMPTY_PROJECT_TASKS;
+            const projectDropId = String(p.id || '');
+            const projectTasks = projectTasksById?.get(projectDropId) ?? EMPTY_PROJECT_TASKS;
             const projectTasksCount = projectTasks.length;
             const projectStatus = normalizeProjectUiStatus(p.status);
+            const expanded = expandedIds.has(projectDropId);
+            const bodyId = `task-project-body-${projectDropId}`;
             const loadingActive = !!loading[`${p.id}projectactive`];
             const loadingHold = !!loading[`${p.id}projecton_hold`];
             const loadingValidate = !!loading[`${p.id}projectvalidate`];
@@ -93,7 +110,6 @@ function TaskProjectsBlock({
             const loadingDelete = !!loading[`${p.id}projectdelete`];
             const loadingArchive = !!loading[`${p.id}projectarchive`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
-            const projectDropId = String(p.id || '');
             const projectCardDropActive =
               canReceiveTaskDrop &&
               taskDropHint?.projectId === projectDropId &&
@@ -101,7 +117,7 @@ function TaskProjectsBlock({
             return (
               <div
                 key={p.id}
-                className={`task-card ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
+                className={`task-card task-project-card ${expanded ? 'task-project-card--expanded' : 'task-project-card--collapsed'} ${projectCardDropActive ? 'task-card--drop-target' : ''}`}
                 style={{ padding: 12 }}
                 onDragOver={(event) => {
                   if (!canReceiveTaskDrop) return;
@@ -124,10 +140,24 @@ function TaskProjectsBlock({
                     flexWrap: 'wrap',
                   }}
                 >
-                  <div>
-                    <div className="task-title" style={{ fontSize: 'var(--text-base)' }}>
-                      <IconFolder size={14} /> {p.title}
-                    </div>
+                  <div style={{ minWidth: 0, flex: '1 1 12rem' }}>
+                    <button
+                      type="button"
+                      className="task-project-toggle"
+                      onClick={() => toggleProject(p.id)}
+                      aria-expanded={expanded}
+                      aria-controls={bodyId}
+                      title={
+                        expanded ? 'Replier les tâches du projet' : 'Afficher les tâches du projet'
+                      }
+                    >
+                      <span className="task-project-chevron" aria-hidden="true">
+                        {expanded ? '▾' : '▸'}
+                      </span>
+                      <span className="task-title" style={{ fontSize: 'var(--text-base)' }}>
+                        <IconFolder size={14} /> {p.title}
+                      </span>
+                    </button>
                     <div className="task-meta" style={{ marginTop: 6 }}>
                       {(p.zones_linked || []).map((z) => (
                         <span key={z.id} className="task-chip">
@@ -160,13 +190,14 @@ function TaskProjectsBlock({
                     <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                       {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche
                       {projectTasksCount > 1 ? 's' : ''}
+                      {!expanded && projectTasksCount > 0 ? ' · appuyer pour afficher' : ''}
                     </div>
-                    {!!(p.description || '').trim() && (
+                    {expanded && !!(p.description || '').trim() && (
                       <MarkdownContent className="task-desc" style={{ marginTop: 8 }}>
                         {String(p.description).trim()}
                       </MarkdownContent>
                     )}
-                    {p.status === 'on_hold' && (
+                    {expanded && p.status === 'on_hold' && (
                       <div
                         style={{
                           fontSize: 'var(--text-sm)',
@@ -189,7 +220,7 @@ function TaskProjectsBlock({
                         )}
                       </div>
                     )}
-                    {p.status === 'completed' && (
+                    {expanded && p.status === 'completed' && (
                       <div
                         style={{
                           fontSize: 'var(--text-sm)',
@@ -202,7 +233,7 @@ function TaskProjectsBlock({
                           : 'Toutes les tâches de ce projet sont terminées ou validées.'}
                       </div>
                     )}
-                    {p.status === 'validated' && (
+                    {expanded && p.status === 'validated' && (
                       <div
                         style={{
                           fontSize: 'var(--text-sm)',
@@ -417,53 +448,63 @@ function TaskProjectsBlock({
                     </span>
                   )}
                 </div>
-                <div style={{ marginTop: 8 }}>
-                  {contextCommentsEnabled && (
-                    <ContextComments
-                      canParticipateContextComments={canParticipateContextComments}
-                      contextType="project"
-                      contextId={p.id}
-                      title="Commentaires du projet"
-                      placeholder="Partager une info utile sur ce projet…"
-                    />
-                  )}
-                </div>
-                <div style={{ marginTop: 10 }}>
-                  {projectTasksCount === 0 ? (
-                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', margin: 0 }}>
-                      Aucune tâche liée à ce projet avec les filtres actuels.
-                    </p>
-                  ) : (
-                    <div className={sectionListClass}>
-                      {projectTasks.map((t, idx) => (
-                        <div
-                          key={t.id}
-                          className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
-                          onDragOver={(event) => {
-                            if (!canReceiveTaskDrop) return;
-                            event.preventDefault();
-                            event.stopPropagation();
-                            event.dataTransfer.dropEffect = 'move';
-                            onProjectTaskDragOver?.(projectDropId, String(t.id));
-                          }}
-                          onDrop={(event) => {
-                            if (!canReceiveTaskDrop) return;
-                            event.preventDefault();
-                            event.stopPropagation();
-                            onDropTaskToProject?.(projectDropId, String(t.id));
+                {expanded && (
+                  <div id={bodyId}>
+                    <div style={{ marginTop: 8 }}>
+                      {contextCommentsEnabled && (
+                        <ContextComments
+                          canParticipateContextComments={canParticipateContextComments}
+                          contextType="project"
+                          contextId={p.id}
+                          title="Commentaires du projet"
+                          placeholder="Partager une info utile sur ce projet…"
+                        />
+                      )}
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      {projectTasksCount === 0 ? (
+                        <p
+                          style={{
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--ink-soft)',
+                            margin: 0,
                           }}
                         >
-                          <TaskTileCard
-                            {...tileCardProps}
-                            {...(getTaskTileVolatileProps ? getTaskTileVolatileProps(t) : null)}
-                            t={t}
-                            index={idx}
-                          />
+                          Aucune tâche liée à ce projet avec les filtres actuels.
+                        </p>
+                      ) : (
+                        <div className={sectionListClass}>
+                          {projectTasks.map((t, idx) => (
+                            <div
+                              key={t.id}
+                              className={`task-project-drop-slot ${canReceiveTaskDrop && taskDropHint?.projectId === projectDropId && taskDropHint?.beforeTaskId === String(t.id) ? 'task-project-drop-slot--active' : ''}`}
+                              onDragOver={(event) => {
+                                if (!canReceiveTaskDrop) return;
+                                event.preventDefault();
+                                event.stopPropagation();
+                                event.dataTransfer.dropEffect = 'move';
+                                onProjectTaskDragOver?.(projectDropId, String(t.id));
+                              }}
+                              onDrop={(event) => {
+                                if (!canReceiveTaskDrop) return;
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onDropTaskToProject?.(projectDropId, String(t.id));
+                              }}
+                            >
+                              <TaskTileCard
+                                {...tileCardProps}
+                                {...(getTaskTileVolatileProps ? getTaskTileVolatileProps(t) : null)}
+                                t={t}
+                                index={idx}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             );
           })
