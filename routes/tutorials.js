@@ -982,6 +982,102 @@ router.delete(
   }),
 );
 
+/**
+ * GET /api/tutorials/:id/reads — qui a marqué le tutoriel « lu et compris »
+ * (`user_tutorial_reads`). Ouverte à `tutorials.manage` **ou** `stats.read.all`.
+ *
+ * Toujours : nombre de lectures, première et dernière date, et la répartition par groupe
+ * actif (lecteurs / effectif élève du groupe). La **liste nominative** des lecteurs n'est
+ * renvoyée qu'avec `stats.read.all` (lecture des statistiques de tous les élèves) ; sinon,
+ * agrégats seuls (`nominative: false`). Les tutoriels archivés restent consultables.
+ */
+router.get(
+  '/:id/reads',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
+    const canReadAll = perms.includes('stats.read.all');
+    if (!canReadAll && !perms.includes('tutorials.manage')) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const tid = Number(req.params.id);
+    if (!Number.isInteger(tid) || tid <= 0) {
+      return res.status(400).json({ error: 'Identifiant de tutoriel invalide' });
+    }
+    const tutorial = await queryOne('SELECT id, title, is_active FROM tutorials WHERE id = ?', [
+      tid,
+    ]);
+    if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+
+    const totals = await queryOne(
+      `SELECT COUNT(*) AS total,
+              SUM(u.user_type = 'student') AS students,
+              MIN(r.acknowledged_at) AS first_read_at,
+              MAX(r.acknowledged_at) AS last_read_at
+         FROM user_tutorial_reads r
+         INNER JOIN users u ON u.id = r.user_id
+        WHERE r.tutorial_id = ?`,
+      [tid],
+    );
+    const byGroup = await queryAll(
+      `SELECT g.id AS group_id, g.name AS group_name, g.kind,
+              COUNT(DISTINCT gm.user_id) AS members,
+              COUNT(DISTINCT r.user_id) AS readers
+         FROM \`groups\` g
+         INNER JOIN group_members gm ON gm.group_id = g.id AND gm.user_type = 'student'
+         LEFT JOIN user_tutorial_reads r ON r.user_id = gm.user_id AND r.tutorial_id = ?
+        WHERE g.is_active = 1
+        GROUP BY g.id, g.name, g.kind
+       HAVING readers > 0
+        ORDER BY readers DESC, g.name ASC`,
+      [tid],
+    );
+    const out = {
+      tutorial_id: tid,
+      title: tutorial.title,
+      is_active: Number(tutorial.is_active) === 1,
+      total_reads: Number(totals?.total || 0),
+      student_reads: Number(totals?.students || 0),
+      first_read_at: totals?.first_read_at || null,
+      last_read_at: totals?.last_read_at || null,
+      by_group: byGroup.map((g) => {
+        const members = Number(g.members || 0);
+        const readers = Number(g.readers || 0);
+        return {
+          group_id: g.group_id,
+          group_name: g.group_name,
+          kind: g.kind,
+          members,
+          readers,
+          read_rate_percent: members ? Math.round((readers * 1000) / members) / 10 : 0,
+        };
+      }),
+      nominative: canReadAll,
+    };
+    if (canReadAll) {
+      const readers = await queryAll(
+        `SELECT r.user_id, u.user_type, r.acknowledged_at,
+                COALESCE(NULLIF(u.display_name, ''),
+                         NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''),
+                         u.pseudo, u.id) AS display_name
+           FROM user_tutorial_reads r
+           INNER JOIN users u ON u.id = r.user_id
+          WHERE r.tutorial_id = ?
+          ORDER BY r.acknowledged_at DESC
+          LIMIT 2000`,
+        [tid],
+      );
+      out.readers = readers.map((r) => ({
+        user_id: r.user_id,
+        user_type: r.user_type,
+        display_name: r.display_name,
+        acknowledged_at: r.acknowledged_at,
+      }));
+    }
+    res.json(out);
+  }),
+);
+
 router.get(
   '/:id/glossary-terms',
   asyncHandler(async (req, res) => {

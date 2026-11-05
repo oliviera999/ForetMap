@@ -339,3 +339,16 @@ test('catalogue : routes documentées, filtres, G&L exclu', async () => {
   });
   assert.ok(glossary.data.total > 0);
 });
+
+test('audit du pont : chemin plus long que la colonne target_id conservé', async () => {
+  const longPath = `/api/tasks/${'x'.repeat(80)}`;
+  await fx.callTool(app, adminToken, 'foretmap_api', { method: 'DELETE', path: longPath });
+  const row = await queryOne(
+    `SELECT target_id, payload_json FROM audit_log WHERE action = 'mcp_api_call' AND actor_user_id = ?
+     ORDER BY id DESC LIMIT 1`,
+    [admin.id],
+  );
+  assert.ok(row, 'ligne mcp_api_call écrite');
+  assert.ok(row.target_id.length <= 64);
+  assert.equal(parse(row.payload_json).path, longPath);
+});

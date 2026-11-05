@@ -746,6 +746,70 @@ router.delete(
   }),
 );
 
+/**
+ * GET /api/groups/:id — fiche d'un groupe, avec la **même visibilité** que la liste `GET /` :
+ * lecture des groupes (`groups.read` / gestion) ou groupe dans son périmètre, et, sans vue
+ * globale, seulement un groupe de son périmètre (descendants compris). Les membres ne sont
+ * pas listés (nominatif : `GET /:id/members`) mais **comptés** ; les périmètres (cartes,
+ * projets) et le niveau effectif sont inclus, comme dans la liste.
+ *
+ * Déclarée après `/options`, `/pending-visitors` et `/import/template`, segments littéraux
+ * que ce paramètre absorberait sinon.
+ */
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Identifiant de groupe requis' });
+    const canRead = canReadGroups(req.auth);
+    const scopeGroupIds = await getUserAccessibleGroupIds(req.auth, { includeDescendants: true });
+    const bypass = canBypassGroupScope(req.auth);
+    if (!canRead && scopeGroupIds.length === 0) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const rows = await getAllGroups();
+    const row = rows.find((r) => String(r.id) === id);
+    if (!row) return res.status(404).json({ error: 'Groupe introuvable' });
+    if (!bypass && !scopeGroupIds.includes(id)) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
+    const [enriched] = await enrichGroupRows([row]);
+    const allById = new Map(rows.map((r) => [String(r.id), r]));
+    const [counts, scopesByGroup] = await Promise.all([
+      queryOne(
+        `SELECT COUNT(*) AS total,
+                SUM(gm.user_type = 'student') AS students,
+                SUM(gm.user_type = 'teacher') AS teachers,
+                SUM(u.is_active = 1) AS active
+           FROM group_members gm
+           INNER JOIN users u ON u.id = gm.user_id
+          WHERE gm.group_id = ?`,
+        [id],
+      ),
+      fetchGroupScopes([id]),
+    ]);
+    const children = rows
+      .filter((r) => String(r.parent_group_id || '') === id)
+      .filter((r) => bypass || scopeGroupIds.includes(String(r.id)))
+      .map((r) => ({ id: r.id, name: r.name, slug: r.slug, kind: r.kind }));
+    res.json({
+      ...enriched,
+      ...groupNiveauAnnotations(row, allById),
+      parent_group_id: enriched.parent_group_id || null,
+      is_active: Number(enriched.is_active) !== 0,
+      member_counts: {
+        total: Number(counts?.total || 0),
+        students: Number(counts?.students || 0),
+        teachers: Number(counts?.teachers || 0),
+        active: Number(counts?.active || 0),
+      },
+      scopes: scopesByGroup.get(id) || [],
+      children,
+      can_manage: canManageGroups(req.auth) && (await isGroupInManageScope(req.auth, id)),
+    });
+  }),
+);
+
 router.get(
   '/:id/members',
   asyncHandler(async (req, res) => {
