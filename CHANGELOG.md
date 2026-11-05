@@ -24,6 +24,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   des réglages.
 - Tests : `tests-ui/plan/PlanSettingsSheet.test.jsx`, `tests/pwa-sw-template.test.js`.
 
+### Corrigé — connecteur MCP : un INSERT ne peut plus poser un hachage de mot de passe
+
+- `foretmap_sql_execute` refusait `password_hash` dans un `UPDATE … SET`, mais pas dans la
+  liste de colonnes d’un `INSERT` / `REPLACE` (ce sont des noms bruts, pas des références de
+  colonnes). Avec le mode SQL d’écriture, un assistant pouvait donc enregistrer un hachage
+  connu sur un compte — prise de contrôle après confirmation, ou tout de suite si la
+  confirmation par e-mail est coupée. Un `INSERT` / `REPLACE` sans liste de colonnes est
+  refusé aussi : il écrivait toutes les colonnes, hachage compris, sans le nommer.
+- Test : `tests/mcp-sql-execute.test.js`.
+
 ### Corrigé — doublon de migration 326 sur `main`
 
 - `326_mcp_productivity.sql` renumérotée **`327_mcp_productivity.sql`** : #622 (`326_enov_deux_niveaux.sql`)
