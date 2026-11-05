@@ -19,8 +19,10 @@ coller le secret dans le chat**, sans passer par OAuth.
 ## Fichier projet (recommandé)
 
 Le dépôt contient **`.cursor/mcp.json`** : **`foretmap-diagnostics`** (stdio) et **`foretmap`**
-(HTTP distant, `FORETMAP_MCP_URL`). Aucune URL de production n'est écrite en clair dans le
-fichier (audit sécurité CS4) ; les cibles se posent en variables d'environnement.
+(HTTP distant). L’URL publique du connecteur est écrite en clair pour que Cursor la charge
+même si `FORETMAP_MCP_URL` n’est pas définie dans le process (sinon l’entrée disparaît des
+réglages). Contournement UI Cursor (Customize → MCPs qui masque les serveurs _projet_) :
+dupliquer les entrées dans **`%USERPROFILE%\.cursor\mcp.json`** (niveau utilisateur).
 
 Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 

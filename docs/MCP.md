@@ -137,8 +137,10 @@ Source : <https://claude.com/docs/connectors/building/authentication> et spécif
   - **DCR** (RFC 7591) : `POST /oauth/register` en JSON, `token_endpoint_auth_method` absent
     ou `none`, redirections validées strictement. Limiteur : 60 enregistrements/heure/IP.
 - **Redirections admises par défaut** : `https://claude.ai/api/mcp/auth_callback` exactement,
-  et `http://localhost/callback`, `http://127.0.0.1/callback` **port ignoré** (Claude Code,
-  RFC 8252 §7.3). Rien d'autre sauf `MCP_OAUTH_ALLOWED_REDIRECTS`.
+  `http://localhost/callback` / `http://127.0.0.1/callback` **port ignoré** (Claude Code,
+  RFC 8252 §7.3), callbacks Cursor (`www.cursor.com/…`, `localhost:8787`, `127.0.0.1:8787`,
+  `cursor://anysphere.cursor-mcp/oauth/callback`), ChatGPT et Gemini CLI. Rien d'autre sauf
+  `MCP_OAUTH_ALLOWED_REDIRECTS`.
 - **`/oauth/authorize`** : PKCE `S256` obligatoire, `state` renvoyé, `resource` vérifié s'il est
   fourni, `iss` renvoyé (RFC 9207). Une `redirect_uri` non vérifiée n'est **jamais** suivie
   (erreur affichée). Écran de connexion (identifiant + mot de passe du site, même verrou par
@@ -449,7 +451,10 @@ Dans `.cursor/mcp.json` (déjà présent dans le dépôt) :
 
 Poser `FORETMAP_MCP_URL=https://<domaine-foretmap>/mcp` dans l'environnement Windows / shell,
 puis redémarrer Cursor. L'OAuth (DCR + PKCE) s'ouvre dans le navigateur ; redirects admises :
-`https://www.cursor.com/agents/mcp/oauth/callback` et `http://localhost:8787/callback`.
+`https://www.cursor.com/agents/mcp/oauth/callback`, `http://localhost:8787/callback`
+(et `127.0.0.1`), `cursor://anysphere.cursor-mcp/oauth/callback`. Si « Autoriser » semble
+ne rien faire : vérifier la console navigateur (violation CSP `form-action`) — corrigé en
+autorisant l’origine exacte / `cursor:` ; refermer l’onglet et relancer Auth depuis Cursor.
 
 Le serveur stdio **`foretmap-diagnostics`** (secret de déploiement) reste distinct :
 [MCP_FORETMAP_CURSOR.md](MCP_FORETMAP_CURSOR.md).
