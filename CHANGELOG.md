@@ -56,7 +56,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   observation validée, réponse de quiz, lecture de tutoriel, fin de séance ; passe de nuit
   `rewards_evaluate` ; rattrapage `scripts/rewards-backfill.js` (dry-run par défaut, une
   notification récapitulative par élève). `nature.cle` non créé (aucun suivi des parcours de
-  clé de détermination).
+  clé de détermination). « Lecteur de terrain » lit les liens question ↔ tutoriel de la
+  source unique `resource_question_links` (liens approuvés), pas la table historique
+  `quiz_question_tutorials` en cours de retrait.
 - **Lot F — interfaces des badges** : `GET /api/rewards/me` enrichi (progression vers le
   palier suivant, catalogue complet avec paliers, familles ; rétrocompatible),
   `POST /api/rewards/me/seen`, `GET /api/rewards/students/:id` et

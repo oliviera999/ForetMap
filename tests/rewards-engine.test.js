@@ -320,11 +320,24 @@ describe('Familles aux seuils exacts', () => {
     const questions = await queryAll(
       'SELECT question_code FROM quiz_questions ORDER BY question_code LIMIT 1',
     );
+    // Lien question ↔ tutoriel dans la source unique (`resource_question_links`), retiré en
+    // fin de test : il ne doit pas fausser les contrôles de contenu qui tournent après.
+    let createdLinkId = null;
     if (tutorial && questions.length) {
-      await execute(
-        'INSERT IGNORE INTO quiz_question_tutorials (question_code, tutorial_id) VALUES (?, ?)',
-        [questions[0].question_code, tutorial.id],
+      const existing = await queryOne(
+        `SELECT id FROM resource_question_links
+          WHERE resource_type = 'tutorial' AND resource_ref = ? AND question_code = ?`,
+        [String(tutorial.id), questions[0].question_code],
       );
+      if (!existing) {
+        const link = await execute(
+          `INSERT INTO resource_question_links
+             (resource_type, resource_ref, question_code, is_gating, weight, origin, status, created_at, updated_at)
+           VALUES ('tutorial', ?, ?, 0, 1, 'manual', 'approved', NOW(), NOW())`,
+          [String(tutorial.id), questions[0].question_code],
+        );
+        createdLinkId = link.insertId;
+      }
       await execute(
         'INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at) VALUES (?, ?, ?)',
         [s, tutorial.id, new Date(Date.now() - 3600e3)],
@@ -338,6 +351,9 @@ describe('Familles aux seuils exacts', () => {
     const v = Object.fromEntries(values.map((x) => [x.entry.key, x.value]));
     assert.equal(v['nature.herbier'], 3, 'espèces distinctes validées');
     assert.equal(v['nature.entomo'], 2, 'invertébrés seulement');
+    if (createdLinkId) {
+      await execute('DELETE FROM resource_question_links WHERE id = ?', [createdLinkId]);
+    }
     if (tutorial && questions.length) assert.equal(v['nature.lecteur'], 1);
     assert.equal(typeof v['nature.notion'], 'number', 'requête des notions exécutée');
     const keys = (await rewards.evaluateUser(s, { families: ['nature'] })).map((r) => r.key);
