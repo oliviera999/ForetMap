@@ -108,13 +108,36 @@ import {
   canGlStaffImpersonate,
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
-import { isGlGuest } from './utils/glGuestMode.js';
+import {
+  isGlGuest,
+  isGlProjection,
+  readProjectionTokenFromUrl,
+  buildProjectionSession,
+} from './utils/glGuestMode.js';
+import { GLProjectionView } from './components/tenir/GLProjectionView.jsx';
+import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
 import { reportUsage } from '../shared/usage/reportUsage.js';
 import { resolvePlateauMusicBiomeSlug } from './utils/glPlateauMusicProgress.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
   const isGuest = isGlGuest(auth);
+  const isProjection = isGlProjection(auth);
+  // Projection « Tenir à deux » : `gl.html?projection=<jeton>` ouvre une session invitée
+  // lecture seule sur UNE partie, puis retire le jeton de l'URL.
+  useEffect(() => {
+    const projectionToken = readProjectionTokenFromUrl();
+    if (!projectionToken) return;
+    const next = buildProjectionSession(projectionToken);
+    if (next) updateSession(next);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('projection');
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) {
+      /* URL non modifiable : sans importance */
+    }
+  }, [updateSession]);
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
@@ -733,6 +756,18 @@ export function AppGL() {
     // Setters issus de useGlGameRuntime : setters useState, références stables.
   }, [logout, setShowProfile, setGameState, setActiveGameId, setGlProfile]);
 
+  if (session?.token && isProjection) {
+    return (
+      <div className="gl-app gl-app--guest gl-app--projection" style={glAppStyle}>
+        <GLProjectionView
+          gameId={Number(auth.projection.gameId)}
+          token={token}
+          refreshKey={gameState?.events?.length || 0}
+        />
+      </div>
+    );
+  }
+
   if (!session?.token) {
     return (
       <div className="gl-app gl-app--guest" style={glAppStyle}>
@@ -903,6 +938,18 @@ export function AppGL() {
                   ) : null}
                   {tab === 'maps' && (
                     <>
+                      {gameState?.tenir?.enabled &&
+                      showsPlayerChrome &&
+                      auth?.teamId != null &&
+                      String(gameState?.game?.status || '') === 'live' ? (
+                        <GLTenirEquipeView
+                          gameState={gameState}
+                          tenir={gameState.tenir}
+                          teamId={auth.teamId}
+                          onReloadGame={reloadGame}
+                          onJeter={canSpellCast ? () => openSpellCastWizard(null) : null}
+                        />
+                      ) : null}
                       <GLMapView
                         gameState={gameState}
                         onMoveMascot={

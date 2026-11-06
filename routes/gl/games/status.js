@@ -17,6 +17,9 @@ const {
   grantClosingFeuilletsForGame,
 } = require('../../../lib/glFeuilletBundleGrant');
 const logger = require('../../../lib/logger');
+const { getGameplaySettings } = require('../../../lib/glSettings');
+const { isTenirGame, loadOrCreateTenirState } = require('../../../lib/glTenir');
+const { emitGlGameEvent: emitTenirEvent } = require('../../../lib/realtime');
 
 const router = express.Router();
 
@@ -70,7 +73,7 @@ async function updateGameStatus(req, res, nextStatus) {
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const gameRow = await queryOne(
     `SELECT g.id, g.status, g.chapter_id, g.board_movement_mode, g.board_path_start_index,
-            ch.plateau_number
+            g.tenir_profil, g.class_id, ch.plateau_number
        FROM gl_games g
        LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
       WHERE g.id = ? LIMIT 1`,
@@ -94,11 +97,39 @@ async function updateGameStatus(req, res, nextStatus) {
     return res.status(409).json({ error: 'La partie a changé d’état, réessayez' });
   }
 
+  const gameplay = await getGameplaySettings();
+  const tenirMode = isTenirGame(gameplay, gameRow);
   if (nextStatus === 'live') {
     // Placement sur la case départ : uniquement au premier démarrage (brouillon → en cours).
     // Reprendre après pause ne doit pas téléporter les équipes — la doc MJ promet une reprise.
     if (current === 'draft') {
+      // « Tenir à deux » impose le chemin numéroté (dés, voile, chasse).
+      if (tenirMode && resolveBoardMovementMode(gameRow) !== 'numbered_path') {
+        await execute("UPDATE gl_games SET board_movement_mode = 'numbered_path' WHERE id = ?", [
+          gameId,
+        ]);
+        gameRow.board_movement_mode = 'numbered_path';
+      }
       await placeTeamsOnPathStart(gameId, gameRow);
+      if (tenirMode) {
+        await loadOrCreateTenirState(db, gameId);
+        try {
+          const { initChassePagesForGame } = require('../../../lib/glChasse');
+          await initChassePagesForGame(db, gameId);
+        } catch (err) {
+          if (err?.code !== 'MODULE_NOT_FOUND')
+            logger.warn({ err, gameId }, 'Pages de chasse non initialisées');
+        }
+        try {
+          const { appliquerHeritagesTx } = require('../../../lib/glHeritage');
+          await db.withTransaction((tx) =>
+            appliquerHeritagesTx(tx, { gameId, classId: gameRow.class_id, settings: gameplay }),
+          );
+        } catch (err) {
+          if (err?.code !== 'MODULE_NOT_FOUND')
+            logger.warn({ err, gameId }, 'Héritages non appliqués');
+        }
+      }
     }
     // Feuillets d'ouverture : chaque équipe démarre avec le cadre du récit en main.
     // Best-effort — un corpus sans feuillet d'ouverture ne doit pas empêcher de jouer.
@@ -114,6 +145,26 @@ async function updateGameStatus(req, res, nextStatus) {
   // plateau — `cop-finale` et `cop-close` expliquent que le carnet de Sélène s'arrête
   // sur un mot suspendu, ce qui dévoilerait la fin s'il restait des chapitres à jouer.
   // Une classe qui s'arrête avant passe par la remise manuelle (route dédiée du MJ).
+  // « Tenir à deux » : le Seuil (caravane, honneurs, parures rendues, annonces expirées…).
+  if (nextStatus === 'ended' && tenirMode) {
+    try {
+      const { cloreTenirPartieTx } = require('../../../lib/glSeuil');
+      const { revokeProjectionToken } = require('../../../lib/glProjection');
+      let seuil;
+      await db.withTransaction(async (tx) => {
+        seuil = await cloreTenirPartieTx(tx, {
+          gameId,
+          actorId: req.glAuth.userId,
+          settings: gameplay,
+        });
+      });
+      await revokeProjectionToken(db, gameId);
+      for (const evt of seuil?.events || []) emitTenirEvent(gameId, evt);
+    } catch (err) {
+      logger.error({ err, gameId }, 'Clôture « Tenir à deux » en échec');
+      throw err;
+    }
+  }
   if (nextStatus === 'ended' && Number(gameRow.plateau_number) === LAST_PLATEAU) {
     try {
       await grantClosingFeuilletsForGame(db, { gameId, actorId: req.glAuth.userId });

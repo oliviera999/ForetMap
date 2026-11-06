@@ -3,6 +3,7 @@ const dbModule = require('../../database');
 const { queryAll, queryOne, execute, withTransaction } = dbModule;
 const {
   requireGlAuth,
+  requireGlAuthOrProjection,
   requireGlPermission,
   isMj,
   actorTypeOf,
@@ -14,7 +15,13 @@ const { getGameplaySettings, getGlModulesSettings } = require('../../lib/glSetti
 const { assignPlayerToTeamTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { viewerFromAuth } = require('../../lib/glTenirView');
-const { isTenirEnabled } = require('../../lib/glTenir');
+const {
+  isTenirEnabled,
+  isTenirGame,
+  resolveTenirSettings,
+  resolveSurface,
+  resolveDesMode,
+} = require('../../lib/glTenir');
 
 const { parsePct, validateEventPayload } = require('../../lib/gl/gameEventPayload');
 const { buildDynamicUpdate, hasAnyDynamicField } = require('../../lib/gl/buildDynamicUpdate');
@@ -160,7 +167,7 @@ router.get(
 
 router.get(
   '/games/:id',
-  requireGlAuth,
+  requireGlAuthOrProjection,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -574,10 +581,17 @@ async function startNextRound(req, res) {
     return res.status(409).json({ error: 'Tours desactivés dans les réglages' });
   }
   const game = await queryOne(
-    'SELECT id, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+    'SELECT id, current_round_number, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
     [gameId],
   );
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+  // « Tenir à deux » : le tour est à phases (`POST /tenir/tour/ouvrir`), pas un simple compteur.
+  if (isTenirGame(settings, game)) {
+    return res.status(409).json({
+      error: 'Partie « Tenir à deux » : ouvrir le tour depuis l’écran du tour',
+      code: 'TENIR_TOUR',
+    });
+  }
   const teamsCount = await queryOne('SELECT COUNT(*) AS cnt FROM gl_teams WHERE game_id = ?', [
     gameId,
   ]);
@@ -688,7 +702,7 @@ router.post(
     }
 
     const game = await queryOne(
-      'SELECT id, status, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, status, current_round_number, tenir_profil, tenir_overrides_json, tenir_surface FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -707,6 +721,25 @@ router.post(
       (req.glAuth.permissions || []).some((perm) =>
         ['gl.event.emit', 'gl.game.manage', 'gl.mascot.position'].includes(perm),
       );
+
+    // « Tenir à deux » : `count` = `tenir_des_count` (400 sinon) ; le geste complet (tirage,
+    // déplacement, effets d'arrivée, bénéficiaire au camp) passe par `POST /tenir/lancer`.
+    const tenirSettings = await getGameplaySettings();
+    if (isTenirGame(tenirSettings, game)) {
+      const resolved = resolveTenirSettings(tenirSettings, game);
+      resolved.surface = resolveSurface(game, tenirSettings);
+      const desCount = Number(resolved.des_count) || 2;
+      if (diceCount !== desCount) {
+        return res
+          .status(400)
+          .json({ error: `Jet de dés : ${desCount} dés attendus (réglage tenir_des_count)` });
+      }
+      return res.status(409).json({
+        error: 'Partie « Tenir à deux » : lancer depuis l’écran du tour (POST …/tenir/lancer)',
+        code: 'TENIR_LANCER',
+        desMode: resolveDesMode(resolved),
+      });
+    }
 
     if (!isStaff) {
       if (req.glAuth.userType !== 'gl_player') {
@@ -1064,6 +1097,7 @@ router.use(require('./games/spell-casts'));
 
 // « Tenir à deux » v2 : GET /games/:id/tenir, PUT /tenir/profil, GET /tenir/olu, retrait…
 router.use(require('./games/tenir'));
+router.use(require('./games/tenir-tour'));
 
 // O10 — sous-domaine feuillet-zones extrait en sous-routeur dédié (chemins inchangés) :
 //   GET  /games/:id/feuillet-zones/presented

@@ -8,7 +8,11 @@
 const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, execute, withTransaction } = db;
-const { requireGlAuth, requireGlPermission } = require('../../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  requireGlAuthOrProjection,
+  requireGlPermission,
+} = require('../../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
@@ -59,7 +63,7 @@ async function requireTenirGame(req, res, gameId) {
 /** GET /tenir — état complet (réglages résolus, permissions, retraits visibles, bourses filtrées). */
 router.get(
   '/games/:id/tenir',
-  requireGlAuth,
+  requireGlAuthOrProjection,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -178,7 +182,7 @@ function invalidateOluCache() {
 
 router.get(
   '/games/:id/tenir/olu',
-  requireGlAuth,
+  requireGlAuthOrProjection,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });

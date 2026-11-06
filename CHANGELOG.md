@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » v2, étape 2 : tour à phases, surfaces, dés, seuil, Team Spirit
+
+- Migration `331_gl_tenir_tour.sql` : phases du tour (`ouverture → jeu → souffle → clos`),
+  ordre figé, équipe active, vent, dé gris, mot du Passeur, erreur du jour d'Olu, opérateurs ;
+  absences, saisies de dés (`gl_game_des_saisies`), bilans Team Spirit, Lumière.
+- `lib/glTour.js` : ouverture (ordre inverse du plateau, vent de la caravane dès le tour 2 si
+  une seule dernière, cartes → cases), phases, équipe suivante, permissions rejouées côté
+  serveur (403 `TENIR_PERMISSION`, 409 `TENIR_PHASE`), jet appliqué au bénéficiaire (équipe au
+  camp → la plus en retard), effets d'arrivée (Trame, Souffle, péripétie, première arrivée),
+  question de case (juste → +1 case et relance, sans score), Team Spirit / Lumière, correction
+  d'Olu. Verrou par équipe, jamais par partie.
+- Routes `/api/gl/games/:id/tenir/tour/*` (ouvrir, phase, équipe-suivante, absences, opérateurs,
+  fenêtre de fouille, team-spirit), `/tenir/lancer` (serveur | physique avec validation du prof
+  sur tablette | avance libre 1–12 cases motivée), `/tenir/des/:id/valider|refuser`,
+  `/tenir/lumiere/choix`, `/tenir/tour/olu-corrige`, `/tenir/peripetie/passer`,
+  `/projection-token`. L'ancienne route `dice-roll` refuse `count ≠ tenir_des_count` (400) et
+  renvoie vers `/tenir/lancer` (409) ; `POST /turn/next` → 409 en mode tenir.
+- Seuil (`lib/glSeuil.js`, à `POST /games/:id/end`) : la caravane porte les retardataires,
+  tour clos, annonces expirées, parures rendues, retraits clos, jeton de projection révoqué,
+  événement `seuil_clos` (honneurs à l'étape 4).
+- Projection (`lib/glProjection.js`, § 8.6) : jeton `gl_guest` à claim `projection` (12 h,
+  révocable), `requireGlAuthOrProjection` sur les seules lectures, `canAccessGlGame` accepte la
+  projection de SA partie ; `gl.html?projection=<jeton>` → `GLProjectionView` (plateau, voile,
+  Passeur, journal ; aucun bouton, aucune bourse).
+- Front : écran du tour MJ (`mj/GLTourScreen.jsx` + sablier, saisie de dés, souffle, Team
+  Spirit, journal) dans la console MJ (« Jouer le tour »), écran d'équipe
+  (`tenir/GLTenirEquipeView.jsx`) sur l'onglet Cartes pour hybride / tablette, gestes grisés par
+  les permissions servies ; hook `useGlTenirTour`.
+
 ### Ajouté — G&L « Tenir à deux » v2, étape 1 : données, réglages, deux monnaies, Marché
 
 - Migration `330_gl_tenir_fondations.sql` : réglages `gameplay.tenir_*` (défauts), valeurs

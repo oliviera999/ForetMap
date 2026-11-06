@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { queryAll, queryOne } = require('../../database');
-const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireGlAuthOrProjection } = require('../../middleware/requireGlAuth');
 const { normalizeEventRow, redactGameEventsForViewer } = require('../../lib/glGameEvents');
 const { viewerFromAuth } = require('../../lib/glTenirView');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
@@ -11,7 +11,7 @@ const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
 
-router.use(requireGlAuth);
+router.use(requireGlAuthOrProjection);
 
 // O7 — query du journal : coercition permissive (jamais de 400 pour une query invalide)
 // reproduisant exactement l'ancienne lecture manuelle :

@@ -53,36 +53,15 @@ const { isTenirGame } = require('../../../lib/glTenir');
 
 const router = express.Router();
 
-/**
- * « Tenir à deux » : la case s'applique-t-elle selon les règles v2 (Trame = +1 ressource du
- * peuple), et un Sentier (effet `sentier` posé ce tour) annule-t-il la prochaine case Souffle ?
- */
+const {
+  resolveTenirMarkerContext: resolveSentierContext,
+  consumeSentier,
+} = require('../../../lib/glTourArrivalHelpers');
+
+/** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
 async function resolveTenirMarkerContext(tx, settings, game, teamId) {
   if (!isTenirGame(settings, game)) return { tenir: false, sentierActif: false };
-  let sentierActif = false;
-  try {
-    const row = await tx.queryOne(
-      `SELECT id FROM gl_game_tenir_effets
-        WHERE game_id = ? AND team_id = ? AND kind = 'sentier'
-          AND JSON_EXTRACT(COALESCE(payload_json, '{}'), '$.consomme') IS NULL
-        ORDER BY id DESC LIMIT 1`,
-      [game.id, teamId],
-    );
-    sentierActif = !!row;
-  } catch (_) {
-    sentierActif = false;
-  }
-  return { tenir: true, sentierActif };
-}
-
-/** Consomme le Sentier de l'équipe (après qu'il a neutralisé une case Souffle). */
-async function consumeSentier(tx, gameId, teamId) {
-  await tx.execute(
-    `UPDATE gl_game_tenir_effets SET payload_json = JSON_SET(COALESCE(payload_json, '{}'), '$.consomme', 1)
-      WHERE game_id = ? AND team_id = ? AND kind = 'sentier'
-        AND JSON_EXTRACT(COALESCE(payload_json, '{}'), '$.consomme') IS NULL`,
-    [gameId, teamId],
-  );
+  return resolveSentierContext(tx, game.id, teamId);
 }
 
 async function loadChapterPathMarkers(tx, chapterId) {

@@ -26,8 +26,19 @@ const {
   resolveGameQcmScoreEligibility,
 } = require('../../../lib/glGameQcmScoring');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
+const { isTenirGame } = require('../../../lib/glTenir');
+const { bonneReponseDeCaseTx } = require('../../../lib/glTour');
 
 const router = express.Router();
+
+/** « Pas encore » : l'erreur ne punit pas et ne dit jamais « faux » (spec § 1). */
+function tenirFeedback(questionRow, verification) {
+  const base = resolveQcmAnswerFeedback(questionRow, verification);
+  const cleaned = String(base || '')
+    .replace(/^ce n’est pas la bonne réponse\.?/i, '')
+    .trim();
+  return cleaned ? `Pas encore. ${cleaned}` : 'Pas encore : la page dort encore ici.';
+}
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
@@ -122,11 +133,16 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   // GL2 : on ne marque de points que dans une partie EN COURS (plus en brouillon, en pause
   // ni terminée).
-  const game = await queryOne('SELECT id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  const game = await queryOne(
+    'SELECT id, status, tenir_profil, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId],
+  );
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
   if (String(game.status || '').toLowerCase() !== 'live') {
     return res.status(409).json({ error: 'La partie doit être en cours' });
   }
+  // « Tenir à deux » (spec § 4) : juste → +1 case et relance ; faux → rien ; jamais de score.
+  const tenirMode = isTenirGame(settings, game);
 
   // Mode classique : toutes les équipes jouent simultanément, plus de blocage « pas votre tour ».
 
@@ -169,12 +185,21 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   const dataset = isLore ? 'qcm_lore' : 'qcm';
 
+  // Un jeton de chasse (`zoneKey`) ne se joue pas ici : `POST /chasse/repondre`.
+  if (tokenGame.zoneKey) {
+    return res.status(403).json({
+      error: 'Question de chasse : répondre depuis la chasse',
+      code: 'GL_QCM_TOKEN_CHASSE',
+    });
+  }
+
   let scoreDelta = 0;
   let scoreSkippedReason = null;
   // Repère lu dans le jeton (GL2) ; `req.body.markerId` n'est plus honoré.
   const markerId = tokenGame.markerId != null ? Number(tokenGame.markerId) : null;
 
   let lastEvent = null;
+  let tenirBonus = null;
   try {
     await withTransaction(async (tx) => {
       // Une présentation ne se joue qu'une fois : sans cette consommation, renvoyer la
@@ -196,7 +221,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
       // Une bonne réponse notée par (partie, équipe, question) et par arrivée sur le repère
       // (GL2, cf. lib/glGameQcmScoring.js) — lu AVANT d'insérer la réponse courante.
       let eligibility = { eligible: true };
-      if (verification.correct && settings.scoringEnabled) {
+      if (verification.correct && settings.scoringEnabled && !tenirMode) {
         eligibility = await resolveGameQcmScoreEligibility(tx, {
           gameId,
           teamId: teamIdForGame,
@@ -221,7 +246,18 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           ...(scoreSkippedReason ? { scoreSkipped: scoreSkippedReason } : {}),
         },
       });
-      if (verification.correct && settings.scoringEnabled && eligibility.eligible) {
+      if (verification.correct && tenirMode && markerId != null) {
+        tenirBonus = await bonneReponseDeCaseTx(tx, {
+          gameId,
+          teamId: teamIdForGame,
+          roundNumber: Number(game.current_round_number) || 0,
+          actorType: answerCtx.actorType,
+          actorId: answerCtx.actorId,
+          settings,
+        });
+        if (tenirBonus?.events?.length) lastEvent = tenirBonus.events[tenirBonus.events.length - 1];
+      }
+      if (verification.correct && settings.scoringEnabled && eligibility.eligible && !tenirMode) {
         scoreDelta = 1;
         await tx.execute(
           `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
@@ -284,7 +320,17 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
 
   return res.json({
     correct: verification.correct,
-    feedback: resolveQcmAnswerFeedback(questionRow, verification),
+    feedback:
+      tenirMode && !verification.correct
+        ? tenirFeedback(questionRow, verification)
+        : resolveQcmAnswerFeedback(questionRow, verification),
+    tenir: tenirBonus
+      ? {
+          bonusCase: tenirBonus.applied,
+          target: tenirBonus.target || null,
+          arrival: tenirBonus.arrival || null,
+        }
+      : undefined,
     scoreDelta,
     scoreSkippedReason: scoreSkippedReason || undefined,
     qcmSet: isLore ? 'lore' : 'biome',
