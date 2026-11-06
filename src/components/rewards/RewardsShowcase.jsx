@@ -55,8 +55,8 @@ export function RewardsShowcase({ groupId, canAward = false }) {
         <p className="section-sub">Aucun élève dans ce groupe.</p>
       )}
       {data && data.students.length > 0 && (
-        <div className="rewards-showcase__table-wrap">
-          <table className="rewards-showcase__table">
+        <div className="fm-table-wrap">
+          <table className="fm-table">
             <caption className="fm-visually-hidden">
               Paliers de badges obtenus par élève et par famille, par ordre alphabétique
             </caption>

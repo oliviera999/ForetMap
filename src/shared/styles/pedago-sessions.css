@@ -482,23 +482,6 @@
 .rewards-showcase {
   margin: 1rem 0;
 }
-.rewards-showcase__table-wrap {
-  overflow-x: auto;
-}
-.rewards-showcase__table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--text-sm);
-}
-.rewards-showcase__table th,
-.rewards-showcase__table td {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--forest) 12%, transparent);
-  text-align: center;
-}
-.rewards-showcase__table th[scope='row'] {
-  text-align: left;
-}
 .rewards-showcase__near ul {
   padding-left: 1.1rem;
   font-family: var(--font-sans-with-emoji);

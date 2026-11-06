@@ -1728,10 +1728,10 @@
       font-family:var(--font-sans-with-emoji); text-align:left; cursor:pointer;
     }
     .task-taxo-option:focus-visible { outline:3px solid var(--leaf); outline-offset:2px; }
-    .task-taxo-option--selected { border-color:var(--forest); background:var(--tint-success, #e8f5e9); font-weight:600; box-shadow:inset 0 0 0 1px var(--forest); }
+    .task-taxo-option--selected { border-color:var(--forest); background:var(--tint-success); font-weight:600; box-shadow:inset 0 0 0 1px var(--forest); }
     .task-taxo-option:disabled { opacity:.45; cursor:not-allowed; }
     .task-taxo-option__desc { font-size:var(--text-xs); color:var(--ink-soft); font-weight:400; }
-    .task-taxo-suggested { font-size:var(--text-xs); font-weight:500; color:var(--forest); background:var(--tint-success, #e8f5e9); border-radius:6px; padding:1px 6px; margin-left:4px; }
+    .task-taxo-suggested { font-size:var(--text-xs); font-weight:500; color:var(--forest); background:var(--tint-success); border-radius:6px; padding:1px 6px; margin-left:4px; }
     .task-taxo-hint { font-size:var(--text-xs); color:var(--ink-soft); margin:6px 0 0; }
     .task-taxo-warning { font-size:var(--text-sm); color:var(--soil); background:var(--parchment); border-radius:8px; padding:6px 10px; margin:8px 0 0; }
     /* Frise des phases d'un projet */
@@ -1739,7 +1739,7 @@
     .task-phase-step { display:flex; flex-direction:column; gap:2px; padding:6px; border-radius:8px; border:1.5px solid var(--parchment); background:var(--surface-plain); font-size:var(--text-xs); color:var(--soil); min-width:0; }
     .task-phase-step__label { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .task-phase-step__count { color:var(--ink-soft); }
-    .task-phase-step--done { background:var(--tint-success, #e8f5e9); }
+    .task-phase-step--done { background:var(--tint-success); }
     .task-phase-step--current { border-color:var(--forest); box-shadow:inset 0 0 0 1px var(--forest); }
     .task-phase-step--current .task-phase-step__label::before { content:'▸ '; }
     .task-phase-step--empty { border-style:dashed; background:transparent; color:var(--ink-soft); }
