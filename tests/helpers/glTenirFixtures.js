@@ -337,7 +337,53 @@ async function setPlayerBourses(playerId, health, power) {
   ]);
 }
 
+/** Importe le jeu d'exemple des zones de chasse et des questions de lecture (idempotent). */
+async function importExempleChasse(db, { game = null } = {}) {
+  const path = require('node:path');
+  const { runImports } = require('../../scripts/gl-import-tenir');
+  const dossier = path.join(__dirname, '..', '..', 'data', 'gl', 'tenir', 'exemple');
+  const reports = [];
+  for (const fichier of ['chasse-zones', 'questions-lecture']) {
+    const [rep] = await runImports(db, { fichier, dossier });
+    if (rep.errors.length) throw new Error(`import ${fichier} : ${rep.errors.join(' ; ')}`);
+    reports.push(rep);
+  }
+  // Les zones d'exemple appartiennent aux chapitres d'exemple (le chargeur prend le premier
+  // chapitre du plateau, qui peut être un chapitre réel dans une base partagée).
+  for (let p = 1; p <= 4; p += 1) {
+    await execute(
+      `UPDATE gl_chasse_zones z SET z.chapter_id = (SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1)
+        WHERE z.feuillet_code LIKE ?`,
+      [`tenir-ex-plateau-${p}`, `tenir-ex-p${p}-%`],
+    );
+  }
+  if (game) {
+    const { initChassePagesForGame } = require('../../lib/glChasse');
+    await initChassePagesForGame(db, Number(game.id));
+  }
+  return reports;
+}
+
+/** Ouvre un tour et passe en phase `jeu` (via l'API, jeton MJ). */
+async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu' } = {}) {
+  const auth = { Authorization: `Bearer ${ctx.adminToken}` };
+  const ouvert = await request(app)
+    .post(`/api/gl/games/${ctx.game.id}/tenir/tour/ouvrir`)
+    .set(auth);
+  if (ouvert.status !== 200)
+    throw new Error(`ouvrir : ${ouvert.status} ${JSON.stringify(ouvert.body)}`);
+  if (phase === 'ouverture') return ouvert.body;
+  const jeu = await request(app)
+    .post(`/api/gl/games/${ctx.game.id}/tenir/tour/phase`)
+    .set(auth)
+    .send({ phase: 'jeu' });
+  if (jeu.status !== 200) throw new Error(`phase jeu : ${jeu.status} ${JSON.stringify(jeu.body)}`);
+  return ouvert.body;
+}
+
 module.exports = {
+  importExempleChasse,
+  ouvrirTourEnJeu,
   BIOMES,
   setGlSetting,
   enableTenirSettings,

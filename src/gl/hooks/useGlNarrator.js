@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { apiGL } from '../services/apiGL.js';
+import { useOluFrozen } from '../utils/glOluFreeze.js';
 
 /**
  * Configuration du narrateur OLU pour GL (`GET /api/gl/content/narrator`).
@@ -55,6 +56,8 @@ export function invalidateGlNarratorCache() {
  */
 export function useGlNarrator() {
   const [narrator, setNarrator] = useState(cachedNarrator);
+  // « Tenir à deux » : Olu se fige tant que l'oiseau témoin joue (état ARRÊT, aucune bulle).
+  const frozen = useOluFrozen();
 
   useEffect(() => {
     let cancelled = false;
@@ -67,5 +70,5 @@ export function useGlNarrator() {
   }, []);
 
   const speakerName = narrator && narrator.enabled !== false ? narrator.speakerName || '' : '';
-  return { narrator, speakerName, ready: !!narrator };
+  return { narrator, speakerName, ready: !!narrator, frozen };
 }

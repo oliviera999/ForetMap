@@ -74,7 +74,7 @@ export function GLTourScreen({
   showFailure,
   voyageurSoundsEnabled = false,
 }) {
-  const { confirm } = useAppDialogs();
+  const { confirm, prompt } = useAppDialogs();
   const gameId = game?.id;
   const tourApi = useGlTenirTour({ gameId, enabled: !!gameId, onChanged: onReloadGame });
   const [refreshKey, setRefreshKey] = useState(0);
@@ -350,10 +350,10 @@ export function GLTourScreen({
                           await act(() => tourApi.retrait(p.playerId, false));
                           return;
                         }
-                        const motif =
-                          typeof window !== 'undefined'
-                            ? window.prompt('Motif du retrait (vu du prof seul)')
-                            : '';
+                        const motif = await prompt({
+                          message: 'Motif du retrait (vu du prof seul)',
+                          required: false,
+                        });
                         if (motif == null) return;
                         await act(() => tourApi.retrait(p.playerId, true, motif));
                       }}

@@ -116,6 +116,7 @@ import {
 } from './utils/glGuestMode.js';
 import { GLProjectionView } from './components/tenir/GLProjectionView.jsx';
 import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
+import { useGlChasse } from './hooks/useGlChasse.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
 import { resolvePlateauMusicBiomeSlug } from './utils/glPlateauMusicProgress.js';
 
@@ -690,6 +691,25 @@ export function AppGL() {
     return String(team.type) === 'unicorn' ? 'power' : 'health';
   }, [gameState, auth?.teamId]);
 
+  // « Tenir à deux » : chasse (carnet de la classe, fouilles, pages) d'une partie en cours.
+  const tenirChasseEnabled =
+    !!gameState?.tenir?.enabled && String(gameState?.game?.status || '') === 'live';
+  const chasse = useGlChasse({
+    gameId: gameState?.game?.id,
+    enabled: tenirChasseEnabled,
+    onChanged: reloadGame,
+  });
+  const tenirLayers = useMemo(
+    () =>
+      tenirChasseEnabled
+        ? {
+            carnet: chasse.carnet,
+            voilePosition: gameState?.tenir?.state?.voilePosition ?? -1,
+          }
+        : null,
+    [tenirChasseEnabled, chasse.carnet, gameState?.tenir?.state?.voilePosition],
+  );
+
   const notifications = useGLNotificationCenter();
   useEffect(() => {
     if (narrationToast) {
@@ -948,6 +968,7 @@ export function AppGL() {
                           teamId={auth.teamId}
                           onReloadGame={reloadGame}
                           onJeter={canSpellCast ? () => openSpellCastWizard(null) : null}
+                          chasse={chasse}
                         />
                       ) : null}
                       <GLMapView
@@ -1023,6 +1044,9 @@ export function AppGL() {
                             ? Number(auth.userId)
                             : null
                         }
+                        tenirLayers={tenirLayers}
+                        fouilleMode={chasse.fouilleMode}
+                        onFouille={chasse.fouiller}
                       />
                       {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
                         <section className="gl-panel">

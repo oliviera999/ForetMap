@@ -2,6 +2,19 @@ import { useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
+import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
+import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
+
+const VERDICT_TEXTES = {
+  froid: 'Froid : la page dort plus loin.',
+  tiede: 'Tiède : on s’approche.',
+  chaud: 'Chaud : la page est tout près.',
+  zone: 'Une page dort ici : réponds à sa question.',
+  deja_trouvee: 'Cette page est déjà trouvée.',
+  palie: 'Cette page a pâli : seuls les Gnomes peuvent la réparer.',
+  page_trouvee: 'Page trouvée ! Elle entre au carnet de la classe.',
+  pas_encore: 'Pas encore : la page dort encore ici.',
+};
 
 const PHASE_LABELS = {
   ouverture: 'ouverture',
@@ -25,6 +38,8 @@ export function GLTenirEquipeView({
   onFouiller = null,
   onLire = null,
   onRepondre = null,
+  /** Résultat de `useGlChasse` (fouille au clic, question, carnet) ; `null` hors chasse. */
+  chasse = null,
 }) {
   const gameId = gameState?.game?.id;
   const tourApi = useGlTenirTour({
@@ -33,6 +48,7 @@ export function GLTenirEquipeView({
     onChanged: onReloadGame,
   });
   const [pending, setPending] = useState(null);
+  const [carnetOuvert, setCarnetOuvert] = useState(false);
   const perms = tenir?.permissions || {};
   const round = tourApi.tour?.round || tenir?.round || null;
   const team = useMemo(
@@ -46,16 +62,26 @@ export function GLTenirEquipeView({
   if (!tenir?.enabled || !team) return null;
 
   const surface = tenir.surface || 'tableau';
+  const fouilles = chasse?.carnet?.fouilles || null;
+  const fouilleMode = !!chasse?.fouilleMode;
   const gestes = [
     ['jeter', 'Jeter un sort', onJeter],
     ['lancer', 'Lancer', null],
     ['repondre', 'Répondre', onRepondre],
-    ['fouiller', 'Fouiller', onFouiller],
-    ['lire', 'Lire', onLire],
+    [
+      'fouiller',
+      fouilleMode ? 'Annuler la fouille' : 'Fouiller',
+      chasse ? () => chasse.setFouilleMode(!fouilleMode) : onFouiller,
+    ],
+    ['lire', 'Lire', chasse ? () => setCarnetOuvert((v) => !v) : onLire],
   ];
+  const verdict = chasse?.dernierVerdict || null;
 
   return (
-    <section className="gl-tenir-equipe" data-testid="gl-tenir-equipe">
+    <section
+      className={`gl-tenir-equipe${fouilleMode ? ' is-fouille' : ''}`}
+      data-testid="gl-tenir-equipe"
+    >
       <header className="gl-tenir-equipe__head">
         <h3>
           {team.name}{' '}
@@ -126,7 +152,30 @@ export function GLTenirEquipeView({
           Jet saisi : en attente du clic du prof.
         </p>
       ) : null}
+      {chasse && fouilles ? (
+        <p className="gl-hint" data-testid="gl-tenir-fouilles">
+          Fouilles ce tour : {fouilles.restantes}/{fouilles.quota}
+          {fouilles.sousVoile ? ' · sous le voile' : ''}
+          {fouilleMode ? ' · touche le plateau pour fouiller' : ''}
+        </p>
+      ) : null}
+      {verdict ? (
+        <p className="gl-tenir-equipe__verdict" role="status" data-verdict={verdict.verdict}>
+          {verdict.feedback || VERDICT_TEXTES[verdict.verdict] || ''}
+        </p>
+      ) : null}
+      {chasse?.question ? (
+        <GLTenirQuestionCard
+          question={chasse.question.question}
+          title="Une page dort ici"
+          disabled={chasse.busy}
+          onAnswer={(choiceId) => chasse.repondre(choiceId)}
+          onClose={chasse.clearQuestion}
+        />
+      ) : null}
+      {chasse && carnetOuvert ? <GLCarnetClasseView chasse={chasse} /> : null}
       {tourApi.error ? <p className="gl-error-banner">{tourApi.error}</p> : null}
+      {chasse?.error ? <p className="gl-error-banner">{chasse.error}</p> : null}
     </section>
   );
 }

@@ -9,6 +9,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » v2, étape 3 : chasse, tenir à deux, voile, oiseau témoin
+
+- Migration `332_gl_tenir_chasse.sql` : pages de chasse par partie (`endormie → revelee →
+  trouvee → tenue`, `palie → reparee`), ouvertures (tour / veillée, limite hebdomadaire),
+  empreintes publiques des fouilles, pistes de veillée, questions déjà présentées par zone.
+- `lib/glChasse.js` : fouille au clic (zone → question fixe puis thème de secours en excluant
+  les codes déjà vus ; à côté → verdict froid / tiède / chaud selon la distance au centroïde de
+  la zone endormie ou pâlie la plus proche), quota de fouilles par peuple (+ Grand Regard, 0
+  sous le voile sauf Abri / Cordée), page trouvée (feuillet découvert pour l'équipe, carnet
+  personnel des membres présents, nid du chapardeur rendu), réparation d'une page pâlie par
+  les Gnomes (+1 cœur chacun), lecture d'une page (même peuple : `read` sans gain), page
+  **tenue** par l'autre peuple sur bonne réponse de lecture (+1 ressource du peuple aux membres
+  des deux équipes, plafond), carnet complet (+1 à tout le groupe, voile −3, une fois), pistes
+  de veillée (étude d'une espèce liée à une page endormie → zone révélée, 1 par semaine).
+  Une mauvaise réponse ne retire rien et ne dit jamais « faux » (« Pas encore… »).
+- `lib/glVoile.js` : avance en phase `souffle` (`min(position + dé + bonus, camp − 1)`),
+  pâlissement des pages trouvées non lues des équipes recouvertes (sauf Abri / Cordée), zones
+  recouvertes → `palie`, reculs bornés à −1, aucune ressource retirée. `lib/glChapardeur.js` :
+  chapardeur au tour tiré (payload privé, plume vue du seul concerné et du prof), nid rendu au
+  membre le moins riche de l'équipe découvreuse.
+- Routes `/api/gl/games/:id/chasse` (carnet de la classe, empreintes, voile, oiseau ; lisible
+  en projection ; polygones servis au prof seul), `/chasse/fouiller`, `/chasse/repondre`,
+  `/chasse/pages/:zoneKey/ouvrir|tenir`, `/chasse/carnet` ; accroche des pistes dans
+  `POST /api/gl/learning/species/:code` (`piste` dans la réponse).
+- Front : calques plateau `GLChasseLayer` (empreintes, contours publics) et `GLVoileLayer`
+  (bande grise, cases recouvertes, légende « le voile »), oiseau témoin `GLKraaWitness`
+  (silhouette muette, sans nom ; Olu figé pendant son état via `glOluFreeze`), mode « Fouiller »
+  du plateau (clic → point normalisé, la mascotte ne bouge pas), carnet de la classe
+  `GLCarnetClasseView` (Lire / Tenir, question de lecture), carte question
+  `GLTenirQuestionCard`, hook `useGlChasse` ; projection enrichie du carnet.
+- Tests : `gl-chasse-pure`, `gl-chasse`, `gl-tenir-a-deux`, `gl-voile`, `gl-tenir-chapardeur`,
+  `gl-tenir-pistes` (backend, fixtures anonymes) ; `GLCarnetClasseView`, `GLChasseLayer` /
+  `GLVoileLayer` (UI, chaînes interdites vérifiées).
+
 ### Ajouté — G&L « Tenir à deux » v2, étape 2 : tour à phases, surfaces, dés, seuil, Team Spirit
 
 - Migration `331_gl_tenir_tour.sql` : phases du tour (`ouverture → jeu → souffle → clos`),

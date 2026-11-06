@@ -11,19 +11,22 @@ import { GLTourJournal } from '../mj/GLTourJournal.jsx';
 export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
   const [state, setState] = useState(null);
   const [tour, setTour] = useState(null);
+  const [carnet, setCarnet] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [s, t] = await Promise.all([
+        const [s, t, c] = await Promise.all([
           apiGL(`/api/gl/games/${gameId}`),
           apiGL(`/api/gl/games/${gameId}/tenir/tour`),
+          apiGL(`/api/gl/games/${gameId}/chasse`).catch(() => null),
         ]);
         if (cancelled) return;
         setState(s);
         setTour(t);
+        setCarnet(c);
         setError('');
       } catch (err) {
         if (!cancelled) setError(err.message || 'Projection indisponible');
@@ -56,6 +59,25 @@ export function GLProjectionView({ gameId, token, refreshKey = 0 }) {
           </li>
         ))}
       </ol>
+      {carnet ? (
+        <section className="gl-projection__chasse">
+          <h2>
+            Carnet de la classe · {carnet.tenues}/{carnet.total} pages tenues
+          </h2>
+          <ul className="gl-projection__carnet">
+            {(carnet.pages || []).map((p) => (
+              <li key={p.zoneKey} className={`gl-carnet-page gl-carnet-page--${p.etat}`}>
+                <strong>{p.titre || p.indice}</strong>
+                <div className="gl-hint">
+                  {p.etat === 'endormie' ? 'dort encore' : p.etat}
+                  {p.trouveePar ? ` · ${p.trouveePar.name}` : ''}
+                  {p.tenuePar ? ` · tenue par ${p.tenuePar.name}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {round?.passeur ? (
         <blockquote className="gl-tour-passeur">
           {round.passeur.titre ? <strong>{round.passeur.titre}</strong> : null}

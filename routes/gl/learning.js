@@ -233,6 +233,48 @@ async function hasExistingLearningAck(reader, targetType, targetCode) {
   return !!row;
 }
 
+/**
+ * Piste de veillée « Tenir à deux » (spec § 5) : si la partie joue la mouture et que l'espèce
+ * étudiée est liée au feuillet d'une page endormie, la zone passe `revelee` (limite
+ * `pistes_par_semaine` par élève). Jamais bloquant : une erreur est journalisée, pas renvoyée.
+ */
+async function maybeRevealPisteTenir(req, gameId, speciesCode) {
+  if (req.glAuth.userType !== 'gl_player') return null;
+  try {
+    const { isTenirGame } = require('../../lib/glTenir');
+    const { withTransaction } = require('../../database');
+    const game = await queryOne(
+      `SELECT g.id, g.tenir_profil, g.tenir_overrides_json, ch.plateau_number
+         FROM gl_games g LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id WHERE g.id = ? LIMIT 1`,
+      [gameId],
+    );
+    const settings = await getGameplaySettings();
+    if (!game || !isTenirGame(settings, game)) return null;
+    if (!(await canAccessGlGame(req.glAuth, gameId))) return null;
+    const { pisteTx } = require('../../lib/glChasse');
+    let result = null;
+    await withTransaction(async (tx) => {
+      result = await pisteTx(tx, {
+        gameId,
+        playerId: Number(req.glAuth.userId),
+        speciesCode,
+        settings,
+        actorType: actorTypeOf(req),
+        actorId: String(req.glAuth.userId),
+      });
+    });
+    if (result?.event) {
+      const { emitGlGameEvent } = require('../../lib/realtime');
+      emitGlGameEvent(gameId, result.event);
+    }
+    if (!result) return null;
+    return { zoneKey: result.zoneKey, limite: !!result.limite, deja: !!result.deja };
+  } catch (err) {
+    require('../../lib/logger').warn({ err, gameId }, 'tenir_piste_failed');
+    return null;
+  }
+}
+
 /** POST /api/gl/learning/species/:code — marquer une espèce comme étudiée. */
 router.post(
   '/species/:code',
@@ -299,6 +341,9 @@ router.post(
             }
           }
         }
+        // « Tenir à deux » : piste de veillée (zone endormie liée à l'espèce → révélée).
+        const piste = await maybeRevealPisteTenir(req, gameId, code);
+        if (piste) response.piste = piste;
       }
       const gain = await voyageurGainFor(req.glAuth, [
         'species',

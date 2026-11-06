@@ -8,7 +8,10 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
   getGlToken: () => 'tok',
 }));
 vi.mock('../../src/shared/components/AppDialogsProvider.jsx', () => ({
-  useAppDialogs: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
+  useAppDialogs: () => ({
+    confirm: vi.fn().mockResolvedValue(true),
+    prompt: vi.fn().mockResolvedValue(''),
+  }),
 }));
 
 const teams = [

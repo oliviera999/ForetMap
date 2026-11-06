@@ -706,3 +706,7 @@ router.post(
 );
 
 module.exports = router;
+module.exports.resolveGesteContext = resolveGesteContext;
+module.exports.sendTourError = sendTourError;
+module.exports.emitAll = emitAll;
+module.exports.ERROR_MESSAGES = ERROR_MESSAGES;

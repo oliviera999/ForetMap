@@ -46,6 +46,8 @@ import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
 import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
 import { resolveDicePathAdvance } from '../utils/glDicePathAdvance.js';
+import { GLChasseLayer } from './tenir/GLChasseLayer.jsx';
+import { GLVoileLayer } from './tenir/GLVoileLayer.jsx';
 
 /**
  * Défaut STABLE des props tableau : un littéral `[]` par défaut est un tableau neuf à chaque
@@ -108,6 +110,10 @@ export function GLGameBoard({
   vitalityByPlayerId = null,
   playerId = null,
   boardFocus = BOARD_FOCUS_DEFAULTS,
+  /** « Tenir à deux » : `{ carnet, voilePosition }` (calques chasse + voile), `null` sinon. */
+  tenirLayers = null,
+  fouilleMode = false,
+  onFouille = null,
 }) {
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
@@ -534,6 +540,17 @@ export function GLGameBoard({
         />
       ) : null}
 
+      {tenirLayers && !feuilletZoneEditMode ? (
+        <GLVoileLayer markers={markers} position={tenirLayers.voilePosition ?? -1} />
+      ) : null}
+      {tenirLayers?.carnet && !feuilletZoneEditMode ? (
+        <GLChasseLayer
+          carnet={tenirLayers.carnet}
+          teams={teams}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+      ) : null}
+
       {feuilletZoneEditMode ? null : <GLBoardFocusFx fx={boardFocusFx} mapGestures={mapGestures} />}
       {feuilletZoneEditMode ? null : <PlaceFocusStatusLive message={boardFocusStatus} />}
 
@@ -600,7 +617,9 @@ export function GLGameBoard({
       mapGestures={mapGestures}
       className={boardClass}
       showZoomControls={!feuilletZoneEditMode}
-      cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
+      cursor={
+        feuilletZoneEditMode ? plateauPlacement.mapCursor : fouilleMode ? 'crosshair' : undefined
+      }
       onFitLayout={({ height }) => {
         if (!Number.isFinite(height) || height <= 0) return;
         boardHeightPxRef.current = height;
@@ -611,6 +630,15 @@ export function GLGameBoard({
         onZoneMusicUnlock?.();
         if (feuilletZoneEditMode) {
           plateauPlacement.handleMapClick?.(pct, event);
+          return;
+        }
+        // « Tenir à deux » : en mode fouille, le clic est un point (x, y) normalisé 0–1,
+        // la mascotte ne bouge pas.
+        if (fouilleMode && onFouille) {
+          onFouille({
+            x: Math.max(0, Math.min(1, Number(pct.x) / 100)),
+            y: Math.max(0, Math.min(1, Number(pct.y) / 100)),
+          });
           return;
         }
         if (!canMoveMascot) return;
