@@ -42,6 +42,9 @@ const PAIRS = Object.freeze([
   ['src/shared/enums/terrainEnums.js', 'terrainEnums.js'],
   ['src/shared/enums/moodleSyncEnums.js', 'moodleSyncEnums.js'],
   ['src/shared/enums/platformEnums.js', 'platformEnums.js'],
+  // Taxonomie des tâches (métier, format, phase, type de projet), migration 329.
+  ['src/shared/taskTaxonomyCore.js', 'taskTaxonomyCore.js'],
+  ['src/shared/taskCategoryGuessCore.js', 'taskCategoryGuessCore.js'],
   // Cœur des activités « fresque » (cartes + flèches cause → effet + correction), lot 2.
   ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
 ]);

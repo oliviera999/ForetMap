@@ -31,6 +31,7 @@ const {
 } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
 const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
+const { resolveTaskTaxonomy } = require('../../lib/tasks/taskTaxonomyRules');
 
 const router = express.Router();
 
@@ -120,6 +121,9 @@ router.post(
         return res.status(400).json({ error: proposalDecodedImage.error });
     }
 
+    const proposalTaxonomy = resolveTaskTaxonomy(req.body, { projectId: null, recurrence: null });
+    if (proposalTaxonomy.error) return res.status(400).json({ error: proposalTaxonomy.error });
+
     const id = crypto.randomUUID();
     const proposer = `${action.firstName} ${action.lastName}`.trim();
     const baseDescription = description ? String(description).trim() : '';
@@ -138,8 +142,9 @@ router.post(
       await tx.execute(
         `INSERT INTO tasks (
       id, title, description, map_id, project_id, zone_id, marker_id,
-      start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at
-    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence,
+      category, format, proposed_by_user_id, created_at
+    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           String(title).trim(),
@@ -156,6 +161,11 @@ router.post(
           proposalImportanceParsed.level,
           'proposed',
           null,
+          proposalTaxonomy.category,
+          proposalTaxonomy.format,
+          // Auteur de la proposition (migration 329, badge « Semeur d'idées ») : l'élève
+          // dérivé du JWT, jamais une valeur du corps de requête.
+          action.studentId || null,
           nowDbTimestamp(),
         ],
       );

@@ -17,6 +17,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `user_rewards.awarded_by_user_id` / `note` / `seen_at` ; index ; reprise des auteurs de
   propositions depuis `audit_log` (`propose_task`, plus ancienne ligne) ; permission
   `rewards.award` (admin, prof). Aucun classement des tâches existantes dans la migration.
+- **Lot B — taxonomie, source unique, règles serveur** : référentiel `taskEnums.js`
+  (`TASK_CATEGORY_ENUM`, `TASK_FORMAT_ENUM`, `TASK_PROJECT_PHASE_ENUM`,
+  `TASK_PROJECT_TYPE_ENUM`) et noyau partagé `src/shared/taskTaxonomyCore.js` (miroir CJS) ;
+  valeur inconnue refusée en 400 ; récurrence ⇒ format `routine` ; phase seulement dans un
+  projet (remise à NULL au détachement) ; propagation à l'occurrence récurrente, à la
+  duplication de tâche et de projet, à l'import (colonnes Métier, Format, Phase) ; filtres
+  `category`, `format`, `project_phase` sur `GET /api/tasks` ; avancement par phase dans
+  `GET /api/task-projects/:id` ; statistiques par métier et par format ; auteur d'une
+  proposition (`proposed_by_user_id`) renseigné par la route de proposition, jamais par l'API ;
+  suggestion automatique de métier et de format (`lib/tasks/taskCategoryGuess.js`, règles
+  partagées avec le formulaire) ; test anti-littéraux.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 

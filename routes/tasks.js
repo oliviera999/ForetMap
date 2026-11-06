@@ -51,6 +51,10 @@ const {
   validateTaskAction,
 } = require('../lib/tasks/taskActions');
 const {
+  resolveTaskTaxonomy,
+  parseTaskTaxonomyListFilters,
+} = require('../lib/tasks/taskTaxonomyRules');
+const {
   parseTaskDangerLevelFromClient,
   parseTaskDifficultyLevelFromClient,
   parseTaskImportanceLevelFromClient,
@@ -137,6 +141,7 @@ const TASK_LIST_SQL_BASE = `
     SELECT t.id, t.title, t.description, t.image_path, t.map_id, t.project_id, t.group_id,
            t.zone_id, t.marker_id, t.start_date, t.due_date, t.required_students, t.completion_mode,
            t.danger_level, t.difficulty_level, t.importance_level, t.sort_order, t.status,
+           t.category, t.format, t.project_phase,
            t.archived_at, t.archived_via_project, t.validated_at, t.created_at, t.edit_revision,
            t.recurrence, t.parent_task_id, t.recurrence_series_id, t.pedago_session_id,
            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
@@ -256,6 +261,14 @@ router.get(
     if (groupId) {
       where.push('t.group_id = ?');
       params.push(groupId);
+    }
+    // Filtres de taxonomie (migration 329) : valeurs multiples séparées par des virgules ;
+    // une valeur inconnue répond 400 plutôt que d'être ignorée.
+    const taxonomyFilters = parseTaskTaxonomyListFilters(req.query);
+    if (taxonomyFilters.error) return res.status(400).json({ error: taxonomyFilters.error });
+    for (const { column, values } of taxonomyFilters.filters) {
+      where.push(`t.${column} IN (${values.map(() => '?').join(',')})`);
+      params.push(...values);
     }
     const archivedSql = archivedFilterSql(archivedScope, 't.archived_at');
     if (archivedSql) where.push(archivedSql);
@@ -700,6 +713,11 @@ router.post(
     if (parsedDue.error) return res.status(400).json({ error: parsedDue.error });
     const rangeError = validateTaskDateRange(parsedStart.value, parsedDue.value);
     if (rangeError) return res.status(400).json({ error: rangeError.error });
+    const taxonomy = resolveTaskTaxonomy(req.body, {
+      projectId: projectValidation.projectId,
+      recurrence: parsedRecurrence.value,
+    });
+    if (taxonomy.error) return res.status(400).json({ error: taxonomy.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = crypto.randomUUID();
     const seriesId = parsedRecurrence.value ? crypto.randomUUID() : null;
@@ -712,7 +730,7 @@ router.post(
     // et le fichier image éventuellement écrit est supprimé.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, recurrence_series_id, recurrence_anchor_date, pedago_session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, category, format, project_phase, recurrence, recurrence_series_id, recurrence_anchor_date, pedago_session_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           id,
           title,
@@ -729,6 +747,9 @@ router.post(
           parsedDanger.level,
           parsedDifficulty.level,
           parsedImportance.level,
+          taxonomy.category,
+          taxonomy.format,
+          taxonomy.projectPhase,
           parsedRecurrence.value,
           seriesId,
           anchorDate,

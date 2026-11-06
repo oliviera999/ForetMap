@@ -15,6 +15,11 @@ const {
 const { parseOptionalAuth } = require('../lib/tasks/taskQueries');
 const { canManageTasks } = require('../lib/taskAuthzHelpers');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
+const {
+  parseTaxonomyInput,
+  computePhaseProgress,
+  effectiveTaskFormat,
+} = require('../lib/shared/taskTaxonomyCore');
 
 const router = express.Router();
 /** Statuts acceptés sur POST/PUT corps JSON (pas `completed` : réservé à la synchro tâches). */
@@ -51,6 +56,10 @@ function normalizeTutorialIdArray(value) {
 const createProjectBodySchema = z
   .object({})
   .loose()
+  .superRefine((b, ctx) => {
+    const projectType = parseTaxonomyInput('project_type', b.project_type);
+    if (projectType.error) ctx.addIssue({ code: 'custom', message: projectType.error, path: [] });
+  })
   .transform((b) => ({
     map_id: normalizeText(b.map_id),
     title: normalizeText(b.title),
@@ -59,6 +68,10 @@ const createProjectBodySchema = z
     zone_ids: normalizeIdArray(b.zone_ids),
     marker_ids: normalizeIdArray(b.marker_ids),
     tutorial_ids: normalizeTutorialIdArray(b.tutorial_ids),
+    // Type de projet (migration 329) : clé ou libellé ; absent = non renseigné.
+    ...(b.project_type !== undefined
+      ? { project_type: parseTaxonomyInput('project_type', b.project_type).value }
+      : {}),
   }))
   .superRefine((d, ctx) => {
     if (!d.map_id) ctx.addIssue({ code: 'custom', message: 'Carte requise', path: [] });
@@ -340,6 +353,13 @@ router.get(
       byStatus[c.status] = Number(c.n);
       total += Number(c.n);
     }
+    // Avancement par phase (migration 329) : tâches et tâches validées par phase, phase
+    // courante = première phase non terminée dans l'ordre de la démarche.
+    const phaseRows = await queryAll(
+      `SELECT project_phase, status FROM tasks WHERE project_id = ? AND archived_at IS NULL`,
+      [req.params.id],
+    );
+    const phaseProgress = computePhaseProgress(phaseRows);
     res.json({
       ...row,
       progress: {
@@ -347,6 +367,11 @@ router.get(
         validated: byStatus.validated || 0,
         by_status: byStatus,
         percent: total ? Math.round(((byStatus.validated || 0) * 100) / total) : 0,
+      },
+      phase_progress: {
+        phases: phaseProgress.phases,
+        current_phase: phaseProgress.currentPhase,
+        without_phase: phaseProgress.unphased,
       },
     });
   }),
@@ -365,6 +390,7 @@ router.post(
       zone_ids: zoneIds,
       marker_ids: markerIds,
       tutorial_ids: tutorialIds,
+      project_type: projectType,
     } = req.body;
 
     if (!(await ensureMapExists(mapId)))
@@ -381,8 +407,8 @@ router.post(
     // ne laisse plus de liens orphelins. Validations 400/403/404 déjà faites ci-dessus.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, mapId, title, description, status, createdAt],
+        'INSERT INTO task_projects (id, map_id, title, description, status, project_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [id, mapId, title, description, status, projectType ?? null, createdAt],
       );
       await setProjectZones(tx, id, zoneIds);
       await setProjectMarkers(tx, id, markerIds);
@@ -438,6 +464,12 @@ router.put(
     if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
     if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
     if (!nextStatus) return res.status(400).json({ error: 'Statut projet invalide' });
+    const projectTypeParsed = parseTaxonomyInput('project_type', req.body.project_type);
+    if (projectTypeParsed.error) return res.status(400).json({ error: projectTypeParsed.error });
+    const nextProjectType =
+      projectTypeParsed.value === undefined
+        ? existing.project_type || null
+        : projectTypeParsed.value;
     if (!(await ensureMapExists(nextMapId)))
       return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -466,8 +498,8 @@ router.put(
     // au milieu ne laisse plus de liens orphelins. Validations 400/403/404 déjà faites ci-dessus.
     await withTransaction(async (tx) => {
       await tx.execute(
-        'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?',
-        [nextMapId, nextTitle, nextDescription, nextStatus, req.params.id],
+        'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ?, project_type = ? WHERE id = ?',
+        [nextMapId, nextTitle, nextDescription, nextStatus, nextProjectType, req.params.id],
       );
       await setProjectZones(tx, req.params.id, nextZoneIds);
       await setProjectMarkers(tx, req.params.id, nextMarkerIds);
@@ -677,7 +709,7 @@ async function copyProjectTasksTx(
   const sourceTasks = await tx.queryAll(
     `SELECT id, title, description, zone_id, marker_id, start_date, due_date, required_students,
             completion_mode, danger_level, difficulty_level, importance_level,
-            recurrence, sort_order
+            recurrence, sort_order, category, format, project_phase
        FROM tasks
       WHERE project_id = ?
         -- Une tâche archivée est une tâche retirée du jeu : la dupliquer la ferait
@@ -697,8 +729,8 @@ async function copyProjectTasksTx(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
         start_date, due_date, required_students, completion_mode, danger_level, difficulty_level,
-        importance_level, recurrence, sort_order, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        importance_level, recurrence, sort_order, status, created_at, category, format, project_phase
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newTaskId,
         task.title,
@@ -718,6 +750,9 @@ async function copyProjectTasksTx(
         Number(task.sort_order) || 0,
         'available',
         createdAt,
+        task.category || null,
+        effectiveTaskFormat(task.recurrence, task.format || null),
+        task.project_phase || null,
       ],
     );
 
@@ -806,8 +841,16 @@ router.post(
 
     const createdTaskIds = await withTransaction(async (tx) => {
       await tx.execute(
-        'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [newProjectId, nextMapId, nextTitle, source.description || null, 'active', createdAt],
+        'INSERT INTO task_projects (id, map_id, title, description, status, project_type, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          newProjectId,
+          nextMapId,
+          nextTitle,
+          source.description || null,
+          'active',
+          source.project_type || null,
+          createdAt,
+        ],
       );
       // Ne conserver les liens zones/repères que si la duplication reste sur la même carte.
       const sameMap = String(nextMapId) === String(source.map_id || '');

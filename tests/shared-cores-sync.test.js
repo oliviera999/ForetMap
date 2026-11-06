@@ -44,7 +44,9 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'n3beurRolesCore.js',
     'pedagoEnums.js',
     'platformEnums.js',
+    'taskCategoryGuessCore.js',
     'taskEnums.js',
+    'taskTaxonomyCore.js',
     'terrainEnums.js',
   ]);
 });
