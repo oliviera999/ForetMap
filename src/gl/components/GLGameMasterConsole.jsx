@@ -540,11 +540,15 @@ export function GLGameMasterConsole({
   }
 
   /** G11 — le MJ note qu'il a appliqué l'effet : trace au journal, sort retiré du rappel. */
-  async function markSpellEffectApplied(draftId) {
+  async function markSpellEffectApplied(draftId, body = undefined) {
     if (!game?.id || draftId == null) return;
     setBusy(true);
     try {
-      await apiGL(`/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/effect-applied`, 'POST');
+      await apiGL(
+        `/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/effect-applied`,
+        'POST',
+        body && typeof body === 'object' ? body : undefined,
+      );
       await loadCastsAwaitingEffect();
       await onReloadGame?.();
       showSuccess('Effet noté comme appliqué.');
@@ -912,12 +916,14 @@ export function GLGameMasterConsole({
             onReloadGame={onReloadGame}
             onClose={() => setMjSection('live')}
             showFailure={showFailure}
+            events={gameState?.events || []}
           />
         )}
         {mjSection === 'live' && (
           <GLGameMasterConsoleLive
             game={game}
             tenir={gameState?.tenir || null}
+            roster={gameState?.roster || []}
             onReloadGame={onReloadGame}
             teams={teams}
             gameStatus={gameStatus}

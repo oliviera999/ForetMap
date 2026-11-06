@@ -190,8 +190,9 @@ router.get(
       return res.status(403).json({ error: 'Accès partie refusé' });
     }
     const lignes = await loadOluLignes();
+    const { EVENT_MOMENTS } = require('../../../lib/glTenirOlu');
     res.set('Cache-Control', 'private, max-age=300');
-    return res.json({ lignes });
+    return res.json({ lignes, moments: EVENT_MOMENTS });
   }),
 );
 

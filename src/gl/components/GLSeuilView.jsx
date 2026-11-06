@@ -208,18 +208,43 @@ function SpellCard({ spell, onCast, loadTargets }) {
     }
   };
 
+  const [plume, setPlume] = useState({ titre: '', texte: '' });
+  const horsPerimetre = spell.perimetre === 'hors_perimetre';
   let status;
-  if (!spell.unlocked) status = `S’ouvre au niveau ${spell.levelRequired}`;
+  if (horsPerimetre) status = 'Réservé aux Deux Caravanes';
+  else if (!spell.unlocked) status = `S’ouvre au niveau ${spell.levelRequired}`;
   else if (spell.charged && spell.targetKind === 'qcm')
     status = 'Prêt — se lance pendant une question';
+  else if (spell.charged && spell.targetKind === 'fouille')
+    status = 'Prêt — se lance depuis le plateau, en veillée (bouton Fouiller)';
   else if (spell.charged) status = 'Prêt';
-  else status = `Se recharge : encore ${spell.pointsToRecharge} point(s) à gagner`;
+  else if (spell.usedThisChapter)
+    status = 'Déjà servi ce chapitre : revient à la prochaine traversée';
+  else status = 'Se recharge à la prochaine traversée';
+
+  const castPlume = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      await onCast(spell.code, { titre: plume.titre, texte: plume.texte });
+      setOpen(false);
+      setJustCast(true);
+      playVoyageurSound('spell');
+      setMessage(`${spell.emoji} ${spell.name} : ta page part en relecture chez ton professeur.`);
+      setPlume({ titre: '', texte: '' });
+    } catch (err) {
+      setMessage(err?.message || 'Le sortilège a échoué.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <li
-      className={`gl-seuil-spell${spell.unlocked ? '' : ' is-locked'}${
+      className={`gl-seuil-spell${spell.unlocked && !horsPerimetre ? '' : ' is-locked'}${
         spell.unlocked && spell.charged ? ' is-ready' : ''
       }${justCast ? ' is-cast' : ''}`}
+      data-spell={spell.code}
       onAnimationEnd={() => setJustCast(false)}
     >
       <div className="gl-seuil-spell__head">
@@ -235,12 +260,60 @@ function SpellCard({ spell, onCast, loadTargets }) {
       </div>
       <p className="gl-seuil-spell__desc">{spell.description}</p>
       <p className="gl-seuil-spell__status">{status}</p>
-      {spell.unlocked && spell.charged && spell.targetKind !== 'qcm' && !open ? (
-        <GLButton type="button" variant="primary" size="sm" onClick={openPicker}>
-          Lancer
+      {spell.unlocked &&
+      spell.charged &&
+      !['qcm', 'fouille', 'messager'].includes(spell.targetKind) &&
+      !open ? (
+        <GLButton
+          type="button"
+          variant="primary"
+          size="sm"
+          onClick={() => (spell.targetKind === 'plume' ? setOpen(true) : openPicker())}
+        >
+          {spell.targetKind === 'plume' ? 'Écrire' : 'Lancer'}
         </GLButton>
       ) : null}
-      {open ? (
+      {open && spell.targetKind === 'plume' ? (
+        <form
+          className="gl-seuil-spell__picker gl-seuil-plume"
+          onSubmit={(e) => {
+            e.preventDefault();
+            castPlume();
+          }}
+        >
+          <label>
+            Titre
+            <input
+              type="text"
+              maxLength={160}
+              value={plume.titre}
+              onChange={(e) => setPlume({ ...plume, titre: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Texte
+            <textarea
+              rows={5}
+              maxLength={4000}
+              value={plume.texte}
+              onChange={(e) => setPlume({ ...plume, texte: e.target.value })}
+              required
+            />
+          </label>
+          <GLButton
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={busy || plume.titre.length < 3 || plume.texte.length < 20}
+          >
+            Envoyer à la relecture
+          </GLButton>
+          <GLButton type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+            Fermer
+          </GLButton>
+        </form>
+      ) : open ? (
         <div className="gl-seuil-spell__picker">
           {!targets ? (
             <p role="status">Recherche des cibles…</p>
@@ -557,6 +630,9 @@ export function GLSeuilView({ onNavigateTab, modules }) {
                   {t.teammates?.length ? (
                     <p className="gl-seuil-traversee__meta">Avec : {t.teammates.join(', ')}</p>
                   ) : null}
+                  {t.titres?.length ? (
+                    <p className="gl-seuil-traversee__titres">{t.titres.join(' · ')}</p>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -567,6 +643,24 @@ export function GLSeuilView({ onNavigateTab, modules }) {
             de route.
           </p>
         )}
+        {data.titres?.length || data.badges?.length ? (
+          <div className="gl-seuil-honneurs" data-testid="gl-seuil-honneurs">
+            {data.titres?.length ? (
+              <p className="gl-seuil-traversee__meta">
+                Titres : {data.titres.map((t) => t.libelle).join(' · ')}
+              </p>
+            ) : null}
+            {data.badges?.length ? (
+              <ul className="gl-seuil-badges">
+                {data.badges.map((b) => (
+                  <li key={b.code} className="gl-seuil-badge" title={b.nom}>
+                    {b.nom}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </section>
     </div>
   );

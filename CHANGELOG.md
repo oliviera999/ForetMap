@@ -9,6 +9,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » v2, étape 4 : grimoire exécuté, honneurs, Olu, exports, docs
+
+- Migration `333_gl_tenir_grimoire.sql` : semis du grimoire v2 (25 sorts de `sorts.json`,
+  ouvertures cumulatives par plateau), honneurs, titres d'élèves, badges, missions, Bestiaire des
+  chimères, Héritages, plumes du voyageur, un usage de sort du voyageur par chapitre.
+- Grimoire v2 exécuté : fenêtres avec message (`lib/glSpellFenetres.js`), limites par tour /
+  partie / chapitre-élève / trimestre-élève, coût par ressource (peuple, choix, pacte), pot
+  pré-rempli (parts égales entre présents non en retrait, reste au plus riche), effets automatiques
+  (`lib/glSpellEffectsApply.js` : Progression, Relance, Farce, Héritage, Lanterne, Boussole,
+  Bourrasque, Grand Regard, Sentier, Abri, Relais, Cordée — le meilleur des deux jets dans le
+  moteur), file du prof (`spell_file`) et « Nommer » via `effect-applied { zoneKey }` ; seuls les
+  sorts v2 officiels sont lançables en mode tenir ; l'import xlsx n'écrase jamais un sort v2.
+- Grimoire du voyageur réaligné : niveaux 1–6, un usage par chapitre, Flair (fouille personnelle
+  en veillée), Plume (page vierge relue par le prof), Messager réservé.
+- Honneurs / sceaux / titres à la clôture (un par équipe au plus, « Très Grands » en cas de double),
+  missions réussies (saisie prof), badges individuels calculés (`lib/glTenirBadges.js`) et à la
+  main du prof, Bestiaire des chimères, Olu commentateur (moments par événement, erreur du jour,
+  correction), péripéties plein écran, exports CSV par classe (Team Spirit, badges).
+- Front : assistant de sort v2 (peuple, fenêtre, limite, paramètres d'effet), console MJ (file
+  Nommer, panneau honneurs / missions / badges / relectures / exports), Seuil (Plume, Flair,
+  titres, badges), titre sous la mascotte, bulle d'Olu, péripétie, Bestiaire.
+- Docs : `docs/GL_TENIR_A_DEUX.md`, `docs/API.md`, `docs/EVOLUTION.md`, `GL_TESTS.md`,
+  `GL_GAMEPLAY_PRESETS.md`, `GL_FEUILLET_ZONES.md`, `docs/reference/gl/*` (+ `README.md`).
+- Tests : `gl-spell-effects-pure`, `gl-grimoire-v2`, `gl-tenir-honneurs`, `gl-tenir-badges`,
+  `gl-tenir-chimeres`, `gl-tenir-olu`, `gl-voyageur-tenir`, `gl-tenir-exports`,
+  `gl-tenir-economie-globale` ; UI `GLPeripetieOverlay`, `tenir-chaines-interdites`.
+
 ### Ajouté — G&L « Tenir à deux » v2, étape 3 : chasse, tenir à deux, voile, oiseau témoin
 
 - Migration `332_gl_tenir_chasse.sql` : pages de chasse par partie (`endormie → revelee →

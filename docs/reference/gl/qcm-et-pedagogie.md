@@ -229,6 +229,17 @@ Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
 > point est compté **une seule fois par équipe, par question et par arrivée** sur le repère
 > (voir « Une question juste = un point par équipe, une fois par arrivée » plus haut).
 
+## « Tenir à deux » : la question qui ne punit jamais
+
+Sur une **case question**, la bonne réponse donne **+1 case et on relance** ; une mauvaise réponse
+ne retire rien (« Pas encore… »). En **fouillant** une page, l'équipe répond à la question fixe de
+la page (puis, si elle a déjà été tentée, à une question du même thème) : juste, la page est
+trouvée ; sinon, elle est révélée (son contour apparaît pour tous) et c'est tout. Pour **tenir** une
+page, l'autre peuple répond à sa question de lecture : retentatives illimitées, la question se
+repose jusqu'à réussite, au tour ou en veillée (deux pages tenues en veillée par élève et par
+semaine). En veillée, étudier la fiche d'une espèce liée à une page endormie ouvre une **piste**
+(la page se révèle, une piste par élève et par semaine).
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Carte du royaume](carte-du-royaume.md) · [Guide du MJ](guide-du-mj.md) · [Sommaire](../README.md)

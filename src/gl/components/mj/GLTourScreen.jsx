@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
 import { useAppDialogs } from '../../../shared/components/AppDialogsProvider.jsx';
+import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
+import { GLOluBulle } from '../tenir/GLOluBulle.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourSablier } from './GLTourSablier.jsx';
 import { GLTourDesSaisie } from './GLTourDesSaisie.jsx';
@@ -73,8 +75,10 @@ export function GLTourScreen({
   onClose,
   showFailure,
   voyageurSoundsEnabled = false,
+  events = [],
 }) {
   const { confirm, prompt } = useAppDialogs();
+  const olu = useGlTenirOlu({ gameId: game?.id, events, teams, enabled: !!game?.id });
   const gameId = game?.id;
   const tourApi = useGlTenirTour({ gameId, enabled: !!gameId, onChanged: onReloadGame });
   const [refreshKey, setRefreshKey] = useState(0);
@@ -200,6 +204,7 @@ export function GLTourScreen({
           </p>
         ) : null}
         {tourApi.error ? <p className="gl-error-banner">{tourApi.error}</p> : null}
+        <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
         {round?.oluErreur ? (
           <p className="gl-tour-olu" data-testid="gl-tour-olu">
             Olu : « {round.oluErreur.texte} »

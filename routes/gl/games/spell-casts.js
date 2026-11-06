@@ -56,7 +56,14 @@ async function handleSpellCastRoute(req, res, handler) {
     return await handler({ gameId, config });
   } catch (err) {
     const mapped = resolveSpellCastError(mapSpellCastSqlError(err));
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    if (mapped) {
+      return res
+        .status(mapped.status)
+        .json({ error: mapped.error, ...(mapped.code ? { code: mapped.code } : {}) });
+    }
+    if (err?.status && err?.code && typeof err.message === 'string') {
+      return res.status(err.status).json({ error: err.message, code: err.code });
+    }
     logRouteError(req, err, 'gl.spell_cast');
     return res.status(500).json({ error: 'Erreur lors du sortilège collaboratif' });
   }
@@ -92,6 +99,17 @@ router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (
       spellCode,
       auth: req.glAuth,
       config,
+      // « Tenir à deux » v2 : ressource au choix, partenaire du pacte, paramètres d'effet,
+      // élève (limite par élève).
+      options: {
+        ressource: req.body?.ressource,
+        partnerTeamId: req.body?.partnerTeamId,
+        effectParams:
+          req.body?.effectParams && typeof req.body.effectParams === 'object'
+            ? req.body.effectParams
+            : null,
+        playerId: req.body?.playerId,
+      },
     });
     emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
     return res.status(201).json({ draft });
@@ -139,12 +157,13 @@ router.post(
     return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
       const draftId = parseId(req.params.draftId);
       if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-      const { draft, eventPayload, eventId, pending } = await launchDraft({
-        gameId,
-        draftId,
-        auth: req.glAuth,
-        config,
-      });
+      const { draft, eventPayload, eventId, pending, effectEvents, effectResult } =
+        await launchDraft({
+          gameId,
+          draftId,
+          auth: req.glAuth,
+          config,
+        });
       const evt = eventId
         ? await queryOne(
             `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
@@ -181,8 +200,16 @@ router.post(
         return res.status(500).json({ error: 'Événement de sortilège incohérent après lancement' });
       }
       emitGlGameEvent(gameId, normalized);
+      for (const effectEvt of effectEvents || []) if (effectEvt) emitGlGameEvent(gameId, effectEvt);
       emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_cast', draft });
-      return res.json({ ok: true, draft, event: normalized, payload: eventPayload });
+      return res.json({
+        ok: true,
+        draft,
+        event: normalized,
+        payload: eventPayload,
+        effectEvents: effectEvents || [],
+        effectResult: effectResult || null,
+      });
     });
   },
 );
@@ -215,12 +242,13 @@ router.post('/games/:id/spell-casts/drafts/:draftId/resolve', requireGlAuth, asy
     if (!['accept', 'reject'].includes(decision)) {
       return res.status(400).json({ error: 'Décision invalide (accept|reject)' });
     }
-    const { draft, eventId } = await resolveDraftApproval({
+    const { draft, eventId, effectEvents } = await resolveDraftApproval({
       gameId,
       draftId,
       decision,
       auth: req.glAuth,
     });
+    for (const effectEvt of effectEvents || []) if (effectEvt) emitGlGameEvent(gameId, effectEvt);
     const evt = eventId
       ? await queryOne(
           `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
@@ -264,7 +292,13 @@ router.post(
     return handleSpellCastRoute(req, res, async ({ gameId }) => {
       const draftId = parseId(req.params.draftId);
       if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-      const { draft, eventId } = await markEffectApplied({ gameId, draftId, auth: req.glAuth });
+      const { draft, eventId, extraEvents } = await markEffectApplied({
+        gameId,
+        draftId,
+        auth: req.glAuth,
+        body: req.body || {},
+      });
+      for (const extra of extraEvents || []) if (extra) emitGlGameEvent(gameId, extra);
       const evt = eventId
         ? await queryOne(
             `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at

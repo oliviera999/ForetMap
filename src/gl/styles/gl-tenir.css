@@ -218,3 +218,93 @@
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: 0.5rem;
 }
+
+/* Olu commentateur */
+.gl-olu-bulle {
+  margin: 0.25rem 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--surface-plain);
+  border: 1px solid var(--line-soft);
+}
+
+/* Péripétie plein écran (30 s) */
+.gl-peripetie-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink-strong);
+  z-index: var(--fm-z-modal);
+}
+.gl-peripetie-overlay__panel {
+  max-width: 40rem;
+  margin: 1rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: var(--surface-plain);
+  text-align: center;
+}
+.gl-peripetie-overlay__texte {
+  font-size: 1.4rem;
+  line-height: 1.4;
+}
+
+/* Console MJ : honneurs, missions, relectures ; Bestiaire */
+.gl-tenir-honneurs__form,
+.gl-bestiaire__form,
+.gl-seuil-plume {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.gl-tenir-honneurs__form label,
+.gl-bestiaire__form label,
+.gl-seuil-plume label,
+.gl-spell-cast-panel__body .gl-field {
+  display: grid;
+  gap: 0.25rem;
+}
+.gl-tenir-honneurs__texte,
+.gl-bestiaire__item p {
+  white-space: pre-wrap;
+}
+.gl-bestiaire__liste {
+  list-style: none;
+  padding: 0;
+}
+.gl-bestiaire__item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.gl-bestiaire__image {
+  max-width: 8rem;
+  border-radius: 0.5rem;
+  display: block;
+}
+
+/* Titre sous la mascotte, badges du Seuil */
+.gl-board-mascot__titre {
+  display: block;
+  font-size: 0.65rem;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+.gl-seuil-badges {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.gl-seuil-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-size: 0.85rem;
+}
+.gl-spell-tile.is-disabled {
+  opacity: 0.55;
+}

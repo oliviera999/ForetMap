@@ -1257,6 +1257,8 @@ export function AppGL() {
               teamScope={gameplaySettings.spellCastTeamScope || 'own_team'}
               isStaff={showStaffAdminUi}
               spellCast={spellCast}
+              roster={gameState?.roster || []}
+              pagesPalies={(chasse.carnet?.pages || []).filter((p) => p.etat === 'palie')}
               chapterSpells={gameState?.game?.chapter_spells || []}
               onPickSpell={(code) => setSpellCastInitialCode(code)}
             />

@@ -210,7 +210,41 @@ async function ensureChapter(plateau) {
     'SELECT id, event_type, label, order_index FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY order_index ASC, id ASC',
     [chapter.id],
   );
+  await attachTenirSpells(chapter.id, plateau);
   return { chapter, markers };
+}
+
+/** Sorts v2 ouverts au plateau (cumulatifs, `data/gl/tenir/sorts.json`), sur un chapitre. */
+async function attachTenirSpells(chapterId, plateau) {
+  const path = require('node:path');
+  const fs = require('node:fs');
+  const file = path.join(__dirname, '..', '..', 'data', 'gl', 'tenir', 'sorts.json');
+  const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const ouverture = json.ouverture_par_chapitre || {};
+  let cumul = [];
+  for (const key of ['1', '2', '3', '4']) {
+    cumul = [...new Set([...cumul, ...(ouverture[key] || [])])];
+    if (Number(key) === Number(plateau)) break;
+  }
+  if (Number(plateau) === 4) cumul = [...new Set([...cumul, ...(ouverture.retour || [])])];
+  // Déterministe : les sorts v2 du chapitre sont réécrits à chaque passage (une suite a pu en
+  // rattacher davantage sur ce chapitre partagé).
+  await execute(
+    'DELETE cs FROM gl_chapter_spells cs INNER JOIN gl_spells s ON s.spell_code = cs.spell_code WHERE cs.chapter_id = ? AND s.tenir_v2 = 1',
+    [chapterId],
+  );
+  let idx = 0;
+  for (const code of cumul) {
+    const exists = await queryOne('SELECT spell_code FROM gl_spells WHERE spell_code = ? LIMIT 1', [
+      code,
+    ]);
+    if (!exists) continue;
+    await execute(
+      'INSERT IGNORE INTO gl_chapter_spells (chapter_id, spell_code, order_index) VALUES (?, ?, ?)',
+      [chapterId, code, idx * 10],
+    );
+    idx += 1;
+  }
 }
 
 /** Corpus complet d'exemple (idempotent). Renvoie `{ chapters: { 1..4: { chapter, markers } } }`. */
@@ -382,6 +416,7 @@ async function ouvrirTourEnJeu(request, app, ctx, { phase = 'jeu' } = {}) {
 }
 
 module.exports = {
+  attachTenirSpells,
   importExempleChasse,
   ouvrirTourEnJeu,
   BIOMES,

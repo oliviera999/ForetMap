@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useGlTenirTour } from '../../hooks/useGlTenirTour.js';
+import { useGlTenirOlu } from '../../hooks/useGlTenirOlu.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLTourDesSaisie } from '../mj/GLTourDesSaisie.jsx';
 import { GLTenirQuestionCard } from './GLTenirQuestionCard.jsx';
 import { GLCarnetClasseView } from './GLCarnetClasseView.jsx';
+import { GLOluBulle } from './GLOluBulle.jsx';
+import { GLPeripetieOverlay } from './GLPeripetieOverlay.jsx';
+import { GLBestiairePanel } from './GLBestiairePanel.jsx';
 
 const VERDICT_TEXTES = {
   froid: 'Froid : la page dort plus loin.',
@@ -49,7 +53,35 @@ export function GLTenirEquipeView({
   });
   const [pending, setPending] = useState(null);
   const [carnetOuvert, setCarnetOuvert] = useState(false);
+  const [peripetiesPassees, setPeripetiesPassees] = useState(() => new Set());
   const perms = tenir?.permissions || {};
+  const events = gameState?.events || [];
+  const olu = useGlTenirOlu({
+    gameId,
+    events,
+    teams: gameState?.teams || [],
+    enabled: !!gameId && !!tenir?.enabled,
+  });
+  // Péripétie de mon équipe non encore passée (case événement sans texte, spec § 13).
+  const peripetie = useMemo(() => {
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const e = events[i];
+      if (e.eventType !== 'peripetie' || Number(e.teamId) !== Number(teamId)) continue;
+      const id = e.payload?.id || `evt-${e.id}`;
+      if (peripetiesPassees.has(id)) return null;
+      const age = Date.now() - new Date(e.createdAt || 0).getTime();
+      if (Number.isFinite(age) && age > 10 * 60 * 1000) return null;
+      return { id, texte: e.payload?.texte || '', eventId: e.id };
+    }
+    return null;
+  }, [events, teamId, peripetiesPassees]);
+  const passerPeripetie = useCallback(
+    async (p) => {
+      setPeripetiesPassees((prev) => new Set([...prev, p.id]));
+      await tourApi.peripetiePasser(p.id, teamId);
+    },
+    [tourApi, teamId],
+  );
   const round = tourApi.tour?.round || tenir?.round || null;
   const team = useMemo(
     () => (gameState?.teams || []).find((t) => Number(t.id) === Number(teamId)) || null,
@@ -173,7 +205,19 @@ export function GLTenirEquipeView({
           onClose={chasse.clearQuestion}
         />
       ) : null}
-      {chasse && carnetOuvert ? <GLCarnetClasseView chasse={chasse} /> : null}
+      <GLOluBulle line={olu.line} speakerName={olu.speakerName} frozen={olu.frozen} />
+      {chasse && carnetOuvert ? (
+        <>
+          <GLCarnetClasseView chasse={chasse} />
+          <GLBestiairePanel gameId={gameId} />
+        </>
+      ) : null}
+      <GLPeripetieOverlay
+        peripetie={peripetie}
+        teamName={team.name}
+        onPasser={passerPeripetie}
+        busy={tourApi.busy}
+      />
       {tourApi.error ? <p className="gl-error-banner">{tourApi.error}</p> : null}
       {chasse?.error ? <p className="gl-error-banner">{chasse.error}</p> : null}
     </section>

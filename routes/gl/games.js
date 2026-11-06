@@ -1099,6 +1099,7 @@ router.use(require('./games/spell-casts'));
 router.use(require('./games/tenir'));
 router.use(require('./games/tenir-tour'));
 router.use(require('./games/chasse'));
+router.use(require('./games/tenir-honneurs'));
 
 // O10 — sous-domaine feuillet-zones extrait en sous-routeur dédié (chemins inchangés) :
 //   GET  /games/:id/feuillet-zones/presented

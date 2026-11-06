@@ -175,3 +175,20 @@ Liste complète : `Get-ChildItem tests-ui/gl -Recurse -Include *.test.js,*.test.
 
 - Skill : `.cursor/skills/foretmap-gl-qa-personae/SKILL.md`
 - Prompt : `docs/QA_GL_PERSONAE_PROMPT.md`
+
+## « Tenir à deux » v2 (novembre 2026)
+
+Fixtures anonymes : `tests/helpers/glTenirFixtures.js` (`createTenirGame`, `importExempleChasse`,
+`ouvrirTourEnJeu`, `attachTenirSpells`) ; jeu d'exemple `data/gl/tenir/exemple/`.
+
+| Fichier                                                                                                                                              | Couvre                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `gl-tenir-settings`, `gl-tenir-permissions-pure`                                                                                                     | réglages `tenir_*`, profils, surcharges ; permissions par surface / phase / acteur                                              |
+| `gl-tenir-import`, `gl-chasse-zones-admin`                                                                                                           | chargeurs idempotents, chaînes interdites, géométrie des zones                                                                  |
+| `gl-tenir-deux-monnaies`, `gl-market-place`                                                                                                          | ressource du peuple, bourses privées, annonces, dons, parures, retrait                                                          |
+| `gl-tour-phases`, `gl-tenir-des`, `gl-tenir-question-case`, `gl-tenir-seuil`, `gl-tenir-projection`, `gl-tenir-team-spirit`                          | tour à phases, dés, +1 case et relance, clôture, projection, Team Spirit                                                        |
+| `gl-chasse-pure`, `gl-chasse`, `gl-tenir-a-deux`, `gl-voile`, `gl-tenir-chapardeur`, `gl-tenir-pistes`                                               | chasse, pages tenues, voile, chapardeur, pistes de veillée                                                                      |
+| `gl-spell-effects-pure`, `gl-grimoire-v2`                                                                                                            | pot, fenêtres, limites, chaque effet du grimoire v2, file du prof, Nommer                                                       |
+| `gl-tenir-honneurs`, `gl-tenir-badges`, `gl-tenir-chimeres`, `gl-tenir-olu`, `gl-voyageur-tenir`, `gl-tenir-exports`, `gl-tenir-economie-globale`    | honneurs / titres / missions, badges, Bestiaire / plumes, Olu, voyageur, CSV, économie globale                                  |
+| `tests/content/gl-tenir-donnees`, `gl-plateaux-cases-quiz`                                                                                           | corpus `data/gl/tenir/` (job « Contenu pédagogique » ; la géométrie reste rouge tant que les 28 polygones ne sont pas dessinés) |
+| UI : `GLTenirSettings`, `GLTourScreen`, `GLTenirEquipeView`, `GLCarnetClasseView`, `GLChasseLayer`, `GLPeripetieOverlay`, `tenir-chaines-interdites` | écrans ; aucune chaîne interdite au rendu                                                                                       |

@@ -286,6 +286,30 @@ jeu ouvert sans rotation.
 > « Complet libre » n'ouvre donc pas le déplacement aux joueurs : ce réglage se
 > change séparément (voir [carte-du-royaume.md](carte-du-royaume.md)).
 
+## « Tenir à deux » : quatre équipes, le voile, le carnet, les honneurs
+
+**Quatre équipes** (deux gnomes, deux licornes), composées pour que personne ne garde deux
+chapitres de suite le même peuple. L'ordre de passage est **l'inverse du plateau** : l'équipe la
+plus en retard joue d'abord. La première au camp ne gagne rien de plus : à chaque tour, son jet
+avance l'équipe la plus en retard.
+
+**Le voile** avance en fin de séance (dé gris + bonus du plateau). Une équipe recouverte ne fouille
+plus et ses pages trouvées non lues pâlissent ; elle avance, répond, lit et échange normalement.
+Le voile ne retire jamais rien. Il recule quand le carnet de la classe est complet (et, si vous
+l'activez, par la Lumière des cartes Team Spirit).
+
+**Le carnet de la classe** liste les pages cachées du plateau : dort encore, révélée, trouvée,
+tenue, pâlie, réparée. Une page est **tenue à deux** quand une équipe de l'autre peuple l'ouvre et
+répond juste à sa question de lecture : chacun des membres des deux équipes gagne une unité de sa
+ressource. Les Gnomes réparent les pages pâlies.
+
+**À la clôture** : quatre honneurs (Éclaireurs, Gardiens, Passeurs, Esprit d'équipe), un par
+équipe au plus, deux sceaux de peuple (Éclaireuses, Mains), un titre par honneur et par biome qui
+suit les élèves (affiché sous la mascotte au chapitre suivant) ; les **badges** individuels
+(Première page, Lecteur, Fouilleur, Trouveur, Mains tendues, Veilleur, Nommeur, Cartographe,
+Passeur de seuil ; Chuchoteur et Correcteur du renard à votre main) ne donnent aucune ressource et
+ne font aucun classement. Les **missions** (papier) se saisissent « réussie » → sceau et titre.
+
 ## Pour aller plus loin
 
 - Le plateau, ses zones et ses repères : [carte-du-royaume.md](carte-du-royaume.md)

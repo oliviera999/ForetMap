@@ -200,8 +200,10 @@ test('en base : --dry-run du chargeur sur le jeu réel (codes, termes secrets) s
   const db = require('../../database');
   await db.initSchema();
   // Les chapitres d'exemple des tests de code (`tenir-ex-plateau-N`) ne portent pas le corpus réel.
+  // Il faut un chapitre réel par plateau (1 à 4) : les chapitres éphémères des autres suites ne
+  // couvrent que les plateaux 1-2 et ne portent pas le corpus.
   const plateaux = await db.queryOne(
-    "SELECT COUNT(*) AS c FROM gl_chapters WHERE plateau_number BETWEEN 1 AND 4 AND slug NOT LIKE 'tenir-ex-%'",
+    "SELECT COUNT(DISTINCT plateau_number) AS c FROM gl_chapters WHERE plateau_number BETWEEN 1 AND 4 AND slug NOT LIKE 'tenir-ex-%' AND slug NOT LIKE 'ch-concu-%' AND slug NOT LIKE 'fst-%' AND slug NOT LIKE 'locks-ch-%'",
   );
   if (Number(plateaux?.c || 0) < 4) {
     t.diagnostic('Base sans chapitres de plateau 1-4 (base neuve) : contrôle en base sauté');

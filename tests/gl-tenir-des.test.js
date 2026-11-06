@@ -213,6 +213,12 @@ test('équipe au camp : son jet est appliqué à l’équipe la plus en retard (
     ctx.teams[3].id,
   ]);
   await openRoundInJeu();
+  // Un jet serveur précédent (aléatoire) a pu déjà mener une équipe au camp : on repart de
+  // « aucune première arrivée » pour tester la mémorisation sans dépendre du tirage.
+  await execute(
+    'UPDATE gl_game_tenir_state SET premiere_arrivee_team_id = NULL WHERE game_id = ?',
+    [ctx.game.id],
+  );
   const champPlayer = ctx.players.find((p) => p.teamId === Number(champion.id));
   const arrive = await request(app)
     .post(api('/tenir/lancer'))

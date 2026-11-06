@@ -58,3 +58,11 @@ Avec `gameplay.turns_enabled=true` :
 - Profils UI : `src/gl/constants/gameplayPresets.js`
 - Réglages admin : `src/gl/components/GLSettingsView.jsx`
 - Lecture serveur : `lib/glSettings.js`
+
+## Profils « Tenir à deux » par partie
+
+La mouture « Tenir à deux » (réglage `gameplay.tenir_enabled`, clés `gameplay.tenir_*`,
+`docs/GL_TENIR_A_DEUX.md`) se règle **par partie** : `gl_games.tenir_profil` = `complet` (défauts)
+ou `prologue` (voile, Marché et chapardeur éteints, 8 zones) — un clic dans la console MJ, plus des
+surcharges facultatives (`surface`, mode de dés, vent, voile, Marché, chapardeur, péripéties, zones
+par plateau, Lumière, cartes → cases). Une partie sans profil reste en mode classique.

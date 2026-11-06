@@ -259,6 +259,29 @@ Trois repères utiles :
 > appliquer « Complet avec tours » n'active ni la vitalité, ni le Marché, ni les
 > Sortilèges. Faire les deux vérifications (profil **et** modules) avant la classe.
 
+## La séance « Tenir à deux »
+
+Quand une partie joue la mouture « Tenir à deux », le tour se joue **par phases** depuis l'écran
+« Jouer le tour » de la console, projeté au tableau : **ouverture** (ordre des équipes : la plus
+en retard d'abord ; dès le deuxième tour, le vent de la caravane pousse la dernière de trois cases ;
+Olu glisse son erreur du jour), **jeu** (les équipes jettent, lancent, répondent, fouillent, lisent),
+**souffle** (vous lancez le dé gris : le voile avance ; vous pouvez aussi le laisser dormir une
+semaine), **clos** (bilan Team Spirit : cartes gardées par équipe).
+
+Trois surfaces : au **tableau**, vous tenez tout (une équipe active à la fois, sablier) ; en
+**hybride**, chaque équipe lance et répond depuis sa tablette quand c'est son tour et fouille quand
+vous ouvrez la fenêtre ; sur **tablette**, chaque équipe agit seule en phase jeu et vous validez
+les dés physiques d'un clic. Les **absences** du jour retirent un élève du pot des sorts et du
+carnet personnel du tour. Le **retrait** (conduite) se décide élève par élève : il joue, fouille et
+lit, mais ne verse pas au pot et ne voit pas le Marché, jusqu'à la levée ; le motif reste pour vous.
+
+À la **clôture** du chapitre (bouton « Clore »), la caravane porte les retardataires au camp, les
+honneurs, sceaux et titres s'attribuent, les parures reviennent au comptoir, les badges se
+calculent. La **projection** (bouton « Projeter ») donne un lien à ouvrir sur le vidéoprojecteur :
+rien n'y est cliquable, aucune bourse ne s'y affiche. Les **exports** (Team Spirit, badges) se
+téléchargent depuis le panneau « Tenir à deux » de la console ; la mission réussie, le badge à la
+main, la relecture des pages écrites et des chimères s'y saisissent aussi.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Économie du jeu](economie-marche-sorts.md) · [QCM et pédagogie](qcm-et-pedagogie.md) · [Sommaire](../README.md)

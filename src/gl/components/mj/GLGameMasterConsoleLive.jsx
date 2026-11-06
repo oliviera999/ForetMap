@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
 import { GLTenirProfilPanel } from './GLTenirProfilPanel.jsx';
+import { GLTenirHonneursPanel } from './GLTenirHonneursPanel.jsx';
 
 export default function GLGameMasterConsoleLive({
   game,
   teams,
+  roster = [],
   gameStatus,
   effectiveSelectedTeamId,
   currentTeamId,
@@ -53,6 +56,7 @@ export default function GLGameMasterConsoleLive({
   tenir = null,
   onReloadGame = null,
 }) {
+  const [nommerZones, setNommerZones] = useState({});
   if (!game?.id) {
     return (
       <div className="gl-empty-state">
@@ -75,6 +79,15 @@ export default function GLGameMasterConsoleLive({
         onChanged={onReloadGame}
         showFailure={showFailure}
       />
+      {tenir?.enabled ? (
+        <GLTenirHonneursPanel
+          game={game}
+          teams={teams}
+          roster={roster}
+          onReloadGame={onReloadGame}
+          showFailure={showFailure}
+        />
+      ) : null}
       {teams.length > 0 && (
         <div className="gl-team-selector gl-gameplay-block">
           <h3>Équipe active (déplacement / score / narration)</h3>
@@ -235,11 +248,33 @@ export default function GLGameMasterConsoleLive({
                     </p>
                   )}
                   {meta.length > 0 ? <p className="gl-hint">{meta.join(' · ')}</p> : null}
+                  {draft.spellCode === 'SL041' ? (
+                    <label className="gl-field gl-hint">
+                      Page pâlie nommée (clé de zone)
+                      <input
+                        type="text"
+                        value={nommerZones[draft.id] || draft.effectParams?.zoneKey || ''}
+                        onChange={(e) =>
+                          setNommerZones((prev) => ({ ...prev, [draft.id]: e.target.value }))
+                        }
+                        placeholder="cz-p1-03"
+                      />
+                    </label>
+                  ) : null}
                   <div className="gl-inline-actions">
                     <GLButton
                       type="button"
                       size="sm"
-                      onClick={() => onMarkSpellEffectApplied?.(draft.id)}
+                      onClick={() =>
+                        onMarkSpellEffectApplied?.(
+                          draft.id,
+                          draft.spellCode === 'SL041'
+                            ? {
+                                zoneKey: nommerZones[draft.id] || draft.effectParams?.zoneKey || '',
+                              }
+                            : undefined,
+                        )
+                      }
                       disabled={busy}
                     >
                       Effet appliqué ✔

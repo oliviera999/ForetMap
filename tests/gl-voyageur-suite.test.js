@@ -233,10 +233,9 @@ test('S2 — Mes traversées : la partie terminée, pas l’expédition en cours
 
 // --- S3 : Loupe --------------------------------------------------------------------------
 
-test('S3 — Loupe : fermée avant le niveau 4', async () => {
-  const p = await presentQcm(QCM4);
-  const res = await auth(request(app).post('/api/gl/voyageur/spells/loupe/cast'))
-    .send({ target: p.presentationToken })
+test('S3 — Mémoire : fermée avant le niveau 3 (la Loupe s’ouvre au niveau 2)', async () => {
+  const res = await auth(request(app).post('/api/gl/voyageur/spells/memoire/cast'))
+    .send({ target: 'x' })
     .expect(409);
   assert.equal(res.body.code, 'SPELL_LOCKED');
 });
@@ -260,7 +259,11 @@ test('S3 — Loupe : écarte une mauvaise réponse, jamais la bonne', async () =
 });
 
 test('S3 — Loupe : refusée sur deux réponses, charge non consommée', async () => {
-  await addAcks(playerId, 'ecosystem', 5, 'loupe-recharge');
+  // Nouvelle traversée : un usage par chapitre, la Loupe a servi au test précédent.
+  await execute(
+    "UPDATE gl_voyageur_spell_uses SET last_used_game_id = NULL WHERE player_id = ? AND spell_code = 'loupe'",
+    [String(playerId)],
+  );
   const p = await presentQcm(QCM2);
   const res = await auth(request(app).post('/api/gl/voyageur/spells/loupe/cast'))
     .send({ target: p.presentationToken })

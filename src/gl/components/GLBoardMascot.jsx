@@ -69,6 +69,11 @@ export function GLBoardMascot({
       }}
     >
       <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
+      {team.titre ? (
+        <span className="gl-board-mascot__titre" data-testid="gl-board-mascot-titre">
+          {team.titre}
+        </span>
+      ) : null}
     </div>
   );
 

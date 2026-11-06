@@ -550,6 +550,8 @@ app.use(createAdminOpsRouter({ gracefulShutdown, getDatabaseInitState }));
 app.use('/api/gl/auth', glAuthRouter);
 // Avant glAdminRouter : préfixe plus spécifique, monté à part pour ne pas alourdir routes/gl/admin.js.
 app.use('/api/gl/admin/reference-docs', glReferenceDocsRouter);
+// « Tenir à deux » : exports CSV par classe (Team Spirit, badges), gl.game.manage.
+app.use('/api/gl/admin', require('./routes/gl/admin-tenir-exports'));
 app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);

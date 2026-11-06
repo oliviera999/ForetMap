@@ -178,6 +178,19 @@ Quatre types d'écart :
 > **« Aperçu »** de la vue d'ensemble ouvre directement le feuillet concerné (contenu joueur,
 > puis onglet **« Édition »**) : on répare sans changer d'onglet.
 
+## « Tenir à deux » : les pages cachées, les empreintes, l'oiseau
+
+Chaque plateau cache des **pages** (huit au premier chapitre, dix ensuite). Les élèves **fouillent**
+en touchant le plateau : à côté, le plateau répond froid, tiède ou chaud et laisse une **empreinte**
+visible de toute la classe ; sur une page, une question s'ouvre. Les contours des pages révélées
+apparaissent pour tous ; l'emplacement exact ne l'est jamais. Un **oiseau** vole jusqu'au point
+touché et joue son humeur selon le résultat : il ne parle pas, personne ne le nomme ; Olu se tait
+pendant qu'il passe. Le **voile** se voit comme une bande grise le long du chemin, du départ jusqu'à
+la dernière case recouverte ; les mascottes recouvertes ont l'air triste, sans un mot.
+
+Côté admin, les polygones des pages se dessinent dans l'éditeur du chapitre (plateaux 1 à 4) ; une
+page sans polygone n'entre pas en jeu.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

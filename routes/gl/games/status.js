@@ -160,6 +160,17 @@ async function updateGameStatus(req, res, nextStatus) {
       });
       await revokeProjectionToken(db, gameId);
       for (const evt of seuil?.events || []) emitTenirEvent(gameId, evt);
+      // Badges individuels (jamais de ressource) : réévalués pour chaque membre à la clôture.
+      try {
+        const { evaluateBadges } = require('../../../lib/glTenirBadges');
+        const members = await db.queryAll(
+          'SELECT DISTINCT player_id FROM gl_team_members WHERE game_id = ?',
+          [gameId],
+        );
+        for (const m of members) await evaluateBadges(db, Number(m.player_id), { gameId });
+      } catch (err) {
+        logger.warn({ err, gameId }, 'Badges non évalués à la clôture');
+      }
     } catch (err) {
       logger.error({ err, gameId }, 'Clôture « Tenir à deux » en échec');
       throw err;
