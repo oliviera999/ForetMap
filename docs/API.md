@@ -4179,7 +4179,9 @@ instance (`lib/rewards/foretEngine.js`). Contrat pour Gnomes & Licornes :
   (exploration, reportage, collectif — visite, découvertes d'espèces, mesures d'arbres,
   carnet, photos de comptes rendus, réactions) sont aussi évaluées à chaque `GET /me`.
   Badges de tâches, projets, exploration, reportage, savoirs et collectif réservés aux comptes
-  élèves au profil n3beur ; badges de séance : tout compte.
+  actifs au profil n3beur **ou d'encadrement** (`admin`, `prof`, `prof_classe`) — ni visiteurs,
+  ni `personnel`, ni `mode_collectif` ; badges de séance : tout compte. La passe de nuit et le
+  rattrapage évaluent les comptes élèves **et enseignants**.
 - **Annonce** : notification `kind = 'reward'` (regroupée par action ; une seule
   récapitulative au rattrapage) si le module est allumé.
 
