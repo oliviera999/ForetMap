@@ -26,6 +26,8 @@ const chasse = require('../../../lib/glChasse');
 const tour = require('../../../lib/glTour');
 const { requireTenirGame } = require('./tenir');
 const { resolveGesteContext, sendTourError, emitAll } = require('./tenir-tour');
+const { resolveTenirSettings, resolveSurface, isPlayerEnRetrait } = require('../../../lib/glTenir');
+const { resolveTenirPermissions } = require('../../../lib/shared/glTenirPermissionsCore');
 
 const router = express.Router();
 
@@ -36,6 +38,9 @@ const CHASSE_ERRORS = {
   JETON_HORS_CHASSE: 'Ce jeton n’est pas une question de chasse',
   JETON_HORS_LECTURE: 'Ce jeton n’est pas une question de lecture',
   JETON_AUTRE_EQUIPE: 'Ce jeton appartient à une autre équipe',
+  JETON_AUTRE_PAGE: 'Le jeton ne porte pas cette page',
+  TENIR_LIRE_SURFACE: 'Sur cette surface, le prof lit pour l’équipe',
+  TENIR_RETRAIT: 'En retrait jusqu’à nouvel ordre',
   ZONE_INTROUVABLE: 'Page introuvable',
   PAGE_PAS_TROUVEE: 'Cette page dort encore',
   MEME_PEUPLE: 'Une page se tient par une équipe de l’autre peuple',
@@ -60,14 +65,24 @@ function sendChasseError(res, err) {
   return sendTourError(res, err);
 }
 
-/** Acteur d'une lecture (tour ou veillée) : joueur → son équipe ; MJ → `teamId`. */
+/**
+ * Acteur d'une lecture (tour ou veillée) : joueur → son équipe ; MJ → `teamId`. Les permissions
+ * de surface sont rejouées ici (`lire`) : en `tableau`, seul le prof lit pour l'équipe ; un
+ * élève en retrait ne lit pas ; la partie doit être en cours. Le client ne fait que griser.
+ */
 async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
   const ctx = await requireTenirGame(req, res, gameId);
   if (!ctx) return null;
   const { game, settings } = ctx;
+  // Veillée comprise : une partie en pause entre deux séances se lit ; brouillon et close non.
+  if (!['live', 'paused'].includes(String(game.status))) {
+    res.status(409).json({ error: 'La partie n’est pas en cours' });
+    return null;
+  }
   const actorKind = isMj(req) ? 'mj' : 'player';
   let teamId = teamIdFromBody != null ? parseId(teamIdFromBody) : null;
   let playerId = null;
+  let enRetrait = false;
   if (actorKind === 'player') {
     const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
     if (!membership?.team_id) {
@@ -76,13 +91,42 @@ async function resolveLectureContext(req, res, gameId, teamIdFromBody) {
     }
     teamId = Number(membership.team_id);
     playerId = Number(req.glAuth.userId);
+    enRetrait = await isPlayerEnRetrait(db, gameId, playerId);
   } else if (teamId == null) {
     res.status(400).json({ error: 'teamId requis pour le MJ' });
+    return null;
+  }
+  const team = await db.queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+    teamId,
+    gameId,
+  ]);
+  if (!team) {
+    res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
     return null;
   }
   const roundNumber = Number(game.current_round_number) || 0;
   const round = roundNumber ? await tour.loadRoundView(db, gameId, roundNumber) : null;
   const via = round && round.phase === 'jeu' ? 'tour' : 'veillee';
+  if (actorKind === 'player') {
+    if (enRetrait) {
+      res.status(403).json({ error: CHASSE_ERRORS.TENIR_RETRAIT, code: 'TENIR_RETRAIT' });
+      return null;
+    }
+    const resolved = resolveTenirSettings(settings, game);
+    const perms = resolveTenirPermissions({
+      surface: resolveSurface(game, settings),
+      phase: round ? round.phase : null,
+      actorKind,
+      isMember: true,
+      isActiveTeam: round?.equipeActiveId != null && Number(round.equipeActiveId) === teamId,
+      enRetrait,
+      settings: resolved,
+    });
+    if (!perms.lire) {
+      res.status(403).json({ error: CHASSE_ERRORS.TENIR_LIRE_SURFACE, code: 'TENIR_LIRE_SURFACE' });
+      return null;
+    }
+  }
   return {
     game,
     settings,
@@ -318,13 +362,11 @@ router.post(
           settings: ctx.settings,
           actorType: ctx.actorType,
           actorId: ctx.actorId,
+          expectedZoneKey: zoneKey,
         }),
       );
     } catch (err) {
       return sendChasseError(res, err);
-    }
-    if (result.zoneKey && result.zoneKey !== zoneKey) {
-      return res.status(400).json({ error: 'Le jeton ne porte pas cette page' });
     }
     emitAll(gameId, result.events);
     const { events, ...rest } = result; // eslint-disable-line no-unused-vars

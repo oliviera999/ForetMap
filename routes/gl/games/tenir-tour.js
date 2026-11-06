@@ -398,7 +398,20 @@ router.post(
     if (!ctx.roundNumber) return res.status(409).json({ error: ERROR_MESSAGES.AUCUN_TOUR });
     const resolved = { ...ctx.resolved, surface: ctx.surface };
     const desCount = Number(resolved.des_count) || 2;
-    const mode = wantedMode || resolveDesMode(resolved);
+    const configuredMode = resolveDesMode(resolved);
+    // Un élève ne transforme pas un tirage `serveur` en faces choisies : des dés « physiques »
+    // hors du mode de la surface ne passent que par la file de validation du prof (tablette,
+    // `des_physiques_validation` ≠ auto). Le prof, lui, saisit ou avance comme il l'entend.
+    const validationProf =
+      ctx.surface === 'tablette' && resolved.des_physiques_validation !== 'auto';
+    const horsMode = wantedMode && wantedMode !== configuredMode && !isMj(req);
+    if (horsMode && !(wantedMode === 'physique' && validationProf)) {
+      return res.status(403).json({
+        error: 'Mode de dés non autorisé sur cette surface',
+        code: 'TENIR_DES_MODE',
+      });
+    }
+    const mode = wantedMode || configuredMode;
     try {
       let result;
       if (mode === 'libre') {
@@ -426,10 +439,7 @@ router.post(
         const faces = parseFaces(req.body?.faces, desCount);
         if (!faces)
           return res.status(400).json({ error: `Faces attendues : ${desCount} valeurs de 1 à 6` });
-        const attente =
-          ctx.actorKind === 'player' &&
-          ctx.surface === 'tablette' &&
-          resolved.des_physiques_validation !== 'auto';
+        const attente = ctx.actorKind === 'player' && validationProf;
         if (attente) {
           await withTransaction(async (tx) => {
             result = await tour.creerSaisieTx(tx, {
@@ -657,11 +667,32 @@ router.post(
   requireGlAuth,
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
     if (!(await canAccessGlGame(req.glAuth, gameId)))
       return res.status(403).json({ error: 'Accès partie refusé' });
+    const ctx = await requireTenirGame(req, res, gameId);
+    if (!ctx) return undefined;
+    let teamId = null;
+    if (isMj(req)) {
+      if (req.body?.teamId != null) {
+        teamId = parseId(req.body.teamId);
+        const team = teamId
+          ? await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+              teamId,
+              gameId,
+            ])
+          : null;
+        if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+      }
+    } else {
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (!membership?.team_id)
+        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+      teamId = Number(membership.team_id);
+    }
     const evt = await require('../../../lib/glGameEvents').insertGameEvent(db, {
       gameId,
-      teamId: req.body?.teamId != null ? parseId(req.body.teamId) : null,
+      teamId,
       actorType: isMj(req) ? 'mj' : 'team',
       actorId: String(req.glAuth.userId),
       eventType: 'peripetie_passee',
