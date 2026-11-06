@@ -1,0 +1,758 @@
+{
+  "format": "sorts v1 — grimoire v2 « Tenir à deux » (§ 10 des règles) ; codes SL0xx repris de gl_spells quand le sort existe, SL036+ pour les nouveaux ; les anciens sorts du tableur restent en base en `propose`, non lançables",
+  "vocabulaire": {
+    "peuple": [
+      "any",
+      "gnome",
+      "unicorn",
+      "pacte",
+      "classe"
+    ],
+    "ressource": {
+      "gemmes": "gemmes (bourse power_points)",
+      "coeurs": "cœurs (bourse health_points)",
+      "peuple": "la ressource du peuple du lanceur (gemmes si Licorne, cœurs si Gnome)",
+      "choix": "l'une ou l'autre, au choix de l'équipe",
+      "pacte": "2 cœurs versés par l'équipe gnome + 2 gemmes versés par l'équipe licorne",
+      "cartes": "palier de cartes Team Spirit gardées (pas une bourse)"
+    },
+    "fenetre": {
+      "avant_jet": "phase jeu, avant le jet de l'équipe",
+      "apres_jet": "phase jeu, après le jet et avant l'application de la case",
+      "jeu": "pendant la phase jeu",
+      "jeu_avant_fouille": "pendant la phase jeu, avant une fouille de l'équipe",
+      "avant_jets_pacte": "phase jeu, avant les jets des deux équipes concernées",
+      "activite": "pendant l'activité de classe (file du prof)",
+      "seuil": "au seuil (clôture de partie)",
+      "seuil_veillee": "au seuil ou en veillée",
+      "fin_seance": "à la fin de la séance",
+      "trimestre_3": "troisième trimestre"
+    },
+    "limite.par": [
+      "tour",
+      "seance",
+      "chapitre",
+      "trimestre",
+      "annee"
+    ],
+    "limite.portee": [
+      "equipe",
+      "partie",
+      "eleve"
+    ],
+    "execution": [
+      "auto",
+      "prof"
+    ],
+    "chapitre_ouverture": "1 à 4, ou \"retour\" (chapitre de retour, après le 4)"
+  },
+  "sorts": [
+    {
+      "code": "SL002",
+      "nom": "Progression",
+      "famille": "commun",
+      "peuple": "any",
+      "cout": 1,
+      "ressource": "choix",
+      "fenetre": "apres_jet",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "pion_equipe",
+      "execution": "auto",
+      "effet_court": "±1 case, puis la case s'applique",
+      "effet_auto_json": {
+        "type": "move_delta",
+        "choix": [
+          -1,
+          1
+        ],
+        "appliquer_case": true
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": false
+    },
+    {
+      "code": "SL005",
+      "nom": "Relance",
+      "famille": "commun",
+      "peuple": "any",
+      "cout": 2,
+      "ressource": "choix",
+      "fenetre": "apres_jet",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "pion_equipe",
+      "execution": "auto",
+      "effet_court": "rejoue les dés (serveur) ou autorise une nouvelle saisie",
+      "effet_auto_json": {
+        "type": "reroll",
+        "annule_precedent": true
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": false
+    },
+    {
+      "code": "SL036",
+      "nom": "Farce",
+      "famille": "commun",
+      "peuple": "any",
+      "cout": 1,
+      "ressource": "choix",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "autre_equipe",
+      "execution": "auto",
+      "effet_court": "la mascotte d'une autre équipe danse 10 s",
+      "effet_auto_json": {
+        "type": "mascotte_danse",
+        "duree_s": 10
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    },
+    {
+      "code": "SL033",
+      "nom": "Héritage",
+      "famille": "commun",
+      "peuple": "any",
+      "cout": 3,
+      "ressource": "choix",
+      "fenetre": "seuil",
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "cible": "eleve",
+      "execution": "auto",
+      "effet_court": "lègue 2 unités (ressource au choix) à un élève pour le chapitre suivant",
+      "effet_auto_json": {
+        "type": "heritage",
+        "montant": 2,
+        "ressource": "choix",
+        "application": "ouverture_chapitre_suivant"
+      },
+      "chapitre_ouverture": 3,
+      "nouveau": false
+    },
+    {
+      "code": "SL037",
+      "nom": "Lanterne",
+      "famille": "licornes",
+      "peuple": "unicorn",
+      "cout": 2,
+      "ressource": "gemmes",
+      "fenetre": "jeu_avant_fouille",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "zone_endormie_proche",
+      "execution": "auto",
+      "effet_court": "la zone endormie la plus proche du pion devient revelee",
+      "effet_auto_json": {
+        "type": "reveler_zone",
+        "selection": "plus_proche_du_pion",
+        "etats_source": [
+          "endormie"
+        ],
+        "etat_cible": "revelee"
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    },
+    {
+      "code": "SL038",
+      "nom": "Boussole",
+      "famille": "licornes",
+      "peuple": "unicorn",
+      "cout": 2,
+      "ressource": "gemmes",
+      "fenetre": "avant_jet",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "pion_equipe",
+      "execution": "auto",
+      "effet_court": "affiche les 6 cases suivantes avec leur type",
+      "effet_auto_json": {
+        "type": "apercu_cases",
+        "n": 6
+      },
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL039",
+      "nom": "Bourrasque",
+      "famille": "licornes",
+      "peuple": "unicorn",
+      "cout": 2,
+      "ressource": "gemmes",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "autre_equipe",
+      "execution": "auto",
+      "effet_court": "+3 cases à la cible, sans effets de case ni tour consommé",
+      "effet_auto_json": {
+        "type": "move_delta_cible",
+        "delta": 3,
+        "appliquer_case": false,
+        "consomme_tour": false,
+        "compte_aide": true
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    },
+    {
+      "code": "SL040",
+      "nom": "Grand Regard",
+      "famille": "licornes",
+      "peuple": "unicorn",
+      "cout": 3,
+      "ressource": "gemmes",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "partie"
+      },
+      "cible": "toutes_equipes",
+      "execution": "auto",
+      "effet_court": "+1 fouille à chaque équipe ce tour",
+      "effet_auto_json": {
+        "type": "fouilles_bonus",
+        "delta": 1,
+        "portee": "toutes_equipes",
+        "duree": "tour"
+      },
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL041",
+      "nom": "Nommer",
+      "famille": "gnomes",
+      "peuple": "gnome",
+      "cout": 2,
+      "ressource": "coeurs",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "zone_palie",
+      "execution": "prof",
+      "effet_court": "une page pâlie au choix devient reparee si l'équipe nomme 3 vivants du biome (clic de validation du prof) ; +1 cœur aux Gnomes de l'équipe",
+      "effet_auto_json": {
+        "type": "reparer_zone",
+        "validation": "prof",
+        "vivants_a_nommer": 3,
+        "bonus": {
+          "ressource": "coeurs",
+          "montant": 1,
+          "beneficiaires": "gnomes_equipe"
+        }
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    },
+    {
+      "code": "SL042",
+      "nom": "Sentier",
+      "famille": "gnomes",
+      "peuple": "gnome",
+      "cout": 2,
+      "ressource": "coeurs",
+      "fenetre": "avant_jet",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "pion_equipe",
+      "execution": "auto",
+      "effet_court": "la prochaine case Souffle n'a pas d'effet sur l'équipe",
+      "effet_auto_json": {
+        "type": "ignorer_prochaine_case_souffle"
+      },
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL043",
+      "nom": "Abri",
+      "famille": "gnomes",
+      "peuple": "gnome",
+      "cout": 2,
+      "ressource": "coeurs",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "autre_equipe",
+      "execution": "auto",
+      "effet_court": "la cible garde ses fouilles et ne pâlit pas ce tour, même sous le voile",
+      "effet_auto_json": {
+        "type": "abri",
+        "garde_fouilles": true,
+        "pas_de_palissement": true,
+        "duree": "tour",
+        "compte_aide": true
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    },
+    {
+      "code": "SL044",
+      "nom": "Relais",
+      "famille": "gnomes",
+      "peuple": "gnome",
+      "cout": 3,
+      "ressource": "coeurs",
+      "fenetre": "jeu",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "partie"
+      },
+      "cible": "equipe_derniere",
+      "execution": "auto",
+      "effet_court": "l'équipe la plus en retard rejoint la case du lanceur",
+      "effet_auto_json": {
+        "type": "rejoindre_case_lanceur",
+        "cible": "equipe_derniere",
+        "appliquer_case": false,
+        "compte_aide": true
+      },
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL045",
+      "nom": "Cordée",
+      "famille": "pacte",
+      "peuple": "pacte",
+      "cout": 4,
+      "ressource": "pacte",
+      "fenetre": "avant_jets_pacte",
+      "limite": {
+        "par": "tour",
+        "n": 1,
+        "portee": "partie"
+      },
+      "cible": "deux_equipes",
+      "execution": "auto",
+      "effet_court": "les deux équipes avancent du meilleur de leurs deux jets ; le voile ne les touche pas ce tour",
+      "effet_auto_json": {
+        "type": "cordee",
+        "repartition": {
+          "gnome": {
+            "ressource": "coeurs",
+            "montant": 2
+          },
+          "unicorn": {
+            "ressource": "gemmes",
+            "montant": 2
+          }
+        },
+        "deplacement": "meilleur_des_deux_jets",
+        "immunite_voile": true,
+        "compte_aide": true
+      },
+      "chapitre_ouverture": 3,
+      "nouveau": true
+    },
+    {
+      "code": "SL004",
+      "nom": "Question",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 2,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "prof",
+      "execution": "prof",
+      "effet_court": "poser une question au prof hors cartes",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 1,
+      "nouveau": false
+    },
+    {
+      "code": "SL021",
+      "nom": "Conseil",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 2,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "autre_equipe",
+      "execution": "prof",
+      "effet_court": "30 s avec une autre équipe",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 2,
+      "nouveau": false
+    },
+    {
+      "code": "SL006",
+      "nom": "Tablette",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 2,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "equipe",
+      "execution": "prof",
+      "effet_court": "une tablette de plus",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 1,
+      "nouveau": false
+    },
+    {
+      "code": "SL007",
+      "nom": "Musique",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 3,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "partie"
+      },
+      "cible": "classe",
+      "execution": "prof",
+      "effet_court": "le cours en musique",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 2,
+      "nouveau": false
+    },
+    {
+      "code": "SL046",
+      "nom": "Pause",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 3,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "equipe",
+      "execution": "prof",
+      "effet_court": "cinq minutes de pause d'équipe",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL047",
+      "nom": "Rôle",
+      "famille": "travail",
+      "peuple": "any",
+      "cout": 2,
+      "ressource": "peuple",
+      "fenetre": "activite",
+      "limite": {
+        "par": "seance",
+        "n": 1,
+        "portee": "equipe"
+      },
+      "cible": "equipe",
+      "execution": "prof",
+      "effet_court": "choisir son rôle à la séance suivante",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 2,
+      "nouveau": true
+    },
+    {
+      "code": "SL010",
+      "nom": "Esquive",
+      "famille": "seuil",
+      "peuple": "any",
+      "cout": 3,
+      "ressource": "peuple",
+      "fenetre": "seuil_veillee",
+      "limite": {
+        "par": "trimestre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "cible": "eleve",
+      "execution": "prof",
+      "effet_court": "reporter un rendu",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 3,
+      "nouveau": false
+    },
+    {
+      "code": "SL027",
+      "nom": "Mentorat",
+      "famille": "seuil",
+      "peuple": "any",
+      "cout": 4,
+      "ressource": "peuple",
+      "fenetre": "seuil_veillee",
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "cible": "classe",
+      "execution": "prof",
+      "effet_court": "enseigner deux minutes à la classe ; vert + à l'oral",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 3,
+      "nouveau": false
+    },
+    {
+      "code": "SL048",
+      "nom": "Lettre",
+      "famille": "seuil",
+      "peuple": "any",
+      "cout": 3,
+      "ressource": "peuple",
+      "fenetre": "seuil_veillee",
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "cible": "carnet_classe",
+      "execution": "prof",
+      "effet_court": "une page vierge écrite par l'élève entre au carnet de la classe après relecture",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 3,
+      "nouveau": true
+    },
+    {
+      "code": "SL049",
+      "nom": "Choix",
+      "famille": "seuil",
+      "peuple": "any",
+      "cout": 4,
+      "ressource": "peuple",
+      "fenetre": "seuil",
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "partie"
+      },
+      "cible": "composition_equipes",
+      "execution": "prof",
+      "effet_court": "choisir son équipe au prochain chapitre (épingle de composition)",
+      "effet_auto_json": null,
+      "chapitre_ouverture": 4,
+      "nouveau": true
+    },
+    {
+      "code": "SL018",
+      "nom": "Consécration",
+      "famille": "seuil",
+      "peuple": "any",
+      "cout": 8,
+      "ressource": "choix",
+      "fenetre": "trimestre_3",
+      "limite": {
+        "par": "annee",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "cible": "eleve",
+      "execution": "prof",
+      "effet_court": "vert + au bulletin (8 unités offertes)",
+      "effet_auto_json": null,
+      "chapitre_ouverture": "retour",
+      "nouveau": false
+    },
+    {
+      "code": "SL050",
+      "nom": "Lumière",
+      "famille": "classe",
+      "peuple": "classe",
+      "cout": 0,
+      "ressource": "cartes",
+      "fenetre": "fin_seance",
+      "limite": null,
+      "cible": "partie",
+      "execution": "prof",
+      "effet_court": "au palier de cartes gardées (réglage lumiere_palier), la classe choisit : voile −5 ou sort de classe libre ; actif seulement si le réglage lumiere est vrai",
+      "effet_auto_json": {
+        "type": "lumiere",
+        "options": [
+          {
+            "code": "voile_recul",
+            "delta": -5
+          },
+          {
+            "code": "sort_classe_libre"
+          }
+        ],
+        "reglage": "tenir_lumiere"
+      },
+      "chapitre_ouverture": 1,
+      "nouveau": true
+    }
+  ],
+  "ouverture_par_chapitre": {
+    "1": [
+      "SL002",
+      "SL005",
+      "SL036",
+      "SL037",
+      "SL039",
+      "SL041",
+      "SL043",
+      "SL004",
+      "SL006",
+      "SL050"
+    ],
+    "2": [
+      "SL038",
+      "SL040",
+      "SL042",
+      "SL044",
+      "SL021",
+      "SL007",
+      "SL046",
+      "SL047"
+    ],
+    "3": [
+      "SL045",
+      "SL033",
+      "SL010",
+      "SL027",
+      "SL048"
+    ],
+    "4": [
+      "SL049"
+    ],
+    "retour": [
+      "SL018"
+    ]
+  },
+  "voyageur": [
+    {
+      "code": "seconde_chance",
+      "nom": "Seconde chance",
+      "niveau": 1,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "lève le délai d'attente posé après une mauvaise réponse : la fiche peut être retentée tout de suite",
+      "execution": "auto",
+      "perimetre": "inclus"
+    },
+    {
+      "code": "loupe",
+      "nom": "Loupe",
+      "niveau": 2,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "indice complet d'une page du carnet de la classe (titre et détail, sans le polygone)",
+      "execution": "auto",
+      "perimetre": "inclus"
+    },
+    {
+      "code": "memoire",
+      "nom": "Mémoire",
+      "niveau": 3,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "relire une page pâlie en entier",
+      "execution": "auto",
+      "perimetre": "inclus"
+    },
+    {
+      "code": "flair",
+      "nom": "Flair",
+      "niveau": 4,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "une fouille personnelle en veillée : verdict seulement (froid, tiède, chaud), empreinte partagée avec la classe",
+      "execution": "auto",
+      "perimetre": "inclus"
+    },
+    {
+      "code": "plume",
+      "nom": "Plume",
+      "niveau": 5,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "une page vierge écrite par l'élève, relue par le prof avant d'entrer au carnet",
+      "execution": "prof",
+      "perimetre": "inclus"
+    },
+    {
+      "code": "messager",
+      "nom": "Messager",
+      "niveau": 6,
+      "cout": 0,
+      "limite": {
+        "par": "chapitre",
+        "n": 1,
+        "portee": "eleve"
+      },
+      "effet_court": "réservé aux Deux Caravanes",
+      "execution": "prof",
+      "perimetre": "hors_perimetre"
+    }
+  ]
+}

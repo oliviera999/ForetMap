@@ -893,6 +893,8 @@ export function GLGameMasterConsole({
         {mjSection === 'live' && (
           <GLGameMasterConsoleLive
             game={game}
+            tenir={gameState?.tenir || null}
+            onReloadGame={onReloadGame}
             teams={teams}
             gameStatus={gameStatus}
             effectiveSelectedTeamId={effectiveSelectedTeamId}

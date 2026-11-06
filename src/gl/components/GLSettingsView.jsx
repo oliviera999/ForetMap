@@ -17,6 +17,7 @@ import { GLBoardFocusDurationSettings } from './settings/GLBoardFocusDurationSet
 import { GLPlateauMarkerScaleSettings } from './settings/GLPlateauMarkerScaleSettings.jsx';
 import { GLVitalityDefaultsSettings } from './settings/GLVitalityDefaultsSettings.jsx';
 import { GLLoreRetriggerSettings } from './settings/GLLoreRetriggerSettings.jsx';
+import { GLTenirSettings } from './settings/GLTenirSettings.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
@@ -332,6 +333,13 @@ export function GLSettingsView() {
       />
 
       <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
+
+      <GLTenirSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSaveSetting={saveSetting}
+        onToggle={toggleGameplayFlag}
+      />
 
       <GLGatingSettings />
 

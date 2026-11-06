@@ -40,6 +40,7 @@ test('la liste des paires couvre bien les noyaux attendus', () => {
     'glMarkerAppearanceCore.js',
     'glMarkerBackgroundsCore.js',
     'glMarkerEventConfigCore.js',
+    'glTenirPermissionsCore.js',
     'moodleSyncEnums.js',
     'n3beurRolesCore.js',
     'pedagoEnums.js',

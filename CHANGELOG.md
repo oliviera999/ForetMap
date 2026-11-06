@@ -9,6 +9,41 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — G&L « Tenir à deux » v2, étape 1 : données, réglages, deux monnaies, Marché
+
+- Migration `330_gl_tenir_fondations.sql` : réglages `gameplay.tenir_*` (défauts), valeurs
+  décidées par la spec (plafonds 8/8, cœurs échangeables, lecture gratuite, pot `coordinator`,
+  déplacement automatique), profil et surcharges par partie (`gl_games.tenir_profil`,
+  `tenir_overrides_json`, `tenir_surface`, `projection_token_hash`), état `gl_game_tenir_state`,
+  effets temporaires, catalogues (`gl_chasse_zones`, questions de lecture, péripéties, missions,
+  titres, badges, lignes d'Olu, parures, pages du Passeur), colonnes du grimoire v2 sur
+  `gl_spells` / `gl_spell_cast_drafts`, place publique (`gl_market_annonces`), dons, parures
+  portées, retraits. Corrections de contenu : les 4 cases d'arrivée ne donnent plus +3 gemmes,
+  les cases quiz tirent dans tout le biome (« +1 case et on relance »).
+- Chargeur idempotent `npm run gl:import:tenir` (`lib/glTenirImport.js`, `--dry-run`,
+  `--forcer`, `--dossier`) : refuse codes inconnus, polygones invalides, chaînes interdites,
+  termes du tiers `secret` ; calcule centroïde et rang de case ; jeu d'exemple anonyme
+  `data/gl/tenir/exemple/`.
+- `lib/glTenir.js` (réglages résolus défauts ← base ← profil ← surcharges, ressource du
+  peuple, semaine ISO, trimestres, retraits, membres présents) ; noyau pur partagé
+  `src/shared/glTenirPermissionsCore.js` (permissions par surface, miroir `lib/shared/`).
+- Routes `GET /api/gl/games/:id/tenir`, `PUT …/tenir/profil`, `GET …/tenir/olu`,
+  `POST …/tenir/retrait` ; `GET /api/gl/games/:id` sert un bloc `tenir` et **filtre les
+  bourses** (un élève voit les siennes et celles de son équipe ; une projection aucune) ;
+  journal : payloads `private` réduits pour un joueur.
+- Deux monnaies : Trame = +1 de la ressource du peuple à chaque membre ; geste du prof sur une
+  bourse avec motif obligatoire, borné à ±3, plafonné ; Sentier annule la prochaine case
+  Souffle ; la traversée d'une zone feuillet n'applique plus les coûts/gains du JSON (double
+  débit), ancien déclenchement coupé par `gameplay.feuillet_zone_traversal_enabled`.
+- Composition : 4 équipes (2 gnomes, 2 licornes), rebrassées à chaque chapitre, peuple inversé
+  1↔2 et 3↔4 (contrainte dure, `buildPeopleConstraintForPlateau`).
+- Marché v2 : annonces (`cherche` / `offre` / `propose` → échange à deux pré-rempli, conclue à
+  la finalisation), dons immédiats plafonnés (surplus au donneur), comptoir des parures ; 403
+  `MARCHE_RETRAIT` pour un élève en retrait, `MARCHE_FERME` en profil `prologue`.
+- Admin : `GET /api/gl/admin/chasse-zones`, `PUT …/chasse-zones/:zoneKey/polygone`, éditeur
+  « Zones de chasse » (Contenus → Chapitres) avec export du JSON ; panneau de réglages
+  « Tenir à deux » ; bouton « Profil » dans la console MJ ; Marché à trois onglets avec dons.
+
 ### Ajouté — G&L « Tenir à deux » v2 : données et règles de référence
 
 - Spécification `docs/GL_TENIR_A_DEUX_REGLES.md` (mouture C, asymétrie / coopération).

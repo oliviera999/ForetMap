@@ -3,6 +3,7 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
+import { GLTenirProfilPanel } from './GLTenirProfilPanel.jsx';
 
 export default function GLGameMasterConsoleLive({
   game,
@@ -49,6 +50,8 @@ export default function GLGameMasterConsoleLive({
   onGoToParties,
   busy,
   formatTimestamp,
+  tenir = null,
+  onReloadGame = null,
 }) {
   if (!game?.id) {
     return (
@@ -66,6 +69,12 @@ export default function GLGameMasterConsoleLive({
 
   return (
     <>
+      <GLTenirProfilPanel
+        gameId={game.id}
+        tenir={tenir}
+        onChanged={onReloadGame}
+        showFailure={showFailure}
+      />
       {teams.length > 0 && (
         <div className="gl-team-selector gl-gameplay-block">
           <h3>Équipe active (déplacement / score / narration)</h3>

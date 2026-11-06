@@ -19,3 +19,33 @@ export function buildFeuilletZonesExportJson(zones) {
     })),
   };
 }
+
+/**
+ * « Tenir à deux » : réécrit `data/gl/tenir/chasse-zones.json` depuis les zones servies par
+ * `GET /api/gl/admin/chasse-zones` (coordonnées déjà normalisées 0-1). Le fichier versionné
+ * reste la source : l'éditeur dessine, l'export recopie.
+ */
+export function buildChasseZonesExportJson(zones) {
+  return {
+    format: 'chasse-zones v1 — coords normalisées 0-1, origine haut-gauche',
+    zones: zones.map((zone) => ({
+      zone_key: zone.zoneKey,
+      plateau: zone.plateau,
+      feuillet_code: zone.feuilletCode,
+      titre_prive: zone.titrePrive || '',
+      indice: zone.indice || '',
+      polygone: Array.isArray(zone.polygone)
+        ? zone.polygone.map(([x, y]) => [
+            Number(Number(x).toFixed(4)),
+            Number(Number(y).toFixed(4)),
+          ])
+        : null,
+      polygone_ref: zone.polygoneRef || null,
+      rang_case: zone.rangCase ?? null,
+      question_code: zone.questionCode || null,
+      theme_secours: zone.themeSecours || null,
+      ordre: zone.ordre,
+      actif: zone.actif !== false,
+    })),
+  };
+}

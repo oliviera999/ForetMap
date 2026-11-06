@@ -3,7 +3,8 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../lib/glGameEvents');
+const { normalizeEventRow, redactGameEventsForViewer } = require('../../lib/glGameEvents');
+const { viewerFromAuth } = require('../../lib/glTenirView');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { presentJournalEvent, buildTeamsById } = require('../../lib/glJournalPresent');
 const { z, validate } = require('../../lib/validate');
@@ -67,13 +68,15 @@ router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req
     color: row.color ? String(row.color) : null,
   }));
   const teamsById = buildTeamsById(teams);
-  const events = rows.map((row) => {
-    const normalized = normalizeEventRow(row);
-    return {
-      ...normalized,
-      presentation: presentJournalEvent(normalized, { teamsById, forPlayer: true }),
-    };
-  });
+  const viewer = viewerFromAuth(req.glAuth);
+  const events = redactGameEventsForViewer(rows.map(normalizeEventRow), viewer).map(
+    (normalized) => {
+      return {
+        ...normalized,
+        presentation: presentJournalEvent(normalized, { teamsById, forPlayer: true }),
+      };
+    },
+  );
   return res.json({ events, total: events.length, teams });
 });
 

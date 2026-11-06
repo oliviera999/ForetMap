@@ -17,6 +17,10 @@ const {
   cancelTrade,
 } = require('../../lib/glMarket');
 const { listTradableFeuilletsForPlayer } = require('../../lib/glMarketFeuillets');
+const marketPlace = require('../../lib/glMarketPlace');
+const { isPlayerEnRetrait, isTenirGame, resolveTenirSettings } = require('../../lib/glTenir');
+const { getGameplaySettings } = require('../../lib/glSettings');
+const { queryOne } = require('../../database');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -34,6 +38,153 @@ const glMarketTradesQuerySchema = z
 router.use(requireGlAuth);
 router.use(requireGlMarket);
 router.use(requireGlPlayer);
+
+/**
+ * « Tenir à deux » (spec § 8-9) : un élève en retrait ne voit pas le Marché (403
+ * `MARCHE_RETRAIT`) ; une partie en profil `prologue` (`marche: false`) le ferme aussi.
+ */
+router.use(
+  asyncHandler(async (req, res, next) => {
+    const playerId = Number(req.glAuth.userId);
+    const live = await marketPlace.findLiveGameForClass(req.glAuth.classId);
+    if (!live) return next();
+    const settings = await getGameplaySettings();
+    if (!isTenirGame(settings, live)) return next();
+    if (resolveTenirSettings(settings, live).marche === false) {
+      return res
+        .status(403)
+        .json({ error: 'Le Marché est fermé pour cette partie', code: 'MARCHE_FERME' });
+    }
+    if (await isPlayerEnRetrait({ queryOne }, Number(live.id), playerId)) {
+      return res
+        .status(403)
+        .json({ error: 'En retrait jusqu’à nouvel ordre', code: 'MARCHE_RETRAIT' });
+    }
+    return next();
+  }),
+);
+
+function handleMarketPlaceError(err, res) {
+  const mapped = marketPlace.resolveMarketPlaceError(err) || resolveMarketError(err);
+  if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+  if (err?.message === 'INVALID_AMOUNT') return res.status(400).json({ error: 'Montant invalide' });
+  throw err;
+}
+
+/** Place publique : annonces ouvertes de la classe. */
+router.get(
+  '/annonces',
+  asyncHandler(async (req, res) => {
+    try {
+      const items = await marketPlace.listAnnonces(Number(req.glAuth.userId));
+      return res.json({ items });
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+router.post(
+  '/annonces',
+  asyncHandler(async (req, res) => {
+    try {
+      const annonce = await marketPlace.createAnnonce(Number(req.glAuth.userId), {
+        type: req.body?.type,
+        cherche: req.body?.cherche,
+        offre: req.body?.offre,
+      });
+      emitGlMarketTradeChanged(req.glAuth.classId, { action: 'annonce', annonceId: annonce.id });
+      return res.status(201).json(annonce);
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+router.delete(
+  '/annonces/:id',
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+    try {
+      await marketPlace.deleteAnnonce(Number(req.glAuth.userId), id);
+      emitGlMarketTradeChanged(req.glAuth.classId, { action: 'annonce', annonceId: id });
+      return res.json({ ok: true });
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+/** Répondre à une annonce → échange à deux pré-rempli. */
+router.post(
+  '/annonces/:id/repondre',
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+    try {
+      const trade = await marketPlace.repondreAnnonce(Number(req.glAuth.userId), id);
+      emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'created' });
+      return res.status(201).json(trade);
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+/** Don immédiat : une ressource ou une page à la fois. */
+router.post(
+  '/dons',
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await marketPlace.donner(Number(req.glAuth.userId), {
+        receveurId: req.body?.receveurId,
+        gemmes: req.body?.gemmes,
+        coeurs: req.body?.coeurs,
+        feuilletCode: req.body?.feuilletCode,
+      });
+      emitGlMarketTradeChanged(req.glAuth.classId, { action: 'don' });
+      return res.status(201).json(result);
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+/** Comptoir des parures. */
+router.get(
+  '/parures',
+  asyncHandler(async (req, res) => {
+    try {
+      return res.json(await marketPlace.listParures(Number(req.glAuth.userId)));
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
+
+router.post(
+  '/parures/:code/acheter',
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await marketPlace.acheterParure(
+        Number(req.glAuth.userId),
+        String(req.params.code || ''),
+        req.body?.ressource,
+      );
+      emitGlMarketTradeChanged(req.glAuth.classId, { action: 'parure' });
+      return res.status(201).json({
+        id: result.id,
+        code: result.code,
+        teamId: result.teamId,
+        prix: result.prix,
+        ressource: result.ressource,
+      });
+    } catch (err) {
+      return handleMarketPlaceError(err, res);
+    }
+  }),
+);
 
 function handleMarketError(err, res) {
   const mapped = resolveMarketError(err);

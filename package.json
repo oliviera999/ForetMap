@@ -203,6 +203,7 @@
     "deploy:check:prod:foret": "node scripts/post-deploy-check.js --base-url https://foretmap.olution.info",
     "gl:import:wp": "node scripts/gl-import-wp.js",
     "gl:import:species": "node scripts/gl-import-species.js",
+    "gl:import:tenir": "node scripts/gl-import-tenir.js",
     "gl:import:spells": "node scripts/gl-import-spells.js",
     "gl:import:glossary": "node scripts/gl-import-glossary.js",
     "gl:import:qcm": "node scripts/gl-import-qcm.js",

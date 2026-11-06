@@ -1,0 +1,84 @@
+{
+  "format": "titres v1 (exemple)",
+  "biomes": {
+    "tropiques": {
+      "plateau": 1,
+      "libelle": "Tropiques"
+    },
+    "aride": {
+      "plateau": 2,
+      "libelle": "Aride chaud"
+    },
+    "tempere": {
+      "plateau": 3,
+      "libelle": "Tempéré atlantique"
+    },
+    "grands_froids": {
+      "plateau": 4,
+      "libelle": "Grands Froids"
+    }
+  },
+  "honneurs": {
+    "eclaireurs": {
+      "libelle": "eclaireurs",
+      "critere": "critère",
+      "tropiques": "eclaireurs des tropiques",
+      "aride": "eclaireurs de l'aride",
+      "tempere": "eclaireurs du tempéré",
+      "grands_froids": "eclaireurs des grands froids"
+    },
+    "gardiens": {
+      "libelle": "gardiens",
+      "critere": "critère",
+      "tropiques": "gardiens des tropiques",
+      "aride": "gardiens de l'aride",
+      "tempere": "gardiens du tempéré",
+      "grands_froids": "gardiens des grands froids"
+    },
+    "passeurs": {
+      "libelle": "passeurs",
+      "critere": "critère",
+      "tropiques": "passeurs des tropiques",
+      "aride": "passeurs de l'aride",
+      "tempere": "passeurs du tempéré",
+      "grands_froids": "passeurs des grands froids"
+    },
+    "esprit": {
+      "libelle": "esprit",
+      "critere": "critère",
+      "tropiques": "esprit des tropiques",
+      "aride": "esprit de l'aride",
+      "tempere": "esprit du tempéré",
+      "grands_froids": "esprit des grands froids"
+    }
+  },
+  "sceaux_peuple": {
+    "eclaireuses": {
+      "libelle": "Éclaireuses",
+      "peuple": "unicorn",
+      "critere": "c",
+      "tropiques": "Regards de la Canopée",
+      "aride": "Yeux de l’Oued Sec",
+      "tempere": "Guetteuses de la Clairière",
+      "grands_froids": "Pupilles de la Nuit Polaire"
+    },
+    "mains": {
+      "libelle": "Mains",
+      "peuple": "gnome",
+      "critere": "c",
+      "tropiques": "Mains qui Replantent la Liane",
+      "aride": "Mains de la Graine Patiente",
+      "tempere": "Raccommodeurs de la Mousse",
+      "grands_froids": "Mains Nues dans la Neige"
+    }
+  },
+  "prefixe_double": "Très Grands",
+  "missions": [
+    "Compagnie du Dé Boiteux",
+    "Société des Rimes Approximatives"
+  ],
+  "voyageur": [
+    "Marcheur",
+    "Regard du Loin"
+  ]
+}

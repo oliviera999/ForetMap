@@ -1,0 +1,61 @@
+{
+  "format": "peripeties v1 (exemple)",
+  "peripeties": [
+    {
+      "id": "per-ex-1-1",
+      "plateau": 1,
+      "biome_slug": "jungle_afc",
+      "texte": "Péripétie d'exemple 1 du plateau 1 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-1-2",
+      "plateau": 1,
+      "biome_slug": "savane",
+      "texte": "Péripétie d'exemple 2 du plateau 1 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-2-1",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "Péripétie d'exemple 1 du plateau 2 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-2-2",
+      "plateau": 2,
+      "biome_slug": "foret_mediterraneenne",
+      "texte": "Péripétie d'exemple 2 du plateau 2 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-3-1",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Péripétie d'exemple 1 du plateau 3 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-3-2",
+      "plateau": 3,
+      "biome_slug": "landes",
+      "texte": "Péripétie d'exemple 2 du plateau 3 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-4-1",
+      "plateau": 4,
+      "biome_slug": "taiga",
+      "texte": "Péripétie d'exemple 1 du plateau 4 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    },
+    {
+      "id": "per-ex-4-2",
+      "plateau": 4,
+      "biome_slug": "toundra",
+      "texte": "Péripétie d'exemple 2 du plateau 4 : l'équipe chuchote avant de lancer.",
+      "passable": true
+    }
+  ]
+}

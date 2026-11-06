@@ -33,6 +33,22 @@ Une image nommée `GL_recit_0N-chapN_<titre>.png` (ou `GL_recit_00-prologue_<tit
 
 Snapshot build prod : `npm run gl:build:assets` (appelé aussi par `npm run build`).
 
+## « Tenir à deux » (`data/gl/tenir/`)
+
+Jeu de données de la mouture v2 (spec `docs/GL_TENIR_A_DEUX_REGLES.md`, clés dans
+`data/gl/tenir/README.md`). Chargeur idempotent, **jamais d'état de partie touché** :
+
+```bash
+npm run gl:import:tenir -- --fichier tous               # ordre : reglages-defaut → sorts → chasse-zones → questions-lecture → le reste
+npm run gl:import:tenir -- --fichier tous --dry-run     # valide sans écrire (comptes, codes, chaînes interdites, termes secrets)
+npm run gl:import:tenir -- --fichier reglages-defaut --forcer   # écrase les réglages déjà posés
+npm run gl:import:tenir -- --fichier tous --dossier data/gl/tenir/exemple   # jeu d'exemple des tests
+```
+
+Une zone sans polygone (ni `polygone_ref`) est importée mais **non chassable** : la dessiner dans
+**Contenus → Chapitres → Zones de chasse**, puis « Exporter le JSON » pour réécrire
+`chasse-zones.json` (le fichier versionné reste la source).
+
 ## Catalogue espèces / biomes
 
 Fichier de référence : `especes-biomes-gnomes-et-licornes.xlsx` (feuilles `especes`, `biomes_stats`, `groupes_stats`).

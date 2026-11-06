@@ -25,6 +25,8 @@ export function GLTopBar({
   vitalityEnabled = false,
   playerHealthPoints = null,
   playerPowerPoints = null,
+  playerPeopleResource = null,
+  playerPlume = false,
   showVersion = false,
   appVersion = null,
   canSwitchGlPlayerView = false,
@@ -72,6 +74,8 @@ export function GLTopBar({
         <GLVitalityBadge
           health={playerHealthPoints}
           power={playerPowerPoints}
+          peopleResource={playerPeopleResource}
+          plume={playerPlume}
           onClick={typeof onOpenStats === 'function' ? onOpenStats : null}
         />
       ) : null}

@@ -21,6 +21,7 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
 import { GLFeuilletZonePlateauPanel } from './GLFeuilletZonePlateauPanel.jsx';
+import { GLChasseZonesEditorPanel } from './GLChasseZonesEditorPanel.jsx';
 import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
 import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
 import { GLChaptersSidebar } from './admin/chapters/GLChaptersSidebar.jsx';
@@ -628,6 +629,15 @@ export function GLChaptersAdminView() {
                     mapImageUrl={chapterForm.mapImageUrl}
                     mapImageFrame={chapterForm.mapImageFrame}
                   />
+                  {Number(chapterForm.plateauNumber) <= 4 ? (
+                    <>
+                      <h3>Zones de chasse — plateau {chapterForm.plateauNumber}</h3>
+                      <GLChasseZonesEditorPanel
+                        plateauNumber={Number(chapterForm.plateauNumber)}
+                        mapImageUrl={chapterForm.mapImageUrl}
+                      />
+                    </>
+                  ) : null}
                 </>
               ) : null}
 

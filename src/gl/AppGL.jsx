@@ -659,6 +659,14 @@ export function AppGL() {
     [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile],
   );
 
+  // « Tenir à deux » : ressource du peuple de l'équipe courante (gemme licorne, cœur gnome).
+  const playerPeopleResource = useMemo(() => {
+    if (!gameState?.tenir?.enabled || !auth?.teamId) return null;
+    const team = (gameState?.teams || []).find((t) => Number(t.id) === Number(auth.teamId));
+    if (!team?.type) return null;
+    return String(team.type) === 'unicorn' ? 'power' : 'health';
+  }, [gameState, auth?.teamId]);
+
   const notifications = useGLNotificationCenter();
   useEffect(() => {
     if (narrationToast) {
@@ -780,6 +788,8 @@ export function AppGL() {
               vitalityEnabled={!!gameplaySettings.vitalityEnabled}
               playerHealthPoints={playerVitality?.health}
               playerPowerPoints={playerVitality?.power}
+              playerPeopleResource={playerPeopleResource}
+              playerPlume={!!gameState?.tenir?.plume}
               onOpenProfile={() => setShowProfile(true)}
               onOpenStats={
                 showsPlayerChrome && !isGuest ? () => setShowPlayerStats(true) : undefined
@@ -951,6 +961,9 @@ export function AppGL() {
                         onRecordDiceRoll={recordDiceRoll}
                         feuilletZones={feuilletZones}
                         feuilletZoneEditMode={feuilletZoneEditMode}
+                        feuilletZoneTraversalEnabled={
+                          gameplaySettings.feuilletZoneTraversalEnabled !== false
+                        }
                         showPlateauMarkers={plateauMapVisibility.markersVisible}
                         showPlateauZones={plateauMapVisibility.zonesVisible}
                         showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}

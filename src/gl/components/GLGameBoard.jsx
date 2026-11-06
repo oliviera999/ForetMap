@@ -99,6 +99,7 @@ export function GLGameBoard({
   onRecordDiceRoll = null,
   feuilletZones = EMPTY_LIST,
   feuilletZoneEditMode = false,
+  feuilletZoneTraversalEnabled = true,
   showPlateauMarkers = true,
   showPlateauZones = false,
   showMarkerPathNumbers = false,
@@ -307,7 +308,8 @@ export function GLGameBoard({
     presentedZonesReady: presentedFeuilletZonesLoaded,
     enabled:
       Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) &&
-      !feuilletZoneEditMode,
+      !feuilletZoneEditMode &&
+      feuilletZoneTraversalEnabled !== false,
     moveDelayMs: arrivalMoveDelayMs,
     qcmOpen: modalOpen,
     loreCarnetEnabled,

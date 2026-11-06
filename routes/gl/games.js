@@ -13,6 +13,8 @@ const { getSpellCastConfig } = require('../../lib/glSpellCast');
 const { getGameplaySettings, getGlModulesSettings } = require('../../lib/glSettings');
 const { assignPlayerToTeamTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
+const { viewerFromAuth } = require('../../lib/glTenirView');
+const { isTenirEnabled } = require('../../lib/glTenir');
 
 const { parsePct, validateEventPayload } = require('../../lib/gl/gameEventPayload');
 const { buildDynamicUpdate, hasAnyDynamicField } = require('../../lib/gl/buildDynamicUpdate');
@@ -162,13 +164,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
-    const state = await readGameState(gameId);
-    if (!state) return res.status(404).json({ error: 'Partie introuvable' });
     if (!(await canAccessGlGame(req.glAuth, gameId))) {
       // Message historique distinct des autres 403 « Accès partie refusé »
       // (contrat figé par tests/gl-game-access.test.js) — ne pas unifier.
+      const exists = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+      if (!exists) return res.status(404).json({ error: 'Partie introuvable' });
       return res.status(403).json({ error: 'Accès refusé à cette partie' });
     }
+    const state = await readGameState(gameId, { viewer: viewerFromAuth(req.glAuth) });
+    if (!state) return res.status(404).json({ error: 'Partie introuvable' });
     return res.json(state);
   }),
 );
@@ -194,12 +198,17 @@ router.post(
     ]);
     if (!chapterRow) return res.status(404).json({ error: 'Chapitre introuvable' });
 
+    // « Tenir à deux » : une partie née quand le mode est actif porte le profil `complet`
+    // (surface = réglage par défaut) ; le MJ peut passer en `prologue` d'un clic.
+    const gameplay = await getGameplaySettings();
+    const tenirProfil = isTenirEnabled(gameplay) ? 'complet' : null;
+    const tenirSurface = tenirProfil ? gameplay.tenirSurface || 'tableau' : null;
     let insertResult;
     try {
       insertResult = await execute(
-        `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, NOW(), NOW())`,
-        [classId, chapterId, name, req.glAuth.userId],
+        `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, tenir_profil, tenir_surface, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, NOW(), NOW())`,
+        [classId, chapterId, name, req.glAuth.userId, tenirProfil, tenirSurface],
       );
     } catch (err) {
       // Filet de sécurité en cas de course entre la validation ci-dessus et l'INSERT.
@@ -1052,6 +1061,9 @@ router.use(require('./games/status'));
 
 // O10 — sous-domaine spell-casts extrait en sous-routeur dédié (chemins inchangés).
 router.use(require('./games/spell-casts'));
+
+// « Tenir à deux » v2 : GET /games/:id/tenir, PUT /tenir/profil, GET /tenir/olu, retrait…
+router.use(require('./games/tenir'));
 
 // O10 — sous-domaine feuillet-zones extrait en sous-routeur dédié (chemins inchangés) :
 //   GET  /games/:id/feuillet-zones/presented
