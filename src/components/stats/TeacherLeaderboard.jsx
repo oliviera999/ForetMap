@@ -19,6 +19,7 @@ import {
 } from '../../shared/icons.jsx';
 import { PresenceStatusBadge } from '../../shared/components/PresenceStatusBadge.jsx';
 import { RewardAwardButton } from '../rewards/RewardAwardDialog.jsx';
+import { RewardsSheetButton } from '../rewards/RewardsStudentSheet.jsx';
 
 export function TeacherLeaderboard({
   students = [],
@@ -27,6 +28,8 @@ export function TeacherLeaderboard({
   presenceEnabled = true,
   /** Bouton « Décerner un badge » sur la ligne de chaque élève (`rewards.award`, module allumé). */
   canAwardRewards = false,
+  /** Bouton « Badges » (fiche de l'élève) sur chaque ligne : module « Récompenses » allumé. */
+  rewardsEnabled = false,
 }) {
   const filtered = useMemo(
     () =>
@@ -217,6 +220,11 @@ export function TeacherLeaderboard({
                     />
                   </div>
                 </div>
+                <RewardsSheetButton
+                  studentId={s.id}
+                  studentName={`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                  enabled={rewardsEnabled}
+                />
                 <RewardAwardButton
                   studentId={s.id}
                   studentName={`${s.first_name || ''} ${s.last_name || ''}`.trim()}

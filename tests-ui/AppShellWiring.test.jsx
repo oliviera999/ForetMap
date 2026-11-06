@@ -16,7 +16,13 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
  * simples sondes à la place des grosses vues.
  */
 
-const probes = vi.hoisted(() => ({ mapTasks: [], pedago: [], unauthenticated: [], header: [] }));
+const probes = vi.hoisted(() => ({
+  mapTasks: [],
+  pedago: [],
+  unauthenticated: [],
+  header: [],
+  rewardsHost: [],
+}));
 const session = vi.hoisted(() => ({ stored: null, claims: null }));
 const dataSyncCalls = vi.hoisted(() => []);
 const tokenRenewalCalls = vi.hoisted(() => []);
@@ -39,6 +45,12 @@ vi.mock('../src/components/app/AppHeader.jsx', () => ({
   AppHeader: (props) => {
     probes.header.push(props);
     return <div data-testid="app-header" />;
+  },
+}));
+vi.mock('../src/components/rewards/RewardsCelebrationHost.jsx', () => ({
+  RewardsCelebrationHost: (props) => {
+    probes.rewardsHost.push(props);
+    return <div data-testid="rewards-celebration-host" />;
   },
 }));
 vi.mock('../src/components/app/UnauthenticatedShell.jsx', () => ({
@@ -158,6 +170,7 @@ beforeEach(() => {
   probes.pedago.length = 0;
   probes.unauthenticated.length = 0;
   probes.header.length = 0;
+  probes.rewardsHost.length = 0;
   dataSyncCalls.length = 0;
   tokenRenewalCalls.length = 0;
   apiMock.mockClear();
@@ -498,5 +511,27 @@ describe('App — câblage des modules pédagogiques activables', () => {
     expect(pedago.idKeysOffForLearners).toBe(false);
     expect(pedago.individualsOffForLearners).toBe(false);
     expect(pedago.pedagoSessionsOffForLearners).toBe(false);
+  });
+});
+
+describe('App — célébration des badges à l’arrivée', () => {
+  test('session élève, module allumé : l’hôte de célébration est monté et actif', async () => {
+    await renderAppWith(STUDENT_SESSION);
+    expect(probes.rewardsHost.length).toBeGreaterThan(0);
+    expect(probes.rewardsHost.at(-1).enabled).toBe(true);
+  });
+
+  test('module « Récompenses » éteint : hôte inactif (aucun appel)', async () => {
+    bootstrap.modules = { rewards_enabled: false };
+    await renderAppWith(STUDENT_SESSION);
+    expect(probes.rewardsHost.at(-1).enabled).toBe(false);
+  });
+
+  test('sans session : aucun hôte de célébration', async () => {
+    session.stored = null;
+    session.claims = null;
+    render(<App />);
+    await waitFor(() => expect(probes.unauthenticated.length).toBeGreaterThan(0));
+    expect(probes.rewardsHost.filter((p) => p.enabled).length).toBe(0);
   });
 });

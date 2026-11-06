@@ -479,6 +479,45 @@
     animation: none;
   }
 }
+.reward-celebration__olu {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+}
+.reward-celebration__olu > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+/* Célébration à l'arrivée dans l'application : posée au-dessus du contenu, en bas d'écran. */
+.reward-celebration-host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  transform: translateX(-50%);
+  width: min(28rem, calc(100vw - 2rem));
+  z-index: var(--fm-z-popover);
+  box-shadow: var(--shadow-panel-floating);
+  border-radius: 14px;
+}
+.reward-celebration-host .reward-celebration {
+  margin: 0;
+}
+.rewards-sheet {
+  max-width: 40rem;
+}
+.rewards-sheet__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+.rewards-showcase__name {
+  font-weight: 700;
+  text-align: left;
+}
+.stats-rewards {
+  margin: 20px 0;
+}
 .rewards-showcase {
   margin: 1rem 0;
 }

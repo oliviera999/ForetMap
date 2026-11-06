@@ -6,7 +6,9 @@
  * badges manuels.
  *
  *  - `GET  /me`               badges de la personne connectée, catalogue complet (paliers),
- *                             progression vers le palier suivant ;
+ *                             progression vers le palier suivant. Évalue d'abord les familles
+ *                             sans événement déclencheur (exploration, reportage, collectif) :
+ *                             les badges mérités arrivent à l'ouverture, sans attendre la nuit ;
  *  - `POST /me/seen`          annonces vues (`seen_at`) ;
  *  - `GET  /students/:id`     badges et progression d'un élève (personnel, périmètre) ;
  *  - `GET  /groups/:id`       vitrine d'un groupe : élèves × familles, « proche d'un palier »
@@ -25,7 +27,9 @@ const { requireModuleEnabled } = require('../lib/shared/moduleGate');
 const { canReadAllAssignments } = require('../lib/taskAuthzHelpers');
 const { canAccessStudentId, getScopedStudentIds } = require('../lib/groupScope');
 const { queryOne } = require('../database');
+const logger = require('../lib/logger');
 const { announceRewards } = require('../lib/rewards/announce');
+const { evaluateUser } = require('../lib/rewards/evaluator');
 const {
   RewardAwardError,
   publicCatalogue,
@@ -36,6 +40,12 @@ const {
 } = require('../lib/rewards/progress');
 
 const router = express.Router();
+
+/**
+ * Familles sans crochet d'action (visite, découvertes, mesures d'arbres, carnet, photos de
+ * comptes rendus, réactions) : évaluées à l'ouverture de « Mes badges » et la nuit.
+ */
+const PULL_FAMILIES = Object.freeze(['exploration', 'reportage', 'collectif']);
 
 // Module éteint (`ui.modules.rewards_enabled`) : tout le routeur répond 503 (badge manuel
 // compris). Les badges automatiques continuent d'être attribués en silence et apparaissent
@@ -58,6 +68,12 @@ router.get(
   asyncHandler(async (req, res) => {
     const userId = selfId(req);
     if (!userId) return res.status(403).json({ error: 'Profil utilisateur invalide' });
+    try {
+      await evaluateUser(userId, { families: PULL_FAMILIES, source: { type: 'open' } });
+    } catch (err) {
+      // Lecture d'abord : une panne d'évaluation n'empêche pas d'afficher les badges.
+      logger.error({ err, userId }, 'rewards_open_evaluation_failed');
+    }
     const { rewards, progress } = await buildRewardProgress(userId);
     return res.json({ rewards, progress, ...publicCatalogue() });
   }),

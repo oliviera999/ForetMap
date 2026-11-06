@@ -9,6 +9,35 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Badges : nouvelles collections, célébration d'OLU, fiches ; moteur commun avec G&L
+
+- **Sept nouveaux badges** liés aux modules existants : exploration (🗺️ Cartographe — lieux de
+  la visite ; 🐾 Premières rencontres — espèces découvertes ; 📏 Arpenteur — mesures d'arbres
+  suivis, un arbre par mois), reportage et carnet (📸 Œil de lynx — photo sur le compte rendu
+  d'une tâche créditée ; ✍️ Plume verte — articles de carnet ≥ 80 caractères), 🔥 Graine de
+  savant (semaines ISO avec une bonne réponse au quiz), 💬 Bonne idée (messages du forum ou
+  commentaires ayant reçu une réaction d'une autre personne). Familles `exploration` et
+  `reportage` réservées aux élèves n3beur. `GET /api/rewards/me` évalue d'abord les familles
+  sans action déclenchante (exploration, reportage, collectif).
+- **Célébration à l'arrivée** (`RewardsCelebrationHost`, monté dans le shell) : badges non vus
+  fêtés avec une phrase d'OLU par famille (`src/shared/utils/oluRewardsVoice.js`, tirage
+  déterministe, charte §2.2bis), relue au retour sur l'onglet (≤ 1 fois / 2 min) ; un badge
+  n'est fêté qu'une fois par page (`useRewardsCelebration`).
+- **« Mes badges » dans « Mes statistiques »** (consultation) et **fiche de badges d'un élève**
+  pour le personnel (`RewardsStudentSheet`, depuis le classement et le nom dans la vitrine).
+- **Moteur commun ForetMap / Gnomes & Licornes** : noyau pur `src/shared/rewards/rewardsCore.js`
+  (miroir `lib/shared/rewardsCore.js`), moteur générique `lib/rewards/core/engine.js`
+  (`createRewardsEngine` : catalogue, table et colonne de propriétaire, mesures, éligibilité
+  injectés), instance forêt `lib/rewards/foretEngine.js` ; évaluateur, progression, fusion et
+  annonce deviennent des adaptateurs (exports inchangés). Interface commune
+  `src/shared/rewards/` (panneau avec mode consultation, célébration). Contrat :
+  `docs/REWARDS_ENGINE.md`. Aucun code G&L livré.
+- **Corrigé** : le libellé court d'un badge à paliers (« — 🌼 Fleur ») lisait les seuils au
+  lieu des paliers côté interface.
+- Tests : `tests/rewards-new-badges.test.js` (seuils exacts, garde-fous, produit factice),
+  `tests-ui/components/rewards/RewardsSharing.test.jsx`, montage de l'hôte dans
+  `tests-ui/AppShellWiring.test.jsx`.
+
 ### Ajouté — Tâches : métiers, formats, phases de projet ; badges automatiques
 
 - **Lot A — migration 329** (`migrations/329_task_taxonomy_rewards.sql`) : colonnes
