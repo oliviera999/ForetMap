@@ -45,6 +45,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   NULL seulement sauf `--overwrite` ; jamais de statut ni d'avancement). Projets et phases
   depuis `scripts/data/task-taxonomy-annex2.json` (préfixes vérifiés, arrêt si ambigu) ;
   candidats « projet » et récurrence suspecte signalés à part, sans transformation.
+- **Lot E — moteur de badges** : `lib/rewards.js` devient `lib/rewards/` (API publique
+  conservée) — catalogue (`catalog.js`, 33 badges : métiers, formats et engagement, démarche
+  de projet, Écotone, savoirs naturalistes, temps long, collectif, séances et fresque
+  inchangés, badges manuels), paliers 🌸 Bourgeon / 🌼 Fleur / 🍎 Fruit en clés
+  `<badge>.<n>` ; règle de crédit unique (`creditedTasks.js`) ; mesures agrégées
+  (`metrics.js`) ; évaluateur (`INSERT IGNORE`, jamais de retrait, comptes élèves n3beur
+  seulement, jamais bloquant) ; annonce (notification regroupée, silencieuse module
+  éteint) ; points d'appel : validation de tâche et de projet, proposition acceptée,
+  observation validée, réponse de quiz, lecture de tutoriel, fin de séance ; passe de nuit
+  `rewards_evaluate` ; rattrapage `scripts/rewards-backfill.js` (dry-run par défaut, une
+  notification récapitulative par élève). `nature.cle` non créé (aucun suivi des parcours de
+  clé de détermination).
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 

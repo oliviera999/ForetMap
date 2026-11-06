@@ -34,6 +34,9 @@ const { requirePedagoModuleOrManager } = require('../lib/pedagoModuleGate');
 const router = express.Router();
 const VALIDATE_PERMISSION = 'observations.validate';
 const requireValidator = requirePermission(VALIDATE_PERMISSION);
+const { queueNatureRewards } = require('../lib/rewards/hooks');
+/** Décision qui valide une observation (`species_observations.status`). */
+const VALIDATED_OBSERVATION_DECISION = 'validee';
 
 // Interrupteur `ui.modules.species_observations_enabled` (décision 19 de l'audit) : éteint →
 // 503 pour tous, sauf le validateur, qui garde sa file d'examen.
@@ -323,7 +326,16 @@ router.post(
       },
       { audit: { req } },
     );
-    if (!result.alreadyDecided) emitChanged('species_observation_decided', result.observation);
+    if (!result.alreadyDecided) {
+      emitChanged('species_observation_decided', result.observation);
+      // Badges naturalistes de l'observateur (lancés sans attendre, jamais bloquants).
+      if (req.body.decision === VALIDATED_OBSERVATION_DECISION) {
+        queueNatureRewards(current.observer_user_id, {
+          type: 'species_observation',
+          ref: String(current.id),
+        });
+      }
+    }
     return res.json({
       observation: result.observation,
       already_decided: result.alreadyDecided,

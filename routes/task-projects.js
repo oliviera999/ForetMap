@@ -15,6 +15,7 @@ const {
 const { parseOptionalAuth } = require('../lib/tasks/taskQueries');
 const { canManageTasks } = require('../lib/taskAuthzHelpers');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
+const { queueRewardsForProject } = require('../lib/rewards/hooks');
 const {
   parseTaxonomyInput,
   computePhaseProgress,
@@ -634,6 +635,7 @@ router.post(
       req.params.id,
     ]);
     const updated = await loadProjectRow(req.params.id);
+    queueRewardsForProject(req.params.id);
     logAudit('validate_task_project', 'task_project', req.params.id, existing.title || 'Projet', {
       req,
       payload: { previous_status: cur, map_id: existing.map_id },

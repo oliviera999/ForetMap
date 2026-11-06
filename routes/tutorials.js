@@ -48,6 +48,7 @@ const {
 const { sanitizeTutorialViewHtml } = require('../lib/tutorialViewSanitize');
 const { localizeTutorialExternalAssets } = require('../lib/tutorialViewExternalAssets');
 const { getSettingValue } = require('../lib/settings');
+const { queueNatureRewards } = require('../lib/rewards/hooks');
 
 /** Incrémenter quand le pipeline d’enrichissement `/view` change (ex. CSS reveal). */
 const TUTORIAL_VIEW_PIPELINE_VERSION = 'reveal-css-1';
@@ -483,6 +484,7 @@ router.post(
      ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
       [String(userId), tid, now],
     );
+    queueNatureRewards(String(userId), { type: 'tutorial', ref: String(tid) });
     res.json({ success: true, tutorial_id: tid, acknowledged_at: now });
   }),
 );
