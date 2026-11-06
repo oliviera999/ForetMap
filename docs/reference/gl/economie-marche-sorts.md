@@ -287,6 +287,27 @@ de gemmes.
 > gnomes, prévoyez au moins une équipe gnome — ou laissez ces sorts sur « Gnomes et
 > licornes ».
 
+## « Tenir à deux » : deux monnaies, la place, le grimoire
+
+Dans cette mouture, chaque élève a **ses gemmes et ses cœurs** (3 et 3 au départ, 8 au plus) : il
+les voit, son équipe les voit, vous les voyez ; personne d'autre. On gagne la ressource de son
+peuple (gemmes chez les Licornes, cœurs chez les Gnomes) en tenant une page à deux, sur les cases
+de la Trame et quand le carnet de la classe est complet. Rien ne retire une ressource sinon un sort,
+un échange, un don, une case Souffle ou le chapardeur — jamais une mauvaise réponse, jamais le
+voile. Vous pouvez, exceptionnellement, ajuster une bourse avec un motif.
+
+**La place du Marché** : annonces (je cherche, j'offre, je propose), échanges à deux, **dons**
+immédiats, et un **comptoir de parures** pour la mascotte de l'équipe (sans effet de jeu). Un élève
+en retrait ne voit pas la place.
+
+**Le grimoire** : chaque sort a un peuple, un coût, une fenêtre (avant le jet, après le jet, en
+phase jeu, au seuil…) et une limite (par tour et par équipe, par partie, par chapitre et par élève,
+par trimestre). Hors fenêtre, l'écran dit pourquoi. Le **pot** est pré-rempli à parts égales entre
+les membres présents (le reste au plus riche) et reste modifiable. Les sorts automatiques
+s'appliquent aussitôt ; ceux du prof (Question, Conseil, Pause, Nommer, Lettre…) entrent dans votre
+file : vous cochez « effet appliqué » quand c'est fait. Aucun sort ne crée de ressource, sauf
+« Nommer » qui rend un cœur à chaque Gnome de l'équipe qui répare une page.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Guide du MJ](guide-du-mj.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

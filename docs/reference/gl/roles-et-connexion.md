@@ -279,6 +279,13 @@ explicite d'un **Admin** (pas d'un MJ), supprimer les comptes miroirs orphelins.
 - **Désactiver un élève** dans ForetMap le coupe aussi du jeu, immédiatement. Désactiver un
   **joueur** dans le jeu ne touche pas à son compte ForetMap.
 
+## La projection (vidéoprojecteur)
+
+Pour une partie « Tenir à deux », le MJ génère depuis la console un **lien de projection** valable
+la journée (douze heures). Ouvert sur le vidéoprojecteur, il montre le tour, les équipes, le voile,
+le carnet de la classe et le journal — **en lecture seule**, sans aucun bouton, sans aucune bourse,
+sans le motif d'un retrait. Le lien s'éteint à la clôture du chapitre ou quand le MJ le révoque.
+
 ## Pour aller plus loin
 
 - Vue d'ensemble du jeu : [presentation.md](presentation.md)

@@ -1,0 +1,117 @@
+{
+  "format": "questions-lecture v1 (jeu d’exemple des tests)",
+  "questions": [
+    {
+      "zone_key": "cz-p1-01",
+      "feuillet_code": "tenir-ex-p1-1",
+      "question": "Que dit la page d'exemple 1 du plateau 1 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p1-02",
+      "feuillet_code": "tenir-ex-p1-2",
+      "question": "Que dit la page d'exemple 2 du plateau 1 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p2-01",
+      "feuillet_code": "tenir-ex-p2-1",
+      "question": "Que dit la page d'exemple 1 du plateau 2 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p2-02",
+      "feuillet_code": "tenir-ex-p2-2",
+      "question": "Que dit la page d'exemple 2 du plateau 2 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p3-01",
+      "feuillet_code": "tenir-ex-p3-1",
+      "question": "Que dit la page d'exemple 1 du plateau 3 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p3-02",
+      "feuillet_code": "tenir-ex-p3-2",
+      "question": "Que dit la page d'exemple 2 du plateau 3 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p4-01",
+      "feuillet_code": "tenir-ex-p4-1",
+      "question": "Que dit la page d'exemple 1 du plateau 4 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    },
+    {
+      "zone_key": "cz-p4-02",
+      "feuillet_code": "tenir-ex-p4-2",
+      "question": "Que dit la page d'exemple 2 du plateau 4 ?",
+      "choix": {
+        "A": "Que la forêt respire",
+        "B": "Que le sable chante",
+        "C": "Que la neige écoute",
+        "D": "Que la rivière compte"
+      },
+      "reponse": "A",
+      "feedback_correct": "Oui, la forêt respire.",
+      "feedback_incorrect": "Pas encore. Relis la première ligne de la page."
+    }
+  ]
+}

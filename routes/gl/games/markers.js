@@ -49,8 +49,20 @@ const {
 const { parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
+const { isTenirGame } = require('../../../lib/glTenir');
 
 const router = express.Router();
+
+const {
+  resolveTenirMarkerContext: resolveSentierContext,
+  consumeSentier,
+} = require('../../../lib/glTourArrivalHelpers');
+
+/** Contexte « Tenir à deux » d'une case : règles v2 actives ? Sentier posé pour l'équipe ? */
+async function resolveTenirMarkerContext(tx, settings, game, teamId) {
+  if (!isTenirGame(settings, game)) return { tenir: false, sentierActif: false };
+  return resolveSentierContext(tx, game.id, teamId);
+}
 
 async function loadChapterPathMarkers(tx, chapterId) {
   return tx.queryAll(
@@ -315,7 +327,7 @@ router.post(
     if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
     const game = await queryOne(
-      'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -389,6 +401,7 @@ router.post(
     let lastEvent = null;
     try {
       await withTransaction(async (tx) => {
+        const tenirCtx = await resolveTenirMarkerContext(tx, settings, game, teamId);
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
@@ -397,7 +410,10 @@ router.post(
           settings,
           playerIds,
           skipIfAlreadyApplied: true,
+          tenir: tenirCtx.tenir,
+          sentierActif: tenirCtx.sentierActif,
         });
+        if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
         if (vitalityPayload?.applied) {
           await recordVitalityChangeEvent(tx, {
@@ -500,7 +516,7 @@ router.post(
     }
 
     const game = await queryOne(
-      'SELECT id, chapter_id, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
+      'SELECT id, chapter_id, board_movement_mode, board_path_start_index, tenir_profil FROM gl_games WHERE id = ? LIMIT 1',
       [gameId],
     );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
@@ -549,6 +565,7 @@ router.post(
     let autoMove = null;
     try {
       await withTransaction(async (tx) => {
+        const tenirCtx = await resolveTenirMarkerContext(tx, settings, game, teamId);
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
@@ -558,7 +575,10 @@ router.post(
           playerIds,
           // Re-contrôle sous verrou : c'est lui qui bloque réellement la double application.
           skipIfAlreadyApplied: true,
+          tenir: tenirCtx.tenir,
+          sentierActif: tenirCtx.sentierActif,
         });
+        if (vitalityPayload?.sentier) await consumeSentier(tx, gameId, teamId);
 
         if (vitalityPayload?.alreadyApplied) {
           const err = new Error('MARKER_EFFECT_ALREADY_APPLIED');

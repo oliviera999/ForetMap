@@ -17,6 +17,11 @@ import {
 import { GLSpellCastRosterSection } from './spell-cast/GLSpellCastRosterSection.jsx';
 import { GLSpellCastSpellPicker, GLSpellCastTeamPicker } from './spell-cast/GLSpellCastPickers.jsx';
 import { GLSpellCastFooter } from './spell-cast/GLSpellCastFooter.jsx';
+import {
+  GLSpellCastEffectParams,
+  neededParams,
+  buildDraftOptions,
+} from './spell-cast/GLSpellCastEffectParams.jsx';
 
 const CLOSE_MS = 200;
 
@@ -36,6 +41,9 @@ export function GLSpellCastWizard({
   spellCast,
   chapterSpells = [],
   onPickSpell,
+  /** « Tenir à deux » : roster (Héritage) et pages pâlies (Nommer) pour les paramètres d'effet. */
+  roster = [],
+  pagesPalies = [],
 }) {
   const { confirm } = useAppDialogs();
   const titleId = useId();
@@ -45,6 +53,7 @@ export function GLSpellCastWizard({
   const [isClosing, setIsClosing] = useState(false);
   const [pickSpellCode, setPickSpellCode] = useState(null);
   const [fundLoading, setFundLoading] = useState(false);
+  const [effectParams, setEffectParams] = useState({});
   const closeTimerRef = useRef(null);
   const staffDraftStartedRef = useRef(false);
 
@@ -83,11 +92,11 @@ export function GLSpellCastWizard({
   );
 
   const beginFundDraft = useCallback(
-    async ({ spell, teamId }) => {
+    async ({ spell, teamId, options = null }) => {
       if (!spell || !gameId || !spellCast?.startDraft) return;
       setFundLoading(true);
       try {
-        const payload = { spellCode: spell };
+        const payload = { spellCode: spell, ...(options || {}) };
         if (teamId != null && Number(teamId) > 0) payload.teamId = Number(teamId);
         await spellCast.startDraft(payload);
         setStep('fund');
@@ -168,8 +177,14 @@ export function GLSpellCastWizard({
       return;
     }
     staffDraftStartedRef.current = true;
+    if (neededParams(activeSpell).length > 0) {
+      setEffectParams({});
+      setStep('params');
+      return;
+    }
     beginFundDraft({ spell: activeSpellCode, teamId: selectedTeamId ?? currentTeamId });
   }, [
+    activeSpell,
     open,
     isStaff,
     activeSpellCode,
@@ -191,10 +206,26 @@ export function GLSpellCastWizard({
   const required = spellCast?.draft?.required || { gems: 0, hearts: 0 };
   const readyLocal = isSpellCastReady(totals, required);
 
+  const needsParams = neededParams(activeSpell).length > 0;
+
   async function handleSelectTeam(teamId) {
     if (!activeSpellCode || !gameId) return;
     setSelectedTeamId(Number(teamId));
+    if (needsParams) {
+      setEffectParams({});
+      setStep('params');
+      return;
+    }
     await beginFundDraft({ spell: activeSpellCode, teamId: Number(teamId) });
+  }
+
+  async function handleParamsSubmit(params) {
+    setEffectParams(params);
+    await beginFundDraft({
+      spell: activeSpellCode,
+      teamId: selectedTeamId ?? currentTeamId,
+      options: buildDraftOptions(params),
+    });
   }
 
   function handlePickSpell(code) {
@@ -294,6 +325,10 @@ export function GLSpellCastWizard({
 
   const showSpellPick = step === 'spell' && !activeSpellCode;
   const showTeamPick = !isStaff && step === 'team' && activeSpellCode;
+  const showParams = step === 'params' && activeSpellCode;
+  const selectedTeam = (teams || []).find(
+    (t) => Number(t.id) === Number(selectedTeamId ?? currentTeamId),
+  );
   const showFund = step === 'fund' && (spellCast?.draft || fundLoading || spellCast?.busy);
   const isPendingApproval = spellCast?.draft?.status === 'pending_approval';
   const spellName =
@@ -339,7 +374,13 @@ export function GLSpellCastWizard({
         ) : null}
 
         {showSpellPick ? (
-          <GLSpellCastSpellPicker chapterSpells={chapterSpells} onPick={handlePickSpell} />
+          <GLSpellCastSpellPicker
+            chapterSpells={chapterSpells}
+            onPick={handlePickSpell}
+            playerTeamType={
+              (teams || []).find((t) => Number(t.id) === Number(playerTeamId))?.type || null
+            }
+          />
         ) : null}
 
         {showTeamPick ? (
@@ -349,6 +390,21 @@ export function GLSpellCastWizard({
             busy={spellCast?.busy || fundLoading}
             casterKind={casterKind}
             onSelectTeam={handleSelectTeam}
+          />
+        ) : null}
+
+        {showParams ? (
+          <GLSpellCastEffectParams
+            spell={activeSpell}
+            teams={teams}
+            teamId={selectedTeamId ?? currentTeamId}
+            teamType={selectedTeam?.type || null}
+            roster={roster}
+            pagesPalies={pagesPalies}
+            value={effectParams}
+            onChange={setEffectParams}
+            onSubmit={handleParamsSubmit}
+            busy={spellCast?.busy || fundLoading}
           />
         ) : null}
 

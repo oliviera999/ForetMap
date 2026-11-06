@@ -138,3 +138,11 @@ peuple »_.
 > par peuple, chapitres-biomes séparés par des frontières). Si une future évolution du
 > plateau contredit le récit (ou l'inverse), mettre à jour ce document dans le même
 > lot.
+
+## 6. Tenir à deux (mouture « Tenir à deux »)
+
+Dans cette mouture, les deux peuples ne se complètent plus seulement par leurs regards : une page
+retrouvée par un peuple n'est **tenue** — à l'abri de l'effacement — que lorsque l'autre peuple l'a
+lue et comprise. Le voile n'est pas quelqu'un : c'est ce qui recouvre ce qu'on n'a pas partagé. Le
+chapardeur, l'oiseau, la caravane et le Passeur se rencontrent sans qu'on dévoile ce qui attend au
+bout du voyage : la doc du prof s'arrête là où les élèves découvrent.

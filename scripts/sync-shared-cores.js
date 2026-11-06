@@ -49,6 +49,8 @@ const PAIRS = Object.freeze([
   ['src/shared/rewards/rewardsCore.js', 'rewardsCore.js'],
   // Cœur des activités « fresque » (cartes + flèches cause → effet + correction), lot 2.
   ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
+  // « Tenir à deux » v2 : permissions par surface (serveur = vérité, client = grisage).
+  ['src/shared/glTenirPermissionsCore.js', 'glTenirPermissionsCore.js'],
 ]);
 
 function banner(relSrc) {

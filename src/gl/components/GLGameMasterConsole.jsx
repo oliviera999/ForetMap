@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
 // Styles admin/MJ : extraits de gl-theme.css, livrés avec le chunk lazy de cette vue.
 import '../styles/gl-admin.css';
-import { apiGL } from '../services/apiGL.js';
+import { apiGL, getGlToken } from '../services/apiGL.js';
+import { GLTourScreen } from './mj/GLTourScreen.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
 import { GLBadge } from './ui/GLBadge.jsx';
@@ -539,11 +540,15 @@ export function GLGameMasterConsole({
   }
 
   /** G11 — le MJ note qu'il a appliqué l'effet : trace au journal, sort retiré du rappel. */
-  async function markSpellEffectApplied(draftId) {
+  async function markSpellEffectApplied(draftId, body = undefined) {
     if (!game?.id || draftId == null) return;
     setBusy(true);
     try {
-      await apiGL(`/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/effect-applied`, 'POST');
+      await apiGL(
+        `/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/effect-applied`,
+        'POST',
+        body && typeof body === 'object' ? body : undefined,
+      );
       await loadCastsAwaitingEffect();
       await onReloadGame?.();
       showSuccess('Effet noté comme appliqué.');
@@ -838,6 +843,17 @@ export function GLGameMasterConsole({
         >
           Jeu en direct
         </button>
+        {gameState?.tenir?.enabled ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mjSection === 'tour'}
+            className={mjSection === 'tour' ? 'is-active' : ''}
+            onClick={() => setMjSection('tour')}
+          >
+            Jouer le tour
+          </button>
+        ) : null}
       </nav>
 
       <Suspense fallback={<MjSectionFallback />}>
@@ -890,9 +906,25 @@ export function GLGameMasterConsole({
             scoringEnabled={scoringEnabled}
           />
         )}
+        {mjSection === 'tour' && gameState?.tenir?.enabled && (
+          <GLTourScreen
+            game={game}
+            teams={teams}
+            roster={gameState?.roster || []}
+            tenir={gameState?.tenir}
+            token={getGlToken()}
+            onReloadGame={onReloadGame}
+            onClose={() => setMjSection('live')}
+            showFailure={showFailure}
+            events={gameState?.events || []}
+          />
+        )}
         {mjSection === 'live' && (
           <GLGameMasterConsoleLive
             game={game}
+            tenir={gameState?.tenir || null}
+            roster={gameState?.roster || []}
+            onReloadGame={onReloadGame}
             teams={teams}
             gameStatus={gameStatus}
             effectiveSelectedTeamId={effectiveSelectedTeamId}

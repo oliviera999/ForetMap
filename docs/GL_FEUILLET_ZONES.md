@@ -73,3 +73,12 @@ Voir [API.md](API.md).
 npm test -- tests/gl-norm-map-coords.test.js tests/gl-feuillet-zones-loader.test.js tests/gl-map-zone-detect.test.js tests/gl-feuillet-zone-present.test.js tests/pct-polygon.test.js
 npm run test:ui -- tests-ui/gl/GLPlateauMapEditor.test.jsx tests-ui/gl/GLChapterMapStudio.test.jsx
 ```
+
+## Zones de chasse « Tenir à deux »
+
+Distinctes des zones feuillets : `gl_chasse_zones` (catalogue `data/gl/tenir/chasse-zones.json`,
+36 zones, coordonnées normalisées 0–1, `polygone_ref` possible vers une zone de
+`zones_feuillets.json`). L'éditeur de polygones de l'admin chapitres (plateaux 1–4) pose
+`geometrie_prete`, le centroïde et le rang de case (`PUT /api/gl/admin/chasse-zones/:zoneKey/polygone`).
+Les polygones ne sont jamais servis aux élèves ; la chasse ne joue que sur les zones prêtes
+(`docs/GL_TENIR_A_DEUX.md`).

@@ -1,0 +1,253 @@
+{
+  "format": "chasse-zones v1 — coords normalisées 0-1, origine haut-gauche (jeu d’exemple des tests)",
+  "zones": [
+    {
+      "zone_key": "cz-p1-01",
+      "plateau": 1,
+      "feuillet_code": "tenir-ex-p1-1",
+      "titre_prive": "Zone d'exemple cz-p1-01 (jamais montré)",
+      "indice": "Là où l'exemple 1 du plateau 1 dort sous les feuilles",
+      "polygone": [
+        [
+          0.30000000000000004,
+          0.25
+        ],
+        [
+          0.4,
+          0.25
+        ],
+        [
+          0.4,
+          0.35
+        ],
+        [
+          0.30000000000000004,
+          0.35
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P1-01",
+      "theme_secours": "faune",
+      "ordre": 1,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p1-02",
+      "plateau": 1,
+      "feuillet_code": "tenir-ex-p1-2",
+      "titre_prive": "Zone d'exemple cz-p1-02 (jamais montré)",
+      "indice": "Là où l'exemple 2 du plateau 1 dort sous les feuilles",
+      "polygone": [
+        [
+          0.5,
+          0.25
+        ],
+        [
+          0.6,
+          0.25
+        ],
+        [
+          0.6,
+          0.35
+        ],
+        [
+          0.5,
+          0.35
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P1-02",
+      "theme_secours": "flore",
+      "ordre": 2,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p2-01",
+      "plateau": 2,
+      "feuillet_code": "tenir-ex-p2-1",
+      "titre_prive": "Zone d'exemple cz-p2-01 (jamais montré)",
+      "indice": "Là où l'exemple 1 du plateau 2 dort sous les feuilles",
+      "polygone": [
+        [
+          0.30000000000000004,
+          0.4
+        ],
+        [
+          0.4,
+          0.4
+        ],
+        [
+          0.4,
+          0.5
+        ],
+        [
+          0.30000000000000004,
+          0.5
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P2-01",
+      "theme_secours": "faune",
+      "ordre": 1,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p2-02",
+      "plateau": 2,
+      "feuillet_code": "tenir-ex-p2-2",
+      "titre_prive": "Zone d'exemple cz-p2-02 (jamais montré)",
+      "indice": "Là où l'exemple 2 du plateau 2 dort sous les feuilles",
+      "polygone": [
+        [
+          0.5,
+          0.4
+        ],
+        [
+          0.6,
+          0.4
+        ],
+        [
+          0.6,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P2-02",
+      "theme_secours": "flore",
+      "ordre": 2,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p3-01",
+      "plateau": 3,
+      "feuillet_code": "tenir-ex-p3-1",
+      "titre_prive": "Zone d'exemple cz-p3-01 (jamais montré)",
+      "indice": "Là où l'exemple 1 du plateau 3 dort sous les feuilles",
+      "polygone": [
+        [
+          0.30000000000000004,
+          0.5499999999999999
+        ],
+        [
+          0.4,
+          0.5499999999999999
+        ],
+        [
+          0.4,
+          0.6499999999999999
+        ],
+        [
+          0.30000000000000004,
+          0.6499999999999999
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P3-01",
+      "theme_secours": "faune",
+      "ordre": 1,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p3-02",
+      "plateau": 3,
+      "feuillet_code": "tenir-ex-p3-2",
+      "titre_prive": "Zone d'exemple cz-p3-02 (jamais montré)",
+      "indice": "Là où l'exemple 2 du plateau 3 dort sous les feuilles",
+      "polygone": [
+        [
+          0.5,
+          0.5499999999999999
+        ],
+        [
+          0.6,
+          0.5499999999999999
+        ],
+        [
+          0.6,
+          0.6499999999999999
+        ],
+        [
+          0.5,
+          0.6499999999999999
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P3-02",
+      "theme_secours": "flore",
+      "ordre": 2,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p4-01",
+      "plateau": 4,
+      "feuillet_code": "tenir-ex-p4-1",
+      "titre_prive": "Zone d'exemple cz-p4-01 (jamais montré)",
+      "indice": "Là où l'exemple 1 du plateau 4 dort sous les feuilles",
+      "polygone": [
+        [
+          0.30000000000000004,
+          0.7
+        ],
+        [
+          0.4,
+          0.7
+        ],
+        [
+          0.4,
+          0.7999999999999999
+        ],
+        [
+          0.30000000000000004,
+          0.7999999999999999
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P4-01",
+      "theme_secours": "faune",
+      "ordre": 1,
+      "actif": true
+    },
+    {
+      "zone_key": "cz-p4-02",
+      "plateau": 4,
+      "feuillet_code": "tenir-ex-p4-2",
+      "titre_prive": "Zone d'exemple cz-p4-02 (jamais montré)",
+      "indice": "Là où l'exemple 2 du plateau 4 dort sous les feuilles",
+      "polygone": [
+        [
+          0.5,
+          0.7
+        ],
+        [
+          0.6,
+          0.7
+        ],
+        [
+          0.6,
+          0.7999999999999999
+        ],
+        [
+          0.5,
+          0.7999999999999999
+        ]
+      ],
+      "polygone_ref": null,
+      "rang_case": null,
+      "question_code": "TEX-P4-02",
+      "theme_secours": "flore",
+      "ordre": 2,
+      "actif": true
+    }
+  ]
+}

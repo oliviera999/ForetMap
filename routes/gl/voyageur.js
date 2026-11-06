@@ -25,7 +25,14 @@ const db = { queryAll, queryOne };
 
 const spellParamsSchema = z.object({ code: z.string().trim().min(1).max(32) });
 // 4096 : la cible de la Loupe est un jeton de présentation (JWT), bien plus long qu'un code.
-const castBodySchema = z.object({ target: z.string().trim().min(1).max(4096) });
+// « Tenir à deux » : Plume (`{ titre, texte }`) et Flair (`{ x, y }`) passent sans `target`.
+const castBodySchema = z.object({
+  target: z.string().trim().min(1).max(4096).optional(),
+  titre: z.string().trim().max(160).optional(),
+  texte: z.string().max(4000).optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
 
 function requireVoyageurModule(req, res, next) {
   getGlModulesSettings()
@@ -75,11 +82,19 @@ router.post(
   validate({ params: spellParamsSchema, body: castBodySchema }),
   asyncHandler(async (req, res) => {
     try {
+      const code = req.validatedParams.code;
+      let target = req.body.target;
+      if (code === 'plume' && (req.body.titre != null || req.body.texte != null)) {
+        target = { titre: req.body.titre, texte: req.body.texte };
+      } else if (code === 'flair' && req.body.x != null && req.body.y != null) {
+        target = { x: req.body.x, y: req.body.y };
+      }
+      if (target == null) return res.status(400).json({ error: 'Cible requise' });
       const out = await castVoyageurSpell(
         { db, withTransaction },
         Number(req.glAuth.userId),
-        req.validatedParams.code,
-        req.body.target,
+        code,
+        target,
       );
       return res.json({ success: true, ...out });
     } catch (err) {

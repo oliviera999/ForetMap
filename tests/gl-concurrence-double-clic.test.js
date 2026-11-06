@@ -66,6 +66,9 @@ before(async () => {
   previousTurnsEnabled = turnsRow ? turnsRow.value_json : null;
   await setSetting('gameplay.vitality_enabled', true);
   await setSetting('gameplay.turns_enabled', true);
+  // « Tenir à deux » (migration 330) pose `lore_heart_rewards_enabled = false` : ce test
+  // vérifie l'idempotence du GAIN de cœur d'un feuillet, il le réactive explicitement.
+  await setSetting('gameplay.lore_heart_rewards_enabled', true);
 
   const admin = await createGlAdmin({
     email: `concu.mj.${stamp}@ecole.local`,

@@ -124,6 +124,38 @@ async function requireGlAuth(req, res, next) {
   return next();
 }
 
+/**
+ * Comme `requireGlAuth`, mais laisse passer un invité porteur d'un jeton de PROJECTION
+ * (« Tenir à deux » § 8.6) pour les seules lectures d'une partie. L'accès à LA partie est
+ * ensuite décidé par `canAccessGlGame` (claim `projection.gameId`, non révoqué). Un invité
+ * ordinaire reste bloqué (`guestBlocked`).
+ */
+async function requireGlAuthOrProjection(req, res, next) {
+  let result;
+  try {
+    result = await authenticateGl(req);
+  } catch (err) {
+    return next(err);
+  }
+  if (!result.ok) {
+    return sendGlAuthFailure(res, result);
+  }
+  req.glAuth = result.glAuth;
+  if (isGlGuest(req.glAuth) && !req.glAuth.projection) {
+    return res.status(403).json({
+      error: 'Compte requis pour cette ressource',
+      guestBlocked: true,
+    });
+  }
+  if (passwordResetBlocked(req.glAuth, req)) {
+    return res.status(403).json({
+      error: 'Mot de passe à mettre à jour avant de continuer',
+      mustResetPassword: true,
+    });
+  }
+  return next();
+}
+
 function requireGlPermission(permission) {
   return async (req, res, next) => {
     let result;
@@ -151,6 +183,7 @@ function requireGlPermission(permission) {
 
 module.exports = {
   requireGlAuth,
+  requireGlAuthOrProjection,
   requireGlPermission,
   hasGlPermission,
   authenticateGl,

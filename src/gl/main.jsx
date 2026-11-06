@@ -32,6 +32,7 @@ import '../shared/styles/visit-map-mascot.css';
 import '../shared/styles/map-fullscreen.css';
 import './styles/gl-base.css';
 import './styles/gl-theme.css';
+import './styles/gl-tenir.css';
 import { AppGL } from './AppGL.jsx';
 import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
 import { ImageLightboxProvider } from '../shared/components/ImageLightboxProvider.jsx';

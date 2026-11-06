@@ -35,8 +35,34 @@ export function GLVitalityCounts({ health = 0, power = 0, className = '', showHi
   );
 }
 
-export function GLVitalityBadge({ health = 0, power = 0, onClick = null }) {
-  const content = <GLVitalityCounts health={health} power={power} />;
+/**
+ * « Tenir à deux » : les deux bourses côte à côte, la ressource du peuple de l'élève mise en
+ * avant (`peopleResource` = `health` | `power`), et la plume du chapardeur (vue de l'élève
+ * concerné et du prof seulement — personne d'autre ne sait qui).
+ */
+export function GLVitalityBadge({
+  health = 0,
+  power = 0,
+  onClick = null,
+  peopleResource = null,
+  plume = false,
+}) {
+  const content = (
+    <span
+      className={`gl-vitality-badge-inner${peopleResource ? ` gl-vitality-badge--people-${peopleResource}` : ''}`}
+    >
+      <GLVitalityCounts health={health} power={power} />
+      {plume ? (
+        <span
+          className="gl-vitality-plume foretmap-emoji-text-mixed"
+          title="Une plume est posée sur ton solde : une unité est partie au nid. Elle reviendra à la prochaine page trouvée."
+          aria-label="Plume : une unité au nid"
+        >
+          🪶
+        </span>
+      ) : null}
+    </span>
+  );
   if (typeof onClick === 'function') {
     return (
       <button

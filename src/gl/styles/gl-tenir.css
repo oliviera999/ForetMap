@@ -1,0 +1,310 @@
+/* « Tenir à deux » v2 — écrans d'équipe, tour, projection, chasse, voile, oiseau témoin. */
+
+.gl-tenir-equipe__gestes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.gl-tenir-equipe__gestes button {
+  min-height: 44px;
+}
+.gl-tenir-equipe__bourses {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0;
+}
+.gl-tenir-equipe__verdict {
+  margin: 0.25rem 0;
+  font-weight: 600;
+}
+.gl-tenir-equipe.is-fouille {
+  outline: 2px dashed var(--leaf, var(--accent-success-solid));
+  outline-offset: 2px;
+}
+
+/* Question (chasse / lecture) */
+.gl-tenir-question__choix {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.gl-tenir-question__choix li label {
+  display: block;
+  padding: 0.5rem 0.25rem;
+  min-height: 44px;
+}
+.gl-tenir-question__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Carnet de la classe */
+.gl-carnet-classe__pages {
+  padding-left: 1.25rem;
+}
+.gl-carnet-page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.gl-carnet-page--endormie .gl-carnet-page__texte {
+  opacity: 0.7;
+}
+.gl-carnet-page--palie .gl-carnet-page__texte {
+  color: var(--ink-muted);
+}
+.gl-carnet-page-ouverte {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--surface-plain);
+  opacity: 0.95;
+}
+.gl-carnet-page-ouverte header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Calque de chasse (empreintes, contours) */
+.gl-chasse-layer,
+.gl-voile-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.gl-chasse-empreinte {
+  fill: var(--gl-team-color, var(--ink-soft));
+  stroke: var(--surface-plain);
+  stroke-width: 0.25;
+  opacity: 0.85;
+}
+.gl-chasse-empreinte--froid {
+  opacity: 0.45;
+}
+.gl-chasse-empreinte--chaud {
+  stroke: var(--accent-warning-solid);
+  stroke-width: 0.45;
+}
+.gl-chasse-empreinte--zone {
+  stroke: var(--accent-success-solid);
+  stroke-width: 0.45;
+}
+.gl-chasse-contour {
+  fill: none;
+  stroke: var(--ink-base);
+  stroke-width: 0.35;
+  stroke-dasharray: 1.2 0.8;
+  opacity: 0.8;
+}
+.gl-chasse-contour--trouvee,
+.gl-chasse-contour--reparee {
+  stroke: var(--accent-success-solid);
+  stroke-dasharray: none;
+}
+.gl-chasse-contour--tenue {
+  stroke: var(--accent-info-solid);
+  stroke-dasharray: none;
+  stroke-width: 0.5;
+}
+.gl-chasse-contour--palie {
+  stroke: var(--line-strong);
+}
+
+/* Le voile : bande grise, cases recouvertes */
+.gl-voile-bande {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-opacity: 0.55;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gl-voile-case {
+  fill: var(--ink-muted);
+  fill-opacity: 0.45;
+}
+
+/* L'oiseau témoin : muet, sans nom */
+.gl-kraa {
+  position: absolute;
+  width: 2.6rem;
+  height: 2.6rem;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  transition:
+    left 0.9s ease-in-out,
+    top 0.9s ease-in-out;
+  z-index: 7;
+}
+.gl-kraa__svg {
+  width: 100%;
+  height: 100%;
+  fill: var(--ink-strong);
+}
+.gl-kraa__bec {
+  fill: var(--accent-warning-deep);
+}
+.gl-kraa__pattes {
+  stroke: var(--accent-warning-deep);
+  stroke-width: 1.2;
+}
+.gl-kraa--reduced {
+  transition: none;
+}
+.gl-kraa--froid.is-playing .gl-kraa__tete {
+  transform: translateX(-4px);
+}
+.gl-kraa--tiede.is-playing .gl-kraa__svg {
+  transform: rotate(-12deg);
+}
+.gl-kraa--chaud.is-playing .gl-kraa__svg {
+  animation: gl-kraa-saute 0.4s ease-in-out 3;
+}
+.gl-kraa--zone.is-playing .gl-kraa__pattes {
+  animation: gl-kraa-gratte 0.3s linear 4;
+}
+.gl-kraa--page_trouvee.is-playing .gl-kraa__aile {
+  animation: gl-kraa-ailes 0.5s ease-in-out 2;
+}
+.gl-kraa--page_tenue.is-playing .gl-kraa__svg {
+  transform: rotate(18deg);
+}
+.gl-kraa--deja_trouvee.is-playing .gl-kraa__bec {
+  animation: gl-kraa-baille 0.8s ease-in-out 1;
+}
+@keyframes gl-kraa-saute {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes gl-kraa-gratte {
+  50% {
+    transform: translateX(2px);
+  }
+}
+@keyframes gl-kraa-ailes {
+  50% {
+    transform: translateY(-4px) scaleY(1.3);
+  }
+}
+@keyframes gl-kraa-baille {
+  50% {
+    transform: scaleX(1.6);
+  }
+}
+.gl-kraa--reduced .gl-kraa__svg,
+.gl-kraa--reduced .gl-kraa__aile,
+.gl-kraa--reduced .gl-kraa__pattes,
+.gl-kraa--reduced .gl-kraa__bec {
+  animation: none !important;
+}
+
+/* Projection */
+.gl-projection__teams {
+  list-style: none;
+  padding: 0;
+}
+.gl-projection__carnet {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem;
+}
+
+/* Olu commentateur */
+.gl-olu-bulle {
+  margin: 0.25rem 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--surface-plain);
+  border: 1px solid var(--line-soft);
+}
+
+/* Péripétie plein écran (30 s) */
+.gl-peripetie-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink-strong);
+  z-index: var(--fm-z-modal);
+}
+.gl-peripetie-overlay__panel {
+  max-width: 40rem;
+  margin: 1rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: var(--surface-plain);
+  text-align: center;
+}
+.gl-peripetie-overlay__texte {
+  font-size: var(--text-xl);
+  line-height: 1.4;
+}
+
+/* Console MJ : honneurs, missions, relectures ; Bestiaire */
+.gl-tenir-honneurs__form,
+.gl-bestiaire__form,
+.gl-seuil-plume {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.gl-tenir-honneurs__form label,
+.gl-bestiaire__form label,
+.gl-seuil-plume label,
+.gl-spell-cast-panel__body .gl-field {
+  display: grid;
+  gap: 0.25rem;
+}
+.gl-tenir-honneurs__texte,
+.gl-bestiaire__item p {
+  white-space: pre-wrap;
+}
+.gl-bestiaire__liste {
+  list-style: none;
+  padding: 0;
+}
+.gl-bestiaire__item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.gl-bestiaire__image {
+  max-width: 8rem;
+  border-radius: 0.5rem;
+  display: block;
+}
+
+/* Titre sous la mascotte, badges du Seuil */
+.gl-board-mascot__titre {
+  display: block;
+  font-size: var(--text-2xs);
+  text-align: center;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+.gl-seuil-badges {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.gl-seuil-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-size: var(--text-sm);
+}
+.gl-spell-tile.is-disabled {
+  opacity: 0.55;
+}

@@ -1429,6 +1429,113 @@ router.post(
   }),
 );
 
+// ---------------------------------------------------------------------
+// « Tenir à deux » : zones de chasse (catalogue, géométrie dessinée dans l'éditeur).
+// Les polygones ne sortent que par ces routes d'administration (`gl.content.manage`).
+// ---------------------------------------------------------------------
+const { computeZoneGeometry, isValidPolygon } = require('../../lib/glTenirImport');
+const { sortMarkersByPath: sortChasseMarkers } = require('../../lib/shared/glBoardPathCore');
+
+function formatChasseZoneAdminRow(row) {
+  let polygone = null;
+  try {
+    polygone = row.polygone_json ? JSON.parse(row.polygone_json) : null;
+  } catch (_) {
+    polygone = null;
+  }
+  return {
+    id: Number(row.id),
+    zoneKey: String(row.zone_key),
+    chapterId: row.chapter_id != null ? Number(row.chapter_id) : null,
+    plateau: Number(row.plateau),
+    feuilletCode: String(row.feuillet_code),
+    titrePrive: row.titre_prive || '',
+    indice: row.indice || '',
+    polygone,
+    polygoneRef: row.polygone_ref || null,
+    centre: row.centre_x != null ? { x: Number(row.centre_x), y: Number(row.centre_y) } : null,
+    rangCase: row.rang_case != null ? Number(row.rang_case) : null,
+    geometriePrete: Number(row.geometrie_prete) === 1,
+    questionCode: row.question_code || null,
+    themeSecours: row.theme_secours || null,
+    ordre: Number(row.ordre) || 0,
+    actif: Number(row.actif) === 1,
+    updatedAt: row.updated_at || null,
+  };
+}
+
+/** GET /chasse-zones?plateau= — zones de chasse avec géométrie (prof seulement). */
+router.get(
+  '/chasse-zones',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const plateau = req.query?.plateau != null ? Number(req.query.plateau) : null;
+    const rows =
+      Number.isFinite(plateau) && plateau > 0
+        ? await queryAll(
+            'SELECT * FROM gl_chasse_zones WHERE plateau = ? ORDER BY ordre ASC, id ASC',
+            [plateau],
+          )
+        : await queryAll('SELECT * FROM gl_chasse_zones ORDER BY plateau ASC, ordre ASC, id ASC');
+    return res.json({ items: rows.map(formatChasseZoneAdminRow) });
+  }),
+);
+
+/** PUT /chasse-zones/:zoneKey/polygone { polygone } — dessine (ou efface) la géométrie. */
+router.put(
+  '/chasse-zones/:zoneKey/polygone',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const zoneKey = String(req.params.zoneKey || '').trim();
+    const zone = await queryOne('SELECT * FROM gl_chasse_zones WHERE zone_key = ? LIMIT 1', [
+      zoneKey,
+    ]);
+    if (!zone) return res.status(404).json({ error: 'Zone de chasse introuvable' });
+    const polygone = req.body?.polygone;
+    if (polygone === null) {
+      await execute(
+        `UPDATE gl_chasse_zones SET polygone_json = NULL, centre_x = NULL, centre_y = NULL, rang_case = NULL,
+                geometrie_prete = 0, updated_at = NOW() WHERE zone_key = ?`,
+        [zoneKey],
+      );
+      const cleared = await queryOne('SELECT * FROM gl_chasse_zones WHERE zone_key = ? LIMIT 1', [
+        zoneKey,
+      ]);
+      return res.json(formatChasseZoneAdminRow(cleared));
+    }
+    if (!isValidPolygon(polygone)) {
+      return res
+        .status(400)
+        .json({ error: 'Polygone invalide : au moins 3 points [x, y] dans [0, 1]' });
+    }
+    const markers = zone.chapter_id
+      ? await queryAll(
+          'SELECT id, x_pct, y_pct, order_index FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY order_index ASC, id ASC',
+          [zone.chapter_id],
+        )
+      : [];
+    const geo = computeZoneGeometry(
+      polygone.map(([x, y]) => [Number(x), Number(y)]),
+      sortChasseMarkers(markers),
+    );
+    await execute(
+      `UPDATE gl_chasse_zones SET polygone_json = ?, centre_x = ?, centre_y = ?, rang_case = ?,
+              geometrie_prete = 1, updated_at = NOW() WHERE zone_key = ?`,
+      [JSON.stringify(geo.polygone), geo.centre.x, geo.centre.y, geo.rangCase, zoneKey],
+    );
+    await logAudit(req, {
+      action: 'gl_chasse_zone_polygone',
+      targetType: 'gl_chasse_zone',
+      targetId: zoneKey,
+      details: { points: geo.polygone.length, rangCase: geo.rangCase },
+    }).catch(() => {});
+    const updated = await queryOne('SELECT * FROM gl_chasse_zones WHERE zone_key = ? LIMIT 1', [
+      zoneKey,
+    ]);
+    return res.json(formatChasseZoneAdminRow(updated));
+  }),
+);
+
 module.exports = router;
 module.exports.glAdminMediaQuerySchema = glAdminMediaQuerySchema; // exporté pour test no-DB du contrat O7
 module.exports.glAdminPlayersQuerySchema = glAdminPlayersQuerySchema; // exporté pour test no-DB du contrat O7

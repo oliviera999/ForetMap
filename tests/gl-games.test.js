@@ -56,6 +56,9 @@ test('POST /api/gl/games crée une partie', async () => {
     .expect(201);
   assert.ok(res.body?.game?.id);
   gameId = Number(res.body.game.id);
+  // Partie « classique » (déplacement libre, tour compteur) : hors mode « Tenir à deux »,
+  // qui impose le chemin numéroté au démarrage (cf. routes/gl/games/status.js).
+  await execute('UPDATE gl_games SET tenir_profil = NULL WHERE id = ?', [gameId]);
 });
 
 // Régression : en prod (v1.52.3), un classId orphelin remontait en HTTP 500

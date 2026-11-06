@@ -17,7 +17,9 @@ function resolvePlayerVitality(player, vitalityEnabled, vitalityByPlayerId) {
       power: Number(fromGame.power) || 0,
     };
   }
-  return { health: 0, power: 0 };
+  // « Tenir à deux » : un solde absent de la réponse n'est pas un zéro — c'est une bourse
+  // d'une autre équipe, que l'élève ne voit pas.
+  return null;
 }
 
 export function GLGameBoardRoster({

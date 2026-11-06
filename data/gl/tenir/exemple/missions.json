@@ -1,0 +1,17 @@
+{
+  "format": "missions v1 (exemple)",
+  "missions": [
+    {
+      "id": "mis-ex-01",
+      "texte": "Faire rire une autre équipe sans se moquer de personne.",
+      "type": "cooperative",
+      "titre_sceau": "Compagnie du Dé Boiteux"
+    },
+    {
+      "id": "mis-ex-02",
+      "texte": "Répondre à une question en rimes.",
+      "type": "absurde",
+      "titre_sceau": "Société des Rimes Approximatives"
+    }
+  ]
+}

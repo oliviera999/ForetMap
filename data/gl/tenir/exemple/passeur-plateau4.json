@@ -1,0 +1,81 @@
+{
+  "format": "passeur v1 (exemple)",
+  "plateaux": {
+    "1": {
+      "nb": 2,
+      "pages": [
+        {
+          "feuillet_code": "tenir-ex-p1-1",
+          "ordre_voyage": 11,
+          "titre": "Page de route 1-1",
+          "biome_slug": "jungle_afc",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "tenir-ex-p1-2",
+          "ordre_voyage": 12,
+          "titre": "Page de route 1-2",
+          "biome_slug": "savane",
+          "ordre": 2
+        }
+      ]
+    },
+    "2": {
+      "nb": 2,
+      "pages": [
+        {
+          "feuillet_code": "tenir-ex-p2-1",
+          "ordre_voyage": 21,
+          "titre": "Page de route 2-1",
+          "biome_slug": "sahara",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "tenir-ex-p2-2",
+          "ordre_voyage": 22,
+          "titre": "Page de route 2-2",
+          "biome_slug": "foret_mediterraneenne",
+          "ordre": 2
+        }
+      ]
+    },
+    "3": {
+      "nb": 2,
+      "pages": [
+        {
+          "feuillet_code": "tenir-ex-p3-1",
+          "ordre_voyage": 31,
+          "titre": "Page de route 3-1",
+          "biome_slug": "foret_caducifoliee",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "tenir-ex-p3-2",
+          "ordre_voyage": 32,
+          "titre": "Page de route 3-2",
+          "biome_slug": "landes",
+          "ordre": 2
+        }
+      ]
+    },
+    "4": {
+      "nb": 2,
+      "pages": [
+        {
+          "feuillet_code": "tenir-ex-p4-1",
+          "ordre_voyage": 41,
+          "titre": "Page de route 4-1",
+          "biome_slug": "taiga",
+          "ordre": 1
+        },
+        {
+          "feuillet_code": "tenir-ex-p4-2",
+          "ordre_voyage": 42,
+          "titre": "Page de route 4-2",
+          "biome_slug": "toundra",
+          "ordre": 2
+        }
+      ]
+    }
+  }
+}

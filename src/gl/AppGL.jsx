@@ -108,13 +108,37 @@ import {
   canGlStaffImpersonate,
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
-import { isGlGuest } from './utils/glGuestMode.js';
+import {
+  isGlGuest,
+  isGlProjection,
+  readProjectionTokenFromUrl,
+  buildProjectionSession,
+} from './utils/glGuestMode.js';
+import { GLProjectionView } from './components/tenir/GLProjectionView.jsx';
+import { GLTenirEquipeView } from './components/tenir/GLTenirEquipeView.jsx';
+import { useGlChasse } from './hooks/useGlChasse.js';
 import { reportUsage } from '../shared/usage/reportUsage.js';
 import { resolvePlateauMusicBiomeSlug } from './utils/glPlateauMusicProgress.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
   const isGuest = isGlGuest(auth);
+  const isProjection = isGlProjection(auth);
+  // Projection « Tenir à deux » : `gl.html?projection=<jeton>` ouvre une session invitée
+  // lecture seule sur UNE partie, puis retire le jeton de l'URL.
+  useEffect(() => {
+    const projectionToken = readProjectionTokenFromUrl();
+    if (!projectionToken) return;
+    const next = buildProjectionSession(projectionToken);
+    if (next) updateSession(next);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('projection');
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) {
+      /* URL non modifiable : sans importance */
+    }
+  }, [updateSession]);
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
@@ -659,6 +683,33 @@ export function AppGL() {
     [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile],
   );
 
+  // « Tenir à deux » : ressource du peuple de l'équipe courante (gemme licorne, cœur gnome).
+  const playerPeopleResource = useMemo(() => {
+    if (!gameState?.tenir?.enabled || !auth?.teamId) return null;
+    const team = (gameState?.teams || []).find((t) => Number(t.id) === Number(auth.teamId));
+    if (!team?.type) return null;
+    return String(team.type) === 'unicorn' ? 'power' : 'health';
+  }, [gameState, auth?.teamId]);
+
+  // « Tenir à deux » : chasse (carnet de la classe, fouilles, pages) d'une partie en cours.
+  const tenirChasseEnabled =
+    !!gameState?.tenir?.enabled && String(gameState?.game?.status || '') === 'live';
+  const chasse = useGlChasse({
+    gameId: gameState?.game?.id,
+    enabled: tenirChasseEnabled,
+    onChanged: reloadGame,
+  });
+  const tenirLayers = useMemo(
+    () =>
+      tenirChasseEnabled
+        ? {
+            carnet: chasse.carnet,
+            voilePosition: gameState?.tenir?.state?.voilePosition ?? -1,
+          }
+        : null,
+    [tenirChasseEnabled, chasse.carnet, gameState?.tenir?.state?.voilePosition],
+  );
+
   const notifications = useGLNotificationCenter();
   useEffect(() => {
     if (narrationToast) {
@@ -725,6 +776,18 @@ export function AppGL() {
     // Setters issus de useGlGameRuntime : setters useState, références stables.
   }, [logout, setShowProfile, setGameState, setActiveGameId, setGlProfile]);
 
+  if (session?.token && isProjection) {
+    return (
+      <div className="gl-app gl-app--guest gl-app--projection" style={glAppStyle}>
+        <GLProjectionView
+          gameId={Number(auth.projection.gameId)}
+          token={token}
+          refreshKey={gameState?.events?.length || 0}
+        />
+      </div>
+    );
+  }
+
   if (!session?.token) {
     return (
       <div className="gl-app gl-app--guest" style={glAppStyle}>
@@ -780,6 +843,8 @@ export function AppGL() {
               vitalityEnabled={!!gameplaySettings.vitalityEnabled}
               playerHealthPoints={playerVitality?.health}
               playerPowerPoints={playerVitality?.power}
+              playerPeopleResource={playerPeopleResource}
+              playerPlume={!!gameState?.tenir?.plume}
               onOpenProfile={() => setShowProfile(true)}
               onOpenStats={
                 showsPlayerChrome && !isGuest ? () => setShowPlayerStats(true) : undefined
@@ -893,6 +958,19 @@ export function AppGL() {
                   ) : null}
                   {tab === 'maps' && (
                     <>
+                      {gameState?.tenir?.enabled &&
+                      showsPlayerChrome &&
+                      auth?.teamId != null &&
+                      String(gameState?.game?.status || '') === 'live' ? (
+                        <GLTenirEquipeView
+                          gameState={gameState}
+                          tenir={gameState.tenir}
+                          teamId={auth.teamId}
+                          onReloadGame={reloadGame}
+                          onJeter={canSpellCast ? () => openSpellCastWizard(null) : null}
+                          chasse={chasse}
+                        />
+                      ) : null}
                       <GLMapView
                         gameState={gameState}
                         onMoveMascot={
@@ -951,6 +1029,9 @@ export function AppGL() {
                         onRecordDiceRoll={recordDiceRoll}
                         feuilletZones={feuilletZones}
                         feuilletZoneEditMode={feuilletZoneEditMode}
+                        feuilletZoneTraversalEnabled={
+                          gameplaySettings.feuilletZoneTraversalEnabled !== false
+                        }
                         showPlateauMarkers={plateauMapVisibility.markersVisible}
                         showPlateauZones={plateauMapVisibility.zonesVisible}
                         showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
@@ -963,6 +1044,9 @@ export function AppGL() {
                             ? Number(auth.userId)
                             : null
                         }
+                        tenirLayers={tenirLayers}
+                        fouilleMode={chasse.fouilleMode}
+                        onFouille={chasse.fouiller}
                       />
                       {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
                         <section className="gl-panel">
@@ -1173,6 +1257,8 @@ export function AppGL() {
               teamScope={gameplaySettings.spellCastTeamScope || 'own_team'}
               isStaff={showStaffAdminUi}
               spellCast={spellCast}
+              roster={gameState?.roster || []}
+              pagesPalies={(chasse.carnet?.pages || []).filter((p) => p.etat === 'palie')}
               chapterSpells={gameState?.game?.chapter_spells || []}
               onPickSpell={(code) => setSpellCastInitialCode(code)}
             />

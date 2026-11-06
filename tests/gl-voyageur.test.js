@@ -130,18 +130,23 @@ test('regards : sources proche / loin et sources ignorées (tutoriels)', () => {
   assert.equal(p.pointsToNextLevel, 7);
 });
 
-test('charge : disponible à la première fois, puis après SPELL_RECHARGE_POINTS nouveaux points', () => {
-  const spell = VOYAGEUR_SPELLS.find((s) => s.code === 'seconde_chance');
-  assert.equal(buildSpellState(spell, { level: 1, points: 4, useRow: null }).unlocked, false);
-  assert.equal(buildSpellState(spell, { level: 2, points: 5, useRow: null }).charged, true);
-  const used = { uses_count: 1, last_used_points: 6 };
-  const after = buildSpellState(spell, { level: 2, points: 8, useRow: used });
-  assert.equal(after.charged, false);
-  assert.equal(after.pointsToRecharge, 6 + SPELL_RECHARGE_POINTS - 8);
+test('charge : un usage par chapitre (partie du dernier usage), plus de recharge par points', () => {
+  const spell = VOYAGEUR_SPELLS.find((s) => s.code === 'memoire');
+  assert.equal(buildSpellState(spell, { level: 2, points: 4, useRow: null }).unlocked, false);
+  assert.equal(buildSpellState(spell, { level: 3, points: 15, useRow: null }).charged, true);
+  const used = { uses_count: 1, last_used_points: 6, last_used_game_id: 42 };
+  const same = buildSpellState(spell, { level: 3, points: 30, useRow: used, currentGameId: 42 });
+  assert.equal(same.charged, false, 'déjà servi dans cette partie');
+  assert.equal(same.usedThisChapter, true);
+  assert.equal(same.pointsToRecharge, 0, 'la recharge par points a disparu');
   assert.equal(
-    buildSpellState(spell, { level: 2, points: 6 + SPELL_RECHARGE_POINTS, useRow: used }).charged,
+    buildSpellState(spell, { level: 3, points: 15, useRow: used, currentGameId: 43 }).charged,
     true,
+    'nouvelle traversée : rechargé',
   );
+  const messager = VOYAGEUR_SPELLS.find((s) => s.code === 'messager');
+  assert.equal(buildSpellState(messager, { level: 9, points: 99, useRow: null }).charged, false);
+  assert.equal(SPELL_RECHARGE_POINTS, 5, 'constante conservée pour compatibilité');
 });
 
 // --- Routes ------------------------------------------------------------------------------
@@ -166,7 +171,10 @@ test('GET /me — joueur neuf : niveau 1, grimoire verrouillé, expédition en c
   assert.equal(res.body.points, 0);
   assert.equal(res.body.stage.name, 'Graine');
   assert.equal(res.body.affinity.key, 'eveil');
-  assert.ok(res.body.grimoire.every((s) => s.unlocked === false));
+  // « Tenir à deux » : Seconde chance s'ouvre dès le niveau 1, le reste attend.
+  assert.equal(res.body.grimoire.find((s) => s.code === 'seconde_chance').unlocked, true);
+  assert.ok(res.body.grimoire.filter((s) => s.code !== 'seconde_chance').every((s) => !s.unlocked));
+  assert.equal(res.body.grimoire.find((s) => s.code === 'messager').perimetre, 'hors_perimetre');
   assert.equal(res.body.expedition.teamName, 'Les Ronces');
   assert.equal(res.body.expedition.teamType, 'unicorn');
   assert.equal(res.body.expedition.gameStatus, 'paused');
@@ -178,12 +186,13 @@ test('GET /me — joueur sans équipe : expédition nulle', async () => {
   assert.equal(res.body.expedition, null);
 });
 
-test('Seconde chance : verrouillée avant le niveau 2, puis lève un délai d’attente', async () => {
-  await request(app)
-    .post('/api/gl/voyageur/spells/seconde_chance/cast')
+test('Seconde chance : ouverte dès le niveau 1 (Mémoire fermée avant le 3), lève un délai d’attente', async () => {
+  const locked = await request(app)
+    .post('/api/gl/voyageur/spells/memoire/cast')
     .set('Authorization', `Bearer ${playerToken}`)
-    .send({ target: 'species:x' })
+    .send({ target: 'x' })
     .expect(409);
+  assert.equal(locked.body.code, 'SPELL_LOCKED');
 
   await addAcks(playerId, 'species', 5, 'sp');
   const me = await getMe().expect(200);
@@ -212,8 +221,8 @@ test('Seconde chance : verrouillée avant le niveau 2, puis lève un délai d’
     .send({ target: `species:${ref}` })
     .expect(200);
   assert.equal(cast.body.success, true);
-  assert.equal(cast.body.spell.charged, false);
-  assert.equal(cast.body.spell.pointsToRecharge, SPELL_RECHARGE_POINTS);
+  assert.equal(cast.body.spell.charged, false, 'un usage par chapitre');
+  assert.equal(cast.body.spell.usedThisChapter, true);
   const row = await queryOne(
     `SELECT 1 AS ok FROM gl_resource_gating_cooldowns
       WHERE reader_user_type = 'gl_player' AND reader_user_id = ? AND resource_ref = ?`,
@@ -222,7 +231,7 @@ test('Seconde chance : verrouillée avant le niveau 2, puis lève un délai d’
   assert.equal(row, undefined);
 });
 
-test('Seconde chance : sans charge 409, rechargée après de nouveaux acquis', async () => {
+test('Seconde chance : sans charge 409, rechargée à la traversée suivante', async () => {
   const ref = `sp-lock2-${stamp}`;
   await execute(
     `INSERT INTO gl_resource_gating_cooldowns
@@ -237,7 +246,13 @@ test('Seconde chance : sans charge 409, rechargée après de nouveaux acquis', a
     .expect(409);
   assert.equal(refused.body.code, 'SPELL_NOT_CHARGED');
 
+  // Nouvelle traversée : le dernier usage appartient à une autre partie (les acquis, eux,
+  // continuent de faire grandir le niveau).
   await addAcks(playerId, 'glossary', SPELL_RECHARGE_POINTS, 'gl');
+  await execute(
+    "UPDATE gl_voyageur_spell_uses SET last_used_game_id = NULL WHERE player_id = ? AND spell_code = 'seconde_chance'",
+    [String(playerId)],
+  );
   await request(app)
     .post('/api/gl/voyageur/spells/seconde_chance/cast')
     .set('Authorization', `Bearer ${playerToken}`)
@@ -247,6 +262,10 @@ test('Seconde chance : sans charge 409, rechargée après de nouveaux acquis', a
 
 test('Seconde chance : cible absente → 404, charge non consommée', async () => {
   await addAcks(playerId, 'ecosystem', SPELL_RECHARGE_POINTS, 'eco');
+  await execute(
+    "UPDATE gl_voyageur_spell_uses SET last_used_game_id = NULL WHERE player_id = ? AND spell_code = 'seconde_chance'",
+    [String(playerId)],
+  );
   const res = await request(app)
     .post('/api/gl/voyageur/spells/seconde_chance/cast')
     .set('Authorization', `Bearer ${playerToken}`)

@@ -28,11 +28,17 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
   }, []);
 
   const startDraft = useCallback(
-    async ({ spellCode, teamId }) => {
+    async ({ spellCode, teamId, ressource, partnerTeamId, effectParams, playerId }) => {
       if (!gameId) throw new Error('Aucune partie active');
       return runAction(async () => {
         const body = { spellCode };
         if (teamId != null && Number(teamId) > 0) body.teamId = Number(teamId);
+        // « Tenir à deux » v2 : ressource au choix, partenaire du pacte, paramètres d'effet.
+        if (ressource) body.ressource = ressource;
+        if (partnerTeamId != null && Number(partnerTeamId) > 0)
+          body.partnerTeamId = Number(partnerTeamId);
+        if (effectParams && typeof effectParams === 'object') body.effectParams = effectParams;
+        if (playerId != null && Number(playerId) > 0) body.playerId = Number(playerId);
         const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts`, 'POST', body);
         setDraft(data?.draft || null);
         return data?.draft;

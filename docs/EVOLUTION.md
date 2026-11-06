@@ -10,6 +10,16 @@ par des quick wins.
 
 ## 1.1 Réalisé
 
+- **Novembre 2026 — GL : mouture « Tenir à deux » v2** (dossier `docs/GL_TENIR_A_DEUX.md`, règles
+  `docs/GL_TENIR_A_DEUX_REGLES.md`, migrations `330` → `333`). Décisions du 06/11/2026 :
+  **deux monnaies** privées (gemmes licornes, cœurs gnomes, plafond 8/8) et **fin de la conduite par
+  cœurs** (le retrait est un état hors économie, jamais une bourse touchée) ; **grimoire du voyageur
+  par chapitre** (un usage par partie, la recharge par points disparaît) ; **le +3 à l'arrivée au camp
+  est neutralisé** (l'équipe arrivée joue pour la plus en retard) ; **la traversée coupée** (le prof clôt à
+  la date fixée : la caravane porte les retardataires) ; l'erreur ne punit jamais ; aucun classement
+  d'élèves. Tour à phases projeté, chasse (fouiller / tenir à deux), voile, oiseau témoin muet,
+  Marché (place, dons, parures), grimoire v2 exécuté par le serveur, honneurs / titres / badges,
+  péripéties, Bestiaire, Olu commentateur, exports CSV.
 - **Juillet 2026 — GL : acquisition des feuillets par consultation (stratégie ③)** : socle
   permettant qu'un élément consultable du site donne un feuillet. À la **première consultation
   gatée** (QCM lié réussi), le joueur gagne un feuillet du **pool du chapitre** (biome ∈ chapitre

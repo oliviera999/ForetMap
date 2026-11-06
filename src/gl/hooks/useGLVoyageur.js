@@ -44,10 +44,12 @@ export function useGLVoyageur({ enabled = true } = {}) {
 
   const castSpell = useCallback(
     async (code, target) => {
+      // Plume `{ titre, texte }` et Flair `{ x, y }` envoient un objet ; les autres une cible texte.
+      const body = target && typeof target === 'object' ? target : { target };
       const result = await apiGL(
         `/api/gl/voyageur/spells/${encodeURIComponent(code)}/cast`,
         'POST',
-        { target },
+        body,
       );
       await reload();
       return result;

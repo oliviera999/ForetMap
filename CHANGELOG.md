@@ -9,6 +9,146 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L « Tenir à deux » v2 : bloc tenir côté client, libellés du journal, captures
+
+- Le modèle de vue client (`toGameViewModel`) conserve désormais le bloc `tenir` renvoyé par
+  `GET /api/gl/games/:id` : l'écran d'équipe et l'onglet « Jouer le tour » se montaient
+  seulement en test, jamais dans l'application réelle.
+- Journal de partie : libellés lisibles pour les 46 évènements « Tenir à deux »
+  (`lib/glJournalPresentTenir.js` : tour, phases, vent, dés, fouilles, pages, voile, chapardeur,
+  honneurs…) au lieu de « Un évènement s'est produit dans la partie » ; sans chaîne interdite,
+  évènements privés lus sur leurs seules clés publiques (`tests/gl-journal-tenir-libelles`).
+- Captures des quatre vues dans `docs/captures/tenir-v2/`.
+- Zones de chasse : les **28 polygones** manquants de `data/gl/tenir/chasse-zones.json` sont
+  tracés sur les fonds de plateau de production (octogones centrés sur la scène décrite par le
+  titre privé ; planches de contrôle `docs/captures/tenir-v2/zones-plateau-N.jpg`). Le test de
+  contenu « géométrie » passe au vert ; dry-run du chargeur OK sur la base complète.
+
+### Ajouté — G&L « Tenir à deux » v2, étape 4 : grimoire exécuté, honneurs, Olu, exports, docs
+
+- Migration `333_gl_tenir_grimoire.sql` : semis du grimoire v2 (25 sorts de `sorts.json`,
+  ouvertures cumulatives par plateau), honneurs, titres d'élèves, badges, missions, Bestiaire des
+  chimères, Héritages, plumes du voyageur, un usage de sort du voyageur par chapitre.
+- Grimoire v2 exécuté : fenêtres avec message (`lib/glSpellFenetres.js`), limites par tour /
+  partie / chapitre-élève / trimestre-élève, coût par ressource (peuple, choix, pacte), pot
+  pré-rempli (parts égales entre présents non en retrait, reste au plus riche), effets automatiques
+  (`lib/glSpellEffectsApply.js` : Progression, Relance, Farce, Héritage, Lanterne, Boussole,
+  Bourrasque, Grand Regard, Sentier, Abri, Relais, Cordée — le meilleur des deux jets dans le
+  moteur), file du prof (`spell_file`) et « Nommer » via `effect-applied { zoneKey }` ; seuls les
+  sorts v2 officiels sont lançables en mode tenir ; l'import xlsx n'écrase jamais un sort v2.
+- Grimoire du voyageur réaligné : niveaux 1–6, un usage par chapitre, Flair (fouille personnelle
+  en veillée), Plume (page vierge relue par le prof), Messager réservé.
+- Honneurs / sceaux / titres à la clôture (un par équipe au plus, « Très Grands » en cas de double),
+  missions réussies (saisie prof), badges individuels calculés (`lib/glTenirBadges.js`) et à la
+  main du prof, Bestiaire des chimères, Olu commentateur (moments par événement, erreur du jour,
+  correction), péripéties plein écran, exports CSV par classe (Team Spirit, badges).
+- Front : assistant de sort v2 (peuple, fenêtre, limite, paramètres d'effet), console MJ (file
+  Nommer, panneau honneurs / missions / badges / relectures / exports), Seuil (Plume, Flair,
+  titres, badges), titre sous la mascotte, bulle d'Olu, péripétie, Bestiaire.
+- Docs : `docs/GL_TENIR_A_DEUX.md`, `docs/API.md`, `docs/EVOLUTION.md`, `GL_TESTS.md`,
+  `GL_GAMEPLAY_PRESETS.md`, `GL_FEUILLET_ZONES.md`, `docs/reference/gl/*` (+ `README.md`).
+- Tests : `gl-spell-effects-pure`, `gl-grimoire-v2`, `gl-tenir-honneurs`, `gl-tenir-badges`,
+  `gl-tenir-chimeres`, `gl-tenir-olu`, `gl-voyageur-tenir`, `gl-tenir-exports`,
+  `gl-tenir-economie-globale` ; UI `GLPeripetieOverlay`, `tenir-chaines-interdites`.
+
+### Ajouté — G&L « Tenir à deux » v2, étape 3 : chasse, tenir à deux, voile, oiseau témoin
+
+- Migration `332_gl_tenir_chasse.sql` : pages de chasse par partie (`endormie → revelee →
+  trouvee → tenue`, `palie → reparee`), ouvertures (tour / veillée, limite hebdomadaire),
+  empreintes publiques des fouilles, pistes de veillée, questions déjà présentées par zone.
+- `lib/glChasse.js` : fouille au clic (zone → question fixe puis thème de secours en excluant
+  les codes déjà vus ; à côté → verdict froid / tiède / chaud selon la distance au centroïde de
+  la zone endormie ou pâlie la plus proche), quota de fouilles par peuple (+ Grand Regard, 0
+  sous le voile sauf Abri / Cordée), page trouvée (feuillet découvert pour l'équipe, carnet
+  personnel des membres présents, nid du chapardeur rendu), réparation d'une page pâlie par
+  les Gnomes (+1 cœur chacun), lecture d'une page (même peuple : `read` sans gain), page
+  **tenue** par l'autre peuple sur bonne réponse de lecture (+1 ressource du peuple aux membres
+  des deux équipes, plafond), carnet complet (+1 à tout le groupe, voile −3, une fois), pistes
+  de veillée (étude d'une espèce liée à une page endormie → zone révélée, 1 par semaine).
+  Une mauvaise réponse ne retire rien et ne dit jamais « faux » (« Pas encore… »).
+- `lib/glVoile.js` : avance en phase `souffle` (`min(position + dé + bonus, camp − 1)`),
+  pâlissement des pages trouvées non lues des équipes recouvertes (sauf Abri / Cordée), zones
+  recouvertes → `palie`, reculs bornés à −1, aucune ressource retirée. `lib/glChapardeur.js` :
+  chapardeur au tour tiré (payload privé, plume vue du seul concerné et du prof), nid rendu au
+  membre le moins riche de l'équipe découvreuse.
+- Routes `/api/gl/games/:id/chasse` (carnet de la classe, empreintes, voile, oiseau ; lisible
+  en projection ; polygones servis au prof seul), `/chasse/fouiller`, `/chasse/repondre`,
+  `/chasse/pages/:zoneKey/ouvrir|tenir`, `/chasse/carnet` ; accroche des pistes dans
+  `POST /api/gl/learning/species/:code` (`piste` dans la réponse).
+- Front : calques plateau `GLChasseLayer` (empreintes, contours publics) et `GLVoileLayer`
+  (bande grise, cases recouvertes, légende « le voile »), oiseau témoin `GLKraaWitness`
+  (silhouette muette, sans nom ; Olu figé pendant son état via `glOluFreeze`), mode « Fouiller »
+  du plateau (clic → point normalisé, la mascotte ne bouge pas), carnet de la classe
+  `GLCarnetClasseView` (Lire / Tenir, question de lecture), carte question
+  `GLTenirQuestionCard`, hook `useGlChasse` ; projection enrichie du carnet.
+- Tests : `gl-chasse-pure`, `gl-chasse`, `gl-tenir-a-deux`, `gl-voile`, `gl-tenir-chapardeur`,
+  `gl-tenir-pistes` (backend, fixtures anonymes) ; `GLCarnetClasseView`, `GLChasseLayer` /
+  `GLVoileLayer` (UI, chaînes interdites vérifiées).
+
+### Ajouté — G&L « Tenir à deux » v2, étape 2 : tour à phases, surfaces, dés, seuil, Team Spirit
+
+- Migration `331_gl_tenir_tour.sql` : phases du tour (`ouverture → jeu → souffle → clos`),
+  ordre figé, équipe active, vent, dé gris, mot du Passeur, erreur du jour d'Olu, opérateurs ;
+  absences, saisies de dés (`gl_game_des_saisies`), bilans Team Spirit, Lumière.
+- `lib/glTour.js` : ouverture (ordre inverse du plateau, vent de la caravane dès le tour 2 si
+  une seule dernière, cartes → cases), phases, équipe suivante, permissions rejouées côté
+  serveur (403 `TENIR_PERMISSION`, 409 `TENIR_PHASE`), jet appliqué au bénéficiaire (équipe au
+  camp → la plus en retard), effets d'arrivée (Trame, Souffle, péripétie, première arrivée),
+  question de case (juste → +1 case et relance, sans score), Team Spirit / Lumière, correction
+  d'Olu. Verrou par équipe, jamais par partie.
+- Routes `/api/gl/games/:id/tenir/tour/*` (ouvrir, phase, équipe-suivante, absences, opérateurs,
+  fenêtre de fouille, team-spirit), `/tenir/lancer` (serveur | physique avec validation du prof
+  sur tablette | avance libre 1–12 cases motivée), `/tenir/des/:id/valider|refuser`,
+  `/tenir/lumiere/choix`, `/tenir/tour/olu-corrige`, `/tenir/peripetie/passer`,
+  `/projection-token`. L'ancienne route `dice-roll` refuse `count ≠ tenir_des_count` (400) et
+  renvoie vers `/tenir/lancer` (409) ; `POST /turn/next` → 409 en mode tenir.
+- Seuil (`lib/glSeuil.js`, à `POST /games/:id/end`) : la caravane porte les retardataires,
+  tour clos, annonces expirées, parures rendues, retraits clos, jeton de projection révoqué,
+  événement `seuil_clos` (honneurs à l'étape 4).
+- Projection (`lib/glProjection.js`, § 8.6) : jeton `gl_guest` à claim `projection` (12 h,
+  révocable), `requireGlAuthOrProjection` sur les seules lectures, `canAccessGlGame` accepte la
+  projection de SA partie ; `gl.html?projection=<jeton>` → `GLProjectionView` (plateau, voile,
+  Passeur, journal ; aucun bouton, aucune bourse).
+- Front : écran du tour MJ (`mj/GLTourScreen.jsx` + sablier, saisie de dés, souffle, Team
+  Spirit, journal) dans la console MJ (« Jouer le tour »), écran d'équipe
+  (`tenir/GLTenirEquipeView.jsx`) sur l'onglet Cartes pour hybride / tablette, gestes grisés par
+  les permissions servies ; hook `useGlTenirTour`.
+
+### Ajouté — G&L « Tenir à deux » v2, étape 1 : données, réglages, deux monnaies, Marché
+
+- Migration `330_gl_tenir_fondations.sql` : réglages `gameplay.tenir_*` (défauts), valeurs
+  décidées par la spec (plafonds 8/8, cœurs échangeables, lecture gratuite, pot `coordinator`,
+  déplacement automatique), profil et surcharges par partie (`gl_games.tenir_profil`,
+  `tenir_overrides_json`, `tenir_surface`, `projection_token_hash`), état `gl_game_tenir_state`,
+  effets temporaires, catalogues (`gl_chasse_zones`, questions de lecture, péripéties, missions,
+  titres, badges, lignes d'Olu, parures, pages du Passeur), colonnes du grimoire v2 sur
+  `gl_spells` / `gl_spell_cast_drafts`, place publique (`gl_market_annonces`), dons, parures
+  portées, retraits. Corrections de contenu : les 4 cases d'arrivée ne donnent plus +3 gemmes,
+  les cases quiz tirent dans tout le biome (« +1 case et on relance »).
+- Chargeur idempotent `npm run gl:import:tenir` (`lib/glTenirImport.js`, `--dry-run`,
+  `--forcer`, `--dossier`) : refuse codes inconnus, polygones invalides, chaînes interdites,
+  termes du tiers `secret` ; calcule centroïde et rang de case ; jeu d'exemple anonyme
+  `data/gl/tenir/exemple/`.
+- `lib/glTenir.js` (réglages résolus défauts ← base ← profil ← surcharges, ressource du
+  peuple, semaine ISO, trimestres, retraits, membres présents) ; noyau pur partagé
+  `src/shared/glTenirPermissionsCore.js` (permissions par surface, miroir `lib/shared/`).
+- Routes `GET /api/gl/games/:id/tenir`, `PUT …/tenir/profil`, `GET …/tenir/olu`,
+  `POST …/tenir/retrait` ; `GET /api/gl/games/:id` sert un bloc `tenir` et **filtre les
+  bourses** (un élève voit les siennes et celles de son équipe ; une projection aucune) ;
+  journal : payloads `private` réduits pour un joueur.
+- Deux monnaies : Trame = +1 de la ressource du peuple à chaque membre ; geste du prof sur une
+  bourse avec motif obligatoire, borné à ±3, plafonné ; Sentier annule la prochaine case
+  Souffle ; la traversée d'une zone feuillet n'applique plus les coûts/gains du JSON (double
+  débit), ancien déclenchement coupé par `gameplay.feuillet_zone_traversal_enabled`.
+- Composition : 4 équipes (2 gnomes, 2 licornes), rebrassées à chaque chapitre, peuple inversé
+  1↔2 et 3↔4 (contrainte dure, `buildPeopleConstraintForPlateau`).
+- Marché v2 : annonces (`cherche` / `offre` / `propose` → échange à deux pré-rempli, conclue à
+  la finalisation), dons immédiats plafonnés (surplus au donneur), comptoir des parures ; 403
+  `MARCHE_RETRAIT` pour un élève en retrait, `MARCHE_FERME` en profil `prologue`.
+- Admin : `GET /api/gl/admin/chasse-zones`, `PUT …/chasse-zones/:zoneKey/polygone`, éditeur
+  « Zones de chasse » (Contenus → Chapitres) avec export du JSON ; panneau de réglages
+  « Tenir à deux » ; bouton « Profil » dans la console MJ ; Marché à trois onglets avec dons.
+
 ### Ajouté — G&L « Tenir à deux » v2 : données et règles de référence
 
 - Spécification `docs/GL_TENIR_A_DEUX_REGLES.md` (mouture C, asymétrie / coopération).

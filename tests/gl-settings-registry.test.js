@@ -64,6 +64,10 @@ const HISTORICAL_GAMEPLAY_KEYS = [
   'gameplay.board_focus_fx_emoji',
   'gameplay.board_focus_fx_spotlight',
   'gameplay.board_focus_fx_sparkles',
+  // « Tenir à deux » v2 (migration 330) : ancien déclenchement des zones feuillets, puis
+  // les clés `tenir_*` dans l'ordre de `TENIR_SETTING_KEYS` (lib/glSettings.js).
+  'gameplay.feuillet_zone_traversal_enabled',
+  ...require('../lib/glSettings').TENIR_SETTING_KEYS,
 ];
 
 const HISTORICAL_MODULE_KEYS = [

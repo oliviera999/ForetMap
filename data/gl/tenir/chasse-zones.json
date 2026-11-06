@@ -7,7 +7,40 @@
       "feuillet_code": "ren-jungle-01",
       "titre_prive": "Le cri de la locomotive — le grand oiseau au bec à casque, posé sur une branche chargée de fruits (jamais montré)",
       "indice": "Là où un bruit d'ailes passe comme une locomotive au-dessus des fruits",
-      "polygone": null,
+      "polygone": [
+        [
+          0.1509,
+          0.4191
+        ],
+        [
+          0.1357,
+          0.4462
+        ],
+        [
+          0.1143,
+          0.4462
+        ],
+        [
+          0.0991,
+          0.4191
+        ],
+        [
+          0.0991,
+          0.3809
+        ],
+        [
+          0.1143,
+          0.3538
+        ],
+        [
+          0.1357,
+          0.3538
+        ],
+        [
+          0.1509,
+          0.3809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0068",
@@ -21,7 +54,40 @@
       "feuillet_code": "ren-jungle-02",
       "titre_prive": "L'animal découvert hier — l'animal aux pattes rayées et au corps sombre, à demi caché par les feuilles (jamais montré)",
       "indice": "Là où des pattes rayées se cachent sous un corps sombre, dans l'ombre des feuilles",
-      "polygone": null,
+      "polygone": [
+        [
+          0.3859,
+          0.8791
+        ],
+        [
+          0.3707,
+          0.9062
+        ],
+        [
+          0.3493,
+          0.9062
+        ],
+        [
+          0.3341,
+          0.8791
+        ],
+        [
+          0.3341,
+          0.8409
+        ],
+        [
+          0.3493,
+          0.8138
+        ],
+        [
+          0.3707,
+          0.8138
+        ],
+        [
+          0.3859,
+          0.8409
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0063",
@@ -35,7 +101,40 @@
       "feuillet_code": "sort-jungle-01",
       "titre_prive": "La corne dans la pénombre — le sous-bois le plus sombre, au pied des grands troncs (la boule d'écailles si elle est dessinée) (jamais montré)",
       "indice": "Là où il fait presque nuit en plein jour, au pied des géants",
-      "polygone": null,
+      "polygone": [
+        [
+          0.5459,
+          0.6591
+        ],
+        [
+          0.5307,
+          0.6862
+        ],
+        [
+          0.5093,
+          0.6862
+        ],
+        [
+          0.4941,
+          0.6591
+        ],
+        [
+          0.4941,
+          0.6209
+        ],
+        [
+          0.5093,
+          0.5938
+        ],
+        [
+          0.5307,
+          0.5938
+        ],
+        [
+          0.5459,
+          0.6209
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0098",
@@ -49,7 +148,40 @@
       "feuillet_code": "ep-I-colonne",
       "titre_prive": "Tropiques. La colonne. — le fleuve noir de la colonne de fourmis qui traverse le sous-bois (et l'arbre refuge, si la voyageuse y est perchée) (jamais montré)",
       "indice": "Là où le sol coule, noir et luisant, comme un fleuve qui ne contourne rien",
-      "polygone": null,
+      "polygone": [
+        [
+          0.2259,
+          0.5391
+        ],
+        [
+          0.2107,
+          0.5662
+        ],
+        [
+          0.1893,
+          0.5662
+        ],
+        [
+          0.1741,
+          0.5391
+        ],
+        [
+          0.1741,
+          0.5009
+        ],
+        [
+          0.1893,
+          0.4738
+        ],
+        [
+          0.2107,
+          0.4738
+        ],
+        [
+          0.2259,
+          0.5009
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0069",
@@ -77,7 +209,40 @@
       "feuillet_code": "ren-savane-01",
       "titre_prive": "L'arbre-citerne et la langue noire — le baobab au tronc énorme (ou l'acacia parasol brouté par la girafe) (jamais montré)",
       "indice": "Là où un tronc énorme garde l'eau de la saison des pluies",
-      "polygone": null,
+      "polygone": [
+        [
+          0.9309,
+          0.3191
+        ],
+        [
+          0.9157,
+          0.3462
+        ],
+        [
+          0.8943,
+          0.3462
+        ],
+        [
+          0.8791,
+          0.3191
+        ],
+        [
+          0.8791,
+          0.2809
+        ],
+        [
+          0.8943,
+          0.2538
+        ],
+        [
+          0.9157,
+          0.2538
+        ],
+        [
+          0.9309,
+          0.2809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0251",
@@ -91,7 +256,40 @@
       "feuillet_code": "ren-savane-02",
       "titre_prive": "La sentinelle — le groupe de petits guetteurs dressés sur le sable, l'un debout en sentinelle (jamais montré)",
       "indice": "Là où l'un se dresse et guette pendant que les autres creusent le sable",
-      "polygone": null,
+      "polygone": [
+        [
+          0.6559,
+          0.8791
+        ],
+        [
+          0.6407,
+          0.9062
+        ],
+        [
+          0.6193,
+          0.9062
+        ],
+        [
+          0.6041,
+          0.8791
+        ],
+        [
+          0.6041,
+          0.8409
+        ],
+        [
+          0.6193,
+          0.8138
+        ],
+        [
+          0.6407,
+          0.8138
+        ],
+        [
+          0.6559,
+          0.8409
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "GQCM0766",
@@ -105,7 +303,40 @@
       "feuillet_code": "sort-savane-01",
       "titre_prive": "La carte dans la tête — la harde d'éléphants, la matriarche en tête, ou la mare vers laquelle elle mène (jamais montré)",
       "indice": "Là où la plus vieille mène sa famille vers une eau qu'elle a vue enfant",
-      "polygone": null,
+      "polygone": [
+        [
+          0.8459,
+          0.5191
+        ],
+        [
+          0.8307,
+          0.5462
+        ],
+        [
+          0.8093,
+          0.5462
+        ],
+        [
+          0.7941,
+          0.5191
+        ],
+        [
+          0.7941,
+          0.4809
+        ],
+        [
+          0.8093,
+          0.4538
+        ],
+        [
+          0.8307,
+          0.4538
+        ],
+        [
+          0.8459,
+          0.4809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0277",
@@ -119,7 +350,40 @@
       "feuillet_code": "ren-sahara-01",
       "titre_prive": "Celui qui ne boit jamais — le petit renard aux oreilles immenses, devant son terrier dans la dune (jamais montré)",
       "indice": "Là où deux grandes oreilles attendent la nuit sur un corps minuscule",
-      "polygone": null,
+      "polygone": [
+        [
+          0.2259,
+          0.5991
+        ],
+        [
+          0.2107,
+          0.6262
+        ],
+        [
+          0.1893,
+          0.6262
+        ],
+        [
+          0.1741,
+          0.5991
+        ],
+        [
+          0.1741,
+          0.5609
+        ],
+        [
+          0.1893,
+          0.5338
+        ],
+        [
+          0.2107,
+          0.5338
+        ],
+        [
+          0.2259,
+          0.5609
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0009",
@@ -133,7 +397,40 @@
       "feuillet_code": "ren-sahara-02",
       "titre_prive": "La fleur qui attend cent ans — la boule d'épines sèches roulée par le vent sur le sable (jamais montré)",
       "indice": "Là où une boule d'épines sèches attend la pluie depuis des années",
-      "polygone": null,
+      "polygone": [
+        [
+          0.1109,
+          0.7991
+        ],
+        [
+          0.0957,
+          0.8262
+        ],
+        [
+          0.0743,
+          0.8262
+        ],
+        [
+          0.0591,
+          0.7991
+        ],
+        [
+          0.0591,
+          0.7609
+        ],
+        [
+          0.0743,
+          0.7338
+        ],
+        [
+          0.0957,
+          0.7338
+        ],
+        [
+          0.1109,
+          0.7609
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0037",
@@ -147,7 +444,40 @@
       "feuillet_code": "sort-sahara-01",
       "titre_prive": "La licorne du désert — l'antilope blanche aux longues cornes droites, dans l'air qui tremble (jamais montré)",
       "indice": "Là où deux longues cornes droites n'en font plus qu'une, vues de profil",
-      "polygone": null,
+      "polygone": [
+        [
+          0.2359,
+          0.3791
+        ],
+        [
+          0.2207,
+          0.4062
+        ],
+        [
+          0.1993,
+          0.4062
+        ],
+        [
+          0.1841,
+          0.3791
+        ],
+        [
+          0.1841,
+          0.3409
+        ],
+        [
+          0.1993,
+          0.3138
+        ],
+        [
+          0.2207,
+          0.3138
+        ],
+        [
+          0.2359,
+          0.3409
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0005",
@@ -175,7 +505,40 @@
       "feuillet_code": "ren-medit-01",
       "titre_prive": "Les chèvres dans l'arbre — les chèvres perchées dans les branches de l'arganier (jamais montré)",
       "indice": "Là où des brouteuses grimpent dans les branches pour manger les fruits",
-      "polygone": null,
+      "polygone": [
+        [
+          0.4659,
+          0.4591
+        ],
+        [
+          0.4507,
+          0.4862
+        ],
+        [
+          0.4293,
+          0.4862
+        ],
+        [
+          0.4141,
+          0.4591
+        ],
+        [
+          0.4141,
+          0.4209
+        ],
+        [
+          0.4293,
+          0.3938
+        ],
+        [
+          0.4507,
+          0.3938
+        ],
+        [
+          0.4659,
+          0.4209
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0467",
@@ -189,7 +552,40 @@
       "feuillet_code": "ren-medit-02",
       "titre_prive": "Le vieux cèdre et ses singes — le vieux cèdre de l'Atlas et les singes sans queue dans ses branches (jamais montré)",
       "indice": "Là où un vieil arbre à aiguilles abrite des grimpeurs sans queue",
-      "polygone": null,
+      "polygone": [
+        [
+          0.5959,
+          0.2591
+        ],
+        [
+          0.5807,
+          0.2862
+        ],
+        [
+          0.5593,
+          0.2862
+        ],
+        [
+          0.5441,
+          0.2591
+        ],
+        [
+          0.5441,
+          0.2209
+        ],
+        [
+          0.5593,
+          0.1938
+        ],
+        [
+          0.5807,
+          0.1938
+        ],
+        [
+          0.5959,
+          0.2209
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0429",
@@ -203,7 +599,40 @@
       "feuillet_code": "sort-medit-01",
       "titre_prive": "La graine qui attend le feu — la garrigue brûlée où le vert repousse (pins aux cônes fermés, cistes) (jamais montré)",
       "indice": "Là où le noir du feu est passé et où le vert revient déjà",
-      "polygone": null,
+      "polygone": [
+        [
+          0.7559,
+          0.6491
+        ],
+        [
+          0.7407,
+          0.6762
+        ],
+        [
+          0.7193,
+          0.6762
+        ],
+        [
+          0.7041,
+          0.6491
+        ],
+        [
+          0.7041,
+          0.6109
+        ],
+        [
+          0.7193,
+          0.5838
+        ],
+        [
+          0.7407,
+          0.5838
+        ],
+        [
+          0.7559,
+          0.6109
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0436",
@@ -231,7 +660,40 @@
       "feuillet_code": "ren-caduc-01",
       "titre_prive": "Le jardinier qui oublie — l'oiseau criard au plumage rose-brun, un gland au bec, au pied d'un chêne (jamais montré)",
       "indice": "Là où un oiseau criard enterre des glands qu'il oubliera",
-      "polygone": null,
+      "polygone": [
+        [
+          0.2609,
+          0.4491
+        ],
+        [
+          0.2457,
+          0.4762
+        ],
+        [
+          0.2243,
+          0.4762
+        ],
+        [
+          0.2091,
+          0.4491
+        ],
+        [
+          0.2091,
+          0.4109
+        ],
+        [
+          0.2243,
+          0.3838
+        ],
+        [
+          0.2457,
+          0.3838
+        ],
+        [
+          0.2609,
+          0.4109
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0213",
@@ -245,7 +707,40 @@
       "feuillet_code": "ren-caduc-02",
       "titre_prive": "Six semaines de lumière — le tapis de fleurs blanches et bleues au pied des arbres encore nus (jamais montré)",
       "indice": "Là où le sol fleurit avant que les feuilles des arbres ne ferment le ciel",
-      "polygone": null,
+      "polygone": [
+        [
+          0.3959,
+          0.6191
+        ],
+        [
+          0.3807,
+          0.6462
+        ],
+        [
+          0.3593,
+          0.6462
+        ],
+        [
+          0.3441,
+          0.6191
+        ],
+        [
+          0.3441,
+          0.5809
+        ],
+        [
+          0.3593,
+          0.5538
+        ],
+        [
+          0.3807,
+          0.5538
+        ],
+        [
+          0.3959,
+          0.5809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0195",
@@ -259,7 +754,40 @@
       "feuillet_code": "sort-caduc-01",
       "titre_prive": "Le réseau sous les pieds — les champignons au pied d'un vieux chêne, la mousse et les racines (jamais montré)",
       "indice": "Là où des champignons relient les racines sous la mousse",
-      "polygone": null,
+      "polygone": [
+        [
+          0.1459,
+          0.8591
+        ],
+        [
+          0.1307,
+          0.8862
+        ],
+        [
+          0.1093,
+          0.8862
+        ],
+        [
+          0.0941,
+          0.8591
+        ],
+        [
+          0.0941,
+          0.8209
+        ],
+        [
+          0.1093,
+          0.7938
+        ],
+        [
+          0.1307,
+          0.7938
+        ],
+        [
+          0.1459,
+          0.8209
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0219",
@@ -287,7 +815,40 @@
       "feuillet_code": "ren-landes-01",
       "titre_prive": "La forêt naine — le tapis de bruyère rose et d'ajonc jaune sur la lande (jamais montré)",
       "indice": "Là où une forêt entière tient en dessous du genou, rose et jaune",
-      "polygone": null,
+      "polygone": [
+        [
+          0.5959,
+          0.8191
+        ],
+        [
+          0.5807,
+          0.8462
+        ],
+        [
+          0.5593,
+          0.8462
+        ],
+        [
+          0.5441,
+          0.8191
+        ],
+        [
+          0.5441,
+          0.7809
+        ],
+        [
+          0.5593,
+          0.7538
+        ],
+        [
+          0.5807,
+          0.7538
+        ],
+        [
+          0.5959,
+          0.7809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0612",
@@ -301,7 +862,40 @@
       "feuillet_code": "ren-landes-02",
       "titre_prive": "Le piège gluant — la petite plante rouge aux poils gluants, au bord de la tourbière (jamais montré)",
       "indice": "Là où une plante poisseuse referme ses poils sur un moucheron",
-      "polygone": null,
+      "polygone": [
+        [
+          0.7659,
+          0.7191
+        ],
+        [
+          0.7507,
+          0.7462
+        ],
+        [
+          0.7293,
+          0.7462
+        ],
+        [
+          0.7141,
+          0.7191
+        ],
+        [
+          0.7141,
+          0.6809
+        ],
+        [
+          0.7293,
+          0.6538
+        ],
+        [
+          0.7507,
+          0.6538
+        ],
+        [
+          0.7659,
+          0.6809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0636",
@@ -315,7 +909,40 @@
       "feuillet_code": "sort-landes-01",
       "titre_prive": "La mousse qui guérit — le tapis de mousse spongieuse, verte et rousse, de la tourbière (jamais montré)",
       "indice": "Là où le pied s'enfonce dans une éponge verte et rousse",
-      "polygone": null,
+      "polygone": [
+        [
+          0.8659,
+          0.6391
+        ],
+        [
+          0.8507,
+          0.6662
+        ],
+        [
+          0.8293,
+          0.6662
+        ],
+        [
+          0.8141,
+          0.6391
+        ],
+        [
+          0.8141,
+          0.6009
+        ],
+        [
+          0.8293,
+          0.5738
+        ],
+        [
+          0.8507,
+          0.5738
+        ],
+        [
+          0.8659,
+          0.6009
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0618",
@@ -329,7 +956,40 @@
       "feuillet_code": "sc-landes-nuit",
       "titre_prive": "Le moteur dans la nuit — l'oiseau couleur d'écorce, large bec ouvert, au ras de la bruyère dans le crépuscule (jamais montré)",
       "indice": "Là où un moteur ronfle dans la nuit de la lande, et ce n'est que quelqu'un qui dîne",
-      "polygone": null,
+      "polygone": [
+        [
+          0.6759,
+          0.4691
+        ],
+        [
+          0.6607,
+          0.4962
+        ],
+        [
+          0.6393,
+          0.4962
+        ],
+        [
+          0.6241,
+          0.4691
+        ],
+        [
+          0.6241,
+          0.4309
+        ],
+        [
+          0.6393,
+          0.4038
+        ],
+        [
+          0.6607,
+          0.4038
+        ],
+        [
+          0.6759,
+          0.4309
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0605",
@@ -357,7 +1017,40 @@
       "feuillet_code": "ep-VII-tourb-1",
       "titre_prive": "Les landes. Ni terre ni eau. — la tourbière plate et brune, la bouillie noire où le petit s'enfonce jusqu'aux cuisses (jamais montré)",
       "indice": "Là où le sol n'est ni terre ni eau, et se referme comme une main molle",
-      "polygone": null,
+      "polygone": [
+        [
+          0.6459,
+          0.6891
+        ],
+        [
+          0.6307,
+          0.7162
+        ],
+        [
+          0.6093,
+          0.7162
+        ],
+        [
+          0.5941,
+          0.6891
+        ],
+        [
+          0.5941,
+          0.6509
+        ],
+        [
+          0.6093,
+          0.6238
+        ],
+        [
+          0.6307,
+          0.6238
+        ],
+        [
+          0.6459,
+          0.6509
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0639",
@@ -371,7 +1064,40 @@
       "feuillet_code": "ren-taiga-01",
       "titre_prive": "Les raquettes du lièvre — le lièvre blanc dans la neige (ou le lynx aux oreilles à pinceaux qui le suit) (jamais montré)",
       "indice": "Là où un manteau devenu blanc se perd dans la neige, et des oreilles à pinceaux le suivent",
-      "polygone": null,
+      "polygone": [
+        [
+          0.1459,
+          0.3291
+        ],
+        [
+          0.1307,
+          0.3562
+        ],
+        [
+          0.1093,
+          0.3562
+        ],
+        [
+          0.0941,
+          0.3291
+        ],
+        [
+          0.0941,
+          0.2909
+        ],
+        [
+          0.1093,
+          0.2638
+        ],
+        [
+          0.1307,
+          0.2638
+        ],
+        [
+          0.1459,
+          0.2909
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0364",
@@ -385,7 +1111,40 @@
       "feuillet_code": "ren-taiga-02",
       "titre_prive": "L'ingénieur à dents oranges — la hutte de branchages et le barrage qui fait un étang sur le ruisseau (jamais montré)",
       "indice": "Là où un tas de branches barre le ruisseau et fait un étang",
-      "polygone": null,
+      "polygone": [
+        [
+          0.1359,
+          0.4891
+        ],
+        [
+          0.1207,
+          0.5162
+        ],
+        [
+          0.0993,
+          0.5162
+        ],
+        [
+          0.0841,
+          0.4891
+        ],
+        [
+          0.0841,
+          0.4509
+        ],
+        [
+          0.0993,
+          0.4238
+        ],
+        [
+          0.1207,
+          0.4238
+        ],
+        [
+          0.1359,
+          0.4509
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0396",
@@ -399,7 +1158,40 @@
       "feuillet_code": "sort-taiga-01",
       "titre_prive": "Le saumon qui nourrit les arbres — la rivière où remontent les poissons, sous les conifères de la berge (jamais montré)",
       "indice": "Là où des poissons remontent la rivière pour mourir sous les arbres",
-      "polygone": null,
+      "polygone": [
+        [
+          0.2259,
+          0.6391
+        ],
+        [
+          0.2107,
+          0.6662
+        ],
+        [
+          0.1893,
+          0.6662
+        ],
+        [
+          0.1741,
+          0.6391
+        ],
+        [
+          0.1741,
+          0.6009
+        ],
+        [
+          0.1893,
+          0.5738
+        ],
+        [
+          0.2107,
+          0.5738
+        ],
+        [
+          0.2259,
+          0.6009
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0369",
@@ -427,7 +1219,40 @@
       "feuillet_code": "ren-toundra-01",
       "titre_prive": "Le pot de fleurs solaire — la fleur jaune tournée vers le soleil de minuit (été polaire) (jamais montré)",
       "indice": "Là où une fleur tourne sa corolle vers un soleil qui ne se couche pas",
-      "polygone": null,
+      "polygone": [
+        [
+          0.6859,
+          0.8891
+        ],
+        [
+          0.6707,
+          0.9162
+        ],
+        [
+          0.6493,
+          0.9162
+        ],
+        [
+          0.6341,
+          0.8891
+        ],
+        [
+          0.6341,
+          0.8509
+        ],
+        [
+          0.6493,
+          0.8238
+        ],
+        [
+          0.6707,
+          0.8238
+        ],
+        [
+          0.6859,
+          0.8509
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0138",
@@ -441,7 +1266,40 @@
       "feuillet_code": "ren-toundra-02",
       "titre_prive": "Onze œufs ou aucun — le grand oiseau blanc aux yeux jaunes, posé ou en vol au-dessus de la toundra (jamais montré)",
       "indice": "Là où un guetteur blanc aux yeux jaunes pond onze œufs, ou aucun",
-      "polygone": null,
+      "polygone": [
+        [
+          0.7459,
+          0.6891
+        ],
+        [
+          0.7307,
+          0.7162
+        ],
+        [
+          0.7093,
+          0.7162
+        ],
+        [
+          0.6941,
+          0.6891
+        ],
+        [
+          0.6941,
+          0.6509
+        ],
+        [
+          0.7093,
+          0.6238
+        ],
+        [
+          0.7307,
+          0.6238
+        ],
+        [
+          0.7459,
+          0.6509
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0152",
@@ -455,7 +1313,40 @@
       "feuillet_code": "ren-toundra-03",
       "titre_prive": "Le cercle de cornes — le cercle de grosses bêtes à cornes, les petits au milieu (nuit polaire) (jamais montré)",
       "indice": "Là où les cornes forment un cercle, les petits au milieu, par moins quarante",
-      "polygone": null,
+      "polygone": [
+        [
+          0.9259,
+          0.6191
+        ],
+        [
+          0.9107,
+          0.6462
+        ],
+        [
+          0.8893,
+          0.6462
+        ],
+        [
+          0.8741,
+          0.6191
+        ],
+        [
+          0.8741,
+          0.5809
+        ],
+        [
+          0.8893,
+          0.5538
+        ],
+        [
+          0.9107,
+          0.5538
+        ],
+        [
+          0.9259,
+          0.5809
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0124",
@@ -469,7 +1360,40 @@
       "feuillet_code": "sort-toundra-01",
       "titre_prive": "Le lichen de trois millimètres — le tapis pâle du lichen, brouté par le troupeau de rennes (jamais montré)",
       "indice": "Là où un tapis pâle pousse de trois millimètres par an",
-      "polygone": null,
+      "polygone": [
+        [
+          0.6959,
+          0.4791
+        ],
+        [
+          0.6807,
+          0.5062
+        ],
+        [
+          0.6593,
+          0.5062
+        ],
+        [
+          0.6441,
+          0.4791
+        ],
+        [
+          0.6441,
+          0.4409
+        ],
+        [
+          0.6593,
+          0.4138
+        ],
+        [
+          0.6807,
+          0.4138
+        ],
+        [
+          0.6959,
+          0.4409
+        ]
+      ],
       "polygone_ref": null,
       "rang_case": null,
       "question_code": "QCM0134",
