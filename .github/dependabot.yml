@@ -26,6 +26,14 @@ updates:
       - 'dependencies'
     commit-message:
       prefix: 'chore(deps)'
+    # DiceBear : `@dicebear/core` et le style `@dicebear/adventurer-neutral` doivent changer de
+    # version majeure ensemble (le style exige `@dicebear/core ^9` en dépendance « peer »). Le
+    # passage seul du cœur en 10.x (#612) avait cassé l'avatar par défaut (`createAvatar`
+    # retiré). Montée de version majeure à faire à la main, avec l'adaptation de
+    # `lib/defaultAvatar.js`.
+    ignore:
+      - dependency-name: '@dicebear/*'
+        update-types: ['version-update:semver-major']
     # Regroupe correctifs + mineures en une PR ; les majeures restent des PR séparées (plus visibles)
     groups:
       npm-patch-minor:
