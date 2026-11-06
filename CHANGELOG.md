@@ -19,6 +19,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   honneurs…) au lieu de « Un évènement s'est produit dans la partie » ; sans chaîne interdite,
   évènements privés lus sur leurs seules clés publiques (`tests/gl-journal-tenir-libelles`).
 - Captures des quatre vues dans `docs/captures/tenir-v2/`.
+- Zones de chasse : les **28 polygones** manquants de `data/gl/tenir/chasse-zones.json` sont
+  tracés sur les fonds de plateau de production (octogones centrés sur la scène décrite par le
+  titre privé ; planches de contrôle `docs/captures/tenir-v2/zones-plateau-N.jpg`). Le test de
+  contenu « géométrie » passe au vert ; dry-run du chargeur OK sur la base complète.
 
 ### Ajouté — G&L « Tenir à deux » v2, étape 4 : grimoire exécuté, honneurs, Olu, exports, docs
 

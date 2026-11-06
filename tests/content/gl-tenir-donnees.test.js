@@ -5,9 +5,11 @@
  *
  * Contrôles STATIQUES (toujours) : comptes attendus, 8/8/10/10 zones, une question de lecture
  * par zone, chaque sort du § 10 présent avec fenêtre et limite, aucune chaîne interdite, et
- * **au moins 8 zones par plateau avec géométrie** — ce dernier point est ROUGE tant que les
- * 28 polygones ne sont pas dessinés (éditeur Contenus → Chapitres → Zones de chasse, puis
- * « Exporter le JSON »). Il tombe sous son propre nom, sans bloquer le job `test`.
+ * **au moins 8 zones par plateau avec géométrie** (les 36 polygones sont posés : 28 inline,
+ * tracés sur les fonds de plateau de production, planches `docs/captures/tenir-v2/zones-plateau-N.jpg`,
+ * 8 par `polygone_ref`). Une zone redessinée dans l'éditeur (Contenus → Chapitres → Zones de
+ * chasse, « Exporter le JSON ») doit rester ≥ 3 points dans [0,1]. Chaque contrôle tombe sous
+ * son propre nom, sans bloquer le job `test`.
  *
  * Contrôles EN BASE (`--dry-run` du chargeur, termes secrets, codes) : seulement si la base
  * porte les chapitres de plateau 1-4 (production / fixture locale) — une base neuve de CI ne
@@ -172,7 +174,7 @@ test('aucune chaîne interdite dans un champ visible des élèves', () => {
   assert.deepEqual(failures, []);
 });
 
-test('géométrie : au moins 8 zones par plateau avec polygone (inline ou polygone_ref) — rouge tant que les 28 polygones ne sont pas dessinés', () => {
+test('géométrie : au moins 8 zones par plateau avec polygone (inline ou polygone_ref), chaque polygone ≥ 3 points dans [0,1]', () => {
   const zones = readJson('chasse-zones').zones;
   const catalog = JSON.parse(
     fs.readFileSync(
@@ -182,12 +184,19 @@ test('géométrie : au moins 8 zones par plateau avec polygone (inline ou polygo
   ).zones;
   const refs = new Map(catalog.map((z) => [z.zone_id, z]));
   const ready = {};
+  const sansGeometrie = [];
   for (const z of zones) {
     const ok =
       isValidPolygon(z.polygone) ||
       (z.polygone_ref && isValidPolygon(refs.get(z.polygone_ref)?.polygone));
     ready[z.plateau] = (ready[z.plateau] || 0) + (ok ? 1 : 0);
+    if (!ok) sansGeometrie.push(z.zone_key);
   }
+  assert.deepEqual(
+    sansGeometrie,
+    [],
+    `Zones sans polygone valide (≥ 3 points dans [0,1], inline ou polygone_ref) : ${sansGeometrie.join(', ')}`,
+  );
   const missing = [1, 2, 3, 4].filter((p) => (ready[p] || 0) < 8);
   assert.deepEqual(
     missing,
