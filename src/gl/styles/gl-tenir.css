@@ -247,7 +247,7 @@
   text-align: center;
 }
 .gl-peripetie-overlay__texte {
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
   line-height: 1.4;
 }
 
@@ -287,7 +287,7 @@
 /* Titre sous la mascotte, badges du Seuil */
 .gl-board-mascot__titre {
   display: block;
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   text-align: center;
   white-space: nowrap;
   color: var(--ink-muted);
@@ -303,7 +303,7 @@
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 .gl-spell-tile.is-disabled {
   opacity: 0.55;
