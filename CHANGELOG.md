@@ -46,7 +46,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   depuis `scripts/data/task-taxonomy-annex2.json` (préfixes vérifiés, arrêt si ambigu) ;
   candidats « projet » et récurrence suspecte signalés à part, sans transformation.
 - **Lot E — moteur de badges** : `lib/rewards.js` devient `lib/rewards/` (API publique
-  conservée) — catalogue (`catalog.js`, 33 badges : métiers, formats et engagement, démarche
+  conservée) — catalogue (`catalog.js`, 34 entrées : métiers, formats et engagement, démarche
   de projet, Écotone, savoirs naturalistes, temps long, collectif, séances et fresque
   inchangés, badges manuels), paliers 🌸 Bourgeon / 🌼 Fleur / 🍎 Fruit en clés
   `<badge>.<n>` ; règle de crédit unique (`creditedTasks.js`) ; mesures agrégées
@@ -82,6 +82,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   comptes : date la plus ancienne gardée en cas de doublon, badges manuels renumérotés
   (`lib/rewards/merge.js`) ; export RGPD : badges et mot de l'adulte, sans l'identifiant de
   l'adulte. Aucun affichage public des badges.
+- **Lot I — documentation** : `docs/API.md` (métier, format, phase, filtres, avancement par
+  phase, `/api/rewards` complet, permission `rewards.award`), `docs/MCP.md` ; docs de
+  référence : `taches-tutoriels-et-validation.md` (choisir un métier et un format, type et
+  phases d'un projet, frise, filtres, « J'ai 15 minutes »), nouveaux `badges.md` (côté prof
+  et côté élève) et `badges-intentions.md` (note pédagogique), `vos-donnees.md`,
+  `durees-de-conservation.md`. Scénario e2e `tasks-taxonomy-badges.spec.js` (métier suggéré,
+  étiquettes, badge après validation) ; helper e2e de création de tâche adapté aux champs
+  obligatoires.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 

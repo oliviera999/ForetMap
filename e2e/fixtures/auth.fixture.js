@@ -1394,6 +1394,24 @@ async function expectTaskCardWithTitle(page, taskTitle) {
   });
 }
 
+/**
+ * Métier et format sont obligatoires à la création d'une tâche (migration 329) : sans
+ * suggestion reconnue dans le titre (« E2E Cycle … »), choisir Jardinage et Flash. Sans effet
+ * sur une proposition d'élève ou une modification (champs facultatifs, ou déjà remplis).
+ */
+async function chooseTaskTaxonomyIfRequired(dlg) {
+  for (const [group, option] of [
+    ['Métier de la tâche', /Jardinage/],
+    ['Format de la tâche', /Flash/],
+  ]) {
+    const grid = dlg.getByRole('group', { name: group });
+    if (!(await grid.isVisible().catch(() => false))) continue;
+    const pressed = await grid.locator('button[aria-pressed="true"]').count();
+    if (pressed > 0) continue;
+    await grid.getByRole('button', { name: option }).first().click({ force: true });
+  }
+}
+
 /** Soumet le formulaire « Nouvelle tâche » / proposition (évite scrollIntoView instable sur long formulaire). */
 async function submitTaskFormDialog(page) {
   const dlg = page
@@ -1402,6 +1420,7 @@ async function submitTaskFormDialog(page) {
     )
     .first();
   await dlg.waitFor({ state: 'visible', timeout: 35_000 });
+  await chooseTaskTaxonomyIfRequired(dlg);
   const createResp = page.waitForResponse(isTaskCreateHttpResponse, { timeout: 60_000 });
   /* Un seul `btn-full` primaire en bas de modale ; `force` évite les blocages « scroll / stable » Playwright. */
   await dlg.locator('button.btn-primary.btn-full').last().click({ force: true, timeout: 60_000 });
@@ -1533,6 +1552,7 @@ module.exports = {
   assignTaskByApi,
   unassignTaskByApi,
   submitTaskFormDialog,
+  chooseTaskTaxonomyIfRequired,
   fillTaskDescription,
   fillTaskTitle,
   expectTaskCardWithTitle,

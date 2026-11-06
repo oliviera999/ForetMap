@@ -223,7 +223,7 @@ sinon SQL en lecture seule (`lib/mcp/domains/`) sous la permission applicative �
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `foretmap_tasks` (`tasks`, essentiel)                 | list, get, logs\*, stats, to_validate, overdue, create é, update é, delete é, bulk_create é, duplicate é, validate é, set_status é, archive é, unarchive é, assign é\*, unassign é\*, mark_done é\*, assign_group é, add_log é, delete_log é, set_links é, recurrence é |
 | `foretmap_task_projects` (`task_projects`, essentiel) | list, get (avancement), create é, update é, delete é, duplicate é, hold é, validate é, archive é, unarchive é, reorder é (ordre des tâches d'un projet)                                                                                                                 |
-| `foretmap_students` (`students`, essentiel)           | tout nominatif : list, get, timeline, at_risk, create_bulk é, update é, deactivate é, reactivate é, merge é, reset_password_link é (lien masqué en sortie), reset_totp é, set_role é                                                                                    |
+| `foretmap_students` (`students`, essentiel)           | tout nominatif : list, get (badges décrits), timeline, at_risk, rewards_near, create_bulk é, update é, deactivate é, reactivate é, merge é, reset_password_link é (lien masqué en sortie), reset_totp é, set_role é                                                     |
 | `foretmap_groups` (`groups`, essentiel)               | list, get, create é, update é, delete é, set_members é\*, set_scopes é, class_report\*, progression_recompute é                                                                                                                                                         |
 | `foretmap_tutorials` (`tutorials`)                    | list, get, create é, update é, delete é, link é, unlink é, reads_stats, reads_detail\*                                                                                                                                                                                  |
 | `foretmap_learning` (`learning`)                      | gating_get, gating_set é, links_list, overrides\*, override_release é\*, links_suggest, links_accept é, links_reject é                                                                                                                                                  |
@@ -860,13 +860,13 @@ administrateurs.
 
 Lit **ce que le code trace déjà** (`lib/mcp/files/cron.js`) :
 
-| Tâche                                                                               | Trace                                                     | Attendue           |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
-| `recurring_tasks`, `auto_archive`, `notifications_purge`, `task_deadline_reminders` | `scheduled_job_runs` (jobs quotidiens de `server.js`)     | 24 h               |
-| `health_report`                                                                     | `scheduled_job_runs` (`scripts/health-report.js`)         | 24 h               |
-| `retention_purge`                                                                   | `retention_purge_runs` (migration 319)                    | 24 h               |
-| `auto_deploy`, `db_backup`, `uptime_check`                                          | dernière ligne horodatée de `logs/<ligne de crontab>.log` | 2 min, 24 h, 5 min |
-| `moodle_sync`, `reconcile_uploads` (facultatives)                                   | `logs/moodle-sync.log`, `logs/reconcile-uploads.log`      | 4 j, 32 j          |
+| Tâche                                                                                                   | Trace                                                     | Attendue           |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------ |
+| `recurring_tasks`, `auto_archive`, `notifications_purge`, `task_deadline_reminders`, `rewards_evaluate` | `scheduled_job_runs` (jobs quotidiens de `server.js`)     | 24 h               |
+| `health_report`                                                                                         | `scheduled_job_runs` (`scripts/health-report.js`)         | 24 h               |
+| `retention_purge`                                                                                       | `retention_purge_runs` (migration 319)                    | 24 h               |
+| `auto_deploy`, `db_backup`, `uptime_check`                                                              | dernière ligne horodatée de `logs/<ligne de crontab>.log` | 2 min, 24 h, 5 min |
+| `moodle_sync`, `reconcile_uploads` (facultatives)                                                       | `logs/moodle-sync.log`, `logs/reconcile-uploads.log`      | 4 j, 32 j          |
 
 `scheduled_job_runs` est **nouveau** (migration 325, `lib/scheduledJobs.js`) : les jobs
 quotidiens du serveur ne laissaient jusque-là qu'une ligne Pino, perdue au redémarrage. Le
