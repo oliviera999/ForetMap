@@ -45,6 +45,8 @@ const PAIRS = Object.freeze([
   // Taxonomie des tâches (métier, format, phase, type de projet), migration 329.
   ['src/shared/taskTaxonomyCore.js', 'taskTaxonomyCore.js'],
   ['src/shared/taskCategoryGuessCore.js', 'taskCategoryGuessCore.js'],
+  // Noyau des badges, commun ForetMap / Gnomes & Licornes (paliers, clés, libellés).
+  ['src/shared/rewards/rewardsCore.js', 'rewardsCore.js'],
   // Cœur des activités « fresque » (cartes + flèches cause → effet + correction), lot 2.
   ['src/shared/fresque/fresqueCore.js', 'fresqueCore.js'],
 ]);

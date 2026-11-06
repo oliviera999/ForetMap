@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../services/api.js';
 import { RewardAwardButton } from './RewardAwardDialog.jsx';
+import { RewardsSheetButton } from './RewardsStudentSheet.jsx';
 
 /**
  * Vitrine des badges d'un groupe (personnel) : élèves × familles (nombre de paliers obtenus)
  * et « Qui est proche d'un palier ? » (à 1 du seuil), pour proposer les bonnes tâches aux bons
  * élèves. **Aucun classement** : ordre alphabétique, tel que renvoyé par
- * `GET /api/rewards/groups/:id` (même périmètre que les inscrits).
+ * `GET /api/rewards/groups/:id` (même périmètre que les inscrits). Le nom d'un élève ouvre sa
+ * fiche de badges (`RewardsStudentSheet`).
  */
 export function RewardsShowcase({ groupId, canAward = false }) {
   const [data, setData] = useState(null);
@@ -74,7 +76,16 @@ export function RewardsShowcase({ groupId, canAward = false }) {
             <tbody>
               {data.students.map((s) => (
                 <tr key={s.id}>
-                  <th scope="row">{s.name}</th>
+                  <th scope="row">
+                    <RewardsSheetButton
+                      studentId={s.id}
+                      studentName={s.name}
+                      enabled
+                      className="btn btn-ghost btn-sm rewards-showcase__name"
+                    >
+                      {s.name}
+                    </RewardsSheetButton>
+                  </th>
                   {families.map((f) => (
                     <td key={f.key}>{s.families?.[f.key] || 0}</td>
                   ))}

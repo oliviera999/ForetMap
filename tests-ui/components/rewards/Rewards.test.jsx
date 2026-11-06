@@ -12,6 +12,7 @@ import { MyRewardsPanel } from '../../../src/components/rewards/MyRewardsPanel.j
 import { RewardCelebration } from '../../../src/components/rewards/RewardCelebration.jsx';
 import { RewardsShowcase } from '../../../src/components/rewards/RewardsShowcase.jsx';
 import { pluralizeUnit, progressLabel } from '../../../src/components/rewards/rewardsUi.js';
+import { resetCelebratedRewards } from '../../../src/shared/rewards/useRewardsCelebration.js';
 
 /**
  * Interfaces des badges (lot F) : progression vers le palier suivant, paliers à venir en
@@ -60,6 +61,7 @@ function setReducedMotion(reduce) {
 beforeEach(() => {
   apiMock.mockReset();
   setReducedMotion(false);
+  resetCelebratedRewards();
 });
 afterEach(() => {
   delete window.matchMedia;

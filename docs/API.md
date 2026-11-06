@@ -4151,12 +4151,18 @@ modification (`docs/reference/exploitation/durees-de-conservation.md`).
 
 Migrations `285` et `329`, table `user_rewards` (clé primaire `(user_id, reward_key)`,
 colonnes `source_type`, `source_ref`, `awarded_at`, `awarded_by_user_id`, `note`, `seen_at`).
-Catalogue et règles côté serveur (`lib/rewards/`) : 34 entrées — métiers (8), formats et
+Catalogue et règles côté serveur (`lib/rewards/`) : 41 entrées — métiers (8), formats et
 engagement (Colibri, Fidèle au poste, Parole tenue), démarche de projet (5 phases + Cycle
-complet), Écotone, savoirs naturalistes (Herbier vivant, Entomologiste, Lecteur de terrain,
-Notion maîtrisée), temps long (Phénologue, Racines), collectif (Semeur d'idées, Tuteur),
-séances et fresque (clés historiques inchangées), badges manuels (Sauveteur, Guide, Coup de
-main).
+complet), Écotone, exploration (Cartographe, Premières rencontres, Arpenteur), reportage et
+carnet (Œil de lynx, Plume verte), savoirs naturalistes (Herbier vivant, Entomologiste, Lecteur
+de terrain, Notion maîtrisée, Graine de savant), temps long (Phénologue, Racines), collectif
+(Semeur d'idées, Tuteur, Bonne idée), séances et fresque (clés historiques inchangées), badges
+manuels (Sauveteur, Guide, Coup de main).
+
+Moteur **générique**, commun aux produits (`lib/rewards/core/engine.js`, noyau partagé
+`src/shared/rewards/rewardsCore.js` + miroir `lib/shared/rewardsCore.js`) ; la forêt en est une
+instance (`lib/rewards/foretEngine.js`). Contrat pour Gnomes & Licornes :
+[`docs/REWARDS_ENGINE.md`](REWARDS_ENGINE.md).
 
 - **Paliers** 🌸 Bourgeon, 🌼 Fleur, 🍎 Fruit : une ligne par palier, clé `<badge>.<n>`
   (ex. `metier.jardinage.2`) ; badge unique : clé seule (`temps.racines`, `projet.cycle_complet`) ;
@@ -4169,8 +4175,11 @@ main).
   après la validation d'une tâche ou d'un projet, l'acceptation d'une proposition, une
   observation validée, une réponse au quiz, la lecture d'un tutoriel, une fin de séance ;
   passe de nuit `rewards_evaluate` (élèves actifs sur 30 jours) ; rattrapage
-  `node scripts/rewards-backfill.js [--all] [--apply]`. Badges de tâches, projets, savoirs et
-  collectif réservés aux comptes élèves au profil n3beur ; badges de séance : tout compte.
+  `node scripts/rewards-backfill.js [--all] [--apply]`. Les familles sans action déclenchante
+  (exploration, reportage, collectif — visite, découvertes d'espèces, mesures d'arbres,
+  carnet, photos de comptes rendus, réactions) sont aussi évaluées à chaque `GET /me`.
+  Badges de tâches, projets, exploration, reportage, savoirs et collectif réservés aux comptes
+  élèves au profil n3beur ; badges de séance : tout compte.
 - **Annonce** : notification `kind = 'reward'` (regroupée par action ; une seule
   récapitulative au rattrapage) si le module est allumé.
 
@@ -4180,7 +4189,7 @@ enregistrés (sans annonce, `rewards: []` en fin de séance) et apparaissent au 
 
 | Méthode | URL | Auth | Description |
 | ------- | --- | ---- | ----------- |
-| GET | `/api/rewards/me` | connecté | `{ rewards: [{ key, baseKey, family, emoji, title, description, tier, occurrence, awardedAt, note, seen }], progress: [{ key, family, value, tier, nextTier, nextThreshold, remaining }], catalogue: [{ key, family, emoji, title, description, unit, source, tiers: [{ n, emoji, label, threshold }] \| null }], families: [{ key, label }], tiers }` — rétrocompatible (champs ajoutés) |
+| GET | `/api/rewards/me` | connecté | Évalue d'abord les familles exploration, reportage et collectif (`source_type = 'open'` ; une panne d'évaluation est journalisée, la lecture continue), puis `{ rewards: [{ key, baseKey, family, emoji, title, description, tier, occurrence, awardedAt, note, seen }], progress: [{ key, family, value, tier, nextTier, nextThreshold, remaining }], catalogue: [{ key, family, emoji, title, description, unit, source, tiers: [{ n, emoji, label, threshold }] \| null }], families: [{ key, label }], tiers }` — rétrocompatible (champs ajoutés) |
 | POST | `/api/rewards/me/seen` | connecté | Pose `seen_at` sur les badges non vus → `{ seen }` |
 | GET | `/api/rewards/students/:id` | personnel qui lit les inscriptions (`tasks.manage`, `tasks.validate`, `stats.read.*`) + élève du périmètre (`canAccessStudentId`) | Même forme que `/me` + `studentId` ; **403** hors périmètre |
 | GET | `/api/rewards/groups/:id` | idem, groupe du périmètre | `{ group, families, students: [{ id, name, families: { <famille>: n }, total }], near: [{ studentId, name, key, title, emoji, value, nextThreshold, nextTier, remaining }] }` — tri **alphabétique**, aucun classement ; `near` = à 1 du palier suivant ; **403** / **404** |

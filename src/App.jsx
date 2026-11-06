@@ -123,6 +123,7 @@ import { AppFooter } from './components/app/AppFooter.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
 import { AppLoader, FULL_PAGE_LOADER_STYLE } from './components/app/AppLoader.jsx';
 import { AppUserDialog } from './components/app/AppUserDialog.jsx';
+import { RewardsCelebrationHost } from './components/rewards/RewardsCelebrationHost.jsx';
 import { UnauthenticatedShell } from './components/app/UnauthenticatedShell.jsx';
 import { LtiArrivee } from './components/lti/LtiArrivee.jsx';
 import { MapTasksArea } from './components/app/MapTasksArea.jsx';
@@ -1869,6 +1870,11 @@ function App() {
                       />
                     </AppUserDialog>
                   )}
+
+                  {/* Badges pas encore vus : fêtés à l'arrivée, avec OLU (module « Récompenses »). */}
+                  <RewardsCelebrationHost
+                    enabled={rewardsModuleEnabled && pedagoAuthenticated && !isPreviewStudentView}
+                  />
 
                   <AppHeader
                     isStandaloneMode={isStandaloneMode}

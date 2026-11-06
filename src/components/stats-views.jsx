@@ -43,6 +43,7 @@ import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
 import { RewardsShowcase } from './rewards/RewardsShowcase.jsx';
+import { MyRewardsPanel } from './rewards/MyRewardsPanel.jsx';
 import { applyPresenceUpdateToRows } from '../shared/presenceListPatch.js';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -62,6 +63,40 @@ import {
   IconUser,
   IconWarning,
 } from '../shared/icons.jsx';
+
+/**
+ * « Mes badges » dans « Mes statistiques » : consultation (aucune célébration ici — elle a
+ * lieu à l'arrivée dans l'application et dans l'onglet Séances). Module « Récompenses » éteint
+ * ou route indisponible : le bloc n'apparaît pas.
+ */
+function StatsRewardsBlock() {
+  const publicSettings = usePublicSettings();
+  const enabled = publicSettings?.modules?.rewards_enabled !== false;
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      return undefined;
+    }
+    let cancelled = false;
+    api('/api/rewards/me')
+      .then((payload) => {
+        if (!cancelled) setData(payload);
+      })
+      .catch(() => {
+        if (!cancelled) setData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  if (!enabled || !data) return null;
+  return (
+    <div className="stats-rewards" data-testid="stats-rewards">
+      <MyRewardsPanel data={data} readOnly headingLevel={3} testId="stats-rewards-panel" />
+    </div>
+  );
+}
 
 function StudentStats({ student }) {
   const { isN3Affiliated = false } = useSession();
@@ -285,6 +320,8 @@ function StudentStats({ student }) {
           label="Tutoriels lus"
         />
       </StatsSummaryGrid>
+
+      <StatsRewardsBlock />
 
       {isN3beur && (
         <>
@@ -1070,6 +1107,7 @@ function TeacherStats({ canReadAllStats = true, classTeacherMode = false } = {})
         roleTerms={roleTerms}
         presenceEnabled={publicSettings?.modules?.presence_enabled !== false}
         canAwardRewards={canAwardRewards}
+        rewardsEnabled={rewardsEnabled}
       />
     </div>
   );
