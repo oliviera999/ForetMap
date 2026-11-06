@@ -109,10 +109,14 @@ router.put(
         .json({ error: 'Mouture « Tenir à deux » désactivée', code: 'TENIR_DISABLED' });
     }
     const rawProfil = req.body?.profil;
-    const profil =
-      rawProfil == null ? game.tenir_profil || 'complet' : String(rawProfil).trim().toLowerCase();
+    // `profil: null` explicite = retour aux règles classiques (`tenir_profil` remis à NULL) ;
+    // absent = profil inchangé (ou `complet` si la partie n'en avait pas).
+    let profil;
+    if (rawProfil === null) profil = null;
+    else if (rawProfil === undefined) profil = game.tenir_profil || 'complet';
+    else profil = String(rawProfil).trim().toLowerCase();
     if (profil !== null && !TENIR_PROFILS.includes(profil)) {
-      return res.status(400).json({ error: 'Profil invalide (complet, prologue)' });
+      return res.status(400).json({ error: 'Profil invalide (complet, prologue, ou null)' });
     }
     const checked = validateOverrides(req.body?.overrides);
     if (checked.error) return res.status(400).json({ error: checked.error });

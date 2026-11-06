@@ -89,16 +89,43 @@ async function updateGameStatus(req, res, nextStatus) {
     });
   }
 
-  const claimed = await execute(
-    'UPDATE gl_games SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?',
-    [nextStatus, gameId, current],
-  );
-  if (!claimed?.affectedRows) {
-    return res.status(409).json({ error: 'La partie a changé d’état, réessayez' });
-  }
-
   const gameplay = await getGameplaySettings();
   const tenirMode = isTenirGame(gameplay, gameRow);
+
+  // « Tenir à deux », clôture : le passage à `ended` et le Seuil (caravane, honneurs, parures
+  // rendues, annonces expirées…) sont une seule transaction. Si le Seuil échoue, la partie
+  // reste `live` et le prof peut réessayer ; sans cela, un `ended` déjà écrit rendait le
+  // Seuil impossible à rejouer (409 « Transition impossible »).
+  let seuil = null;
+  if (nextStatus === 'ended' && tenirMode) {
+    const { cloreTenirPartieTx } = require('../../../lib/glSeuil');
+    let claimedRows = 0;
+    // Une erreur du Seuil remonte à asyncHandler : la transaction est annulée, la partie reste en cours.
+    await db.withTransaction(async (tx) => {
+      const claimed = await tx.execute(
+        'UPDATE gl_games SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?',
+        [nextStatus, gameId, current],
+      );
+      claimedRows = Number(claimed?.affectedRows) || 0;
+      if (!claimedRows) return;
+      seuil = await cloreTenirPartieTx(tx, {
+        gameId,
+        actorId: req.glAuth.userId,
+        settings: gameplay,
+      });
+    });
+    if (!claimedRows) {
+      return res.status(409).json({ error: 'La partie a changé d’état, réessayez' });
+    }
+  } else {
+    const claimed = await execute(
+      'UPDATE gl_games SET status = ?, updated_at = NOW() WHERE id = ? AND status = ?',
+      [nextStatus, gameId, current],
+    );
+    if (!claimed?.affectedRows) {
+      return res.status(409).json({ error: 'La partie a changé d’état, réessayez' });
+    }
+  }
   if (nextStatus === 'live') {
     // Placement sur la case départ : uniquement au premier démarrage (brouillon → en cours).
     // Reprendre après pause ne doit pas téléporter les équipes — la doc MJ promet une reprise.
@@ -148,16 +175,7 @@ async function updateGameStatus(req, res, nextStatus) {
   // « Tenir à deux » : le Seuil (caravane, honneurs, parures rendues, annonces expirées…).
   if (nextStatus === 'ended' && tenirMode) {
     try {
-      const { cloreTenirPartieTx } = require('../../../lib/glSeuil');
       const { revokeProjectionToken } = require('../../../lib/glProjection');
-      let seuil;
-      await db.withTransaction(async (tx) => {
-        seuil = await cloreTenirPartieTx(tx, {
-          gameId,
-          actorId: req.glAuth.userId,
-          settings: gameplay,
-        });
-      });
       await revokeProjectionToken(db, gameId);
       for (const evt of seuil?.events || []) emitTenirEvent(gameId, evt);
       // Badges individuels (jamais de ressource) : réévalués pour chaque membre à la clôture.
@@ -172,8 +190,8 @@ async function updateGameStatus(req, res, nextStatus) {
         logger.warn({ err, gameId }, 'Badges non évalués à la clôture');
       }
     } catch (err) {
-      logger.error({ err, gameId }, 'Clôture « Tenir à deux » en échec');
-      throw err;
+      // Le Seuil est déjà engagé : jeton et badges sont des compléments, pas une raison d'échec.
+      logger.warn({ err, gameId }, 'Compléments de clôture « Tenir à deux » en échec');
     }
   }
   if (nextStatus === 'ended' && Number(gameRow.plateau_number) === LAST_PLATEAU) {

@@ -173,3 +173,26 @@ test('honneur gagné deux fois dans la classe → préfixe « Très Grands »', 
   const ecl = result.honneurs.find((h) => h.honneur === 'eclaireurs');
   assert.equal(ecl.titre, 'Très Grands Compagnie du Calao Pressé');
 });
+
+test('le préfixe du double honneur suit le réglage gameplay.tenir_titre_prefixe_double', async () => {
+  const third = await createTenirGame({ stamp: Date.now() + 23 });
+  await execute('UPDATE gl_games SET class_id = ? WHERE id = ?', [ctx.cls.id, third.game.id]);
+  await execute(
+    "INSERT INTO gl_settings (`key`, value_json, updated_at) VALUES ('gameplay.tenir_titre_prefixe_double', '\"Illustres\"', NOW()) ON DUPLICATE KEY UPDATE value_json = '\"Illustres\"'",
+  );
+  try {
+    const result = await withTransaction((tx) =>
+      attribuerHonneursTx(tx, {
+        gameId: third.game.id,
+        actorId: third.admin.id,
+        premiereArriveeTeamId: Number(third.teams[0].id),
+      }),
+    );
+    const ecl = result.honneurs.find((h) => h.honneur === 'eclaireurs');
+    assert.equal(ecl.titre, 'Illustres Compagnie du Calao Pressé');
+  } finally {
+    await execute(
+      "UPDATE gl_settings SET value_json = '\"Très Grands\"' WHERE `key` = 'gameplay.tenir_titre_prefixe_double'",
+    );
+  }
+});

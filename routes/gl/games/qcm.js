@@ -28,16 +28,13 @@ const {
 const { sendSafeError } = require('../../../lib/safeErrorResponse');
 const { isTenirGame } = require('../../../lib/glTenir');
 const { bonneReponseDeCaseTx } = require('../../../lib/glTour');
+const { pasEncore } = require('../../../lib/glChasse');
 
 const router = express.Router();
 
 /** « Pas encore » : l'erreur ne punit pas et ne dit jamais « faux » (spec § 1). */
 function tenirFeedback(questionRow, verification) {
-  const base = resolveQcmAnswerFeedback(questionRow, verification);
-  const cleaned = String(base || '')
-    .replace(/^ce n’est pas la bonne réponse\.?/i, '')
-    .trim();
-  return cleaned ? `Pas encore. ${cleaned}` : 'Pas encore : la page dort encore ici.';
+  return pasEncore(resolveQcmAnswerFeedback(questionRow, verification));
 }
 
 async function getPlayerGameMembership(gameId, playerId) {

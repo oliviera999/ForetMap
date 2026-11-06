@@ -110,7 +110,18 @@ projection, Marché (partie d'exemple anonyme, profil `complet`).
 | hybride  | équipe active ; fouille sur fenêtre ouverte par le prof    | oui  | oui                  |
 | tablette | chaque équipe, en phase `jeu` (dés physiques validés prof) | oui  | oui                  |
 
-Le serveur rejoue les permissions (`assertActionOuverte`) ; le client ne fait que griser.
+Le serveur rejoue les permissions (`assertActionOuverte` pour lancer / répondre / fouiller,
+`resolveLectureContext` pour lire et tenir, le routeur du Marché pour toute action) ; le client ne
+fait que griser. Un élève ne force pas un mode de dés hors de sa surface, sauf vers la file de
+validation du prof.
+
+## Temps réel
+
+`lib/realtime.js › emitGlGameEvent` est le seul point d'émission vers la salle de partie
+(élèves, prof et projection partagent la même socket) : un payload `private: true` y est réduit
+à ses `publicKeys` (`redactPrivateEventPayload`). Le prof relit la version complète par HTTP.
+La clôture (`POST /end`) écrit `ended` et joue le Seuil dans **une seule transaction** : si le
+Seuil échoue, la partie reste en cours et le geste se rejoue.
 
 ## Projection
 
