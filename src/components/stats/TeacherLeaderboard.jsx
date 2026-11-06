@@ -18,12 +18,15 @@ import {
   IconUser,
 } from '../../shared/icons.jsx';
 import { PresenceStatusBadge } from '../../shared/components/PresenceStatusBadge.jsx';
+import { RewardAwardButton } from '../rewards/RewardAwardDialog.jsx';
 
 export function TeacherLeaderboard({
   students = [],
   search = '',
   roleTerms,
   presenceEnabled = true,
+  /** Bouton « Décerner un badge » sur la ligne de chaque élève (`rewards.award`, module allumé). */
+  canAwardRewards = false,
 }) {
   const filtered = useMemo(
     () =>
@@ -214,6 +217,11 @@ export function TeacherLeaderboard({
                     />
                   </div>
                 </div>
+                <RewardAwardButton
+                  studentId={s.id}
+                  studentName={`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                  enabled={canAwardRewards}
+                />
               </div>
             </div>
           );

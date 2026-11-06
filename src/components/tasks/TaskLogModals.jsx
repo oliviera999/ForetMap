@@ -26,6 +26,9 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { useAppDialogs } from '../../shared/components/AppDialogsProvider.jsx';
+import { useSession } from '../../contexts/SessionContext.jsx';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { RewardAwardButton } from '../rewards/RewardAwardDialog.jsx';
 import {
   IconCamera,
   IconCheck,
@@ -315,6 +318,13 @@ function LogModal({
 
 function TaskLogsViewer({ task, onClose }) {
   const { confirm } = useAppDialogs();
+  const { hasPermission } = useSession();
+  const publicSettings = usePublicSettings();
+  // « Décerner un badge » à l'auteur d'un compte rendu (permission, module allumé).
+  const canAwardRewards =
+    publicSettings?.modules?.rewards_enabled !== false &&
+    typeof hasPermission === 'function' &&
+    !!hasPermission('rewards.award');
   const dialogRef = useDialogA11y(onClose);
   const [logs, setLogs] = useState([]);
   const [toast, setToast] = useState(null);
@@ -388,6 +398,13 @@ function TaskLogsViewer({ task, onClose }) {
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>{formatDateTimeFr(l.created_at)}</span>
+                <RewardAwardButton
+                  studentId={l.student_id}
+                  studentName={[l.student_first_name, l.student_last_name]
+                    .filter(Boolean)
+                    .join(' ')}
+                  enabled={canAwardRewards}
+                />
                 <button
                   className="btn btn-danger btn-sm"
                   style={{ padding: '4px 8px', minHeight: 'auto', fontSize: 'var(--text-xs)' }}

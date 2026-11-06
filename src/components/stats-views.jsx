@@ -42,6 +42,7 @@ import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGri
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
+import { RewardsShowcase } from './rewards/RewardsShowcase.jsx';
 import { applyPresenceUpdateToRows } from '../shared/presenceListPatch.js';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -788,7 +789,11 @@ function StudentProfileEditor({ student, onUpdated, onClose }) {
  */
 function TeacherStats({ canReadAllStats = true, classTeacherMode = false } = {}) {
   const publicSettings = usePublicSettings();
-  const { isN3Affiliated = false } = useSession();
+  const { isN3Affiliated = false, hasPermission } = useSession();
+  // Badges (lot F) : vitrine du groupe filtré et badge manuel, module récompenses allumé.
+  const rewardsEnabled = publicSettings?.modules?.rewards_enabled !== false;
+  const canAwardRewards =
+    rewardsEnabled && typeof hasPermission === 'function' && !!hasPermission('rewards.award');
   const baseRoleTerms = getRoleTerms(isN3Affiliated);
   const roleTerms = classTeacherMode
     ? { ...baseRoleTerms, studentPlural: 'élèves', studentSingular: 'élève' }
@@ -1055,11 +1060,16 @@ function TeacherStats({ canReadAllStats = true, classTeacherMode = false } = {})
         onLoad={loadObservations}
       />
 
+      {rewardsEnabled && filterGroupId && (
+        <RewardsShowcase groupId={filterGroupId} canAward={canAwardRewards} />
+      )}
+
       <TeacherLeaderboard
         students={data}
         search={search}
         roleTerms={roleTerms}
         presenceEnabled={publicSettings?.modules?.presence_enabled !== false}
+        canAwardRewards={canAwardRewards}
       />
     </div>
   );

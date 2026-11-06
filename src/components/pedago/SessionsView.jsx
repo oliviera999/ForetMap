@@ -5,6 +5,7 @@ import { Button } from '../../shared/ui/Button.jsx';
 import { SessionRunsPanel, SessionSharePanel } from './SessionTeacherPanels.jsx';
 import { SessionStepEditor, newStep } from './SessionStepEditor.jsx';
 import { ModuleLearnerOffBanner } from './ModuleLearnerOffBanner.jsx';
+import { MyRewardsPanel } from '../rewards/MyRewardsPanel.jsx';
 import { NOTION_NIVEAU_FILTER_OPTIONS } from '../../utils/curriculumNotions.js';
 import { PEDAGO_SESSION_STORAGE_KEY as STORAGE_KEY } from '../../utils/pedagoSessionScope.js';
 import { PEDAGO_ETAPE_ENUM } from '../../shared/enums/pedagoEnums.js';
@@ -83,6 +84,8 @@ export function SessionsView({
   const [myRuns, setMyRuns] = useState({});
   const [runStats, setRunStats] = useState({});
   const [rewards, setRewards] = useState({ rewards: [], catalogue: [] });
+  // « Mes badges » : réponse complète de `GET /api/rewards/me` (progression, familles, paliers).
+  const [rewardsData, setRewardsData] = useState(null);
   const [panel, setPanel] = useState(null);
   const [newTemplate, setNewTemplate] = useState('custom');
   const [creating, setCreating] = useState(false);
@@ -113,9 +116,13 @@ export function SessionsView({
             rewards: Array.isArray(data?.rewards) ? data.rewards : [],
             catalogue: Array.isArray(data?.catalogue) ? data.catalogue : [],
           });
+          setRewardsData(data || null);
         })
         .catch(() => {
-          if (!cancelled) setRewards({ rewards: [], catalogue: [] });
+          if (!cancelled) {
+            setRewards({ rewards: [], catalogue: [] });
+            setRewardsData(null);
+          }
         });
     }
     return () => {
@@ -212,8 +219,6 @@ export function SessionsView({
     );
   }
 
-  const earnedKeys = new Set(rewards.rewards.map((r) => r.key));
-
   return (
     <div className="pedago-sessions" data-testid="pedago-sessions">
       <header className="pedago-sessions__header">
@@ -233,24 +238,12 @@ export function SessionsView({
       ) : null}
 
       {rewardsEnabled && isAuthenticated && rewards.catalogue.length > 0 && (
-        <section className="pedago-rewards" aria-label="Mes badges" data-testid="pedago-rewards">
-          <h2 className="pedago-sessions__panel-title">
-            Mes badges ({earnedKeys.size}/{rewards.catalogue.length})
-          </h2>
-          <ul className="pedago-rewards__list">
-            {rewards.catalogue.map((r) => (
-              <li
-                key={r.key}
-                className={`pedago-rewards__item${earnedKeys.has(r.key) ? '' : ' pedago-rewards__item--locked'}`}
-                title={r.description}
-                data-earned={earnedKeys.has(r.key) ? 'true' : 'false'}
-              >
-                <span aria-hidden="true">{earnedKeys.has(r.key) ? r.emoji : '🔒'}</span> {r.title}
-                {earnedKeys.has(r.key) ? '' : ' (à obtenir)'}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <MyRewardsPanel
+          data={{ ...(rewardsData || {}), ...rewards }}
+          onSeen={() => {
+            api('/api/rewards/me/seen', 'POST').catch(() => {});
+          }}
+        />
       )}
 
       {canManage && (

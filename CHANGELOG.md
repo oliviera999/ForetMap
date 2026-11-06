@@ -57,6 +57,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `rewards_evaluate` ; rattrapage `scripts/rewards-backfill.js` (dry-run par défaut, une
   notification récapitulative par élève). `nature.cle` non créé (aucun suivi des parcours de
   clé de détermination).
+- **Lot F — interfaces des badges** : `GET /api/rewards/me` enrichi (progression vers le
+  palier suivant, catalogue complet avec paliers, familles ; rétrocompatible),
+  `POST /api/rewards/me/seen`, `GET /api/rewards/students/:id` et
+  `GET /api/rewards/groups/:id` (périmètre des inscrits, 403 sinon, tri alphabétique sans
+  classement), `POST /api/rewards/award` (permission `rewards.award`, mot obligatoire de
+  280 caractères au plus, journal `reward_award`). « Mes badges » regroupé par famille
+  (paliers obtenus en couleur, à venir en gris, progression, date, mot de l'adulte),
+  célébration regroupée des badges non vus (sans animation si `prefers-reduced-motion`),
+  vitrine du groupe filtré dans les statistiques n3boss (« Qui est proche d'un palier ? »),
+  bouton « Décerner un badge » sur la ligne d'un élève, dans la vitrine et sur les comptes
+  rendus d'une tâche.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 
