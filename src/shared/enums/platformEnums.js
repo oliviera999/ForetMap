@@ -86,3 +86,10 @@ export const SCHEDULED_JOB_OUTCOME_ENUM = defineEnum('SCHEDULED_JOB_OUTCOME_ENUM
   labels: { running: 'En cours', success: 'Succès', failure: 'Échec' },
   columns: ['scheduled_job_runs.outcome'],
 });
+
+/** Statut d'un code de confirmation hors bande du connecteur (`mcp_confirmations`, migration 327). */
+export const MCP_CONFIRMATION_STATUS_ENUM = defineEnum('MCP_CONFIRMATION_STATUS_ENUM', {
+  values: ['pending', 'consumed', 'expired', 'locked'],
+  labels: { pending: 'En attente', consumed: 'Utilisé', expired: 'Expiré', locked: 'Verrouillé' },
+  columns: ['mcp_confirmations.status'],
+});

@@ -9,6 +9,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajouté — Tâches : métiers, formats, phases de projet ; badges automatiques
+
+- **Lot A — migration 329** (`migrations/329_task_taxonomy_rewards.sql`) : colonnes
+  `tasks.category`, `tasks.format`, `tasks.project_phase`, `tasks.proposed_by_user_id`
+  (FK `users`, `ON DELETE SET NULL`), `task_projects.project_type`,
+  `user_rewards.awarded_by_user_id` / `note` / `seen_at` ; index ; reprise des auteurs de
+  propositions depuis `audit_log` (`propose_task`, plus ancienne ligne) ; permission
+  `rewards.award` (admin, prof). Aucun classement des tâches existantes dans la migration.
+
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 
 - **Lot D (2/4) — personnes et pédagogie** : `foretmap_students` (nominatif ; remplace

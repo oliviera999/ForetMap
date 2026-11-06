@@ -187,6 +187,8 @@ CREATE TABLE IF NOT EXISTS task_projects (
   archived_at DATETIME NULL DEFAULT NULL,
   finished_at DATETIME NULL DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
+  -- Migration 329 : type de projet (référentiel src/shared/enums/taskEnums.js).
+  project_type VARCHAR(24) NULL DEFAULT NULL,
   INDEX idx_task_projects_map_id (map_id),
   INDEX idx_task_projects_title (title),
   INDEX idx_task_projects_archived_at (archived_at),
@@ -221,6 +223,12 @@ CREATE TABLE IF NOT EXISTS tasks (
   pedago_session_id CHAR(36) DEFAULT NULL,
   -- Migration 312 : révision d'édition (verrou optimiste, lib/editRevision.js).
   edit_revision INT UNSIGNED NOT NULL DEFAULT 0,
+  -- Migration 329 : métier, format, phase de projet (référentiel taskEnums, validés par
+  -- l'API, jamais d'ENUM SQL) et auteur d'une proposition acceptée.
+  category VARCHAR(32) NULL DEFAULT NULL,
+  format VARCHAR(16) NULL DEFAULT NULL,
+  project_phase VARCHAR(16) NULL DEFAULT NULL,
+  proposed_by_user_id VARCHAR(64) NULL DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_pedago_session (pedago_session_id),
   INDEX idx_tasks_project_id (project_id),
@@ -232,6 +240,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   INDEX idx_tasks_archived_at (archived_at),
   -- Support du balayage de l'archivage automatique (validated_at < date-butoir).
   INDEX idx_tasks_validated_at (validated_at),
+  INDEX idx_tasks_category (category),
+  INDEX idx_tasks_project_phase (project_id, project_phase),
+  INDEX idx_tasks_proposed_by_user (proposed_by_user_id),
+  CONSTRAINT fk_tasks_proposed_by_user FOREIGN KEY (proposed_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
@@ -1485,8 +1497,15 @@ CREATE TABLE IF NOT EXISTS user_rewards (
   source_type VARCHAR(32) DEFAULT NULL,
   source_ref VARCHAR(64) DEFAULT NULL,
   awarded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Migration 329 : badges manuels (adulte + mot) et annonce vue par l'élève.
+  awarded_by_user_id VARCHAR(64) DEFAULT NULL,
+  note VARCHAR(280) DEFAULT NULL,
+  seen_at DATETIME DEFAULT NULL,
   PRIMARY KEY (user_id, reward_key),
   INDEX idx_user_rewards_key (reward_key),
+  INDEX idx_user_rewards_awarded_by (awarded_by_user_id),
+  CONSTRAINT fk_user_rewards_awarded_by FOREIGN KEY (awarded_by_user_id)
+    REFERENCES users (id) ON DELETE SET NULL,
   CONSTRAINT fk_user_rewards_user FOREIGN KEY (user_id)
     REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
