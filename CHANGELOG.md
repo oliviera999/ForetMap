@@ -59,6 +59,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   clé de détermination). « Lecteur de terrain » lit les liens question ↔ tutoriel de la
   source unique `resource_question_links` (liens approuvés), pas la table historique
   `quiz_question_tutorials` en cours de retrait.
+  Phénologue et Racines datent une tâche par l'inscription de l'élève (repli : validation) :
+  les validations en bloc de fin d'année plaçaient tout le travail du printemps en été.
 - **Lot F — interfaces des badges** : `GET /api/rewards/me` enrichi (progression vers le
   palier suivant, catalogue complet avec paliers, familles ; rétrocompatible),
   `POST /api/rewards/me/seen`, `GET /api/rewards/students/:id` et
@@ -84,6 +86,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   comptes : date la plus ancienne gardée en cas de doublon, badges manuels renumérotés
   (`lib/rewards/merge.js`) ; export RGPD : badges et mot de l'adulte, sans l'identifiant de
   l'adulte. Aucun affichage public des badges.
+- **Corrigé — avatar par défaut** : `@dicebear/core` revient en 9.4.3, la version qu'exige le
+  style `@dicebear/adventurer-neutral` 9.4.3 (dépendance « peer » `^9`) ; le passage seul du
+  cœur en 10.x (#612) avait retiré `createAvatar` et cassé `tests/default-avatar.test.js` sur
+  `main`. Dependabot ne propose plus seul une montée majeure `@dicebear/*`.
 - **Lot I — documentation** : `docs/API.md` (métier, format, phase, filtres, avancement par
   phase, `/api/rewards` complet, permission `rewards.award`), `docs/MCP.md` ; docs de
   référence : `taches-tutoriels-et-validation.md` (choisir un métier et un format, type et

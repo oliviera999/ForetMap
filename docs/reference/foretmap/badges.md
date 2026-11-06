@@ -92,7 +92,9 @@ entre deux milieux, là où la vie est la plus diverse.
 
 - **🍂 Phénologue** : mener des tâches à **trois saisons** différentes d'une même année scolaire
   (septembre → août ; saisons : septembre-novembre, décembre-février, mars-mai, juin-août).
-- **🌳 Racines** : mener des tâches sur **deux années scolaires**.
+  Une tâche compte à la date où l'élève s'y est **inscrit** (le moment du travail), pas à celle
+  de sa validation, qui peut arriver bien plus tard.
+- **🌳 Racines** : mener des tâches sur **deux années scolaires** (même date d'inscription).
 
 ### Collectif
 

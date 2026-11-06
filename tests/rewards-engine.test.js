@@ -257,15 +257,22 @@ describe('Familles aux seuils exacts', () => {
       2,
     );
 
+    // Date du travail = inscription : des tâches de trois saisons validées toutes le même
+    // jour d'été (validation en bloc) comptent bien pour trois saisons.
+    const bulkValidation = new Date(2027, 6, 22);
+    const done = (assignedAt) => ({ validatedAt: bulkValidation, assignment: { assignedAt } });
     const s = await createUser();
-    await creditedTask(s, { validatedAt: new Date(2026, 9, 10) });
-    await creditedTask(s, { validatedAt: new Date(2027, 0, 10) });
+    await creditedTask(s, done(new Date(2026, 9, 10)));
+    await creditedTask(s, done(new Date(2027, 0, 10)));
     let keys = (await rewards.evaluateUser(s, { families: ['temps'] })).map((r) => r.key);
     assert.deepEqual(keys, [], 'deux saisons seulement');
-    await creditedTask(s, { validatedAt: new Date(2027, 3, 10) });
+    await creditedTask(s, done(new Date(2027, 3, 10)));
     keys = (await rewards.evaluateUser(s, { families: ['temps'] })).map((r) => r.key);
     assert.deepEqual(keys, ['temps.phenologue']);
-    await creditedTask(s, { validatedAt: new Date(2027, 9, 10) });
+    await creditedTask(s, {
+      validatedAt: new Date(2027, 9, 20),
+      assignment: { assignedAt: new Date(2027, 9, 10) },
+    });
     keys = (await rewards.evaluateUser(s, { families: ['temps'] })).map((r) => r.key);
     assert.deepEqual(keys, ['temps.racines']);
   });
