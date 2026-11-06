@@ -1,0 +1,87 @@
+{
+  "format": "titres v1 — un titre par honneur et par biome (plateau), sceaux de peuple, titres de mission ; aucun titre ne donne de pouvoir",
+  "biomes": {
+    "tropiques": { "plateau": 1, "libelle": "Tropiques" },
+    "aride": { "plateau": 2, "libelle": "Aride chaud" },
+    "tempere": { "plateau": 3, "libelle": "Tempéré atlantique" },
+    "grands_froids": { "plateau": 4, "libelle": "Grands Froids" }
+  },
+  "honneurs": {
+    "eclaireurs": {
+      "libelle": "Éclaireurs",
+      "critere": "Première équipe au camp",
+      "tropiques": "Compagnie du Calao Pressé",
+      "aride": "Chameliers de l'Horizon Tremblant",
+      "tempere": "Lièvres de la Lande Mouillée",
+      "grands_froids": "Premiers Pas dans la Neige Molle"
+    },
+    "gardiens": {
+      "libelle": "Gardiens du carnet",
+      "critere": "Le plus de pages tenues (découverte ou tenue)",
+      "tropiques": "Grands Fouilleurs de Termitières",
+      "aride": "Déterreurs de la Rose Endormie",
+      "tempere": "Ordre de la Feuille Retournée",
+      "grands_froids": "Gardiens du Caillou Sacré sous la Glace"
+    },
+    "passeurs": {
+      "libelle": "Passeurs",
+      "critere": "Le plus d'aide : Bourrasque, Abri, Relais, Cordée, dons, pages tenues pour l'autre peuple",
+      "tropiques": "Porteurs d'Eau de la Caravane",
+      "aride": "Ombre Portée du Dromadaire",
+      "tempere": "Confrérie du Gland Rendu",
+      "grands_froids": "Bœufs Musqués du Cercle Serré"
+    },
+    "esprit": {
+      "libelle": "Esprit d'équipe",
+      "critere": "Le plus de cartes Team Spirit gardées sur le chapitre",
+      "tropiques": "Grands Ordonnateurs des Lianes",
+      "aride": "Premiers Chuchoteurs du Sable",
+      "tempere": "Grands Ordonnateurs des Lichens",
+      "grands_froids": "Harfangs de la Nuit Tranquille"
+    }
+  },
+  "sceaux_peuple": {
+    "eclaireuses": {
+      "libelle": "Éclaireuses",
+      "peuple": "unicorn",
+      "critere": "Équipe licorne qui a trouvé le plus de pages",
+      "tropiques": "Regards de la Canopée",
+      "aride": "Yeux de l'Oued Sec",
+      "tempere": "Guetteuses de la Clairière",
+      "grands_froids": "Pupilles de la Nuit Polaire"
+    },
+    "mains": {
+      "libelle": "Mains",
+      "peuple": "gnome",
+      "critere": "Équipe gnome qui a réparé le plus de pages",
+      "tropiques": "Mains qui Replantent la Liane",
+      "aride": "Mains de la Graine Patiente",
+      "tempere": "Raccommodeurs de la Mousse",
+      "grands_froids": "Mains Nues dans la Neige"
+    }
+  },
+  "prefixe_double": "Très Grands",
+  "missions": [
+    "Compagnie du Dé Boiteux",
+    "Société des Rimes Approximatives",
+    "Ordre du Chuchotement Prolongé",
+    "Amis des Pages Oubliées",
+    "Chevaliers de la Bourse Égale",
+    "Ambassadeurs de l'Autre Peuple",
+    "Confrérie du Cri de Trois Mots",
+    "Dompteurs de Trousse",
+    "Correcteurs du Renard",
+    "Compagnie du Fou Rire Partagé",
+    "Société des Décomposeurs Bavards",
+    "Mains Tendues sous le Voile",
+    "Troupe de l'Accent Lointain",
+    "Confrérie des Cinq Noms d'Affilée",
+    "Parrains et Marraines de Chimère",
+    "Ordre du Bravo Mérité",
+    "Prêteurs de Pages",
+    "Société des Points d'Interrogation",
+    "Scribes de la Phrase à Cinq Mains",
+    "Gardiens de la Marée Reculée"
+  ],
+  "voyageur": ["Marcheur", "Regard du Loin", "Lecteur de Pages", "Nommeur", "Gardien", "Passeur de Pages", "Veilleur"]
+}

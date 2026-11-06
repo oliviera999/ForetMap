@@ -1,0 +1,106 @@
+{
+  "format": "reglages-defaut v1 — groupe gameplay, préfixe tenir_ (§ 15 des règles) ; `defaut` = profil complet ; `profils` = écarts appliqués d'un clic sur une partie",
+  "groupe": "gameplay",
+  "prefixe": "tenir_",
+  "defaut": {
+    "enabled": true,
+    "surface": "tableau",
+    "des_mode": "physique",
+    "des_mode_par_surface": {
+      "tableau": "physique",
+      "hybride": "physique",
+      "tablette": "serveur"
+    },
+    "des_count": 2,
+    "des_physiques_validation": "prof",
+    "questions_de_case": true,
+    "vent": true,
+    "vent_cases": 3,
+    "fouilles_par_tour": {
+      "gnome": 1,
+      "unicorn": 2
+    },
+    "fouille_seuils": {
+      "chaud": 0.06,
+      "tiede": 0.15
+    },
+    "zones_par_plateau": {
+      "1": 8,
+      "2": 8,
+      "3": 10,
+      "4": 10
+    },
+    "pistes_par_semaine": 1,
+    "pages_veillee_par_semaine": 2,
+    "voile": true,
+    "voile_bonus_par_plateau": {
+      "1": 4,
+      "2": 4,
+      "3": 5,
+      "4": 6
+    },
+    "palissement_pct": 10,
+    "palissement_max": 50,
+    "recul_carnet_complet": 3,
+    "marche": true,
+    "marche_pendant_tour": true,
+    "parures": true,
+    "lumiere": false,
+    "lumiere_palier": 25,
+    "cartes_vers_cases": false,
+    "chapardeur": true,
+    "peripeties": true,
+    "olu_erreur_du_jour": true,
+    "sablier_secondes": 180,
+    "max_power_points": 8,
+    "max_health_points": 8,
+    "lore_feuillet_retrigger": "once_per_team",
+    "lore_gemme_costs_enabled": false,
+    "lore_heart_rewards_enabled": false,
+    "feuillet_zone_traversal_enabled": false,
+    "recul_lumiere": 5,
+    "trimestres": {
+      "1": [
+        "09-01",
+        "12-20"
+      ],
+      "2": [
+        "01-05",
+        "03-31"
+      ],
+      "3": [
+        "04-01",
+        "07-10"
+      ]
+    },
+    "titre_prefixe_double": "Très Grands"
+  },
+  "profils": {
+    "complet": {
+      "libelle": "Complet",
+      "description": "Les défauts ci-dessus, sans écart.",
+      "ecarts": {}
+    },
+    "prologue": {
+      "libelle": "Prologue",
+      "description": "Chapitre d'apprentissage : pas de voile, pas de Marché, pas de chapardeur, 8 zones par plateau ; tout le reste identique.",
+      "ecarts": {
+        "voile": false,
+        "marche": false,
+        "chapardeur": false,
+        "zones_par_plateau": {
+          "1": 8,
+          "2": 8,
+          "3": 8,
+          "4": 8
+        }
+      }
+    }
+  },
+  "notes": {
+    "des_mode": "défaut serveur sur tablette, physique ailleurs (clé des_mode_par_surface) ; la valeur plate `des_mode` est celle de la surface par défaut (tableau)",
+    "max_health_points": "passe de 3 (réglage existant) à 8 pour « Tenir à deux »",
+    "lore_*": "réglages existants de la mouture précédente, mis à 0 / false : lecture gratuite partout, aucune gemme par feuillet, aucun cœur par feuillet",
+    "max_power_points": "réglage existant, inchangé à 8"
+  }
+}

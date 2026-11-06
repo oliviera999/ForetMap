@@ -1,0 +1,229 @@
+{
+  "format": "peripeties v1 — consignes de 30 secondes tirées sur les cases événement sans texte ; l'effet de la case s'applique quand même ; « on passe » sans rien perdre",
+  "peripeties": [
+    {
+      "id": "per-01",
+      "plateau": 1,
+      "biome_slug": "savane",
+      "texte": "Une mangouste a volé le dé. L'Opérateur relance de la main qui n'écrit pas.",
+      "passable": true
+    },
+    {
+      "id": "per-02",
+      "plateau": 1,
+      "biome_slug": "jungle_afc",
+      "texte": "Pluie de mousson sur la caravane : l'équipe répond à la prochaine question en chuchotant, et le Gestionnaire tranche en mimant.",
+      "passable": true
+    },
+    {
+      "id": "per-03",
+      "plateau": 1,
+      "biome_slug": "jungle_afc",
+      "texte": "Une colonne de fourmis traverse le plateau : l'équipe se lève, fait le tour de sa table en file indienne, et se rassied. Personne ne marche sur la colonne.",
+      "passable": true
+    },
+    {
+      "id": "per-04",
+      "plateau": 1,
+      "biome_slug": "jungle_afc",
+      "texte": "Un calao s'est posé sur la carte. L'Éclaireur désigne la fouille sans parler, du bout du nez.",
+      "passable": true
+    },
+    {
+      "id": "per-05",
+      "plateau": 1,
+      "biome_slug": "savane",
+      "texte": "Trompes à l'horizon : avant de lancer, l'équipe compte à voix haute jusqu'à cinq comme un troupeau d'éléphants qui s'approche (en montant le volume), puis se tait d'un coup.",
+      "passable": true
+    },
+    {
+      "id": "per-06",
+      "plateau": 1,
+      "biome_slug": "savane",
+      "texte": "Le baobab a soif : chaque membre dit un mot qui contient la lettre O avant que l'Opérateur ne lance.",
+      "passable": true
+    },
+    {
+      "id": "per-07",
+      "plateau": 1,
+      "biome_slug": "savane",
+      "texte": "Nuit dans la savane : l'équipe répond à la prochaine question les yeux fermés, en écoutant le Secrétaire lire deux fois.",
+      "passable": true
+    },
+    {
+      "id": "per-08",
+      "plateau": 1,
+      "biome_slug": "jungle_afc",
+      "texte": "Le cri de la locomotive (c'est un oiseau) : l'équipe imite trois cris d'animaux du biome, les autres équipes devinent ; devinés ou pas, on continue.",
+      "passable": true
+    },
+    {
+      "id": "per-09",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "Tempête de sable : le Gestionnaire tranche la prochaine réponse les yeux fermés, sur la seule voix de son équipe.",
+      "passable": true
+    },
+    {
+      "id": "per-10",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "Le dromadaire refuse d'avancer. L'équipe lui chante une phrase, n'importe laquelle, sur l'air qu'elle veut. Il repart.",
+      "passable": true
+    },
+    {
+      "id": "per-11",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "Mirage : l'Éclaireur désigne deux endroits à fouiller, l'équipe vote à main levée pour le bon.",
+      "passable": true
+    },
+    {
+      "id": "per-12",
+      "plateau": 2,
+      "biome_slug": "foret_mediterraneenne",
+      "texte": "Les chèvres sont montées dans l'arganier : l'Opérateur lance les dés debout sur une seule jambe.",
+      "passable": true
+    },
+    {
+      "id": "per-13",
+      "plateau": 2,
+      "biome_slug": "foret_mediterraneenne",
+      "texte": "Le vent chaud a séché les gorges : l'équipe répond à la prochaine question sans aucun mot, seulement par gestes, et le Secrétaire traduit.",
+      "passable": true
+    },
+    {
+      "id": "per-14",
+      "plateau": 2,
+      "biome_slug": "foret_mediterraneenne",
+      "texte": "Cigales : pendant que l'Opérateur est au tableau, l'équipe fait « tssss » à voix basse sans s'arrêter, et se tait dès qu'il se rassoit.",
+      "passable": true
+    },
+    {
+      "id": "per-15",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "La rose de Jéricho attend la pluie depuis cent ans : avant de lancer, l'équipe reste immobile dix secondes, puis « s'ouvre » tous ensemble.",
+      "passable": true
+    },
+    {
+      "id": "per-16",
+      "plateau": 2,
+      "biome_slug": "sahara",
+      "texte": "Le fennec entend tout : l'équipe doit répondre à la prochaine question avant que l'Éclaireur ait compté jusqu'à vingt, en silence. Sinon, on répond quand même.",
+      "passable": true
+    },
+    {
+      "id": "per-17",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Un hérisson s'est endormi sur la carte : fouille interdite à moins de trois cases du pion ce tour-ci.",
+      "passable": true
+    },
+    {
+      "id": "per-18",
+      "plateau": 3,
+      "biome_slug": "landes",
+      "texte": "Brume sur la lande : l'Éclaireur désigne la fouille avec le dos de la main, sans un mot.",
+      "passable": true
+    },
+    {
+      "id": "per-19",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Le geai a caché un gland : avant de lancer, l'Opérateur doit retrouver, dans la trousse d'un coéquipier, un objet que l'équipe a choisi en secret.",
+      "passable": true
+    },
+    {
+      "id": "per-20",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Tempête dorée, les feuilles tombent : l'équipe répond à la prochaine question en rimes (au moins une).",
+      "passable": true
+    },
+    {
+      "id": "per-21",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Le blaireau creuse : l'Opérateur lance les dés en les faisant rouler sous la main, sans les soulever.",
+      "passable": true
+    },
+    {
+      "id": "per-22",
+      "plateau": 3,
+      "biome_slug": "landes",
+      "texte": "La tourbière avale les bottes : chaque membre dit le nom d'un animal du biome avant que l'équipe ne bouge, dans l'ordre des rôles.",
+      "passable": true
+    },
+    {
+      "id": "per-23",
+      "plateau": 3,
+      "biome_slug": "landes",
+      "texte": "La droséra attrape ce qui bouge : pendant le tour de l'équipe, personne à la table ne bouge les mains. Celui qui bouge dit un mot gentil à un coéquipier.",
+      "passable": true
+    },
+    {
+      "id": "per-24",
+      "plateau": 3,
+      "biome_slug": "foret_caducifoliee",
+      "texte": "Chouette de minuit : l'équipe fait son choix de réponse en se parlant seulement à l'oreille, en chaîne, du Gestionnaire au Secrétaire.",
+      "passable": true
+    },
+    {
+      "id": "per-25",
+      "plateau": 4,
+      "biome_slug": "taiga",
+      "texte": "Nuit polaire : lumières éteintes pendant la prochaine question (le prof décide), lampes de poche permises.",
+      "passable": true
+    },
+    {
+      "id": "per-26",
+      "plateau": 4,
+      "biome_slug": "toundra",
+      "texte": "Le renne éternue : chacun dit un animal du biome avant de lancer, sans en répéter un.",
+      "passable": true
+    },
+    {
+      "id": "per-27",
+      "plateau": 4,
+      "biome_slug": "toundra",
+      "texte": "Blizzard : l'équipe se serre épaule contre épaule comme les bœufs musqués pendant toute la lecture de la page.",
+      "passable": true
+    },
+    {
+      "id": "per-28",
+      "plateau": 4,
+      "biome_slug": "toundra",
+      "texte": "Les lemmings passent sous la table : l'Opérateur lance les dés accroupi.",
+      "passable": true
+    },
+    {
+      "id": "per-29",
+      "plateau": 4,
+      "biome_slug": "taiga",
+      "texte": "Aurore boréale : l'équipe répond à la prochaine question en commençant chaque phrase par « Oh ».",
+      "passable": true
+    },
+    {
+      "id": "per-30",
+      "plateau": 4,
+      "biome_slug": "taiga",
+      "texte": "Le mélèze a laissé tomber ses aiguilles : l'équipe compte ses gemmes à voix haute en chœur avant de jeter un sort, même si elle n'en jette pas.",
+      "passable": true
+    },
+    {
+      "id": "per-31",
+      "plateau": 4,
+      "biome_slug": "toundra",
+      "texte": "Le harfang veille : l'équipe doit chuchoter pendant tout son tour ; Olu parle plus fort.",
+      "passable": true
+    },
+    {
+      "id": "per-32",
+      "plateau": 4,
+      "biome_slug": "taiga",
+      "texte": "Le loup chante : l'Opérateur hurle une fois, doucement, à la lune, avant de lancer. S'il ne veut pas, le Gestionnaire le fait.",
+      "passable": true
+    }
+  ]
+}

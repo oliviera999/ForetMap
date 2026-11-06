@@ -1,0 +1,512 @@
+{
+  "format": "olu-lignes v1 — commentateur de match ; {equipe} nom d'équipe, {n} nombre, {biome} nom du biome ; moment `oiseau` = après le passage de l'oiseau (Olu se fige pendant) ; moment `erreur` = erreur volontaire avec sa correction",
+  "lignes": [
+    {
+      "id": "olu-01",
+      "moment": "ouverture",
+      "expression": "neutre",
+      "texte": "Bonjour la caravane. Le voile a dormi, nous aussi ; on repart.",
+      "variables": []
+    },
+    {
+      "id": "olu-02",
+      "moment": "ouverture",
+      "expression": "joie",
+      "texte": "Sortez les dés, rangez les trousses : le carnet n'attend que vous.",
+      "variables": []
+    },
+    {
+      "id": "olu-03",
+      "moment": "ouverture",
+      "expression": "curieux",
+      "texte": "Je sens le {biome} d'ici. Qui fouille en premier ?",
+      "variables": [
+        "biome"
+      ]
+    },
+    {
+      "id": "olu-04",
+      "moment": "ouverture",
+      "expression": "curieux",
+      "texte": "La semaine dernière, {equipe} a trouvé une page. Cette semaine, qui la tient ?",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-05",
+      "moment": "ouverture",
+      "expression": "explique",
+      "texte": "Rappel du renard : une mauvaise réponse ne coûte rien. Une page oubliée, si.",
+      "variables": []
+    },
+    {
+      "id": "olu-06",
+      "moment": "ouverture",
+      "expression": "pensif",
+      "texte": "Le nid est plein. Je ne dis pas qui l'a rempli. Je ne dis jamais rien de lui, d'ailleurs.",
+      "variables": []
+    },
+    {
+      "id": "olu-07",
+      "moment": "jet",
+      "expression": "surpris",
+      "texte": "Double six ! Je n'avais pas vu ça depuis la savane.",
+      "variables": []
+    },
+    {
+      "id": "olu-08",
+      "moment": "jet",
+      "expression": "agace",
+      "texte": "Double un. Même les escargots ont déjà vu mieux. On avance quand même.",
+      "variables": []
+    },
+    {
+      "id": "olu-09",
+      "moment": "jet",
+      "expression": "neutre",
+      "texte": "Un {n}. Correct, sans plus. Comme mes talents de pêcheur.",
+      "variables": [
+        "n"
+      ]
+    },
+    {
+      "id": "olu-10",
+      "moment": "jet",
+      "expression": "joie",
+      "texte": "{n} cases ! Il y a du vent dans les pattes de {equipe}.",
+      "variables": [
+        "equipe",
+        "n"
+      ]
+    },
+    {
+      "id": "olu-11",
+      "moment": "jet",
+      "expression": "explique",
+      "texte": "Le vent de la caravane pousse {equipe} : trois cases offertes par les autres. C'est ça, une caravane.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-12",
+      "moment": "jet",
+      "expression": "explique",
+      "texte": "{equipe} est au camp et prête ses dés à la dernière. Les premiers tirent, c'est la règle de la route.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-13",
+      "moment": "jet",
+      "expression": "curieux",
+      "texte": "Deux dés, et le pion qui glisse. Si vous entendez un bruit de sabots, c'est la licorne qui s'impatiente.",
+      "variables": []
+    },
+    {
+      "id": "olu-14",
+      "moment": "question",
+      "expression": "joie",
+      "texte": "Juste ! Une case de plus, et on relance. Le savoir fait marcher.",
+      "variables": []
+    },
+    {
+      "id": "olu-15",
+      "moment": "question",
+      "expression": "neutre",
+      "texte": "Pas cette fois. On reste là, et c'est tout ; la case ne mord pas.",
+      "variables": []
+    },
+    {
+      "id": "olu-16",
+      "moment": "question",
+      "expression": "pensif",
+      "texte": "Pas encore. Je retiens la question pour la veillée.",
+      "variables": []
+    },
+    {
+      "id": "olu-17",
+      "moment": "question",
+      "expression": "joie",
+      "texte": "Vous avez débattu trente secondes et tranché en deux. Belle équipe.",
+      "variables": []
+    },
+    {
+      "id": "olu-18",
+      "moment": "question",
+      "expression": "neutre",
+      "texte": "Le Gestionnaire a tranché. Je respecte un Gestionnaire qui tranche.",
+      "variables": []
+    },
+    {
+      "id": "olu-19",
+      "moment": "fouille",
+      "expression": "pensif",
+      "texte": "Froid. Le carnet n'est pas par ici. Mais la carte est belle, non ?",
+      "variables": []
+    },
+    {
+      "id": "olu-20",
+      "moment": "fouille",
+      "expression": "pensif",
+      "texte": "Froid comme la nuit polaire. Changez de coin.",
+      "variables": []
+    },
+    {
+      "id": "olu-21",
+      "moment": "fouille",
+      "expression": "curieux",
+      "texte": "Tiède. Vous chauffez. L'Éclaireur a du nez.",
+      "variables": []
+    },
+    {
+      "id": "olu-22",
+      "moment": "fouille",
+      "expression": "joie",
+      "texte": "Chaud ! Il y a une page qui dort tout près.",
+      "variables": []
+    },
+    {
+      "id": "olu-23",
+      "moment": "fouille",
+      "expression": "surpris",
+      "texte": "Brûlant ! Si vous ne la trouvez pas, c'est qu'elle se cache sous vos pieds.",
+      "variables": []
+    },
+    {
+      "id": "olu-24",
+      "moment": "fouille",
+      "expression": "explique",
+      "texte": "Une page dort ici. Répondez à ce que vous voyez, et elle se réveille.",
+      "variables": []
+    },
+    {
+      "id": "olu-25",
+      "moment": "fouille",
+      "expression": "neutre",
+      "texte": "La page dort encore ici, mais maintenant tout le monde sait où. Quelqu'un reviendra.",
+      "variables": []
+    },
+    {
+      "id": "olu-26",
+      "moment": "fouille",
+      "expression": "agace",
+      "texte": "Déjà trouvée, celle-là. Vous vouliez vérifier ? Elle n'a pas bougé.",
+      "variables": []
+    },
+    {
+      "id": "olu-27",
+      "moment": "fouille",
+      "expression": "explique",
+      "texte": "Vous fouillez là où {equipe} a fouillé la semaine dernière. Regardez les empreintes, elles parlent.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-28",
+      "moment": "fouille",
+      "expression": "joie",
+      "texte": "Page trouvée ! Secrétaire, à toi. Une minute, pas plus, je compte.",
+      "variables": []
+    },
+    {
+      "id": "olu-29",
+      "moment": "tenir",
+      "expression": "joie",
+      "texte": "{equipe} a ouvert la page que l'autre peuple a trouvée : elle est tenue. Une gemme ou un cœur pour chacun, des deux côtés.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-30",
+      "moment": "tenir",
+      "expression": "explique",
+      "texte": "Un Gnome a lu ce qu'une Licorne a trouvé. C'est exactement comme ça que le carnet tient.",
+      "variables": []
+    },
+    {
+      "id": "olu-31",
+      "moment": "tenir",
+      "expression": "curieux",
+      "texte": "Une page trouvée, et personne de l'autre peuple pour la lire. Quelqu'un ?",
+      "variables": []
+    },
+    {
+      "id": "olu-32",
+      "moment": "tenir",
+      "expression": "joie",
+      "texte": "{n} pages tenues. Le carnet du chapitre est complet, le voile recule de trois cases, et je n'ai rien à redire.",
+      "variables": [
+        "n"
+      ]
+    },
+    {
+      "id": "olu-33",
+      "moment": "voile",
+      "expression": "neutre",
+      "texte": "Le dé gris dit {n}. Le voile avance. Rien de grave : on avance plus vite que lui.",
+      "variables": [
+        "n"
+      ]
+    },
+    {
+      "id": "olu-34",
+      "moment": "voile",
+      "expression": "pensif",
+      "texte": "Le voile a rattrapé {equipe}. On ne fouille plus de là, mais on avance encore ; les autres savent quoi faire.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-35",
+      "moment": "voile",
+      "expression": "joie",
+      "texte": "{equipe} est sortie du voile. Je le savais.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-36",
+      "moment": "voile",
+      "expression": "explique",
+      "texte": "Une page a pâli. Un mot sur dix. Les Gnomes ont des mains pour ça.",
+      "variables": []
+    },
+    {
+      "id": "olu-37",
+      "moment": "voile",
+      "expression": "pensif",
+      "texte": "Une zone est passée sous le voile avant qu'on la trouve. Elle attend les Gnomes.",
+      "variables": []
+    },
+    {
+      "id": "olu-38",
+      "moment": "voile",
+      "expression": "joie",
+      "texte": "Le voile recule de cinq. La classe a tenu ses cartes, et le monde le sent.",
+      "variables": []
+    },
+    {
+      "id": "olu-39",
+      "moment": "voile",
+      "expression": "neutre",
+      "texte": "Pas de dé gris cette semaine. Le voile dort. Moi aussi, un peu.",
+      "variables": []
+    },
+    {
+      "id": "olu-40",
+      "moment": "sort",
+      "expression": "explique",
+      "texte": "Progression : une case, pas plus. Mais la bonne.",
+      "variables": []
+    },
+    {
+      "id": "olu-41",
+      "moment": "sort",
+      "expression": "joie",
+      "texte": "Relance ! Le dé a droit à une seconde chance, comme tout le monde.",
+      "variables": []
+    },
+    {
+      "id": "olu-42",
+      "moment": "sort",
+      "expression": "curieux",
+      "texte": "Lanterne. Regardez le pointillé : une page dort là.",
+      "variables": []
+    },
+    {
+      "id": "olu-43",
+      "moment": "sort",
+      "expression": "surpris",
+      "texte": "Bourrasque ! {equipe} pousse une autre équipe de trois cases. Ça, c'est de la magie utile.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-44",
+      "moment": "sort",
+      "expression": "explique",
+      "texte": "Nommer. Trois vivants à voix haute, et une page pâlie se répare. Nommer, c'est tenir.",
+      "variables": []
+    },
+    {
+      "id": "olu-45",
+      "moment": "sort",
+      "expression": "neutre",
+      "texte": "Abri. Cette semaine, {equipe} protège une autre équipe. Je note.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-46",
+      "moment": "sort",
+      "expression": "joie",
+      "texte": "Farce ! Regardez la mascotte de {equipe} danser. Elle ne vous en voudra pas.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-47",
+      "moment": "sort",
+      "expression": "explique",
+      "texte": "Le pot est fait : chacun a versé sa part. C'est comme ça qu'on jette un sort.",
+      "variables": []
+    },
+    {
+      "id": "olu-48",
+      "moment": "seuil",
+      "expression": "joie",
+      "texte": "{equipe} est au camp ! Éclaireurs du chapitre. Maintenant, ils tirent les autres.",
+      "variables": [
+        "equipe"
+      ]
+    },
+    {
+      "id": "olu-49",
+      "moment": "seuil",
+      "expression": "joie",
+      "texte": "Toute la caravane est au camp. Le seuil s'ouvre. Rangez les dés, sortez les enveloppes.",
+      "variables": []
+    },
+    {
+      "id": "olu-50",
+      "moment": "seuil",
+      "expression": "explique",
+      "texte": "C'est la date : la caravane porte les retardataires au camp. Personne ne reste derrière, jamais.",
+      "variables": []
+    },
+    {
+      "id": "olu-51",
+      "moment": "peripetie",
+      "expression": "joie",
+      "texte": "Péripétie ! Lisez, faites, riez. On peut passer, mais c'est moins drôle.",
+      "variables": []
+    },
+    {
+      "id": "olu-52",
+      "moment": "bestiaire",
+      "expression": "surpris",
+      "texte": "Le lion polaire. Je ne connaissais pas. Je crois que la classe vient d'adopter une chimère.",
+      "variables": []
+    },
+    {
+      "id": "olu-53",
+      "moment": "bestiaire",
+      "expression": "curieux",
+      "texte": "Un nouvel animal au Bestiaire. La science n'est pas d'accord, mais le Bestiaire s'en moque.",
+      "variables": []
+    },
+    {
+      "id": "olu-54",
+      "moment": "oiseau",
+      "expression": "pensif",
+      "texte": "… Bon. Le nid a une gemme de plus. La prochaine page trouvée la rendra à quelqu'un qui en a besoin.",
+      "variables": []
+    },
+    {
+      "id": "olu-55",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le manchot vole très bien, c'est connu.",
+      "variables": [],
+      "correction": "Le manchot ne vole pas ; il « vole » sous l'eau avec ses ailes."
+    },
+    {
+      "id": "olu-56",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le baobab est un animal très lent.",
+      "variables": [],
+      "correction": "Le baobab est un arbre."
+    },
+    {
+      "id": "olu-57",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le dromadaire stocke de l'eau dans sa bosse.",
+      "variables": [],
+      "correction": "La bosse stocke de la graisse."
+    },
+    {
+      "id": "olu-58",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Les champignons sont des plantes.",
+      "variables": [],
+      "correction": "Les champignons ne sont ni des plantes ni des animaux ; ce sont des décomposeurs."
+    },
+    {
+      "id": "olu-59",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le renard des sables a de petites oreilles pour avoir moins chaud.",
+      "variables": [],
+      "correction": "Le fennec a de grandes oreilles, qui évacuent la chaleur."
+    },
+    {
+      "id": "olu-60",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le hérisson pond des œufs.",
+      "variables": [],
+      "correction": "Le hérisson est un mammifère, il met bas."
+    },
+    {
+      "id": "olu-61",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Les arbres de la taïga perdent toutes leurs feuilles en hiver.",
+      "variables": [],
+      "correction": "La plupart sont des conifères à aiguilles persistantes ; seul le mélèze les perd."
+    },
+    {
+      "id": "olu-62",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le lichen est une mousse.",
+      "variables": [],
+      "correction": "Le lichen est une association d'un champignon et d'une algue."
+    },
+    {
+      "id": "olu-63",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "En été, la toundra reste dans la nuit.",
+      "variables": [],
+      "correction": "En été, le soleil ne se couche pas ; la nuit polaire, c'est l'hiver."
+    },
+    {
+      "id": "olu-64",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Les termites mangent de la viande.",
+      "variables": [],
+      "correction": "Elles mangent du bois et des végétaux morts ; ce sont des décomposeurs."
+    },
+    {
+      "id": "olu-65",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "La droséra mange des lapins.",
+      "variables": [],
+      "correction": "Elle attrape des insectes."
+    },
+    {
+      "id": "olu-66",
+      "moment": "erreur",
+      "expression": "explique",
+      "texte": "Le renne est une girafe des neiges.",
+      "variables": [],
+      "correction": "C'est un cervidé, comme le cerf ; et chez le renne, même les femelles ont des bois."
+    }
+  ]
+}
