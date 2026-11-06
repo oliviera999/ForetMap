@@ -8,6 +8,7 @@
  * testable unitairement (`tests-ui/utils/taskSectioning.test.js`).
  */
 
+import { taskMatchesTaxonomyFilters } from './taskTaxonomyFilters.js';
 import { daysUntil } from './badges';
 import {
   compareTasksByImportanceThenDueDate,
@@ -134,8 +135,10 @@ export function taskMatchesFilters(
     filterGroupId = '',
     filterUrgentCategory = '',
     filterRecurrence = '',
+    taxonomyFilters = null,
   } = {},
 ) {
+  if (taxonomyFilters && !taskMatchesTaxonomyFilters(t, taxonomyFilters)) return false;
   if (!taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)) return false;
   if (
     filterText &&

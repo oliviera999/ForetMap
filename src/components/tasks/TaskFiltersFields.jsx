@@ -5,6 +5,33 @@ import { TASK_STATUS_FILTER_OPTIONS } from './taskViewHelpers.js';
 import { filterProjectsByMapChoice } from '../../utils/taskSectioning.js';
 import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelpers.js';
 import { TASK_RECURRENCE_ENUM } from '../../shared/enums/taskEnums.js';
+import { TASK_CATEGORIES, TASK_FORMATS } from '../../shared/taskTaxonomyCore.js';
+import {
+  EMPTY_TASK_TAXONOMY_FILTERS,
+  toggleTaxonomyValue,
+} from '../../utils/taskTaxonomyFilters.js';
+
+/** Groupe de boutons à bascule (sélection multiple) d'un filtre de taxonomie. */
+function TaxonomyFilterGroup({ label, options, selected, onToggle }) {
+  return (
+    <div className="task-taxo-filter" role="group" aria-label={label}>
+      {options.map((o) => {
+        const active = selected.includes(o.key);
+        return (
+          <button
+            key={o.key}
+            type="button"
+            className={`btn btn-sm task-taxo-filter__chip ${active ? 'btn-primary' : 'btn-ghost'}`}
+            aria-pressed={active}
+            onClick={() => onToggle(o.key)}
+          >
+            <span aria-hidden="true">{o.emoji}</span> {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Champs de filtrage de la vue Tâches : carte, lieu (zones + repères utilisés),
@@ -57,6 +84,8 @@ export function TaskFiltersFields({
   setHasTouchedStatusFilter,
   filterRecurrence = '',
   setFilterRecurrence = () => {},
+  taxonomyFilters = EMPTY_TASK_TAXONOMY_FILTERS,
+  setTaxonomyFilters = () => {},
 }) {
   const publicSettings = usePublicSettings();
   const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
@@ -201,6 +230,22 @@ export function TaskFiltersFields({
           <option value="none">Sans récurrence</option>
         </select>
       )}
+      <TaxonomyFilterGroup
+        label="Filtrer les tâches par métier"
+        options={TASK_CATEGORIES}
+        selected={taxonomyFilters.categories}
+        onToggle={(key) =>
+          setTaxonomyFilters((f) => ({ ...f, categories: toggleTaxonomyValue(f.categories, key) }))
+        }
+      />
+      <TaxonomyFilterGroup
+        label="Filtrer les tâches par format"
+        options={TASK_FORMATS}
+        selected={taxonomyFilters.formats}
+        onToggle={(key) =>
+          setTaxonomyFilters((f) => ({ ...f, formats: toggleTaxonomyValue(f.formats, key) }))
+        }
+      />
       <select
         value={filterStatus}
         aria-label="Filtrer les tâches par statut"

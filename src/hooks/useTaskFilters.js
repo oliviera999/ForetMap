@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { readTaskTaxonomyFilters, writeTaskTaxonomyFilters } from '../utils/taskTaxonomyFilters.js';
 
 /**
  * États des filtres de la vue Tâches (P2, extrait de tasks-views.jsx, iso-comportement) :
@@ -22,6 +23,14 @@ export function useTaskFilters(activeMapId, mapLocationFocus = null) {
    * 'none' = sans récurrence.
    */
   const [filterRecurrence, setFilterRecurrence] = useState('');
+  /**
+   * Métiers et formats (sélection multiple) et raccourci « J'ai 15 minutes » (migration 329),
+   * mémorisés pour la session d'onglet.
+   */
+  const [taxonomyFilters, setTaxonomyFilters] = useState(readTaskTaxonomyFilters);
+  useEffect(() => {
+    writeTaskTaxonomyFilters(taxonomyFilters);
+  }, [taxonomyFilters]);
 
   const mapLocationFocusKey = mapLocationFocus
     ? `${mapLocationFocus.kind}:${mapLocationFocus.id}`
@@ -54,5 +63,7 @@ export function useTaskFilters(activeMapId, mapLocationFocus = null) {
     setFilterUrgentCategory,
     filterRecurrence,
     setFilterRecurrence,
+    taxonomyFilters,
+    setTaxonomyFilters,
   };
 }

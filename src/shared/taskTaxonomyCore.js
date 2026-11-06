@@ -103,6 +103,28 @@ export const PROJECT_PHASE_KEYS = TASK_PROJECT_PHASE_ENUM.values;
 export const RECURRING_TASK_FORMAT = 'routine';
 /** Format du raccourci « J'ai 15 minutes ». */
 export const QUICK_TASK_FORMAT = 'flash';
+/** Format d'une tâche d'environ une heure. */
+export const SESSION_TASK_FORMAT = 'seance';
+
+/**
+ * Garde-fou de format (formulaire) : une Séance avec autant d'élèves requis, ou une
+ * description aussi longue, ressemble à un projet à découper en étapes.
+ */
+export const PROJECT_LIKE_MIN_STUDENTS = 6;
+export const PROJECT_LIKE_MIN_DESCRIPTION_CHARS = 1500;
+
+/**
+ * Vrai si une tâche Séance ressemble à un projet (suggestion non bloquante de découpage).
+ * @param {{ format?: string|null, required_students?: number|string, description?: string }} task
+ */
+export function taskLooksLikeProject(task) {
+  if (task?.format !== SESSION_TASK_FORMAT) return false;
+  const students = Number(task?.required_students) || 0;
+  const descriptionLength = String(task?.description ?? '').length;
+  return (
+    students >= PROJECT_LIKE_MIN_STUDENTS || descriptionLength > PROJECT_LIKE_MIN_DESCRIPTION_CHARS
+  );
+}
 
 const LISTS = {
   category: { list: TASK_CATEGORIES, field: 'Métier' },

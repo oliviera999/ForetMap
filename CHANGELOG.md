@@ -28,6 +28,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   proposition (`proposed_by_user_id`) renseigné par la route de proposition, jamais par l'API ;
   suggestion automatique de métier et de format (`lib/tasks/taskCategoryGuess.js`, règles
   partagées avec le formulaire) ; test anti-littéraux.
+- **Lot C — interface des tâches et des projets** : formulaire de tâche avec **métier**
+  (grille de 8 boutons) et **format** (3 boutons) obligatoires à la création, pré-remplis par
+  la suggestion (mention « suggéré »), format verrouillé sur Routine pour une tâche
+  récurrente, champ **phase** visible seulement avec un projet ; suggestion affichée sans
+  être appliquée sur une tâche ancienne ; garde-fou non bloquant « Cette tâche ressemble à un
+  projet » (Séance à 6 élèves ou plus, ou description de plus de 1 500 caractères) ;
+  formulaire de projet avec **type** et rappel des cinq phases ; étiquettes
+  « 🪴 Jardinage · ⚡ Flash » sur les tuiles ; filtres métier et format (sélection multiple)
+  et raccourci « ⚡ J'ai 15 minutes » (Flash disponibles), mémorisés pour la session
+  d'onglet ; frise des phases dans les projets (phase courante, phase vide en pointillé) et
+  tâches regroupées par phase.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 
