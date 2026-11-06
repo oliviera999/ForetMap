@@ -88,7 +88,7 @@ test('accès : réservé à mcp.ops, retiré par mcp.ops_enabled et par le domai
 test('run_cron : tâche lancée tout de suite et tracée ; audit via mcp', async () => {
   const jobs = await call({ action: 'cron_jobs' });
   assert.equal(jobs.isError, false, jobs.text);
-  assert.equal(jobs.data.jobs.length, 4);
+  assert.equal(jobs.data.jobs.length, 5);
   const before = await queryOne(
     "SELECT COALESCE(MAX(id), 0) AS id FROM scheduled_job_runs WHERE job = 'notifications_purge'",
   );

@@ -216,3 +216,51 @@ test('écritures coupées quand le pont est désactivé ; lectures SQL conservé
   const s = await call('foretmap_tasks', { action: 'stats' });
   assert.equal(s.isError, false, s.text);
 });
+
+test('taxonomie : création, filtres de liste, statistiques par métier et format, phases du projet', async () => {
+  const proj = await call('foretmap_task_projects', {
+    action: 'create',
+    data: { title: `Projet taxo MCP ${Date.now()}`, map_id: mapId, project_type: 'construction' },
+  });
+  assert.equal(proj.isError, false, proj.text);
+  const projectId = proj.data.id;
+  projectIds.push(projectId);
+  const created = await call('foretmap_tasks', {
+    action: 'create',
+    data: {
+      title: `Tâche taxo MCP ${Date.now()}`,
+      map_id: mapId,
+      project_id: projectId,
+      category: 'bricolage',
+      format: 'seance',
+      project_phase: 'realiser',
+    },
+  });
+  assert.equal(created.isError, false, created.text);
+  taskIds.push(created.data.id);
+  const list = await call('foretmap_tasks', {
+    action: 'list',
+    project_id: projectId,
+    category: 'bricolage,rangement',
+  });
+  assert.equal(list.isError, false, list.text);
+  assert.equal(list.data.total, 1);
+  assert.equal(list.data.items[0].category, 'bricolage');
+  assert.equal(list.data.items[0].project_phase, 'realiser');
+  const none = await call('foretmap_tasks', {
+    action: 'list',
+    project_id: projectId,
+    format: 'flash',
+  });
+  assert.equal(none.data.total, 0);
+  const stats = await call('foretmap_tasks', { action: 'stats', project_id: projectId });
+  assert.deepEqual(
+    stats.data.by_category.map((r) => [r.category, r.n]),
+    [['bricolage', 1]],
+  );
+  assert.equal(stats.data.by_format[0].format, 'seance');
+  const fiche = await call('foretmap_task_projects', { action: 'get', project_id: projectId });
+  assert.equal(fiche.isError, false, fiche.text);
+  assert.equal(fiche.data.project_type, 'construction');
+  assert.equal(fiche.data.phase_progress.current_phase, 'realiser');
+});

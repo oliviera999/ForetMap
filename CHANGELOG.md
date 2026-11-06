@@ -68,6 +68,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   vitrine du groupe filtré dans les statistiques n3boss (« Qui est proche d'un palier ? »),
   bouton « Décerner un badge » sur la ligne d'un élève, dans la vitrine et sur les comptes
   rendus d'une tâche.
+- **Lot G — connecteur MCP** : `foretmap_tasks` (filtres `category`, `format`,
+  `project_phase` sur `list`, champs acceptés par `create` / `update` / `bulk_create`,
+  `stats` par métier et par format) ; `foretmap_task_projects get` (type de projet,
+  avancement par phase) ; `foretmap_students get` (badges décrits : titre, palier, mot de
+  l'adulte) et nouvelle action nominative `rewards_near` (élèves à un palier près, par
+  groupe, par la même route que la vitrine) ; job `rewards_evaluate` lançable par
+  `foretmap_ops run_cron`.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 

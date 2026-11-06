@@ -98,8 +98,14 @@ function RewardCard({ entry, earned, progress }) {
  * `onSeen` marque les annonces vues (`POST /api/rewards/me/seen`).
  */
 export function MyRewardsPanel({ data, onSeen }) {
-  const catalogue = Array.isArray(data?.catalogue) ? data.catalogue : [];
-  const rewards = Array.isArray(data?.rewards) ? data.rewards : [];
+  const catalogue = useMemo(
+    () => (Array.isArray(data?.catalogue) ? data.catalogue : []),
+    [data?.catalogue],
+  );
+  const rewards = useMemo(
+    () => (Array.isArray(data?.rewards) ? data.rewards : []),
+    [data?.rewards],
+  );
   const progressByKey = useMemo(
     () => new Map((data?.progress || []).map((p) => [p.key, p])),
     [data?.progress],
