@@ -9,6 +9,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L « Tenir à deux » v2 : relecture de code (passe 2)
+
+- **Temps réel** : les évènements privés (chapardeur, nid rendu, retrait, badge, héritage,
+  bourses d'une page tenue…) partaient entiers sur la socket de partie ; `emitGlGameEvent`
+  les réduit à leurs clés publiques (`lib/realtime.js`).
+- **Clôture** : `ended` et le Seuil dans une seule transaction (un Seuil en échec laissait la
+  partie close sans honneurs ni caravane, impossible à rejouer).
+- **Chasse** : le jeton de lecture d'une autre page est refusé **avant** toute écriture (400
+  `JETON_AUTRE_PAGE`) ; lecture et tenue rejouent les permissions de surface (élève en
+  `tableau` → 403 `TENIR_LIRE_SURFACE`, retrait, partie en cours).
+- **Dés** : un élève ne transforme plus un tirage `serveur` en faces choisies (`physique`
+  hors du mode de sa surface n'est accepté que vers la file du prof, 403 `TENIR_DES_MODE`) ;
+  Relance : la saisie physique en attente est bien refusée (colonne inexistante, erreur avalée).
+- **Marché** : la règle surface / phase (`marche`) est rejouée côté serveur sur toute action
+  (403 `MARCHE_PHASE`) ; une parure se paie dans la ressource du catalogue (le corps ne
+  décidait que pour `choix`).
+- **Cases Trame** : +1 ressource du peuple même sans bloc `effects` sur la case.
+- **Honneurs** : le préfixe du double honneur lisait une clé mal orthographiée
+  (`tenir_titres_…`) ; titres majoritaires calculés en deux requêtes pour toute la partie.
+- **Divers** : « On passe » validé (partie tenir, équipe de la partie, un joueur pour la
+  sienne) ; motif d'une avance libre **privé** ; limite de sort par trimestre / année hors
+  bornes repliée sur le chapitre ; `PUT /tenir/profil { profil: null }` ramène aux règles
+  classiques ; voyageur : un sort du grimoire ne se lance que pendant une traversée (409
+  `SPELL_HORS_EXPEDITION`) ; un brouillon consulté ne crée plus son état tenir ; CSV :
+  cellules commençant par `= + - @` neutralisées (injection de formule) ; doublons retirés
+  (`pasEncore`, conclusion d'annonce), bloc vide du Seuil.
+- Tests : `tests/gl-tenir-relecture.test.js` (14 cas), préfixe de double honneur configurable.
+
 ### Corrigé — G&L « Tenir à deux » v2 : bloc tenir côté client, libellés du journal, captures
 
 - Le modèle de vue client (`toGameViewModel`) conserve désormais le bloc `tenir` renvoyé par

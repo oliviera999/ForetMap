@@ -127,6 +127,10 @@ test('validation auto : la saisie physique d’une tablette s’applique directe
 });
 
 test('serveur : 2 dés tirés, total 2–12, journal dice_roll serveur', async () => {
+  await execute('UPDATE gl_games SET tenir_overrides_json = ? WHERE id = ?', [
+    JSON.stringify({ surface: 'tablette', des_mode: 'serveur' }),
+    ctx.game.id,
+  ]);
   const team = ctx.teams[2];
   const player = ctx.players.find((p) => p.teamId === Number(team.id));
   const res = await request(app)
@@ -193,7 +197,12 @@ test('équipe au camp : son jet est appliqué à l’équipe la plus en retard (
   await closeRound();
   // Sans vent : la dernière reste la dernière d'une ouverture à l'autre.
   await execute('UPDATE gl_games SET tenir_overrides_json = ? WHERE id = ?', [
-    JSON.stringify({ surface: 'tablette', des_physiques_validation: 'auto', vent: false }),
+    JSON.stringify({
+      surface: 'tablette',
+      des_mode: 'physique',
+      des_physiques_validation: 'auto',
+      vent: false,
+    }),
     ctx.game.id,
   ]);
   const camp = ctx.markers[ctx.markers.length - 1];

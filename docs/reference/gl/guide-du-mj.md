@@ -261,6 +261,10 @@ Trois repères utiles :
 
 ## La séance « Tenir à deux »
 
+> Une partie créée avec la mouture active joue en profil **Complet** ; le panneau « Tenir à deux »
+> de la console permet de passer en **Prologue** ou de **revenir aux règles classiques** (profil
+> « aucun ») tant que la partie n'est pas close.
+
 Quand une partie joue la mouture « Tenir à deux », le tour se joue **par phases** depuis l'écran
 « Jouer le tour » de la console, projeté au tableau : **ouverture** (ordre des équipes : la plus
 en retard d'abord ; dès le deuxième tour, le vent de la caravane pousse la dernière de trois cases ;

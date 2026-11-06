@@ -18,7 +18,13 @@ const {
 } = require('../../lib/glMarket');
 const { listTradableFeuilletsForPlayer } = require('../../lib/glMarketFeuillets');
 const marketPlace = require('../../lib/glMarketPlace');
-const { isPlayerEnRetrait, isTenirGame, resolveTenirSettings } = require('../../lib/glTenir');
+const {
+  isPlayerEnRetrait,
+  isTenirGame,
+  resolveTenirSettings,
+  resolveSurface,
+} = require('../../lib/glTenir');
+const { resolveTenirPermissions } = require('../../lib/shared/glTenirPermissionsCore');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { queryOne } = require('../../database');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
@@ -59,6 +65,30 @@ router.use(
       return res
         .status(403)
         .json({ error: 'En retrait jusqu’à nouvel ordre', code: 'MARCHE_RETRAIT' });
+    }
+    // Règle de surface / phase (`resolveTenirPermissions.marche`) : rejouée côté serveur pour
+    // toute action (lecture libre). En `tableau` pendant la phase `jeu`, ou si
+    // `marche_pendant_tour` est faux, le Marché attend la veillée.
+    if (req.method !== 'GET') {
+      const round = await queryOne(
+        `SELECT r.phase FROM gl_games g
+           INNER JOIN gl_game_rounds r ON r.game_id = g.id AND r.round_number = g.current_round_number
+          WHERE g.id = ? LIMIT 1`,
+        [Number(live.id)],
+      );
+      const perms = resolveTenirPermissions({
+        surface: resolveSurface(live, settings),
+        phase: round ? round.phase : null,
+        actorKind: 'player',
+        isMember: true,
+        enRetrait: false,
+        settings: resolveTenirSettings(settings, live),
+      });
+      if (!perms.marche) {
+        return res
+          .status(403)
+          .json({ error: 'Le Marché rouvre à la veillée', code: 'MARCHE_PHASE' });
+      }
     }
     return next();
   }),
