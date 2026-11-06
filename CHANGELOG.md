@@ -39,6 +39,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   et raccourci « ⚡ J'ai 15 minutes » (Flash disponibles), mémorisés pour la session
   d'onglet ; frise des phases dans les projets (phase courante, phase vide en pointillé) et
   tâches regroupées par phase.
+- **Lot D — classement des tâches existantes** : `scripts/backfill-task-taxonomy.js`
+  (dry-run par défaut → `tmp/task-taxonomy-proposal.csv` ; `--apply --file` n'applique que
+  le CSV relu, en une transaction, une ligne `audit_log` `task_taxonomy_backfill` ; champs
+  NULL seulement sauf `--overwrite` ; jamais de statut ni d'avancement). Projets et phases
+  depuis `scripts/data/task-taxonomy-annex2.json` (préfixes vérifiés, arrêt si ambigu) ;
+  candidats « projet » et récurrence suspecte signalés à part, sans transformation.
 
 ### Ajouté — Connecteur Claude : outils de domaine (suite)
 

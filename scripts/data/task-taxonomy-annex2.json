@@ -1,0 +1,65 @@
+{
+  "_comment": "Annexe 2 du cahier des charges du 06/11/2026 : type de chaque projet et phase de ses tâches, par préfixe d'identifiant (résolu à l'exécution ; un préfixe ambigu arrête le script). Lu par scripts/backfill-task-taxonomy.js.",
+  "projects": [
+    {
+      "prefix": "812a4626",
+      "title": "Journées vertes",
+      "type": "evenement",
+      "phases": {
+        "preparer": ["003ece31", "3a920b46", "b4666165", "3644420f"],
+        "transmettre": ["e0356fc8"]
+      }
+    },
+    {
+      "prefix": "f9090278",
+      "title": "Arrosage manuel",
+      "type": "campagne",
+      "allTasksPhase": "realiser"
+    },
+    {
+      "prefix": "d86e437a",
+      "title": "Aménagement du jardin derrière le bât. S",
+      "type": "amenagement",
+      "phases": {
+        "concevoir": ["ceb751b6"],
+        "preparer": ["6ee7fcc0", "1ace3385", "a4a24cc4"],
+        "realiser": ["2d83f45a", "1351dd36", "da0f6db8"]
+      }
+    },
+    {
+      "prefix": "6fcec90c",
+      "title": "Installation du vidéoprojecteur",
+      "type": "construction",
+      "phases": {
+        "preparer": ["3d7ee781"],
+        "tester": ["52b8f3e6"],
+        "realiser": ["44d06cc0", "7787fb88", "713f8426"]
+      }
+    },
+    {
+      "prefix": "98195750",
+      "title": "ffp5 — l'aquaponie mobile",
+      "type": "dispositif_technique",
+      "phases": {
+        "concevoir": ["c971364d"],
+        "tester": ["87d57caf"],
+        "realiser": ["2039f157", "d8b2952d", "6f2f4b73", "ec905da1"]
+      },
+      "unphased": ["78d9837b"]
+    },
+    { "prefix": "e473de71", "title": "msp v2.0", "type": "dispositif_technique" },
+    { "prefix": "f817d8f4", "title": "n3pp v2.0", "type": "dispositif_technique" },
+    { "prefix": "99b1f2b1", "title": "Vernir et peindre le mobilier", "type": "amenagement" }
+  ],
+  "projectCandidates": [
+    { "prefix": "1d5e7788", "title": "Construire une étagère de plus pour l'établi" },
+    { "prefix": "ce2d5e32", "title": "Organisation coin stockage" },
+    { "prefix": "a1f2065d", "title": "Rangement et organisation des graines" }
+  ],
+  "suspectRecurrence": [
+    {
+      "title": "Transformation Insectopolis",
+      "note": "récurrence hebdomadaire probablement saisie par erreur (à corriger à la main) : le format proposé reste « routine » tant qu'elle existe"
+    }
+  ]
+}
