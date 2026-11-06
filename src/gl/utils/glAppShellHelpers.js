@@ -223,6 +223,7 @@ export function toGameViewModel(raw) {
   const pendingActions = Array.isArray(raw?.pendingActions) ? raw.pendingActions : [];
   const roster = Array.isArray(raw?.roster) ? raw.roster : [];
   const vitality = raw?.vitality && typeof raw.vitality === 'object' ? raw.vitality : null;
+  const tenir = raw?.tenir && typeof raw.tenir === 'object' ? raw.tenir : null;
   return {
     game,
     teams,
@@ -232,6 +233,7 @@ export function toGameViewModel(raw) {
     events: raw?.events || [],
     roster,
     vitality,
+    tenir,
   };
 }
 

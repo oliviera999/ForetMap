@@ -92,6 +92,16 @@ Toutes sous `/api/gl/games/:id/…` sauf mention (détail dans [`API.md`](API.md
 `honneur`, `mission_reussie`, `badge` (privé), `chimere_validee`, `plume_validee`, `seuil_clos`,
 `don`, `annonce_*`, `parure_*`.
 
+Libellés lisibles (élève / MJ / projection) : `lib/glJournalPresentTenir.js`, branché dans
+`lib/glJournalPresent.js` (repli générique pour tout type inconnu). Le modèle de vue client
+(`src/gl/utils/glAppShellHelpers.js › toGameViewModel`) conserve le bloc `tenir` de
+`GET /games/:id` ; sans lui, aucun écran tenir ne se monte.
+
+## Captures
+
+`docs/captures/tenir-v2/` : écran du tour projeté avec voile, écran d'équipe (tablette),
+projection, Marché (partie d'exemple anonyme, profil `complet`).
+
 ## Surfaces et verrous
 
 | Surface  | Lancer / répondre / fouiller                               | Lire | Marché pendant `jeu` |

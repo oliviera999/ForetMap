@@ -85,6 +85,7 @@ describe('toGameViewModel', () => {
       events: [],
       roster: [],
       vitality: null,
+      tenir: null,
     });
   });
 
@@ -98,8 +99,16 @@ describe('toGameViewModel', () => {
       events: [{ id: 'e' }],
       roster: [{ playerId: 2, teamId: 9 }],
       vitality: { enabled: true, byPlayerId: { 2: { health: 3, power: 3 } } },
+      tenir: { enabled: true, surface: 'tablette', profil: 'complet' },
     };
     expect(toGameViewModel(raw)).toEqual(raw);
+  });
+
+  test('bloc tenir : conservé tel quel, sinon null (jamais perdu)', () => {
+    expect(toGameViewModel({ game: { id: 1 }, tenir: 'oops' }).tenir).toBeNull();
+    expect(toGameViewModel({ game: { id: 1 } }).tenir).toBeNull();
+    const tenir = { enabled: true, surface: 'tableau' };
+    expect(toGameViewModel({ game: { id: 1 }, tenir }).tenir).toBe(tenir);
   });
 });
 

@@ -9,6 +9,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé — G&L « Tenir à deux » v2 : bloc tenir côté client, libellés du journal, captures
+
+- Le modèle de vue client (`toGameViewModel`) conserve désormais le bloc `tenir` renvoyé par
+  `GET /api/gl/games/:id` : l'écran d'équipe et l'onglet « Jouer le tour » se montaient
+  seulement en test, jamais dans l'application réelle.
+- Journal de partie : libellés lisibles pour les 46 évènements « Tenir à deux »
+  (`lib/glJournalPresentTenir.js` : tour, phases, vent, dés, fouilles, pages, voile, chapardeur,
+  honneurs…) au lieu de « Un évènement s'est produit dans la partie » ; sans chaîne interdite,
+  évènements privés lus sur leurs seules clés publiques (`tests/gl-journal-tenir-libelles`).
+- Captures des quatre vues dans `docs/captures/tenir-v2/`.
+
 ### Ajouté — G&L « Tenir à deux » v2, étape 4 : grimoire exécuté, honneurs, Olu, exports, docs
 
 - Migration `333_gl_tenir_grimoire.sql` : semis du grimoire v2 (25 sorts de `sorts.json`,
